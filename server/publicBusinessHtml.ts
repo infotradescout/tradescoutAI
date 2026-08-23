@@ -557,7 +557,7 @@ export async function buildPublicBusinessHtml({
     ownerVerificationStatus,
     ownerAddressVerified,
   });
-  const tradeSlug = deriveTradeSlugFromProfileData(publicProfile as any);
+  const tradeSlug = String(snapshotRows[0]?.trade_slug || "").trim() || null;
   const tradeMatch = tradeSlug ? getTradeSeoMatch(tradeSlug) : null;
   const rules = await getPublicationRules();
   const pub = isPublicAndCrawlableBusinessDetail(

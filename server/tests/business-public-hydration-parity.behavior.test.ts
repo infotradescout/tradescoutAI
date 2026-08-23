@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   countyIds: ["county-1"] as string[],
   countyRows: [] as any[],
   ownerRows: [] as any[],
+  executeCall: 0,
   getBusinessBySlugPublic: vi.fn(),
   getBusinessCountyIds: vi.fn(),
 }));
@@ -22,6 +23,47 @@ vi.mock("../storage", () => ({
 
 vi.mock("../db", () => ({
   db: {
+    execute: vi.fn(async () => {
+      mocks.executeCall += 1;
+      if (mocks.executeCall % 2 === 1) {
+        return { rows: [{ generation: 1, completed_at: new Date() }] };
+      }
+
+      const preferredStateCode = String(mocks.business?.profileData?.stateCode || "")
+        .trim()
+        .toUpperCase();
+      const orderedCounties = mocks.countyRows.slice().sort((left: any, right: any) => {
+        const leftState = String(left.stateCode || "").toUpperCase();
+        const rightState = String(right.stateCode || "").toUpperCase();
+        const leftPreferred = leftState === preferredStateCode ? 0 : 1;
+        const rightPreferred = rightState === preferredStateCode ? 0 : 1;
+        if (leftPreferred !== rightPreferred) return leftPreferred - rightPreferred;
+        return (
+          leftState.localeCompare(rightState) ||
+          String(left.name || "").localeCompare(String(right.name || "")) ||
+          String(left.fips || "").localeCompare(String(right.fips || ""))
+        );
+      });
+      const displayName = String(mocks.business?.name || "").startsWith("Verified ")
+        ? "Verified Gulf Roofing"
+        : "Gulf Roofing";
+      return {
+        rows: orderedCounties.map((county: any, index: number) => ({
+          business_id: mocks.business?.id,
+          display_name: displayName,
+          trade_slug: "roofing",
+          tier: mocks.business?.ownerUserId ? "verified" : "unclaimed",
+          claim_status: mocks.business?.claimStatus,
+          primary_state_code: orderedCounties[0]?.stateCode || null,
+          city_slug: "pensacola",
+          is_primary: index === 0,
+          county_id: county.id,
+          county_name: county.name,
+          state_code: county.stateCode,
+          fips: county.fips,
+        })),
+      };
+    }),
     select: (selection: Record<string, unknown>) => {
       const rows = Object.prototype.hasOwnProperty.call(selection, "verificationStatus")
         ? mocks.ownerRows
@@ -102,6 +144,7 @@ function buildApp() {
 
 describe("actual business hydration route parity", () => {
   beforeEach(() => {
+    mocks.executeCall = 0;
     mocks.business = publicBusiness();
     mocks.getBusinessBySlugPublic.mockReset().mockImplementation(async () => mocks.business);
     mocks.getBusinessCountyIds.mockReset().mockResolvedValue(["county-1"]);
@@ -190,10 +233,13 @@ describe("actual business hydration route parity", () => {
       "utf8"
     );
     expect(source).toContain('directoryData?.publication?.tier === "verified"');
-    expect(source).toContain('directoryTier === "verified" ? "approved" : "pending"');
+    expect(source).toContain('directoryTier === "verified" ? "approved" : "directory_unclaimed"');
     expect(source).toContain('addressVerified: (directoryTier === "verified")');
     expect(source).toContain("directoryData?.publication || null");
     expect(source).toContain('directoryClaimStatus === "unclaimed"');
+    expect(source).toContain('verificationStatus === "directory_unclaimed"');
+    expect(source).toContain('return "Unclaimed directory listing"');
+    expect(source).toContain("This source-backed directory listing is unclaimed");
     expect(source).toContain("stateCode: primaryStateCode || publicProfileStateCode || null");
     expect(source).toContain("publicProfileStateCode === primaryStateCode");
   });

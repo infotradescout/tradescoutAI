@@ -183,6 +183,7 @@ async function main() {
     "server/tests/public-directory-profile-sanitization.behavior.test.ts",
     "server/tests/public-discovery-equivalence.contract.test.ts",
     "server/tests/public-profile-publication-safety.behavior.test.ts",
+    "server/tests/public-profile-api-projection.test.ts",
     "server/tests/public-seo-html.test.ts",
     "server/tests/public-trade-html.contract.test.ts",
     "server/tests/scheduler-leadership-retry.behavior.test.ts",
@@ -310,6 +311,25 @@ async function main() {
       evidence.result = "fail";
       writeEvidence(evidence);
       process.exit(acquisitionDbProof.status);
+    }
+
+    const seoSnapshotDbProof = run(
+      "npm",
+      ["run", "test:run", "--", "server/tests/seo-directory-snapshot-db.integration.test.ts"],
+      {
+        env: { ...process.env, TEST_DATABASE_URL: testDbUrl, DATABASE_URL: "" },
+        label: "SEO directory snapshot disposable DB proof",
+      }
+    );
+    record(
+      "5-seo-directory-snapshot-db-proof",
+      seoSnapshotDbProof.ok ? "pass" : "fail",
+      `exit ${seoSnapshotDbProof.status}`
+    );
+    if (!seoSnapshotDbProof.ok) {
+      evidence.result = "fail";
+      writeEvidence(evidence);
+      process.exit(seoSnapshotDbProof.status);
     }
   }
 

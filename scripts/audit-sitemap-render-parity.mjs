@@ -2,6 +2,7 @@ const DEFAULT_MINIMUM_TEXT_CHARACTERS = 180;
 const DEFAULT_MAX_SITEMAPS = 1_000;
 const DEFAULT_MAX_URLS = 100_000;
 const DEFAULT_CONCURRENCY = 8;
+const CRAWLER_USER_AGENT = "Googlebot/2.1 (+http://www.google.com/bot.html)";
 
 function decodeXml(value) {
   return String(value || "")
@@ -177,7 +178,7 @@ export async function auditSitemapRenderParity({
     let xml;
     try {
       response = await fetchImpl(current, {
-        headers: { "user-agent": "TradeScout-Sitemap-Parity-Audit/1.0" },
+        headers: { "user-agent": CRAWLER_USER_AGENT },
       });
       xml = await response.text();
     } catch (error) {
@@ -230,7 +231,7 @@ export async function auditSitemapRenderParity({
   const renderResults = await mapConcurrent(contentUrls, concurrency, async (url) => {
     try {
       const response = await fetchImpl(url, {
-        headers: { "user-agent": "TradeScout-Sitemap-Parity-Audit/1.0" },
+        headers: { "user-agent": CRAWLER_USER_AGENT },
         redirect: "manual",
       });
       const html = await response.text();

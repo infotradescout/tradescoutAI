@@ -2234,10 +2234,7 @@ app.use(landingContractHeaders);
                     return res.status(404).send("Business not found");
                   }
 
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=300, stale-while-revalidate=86400"
-                  );
+                  res.setHeader("Cache-Control", "private, no-store");
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering public business HTML:", err);
@@ -2352,10 +2349,7 @@ app.use(landingContractHeaders);
                   });
                   if (!html) return res.status(404).send("Trade page not found");
 
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=300, stale-while-revalidate=86400"
-                  );
+                  res.setHeader("Cache-Control", "public, max-age=60, must-revalidate");
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering trade city HTML:", err);
@@ -2415,10 +2409,7 @@ app.use(landingContractHeaders);
                   });
                   if (!html) return res.status(404).send("Trade page not found");
 
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=300, stale-while-revalidate=86400"
-                  );
+                  res.setHeader("Cache-Control", "public, max-age=60, must-revalidate");
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering trade county HTML:", err);
@@ -2531,10 +2522,7 @@ app.use(landingContractHeaders);
                   });
                   if (!html) return res.status(404).send("City page not found");
 
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=300, stale-while-revalidate=86400"
-                  );
+                  res.setHeader("Cache-Control", "public, max-age=60, must-revalidate");
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering city HTML:", err);
@@ -2589,10 +2577,7 @@ app.use(landingContractHeaders);
                   });
                   if (!html) return res.status(404).send("County page not found");
 
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=300, stale-while-revalidate=86400"
-                  );
+                  res.setHeader("Cache-Control", "public, max-age=60, must-revalidate");
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering county HTML:", err);

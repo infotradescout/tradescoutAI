@@ -138,20 +138,20 @@ describe("SEO crawl recovery behavior", () => {
   });
 
   it("assigns a linked public /u URL to exactly one child sitemap", () => {
-    expect(
-      canonicalBusinessPresenceSitemapLoc({
-        baseUrl: "https://www.thetradescout.com",
+    const linkedProfileLoc = canonicalBusinessPresenceSitemapLoc({
+      baseUrl: "https://www.thetradescout.com",
+      businessSlug: "acme-roofing",
+      linkedProfile: {
+        profileSlug: "acme-roofing-profile",
         businessSlug: "acme-roofing",
-        linkedProfile: {
-          profileSlug: "acme-roofing-profile",
-          businessSlug: "acme-roofing",
-          customDomain: null,
-          contentBlocks: [],
-          isPublic: true,
-          updatedAt: null,
-        },
-      })
-    ).toBeNull();
+        customDomain: null,
+        contentBlocks: [],
+        isPublic: true,
+        updatedAt: null,
+      },
+    });
+    expect(linkedProfileLoc).toBe("https://www.thetradescout.com/u/acme-roofing-profile");
+    expect(linkedProfileLoc).not.toBe("https://www.thetradescout.com/business/acme-roofing");
     expect(
       canonicalBusinessPresenceSitemapLoc({
         baseUrl: "https://www.thetradescout.com",
@@ -367,10 +367,10 @@ describe("SEO crawl recovery behavior", () => {
       "utf8"
     );
     const tradeFailure = tradeSource.slice(
-      tradeSource.indexOf("[SEO] Trade county listing query failed"),
+      tradeSource.indexOf("[SEO] Trade county snapshot read failed"),
       tradeSource.indexOf(
-        "const rules = await getPublicationRules",
-        tradeSource.indexOf("[SEO] Trade county listing query failed")
+        "const items = snapshotItems.map",
+        tradeSource.indexOf("[SEO] Trade county snapshot read failed")
       )
     );
     const bestFailure = bestSource.slice(
@@ -381,7 +381,7 @@ describe("SEO crawl recovery behavior", () => {
       )
     );
     expect(tradeFailure).toContain("throw error;");
-    expect(tradeFailure).not.toContain("rows = [];");
+    expect(tradeFailure).not.toContain("snapshotItems = [];");
     expect(bestFailure).toContain("throw error;");
     expect(bestFailure).not.toContain("rows = [];");
   });

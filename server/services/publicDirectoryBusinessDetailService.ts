@@ -8,12 +8,10 @@ import {
   buildPublicBusinessSignals,
   canServePublicBusinessDetail,
   derivePublicationTier,
-  deriveTradeSlugFromProfileData,
 } from "../publicationBusiness";
 import {
   buildPublicDirectoryProfile,
   hasPublicDirectoryOfferingFacts,
-  sanitizePublicDirectoryDisplayName,
 } from "./publicDirectoryBusinessPresentation";
 import { assertSeoDirectorySnapshotReady } from "./seoDirectoryNavigationService";
 
@@ -56,7 +54,12 @@ export async function loadPublicDirectoryBusinessBySlug(args: {
       on membership.business_id = snapshot.business_id
     inner join counties county on county.id = membership.county_id
     where snapshot.slug = ${slug}
-    order by membership.is_primary desc, county.state_code, county.name, county.fips;
+    order by
+      membership.is_primary desc,
+      (county.state_code = snapshot.primary_state_code) desc,
+      county.state_code,
+      county.name,
+      county.fips;
   `);
   const snapshotRows = Array.isArray((snapshotResult as any)?.rows)
     ? (snapshotResult as any).rows
@@ -69,8 +72,8 @@ export async function loadPublicDirectoryBusinessBySlug(args: {
   }
 
   const publicProfile = buildPublicDirectoryProfile(business.profileData || {});
-  const publicName = sanitizePublicDirectoryDisplayName(business.name);
-  const tradeSlug = deriveTradeSlugFromProfileData(publicProfile);
+  const publicName = String(snapshotRows[0]?.display_name || "").trim();
+  const tradeSlug = String(snapshotRows[0]?.trade_slug || "").trim() || null;
   const countyRows = snapshotRows.map((row: any) => ({
     id: String(row.county_id || ""),
     name: String(row.county_name || ""),

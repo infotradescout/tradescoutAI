@@ -52,7 +52,7 @@ describe("anonymous directory profile sanitization", () => {
     }
   );
 
-  it("scrubs contact/address vectors from names on every aggregate SSR renderer", () => {
+  it("scrubs names before snapshot publication and never rehydrates raw names in aggregate SSR", () => {
     const safeName = sanitizePublicDirectoryDisplayName(
       "Bob's Roofing 850-555-0199 owner@private.example roof.example 123 Private Street"
     );
@@ -64,13 +64,38 @@ describe("anonymous directory profile sanitization", () => {
       "Local business"
     );
 
-    for (const relativePath of [
-      "server/publicCountyHtml.ts",
-      "server/publicTradeHtml.ts",
-      "server/publicBestHtml.ts",
-    ]) {
-      const source = fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
-      expect(source).toContain("sanitizePublicDirectoryDisplayName((r as any).name)");
+    const snapshotJobSource = fs.readFileSync(
+      path.resolve(process.cwd(), "server/services/seoDirectoryScopeSnapshotJob.ts"),
+      "utf8"
+    );
+    const snapshotReadSource = fs.readFileSync(
+      path.resolve(process.cwd(), "server/services/publicDirectorySnapshotReadService.ts"),
+      "utf8"
+    );
+    const countySource = fs.readFileSync(
+      path.resolve(process.cwd(), "server/publicCountyHtml.ts"),
+      "utf8"
+    );
+    const tradeSource = fs.readFileSync(
+      path.resolve(process.cwd(), "server/publicTradeHtml.ts"),
+      "utf8"
+    );
+    const bestSource = fs.readFileSync(
+      path.resolve(process.cwd(), "server/publicBestHtml.ts"),
+      "utf8"
+    );
+
+    expect(snapshotJobSource).toContain(
+      "displayName: sanitizePublicDirectoryDisplayName((r as any).name)"
+    );
+    expect(snapshotReadSource).toContain('const name = String(row?.display_name || "").trim()');
+    expect(snapshotReadSource).not.toContain("row?.name");
+    expect(snapshotReadSource).toContain("bp.display_name");
+    expect(snapshotReadSource).not.toContain("live.name");
+    expect(countySource).toContain("loadSnapshotCountyDirectory");
+    expect(tradeSource).toContain("loadSnapshotTradeCountyBusinesses");
+    expect(bestSource).toContain("sanitizePublicDirectoryDisplayName((r as any).name)");
+    for (const source of [countySource, tradeSource, bestSource]) {
       expect(source).not.toContain('name: String((r as any).name || "")');
     }
   });

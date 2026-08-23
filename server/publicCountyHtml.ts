@@ -1,26 +1,7 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { db } from "./db";
-import { businessCounties, businesses, counties, users } from "@shared/schema";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { getTradeBySlug, PRIMARY_TRADE_SLUGS, slugifyCountyName } from "@shared/tradeSeo";
-import { getPublicationRules } from "./publicationRules";
-import {
-  isPublicAndCrawlableBusiness,
-  isPublicAndCrawlableBusinessDetail,
-} from "@shared/publication";
-import {
-  buildPublicBusinessSignals,
-  canServePublicBusinessDetail,
-  derivePublicationTier,
-  deriveTradeSlugFromProfileData,
-  publicBusinessDetailExposureSqlPredicate,
-} from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
-import {
-  buildPublicDirectoryProfile,
-  hasPublicDirectoryOfferingFacts,
-  sanitizePublicDirectoryDisplayName,
-} from "./services/publicDirectoryBusinessPresentation";
+import { loadSnapshotCountyDirectory } from "./services/publicDirectorySnapshotReadService";
 
 type PublicCountyHtmlOptions = {
   origin: string;
@@ -168,118 +149,32 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
     ) || null;
   if (!county) return null;
 
-  const rules = await getPublicationRules();
-  const now = new Date();
-  const recencyCutoff = new Date(
-    now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
-  );
-
-  // Pull a recency-bounded slice of businesses in this county and derive trade presence in JS.
-  const runCountyQuery = () =>
-    db
-      .select({
-        id: businesses.id,
-        slug: businesses.slug,
-        name: businesses.name,
-        claimStatus: businesses.claimStatus,
-        ownerUserId: businesses.ownerUserId,
-        updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-        profileData: businesses.profileData,
-        ownerVerificationStatus: users.verificationStatus,
-        ownerAddressVerified: users.addressVerified,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          publicBusinessDetailExposureSqlPredicate(),
-          eq(businesses.publicDiscoveryEnabled, true as any),
-          eq(counties.fips, String((county as any).fipsCode || "")),
-          sql`${businesses.updatedAt} >= ${recencyCutoff}`
-        )
-      )
-      .orderBy(desc(businesses.updatedAt), asc(businesses.slug))
-      .limit(5000);
-
-  let rows: any[] = [];
-  try {
-    rows = await runCountyQuery();
-  } catch (error) {
-    throw error;
-  }
-
-  const tradeCounts = new Map<string, number>();
-  const tradeLastmod = new Map<string, Date>();
-  const sampleBusinesses: Array<{ slug: string; name: string; updatedAt: Date }> = [];
-
-  for (const r of rows) {
-    const updatedAt = (r as any).updatedAt instanceof Date ? (r as any).updatedAt : null;
-    if (!updatedAt) continue;
-    const profileData = buildPublicDirectoryProfile((r as any).profileData || {});
-    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
-    const businessSlug = String((r as any).slug || "").trim();
-    const businessName = sanitizePublicDirectoryDisplayName((r as any).name);
-    if (!businessSlug || !businessName) continue;
-
-    const tier = derivePublicationTier({
-      ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
-      claimStatus: String((r as any).claimStatus || ""),
-      ownerVerificationStatus: (r as any).ownerVerificationStatus
-        ? String((r as any).ownerVerificationStatus)
-        : null,
-      ownerAddressVerified:
-        typeof (r as any).ownerAddressVerified === "boolean"
-          ? (r as any).ownerAddressVerified
-          : null,
-    });
-
-    const signals = buildPublicBusinessSignals({
-      id: String((r as any).id),
-      name: businessName,
-      slug: businessSlug,
-      updatedAt,
-      publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
-      stateCode,
-      countyName: String((county as any).name || ""),
-      city: profileData.city || null,
-      tradeSlug,
-      hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(profileData),
-      tier,
-    });
-    const detailPublication = isPublicAndCrawlableBusinessDetail(signals, rules, now);
-    if (!canServePublicBusinessDetail({ publication: detailPublication, tier })) continue;
-
-    if (sampleBusinesses.length < 50) {
-      sampleBusinesses.push({ slug: businessSlug, name: businessName, updatedAt });
-    }
-
-    if (!tradeSlug) continue;
-    const tradePublication = isPublicAndCrawlableBusiness(signals, rules, now);
-    if (!tradePublication.ok) continue;
-    tradeCounts.set(tradeSlug, (tradeCounts.get(tradeSlug) || 0) + 1);
-    const prev = tradeLastmod.get(tradeSlug);
-    if (!prev || updatedAt > prev) tradeLastmod.set(tradeSlug, updatedAt);
-  }
-
-  const topTrades = Array.from(tradeCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 30)
-    .map(([slug, count]) => {
-      const trade = getTradeBySlug(slug);
-      return {
-        slug,
-        name: trade ? String((trade as any).name || slug) : slug,
-        count,
-        lastmod: tradeLastmod.get(slug) || null,
-      };
-    });
+  const directory = await loadSnapshotCountyDirectory({
+    countyFips: String((county as any).fipsCode || ""),
+    businessLimit: 50,
+    tradeLimit: 30,
+  });
+  const sampleBusinesses = directory.businesses.map((business) => ({
+    slug: business.slug,
+    name: business.name,
+    updatedAt: business.updatedAt,
+  }));
+  const topTrades = directory.trades.map(({ tradeSlug: slug, businessCount: count, updatedAt }) => {
+    const trade = getTradeBySlug(slug);
+    return {
+      slug,
+      name: trade ? String((trade as any).name || slug) : slug,
+      count,
+      lastmod: updatedAt,
+    };
+  });
 
   // Ensure primary trades appear (if present) to support deterministic internal linking.
-  const primaryPresent = PRIMARY_TRADE_SLUGS.filter((slug) => tradeCounts.has(slug)).slice(0, 24);
+  const presentTradeSlugs = new Set(directory.trades.map((scope) => scope.tradeSlug));
+  const primaryPresent = PRIMARY_TRADE_SLUGS.filter((slug) => presentTradeSlugs.has(slug)).slice(
+    0,
+    24
+  );
   const primaryLinks = primaryPresent.map((slug) => {
     const trade = getTradeBySlug(slug);
     return { slug, name: trade ? String((trade as any).name || slug) : slug };

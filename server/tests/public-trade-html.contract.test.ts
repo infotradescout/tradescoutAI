@@ -8,13 +8,18 @@ const read = (relativePath: string) => {
 };
 
 describe("public trade SEO fallback contracts", () => {
-  it("trade county html propagates listing failures instead of publishing 200/noindex crawl truth", () => {
-    const source = read("server/publicTradeHtml.ts");
-    expect(source).toContain(
-      "Trade county listing query failed; preserving prior crawl truth via 5xx"
+  it("trade county html propagates authoritative snapshot failures instead of publishing empty crawl truth", () => {
+    const tradeSource = read("server/publicTradeHtml.ts");
+    const snapshotSource = read("server/services/publicDirectorySnapshotReadService.ts");
+
+    expect(tradeSource).toContain("loadSnapshotTradeCountyBusinesses");
+    expect(tradeSource).toContain(
+      "Trade county snapshot read failed; preserving prior crawl truth via 5xx"
     );
-    expect(source).toContain("throw error;");
-    expect(source).not.toContain("runQuery(false)");
+    expect(tradeSource).toContain("throw error;");
+    expect(tradeSource).not.toContain("snapshotItems = []");
+    expect(snapshotSource).toContain("assertSeoDirectorySnapshotReady()");
+    expect(snapshotSource).toContain("assertSameGeneration(authority.generation)");
   });
 
   it("recent html serves fallback content when activity query fails", () => {
@@ -23,11 +28,16 @@ describe("public trade SEO fallback contracts", () => {
     expect(source).toContain("rows = []");
   });
 
-  it("county and best county html fail closed when discovery consent cannot be queried", () => {
+  it("county snapshot reads and best county queries fail closed when discovery consent cannot be proven", () => {
     const countySource = read("server/publicCountyHtml.ts");
     const bestSource = read("server/publicBestHtml.ts");
-    expect(countySource).toContain("eq(businesses.publicDiscoveryEnabled, true as any)");
-    expect(countySource).not.toContain("runCountyQuery(false)");
+    const snapshotSource = read("server/services/publicDirectorySnapshotReadService.ts");
+
+    expect(countySource).toContain("loadSnapshotCountyDirectory");
+    expect(countySource).not.toContain("runCountyQuery");
+    expect(snapshotSource).toContain("live.status = 'active'");
+    expect(snapshotSource).toContain("live.public_discovery_enabled IS TRUE");
+    expect(snapshotSource).toContain("assertSameGeneration(authority.generation)");
     expect(bestSource).toContain(
       "Best trade county query failed; preserving prior crawl truth via 5xx"
     );

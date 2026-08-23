@@ -483,7 +483,7 @@ export async function verifyRequiredProductionSchema(client) {
         ('managed_partner_intakes', 'idx_managed_partner_intakes_slug_unique', true, array['lower(slug)%']::text[], array[false]::boolean[], '%slug is not null%and%length%> 0%and%archived_at is null%', 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'idx_managed_partner_intakes_active_queue', false, array['stage%', 'priority%', 'updated_at%']::text[], array[false, false, true]::boolean[], '%archived_at is null%', 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'idx_managed_partner_intakes_created_by', false, array['created_by_user_id%', 'created_at%']::text[], array[false, true]::boolean[], null, 'tradescout-schema:0117:v1'),
-        ('ts_seo_directory_business_pages', 'idx_ts_seo_directory_business_pages_search', false, array['lower(display_name)%', 'slug%', 'business_id%']::text[], array[false, false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_pages', 'idx_ts_seo_directory_business_pages_search', false, array['lower(display_name%', 'slug%', 'business_id%']::text[], array[false, false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
         ('ts_seo_directory_business_pages', 'idx_ts_seo_directory_business_pages_scope', false, array['trade_slug%', 'primary_state_code%', 'city_slug%', 'slug%', 'business_id%']::text[], array[false, false, false, false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
         ('ts_seo_directory_business_counties', 'idx_ts_seo_directory_business_counties_county', false, array['county_id%', 'business_id%']::text[], array[false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
         ('ts_seo_trade_city_county_pages', 'idx_ts_seo_trade_city_county_pages_scope', false, array['state_code%', 'city_slug%', 'trade_slug%', 'county_id%']::text[], array[false, false, false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
@@ -513,6 +513,16 @@ export async function verifyRequiredProductionSchema(client) {
               and index_record.indislive
               and obj_description(index_record.indexrelid, 'pg_class') = expected.schema_marker
               and index_record.indnkeyatts = cardinality(expected.key_patterns)
+              and (
+                expected.index_name <> 'idx_ts_seo_directory_business_pages_search'
+                or exists (
+                  select 1
+                  from unnest(index_record.indclass) with ordinality index_opclass(opclass_oid, ordinality)
+                  join pg_opclass opclass on opclass.oid = index_opclass.opclass_oid
+                  where index_opclass.ordinality = 1
+                    and opclass.opcname = 'text_pattern_ops'
+                )
+              )
               and not exists (
                 select 1
                 from unnest(expected.key_patterns) with ordinality key_pattern(pattern, ordinality)

@@ -83,6 +83,11 @@ import {
 import { shouldIndexPublicProfileSlug } from "../../shared/publicProfileIndexing";
 import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
 import { assertSeoDirectorySnapshotReady } from "../services/seoDirectoryNavigationService";
+import { PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL } from "../services/publicDirectorySnapshotReadService";
+import {
+  projectPublicProfileApiPayload,
+  projectPublicProfileSearchResult,
+} from "../services/publicProfileApiProjection";
 
 const router = Router();
 
@@ -125,17 +130,27 @@ const CONTRACTOR_VERIFICATION_ROLES = new Set([
   "auto_service",
 ]);
 
-const CORE_STATIC_PATHS = [
-  "/",
-  "/datasets",
-  "/datasets/trades",
-  "/datasets/counties",
-  "/datasets/cities",
-];
+const CORE_STATIC_ROUTES = [
+  { path: "/", lastmod: "2026-08-23" },
+  { path: "/datasets", lastmod: "2026-04-25" },
+  { path: "/datasets/trades", lastmod: "2026-04-25" },
+  { path: "/datasets/counties", lastmod: "2026-04-25" },
+  { path: "/datasets/cities", lastmod: "2026-04-25" },
+] as const;
+const CORE_STATIC_PATHS = CORE_STATIC_ROUTES.map((route) => route.path);
 
 const DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE = 40_000;
 const DIRECTORY_TRADE_SITEMAP_PAGE_SIZE = 40_000;
 const DIRECTORY_CITY_SITEMAP_PAGE_SIZE = 40_000;
+const PROFILE_CHILD_SITEMAP_MAX_PROFILES = 50_000;
+const PROFILE_CHILD_SITEMAP_MAX_URLS = 50_000;
+const PUBLIC_DIRECTORY_ELIGIBLE_CTE_SQL = `eligible AS (
+  SELECT bp.business_id, bp.trade_slug, bp.primary_state_code, bp.city_slug, bp.lastmod
+  FROM ts_seo_directory_business_pages bp
+  INNER JOIN businesses live ON live.id = bp.business_id
+  LEFT JOIN users owner ON owner.id = live.owner_user_id
+  WHERE ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}
+)`;
 
 const COUNTY_SLUG_PATTERN = /^[a-z0-9-]+$/;
 const SITEMAP_CUSTOM_DOMAIN_PATTERN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i;
@@ -302,9 +317,16 @@ async function listPublishedProfileSitemapTargets(
         ${businessScope}
       ORDER BY p.updated_at DESC NULLS LAST,
                p.created_at DESC NULLS LAST,
-               p.slug ASC`,
+               p.slug ASC
+      LIMIT ${PROFILE_CHILD_SITEMAP_MAX_PROFILES + 1}`,
     businessSlugs ? [businessSlugs] : []
   );
+
+  if (result.rows.length > PROFILE_CHILD_SITEMAP_MAX_PROFILES) {
+    throw new Error(
+      `Public profile sitemap candidate cap exceeded ${PROFILE_CHILD_SITEMAP_MAX_PROFILES}; refusing partial crawl truth`
+    );
+  }
 
   return result.rows
     .map((row) => {
@@ -370,6 +392,13 @@ function sendUnadvertisedSitemapPage(res: any) {
   res.status(404).send(buildUrlSet([]));
 }
 
+export function parseCanonicalSitemapPage(value: unknown): number | null {
+  const raw = String(value ?? "").trim();
+  if (!/^(?:0|[1-9]\d*)$/.test(raw)) return null;
+  const page = Number(raw);
+  return Number.isSafeInteger(page) && page >= 0 ? page : null;
+}
+
 export function sitemapPageCount(total: unknown, pageSize: number): number {
   const safeTotal = Number(total);
   if (!Number.isFinite(safeTotal) || safeTotal <= 0 || pageSize <= 0) return 0;
@@ -382,7 +411,69 @@ function buildRuntimeCorePaths(): string[] {
   return Array.from(new Set(CORE_STATIC_PATHS));
 }
 
-function buildSitemapIndexXml(baseUrl: string, paths: string[], lastmod: string): string {
+async function loadPublishedProfileChildSitemapEntries(baseUrl: string) {
+  const today = getTodayYmd();
+  const authority = await assertSeoDirectorySnapshotReady();
+  const snapshotBusinesses = await pool.query(
+    `WITH ${PUBLIC_DIRECTORY_ELIGIBLE_CTE_SQL}
+     SELECT bp.slug, bp.lastmod
+     FROM ts_seo_directory_business_pages bp
+     INNER JOIN eligible e ON e.business_id = bp.business_id
+     ORDER BY bp.slug ASC
+     LIMIT $1`,
+    [PROFILE_CHILD_SITEMAP_MAX_PROFILES + 1]
+  );
+  const snapshotRows = Array.isArray(snapshotBusinesses.rows) ? snapshotBusinesses.rows : [];
+  if (snapshotRows.length > PROFILE_CHILD_SITEMAP_MAX_PROFILES) {
+    throw new Error(
+      `Public profile child sitemap business cap exceeded ${PROFILE_CHILD_SITEMAP_MAX_PROFILES}; refusing partial crawl truth`
+    );
+  }
+
+  const businessSlugs = snapshotRows
+    .map((row: any) => String(row?.slug || "").trim())
+    .filter((slug: string) => slug.length > 0);
+  const targetByBusinessSlug = indexPublicLinkedProfilesByBusinessSlug(
+    await listPublishedProfileSitemapTargets(businessSlugs)
+  );
+  const snapshotLastmodByBusinessSlug = new Map<string, unknown>(
+    snapshotRows.map((row: any) => [String(row?.slug || "").trim(), row?.lastmod] as const)
+  );
+  const entries = businessSlugs.flatMap((businessSlug) => {
+    const target = targetByBusinessSlug.get(businessSlug);
+    if (!target) return [];
+    const profileLoc = canonicalBusinessPresenceSitemapLoc({
+      baseUrl,
+      businessSlug,
+      linkedProfile: target,
+    });
+    if (!profileLoc || !profileLoc.includes("/u/")) return [];
+    const lastmod = toYmd(
+      target.updatedAt ?? snapshotLastmodByBusinessSlug.get(businessSlug),
+      today
+    );
+    return buildOptInProfileSitemapUrls({
+      profileSlug: target.profileSlug,
+      profileUrl: profileLoc,
+      contentBlocks: target.contentBlocks,
+    }).map((loc) => ({ loc, lastmod }));
+  });
+  const uniqueEntries = Array.from(
+    new Map(entries.map((entry) => [entry.loc, entry] as const)).values()
+  );
+  if (uniqueEntries.length > PROFILE_CHILD_SITEMAP_MAX_URLS) {
+    throw new Error(
+      `Public profile child sitemap exceeded ${PROFILE_CHILD_SITEMAP_MAX_URLS} URLs; refusing partial crawl truth`
+    );
+  }
+  const completedAuthority = await assertSeoDirectorySnapshotReady();
+  if (completedAuthority.generation !== authority.generation) {
+    throw new Error("SEO directory snapshot changed while building profile child sitemap");
+  }
+  return uniqueEntries;
+}
+
+function buildSitemapIndexXml(baseUrl: string, paths: string[]): string {
   const uniquePaths = Array.from(new Set(paths));
   if (uniquePaths.length > 50_000) {
     throw new Error("Sitemap index exceeds the 50,000-leaf protocol limit");
@@ -393,7 +484,6 @@ ${uniquePaths
   .map(
     (targetPath) => `  <sitemap>
     <loc>${xmlEscape(`${baseUrl}${targetPath}`)}</loc>
-    <lastmod>${xmlEscape(lastmod)}</lastmod>
   </sitemap>`
   )
   .join("\n")}
@@ -412,25 +502,63 @@ type DirectorySitemapLeafPlan = {
 
 async function loadDirectorySitemapLeafPlan(): Promise<DirectorySitemapLeafPlan> {
   const authority = await assertSeoDirectorySnapshotReady();
-  const result = (await db.execute(sql`
-    select
-      (select count(*)::int from ts_seo_directory_business_pages) as business_count,
-      (select count(*)::int from ts_seo_trade_county_pages) as trade_county_count,
-      (
-        select count(*)::int
-        from (
-          select state_code, city_slug
-          from ts_seo_city_county_pages
-          group by state_code, city_slug
-        ) as cities
-      ) as city_count,
-      (select count(*)::int from ts_seo_trade_city_pages) as trade_city_count;
-  `)) as any;
+  const result = await pool.query(
+    `WITH eligible AS (
+       SELECT bp.business_id, bp.trade_slug, bp.primary_state_code, bp.city_slug
+       FROM ts_seo_directory_business_pages bp
+       INNER JOIN businesses live ON live.id = bp.business_id
+       LEFT JOIN users owner ON owner.id = live.owner_user_id
+       WHERE ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}
+     )
+     SELECT
+       (SELECT count(*)::int FROM eligible) AS business_count,
+       (
+         SELECT count(*)::int
+         FROM ts_seo_trade_county_pages scope
+         WHERE EXISTS (
+           SELECT 1
+           FROM eligible e
+           INNER JOIN ts_seo_directory_business_counties bc
+             ON bc.business_id = e.business_id
+           WHERE e.trade_slug = scope.trade_slug
+             AND bc.county_id = scope.county_id
+         )
+       ) AS trade_county_count,
+       (
+         SELECT count(*)::int
+         FROM (
+           SELECT scope.state_code, scope.city_slug
+           FROM ts_seo_city_county_pages scope
+           WHERE EXISTS (
+             SELECT 1
+             FROM eligible e
+             INNER JOIN ts_seo_directory_business_counties bc
+               ON bc.business_id = e.business_id
+             WHERE e.trade_slug IS NOT NULL
+               AND e.primary_state_code = scope.state_code
+               AND e.city_slug = scope.city_slug
+               AND bc.county_id = scope.county_id
+           )
+           GROUP BY scope.state_code, scope.city_slug
+         ) cities
+       ) AS city_count,
+       (
+         SELECT count(*)::int
+         FROM ts_seo_trade_city_pages scope
+         WHERE EXISTS (
+           SELECT 1
+           FROM eligible e
+           WHERE e.trade_slug = scope.trade_slug
+             AND e.primary_state_code = scope.state_code
+             AND e.city_slug = scope.city_slug
+         )
+       ) AS trade_city_count`
+  );
   const completedAuthority = await assertSeoDirectorySnapshotReady();
   if (completedAuthority.generation !== authority.generation) {
     throw new Error("SEO directory snapshot changed while building sitemap graph");
   }
-  const row = result?.rows?.[0] || {};
+  const row = result.rows?.[0] || {};
   const businessPages = sitemapPageCount(row.business_count, DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE);
   const tradeCountyPages = sitemapPageCount(
     row.trade_county_count,
@@ -687,15 +815,11 @@ function getCanonicalBaseUrl(req: any): string {
       const parsed = new URL(configured);
       const host = parsed.hostname.toLowerCase();
       const isLocal = host === "localhost" || host === "127.0.0.1";
-      if (!isLocal) {
-        parsed.protocol = "https:";
-        // Platform crawler feeds always belong to the one production host.
-        // Custom-domain profiles have a separate host-local sitemap path in
-        // server/index.ts and never flow through this router helper.
-        parsed.hostname = "www.thetradescout.com";
-        parsed.port = "";
-      }
-      return parsed.toString().replace(/\/$/, "");
+      if (isLocal) return parsed.origin;
+      // Platform crawler feeds always belong to the one production origin.
+      // Ignore configured paths, queries, ports, Render aliases, and foreign
+      // hosts. Custom-domain profiles use the separate host-local route.
+      return "https://www.thetradescout.com";
     } catch {
       // ignore malformed env value and fall back to request-based resolution below
     }
@@ -895,13 +1019,15 @@ router.get("/api/profiles/public-search", async (req, res) => {
     const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
     const results = await storage.searchProfilesPublic({ query, limit });
     res.json(
-      results.map((row) => ({
-        id: row.id,
-        slug: row.slug,
-        displayName: row.displayName,
-        headline: row.headline,
-        roleContext: row.roleContext,
-      }))
+      results.map((row) =>
+        projectPublicProfileSearchResult({
+          id: row.id,
+          slug: row.slug,
+          displayName: row.displayName,
+          headline: row.headline,
+          roleContext: row.roleContext,
+        })
+      )
     );
   } catch (error: any) {
     console.error("Error searching public profiles:", error);
@@ -2263,7 +2389,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
 
   if (req) recordProfileView(profile.id, req);
 
-  return res.json({
+  const publicPayload = {
     profile: {
       id: profile.id,
       slug: profile.slug,
@@ -2296,7 +2422,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       contractorPromos: publicContractorPromos,
       communityPosts: publicCommunityPosts,
     },
-  });
+  };
+  return res.json(projectPublicProfileApiPayload(publicPayload));
 };
 
 const publicProfileTrustActionSchema = z.enum(["like", "favorite"]);
@@ -2791,11 +2918,11 @@ router.get("/llms.txt", async (req, res) => {
   );
 });
 
-router.get("/sitemap.xml", async (req, res) => {
+router.get(["/sitemap.xml", "/sitemap-index.xml"], async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
     const directory = await loadDirectorySitemapLeafPlan();
+    const profileChildren = await loadPublishedProfileChildSitemapEntries(baseUrl);
     // A submitted sitemap index may only point at concrete URL-set leaves.
     // The legacy directory/profile index endpoints remain available for old
     // direct submissions, but are never nested below this canonical root.
@@ -2806,12 +2933,13 @@ router.get("/sitemap.xml", async (req, res) => {
       "/sitemap-tradepartners.xml",
       ...(directory.hasCountyPages ? ["/sitemap-directory-counties.xml"] : []),
       ...(directory.hasTradeNavigation ? ["/sitemap-directory-trade-navigation.xml"] : []),
+      ...(profileChildren.length > 0 ? ["/sitemap-u-profiles.xml"] : []),
       ...directory.businessPages,
       ...directory.tradeCountyPages,
       ...directory.cityPages,
       ...directory.tradeCityPages,
     ];
-    const xml = buildSitemapIndexXml(baseUrl, paths, today);
+    const xml = buildSitemapIndexXml(baseUrl, paths);
 
     res.type("application/xml");
     res.send(xml);
@@ -2824,14 +2952,21 @@ router.get("/sitemap.xml", async (req, res) => {
 router.get("/sitemap-core.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
+    const lastmodByPath = new Map<string, string>(
+      CORE_STATIC_ROUTES.map((route) => [route.path, route.lastmod])
+    );
     const urls = buildRuntimeCorePaths().map((path) => {
       if (path === "/") {
-        return { loc: `${baseUrl}/`, lastmod: today, priority: "1.0", changefreq: "daily" };
+        return {
+          loc: `${baseUrl}/`,
+          lastmod: lastmodByPath.get(path) || "2026-08-23",
+          priority: "1.0",
+          changefreq: "daily",
+        };
       }
       return {
         loc: `${baseUrl}${path}`,
-        lastmod: today,
+        lastmod: lastmodByPath.get(path) || "2026-04-25",
         priority: path === "/trade" || path === "/datasets" ? "0.9" : "0.7",
         changefreq: "daily",
       };
@@ -2848,11 +2983,14 @@ router.get("/sitemap-core.xml", async (req, res) => {
 router.get("/sitemap-profiles.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
     const directory = await loadDirectorySitemapLeafPlan();
     // Legacy direct submissions remain valid, but this index also points only
     // at concrete URL-set leaves. Directory-business leaves own linked /u URLs.
-    const xml = buildSitemapIndexXml(baseUrl, directory.businessPages, today);
+    const profileChildren = await loadPublishedProfileChildSitemapEntries(baseUrl);
+    const xml = buildSitemapIndexXml(baseUrl, [
+      ...directory.businessPages,
+      ...(profileChildren.length > 0 ? ["/sitemap-u-profiles.xml"] : []),
+    ]);
 
     res.type("application/xml");
     res.send(xml);
@@ -2864,13 +3002,12 @@ router.get("/sitemap-profiles.xml", async (req, res) => {
 
 router.get("/sitemap-u-profiles.xml", async (req, res) => {
   try {
-    // Linked public /u profiles are emitted by their directory-business page
-    // leaf so the canonical URL has one sitemap owner. Personal profiles stay
-    // direct-link/noindex until a crawlable people hub exists.
+    // The directory-business leaf owns the linked profile base /u URL. This
+    // direct root leaf owns only explicitly opted-in child discovery URLs.
+    // Personal profiles remain direct-link/noindex until a people hub exists.
     await assertSeoDirectorySnapshotReady();
-    const urls: Array<{ loc: string; lastmod: string }> = [];
+    const urls = await loadPublishedProfileChildSitemapEntries(getCanonicalBaseUrl(req));
     res.type("application/xml");
-    res.setHeader("X-Robots-Tag", "noindex");
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating user profiles sitemap:", error);
@@ -2890,9 +3027,8 @@ router.get("/sitemap-business-profiles.xml", (_req, res) => {
 router.get("/sitemap-directory-businesses.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
     const directory = await loadDirectorySitemapLeafPlan();
-    const xml = buildSitemapIndexXml(baseUrl, directory.businessPages, today);
+    const xml = buildSitemapIndexXml(baseUrl, directory.businessPages);
 
     res.type("application/xml");
     res.send(xml);
@@ -2906,20 +3042,20 @@ router.get("/sitemap-directory-businesses-:page(\\d+).xml", async (req, res) => 
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
-    const page = Number(req.params.page || 0);
-    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const safePage = parseCanonicalSitemapPage(req.params.page);
+    if (safePage === null) return sendUnadvertisedSitemapPage(res);
     const offset = safePage * DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE;
     const authority = await assertSeoDirectorySnapshotReady();
-    const total = await storage.countActiveDirectoryBusinessesForSitemap();
-    if (safePage >= sitemapPageCount(total, DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE)) {
-      return sendUnadvertisedSitemapPage(res);
-    }
-
-    const maybe = await storage.listActiveDirectoryBusinessesForSitemap({
-      limit: DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE,
-      offset,
-    });
-    const businesses: any[] = Array.isArray(maybe) ? maybe : [];
+    const businessResult = await pool.query(
+      `WITH ${PUBLIC_DIRECTORY_ELIGIBLE_CTE_SQL}
+       SELECT bp.slug, bp.lastmod, count(*) OVER ()::int AS total_count
+       FROM ts_seo_directory_business_pages bp
+       INNER JOIN eligible e ON e.business_id = bp.business_id
+       ORDER BY bp.slug ASC
+       LIMIT $1 OFFSET $2`,
+      [DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE, offset]
+    );
+    const businesses: any[] = Array.isArray(businessResult.rows) ? businessResult.rows : [];
     const businessSlugs = Array.from(
       new Set(
         businesses.map((row) => String(row?.slug || "").trim()).filter((slug) => slug.length > 0)
@@ -2942,7 +3078,7 @@ router.get("/sitemap-directory-businesses-:page(\\d+).xml", async (req, res) => 
         if (!loc) return null;
         return {
           loc,
-          lastmod: toYmd(linkedProfile?.updatedAt ?? (row as any).updatedAt, today),
+          lastmod: toYmd(linkedProfile?.updatedAt ?? (row as any).lastmod, today),
         };
       })
       .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
@@ -3058,25 +3194,37 @@ router.get("/sitemap-directory-counties.xml", async (req, res) => {
 
 router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
   try {
-    await assertSeoDirectorySnapshotReady();
+    const authority = await assertSeoDirectorySnapshotReady();
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
-    const navigationRows = (await db.execute(sql`
-      with trade_state_pairs as (
-        select distinct trade_slug, state_code
-        from ts_seo_trade_county_pages
-        where coalesce(trade_slug, '') <> '' and coalesce(state_code, '') <> ''
-        union
-        select distinct trade_slug, state_code
-        from ts_seo_trade_city_pages
-        where coalesce(trade_slug, '') <> '' and coalesce(state_code, '') <> ''
-      )
-      select trade_slug, state_code
-      from trade_state_pairs
-      order by trade_slug asc, state_code asc;
-    `)) as any;
+    const snapshotLastmod = toYmd(authority.completedAt);
+    const navigationRows = await pool.query(
+      `WITH ${PUBLIC_DIRECTORY_ELIGIBLE_CTE_SQL}, trade_state_pairs AS (
+         SELECT DISTINCT scope.trade_slug, scope.state_code
+         FROM ts_seo_trade_county_pages scope
+         WHERE EXISTS (
+           SELECT 1
+           FROM eligible e
+           INNER JOIN ts_seo_directory_business_counties bc
+             ON bc.business_id = e.business_id
+           WHERE e.trade_slug = scope.trade_slug
+             AND bc.county_id = scope.county_id
+         )
+         UNION
+         SELECT DISTINCT scope.trade_slug, scope.state_code
+         FROM ts_seo_trade_city_pages scope
+         WHERE EXISTS (
+           SELECT 1 FROM eligible e
+           WHERE e.trade_slug = scope.trade_slug
+             AND e.primary_state_code = scope.state_code
+             AND e.city_slug = scope.city_slug
+         )
+       )
+       SELECT trade_slug, state_code
+       FROM trade_state_pairs
+       ORDER BY trade_slug ASC, state_code ASC`
+    );
 
-    const tradeStates = Array.isArray(navigationRows?.rows) ? navigationRows.rows : [];
+    const tradeStates = Array.isArray(navigationRows.rows) ? navigationRows.rows : [];
     const activeTradeSlugs = Array.from<string>(
       new Set<string>(
         tradeStates
@@ -3086,10 +3234,12 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
     );
 
     const urls = [
-      ...(activeTradeSlugs.length > 0 ? [{ loc: `${baseUrl}/trade`, lastmod: today }] : []),
+      ...(activeTradeSlugs.length > 0
+        ? [{ loc: `${baseUrl}/trade`, lastmod: snapshotLastmod }]
+        : []),
       ...activeTradeSlugs.map((tradeSlug) => ({
         loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
-        lastmod: today,
+        lastmod: snapshotLastmod,
       })),
       ...tradeStates.map((row: any) => ({
         loc: `${baseUrl}/trade/${encodeURIComponent(String(row.trade_slug || "").trim())}/${encodeURIComponent(
@@ -3097,7 +3247,7 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
             .trim()
             .toLowerCase()
         )}`,
-        lastmod: today,
+        lastmod: snapshotLastmod,
       })),
     ];
 
@@ -3112,9 +3262,8 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
 router.get("/sitemap-directory-trades.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
     const directory = await loadDirectorySitemapLeafPlan();
-    const xml = buildSitemapIndexXml(baseUrl, directory.tradeCountyPages, today);
+    const xml = buildSitemapIndexXml(baseUrl, directory.tradeCountyPages);
 
     res.type("application/xml");
     res.send(xml);
@@ -3129,26 +3278,29 @@ router.get("/sitemap-directory-trades-:page(\\d+).xml", async (req, res) => {
     const authority = await assertSeoDirectorySnapshotReady();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
-    const page = Number(req.params.page || 0);
-    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
-
-    const countResult = (await db.execute(sql`
-      select count(*)::int as count from ts_seo_trade_county_pages;
-    `)) as any;
-    const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
-    if (safePage >= sitemapPageCount(total, DIRECTORY_TRADE_SITEMAP_PAGE_SIZE)) {
-      return sendUnadvertisedSitemapPage(res);
-    }
+    const safePage = parseCanonicalSitemapPage(req.params.page);
+    if (safePage === null) return sendUnadvertisedSitemapPage(res);
 
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
-    const result = (await db.execute(sql`
-      select trade_slug, state_code, county_slug, lastmod
-      from ts_seo_trade_county_pages
-      order by trade_slug asc, state_code asc, county_slug asc
-      limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
-    `)) as any;
+    const result = await pool.query(
+      `WITH ${PUBLIC_DIRECTORY_ELIGIBLE_CTE_SQL}, scopes AS (
+         SELECT scope.trade_slug, scope.state_code, scope.county_slug,
+                max(e.lastmod) AS lastmod
+         FROM ts_seo_trade_county_pages scope
+         INNER JOIN eligible e ON e.trade_slug = scope.trade_slug
+         INNER JOIN ts_seo_directory_business_counties bc
+           ON bc.business_id = e.business_id AND bc.county_id = scope.county_id
+         GROUP BY scope.trade_slug, scope.state_code, scope.county_slug
+       )
+       SELECT trade_slug, state_code, county_slug, lastmod,
+              count(*) OVER ()::int AS total_count
+       FROM scopes
+       ORDER BY trade_slug ASC, state_code ASC, county_slug ASC
+       LIMIT $1 OFFSET $2`,
+      [DIRECTORY_TRADE_SITEMAP_PAGE_SIZE, offset]
+    );
 
-    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
+    const urls: Array<{ loc: string; lastmod: string }> = (result.rows || [])
       .map((row: any) => {
         const tradeSlug = String(row.trade_slug || "").trim();
         const stateCode = String(row.state_code || "")
@@ -3165,7 +3317,7 @@ router.get("/sitemap-directory-trades-:page(\\d+).xml", async (req, res) => {
           lastmod: toYmd(row.lastmod, today),
         };
       })
-      .filter((entry: any) => Boolean(entry));
+      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
 
     const completedAuthority = await assertSeoDirectorySnapshotReady();
     if (completedAuthority.generation !== authority.generation) {
@@ -3184,9 +3336,8 @@ router.get("/sitemap-directory-trades-:page(\\d+).xml", async (req, res) => {
 router.get("/sitemap-directory-cities.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
     const directory = await loadDirectorySitemapLeafPlan();
-    const xml = buildSitemapIndexXml(baseUrl, directory.cityPages, today);
+    const xml = buildSitemapIndexXml(baseUrl, directory.cityPages);
 
     res.type("application/xml");
     res.send(xml);
@@ -3200,26 +3351,35 @@ router.get("/sitemap-directory-cities-:page(\\d+).xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
-    const page = Number(req.params.page || 0);
-    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const safePage = parseCanonicalSitemapPage(req.params.page);
+    if (safePage === null) return sendUnadvertisedSitemapPage(res);
     const offset = safePage * DIRECTORY_CITY_SITEMAP_PAGE_SIZE;
     const authority = await assertSeoDirectorySnapshotReady();
-    const total = await storage.countDirectoryCitiesForSitemap();
-    if (safePage >= sitemapPageCount(total, DIRECTORY_CITY_SITEMAP_PAGE_SIZE)) {
-      return sendUnadvertisedSitemapPage(res);
-    }
-
-    const maybe = await storage.listDirectoryCitiesForSitemap({
-      limit: DIRECTORY_CITY_SITEMAP_PAGE_SIZE,
-      offset,
-    });
-    const cities: any[] = Array.isArray(maybe) ? maybe : [];
+    const cityResult = await pool.query(
+      `WITH ${PUBLIC_DIRECTORY_ELIGIBLE_CTE_SQL}, scopes AS (
+         SELECT scope.state_code, scope.city_slug, max(e.lastmod) AS lastmod
+         FROM ts_seo_city_county_pages scope
+         INNER JOIN eligible e
+           ON e.trade_slug IS NOT NULL
+          AND e.primary_state_code = scope.state_code
+          AND e.city_slug = scope.city_slug
+         INNER JOIN ts_seo_directory_business_counties bc
+           ON bc.business_id = e.business_id AND bc.county_id = scope.county_id
+         GROUP BY scope.state_code, scope.city_slug
+       )
+       SELECT state_code, city_slug, lastmod, count(*) OVER ()::int AS total_count
+       FROM scopes
+       ORDER BY state_code ASC, city_slug ASC
+       LIMIT $1 OFFSET $2`,
+      [DIRECTORY_CITY_SITEMAP_PAGE_SIZE, offset]
+    );
+    const cities: any[] = Array.isArray(cityResult.rows) ? cityResult.rows : [];
 
     const urls = cities
       .filter((row) => row && typeof row === "object")
       .map((row) => {
-        const stateCode = String((row as any).stateCode || "").toUpperCase();
-        const citySlug = String((row as any).citySlug || "")
+        const stateCode = String((row as any).state_code || "").toUpperCase();
+        const citySlug = String((row as any).city_slug || "")
           .trim()
           .toLowerCase();
         if (!stateCode || !citySlug) return null;
@@ -3227,7 +3387,7 @@ router.get("/sitemap-directory-cities-:page(\\d+).xml", async (req, res) => {
           loc: `${baseUrl}/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
             citySlug
           )}`,
-          lastmod: toYmd((row as any).updatedAt, today),
+          lastmod: toYmd((row as any).lastmod, today),
         };
       })
       .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
@@ -3249,9 +3409,8 @@ router.get("/sitemap-directory-cities-:page(\\d+).xml", async (req, res) => {
 router.get("/sitemap-directory-trade-cities.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
-    const today = getTodayYmd();
     const directory = await loadDirectorySitemapLeafPlan();
-    const xml = buildSitemapIndexXml(baseUrl, directory.tradeCityPages, today);
+    const xml = buildSitemapIndexXml(baseUrl, directory.tradeCityPages);
 
     res.type("application/xml");
     res.send(xml);
@@ -3266,26 +3425,30 @@ router.get("/sitemap-directory-trade-cities-:page(\\d+).xml", async (req, res) =
     const authority = await assertSeoDirectorySnapshotReady();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
-    const page = Number(req.params.page || 0);
-    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
-
-    const countResult = (await db.execute(sql`
-      select count(*)::int as count from ts_seo_trade_city_pages;
-    `)) as any;
-    const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
-    if (safePage >= sitemapPageCount(total, DIRECTORY_TRADE_SITEMAP_PAGE_SIZE)) {
-      return sendUnadvertisedSitemapPage(res);
-    }
+    const safePage = parseCanonicalSitemapPage(req.params.page);
+    if (safePage === null) return sendUnadvertisedSitemapPage(res);
 
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
-    const result = (await db.execute(sql`
-      select trade_slug, state_code, city_slug, lastmod
-      from ts_seo_trade_city_pages
-      order by trade_slug asc, state_code asc, city_slug asc
-      limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
-    `)) as any;
+    const result = await pool.query(
+      `WITH ${PUBLIC_DIRECTORY_ELIGIBLE_CTE_SQL}, scopes AS (
+         SELECT scope.trade_slug, scope.state_code, scope.city_slug,
+                max(e.lastmod) AS lastmod
+         FROM ts_seo_trade_city_pages scope
+         INNER JOIN eligible e
+           ON e.trade_slug = scope.trade_slug
+          AND e.primary_state_code = scope.state_code
+          AND e.city_slug = scope.city_slug
+         GROUP BY scope.trade_slug, scope.state_code, scope.city_slug
+       )
+       SELECT trade_slug, state_code, city_slug, lastmod,
+              count(*) OVER ()::int AS total_count
+       FROM scopes
+       ORDER BY trade_slug ASC, state_code ASC, city_slug ASC
+       LIMIT $1 OFFSET $2`,
+      [DIRECTORY_TRADE_SITEMAP_PAGE_SIZE, offset]
+    );
 
-    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
+    const urls: Array<{ loc: string; lastmod: string }> = (result.rows || [])
       .map((row: any) => {
         const tradeSlug = String(row.trade_slug || "").trim();
         const stateCode = String(row.state_code || "")
@@ -3302,7 +3465,7 @@ router.get("/sitemap-directory-trade-cities-:page(\\d+).xml", async (req, res) =
           lastmod: toYmd(row.lastmod, today),
         };
       })
-      .filter((entry: any) => Boolean(entry));
+      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
 
     const completedAuthority = await assertSeoDirectorySnapshotReady();
     if (completedAuthority.generation !== authority.generation) {
@@ -3397,8 +3560,8 @@ router.get("/sitemap-best-trade-counties-:page(\\d+).xml", async (req, res) => {
     await assertSeoDirectorySnapshotReady();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
-    const page = Number(req.params.page || 0);
-    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const safePage = parseCanonicalSitemapPage(req.params.page);
+    if (safePage === null) return sendUnadvertisedSitemapPage(res);
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
 
     const result = (await db.execute(sql`
@@ -3471,8 +3634,8 @@ router.get("/sitemap-best-trade-cities-:page(\\d+).xml", async (req, res) => {
     await assertSeoDirectorySnapshotReady();
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
-    const page = Number(req.params.page || 0);
-    const safePage = Number.isFinite(page) && page >= 0 ? Math.floor(page) : 0;
+    const safePage = parseCanonicalSitemapPage(req.params.page);
+    if (safePage === null) return sendUnadvertisedSitemapPage(res);
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
 
     const result = (await db.execute(sql`

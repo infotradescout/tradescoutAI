@@ -18,6 +18,7 @@ function substantiveHtml(
 }
 
 test("recursively proves each unique advertised URL is canonical, indexable, and substantive", async () => {
+  const requestedUserAgents = [];
   const responses = new Map([
     [
       "https://example.test/sitemap.xml",
@@ -52,7 +53,8 @@ test("recursively proves each unique advertised URL is canonical, indexable, and
 
   const result = await auditSitemapRenderParity({
     sitemapUrl: "https://example.test/sitemap.xml",
-    fetchImpl: async (url) => {
+    fetchImpl: async (url, options) => {
+      requestedUserAgents.push(options?.headers?.["user-agent"] || "");
       const item = responses.get(String(url));
       assert.ok(item, `unexpected fetch: ${url}`);
       return item.clone();
@@ -62,6 +64,8 @@ test("recursively proves each unique advertised URL is canonical, indexable, and
   assert.equal(result.ok, true, result.failures.join("\n"));
   assert.equal(result.sitemapCount, 3);
   assert.equal(result.urlCount, 2);
+  assert.equal(requestedUserAgents.length, 5);
+  assert.ok(requestedUserAgents.every((value) => /googlebot/i.test(value)));
 });
 
 test("fails when an advertised page renders noindex and thin", async () => {

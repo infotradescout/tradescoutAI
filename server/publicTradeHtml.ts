@@ -29,6 +29,7 @@ import {
   hasPublicDirectoryOfferingFacts,
   sanitizePublicDirectoryDisplayName,
 } from "./services/publicDirectoryBusinessPresentation";
+import { loadSnapshotTradeCountyBusinesses } from "./services/publicDirectorySnapshotReadService";
 
 type PublicTradeHtmlOptions = {
   origin: string;
@@ -36,7 +37,7 @@ type PublicTradeHtmlOptions = {
 };
 
 let cachedHasPublicDiscoveryEnabledColumn: boolean | null = null;
-let loggedMissingPublicDiscoveryEnabledColumn = false;
+const loggedMissingPublicDiscoveryEnabledColumn = false;
 
 async function hasPublicDiscoveryEnabledColumn(): Promise<boolean> {
   if (cachedHasPublicDiscoveryEnabledColumn !== null) return cachedHasPublicDiscoveryEnabledColumn;
@@ -469,49 +470,15 @@ export async function buildPublicTradeCountyHtml(
     keywords: [match.trade.name, county.name, state.name, "directory", "contractors", "TradeScout"],
   };
 
-  const tradeClause = buildTradeWhereClause(canonicalSlug);
-  const whereClauses: any[] = [
-    eq(counties.fips, String((county as any).fipsCode || "")),
-    eq(businesses.status, "active" as any),
-    publicBusinessDetailExposureSqlPredicate(),
-  ];
-  if (tradeClause) whereClauses.push(tradeClause);
-
-  const includePublicDiscoveryEnabled = await hasPublicDiscoveryEnabledColumn();
-  if (!includePublicDiscoveryEnabled) {
-    loggedMissingPublicDiscoveryEnabledColumn = true;
-    throw new Error(
-      "Missing businesses.public_discovery_enabled; refusing to render public trade discovery"
-    );
-  }
-
-  const runQuery = async () =>
-    db
-      .select({
-        id: businesses.id,
-        slug: businesses.slug,
-        name: businesses.name,
-        claimStatus: businesses.claimStatus,
-        ownerUserId: businesses.ownerUserId,
-        updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-        ownerVerificationStatus: users.verificationStatus,
-        ownerAddressVerified: users.addressVerified,
-        profileData: businesses.profileData,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(and(...whereClauses))
-      .orderBy(asc(businesses.name))
-      .limit(200);
-
-  let rows: any[];
+  let snapshotItems;
   try {
-    rows = await runQuery();
+    snapshotItems = await loadSnapshotTradeCountyBusinesses({
+      countyFips: String((county as any).fipsCode || ""),
+      tradeSlug: canonicalSlug,
+      limit: 200,
+    });
   } catch (error) {
-    console.error("[SEO] Trade county listing query failed; preserving prior crawl truth via 5xx", {
+    console.error("[SEO] Trade county snapshot read failed; preserving prior crawl truth via 5xx", {
       tradeSlug: canonicalSlug,
       stateCode,
       countySlug,
@@ -519,67 +486,11 @@ export async function buildPublicTradeCountyHtml(
     });
     throw error;
   }
-
-  const rules = await getPublicationRules();
-  const now = new Date();
-  const recencyCutoff = new Date(
-    now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
-  );
-
-  const items = rows
-    .map((r) => {
-      const slug = String((r as any).slug || "").trim();
-      const name = sanitizePublicDirectoryDisplayName((r as any).name);
-      if (!slug || !name) return null;
-      const publicProfile = buildPublicDirectoryProfile((r as any).profileData || {});
-      if (deriveTradeSlugFromProfileData(publicProfile) !== canonicalSlug) return null;
-
-      const tier = derivePublicationTier({
-        ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
-        claimStatus: String((r as any).claimStatus || ""),
-        ownerVerificationStatus: (r as any).ownerVerificationStatus
-          ? String((r as any).ownerVerificationStatus)
-          : null,
-        ownerAddressVerified:
-          typeof (r as any).ownerAddressVerified === "boolean"
-            ? (r as any).ownerAddressVerified
-            : null,
-      });
-
-      const updatedAt = (r as any).updatedAt instanceof Date ? (r as any).updatedAt : null;
-      if (!updatedAt) return null;
-      const pub = isPublicAndCrawlableBusiness(
-        buildPublicBusinessSignals({
-          id: String((r as any).id),
-          name,
-          slug,
-          updatedAt,
-          publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
-          stateCode: stateCode || null,
-          countyName: county.name,
-          city: null,
-          tradeSlug: canonicalSlug,
-          hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(publicProfile),
-          tier,
-        }),
-        rules,
-        now
-      );
-      if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
-      if (updatedAt < recencyCutoff) return null;
-
-      return {
-        slug,
-        name,
-        claimStatus:
-          String((r as any).claimStatus || "unclaimed").toLowerCase() === "claimed"
-            ? "claimed"
-            : "unclaimed",
-      };
-    })
-    .filter((r): r is { slug: string; name: string; claimStatus: "claimed" | "unclaimed" } =>
-      Boolean(r)
-    );
+  const items = snapshotItems.map((item) => ({
+    slug: item.slug,
+    name: item.name,
+    claimStatus: item.claimStatus,
+  }));
   const meta = buildTradeMeta({
     ...metaArgs,
     indexable: items.length > 0,

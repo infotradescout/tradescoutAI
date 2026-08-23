@@ -14,6 +14,7 @@ import {
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
 import { assertSeoDirectorySnapshotReady } from "../services/seoDirectoryNavigationService";
+import { PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL } from "../services/publicDirectorySnapshotReadService";
 
 const NON_PRODUCTION_PUBLIC_SLUG_PATTERN = /^(?:qa|smoke|test)(?:-|$)/i;
 const NON_PRODUCTION_EXCHANGE_COPY_PATTERN =
@@ -121,7 +122,11 @@ export class SitemapRepository {
   async countActiveDirectoryBusinessesForSitemap(): Promise<number> {
     await assertSeoDirectorySnapshotReady();
     const result = await neonPool.query(
-      `select count(*)::int as count from ts_seo_directory_business_pages`
+      `select count(*)::int as count
+         from ts_seo_directory_business_pages bp
+         inner join businesses live on live.id = bp.business_id
+         left join users owner on owner.id = live.owner_user_id
+        where ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}`
     );
     return Number(result.rows[0]?.count || 0);
   }
@@ -137,9 +142,12 @@ export class SitemapRepository {
     const offset = Math.max(0, offsetRequested);
 
     const result = await neonPool.query(
-      `select slug, lastmod
-         from ts_seo_directory_business_pages
-        order by slug asc
+      `select bp.slug, bp.lastmod
+         from ts_seo_directory_business_pages bp
+         inner join businesses live on live.id = bp.business_id
+         left join users owner on owner.id = live.owner_user_id
+        where ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}
+        order by bp.slug asc
         limit $1 offset $2`,
       [limit, offset]
     );
@@ -154,9 +162,24 @@ export class SitemapRepository {
   async countDirectoryCountiesForSitemap(): Promise<number> {
     await assertSeoDirectorySnapshotReady();
     const result = await neonPool.query(
-      `select count(distinct county_id)::int as count
-         from ts_seo_trade_county_pages
-        where business_count > 0`
+      `with eligible as (
+         select bp.business_id, bp.trade_slug
+           from ts_seo_directory_business_pages bp
+           inner join businesses live on live.id = bp.business_id
+           left join users owner on owner.id = live.owner_user_id
+          where bp.trade_slug is not null
+            and ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}
+       )
+       select count(distinct p.county_id)::int as count
+         from ts_seo_trade_county_pages p
+        where exists (
+          select 1
+            from eligible e
+            inner join ts_seo_directory_business_counties bc
+              on bc.business_id = e.business_id
+           where e.trade_slug = p.trade_slug
+             and bc.county_id = p.county_id
+        )`
     );
     return Number(result.rows[0]?.count || 0);
   }
@@ -172,10 +195,20 @@ export class SitemapRepository {
     const offset = Math.max(0, offsetRequested);
 
     const result = await neonPool.query(
-      `select c.fips, c.name, upper(c.state_code) as state_code, max(p.lastmod) as lastmod
+      `with eligible as (
+         select bp.business_id, bp.trade_slug, bp.lastmod
+           from ts_seo_directory_business_pages bp
+           inner join businesses live on live.id = bp.business_id
+           left join users owner on owner.id = live.owner_user_id
+          where bp.trade_slug is not null
+            and ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}
+       )
+       select c.fips, c.name, upper(c.state_code) as state_code, max(e.lastmod) as lastmod
          from ts_seo_trade_county_pages p
          inner join counties c on c.id = p.county_id
-        where p.business_count > 0
+         inner join eligible e on e.trade_slug = p.trade_slug
+         inner join ts_seo_directory_business_counties bc
+           on bc.business_id = e.business_id and bc.county_id = p.county_id
         group by c.fips, c.name, c.state_code
         order by c.fips asc
         limit $1 offset $2`,
@@ -194,12 +227,29 @@ export class SitemapRepository {
   async countDirectoryCitiesForSitemap(): Promise<number> {
     await assertSeoDirectorySnapshotReady();
     const result = await neonPool.query(
-      `select count(*)::int as count
+      `with eligible as (
+         select bp.business_id, bp.trade_slug, bp.primary_state_code, bp.city_slug
+           from ts_seo_directory_business_pages bp
+           inner join businesses live on live.id = bp.business_id
+           left join users owner on owner.id = live.owner_user_id
+          where bp.trade_slug is not null
+            and bp.city_slug is not null
+            and ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}
+       )
+       select count(*)::int as count
          from (
-           select state_code, city_slug
-             from ts_seo_city_county_pages
-            where business_count > 0
-            group by state_code, city_slug
+           select p.state_code, p.city_slug
+             from ts_seo_city_county_pages p
+            where exists (
+              select 1
+                from eligible e
+                inner join ts_seo_directory_business_counties bc
+                  on bc.business_id = e.business_id
+               where e.primary_state_code = p.state_code
+                 and e.city_slug = p.city_slug
+                 and bc.county_id = p.county_id
+            )
+            group by p.state_code, p.city_slug
          ) city_scopes`
     );
     return Number(result.rows[0]?.count || 0);
@@ -216,11 +266,23 @@ export class SitemapRepository {
     const offset = Math.max(0, offsetRequested);
 
     const result = await neonPool.query(
-      `select upper(state_code) as state_code, city_slug, max(lastmod) as lastmod
-         from ts_seo_city_county_pages
-        where business_count > 0
-        group by state_code, city_slug
-        order by state_code asc, city_slug asc
+      `with eligible as (
+         select bp.business_id, bp.trade_slug, bp.primary_state_code, bp.city_slug, bp.lastmod
+           from ts_seo_directory_business_pages bp
+           inner join businesses live on live.id = bp.business_id
+           left join users owner on owner.id = live.owner_user_id
+          where bp.trade_slug is not null
+            and bp.city_slug is not null
+            and ${PUBLIC_DIRECTORY_LIVE_ELIGIBILITY_SQL}
+       )
+       select upper(p.state_code) as state_code, p.city_slug, max(e.lastmod) as lastmod
+         from ts_seo_city_county_pages p
+         inner join eligible e
+           on e.primary_state_code = p.state_code and e.city_slug = p.city_slug
+         inner join ts_seo_directory_business_counties bc
+           on bc.business_id = e.business_id and bc.county_id = p.county_id
+        group by p.state_code, p.city_slug
+        order by p.state_code asc, p.city_slug asc
         limit $1 offset $2`,
       [limit, offset]
     );

@@ -119,6 +119,8 @@ describe("required production schema guard", () => {
     expect(guard).toContain("array['text', 'varchar']");
     expect(guard).toContain("array['owner_user_id', 'target_profile_id']");
     expect(guard).toContain("pg_get_indexdef");
+    expect(guard).toContain("pg_opclass");
+    expect(guard).toContain("opclass.opcname = 'text_pattern_ops'");
     expect(guard).toContain("trigger_record.tgenabled = 'O'");
     expect(guard).toContain("procedure_record.proname = 'enforce_profile_account_identity'");
     expect(guard).toContain("not constraint_record.condeferrable");

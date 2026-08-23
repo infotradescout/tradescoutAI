@@ -203,7 +203,9 @@ export default function BusinessProfileView() {
             updatedAt: new Date().toISOString(),
             publishedAt: null as any,
             // These optional fields are read by the view; keep safe defaults.
-            verificationStatus: (directoryTier === "verified" ? "approved" : "pending") as any,
+            verificationStatus: (directoryTier === "verified"
+              ? "approved"
+              : "directory_unclaimed") as any,
             addressVerified: (directoryTier === "verified") as any,
             cvsScore: null as any,
             googleRating:
@@ -371,8 +373,11 @@ export default function BusinessProfileView() {
         : "");
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
+  const isDirectoryUnclaimed =
+    profileSource === "directory" && directoryClaimStatus === "unclaimed";
   const verificationTone = (() => {
     if (verificationStatus === "approved") return "bg-emerald-600 text-white";
+    if (verificationStatus === "directory_unclaimed") return "bg-white/10 text-white";
     if (verificationStatus === "under_review" || verificationStatus === "pending") {
       return "bg-amber-500 text-black";
     }
@@ -384,25 +389,31 @@ export default function BusinessProfileView() {
   })();
   const verificationLabel = (() => {
     if (verificationStatus === "approved") return "Professional Verified";
+    if (verificationStatus === "directory_unclaimed") return "Unclaimed directory listing";
     if (verificationStatus === "under_review") return "Verification Review";
     if (verificationStatus === "pending") return "Verification Pending";
     if (verificationStatus === "rejected") return "Verification Required";
     if (verificationStatus === "expired") return "Verification Expired";
     if (verificationStatus === "suspended") return "Verification Suspended";
-    return "Verification Pending";
+    return "Verification status unavailable";
   })();
   const trustHighlights = [
-    profileSource === "directory" && directoryClaimStatus === "unclaimed" ? "Claimable" : null,
+    isDirectoryUnclaimed ? "Claimable" : null,
     verificationLabel,
-    addressVerified ? "Address checked" : "Address pending",
+    !isDirectoryUnclaimed && addressVerified ? "Address checked" : null,
+    !isDirectoryUnclaimed && verificationStatus && !addressVerified ? "Address pending" : null,
     bookingConfig?.enabled ? "Booking available" : null,
     profile.customDomainVerification?.state === "verified" ? "Domain connected" : null,
   ].filter(Boolean) as string[];
   const trustProofItems = [
-    `Profile status: ${verificationLabel}.`,
-    addressVerified
-      ? "Address verification is complete."
-      : "Address verification is still pending.",
+    isDirectoryUnclaimed
+      ? "This source-backed directory listing is unclaimed and can be claimed through TradeScout."
+      : `Profile status: ${verificationLabel}.`,
+    isDirectoryUnclaimed
+      ? null
+      : addressVerified
+        ? "Address verification is complete."
+        : "Address verification is still pending.",
     profile.customDomainVerification?.state === "verified" ? "A custom domain is connected." : null,
     listings.length > 0
       ? `${listings.length} active listing${listings.length === 1 ? "" : "s"} published.`
@@ -691,7 +702,7 @@ export default function BusinessProfileView() {
     stateCode: profile.stateCode || null,
     website: profile.website || null,
     category: null,
-    verifiedLabel: verificationLabel || null,
+    verifiedLabel: isDirectoryUnclaimed ? null : verificationLabel || null,
   });
   const structuredData = galleryShareMeta
     ? {
