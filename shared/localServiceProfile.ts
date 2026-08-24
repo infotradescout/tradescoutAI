@@ -353,4 +353,17 @@ export const LA_PLUMBING_PROFILE_CONTENT_BLOCKS = [
       ],
     },
   },
+  {
+    type: "publicDiscovery",
+    data: {
+      routes: {
+        gallery: "projects",
+      },
+      sitemap: {
+        gallery: true,
+      },
+      sourceBoundary:
+        "Only LA Plumbing company-published completed-work images are eligible for project-page discovery.",
+    },
+  },
 ] as const;
