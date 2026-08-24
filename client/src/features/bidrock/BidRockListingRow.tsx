@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bookmark, ChevronRight, Clock3, Gavel, GitCompareArrows, ImageOff } from "lucide-react";
+import {
+  Bookmark,
+  ChevronRight,
+  Clock3,
+  Gavel,
+  GitCompareArrows,
+  ImageOff,
+  MessageSquareText,
+} from "lucide-react";
 import type { BidRockListing } from "@shared/bidrock";
 import { formatBidRockMoney } from "@shared/bidrock";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +143,121 @@ export function BidRockListingRow({
     );
   }
 
-  if (!auction) return null;
+  if (!auction) {
+    return (
+      <article
+        className={cn(
+          "group overflow-hidden rounded-lg border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg",
+          selected
+            ? "border-[var(--bidrock-auction-ring)] ring-2 ring-[var(--bidrock-auction-ring)]/20"
+            : "border-stone-200"
+        )}
+        data-testid={`bidrock-listing-${listing.id}`}
+      >
+        <button
+          type="button"
+          onClick={onSelect}
+          className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--bidrock-auction-ring)]"
+          aria-label={`Open ${listing.title} offer details`}
+        >
+          <span className="relative block aspect-[16/10] overflow-hidden bg-stone-200">
+            {listing.imageUrl ? (
+              <img
+                src={listing.imageUrl}
+                alt={`${listing.title} stone lot`}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+              />
+            ) : (
+              <span className="flex h-full items-center justify-center">
+                <ImageOff className="h-8 w-8 text-stone-500" aria-hidden="true" />
+              </span>
+            )}
+            <span className="absolute left-3 top-3 rounded bg-stone-950/95 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
+              Available lot
+            </span>
+            <span className="absolute right-3 top-3 rounded bg-[var(--bidrock-auction-ring)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+              Open to offers
+            </span>
+          </span>
+          <span className="block p-4">
+            <span className="flex items-start justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block truncate text-lg font-black tracking-tight text-stone-950">
+                  {listing.title}
+                </span>
+                <span className="mt-1 block truncate text-xs text-stone-600">
+                  {formatBidRockDimensions(listing)} · {listing.quantity} {listing.unit}
+                </span>
+              </span>
+              <span className="shrink-0 rounded border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-600">
+                {formatBidRockMaterialClass(listing)}
+              </span>
+            </span>
+            <span className="mt-2 flex items-center justify-between gap-3 text-[11px] text-stone-500">
+              <span className="truncate uppercase tracking-[0.1em]">
+                {listing.finishQuantities
+                  .map((item) => `${item.slabCount} ${item.finish}`)
+                  .join(" · ") ||
+                  listing.materialFamily ||
+                  "Finish pending"}
+              </span>
+              <span className="shrink-0">
+                {formatBidRockAssetKind(listing)} · {listing.sourceProfileName}
+              </span>
+            </span>
+            <span className="mt-4 flex items-center justify-between gap-4 rounded-md bg-stone-950 px-3 py-3 text-white">
+              <span>
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400">
+                  No asking price
+                </span>
+                <span className="mt-1 block text-base font-black">Make an offer</span>
+              </span>
+              <MessageSquareText className="h-5 w-5 shrink-0 text-stone-300" aria-hidden="true" />
+            </span>
+          </span>
+        </button>
+        <div className="grid grid-cols-3 border-t border-stone-200">
+          <Button
+            type="button"
+            className="rounded-none bg-[var(--bidrock-auction)] text-white hover:bg-[var(--bidrock-auction-hover)] focus-visible:ring-[var(--bidrock-auction)]"
+            onClick={onSelect}
+          >
+            <MessageSquareText className="h-4 w-4" aria-hidden="true" />
+            Make an offer
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className={cn(
+              "rounded-none border-r border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-[var(--bidrock-auction)]",
+              compared && "bg-stone-100 text-stone-950"
+            )}
+            onClick={onCompare}
+            aria-pressed={compared}
+          >
+            <GitCompareArrows className="h-4 w-4" aria-hidden="true" />
+            {compared ? "Compared" : "Compare"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className={cn(
+              "rounded-none text-stone-700 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-[var(--bidrock-auction)]",
+              saved &&
+                "bg-stone-100 text-[var(--bidrock-auction)] hover:text-[var(--bidrock-auction)]"
+            )}
+            onClick={onSave}
+            aria-pressed={saved}
+          >
+            <Bookmark className={cn("h-4 w-4", saved && "fill-current")} aria-hidden="true" />
+            {saved ? "Saved" : "Save"}
+          </Button>
+        </div>
+      </article>
+    );
+  }
 
   const ended =
     auction.status === "sold" || auction.status === "no_sale" || auction.status === "ended";

@@ -1,9 +1,24 @@
 # Build Evidence: bidrock-marketplace-recovery
 
-Status: current-main reconciliation validated locally for the approved recovery-branch push; no PR, merge, deployment, or production mutation performed
+Status: offer-first correction implemented locally; exact-commit release validation pending
 Started at: `2026-08-20T18:58:08Z`
-Base revision: `5e6c44a49fcb0eae0cf720fadd898c477d8d8293`
-Branch: `jw-stone/bidrock-marketplace-recovery`
+Base revision: `764d56f0f5ffb88c6ef28fdcb5c4683c6a09dcb5`
+Branch: `jw-stone/bidrock-offer-first`
+
+## 2026-08-24 offer-first controlling correction
+
+- GitHub `main` had been moved back to `764d56f0f5ffb88c6ef28fdcb5c4683c6a09dcb5`, the first parent of the prior released BidRock merge. The released BidRock candidate `be99bf08264f5ed723c7cde97f8e0010d433a5fe` was therefore merged into the new JW-scoped correction branch before editing, so a later main deployment cannot silently erase BidRock.
+- The owner corrected the product model: BidRock is a seller-confirmed marketplace and, for TradeScout/JW Stone inventory, a polished contact-and-offer funnel. Unpriced inventory must publish with `Make an offer`; it has no asking price, opening bid, reserve, or required auction schedule. Other verified businesses may also sell, and timed auctions remain optional.
+- The catalog now retains seller-published, sale-ready listings without auctions. The public DTO still omits seller-internal identifiers and legacy private price fields. Auction result/current lots remain available through the same canonical catalog.
+- Offer creation no longer requires retained legacy listing-price terms. It still requires a verified business, positive whole quantity, buyer-supplied positive total, current seller-confirmed published stock, available unheld quantity, idempotency, no seller self-offer, and no current auction.
+- The routed marketplace leads with an `Open to offers` group. Offer-only cards and details state `No asking price` and `Make an offer`, accept buyer quantity/total/note, and explain that submission creates no order, contact release, or charge. Seller-managed lots hide buyer offer controls.
+- Seller controls publish current stock for offers without a price. Timed-auction configuration is explicitly optional. The `Offers & orders` workspace restores private seller review, counter, decline, and explicit acceptance using the existing guarded reservation/order path.
+- Existing optional-auction behavior, proxy bidding, reserve outcomes, soft close, seller self-bid protection, ACH-only order controls, zero-fee validation, contact/privacy gates, and dormant external payment activation remain intact.
+- `node_modules/.bin/tsc --noEmit --pretty false` passed with zero diagnostics after the offer-first correction.
+- The complete BidRock-focused Vitest lane passed 9 files and 68 tests. The 3 opt-in PostgreSQL integration cases were skipped because no disposable test database was supplied; no production database was used for testing.
+- `npm run build` passed: Vite transformed 4,076 modules, the dedicated BidRock bundle was generated, public-landing and built-asset URL verification passed, and the server bundle completed. Existing Browserslist, ambiguous-duration, dynamic-import, and chunk-size warnings remain unrelated baseline warnings.
+- `git diff --check` passed. The build-generated sitemap date and Red Graniti cache files were removed from the source diff after validation.
+- Exact-commit minimum-release attestation, authenticated real-browser proof, PR/merge, production deployment, and publication of the seven existing production drafts remain pending at this checkpoint.
 
 ## 2026-08-22 current-main reconciliation
 

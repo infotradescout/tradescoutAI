@@ -7,6 +7,7 @@ import {
   Clock3,
   Gavel,
   GitCompareArrows,
+  MessageSquareText,
   PackageCheck,
   Search,
   SlidersHorizontal,
@@ -42,14 +43,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { cn } from "@/lib/utils";
 import {
+  acceptBidRockOffer,
   cancelBidRockOrder,
   closeExpiredBidRockAuctions,
   completeBidRockOrder,
   configureBidRockAuction,
+  counterBidRockOffer,
   expireBidRockHolds,
   importBidRockConfirmedStock,
   linkBidRockOrderSystems,
   loadBidRockCatalog,
+  loadBidRockOffers,
   loadBidRockOrder,
   loadBidRockOrders,
   loadBidRockProviderAssignments,
@@ -58,11 +62,12 @@ import {
   placeBidRockMaximum,
   projectBidRockInventory,
   recordBidRockHandoff,
+  rejectBidRockOffer,
   setBidRockDelegation,
   setBidRockPublication,
   setBidRockSaved,
   settleBidRockAch,
-  type BidRockOrder,
+  submitBidRockOffer,
   type BidRockProviderAssignment,
 } from "./bidrockClient";
 import { BidRockDetailPanel } from "./BidRockDetailPanel";
@@ -72,7 +77,7 @@ import {
   formatBidRockDimensions,
   formatBidRockMaterialClass,
 } from "./BidRockListingRow";
-import { BidRockAdminPanel } from "./BidRockOperationsPanels";
+import { BidRockActivityPanel, BidRockAdminPanel } from "./BidRockOperationsPanels";
 import { BidRockOrderSheet } from "./BidRockOrderSheet";
 import "./bidrock-theme.css";
 
@@ -186,6 +191,12 @@ export default function BidRockWorkspace() {
     enabled: (tab === "orders" && canUseOrders) || (tab === "admin" && canAdmin),
     staleTime: 10_000,
   });
+  const offersQuery = useQuery({
+    queryKey: ["bidrock", "offers", viewerCacheScope],
+    queryFn: loadBidRockOffers,
+    enabled: tab === "orders" && canUseOrders,
+    staleTime: 10_000,
+  });
   const orderQuery = useQuery({
     queryKey: ["bidrock", "order", selectedOrderId, viewerCacheScope],
     queryFn: () => loadBidRockOrder(selectedOrderId as string),
@@ -249,6 +260,7 @@ export default function BidRockWorkspace() {
   const liveListings = filteredListings.filter((listing) =>
     ["live", "extended"].includes(listing.auction?.status || "")
   );
+  const offerListings = filteredListings.filter((listing) => !listing.auction && listing.saleReady);
   const closingSoon = liveListings.filter(
     (listing) =>
       Date.parse(listing.auction?.endsAt || "") - groupingNow <= CLOSING_SOON_MILLISECONDS
@@ -268,7 +280,7 @@ export default function BidRockWorkspace() {
       ? "Business access"
       : isAuthenticated
         ? "Set up business access"
-        : "Sign in to bid";
+        : "Sign in for business access";
 
   const reportFailure = (error: unknown, title: string) => {
     toast({
@@ -282,6 +294,7 @@ export default function BidRockWorkspace() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["bidrock", "catalog"] }),
       queryClient.invalidateQueries({ queryKey: ["bidrock", "seller-inventory"] }),
+      queryClient.invalidateQueries({ queryKey: ["bidrock", "offers"] }),
       queryClient.invalidateQueries({ queryKey: ["bidrock", "orders"] }),
       queryClient.invalidateQueries({ queryKey: ["bidrock", "order"] }),
       queryClient.invalidateQueries({ queryKey: ["bidrock", "provider-assignments"] }),
@@ -319,6 +332,33 @@ export default function BidRockWorkspace() {
       toast({ title: "Maximum bid placed" });
     } catch (error) {
       reportFailure(error, "Bid could not be placed");
+      throw error;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendOffer = async (
+    listing: BidRockListing,
+    args: { quantity: number; totalAmount: string; message?: string }
+  ) => {
+    setBusy(true);
+    try {
+      await withStableRetryKey(
+        `offer:${listing.id}:${args.quantity}:${args.totalAmount}:${args.message || ""}`,
+        (idempotencyKey) =>
+          submitBidRockOffer({
+            listingId: listing.id,
+            quantity: args.quantity,
+            totalAmount: args.totalAmount,
+            message: args.message,
+            idempotencyKey,
+          }).then(() => undefined)
+      );
+      await refreshBidRock();
+      toast({ title: "Offer sent to seller" });
+    } catch (error) {
+      reportFailure(error, "Offer could not be sent");
       throw error;
     } finally {
       setBusy(false);
@@ -366,15 +406,19 @@ export default function BidRockWorkspace() {
     verifiedBusiness: catalog?.viewer.verifiedBusiness === true,
     compared: selectedListing ? compareIds.includes(selectedListing.id) : false,
     saved: selectedListing ? isSaved(selectedListing) : false,
-    submittingBid: busy,
+    submittingAction: busy,
     onCompare: () => selectedListing && toggleCompare(selectedListing.id),
     onSave: () => selectedListing && void toggleSaved(selectedListing),
     onOpenAccount: () => setAccountOpen(true),
     onPlaceBid: async (maximumBid: string) => {
       if (selectedListing) await placeMaximumBid(selectedListing, maximumBid);
     },
+    onSubmitOffer: async (args: { quantity: number; totalAmount: string; message?: string }) => {
+      if (selectedListing) await sendOffer(selectedListing, args);
+    },
   };
   const sellerListings = sellerQuery.data ?? [];
+  const offers = offersQuery.data ?? [];
   const orders = ordersQuery.data ?? [];
 
   return (
@@ -383,34 +427,34 @@ export default function BidRockWorkspace() {
       data-testid="bidrock-workspace"
     >
       <SEOHelmet
-        title="BidRock | Business Stone Auctions"
-        description="Timed business auctions for exact natural and engineered stone lots."
+        title="BidRock | Business Stone Marketplace"
+        description="Seller-confirmed stone inventory open to private business offers, with optional timed auctions."
         canonical="https://www.thetradescout.com/bidrock"
       />
       <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between gap-4 border-b border-white/10 bg-[var(--bidrock-auction-deep)] px-4 text-white sm:px-6">
         <a
           href="/bidrock"
           className="flex min-w-0 items-center gap-3"
-          aria-label="BidRock auctions home"
+          aria-label="BidRock marketplace home"
         >
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[var(--bidrock-auction)]">
-            <Gavel className="h-5 w-5" aria-hidden="true" />
+            <MessageSquareText className="h-5 w-5" aria-hidden="true" />
           </span>
           <span className="min-w-0">
             <span className="block text-lg font-black tracking-tight">BidRock</span>
             <span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-white/55">
-              B2B stone auctions
+              B2B stone marketplace
             </span>
           </span>
         </a>
         <div className="flex items-center gap-2">
           {catalog?.viewer.verifiedBusiness ? (
             <Badge className="hidden border-emerald-400/20 bg-emerald-400/10 text-emerald-100 sm:inline-flex">
-              <Building2 className="mr-1 h-3 w-3" aria-hidden="true" /> Verified bidder
+              <Building2 className="mr-1 h-3 w-3" aria-hidden="true" /> Verified business
             </Badge>
           ) : (
             <Badge className="hidden border-white/15 bg-white/5 text-white/75 sm:inline-flex">
-              Bid values private
+              Business offers private
             </Badge>
           )}
           <Button
@@ -436,20 +480,20 @@ export default function BidRockWorkspace() {
           <div className="flex flex-wrap items-end justify-between gap-4 px-4 py-4 sm:px-6 sm:py-5">
             <div className="max-w-3xl">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--bidrock-auction)]">
-                Business-only stone auction house
+                Seller-confirmed stone marketplace
               </p>
               <h1 className="mt-1 text-2xl font-black tracking-tight text-stone-950 sm:text-3xl">
-                Natural and engineered stone on the block
+                Find the lot. Make the seller an offer.
               </h1>
               <p className="mt-1.5 text-xs leading-5 text-stone-600 sm:text-sm">
-                Exact slabs, bundles, blocks, and containers. Business verification is required to
-                participate.
+                Browse exact slabs, bundles, blocks, and containers. Unpriced inventory has no
+                opening bid—buyers send a private offer instead.
               </p>
             </div>
             <TabsList className="max-w-full justify-start overflow-x-auto border-stone-200 bg-stone-100 text-stone-600">
-              <TabsTrigger value="market">Auction floor</TabsTrigger>
+              <TabsTrigger value="market">Marketplace</TabsTrigger>
               {canSell ? <TabsTrigger value="seller">Seller controls</TabsTrigger> : null}
-              {canUseOrders ? <TabsTrigger value="orders">Orders</TabsTrigger> : null}
+              {canUseOrders ? <TabsTrigger value="orders">Offers &amp; orders</TabsTrigger> : null}
               {canUseProvider ? (
                 <TabsTrigger value="provider">Assigned handoffs</TabsTrigger>
               ) : null}
@@ -457,10 +501,10 @@ export default function BidRockWorkspace() {
             </TabsList>
           </div>
           <div className="grid grid-cols-2 bg-stone-950 text-white sm:grid-cols-4">
-            <AuctionHouseStat label="Live now" value={String(liveListings.length)} live />
-            <AuctionHouseStat label="Closing within 24h" value={String(closingSoon.length)} />
-            <AuctionHouseStat label="Upcoming" value={String(scheduled.length)} />
-            <AuctionHouseStat label="Auction sellers" value={String(sellerCount)} />
+            <AuctionHouseStat label="Open to offers" value={String(offerListings.length)} live />
+            <AuctionHouseStat label="Live auctions" value={String(liveListings.length)} />
+            <AuctionHouseStat label="Available lots" value={String(filteredListings.length)} />
+            <AuctionHouseStat label="Verified sellers" value={String(sellerCount)} />
           </div>
         </div>
 
@@ -493,7 +537,8 @@ export default function BidRockWorkspace() {
             <main className="min-w-0 border-r border-stone-200 bg-[var(--bidrock-auction-workspace)]">
               <div className="flex min-h-11 items-center justify-between gap-3 border-b border-stone-200 bg-white/70 px-4 text-xs text-stone-600">
                 <span>
-                  {filteredListings.length} timed {filteredListings.length === 1 ? "lot" : "lots"}
+                  {filteredListings.length} available{" "}
+                  {filteredListings.length === 1 ? "lot" : "lots"}
                   {totalBidCount > 0
                     ? ` · ${totalBidCount} ${totalBidCount === 1 ? "bid" : "bids"}`
                     : ""}
@@ -513,7 +558,7 @@ export default function BidRockWorkspace() {
               {catalogQuery.isLoading ? (
                 <div
                   className="grid gap-4 p-4 md:grid-cols-2"
-                  aria-label="Loading live stone auctions"
+                  aria-label="Loading stone marketplace inventory"
                 >
                   {[0, 1, 2, 3].map((item) => (
                     <div key={item} className="aspect-[4/5] animate-pulse rounded-xl bg-white/80" />
@@ -522,7 +567,7 @@ export default function BidRockWorkspace() {
               ) : catalogQuery.isError ? (
                 <div className="p-10 text-center">
                   <p className="font-semibold text-stone-900">
-                    BidRock auctions could not be loaded.
+                    BidRock inventory could not be loaded.
                   </p>
                   <Button
                     type="button"
@@ -534,6 +579,17 @@ export default function BidRockWorkspace() {
                 </div>
               ) : filteredListings.length ? (
                 <div className="space-y-7 p-4 sm:p-5">
+                  <AuctionGroup
+                    title="Open to offers"
+                    description="Seller-confirmed inventory with no asking price. Choose a quantity and send the seller your offer."
+                    listings={offerListings}
+                    selectedListing={selectedListing}
+                    compareIds={compareIds}
+                    isSaved={isSaved}
+                    onSelect={selectMarketListing}
+                    onCompare={toggleCompare}
+                    onSave={(listing) => void toggleSaved(listing)}
+                  />
                   <AuctionGroup
                     title="Closing soon"
                     description="Live lots closing within 24 hours. Bids in the final two minutes extend the close."
@@ -582,17 +638,17 @@ export default function BidRockWorkspace() {
               ) : (
                 <div className="mx-auto max-w-xl px-6 py-16 text-center">
                   <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-stone-950 text-white">
-                    <Gavel className="h-6 w-6" aria-hidden="true" />
+                    <MessageSquareText className="h-6 w-6" aria-hidden="true" />
                   </span>
                   <h2 className="mt-4 text-xl font-semibold text-stone-900">
                     {listings.length
-                      ? "No auction lots match these filters."
-                      : "No seller-published auctions are live."}
+                      ? "No stone lots match these filters."
+                      : "No seller-published inventory is available."}
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-stone-500">
                     {listings.length
-                      ? "Clear a filter to return to the auction floor."
-                      : "Confirmed inventory stays private until its seller publishes the opening bid, schedule, and fulfillment terms."}
+                      ? "Clear a filter to return to the marketplace."
+                      : "Confirmed inventory stays private until its seller publishes it for offers or deliberately schedules an auction."}
                   </p>
                 </div>
               )}
@@ -608,7 +664,7 @@ export default function BidRockWorkspace() {
             <div className="p-10 text-sm text-stone-500">Loading seller lots…</div>
           ) : sellerQuery.isError ? (
             <div className="p-10 text-sm text-stone-500">
-              Seller auction controls are unavailable.
+              Seller marketplace controls are unavailable.
             </div>
           ) : (
             <SellerAuctionPanel
@@ -619,8 +675,8 @@ export default function BidRockWorkspace() {
               onPublication={async (listingId, saleReady) => {
                 await run(
                   () => setBidRockPublication(listingId, saleReady),
-                  saleReady ? "Lot made auction-ready" : "Lot returned to private inventory",
-                  "Auction-ready state could not be saved"
+                  saleReady ? "Lot published for offers" : "Lot returned to private inventory",
+                  "Publication state could not be saved"
                 );
               }}
               onConfigure={async (args) => {
@@ -635,12 +691,68 @@ export default function BidRockWorkspace() {
         </TabsContent>
 
         <TabsContent value="orders" className="m-0">
-          <OrderQueue
-            orders={orders}
-            loading={ordersQuery.isLoading}
-            error={ordersQuery.isError}
-            onOpenOrder={setSelectedOrderId}
-          />
+          {offersQuery.isLoading || ordersQuery.isLoading ? (
+            <div className="p-10 text-sm text-stone-500">Loading offers and orders…</div>
+          ) : offersQuery.isError || ordersQuery.isError ? (
+            <div className="p-10 text-sm text-stone-500">
+              Offers and orders are temporarily unavailable.
+            </div>
+          ) : (
+            <BidRockActivityPanel
+              offers={offers}
+              orders={orders}
+              listingNames={Object.fromEntries(
+                listings.map((listing) => [listing.id, listing.title])
+              )}
+              busy={busy}
+              onAccept={async (offerId) => {
+                await run(
+                  () => acceptBidRockOffer(offerId).then(() => undefined),
+                  "Offer accepted and lot reserved",
+                  "Offer could not be accepted"
+                );
+              }}
+              onCounter={async (offerId, totalAmount, message) => {
+                await run(
+                  () =>
+                    withStableRetryKey(
+                      `counter:${offerId}:${totalAmount}:${message || ""}`,
+                      (idempotencyKey) =>
+                        counterBidRockOffer({
+                          offerId,
+                          totalAmount,
+                          message,
+                          idempotencyKey,
+                        }).then(() => undefined)
+                    ),
+                  "Counteroffer sent",
+                  "Counteroffer could not be sent"
+                );
+              }}
+              onReject={async (offerId) => {
+                await run(
+                  () => rejectBidRockOffer(offerId).then(() => undefined),
+                  "Offer declined",
+                  "Offer could not be declined"
+                );
+              }}
+              onPaymentReady={async (orderId) => {
+                await run(
+                  () => markBidRockPaymentReady(orderId),
+                  "ACH readiness recorded",
+                  "Payment readiness could not be recorded"
+                );
+              }}
+              onCancel={async (orderId) => {
+                await run(
+                  () => cancelBidRockOrder(orderId),
+                  "Order cancelled",
+                  "Order could not be cancelled"
+                );
+              }}
+              onOpenOrder={setSelectedOrderId}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="provider" className="m-0">
@@ -709,8 +821,10 @@ export default function BidRockWorkspace() {
           data-testid="bidrock-mobile-lot-detail"
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>{selectedListing?.title || "BidRock auction lot"}</SheetTitle>
-            <SheetDescription>Selected timed lot facts and maximum-bid controls.</SheetDescription>
+            <SheetTitle>{selectedListing?.title || "BidRock stone lot"}</SheetTitle>
+            <SheetDescription>
+              Selected lot facts and its private offer or auction controls.
+            </SheetDescription>
           </SheetHeader>
           <BidRockDetailPanel {...detailProps} />
         </SheetContent>
@@ -898,14 +1012,14 @@ function SellerAuctionPanel({
   ) : null;
   return (
     <div className="grid min-h-[calc(100vh-133px)] bg-[var(--bidrock-auction-workspace)] lg:grid-cols-[minmax(0,1fr)_420px]">
-      <section aria-label="Seller auction lots">
+      <section aria-label="Seller marketplace lots">
         <div className="border-b border-stone-200 bg-[var(--bidrock-auction-soft)] px-4 py-4 text-[var(--bidrock-auction-soft-ink)]">
-          <p className="text-xs font-bold">Seller-controlled auction publication</p>
+          <p className="text-xs font-bold">Seller-controlled marketplace publication</p>
           <div className="mt-3 grid gap-2 text-[11px] leading-4 sm:grid-cols-3">
             {[
               "Confirm exact physical stock",
-              "Mark the lot auction-ready",
-              "Publish price, schedule, and terms",
+              "Publish the lot for offers",
+              "Optionally schedule a timed auction",
             ].map((step, index) => (
               <div
                 key={step}
@@ -949,8 +1063,10 @@ function SellerAuctionPanel({
           className="max-h-[92vh] overflow-y-auto bg-white p-0 text-stone-950 lg:hidden"
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>{selected?.title || "Seller auction controls"}</SheetTitle>
-            <SheetDescription>Configure the selected timed stone auction.</SheetDescription>
+            <SheetTitle>{selected?.title || "Seller marketplace controls"}</SheetTitle>
+            <SheetDescription>
+              Publish the selected lot for offers or optionally schedule a timed auction.
+            </SheetDescription>
           </SheetHeader>
           {editor}
         </SheetContent>
@@ -1017,16 +1133,17 @@ function SellerAuctionEditor({
 
       <div className="mt-5 flex items-start justify-between gap-4 rounded-lg border border-stone-200 p-4">
         <div>
-          <p className="text-sm font-bold text-stone-900">Auction-ready stock</p>
+          <p className="text-sm font-bold text-stone-900">Published for offers</p>
           <p className="mt-1 text-xs leading-5 text-stone-500">
-            Publication confirms this exact quantity is current and available for a timed auction.
+            Publication confirms this exact quantity is current and available for private buyer
+            offers. No asking price or opening bid is required.
           </p>
         </div>
         <Switch
           checked={listing.saleReady}
           disabled={busy || !listing.fresh || !canPublish || Boolean(currentAuction)}
           onCheckedChange={(checked) => void onPublication(listing.id, checked)}
-          aria-label={`Mark ${listing.title} auction-ready`}
+          aria-label={`Publish ${listing.title} for offers`}
         />
       </div>
 
@@ -1089,6 +1206,13 @@ function SellerAuctionEditor({
               });
             }}
           >
+            <div>
+              <p className="text-sm font-bold text-stone-900">Optional timed auction</p>
+              <p className="mt-1 text-xs leading-5 text-stone-500">
+                Use these fields only when this seller deliberately wants bidding, an opening bid,
+                and a fixed close time.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs font-bold text-stone-700">
                 Opening bid
@@ -1177,70 +1301,12 @@ function SellerAuctionEditor({
         ) : (
           <p className="mt-5 rounded-lg bg-stone-100 p-4 text-sm text-stone-600">
             {canPublish
-              ? "Make the confirmed lot auction-ready before setting its auction terms."
-              : "This delegation does not include auction publication authority."}
+              ? "Publish the confirmed lot for offers before optionally setting timed-auction terms."
+              : "This delegation does not include marketplace publication authority."}
           </p>
         )
       ) : null}
     </aside>
-  );
-}
-
-function OrderQueue({
-  orders,
-  loading,
-  error,
-  onOpenOrder,
-}: {
-  orders: readonly BidRockOrder[];
-  loading: boolean;
-  error: boolean;
-  onOpenOrder: (orderId: string) => void;
-}) {
-  if (loading) return <div className="p-10 text-sm text-stone-500">Loading auction orders…</div>;
-  if (error)
-    return <div className="p-10 text-sm text-stone-500">Auction orders are unavailable.</div>;
-  return (
-    <section className="mx-auto max-w-4xl p-4 sm:p-6" aria-label="Auction orders">
-      <h2 className="text-xl font-semibold text-stone-950">Won and sold lots</h2>
-      <p className="mt-1 text-sm text-stone-500">
-        Reserve-met auctions continue through the existing ACH-only order and logistics path.
-      </p>
-      {orders.length ? (
-        <div className="mt-5 divide-y divide-stone-200 border-y border-stone-200 bg-white">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="font-semibold text-stone-950">{order.id}</p>
-                <p className="mt-1 text-xs text-stone-500">
-                  {order.quantity} slabs ·{" "}
-                  {(order.subtotalCents / 100).toLocaleString("en-US", {
-                    style: "currency",
-                    currency: "USD",
-                  })}{" "}
-                  · ACH
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="capitalize">
-                  {order.status.replace(/_/g, " ")}
-                </Badge>
-                <Button type="button" variant="outline" onClick={() => onOpenOrder(order.id)}>
-                  Open order
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-5 border-y border-stone-200 bg-white p-6 text-sm text-stone-500">
-          No auction orders yet.
-        </p>
-      )}
-    </section>
   );
 }
 
@@ -1315,7 +1381,7 @@ function FilterControls(props: FilterProps) {
   return (
     <div className="space-y-5">
       <label className="block text-xs font-bold text-stone-700">
-        Search auctions
+        Search inventory
         <span className="relative mt-2 block">
           <Search
             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400"
@@ -1385,7 +1451,7 @@ function FilterRail(props: FilterProps) {
   return (
     <aside
       className="hidden border-r border-stone-200 bg-[var(--bidrock-auction-rail)] p-4 lg:block"
-      aria-label="Auction filters"
+      aria-label="Marketplace filters"
     >
       <div className="sticky top-20">
         <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-stone-500">
@@ -1452,9 +1518,9 @@ function BidRockCompareDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-auto border-stone-200 bg-white text-stone-950">
         <DialogHeader>
-          <DialogTitle className="text-stone-950">Compare auction lots</DialogTitle>
+          <DialogTitle className="text-stone-950">Compare stone lots</DialogTitle>
           <DialogDescription className="text-stone-500">
-            Compare physical facts, fulfillment terms, activity, reserve state, and time remaining.
+            Compare physical facts, sellers, offer availability, and any optional auction terms.
           </DialogDescription>
         </DialogHeader>
         {listings.length ? (
@@ -1465,7 +1531,9 @@ function BidRockCompareDialog({
                   <th className="p-3 text-xs text-stone-500">Field</th>
                   {listings.map((listing) => (
                     <th key={listing.id} className="p-3 font-bold text-stone-900">
-                      {listing.auction?.lotNumber} · {listing.title}
+                      {listing.auction?.lotNumber
+                        ? `${listing.auction.lotNumber} · ${listing.title}`
+                        : listing.title}
                     </th>
                   ))}
                 </tr>
@@ -1495,25 +1563,32 @@ function BidRockCompareDialog({
                 <CompareRow
                   label="Activity"
                   values={listings.map((listing) => {
+                    if (!listing.auction) return "Open to offers";
                     const bidCount = listing.auction?.bidCount ?? 0;
-                    return `${bidCount} ${bidCount === 1 ? "bid" : "bids"} · ${listing.auction?.reserveState.replace(/_/g, " ") ?? "Unknown"}`;
+                    return `${bidCount} ${bidCount === 1 ? "bid" : "bids"} · ${listing.auction.reserveState.replace(/_/g, " ")}`;
                   })}
                 />
                 <CompareRow
                   label="Pickup"
-                  values={listings.map((listing) => listing.auction?.pickupTerms || "Pending")}
+                  values={listings.map(
+                    (listing) => listing.auction?.pickupTerms || "Discuss with seller"
+                  )}
                 />
                 <CompareRow
                   label="Freight"
-                  values={listings.map((listing) => listing.auction?.freightTerms || "Pending")}
+                  values={listings.map(
+                    (listing) => listing.auction?.freightTerms || "Discuss with seller"
+                  )}
                 />
                 {verifiedBusiness ? (
                   <CompareRow
-                    label="Current bid"
+                    label="Auction bid"
                     values={listings.map((listing) =>
                       listing.auction?.currentBid
                         ? formatBidRockMoney(listing.auction.currentBid)
-                        : "No bid"
+                        : listing.auction
+                          ? "No bid"
+                          : "No asking price"
                     )}
                   />
                 ) : null}
@@ -1521,7 +1596,7 @@ function BidRockCompareDialog({
             </table>
           </div>
         ) : (
-          <p className="py-8 text-sm text-stone-500">Choose up to three auction lots.</p>
+          <p className="py-8 text-sm text-stone-500">Choose up to three stone lots.</p>
         )}
       </DialogContent>
     </Dialog>

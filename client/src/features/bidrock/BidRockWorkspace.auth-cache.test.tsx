@@ -115,9 +115,14 @@ vi.mock("./bidrockClient", () => ({
   loadBidRockCatalog: (...args: unknown[]) => mocks.loadCatalog(...args),
   loadBidRockProviderAssignments: vi.fn().mockResolvedValue([]),
   loadBidRockSellerInventory: vi.fn().mockResolvedValue([]),
+  loadBidRockOffers: vi.fn().mockResolvedValue([]),
   loadBidRockOrders: vi.fn().mockResolvedValue([]),
   loadBidRockOrder: vi.fn().mockResolvedValue(null),
   placeBidRockMaximum: vi.fn(),
+  submitBidRockOffer: vi.fn(),
+  acceptBidRockOffer: vi.fn(),
+  counterBidRockOffer: vi.fn(),
+  rejectBidRockOffer: vi.fn(),
   cancelBidRockOrder: vi.fn(),
   closeExpiredBidRockAuctions: vi.fn(),
   completeBidRockOrder: vi.fn(),
@@ -184,7 +189,7 @@ describe("BidRock viewer-scoped catalog cache", () => {
     act(renderWorkspace);
     await flushQueries();
 
-    expect(container.textContent).toContain("Bid values private");
+    expect(container.textContent).toContain("Business offers private");
     expect(container.textContent).not.toContain("$");
     expect(mocks.loadCatalog).toHaveBeenCalledTimes(2);
   });
