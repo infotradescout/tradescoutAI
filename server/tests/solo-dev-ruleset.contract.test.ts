@@ -21,6 +21,7 @@ describe("solo-developer main ruleset", () => {
   };
 
   it("protects main without requiring a second person or external runner", () => {
+    const ruleTypes = ruleset.rules.map((rule) => rule.type);
     const pullRequest = ruleset.rules.find((rule) => rule.type === "pull_request");
 
     expect(ruleset.enforcement).toBe("active");
@@ -33,9 +34,11 @@ describe("solo-developer main ruleset", () => {
       require_last_push_approval: false,
       required_review_thread_resolution: true,
     });
-    expect(ruleset.rules.map((rule) => rule.type)).not.toContain("required_status_checks");
-    expect(ruleset.rules.map((rule) => rule.type)).not.toContain("required_deployments");
-    expect(ruleset.rules.map((rule) => rule.type)).not.toContain("merge_queue");
+    expect(ruleTypes).toEqual([
+      "pull_request",
+      "deletion",
+      "non_fast_forward",
+    ]);
   });
 
   it("blocks destructive main-branch operations", () => {
