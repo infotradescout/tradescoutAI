@@ -63,6 +63,7 @@ export function buildPublicProfileCanonicalRedirectTarget(args: {
   origin: string;
   canonicalPath: string;
   referral?: unknown;
+  request?: unknown;
 }): string | null {
   try {
     const origin = new URL(args.origin);
@@ -73,6 +74,10 @@ export function buildPublicProfileCanonicalRedirectTarget(args: {
 
     const referralCode = firstQueryValue(args.referral);
     if (referralCode) target.searchParams.set("ref", referralCode);
+    const requestIntent = firstQueryValue(args.request);
+    if (requestIntent === "stone" || requestIntent === "collection") {
+      target.searchParams.set("request", requestIntent);
+    }
     return target.toString();
   } catch {
     return null;
