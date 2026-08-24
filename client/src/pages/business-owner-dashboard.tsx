@@ -39,6 +39,10 @@ type ProfileViewCounts = {
   total: number;
   last7Days: number;
   last30Days: number;
+  totalLoads: number;
+  last7DayLoads: number;
+  last30DayLoads: number;
+  metric: "estimated_unique_visitors";
 };
 
 type BookingRequest = {
@@ -220,7 +224,7 @@ export default function BusinessOwnerDashboard() {
 
   const metrics = [
     {
-      label: "Profile views · 30 days",
+      label: "Estimated visitors · 30 days",
       value:
         profileViewsQuery.isLoading || profilesQuery.isLoading
           ? "—"
@@ -553,7 +557,7 @@ export default function BusinessOwnerDashboard() {
                 </Badge>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-white/60">Lifetime views</span>
+                <span className="text-white/60">Lifetime estimated visitors</span>
                 <span className="font-medium text-white">
                   {profileViewsQuery.isLoading
                     ? "—"

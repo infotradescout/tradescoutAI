@@ -122,7 +122,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "granite",
         title: "Granite",
         summary:
-          "Explore JW Stone's Granite material library, compare named selections and photographs, and start a material request when ready.",
+          "Explore named Granite materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "arizona-gold",
         indexable: true,
         collectionKind: "offerings",
@@ -132,7 +132,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "marble",
         title: "Marble",
         summary:
-          "Explore JW Stone's Marble material library, compare named selections and photographs, and start a material request when ready.",
+          "Explore named Marble materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "alabama-rose",
         indexable: true,
         collectionKind: "offerings",
@@ -142,7 +142,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "quartzite",
         title: "Quartzite",
         summary:
-          "Explore JW Stone's Quartzite material library, compare named selections and photographs, and start a material request when ready.",
+          "Explore named Quartzite materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "atlantic",
         indexable: true,
         collectionKind: "offerings",
@@ -152,7 +152,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "engineered-quartz",
         title: "Engineered Quartz",
         summary:
-          "Explore JW Stone's Engineered Quartz material library, compare named selections and photographs, and start a material request when ready.",
+          "Explore named Engineered Quartz materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "aj-quartz",
         indexable: true,
         collectionKind: "offerings",
@@ -162,7 +162,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "onyx",
         title: "Onyx",
         summary:
-          "Explore JW Stone's Onyx material library, review the exact material photographs, and start a material request when ready.",
+          "Explore Onyx in JW Stone's material library, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "honey-onyx",
         indexable: true,
         collectionKind: "offerings",
@@ -172,7 +172,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "soapstone",
         title: "Soapstone",
         summary:
-          "Explore JW Stone's Soapstone material library, review the exact material photographs, and start a material request when ready.",
+          "Explore Soapstone in JW Stone's material library, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "marina-black-soapstone",
         indexable: true,
         collectionKind: "offerings",
@@ -182,7 +182,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "basalt",
         title: "Basalt",
         summary:
-          "Explore JW Stone's Basalt material library, review the exact material photographs, and start a material request when ready.",
+          "Explore Basalt in JW Stone's material library, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "matrix-basalt",
         indexable: true,
         collectionKind: "offerings",

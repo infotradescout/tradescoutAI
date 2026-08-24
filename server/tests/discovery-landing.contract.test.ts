@@ -3,6 +3,7 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildClientDiscoveryLandingPayload,
+  normalizeDiscoveryRouteForBusiness,
   normalizeDiscoveryAttributionToken,
   sanitizeDiscoveryLandingEvent,
 } from "@shared/discoveryLanding";
@@ -41,6 +42,17 @@ function issueToken(
 }
 
 describe("signed discovery attribution", () => {
+  it("normalizes custom-domain paths without reinterpreting another profile route", () => {
+    expect(normalizeDiscoveryRouteForBusiness("example-profile", "/")).toBe("/u/example-profile");
+    expect(normalizeDiscoveryRouteForBusiness("example-profile", "/stones/sample")).toBe(
+      "/u/example-profile/stones/sample"
+    );
+    expect(normalizeDiscoveryRouteForBusiness("jw-stone", "/stones/sample")).toBe("/stones/sample");
+    expect(normalizeDiscoveryRouteForBusiness("example-profile", "/u/another-profile")).toBe(
+      undefined
+    );
+  });
+
   it("issues a separate identifier instead of reusing an HTTP request id", () => {
     const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
     const verified = verifyDiscoveryAttributionToken(token);
@@ -252,6 +264,43 @@ describe("discovery_landing analytics delivery", () => {
     expect(logEventMock).not.toHaveBeenCalled();
   });
 
+  it("keeps a browser-tab session id and rejects crawler analytics", async () => {
+    const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
+    const humanResponse = await request(makeApp())
+      .post("/api/analytics/shell")
+      .set("User-Agent", "Mozilla/5.0 AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36")
+      .set("X-Anonymous-Session-Id", "discovery-browser-session")
+      .send({
+        type: "discovery_landing",
+        canonicalRoute: "/jw-stone",
+        entityType: "business_marketplace",
+        businessSlug: "jw-stone",
+        discoveryAttributionToken: token,
+        anonymousSessionId: "discovery-browser-session",
+      });
+    expect(humanResponse.status).toBe(204);
+    await flushAsyncWork();
+    expect(logEventMock).toHaveBeenCalledTimes(1);
+    expect(logEventMock.mock.calls[0][1]).toMatchObject({
+      anonymousSessionId: "discovery-browser-session",
+    });
+
+    logEventMock.mockClear();
+    const crawlerResponse = await request(makeApp())
+      .post("/api/analytics/shell")
+      .set("User-Agent", "Mozilla/5.0 Chrome/139.0.0.0 Safari/605.1.15")
+      .send({
+        type: "discovery_landing",
+        canonicalRoute: "/jw-stone",
+        entityType: "business_marketplace",
+        businessSlug: "jw-stone",
+        discoveryAttributionToken: token,
+      });
+    expect(crawlerResponse.status).toBe(204);
+    await flushAsyncWork();
+    expect(logEventMock).not.toHaveBeenCalled();
+  });
+
   it("returns 204 and skips persistence for unrelated routes", async () => {
     const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
     const res = await request(makeApp()).post("/api/analytics/shell").send({
@@ -269,13 +318,16 @@ describe("discovery_landing analytics delivery", () => {
   it("stays non-blocking when persistence fails", async () => {
     const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
     logEventMock.mockRejectedValueOnce(new Error("db down"));
-    const res = await request(makeApp()).post("/api/analytics/shell").send({
-      type: "discovery_landing",
-      canonicalRoute: "/jw-stone",
-      entityType: "business_marketplace",
-      businessSlug: "jw-stone",
-      discoveryAttributionToken: token,
-    });
+    const res = await request(makeApp())
+      .post("/api/analytics/shell")
+      .set("User-Agent", "Mozilla/5.0 AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36")
+      .send({
+        type: "discovery_landing",
+        canonicalRoute: "/jw-stone",
+        entityType: "business_marketplace",
+        businessSlug: "jw-stone",
+        discoveryAttributionToken: token,
+      });
     expect(res.status).toBe(204);
     await flushAsyncWork();
     expect(logEventMock).toHaveBeenCalledTimes(1);

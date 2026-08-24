@@ -2,11 +2,14 @@ import {
   buildClientDiscoveryLandingPayload,
   DISCOVERY_LANDING_EVENT,
   normalizeDiscoveryAttributionToken,
+  normalizeDiscoveryRouteForBusiness,
 } from "@shared/discoveryLanding";
 import type { DiscoveryLandingEntityType } from "@shared/discoveryLanding";
 
 let lastDiscoveryLandingKey: string | null = null;
+let fallbackDiscoverySessionId: string | null = null;
 export const DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY = "tradescout:discovery-attribution:v1";
+export const DISCOVERY_LANDING_SESSION_STORAGE_KEY = "tradescout:discovery-session:v1";
 
 export type StoredDiscoveryLandingAttribution = {
   discoveryAttributionToken: string;
@@ -27,6 +30,31 @@ function readDiscoveryAttributionToken(): string | null {
 function readMeta(name: string): string | null {
   if (typeof document === "undefined") return null;
   return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || null;
+}
+
+function createDiscoverySessionId(): string {
+  const randomPart =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`;
+  return `discovery-${randomPart}`;
+}
+
+export function getOrCreateDiscoveryAnonymousSessionId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const stored = String(
+      window.sessionStorage.getItem(DISCOVERY_LANDING_SESSION_STORAGE_KEY) || ""
+    ).trim();
+    if (stored && stored.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(stored)) return stored;
+
+    const created = createDiscoverySessionId();
+    window.sessionStorage.setItem(DISCOVERY_LANDING_SESSION_STORAGE_KEY, created);
+    return created;
+  } catch {
+    fallbackDiscoverySessionId ||= createDiscoverySessionId();
+    return fallbackDiscoverySessionId;
+  }
 }
 
 export function getPublishedDiscoveryIdentity(): {
@@ -72,6 +100,7 @@ export function getStoredDiscoveryLandingAttribution(
 /** Test helper - clears in-memory once-per-landing dedupe. */
 export function resetDiscoveryLandingDedupeForTests(): void {
   lastDiscoveryLandingKey = null;
+  fallbackDiscoverySessionId = null;
 }
 
 /**
@@ -91,18 +120,25 @@ export async function trackDiscoveryLandingOnce(options: {
     const discoveryAttributionToken = readDiscoveryAttributionToken();
     if (!identity || !discoveryAttributionToken) return false;
 
+    const canonicalRoute = normalizeDiscoveryRouteForBusiness(
+      identity.businessSlug,
+      options.canonicalRoute
+    );
+    if (!canonicalRoute) return false;
+
     const params = new URLSearchParams(
       options.search ?? (typeof window !== "undefined" ? window.location.search : "")
     );
     const raw = buildClientDiscoveryLandingPayload({
-      canonicalRoute: options.canonicalRoute,
+      canonicalRoute,
       businessSlug: identity.businessSlug,
       entityType: identity.entityType,
       discoveryAttributionToken,
       searchParams: params,
       referrer:
         options.referrer ?? (typeof document !== "undefined" ? document.referrer || null : null),
-      anonymousSessionId: options.anonymousSessionId ?? null,
+      anonymousSessionId:
+        options.anonymousSessionId ?? getOrCreateDiscoveryAnonymousSessionId() ?? null,
     });
     if (!raw.discoveryAttributionToken) return false;
 
@@ -132,7 +168,12 @@ export async function trackDiscoveryLandingOnce(options: {
     await fetch("/api/analytics/shell", {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(raw.anonymousSessionId
+          ? { "X-Anonymous-Session-Id": String(raw.anonymousSessionId) }
+          : {}),
+      },
       body: JSON.stringify(raw),
     });
     return true;

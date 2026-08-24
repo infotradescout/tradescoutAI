@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
@@ -81,6 +81,7 @@ export default function JWStoneMarketplace() {
   /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
   const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
+  const requestEntryHandledRef = useRef(false);
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -102,6 +103,25 @@ export default function JWStoneMarketplace() {
 
   const activeStone =
     (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) || detailOverride;
+
+  useLayoutEffect(() => {
+    if (requestEntryHandledRef.current || typeof window === "undefined") return;
+    const requestMode = new URLSearchParams(window.location.search).get("request");
+    if (requestMode !== "stone" && requestMode !== "collection") return;
+    if (requestMode === "stone" && !activeStone) return;
+
+    requestEntryHandledRef.current = true;
+    setWishlistOpen(false);
+    setRequestContext(requestMode === "stone" && activeStone ? [activeStone] : []);
+
+    const cleanedUrl = new URL(window.location.href);
+    cleanedUrl.searchParams.delete("request");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`
+    );
+  }, [activeStone]);
 
   const requestTargets = useMemo<readonly DirectConnectMaterialTarget[]>(
     () =>
@@ -326,7 +346,7 @@ export default function JWStoneMarketplace() {
       />
 
       <StoneDetailDialog
-        stone={activeStone}
+        stone={requestContext === null ? activeStone : null}
         saved={activeStone ? wishlist.isSaved(activeStone.id) : false}
         onOpenChange={(open) => {
           if (!open) closeStone();

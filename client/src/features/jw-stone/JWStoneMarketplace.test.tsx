@@ -422,6 +422,19 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
   });
 
+  it("opens a named stone request from the crawlable deep-link CTA", () => {
+    act(() => root.unmount());
+    window.history.replaceState(null, "", "/jw-stone/stones/taj-mahal?request=stone");
+    root = createRoot(container);
+    act(() => root.render(<JWStoneMarketplace />));
+
+    expect(container.querySelector('[data-testid="direct-connect-panel"]')?.textContent).toContain(
+      "Taj Mahal"
+    );
+    expect(container.querySelector('[data-testid="jw-stone-detail-media"]')).toBeNull();
+    expect(new URLSearchParams(window.location.search).has("request")).toBe(false);
+  });
+
   it("shows editorial collection chrome: search + Filter sheet, Save/Ask/View on cards", () => {
     expect(container.textContent).toContain("Material Library");
     expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();

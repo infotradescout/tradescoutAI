@@ -170,6 +170,8 @@ async function main() {
     "server/tests/admin-production-acceptance.contract.test.ts",
     "server/tests/admin-live-stream.contract.test.ts",
     "server/tests/direct-connect-gates.regression.test.ts",
+    "server/tests/directory-navigation-cache.contract.test.ts",
+    "server/tests/discovery-attribution-html.test.ts",
     "server/tests/discovery-landing.contract.test.ts",
     "server/tests/discovery-observatory.contract.test.ts",
     "client/src/lib/discoveryLanding.test.ts",

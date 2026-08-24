@@ -12,6 +12,7 @@ import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
 import { resolveAnonymousSessionId } from "../utils/anonymousSession";
+import { detectActorFromUserAgent } from "../utils/requestActor";
 
 const DEMAND_EVENT_TYPES = [
   "demand.landing_view",
@@ -395,6 +396,8 @@ export function registerAnalyticsRoutes(app: Express) {
         // Public discovery landing: allowlisted fields only. Do not attach raw
         // IP / user-agent / full URL / query string (Contract attribution safety).
         if (event?.type === DISCOVERY_LANDING_EVENT) {
+          const actor = detectActorFromUserAgent(req.headers["user-agent"]);
+          if (actor.actorType !== "human") return;
           const anonymousSessionId = userId ? null : resolveAnonymousSessionId(req) || null;
           const verifiedAttribution = verifyDiscoveryAttributionToken(
             event.discoveryAttributionToken

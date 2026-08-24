@@ -140,7 +140,7 @@ describe("public profile item HTML", () => {
 
     expect(html).toContain('property="og:title" content="Blue Dunes Granite | JW Stone Logistics"');
     expect(html).toContain(
-      'property="og:description" content="View Blue Dunes (Granite) in JW Stone LLC&#39;s material library. See this photo."'
+      'property="og:description" content="Explore Blue Dunes, a Granite material, part of JW Stone&#39;s material library in Pensacola, Florida.'
     );
     expect(html).toMatch(
       /property="og:image" content="https:\/\/www\.thetradescout\.com\/images\/social\/profile\/jw-stone\/inventory\/blue-dunes\.png\?photo=2&amp;v=4-[a-z0-9]+"/

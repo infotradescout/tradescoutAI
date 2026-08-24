@@ -1,6 +1,7 @@
 import { detectActorFromUserAgent } from "./utils/requestActor";
 import { upgradePublicSocialPreviewHtml } from "./publicSocialPreviewHtml";
 import { issueDiscoveryAttributionToken } from "./utils/discoveryAttribution";
+import { normalizeDiscoveryRouteForBusiness } from "../shared/discoveryLanding";
 
 const SEO_ROOT_SUMMARY_PATTERN = /<div id="root">\s*<main data-seo-[\s\S]*?<\/main>\s*<\/div>/i;
 const BOOT_FALLBACK_PATTERN = /\s*<div id="ts-boot-fallback"[\s\S]*?<\/section>\s*<\/div>\s*/i;
@@ -11,8 +12,7 @@ const CLIENT_MODULE_SCRIPT_PATTERN =
   /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
 const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
-const FACT_BEARING_PUBLIC_DISCOVERY_MARKER =
-  /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
+const FACT_BEARING_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
 const DISCOVERY_ATTRIBUTION_META_PATTERN =
   /<meta\b[^>]*\bname\s*=\s*(['"])tradescout-discovery-attribution\1[^>]*>/i;
 const HTML_META_CONTENT_PATTERN = (name: string) =>
@@ -111,12 +111,19 @@ export function attachDiscoveryAttributionMeta(html: string): string {
     return source;
   }
 
+  const businessSlug = readHtmlMetaContent(source, "tradescout-business-slug") || "";
+  const canonicalRoute = normalizeDiscoveryRouteForBusiness(
+    businessSlug,
+    readCanonicalRoute(source) || ""
+  );
+  if (!canonicalRoute) return source;
+
   const token = issueDiscoveryAttributionToken({
-    businessSlug: readHtmlMetaContent(source, "tradescout-business-slug") || "",
+    businessSlug,
     entityType: readHtmlMetaContent(source, "tradescout-business-entity-type") as
       | "business_marketplace"
       | "business_profile",
-    canonicalRoute: readCanonicalRoute(source) || "",
+    canonicalRoute,
   });
   if (!token) return source;
 

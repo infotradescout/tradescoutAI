@@ -26,6 +26,13 @@ import {
   deriveTradeSlugFromProfileData,
   publicBusinessDetailExposureSqlPredicate,
 } from "../publicationBusiness";
+import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
+import {
+  listActiveCountyTradeScopes,
+  listActiveTradeCountyScopes,
+  listActiveTradeScopes,
+  listActiveTradeStateScopes,
+} from "../services/seoDirectoryNavigationService";
 
 const router = Router();
 
@@ -822,9 +829,73 @@ function resolveCountyFipsBySlug(
   return { fips, countyName: String((county as any).name || ""), stateCode, countySlug };
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
+// Public-safe crawl navigation. Every returned link is backed by the same
+// recent, publishable scope snapshot used by the directory sitemaps.
+router.get("/api/public/seo/directory-navigation", async (req, res) => {
+  const cacheParams = {
+    tradeSlug: req.query.tradeSlug ?? req.query.trade,
+    stateCode: req.query.stateCode ?? req.query.state,
+    countySlug: req.query.countySlug ?? req.query.county,
+  };
+
+  const result = await getCachedOrCompute(
+    "/api/public/seo/directory-navigation",
+    cacheParams,
+    async () => {
+      try {
+        const rawTradeSlug = coerceString(cacheParams.tradeSlug);
+        const tradeMatch = rawTradeSlug ? getTradeSeoMatch(rawTradeSlug) : null;
+        const tradeSlug = tradeMatch ? normalizeTradeSlug(tradeMatch.canonicalSlug) : "";
+        const stateCode = normalizeStateCode(cacheParams.stateCode);
+        const countySlug = coerceString(cacheParams.countySlug).toLowerCase();
+
+        if (rawTradeSlug && !tradeSlug) {
+          return { status: 400, body: { message: "Invalid tradeSlug" } };
+        }
+
+        if (!rawTradeSlug && !stateCode && !countySlug) {
+          const trades = await listActiveTradeScopes();
+          return { status: 200, body: { scope: "trades", trades } };
+        }
+
+        if (tradeSlug && !stateCode && !countySlug) {
+          const states = await listActiveTradeStateScopes(tradeSlug);
+          return { status: 200, body: { scope: "trade-states", tradeSlug, states } };
+        }
+
+        if (tradeSlug && stateCode && !countySlug) {
+          const counties = await listActiveTradeCountyScopes(tradeSlug, stateCode);
+          return {
+            status: 200,
+            body: { scope: "trade-counties", tradeSlug, stateCode, counties },
+          };
+        }
+
+        if (!tradeSlug && stateCode && /^[a-z0-9-]+$/.test(countySlug)) {
+          const county = resolveCountyFipsBySlug(stateCode, countySlug);
+          if (!county) {
+            return { status: 400, body: { message: "Invalid stateCode/countySlug" } };
+          }
+          const trades = await listActiveCountyTradeScopes(stateCode, countySlug);
+          return {
+            status: 200,
+            body: { scope: "county-trades", stateCode, countySlug, trades },
+          };
+        }
+
+        return { status: 400, body: { message: "Invalid directory navigation scope" } };
+      } catch (error: any) {
+        console.warn("SEO directory navigation degraded; returning no crawl links", error);
+        return {
+          status: 200,
+          body: { scope: "degraded", trades: [], states: [], counties: [], degraded: true },
+        };
+      }
+    }
+  );
+
+  return res.status(result.status).json(result.body);
+});
 
 // Public safe: supports SPA rendering for /best/* pages (crawlers see SSR).
 router.get("/api/public/seo/best/trade-county", async (req, res) => {
@@ -960,7 +1031,7 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
       eq(businesses.publicDiscoveryEnabled, true as any),
       publicBusinessDetailExposureSqlPredicate(),
       eq(counties.stateCode, stateCode),
-      sql`${sqlCitySlugExpr()} = ${citySlug}`,
+      sql`${sqlDirectoryCitySlugExpr()} = ${citySlug}`,
       sql`${businesses.updatedAt} >= ${recencyCutoff}`,
     ];
     if (tradeClause) whereClauses.push(tradeClause);

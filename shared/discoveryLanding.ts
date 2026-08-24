@@ -112,6 +112,32 @@ export function businessSlugFromPublicRoute(route: string): string | undefined {
   }
 }
 
+/**
+ * Bind a browser-visible public path to the published business identity.
+ * Custom-domain profiles render at paths such as `/` and `/stones/...`, but
+ * attribution identities must remain profile-scoped so they cannot be
+ * confused with the first-party JW Stone marketplace routes.
+ */
+export function normalizeDiscoveryRouteForBusiness(
+  businessSlugRaw: unknown,
+  routeRaw: unknown
+): string | undefined {
+  const businessSlug = normalizeDiscoveryBusinessSlug(businessSlugRaw);
+  const canonicalRoute = normalizeDiscoveryCanonicalRoute(routeRaw);
+  if (!businessSlug || !canonicalRoute) return undefined;
+
+  const routeBusinessSlug = businessSlugFromPublicRoute(canonicalRoute);
+  if (routeBusinessSlug === businessSlug) return canonicalRoute;
+
+  // An explicit profile route for another business is never reinterpreted.
+  if (/^\/(?:business|u|contractors|helpers)\//i.test(canonicalRoute)) {
+    return undefined;
+  }
+
+  const customDomainSuffix = canonicalRoute === "/" ? "" : canonicalRoute;
+  return normalizeDiscoveryCanonicalRoute(`/u/${businessSlug}${customDomainSuffix}`);
+}
+
 export function normalizeDiscoveryAttributionToken(raw: unknown): string | undefined {
   const value = String(raw ?? "").trim();
   if (

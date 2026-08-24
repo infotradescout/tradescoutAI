@@ -5,7 +5,6 @@ import {
   getTradeBySlug,
   getTradeSeoMatch,
   normalizeTradeSlug,
-  PRIMARY_TRADE_SLUGS,
   slugifyCountyName,
 } from "@shared/tradeSeo";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
@@ -18,6 +17,11 @@ import {
   publicBusinessDetailExposureSqlPredicate,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import {
+  listActiveTradeCountyScopes,
+  listActiveTradeScopes,
+  listActiveTradeStateScopes,
+} from "./services/seoDirectoryNavigationService";
 
 type PublicTradeHtmlOptions = {
   origin: string;
@@ -104,6 +108,7 @@ function buildTradeMeta(args: {
   title: string;
   description: string;
   keywords: string[];
+  indexable?: boolean;
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
   const imageUrl = `${args.origin}/tradescout-social-preview.png?v=12`;
@@ -112,6 +117,7 @@ function buildTradeMeta(args: {
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 160),
     canonical,
     imageUrl,
+    indexable: args.indexable !== false,
     keywords: args.keywords
       .map((v) => String(v || "").trim())
       .filter(Boolean)
@@ -149,7 +155,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildTradeMeta>
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    meta.indexable
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex, follow" />`
   );
   html = upsertTag(
     html,
@@ -207,6 +215,23 @@ export async function buildPublicTradeOverviewHtml(
   if (!match) return null;
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
+  let stateScopes: Awaited<ReturnType<typeof listActiveTradeStateScopes>> = [];
+  try {
+    stateScopes = await listActiveTradeStateScopes(canonicalSlug);
+  } catch (error) {
+    console.warn("[SEO] Trade overview navigation degraded; omitting crawl links", {
+      tradeSlug: canonicalSlug,
+      error,
+    });
+  }
+  const activeStates = stateScopes
+    .map((scope) => {
+      const state = US_STATES_COUNTIES.find(
+        (item) => String(item.code || "").toUpperCase() === scope.stateCode
+      );
+      return state ? { ...state, businessCount: scope.businessCount } : null;
+    })
+    .filter(Boolean) as Array<(typeof US_STATES_COUNTIES)[number] & { businessCount: number }>;
   const title = formatTradeScoutTitle(`Find ${match.trade.name} Contractors by State`);
   const description = `Find ${match.trade.name} contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue through Direct Connect when contact is appropriate.`;
   const meta = buildTradeMeta({
@@ -222,6 +247,7 @@ export async function buildPublicTradeOverviewHtml(
       "counties",
       "TradeScout",
     ],
+    indexable: activeStates.length > 0,
   });
 
   const summary = `
@@ -238,13 +264,16 @@ export async function buildPublicTradeOverviewHtml(
     )}</p>
     <h2>Browse by state</h2>
     <ul>
-      ${US_STATES_COUNTIES.map((s) => {
-        const href = `/trade/${encodeURIComponent(canonicalSlug)}/${encodeURIComponent(
-          String(s.code || "").toLowerCase()
-        )}`;
-        return `<li><a href="${href}">${escapeHtml(String(s.name || s.code))}</a></li>`;
-      }).join("\n")}
+      ${activeStates
+        .map((s) => {
+          const href = `/trade/${encodeURIComponent(canonicalSlug)}/${encodeURIComponent(
+            String(s.code || "").toLowerCase()
+          )}`;
+          return `<li><a href="${href}">${escapeHtml(String(s.name || s.code))}</a> <small>(${s.businessCount.toLocaleString()})</small></li>`;
+        })
+        .join("\n")}
     </ul>
+    ${activeStates.length ? "" : "<p><em>No recent public directory coverage is available for this trade yet.</em></p>"}
     <p>Contact is protected through TradeScout Direct Connect.</p>
   </article>
 </main>`;
@@ -275,10 +304,20 @@ export async function buildPublicTradeOverviewHtml(
 export async function buildPublicTradeDirectoryHtml(
   args: PublicTradeHtmlOptions
 ): Promise<string | null> {
-  const items = PRIMARY_TRADE_SLUGS.map((slug) => {
-    const trade = getTradeBySlug(slug);
-    return trade ? { slug: trade.slug, name: trade.name } : null;
-  }).filter(Boolean) as Array<{ slug: string; name: string }>;
+  let tradeScopes: Awaited<ReturnType<typeof listActiveTradeScopes>> = [];
+  try {
+    tradeScopes = await listActiveTradeScopes();
+  } catch (error) {
+    console.warn("[SEO] Trade directory navigation degraded; omitting crawl links", error);
+  }
+  const items = tradeScopes
+    .map((scope) => {
+      const trade = getTradeBySlug(scope.tradeSlug);
+      return trade
+        ? { slug: trade.slug, name: trade.name, businessCount: scope.businessCount }
+        : null;
+    })
+    .filter(Boolean) as Array<{ slug: string; name: string; businessCount: number }>;
 
   const title = formatTradeScoutTitle("Find Contractors by Trade");
   const description =
@@ -289,6 +328,7 @@ export async function buildPublicTradeDirectoryHtml(
     title,
     description,
     keywords: ["trades", "contractors", "directory", "counties", "TradeScout"],
+    indexable: items.length > 0,
   });
 
   const summary = `
@@ -301,10 +341,12 @@ export async function buildPublicTradeDirectoryHtml(
       ${items
         .slice(0, 200)
         .map(
-          (t) => `<li><a href="/trade/${encodeURIComponent(t.slug)}">${escapeHtml(t.name)}</a></li>`
+          (t) =>
+            `<li><a href="/trade/${encodeURIComponent(t.slug)}">${escapeHtml(t.name)}</a> <small>(${t.businessCount.toLocaleString()})</small></li>`
         )
         .join("\n")}
     </ul>
+    ${items.length ? "" : "<p><em>No recent public trade coverage is available yet.</em></p>"}
   </article>
 </main>`;
 
@@ -338,6 +380,28 @@ export async function buildPublicTradeStateHtml(
   if (!state) return null;
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
+  let countyScopes: Awaited<ReturnType<typeof listActiveTradeCountyScopes>> = [];
+  try {
+    countyScopes = await listActiveTradeCountyScopes(canonicalSlug, stateCode);
+  } catch (error) {
+    console.warn("[SEO] Trade state navigation degraded; omitting crawl links", {
+      tradeSlug: canonicalSlug,
+      stateCode,
+      error,
+    });
+  }
+  const activeCounties = countyScopes
+    .map((scope) => {
+      const county = state.counties.find(
+        (item) => countyNameToSlug(String((item as any).name || "")) === scope.countySlug
+      );
+      return county ? { county, ...scope } : null;
+    })
+    .filter(Boolean) as Array<{
+    county: (typeof state.counties)[number];
+    countySlug: string;
+    businessCount: number;
+  }>;
   const title = formatTradeScoutTitle(`${match.trade.name} Contractors in ${state.name}`);
   const description = `Find ${match.trade.name} contractors in ${state.name} on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths.`;
   const meta = buildTradeMeta({
@@ -346,6 +410,7 @@ export async function buildPublicTradeStateHtml(
     title,
     description,
     keywords: [match.trade.name, state.name, state.code, "counties", "directory", "TradeScout"],
+    indexable: activeCounties.length > 0,
   });
 
   const summary = `
@@ -363,16 +428,16 @@ export async function buildPublicTradeStateHtml(
     <p><a href="/trade/${encodeURIComponent(canonicalSlug)}">All states</a></p>
     <h2>Counties</h2>
     <ul>
-      ${state.counties
-        .map((c) => {
-          const countySlug = countyNameToSlug(String((c as any).name || ""));
+      ${activeCounties
+        .map(({ county, countySlug, businessCount }) => {
           const href = `/trade/${encodeURIComponent(canonicalSlug)}/${encodeURIComponent(
             stateCode.toLowerCase()
           )}/${encodeURIComponent(countySlug)}`;
-          return `<li><a href="${href}">${escapeHtml(String((c as any).name || ""))}</a></li>`;
+          return `<li><a href="${href}">${escapeHtml(String((county as any).name || ""))}</a> <small>(${businessCount.toLocaleString()})</small></li>`;
         })
         .join("\n")}
     </ul>
+    ${activeCounties.length ? "" : "<p><em>No recent public directory coverage is available in this state for this trade yet.</em></p>"}
     <p>Contact is protected through TradeScout Direct Connect.</p>
   </article>
 </main>`;
@@ -427,13 +492,13 @@ export async function buildPublicTradeCountyHtml(
 
   const title = formatTradeScoutTitle(`${match.trade.name} in ${county.name}, ${stateCode}`);
   const description = `Find ${match.trade.name} contractors serving ${county.name}, ${stateCode} on TradeScout. Review crawlable local business coverage, county context, and protected Direct Connect paths.`;
-  const meta = buildTradeMeta({
+  const metaArgs = {
     origin: args.origin,
     canonicalPath,
     title,
     description,
     keywords: [match.trade.name, county.name, state.name, "directory", "contractors", "TradeScout"],
-  });
+  };
 
   const tradeClause = buildTradeWhereClause(canonicalSlug);
   const whereClauses: any[] = [
@@ -559,6 +624,7 @@ export async function buildPublicTradeCountyHtml(
     .filter((r): r is { slug: string; name: string; claimStatus: "claimed" | "unclaimed" } =>
       Boolean(r)
     );
+  const meta = buildTradeMeta({ ...metaArgs, indexable: items.length > 0 });
 
   const summary = `
 <main data-seo-trade="county" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">

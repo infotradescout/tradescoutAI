@@ -5,6 +5,7 @@ import { getTradeSeoMatch, normalizeTradeSlug } from "@shared/tradeSeo";
 import { getPublicationRules } from "./publicationRules";
 import { formatTradeScoutTitle } from "@shared/brand";
 import { publicBusinessDetailExposureSqlPredicate } from "./publicationBusiness";
+import { sqlDirectoryCitySlugExpr } from "./seoDirectoryCitySlug";
 
 type PublicTradeCityHtmlOptions = {
   origin: string;
@@ -58,16 +59,13 @@ function buildTradeWhereClause(tradeRaw: unknown) {
   return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
 function buildMeta(args: {
   origin: string;
   canonicalPath: string;
   title: string;
   description: string;
   keywords: string[];
+  indexable?: boolean;
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
   const imageUrl = `${args.origin}/tradescout-social-preview.png?v=12`;
@@ -76,6 +74,7 @@ function buildMeta(args: {
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 160),
     canonical,
     imageUrl,
+    indexable: args.indexable !== false,
     keywords: args.keywords
       .map((v) => String(v || "").trim())
       .filter(Boolean)
@@ -108,7 +107,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    meta.indexable
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex, follow" />`
   );
   html = upsertTag(
     html,
@@ -183,7 +184,7 @@ export async function buildPublicTradeCityHtml(
     eq(businesses.publicDiscoveryEnabled, true as any),
     publicBusinessDetailExposureSqlPredicate(),
     eq(counties.stateCode, stateCode),
-    sql`${sqlCitySlugExpr()} = ${citySlug}`,
+    sql`${sqlDirectoryCitySlugExpr()} = ${citySlug}`,
     sql`${businesses.updatedAt} >= ${recencyCutoff}`,
   ];
   if (tradeClause) whereClauses.push(tradeClause);
@@ -217,6 +218,7 @@ export async function buildPublicTradeCityHtml(
     title,
     description,
     keywords: [match.trade.name, displayCity, stateCode, "contractors", "directory", "TradeScout"],
+    indexable: rows.length > 0,
   });
 
   const summary = `

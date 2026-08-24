@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import {
   qualifyPublicProfileItemDestination,
   requiresDocumentNavigation,
@@ -730,6 +731,14 @@ export default function ProfileSiteView() {
   }, [slug, matchP, matchPItem, navigate, paramsPItem, reloadKey]);
 
   useEffect(() => {
+    if (!data || data.viewerCanManage || typeof window === "undefined") return;
+    void trackDiscoveryLandingOnce({
+      canonicalRoute: window.location.pathname || `/u/${encodeURIComponent(data.profile.slug)}`,
+      search: window.location.search,
+    });
+  }, [data]);
+
+  useEffect(() => {
     if (!data || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const contentBlocks = applyProfileSiteContentAdapter({
@@ -1023,16 +1032,16 @@ export default function ProfileSiteView() {
     1000
   );
   const seoDescription = sanitizePublicDiscoveryText(
-    (inventoryItemShareMeta?.publicKind === "offering" ||
-      categoryShareMeta?.collectionKind === "offerings")
+    inventoryItemShareMeta?.publicKind === "offering" ||
+      categoryShareMeta?.collectionKind === "offerings"
       ? fallbackSeoDescription
       : itemShareMeta || categoryShareMeta
         ? buildProfileSocialDescription({
-          brandName: publicSocialBrandName,
-          itemType: itemShareMeta?.itemType || "category",
-          itemName: itemSocialName || categoryShareMeta?.categoryName,
-          category: inventoryItemShareMeta?.category,
-          fallbackDescription: fallbackSeoDescription,
+            brandName: publicSocialBrandName,
+            itemType: itemShareMeta?.itemType || "category",
+            itemName: itemSocialName || categoryShareMeta?.categoryName,
+            category: inventoryItemShareMeta?.category,
+            fallbackDescription: fallbackSeoDescription,
           })
         : fallbackSeoDescription,
     1000

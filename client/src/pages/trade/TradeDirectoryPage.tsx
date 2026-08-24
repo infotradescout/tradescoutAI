@@ -1,16 +1,33 @@
 import { memo } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PRIMARY_TRADE_SLUGS, getTradeBySlug } from "@shared/tradeSeo";
+import { getTradeBySlug } from "@shared/tradeSeo";
 import { localBrowseCopy } from "@/lib/userFacingCopy";
 
 const TradeDirectoryPage = memo(function TradeDirectoryPage() {
-  const items = PRIMARY_TRADE_SLUGS.map((slug) => {
-    const trade = getTradeBySlug(slug);
-    return trade ? { slug: trade.slug, name: trade.name } : null;
-  }).filter(Boolean) as Array<{ slug: string; name: string }>;
+  const { data, isLoading, isError } = useQuery<{
+    trades: Array<{ tradeSlug: string; businessCount: number }>;
+  }>({
+    queryKey: ["/api/public/seo/directory-navigation", "trades"],
+    queryFn: async () => {
+      const response = await fetch("/api/public/seo/directory-navigation");
+      if (!response.ok) throw new Error(`Failed to load trade navigation (${response.status})`);
+      return response.json();
+    },
+    retry: 1,
+  });
+  const items = (data?.trades || [])
+    .map((scope) => {
+      const trade = getTradeBySlug(scope.tradeSlug);
+      return trade
+        ? { slug: trade.slug, name: trade.name, businessCount: scope.businessCount }
+        : null;
+    })
+    .filter(Boolean) as Array<{ slug: string; name: string; businessCount: number }>;
+  const shouldNoIndex = !isLoading && (isError || items.length === 0);
 
   return (
     <>
@@ -19,6 +36,7 @@ const TradeDirectoryPage = memo(function TradeDirectoryPage() {
         description="Browse trades by category, then jump into the city or local market you care about."
         keywords="trades, contractors, directory, local services, TradeScout"
         canonical="https://www.thetradescout.com/trade"
+        noIndex={shouldNoIndex}
       />
 
       <div className="bg-tsBg text-white">
@@ -49,11 +67,19 @@ const TradeDirectoryPage = memo(function TradeDirectoryPage() {
                   <Link key={trade.slug} href={`/trade/${encodeURIComponent(trade.slug)}`}>
                     <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
                       <span>{trade.name}</span>
-                      <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                      <span className="flex items-center gap-2">
+                        <span className="text-xs text-white/45">
+                          {trade.businessCount.toLocaleString()}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                      </span>
                     </a>
                   </Link>
                 ))}
               </div>
+              {!isLoading && items.length === 0 ? (
+                <p className="text-sm text-white/60">No recent public trade coverage yet.</p>
+              ) : null}
             </CardContent>
           </Card>
         </div>

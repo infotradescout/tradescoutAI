@@ -1,35 +1,12 @@
 /**
- * Server-side JW Stone inventory — same reconciliation as the client catalog.
- * Used for share metadata, public discovery, and custom-domain SEO.
+ * Server-side JW Stone discovery projection. The reconciled inventory owner
+ * stays in client/src/data/jwStoneInventory.ts; SEO must not maintain a second
+ * interpretation of names, material evidence, finishes, or source photos.
  */
-import generatedJwStoneInventory from "../client/src/data/jwStoneInventory.generated.json";
 import {
-  reconcileJwStoneGeneratedInventory,
-  type GeneratedJwStoneRecord,
-} from "../client/src/data/reconcileJwStoneInventory";
-import { resolveJwStoneInventoryNamePresentation } from "@shared/jwStonePresentation";
-
-const JW_STONE_CATEGORY_LABELS: Record<string, string> = {
-  granite: "Granite",
-  marble: "Marble",
-  quartzite: "Quartzite",
-  quartz: "Engineered Quartz",
-  onyx: "Onyx",
-  soapstone: "Soapstone",
-  basalt: "Basalt",
-  unconfirmed: "Trending at JW Stone",
-};
-
-const CATEGORY_ORDER = [
-  "granite",
-  "marble",
-  "quartzite",
-  "quartz",
-  "onyx",
-  "soapstone",
-  "basalt",
-  "unconfirmed",
-] as const;
+  JW_STONE_INVENTORY_CATEGORIES,
+  JW_STONE_INVENTORY_SUMMARY,
+} from "../client/src/data/jwStoneInventory";
 
 type JwStoneShareStone = {
   categorySlug: string;
@@ -39,39 +16,55 @@ type JwStoneShareStone = {
   slug: string;
   images: string[];
   shareImageOrder?: number[];
-  publicSummary: string;
-  publicKind: "offering";
+  publicSummary?: string;
+  publicKind?: "offering";
 };
 
-const JW_STONE_MATERIAL_LIBRARY_SHARE_SUMMARY =
-  "This material is part of JW Stone's material library, not a claim of current stock.";
+function buildPublicStoneSummary(args: {
+  name: string;
+  category: string;
+  photoCount: number;
+  finishes: readonly string[];
+}): string {
+  const photoLabel = args.photoCount === 1 ? "material photo" : "material photos";
+  const categoryDetail =
+    args.category === "Trending at JW Stone" ? "" : `, a ${args.category} material`;
+  const finishDetail = args.finishes.length
+    ? ` Confirmed finish details: ${args.finishes.join(" / ")}.`
+    : "";
+  return `Explore ${args.name}${categoryDetail}, part of JW Stone's material library in Pensacola, Florida. Review ${args.photoCount} ${photoLabel}.${finishDetail} Ask JW Stone to confirm current pricing and availability for your project.`;
+}
 
-const reconciledStones: JwStoneShareStone[] = reconcileJwStoneGeneratedInventory(
-  generatedJwStoneInventory as GeneratedJwStoneRecord[]
-).map((stone) => {
-  const namePresentation = resolveJwStoneInventoryNamePresentation(stone);
-  return {
-    categorySlug: stone.categorySlug,
-    name: stone.name,
-    ...namePresentation,
-    slug: stone.slug,
-    images: stone.images,
-    shareImageOrder: stone.shareImageOrder,
-    publicSummary: JW_STONE_MATERIAL_LIBRARY_SHARE_SUMMARY,
-    publicKind: "offering",
-  };
-});
-
-export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = CATEGORY_ORDER.map((categorySlug) => ({
-  category: JW_STONE_CATEGORY_LABELS[categorySlug] || categorySlug,
-  categorySlug,
-  stones: reconciledStones
-    .filter((stone) => stone.categorySlug === categorySlug)
-    .slice()
-    .sort((left, right) => left.name.localeCompare(right.name)),
-})).filter((category) => category.stones.length > 0);
+export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGORIES.map(
+  (category) => ({
+    category: category.category,
+    categorySlug: category.categorySlug,
+    stones: category.stones.map(
+      (stone): JwStoneShareStone => ({
+        categorySlug: category.categorySlug,
+        name: stone.name,
+        displayName: stone.displayName,
+        nameStatus: stone.nameStatus,
+        slug: stone.slug,
+        images: [...stone.images],
+        shareImageOrder: stone.shareImageOrder ? [...stone.shareImageOrder] : undefined,
+        ...(stone.displayName
+          ? {
+              publicSummary: buildPublicStoneSummary({
+                name: stone.displayName,
+                category: category.category,
+                photoCount: stone.images.length,
+                finishes: stone.finishStatus === "explicit" ? stone.finishes || [] : [],
+              }),
+              publicKind: "offering" as const,
+            }
+          : {}),
+      })
+    ),
+  })
+);
 
 export const JW_STONE_CANONICAL_INVENTORY_SUMMARY = Object.freeze({
-  stoneCount: reconciledStones.length,
-  imageCount: reconciledStones.reduce((total, stone) => total + stone.images.length, 0),
+  stoneCount: JW_STONE_INVENTORY_SUMMARY.stoneCount,
+  imageCount: JW_STONE_INVENTORY_SUMMARY.imageCount,
 });

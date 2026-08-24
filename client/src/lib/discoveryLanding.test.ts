@@ -3,6 +3,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
+  DISCOVERY_LANDING_SESSION_STORAGE_KEY,
+  getOrCreateDiscoveryAnonymousSessionId,
   getStoredDiscoveryLandingAttribution,
   resetDiscoveryLandingDedupeForTests,
   trackDiscoveryLandingOnce,
@@ -33,6 +35,7 @@ describe("trackDiscoveryLandingOnce", () => {
       )
       .forEach((meta) => meta.remove());
     sessionStorage.removeItem(DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY);
+    sessionStorage.removeItem(DISCOVERY_LANDING_SESSION_STORAGE_KEY);
     vi.unstubAllGlobals();
     resetDiscoveryLandingDedupeForTests();
   });
@@ -62,10 +65,23 @@ describe("trackDiscoveryLandingOnce", () => {
     });
     expect(body).not.toHaveProperty("entryRequestId");
     expect(body).not.toHaveProperty("sourceHint");
+    expect(body.anonymousSessionId).toMatch(/^discovery-/);
+    expect((fetch as any).mock.calls[0][1].headers["X-Anonymous-Session-Id"]).toBe(
+      body.anonymousSessionId
+    );
     expect(getStoredDiscoveryLandingAttribution("jw-stone")).toEqual({
       discoveryAttributionToken,
       businessSlug: "jw-stone",
     });
+  });
+
+  it("keeps one anonymous discovery session for the browser tab", () => {
+    const first = getOrCreateDiscoveryAnonymousSessionId();
+    const second = getOrCreateDiscoveryAnonymousSessionId();
+
+    expect(first).toMatch(/^discovery-/);
+    expect(second).toBe(first);
+    expect(sessionStorage.getItem(DISCOVERY_LANDING_SESSION_STORAGE_KEY)).toBe(first);
   });
 
   it("does not reuse a stored attribution envelope for another profile", async () => {
@@ -99,6 +115,22 @@ describe("trackDiscoveryLandingOnce", () => {
     const body = JSON.parse((fetch as any).mock.calls[0][1].body);
     expect(body.discoveryAttributionToken).toBe(discoveryAttributionToken);
     expect(body).not.toHaveProperty("entryRequestId");
+  });
+
+  it("projects a custom-domain root landing onto the profile-scoped route", async () => {
+    const slugMeta = document.querySelector('meta[name="tradescout-business-slug"]');
+    const entityTypeMeta = document.querySelector('meta[name="tradescout-business-entity-type"]');
+    slugMeta?.setAttribute("content", "example-profile");
+    entityTypeMeta?.setAttribute("content", "business_profile");
+
+    await trackDiscoveryLandingOnce({ canonicalRoute: "/" });
+
+    const body = JSON.parse((fetch as any).mock.calls[0][1].body);
+    expect(body).toMatchObject({
+      canonicalRoute: "/u/example-profile",
+      businessSlug: "example-profile",
+      entityType: "business_profile",
+    });
   });
 
   it("does not block when analytics fetch fails", async () => {

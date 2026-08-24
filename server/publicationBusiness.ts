@@ -1,3 +1,4 @@
+import { COMPREHENSIVE_TRADES } from "@shared/trades-data";
 import { getTradeSeoMatch } from "@shared/tradeSeo";
 import { businesses, users } from "@shared/schema";
 import { and, eq, or, sql } from "drizzle-orm";
@@ -6,6 +7,18 @@ import type {
   PublicationCheck,
   PublicBusinessSignals,
 } from "@shared/publication";
+
+const PROFILE_TRADE_MATCHERS = COMPREHENSIVE_TRADES.flatMap((trade) => {
+  const match = getTradeSeoMatch(trade.slug);
+  return match
+    ? [
+        {
+          canonicalSlug: match.canonicalSlug,
+          keywords: match.keywords.map((keyword) => keyword.toLowerCase()),
+        },
+      ]
+    : [];
+});
 
 export function canServePublicBusinessDetail(args: {
   publication: PublicationCheck;
@@ -66,6 +79,35 @@ export function deriveTradeSlugFromProfileData(profileData: any): string | null 
     if (match) return match.canonicalSlug;
   }
   return null;
+}
+
+/**
+ * Returns every trade route that the public SQL serving predicate can match
+ * for this profile document. The serving query searches the complete JSON
+ * document for each trade's bounded SEO keywords, so the snapshot producer
+ * must use the same rule instead of keeping only the first category match.
+ */
+export function deriveTradeSlugsFromProfileData(profileData: any): string[] {
+  if (!profileData || typeof profileData !== "object") return [];
+
+  let profileText = "";
+  try {
+    profileText = JSON.stringify(profileData).toLowerCase();
+  } catch {
+    return [];
+  }
+  if (!profileText) return [];
+
+  const matches: string[] = [];
+  const seen = new Set<string>();
+  for (const match of PROFILE_TRADE_MATCHERS) {
+    if (seen.has(match.canonicalSlug)) continue;
+    const servesTrade = match.keywords.some((keyword) => profileText.includes(keyword));
+    if (!servesTrade) continue;
+    seen.add(match.canonicalSlug);
+    matches.push(match.canonicalSlug);
+  }
+  return matches;
 }
 
 export function derivePublicationTier(args: {

@@ -88,8 +88,10 @@ describe("JW Stone public discovery equivalence (Phase 3A)", () => {
     expect(facts.hasBusinessIdentity).toBe(true);
     expect(facts.hasInventoryCue).toBe(true);
     expect(facts.hasContactCue).toBe(true);
-    expect(facts.hasManagedPhone).toBe(true);
-    expect(facts.hasManagedEmail).toBe(true);
+    // Public discovery advertises the gated request path without leaking a
+    // direct contact channel into crawler-visible HTML.
+    expect(facts.hasManagedPhone).toBe(false);
+    expect(facts.hasManagedEmail).toBe(false);
     expect(facts.hasPrivateOwnerEmail).toBe(false);
     expect(facts.hasEmptyRootOnly).toBe(false);
     expect(facts.hasJsRequiredOnlyBody).toBe(false);

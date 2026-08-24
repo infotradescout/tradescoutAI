@@ -5,7 +5,10 @@ import {
   createProfileInventoryCategoryShareMetadata,
   listProfileInventoryCategories,
 } from "@shared/profileCategoryShare";
-import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
+import {
+  createProfileInventoryItemShareMetadata,
+  listProfileInventoryItems,
+} from "@shared/profileItemShare";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../client/src/data/jwStoneProfilePresentation";
 import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "./jwStoneCanonicalInventory";
 
@@ -78,6 +81,16 @@ function resolveCollectionUrl(opts: PublicJwStoneMarketplaceHtmlOptions): string
   return JW_STONE_MARKETPLACE_PLATFORM_URL;
 }
 
+function withRequestQuery(url: string, request: "stone" | "collection"): string {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("request", request);
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 /**
  * Injects crawler and share metadata for the JW Stone marketplace collection
  * and optional stone/material deep links. Direct contact is intentionally not
@@ -129,6 +142,41 @@ export function buildPublicJwStoneMarketplaceHtml(
           publicRouteContentBlocks: contentBlocks,
         })
       : null;
+  const collectionCategoryShares = listProfileInventoryCategories(
+    JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+    contentBlocks
+  )
+    .filter((category) => category.indexable)
+    .map((category) =>
+      createProfileInventoryCategoryShareMetadata({
+        profileName: "JW Stone Logistics",
+        profileUrl,
+        assetOrigin: `${origin}/`,
+        categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+        categorySlug: category.slug,
+        publicRouteContentBlocks: contentBlocks,
+      })
+    )
+    .filter((category): category is NonNullable<typeof category> => Boolean(category));
+  const categoryItemShares = categoryShare
+    ? categoryShare.itemSlugs
+        .map((itemSlug) =>
+          createProfileInventoryItemShareMetadata({
+            profileName: "JW Stone Logistics",
+            profileUrl,
+            assetOrigin: `${origin}/`,
+            categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+            itemSlug,
+            publicRouteContentBlocks: contentBlocks,
+          })
+        )
+        .filter((item): item is NonNullable<typeof item> => Boolean(item?.hasPublicName))
+    : [];
+  const indexable = opts.stoneSlug
+    ? Boolean(itemShare?.hasPublicName && itemShare.hasPublicSummary)
+    : opts.materialSlug
+      ? Boolean(categoryShare?.indexable)
+      : true;
 
   const title = escapeHtml(itemShare?.title || categoryShare?.title || JW_STONE_MARKETPLACE_TITLE);
   const description = escapeHtml(
@@ -161,6 +209,14 @@ export function buildPublicJwStoneMarketplaceHtml(
     <p><img src="${escapeHtml(itemShare.imageUrl)}" alt="${imageAlt}" width="640" height="480" /></p>
     <h1>${escapeHtml(itemShare.hasPublicName ? itemShare.itemName : "Stone selection")}</h1>
     <p>${description}</p>
+    ${itemShare.category ? `<p><strong>Material collection:</strong> ${escapeHtml(itemShare.category)}</p>` : ""}
+    ${
+      itemShare.hasPublicName
+        ? `<p><a data-seo-jw-stone-request="stone" href="${escapeHtml(
+            withRequestQuery(itemShare.canonical, "stone")
+          )}">Ask about ${escapeHtml(itemShare.itemName)}</a></p>`
+        : ""
+    }
     <p><a href="${escapeHtml(collectionUrl)}">Browse the full JW Stone collection</a></p>
   </article>
 ${companySummary}
@@ -171,6 +227,15 @@ ${companySummary}
   <article>
     <h1>${escapeHtml(categoryShare.title)}</h1>
     <p>${description}</p>
+    <h2>Browse ${escapeHtml(categoryShare.categoryName)} selections</h2>
+    <ul>
+      ${categoryItemShares
+        .map(
+          (item) =>
+            `<li><a href="${escapeHtml(item.canonical)}">${escapeHtml(item.itemName)}</a></li>`
+        )
+        .join("\n")}
+    </ul>
     <p><a href="${escapeHtml(collectionUrl)}">Browse the full JW Stone collection</a></p>
   </article>
 ${companySummary}
@@ -182,8 +247,20 @@ ${companySummary}
     <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
     <h2>Material Library</h2>
-    <p>Browse reference selections by photo. Filter by aesthetic or color, then ask JW Stone about the material for your project.</p>
+    <p>Browse JW Stone's reconciled photo catalog by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
+    <h2>Browse by material</h2>
+    <ul>
+      ${collectionCategoryShares
+        .map(
+          (category) =>
+            `<li><a href="${escapeHtml(category.canonical)}">${escapeHtml(category.categoryName)}</a> <small>(${category.itemCount} selections)</small></li>`
+        )
+        .join("\n")}
+    </ul>
+    <p><a data-seo-jw-stone-request="collection" href="${escapeHtml(
+      withRequestQuery(collectionUrl, "collection")
+    )}">Start a JW Stone request</a></p>
   </article>
 ${companySummary}
 </main>`;
@@ -198,7 +275,9 @@ ${companySummary}
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    '<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />'
+    indexable
+      ? '<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />'
+      : '<meta name="robots" content="noindex, follow" />'
   );
   html = upsertTag(
     html,
@@ -312,6 +391,16 @@ ${companySummary}
         image: itemShare.imageUrl,
         isPartOf: { "@type": "CollectionPage", url: collectionUrl },
         about: organizationJsonLd,
+        mainEntity: itemShare.hasPublicName
+          ? {
+              "@type": "Product",
+              name: itemShare.itemName,
+              description: itemShare.description,
+              image: itemShare.imageUrl,
+              category: itemShare.category || "Natural stone",
+              brand: { "@type": "Brand", name: JW_STONE_PUBLIC_IDENTITY.brandName },
+            }
+          : undefined,
       }
     : categoryShare
       ? {
@@ -322,6 +411,16 @@ ${companySummary}
           url: categoryShare.canonical,
           image: categoryShare.imageUrl,
           about: organizationJsonLd,
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: categoryItemShares.length,
+            itemListElement: categoryItemShares.map((item, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              name: item.itemName,
+              url: item.canonical,
+            })),
+          },
         }
       : {
           "@context": "https://schema.org",
@@ -343,14 +442,14 @@ export function buildJwStoneMarketplaceSitemapXml(origin: string): string {
     JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
     contentBlocks
   ).filter((category) => category.indexable);
-  const items = JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap((category) =>
-    category.stones.map((stone) => stone.slug)
-  );
+  const itemSlugs = listProfileInventoryItems(JW_STONE_CANONICAL_INVENTORY_CATEGORIES)
+    .filter((item) => item.hasPublicName && item.publicKind === "offering" && item.publicSummary)
+    .map((item) => item.slug);
 
   const urls = [
     `${publicOrigin}/`,
     ...categories.map((category) => `${publicOrigin}/materials/${category.slug}`),
-    ...items.map((slug) => `${publicOrigin}/stones/${slug}`),
+    ...itemSlugs.map((slug) => `${publicOrigin}/stones/${slug}`),
   ];
 
   const entries = urls
@@ -370,9 +469,7 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     JW_STONE_PUBLIC_IDENTITY.about,
     "",
     `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
-    ...JW_STONE_PUBLIC_IDENTITY.socials.map(
-      (social) => `${social.label}: ${social.publicHandle}`
-    ),
+    ...JW_STONE_PUBLIC_IDENTITY.socials.map((social) => `${social.label}: ${social.publicHandle}`),
     "",
     `Canonical: ${publicOrigin}/`,
     `Robots: ${publicOrigin}/robots.txt`,

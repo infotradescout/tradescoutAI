@@ -19,7 +19,7 @@ function readWorkspaceOrTrackedFile(relativePath: string) {
 }
 
 const source = fs.readFileSync(
-  path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
+  path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx"),
   "utf8"
 );
 const expressSource = fs.readFileSync(
