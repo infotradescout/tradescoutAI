@@ -2,6 +2,7 @@
 
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import JWStoneMarketplace from "./JWStoneMarketplace";
 
@@ -13,6 +14,8 @@ const authState = vi.hoisted(() => ({
   isAuthenticated: false,
 }));
 
+const apiRequestMock = vi.hoisted(() => vi.fn());
+
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => authState,
 }));
@@ -20,6 +23,11 @@ vi.mock("@/hooks/useAuth", () => ({
 vi.mock("@/components/SEOHelmet", () => ({
   SEOHelmet: () => null,
 }));
+
+vi.mock("@/lib/queryClient", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/queryClient")>();
+  return { ...actual, apiRequest: apiRequestMock };
+});
 
 type DirectConnectMockProps = {
   open: boolean;
@@ -60,20 +68,41 @@ function buttonContaining(container: ParentNode, text: string): HTMLButtonElemen
 describe("JW Stone marketplace luxury layout", () => {
   let container: HTMLDivElement;
   let root: Root;
+  let queryClient: QueryClient;
+
+  const renderMarketplace = () => {
+    act(() =>
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <JWStoneMarketplace />
+        </QueryClientProvider>
+      )
+    );
+  };
 
   beforeEach(() => {
     authState.user = null;
     authState.isAuthenticated = false;
     window.history.replaceState(null, "", "/jw-stone");
     window.localStorage.clear();
+    apiRequestMock.mockResolvedValue({
+      profileSlug: "jw-stone",
+      freshnessDays: 30,
+      generatedAt: "2026-08-22T00:00:00.000Z",
+      items: [],
+    });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
   });
 
   afterEach(() => {
     act(() => root.unmount());
+    queryClient.clear();
     container.remove();
     vi.unstubAllGlobals();
   });
@@ -147,9 +176,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.textContent).toContain("Browse by color");
     expect(container.textContent).toContain("Browse by mood");
     expect(container.textContent).toContain("Browse by material");
-    expect(container.textContent).toContain("Full inventory");
+    expect(container.textContent).toContain("Material Library");
     expect(container.textContent).toContain(
-      "JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated delivery."
+      "JW Stone sources and supplies natural stone through direct quarry relationships and coordinates delivery."
     );
     expect(container.textContent).toContain(
       "JW Stone does not template, fabricate, finish, or install countertops; those services require a separate independent fabricator."
@@ -182,7 +211,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.textContent).toContain("From source to finished space");
     expect(container.textContent).not.toContain("Trending");
     expect(container.textContent).not.toContain("JW Stone Picks");
-    expect(container.textContent).not.toContain("Current Inventory");
+    expect(container.textContent).toContain("Current Inventory");
     expect(container.textContent).not.toContain("Explore the collection");
     expect(container.querySelector('[data-testid="jw-marketplace-story"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid="jw-marketplace-story"]')).toHaveLength(1);
@@ -275,7 +304,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(story?.textContent).toContain("From source to finished space");
     expect(story?.textContent).toContain("Stone selected with the final room in mind");
     expect(story?.textContent).toContain(
-      "JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated delivery."
+      "JW Stone sources and supplies natural stone through direct quarry relationships and coordinates delivery."
     );
     expect(story?.textContent).toContain(
       "JW Stone does not template, fabricate, finish, or install countertops; those services require a separate independent fabricator."
@@ -346,7 +375,7 @@ describe("JW Stone marketplace luxury layout", () => {
   it("shows Account instead of Create account after TradeScout authentication", () => {
     authState.user = { id: 42, email: "owner@example.com" };
     authState.isAuthenticated = true;
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
 
     const accountButton = container.querySelector('[data-testid="jw-marketplace-account-button"]');
     expect(accountButton?.textContent).toMatch(/^Account$/);
@@ -394,7 +423,7 @@ describe("JW Stone marketplace luxury layout", () => {
   });
 
   it("shows editorial collection chrome: search + Filter sheet, Save/Ask/View on cards", () => {
-    expect(container.textContent).toContain("Full inventory");
+    expect(container.textContent).toContain("Material Library");
     expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-material-rail"]')).not.toBeNull();
     expect(container.querySelectorAll("[data-stone-card]").length).toBe(0);
@@ -455,15 +484,15 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toMatch(/^Page 1 of /);
     const firstPageFirstStoneId = firstCard.dataset.stoneId;
     click(container.querySelector('[data-testid="jw-inventory-page-next-top"]'));
-    expect(container.querySelectorAll("#current-inventory [data-stone-card]")).toHaveLength(8);
+    expect(container.querySelectorAll("#material-library [data-stone-card]")).toHaveLength(8);
     expect(
       container.querySelector('[data-testid="jw-inventory-page-status-top"]')?.textContent
     ).toMatch(/^Page 2 of /);
     expect(
-      container.querySelector<HTMLElement>("#current-inventory [data-stone-card]")?.dataset.stoneId
+      container.querySelector<HTMLElement>("#material-library [data-stone-card]")?.dataset.stoneId
     ).not.toBe(firstPageFirstStoneId);
     const secondPageFirstCard = container.querySelector<HTMLElement>(
-      "#current-inventory [data-stone-card]"
+      "#material-library [data-stone-card]"
     );
     const secondPageStoneName = secondPageFirstCard?.querySelector("h3")?.textContent?.trim();
     expect(secondPageStoneName).toBeTruthy();
@@ -515,7 +544,7 @@ describe("JW Stone marketplace luxury layout", () => {
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
     ).toBe("true");
     expect(
-      container.querySelectorAll("#current-inventory [data-stone-card]").length
+      container.querySelectorAll("#material-library [data-stone-card]").length
     ).toBeGreaterThan(0);
 
     click(container.querySelector('[data-testid="jw-material-granite"]'));
@@ -527,7 +556,7 @@ describe("JW Stone marketplace luxury layout", () => {
     act(() => root.unmount());
     window.history.replaceState(null, "", "/jw-stone?buyer=homeowner&finish=polished");
     root = createRoot(container);
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
 
     expect(window.location.search).not.toContain("finish=");
     expect(window.location.search).not.toContain("buyer=");
@@ -575,7 +604,7 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("false");
   });
 
-  it("clears browse refinements when Full inventory opens", () => {
+  it("clears browse refinements when the Material Library opens", () => {
     click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-palette-green"]'));
     expect(window.location.search).toContain("color=green");
@@ -626,7 +655,7 @@ describe("JW Stone marketplace luxury layout", () => {
       container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent
     ).toMatch(/^Green · \d+ of \d+$/);
     expect(container.textContent).not.toMatch(/\d+ green selections/i);
-    // Color browse must not require opening Full inventory.
+    // Color browse must not require opening the Material Library.
     expect(
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
     ).toBe("false");
@@ -662,7 +691,7 @@ describe("JW Stone marketplace luxury layout", () => {
     act(() => root.unmount());
     window.history.replaceState(null, "", "/jw-stone/materials/granite");
     root = createRoot(container);
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
 
     expect(window.location.pathname).toContain("/materials/granite");
     expect(
@@ -708,7 +737,7 @@ describe("JW Stone marketplace luxury layout", () => {
     act(() => root.unmount());
     window.history.replaceState(null, "", "/jw-stone?color=green");
     root = createRoot(container);
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
 
     expect(window.location.search).toContain("color=green");
     expect(
@@ -730,7 +759,7 @@ describe("JW Stone marketplace luxury layout", () => {
     act(() => root.unmount());
     window.history.replaceState(null, "", "/jw-stone?aesthetic=warm-earthy");
     root = createRoot(container);
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
 
     expect(window.location.search).toContain("aesthetic=warm-earthy");
     expect(
@@ -782,7 +811,7 @@ describe("JW Stone marketplace luxury layout", () => {
 
     act(() => root.unmount());
     root = createRoot(container);
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
   });
 
@@ -937,7 +966,7 @@ describe("JW Stone marketplace luxury layout", () => {
     );
   });
 
-  it("keeps Full inventory collapsed after a color swatch; expand is a clean slate", () => {
+  it("keeps the Material Library collapsed after a color swatch; expand is a clean slate", () => {
     click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-palette-green"]'));
     expect(window.location.search).toContain("color=green");
@@ -955,7 +984,7 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("Open Browse by material");
     expect(
       container.querySelector('[data-testid="jw-inventory-toggle"]')?.getAttribute("aria-label")
-    ).toBe("Open Full inventory");
+    ).toBe("Open Material Library");
     expect(
       container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
     ).toMatch(/^Close$/);
@@ -976,11 +1005,11 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(window.location.search).not.toContain("color=");
     expect(window.location.pathname).not.toMatch(/\/materials\//);
     expect(container.querySelector('[aria-label="Active filters"]')).toBeNull();
-    expect(container.querySelectorAll("#current-inventory [data-stone-card]")).toHaveLength(8);
+    expect(container.querySelectorAll("#material-library [data-stone-card]")).toHaveLength(8);
     // Expanded inventory keeps a sticky photo title band so header toggle stays reachable.
     expect(inventoryToggle?.className).toMatch(/\bsticky\b/);
     expect(inventoryToggle?.className).toMatch(/top-14/);
-    expect(inventoryToggle?.getAttribute("aria-label")).toBe("Close Full inventory");
+    expect(inventoryToggle?.getAttribute("aria-label")).toBe("Close Material Library");
 
     click(inventoryToggle);
     expect(

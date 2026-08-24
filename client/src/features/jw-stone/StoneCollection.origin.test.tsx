@@ -66,7 +66,7 @@ describe("JW Stone verified-origin collection path", () => {
     expect(container.querySelector('select[aria-label="Color"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).toBeNull();
-    expect(container.querySelector('select[aria-label="Availability"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Source evidence"]')).toBeNull();
 
     act(() => {
       inventoryToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -89,7 +89,7 @@ describe("JW Stone verified-origin collection path", () => {
     expect(container.querySelector('select[aria-label="Color"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).not.toBeNull();
-    expect(container.querySelector('select[aria-label="Availability"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Source evidence"]')).not.toBeNull();
 
     act(() => root.unmount());
     container.remove();

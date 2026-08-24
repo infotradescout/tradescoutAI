@@ -159,7 +159,7 @@ export function buildPublicJwStoneMarketplaceHtml(
 <main data-seo-jw-stone-marketplace="true" data-seo-jw-stone-item="${escapeHtml(itemShare.itemSlug)}" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
     <p><img src="${escapeHtml(itemShare.imageUrl)}" alt="${imageAlt}" width="640" height="480" /></p>
-    <h1>${escapeHtml(itemShare.hasPublicName ? itemShare.itemName : "Current stone selection")}</h1>
+    <h1>${escapeHtml(itemShare.hasPublicName ? itemShare.itemName : "Stone selection")}</h1>
     <p>${description}</p>
     <p><a href="${escapeHtml(collectionUrl)}">Browse the full JW Stone collection</a></p>
   </article>
@@ -181,8 +181,8 @@ ${companySummary}
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
     <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
-    <h2>Current Inventory</h2>
-    <p>Browse current selections by photo. Filter by aesthetic or color, then ask JW Stone to confirm what is on hand for your project.</p>
+    <h2>Material Library</h2>
+    <p>Browse reference selections by photo. Filter by aesthetic or color, then ask JW Stone about the material for your project.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
   </article>
 ${companySummary}

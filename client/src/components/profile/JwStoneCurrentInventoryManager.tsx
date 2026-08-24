@@ -5,14 +5,18 @@ import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import type {
-  PublicStoneInventoryItem,
   PublicStoneInventoryResponse,
+  SellerStoneInventoryItem,
 } from "@shared/stoneInventory";
 
 type Props = {
   open: boolean;
   profileSlug: string;
   onClose: () => void;
+};
+
+type SellerStoneInventoryResponse = Omit<PublicStoneInventoryResponse, "items"> & {
+  items: readonly SellerStoneInventoryItem[];
 };
 
 const materialOptions = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
@@ -34,18 +38,18 @@ function assetKindLabel(value: string): string {
 
 export default function JwStoneCurrentInventoryManager({ open, profileSlug, onClose }: Props) {
   const { toast } = useToast();
-  const [items, setItems] = useState<readonly PublicStoneInventoryItem[]>([]);
+  const [items, setItems] = useState<readonly SellerStoneInventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedSlug, setSelectedSlug] = useState(materialOptions[0]?.slug || "");
-  const [sourceAssetRef, setSourceAssetRef] = useState("");
   const [assetKind, setAssetKind] = useState("bundle");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("slabs");
-  const [width, setWidth] = useState("");
+  const [length, setLength] = useState("");
   const [height, setHeight] = useState("");
   const [thickness, setThickness] = useState("");
   const [finish, setFinish] = useState("");
+  const [finishQuantity, setFinishQuantity] = useState("");
   const [locationRef, setLocationRef] = useState("JW Stone — Pensacola");
   const [recheckDays, setRecheckDays] = useState("30");
 
@@ -65,8 +69,8 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
     try {
       const response = (await apiRequest(
         "GET",
-        `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/current`
-      )) as PublicStoneInventoryResponse;
+        `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/manage`
+      )) as SellerStoneInventoryResponse;
       setItems(response.items || []);
     } catch (error) {
       toast({
@@ -86,16 +90,10 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
   if (!open) return null;
 
   const confirmStock = async () => {
-    if (!selected || !sourceAssetRef.trim()) {
-      toast({
-        title: "Reference required",
-        description: "Enter the bundle, block, container, slab, or A-frame reference.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!selected) return;
 
     const quantityNumber = Number(quantity);
+    const knownFinishQuantity = Number(finishQuantity);
     const days = Math.max(1, Math.min(90, Math.floor(Number(recheckDays) || 30)));
     const now = new Date();
     const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
@@ -111,26 +109,30 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
           materialFamily: selected.categorySlug,
           materialClass: selected.categorySlug === "quartz" ? "engineered_stone" : "natural_stone",
           assetKind,
-          sourceAssetRef: sourceAssetRef.trim(),
           quantity: quantityNumber,
           unit: unit.trim() || "pieces",
           dimensions: {
-            width: width ? Number(width) : null,
+            length: length ? Number(length) : null,
             height: height ? Number(height) : null,
             thickness: thickness ? Number(thickness) : null,
             unit: "in",
           },
-          finish: finish.trim() || null,
-          locationRef: locationRef.trim() || null,
+          finishQuantities:
+            finish.trim() && Number.isFinite(knownFinishQuantity) && knownFinishQuantity > 0
+              ? [{ finish: finish.trim(), slabCount: knownFinishQuantity }]
+              : [],
+          locationLabel: locationRef.trim() || null,
           imageUrls: selected.images.slice(0, 12),
           lastConfirmedAt: now.toISOString(),
           confirmationExpiresAt: expiresAt.toISOString(),
-          publish: true,
         }
       );
-      toast({ title: "Current stock confirmed" });
-      setSourceAssetRef("");
+      toast({
+        title: "Confirmed stock saved",
+        description: "It remains private until you explicitly publish it as sale-ready.",
+      });
       setQuantity("1");
+      setFinishQuantity("");
       await load();
     } catch (error) {
       toast({
@@ -143,8 +145,28 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
     }
   };
 
-  const retire = async (item: PublicStoneInventoryItem) => {
-    if (!window.confirm(`Remove ${item.materialName} ${item.sourceAssetRef} from current inventory?`)) {
+  const setSaleReady = async (item: SellerStoneInventoryItem, saleReady: boolean) => {
+    try {
+      await apiRequest(
+        "PATCH",
+        `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/current/${encodeURIComponent(item.id)}/publication`,
+        { saleReady }
+      );
+      toast({
+        title: saleReady ? "Lot published as sale-ready" : "Lot returned to private inventory",
+      });
+      await load();
+    } catch (error) {
+      toast({
+        title: "Could not change publication",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const retire = async (item: SellerStoneInventoryItem) => {
+    if (!window.confirm(`Retire ${item.materialName} (${item.passportCode}) from inventory?`)) {
       return;
     }
     try {
@@ -152,7 +174,7 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
         "DELETE",
         `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/current/${encodeURIComponent(item.id)}`
       );
-      toast({ title: "Stock removed from public inventory" });
+      toast({ title: "Stock retired" });
       await load();
     } catch (error) {
       toast({
@@ -172,7 +194,8 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
         <div>
           <p className="text-sm font-bold text-white">Current Inventory</p>
           <p className="mt-1 text-xs text-white/65">
-            Publish only physical stock you have confirmed. It expires automatically at the recheck date.
+            Save only physical stock you have confirmed. Publishing it as sale-ready is a separate
+            step.
           </p>
         </div>
         <button
@@ -204,7 +227,6 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
           </select>
         </label>
 
-        <Field label="Reference" value={sourceAssetRef} onChange={setSourceAssetRef} placeholder="A-frame, bundle, block…" />
         <label className="text-xs font-semibold text-white/80">
           Physical type
           <select
@@ -221,12 +243,28 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
         </label>
         <Field label="Quantity" value={quantity} onChange={setQuantity} inputMode="decimal" />
         <Field label="Unit" value={unit} onChange={setUnit} placeholder="slabs" />
-        <Field label="Width (in)" value={width} onChange={setWidth} inputMode="decimal" />
+        <Field label="Length (in)" value={length} onChange={setLength} inputMode="decimal" />
         <Field label="Height (in)" value={height} onChange={setHeight} inputMode="decimal" />
-        <Field label="Thickness (in)" value={thickness} onChange={setThickness} inputMode="decimal" />
+        <Field
+          label="Thickness (in)"
+          value={thickness}
+          onChange={setThickness}
+          inputMode="decimal"
+        />
         <Field label="Finish" value={finish} onChange={setFinish} placeholder="Polished" />
+        <Field
+          label="Known finish quantity"
+          value={finishQuantity}
+          onChange={setFinishQuantity}
+          inputMode="decimal"
+        />
         <Field label="Location" value={locationRef} onChange={setLocationRef} />
-        <Field label="Recheck in days" value={recheckDays} onChange={setRecheckDays} inputMode="numeric" />
+        <Field
+          label="Recheck in days"
+          value={recheckDays}
+          onChange={setRecheckDays}
+          inputMode="numeric"
+        />
       </div>
 
       <button
@@ -236,12 +274,12 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
         className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-bold text-black disabled:opacity-50"
       >
         <PackageCheck className="h-4 w-4" aria-hidden="true" />
-        {saving ? "Confirming…" : "Confirm current stock"}
+        {saving ? "Saving…" : "Confirm current stock"}
       </button>
 
       <div className="mt-5 border-t border-white/10 pt-4">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/60">
-          Published now
+          Confirmed inventory
         </p>
         {loading ? (
           <p className="mt-3 text-sm text-white/60">Loading…</p>
@@ -255,22 +293,32 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
                 <div>
                   <p className="text-sm font-semibold text-white">{item.materialName}</p>
                   <p className="mt-1 text-xs text-white/60">
-                    {item.sourceAssetRef} · {item.quantity} {item.unit}
+                    {item.passportCode} · {item.quantity} {item.unit} ·{" "}
+                    {item.isSaleReady ? "Sale-ready" : "Private draft"}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void retire(item)}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300/25 bg-red-500/10 px-3 text-xs font-semibold text-red-100"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  Remove
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void setSaleReady(item, !item.isSaleReady)}
+                    className="inline-flex min-h-10 items-center rounded-lg border border-amber-300/35 bg-amber-500/10 px-3 text-xs font-semibold text-amber-100"
+                  >
+                    {item.isSaleReady ? "Return to private" : "Publish sale-ready"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void retire(item)}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300/25 bg-red-500/10 px-3 text-xs font-semibold text-red-100"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Retire
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-white/60">Nothing is currently published as physical stock.</p>
+          <p className="mt-3 text-sm text-white/60">No physical stock has been confirmed yet.</p>
         )}
       </div>
     </div>

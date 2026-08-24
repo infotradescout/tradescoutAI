@@ -869,6 +869,41 @@
       "when": 1787339060000,
       "tag": "0120_users_runtime_column_alignment",
       "breakpoints": false
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1787401415000,
+      "tag": "0121_jw_stone_inventory_truth",
+      "breakpoints": false
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1787401475000,
+      "tag": "0122_stone_core_schema",
+      "breakpoints": false
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1787401535000,
+      "tag": "0123_profile_accounts_and_entitlements",
+      "breakpoints": false
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1787401595000,
+      "tag": "0124_bidrock_marketplace",
+      "breakpoints": false
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1787401655000,
+      "tag": "0125_bidrock_timed_auctions",
+      "breakpoints": false
     }
   ]
 }

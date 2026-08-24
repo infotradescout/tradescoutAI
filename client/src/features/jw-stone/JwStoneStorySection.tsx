@@ -35,9 +35,9 @@ export function JwStoneStorySection() {
             {story.heading}
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
-            JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated
-            delivery. JW Stone does not template, fabricate, finish, or install countertops; those
-            services require a separate independent fabricator.
+            JW Stone sources and supplies natural stone through direct quarry relationships and
+            coordinates delivery. JW Stone does not template, fabricate, finish, or install
+            countertops; those services require a separate independent fabricator.
           </p>
 
           <ul

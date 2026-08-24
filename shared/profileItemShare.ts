@@ -299,9 +299,14 @@ export function createProfileInventoryItemShareMetadata(args: {
         category: item.category,
         imageIndex: item.imageIndex,
         shareImageIndex: item.shareImageIndex,
-        title: `Current stone selection | ${profileName}`,
+        title:
+          item.publicKind === "offering"
+            ? `Stone selection | ${profileName}`
+            : `Current stone selection | ${profileName}`,
         description: capDescription(
-          `View this stone selection in ${profileName}'s current inventory. See this photo.`
+          item.publicKind === "offering"
+            ? `View this stone selection in ${profileName}'s material library. See this photo.`
+            : `View this stone selection in ${profileName}'s current inventory. See this photo.`
         ),
         imageUrl,
         imageAlt: `Stone selection — ${profileName} inventory photo ${item.shareImageIndex + 1}`,
@@ -322,7 +327,9 @@ export function createProfileInventoryItemShareMetadata(args: {
         item.publicSummary ||
           (itemIsProfile
             ? `View ${item.name}${categoryDetail} and explore the material photos.`
-            : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo.`)
+            : item.publicKind === "offering"
+              ? `View ${item.name}${categoryDetail} in ${profileName}'s material library. See this photo.`
+              : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo.`)
       ),
       imageUrl,
       imageAlt: itemIsProfile

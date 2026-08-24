@@ -25,7 +25,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       videoUrl: "/images/businesses/jw-stone/video/hero.mp4",
       posterUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
       inventoryItemSlug: "amazonic-green",
-      eyebrow: "Amazonic Green · current inventory",
+      eyebrow: "Amazonic Green · material library",
       headline: "Natural stone, selected at the source.",
       teaser: "Search the full collection or ask JW Stone about your project.",
       preserveMedia: true,
@@ -33,7 +33,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       zoomVideo: true,
     },
     copy: {
-      inventoryTitle: "Current Inventory",
+      inventoryTitle: "Material Library",
       ctaHeading: "Tell JW Stone what you need",
     },
     media: {
@@ -49,7 +49,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       sourceRequests: true,
       browseCtaImage:
         "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-      browseCtaEyebrow: "White Rhino · current inventory",
+      browseCtaEyebrow: "White Rhino · material library",
       featuredCollection: {
         label: "JW Stone Picks",
         slugs: ["blue-dunes", "cristallo", "gold-macaubas", "rhino-white", "taj-mahal", "titanium"],
@@ -122,63 +122,70 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "granite",
         title: "Granite",
         summary:
-          "Explore JW Stone's current Granite inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+          "Explore JW Stone's Granite material library, compare named selections and photographs, and start a material request when ready.",
         leadItemSlug: "arizona-gold",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "marble",
         publicSlug: "marble",
         title: "Marble",
         summary:
-          "Explore JW Stone's current Marble inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+          "Explore JW Stone's Marble material library, compare named selections and photographs, and start a material request when ready.",
         leadItemSlug: "alabama-rose",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "quartzite",
         publicSlug: "quartzite",
         title: "Quartzite",
         summary:
-          "Explore JW Stone's current Quartzite inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+          "Explore JW Stone's Quartzite material library, compare named selections and photographs, and start a material request when ready.",
         leadItemSlug: "atlantic",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "quartz",
         publicSlug: "engineered-quartz",
         title: "Engineered Quartz",
         summary:
-          "Explore JW Stone's current Engineered Quartz inventory, compare named selections and photographs, and request current pricing or availability for a selected material.",
+          "Explore JW Stone's Engineered Quartz material library, compare named selections and photographs, and start a material request when ready.",
         leadItemSlug: "aj-quartz",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "onyx",
         publicSlug: "onyx",
         title: "Onyx",
         summary:
-          "Explore the Onyx currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+          "Explore JW Stone's Onyx material library, review the exact material photographs, and start a material request when ready.",
         leadItemSlug: "honey-onyx",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "soapstone",
         publicSlug: "soapstone",
         title: "Soapstone",
         summary:
-          "Explore the Soapstone currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+          "Explore JW Stone's Soapstone material library, review the exact material photographs, and start a material request when ready.",
         leadItemSlug: "marina-black-soapstone",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "basalt",
         publicSlug: "basalt",
         title: "Basalt",
         summary:
-          "Explore the Basalt currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+          "Explore JW Stone's Basalt material library, review the exact material photographs, and start a material request when ready.",
         leadItemSlug: "matrix-basalt",
         indexable: true,
+        collectionKind: "offerings",
       },
     ],
   },

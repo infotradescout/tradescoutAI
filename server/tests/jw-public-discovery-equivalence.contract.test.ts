@@ -47,7 +47,7 @@ function extractPublicFactSet(html: string) {
     h1: extractH1(html),
     hasJwMarker: /data-seo-jw-stone-marketplace/i.test(html),
     hasBusinessIdentity: /JW Stone/i.test(html),
-    hasInventoryCue: /Current Inventory|stone collection|Browse the full JW Stone collection/i.test(
+    hasInventoryCue: /Material Library|stone collection|Browse the full JW Stone collection/i.test(
       html
     ),
     hasContactCue: /ask JW Stone|ask about a material|Start a Request|Contact/i.test(html),
