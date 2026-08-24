@@ -176,6 +176,8 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
     .orderBy(asc(counties.name))
     .limit(80);
 
+  if (rows.length === 0) return null;
+
   const displayCity = titleizeCitySlug(citySlug);
   const canonicalPath = `/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
     citySlug
