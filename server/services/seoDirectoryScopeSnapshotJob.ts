@@ -8,7 +8,7 @@ import {
   buildPublicBusinessSignals,
   canServePublicBusinessDetail,
   derivePublicationTier,
-  deriveTradeSlugFromProfileData,
+  deriveTradeSlugsFromProfileData,
   publicBusinessDetailExposureSqlPredicate,
 } from "../publicationBusiness";
 import { slugifyDirectoryCityName } from "../seoDirectoryCitySlug";
@@ -114,8 +114,8 @@ export async function runSeoDirectoryScopeSnapshotJob(): Promise<SeoDirectorySco
     if (!stateCode || !countyName || !countyId) continue;
 
     const profileData: any = (r as any).profileData || {};
-    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
-    if (!tradeSlug) continue;
+    const tradeSlugs = deriveTradeSlugsFromProfileData(profileData);
+    if (!tradeSlugs.length) continue;
 
     const tier = derivePublicationTier({
       ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
@@ -129,59 +129,62 @@ export async function runSeoDirectoryScopeSnapshotJob(): Promise<SeoDirectorySco
           : null,
     });
 
-    const pub = isPublicAndCrawlableBusiness(
-      buildPublicBusinessSignals({
-        id: String((r as any).businessId),
-        name: String((r as any).name || ""),
-        slug: String((r as any).slug || ""),
-        updatedAt,
-        publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
-        stateCode,
-        countyName,
-        city: typeof profileData.city === "string" ? profileData.city : null,
-        tradeSlug,
-        tier,
-      }),
-      rules,
-      now
-    );
-    if (!canServePublicBusinessDetail({ publication: pub, tier })) continue;
-
     const countySlug = slugifyCountyName(
       countyName.replace(/\s+County$/i, "").trim() || countyName
     );
-    const countyKey = `${tradeSlug}|${countyId}`;
-    const countyPrev = countyMap.get(countyKey);
-    if (!countyPrev) {
-      countyMap.set(countyKey, {
-        tradeSlug,
-        countyId,
-        stateCode,
-        countySlug,
-        lastmod: updatedAt,
-        count: 1,
-      });
-    } else {
-      countyPrev.count += 1;
-      if (updatedAt > countyPrev.lastmod) countyPrev.lastmod = updatedAt;
-    }
-
     const rawCity = typeof profileData.city === "string" ? profileData.city.trim() : "";
     const citySlug = rawCity ? slugifyDirectoryCityName(rawCity) : "";
-    if (citySlug) {
-      const cityKey = `${tradeSlug}|${stateCode}|${citySlug}`;
-      const cityPrev = cityMap.get(cityKey);
-      if (!cityPrev) {
-        cityMap.set(cityKey, {
+
+    for (const tradeSlug of tradeSlugs) {
+      const pub = isPublicAndCrawlableBusiness(
+        buildPublicBusinessSignals({
+          id: String((r as any).businessId),
+          name: String((r as any).name || ""),
+          slug: String((r as any).slug || ""),
+          updatedAt,
+          publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
           tradeSlug,
           stateCode,
-          citySlug,
+          countyName,
+          city: typeof profileData.city === "string" ? profileData.city : null,
+          tier,
+        }),
+        rules,
+        now
+      );
+      if (!canServePublicBusinessDetail({ publication: pub, tier })) continue;
+
+      const countyKey = `${tradeSlug}|${countyId}`;
+      const countyPrev = countyMap.get(countyKey);
+      if (!countyPrev) {
+        countyMap.set(countyKey, {
+          tradeSlug,
+          countyId,
+          stateCode,
+          countySlug,
           lastmod: updatedAt,
           count: 1,
         });
       } else {
-        cityPrev.count += 1;
-        if (updatedAt > cityPrev.lastmod) cityPrev.lastmod = updatedAt;
+        countyPrev.count += 1;
+        if (updatedAt > countyPrev.lastmod) countyPrev.lastmod = updatedAt;
+      }
+
+      if (citySlug) {
+        const cityKey = `${tradeSlug}|${stateCode}|${citySlug}`;
+        const cityPrev = cityMap.get(cityKey);
+        if (!cityPrev) {
+          cityMap.set(cityKey, {
+            tradeSlug,
+            stateCode,
+            citySlug,
+            lastmod: updatedAt,
+            count: 1,
+          });
+        } else {
+          cityPrev.count += 1;
+          if (updatedAt > cityPrev.lastmod) cityPrev.lastmod = updatedAt;
+        }
       }
     }
   }

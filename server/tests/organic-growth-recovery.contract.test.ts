@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { slugifyDirectoryCityName } from "../seoDirectoryCitySlug";
+import { deriveTradeSlugsFromProfileData } from "../publicationBusiness";
 import { detectActorFromUserAgent } from "../utils/requestActor";
 
 const read = (relativePath: string) =>
@@ -40,6 +41,21 @@ describe("organic growth recovery contracts", () => {
       expect(page).toContain("/api/public/seo/directory-navigation");
       expect(page).toContain("noIndex={shouldNoIndex}");
     }
+  });
+
+  it("keeps every served trade for multi-service profiles in discovery snapshots", () => {
+    const tradeSlugs = deriveTradeSlugsFromProfileData({
+      category: "Plumbing Contractor",
+      services: ["Electrical Contractor", "Drain Cleaning Specialist"],
+    });
+    expect(tradeSlugs).toEqual(
+      expect.arrayContaining(["plumbing", "electrical", "drain-cleaning"])
+    );
+    expect(new Set(tradeSlugs).size).toBe(tradeSlugs.length);
+
+    const snapshotJob = read("server/services/seoDirectoryScopeSnapshotJob.ts");
+    expect(snapshotJob).toContain("deriveTradeSlugsFromProfileData(profileData)");
+    expect(snapshotJob).toContain("for (const tradeSlug of tradeSlugs)");
   });
 
   it("noindexes server and client empty directory states", () => {
