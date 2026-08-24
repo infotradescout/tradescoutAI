@@ -4,21 +4,21 @@
 DO $$
 DECLARE
   fixture_version CONSTANT TEXT := 'jw-stone-confirmed-stock-2026-08-20-v1';
-  target_business_id TEXT;
-  publisher_user_id TEXT;
+  jw_business_id TEXT;
+  jw_publisher_user_id TEXT;
   target_count INTEGER;
   eligible_count INTEGER;
   inventory_update_count INTEGER;
   listing_update_count INTEGER;
 BEGIN
   SELECT profile.business_id, business.owner_user_id
-    INTO target_business_id, publisher_user_id
+    INTO jw_business_id, jw_publisher_user_id
     FROM profiles AS profile
     INNER JOIN businesses AS business ON business.id = profile.business_id
    WHERE profile.slug = 'jw-stone'
    LIMIT 1;
 
-  IF target_business_id IS NULL OR publisher_user_id IS NULL THEN
+  IF jw_business_id IS NULL OR jw_publisher_user_id IS NULL THEN
     RAISE EXCEPTION
       '0126 requires the canonical JW Stone profile, business, and owner before publication';
   END IF;
@@ -30,11 +30,11 @@ BEGIN
         ON entitlement.profile_account_id = account.id
       INNER JOIN user_profiles AS business_profile
         ON business_profile.id = account.business_profile_id
-     WHERE account.owner_user_id = publisher_user_id
+     WHERE account.owner_user_id = jw_publisher_user_id
        AND account.target_profile_id = (
          SELECT id FROM profiles WHERE slug = 'jw-stone' LIMIT 1
        )
-       AND account.target_business_id = target_business_id
+       AND account.jw_business_id = jw_business_id
        AND account.identity_kind = 'business'
        AND account.status = 'active'
        AND account.verification_status = 'approved'
@@ -53,8 +53,8 @@ BEGIN
       ON passport.id = inventory_row.asset_passport_id
     INNER JOIN bidrock_listings AS listing_row
       ON listing_row.inventory_position_id = inventory_row.id
-   WHERE inventory_row.holder_business_id = target_business_id
-     AND listing_row.seller_business_id = target_business_id
+   WHERE inventory_row.holder_business_id = jw_business_id
+     AND listing_row.seller_business_id = jw_business_id
      AND listing_row.source_profile_slug = 'jw-stone'
      AND passport.condition_json ->> 'fixtureVersion' = fixture_version
      AND passport.source_asset_ref LIKE fixture_version || ':%'
@@ -68,8 +68,8 @@ BEGIN
       ON passport.id = inventory_row.asset_passport_id
     INNER JOIN bidrock_listings AS listing_row
       ON listing_row.inventory_position_id = inventory_row.id
-   WHERE inventory_row.holder_business_id = target_business_id
-     AND listing_row.seller_business_id = target_business_id
+   WHERE inventory_row.holder_business_id = jw_business_id
+     AND listing_row.seller_business_id = jw_business_id
      AND listing_row.source_profile_slug = 'jw-stone'
      AND passport.condition_json ->> 'fixtureVersion' = fixture_version
      AND passport.source_asset_ref LIKE fixture_version || ':%';
@@ -87,8 +87,8 @@ BEGIN
       ON passport.id = inventory_row.asset_passport_id
     INNER JOIN bidrock_listings AS listing_row
       ON listing_row.inventory_position_id = inventory_row.id
-   WHERE inventory_row.holder_business_id = target_business_id
-     AND listing_row.seller_business_id = target_business_id
+   WHERE inventory_row.holder_business_id = jw_business_id
+     AND listing_row.seller_business_id = jw_business_id
      AND listing_row.source_profile_slug = 'jw-stone'
      AND passport.condition_json ->> 'fixtureVersion' = fixture_version
      AND passport.source_asset_ref LIKE fixture_version || ':%'
@@ -125,7 +125,7 @@ BEGIN
              THEN inventory_row.publication_evidence
            ELSE jsonb_build_object(
              'type', 'bidrock_seller_publication',
-             'actorUserId', publisher_user_id,
+             'actorUserId', jw_publisher_user_id,
              'recordedAt', NOW(),
              'releaseControl', '0126_jw_stone_offer_publication',
              'fixtureVersion', fixture_version,
@@ -139,8 +139,8 @@ BEGIN
          bidrock_listings AS listing_row
    WHERE passport.id = inventory_row.asset_passport_id
      AND listing_row.inventory_position_id = inventory_row.id
-     AND inventory_row.holder_business_id = target_business_id
-     AND listing_row.seller_business_id = target_business_id
+     AND inventory_row.holder_business_id = jw_business_id
+     AND listing_row.seller_business_id = jw_business_id
      AND listing_row.source_profile_slug = 'jw-stone'
      AND passport.condition_json ->> 'fixtureVersion' = fixture_version
      AND passport.source_asset_ref LIKE fixture_version || ':%';
@@ -161,8 +161,8 @@ BEGIN
          stone_asset_passports AS passport
    WHERE inventory_row.id = listing_row.inventory_position_id
      AND passport.id = inventory_row.asset_passport_id
-     AND inventory_row.holder_business_id = target_business_id
-     AND listing_row.seller_business_id = target_business_id
+     AND inventory_row.holder_business_id = jw_business_id
+     AND listing_row.seller_business_id = jw_business_id
      AND listing_row.source_profile_slug = 'jw-stone'
      AND inventory_row.public_availability_status = 'published_current'
      AND listing_row.price_unit IS NULL
