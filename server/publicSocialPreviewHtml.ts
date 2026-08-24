@@ -295,6 +295,8 @@ function sourceImage(value: string, pageOrigin: string): string | null {
 }
 
 export function upgradePublicSocialPreviewHtml(html: string): string {
+  if (/\bnoindex\b/i.test(metaContent(html, "name", "robots"))) return html;
+
   const existingImage = metaContent(html, "property", "og:image");
   if (!existingImage || /\/images\/social\//i.test(existingImage)) return html;
   // JW Stone owns a finished brand preview image. Keep that direct asset for

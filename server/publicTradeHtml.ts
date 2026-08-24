@@ -216,9 +216,11 @@ export async function buildPublicTradeOverviewHtml(
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
   let stateScopes: Awaited<ReturnType<typeof listActiveTradeStateScopes>> = [];
+  let stateScopeQueryFailed = false;
   try {
     stateScopes = await listActiveTradeStateScopes(canonicalSlug);
   } catch (error) {
+    stateScopeQueryFailed = true;
     console.warn("[SEO] Trade overview navigation degraded; omitting crawl links", {
       tradeSlug: canonicalSlug,
       error,
@@ -232,6 +234,9 @@ export async function buildPublicTradeOverviewHtml(
       return state ? { ...state, businessCount: scope.businessCount } : null;
     })
     .filter(Boolean) as Array<(typeof US_STATES_COUNTIES)[number] & { businessCount: number }>;
+
+  if (!stateScopeQueryFailed && activeStates.length === 0) return null;
+
   const title = formatTradeScoutTitle(`Find ${match.trade.name} Contractors by State`);
   const description = `Find ${match.trade.name} contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue through Direct Connect when contact is appropriate.`;
   const meta = buildTradeMeta({
@@ -381,9 +386,11 @@ export async function buildPublicTradeStateHtml(
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
   let countyScopes: Awaited<ReturnType<typeof listActiveTradeCountyScopes>> = [];
+  let countyScopeQueryFailed = false;
   try {
     countyScopes = await listActiveTradeCountyScopes(canonicalSlug, stateCode);
   } catch (error) {
+    countyScopeQueryFailed = true;
     console.warn("[SEO] Trade state navigation degraded; omitting crawl links", {
       tradeSlug: canonicalSlug,
       stateCode,
@@ -402,6 +409,9 @@ export async function buildPublicTradeStateHtml(
     countySlug: string;
     businessCount: number;
   }>;
+
+  if (!countyScopeQueryFailed && activeCounties.length === 0) return null;
+
   const title = formatTradeScoutTitle(`${match.trade.name} Contractors in ${state.name}`);
   const description = `Find ${match.trade.name} contractors in ${state.name} on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths.`;
   const meta = buildTradeMeta({
@@ -509,6 +519,7 @@ export async function buildPublicTradeCountyHtml(
   if (tradeClause) whereClauses.push(tradeClause);
 
   const includePublicDiscoveryEnabled = await hasPublicDiscoveryEnabledColumn();
+  let listingQueryDegraded = !includePublicDiscoveryEnabled;
   if (!includePublicDiscoveryEnabled && !loggedMissingPublicDiscoveryEnabledColumn) {
     loggedMissingPublicDiscoveryEnabledColumn = true;
     console.error(
@@ -545,6 +556,7 @@ export async function buildPublicTradeCountyHtml(
   } catch (error) {
     // Defensive: some environments have drift and will error even if our introspection cache is stale.
     if (includePublicDiscoveryEnabled && isMissingColumnError(error, "public_discovery_enabled")) {
+      listingQueryDegraded = true;
       cachedHasPublicDiscoveryEnabledColumn = false;
       if (!loggedMissingPublicDiscoveryEnabledColumn) {
         loggedMissingPublicDiscoveryEnabledColumn = true;
@@ -554,6 +566,7 @@ export async function buildPublicTradeCountyHtml(
       }
       rows = await runQuery(false);
     } else {
+      listingQueryDegraded = true;
       console.error(
         "[SEO] Trade county listing query failed; serving fallback page without listings",
         {
@@ -624,6 +637,9 @@ export async function buildPublicTradeCountyHtml(
     .filter((r): r is { slug: string; name: string; claimStatus: "claimed" | "unclaimed" } =>
       Boolean(r)
     );
+
+  if (!listingQueryDegraded && items.length === 0) return null;
+
   const meta = buildTradeMeta({ ...metaArgs, indexable: items.length > 0 });
 
   const summary = `

@@ -205,6 +205,8 @@ export async function buildPublicTradeCityHtml(
     .orderBy(asc(counties.name))
     .limit(80);
 
+  if (rows.length === 0) return null;
+
   const displayCity = titleizeCitySlug(citySlug);
   const canonicalPath = `/trade/${encodeURIComponent(canonicalTradeSlug)}/${encodeURIComponent(
     stateCode.toLowerCase()
