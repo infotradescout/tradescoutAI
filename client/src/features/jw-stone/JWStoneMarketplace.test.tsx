@@ -426,7 +426,7 @@ describe("JW Stone marketplace luxury layout", () => {
     act(() => root.unmount());
     window.history.replaceState(null, "", "/jw-stone/stones/taj-mahal?request=stone");
     root = createRoot(container);
-    act(() => root.render(<JWStoneMarketplace />));
+    renderMarketplace();
 
     expect(container.querySelector('[data-testid="direct-connect-panel"]')?.textContent).toContain(
       "Taj Mahal"

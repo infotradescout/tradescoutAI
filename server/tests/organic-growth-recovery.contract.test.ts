@@ -118,4 +118,15 @@ describe("organic growth recovery contracts", () => {
     expect(profileClient).toContain("trackDiscoveryLandingOnce");
     expect(profileClient).toContain("data.viewerCanManage");
   });
+
+  it("serves the JW Stone crawler surface and preserves gated request intent", () => {
+    const serverIndex = read("server/index.ts");
+    const routing = read("server/publicProfileItemRouting.ts");
+
+    expect(serverIndex).toContain("buildPublicJwStoneMarketplaceHtml({");
+    expect(serverIndex).toContain("marketplaceDomainSurface: true");
+    expect(serverIndex.match(/request: req\.query\.request/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(routing).toContain('requestIntent === "stone" || requestIntent === "collection"');
+    expect(routing).toContain('target.searchParams.set("request", requestIntent)');
+  });
 });

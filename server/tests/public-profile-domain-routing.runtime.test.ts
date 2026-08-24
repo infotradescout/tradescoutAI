@@ -128,6 +128,7 @@ function redirectTarget(args: {
   origin: string;
   canonicalPath: string;
   referral: unknown;
+  request?: unknown;
 }): string {
   const destination = buildPublicProfileCanonicalRedirectTarget(args);
   if (!destination) throw new Error("Expected a valid canonical profile redirect");
@@ -223,6 +224,7 @@ function runtimeApp() {
           origin: OWNER_ORIGIN,
           canonicalPath: itemRequest.canonicalPath,
           referral: req.query.ref,
+          request: req.query.request,
         })
       );
     }
@@ -233,6 +235,7 @@ function runtimeApp() {
           origin: OWNER_ORIGIN,
           canonicalPath: categoryRequest.canonicalPath,
           referral: req.query.ref,
+          request: req.query.request,
         })
       );
     }
@@ -283,6 +286,7 @@ function runtimeApp() {
           origin: `https://${customDomain}`,
           canonicalPath: destinationSuffix(resolvedPath, basePath),
           referral: req.query.ref,
+          request: req.query.request,
         })
       );
     }
@@ -339,6 +343,7 @@ function runtimeApp() {
           origin: customDomain ? `https://${customDomain}` : PLATFORM_ORIGIN,
           canonicalPath: customDomain ? destinationSuffix(canonicalPath, basePath) : canonicalPath,
           referral: req.query.ref,
+          request: req.query.request,
         })
       );
     }
@@ -399,36 +404,47 @@ describe("public profile domain routing runtime", () => {
   it("redirects scoped TradeScout item and category paths to their owner domain", async () => {
     const app = runtimeApp();
     const itemResponse = await request(app)
-      .get("/u/jw-stone/stones/blue-dunes?photo=2&ref=partner-7")
+      .get("/u/jw-stone/stones/blue-dunes?photo=2&ref=partner-7&request=stone")
       .set("Host", "www.thetradescout.com");
     const categoryResponse = await request(app)
-      .get("/u/jw-stone/materials/granite?ref=partner-7")
+      .get("/u/jw-stone/materials/granite?ref=partner-7&request=collection")
       .set("Host", "www.thetradescout.com");
 
     expect(itemResponse.status).toBe(301);
     expect(itemResponse.headers.location).toBe(
-      "https://jwstonelogistics.com/stones/blue-dunes?photo=2&ref=partner-7"
+      "https://jwstonelogistics.com/stones/blue-dunes?photo=2&ref=partner-7&request=stone"
     );
     expect(categoryResponse.status).toBe(301);
     expect(categoryResponse.headers.location).toBe(
-      "https://jwstonelogistics.com/materials/granite?ref=partner-7"
+      "https://jwstonelogistics.com/materials/granite?ref=partner-7&request=collection"
     );
   });
 
-  it("canonicalizes legacy selectors from both hosts without losing item, photo, or ref", async () => {
+  it("canonicalizes legacy selectors without losing item, photo, ref, or request intent", async () => {
     const app = runtimeApp();
     const ownerResponse = await request(app)
-      .get("/?stone=blue-dunes&photo=2&ref=partner-7")
+      .get("/?stone=blue-dunes&photo=2&ref=partner-7&request=stone")
       .set("Host", OWNER_HOST);
     const platformResponse = await request(app)
-      .get("/u/jw-stone?stone=blue-dunes&photo=2&ref=partner-7")
+      .get("/u/jw-stone?stone=blue-dunes&photo=2&ref=partner-7&request=stone")
       .set("Host", "www.thetradescout.com");
 
-    const canonical = "https://jwstonelogistics.com/stones/blue-dunes?photo=2&ref=partner-7";
+    const canonical =
+      "https://jwstonelogistics.com/stones/blue-dunes?photo=2&ref=partner-7&request=stone";
     expect(ownerResponse.status).toBe(301);
     expect(ownerResponse.headers.location).toBe(canonical);
     expect(platformResponse.status).toBe(301);
     expect(platformResponse.headers.location).toBe(canonical);
+  });
+
+  it("drops unknown request intent instead of reflecting arbitrary query values", () => {
+    expect(
+      buildPublicProfileCanonicalRedirectTarget({
+        origin: OWNER_ORIGIN,
+        canonicalPath: "/stones/blue-dunes",
+        request: "unexpected-mode",
+      })
+    ).toBe("https://jwstonelogistics.com/stones/blue-dunes");
   });
 
   it("serves generic TradeScout-only item and category pages without owner redirects", async () => {
