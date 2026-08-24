@@ -1,33 +1,165 @@
 export const STONE_CURRENT_INVENTORY_FRESHNESS_DAYS = 45;
 export const STONE_CURRENT_INVENTORY_MAX_CONFIRMATION_DAYS = 90;
 export const STONE_CURRENT_INVENTORY_PUBLIC_STATUS = "published_current";
+export const STONE_CURRENT_INVENTORY_PRIVATE_STATUS = "not_published";
 export const STONE_CURRENT_INVENTORY_AVAILABLE_STATUS = "available";
 export const STONE_CURRENT_INVENTORY_VERIFIED_STATUS = "verified";
+export const STONE_MATERIAL_CLASSES = ["natural_stone", "engineered_stone"] as const;
+export type StoneMaterialClass = (typeof STONE_MATERIAL_CLASSES)[number];
+
+export const JW_STONE_CONFIRMED_STOCK_FIXTURE_VERSION = "jw-stone-confirmed-stock-2026-08-20-v1";
+export const JW_STONE_CONFIRMED_AT = "2026-08-20T12:00:00.000Z";
+export const JW_STONE_CONFIRMATION_EXPIRES_AT = "2026-10-04T12:00:00.000Z";
 
 export type StoneInventoryDimensions = Readonly<{
-  width?: number | null;
+  length?: number | null;
   height?: number | null;
   thickness?: number | null;
   unit?: "in" | "mm" | null;
 }>;
 
-export type PublicStoneInventoryItem = Readonly<{
-  id: string;
-  passportCode: string;
+export type ConfirmedStoneStockLot = Readonly<{
+  fixtureKey: string;
   materialSlug: string;
   materialName: string;
+  catalogName?: string;
+  materialFamily: string;
+  lengthIn: number;
+  heightIn: number;
+  slabCount: number;
+  finishQuantities: readonly Readonly<{
+    finish: string;
+    slabCount: number;
+  }>[];
+  primaryImageUrl: string;
+}>;
+
+/**
+ * Owner-confirmed physical stock. This list is intentionally much smaller
+ * than JW Stone's photo-backed material library. Importing a lot proves that
+ * it exists in seller inventory; it does not publish the lot to buyers.
+ */
+export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
+  {
+    fixtureKey: "jw-blue-dunes-133x78-5-8",
+    materialSlug: "blue-dunes",
+    materialName: "Blue Dunes",
+    materialFamily: "granite",
+    lengthIn: 133,
+    heightIn: 78.5,
+    slabCount: 8,
+    finishQuantities: [],
+    primaryImageUrl:
+      "/images/businesses/jw-stone/inventory-source/16XiKXpuST1VEIuUn5jhX9RH9rAYq86jG.webp",
+  },
+  {
+    fixtureKey: "jw-bianco-carrara-122x70-5-6",
+    materialSlug: "bianco-carrara",
+    materialName: "Bianco Carrara",
+    materialFamily: "marble",
+    lengthIn: 122,
+    heightIn: 70.5,
+    slabCount: 6,
+    finishQuantities: [],
+    primaryImageUrl:
+      "/images/businesses/jw-stone/inventory-source/1BoLQprq014WBrpdxTyYU5LErye7D5O0U.webp",
+  },
+  {
+    fixtureKey: "jw-cristallo-130x77-5-22",
+    materialSlug: "cristallo",
+    materialName: "Cristallo",
+    materialFamily: "quartzite",
+    lengthIn: 130,
+    heightIn: 77.5,
+    slabCount: 22,
+    finishQuantities: [],
+    primaryImageUrl:
+      "/images/businesses/jw-stone/inventory-source/1D8bvWASTFtKs4ri4KK553drHwWXeAzxQ.webp",
+  },
+  {
+    fixtureKey: "jw-gold-macaubas-135x78-5-6",
+    materialSlug: "gold-macaubas",
+    materialName: "Gold Macaubas",
+    materialFamily: "unconfirmed",
+    lengthIn: 135,
+    heightIn: 78.5,
+    slabCount: 6,
+    finishQuantities: [{ finish: "Polished", slabCount: 2 }],
+    primaryImageUrl:
+      "/images/businesses/jw-stone/inventory-source/18wiHWv2R9xYmyrU3DS7FFi6h1pUoHtpe.webp",
+  },
+  {
+    fixtureKey: "jw-rhino-white-111x69-25-7",
+    materialSlug: "rhino-white",
+    materialName: "Rhino White",
+    catalogName: "White Rhino",
+    materialFamily: "unconfirmed",
+    lengthIn: 111,
+    heightIn: 69.25,
+    slabCount: 7,
+    finishQuantities: [],
+    primaryImageUrl:
+      "/images/businesses/jw-stone/inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp",
+  },
+  {
+    fixtureKey: "jw-taj-mahal-126x79-27",
+    materialSlug: "taj-mahal",
+    materialName: "Taj Mahal",
+    materialFamily: "quartzite",
+    lengthIn: 126,
+    heightIn: 79,
+    slabCount: 27,
+    finishQuantities: [],
+    primaryImageUrl:
+      "/images/businesses/jw-stone/inventory-source/1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW.webp",
+  },
+  {
+    fixtureKey: "jw-titanium-115x76-6",
+    materialSlug: "titanium",
+    materialName: "Titanium",
+    materialFamily: "granite",
+    lengthIn: 115,
+    heightIn: 76,
+    slabCount: 6,
+    finishQuantities: [],
+    primaryImageUrl:
+      "/images/businesses/jw-stone/inventory-source/1O3crQvhlMBAEVQxmiLKw6PC-EFl3du8o.webp",
+  },
+] satisfies readonly ConfirmedStoneStockLot[]);
+
+export type PublicStoneInventoryItem = Readonly<{
+  id: string;
+  materialSlug: string;
+  materialName: string;
+  materialClass: StoneMaterialClass;
   materialFamily: string | null;
   assetKind: "slab" | "bundle" | "block" | "container" | "a_frame" | "piece";
-  sourceAssetRef: string;
   quantity: number;
   unit: string;
   dimensions: StoneInventoryDimensions | null;
-  finish: string | null;
-  locationLabel: string | null;
+  finishQuantities: readonly Readonly<{ finish: string; slabCount: number }>[];
   imageUrls: readonly string[];
   lastConfirmedAt: string;
   confirmationExpiresAt: string;
 }>;
+
+export function isStoneMaterialClass(value: unknown): value is StoneMaterialClass {
+  return STONE_MATERIAL_CLASSES.includes(value as StoneMaterialClass);
+}
+
+export type SellerStoneInventoryItem = PublicStoneInventoryItem &
+  Readonly<{
+    inventoryPositionId: string;
+    passportCode: string;
+    sourceAssetRef: string;
+    locationLabel: string | null;
+    publicAvailabilityStatus:
+      | typeof STONE_CURRENT_INVENTORY_PUBLIC_STATUS
+      | typeof STONE_CURRENT_INVENTORY_PRIVATE_STATUS;
+    isSaleReady: boolean;
+  }>;
+
+export type StoneInventoryCapability = "inventory_read" | "inventory_write" | "inventory_publish";
 
 export type PublicStoneInventoryResponse = Readonly<{
   profileSlug: string;
@@ -67,8 +199,7 @@ export function isStoneInventoryConfirmationFresh(args: {
   if (lastConfirmedAt.getTime() > now.getTime()) return false;
   if (confirmationExpiresAt.getTime() <= now.getTime()) return false;
 
-  const maximumFreshUntil =
-    lastConfirmedAt.getTime() + freshnessDays * 24 * 60 * 60 * 1000;
+  const maximumFreshUntil = lastConfirmedAt.getTime() + freshnessDays * 24 * 60 * 60 * 1000;
   return maximumFreshUntil > now.getTime();
 }
 

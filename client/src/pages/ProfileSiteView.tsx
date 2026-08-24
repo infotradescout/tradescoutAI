@@ -1032,15 +1032,18 @@ export default function ProfileSiteView() {
     1000
   );
   const seoDescription = sanitizePublicDiscoveryText(
-    itemShareMeta || categoryShareMeta
-      ? buildProfileSocialDescription({
-          brandName: publicSocialBrandName,
-          itemType: itemShareMeta?.itemType || "category",
-          itemName: itemSocialName || categoryShareMeta?.categoryName,
-          category: inventoryItemShareMeta?.category,
-          fallbackDescription: fallbackSeoDescription,
-        })
-      : fallbackSeoDescription,
+    inventoryItemShareMeta?.publicKind === "offering" ||
+      categoryShareMeta?.collectionKind === "offerings"
+      ? fallbackSeoDescription
+      : itemShareMeta || categoryShareMeta
+        ? buildProfileSocialDescription({
+            brandName: publicSocialBrandName,
+            itemType: itemShareMeta?.itemType || "category",
+            itemName: itemSocialName || categoryShareMeta?.categoryName,
+            category: inventoryItemShareMeta?.category,
+            fallbackDescription: fallbackSeoDescription,
+          })
+        : fallbackSeoDescription,
     1000
   );
   const legacyProfileSeoImage =

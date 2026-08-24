@@ -207,7 +207,7 @@ export function buildPublicJwStoneMarketplaceHtml(
 <main data-seo-jw-stone-marketplace="true" data-seo-jw-stone-item="${escapeHtml(itemShare.itemSlug)}" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
     <p><img src="${escapeHtml(itemShare.imageUrl)}" alt="${imageAlt}" width="640" height="480" /></p>
-    <h1>${escapeHtml(itemShare.hasPublicName ? itemShare.itemName : "Current stone selection")}</h1>
+    <h1>${escapeHtml(itemShare.hasPublicName ? itemShare.itemName : "Stone selection")}</h1>
     <p>${description}</p>
     ${itemShare.category ? `<p><strong>Material collection:</strong> ${escapeHtml(itemShare.category)}</p>` : ""}
     ${

@@ -25,7 +25,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       videoUrl: "/images/businesses/jw-stone/video/hero.mp4",
       posterUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
       inventoryItemSlug: "amazonic-green",
-      eyebrow: "Amazonic Green · current inventory",
+      eyebrow: "Amazonic Green · material library",
       headline: "Natural stone, selected at the source.",
       teaser: "Search the full collection or ask JW Stone about your project.",
       preserveMedia: true,
@@ -33,7 +33,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       zoomVideo: true,
     },
     copy: {
-      inventoryTitle: "Current Inventory",
+      inventoryTitle: "Material Library",
       ctaHeading: "Tell JW Stone what you need",
     },
     media: {
@@ -49,7 +49,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       sourceRequests: true,
       browseCtaImage:
         "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-      browseCtaEyebrow: "White Rhino · current inventory",
+      browseCtaEyebrow: "White Rhino · material library",
       featuredCollection: {
         label: "JW Stone Picks",
         slugs: ["blue-dunes", "cristallo", "gold-macaubas", "rhino-white", "taj-mahal", "titanium"],
@@ -125,6 +125,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
           "Explore named Granite materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "arizona-gold",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "marble",
@@ -134,6 +135,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
           "Explore named Marble materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "alabama-rose",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "quartzite",
@@ -143,6 +145,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
           "Explore named Quartzite materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "atlantic",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "quartz",
@@ -152,6 +155,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
           "Explore named Engineered Quartz materials in JW Stone's material library, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "aj-quartz",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "onyx",
@@ -161,6 +165,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
           "Explore Onyx in JW Stone's material library, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "honey-onyx",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "soapstone",
@@ -170,6 +175,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
           "Explore Soapstone in JW Stone's material library, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "marina-black-soapstone",
         indexable: true,
+        collectionKind: "offerings",
       },
       {
         sourceSlug: "basalt",
@@ -179,6 +185,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
           "Explore Basalt in JW Stone's material library, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
         leadItemSlug: "matrix-basalt",
         indexable: true,
+        collectionKind: "offerings",
       },
     ],
   },

@@ -849,7 +849,8 @@ function buildMeta(
   );
   const description = capDescriptionLength(
     cleanPublicProfileText(
-      (itemShare?.itemType === "inventory" && itemShare.hasPublicSummary === true) ||
+      (itemShare?.itemType === "inventory" &&
+        (itemShare.hasPublicSummary === true || itemShare.publicKind === "offering")) ||
         categoryShare?.collectionKind === "offerings"
         ? fallbackDescription
         : itemShare || categoryShare

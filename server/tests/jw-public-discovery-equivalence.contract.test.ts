@@ -47,7 +47,7 @@ function extractPublicFactSet(html: string) {
     h1: extractH1(html),
     hasJwMarker: /data-seo-jw-stone-marketplace/i.test(html),
     hasBusinessIdentity: /JW Stone/i.test(html),
-    hasInventoryCue: /Current Inventory|stone collection|Browse the full JW Stone collection/i.test(
+    hasInventoryCue: /Material Library|stone collection|Browse the full JW Stone collection/i.test(
       html
     ),
     hasContactCue: /ask JW Stone|ask about a material|Start a Request|Contact/i.test(html),
@@ -88,8 +88,10 @@ describe("JW Stone public discovery equivalence (Phase 3A)", () => {
     expect(facts.hasBusinessIdentity).toBe(true);
     expect(facts.hasInventoryCue).toBe(true);
     expect(facts.hasContactCue).toBe(true);
-    expect(facts.hasManagedPhone).toBe(true);
-    expect(facts.hasManagedEmail).toBe(true);
+    // Public discovery advertises the gated request path without leaking a
+    // direct contact channel into crawler-visible HTML.
+    expect(facts.hasManagedPhone).toBe(false);
+    expect(facts.hasManagedEmail).toBe(false);
     expect(facts.hasPrivateOwnerEmail).toBe(false);
     expect(facts.hasEmptyRootOnly).toBe(false);
     expect(facts.hasJsRequiredOnlyBody).toBe(false);

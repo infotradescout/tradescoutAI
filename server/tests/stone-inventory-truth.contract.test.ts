@@ -91,7 +91,9 @@ describe("stone inventory truth and freshness", () => {
   it("keeps current stock separate, dated, and requestable", () => {
     const currentInventory = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
     const manager = read("client/src/components/profile/JwStoneCurrentInventoryManager.tsx");
-    const routes = read("server/routes/profiles.ts");
+    const routes = read("server/routes/stone-inventory.ts");
+    const routeRegistration = read("server/routes.ts");
+    const inventoryService = read("server/services/stoneInventoryService.ts");
 
     expect(currentInventory).toContain("Physically confirmed stock");
     expect(currentInventory).toMatch(/active\s+recheck\s+window/);
@@ -99,12 +101,13 @@ describe("stone inventory truth and freshness", () => {
     expect(currentInventory).toContain("Ask about this stock");
     expect(manager).toContain("Confirm current stock");
     expect(manager).toContain("confirmationExpiresAt");
-    expect(routes).toContain('router.get("/api/u/:slug/stone-inventory/current"');
-    expect(routes).toContain('router.post("/api/u/:slug/stone-inventory/current"');
-    expect(routes).toContain('router.delete("/api/u/:slug/stone-inventory/current/:passportId"');
-    expect(routes).toContain("isStoneInventoryConfirmationFresh");
-    expect(routes).toContain("STONE_CURRENT_INVENTORY_PUBLIC_STATUS");
-    expect(routes).toContain("STONE_CURRENT_INVENTORY_VERIFIED_STATUS");
+    expect(routes).toContain('app.get("/api/u/:slug/stone-inventory/current"');
+    expect(routes).toContain('"/api/u/:slug/stone-inventory/current",');
+    expect(routes).toContain('"/api/u/:slug/stone-inventory/current/:publicId",');
+    expect(routeRegistration).toContain("registerStoneInventoryRoutes(app)");
+    expect(inventoryService).toContain("isStoneInventoryConfirmationFresh");
+    expect(inventoryService).toContain("STONE_CURRENT_INVENTORY_PUBLIC_STATUS");
+    expect(inventoryService).toContain("STONE_CURRENT_INVENTORY_VERIFIED_STATUS");
   });
 
   it("does not convert R.E.D. source materials or distribution rights into physical stock", () => {
@@ -117,7 +120,9 @@ describe("stone inventory truth and freshness", () => {
     expect(stoneCoreProvisioner).not.toContain("INSERT INTO stone_inventory_positions");
     expect(stoneCoreProvisioner).not.toContain("INSERT INTO stone_asset_passports");
     expect(architecture).toContain("JW Stone's photo catalog is a **Material Library**");
-    expect(architecture).toContain("R.E.D. Graniti source materials never become JW Stone inventory");
+    expect(architecture).toContain(
+      "R.E.D. Graniti source materials never become JW Stone inventory"
+    );
   });
 
   it("marks JW static share pages as material offerings rather than stock", () => {

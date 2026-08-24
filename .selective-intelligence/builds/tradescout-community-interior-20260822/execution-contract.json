@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-community-interior-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-community-interior-20260822",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "continuation",
+  "releaseControl": {
+    "status": "hold",
+    "baselineCommit": "b21d638fcf642db7601ae7469f4037f66183df2a",
+    "candidateIdentity": "the authoritative final candidate is the clean full commit recorded by the exact release-contract evidence after this tree is committed",
+    "objector": "sustained",
+    "aligner": "aligned",
+    "verifier": "pending_exact_candidate",
+    "releaseAuthority": "none"
+  },
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "D8 corrects one Community feed-view discoverability defect without changing the released AppShell, Scout workspace, action authority, or Community route behavior.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1-D7",
+      "active": false,
+      "status": "released_protected",
+      "outcome": "The authenticated shell, Scout task workspace, Community handoff, action law, and production release identity remain protected."
+    },
+    {
+      "id": "D8",
+      "active": true,
+      "status": "implemented_local_hold",
+      "outcome": "Every Community geography and feed-view control is visible on initial mobile render without guessing a horizontal gesture, while desktop remains a single row with contained keyboard focus paint.",
+      "entry": "Open the authenticated or guest Community feed at a viewport from 320 through 640 CSS pixels.",
+      "ending": "See the geography axis before the feed axis, with every present control fully visible, keyboard reachable, and at least 44 pixels high. Normal text uses two rows; enlarged text may wrap each axis further without clipping or reordering controls.",
+      "journeySteps": [
+        "Open Community without changing the selected geography or feed.",
+        "See Near me and Explore together as the geography axis.",
+        "See For you, Newest, and authenticated Saved together as the feed axis.",
+        "Use the same DOM order, labels, aria-pressed state, URLs, and handlers as before.",
+        "At 641 pixels and wider, retain the existing one-row viewbar and divider while reserving four pixels for its existing focus paint."
+      ],
+      "proof": [
+        {
+          "type": "manual_observation",
+          "procedure": "Measure the exact released b21 Community viewbar before correction at authenticated 320, 360, and 390 widths and guest 320, 360, and 390 widths.",
+          "expected": "Every present geography and feed control is discoverable on initial render without requiring an unadvertised horizontal gesture.",
+          "observed": "Authenticated Saved was absent from view at 320 and 360 and 71 percent clipped at 390. Guest Newest was clipped at 320 and 360. Desktop fit all controls.",
+          "evidenceRef": "evidence.md#observed-defect"
+        },
+        {
+          "type": "manual_observation",
+          "procedure": "Apply the bounded divider row-break as temporary page CSS, measure authenticated and guest 320, 360, 390, and 640, then remove the style and close the isolated tabs.",
+          "expected": "The existing divider separates geography before feed controls, every present control remains contained and focus-visible, and desktop one-row behavior is preserved.",
+          "observed": "Every present mobile control was contained, 44 pixels high, and focus-visible; nav and page horizontal overflow were absent. Final current-source proof retained the 641-plus one-row layout and added a four-pixel top and logical-inline focus inset.",
+          "evidenceRef": "evidence.md#rendered-proof"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Run the two Community shell and surface contracts, broader Community parity and CVS contracts, TypeScript, law guards, and the exact Playwright geometry regression.",
+          "expected": "The mobile grouping, desktop focus containment, product-law guards, and unchanged Community semantics pass without a candidate-caused failure.",
+          "observed": "Source contracts, broader unit contracts, TypeScript, guards, and the exact modified Playwright geometry regression pass. The final committed-candidate gate remains a release condition until recorded in evidence.",
+          "evidenceRef": "evidence.md#automated-proof"
+        }
+      ],
+      "constraints": [
+        "Reuse the existing Community viewbar and divider; create no parallel navigation owner.",
+        "Keep every present view label, DOM order, aria-pressed state, handler, route, and authentication condition unchanged.",
+        "Keep global Community browse-only and preserve county, contact, and Trust/CVS invariants.",
+        "Do not edit AppShell, D7 Scout, Community APIs, schemas, persistence, or unrelated interiors.",
+        "Preserve the desktop one-row viewbar while containing its existing focus paint.",
+        "Do not describe this bounded Community interior correction as whole-product completion."
+      ],
+      "requirementIds": [
+        "REQ-COMMUNITY-VIEW-VISIBILITY",
+        "REQ-COMMUNITY-VIEW-SEMANTICS",
+        "REQ-COMMUNITY-PROTECTED"
+      ],
+      "excludedFromActive": [
+        "AppShell, taskbar, or D7 Scout workspace changes.",
+        "Community post, action, contact, moderation, route, API, schema, migration, or persistence redesign.",
+        "Changes to Businesses, Jobs, Direct Connect, JW Stone, or any unrelated app interior.",
+        "Repository-wide duplicate-source or shell-baseline cleanup."
+      ],
+      "proofRequired": true,
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-COMMUNITY-VIEW-VISIBILITY",
+          "scope": "active_deliverable",
+          "claim": "At mobile widths every present geography and feed view is initially visible, keyboard reachable, at least 44 pixels high, and free of horizontal clipping."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-VIEW-SEMANTICS",
+          "scope": "active_deliverable",
+          "claim": "Geography remains before feed controls, normal text uses the intended two axes, enlarged text may reflow safely, and desktop remains one row with contained focus paint."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-PROTECTED",
+          "scope": "active_deliverable",
+          "claim": "Community labels, handlers, authentication, county scope, global browse-only behavior, contact gating, Trust/CVS, routes, APIs, schemas, and the released shell and Scout workspace remain unchanged."
+        }
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    }
+  ],
+  "protectedRequirements": [
+    "No AppShell, D7 Scout, Community handler, route, API, schema, persistence, county, contact, or Trust/CVS owner changes.",
+    "Global Community remains browse-only.",
+    "Saved remains authenticated-only and retains its local vault route behavior.",
+    "Historical D2 non-wrapping evidence remains historical; D8 supersedes only mobile widths through 640 pixels."
+  ],
+  "council": {
+    "intake": "sustained_production_observed",
+    "planner": "go_existing_owner",
+    "objector": "sustained_divider_row_break_rejected_compaction",
+    "aligner": "aligned",
+    "verifier": "pending_exact_candidate"
+  },
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout repository already owns the authenticated and guest Community viewbar, breakpoint styles, route semantics, tests, shell offsets, and production release controls required for D8.",
+    "constraintsConsidered": [
+      "The result depends on real authenticated Saved visibility, guest omission, global browse-only state, existing focus styles, and the released AppShell.",
+      "A standalone component or new site cannot prove the governed Community route and responsive shell behavior."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": false
+    }
+  }
+}

@@ -19,7 +19,7 @@ function readWorkspaceOrTrackedFile(relativePath: string) {
 }
 
 const source = fs.readFileSync(
-  path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
+  path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx"),
   "utf8"
 );
 const expressSource = fs.readFileSync(
@@ -33,6 +33,10 @@ const migrationSource = fs.readFileSync(
 );
 const discoveryMigrationSource = fs.readFileSync(
   path.resolve(process.cwd(), "migrations/0111_jw_stone_public_discovery_routes.sql"),
+  "utf8"
+);
+const recoveryMigrationSource = fs.readFileSync(
+  path.resolve(process.cwd(), "migrations/0121_jw_stone_inventory_truth.sql"),
   "utf8"
 );
 const inventory = JSON.parse(
@@ -56,7 +60,7 @@ function isCloseUpLead(sourceName = "") {
 describe("JW Stone profile presentation contract", () => {
   it("uses the branded video hero with a restrained, reduced-motion-safe crop", () => {
     expect(presentation.hero.inventoryItemSlug).toBe("amazonic-green");
-    expect(presentation.hero.eyebrow).toBe("Amazonic Green · current inventory");
+    expect(presentation.hero.eyebrow).toBe("Amazonic Green · material library");
     expect(presentation.hero.videoUrl).toBe("/images/businesses/jw-stone/video/hero.mp4");
     expect(presentation.hero.posterUrl).toBe("/images/businesses/jw-stone/video/hero-poster.jpg");
     expect(presentation.hero.preserveMedia).toBe(true);
@@ -78,7 +82,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("useState(inventoryOpenByDefault)");
     expect(source).toContain("useState(inventoryPageSize)");
     expect(source).toContain("Browse full inventory");
-    expect(presentation.inventory.browseCtaEyebrow).toBe("White Rhino · current inventory");
+    expect(presentation.inventory.browseCtaEyebrow).toBe("White Rhino · material library");
     expect(source).toContain("inventoryBrowseCtaImage");
     expect(source).toContain("rgba(7,15,18,0.66)_0%");
     const ctaImage = source.indexOf("{inventoryBrowseCtaImage ?");
@@ -239,14 +243,12 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("hidden h-10 gap-4 px-3 pb-2 text-[11px] font-bold sm:flex");
   });
 
-  it("keeps the persisted migration aligned and only appends when the block is absent", () => {
+  it("preserves the historical presentation migration and converges the persisted profile", () => {
     const migratedData = migrationSource.match(/'data', '([\s\S]*?)'::jsonb/)?.[1];
     expect(migratedData).toBeTruthy();
     const migratedPresentation = JSON.parse(migratedData || "{}");
-    delete migratedPresentation.copy?.footerText;
-    delete migratedPresentation.audience?.intro;
-    delete migratedPresentation.audience?.availabilityNote;
-    expect(migratedPresentation).toEqual(presentation);
+    expect(migratedPresentation.hero.eyebrow).toBe("Amazonic Green · current inventory");
+    expect(migratedPresentation.copy.inventoryTitle).toBe("Current Inventory");
     expect(presentation.copy).not.toHaveProperty("footerText");
     expect(migrationSource).toContain("'type', 'profilePresentation'");
     expect(migrationSource).toContain('"brandName": "JW Stone Logistics"');
@@ -257,12 +259,20 @@ describe("JW Stone profile presentation contract", () => {
       '"profileImageUrl": "/images/businesses/jw-stone/video/hero-poster.jpg"'
     );
     expect(migrationSource).toContain('"accentColor": "#81904a"');
-    expect(migrationSource).toContain('"inventoryCta": "View photos · Request pricing"');
+    expect(presentation.social.inventoryCta).toBe("View material photos");
     expect(migrationSource).toContain('"label": "JW Stone Picks"');
     for (const slug of presentation.inventory.featuredCollection.slugs) {
       expect(migrationSource).toContain(`"${slug}"`);
     }
     expect(migrationSource).toContain("WHERE block ->> 'type' = 'profilePresentation'");
+    expect(recoveryMigrationSource).toContain("'Amazonic Green · material library'");
+    expect(recoveryMigrationSource).toContain("'inventoryTitle', 'Material Library'");
+    expect(recoveryMigrationSource).toContain("'inventoryCta', 'View material photos'");
+    expect(recoveryMigrationSource).toContain("- 'availabilityNote'");
+    expect(recoveryMigrationSource).toContain("profile.slug = 'jw-stone'");
+    expect(recoveryMigrationSource).toContain(
+      "profile.content_blocks IS DISTINCT FROM rewritten.content_blocks"
+    );
   });
 
   it("stores item and material routes as profile-owned discovery data", () => {
@@ -294,5 +304,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(discoveryMigrationSource).toContain(
       "rebuilt.content_blocks IS DISTINCT FROM rebuilt.next_content_blocks"
     );
+    expect(recoveryMigrationSource).toContain('"collectionKind":"offerings"');
+    expect(recoveryMigrationSource).toContain("material library");
   });
 });

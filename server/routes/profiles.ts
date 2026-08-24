@@ -2295,14 +2295,15 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
 
 const publicProfileTrustActionSchema = z.enum(["like", "favorite"]);
 
-type PublicProfileTrustContext = {
+export type PublicProfileTrustContext = {
   profileId: string;
   profileSlug: string;
   ownerUserId: string;
+  businessId: string | null;
   contractor: { id: string; companyName: string } | null;
 };
 
-async function getPublicProfileTrustContext(
+export async function getPublicProfileTrustContext(
   rawSlug: string
 ): Promise<PublicProfileTrustContext | null> {
   const slug = rawSlug.trim();
@@ -2359,6 +2360,7 @@ async function getPublicProfileTrustContext(
     profileId: String(profile.id),
     profileSlug: String(profile.slug),
     ownerUserId,
+    businessId: profile.businessId ? String(profile.businessId) : null,
     contractor: contractor
       ? {
           id: String(contractor.id),
