@@ -101,7 +101,7 @@ describe("JW Stone marketplace public HTML", () => {
 
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
     expect(html).toContain('data-seo-jw-stone-company="true"');
-    expect(html).toContain("Current Inventory");
+    expect(html).toContain("Material Library");
     expect(html).toContain("Filter by aesthetic or color");
     expect(html).toContain("Saving never starts a request");
     expect(html).toContain("About JW Stone");

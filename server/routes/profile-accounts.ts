@@ -21,6 +21,7 @@ import {
 } from "../services/profileAccountEntitlementService";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { hasRequestPrivilegedVerificationBypass } from "../utils/privilegedVerification";
+import { requireCriticalSchema } from "../schemaPreflight";
 
 function isSafeInternalPath(value: string): boolean {
   if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return false;
@@ -184,6 +185,9 @@ async function deleteIncompleteIdentity(userId: string): Promise<void> {
 }
 
 export function registerProfileAccountRoutes(app: Express) {
+  app.use("/api/u/:slug/account", requireCriticalSchema("profile_accounts"));
+  app.use("/api/profile-accounts", requireCriticalSchema("profile_accounts"));
+
   const registrationLimiter =
     process.env.NODE_ENV === "production"
       ? rateLimit({

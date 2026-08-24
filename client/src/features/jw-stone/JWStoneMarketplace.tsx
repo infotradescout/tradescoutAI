@@ -7,9 +7,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
+import type { PublicStoneInventoryItem } from "@shared/stoneInventory";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
 import { ColorPaletteRail, MoodPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
+import { CurrentInventorySection } from "./CurrentInventorySection";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
@@ -69,8 +71,7 @@ function clearProfileAccountRequest(): void {
 
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
-  const hasViewerAccount =
-    isAuthenticated || Boolean((user as { id?: unknown } | null)?.id);
+  const hasViewerAccount = isAuthenticated || Boolean((user as { id?: unknown } | null)?.id);
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [accountRequest] = useState(readProfileAccountRequest);
@@ -141,6 +142,11 @@ export default function JWStoneMarketplace() {
 
   const askAboutStone = (stone: JwStoneCatalogItem) => {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
+  };
+
+  const askAboutCurrentStock = (item: PublicStoneInventoryItem) => {
+    const catalogStone = getNamedCatalogItemByShareSlug(item.materialSlug);
+    startRequest(catalogStone ? [catalogStone] : []);
   };
 
   const openAccount = () => {
@@ -257,6 +263,10 @@ export default function JWStoneMarketplace() {
 
       <MarketplaceIntroduction />
       <FirstCutSection onOpen={openStone} />
+      <CurrentInventorySection
+        onAsk={askAboutCurrentStock}
+        onStartRequest={() => startRequest([])}
+      />
       <StoneCollection
         state={state}
         isSaved={wishlist.isSaved}

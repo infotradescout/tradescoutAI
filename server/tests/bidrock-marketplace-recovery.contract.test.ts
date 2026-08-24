@@ -1,0 +1,168 @@
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  BIDROCK_PAYMENT_METHOD,
+  BIDROCK_PRICE_VISIBILITY,
+  canTransitionBidRockOrder,
+  canViewBidRockPrivatePrice,
+  normalizeBidRockAmountToCents,
+} from "@shared/bidrock";
+
+const read = (relativePath: string) =>
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
+
+describe("BidRock marketplace recovery contract", () => {
+  it("keeps seller pricing private to verified businesses and listing managers", () => {
+    expect(BIDROCK_PRICE_VISIBILITY).toBe("verified_business");
+    expect(canViewBidRockPrivatePrice({ verifiedBusiness: false, canManage: false })).toBe(false);
+    expect(canViewBidRockPrivatePrice({ verifiedBusiness: true, canManage: false })).toBe(true);
+    expect(canViewBidRockPrivatePrice({ verifiedBusiness: false, canManage: true })).toBe(true);
+    expect(normalizeBidRockAmountToCents("125.75")).toBe(12_575);
+  });
+
+  it("uses the ACH transaction rail and preserves forward-only fulfillment state", () => {
+    expect(BIDROCK_PAYMENT_METHOD).toBe("ach");
+    expect(canTransitionBidRockOrder("reservation_active", "payment_ready")).toBe(true);
+    expect(canTransitionBidRockOrder("payment_ready", "payment_processing")).toBe(true);
+    expect(canTransitionBidRockOrder("payment_processing", "paid")).toBe(true);
+    expect(canTransitionBidRockOrder("paid", "custody_transferred")).toBe(true);
+    expect(canTransitionBidRockOrder("custody_transferred", "completed")).toBe(true);
+    expect(canTransitionBidRockOrder("reservation_active", "paid")).toBe(false);
+  });
+
+  it("routes timed auctions through the canonical BidRock service and routed workspace", () => {
+    const routes = read("server/routes/bidrock.ts");
+    const service = read("server/services/bidrockService.ts");
+    const app = read("client/src/App.tsx");
+    const appRoutes = read("client/src/AppRoutes.tsx");
+    const workspace = read("client/src/features/bidrock/BidRockWorkspace.tsx");
+
+    expect(routes).toContain('app.get("/api/bidrock/catalog"');
+    expect(routes).toContain('"/api/bidrock/listings/:id/auction"');
+    expect(routes).toContain('"/api/bidrock/auctions/:id/bids"');
+    expect(routes).toContain('"/api/bidrock/orders/:id/handoffs"');
+    expect(service).toContain("Photo-library records never enter BidRock here");
+    expect(service).toContain("viewerCanManageListing");
+    expect(service).toContain("passport.asset_kind");
+    expect(service).toContain("assetKind: normalizeText(row.asset_kind");
+    expect(service).toContain("material.material_class");
+    expect(service).toContain("materialClass: row.material_class");
+    expect(service).toContain("releaseExpiredBidRockReservations");
+    expect(app).toContain('pathOnly === "/bidrock"');
+    expect(appRoutes).toContain('import("./features/bidrock/BidRockWorkspace")');
+    expect(workspace).toContain("Search auctions");
+    expect(workspace).toContain("Compare auction lots");
+    expect(workspace).toContain("Seller controls");
+    expect(workspace).toContain("Business-only stone auction house");
+    expect(workspace).toContain("Natural and engineered stone on the block");
+    expect(workspace).not.toContain("submitBidRockOffer");
+  });
+
+  it("persists seller-authoritative natural or engineered stone classes marketplace-wide", () => {
+    const routes = read("server/routes/stone-inventory.ts");
+    const inventory = read("server/services/stoneInventoryService.ts");
+    const migration = read("migrations/0122_stone_core_schema.sql");
+
+    expect(routes).toContain('materialClass: z.enum(["natural_stone", "engineered_stone"])');
+    expect(inventory).toContain('materialClass: PublicStoneInventoryItem["materialClass"]');
+    expect(inventory).toContain("material_class = $3");
+    expect(inventory).toContain("material_class = EXCLUDED.material_class");
+    expect(inventory).toContain("mutation.materialClass");
+    expect(inventory).not.toContain("VALUES ($1, $2, 'natural_stone'");
+    expect(migration).toContain("stone_materials_material_class_check");
+    expect(migration).toContain("'natural_stone', 'engineered_stone'");
+  });
+
+  it("keeps schema changes in ordered migrations and public GET services read-only", () => {
+    const stoneMigration = read("migrations/0122_stone_core_schema.sql");
+    const accountMigration = read("migrations/0123_profile_accounts_and_entitlements.sql");
+    const bidrockMigration = read("migrations/0124_bidrock_marketplace.sql");
+    const auctionMigration = read("migrations/0125_bidrock_timed_auctions.sql");
+    const stoneProvisioning = read("server/services/stoneCoreProvisioning.ts");
+    const profileAccounts = read("server/services/profileAccountService.ts");
+    const bidrock = read("server/services/bidrockService.ts");
+
+    expect(stoneMigration).toContain("stone_inventory_position_dedup_audit");
+    expect(stoneMigration).toContain("stone_inventory_positions_passport_holder_unique");
+    expect(accountMigration).toContain("profile_account_entitlements");
+    expect(bidrockMigration).toContain("bidrock_inventory_allocations");
+    expect(bidrockMigration).toContain("enforce_bidrock_immutable_links");
+    expect(auctionMigration).toContain("bidrock_auctions");
+    expect(auctionMigration).toContain("bidrock_bids");
+    expect(`${stoneProvisioning}\n${profileAccounts}\n${bidrock}`).not.toMatch(
+      /CREATE TABLE|ALTER TABLE/
+    );
+
+    const catalogBody = bidrock.slice(
+      bidrock.indexOf("export async function listBidRockCatalog"),
+      bidrock.indexOf("export async function listBidRockSellerInventory")
+    );
+    const orderBody = bidrock.slice(
+      bidrock.indexOf("export async function getBidRockOrderWorkspace"),
+      bidrock.indexOf("export async function markBidRockOrderPaymentReady")
+    );
+    expect(catalogBody).not.toContain("syncBidRockStoneInventory");
+    expect(catalogBody).not.toContain("releaseExpiredBidRockReservations");
+    expect(orderBody).not.toContain("releaseExpiredBidRockReservations");
+  });
+
+  it("redacts non-public listing fields and requires authoritative publication", () => {
+    const service = read("server/services/bidrockService.ts");
+    const detail = read("client/src/features/bidrock/BidRockDetailPanel.tsx");
+    const workspace = read("client/src/features/bidrock/BidRockWorkspace.tsx");
+    const listingMapper = service.slice(
+      service.indexOf("function mapListing"),
+      service.indexOf("async function listingRows")
+    );
+
+    expect(service).toContain("const saleReady =");
+    expect(service).toContain('status === "active"');
+    expect(service).toContain("STONE_CURRENT_INVENTORY_PUBLIC_STATUS");
+    expect(service).toContain(
+      "filter((listing): listing is BidRockListing => Boolean(listing?.auction))"
+    );
+    expect(service).toContain("canViewBidRockPrivatePrice({");
+    expect(service).toContain("canManage: canRead || canManage");
+    expect(service).toContain(
+      "sellerCapabilities: { read: canRead, write: canWrite, publish: canPublish }"
+    );
+    expect(listingMapper).not.toContain("inventoryPositionId:");
+    expect(listingMapper).not.toContain("sellerBusinessId:");
+    expect(detail).toContain("!canSeeBidValues ? (");
+    expect(workspace).toContain("{verifiedBusiness ? (");
+  });
+
+  it("enforces seller ownership, idempotency, canonical ACH reconciliation, and admin completion", () => {
+    const routes = read("server/routes/bidrock.ts");
+    const service = read("server/services/bidrockService.ts");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
+
+    expect(service).toContain("viewerCanManageListing(viewer, row)");
+    expect(service).toContain("A seller cannot submit an offer on their own inventory");
+    expect(migration).toContain("UNIQUE (buyer_user_id, idempotency_key)");
+    expect(migration).toContain("UNIQUE (order_id, idempotency_key)");
+    expect(service).toContain("FROM marketplace_transactions");
+    expect(service).toContain(
+      "Canonical marketplace transaction must identify an ACH bank transfer"
+    );
+    expect(service).toContain("FROM procurement_orders");
+    expect(service).toContain("Completed custody handoff is required before sale completion");
+    expect(routes).toContain('"/api/admin/bidrock/orders/:id/system-links"');
+    expect(routes).toContain('"/api/admin/bidrock/orders/:id/payment-settled"');
+    expect(routes).toContain('"/api/admin/bidrock/orders/:id/complete"');
+  });
+
+  it("keeps JW photo records in a material library separate from published stock", () => {
+    const jwSurface = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+    const collection = read("client/src/features/jw-stone/StoneCollection.tsx");
+    const current = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
+    const normalizedCurrent = current.replace(/\s+/g, " ");
+
+    expect(jwSurface).toContain("CurrentInventorySection");
+    expect(collection).toContain('title="Material Library"');
+    expect(current).toContain("Only physical lots explicitly marked sale-ready");
+    expect(normalizedCurrent).toContain("does not claim that a physical item is on hand");
+    expect(current).not.toContain("sourceAssetRef");
+  });
+});

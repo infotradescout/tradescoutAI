@@ -1,0 +1,26 @@
+.bidrock-theme {
+  --bidrock-canvas: #f3f1ea;
+  --bidrock-workspace: #f8f7f2;
+  --bidrock-rail: #efede5;
+  --bidrock-soft: #eef0e7;
+  --bidrock-deep: #19231b;
+  --bidrock-action: #1c2a20;
+  --bidrock-action-hover: #283b2c;
+  --bidrock-ink: #1d211d;
+  --bidrock-accent: #bd5b33;
+  --bidrock-accent-dark: #9d492c;
+  --bidrock-soft-ink: #46513e;
+  --bidrock-verification-icon: #536044;
+  --bidrock-verification-ink: #273126;
+  --bidrock-auction-deep: #151b1c;
+  --bidrock-auction: #a83931;
+  --bidrock-auction-hover: #7f251f;
+  --bidrock-auction-ring: #b64037;
+  --bidrock-live: #f87171;
+  --bidrock-auction-soft: #f5eee8;
+  --bidrock-auction-soft-ink: #5f332e;
+  --bidrock-auction-verification-icon: #7b332c;
+  --bidrock-auction-verification-ink: #50241f;
+  --bidrock-auction-workspace: #f1f0ed;
+  --bidrock-auction-rail: #e8e5df;
+}

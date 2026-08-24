@@ -98,11 +98,13 @@ const AppLayout = memo(function AppLayout() {
       : undefined;
   // JW's public profile lives at /jw-stone and should follow standard profile flow.
   const isJwStoneProfileRoute = pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/");
+  const isBidRockRoute = pathOnly === "/bidrock" || pathOnly.startsWith("/bidrock/");
   const isCustomDomainPlatformRoute = pathOnly === "/business-verification";
   const isCustomDomainProfileRoute =
     Boolean(customDomainProfileSlug) && !isCustomDomainPlatformRoute;
   const isPublicProfileRoute =
     isJwStoneProfileRoute ||
+    isBidRockRoute ||
     ((/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/p\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/business\/[^/]+$/.test(pathOnly) ||
@@ -251,6 +253,7 @@ const AppLayout = memo(function AppLayout() {
               isPublicCampaignRoute={isPublicCampaignRoute}
               isPublicRootLanding={isPublicRootLanding}
               isShareRoute={isShareRoute}
+              isBidRockRoute={isBidRockRoute}
               isStandaloneProfileRoute={isStandaloneProfileRoute}
               isCustomDomainProfileRoute={isCustomDomainProfileRoute}
             />
