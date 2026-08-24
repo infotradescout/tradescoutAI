@@ -82,6 +82,7 @@ import {
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
+import { buildPublicJwStoneMarketplaceHtml } from "./publicJwStoneMarketplaceHtml";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
@@ -373,6 +374,11 @@ function customDomainCanonicalRedirectTarget(
   const rawReferral = Array.isArray(req.query.ref) ? req.query.ref[0] : req.query.ref;
   const referralCode = typeof rawReferral === "string" ? rawReferral.trim() : "";
   if (referralCode) target.searchParams.set("ref", referralCode);
+  const rawRequest = Array.isArray(req.query.request) ? req.query.request[0] : req.query.request;
+  const requestIntent = typeof rawRequest === "string" ? rawRequest.trim() : "";
+  if (requestIntent === "stone" || requestIntent === "collection") {
+    target.searchParams.set("request", requestIntent);
+  }
   return target.toString();
 }
 
@@ -541,17 +547,38 @@ async function renderProfileOnCustomDomain(
   // The database-resolved Host is the authority. Forwarded host headers are
   // proxy metadata and must not be able to rewrite canonical profile output.
   const origin = `https://${host}`;
-  const html = await buildPublicProfileHtml({
-    slug,
-    origin,
-    templateHtml,
-    itemSlug: itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : req.query.stone,
-    itemPhoto:
-      itemRequest?.itemType === "inventory" ? String(itemRequest.imageIndex + 1) : req.query.photo,
-    gallerySlug: itemRequest?.itemType === "gallery" ? itemRequest.itemSlug : req.query.gallery,
-    categorySlug:
-      categoryRequest?.kind === "category" ? categoryRequest.categorySlug : req.query.category,
-  });
+  const html =
+    slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG
+      ? buildPublicJwStoneMarketplaceHtml({
+          templateHtml,
+          origin,
+          collectionUrl: `${origin}/`,
+          marketplaceDomainSurface: true,
+          stoneSlug:
+            itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
+          photo:
+            itemRequest?.itemType === "inventory"
+              ? String(itemRequest.imageIndex + 1)
+              : undefined,
+          materialSlug:
+            categoryRequest?.kind === "category" ? categoryRequest.categorySlug : undefined,
+        })
+      : await buildPublicProfileHtml({
+          slug,
+          origin,
+          templateHtml,
+          itemSlug: itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : req.query.stone,
+          itemPhoto:
+            itemRequest?.itemType === "inventory"
+              ? String(itemRequest.imageIndex + 1)
+              : req.query.photo,
+          gallerySlug:
+            itemRequest?.itemType === "gallery" ? itemRequest.itemSlug : req.query.gallery,
+          categorySlug:
+            categoryRequest?.kind === "category"
+              ? categoryRequest.categorySlug
+              : req.query.category,
+        });
   if (!html) return false;
 
   // This runs in a middleware registered ahead of the app's usual CORS,
@@ -1906,11 +1933,19 @@ app.use(landingContractHeaders);
 
                   const { profileRecord, itemRequest } = matches[0];
                   const customDomain = profileRecord.seoMeta?.customDomain?.trim().toLowerCase();
-                  const destination = customDomain
-                    ? `https://${customDomain}${itemRequest.canonicalPath}`
-                    : `https://${CANONICAL_WEB_HOST}/u/${encodeURIComponent(
-                        profileRecord.slug
-                      )}${itemRequest.canonicalPath}`;
+                  const destination = buildPublicProfileCanonicalRedirectTarget({
+                    origin: customDomain
+                      ? `https://${customDomain}`
+                      : `https://${CANONICAL_WEB_HOST}`,
+                    canonicalPath: customDomain
+                      ? itemRequest.canonicalPath
+                      : `/u/${encodeURIComponent(profileRecord.slug)}${itemRequest.canonicalPath}`,
+                    referral: req.query.ref,
+                    request: req.query.request,
+                  });
+                  if (!destination) {
+                    return sendPublicPageNotFound(res, "Profile item not found");
+                  }
                   return res.redirect(301, destination);
                 } catch (error) {
                   console.error("Error resolving unscoped public profile item:", error);
@@ -1982,6 +2017,7 @@ app.use(landingContractHeaders);
                         origin: `https://${customDomain}`,
                         canonicalPath: destinationSuffix,
                         referral: req.query.ref,
+                        request: req.query.request,
                       });
                       if (!destination) {
                         return sendPublicPageNotFound(res, "Profile destination not found");
@@ -1993,6 +2029,7 @@ app.use(landingContractHeaders);
                         origin,
                         canonicalPath: `/u/${encodeURIComponent(slug)}${destinationSuffix}`,
                         referral: req.query.ref,
+                        request: req.query.request,
                       });
                       if (!destination) {
                         return sendPublicPageNotFound(res, "Profile destination not found");
@@ -2099,6 +2136,7 @@ app.use(landingContractHeaders);
                       origin: customDomain ? `https://${customDomain}` : origin,
                       canonicalPath: customDomain ? itemSuffix : itemRequest.canonicalPath,
                       referral: req.query.ref,
+                      request: req.query.request,
                     });
                     if (!destination) {
                       return sendPublicPageNotFound(res, "Profile item not found");
@@ -2114,6 +2152,7 @@ app.use(landingContractHeaders);
                       origin: customDomain ? `https://${customDomain}` : origin,
                       canonicalPath: customDomain ? categorySuffix : categoryRequest.canonicalPath,
                       referral: req.query.ref,
+                      request: req.query.request,
                     });
                     if (!destination) {
                       return sendPublicPageNotFound(res, "Profile category not found");
