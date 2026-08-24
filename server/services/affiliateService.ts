@@ -21,7 +21,7 @@ export interface AffiliateStats {
 export interface Referral {
   id: string;
   affiliateId: string;
-  referredUserId: string;
+  referredUserId: string | null;
   shareLinkId: string | null;
   couponCode: string | null;
   conversionSource: string | null;
@@ -54,9 +54,12 @@ export async function getAffiliateStats(userId: string): Promise<AffiliateStats 
       return null;
     }
 
-    // Count total referrals for this affiliate
+    // Clean profile visits share this legacy table with true account referrals.
+    // Only a distinct, non-null referred user is a real referral.
     const [{ count: totalReferrals } = { count: 0 }] = await db
-      .select({ count: sql`COUNT(*)` })
+      .select({
+        count: sql<number>`COUNT(DISTINCT ${affiliateReferrals.referredUserId})`,
+      })
       .from(affiliateReferrals)
       .where(eq(affiliateReferrals.affiliateId, account.id));
 
@@ -65,6 +68,8 @@ export async function getAffiliateStats(userId: string): Promise<AffiliateStats 
       userId,
       totalReferrals: Number(totalReferrals ?? 0),
       totalEarnings: Number(account.lifetimeEarned ?? 0),
+      // A trustworthy rate requires unique traffic in the traffic ledger.
+      // Do not divide referrals by repeated profile-view rows.
       conversionRate: 0,
       pendingBalance: Number(account.pending ?? 0),
       paidBalance: Number(account.available ?? 0),
@@ -80,9 +85,7 @@ export async function getAffiliateReferrals(
   affiliateId: string,
   options?: { limit?: number; offset?: number }
 ): Promise<Referral[]> {
-  console.warn(
-    "getAffiliateReferrals is temporarily disabled for MVP (no affiliateReferrals table)."
-  );
+  console.warn("getAffiliateReferrals is temporarily disabled for MVP.");
   return [];
 }
 
@@ -96,7 +99,7 @@ export async function trackReferral(
     conversionType?: string;
   }
 ): Promise<Referral | null> {
-  console.warn("trackReferral is temporarily disabled for MVP (no affiliateReferrals table).");
+  console.warn("trackReferral is temporarily disabled for MVP.");
   return null;
 }
 
@@ -275,10 +278,16 @@ export async function getMonthlyStats(
         )
       );
 
+    const referredUsers = new Set(
+      referrals
+        .map((referral) => referral.referredUserId)
+        .filter((referredUserId): referredUserId is string => Boolean(referredUserId))
+    );
+
     return {
-      referrals: referrals.length,
+      referrals: referredUsers.size,
       commissions: payouts.reduce((sum: number, p: any) => sum + Number(p.payoutAmount ?? 0), 0),
-      conversions: referrals.filter((r: any) => r.conversionType === "conversion").length,
+      conversions: referredUsers.size,
     };
   } catch (error) {
     console.error("Error getting monthly stats:", error);
