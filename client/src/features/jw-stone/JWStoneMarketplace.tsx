@@ -69,6 +69,42 @@ function clearProfileAccountRequest(): void {
   }
 }
 
+function trackJwStoneRequestIntent(selectionCount: number): void {
+  if (typeof window === "undefined") return;
+
+  const payload = {
+    type: "public_profile_action_selected",
+    profileSlug: "jw-stone",
+    action: "request",
+    surface:
+      selectionCount > 0 ? "jw_selected_material_request" : "jw_general_material_request",
+    detail: selectionCount > 0 ? `${selectionCount} selected material request` : undefined,
+    deviceType: window.innerWidth < 768 ? "mobile" : "desktop",
+    ts: new Date().toISOString(),
+  };
+
+  try {
+    const body = JSON.stringify(payload);
+    if (typeof navigator.sendBeacon === "function") {
+      const accepted = navigator.sendBeacon(
+        "/api/analytics/shell",
+        new Blob([body], { type: "application/json" })
+      );
+      if (accepted) return;
+    }
+
+    void fetch("/api/analytics/shell", {
+      method: "POST",
+      credentials: "include",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body,
+    }).catch(() => undefined);
+  } catch {
+    // Opening Direct Connect must never be blocked by telemetry.
+  }
+}
+
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
   const hasViewerAccount = isAuthenticated || Boolean((user as { id?: unknown } | null)?.id);
@@ -132,6 +168,11 @@ export default function JWStoneMarketplace() {
       ),
     [requestContext]
   );
+
+  useLayoutEffect(() => {
+    if (requestContext === null) return;
+    trackJwStoneRequestIntent(requestTargets.length);
+  }, [requestContext, requestTargets.length]);
 
   const closeStone = () => {
     setDetailOverride(null);
