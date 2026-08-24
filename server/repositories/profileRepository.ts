@@ -1,6 +1,7 @@
 import {
   businesses,
   profiles,
+  searchAnalytics,
   users,
   type InsertProfile,
   type Profile,
@@ -308,7 +309,7 @@ export class ProfileRepository {
     const limit = Math.max(1, Math.min(20, Number(args.limit ?? 8) || 8));
     const needle = `%${raw.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
 
-    return db
+    const results = await db
       .select({
         id: profiles.id,
         slug: profiles.slug,
@@ -330,6 +331,26 @@ export class ProfileRepository {
       )
       .orderBy(desc(profiles.updatedAt))
       .limit(limit);
+
+    // This route previously had a writer but no call site, leaving the growth
+    // ledger permanently empty. Keep analytics failure non-blocking so search
+    // remains available if the measurement table is temporarily unavailable.
+    void db
+      .insert(searchAnalytics)
+      .values({
+        userId: null,
+        sessionId: null,
+        searchQuery: raw.slice(0, 500),
+        searchType: "public_profiles",
+        filters: { limit },
+        resultsCount: results.length,
+        clickedResultId: null,
+      })
+      .catch((error) => {
+        console.error("[profiles] Failed recording public profile search analytics:", error);
+      });
+
+    return results;
   }
 
   async createProfileForOwner(ownerUserId: string, data: ProfileMutation): Promise<Profile> {
@@ -405,7 +426,7 @@ export class ProfileRepository {
       .returning();
     const user = rows[0];
     if (!user) throw new Error("User not found");
-    return user;
+    return user as User;
   }
 
   async getProfileOwnerUserId(profileId: string): Promise<string | null> {
