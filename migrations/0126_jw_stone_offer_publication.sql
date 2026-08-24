@@ -34,7 +34,7 @@ BEGIN
        AND account.target_profile_id = (
          SELECT id FROM profiles WHERE slug = 'jw-stone' LIMIT 1
        )
-       AND account.jw_business_id = jw_business_id
+       AND account.target_business_id = jw_business_id
        AND account.identity_kind = 'business'
        AND account.status = 'active'
        AND account.verification_status = 'approved'
