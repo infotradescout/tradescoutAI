@@ -16,6 +16,12 @@ describe("JW Stone offer-only publication migration contract", () => {
     expect(migration).toContain("listing_row.source_profile_slug = 'jw-stone'");
   });
 
+  it("uses unambiguous PL/pgSQL variables for publication authority", () => {
+    expect(migration).toContain("jw_business_id TEXT");
+    expect(migration).toContain("account.target_business_id = jw_business_id");
+    expect(migration).not.toContain("target_business_id TEXT;");
+  });
+
   it("requires current, unheld seller stock with publication authority", () => {
     expect(migration).toContain("account.verification_status = 'approved'");
     expect(migration).toContain("business_profile.verification_status = 'approved'");
