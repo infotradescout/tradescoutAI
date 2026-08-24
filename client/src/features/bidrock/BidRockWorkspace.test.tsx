@@ -11,6 +11,7 @@ import BidRockWorkspace from "./BidRockWorkspace";
 
 const mocks = vi.hoisted(() => ({
   placeMaximum: vi.fn(),
+  submitOffer: vi.fn(),
   authenticated: false,
   catalog: null as BidRockCatalogResponse | null,
 }));
@@ -98,6 +99,37 @@ function verifiedCatalog(): BidRockCatalogResponse {
   };
 }
 
+function offerOnlyListing(args: { canOffer?: boolean; canManage?: boolean } = {}) {
+  const { auction, ...listing } = baseListing;
+  void auction;
+  return {
+    ...listing,
+    id: "listing-offer-1",
+    materialSlug: "taj-mahal",
+    title: "Taj Mahal",
+    canOffer: args.canOffer ?? false,
+    canManage: args.canManage ?? false,
+  } satisfies BidRockCatalogResponse["listings"][number];
+}
+
+function guestOfferCatalog(): BidRockCatalogResponse {
+  return { ...guestCatalog(), listings: [offerOnlyListing()] };
+}
+
+function verifiedOfferCatalog(args: { canManage?: boolean } = {}): BidRockCatalogResponse {
+  return {
+    ...verifiedCatalog(),
+    viewer: {
+      authenticated: true,
+      admin: false,
+      verifiedBusiness: true,
+      accountStatus: "active",
+      canSell: args.canManage ?? false,
+    },
+    listings: [offerOnlyListing({ canOffer: !args.canManage, canManage: args.canManage ?? false })],
+  };
+}
+
 const invalidateQueries = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@tanstack/react-query", async (importOriginal) => {
@@ -137,7 +169,11 @@ vi.mock("@/components/profile/profileAccountClient", () => ({
 }));
 vi.mock("./bidrockClient", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./bidrockClient")>();
-  return { ...actual, placeBidRockMaximum: mocks.placeMaximum };
+  return {
+    ...actual,
+    placeBidRockMaximum: mocks.placeMaximum,
+    submitBidRockOffer: mocks.submitOffer,
+  };
 });
 
 function click(element: Element | null) {
@@ -160,7 +196,7 @@ function buttonContaining(scope: ParentNode, text: string): HTMLButtonElement | 
   );
 }
 
-describe("BidRock auction-first routed workspace", () => {
+describe("BidRock offer-first routed marketplace", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -169,6 +205,8 @@ describe("BidRock auction-first routed workspace", () => {
     mocks.authenticated = false;
     mocks.placeMaximum.mockReset();
     mocks.placeMaximum.mockResolvedValue(verifiedCatalog().listings[0].auction);
+    mocks.submitOffer.mockReset();
+    mocks.submitOffer.mockResolvedValue({ id: "offer-1", status: "submitted" });
     invalidateQueries.mockClear();
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
@@ -202,27 +240,67 @@ describe("BidRock auction-first routed workspace", () => {
     act(() => root.render(<BidRockWorkspace />));
   }
 
-  it("makes the first screen unmistakably a timed stone auction with countdown and activity", () => {
+  it("keeps a deliberately timed lot recognizable as an optional auction", () => {
     render();
-    expect(container.textContent).toContain("Natural and engineered stone on the block");
-    expect(container.textContent).toContain("Business-only stone auction house");
-    expect(container.textContent).toContain("Auction floor");
+    expect(container.textContent).toContain("Find the lot. Make the seller an offer.");
+    expect(container.textContent).toContain("Seller-confirmed stone marketplace");
+    expect(container.textContent).toContain("Marketplace");
     expect(container.textContent).toContain("Closing soon");
     expect(container.textContent).toContain("BR-000101");
     expect(container.textContent).toContain("Open lot");
     expect(container.textContent).toContain("Watch");
     expect(container.textContent).toContain("slab");
-    expect(container.textContent).toContain("1 timed lot");
-    expect(container.textContent).not.toContain("1 timed lots");
+    expect(container.textContent).toContain("1 available lot");
+    expect(container.textContent).not.toContain("1 available lots");
     expect(container.textContent).toContain("3 bids");
     expect(container.textContent).toContain("30m 00s");
     expect(container.textContent).not.toContain("Inventory workspace");
-    expect(container.textContent).not.toContain("Submit offer");
+    expect(container.querySelector('[aria-label="Your total offer"]')).toBeNull();
+  });
+
+  it("shows unpriced inventory as make-an-offer with no invented price or opening bid", () => {
+    mocks.catalog = guestOfferCatalog();
+    render();
+    expect(container.textContent).toContain("Open to offers");
+    expect(container.textContent).toContain("No asking price");
+    expect(container.textContent).toContain("Make an offer");
+    expect(container.textContent).toContain("Verify a business to make an offer");
+    expect(container.textContent).not.toContain("Current bid");
+    expect(container.textContent).not.toContain("$");
+  });
+
+  it("lets a verified business send its own quantity and total to the seller", async () => {
+    mocks.catalog = verifiedOfferCatalog();
+    mocks.authenticated = true;
+    render();
+    const total = container.querySelector<HTMLInputElement>('[aria-label="Your total offer"]');
+    if (!total) throw new Error("Expected offer-total input");
+    setInput(total, "9000");
+    await act(async () => {
+      buttonContaining(container, "Send offer")?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(mocks.submitOffer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        listingId: "listing-offer-1",
+        quantity: 1,
+        totalAmount: "9000",
+      })
+    );
+  });
+
+  it("does not let a seller make an offer on its own inventory", () => {
+    mocks.catalog = verifiedOfferCatalog({ canManage: true });
+    mocks.authenticated = true;
+    render();
+    expect(container.textContent).toContain("You manage this lot");
+    expect(container.querySelector('[aria-label="Your total offer"]')).toBeNull();
   });
 
   it("redacts every dollar amount for a guest while retaining non-price activity", () => {
     render();
-    expect(container.textContent).toContain("Bid values private");
+    expect(container.textContent).toContain("Business offers private");
     expect(container.textContent).toContain("Business verification required to view bids");
     expect(container.textContent).toContain("Reserve not met");
     expect(container.textContent).not.toContain("$");
@@ -311,7 +389,7 @@ describe("BidRock auction-first routed workspace", () => {
 
   it("opens the selected auction in a mobile sheet without losing lot context", () => {
     render();
-    expect(container.querySelector('[aria-label="Auction filters"]')?.className).toContain(
+    expect(container.querySelector('[aria-label="Marketplace filters"]')?.className).toContain(
       "lg:block"
     );
     expect(container.querySelector("details")?.className).toContain("lg:hidden");

@@ -52,8 +52,8 @@ export function BidRockSellerPanel({
     <div className="grid min-h-[calc(100vh-170px)] border-t border-stone-200 bg-[var(--bidrock-workspace)] lg:grid-cols-[minmax(0,1fr)_360px]">
       <section aria-label="Seller inventory">
         <div className="border-b border-stone-200 bg-[var(--bidrock-soft)] px-4 py-3 text-xs leading-5 text-[var(--bidrock-soft-ink)]">
-          Confirmed physical stock appears here before buyer publication. Set private business
-          terms, then explicitly mark a fresh lot sale-ready.
+          Confirmed physical stock appears here before buyer publication. Publish a fresh lot for
+          offers; an asking price is optional.
         </div>
         {listings.length ? (
           <div className="[content-visibility:auto]">
@@ -155,7 +155,7 @@ function SellerListingEditor({
       {canWrite ? (
         <div className="mt-6 border-y border-stone-200 py-5">
           <label className="text-xs font-bold text-stone-700">
-            Verified-business price
+            Optional verified-business asking price
             <div className="mt-2 grid grid-cols-[minmax(0,1fr)_120px] gap-2">
               <Input
                 value={amount}
@@ -179,7 +179,11 @@ function SellerListingEditor({
             <p className="mt-2 text-xs text-stone-500">
               Current: {formatBidRockPrice(listing.privatePrice)}
             </p>
-          ) : null}
+          ) : (
+            <p className="mt-2 text-xs text-stone-500">
+              Leave this blank to publish the lot with “Make an offer” and no asking price.
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             <Button
               type="button"
@@ -207,15 +211,15 @@ function SellerListingEditor({
       {canPublish ? (
         <div className="mt-5 flex items-start justify-between gap-4 rounded-lg border border-stone-200 p-4">
           <div>
-            <p className="text-sm font-bold text-stone-900">Sale-ready publication</p>
+            <p className="text-sm font-bold text-stone-900">Publish for offers</p>
             <p className="mt-1 text-xs leading-5 text-stone-500">
-              Buyer visibility requires current physical confirmation and a seller-set business
-              price.
+              Buyer visibility requires current physical confirmation. A seller-set price is not
+              required.
             </p>
           </div>
           <Switch
             checked={listing.saleReady}
-            disabled={busy || !listing.fresh || (!listing.privatePrice && !listing.saleReady)}
+            disabled={busy || !listing.fresh}
             onCheckedChange={(checked) => void onPublication(listing.id, checked)}
             aria-label={`Mark ${listing.title} sale-ready`}
           />
@@ -417,6 +421,7 @@ export function BidRockAdminPanel({
 type ActivityProps = {
   offers: readonly BidRockOffer[];
   orders: readonly BidRockOrder[];
+  listingNames?: Readonly<Record<string, string>>;
   busy: boolean;
   onAccept: (offerId: string) => Promise<void>;
   onCounter: (offerId: string, totalAmount: string, message?: string) => Promise<void>;
@@ -443,6 +448,7 @@ const STATUS_LABELS: Readonly<Record<string, string>> = {
 export function BidRockActivityPanel({
   offers,
   orders,
+  listingNames = {},
   busy,
   onAccept,
   onCounter,
@@ -459,9 +465,11 @@ export function BidRockActivityPanel({
       >
         <header className="border-b border-stone-200 px-4 py-3">
           <h2 id="bidrock-offers-heading" className="font-bold text-stone-950">
-            Offers
+            Offer inquiries
           </h2>
-          <p className="mt-1 text-xs text-stone-500">Private business negotiation state.</p>
+          <p className="mt-1 text-xs text-stone-500">
+            Private, attributable requests from verified businesses.
+          </p>
         </header>
         {offers.length ? (
           <ul className="divide-y divide-stone-200">
@@ -470,6 +478,9 @@ export function BidRockActivityPanel({
                 <li key={offer.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500">
+                        {listingNames[offer.listingId] || offer.listingId}
+                      </p>
                       <p className="text-sm font-bold text-stone-900">
                         {offer.quantity} units ·{" "}
                         {(offer.totalAmountCents / 100).toLocaleString("en-US", {

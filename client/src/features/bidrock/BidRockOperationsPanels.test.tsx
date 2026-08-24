@@ -219,7 +219,7 @@ describe("BidRock actor-capability controls", () => {
     );
     expect(mobileEditor).not.toBeNull();
     expect(buttonContaining(mobileEditor!, "Save price")).not.toBeNull();
-    expect(mobileEditor?.textContent).toContain("Sale-ready publication");
+    expect(mobileEditor?.textContent).toContain("Publish for offers");
   });
 
   it("renders explicit admin maintenance controls and reports their outcome", async () => {

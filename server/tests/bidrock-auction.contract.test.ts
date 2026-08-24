@@ -301,8 +301,11 @@ describe("BidRock auction persistence contract", () => {
     expect(service).toContain("if (!isExplicitZero(value))");
     expect(routes).toContain('"/api/bidrock/auctions/:id/bids"');
     expect(routes).toContain('"/api/admin/bidrock/maintenance/close-auctions"');
-    expect(workspace).not.toContain("submitBidRockOffer");
-    expect(workspace).not.toContain("Counteroffer");
+    expect(workspace).toContain("submitBidRockOffer");
+    expect(workspace).toContain("BidRockActivityPanel");
+    expect(service).toContain(
+      "A negotiated offer cannot be created while this lot has a current auction"
+    );
     expect(workspace).not.toContain("Buy It Now");
   });
 

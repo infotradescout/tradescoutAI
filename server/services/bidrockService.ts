@@ -1211,7 +1211,9 @@ export async function listBidRockCatalog(userId?: string | null): Promise<BidRoc
   );
   const listings = rows.rows
     .map((row) => mapListing(row, viewer))
-    .filter((listing): listing is BidRockListing => Boolean(listing?.auction));
+    .filter((listing): listing is BidRockListing =>
+      Boolean(listing && (listing.saleReady || listing.auction))
+    );
   return {
     generatedAt: new Date().toISOString(),
     listings,
@@ -2303,9 +2305,6 @@ export async function createBidRockOffer(args: {
     if (await bidRockListingHasCurrentAuction(client, String(listing.id))) {
       throw new Error("A negotiated offer cannot be created while this lot has a current auction");
     }
-    if (!listing.price_unit || Number(listing.price_cents) <= 0) {
-      throw new Error("A negotiated offer requires retained legacy listing terms");
-    }
     if (listing.public_availability_status !== STONE_CURRENT_INVENTORY_PUBLIC_STATUS) {
       throw new Error("This lot is not sale-ready");
     }
@@ -2412,8 +2411,7 @@ export async function respondToBidRockOffer(args: {
       : viewer.admin || (viewer.verifiedBusiness && String(offer.buyer_user_id) === viewer.userId);
     if (!viewerIsRecipient) throw new Error("BidRock offer response access required");
     let counterContext:
-      | Readonly<{ idempotencyKey: string; message: string | null; fingerprint: string }>
-      | undefined;
+      Readonly<{ idempotencyKey: string; message: string | null; fingerprint: string }> | undefined;
     if (args.action === "counter") {
       if (!Number.isInteger(args.totalAmountCents) || Number(args.totalAmountCents) <= 0) {
         throw new Error("A positive counteroffer total is required");

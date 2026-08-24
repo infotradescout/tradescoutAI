@@ -31,7 +31,7 @@ describe("BidRock marketplace recovery contract", () => {
     expect(canTransitionBidRockOrder("reservation_active", "paid")).toBe(false);
   });
 
-  it("routes timed auctions through the canonical BidRock service and routed workspace", () => {
+  it("routes private offers and optional timed auctions through the canonical BidRock workspace", () => {
     const routes = read("server/routes/bidrock.ts");
     const service = read("server/services/bidrockService.ts");
     const app = read("client/src/App.tsx");
@@ -39,6 +39,7 @@ describe("BidRock marketplace recovery contract", () => {
     const workspace = read("client/src/features/bidrock/BidRockWorkspace.tsx");
 
     expect(routes).toContain('app.get("/api/bidrock/catalog"');
+    expect(routes).toContain('"/api/bidrock/listings/:id/offers"');
     expect(routes).toContain('"/api/bidrock/listings/:id/auction"');
     expect(routes).toContain('"/api/bidrock/auctions/:id/bids"');
     expect(routes).toContain('"/api/bidrock/orders/:id/handoffs"');
@@ -51,12 +52,12 @@ describe("BidRock marketplace recovery contract", () => {
     expect(service).toContain("releaseExpiredBidRockReservations");
     expect(app).toContain('pathOnly === "/bidrock"');
     expect(appRoutes).toContain('import("./features/bidrock/BidRockWorkspace")');
-    expect(workspace).toContain("Search auctions");
-    expect(workspace).toContain("Compare auction lots");
+    expect(workspace).toContain("Search inventory");
+    expect(workspace).toContain("Compare stone lots");
     expect(workspace).toContain("Seller controls");
-    expect(workspace).toContain("Business-only stone auction house");
-    expect(workspace).toContain("Natural and engineered stone on the block");
-    expect(workspace).not.toContain("submitBidRockOffer");
+    expect(workspace).toContain("Seller-confirmed stone marketplace");
+    expect(workspace).toContain("Find the lot. Make the seller an offer.");
+    expect(workspace).toContain("submitBidRockOffer");
   });
 
   it("persists seller-authoritative natural or engineered stone classes marketplace-wide", () => {
@@ -119,9 +120,8 @@ describe("BidRock marketplace recovery contract", () => {
     expect(service).toContain("const saleReady =");
     expect(service).toContain('status === "active"');
     expect(service).toContain("STONE_CURRENT_INVENTORY_PUBLIC_STATUS");
-    expect(service).toContain(
-      "filter((listing): listing is BidRockListing => Boolean(listing?.auction))"
-    );
+    expect(service).toContain("listing.saleReady || listing.auction");
+    expect(service).not.toContain("A negotiated offer requires retained legacy listing terms");
     expect(service).toContain("canViewBidRockPrivatePrice({");
     expect(service).toContain("canManage: canRead || canManage");
     expect(service).toContain(
@@ -130,6 +130,8 @@ describe("BidRock marketplace recovery contract", () => {
     expect(listingMapper).not.toContain("inventoryPositionId:");
     expect(listingMapper).not.toContain("sellerBusinessId:");
     expect(detail).toContain("!canSeeBidValues ? (");
+    expect(detail).toContain("No asking price");
+    expect(detail).toContain("Make an offer");
     expect(workspace).toContain("{verifiedBusiness ? (");
   });
 
