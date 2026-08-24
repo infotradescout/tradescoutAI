@@ -192,8 +192,8 @@ export async function getAffiliatePerformance(req: Request, res: Response) {
 
     const [referralsAgg] = await db
       .select({
-        totalReferrals: sql<number>`count(*)`,
-        convertedReferrals: sql<number>`count(*) filter (where ${affiliateReferrals.referredUserId} is not null)`,
+        trueReferrals: sql<number>`count(distinct ${affiliateReferrals.referredUserId})`,
+        attributedPageViews: sql<number>`count(*) filter (where ${affiliateReferrals.referredUserId} is null)`,
       })
       .from(affiliateReferrals);
 
@@ -217,16 +217,20 @@ export async function getAffiliatePerformance(req: Request, res: Response) {
       .orderBy(desc(affiliatePayouts.createdAt))
       .limit(20);
 
-    const totalReferrals = Number(referralsAgg?.totalReferrals || 0);
-    const convertedReferrals = Number(referralsAgg?.convertedReferrals || 0);
+    const trueReferrals = Number(referralsAgg?.trueReferrals || 0);
+    const attributedPageViews = Number(referralsAgg?.attributedPageViews || 0);
 
     res.json({
       generatedAt: new Date().toISOString(),
       totals: {
         affiliates: Number(accountsAgg?.totalAffiliates || 0),
-        referrals: totalReferrals,
-        convertedReferrals,
-        conversionRate: totalReferrals > 0 ? convertedReferrals / totalReferrals : 0,
+        referrals: trueReferrals,
+        attributedPageViews,
+        convertedReferrals: trueReferrals,
+        // Repeated page-view rows are not unique visitors, so a trustworthy
+        // visitor conversion rate is not available from this legacy table.
+        conversionRate: 0,
+        conversionRateAvailable: false,
         lifetimeEarned: String(accountsAgg?.totalLifetimeEarned || "0"),
         availableBalance: String(accountsAgg?.totalAvailable || "0"),
         payouts: Number(payoutsAgg?.totalPayouts || 0),
