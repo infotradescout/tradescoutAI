@@ -1,22 +1,23 @@
 # Release control
 
-**Status:** `main` is the production release channel. Render auto-deploys on every push/merge to `main`.
+**Status:** `main` is the production release channel. Render auto-deploys every merge to `main`.
 
 ## Control plane
 
 | Layer | Posture |
 | --- | --- |
 | Render auto-deploy | **On Commit** for production web service (`tradescoutAI`) |
-| Production path | Merge/push to `main` → Render builds and deploys |
+| Production path | Merge a pull request to `main` → Render builds and deploys |
 | GitHub Actions | **Not used**; `.github/workflows/` is intentionally empty |
 | Release evidence | Local commands against the exact commit, recorded on the pull request |
 | Minimum gate | `npm run gate:minimum-release` → evidence under `artifacts/release-contract/` |
+| `main` protection | Pull request required; zero approvals; resolve review conversations; no required checks |
 
 Repo file `render.yaml` sets `autoDeployTrigger: commit`. **Dashboard Auto-Deploy must stay On** (or Blueprint sync must keep commit) so merges to `main` reach production.
 
 ## Operating rule
 
-**Push/merge to `main` deploys production via Render. GitHub Actions is not part of validation or deployment.**
+**Merge a pull request to `main` to deploy production via Render. GitHub Actions is not part of validation or deployment.**
 
 ## JW Stone lane isolation
 
@@ -37,7 +38,7 @@ npm run gate:minimum-release -- --attest --skip-ci --browser-proof=manual --brow
 
 Gate covers: exact commit, `npm ci`, typecheck, build, focused contract tests, disposable DB migrate+verify, browser proof attestation. Public health shape (`/api/health` with `commit` + `migrations`) is asserted by contract tests.
 
-Status context for branch rules (no Actions): `tradescout/minimum-release-contract`.
+Optional informational status context: `tradescout/minimum-release-contract`. It is evidence only and must not be required by branch protection.
 
 ## Local release verification
 
@@ -62,9 +63,17 @@ Known baseline failures do not become invisible. Record them with file/test name
 - Relevant law, authority, trust, and security guard results.
 - Database/browser checks when applicable.
 - Explicit list of anything not run and why.
-- Independent review for production-risk changes.
+- Deliberate self-review or automated review for production-risk changes; outside review is optional when available and never a merge prerequisite.
 
-Repository rules must not require GitHub Actions status checks. Prefer the commit-status context `tradescout/minimum-release-contract` posted by local attestation. If an old Actions-required check remains in GitHub settings, remove that requirement rather than bypassing it per pull request.
+Repository rules must not require GitHub Actions, local-attestation, deployment, merge-queue, code-owner, last-pusher, or approval checks. There is one developer and no always-on check provider. Use the importable policy in `docs/release/minimum-release-ruleset.json`: require a pull request with zero approvals, require review-conversation resolution, and block force pushes and deletion.
+
+## Solo-maintainer merge flow
+
+1. Create a short-lived branch and pull request, even for urgent fixes.
+2. Run risk-appropriate local checks and record passed, failed, skipped, and not-run proof on the pull request.
+3. Address and resolve every review conversation. No approving review is required.
+4. Merge when the diff and evidence are acceptable. The merge triggers the existing Render production service automatically.
+5. Verify the live build marker, health endpoint, and changed user path. If production fails, use a focused follow-up pull request or rollback; do not create a second service or ad-hoc deployment path.
 
 ## Post-deploy smoke (item 9) — record format
 
