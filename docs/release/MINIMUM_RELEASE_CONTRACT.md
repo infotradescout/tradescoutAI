@@ -1,6 +1,6 @@
 # Minimum release contract (TradeScout)
 
-Merge/push to `main` **is** production (Render auto-deploy). This contract is the executable pre-merge gate.
+Merging to `main` **is** production (Render auto-deploy). This contract is the executable pre-merge gate.
 
 ## Items
 
@@ -16,7 +16,7 @@ Merge/push to `main` **is** production (Render auto-deploy). This contract is th
 | 8 | Deployment commit marker | `x-tradescout-build` + `/api/health.commit` after deploy |
 | 9 | Post-deploy smoke | recorded in PR / evidence (see `RELEASE_CONTROL.md`) |
 | 10 | Rollback / roll-forward | recorded boundary (see `RELEASE_CONTROL.md`) |
-| 11 | Branch rule requires gate | GitHub commit status `tradescout/minimum-release-contract` (no Actions) |
+| 11 | Solo-dev branch rule | Pull request, zero approvals, resolved review conversations; no required status checks |
 
 ## Run locally
 
@@ -25,7 +25,7 @@ Merge/push to `main` **is** production (Render auto-deploy). This contract is th
 export TEST_DATABASE_URL="postgres://...disposable..."
 npm run gate:minimum-release -- --browser-proof=manual --browser-note="desktop+mobile / and /direct-connect OK"
 
-# Optional: post GitHub commit status (needs gh auth or GITHUB_TOKEN):
+# Optional: post an informational GitHub commit status (never a required merge check):
 npm run gate:minimum-release -- --attest --skip-ci --browser-proof=manual --browser-note="..."
 # or:
 node scripts/attest-minimum-release-contract.mjs artifacts/release-contract/<sha12>/evidence.json
@@ -33,34 +33,28 @@ node scripts/attest-minimum-release-contract.mjs artifacts/release-contract/<sha
 
 Evidence lands in `artifacts/release-contract/<sha12>/evidence.json`.
 
-## Status check without GitHub Actions
+## Optional status evidence
 
-The gate posts (or you attest) a **commit status** with context:
+The gate can post an informational **commit status** with context:
 
 `tradescout/minimum-release-contract`
 
-A repository ruleset can require that context before merge to `main`. This does **not** need `.github/workflows/`.
+Do **not** require that context in a branch rule. This repository has no always-on status provider, so making it required can deadlock every pull request. The local evidence and pull-request record remain the release proof.
 
-## Proposed ruleset (owner GO required — do not apply blindly)
+## Canonical solo-developer ruleset
 
-Classic branch protection on `main` currently requires **1 approving review** and has **empty** required status checks. There is **no** modern ruleset yet (`GET /repos/.../rulesets` → `[]`).
+The importable policy is [`minimum-release-ruleset.json`](minimum-release-ruleset.json). It is intentionally small:
 
-Owner-safe apply (creates a ruleset; does not delete classic protection — review overlap in the GitHub UI):
+- every change reaches `main` through a pull request;
+- zero approving reviews are required;
+- review conversations must be resolved;
+- force pushes and branch deletion are blocked;
+- no status checks, deployments, workflows, merge queue, code-owner review, or last-push approval are required.
 
-```bash
-gh api --method POST repos/infotradescout/tradescoutAI/rulesets \
-  --input docs/release/minimum-release-ruleset.json
-```
+This preserves a searchable release trail and prevents destructive branch operations without pretending a second developer or permanent CI runner exists.
 
-Or interactive dry-run inspection of the JSON first:
+To activate it in GitHub, open **Settings → Rules → Rulesets → New ruleset → Import a ruleset**, select the JSON file, review the summary, and create it as Active. Remove or relax any overlapping classic branch-protection rule that adds approvals or required checks; overlapping rules are cumulative.
 
-```bash
-type docs\release\minimum-release-ruleset.json   # Windows
-# cat docs/release/minimum-release-ruleset.json  # Unix
-```
+If a review thread identifies a real problem, fix it and resolve the thread. If a comment is obsolete or incorrect, document why and resolve it. No outside approval is needed in either case.
 
 **Do not** reintroduce `.github/workflows/` without explicit owner approval (`AGENTS.md`).
-
-## PR #265 disposition
-
-Do **not** merge [PR #265](https://github.com/infotradescout/tradescoutAI/pull/265) as-is (draft, CONFLICTING, behind `main`). This branch extracts the release-critical CRLF verifier fix onto current `main`. Close or refresh #265 after this gate lands.
