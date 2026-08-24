@@ -16,6 +16,15 @@ describe("JW Stone offer-only publication migration contract", () => {
     expect(migration).toContain("listing_row.source_profile_slug = 'jw-stone'");
   });
 
+  it("uses collision-proof PL/pgSQL variable names", () => {
+    expect(migration).toContain("jw_fixture_version CONSTANT TEXT");
+    expect(migration).toContain("jw_business_id TEXT;");
+    expect(migration).toContain("jw_publisher_user_id TEXT;");
+    expect(migration).toContain("account.target_business_id = jw_business_id");
+    expect(migration).not.toMatch(/\b(?:fixture_version|target_business_id|publisher_user_id)\b\s+(?:CONSTANT\s+)?TEXT\s*;/);
+    expect(migration).not.toMatch(/=\s*(?:fixture_version|target_business_id|publisher_user_id)\b/);
+  });
+
   it("requires current, unheld seller stock with publication authority", () => {
     expect(migration).toContain("account.verification_status = 'approved'");
     expect(migration).toContain("business_profile.verification_status = 'approved'");
