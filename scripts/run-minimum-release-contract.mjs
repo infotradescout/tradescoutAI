@@ -165,6 +165,7 @@ async function main() {
     "server/tests/historical-migration-chain.contract.test.ts",
     "server/tests/migrationCompatibilityStatus.contract.test.ts",
     "server/tests/health-release-contract.contract.test.ts",
+    "server/tests/solo-dev-ruleset.contract.test.ts",
     "server/tests/landing-seo-contracts.test.ts",
     "server/tests/profile-account-foundation.contract.test.ts",
     "server/tests/admin-production-acceptance.contract.test.ts",
