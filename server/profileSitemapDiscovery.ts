@@ -1,5 +1,7 @@
 import { listProfileGalleryItems } from "@shared/profileGalleryShare";
+import type { ResolvedProfileGalleryItem } from "@shared/profileGalleryShare";
 import { listProfileInventoryItems } from "@shared/profileItemShare";
+import type { ResolvedProfileInventoryItem } from "@shared/profileItemShare";
 import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
 import {
   buildProfilePublicCategoryUrl,
@@ -45,26 +47,54 @@ function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPr
   };
 }
 
+/**
+ * Route-level truth for profile-owned inventory pages. Named items are safe to
+ * address publicly. An explicit inventory=true decision may also publish an
+ * otherwise-valid unnamed record; inventory=false removes it from sitemaps but
+ * does not hide an already fact-bearing named item reached by a deliberate URL.
+ */
+export function isProfileInventoryItemPubliclyAddressable(
+  contentBlocks: unknown,
+  item: ResolvedProfileInventoryItem
+): boolean {
+  const preference = readProfileSitemapPreferences(contentBlocks).inventory;
+  return preference === true || item.hasPublicName;
+}
+
+/**
+ * Route-level truth for profile-owned gallery/project pages. Automatic public
+ * routes require a descriptive title and enough source-backed context to avoid
+ * generic photo pages. An explicit gallery=true decision permits every
+ * otherwise-valid gallery record.
+ */
+export function isProfileGalleryItemPubliclyAddressable(
+  contentBlocks: unknown,
+  item: ResolvedProfileGalleryItem
+): boolean {
+  const preference = readProfileSitemapPreferences(contentBlocks).gallery;
+  if (preference === true) return true;
+  return (
+    !/^(?:gallery|project|work) photo \d+$/i.test(item.title.trim()) &&
+    item.description.trim().length >= 20
+  );
+}
+
 function publishableInventoryItems(
   preference: boolean | undefined,
-  items: ReturnType<typeof listProfileInventoryItems>
-) {
+  contentBlocks: unknown,
+  items: ResolvedProfileInventoryItem[]
+): ResolvedProfileInventoryItem[] {
   if (preference === false) return [];
-  if (preference === true) return items;
-  return items.filter((item) => item.hasPublicName);
+  return items.filter((item) => isProfileInventoryItemPubliclyAddressable(contentBlocks, item));
 }
 
 function publishableGalleryItems(
   preference: boolean | undefined,
-  items: ReturnType<typeof listProfileGalleryItems>
-) {
+  contentBlocks: unknown,
+  items: ResolvedProfileGalleryItem[]
+): ResolvedProfileGalleryItem[] {
   if (preference === false) return [];
-  if (preference === true) return items;
-  return items.filter(
-    (item) =>
-      !/^(?:gallery|project|work) photo \d+$/i.test(item.title.trim()) &&
-      item.description.trim().length >= 20
-  );
+  return items.filter((item) => isProfileGalleryItemPubliclyAddressable(contentBlocks, item));
 }
 
 /**
@@ -91,10 +121,12 @@ export function buildProfileSitemapUrls({
         );
   const inventory = publishableInventoryItems(
     preferences.inventory,
+    contentBlocks,
     listProfileInventoryItems(inventoryCategories)
   );
   const gallery = publishableGalleryItems(
     preferences.gallery,
+    contentBlocks,
     listProfileGalleryItems(contentBlocks)
   );
   const urls = new Set<string>();
