@@ -88,17 +88,19 @@ describe("stone inventory truth and freshness", () => {
     expect(crawlerHtml).not.toContain("Browse current selections by photo");
   });
 
-  it("keeps current stock separate, dated, and requestable", () => {
-    const currentInventory = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
+  it("keeps current inventory operational while the empty New Arrivals slot stays hidden", () => {
+    const publicSlot = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
     const manager = read("client/src/components/profile/JwStoneCurrentInventoryManager.tsx");
     const routes = read("server/routes/stone-inventory.ts");
     const routeRegistration = read("server/routes.ts");
     const inventoryService = read("server/services/stoneInventoryService.ts");
 
-    expect(currentInventory).toContain("Physically confirmed stock");
-    expect(currentInventory).toMatch(/active\s+recheck\s+window/);
-    expect(currentInventory).toMatch(/The Material Library\s+below is broader/);
-    expect(currentInventory).toContain("Ask about this stock");
+    expect(publicSlot).toContain("reserved for explicitly identified New Arrivals");
+    expect(publicSlot).toContain("the public slot stays absent");
+    expect(publicSlot).toMatch(/return\s+null/);
+    expect(publicSlot).not.toContain("/api/u/jw-stone/stone-inventory/current");
+    expect(publicSlot).not.toContain("Physically confirmed stock");
+    expect(publicSlot).not.toContain(">Current Inventory<");
     expect(manager).toContain("Confirm current stock");
     expect(manager).toContain("confirmationExpiresAt");
     expect(routes).toContain('app.get("/api/u/:slug/stone-inventory/current"');
