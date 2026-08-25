@@ -15,6 +15,7 @@ import {
   attachPublicProfileImageSitemapReferences,
   handlePublicProfileImageSitemapRequest,
 } from "../profileImageSitemap";
+import { handlePublicFaviconFallback } from "../publicFaviconFallback";
 
 const LEGACY_COMMERCE_PATH_PATTERN = /^\/(?:collections|products)(?:\/|$)/i;
 const PROFILE_IMAGE_SITEMAP_PATHS = new Set([
@@ -65,6 +66,10 @@ export async function landingContractHeaders(
   res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
   res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
   res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
+
+  // Keep the conventional icon URL healthy on TradeScout and mapped profile
+  // domains even when a browser ignores the page-declared profile favicon.
+  if (handlePublicFaviconFallback(req, res)) return;
 
   // Image discovery uses the same governed child-page graph as public routes,
   // sitemaps, IndexNow, and production audits. Platform and verified profile
