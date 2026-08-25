@@ -34,6 +34,12 @@ import {
 } from "@shared/jwStonePresentation";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
+import {
+  buildProfileSitemapUrls,
+  isProfileGalleryItemPubliclyAddressable,
+  isProfileInventoryCategoryPubliclyAddressable,
+  isProfileInventoryItemPubliclyAddressable,
+} from "./profileSitemapDiscovery";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -252,6 +258,11 @@ export async function buildPublicProfileLlmsText({
     .filter(Boolean)
     .slice(0, 12);
   const publicServiceItems = listPublishedProfileServiceItems(profileRecord.contentBlocks);
+  const publicChildPages = buildProfileSitemapUrls({
+    profileSlug: profileRecord.slug,
+    profileUrl: `${publicOrigin}/`,
+    contentBlocks: profileRecord.contentBlocks,
+  }).slice(0, 500);
 
   const lines = [
     `# ${displayName}`,
@@ -280,6 +291,13 @@ export async function buildPublicProfileLlmsText({
   if (serviceAreas.length > 0) {
     lines.push("", "## Service areas", ...serviceAreas.map((value) => `- ${value}`));
   }
+  if (publicChildPages.length > 0) {
+    lines.push(
+      "",
+      "## Published profile pages",
+      ...publicChildPages.map((value) => `- ${value}`)
+    );
+  }
 
   return `${lines.join("\n")}\n`;
 }
@@ -295,42 +313,14 @@ export async function buildPublicProfileSitemapXml({
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
 
-  const inventory = listProfileInventoryItems(
-    inventoryCategoriesForProfile(profileRecord.slug, profileRecord.contentBlocks)
-  );
-  const categories = listProfileInventoryCategories(
-    inventoryCategoriesForProfile(profileRecord.slug, profileRecord.contentBlocks),
-    profileRecord.contentBlocks
-  ).filter((category) => category.indexable);
-  const gallery = listProfileGalleryItems(profileRecord.contentBlocks);
   const urls = [
     `${publicOrigin}/`,
-    ...categories.map((category) =>
-      buildProfilePublicCategoryUrl({
-        profileUrl: `${publicOrigin}/`,
-        categorySlug: category.slug,
-        contentBlocks: profileRecord.contentBlocks,
-      })
-    ),
-    ...inventory.map((item) =>
-      buildProfilePublicItemUrl({
-        profileUrl: `${publicOrigin}/`,
-        itemType: "inventory",
-        itemSlug: item.slug,
-        contentBlocks: profileRecord.contentBlocks,
-      })
-    ),
-    ...gallery.map((item) =>
-      buildProfilePublicItemUrl({
-        profileUrl: `${publicOrigin}/`,
-        itemType: "gallery",
-        itemSlug: item.slug,
-        contentBlocks: profileRecord.contentBlocks,
-      })
-    ),
-  ]
-    .filter((url): url is string => Boolean(url))
-    .slice(0, 50_000);
+    ...buildProfileSitemapUrls({
+      profileSlug: profileRecord.slug,
+      profileUrl: `${publicOrigin}/`,
+      contentBlocks: profileRecord.contentBlocks,
+    }),
+  ].slice(0, 50_000);
 
   const updatedAt = new Date(profileRecord.updatedAt || "");
   const lastmod = Number.isNaN(updatedAt.getTime())
@@ -600,13 +590,20 @@ function withProfileCategoryJsonLd(
   baseJsonLd: Record<string, any>,
   categoryShare: ProfileInventoryCategoryShareMetadata | null,
   profileUrl: string,
+  profileSlug: string,
   contentBlocks: unknown
 ) {
   if (!categoryShare) return baseJsonLd;
   const baseGraph = Array.isArray(baseJsonLd["@graph"])
     ? baseJsonLd["@graph"]
     : [Object.fromEntries(Object.entries(baseJsonLd).filter(([key]) => key !== "@context"))];
+  const publicInventorySlugs = new Set(
+    listProfileInventoryItems(inventoryCategoriesForProfile(profileSlug, contentBlocks))
+      .filter((item) => isProfileInventoryItemPubliclyAddressable(contentBlocks, item))
+      .map((item) => item.slug)
+  );
   const itemList = categoryShare.itemSlugs
+    .filter((itemSlug) => publicInventorySlugs.has(itemSlug))
     .map((itemSlug, index) => {
       const url = buildProfilePublicItemUrl({
         profileUrl,
@@ -750,6 +747,7 @@ function buildJsonLd(
         withProfileItemJsonLd(baseJsonLd, itemShare, profileUrl, true),
         categoryShare,
         profileUrl,
+        profile.profile.slug,
         profile.profile.contentBlocks
       ),
       profileUrl,
@@ -777,6 +775,7 @@ function buildJsonLd(
       ),
       categoryShare,
       profileUrl,
+      profile.profile.slug,
       profile.profile.contentBlocks
     ),
     profileUrl,
@@ -1234,11 +1233,23 @@ export async function buildPublicProfileHtml({
     .filter(Boolean)
     .slice(0, 8)
     .join(", ");
+  const inventoryItems = listProfileInventoryItems(profileInventoryCategories).filter((item) =>
+    isProfileInventoryItemPubliclyAddressable(data.profile.contentBlocks, item)
+  );
+  const inventoryItemsBySlug = new Map(inventoryItems.map((item) => [item.slug, item]));
   const inventoryCategories = listProfileInventoryCategories(
     profileInventoryCategories,
     data.profile.contentBlocks
-  ).filter((category) => category.indexable);
-  const inventoryItems = listProfileInventoryItems(profileInventoryCategories);
+  ).filter((category) =>
+    isProfileInventoryCategoryPubliclyAddressable(
+      data.profile.slug,
+      data.profile.contentBlocks,
+      category
+    )
+  );
+  const galleryItems = listProfileGalleryItems(data.profile.contentBlocks).filter((item) =>
+    isProfileGalleryItemPubliclyAddressable(data.profile.contentBlocks, item)
+  );
   const categoryLinks = inventoryCategories
     .map((category) => {
       const url = buildProfilePublicCategoryUrl({
@@ -1246,10 +1257,13 @@ export async function buildPublicProfileHtml({
         categorySlug: category.slug,
         contentBlocks: data.profile.contentBlocks,
       });
+      const publicItemCount = category.itemSlugs.filter((itemSlug) =>
+        inventoryItemsBySlug.has(itemSlug)
+      ).length;
       return url
         ? category.collectionKind === "offerings"
-          ? `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} materials</a> — ${category.itemCount} ${category.itemCount === 1 ? "offering" : "offerings"}</li>`
-          : `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} inventory</a> — ${category.itemCount} current ${category.itemCount === 1 ? "selection" : "selections"}</li>`
+          ? `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} materials</a> — ${publicItemCount} ${publicItemCount === 1 ? "offering" : "offerings"}</li>`
+          : `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} inventory</a> — ${publicItemCount} current ${publicItemCount === 1 ? "selection" : "selections"}</li>`
         : "";
     })
     .filter(Boolean)
@@ -1290,7 +1304,44 @@ export async function buildPublicProfileHtml({
     featuredInventoryItems.every((item) => item.publicKind === "offering")
       ? "Featured materials"
       : "Featured stone inventory";
+  const categoryInventoryItems = pageCategoryShare
+    ? pageCategoryShare.itemSlugs
+        .map((itemSlug) => inventoryItemsBySlug.get(itemSlug))
+        .filter((item): item is (typeof inventoryItems)[number] => Boolean(item))
+    : [];
+  const categoryInventoryLinks = categoryInventoryItems
+    .map((item) => {
+      const url = buildProfilePublicItemUrl({
+        profileUrl,
+        itemType: "inventory",
+        itemSlug: item.slug,
+        contentBlocks: data.profile.contentBlocks,
+      });
+      return url
+        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.name)}</a>${item.category ? ` — ${escapeHtml(item.category)}` : ""}</li>`
+        : "";
+    })
+    .filter(Boolean)
+    .join("");
+  const galleryLinks = galleryItems
+    .map((item) => {
+      const url = buildProfilePublicItemUrl({
+        profileUrl,
+        itemType: "gallery",
+        itemSlug: item.slug,
+        contentBlocks: data.profile.contentBlocks,
+      });
+      return url
+        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.title)}</a></li>`
+        : "";
+    })
+    .filter(Boolean)
+    .join("");
   const servicesSummary = cleanPublicProfileText(profileRecord.servicesDescription, 1000);
+  const profileHomeLink =
+    itemShare || pageCategoryShare
+      ? `<p><a data-seo-profile-home="true" href="${escapeHtml(profileUrl)}">Back to ${escapeHtml(displayName)}</a></p>`
+      : "";
   const itemSummary = itemShare
     ? `<section data-seo-profile-item="${itemShare.itemType}">
       ${
@@ -1312,12 +1363,12 @@ export async function buildPublicProfileHtml({
       <h2>${escapeHtml(cleanPublicProfileText(pageCategoryShare.categoryName, 200))}</h2>
       <img src="${escapeHtml(pageCategoryShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(pageCategoryShare.imageAlt, 240))}" />
       <p>${escapeHtml(cleanPublicProfileText(pageCategoryShare.description, 500))}</p>
-      <p>${pageCategoryShare.itemCount} ${
+      <p>${categoryInventoryItems.length} ${
         pageCategoryShare.collectionKind === "offerings"
-          ? pageCategoryShare.itemCount === 1
+          ? categoryInventoryItems.length === 1
             ? "published material"
             : "published materials"
-          : pageCategoryShare.itemCount === 1
+          : categoryInventoryItems.length === 1
             ? "current selection"
             : "current selections"
       }</p>
@@ -1327,14 +1378,17 @@ export async function buildPublicProfileHtml({
 <main data-seo-profile="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
     <h1>${escapeHtml(displayName)}</h1>
+    ${profileHomeLink}
     <p>${escapeHtml(meta.description)}</p>
     ${itemSummary}
     ${categorySummary}
+    ${categoryInventoryLinks ? `<section data-seo-profile-category-items="true"><h2>Published ${escapeHtml(pageCategoryShare?.categoryName || "category")} pages</h2><ul>${categoryInventoryLinks}</ul></section>` : ""}
     ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
     ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}
     ${categoryLinks ? `<section><h2>${categorySectionHeading}</h2><ul>${categoryLinks}</ul></section>` : ""}
     ${inventoryLinks ? `<section><h2>${inventorySectionHeading}</h2><ul>${inventoryLinks}</ul></section>` : ""}
+    ${galleryLinks ? `<section data-seo-profile-gallery-links="true"><h2>Published projects and work</h2><ul>${galleryLinks}</ul></section>` : ""}
     ${bookingSummary ? `<p>${escapeHtml(bookingSummary)}</p>` : ""}
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
   </article>
