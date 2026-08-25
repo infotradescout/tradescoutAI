@@ -189,7 +189,7 @@ describe("automatic public profile discovery graph", () => {
     expect(html).toContain('data-seo-profile-category="stone"');
     expect(html).toContain('data-seo-profile-category-items="true"');
     expect(html).toContain('href="https://profile.example/inventory/named-stone"');
-    expect(html).toContain("1 published material");
+    expect(html).toContain("1 current selection");
     expect(html).not.toContain("trending-selection-04");
   });
 
