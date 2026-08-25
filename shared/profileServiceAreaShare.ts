@@ -3,6 +3,11 @@ import { sanitizePublicDiscoveryText } from "./publicListingSafety";
 const PROFILE_SERVICE_AREAS_SEGMENT = "service-areas";
 const CUSTOM_DOMAIN_SERVICE_AREAS_PATH = "/landing/service-areas";
 const MAX_SERVICE_AREAS = 30;
+const MAX_SERVICE_AREA_LABEL_LENGTH = 80;
+const MAX_SERVICE_AREA_WORDS = 8;
+const SERVICE_AREA_LABEL_PATTERN = /^[A-Za-z0-9 .,'’&()/-]+$/;
+const NON_LOCATION_AREA_PATTERN =
+  /\b(?:after (?:property|site|jurisdiction|supplier)|availability|available after|confirmed|contact us|coverage|miles? (?:from|of)|other (?:project |service )?areas?|project areas?|service areas?|serving|subject to|upon review|where available|within \d+)\b/i;
 
 type RawContentBlock = {
   type?: unknown;
@@ -23,9 +28,23 @@ function cleanText(value: unknown, maxLength: number): string {
 }
 
 function safePublicArea(value: unknown): string | null {
-  const raw = cleanText(value, 120);
-  if (!raw || raw.length < 2 || !/[A-Za-z]/.test(raw)) return null;
-  const sanitized = sanitizePublicDiscoveryText(raw, 120);
+  const raw = cleanText(value, MAX_SERVICE_AREA_LABEL_LENGTH + 1);
+  const wordCount = raw.split(/\s+/).filter(Boolean).length;
+  const commaCount = (raw.match(/,/g) || []).length;
+  if (
+    !raw ||
+    raw.length < 2 ||
+    raw.length > MAX_SERVICE_AREA_LABEL_LENGTH ||
+    wordCount > MAX_SERVICE_AREA_WORDS ||
+    commaCount > 1 ||
+    !/[A-Za-z]/.test(raw) ||
+    !SERVICE_AREA_LABEL_PATTERN.test(raw) ||
+    NON_LOCATION_AREA_PATTERN.test(raw)
+  ) {
+    return null;
+  }
+
+  const sanitized = sanitizePublicDiscoveryText(raw, MAX_SERVICE_AREA_LABEL_LENGTH);
   if (!sanitized || sanitized !== raw || /Continue through TradeScout/i.test(sanitized)) return null;
   return sanitized;
 }
