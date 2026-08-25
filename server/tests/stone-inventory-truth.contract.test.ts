@@ -88,28 +88,36 @@ describe("stone inventory truth and freshness", () => {
     expect(crawlerHtml).not.toContain("Browse current selections by photo");
   });
 
-  it("keeps current inventory operational while the empty New Arrivals slot stays hidden", () => {
+  it("shows only explicitly selected New Arrivals and disappears when there are none", () => {
     const publicSlot = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
     const manager = read("client/src/components/profile/JwStoneCurrentInventoryManager.tsx");
     const routes = read("server/routes/stone-inventory.ts");
     const routeRegistration = read("server/routes.ts");
     const inventoryService = read("server/services/stoneInventoryService.ts");
+    const arrivalsService = read("server/services/stoneNewArrivalsService.ts");
 
-    expect(publicSlot).toContain("reserved for explicitly identified New Arrivals");
-    expect(publicSlot).toContain("the public slot stays absent");
-    expect(publicSlot).toMatch(/return\s+null/);
-    expect(publicSlot).not.toContain("/api/u/jw-stone/stone-inventory/current");
-    expect(publicSlot).not.toContain("Physically confirmed stock");
+    expect(publicSlot).toContain("export function NewArrivalsSection");
+    expect(publicSlot).toContain("New Arrivals");
+    expect(publicSlot).toContain("Just arrived");
+    expect(publicSlot).toContain("/api/u/jw-stone/stone-inventory/new-arrivals");
+    expect(publicSlot).toMatch(/items\.length === 0\) return null/);
     expect(publicSlot).not.toContain(">Current Inventory<");
-    expect(manager).toContain("Confirm current stock");
-    expect(manager).toContain("confirmationExpiresAt");
+    expect(publicSlot).not.toContain("Refresh");
+    expect(manager).toContain("Show in New Arrivals");
+    expect(manager).toContain("Remove from New Arrivals");
+    expect(manager).toContain("New Arrivals is a separate choice");
     expect(routes).toContain('app.get("/api/u/:slug/stone-inventory/current"');
-    expect(routes).toContain('"/api/u/:slug/stone-inventory/current",');
-    expect(routes).toContain('"/api/u/:slug/stone-inventory/current/:publicId",');
+    expect(routes).toContain('app.get("/api/u/:slug/stone-inventory/new-arrivals"');
+    expect(routes).toContain('"/api/u/:slug/stone-inventory/new-arrivals/manage"');
+    expect(routes).toContain('"/api/u/:slug/stone-inventory/current/:publicId/new-arrival"');
     expect(routeRegistration).toContain("registerStoneInventoryRoutes(app)");
     expect(inventoryService).toContain("isStoneInventoryConfirmationFresh");
     expect(inventoryService).toContain("STONE_CURRENT_INVENTORY_PUBLIC_STATUS");
     expect(inventoryService).toContain("STONE_CURRENT_INVENTORY_VERIFIED_STATUS");
+    expect(arrivalsService).toContain("showAsNewArrival");
+    expect(arrivalsService).toContain("listPublicCurrentStoneInventory");
+    expect(arrivalsService).toContain("never promotes a");
+    expect(arrivalsService).not.toContain("received_at >");
   });
 
   it("does not convert R.E.D. source materials or distribution rights into physical stock", () => {
