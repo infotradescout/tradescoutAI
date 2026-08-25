@@ -4,34 +4,74 @@ import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
 import {
   buildProfilePublicCategoryUrl,
   buildProfilePublicItemUrl,
-  readProfilePublicSitemapConfig,
 } from "@shared/profilePublicItemRoute";
 import { inventoryCategoriesForProfile } from "./profileItemShareMetadata";
 
-type OptInProfileSitemapOptions = {
+type ProfileSitemapOptions = {
   profileSlug: string;
   profileUrl: string;
   contentBlocks: unknown;
 };
 
+type ProfileSitemapPreferences = {
+  inventory?: boolean;
+  categories?: boolean;
+  gallery?: boolean;
+};
+
+type PublicDiscoveryBlock = {
+  type?: unknown;
+  data?: unknown;
+};
+
+function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPreferences {
+  if (!Array.isArray(contentBlocks)) return {};
+  const block = (contentBlocks as PublicDiscoveryBlock[]).find(
+    (entry) => String(entry?.type || "").trim() === "publicDiscovery"
+  );
+  const data =
+    block?.data && typeof block.data === "object" && !Array.isArray(block.data)
+      ? (block.data as Record<string, unknown>)
+      : null;
+  const sitemap =
+    data?.sitemap && typeof data.sitemap === "object" && !Array.isArray(data.sitemap)
+      ? (data.sitemap as Record<string, unknown>)
+      : null;
+
+  return {
+    ...(typeof sitemap?.inventory === "boolean" ? { inventory: sitemap.inventory } : {}),
+    ...(typeof sitemap?.categories === "boolean" ? { categories: sitemap.categories } : {}),
+    ...(typeof sitemap?.gallery === "boolean" ? { gallery: sitemap.gallery } : {}),
+  };
+}
+
+function automaticallyPublish(preference: boolean | undefined, itemCount: number): boolean {
+  return preference !== false && itemCount > 0;
+}
+
 /**
- * Enumerates only profile-owned child discovery routes. Publication and
- * same-host authority are checked by the caller before this helper runs.
+ * Enumerates profile-owned child discovery routes for every public profile.
+ * The caller is responsible for the profile's publication, verification,
+ * exact-release, and same-host gates. Valid child records are enrolled
+ * automatically so profiles created later inherit the same discovery system.
+ * A profile can explicitly opt a child type out with `sitemap: { type: false }`.
  */
-export function buildOptInProfileSitemapUrls({
+export function buildProfileSitemapUrls({
   profileSlug,
   profileUrl,
   contentBlocks,
-}: OptInProfileSitemapOptions): string[] {
-  const config = readProfilePublicSitemapConfig(contentBlocks);
-  if (!config.inventory && !config.categories && !config.gallery) return [];
-
-  const categories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
+}: ProfileSitemapOptions): string[] {
+  const preferences = readProfileSitemapPreferences(contentBlocks);
+  const inventoryCategories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
+  const categories = listProfileInventoryCategories(inventoryCategories, contentBlocks).filter(
+    (category) => category.indexable
+  );
+  const inventory = listProfileInventoryItems(inventoryCategories);
+  const gallery = listProfileGalleryItems(contentBlocks);
   const urls = new Set<string>();
 
-  if (config.categories) {
-    for (const category of listProfileInventoryCategories(categories, contentBlocks)) {
-      if (!category.indexable) continue;
+  if (automaticallyPublish(preferences.categories, categories.length)) {
+    for (const category of categories) {
       const url = buildProfilePublicCategoryUrl({
         profileUrl,
         categorySlug: category.slug,
@@ -41,8 +81,8 @@ export function buildOptInProfileSitemapUrls({
     }
   }
 
-  if (config.inventory) {
-    for (const item of listProfileInventoryItems(categories)) {
+  if (automaticallyPublish(preferences.inventory, inventory.length)) {
+    for (const item of inventory) {
       const url = buildProfilePublicItemUrl({
         profileUrl,
         itemType: "inventory",
@@ -53,8 +93,8 @@ export function buildOptInProfileSitemapUrls({
     }
   }
 
-  if (config.gallery) {
-    for (const item of listProfileGalleryItems(contentBlocks)) {
+  if (automaticallyPublish(preferences.gallery, gallery.length)) {
+    for (const item of gallery) {
       const url = buildProfilePublicItemUrl({
         profileUrl,
         itemType: "gallery",
@@ -67,3 +107,6 @@ export function buildOptInProfileSitemapUrls({
 
   return [...urls];
 }
+
+/** Compatibility name retained for existing route and test imports. */
+export const buildOptInProfileSitemapUrls = buildProfileSitemapUrls;
