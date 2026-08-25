@@ -46,6 +46,12 @@ export async function landingContractHeaders(
     return next();
   }
 
+  const contract = getLandingIntentContractForPath(requestPath);
+  res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
+  res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
+  res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
+  res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
+
   // Fact-bearing profile service pages are resolved before the profile SPA
   // route and before the generic landing-page namespace. This also covers a
   // verified profile custom domain through its reserved /landing/service path.
@@ -74,10 +80,5 @@ export async function landingContractHeaders(
     console.warn("[ProfileService] Failed attaching profile service links:", error);
   }
 
-  const contract = getLandingIntentContractForPath(requestPath);
-  res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
-  res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
-  res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
-  res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
   return next();
 }
