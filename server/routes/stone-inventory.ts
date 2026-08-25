@@ -24,6 +24,11 @@ import {
   upsertCurrentStoneInventory,
   type StoneInventoryProfileTarget,
 } from "../services/stoneInventoryService";
+import {
+  listPublicStoneNewArrivals,
+  listSellerStoneNewArrivalIds,
+  setStoneInventoryNewArrival,
+} from "../services/stoneNewArrivalsService";
 import type { StoneInventoryCapability } from "@shared/stoneInventory";
 
 const stonePublicIdSchema = z.string().regex(/^stone_[a-f0-9]{32}$/);
@@ -177,6 +182,7 @@ function inventoryResponse(profileSlug: string, items: unknown) {
 
 export function registerStoneInventoryRoutes(app: Express): void {
   app.use("/api/u/:slug/stone-inventory", requireCriticalSchema("stone_inventory"));
+
   app.get("/api/u/:slug/stone-inventory/current", async (req, res) => {
     try {
       const publicContext = await getPublicProfileTrustContext(String(req.params.slug || ""));
@@ -198,6 +204,27 @@ export function registerStoneInventoryRoutes(app: Express): void {
     }
   });
 
+  app.get("/api/u/:slug/stone-inventory/new-arrivals", async (req, res) => {
+    try {
+      const publicContext = await getPublicProfileTrustContext(String(req.params.slug || ""));
+      if (!publicContext?.businessId) {
+        res.status(404).json({ message: "Profile not found" });
+        return;
+      }
+      const target = await getStoneInventoryProfileTarget(publicContext.profileSlug);
+      if (!target || target.businessId !== publicContext.businessId) {
+        res.status(404).json({ message: "Profile not found" });
+        return;
+      }
+      const items = await listPublicStoneNewArrivals(target);
+      res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
+      res.json(inventoryResponse(target.profileSlug, items));
+    } catch (error) {
+      console.error("[stone-inventory] public new-arrivals list failed", error);
+      res.status(500).json({ message: "New Arrivals are temporarily unavailable" });
+    }
+  });
+
   app.get(
     "/api/u/:slug/stone-inventory/manage",
     isAuthenticated,
@@ -211,6 +238,27 @@ export function registerStoneInventoryRoutes(app: Express): void {
       } catch (error) {
         console.error("[stone-inventory] seller list failed", error);
         res.status(500).json({ message: "Seller inventory is temporarily unavailable" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/u/:slug/stone-inventory/new-arrivals/manage",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const target = await managedTarget(req, res, "inventory_read");
+        if (!target) return;
+        const itemIds = await listSellerStoneNewArrivalIds(target);
+        res.setHeader("Cache-Control", "private, no-store");
+        res.json({
+          profileSlug: target.profileSlug,
+          generatedAt: new Date().toISOString(),
+          itemIds,
+        });
+      } catch (error) {
+        console.error("[stone-inventory] seller new-arrivals list failed", error);
+        res.status(500).json({ message: "New Arrivals controls are temporarily unavailable" });
       }
     }
   );
@@ -281,6 +329,44 @@ export function registerStoneInventoryRoutes(app: Express): void {
           error instanceof Error ? error.message : "Publication state could not be saved";
         const status = /not found/i.test(message) ? 404 : /re-confirmed/i.test(message) ? 409 : 500;
         if (status === 500) console.error("[stone-inventory] publication failed", error);
+        res.status(status).json({ message });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/u/:slug/stone-inventory/current/:publicId/new-arrival",
+    requireCriticalSchema("bidrock"),
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const target = await managedMutationTarget(req, res, "inventory_publish");
+        if (!target) return;
+        const publicId = stonePublicIdSchema.safeParse(req.params.publicId);
+        const payload = z.object({ showAsNewArrival: z.boolean() }).strict().safeParse(req.body);
+        if (!publicId.success || !payload.success) {
+          res.status(400).json({
+            message: "A valid inventory identifier and explicit New Arrivals choice are required",
+          });
+          return;
+        }
+        const result = await setStoneInventoryNewArrival({
+          target,
+          publicId: publicId.data,
+          showAsNewArrival: payload.data.showAsNewArrival,
+          actorUserId: userId(req),
+        });
+        res.setHeader("Cache-Control", "private, no-store");
+        res.json(result);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "New Arrivals state could not be saved";
+        const status = /not found/i.test(message)
+          ? 404
+          : /Only current sale-ready stock/i.test(message)
+            ? 409
+            : 500;
+        if (status === 500) console.error("[stone-inventory] new-arrivals update failed", error);
         res.status(status).json({ message });
       }
     }
