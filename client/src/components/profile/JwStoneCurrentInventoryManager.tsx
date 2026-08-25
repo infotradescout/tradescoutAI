@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PackageCheck, Trash2, X } from "lucide-react";
+import { PackageCheck, Sparkles, Trash2, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -18,6 +18,12 @@ type Props = {
 type SellerStoneInventoryResponse = Omit<PublicStoneInventoryResponse, "items"> & {
   items: readonly SellerStoneInventoryItem[];
 };
+
+type NewArrivalManageResponse = Readonly<{
+  profileSlug: string;
+  generatedAt: string;
+  itemIds: readonly string[];
+}>;
 
 const materialOptions = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
   category.stones.map((stone) => ({
@@ -39,6 +45,7 @@ function assetKindLabel(value: string): string {
 export default function JwStoneCurrentInventoryManager({ open, profileSlug, onClose }: Props) {
   const { toast } = useToast();
   const [items, setItems] = useState<readonly SellerStoneInventoryItem[]>([]);
+  const [newArrivalIds, setNewArrivalIds] = useState<readonly string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedSlug, setSelectedSlug] = useState(materialOptions[0]?.slug || "");
@@ -67,11 +74,18 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
     if (!open) return;
     setLoading(true);
     try {
-      const response = (await apiRequest(
-        "GET",
-        `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/manage`
-      )) as SellerStoneInventoryResponse;
-      setItems(response.items || []);
+      const [inventoryResponse, newArrivalResponse] = await Promise.all([
+        apiRequest(
+          "GET",
+          `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/manage`
+        ) as Promise<SellerStoneInventoryResponse>,
+        apiRequest(
+          "GET",
+          `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/new-arrivals/manage`
+        ) as Promise<NewArrivalManageResponse>,
+      ]);
+      setItems(inventoryResponse.items || []);
+      setNewArrivalIds(newArrivalResponse.itemIds || []);
     } catch (error) {
       toast({
         title: "Could not load current stock",
@@ -129,7 +143,8 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
       );
       toast({
         title: "Confirmed stock saved",
-        description: "It remains private until you explicitly publish it as sale-ready.",
+        description:
+          "It remains private until you publish it as sale-ready. New Arrivals is a separate choice.",
       });
       setQuantity("1");
       setFinishQuantity("");
@@ -145,8 +160,35 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
     }
   };
 
+  const setNewArrival = async (item: SellerStoneInventoryItem, showAsNewArrival: boolean) => {
+    try {
+      await apiRequest(
+        "PATCH",
+        `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/current/${encodeURIComponent(item.id)}/new-arrival`,
+        { showAsNewArrival }
+      );
+      toast({
+        title: showAsNewArrival ? "Added to New Arrivals" : "Removed from New Arrivals",
+      });
+      await load();
+    } catch (error) {
+      toast({
+        title: "Could not change New Arrivals",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    }
+  };
+
   const setSaleReady = async (item: SellerStoneInventoryItem, saleReady: boolean) => {
     try {
+      if (!saleReady && newArrivalIds.includes(item.id)) {
+        await apiRequest(
+          "PATCH",
+          `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/current/${encodeURIComponent(item.id)}/new-arrival`,
+          { showAsNewArrival: false }
+        );
+      }
       await apiRequest(
         "PATCH",
         `/api/u/${encodeURIComponent(profileSlug)}/stone-inventory/current/${encodeURIComponent(item.id)}/publication`,
@@ -194,8 +236,8 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
         <div>
           <p className="text-sm font-bold text-white">Current Inventory</p>
           <p className="mt-1 text-xs text-white/65">
-            Save only physical stock you have confirmed. Publishing it as sale-ready is a separate
-            step.
+            Confirm physical stock first. Publish sale-ready stock separately, then choose only real
+            New Arrivals for the public profile.
           </p>
         </div>
         <button
@@ -285,37 +327,54 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
           <p className="mt-3 text-sm text-white/60">Loading…</p>
         ) : items.length ? (
           <ul className="mt-3 space-y-2">
-            {items.map((item) => (
-              <li
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-white">{item.materialName}</p>
-                  <p className="mt-1 text-xs text-white/60">
-                    {item.passportCode} · {item.quantity} {item.unit} ·{" "}
-                    {item.isSaleReady ? "Sale-ready" : "Private draft"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void setSaleReady(item, !item.isSaleReady)}
-                    className="inline-flex min-h-10 items-center rounded-lg border border-amber-300/35 bg-amber-500/10 px-3 text-xs font-semibold text-amber-100"
-                  >
-                    {item.isSaleReady ? "Return to private" : "Publish sale-ready"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void retire(item)}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300/25 bg-red-500/10 px-3 text-xs font-semibold text-red-100"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    Retire
-                  </button>
-                </div>
-              </li>
-            ))}
+            {items.map((item) => {
+              const isNewArrival = newArrivalIds.includes(item.id);
+              return (
+                <li
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{item.materialName}</p>
+                    <p className="mt-1 text-xs text-white/60">
+                      {item.passportCode} · {item.quantity} {item.unit} ·{" "}
+                      {item.isSaleReady ? "Sale-ready" : "Private draft"}
+                      {isNewArrival ? " · New Arrival" : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void setSaleReady(item, !item.isSaleReady)}
+                      className="inline-flex min-h-10 items-center rounded-lg border border-amber-300/35 bg-amber-500/10 px-3 text-xs font-semibold text-amber-100"
+                    >
+                      {item.isSaleReady ? "Return to private" : "Publish sale-ready"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!item.isSaleReady}
+                      onClick={() => void setNewArrival(item, !isNewArrival)}
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-emerald-300/30 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-100 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      <Sparkles className="h-4 w-4" aria-hidden="true" />
+                      {item.isSaleReady
+                        ? isNewArrival
+                          ? "Remove from New Arrivals"
+                          : "Show in New Arrivals"
+                        : "Publish sale-ready first"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void retire(item)}
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300/25 bg-red-500/10 px-3 text-xs font-semibold text-red-100"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      Retire
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="mt-3 text-sm text-white/60">No physical stock has been confirmed yet.</p>
