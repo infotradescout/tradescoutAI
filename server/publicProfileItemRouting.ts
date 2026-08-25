@@ -19,6 +19,11 @@ import {
   type ResolvedProfileInventoryCategory,
 } from "@shared/profileCategoryShare";
 import { inventoryCategoriesForProfile } from "./profileItemShareMetadata";
+import {
+  isProfileGalleryItemPubliclyAddressable,
+  isProfileInventoryCategoryPubliclyAddressable,
+  isProfileInventoryItemPubliclyAddressable,
+} from "./profileSitemapDiscovery";
 
 type PublicProfileRouteRecord = {
   slug: string;
@@ -143,7 +148,12 @@ export function resolvePublicProfileItemRequest(args: {
       requestedSlug,
       args.photo
     );
-    if (!inventoryItem) return { kind: "invalid-item-route" };
+    if (
+      !inventoryItem ||
+      !isProfileInventoryItemPubliclyAddressable(contentBlocks, inventoryItem)
+    ) {
+      return { kind: "invalid-item-route" };
+    }
     const canonicalPath = buildProfilePublicItemPath({
       profileBasePath: args.profileBasePath,
       itemType,
@@ -165,7 +175,9 @@ export function resolvePublicProfileItemRequest(args: {
   }
 
   const galleryItem = resolveProfileGalleryItem(contentBlocks, requestedSlug);
-  if (!galleryItem) return { kind: "invalid-item-route" };
+  if (!galleryItem || !isProfileGalleryItemPubliclyAddressable(contentBlocks, galleryItem)) {
+    return { kind: "invalid-item-route" };
+  }
   const canonicalPath = buildProfilePublicItemPath({
     profileBasePath: args.profileBasePath,
     itemType,
@@ -212,7 +224,12 @@ export function resolvePublicProfileCategoryRequest(args: {
     requestedSlug,
     contentBlocks
   );
-  if (!category) return { kind: "invalid-category-route" };
+  if (
+    !category ||
+    !isProfileInventoryCategoryPubliclyAddressable(args.profile.slug, contentBlocks, category)
+  ) {
+    return { kind: "invalid-category-route" };
+  }
   const canonicalPath = buildProfilePublicCategoryPath({
     profileBasePath: args.profileBasePath,
     categorySlug: category.slug,
