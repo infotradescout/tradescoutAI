@@ -19,6 +19,7 @@ import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceFooter } from "./MarketplaceFooter";
 import { MarketplaceHeader } from "./MarketplaceHeader";
+import { MaterialCategoryRail } from "./MaterialCategoryRail";
 import { isJwStoneMarketplaceDomainSurface, marketplaceBasePath } from "./marketplaceRoutes";
 import { StoneCollection } from "./StoneCollection";
 import { StoneDetailDialog } from "./StoneDetailDialog";
@@ -236,6 +237,37 @@ export default function JWStoneMarketplace() {
     });
   };
 
+  const selectMaterial = (material: string | null) => {
+    commit({
+      ...state,
+      material,
+      aesthetic: material ? null : state.aesthetic,
+      color: material ? null : state.color,
+      stone: null,
+    });
+    if (!material) return;
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-testid="jw-material-section-${material}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  const enterFullInventory = () => {
+    if (!state.aesthetic && !state.color && !state.material && !state.origin) return;
+    commit(
+      {
+        ...state,
+        aesthetic: null,
+        color: null,
+        material: null,
+        origin: null,
+        stone: null,
+      },
+      { replace: true }
+    );
+  };
+
   const canonicalUrl = marketplaceCanonicalUrl();
   const collectionData = {
     "@context": "https://schema.org",
@@ -300,6 +332,7 @@ export default function JWStoneMarketplace() {
         state={state}
         isSaved={wishlist.isSaved}
         onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
+        onEnterFullInventory={enterFullInventory}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
         onAsk={askAboutStone}
@@ -326,6 +359,17 @@ export default function JWStoneMarketplace() {
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
         onAsk={askAboutStone}
+      />
+      <MaterialCategoryRail
+        active={state.material}
+        aesthetic={state.aesthetic}
+        color={state.color}
+        onSelect={selectMaterial}
+        isSaved={wishlist.isSaved}
+        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+        onOpen={openStone}
+        onAsk={askAboutStone}
+        catalog={JW_STONE_CATALOG}
       />
 
       <JwStoneStorySection />
