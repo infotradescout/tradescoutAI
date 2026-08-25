@@ -3,6 +3,7 @@ import type { ResolvedProfileGalleryItem } from "@shared/profileGalleryShare";
 import { listProfileInventoryItems } from "@shared/profileItemShare";
 import type { ResolvedProfileInventoryItem } from "@shared/profileItemShare";
 import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
+import type { ResolvedProfileInventoryCategory } from "@shared/profileCategoryShare";
 import {
   buildProfilePublicCategoryUrl,
   buildProfilePublicItemUrl,
@@ -62,6 +63,25 @@ export function isProfileInventoryItemPubliclyAddressable(
 }
 
 /**
+ * Route-level truth for profile-owned categories. A category must be indexable
+ * and contain at least one inventory child that is itself publicly addressable.
+ * This prevents placeholder-only collections from returning successful pages.
+ */
+export function isProfileInventoryCategoryPubliclyAddressable(
+  profileSlug: string,
+  contentBlocks: unknown,
+  category: ResolvedProfileInventoryCategory
+): boolean {
+  if (!category.indexable) return false;
+  const publishedInventorySlugs = new Set(
+    listProfileInventoryItems(inventoryCategoriesForProfile(profileSlug, contentBlocks))
+      .filter((item) => isProfileInventoryItemPubliclyAddressable(contentBlocks, item))
+      .map((item) => item.slug)
+  );
+  return category.itemSlugs.some((itemSlug) => publishedInventorySlugs.has(itemSlug));
+}
+
+/**
  * Route-level truth for profile-owned gallery/project pages. Automatic public
  * routes require a descriptive title and enough source-backed context to avoid
  * generic photo pages. An explicit gallery=true decision permits every
@@ -118,14 +138,11 @@ export function buildProfileSitemapUrls({
     contentBlocks,
     listProfileInventoryItems(inventoryCategories)
   );
-  const publishedInventorySlugs = new Set(inventory.map((item) => item.slug));
   const categories =
     preferences.categories === false
       ? []
-      : listProfileInventoryCategories(inventoryCategories, contentBlocks).filter(
-          (category) =>
-            category.indexable &&
-            category.itemSlugs.some((itemSlug) => publishedInventorySlugs.has(itemSlug))
+      : listProfileInventoryCategories(inventoryCategories, contentBlocks).filter((category) =>
+          isProfileInventoryCategoryPubliclyAddressable(profileSlug, contentBlocks, category)
         );
   const gallery = publishableGalleryItems(
     preferences.gallery,
