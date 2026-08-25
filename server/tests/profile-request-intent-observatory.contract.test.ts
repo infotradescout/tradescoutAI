@@ -21,7 +21,7 @@ describe("public profile request intent observatory", () => {
     expect(route).toContain("res.json(await addPublicProfileRequestIntent(snapshot))");
   });
 
-  it("returns a per-profile breakdown without calling opens submitted requests", () => {
+  it("returns and visibly summarizes the per-profile breakdown", () => {
     const route = read("server/routes/admin-discovery-observatory.ts");
 
     expect(route).toContain("profileRequestIntent");
@@ -30,6 +30,8 @@ describe("public profile request intent observatory", () => {
     expect(route).toContain("desktopOpenCount");
     expect(route).toContain('evidenceStrength: "client_correlated_unverified"');
     expect(route).toContain('grain: "direct_connect_dialog_mount_events"');
+    expect(route).toContain("visibleProfileSummary");
+    expect(route).toContain("Profile totals:");
     expect(route).toContain("not submitted requests or provider outcomes");
   });
 

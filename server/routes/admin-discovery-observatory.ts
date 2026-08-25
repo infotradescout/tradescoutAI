@@ -56,6 +56,13 @@ async function addPublicProfileRequestIntent(snapshot: Record<string, any>) {
       (total, row) => total + Number(row.openCount || 0),
       0
     );
+    const visibleProfileSummary = profileRequestIntent
+      .slice(0, 12)
+      .map(
+        (row) =>
+          `${row.displayName}: ${row.openCount} (${row.mobileOpenCount} mobile, ${row.desktopOpenCount} desktop)`
+      )
+      .join(" · ");
     const funnel = Array.isArray(snapshot.funnel) ? [...snapshot.funnel] : [];
     const entryIndex = funnel.findIndex((stage) => stage?.stage === "entry");
     const insertionIndex = entryIndex >= 0 ? entryIndex + 1 : Math.min(2, funnel.length);
@@ -79,7 +86,7 @@ async function addPublicProfileRequestIntent(snapshot: Record<string, any>) {
           status: "current",
           observedAt: new Date().toISOString(),
           ageSeconds: 0,
-          detail: `${openCount} panel-open event(s) across ${profileRequestIntent.length} public profile(s). Opens are deliberate client-observed intent, not submitted requests or provider outcomes.`,
+          detail: `${openCount} panel-open event(s) across ${profileRequestIntent.length} public profile(s). Opens are deliberate client-observed intent, not submitted requests or provider outcomes.${visibleProfileSummary ? ` Profile totals: ${visibleProfileSummary}.` : ""}`,
         },
       ],
       operatingViews: {
