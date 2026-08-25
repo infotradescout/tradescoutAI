@@ -4,66 +4,132 @@ import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
 import {
   buildProfilePublicCategoryUrl,
   buildProfilePublicItemUrl,
-  readProfilePublicSitemapConfig,
 } from "@shared/profilePublicItemRoute";
 import { inventoryCategoriesForProfile } from "./profileItemShareMetadata";
 
-type OptInProfileSitemapOptions = {
+type ProfileSitemapOptions = {
   profileSlug: string;
   profileUrl: string;
   contentBlocks: unknown;
 };
 
+type ProfileSitemapPreferences = {
+  inventory?: boolean;
+  categories?: boolean;
+  gallery?: boolean;
+};
+
+type PublicDiscoveryBlock = {
+  type?: unknown;
+  data?: unknown;
+};
+
+function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPreferences {
+  if (!Array.isArray(contentBlocks)) return {};
+  const block = (contentBlocks as PublicDiscoveryBlock[]).find(
+    (entry) => String(entry?.type || "").trim() === "publicDiscovery"
+  );
+  const data =
+    block?.data && typeof block.data === "object" && !Array.isArray(block.data)
+      ? (block.data as Record<string, unknown>)
+      : null;
+  const sitemap =
+    data?.sitemap && typeof data.sitemap === "object" && !Array.isArray(data.sitemap)
+      ? (data.sitemap as Record<string, unknown>)
+      : null;
+
+  return {
+    ...(typeof sitemap?.inventory === "boolean" ? { inventory: sitemap.inventory } : {}),
+    ...(typeof sitemap?.categories === "boolean" ? { categories: sitemap.categories } : {}),
+    ...(typeof sitemap?.gallery === "boolean" ? { gallery: sitemap.gallery } : {}),
+  };
+}
+
+function publishableInventoryItems(
+  preference: boolean | undefined,
+  items: ReturnType<typeof listProfileInventoryItems>
+) {
+  if (preference === false) return [];
+  if (preference === true) return items;
+  return items.filter((item) => item.hasPublicName);
+}
+
+function publishableGalleryItems(
+  preference: boolean | undefined,
+  items: ReturnType<typeof listProfileGalleryItems>
+) {
+  if (preference === false) return [];
+  if (preference === true) return items;
+  return items.filter(
+    (item) =>
+      !/^(?:gallery|project|work) photo \d+$/i.test(item.title.trim()) &&
+      item.description.trim().length >= 20
+  );
+}
+
 /**
- * Enumerates only profile-owned child discovery routes. Publication and
- * same-host authority are checked by the caller before this helper runs.
+ * Enumerates profile-owned child discovery routes for every public profile.
+ * The caller is responsible for the profile's publication, verification,
+ * exact-release, and same-host gates. Named inventory, indexable categories,
+ * and fact-bearing gallery records are enrolled automatically so profiles
+ * created later inherit the same discovery system. A profile can explicitly
+ * opt a child type out with `sitemap: { type: false }`; an explicit `true`
+ * permits every otherwise-valid record of that type.
  */
-export function buildOptInProfileSitemapUrls({
+export function buildProfileSitemapUrls({
   profileSlug,
   profileUrl,
   contentBlocks,
-}: OptInProfileSitemapOptions): string[] {
-  const config = readProfilePublicSitemapConfig(contentBlocks);
-  if (!config.inventory && !config.categories && !config.gallery) return [];
-
-  const categories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
+}: ProfileSitemapOptions): string[] {
+  const preferences = readProfileSitemapPreferences(contentBlocks);
+  const inventoryCategories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
+  const categories =
+    preferences.categories === false
+      ? []
+      : listProfileInventoryCategories(inventoryCategories, contentBlocks).filter(
+          (category) => category.indexable
+        );
+  const inventory = publishableInventoryItems(
+    preferences.inventory,
+    listProfileInventoryItems(inventoryCategories)
+  );
+  const gallery = publishableGalleryItems(
+    preferences.gallery,
+    listProfileGalleryItems(contentBlocks)
+  );
   const urls = new Set<string>();
 
-  if (config.categories) {
-    for (const category of listProfileInventoryCategories(categories, contentBlocks)) {
-      if (!category.indexable) continue;
-      const url = buildProfilePublicCategoryUrl({
-        profileUrl,
-        categorySlug: category.slug,
-        contentBlocks,
-      });
-      if (url) urls.add(url);
-    }
+  for (const category of categories) {
+    const url = buildProfilePublicCategoryUrl({
+      profileUrl,
+      categorySlug: category.slug,
+      contentBlocks,
+    });
+    if (url) urls.add(url);
   }
 
-  if (config.inventory) {
-    for (const item of listProfileInventoryItems(categories)) {
-      const url = buildProfilePublicItemUrl({
-        profileUrl,
-        itemType: "inventory",
-        itemSlug: item.slug,
-        contentBlocks,
-      });
-      if (url) urls.add(url);
-    }
+  for (const item of inventory) {
+    const url = buildProfilePublicItemUrl({
+      profileUrl,
+      itemType: "inventory",
+      itemSlug: item.slug,
+      contentBlocks,
+    });
+    if (url) urls.add(url);
   }
 
-  if (config.gallery) {
-    for (const item of listProfileGalleryItems(contentBlocks)) {
-      const url = buildProfilePublicItemUrl({
-        profileUrl,
-        itemType: "gallery",
-        itemSlug: item.slug,
-        contentBlocks,
-      });
-      if (url) urls.add(url);
-    }
+  for (const item of gallery) {
+    const url = buildProfilePublicItemUrl({
+      profileUrl,
+      itemType: "gallery",
+      itemSlug: item.slug,
+      contentBlocks,
+    });
+    if (url) urls.add(url);
   }
 
   return [...urls];
 }
+
+/** Compatibility name retained for existing route and test imports. */
+export const buildOptInProfileSitemapUrls = buildProfileSitemapUrls;
