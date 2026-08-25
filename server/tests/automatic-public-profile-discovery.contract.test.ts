@@ -75,7 +75,7 @@ describe("automatic public profile child discovery", () => {
     ).toEqual([]);
   });
 
-  it("keeps unnamed inventory and generic gallery photos out of automatic indexing", () => {
+  it("keeps unnamed inventory, generic photos, and placeholder-only categories out", () => {
     const urls = buildOptInProfileSitemapUrls({
       profileSlug: "thin-future-profile",
       profileUrl: "https://www.thetradescout.com/u/thin-future-profile",
@@ -108,9 +108,7 @@ describe("automatic public profile child discovery", () => {
       ],
     });
 
-    expect(urls).toEqual([
-      "https://www.thetradescout.com/u/thin-future-profile/categories/stone",
-    ]);
+    expect(urls).toEqual([]);
   });
 
   it("allows an explicit profile decision to publish otherwise-valid generic records", () => {
