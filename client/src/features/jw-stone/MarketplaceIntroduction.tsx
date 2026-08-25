@@ -1,3 +1,5 @@
+import "./JWStoneMarketplace.exact-surfaces.css";
+
 /** Canonical JW marketplace hero — highest-res source in repo (1920×1080). */
 const JW_STONE_HERO_VIDEO = "/images/businesses/jw-stone/video/hero.mp4";
 const JW_STONE_HERO_POSTER = "/images/businesses/jw-stone/video/hero-poster.jpg";
