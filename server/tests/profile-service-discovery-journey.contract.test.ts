@@ -31,6 +31,16 @@ describe("public profile service discovery journey", () => {
     expect(html).toContain('destination.searchParams.get("source") !== "profile_service_page"');
   });
 
+  it("emits browser-parseable JavaScript", () => {
+    const html = attachPublicProfileServiceJourneyScript(serviceHtml);
+    const script = html.match(
+      /<script data-ts-profile-service-journey="true">([\s\S]*?)<\/script>/i
+    )?.[1];
+
+    expect(script).toBeTruthy();
+    expect(() => new Function(script || "")).not.toThrow();
+  });
+
   it("does not double-install the journey bridge", () => {
     const once = attachPublicProfileServiceJourneyScript(serviceHtml);
     const twice = attachPublicProfileServiceJourneyScript(once);
