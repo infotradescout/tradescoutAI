@@ -236,6 +236,19 @@ export const RED_GRANITI_PROFILE_CONTENT_BLOCKS = [
     },
   },
   {
+    type: "publicDiscovery",
+    data: {
+      routes: {
+        gallery: "quarries",
+      },
+      sitemap: {
+        gallery: true,
+      },
+      sourceBoundary:
+        "Only source-region media tied to official R.E.D. Graniti quarry pages is eligible for quarry-page discovery.",
+    },
+  },
+  {
     type: "companyFacts",
     data: {
       title: "More than 50 years in natural stone",
