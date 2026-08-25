@@ -7,7 +7,7 @@ import { readProfilePublicSitemapConfig } from "@shared/profilePublicItemRoute";
 import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
 
 describe("ISSA Build public discovery", () => {
-  it("opts the canonical Onyx collection and both materials into the profile sitemap", () => {
+  it("publishes the canonical Onyx collection and both materials", () => {
     expect(readProfilePublicSitemapConfig(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).toEqual({
       inventory: true,
       categories: true,
@@ -29,7 +29,7 @@ describe("ISSA Build public discovery", () => {
     expect(urls.join("\n")).not.toMatch(/[?&](?:email|phone)=/i);
   });
 
-  it("does not enumerate child routes without an explicit profile-owned opt-in", () => {
+  it("automatically enrolls valid child records for profiles created later", () => {
     expect(
       buildOptInProfileSitemapUrls({
         profileSlug: "sample-profile",
@@ -51,6 +51,48 @@ describe("ISSA Build public discovery", () => {
                   ],
                 },
               ],
+            },
+          },
+        ],
+      })
+    ).toEqual([
+      "https://www.thetradescout.com/u/sample-profile/categories/onyx",
+      "https://www.thetradescout.com/u/sample-profile/inventory/sample-onyx",
+    ]);
+  });
+
+  it("honors an explicit child-discovery opt-out", () => {
+    expect(
+      buildOptInProfileSitemapUrls({
+        profileSlug: "private-catalog-profile",
+        profileUrl: "https://www.thetradescout.com/u/private-catalog-profile",
+        contentBlocks: [
+          {
+            type: "inventoryCatalog",
+            data: {
+              categories: [
+                {
+                  category: "Onyx",
+                  categorySlug: "onyx",
+                  stones: [
+                    {
+                      name: "Private Onyx",
+                      slug: "private-onyx",
+                      images: ["/images/private-onyx.jpg"],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            type: "publicDiscovery",
+            data: {
+              sitemap: {
+                inventory: false,
+                categories: false,
+                gallery: false,
+              },
             },
           },
         ],
