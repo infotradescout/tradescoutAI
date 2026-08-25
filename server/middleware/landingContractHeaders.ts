@@ -11,8 +11,16 @@ import {
 } from "../publicProfileServiceAreaHtml";
 import { attachPublicProfileServiceAreaLink } from "../publicProfileServiceAreaLinks";
 import { attachPublicDirectoryProfileServiceLinks } from "../publicDirectoryProfileServiceLinks";
+import {
+  attachPublicProfileImageSitemapReferences,
+  handlePublicProfileImageSitemapRequest,
+} from "../profileImageSitemap";
 
 const LEGACY_COMMERCE_PATH_PATTERN = /^\/(?:collections|products)(?:\/|$)/i;
+const PROFILE_IMAGE_SITEMAP_PATHS = new Set([
+  "/sitemap-profile-images.xml",
+  "/landing/profile-images.xml",
+]);
 const LEGACY_QUERY_KEYS = [
   "ref",
   "utm_source",
@@ -57,6 +65,23 @@ export async function landingContractHeaders(
   res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
   res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
   res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
+
+  // Image discovery uses the same governed child-page graph as public routes,
+  // sitemaps, IndexNow, and production audits. Platform and verified profile
+  // custom-domain feeds are served without creating another application.
+  try {
+    if (await handlePublicProfileImageSitemapRequest(req, res)) return;
+    attachPublicProfileImageSitemapReferences(req, res);
+  } catch (error) {
+    console.warn("[ProfileImageSitemap] Failed building public image sitemap:", error);
+    if (PROFILE_IMAGE_SITEMAP_PATHS.has(requestPath.replace(/\/+$/, "") || "/")) {
+      res
+        .status(503)
+        .type("text/plain")
+        .send("Public profile image sitemap is temporarily unavailable.\n");
+      return;
+    }
+  }
 
   // One substantial service-area hub is resolved before the SPA catch-all.
   // It uses only profile-published service areas and fact-bearing services,
