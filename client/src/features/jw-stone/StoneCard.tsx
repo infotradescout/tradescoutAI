@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
 import { JwStoneShareControl } from "./JwStoneShareControl";
+import { JwStoneTopSellerBadge } from "./JwStoneTopSellerBadge";
 import { stoneShareDestination } from "./marketplaceRoutes";
 import { availabilityDimensionsLine, materialFinishLine } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
@@ -160,6 +161,8 @@ export function StoneCard({
             </button>
           ))}
         </div>
+
+        <JwStoneTopSellerBadge stone={stone} />
 
         {stone.wishlistEligible ? (
           <button
