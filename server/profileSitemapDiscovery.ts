@@ -45,16 +45,36 @@ function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPr
   };
 }
 
-function automaticallyPublish(preference: boolean | undefined, itemCount: number): boolean {
-  return preference !== false && itemCount > 0;
+function publishableInventoryItems(
+  preference: boolean | undefined,
+  items: ReturnType<typeof listProfileInventoryItems>
+) {
+  if (preference === false) return [];
+  if (preference === true) return items;
+  return items.filter((item) => item.hasPublicName);
+}
+
+function publishableGalleryItems(
+  preference: boolean | undefined,
+  items: ReturnType<typeof listProfileGalleryItems>
+) {
+  if (preference === false) return [];
+  if (preference === true) return items;
+  return items.filter(
+    (item) =>
+      !/^(?:gallery|project|work) photo \d+$/i.test(item.title.trim()) &&
+      item.description.trim().length >= 20
+  );
 }
 
 /**
  * Enumerates profile-owned child discovery routes for every public profile.
  * The caller is responsible for the profile's publication, verification,
- * exact-release, and same-host gates. Valid child records are enrolled
- * automatically so profiles created later inherit the same discovery system.
- * A profile can explicitly opt a child type out with `sitemap: { type: false }`.
+ * exact-release, and same-host gates. Named inventory, indexable categories,
+ * and fact-bearing gallery records are enrolled automatically so profiles
+ * created later inherit the same discovery system. A profile can explicitly
+ * opt a child type out with `sitemap: { type: false }`; an explicit `true`
+ * permits every otherwise-valid record of that type.
  */
 export function buildProfileSitemapUrls({
   profileSlug,
@@ -63,46 +83,49 @@ export function buildProfileSitemapUrls({
 }: ProfileSitemapOptions): string[] {
   const preferences = readProfileSitemapPreferences(contentBlocks);
   const inventoryCategories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
-  const categories = listProfileInventoryCategories(inventoryCategories, contentBlocks).filter(
-    (category) => category.indexable
+  const categories =
+    preferences.categories === false
+      ? []
+      : listProfileInventoryCategories(inventoryCategories, contentBlocks).filter(
+          (category) => category.indexable
+        );
+  const inventory = publishableInventoryItems(
+    preferences.inventory,
+    listProfileInventoryItems(inventoryCategories)
   );
-  const inventory = listProfileInventoryItems(inventoryCategories);
-  const gallery = listProfileGalleryItems(contentBlocks);
+  const gallery = publishableGalleryItems(
+    preferences.gallery,
+    listProfileGalleryItems(contentBlocks)
+  );
   const urls = new Set<string>();
 
-  if (automaticallyPublish(preferences.categories, categories.length)) {
-    for (const category of categories) {
-      const url = buildProfilePublicCategoryUrl({
-        profileUrl,
-        categorySlug: category.slug,
-        contentBlocks,
-      });
-      if (url) urls.add(url);
-    }
+  for (const category of categories) {
+    const url = buildProfilePublicCategoryUrl({
+      profileUrl,
+      categorySlug: category.slug,
+      contentBlocks,
+    });
+    if (url) urls.add(url);
   }
 
-  if (automaticallyPublish(preferences.inventory, inventory.length)) {
-    for (const item of inventory) {
-      const url = buildProfilePublicItemUrl({
-        profileUrl,
-        itemType: "inventory",
-        itemSlug: item.slug,
-        contentBlocks,
-      });
-      if (url) urls.add(url);
-    }
+  for (const item of inventory) {
+    const url = buildProfilePublicItemUrl({
+      profileUrl,
+      itemType: "inventory",
+      itemSlug: item.slug,
+      contentBlocks,
+    });
+    if (url) urls.add(url);
   }
 
-  if (automaticallyPublish(preferences.gallery, gallery.length)) {
-    for (const item of gallery) {
-      const url = buildProfilePublicItemUrl({
-        profileUrl,
-        itemType: "gallery",
-        itemSlug: item.slug,
-        contentBlocks,
-      });
-      if (url) urls.add(url);
-    }
+  for (const item of gallery) {
+    const url = buildProfilePublicItemUrl({
+      profileUrl,
+      itemType: "gallery",
+      itemSlug: item.slug,
+      contentBlocks,
+    });
+    if (url) urls.add(url);
   }
 
   return [...urls];
