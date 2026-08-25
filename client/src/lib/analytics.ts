@@ -1,3 +1,5 @@
+import { getOrCreateDiscoveryAnonymousSessionId } from "./discoveryLanding";
+
 export type DeviceType = "desktop" | "mobile";
 
 export type ShellEvent =
@@ -33,6 +35,14 @@ export type ShellEvent =
       userTypesCount: number;
       userTypes: string[];
       hasCompletedProfileBasics: boolean;
+    }
+  | {
+      type: "public_profile_direct_connect_opened";
+      profileSlug: string;
+      surface: "express_direct_connect_panel";
+      route: string;
+      deviceType: DeviceType;
+      ts: string;
     }
   | {
       type: "dashboard_banner_shown";
@@ -327,6 +337,15 @@ export function getDeviceType(): DeviceType {
   return window.innerWidth < 768 ? "mobile" : "desktop";
 }
 
+function validAnonymousSessionId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 128 &&
+    /^[A-Za-z0-9._:-]+$/.test(value)
+  );
+}
+
 export async function trackShellEvent(event: ShellEvent) {
   // In development, skip hitting the server entirely.
   // This keeps your DevTools clean and avoids noise while you build.
@@ -335,13 +354,25 @@ export async function trackShellEvent(event: ShellEvent) {
   }
 
   try {
+    const anonymousSessionId =
+      event.type === "public_profile_direct_connect_opened"
+        ? getOrCreateDiscoveryAnonymousSessionId()
+        : "";
+    const payload = validAnonymousSessionId(anonymousSessionId)
+      ? { ...event, anonymousSessionId, linkageVersion: 1 }
+      : event;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (validAnonymousSessionId(anonymousSessionId)) {
+      headers["X-Anonymous-Session-Id"] = anonymousSessionId;
+    }
+
     const res = await fetch("/api/analytics/shell", {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(event),
+      headers,
+      body: JSON.stringify(payload),
     });
 
     // In production, only warn on "real" failures.
