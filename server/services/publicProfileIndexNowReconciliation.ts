@@ -60,6 +60,17 @@ function normalizeGeneratedProfileUrl(value: unknown): string | null {
   }
 }
 
+function profileSlugFromCanonicalUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    const match = url.pathname.match(/^\/u\/([^/]+)/);
+    if (!match?.[1]) return null;
+    return decodeURIComponent(match[1]).trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Builds the exact platform-host URL set owned by the current profile graph.
  * Custom-domain profiles remain on their own host and are not claimed through
@@ -169,9 +180,7 @@ export async function reconcilePublicProfileIndexNow(
   const urls = collectPublicProfileIndexNowReconciliationUrls(candidates);
   const fingerprint = fingerprintPublicProfileIndexNowUrls(urls);
   const profileCount = new Set(
-    candidates
-      .map((candidate) => String(candidate.slug || "").trim().toLowerCase())
-      .filter(Boolean)
+    urls.map(profileSlugFromCanonicalUrl).filter((slug): slug is string => Boolean(slug))
   ).size;
 
   if (!fingerprint || urls.length === 0) {
