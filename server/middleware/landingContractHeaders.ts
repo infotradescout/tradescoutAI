@@ -16,6 +16,7 @@ import {
   handlePublicProfileImageSitemapRequest,
 } from "../profileImageSitemap";
 import { handlePublicFaviconFallback } from "../publicFaviconFallback";
+import { handlePublicCustomDomainCanonicalRedirect } from "../publicCustomDomainCanonicalRedirect";
 
 const LEGACY_COMMERCE_PATH_PATTERN = /^\/(?:collections|products)(?:\/|$)/i;
 const PROFILE_IMAGE_SITEMAP_PATHS = new Set([
@@ -66,6 +67,16 @@ export async function landingContractHeaders(
   res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
   res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
   res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
+
+  // Custom-domain aliases must collapse before any TradeScout-hosted profile,
+  // marketplace, service, or child renderer can create another successful URL
+  // or an intermediate redirect. Eligibility and paths come from the governed
+  // public profile graph, and owner-domain requests are never redirected here.
+  try {
+    if (await handlePublicCustomDomainCanonicalRedirect(req, res)) return;
+  } catch (error) {
+    console.warn("[CustomDomainCanonical] Failed resolving public alias:", error);
+  }
 
   // Keep the conventional icon URL healthy on TradeScout and mapped profile
   // domains even when a browser ignores the page-declared profile favicon.
