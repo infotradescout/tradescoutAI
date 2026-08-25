@@ -10,6 +10,7 @@ import {
   isPublicProfileServiceAreaPath,
 } from "../publicProfileServiceAreaHtml";
 import { attachPublicProfileServiceAreaLink } from "../publicProfileServiceAreaLinks";
+import { attachPublicDirectoryProfileServiceLinks } from "../publicDirectoryProfileServiceLinks";
 
 const LEGACY_COMMERCE_PATH_PATTERN = /^\/(?:collections|products)(?:\/|$)/i;
 const LEGACY_QUERY_KEYS = [
@@ -83,10 +84,11 @@ export async function landingContractHeaders(
     return res.redirect(301, legacyCommerceRedirectTarget(req));
   }
 
-  // Platform-host profile roots advertise the same fact-bearing service and
-  // service-area pages that their sitemap publishes. Custom domains expose the
-  // same set through their host-local sitemap and public guidance.
+  // Profile roots and local directory pages advertise the exact governed
+  // public graph. Directory business links resolve to canonical profiles and
+  // their fact-bearing services instead of stopping at a generic alias route.
   try {
+    await attachPublicDirectoryProfileServiceLinks(req, res);
     await attachPublicProfileServiceLinks(req, res);
     await attachPublicProfileServiceAreaLink(req, res);
   } catch (error) {
