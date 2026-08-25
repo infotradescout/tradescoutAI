@@ -359,7 +359,7 @@ export async function trackShellEvent(event: ShellEvent) {
         ? getOrCreateDiscoveryAnonymousSessionId()
         : "";
     const payload = validAnonymousSessionId(anonymousSessionId)
-      ? { ...event, anonymousSessionId }
+      ? { ...event, anonymousSessionId, linkageVersion: 1 }
       : event;
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
