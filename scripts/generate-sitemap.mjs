@@ -19,7 +19,11 @@ function runNode(args) {
   });
 }
 
-runNode(["--test", path.join(scriptsDir, "jw-stone-face-color-core.contract.test.mjs")]);
+runNode([
+  "--test",
+  path.join(scriptsDir, "jw-stone-face-color-core.contract.test.mjs"),
+  path.join(scriptsDir, "jw-stone-color-bucket-accuracy.contract.test.mjs"),
+]);
 runNode([path.join(scriptsDir, "extract-jw-stone-dominant-colors.mjs")]);
 
 await import("./generate-sitemap-core.mjs");
