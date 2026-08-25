@@ -261,8 +261,9 @@ export function schedulePublicProfileImageSitemapAudit(): boolean {
 
 /**
  * Audits every TradeScout-hosted alias for a custom-domain profile and requires
- * one direct permanent redirect to the exact canonical owner-domain URL. This
- * is separate from Google recrawl and canonical selection evidence.
+ * one direct permanent redirect to the exact canonical owner-domain URL. Rate
+ * limits and transient server failures remain unavailable evidence instead of
+ * being counted as bad redirects.
  */
 export function schedulePublicCustomDomainCanonicalAudit(): boolean {
   if (customDomainCanonicalAuditScheduled) return false;
@@ -277,9 +278,9 @@ export function schedulePublicCustomDomainCanonicalAudit(): boolean {
     ? Math.max(20_000, Math.min(900_000, requestedDelay))
     : 135_000;
   const timer = setTimeout(() => {
-    void import("./publicCustomDomainCanonicalAudit")
-      .then(({ runPublicCustomDomainCanonicalAudit }) =>
-        runPublicCustomDomainCanonicalAudit()
+    void import("./publicCustomDomainCanonicalAuditV2")
+      .then(({ runPublicCustomDomainCanonicalAuditV2 }) =>
+        runPublicCustomDomainCanonicalAuditV2()
       )
       .then((result) => {
         console.log(
