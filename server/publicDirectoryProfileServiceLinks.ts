@@ -11,6 +11,7 @@ import {
 import { pool } from "./db";
 import { buildProfileSitemapUrls } from "./profileSitemapDiscovery";
 import { canUseLinkedProfileAsCanonicalBusinessRoute } from "./services/canonicalBusinessProfileRoute";
+import { resolvePublicOrigin } from "./utils/publicOrigin";
 
 const DIRECTORY_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_DIRECTORY_SERVICE_LINKS = 8;
@@ -389,7 +390,7 @@ export async function attachPublicDirectoryProfileServiceLinks(
   const requestPath = String(req.path || "").trim();
   if (!DIRECTORY_PATH_PATTERN.test(requestPath)) return;
 
-  const origin = normalizeOrigin(`${req.protocol || "https"}://${req.get("host") || ""}`);
+  const origin = normalizeOrigin(resolvePublicOrigin(req));
   if (!origin) return;
   const discoveries = await loadPublicDirectoryProfileDiscoveries(origin);
   if (discoveries.length === 0) return;
