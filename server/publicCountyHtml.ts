@@ -13,6 +13,7 @@ import {
   publicBusinessDetailExposureSqlPredicate,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { listActiveCountyTradeScopes } from "./services/seoDirectoryNavigationService";
 
 type PublicCountyHtmlOptions = {
   origin: string;
@@ -137,13 +138,6 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   return html;
 }
 
-function isMissingColumnError(error: unknown, columnName: string): boolean {
-  const err = error as any;
-  const code = String(err?.code || "");
-  const message = String(err?.message || "");
-  return code === "42703" && message.toLowerCase().includes(String(columnName).toLowerCase());
-}
-
 export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Promise<string | null> {
   const stateCode = String(opts.stateCode || "").toUpperCase();
   const countySlug = String(opts.countySlug || "")
@@ -167,59 +161,47 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
     ) || null;
   if (!county) return null;
 
+  // A general county page exists only when the shared public scope snapshot has
+  // at least one qualifying trade in that county. Reject empty nationwide URL
+  // guesses before running the much larger business-listing query.
+  const activeTradeScopes = await listActiveCountyTradeScopes(stateCode, countySlug);
+  if (activeTradeScopes.length === 0) return null;
+
   const rules = await getPublicationRules();
   const now = new Date();
   const recencyCutoff = new Date(
     now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
   );
 
-  // Pull a recency-bounded slice of businesses in this county and derive trade presence in JS.
-  const runCountyQuery = (includeDiscovery: boolean) =>
-    db
-      .select({
-        id: businesses.id,
-        slug: businesses.slug,
-        name: businesses.name,
-        claimStatus: businesses.claimStatus,
-        ownerUserId: businesses.ownerUserId,
-        updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: includeDiscovery
-          ? businesses.publicDiscoveryEnabled
-          : sql<boolean>`false`,
-        profileData: businesses.profileData,
-        ownerVerificationStatus: users.verificationStatus,
-        ownerAddressVerified: users.addressVerified,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          publicBusinessDetailExposureSqlPredicate(),
-          ...(includeDiscovery ? [eq(businesses.publicDiscoveryEnabled, true as any)] : []),
-          eq(counties.fips, String((county as any).fipsCode || "")),
-          sql`${businesses.updatedAt} >= ${recencyCutoff}`
-        )
+  const rows = await db
+    .select({
+      id: businesses.id,
+      slug: businesses.slug,
+      name: businesses.name,
+      claimStatus: businesses.claimStatus,
+      ownerUserId: businesses.ownerUserId,
+      updatedAt: businesses.updatedAt,
+      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+      profileData: businesses.profileData,
+      ownerVerificationStatus: users.verificationStatus,
+      ownerAddressVerified: users.addressVerified,
+    })
+    .from(businesses)
+    .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+    .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+    .leftJoin(users, eq(users.id, businesses.ownerUserId))
+    .where(
+      and(
+        eq(businesses.status, "active" as any),
+        eq(businesses.publicDiscoveryEnabled, true as any),
+        publicBusinessDetailExposureSqlPredicate(),
+        eq(counties.fips, String((county as any).fipsCode || "")),
+        sql`${businesses.updatedAt} >= ${recencyCutoff}`
       )
-      .orderBy(desc(businesses.updatedAt), asc(businesses.slug))
-      .limit(5000);
+    )
+    .orderBy(desc(businesses.updatedAt), asc(businesses.slug))
+    .limit(5000);
 
-  let rows: any[] = [];
-  try {
-    rows = await runCountyQuery(true);
-  } catch (error) {
-    if (isMissingColumnError(error, "public_discovery_enabled")) {
-      rows = await runCountyQuery(false);
-    } else {
-      console.error("[SEO] County directory query failed; serving page without listings", error);
-      rows = [];
-    }
-  }
-
-  const tradeCounts = new Map<string, number>();
-  const tradeLastmod = new Map<string, Date>();
   const sampleBusinesses: Array<{ slug: string; name: string; updatedAt: Date }> = [];
 
   for (const r of rows) {
@@ -264,32 +246,25 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
     if (sampleBusinesses.length < 50) {
       sampleBusinesses.push({ slug: businessSlug, name: businessName, updatedAt });
     }
-
-    if (!tradeSlug) continue;
-    tradeCounts.set(tradeSlug, (tradeCounts.get(tradeSlug) || 0) + 1);
-    const prev = tradeLastmod.get(tradeSlug);
-    if (!prev || updatedAt > prev) tradeLastmod.set(tradeSlug, updatedAt);
   }
 
-  const topTrades = Array.from(tradeCounts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 30)
-    .map(([slug, count]) => {
-      const trade = getTradeBySlug(slug);
-      return {
-        slug,
-        name: trade ? String((trade as any).name || slug) : slug,
-        count,
-        lastmod: tradeLastmod.get(slug) || null,
-      };
-    });
-
-  // Ensure primary trades appear (if present) to support deterministic internal linking.
-  const primaryPresent = PRIMARY_TRADE_SLUGS.filter((slug) => tradeCounts.has(slug)).slice(0, 24);
-  const primaryLinks = primaryPresent.map((slug) => {
-    const trade = getTradeBySlug(slug);
-    return { slug, name: trade ? String((trade as any).name || slug) : slug };
+  // Use the same snapshot that governs trade-county routes and sitemaps. This
+  // keeps every county link pointed at a route that can actually return a page.
+  const topTrades = activeTradeScopes.slice(0, 30).map(({ tradeSlug, businessCount }) => {
+    const trade = getTradeBySlug(tradeSlug);
+    return {
+      slug: tradeSlug,
+      name: trade ? String((trade as any).name || tradeSlug) : tradeSlug,
+      count: businessCount,
+    };
   });
+  const activeTradeSlugs = new Set(activeTradeScopes.map((scope) => scope.tradeSlug));
+  const primaryLinks = PRIMARY_TRADE_SLUGS.filter((slug) => activeTradeSlugs.has(slug))
+    .slice(0, 24)
+    .map((slug) => {
+      const trade = getTradeBySlug(slug);
+      return { slug, name: trade ? String((trade as any).name || slug) : slug };
+    });
 
   const canonicalPath = `/county/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(countySlug)}`;
   const title = formatTradeScoutTitle(
@@ -312,7 +287,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
       "trades",
       "TradeScout",
     ],
-    indexable: topTrades.length > 0,
+    indexable: true,
   });
 
   const summary = `
@@ -336,9 +311,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
     </ul>`
         : ""
     }
-    ${
-      topTrades.length
-        ? `<h2>Trades with recent listings</h2>
+    <h2>Trades with recent listings</h2>
     <ul>
       ${topTrades
         .map((t) => {
@@ -350,9 +323,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
           ).toLocaleString()})</small></li>`;
         })
         .join("\n")}
-    </ul>`
-        : `<p><em>No recent public directory listings found in this county.</em></p>`
-    }
+    </ul>
     ${
       sampleBusinesses.length
         ? `<h2>Recent directory listings</h2>
