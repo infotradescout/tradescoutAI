@@ -115,6 +115,7 @@ let reconciliationScheduled = false;
 let productionAuditScheduled = false;
 let directoryGraphAuditScheduled = false;
 let imageSitemapAuditScheduled = false;
+let customDomainCanonicalAuditScheduled = false;
 
 /**
  * Starts one non-blocking reconciliation after the production server has had
@@ -258,7 +259,46 @@ export function schedulePublicProfileImageSitemapAudit(): boolean {
   return true;
 }
 
+/**
+ * Audits every TradeScout-hosted alias for a custom-domain profile and requires
+ * one direct permanent redirect to the exact canonical owner-domain URL. This
+ * is separate from Google recrawl and canonical selection evidence.
+ */
+export function schedulePublicCustomDomainCanonicalAudit(): boolean {
+  if (customDomainCanonicalAuditScheduled) return false;
+  if (process.env.NODE_ENV !== "production") return false;
+  if (process.env.PUBLIC_CUSTOM_DOMAIN_CANONICAL_AUDIT_DISABLED === "true") return false;
+
+  customDomainCanonicalAuditScheduled = true;
+  const requestedDelay = Number(
+    process.env.PUBLIC_CUSTOM_DOMAIN_CANONICAL_AUDIT_DELAY_MS || 135_000
+  );
+  const delayMs = Number.isFinite(requestedDelay)
+    ? Math.max(20_000, Math.min(900_000, requestedDelay))
+    : 135_000;
+  const timer = setTimeout(() => {
+    void import("./publicCustomDomainCanonicalAudit")
+      .then(({ runPublicCustomDomainCanonicalAudit }) =>
+        runPublicCustomDomainCanonicalAudit()
+      )
+      .then((result) => {
+        console.log(
+          `[CustomDomainCanonicalAudit] Production aliases ${result.status}: ${result.verifiedCount} verified, ${result.failedCount} failed, ${result.unavailableCount} unavailable across ${result.targetCount} alias(es) and ${result.profileCount} profile(s).`
+        );
+      })
+      .catch((error) => {
+        console.warn(
+          "[CustomDomainCanonicalAudit] Canonical alias audit failed; a later deploy will retry:",
+          error
+        );
+      });
+  }, delayMs);
+  timer.unref?.();
+  return true;
+}
+
 schedulePublicProfileIndexNowReconciliation();
 schedulePublicProfileProductionAudit();
 schedulePublicDirectoryProfileGraphAudit();
 schedulePublicProfileImageSitemapAudit();
+schedulePublicCustomDomainCanonicalAudit();
