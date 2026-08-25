@@ -26,7 +26,7 @@ const inventoryBlock = {
 };
 
 describe("IndexNow public operating-system publication events", () => {
-  it("publishes only eligible public profiles and their public inventory routes", () => {
+  it("publishes only eligible profiles and the same automatic child routes as the sitemap", () => {
     const profile = {
       slug: "stone-and-tile",
       status: "published",
@@ -37,6 +37,7 @@ describe("IndexNow public operating-system publication events", () => {
 
     expect(collectProfileIndexNowUrls(profile, true)).toEqual([
       "/u/stone-and-tile",
+      "/u/stone-and-tile/categories/granite",
       "/u/stone-and-tile/inventory/blue-pearl",
     ]);
     expect(collectProfileIndexNowUrls({ ...profile, status: "draft" }, true)).toEqual([]);
@@ -58,7 +59,7 @@ describe("IndexNow public operating-system publication events", () => {
     ).toEqual(["/u/old-slug", "/u/old-slug/inventory/retired-item", "/u/new-slug"]);
   });
 
-  it("includes indexable category routes only after a profile-owned sitemap opt-in", () => {
+  it("uses configured route and category names without requiring a separate IndexNow rule", () => {
     const profile = {
       slug: "stone-and-tile",
       status: "published",
@@ -66,7 +67,10 @@ describe("IndexNow public operating-system publication events", () => {
         {
           type: "publicDiscovery",
           data: {
-            sitemap: { categories: true },
+            routes: {
+              inventory: "materials",
+              categories: "collections",
+            },
             categories: [
               {
                 sourceSlug: "granite",
@@ -84,9 +88,85 @@ describe("IndexNow public operating-system publication events", () => {
 
     expect(collectProfileIndexNowUrls(profile, true)).toEqual([
       "/u/stone-and-tile",
-      "/u/stone-and-tile/categories/natural-granite",
-      "/u/stone-and-tile/inventory/blue-pearl",
+      "/u/stone-and-tile/collections/natural-granite",
+      "/u/stone-and-tile/materials/blue-pearl",
     ]);
+  });
+
+  it("notifies fact-bearing project pages and excludes generic or placeholder child records", () => {
+    const profile = {
+      slug: "source-backed-profile",
+      status: "published",
+      contentBlocks: [
+        {
+          type: "inventoryCatalog",
+          data: {
+            categories: [
+              {
+                category: "Stone",
+                categorySlug: "stone",
+                stones: [
+                  {
+                    name: "Internal placeholder",
+                    nameStatus: "placeholder",
+                    slug: "trending-selection-04",
+                    images: ["/uploads/trending-selection-04.webp"],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          type: "gallery",
+          data: {
+            images: [
+              "/uploads/generic-gallery-photo.webp",
+              {
+                imageUrl: "/uploads/completed-installation.webp",
+                title: "Completed stone installation",
+                description:
+                  "A source-backed completed installation published by the profile owner.",
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const urls = collectProfileIndexNowUrls(profile, true);
+    expect(urls[0]).toBe("/u/source-backed-profile");
+    expect(urls).toHaveLength(2);
+    expect(
+      urls.some((url) =>
+        url.includes("/u/source-backed-profile/gallery/completed-stone-installation-")
+      )
+    ).toBe(true);
+    expect(urls.join("\n")).not.toContain("trending-selection-04");
+    expect(urls.join("\n")).not.toContain("gallery-photo-1");
+    expect(urls.join("\n")).not.toContain("/categories/stone");
+  });
+
+  it("keeps the profile root but honors explicit child sitemap opt-outs", () => {
+    const profile = {
+      slug: "stone-and-tile",
+      status: "published",
+      contentBlocks: [
+        inventoryBlock,
+        {
+          type: "publicDiscovery",
+          data: {
+            sitemap: {
+              inventory: false,
+              categories: false,
+              gallery: false,
+            },
+          },
+        },
+      ],
+    };
+
+    expect(collectProfileIndexNowUrls(profile, true)).toEqual(["/u/stone-and-tile"]);
   });
 
   it("publishes only public, authority-eligible business pages", () => {
