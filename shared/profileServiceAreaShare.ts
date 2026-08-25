@@ -43,16 +43,30 @@ function blockData(block: RawContentBlock): Record<string, unknown> {
     : {};
 }
 
+function serviceAreaDiscoveryDisabled(contentBlocks: RawContentBlock[]): boolean {
+  const discovery = contentBlocks.find(
+    (block) => cleanText(block?.type, 64).toLowerCase() === "publicdiscovery"
+  );
+  const data = blockData(discovery || {});
+  const sitemap =
+    data.sitemap && typeof data.sitemap === "object" && !Array.isArray(data.sitemap)
+      ? (data.sitemap as Record<string, unknown>)
+      : {};
+  return sitemap.serviceAreas === false;
+}
+
 export function resolveProfileServiceAreaHub(
   contentBlocks: unknown
 ): ResolvedProfileServiceAreaHub | null {
   if (!Array.isArray(contentBlocks)) return null;
+  const blocks = contentBlocks as RawContentBlock[];
+  if (serviceAreaDiscoveryDisabled(blocks)) return null;
 
   const areas: string[] = [];
   const seen = new Set<string>();
   let description = "";
 
-  for (const rawBlock of contentBlocks as RawContentBlock[]) {
+  for (const rawBlock of blocks) {
     const type = cleanText(rawBlock?.type, 64).toLowerCase();
     if (type !== "localserviceprofile" && type !== "serviceareas" && type !== "servicearea") {
       continue;
