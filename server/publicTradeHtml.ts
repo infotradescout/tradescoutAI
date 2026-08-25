@@ -1,5 +1,5 @@
 import { and, asc, eq, or, sql } from "drizzle-orm";
-import { db, pool } from "./db";
+import { db } from "./db";
 import { businessCounties, businesses, counties, users } from "@shared/schema";
 import {
   getTradeBySlug,
@@ -18,6 +18,7 @@ import {
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
 import {
+  hasActiveTradeCountyScope,
   listActiveTradeCountyScopes,
   listActiveTradeScopes,
   listActiveTradeStateScopes,
@@ -27,36 +28,6 @@ type PublicTradeHtmlOptions = {
   origin: string;
   templateHtml: string;
 };
-
-let cachedHasPublicDiscoveryEnabledColumn: boolean | null = null;
-let loggedMissingPublicDiscoveryEnabledColumn = false;
-
-async function hasPublicDiscoveryEnabledColumn(): Promise<boolean> {
-  if (cachedHasPublicDiscoveryEnabledColumn !== null) return cachedHasPublicDiscoveryEnabledColumn;
-  try {
-    const result = await pool.query<{ exists: boolean }>(
-      `SELECT EXISTS (
-         SELECT 1
-         FROM information_schema.columns
-         WHERE table_schema = 'public'
-           AND table_name = 'businesses'
-           AND column_name = 'public_discovery_enabled'
-       ) as exists`
-    );
-    cachedHasPublicDiscoveryEnabledColumn = Boolean(result.rows?.[0]?.exists);
-    return cachedHasPublicDiscoveryEnabledColumn;
-  } catch (err) {
-    cachedHasPublicDiscoveryEnabledColumn = false;
-    return false;
-  }
-}
-
-function isMissingColumnError(error: unknown, columnName: string): boolean {
-  const err = error as any;
-  const code = String(err?.code || "");
-  const message = String(err?.message || "");
-  return code === "42703" && message.toLowerCase().includes(String(columnName).toLowerCase());
-}
 
 function escapeHtml(value: string) {
   return String(value || "")
@@ -215,17 +186,7 @@ export async function buildPublicTradeOverviewHtml(
   if (!match) return null;
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
-  let stateScopes: Awaited<ReturnType<typeof listActiveTradeStateScopes>> = [];
-  let stateScopeQueryFailed = false;
-  try {
-    stateScopes = await listActiveTradeStateScopes(canonicalSlug);
-  } catch (error) {
-    stateScopeQueryFailed = true;
-    console.warn("[SEO] Trade overview navigation degraded; omitting crawl links", {
-      tradeSlug: canonicalSlug,
-      error,
-    });
-  }
+  const stateScopes = await listActiveTradeStateScopes(canonicalSlug);
   const activeStates = stateScopes
     .map((scope) => {
       const state = US_STATES_COUNTIES.find(
@@ -235,7 +196,7 @@ export async function buildPublicTradeOverviewHtml(
     })
     .filter(Boolean) as Array<(typeof US_STATES_COUNTIES)[number] & { businessCount: number }>;
 
-  if (!stateScopeQueryFailed && activeStates.length === 0) return null;
+  if (activeStates.length === 0) return null;
 
   const title = formatTradeScoutTitle(`Find ${match.trade.name} Contractors by State`);
   const description = `Find ${match.trade.name} contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue through Direct Connect when contact is appropriate.`;
@@ -252,7 +213,7 @@ export async function buildPublicTradeOverviewHtml(
       "counties",
       "TradeScout",
     ],
-    indexable: activeStates.length > 0,
+    indexable: true,
   });
 
   const summary = `
@@ -278,7 +239,6 @@ export async function buildPublicTradeOverviewHtml(
         })
         .join("\n")}
     </ul>
-    ${activeStates.length ? "" : "<p><em>No recent public directory coverage is available for this trade yet.</em></p>"}
     <p>Contact is protected through TradeScout Direct Connect.</p>
   </article>
 </main>`;
@@ -309,12 +269,7 @@ export async function buildPublicTradeOverviewHtml(
 export async function buildPublicTradeDirectoryHtml(
   args: PublicTradeHtmlOptions
 ): Promise<string | null> {
-  let tradeScopes: Awaited<ReturnType<typeof listActiveTradeScopes>> = [];
-  try {
-    tradeScopes = await listActiveTradeScopes();
-  } catch (error) {
-    console.warn("[SEO] Trade directory navigation degraded; omitting crawl links", error);
-  }
+  const tradeScopes = await listActiveTradeScopes();
   const items = tradeScopes
     .map((scope) => {
       const trade = getTradeBySlug(scope.tradeSlug);
@@ -323,6 +278,8 @@ export async function buildPublicTradeDirectoryHtml(
         : null;
     })
     .filter(Boolean) as Array<{ slug: string; name: string; businessCount: number }>;
+
+  if (items.length === 0) return null;
 
   const title = formatTradeScoutTitle("Find Contractors by Trade");
   const description =
@@ -333,7 +290,7 @@ export async function buildPublicTradeDirectoryHtml(
     title,
     description,
     keywords: ["trades", "contractors", "directory", "counties", "TradeScout"],
-    indexable: items.length > 0,
+    indexable: true,
   });
 
   const summary = `
@@ -351,7 +308,6 @@ export async function buildPublicTradeDirectoryHtml(
         )
         .join("\n")}
     </ul>
-    ${items.length ? "" : "<p><em>No recent public trade coverage is available yet.</em></p>"}
   </article>
 </main>`;
 
@@ -385,18 +341,7 @@ export async function buildPublicTradeStateHtml(
   if (!state) return null;
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
-  let countyScopes: Awaited<ReturnType<typeof listActiveTradeCountyScopes>> = [];
-  let countyScopeQueryFailed = false;
-  try {
-    countyScopes = await listActiveTradeCountyScopes(canonicalSlug, stateCode);
-  } catch (error) {
-    countyScopeQueryFailed = true;
-    console.warn("[SEO] Trade state navigation degraded; omitting crawl links", {
-      tradeSlug: canonicalSlug,
-      stateCode,
-      error,
-    });
-  }
+  const countyScopes = await listActiveTradeCountyScopes(canonicalSlug, stateCode);
   const activeCounties = countyScopes
     .map((scope) => {
       const county = state.counties.find(
@@ -410,7 +355,7 @@ export async function buildPublicTradeStateHtml(
     businessCount: number;
   }>;
 
-  if (!countyScopeQueryFailed && activeCounties.length === 0) return null;
+  if (activeCounties.length === 0) return null;
 
   const title = formatTradeScoutTitle(`${match.trade.name} Contractors in ${state.name}`);
   const description = `Find ${match.trade.name} contractors in ${state.name} on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths.`;
@@ -420,7 +365,7 @@ export async function buildPublicTradeStateHtml(
     title,
     description,
     keywords: [match.trade.name, state.name, state.code, "counties", "directory", "TradeScout"],
-    indexable: activeCounties.length > 0,
+    indexable: true,
   });
 
   const summary = `
@@ -447,7 +392,6 @@ export async function buildPublicTradeStateHtml(
         })
         .join("\n")}
     </ul>
-    ${activeCounties.length ? "" : "<p><em>No recent public directory coverage is available in this state for this trade yet.</em></p>"}
     <p>Contact is protected through TradeScout Direct Connect.</p>
   </article>
 </main>`;
@@ -495,6 +439,7 @@ export async function buildPublicTradeCountyHtml(
   if (!county) return null;
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
+  if (!(await hasActiveTradeCountyScope(canonicalSlug, stateCode, countySlug))) return null;
 
   const canonicalPath = `/trade/${encodeURIComponent(canonicalSlug)}/${encodeURIComponent(
     stateCode.toLowerCase()
@@ -514,71 +459,30 @@ export async function buildPublicTradeCountyHtml(
   const whereClauses: any[] = [
     eq(counties.fips, String((county as any).fipsCode || "")),
     eq(businesses.status, "active" as any),
+    eq(businesses.publicDiscoveryEnabled, true as any),
     publicBusinessDetailExposureSqlPredicate(),
   ];
   if (tradeClause) whereClauses.push(tradeClause);
 
-  const includePublicDiscoveryEnabled = await hasPublicDiscoveryEnabledColumn();
-  let listingQueryDegraded = !includePublicDiscoveryEnabled;
-  if (!includePublicDiscoveryEnabled && !loggedMissingPublicDiscoveryEnabledColumn) {
-    loggedMissingPublicDiscoveryEnabledColumn = true;
-    console.error(
-      "[SEO] Missing businesses.public_discovery_enabled; treating discovery as disabled. Run migrations to restore full SEO listings."
-    );
-  }
-
-  const runQuery = async (includeDiscovery: boolean) =>
-    db
-      .select({
-        id: businesses.id,
-        slug: businesses.slug,
-        name: businesses.name,
-        claimStatus: businesses.claimStatus,
-        ownerUserId: businesses.ownerUserId,
-        updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: includeDiscovery
-          ? businesses.publicDiscoveryEnabled
-          : sql<boolean>`false`,
-        ownerVerificationStatus: users.verificationStatus,
-        ownerAddressVerified: users.addressVerified,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(and(...whereClauses))
-      .orderBy(asc(businesses.name))
-      .limit(200);
-
-  let rows: any[];
-  try {
-    rows = await runQuery(includePublicDiscoveryEnabled);
-  } catch (error) {
-    // Defensive: some environments have drift and will error even if our introspection cache is stale.
-    if (includePublicDiscoveryEnabled && isMissingColumnError(error, "public_discovery_enabled")) {
-      listingQueryDegraded = true;
-      cachedHasPublicDiscoveryEnabledColumn = false;
-      if (!loggedMissingPublicDiscoveryEnabledColumn) {
-        loggedMissingPublicDiscoveryEnabledColumn = true;
-        console.error(
-          "[SEO] Missing businesses.public_discovery_enabled (runtime); retrying without discovery filter. Run migrations to restore full SEO listings."
-        );
-      }
-      rows = await runQuery(false);
-    } else {
-      listingQueryDegraded = true;
-      console.error(
-        "[SEO] Trade county listing query failed; serving fallback page without listings",
-        {
-          tradeSlug: canonicalSlug,
-          stateCode,
-          countySlug,
-          error,
-        }
-      );
-      rows = [];
-    }
-  }
+  const rows = await db
+    .select({
+      id: businesses.id,
+      slug: businesses.slug,
+      name: businesses.name,
+      claimStatus: businesses.claimStatus,
+      ownerUserId: businesses.ownerUserId,
+      updatedAt: businesses.updatedAt,
+      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+      ownerVerificationStatus: users.verificationStatus,
+      ownerAddressVerified: users.addressVerified,
+    })
+    .from(businesses)
+    .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+    .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+    .leftJoin(users, eq(users.id, businesses.ownerUserId))
+    .where(and(...whereClauses))
+    .orderBy(asc(businesses.name))
+    .limit(200);
 
   const rules = await getPublicationRules();
   const now = new Date();
@@ -638,9 +542,9 @@ export async function buildPublicTradeCountyHtml(
       Boolean(r)
     );
 
-  if (!listingQueryDegraded && items.length === 0) return null;
+  if (items.length === 0) return null;
 
-  const meta = buildTradeMeta({ ...metaArgs, indexable: items.length > 0 });
+  const meta = buildTradeMeta({ ...metaArgs, indexable: true });
 
   const summary = `
 <main data-seo-trade="county" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">

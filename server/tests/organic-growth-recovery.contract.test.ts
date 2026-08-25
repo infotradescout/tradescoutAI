@@ -21,7 +21,7 @@ describe("organic growth recovery contracts", () => {
     expect(sitemap).toContain("sqlDirectoryCitySlugExpr()");
   });
 
-  it("limits crawl navigation to active snapshot-backed scopes", () => {
+  it("limits crawl navigation to one cached active snapshot-backed scope set", () => {
     const service = read("server/services/seoDirectoryNavigationService.ts");
     const route = read("server/routes/business-directory-public.ts");
     const tradeDirectory = read("client/src/pages/trade/TradeDirectoryPage.tsx");
@@ -30,7 +30,11 @@ describe("organic growth recovery contracts", () => {
     const county = read("client/src/pages/county/CountyPage.tsx");
 
     expect(service).toContain("from ts_seo_trade_county_pages");
-    expect(service.match(/business_count > 0/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(service).toContain("const SNAPSHOT_TTL_MS = 5 * 60 * 1000;");
+    expect(service).toContain("cachedSnapshot");
+    expect(service).toContain("refreshPromise");
+    expect(service).toContain("business_count > 0");
+    expect(service).toContain("hasActiveTradeCountyScope");
     expect(route).toContain('router.get("/api/public/seo/directory-navigation"');
     expect(route).toContain("listActiveTradeScopes()");
     expect(route).toContain("listActiveTradeStateScopes(tradeSlug)");
