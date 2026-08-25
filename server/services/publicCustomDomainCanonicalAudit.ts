@@ -11,6 +11,7 @@ const DEFAULT_CONCURRENCY = 6;
 const MAX_TARGETS = 2_000;
 const CUSTOM_DOMAIN_PATTERN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i;
 const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const JW_MARKETPLACE_CHILD_PATH = /^\/(?:stones|materials)\//i;
 
 type Queryable = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: any[] }>;
@@ -157,8 +158,10 @@ function customPath(canonicalUrlValue: string): string {
 
 /**
  * Generates the complete TradeScout-hosted alias set for every eligible
- * custom-domain profile. Child aliases come from the same governed page graph
- * as routes, sitemaps, IndexNow, and production audits.
+ * custom-domain profile. Child aliases are generated twice by the same graph:
+ * once with the platform profile root and once with the custom-domain root.
+ * Pairing those ordered outputs prevents custom `/landing/...` mechanics from
+ * being guessed as invalid `/u/:slug/landing/...` platform paths.
  */
 export function collectPublicCustomDomainCanonicalAuditTargets(args: {
   rows: CustomDomainProfileRow[];
@@ -178,11 +181,12 @@ export function collectPublicCustomDomainCanonicalAuditTargets(args: {
     if (!profileSlug || !domain || !eligible.has(profileSlug)) continue;
 
     const canonicalRoot = `https://${domain}/`;
+    const platformRoot = `${CANONICAL_ORIGIN}/u/${encodeURIComponent(profileSlug)}`;
     addTarget(targets, {
       profileSlug,
       businessSlug,
       sourceKind: "profile_root",
-      sourceUrl: `${CANONICAL_ORIGIN}/u/${encodeURIComponent(profileSlug)}`,
+      sourceUrl: platformRoot,
       expectedCanonicalUrl: canonicalRoot,
     });
     addTarget(targets, {
@@ -216,17 +220,25 @@ export function collectPublicCustomDomainCanonicalAuditTargets(args: {
       profileUrl: canonicalRoot,
       contentBlocks: row.content_blocks,
     });
-    for (const canonicalChild of canonicalChildren) {
-      const path = customPath(canonicalChild);
+    const platformChildren = buildProfileSitemapUrls({
+      profileSlug,
+      profileUrl: platformRoot,
+      contentBlocks: row.content_blocks,
+    });
+    const childCount = Math.min(canonicalChildren.length, platformChildren.length);
+    for (let index = 0; index < childCount; index += 1) {
+      const canonicalChild = canonicalChildren[index];
+      const platformChild = platformChildren[index];
       addTarget(targets, {
         profileSlug,
         businessSlug,
         sourceKind: "profile_child",
-        sourceUrl: `${CANONICAL_ORIGIN}/u/${encodeURIComponent(profileSlug)}${path}`,
+        sourceUrl: platformChild,
         expectedCanonicalUrl: canonicalChild,
       });
 
-      if (profileSlug === "jw-stone") {
+      const path = customPath(canonicalChild);
+      if (profileSlug === "jw-stone" && JW_MARKETPLACE_CHILD_PATH.test(path)) {
         addTarget(targets, {
           profileSlug,
           businessSlug,
