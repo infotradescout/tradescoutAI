@@ -12,6 +12,10 @@ import {
   buildProfileServiceUrl,
   listFactBearingProfileServices,
 } from "@shared/profileServiceShare";
+import {
+  buildProfileServiceAreaUrl,
+  resolveProfileServiceAreaHub,
+} from "@shared/profileServiceAreaShare";
 import { inventoryCategoriesForProfile } from "./profileItemShareMetadata";
 
 type ProfileSitemapOptions = {
@@ -25,6 +29,7 @@ type ProfileSitemapPreferences = {
   categories?: boolean;
   gallery?: boolean;
   services?: boolean;
+  serviceAreas?: boolean;
 };
 
 type PublicDiscoveryBlock = {
@@ -51,6 +56,9 @@ function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPr
     ...(typeof sitemap?.categories === "boolean" ? { categories: sitemap.categories } : {}),
     ...(typeof sitemap?.gallery === "boolean" ? { gallery: sitemap.gallery } : {}),
     ...(typeof sitemap?.services === "boolean" ? { services: sitemap.services } : {}),
+    ...(typeof sitemap?.serviceAreas === "boolean"
+      ? { serviceAreas: sitemap.serviceAreas }
+      : {}),
   };
 }
 
@@ -127,10 +135,10 @@ function publishableGalleryItems(
  * Enumerates profile-owned child discovery routes for every public profile.
  * The caller is responsible for the profile's publication, verification,
  * exact-release, and same-host gates. Named inventory, indexable categories,
- * fact-bearing gallery records, and fact-bearing services are enrolled
- * automatically so profiles created later inherit the same discovery system.
- * A profile can explicitly opt a child type out with
- * `sitemap: { type: false }`.
+ * fact-bearing gallery records, fact-bearing services, and one substantial
+ * service-area hub are enrolled automatically so profiles created later
+ * inherit the same discovery system. A profile can explicitly opt a child
+ * type out with `sitemap: { type: false }`.
  */
 export function buildProfileSitemapUrls({
   profileSlug,
@@ -157,6 +165,10 @@ export function buildProfileSitemapUrls({
   );
   const services =
     preferences.services === false ? [] : listFactBearingProfileServices(contentBlocks);
+  const serviceAreaHub =
+    preferences.serviceAreas === false || services.length === 0
+      ? null
+      : resolveProfileServiceAreaHub(contentBlocks);
   const urls = new Set<string>();
 
   for (const category of categories) {
@@ -193,6 +205,11 @@ export function buildProfileSitemapUrls({
       profileUrl,
       serviceSlug: service.slug,
     });
+    if (url) urls.add(url);
+  }
+
+  if (serviceAreaHub) {
+    const url = buildProfileServiceAreaUrl(profileUrl);
     if (url) urls.add(url);
   }
 
