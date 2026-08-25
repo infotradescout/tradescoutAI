@@ -223,8 +223,8 @@ export function schedulePublicDirectoryProfileGraphAudit(): boolean {
 
 /**
  * Verifies the deployed platform and mapped custom-domain image feeds against
- * the exact governed profile image graph. This remains independent from page
- * indexing, rankings, and IndexNow notifications.
+ * the exact governed profile image graph. Unique image membership and repeated
+ * feed references are measured separately.
  */
 export function schedulePublicProfileImageSitemapAudit(): boolean {
   if (imageSitemapAuditScheduled) return false;
@@ -239,13 +239,13 @@ export function schedulePublicProfileImageSitemapAudit(): boolean {
     ? Math.max(15_000, Math.min(900_000, requestedDelay))
     : 105_000;
   const timer = setTimeout(() => {
-    void import("./publicProfileImageSitemapAudit")
-      .then(({ runPublicProfileImageSitemapAudit }) =>
-        runPublicProfileImageSitemapAudit()
+    void import("./publicProfileImageSitemapAuditV2")
+      .then(({ runPublicProfileImageSitemapAuditV2 }) =>
+        runPublicProfileImageSitemapAuditV2()
       )
       .then((result) => {
         console.log(
-          `[ProfileImageAudit] Production feeds ${result.status}: ${result.verifiedCount} verified, ${result.failedCount} failed, ${result.unavailableCount} unavailable across ${result.targetCount} target(s), ${result.expectedPageCount} page(s), and ${result.expectedImageCount} image(s).`
+          `[ProfileImageAudit] Production feeds ${result.status}: ${result.verifiedCount} verified, ${result.failedCount} failed, ${result.unavailableCount} unavailable across ${result.targetCount} target(s), ${result.expectedPageCount} page entries, and ${result.expectedImageCount} image references.`
         );
       })
       .catch((error) => {
