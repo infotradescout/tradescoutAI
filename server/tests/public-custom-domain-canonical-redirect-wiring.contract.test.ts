@@ -6,6 +6,15 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("public custom-domain canonical redirect wiring", () => {
+  it("registers canonical handling before application routes", () => {
+    const server = read("server/index.ts");
+    const middlewareRegistration = server.indexOf("app.use(landingContractHeaders);");
+    const routeRegistration = server.indexOf("const server = await registerRoutes(app);");
+
+    expect(middlewareRegistration).toBeGreaterThan(-1);
+    expect(routeRegistration).toBeGreaterThan(middlewareRegistration);
+  });
+
   it("resolves known aliases before any duplicate public renderer", () => {
     const middleware = read("server/middleware/landingContractHeaders.ts");
     const handlerCall = middleware.indexOf(
