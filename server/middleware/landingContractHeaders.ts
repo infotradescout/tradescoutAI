@@ -5,6 +5,11 @@ import {
   handlePublicProfileServiceRequest,
   isPublicProfileServicePath,
 } from "../publicProfileServiceHtml";
+import {
+  handlePublicProfileServiceAreaRequest,
+  isPublicProfileServiceAreaPath,
+} from "../publicProfileServiceAreaHtml";
+import { attachPublicProfileServiceAreaLink } from "../publicProfileServiceAreaLinks";
 
 const LEGACY_COMMERCE_PATH_PATTERN = /^\/(?:collections|products)(?:\/|$)/i;
 const LEGACY_QUERY_KEYS = [
@@ -52,6 +57,14 @@ export async function landingContractHeaders(
   res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
   res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
 
+  // One substantial service-area hub is resolved before the SPA catch-all.
+  // It uses only profile-published service areas and fact-bearing services,
+  // never manufactured service-by-city combinations.
+  if (isPublicProfileServiceAreaPath(requestPath)) {
+    const handled = await handlePublicProfileServiceAreaRequest(req, res);
+    if (handled) return;
+  }
+
   // Fact-bearing profile service pages are resolved before the profile SPA
   // route and before the generic landing-page namespace. This also covers a
   // verified profile custom domain through its reserved /landing/service path.
@@ -70,14 +83,14 @@ export async function landingContractHeaders(
     return res.redirect(301, legacyCommerceRedirectTarget(req));
   }
 
-  // Platform-host profile roots advertise the same fact-bearing service set
-  // that their sitemap and service routes publish. Custom domains expose the
-  // same set through their host-local sitemap and llms.txt because their root
-  // response is intentionally served by the earlier domain-authority layer.
+  // Platform-host profile roots advertise the same fact-bearing service and
+  // service-area pages that their sitemap publishes. Custom domains expose the
+  // same set through their host-local sitemap and public guidance.
   try {
     await attachPublicProfileServiceLinks(req, res);
+    await attachPublicProfileServiceAreaLink(req, res);
   } catch (error) {
-    console.warn("[ProfileService] Failed attaching profile service links:", error);
+    console.warn("[ProfileDiscovery] Failed attaching profile discovery links:", error);
   }
 
   return next();

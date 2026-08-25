@@ -13,7 +13,8 @@ const CLIENT_MODULE_SCRIPT_PATTERN =
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
 const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
 const FACT_BEARING_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
-const PUBLIC_PROFILE_SERVICE_PAGE_MARKER = /\bdata-public-profile-service-page\s*=\s*(["'])true\1/i;
+const PUBLIC_PROFILE_JOURNEY_PAGE_MARKER =
+  /\bdata-public-profile-(?:service|service-area)-page\s*=\s*(["'])true\1/i;
 const PUBLIC_PROFILE_SERVICE_JOURNEY_MARKER = /\bdata-ts-profile-service-journey\s*=\s*(["'])true\1/i;
 const DISCOVERY_ATTRIBUTION_META_PATTERN =
   /<meta\b[^>]*\bname\s*=\s*(['"])tradescout-discovery-attribution\1[^>]*>/i;
@@ -134,15 +135,16 @@ export function attachDiscoveryAttributionMeta(html: string): string {
 }
 
 /**
- * Server-rendered service pages intentionally ship without the application
- * module graph. This tiny progressive-enhancement bridge gives those pages the
- * same signed discovery-entry and tab-scoped Direct Connect intent evidence as
- * interactive profile themes, without collecting contact data or fingerprinting.
+ * Server-rendered service and service-area pages intentionally ship without
+ * the application module graph. This tiny progressive-enhancement bridge gives
+ * those pages the same signed discovery-entry and tab-scoped Direct Connect
+ * intent evidence as interactive profile themes, without contact collection or
+ * browser fingerprinting.
  */
 export function attachPublicProfileServiceJourneyScript(html: string): string {
   const source = String(html || "");
   if (
-    !PUBLIC_PROFILE_SERVICE_PAGE_MARKER.test(source) ||
+    !PUBLIC_PROFILE_JOURNEY_PAGE_MARKER.test(source) ||
     PUBLIC_PROFILE_SERVICE_JOURNEY_MARKER.test(source)
   ) {
     return source;
@@ -270,16 +272,18 @@ export function attachPublicProfileServiceJourneyScript(html: string): string {
     if (!target || typeof target.closest !== "function") return;
     var link = target.closest('a[href*="/direct-connect"]');
     if (!link) return;
+    var source = "";
     try {
       var destination = new URL(link.href, window.location.href);
-      if (destination.pathname !== "/direct-connect" || destination.searchParams.get("source") !== "profile_service_page") return;
+      source = String(destination.searchParams.get("source") || "");
+      if (destination.pathname !== "/direct-connect" || (source !== "profile_service_page" && source !== "profile_service_area_page")) return;
     } catch (_) {
       return;
     }
     send({
       type: "public_profile_direct_connect_opened",
       profileSlug: profileSlug,
-      surface: "profile_service_page_cta",
+      surface: source === "profile_service_area_page" ? "profile_service_area_page_cta" : "profile_service_page_cta",
       route: route,
       deviceType: window.innerWidth < 768 ? "mobile" : "desktop",
       anonymousSessionId: sessionId,
