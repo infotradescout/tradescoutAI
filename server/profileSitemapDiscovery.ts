@@ -113,17 +113,20 @@ export function buildProfileSitemapUrls({
 }: ProfileSitemapOptions): string[] {
   const preferences = readProfileSitemapPreferences(contentBlocks);
   const inventoryCategories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
-  const categories =
-    preferences.categories === false
-      ? []
-      : listProfileInventoryCategories(inventoryCategories, contentBlocks).filter(
-          (category) => category.indexable
-        );
   const inventory = publishableInventoryItems(
     preferences.inventory,
     contentBlocks,
     listProfileInventoryItems(inventoryCategories)
   );
+  const publishedInventorySlugs = new Set(inventory.map((item) => item.slug));
+  const categories =
+    preferences.categories === false
+      ? []
+      : listProfileInventoryCategories(inventoryCategories, contentBlocks).filter(
+          (category) =>
+            category.indexable &&
+            category.itemSlugs.some((itemSlug) => publishedInventorySlugs.has(itemSlug))
+        );
   const gallery = publishableGalleryItems(
     preferences.gallery,
     contentBlocks,
