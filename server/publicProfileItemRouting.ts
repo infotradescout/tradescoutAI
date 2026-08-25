@@ -21,6 +21,7 @@ import {
 import { inventoryCategoriesForProfile } from "./profileItemShareMetadata";
 import {
   isProfileGalleryItemPubliclyAddressable,
+  isProfileInventoryCategoryPubliclyAddressable,
   isProfileInventoryItemPubliclyAddressable,
 } from "./profileSitemapDiscovery";
 
@@ -223,7 +224,12 @@ export function resolvePublicProfileCategoryRequest(args: {
     requestedSlug,
     contentBlocks
   );
-  if (!category) return { kind: "invalid-category-route" };
+  if (
+    !category ||
+    !isProfileInventoryCategoryPubliclyAddressable(args.profile.slug, contentBlocks, category)
+  ) {
+    return { kind: "invalid-category-route" };
+  }
   const canonicalPath = buildProfilePublicCategoryPath({
     profileBasePath: args.profileBasePath,
     categorySlug: category.slug,
