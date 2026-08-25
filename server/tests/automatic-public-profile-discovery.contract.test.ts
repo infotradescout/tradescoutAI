@@ -55,9 +55,11 @@ describe("automatic public profile child discovery", () => {
     expect(urls).toContain(
       "https://www.thetradescout.com/u/future-public-profile/inventory/standing-seam-roof-package"
     );
-    expect(urls.some((url) => url.includes("/u/future-public-profile/gallery/completed-standing-seam-roof-"))).toBe(
-      true
-    );
+    expect(
+      urls.some((url) =>
+        url.includes("/u/future-public-profile/gallery/completed-standing-seam-roof-")
+      )
+    ).toBe(true);
   });
 
   it("does not create child pages from empty or malformed records", () => {
@@ -71,5 +73,67 @@ describe("automatic public profile child discovery", () => {
         ],
       })
     ).toEqual([]);
+  });
+
+  it("keeps unnamed inventory and generic gallery photos out of automatic indexing", () => {
+    const urls = buildOptInProfileSitemapUrls({
+      profileSlug: "thin-future-profile",
+      profileUrl: "https://www.thetradescout.com/u/thin-future-profile",
+      contentBlocks: [
+        {
+          type: "inventoryCatalog",
+          data: {
+            categories: [
+              {
+                category: "Stone",
+                categorySlug: "stone",
+                stones: [
+                  {
+                    name: "Internal placeholder",
+                    nameStatus: "placeholder",
+                    slug: "unnamed-stone",
+                    images: ["/images/future/unnamed-stone.jpg"],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          type: "gallery",
+          data: {
+            images: ["/images/future/generic-gallery-photo.jpg"],
+          },
+        },
+      ],
+    });
+
+    expect(urls).toEqual([
+      "https://www.thetradescout.com/u/thin-future-profile/categories/stone",
+    ]);
+  });
+
+  it("allows an explicit profile decision to publish otherwise-valid generic records", () => {
+    const urls = buildOptInProfileSitemapUrls({
+      profileSlug: "explicit-future-profile",
+      profileUrl: "https://www.thetradescout.com/u/explicit-future-profile",
+      contentBlocks: [
+        {
+          type: "gallery",
+          data: {
+            images: ["/images/future/generic-gallery-photo.jpg"],
+          },
+        },
+        {
+          type: "publicDiscovery",
+          data: {
+            sitemap: { gallery: true },
+          },
+        },
+      ],
+    });
+
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toContain("/u/explicit-future-profile/gallery/gallery-photo-1-");
   });
 });
