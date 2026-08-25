@@ -96,23 +96,27 @@ async function readDirectoryScopeSnapshot(): Promise<DirectoryScopeSnapshot> {
   }
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = loadDirectoryScopeSnapshot();
-  try {
-    cachedSnapshot = await refreshPromise;
-    return cachedSnapshot;
-  } catch (error) {
-    if (cachedSnapshot) {
-      console.warn(
-        "[SEO] Active directory snapshot refresh failed; using the last known public scope set",
-        error
-      );
-      cachedSnapshot = { ...cachedSnapshot, loadedAt: now };
-      return cachedSnapshot;
+  refreshPromise = (async () => {
+    try {
+      const snapshot = await loadDirectoryScopeSnapshot();
+      cachedSnapshot = snapshot;
+      return snapshot;
+    } catch (error) {
+      if (cachedSnapshot) {
+        console.warn(
+          "[SEO] Active directory snapshot refresh failed; using the last known public scope set",
+          error
+        );
+        cachedSnapshot = { ...cachedSnapshot, loadedAt: now };
+        return cachedSnapshot;
+      }
+      throw error;
+    } finally {
+      refreshPromise = null;
     }
-    throw error;
-  } finally {
-    refreshPromise = null;
-  }
+  })();
+
+  return refreshPromise;
 }
 
 function aggregateScopes<T extends string>(
