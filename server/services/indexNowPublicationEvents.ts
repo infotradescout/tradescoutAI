@@ -1,12 +1,5 @@
-import { listProfileInventoryItems } from "../../shared/profileItemShare";
-import { listProfileInventoryCategories } from "../../shared/profileCategoryShare";
-import {
-  buildProfilePublicCategoryPath,
-  buildProfilePublicItemPath,
-  readProfilePublicSitemapConfig,
-} from "../../shared/profilePublicItemRoute";
+import { buildProfileSitemapUrls } from "../profileSitemapDiscovery";
 import { buildProfileServiceOfferPath } from "../../shared/profileOfferShare";
-import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
 
 type ProfilePublicationRecord = {
   slug?: unknown;
@@ -32,6 +25,27 @@ function cleanSlug(value: unknown): string {
   return String(value || "").trim();
 }
 
+function profileChildPaths(slug: string, contentBlocks: unknown): string[] {
+  const canonicalOrigin = "https://www.thetradescout.com";
+  const profilePath = `/u/${encodeURIComponent(slug)}`;
+  const profileUrl = `${canonicalOrigin}${profilePath}`;
+
+  return buildProfileSitemapUrls({
+    profileSlug: slug,
+    profileUrl,
+    contentBlocks,
+  })
+    .map((value) => {
+      try {
+        const url = new URL(value);
+        return url.origin === canonicalOrigin ? `${url.pathname}${url.search}` : "";
+      } catch {
+        return "";
+      }
+    })
+    .filter((value): value is string => Boolean(value));
+}
+
 export function collectProfileIndexNowUrls(
   profile: ProfilePublicationRecord | null | undefined,
   publicEligible: boolean
@@ -48,34 +62,8 @@ export function collectProfileIndexNowUrls(
     return [];
   }
 
-  const profileBasePath = `/u/${encodeURIComponent(slug)}`;
-  const urls = new Set<string>([profileBasePath]);
-  const categories = inventoryCategoriesForProfile(slug, profile?.contentBlocks);
-  const sitemapConfig = readProfilePublicSitemapConfig(profile?.contentBlocks);
-
-  if (sitemapConfig.categories) {
-    for (const category of listProfileInventoryCategories(categories, profile?.contentBlocks)) {
-      if (!category.indexable) continue;
-      const categoryPath = buildProfilePublicCategoryPath({
-        profileBasePath,
-        categorySlug: category.slug,
-        contentBlocks: profile?.contentBlocks,
-      });
-      if (categoryPath) urls.add(categoryPath);
-    }
-  }
-
-  for (const item of listProfileInventoryItems(categories)) {
-    const itemPath = buildProfilePublicItemPath({
-      profileBasePath,
-      itemType: "inventory",
-      itemSlug: item.slug,
-      contentBlocks: profile?.contentBlocks,
-    });
-    if (itemPath) urls.add(itemPath);
-  }
-
-  return [...urls];
+  const profilePath = `/u/${encodeURIComponent(slug)}`;
+  return [...new Set([profilePath, ...profileChildPaths(slug, profile?.contentBlocks)])];
 }
 
 export function collectBusinessIndexNowUrls(
