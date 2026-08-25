@@ -113,6 +113,7 @@ export function getIndexNowQueueStatus() {
 
 let reconciliationScheduled = false;
 let productionAuditScheduled = false;
+let directoryGraphAuditScheduled = false;
 
 /**
  * Starts one non-blocking reconciliation after the production server has had
@@ -180,5 +181,44 @@ export function schedulePublicProfileProductionAudit(): boolean {
   return true;
 }
 
+/**
+ * Verifies that active county and trade pages actually expose the canonical
+ * public profile and exact governed service graph they are supposed to list.
+ * This remains independent from both IndexNow and the general profile audit.
+ */
+export function schedulePublicDirectoryProfileGraphAudit(): boolean {
+  if (directoryGraphAuditScheduled) return false;
+  if (process.env.NODE_ENV !== "production") return false;
+  if (process.env.PUBLIC_DIRECTORY_PROFILE_GRAPH_AUDIT_DISABLED === "true") return false;
+
+  directoryGraphAuditScheduled = true;
+  const requestedDelay = Number(
+    process.env.PUBLIC_DIRECTORY_PROFILE_GRAPH_AUDIT_DELAY_MS || 75_000
+  );
+  const delayMs = Number.isFinite(requestedDelay)
+    ? Math.max(10_000, Math.min(900_000, requestedDelay))
+    : 75_000;
+  const timer = setTimeout(() => {
+    void import("./publicDirectoryProfileGraphAudit")
+      .then(({ runPublicDirectoryProfileGraphAudit }) =>
+        runPublicDirectoryProfileGraphAudit()
+      )
+      .then((result) => {
+        console.log(
+          `[DirectoryGraphAudit] Production graph ${result.status}: ${result.verifiedCount} verified, ${result.failedCount} failed, ${result.unavailableCount} unavailable across ${result.targetCount} directory page(s) and ${result.expectedProfileCount} expected profile(s).`
+        );
+      })
+      .catch((error) => {
+        console.warn(
+          "[DirectoryGraphAudit] Production directory graph audit failed; a later deploy will retry:",
+          error
+        );
+      });
+  }, delayMs);
+  timer.unref?.();
+  return true;
+}
+
 schedulePublicProfileIndexNowReconciliation();
 schedulePublicProfileProductionAudit();
+schedulePublicDirectoryProfileGraphAudit();
