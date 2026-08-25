@@ -114,6 +114,7 @@ export function getIndexNowQueueStatus() {
 let reconciliationScheduled = false;
 let productionAuditScheduled = false;
 let directoryGraphAuditScheduled = false;
+let imageSitemapAuditScheduled = false;
 
 /**
  * Starts one non-blocking reconciliation after the production server has had
@@ -219,6 +220,45 @@ export function schedulePublicDirectoryProfileGraphAudit(): boolean {
   return true;
 }
 
+/**
+ * Verifies the deployed platform and mapped custom-domain image feeds against
+ * the exact governed profile image graph. This remains independent from page
+ * indexing, rankings, and IndexNow notifications.
+ */
+export function schedulePublicProfileImageSitemapAudit(): boolean {
+  if (imageSitemapAuditScheduled) return false;
+  if (process.env.NODE_ENV !== "production") return false;
+  if (process.env.PUBLIC_PROFILE_IMAGE_SITEMAP_AUDIT_DISABLED === "true") return false;
+
+  imageSitemapAuditScheduled = true;
+  const requestedDelay = Number(
+    process.env.PUBLIC_PROFILE_IMAGE_SITEMAP_AUDIT_DELAY_MS || 105_000
+  );
+  const delayMs = Number.isFinite(requestedDelay)
+    ? Math.max(15_000, Math.min(900_000, requestedDelay))
+    : 105_000;
+  const timer = setTimeout(() => {
+    void import("./publicProfileImageSitemapAudit")
+      .then(({ runPublicProfileImageSitemapAudit }) =>
+        runPublicProfileImageSitemapAudit()
+      )
+      .then((result) => {
+        console.log(
+          `[ProfileImageAudit] Production feeds ${result.status}: ${result.verifiedCount} verified, ${result.failedCount} failed, ${result.unavailableCount} unavailable across ${result.targetCount} target(s), ${result.expectedPageCount} page(s), and ${result.expectedImageCount} image(s).`
+        );
+      })
+      .catch((error) => {
+        console.warn(
+          "[ProfileImageAudit] Production image sitemap audit failed; a later deploy will retry:",
+          error
+        );
+      });
+  }, delayMs);
+  timer.unref?.();
+  return true;
+}
+
 schedulePublicProfileIndexNowReconciliation();
 schedulePublicProfileProductionAudit();
 schedulePublicDirectoryProfileGraphAudit();
+schedulePublicProfileImageSitemapAudit();
