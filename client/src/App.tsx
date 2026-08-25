@@ -175,6 +175,73 @@ const AppLayout = memo(function AppLayout() {
     sessionStorage.setItem(flagKey, "1");
   }, [location, isLoading, user, isAuthenticated]);
 
+  // One canonical request-intent event for every current and future public
+  // profile theme. The shared Direct Connect dialog is the stable boundary;
+  // individual profile layouts no longer need their own measurement wiring.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!isPublicProfileRoute && !isCustomDomainProfileRoute) return;
+
+    let activeDialog: Element | null = null;
+
+    const resolveProfileSlug = (): string => {
+      const metaSlug =
+        document
+          .querySelector<HTMLMetaElement>('meta[name="tradescout-business-slug"]')
+          ?.content.trim()
+          .toLowerCase() || "";
+      if (metaSlug) return metaSlug;
+
+      const customSlug = String(customDomainProfileSlug || "")
+        .trim()
+        .toLowerCase();
+      if (customSlug) return customSlug;
+      if (pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/")) return "jw-stone";
+
+      const match = pathOnly.match(
+        /^\/(?:u|p|business|contractors|profile)\/([^/]+)/
+      );
+      if (!match?.[1]) return "";
+      try {
+        return decodeURIComponent(match[1]).trim().toLowerCase();
+      } catch {
+        return match[1].trim().toLowerCase();
+      }
+    };
+
+    const scanForOpenDialog = () => {
+      const dialog = document.querySelector(
+        '[role="dialog"][aria-labelledby="express-direct-connect-title"]'
+      );
+      if (!dialog) {
+        activeDialog = null;
+        return;
+      }
+      if (dialog === activeDialog) return;
+
+      activeDialog = dialog;
+      const profileSlug = resolveProfileSlug();
+      if (!profileSlug) return;
+
+      void trackShellEvent({
+        type: "public_profile_direct_connect_opened",
+        profileSlug,
+        surface: "express_direct_connect_panel",
+        route: `${window.location.pathname}${window.location.search}`,
+        deviceType: window.innerWidth < 768 ? "mobile" : "desktop",
+        ts: new Date().toISOString(),
+      });
+    };
+
+    const observer = new MutationObserver(scanForOpenDialog);
+    observer.observe(document.body, { childList: true, subtree: true });
+    scanForOpenDialog();
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [customDomainProfileSlug, isCustomDomainProfileRoute, isPublicProfileRoute, pathOnly]);
+
   // Shadow-mode progressive exposure evaluation. Observe readiness only.
   useEffect(() => {
     if (!FEATURE_PROGRESSIVE_EXPOSURE_SHADOW) return;
