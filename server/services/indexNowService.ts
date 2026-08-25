@@ -112,6 +112,7 @@ export function getIndexNowQueueStatus() {
 }
 
 let reconciliationScheduled = false;
+let productionAuditScheduled = false;
 
 /**
  * Starts one non-blocking reconciliation after the production server has had
@@ -145,4 +146,39 @@ export function schedulePublicProfileIndexNowReconciliation(): boolean {
   return true;
 }
 
+/**
+ * Audits the actual deployed profile graph after startup. This is intentionally
+ * independent from IndexNow: disabling notifications must never disable live
+ * HTTP and HTML verification.
+ */
+export function schedulePublicProfileProductionAudit(): boolean {
+  if (productionAuditScheduled) return false;
+  if (process.env.NODE_ENV !== "production") return false;
+  if (process.env.PUBLIC_PROFILE_PRODUCTION_AUDIT_DISABLED === "true") return false;
+
+  productionAuditScheduled = true;
+  const requestedDelay = Number(process.env.PUBLIC_PROFILE_PRODUCTION_AUDIT_DELAY_MS || 45_000);
+  const delayMs = Number.isFinite(requestedDelay)
+    ? Math.max(5_000, Math.min(600_000, requestedDelay))
+    : 45_000;
+  const timer = setTimeout(() => {
+    void import("./publicProfileProductionAudit")
+      .then(({ runPublicProfileProductionAudit }) => runPublicProfileProductionAudit())
+      .then((result) => {
+        console.log(
+          `[ProfileAudit] Production graph ${result.status}: ${result.verifiedCount} verified, ${result.failedCount} failed, ${result.unavailableCount} unavailable across ${result.urlCount} URL(s) and ${result.profileCount} profile(s).`
+        );
+      })
+      .catch((error) => {
+        console.warn(
+          "[ProfileAudit] Production graph audit failed; a later deploy will retry:",
+          error
+        );
+      });
+  }, delayMs);
+  timer.unref?.();
+  return true;
+}
+
 schedulePublicProfileIndexNowReconciliation();
+schedulePublicProfileProductionAudit();
