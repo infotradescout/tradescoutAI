@@ -110,3 +110,39 @@ export function notifyIndexNow(urls: Iterable<string>): boolean {
 export function getIndexNowQueueStatus() {
   return indexNowQueue.snapshot();
 }
+
+let reconciliationScheduled = false;
+
+/**
+ * Starts one non-blocking reconciliation after the production server has had
+ * time to finish database setup and profile provisioning. The reconciliation
+ * itself persists an exact graph fingerprint, so unchanged deployments do not
+ * resubmit the same URLs.
+ */
+export function schedulePublicProfileIndexNowReconciliation(): boolean {
+  if (reconciliationScheduled) return false;
+  if (process.env.NODE_ENV !== "production") return false;
+  if (process.env.INDEXNOW_PROFILE_RECONCILIATION_DISABLED === "true") return false;
+
+  reconciliationScheduled = true;
+  const requestedDelay = Number(process.env.INDEXNOW_PROFILE_RECONCILIATION_DELAY_MS || 20_000);
+  const delayMs = Number.isFinite(requestedDelay)
+    ? Math.max(1_000, Math.min(300_000, requestedDelay))
+    : 20_000;
+  const timer = setTimeout(() => {
+    void import("./publicProfileIndexNowReconciliation")
+      .then(({ reconcilePublicProfileIndexNow }) => reconcilePublicProfileIndexNow())
+      .then((result) => {
+        console.log(
+          `[IndexNow] Public profile reconciliation ${result.status}: ${result.submittedUrlCount}/${result.urlCount} URL(s), ${result.profileCount} profile(s), ${result.batchCount} batch(es).`
+        );
+      })
+      .catch((error) => {
+        console.warn("[IndexNow] Public profile reconciliation failed; a later deploy will retry:", error);
+      });
+  }, delayMs);
+  timer.unref?.();
+  return true;
+}
+
+schedulePublicProfileIndexNowReconciliation();
