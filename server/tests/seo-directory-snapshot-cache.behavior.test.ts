@@ -92,7 +92,7 @@ describe("active SEO directory scope snapshot", () => {
     expect(mocks.execute).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the last known public scope set when a later refresh fails", async () => {
+  it("shares the last known public scope set across concurrent reads when refresh fails", async () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     mocks.execute.mockResolvedValueOnce({ rows: snapshotRows });
 
@@ -101,7 +101,12 @@ describe("active SEO directory scope snapshot", () => {
     vi.setSystemTime(new Date("2026-08-25T12:06:00.000Z"));
     mocks.execute.mockRejectedValueOnce(new Error("temporary database pressure"));
 
-    await expect(hasActiveTradeCountyScope("electrical", "FL", "bay")).resolves.toBe(true);
+    await expect(
+      Promise.all([
+        hasActiveTradeCountyScope("electrical", "FL", "bay"),
+        hasActiveTradeStateScope("electrical", "FL"),
+      ])
+    ).resolves.toEqual([true, true]);
     expect(mocks.execute).toHaveBeenCalledTimes(2);
     expect(warning).toHaveBeenCalledWith(
       "[SEO] Active directory snapshot refresh failed; using the last known public scope set",
