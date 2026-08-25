@@ -193,7 +193,7 @@ export function attachPublicProfileServiceJourneyScript(html: string): string {
     try {
       var link = document.querySelector('link[rel="canonical"]');
       var href = link ? String(link.getAttribute("href") || "") : window.location.href;
-      return new URL(href, window.location.href).pathname.replace(/\/{2,}/g, "/") || "/";
+      return new URL(href, window.location.href).pathname.replace(/\\/{2,}/g, "/") || "/";
     } catch (_) {
       return window.location.pathname || "/";
     }
