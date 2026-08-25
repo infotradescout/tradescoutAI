@@ -34,6 +34,18 @@ export type PublicContractorProfileHtmlResult =
   | { kind: "html"; html: string }
   | { kind: "redirect"; location: string };
 
+/**
+ * These old public entry paths share the `/contractors/:slug` server route.
+ * Resolve them before contractor lookup so crawlers receive the same permanent
+ * destination that browser-side compatibility routing already uses.
+ */
+const LEGACY_CONTRACTOR_ENTRY_REDIRECTS: Readonly<Record<string, string>> = Object.freeze({
+  apply: "/claim-my-business?source=contractors_apply_legacy",
+  signup: "/claim-my-business?source=contractors_signup_legacy",
+  accelerator: "/claim-my-business?source=contractors_accelerator_legacy",
+  dashboard: "/business-dashboard",
+});
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -270,6 +282,11 @@ export async function buildPublicContractorProfileHtml({
 }: PublicContractorProfileHtmlOptions): Promise<PublicContractorProfileHtmlResult | null> {
   const safeSlug = String(slug || "").trim();
   if (!safeSlug || safeSlug.length > 160 || /[\r\n\\/]/.test(safeSlug)) return null;
+
+  const legacyDestination = LEGACY_CONTRACTOR_ENTRY_REDIRECTS[safeSlug.toLowerCase()];
+  if (legacyDestination) {
+    return { kind: "redirect", location: legacyDestination };
+  }
 
   const contractor = await storage.getContractorBySlug(safeSlug);
   if (!contractor || contractor.isActive === false) return null;
