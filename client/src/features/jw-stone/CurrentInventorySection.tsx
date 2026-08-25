@@ -9,9 +9,11 @@ type Props = {
  * Compatibility mount for the JW Stone merchandising slot.
  *
  * This position is reserved for explicitly identified New Arrivals. General
- * current inventory remains available to seller operations and BidRock, but
- * it must never be promoted here merely because it is confirmed and sale-ready.
- * Until JW Stone has real New Arrivals to publish, the public slot stays absent.
+ * current inventory includes only physical lots explicitly marked sale-ready,
+ * but it remains seller and BidRock operational truth rather than public
+ * New Arrivals merchandising. The Material Library does not claim that a
+ * physical item is on hand. Until JW Stone has real New Arrivals to publish,
+ * the public slot stays absent.
  */
 export function CurrentInventorySection(_props: Props) {
   return null;
