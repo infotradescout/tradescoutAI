@@ -10,6 +10,10 @@ const CANONICAL_TRADESCOUT_HOSTS = new Set([
   "www.thetradescout.com",
   "thetradescout.com",
 ]);
+const ROOT_ALIAS_SOURCE_KINDS = new Set<
+  PublicCustomDomainCanonicalAuditTarget["sourceKind"]
+>(["profile_root", "legacy_profile_root", "business_root", "vanity_root"]);
+const LEGACY_SELECTOR_KEYS = ["stone", "gallery", "category"] as const;
 const CACHE_TTL_MS = 5 * 60 * 1_000;
 const SAFE_QUERY_KEYS = new Set([
   "ref",
@@ -49,7 +53,8 @@ function normalizePath(value: unknown): string | null {
   try {
     const url = new URL(String(value || "").trim(), "https://www.thetradescout.com");
     const path = url.pathname.replace(/\/{2,}/g, "/");
-    return path.length > 1 ? path.replace(/\/+$/, "") : "/";
+    const normalized = path.length > 1 ? path.replace(/\/+$/, "") : "/";
+    return normalized.toLowerCase();
   } catch {
     return null;
   }
@@ -63,16 +68,32 @@ function cleanQueryValue(value: string): string | null {
   return candidate || null;
 }
 
-function appendSafeQuery(destinationValue: string, sourceValue: string): string {
+function isAllowedReservedQueryValue(key: string, value: string): boolean {
+  if (key === "photo") return /^[1-9]\d{0,2}$/.test(value);
+  if (key === "request") return value === "stone" || value === "collection";
+  if (key === "profileAccount") return value === "1";
+  if (key === "profileAccountMode") return value === "signin";
+  return true;
+}
+
+function hasLegacyRootSelector(
+  source: URL,
+  target: PublicCustomDomainCanonicalAuditTarget
+): boolean {
+  return (
+    ROOT_ALIAS_SOURCE_KINDS.has(target.sourceKind) &&
+    LEGACY_SELECTOR_KEYS.some((key) => source.searchParams.has(key))
+  );
+}
+
+function appendSafeQuery(destinationValue: string, source: URL): string {
   const destination = new URL(destinationValue);
-  const source = new URL(sourceValue, "https://www.thetradescout.com");
   let copied = 0;
   for (const [key, value] of source.searchParams.entries()) {
     if (!SAFE_QUERY_KEYS.has(key) || copied >= MAX_QUERY_VALUES) continue;
     const cleaned = cleanQueryValue(value);
-    if (!cleaned) continue;
-    if (key === "photo" && !/^\d{1,3}$/.test(cleaned)) continue;
-    destination.searchParams.append(key, cleaned);
+    if (!cleaned || !isAllowedReservedQueryValue(key, cleaned)) continue;
+    destination.searchParams.set(key, cleaned);
     copied += 1;
   }
   return destination.toString();
@@ -85,12 +106,20 @@ export function buildPublicCustomDomainCanonicalAliasMap(
   for (const target of targets || []) {
     try {
       const source = new URL(target.sourceUrl);
-      if (!CANONICAL_TRADESCOUT_HOSTS.has(normalizeHost(source.hostname))) continue;
+      if (
+        (source.protocol !== "https:" && source.protocol !== "http:") ||
+        !CANONICAL_TRADESCOUT_HOSTS.has(normalizeHost(source.hostname))
+      ) {
+        continue;
+      }
       const path = normalizePath(source.pathname);
       if (!path || aliases.has(path)) continue;
       const canonical = new URL(target.expectedCanonicalUrl);
       if (
         canonical.protocol !== "https:" ||
+        canonical.username ||
+        canonical.password ||
+        canonical.port ||
         CANONICAL_TRADESCOUT_HOSTS.has(normalizeHost(canonical.hostname))
       ) {
         continue;
@@ -109,12 +138,18 @@ export function resolvePublicCustomDomainAliasDestination(args: {
   aliases: Map<string, PublicCustomDomainCanonicalAuditTarget>;
 }): string | null {
   if (!CANONICAL_TRADESCOUT_HOSTS.has(normalizeHost(args.host))) return null;
-  const path = normalizePath(args.originalUrl);
+  let source: URL;
+  try {
+    source = new URL(args.originalUrl, "https://www.thetradescout.com");
+  } catch {
+    return null;
+  }
+  const path = normalizePath(source.pathname);
   if (!path) return null;
   const target = args.aliases.get(path);
-  if (!target) return null;
+  if (!target || hasLegacyRootSelector(source, target)) return null;
   try {
-    return appendSafeQuery(target.expectedCanonicalUrl, args.originalUrl);
+    return appendSafeQuery(target.expectedCanonicalUrl, source);
   } catch {
     return null;
   }
