@@ -1282,7 +1282,7 @@ export async function buildPublicProfileHtml({
       .map((slug) => inventoryItems.find((item) => item.slug === slug))
       .filter((item): item is (typeof inventoryItems)[number] => Boolean(item)),
     ...inventoryItems.filter((item) => !priorityItemSlugs.includes(item.slug)),
-  ].slice(0, 12);
+  ];
   const inventoryLinks = featuredInventoryItems
     .map((item) => {
       const url = buildProfilePublicItemUrl({
@@ -1302,8 +1302,12 @@ export async function buildPublicProfileHtml({
   const inventorySectionHeading =
     featuredInventoryItems.length > 0 &&
     featuredInventoryItems.every((item) => item.publicKind === "offering")
-      ? "Featured materials"
-      : "Featured stone inventory";
+      ? inventoryItems.length > 12
+        ? "Published materials"
+        : "Featured materials"
+      : inventoryItems.length > 12
+        ? "Published inventory"
+        : "Featured stone inventory";
   const categoryInventoryItems = pageCategoryShare
     ? pageCategoryShare.itemSlugs
         .map((itemSlug) => inventoryItemsBySlug.get(itemSlug))
