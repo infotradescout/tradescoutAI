@@ -8,6 +8,10 @@ import {
   buildProfilePublicCategoryUrl,
   buildProfilePublicItemUrl,
 } from "@shared/profilePublicItemRoute";
+import {
+  buildProfileServiceUrl,
+  listFactBearingProfileServices,
+} from "@shared/profileServiceShare";
 import { inventoryCategoriesForProfile } from "./profileItemShareMetadata";
 
 type ProfileSitemapOptions = {
@@ -20,6 +24,7 @@ type ProfileSitemapPreferences = {
   inventory?: boolean;
   categories?: boolean;
   gallery?: boolean;
+  services?: boolean;
 };
 
 type PublicDiscoveryBlock = {
@@ -45,6 +50,7 @@ function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPr
     ...(typeof sitemap?.inventory === "boolean" ? { inventory: sitemap.inventory } : {}),
     ...(typeof sitemap?.categories === "boolean" ? { categories: sitemap.categories } : {}),
     ...(typeof sitemap?.gallery === "boolean" ? { gallery: sitemap.gallery } : {}),
+    ...(typeof sitemap?.services === "boolean" ? { services: sitemap.services } : {}),
   };
 }
 
@@ -121,10 +127,10 @@ function publishableGalleryItems(
  * Enumerates profile-owned child discovery routes for every public profile.
  * The caller is responsible for the profile's publication, verification,
  * exact-release, and same-host gates. Named inventory, indexable categories,
- * and fact-bearing gallery records are enrolled automatically so profiles
- * created later inherit the same discovery system. A profile can explicitly
- * opt a child type out with `sitemap: { type: false }`; an explicit `true`
- * permits every otherwise-valid record of that type.
+ * fact-bearing gallery records, and fact-bearing services are enrolled
+ * automatically so profiles created later inherit the same discovery system.
+ * A profile can explicitly opt a child type out with
+ * `sitemap: { type: false }`.
  */
 export function buildProfileSitemapUrls({
   profileSlug,
@@ -149,6 +155,8 @@ export function buildProfileSitemapUrls({
     contentBlocks,
     listProfileGalleryItems(contentBlocks)
   );
+  const services =
+    preferences.services === false ? [] : listFactBearingProfileServices(contentBlocks);
   const urls = new Set<string>();
 
   for (const category of categories) {
@@ -176,6 +184,14 @@ export function buildProfileSitemapUrls({
       itemType: "gallery",
       itemSlug: item.slug,
       contentBlocks,
+    });
+    if (url) urls.add(url);
+  }
+
+  for (const service of services) {
+    const url = buildProfileServiceUrl({
+      profileUrl,
+      serviceSlug: service.slug,
     });
     if (url) urls.add(url);
   }

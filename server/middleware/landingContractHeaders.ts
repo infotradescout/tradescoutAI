@@ -1,5 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import { getLandingIntentContractForPath } from "../services/crawlerTelemetryService";
+import {
+  attachPublicProfileServiceLinks,
+  handlePublicProfileServiceRequest,
+  isPublicProfileServicePath,
+} from "../publicProfileServiceHtml";
 
 const LEGACY_COMMERCE_PATH_PATTERN = /^\/(?:collections|products)(?:\/|$)/i;
 const LEGACY_QUERY_KEYS = [
@@ -26,7 +31,11 @@ function legacyCommerceRedirectTarget(req: Request): string {
   return query ? `/trade-deals?${query}` : "/trade-deals";
 }
 
-export function landingContractHeaders(req: Request, res: Response, next: NextFunction) {
+export async function landingContractHeaders(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const method = String(req.method || "").toUpperCase();
   if (method !== "GET" && method !== "HEAD") {
     return next();
@@ -35,6 +44,20 @@ export function landingContractHeaders(req: Request, res: Response, next: NextFu
   const requestPath = String(req.path || "").trim();
   if (!requestPath || requestPath.startsWith("/api/")) {
     return next();
+  }
+
+  const contract = getLandingIntentContractForPath(requestPath);
+  res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
+  res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
+  res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
+  res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
+
+  // Fact-bearing profile service pages are resolved before the profile SPA
+  // route and before the generic landing-page namespace. This also covers a
+  // verified profile custom domain through its reserved /landing/service path.
+  if (isPublicProfileServicePath(requestPath)) {
+    const handled = await handlePublicProfileServiceRequest(req, res);
+    if (handled) return;
   }
 
   // The browser router has always treated old storefront collection and
@@ -47,10 +70,15 @@ export function landingContractHeaders(req: Request, res: Response, next: NextFu
     return res.redirect(301, legacyCommerceRedirectTarget(req));
   }
 
-  const contract = getLandingIntentContractForPath(requestPath);
-  res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
-  res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
-  res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
-  res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
+  // Platform-host profile roots advertise the same fact-bearing service set
+  // that their sitemap and service routes publish. Custom domains expose the
+  // same set through their host-local sitemap and llms.txt because their root
+  // response is intentionally served by the earlier domain-authority layer.
+  try {
+    await attachPublicProfileServiceLinks(req, res);
+  } catch (error) {
+    console.warn("[ProfileService] Failed attaching profile service links:", error);
+  }
+
   return next();
 }
