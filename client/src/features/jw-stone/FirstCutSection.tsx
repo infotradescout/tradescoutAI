@@ -60,14 +60,14 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       >
         {/*
           In-flow frames sized by aspect-ratio — no svh min-heights that leave beige voids.
-          Lead: wide frame for green bookmatched pair. Supports: identical 4/3 cells + cover
+          Lead: wide frame for green bookmatched pair. Supports: identical 3/2 cells + cover
           so mixed slab ratios never look like uneven tiles.
         */}
         <span
           className={
             role === "lead"
-              ? "relative block aspect-[2/1] w-full overflow-hidden bg-[var(--jw-bg)]"
-              : "relative block aspect-[4/3] w-full overflow-hidden bg-[var(--jw-bg)]"
+              ? "relative block aspect-[21/9] w-full overflow-hidden bg-[var(--jw-bg)]"
+              : "relative block aspect-[3/2] w-full overflow-hidden bg-[var(--jw-bg)]"
           }
         >
           <img
@@ -95,7 +95,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       data-first-cut-lead={role === "lead" ? "true" : undefined}
       data-first-cut-support={role === "support" ? "true" : undefined}
       className={`jw-first-cut__tile jw-first-cut__tile--${role} flex w-full min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${
-        role === "lead" ? "aspect-[2/1]" : "aspect-[4/3]"
+        role === "lead" ? "aspect-[21/9]" : "aspect-[3/2]"
       }`}
     >
       <span className={`text-[10px] uppercase tracking-[0.16em] sm:text-xs ${jw.muted}`}>
@@ -114,7 +114,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
     <section
       aria-labelledby="first-cut-title"
       data-testid="jw-first-cut"
-      className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-10 pt-6 sm:pb-14 sm:pt-8 ${jw.scrollTarget}`}
+      className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-9 pt-5 sm:pb-12 sm:pt-7 ${jw.scrollTarget}`}
     >
       <div className={`mx-auto w-full max-w-[1680px] px-3 sm:px-6 lg:px-8 ${jw.scrollTarget}`}>
         <header className="jw-first-cut__intro mb-3 sm:mb-4">

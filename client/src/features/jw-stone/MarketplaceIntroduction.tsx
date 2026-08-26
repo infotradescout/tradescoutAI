@@ -17,7 +17,7 @@ export function MarketplaceIntroduction() {
       className="bg-[var(--jw-bg)]"
       aria-labelledby="jw-marketplace-title"
     >
-      <div className="relative flex max-h-[32svh] justify-center overflow-hidden bg-[var(--jw-dark)]">
+      <div className="relative flex h-[36svh] justify-center overflow-hidden bg-[var(--jw-dark)] sm:h-[38svh] lg:h-[40svh]">
         <video
           autoPlay
           muted
@@ -28,7 +28,7 @@ export function MarketplaceIntroduction() {
           width={JW_STONE_HERO_WIDTH}
           height={JW_STONE_HERO_HEIGHT}
           aria-hidden="true"
-          className="block h-[32svh] w-full max-w-[1920px] object-cover"
+          className="block h-full w-full max-w-[1920px] object-cover"
         >
           <source src={JW_STONE_HERO_VIDEO} type="video/mp4" />
         </video>
