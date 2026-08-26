@@ -34,8 +34,9 @@ describe("TradeScout plain-language landing explainer", () => {
       chapter.topics.flatMap((topic) => topic.features || [])
     );
 
-    expect(features).toHaveLength(69);
-    expect(features.map((feature) => feature.name)).toEqual(
+    expect(features).toHaveLength(68);
+    const featureNames = features.map((feature) => feature.name);
+    expect(featureNames).toEqual(
       expect.arrayContaining([
         "Direct Connect",
         "Community Verification Score (CVS)",
@@ -44,6 +45,7 @@ describe("TradeScout plain-language landing explainer", () => {
         "Selective Inheritance",
       ])
     );
+    expect(featureNames).not.toContain("Social publishing and external auto-sharing");
   });
 
   it("renders the complete explainer without tabs, hidden panels, or collapsed feature copy", () => {
@@ -55,7 +57,7 @@ describe("TradeScout plain-language landing explainer", () => {
 
     expect(renderedHtml.match(/class="ts-explainer-chapter"/g)).toHaveLength(8);
     expect(renderedHtml.match(/class="ts-topic-section"/g)).toHaveLength(topicCount);
-    expect(renderedHtml.match(/class="ts-feature-card"/g)).toHaveLength(69);
+    expect(renderedHtml.match(/class="ts-feature-card"/g)).toHaveLength(68);
 
     for (const chapter of explainerChapters) {
       expect(renderedHtml).toContain(chapter.title);
@@ -135,7 +137,7 @@ describe("TradeScout plain-language landing explainer", () => {
 
     expect(html.match(/data-explainer-chapter="true"/g)).toHaveLength(8);
     expect(html.match(/data-explainer-topic="true"/g)).toHaveLength(topicCount);
-    expect(html.match(/data-explainer-feature="true"/g)).toHaveLength(69);
+    expect(html.match(/data-explainer-feature="true"/g)).toHaveLength(68);
 
     for (const chapter of explainerChapters) {
       expect(html).toContain(chapter.title);
