@@ -140,13 +140,29 @@ async function main() {
     }
   }
 
-  // 3. Type and build validation
+  // 3. Type, production-debt, and build validation
   const check = run("npm", ["run", "check"], { label: "npm run check" });
   record("3-typecheck", check.ok ? "pass" : "fail", `exit ${check.status}`);
   if (!check.ok) {
     evidence.result = "fail";
     writeEvidence(evidence);
     process.exit(check.status);
+  }
+
+  const productionDebtAudit = run(
+    "npm",
+    ["run", "audit:production-debt"],
+    { label: "npm run audit:production-debt" }
+  );
+  record(
+    "3-production-debt-audit",
+    productionDebtAudit.ok ? "pass" : "fail",
+    "exit " + productionDebtAudit.status
+  );
+  if (!productionDebtAudit.ok) {
+    evidence.result = "fail";
+    writeEvidence(evidence);
+    process.exit(productionDebtAudit.status);
   }
 
   const build = run("npm", ["run", "build"], { label: "npm run build" });
