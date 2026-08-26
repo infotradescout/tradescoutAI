@@ -34,7 +34,7 @@ type Props = {
 /**
  * Inventory truth boundary: Only physical lots explicitly marked sale-ready
  * may qualify, and they still require a separate New Arrivals choice. The
- * Material Library does not claim that a physical item is on hand.
+ * Browse Full Inventory does not claim that a physical item is on hand.
  */
 export function NewArrivalsSection({ onAsk }: Props) {
   const arrivalsQuery = useQuery({

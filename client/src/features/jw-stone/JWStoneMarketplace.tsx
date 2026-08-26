@@ -10,7 +10,7 @@ import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directCo
 import type { PublicStoneInventoryItem } from "@shared/stoneInventory";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
-import { ColorPaletteRail, MoodPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
+import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { CurrentInventorySection } from "./CurrentInventorySection";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
@@ -229,7 +229,7 @@ export default function JWStoneMarketplace() {
       stone: null,
     });
     if (!next.aesthetic && !next.color) return;
-    const resultsTestId = next.aesthetic ? "jw-mood-results" : "jw-palette-results";
+    const resultsTestId = "jw-palette-results";
     requestAnimationFrame(() => {
       document
         .querySelector(`[data-testid="${resultsTestId}"]`)
@@ -342,16 +342,6 @@ export default function JWStoneMarketplace() {
       <ColorPaletteRail
         aesthetic={state.aesthetic}
         color={state.color}
-        material={null}
-        origin={state.origin}
-        onSelect={selectPalette}
-        isSaved={wishlist.isSaved}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-      />
-      <MoodPaletteRail
-        aesthetic={state.aesthetic}
         material={null}
         origin={state.origin}
         onSelect={selectPalette}
