@@ -135,8 +135,8 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(footer?.querySelector('nav[aria-label="JW Stone sections"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
     expect(
-      container.querySelector('[data-testid="jw-marketplace-discovery-copy"]')?.textContent
-    ).toContain("Pensacola, Florida");
+      container.querySelector('[data-testid="jw-marketplace-local-description"]')?.textContent
+    ).toContain("Pensacola");
     const companyIdentity = container.querySelector<HTMLElement>(
       '[data-testid="jw-company-identity"]'
     );
