@@ -29,13 +29,14 @@ import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
 const JW_STONE_DESCRIPTION =
-  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+  "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.";
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
-    return `${window.location.origin}/`;
+    const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+    return `${window.location.origin}${pathname}`;
   }
   return "https://www.thetradescout.com/jw-stone";
 }
@@ -272,7 +273,7 @@ export default function JWStoneMarketplace() {
   const collectionData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "JW Stone | Stone Discovery",
+    name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
     description: JW_STONE_DESCRIPTION,
     url: canonicalUrl,
     image: JW_STONE_SOCIAL_IMAGE_URL,
@@ -303,8 +304,8 @@ export default function JWStoneMarketplace() {
       data-jw-marketplace-base={marketplaceBasePath() || "/"}
     >
       <SEOHelmet
-        title="JW Stone | Stone Discovery"
-        socialTitle="JW Stone | Stone Discovery"
+        title="Natural stone slabs in Pensacola, FL"
+        socialTitle="JW Stone Logistics | Natural stone slabs"
         description={JW_STONE_DESCRIPTION}
         canonical={canonicalUrl}
         ogType="website"
