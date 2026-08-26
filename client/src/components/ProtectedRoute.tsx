@@ -2,7 +2,10 @@ import React, { useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { SkeletonBlock } from "@/components/ui/states";
-import { isAdminTier, isSuperAdminLike as isSuperAdminRoleLike } from "@/lib/roleChecks";
+import {
+  hasAdminUiAccess,
+  isSuperAdminLike as isSuperAdminRoleLike,
+} from "@/lib/roleChecks";
 import {
   buildAuthEntryRoute,
   getCurrentInternalPath,
@@ -17,21 +20,12 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
   fallback?: React.ReactNode;
-  /** If true, require user.isAdmin === true regardless of string roles */
+  /** If true, require canonical admin UI access. */
   adminOnly?: boolean;
 }
 
 function isAdminLikeUser(user: any): boolean {
-  if (!user) return false;
-  if (user.isAdmin === true || user.isSuperAdmin === true) return true;
-  if (isAdminTier(user.role) || isSuperAdminRoleLike(user.role)) return true;
-
-  const roles: string[] = Array.isArray(user.roles)
-    ? user.roles.filter((r: unknown): r is string => typeof r === "string")
-    : [];
-  return roles.some(
-    (r) => isAdminTier(r) || isSuperAdminRoleLike(r) || String(r).includes("admin")
-  );
+  return hasAdminUiAccess(user);
 }
 
 /**
