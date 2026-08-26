@@ -8,7 +8,7 @@ Merging to `main` **is** production (Render auto-deploy). This contract is the e
 | --- | --- | --- |
 | 1 | Exact proposed commit | `git rev-parse HEAD` recorded in evidence |
 | 2 | Clean dependency install | `npm ci` |
-| 3 | Type + build | `npm run check` then `npm run build` |
+| 3 | Type + production-debt + build | `npm run check`, `npm run audit:production-debt`, then `npm run build` |
 | 4 | Relevant contract tests | focused Vitest set plus discovery-performance Node contract tests inside the gate |
 | 5 | Database compatibility proof | migrate + `db:verify:required` on `TEST_DATABASE_URL` |
 | 6 | Browser proof | `BASE_URL` public-entry smoke **or** manual note |
@@ -32,6 +32,12 @@ node scripts/attest-minimum-release-contract.mjs artifacts/release-contract/<sha
 ```
 
 Evidence lands in `artifacts/release-contract/<sha12>/evidence.json`.
+
+## Production-debt hard gate
+
+The release gate runs `npm run audit:production-debt` after typecheck and before build. A nonzero result stops the release, writes failure evidence under the step `3-production-debt-audit`, and has no bypass flag.
+
+This audit detects bounded static signatures for known runtime debt classes. It is a hard gate for those signatures, not a claim of complete semantic assurance.
 
 ## Optional status evidence
 
