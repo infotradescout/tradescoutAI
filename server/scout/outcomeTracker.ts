@@ -7,7 +7,7 @@
 import { db } from "../db";
 import { scoutOutcomeEvents, scoutUserConfidenceState } from "../../shared/schema";
 import { and, desc, eq, gte } from "drizzle-orm";
-import { isOutcomeLearningEnabled } from "../routes/admin-control";
+import { getScoutControlState } from "../services/scoutControlState";
 
 // NOTE: Drizzle type helpers may not be exported for these inserts; we guard with inline types.
 type OutcomeAction =
@@ -154,8 +154,9 @@ export async function updateUserConfidenceStateFromOutcome(
   const resolvedScope = event.scope ?? scope ?? DEFAULT_SCOPE;
   let state = await getUserConfidenceState(userId, resolvedScope);
 
-  // ADMIN CONTROL: If learning disabled, return state unchanged
-  if (!isOutcomeLearningEnabled()) {
+  // Durable admin control. Read failures return the conservative fail-safe state.
+  const controls = await getScoutControlState();
+  if (!controls.outcomeLearningEnabled) {
     console.log(`[ADMIN CONTROL] Outcome learning disabled - no confidence update`);
     return state;
   }
