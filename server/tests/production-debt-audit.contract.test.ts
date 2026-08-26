@@ -77,7 +77,9 @@ describe("production-debt bounded static audit", () => {
     const docs = fs.readFileSync(
       path.resolve(process.cwd(), "docs/release/MINIMUM_RELEASE_CONTRACT.md"), "utf8");
     expect(runner).toContain('"3-production-debt-audit"');
-    expect(runner).toContain('run("npm", ["run", "audit:production-debt"]');
+    expect(runner).toMatch(
+      /run\(\s*"npm",\s*\["run",\s*"audit:production-debt"\]/
+    );
     expect(docs).toContain("## Production-debt hard gate");
     expect(docs).toContain("no bypass flag");
     expect(docs).toContain("bounded static signatures");
