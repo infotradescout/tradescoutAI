@@ -35,7 +35,8 @@ const JW_STONE_SOCIAL_IMAGE_URL =
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
-    return `${window.location.origin}/`;
+    const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+    return `${window.location.origin}${pathname}`;
   }
   return "https://www.thetradescout.com/jw-stone";
 }
