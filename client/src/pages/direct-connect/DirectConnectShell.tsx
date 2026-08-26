@@ -133,6 +133,11 @@ import {
 } from "./directConnectEntryContext";
 import { resolveDirectConnectEntryContext } from "./stagedDirectConnectEntryContext";
 import { resolveDirectConnectDispatchSelection } from "./directConnectDispatchSelection";
+import {
+  parseHomeIdComposerHandoff,
+  resolveHomeIdComposerHandoff,
+  type HomeIdComposerHandoff,
+} from "./homeIdComposerHandoff";
 import { getStoredDiscoveryLandingAttribution } from "@/lib/discoveryLanding";
 import {
   buildDirectConnectHref,
@@ -1450,6 +1455,7 @@ function DirectConnectRequestComposer({
   prefillLocation,
   prefillTiming,
   prefillTradeId,
+  prefillHomeIdHandoff,
 }: {
   entryLocation?: string;
   defaultCountyFips?: string;
@@ -1469,6 +1475,7 @@ function DirectConnectRequestComposer({
   prefillLocation?: string;
   prefillTiming?: string;
   prefillTradeId?: string;
+  prefillHomeIdHandoff?: HomeIdComposerHandoff | null;
 }) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -1526,7 +1533,9 @@ function DirectConnectRequestComposer({
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>(() =>
     prefillTargetProviderId ? [prefillTargetProviderId] : []
   );
-  const [selectedHomeId, setSelectedHomeId] = useState<string>("");
+  const [selectedHomeId, setSelectedHomeId] = useState<string>(
+    () => prefillHomeIdHandoff?.homeId || ""
+  );
   const [assetComponentType, setAssetComponentType] = useState<
     | "roof"
     | "hvac"
@@ -1543,7 +1552,7 @@ function DirectConnectRequestComposer({
   const [assetComponentId, setAssetComponentId] = useState("");
   const [homeContextIntent, setHomeContextIntent] = useState<
     "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now"
-  >("skip_for_now");
+  >(() => prefillHomeIdHandoff?.homeContextIntent || "skip_for_now");
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
@@ -1563,6 +1572,7 @@ function DirectConnectRequestComposer({
   const latestAuthenticatedDraftSaveRef = useRef<() => void>(() => undefined);
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
+  const homeIdHandoffAppliedRef = useRef(false);
 
   const homesQuery = useQuery({
     queryKey: ["/api/homes"],
@@ -1572,6 +1582,35 @@ function DirectConnectRequestComposer({
     ? (homesQuery.data as any).homes
     : [];
   const hasExistingHomes = homes.length > 0;
+  const homeIdHandoffQuery = useQuery({
+    queryKey: [
+      "/api/homeid",
+      prefillHomeIdHandoff?.homeId || null,
+      "direct-connect-handoff",
+      prefillHomeIdHandoff?.homePacketId || null,
+    ],
+    enabled: Boolean(
+      isAuthenticated && prefillHomeIdHandoff?.homeId && prefillHomeIdHandoff.homePacketId
+    ),
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/homeid/${encodeURIComponent(prefillHomeIdHandoff!.homeId)}/persistence`
+      ),
+    retry: false,
+  });
+  const resolvedHomeIdHandoff = useMemo(() => {
+    if (!prefillHomeIdHandoff) return null;
+    if (!prefillHomeIdHandoff.homePacketId) {
+      return resolveHomeIdComposerHandoff(prefillHomeIdHandoff, {});
+    }
+    if (!homeIdHandoffQuery.data) return null;
+    return resolveHomeIdComposerHandoff(prefillHomeIdHandoff, homeIdHandoffQuery.data);
+  }, [homeIdHandoffQuery.data, prefillHomeIdHandoff]);
+  const homeIdPacketUnavailable = Boolean(
+    prefillHomeIdHandoff?.homePacketId &&
+    (homeIdHandoffQuery.isError || (homeIdHandoffQuery.isSuccess && !resolvedHomeIdHandoff))
+  );
 
   const currentReturnPath = () =>
     resolveDirectConnectComposerReturnPath(entryLocation, location || "/direct-connect");
@@ -2152,6 +2191,28 @@ function DirectConnectRequestComposer({
   }, []);
 
   useEffect(() => {
+    if (!resolvedHomeIdHandoff || homeIdHandoffAppliedRef.current) return;
+    homeIdHandoffAppliedRef.current = true;
+    setSelectedHomeId(resolvedHomeIdHandoff.homeId);
+    setHomeContextIntent(resolvedHomeIdHandoff.homeContextIntent);
+    setShowHomeRecordDetails(true);
+    if (resolvedHomeIdHandoff.suggestedTitle) {
+      setTitle((current) => current.trim() || resolvedHomeIdHandoff.suggestedTitle);
+      setDetailAnswers((current) => ({
+        ...current,
+        what: current.what.trim() || resolvedHomeIdHandoff.suggestedTitle,
+      }));
+    }
+    if (resolvedHomeIdHandoff.suggestedDescription) {
+      setDescription((current) => current.trim() || resolvedHomeIdHandoff.suggestedDescription);
+      setDetailAnswers((current) => ({
+        ...current,
+        details: current.details.trim() || resolvedHomeIdHandoff.suggestedDescription,
+      }));
+    }
+  }, [resolvedHomeIdHandoff]);
+
+  useEffect(() => {
     if (!draftInitializedRef.current || !user?.id) return;
     const timeoutId = window.setTimeout(
       () => latestAuthenticatedDraftSaveRef.current(),
@@ -2261,6 +2322,19 @@ function DirectConnectRequestComposer({
         payload.homeContextIntent = dispatch.homeContextIntent;
       }
       if (dispatch?.homeId?.trim()) payload.homeId = dispatch.homeId.trim();
+      const shouldAttachHomeIdPacket = Boolean(
+        resolvedHomeIdHandoff?.homePacketId &&
+        dispatch?.homeId?.trim() === resolvedHomeIdHandoff.homeId &&
+        dispatch?.homeContextIntent !== "skip_for_now"
+      );
+      if (shouldAttachHomeIdPacket && resolvedHomeIdHandoff?.homePacketId) {
+        payload.homePacketId = resolvedHomeIdHandoff.homePacketId;
+        payload.homePacketSelectedDetailIds = resolvedHomeIdHandoff.homePacketSelectedDetailIds;
+        payload.homePacketSubmissionConfirmed = true;
+        if (resolvedHomeIdHandoff.homePacketReadinessState) {
+          payload.homePacketReadinessState = resolvedHomeIdHandoff.homePacketReadinessState;
+        }
+      }
       if (dispatch?.assetComponentType) payload.assetComponentType = dispatch.assetComponentType;
       if (dispatch?.assetComponentId?.trim())
         payload.assetComponentId = dispatch.assetComponentId.trim();
@@ -2740,6 +2814,26 @@ function DirectConnectRequestComposer({
             : "Check the details, add anything useful, and choose who receives it. Nothing is sent until you confirm."}
         </p>
       </header>
+
+      {prefillHomeIdHandoff ? (
+        <div
+          className={cn(
+            "rounded-2xl border px-4 py-3 text-sm leading-6",
+            homeIdPacketUnavailable
+              ? "border-amber-400/30 bg-amber-400/10 text-amber-100"
+              : "border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-100"
+          )}
+          data-testid="direct-connect-homeid-handoff"
+        >
+          {homeIdHandoffQuery.isPending && prefillHomeIdHandoff.homePacketId
+            ? "Loading the saved HomeID request details…"
+            : homeIdPacketUnavailable
+              ? "The saved HomeID packet could not be loaded. Enter and review the request manually; no packet details will be attached."
+              : resolvedHomeIdHandoff?.homePacketId
+                ? "Saved HomeID details are ready below. Review and edit them first—nothing is sent until you choose the next step and confirm."
+                : "This HomeID is selected for the request. Review the details below before choosing who receives it."}
+        </div>
+      ) : null}
 
       <div
         className="rounded-2xl border border-white/10 bg-black/25 px-2 py-2 backdrop-blur-sm"
@@ -6007,7 +6101,7 @@ function MyDirectConnectRequests({ defaultCountyFips }: { defaultCountyFips?: st
 
 export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
   const { toast } = useToast();
   const homeIdOfferShownRef = useRef<string | null>(null);
   const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
@@ -6015,6 +6109,10 @@ export default function DirectConnectShell() {
     typeof window === "undefined"
       ? location
       : `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const homeIdComposerHandoff = useMemo(
+    () => parseHomeIdComposerHandoff(directConnectLocation),
+    [directConnectLocation]
+  );
   const pathOnly = useMemo(
     () => getDirectConnectPathOnly(directConnectLocation),
     [directConnectLocation]
@@ -6317,6 +6415,7 @@ export default function DirectConnectShell() {
   ]);
 
   useEffect(() => {
+    if (isAuthLoading || homeIdComposerHandoff) return;
     if (!isAuthenticated) return;
     if (pathOnly !== "/direct-connect") return;
     if (!shouldResolveDirectConnectEntry(directConnectEntry)) return;
@@ -6352,7 +6451,9 @@ export default function DirectConnectShell() {
   }, [
     activeSection,
     directConnectEntry,
+    homeIdComposerHandoff,
     isAuthenticated,
+    isAuthLoading,
     isInboxCountError,
     isInboxCountLoading,
     isRequestCountError,
@@ -6390,6 +6491,7 @@ export default function DirectConnectShell() {
           prefillLocation={requestPrefill?.location}
           prefillTiming={requestPrefill?.timing}
           prefillTradeId={requestPrefill?.tradeId}
+          prefillHomeIdHandoff={homeIdComposerHandoff}
         />
       );
       break;
