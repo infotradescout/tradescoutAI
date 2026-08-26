@@ -52,7 +52,10 @@ function resolveMarketplaceSeo(location: string): MarketplaceSeo {
   }
   if (parsed.material) {
     const publicSlug = toPublicMaterialSlug(parsed.material) || parsed.material;
-    const materialName = titleCaseSlug(publicSlug).replace("Quartz", "Engineered Quartz");
+    const materialName =
+      publicSlug === "quartz" || publicSlug === "engineered-quartz"
+        ? "Engineered Quartz"
+        : titleCaseSlug(publicSlug);
     return {
       title: materialName + " Slabs in Pensacola, FL | JW Stone Logistics",
       description:
