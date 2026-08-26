@@ -1,386 +1,127 @@
 /**
- * Scout Scheduled Missions
+ * Scout mission recording.
  *
- * Automated scouting missions that run on a schedule to monitor:
- * - Building code changes
- * - Material price fluctuations
- * - Local jurisdiction updates
- * - Contractor availability
- * - Market signals
- *
- * Results are automatically indexed and trigger LISA notifications.
+ * There is no scheduler or executor in this service. A request creates a durable
+ * Mission Control item for manual review and reports that limitation honestly.
  */
+import { randomUUID } from "crypto";
+import { pool } from "../db";
 
-import { EventEmitter } from "events";
+export const SCOUT_MISSION_TYPES = [
+  "codes",
+  "prices",
+  "local",
+  "contractors",
+  "market",
+] as const;
+export type ScoutMissionType = (typeof SCOUT_MISSION_TYPES)[number];
 
-export interface ScheduledMission {
-  id: string;
-  name: string;
-  description: string;
-  type: "codes" | "prices" | "local" | "contractors" | "market";
-  schedule: string; // cron expression
-  enabled: boolean;
-  lastRun?: Date;
-  nextRun?: Date;
-  trades?: string[];
-  jurisdictions?: string[];
-}
+type MissionQuery = {
+  query(text: string, params?: unknown[]): Promise<{ rows: any[] }>;
+};
 
-export interface MissionResult {
+export interface ManualMissionRecord {
   missionId: string;
-  timestamp: Date;
-  type: string;
-  findings: {
-    title: string;
-    description: string;
-    severity: "critical" | "high" | "medium" | "low";
-    action?: string;
-  }[];
-  changes: {
-    added: string[];
-    updated: string[];
-    removed: string[];
+  fips: string;
+  type: ScoutMissionType;
+  status: "recorded";
+  createdAt: Date;
+  impactScore: null;
+  execution: {
+    available: false;
+    state: "manual_review_required";
   };
-  notifyUsers: boolean;
+  evidence: {
+    durable: true;
+    impactScoreAvailable: false;
+    executorAvailable: false;
+  };
 }
 
-class ScoutScheduledMissions extends EventEmitter {
-  private missions: Map<string, ScheduledMission> = new Map();
-  private activeTimers: Map<string, NodeJS.Timeout> = new Map();
-  private missionHistory: MissionResult[] = [];
+export interface ScoutMissionRepository {
+  createMissionAction(input: {
+    sourceId: string;
+    countyFips: string;
+    type: ScoutMissionType;
+    requestedBy: string;
+  }): Promise<{ id: string; createdAt: Date }>;
+}
 
-  constructor() {
-    super();
-    this.initializeDefaultMissions();
-  }
+export class DatabaseScoutMissionRepository implements ScoutMissionRepository {
+  constructor(private readonly database: MissionQuery = pool as unknown as MissionQuery) {}
 
-  /**
-   * Initialize default scheduled missions
-   */
-  private initializeDefaultMissions(): void {
-    // Daily building code check
-    this.addMission({
-      id: "daily-codes",
-      name: "Daily Code Check",
-      description: "Check for building code updates daily",
-      type: "codes",
-      schedule: "0 6 * * *", // 6 AM daily
-      enabled: true,
-      trades: ["electrical", "plumbing", "structural"],
-      jurisdictions: ["Travis", "Harris", "Dallas"],
-    });
-
-    // Weekly price monitoring
-    this.addMission({
-      id: "weekly-prices",
-      name: "Weekly Price Monitor",
-      description: "Track material price changes weekly",
-      type: "prices",
-      schedule: "0 8 * * 1", // Monday 8 AM
-      enabled: true,
-      trades: ["carpentry", "roofing", "masonry"],
-    });
-
-    // Bi-weekly local updates
-    this.addMission({
-      id: "biweekly-local",
-      name: "Local Updates",
-      description: "Check for jurisdiction-specific changes",
-      type: "local",
-      schedule: "0 9 * * 0,3", // Sunday and Wednesday 9 AM
-      enabled: true,
-      jurisdictions: ["Travis", "Harris", "Dallas", "Bexar"],
-    });
-
-    // Weekly contractor availability
-    this.addMission({
-      id: "weekly-contractors",
-      name: "Contractor Availability",
-      description: "Scout for available contractors",
-      type: "contractors",
-      schedule: "0 7 * * 1", // Monday 7 AM
-      enabled: true,
-      trades: ["electrical", "plumbing", "hvac"],
-    });
-
-    // Daily market signals
-    this.addMission({
-      id: "daily-market",
-      name: "Market Signals",
-      description: "Monitor market trends and signals",
-      type: "market",
-      schedule: "0 17 * * *", // 5 PM daily
-      enabled: true,
-    });
-  }
-
-  /**
-   * Add a new scheduled mission
-   */
-  addMission(mission: Omit<ScheduledMission, "lastRun" | "nextRun">): void {
-    const fullMission: ScheduledMission = {
-      ...mission,
-      lastRun: undefined,
-      nextRun: this.calculateNextRun(mission.schedule),
-    };
-
-    this.missions.set(mission.id, fullMission);
-
-    if (mission.enabled) {
-      this.scheduleMission(mission.id);
-    }
-  }
-
-  /**
-   * Update a mission
-   */
-  updateMission(id: string, updates: Partial<ScheduledMission>): void {
-    const mission = this.missions.get(id);
-    if (!mission) return;
-
-    const updated = { ...mission, ...updates };
-    this.missions.set(id, updated);
-
-    // Reschedule if enabled status or schedule changed
-    if (updates.enabled !== undefined || updates.schedule !== undefined) {
-      this.unscheduleMission(id);
-      if (updated.enabled) {
-        this.scheduleMission(id);
-      }
-    }
-  }
-
-  /**
-   * Delete a mission
-   */
-  deleteMission(id: string): void {
-    this.unscheduleMission(id);
-    this.missions.delete(id);
-  }
-
-  /**
-   * Get all missions
-   */
-  getMissions(): ScheduledMission[] {
-    return Array.from(this.missions.values());
-  }
-
-  /**
-   * Get a specific mission
-   */
-  getMission(id: string): ScheduledMission | undefined {
-    return this.missions.get(id);
-  }
-
-  /**
-   * Schedule a mission to run
-   */
-  private scheduleMission(missionId: string): void {
-    const mission = this.missions.get(missionId);
-    if (!mission) return;
-
-    // For now, use simple interval-based scheduling
-    // In production, use node-cron or similar
-    const timer = setInterval(() => {
-      this.runMission(missionId);
-    }, this.getIntervalFromSchedule(mission.schedule));
-
-    this.activeTimers.set(missionId, timer);
-
-    // Run immediately on first schedule
-    this.runMission(missionId);
-  }
-
-  /**
-   * Unschedule a mission
-   */
-  private unscheduleMission(missionId: string): void {
-    const timer = this.activeTimers.get(missionId);
-    if (timer) {
-      clearInterval(timer);
-      this.activeTimers.delete(missionId);
-    }
-  }
-
-  /**
-   * Run a mission immediately
-   */
-  async runMission(missionId: string): Promise<MissionResult | null> {
-    const mission = this.missions.get(missionId);
-    if (!mission) return null;
-
-    try {
-      console.log(`[Scout] Running mission: ${mission.name}`);
-
-      const result = await this.executeMission(mission);
-
-      // Update mission metadata
-      mission.lastRun = new Date();
-      mission.nextRun = this.calculateNextRun(mission.schedule);
-
-      // Store in history
-      this.missionHistory.push(result);
-      if (this.missionHistory.length > 1000) {
-        this.missionHistory.shift();
-      }
-
-      // Emit event for LISA integration
-      this.emit("mission-complete", result);
-
-      // Notify if there are critical findings
-      if (result.findings.some((f) => f.severity === "critical")) {
-        this.emit("mission-critical", result);
-      }
-
-      return result;
-    } catch (error) {
-      console.error(`[Scout] Mission failed: ${mission.name}`, error);
-      this.emit("mission-error", { missionId, error });
-      return null;
-    }
-  }
-
-  /**
-   * Execute a mission based on its type
-   */
-  private async executeMission(mission: ScheduledMission): Promise<MissionResult> {
-    const timestamp = new Date();
-    const findings: MissionResult["findings"] = [];
-    const changes = { added: [], updated: [], removed: [] };
-
-    switch (mission.type) {
-      case "codes":
-        // Scout for building code changes
-        findings.push({
-          title: "Code Check Complete",
-          description: `Checked ${mission.trades?.length || 0} trades in ${mission.jurisdictions?.length || 0} jurisdictions`,
-          severity: "low",
-        });
-        break;
-
-      case "prices":
-        // Scout for price changes
-        findings.push({
-          title: "Price Monitor Complete",
-          description: `Monitored prices for ${mission.trades?.length || 0} trades`,
-          severity: "low",
-        });
-        break;
-
-      case "local":
-        // Scout for local jurisdiction updates
-        findings.push({
-          title: "Local Updates Check",
-          description: `Checked ${mission.jurisdictions?.length || 0} jurisdictions for updates`,
-          severity: "low",
-        });
-        break;
-
-      case "contractors":
-        // Scout for contractor availability
-        findings.push({
-          title: "Contractor Availability",
-          description: `Scanned availability for ${mission.trades?.length || 0} trades`,
-          severity: "low",
-        });
-        break;
-
-      case "market":
-        // Scout for market signals
-        findings.push({
-          title: "Market Signals",
-          description: "Analyzed market trends and signals",
-          severity: "low",
-        });
-        break;
-    }
-
+  async createMissionAction(input: {
+    sourceId: string;
+    countyFips: string;
+    type: ScoutMissionType;
+    requestedBy: string;
+  }): Promise<{ id: string; createdAt: Date }> {
+    const result = await this.database.query(
+      `INSERT INTO mission_control_actions
+         (source_type, source_id, status, summary, suggested_fix, impact_score)
+       VALUES ('scout', $1, 'open', $2, $3, NULL)
+       ON CONFLICT (source_type, source_id) DO UPDATE
+         SET updated_at = now()
+       RETURNING id, created_at`,
+      [
+        input.sourceId,
+        `Manual Scout ${input.type} review requested for county ${input.countyFips}`,
+        `Review requested by user ${input.requestedBy}; no automated executor is configured.`,
+      ]
+    );
     return {
-      missionId: mission.id,
-      timestamp,
-      type: mission.type,
-      findings,
-      changes,
-      notifyUsers: findings.some((f) => f.severity === "critical" || f.severity === "high"),
-    };
-  }
-
-  /**
-   * Get mission history
-   */
-  getHistory(missionId?: string, limit: number = 50): MissionResult[] {
-    let history = this.missionHistory;
-
-    if (missionId) {
-      history = history.filter((r) => r.missionId === missionId);
-    }
-
-    return history.slice(-limit);
-  }
-
-  /**
-   * Calculate next run time from cron expression
-   * Simplified version - in production use node-cron
-   */
-  private calculateNextRun(schedule: string): Date {
-    // For now, return a date 1 hour from now
-    // In production, parse the cron expression properly
-    const next = new Date();
-    next.setHours(next.getHours() + 1);
-    return next;
-  }
-
-  /**
-   * Get interval in milliseconds from schedule
-   * Simplified version
-   */
-  private getIntervalFromSchedule(schedule: string): number {
-    // For now, return 1 hour
-    // In production, parse the cron expression properly
-    return 60 * 60 * 1000; // 1 hour
-  }
-
-  /**
-   * Get statistics about scheduled missions
-   */
-  getStats() {
-    const missions = Array.from(this.missions.values());
-    return {
-      totalMissions: missions.length,
-      enabledMissions: missions.filter((m) => m.enabled).length,
-      totalRuns: this.missionHistory.length,
-      lastRun: this.missionHistory[this.missionHistory.length - 1]?.timestamp,
-      criticalFindings: this.missionHistory.filter((r) =>
-        r.findings.some((f) => f.severity === "critical")
-      ).length,
+      id: String(result.rows[0].id),
+      createdAt: new Date(result.rows[0].created_at),
     };
   }
 }
 
-// Singleton instance
+export class ScoutScheduledMissions {
+  constructor(private readonly repository: ScoutMissionRepository = new DatabaseScoutMissionRepository()) {}
+
+  async recordManualMission(input: {
+    fips: string;
+    missionType: string;
+    requestedBy: string;
+    requestId?: string;
+  }): Promise<ManualMissionRecord> {
+    const fips = String(input.fips || "").trim();
+    if (!/^\d{5}$/.test(fips)) throw new Error("A valid five-digit county FIPS is required");
+    const type = String(input.missionType || "").trim() as ScoutMissionType;
+    if (!SCOUT_MISSION_TYPES.includes(type)) throw new Error("Unsupported Scout mission type");
+    const requestedBy = String(input.requestedBy || "").trim();
+    if (!requestedBy) throw new Error("requestedBy is required");
+    const requestId = String(input.requestId || randomUUID()).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 48);
+    const sourceId = `manual:${fips}:${type}:${requestId}`.slice(0, 128);
+    const action = await this.repository.createMissionAction({
+      sourceId,
+      countyFips: fips,
+      type,
+      requestedBy,
+    });
+    return {
+      missionId: action.id,
+      fips,
+      type,
+      status: "recorded",
+      createdAt: action.createdAt,
+      impactScore: null,
+      execution: { available: false, state: "manual_review_required" },
+      evidence: {
+        durable: true,
+        impactScoreAvailable: false,
+        executorAvailable: false,
+      },
+    };
+  }
+}
+
 export const scoutScheduledMissions = new ScoutScheduledMissions();
 
-/**
- * Start all scheduled missions
- */
 export function startScheduledMissions(): void {
-  const missions = scoutScheduledMissions.getMissions();
-  console.log(`[Scout] Starting ${missions.filter((m) => m.enabled).length} scheduled missions`);
-
-  missions.forEach((mission) => {
-    if (mission.enabled) {
-      scoutScheduledMissions.runMission(mission.id);
-    }
-  });
+  console.info("[Scout Missions] Automatic scheduling is not configured; manual review only.");
 }
 
-/**
- * Stop all scheduled missions
- */
 export function stopScheduledMissions(): void {
-  const missions = scoutScheduledMissions.getMissions();
-  missions.forEach((mission) => {
-    scoutScheduledMissions.deleteMission(mission.id);
-  });
-  console.log("[Scout] All scheduled missions stopped");
+  // No timers exist.
 }

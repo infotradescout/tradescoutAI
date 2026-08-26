@@ -1,32 +1,35 @@
 /**
- * Scout Heatmap Intelligence
+ * Evidence-backed Scout heatmap intelligence.
  *
- * Aggregates Scout intelligence, contractor data, and site data by county.
- * Powers the Visual Scouting Command Center.
- *
- * Features:
- * - Intelligence overlay by county
- * - Contractor and user aggregation
- * - File and report organization
- * - Regional opportunity scoring
- * - Real-time data updates
+ * Every value here is derived from bounded database reads. Unknown opportunity,
+ * risk, ranking, and trend signals stay unknown instead of being synthesized.
  */
+import { pool } from "../db";
+import {
+  MAX_SCOUT_COUNTIES,
+  scoutVisualFileSorting,
+  type CountyFileOrganization,
+  type CountyFile,
+} from "./scoutVisualFileSorting";
+import { scoutScheduledMissions, type ManualMissionRecord } from "./scoutScheduledMissions";
+
+type Queryable = {
+  query(text: string, params?: unknown[]): Promise<{ rows: any[] }>;
+};
 
 export interface CountyIntelligenceData {
   fips: string;
   county: string;
   state: string;
   scoutFindings: {
-    buildingCodes: number;
-    pricingData: number;
-    tradeGuides: number;
-    recentReports: number;
+    notes: number;
+    byCategory: Record<string, number>;
   };
   contractors: {
     total: number;
     active: number;
     byTrade: Record<string, number>;
-    topContractors: ContractorSummary[];
+    topContractors: [];
   };
   users: {
     total: number;
@@ -37,57 +40,28 @@ export interface CountyIntelligenceData {
   files: {
     total: number;
     byType: Record<string, number>;
-    recentFiles: FileSummary[];
+    recentFiles: CountyFile[];
   };
-  opportunities: OpportunitySummary[];
-  risks: RiskSummary[];
-  metrics: CountyMetrics;
+  opportunities: [];
+  risks: [];
+  metrics: {
+    activityScore: number;
+    opportunityScore: null;
+    dataCompleteness: number;
+    trendDirection: null;
+    competitionLevel: null;
+  };
+  evidence: {
+    source: "database";
+    opportunityEvidenceAvailable: false;
+    riskEvidenceAvailable: false;
+    rankingEvidenceAvailable: false;
+  };
   lastUpdated: Date;
 }
 
-export interface ContractorSummary {
-  id: string;
-  name: string;
-  trade: string;
-  rating: number;
-  reviewCount: number;
-  availability: "high" | "medium" | "low";
-}
-
-export interface FileSummary {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  uploadedAt: Date;
-  relevanceScore: number; // 0-100
-}
-
-export interface OpportunitySummary {
-  id: string;
-  title: string;
-  type: string; // "high-demand", "underserved", "emerging-trade"
-  score: number; // 0-100
-  description: string;
-}
-
-export interface RiskSummary {
-  id: string;
-  title: string;
-  severity: "critical" | "high" | "medium" | "low";
-  description: string;
-}
-
-export interface CountyMetrics {
-  activityScore: number; // 0-100 (based on user/contractor activity)
-  opportunityScore: number; // 0-100 (based on market gaps)
-  dataCompleteness: number; // 0-100 (how much we know about this county)
-  trendDirection: "up" | "stable" | "down";
-  competitionLevel: "low" | "medium" | "high";
-}
-
 export interface HeatmapDataRequest {
-  counties?: string[]; // FIPS codes
+  counties?: string[];
   includeContractors?: boolean;
   includeUsers?: boolean;
   includeFiles?: boolean;
@@ -95,313 +69,213 @@ export interface HeatmapDataRequest {
   timeframe?: "7d" | "30d" | "90d" | "all";
 }
 
-class ScoutHeatmapIntelligence {
-  private countyData: Map<string, CountyIntelligenceData> = new Map();
-  private updateQueue: Set<string> = new Set();
-  private lastUpdateTime: Map<string, Date> = new Map();
+function normalizeFips(value: unknown): string {
+  const fips = String(value || "").trim();
+  if (!/^\d{5}$/.test(fips)) throw new Error("A valid five-digit county FIPS is required");
+  return fips;
+}
 
-  /**
-   * Get intelligence for a specific county
-   */
+export class ScoutHeatmapIntelligence {
+  constructor(
+    private readonly database: Queryable = pool as unknown as Queryable,
+    private readonly fileReader = scoutVisualFileSorting
+  ) {}
+
   async getCountyIntelligence(fips: string): Promise<CountyIntelligenceData | null> {
-    // Check if data is stale (older than 1 hour)
-    const lastUpdate = this.lastUpdateTime.get(fips);
-    if (lastUpdate && Date.now() - lastUpdate.getTime() < 60 * 60 * 1000) {
-      return this.countyData.get(fips) || null;
-    }
-
-    // Fetch fresh data
-    return this.fetchCountyIntelligence(fips);
+    const results = await this.getMultiCountyIntelligence({ counties: [fips] });
+    return results[0] || null;
   }
 
-  /**
-   * Get intelligence for multiple counties
-   */
   async getMultiCountyIntelligence(request: HeatmapDataRequest): Promise<CountyIntelligenceData[]> {
-    if (!request.counties || request.counties.length === 0) {
-      return Array.from(this.countyData.values());
+    let requested = Array.from(new Set((request.counties || []).map(normalizeFips)));
+    if (requested.length > MAX_SCOUT_COUNTIES) {
+      throw new Error(`A maximum of ${MAX_SCOUT_COUNTIES} counties can be requested`);
     }
 
-    const results: CountyIntelligenceData[] = [];
-    for (const fips of request.counties) {
-      const data = await this.getCountyIntelligence(fips);
-      if (data) results.push(data);
+    if (requested.length === 0) {
+      const defaults = await this.database.query(
+        "SELECT fips FROM counties ORDER BY fips LIMIT $1",
+        [MAX_SCOUT_COUNTIES]
+      );
+      requested = defaults.rows.map((row) => String(row.fips));
     }
+    if (requested.length === 0) return [];
 
-    return results;
-  }
+    const [counties, contractors, users, notes, files] = await Promise.all([
+      this.database.query(
+        `SELECT fips, name, state_code
+           FROM counties
+          WHERE fips = ANY($1::varchar[])
+          ORDER BY fips`,
+        [requested]
+      ),
+      this.database.query(
+        `SELECT c.fips,
+                count(DISTINCT ct.id)::int AS total,
+                count(DISTINCT ct.id) FILTER (WHERE ct.is_active = true)::int AS active
+           FROM counties c
+           LEFT JOIN contractor_counties cc ON cc.county_id = c.id
+           LEFT JOIN contractors ct ON ct.id = cc.contractor_id
+          WHERE c.fips = ANY($1::varchar[])
+          GROUP BY c.fips`,
+        [requested]
+      ),
+      this.database.query(
+        `SELECT county_fips AS fips,
+                count(*)::int AS total,
+                count(*) FILTER (WHERE role = 'homeowner')::int AS homeowners,
+                count(*) FILTER (WHERE role = 'contractor')::int AS contractors,
+                count(*) FILTER (WHERE updated_at >= now() - interval '30 days')::int AS recent
+           FROM users
+          WHERE county_fips = ANY($1::varchar[])
+          GROUP BY county_fips`,
+        [requested]
+      ),
+      this.database.query(
+        `SELECT county_fips AS fips, category::text AS category, count(*)::int AS count
+           FROM county_notes
+          WHERE county_fips = ANY($1::varchar[])
+          GROUP BY county_fips, category`,
+        [requested]
+      ),
+      this.fileReader.getCountyFilesBatch(requested, 10),
+    ]);
 
-  /**
-   * Fetch fresh county intelligence from all sources
-   */
-  private async fetchCountyIntelligence(fips: string): Promise<CountyIntelligenceData | null> {
-    try {
-      // In production, this would query the database
-      // For now, return a structured template
-
-      const data: CountyIntelligenceData = {
-        fips,
-        county: this.getFipsCountyName(fips),
-        state: this.getFipsStateName(fips),
-        scoutFindings: {
-          buildingCodes: Math.floor(Math.random() * 50),
-          pricingData: Math.floor(Math.random() * 100),
-          tradeGuides: Math.floor(Math.random() * 30),
-          recentReports: Math.floor(Math.random() * 20),
+    const contractorMap = new Map(
+      contractors.rows.map((row) => [
+        String(row.fips),
+        { total: Number(row.total || 0), active: Number(row.active || 0) },
+      ])
+    );
+    const userMap = new Map(
+      users.rows.map((row) => [
+        String(row.fips),
+        {
+          total: Number(row.total || 0),
+          homeowners: Number(row.homeowners || 0),
+          contractors: Number(row.contractors || 0),
+          recent: Number(row.recent || 0),
         },
+      ])
+    );
+    const noteMap = new Map<string, Record<string, number>>();
+    for (const row of notes.rows) {
+      const key = String(row.fips);
+      const categories = noteMap.get(key) || {};
+      categories[String(row.category)] = Number(row.count || 0);
+      noteMap.set(key, categories);
+    }
+
+    return counties.rows.map((county) => {
+      const fips = String(county.fips);
+      const contractor = contractorMap.get(fips) || { total: 0, active: 0 };
+      const countyUsers = userMap.get(fips) || {
+        total: 0,
+        homeowners: 0,
+        contractors: 0,
+        recent: 0,
+      };
+      const categories = noteMap.get(fips) || {};
+      const fileOrg: CountyFileOrganization | undefined = files.get(fips);
+      const notesTotal = Object.values(categories).reduce((sum, value) => sum + value, 0);
+      const completenessSignals = [
+        contractor.total > 0,
+        countyUsers.total > 0,
+        notesTotal > 0,
+        Number(fileOrg?.totalFiles || 0) > 0,
+      ].filter(Boolean).length;
+
+      return {
+        fips,
+        county: String(county.name),
+        state: String(county.state_code),
+        scoutFindings: { notes: notesTotal, byCategory: categories },
         contractors: {
-          total: Math.floor(Math.random() * 500) + 50,
-          active: Math.floor(Math.random() * 300) + 20,
-          byTrade: this.generateTradeBreakdown(),
-          topContractors: this.generateTopContractors(),
+          total: contractor.total,
+          active: contractor.active,
+          byTrade: {},
+          topContractors: [],
         },
         users: {
-          total: Math.floor(Math.random() * 2000) + 100,
-          homeowners: Math.floor(Math.random() * 1500) + 50,
-          contractors: Math.floor(Math.random() * 500) + 20,
-          recentActivity: Math.floor(Math.random() * 100),
+          total: countyUsers.total,
+          homeowners: countyUsers.homeowners,
+          contractors: countyUsers.contractors,
+          recentActivity: countyUsers.recent,
         },
         files: {
-          total: Math.floor(Math.random() * 200),
-          byType: {
-            "building-codes": Math.floor(Math.random() * 50),
-            "pricing-data": Math.floor(Math.random() * 60),
-            "contractor-profiles": Math.floor(Math.random() * 40),
-            "market-analysis": Math.floor(Math.random() * 30),
-            "permits-inspections": Math.floor(Math.random() * 20),
-          },
-          recentFiles: this.generateRecentFiles(),
+          total: Number(fileOrg?.totalFiles || 0),
+          byType: fileOrg?.filesByType || {},
+          recentFiles: fileOrg?.files || [],
         },
-        opportunities: this.generateOpportunities(),
-        risks: this.generateRisks(),
+        opportunities: [],
+        risks: [],
         metrics: {
-          activityScore: Math.floor(Math.random() * 100),
-          opportunityScore: Math.floor(Math.random() * 100),
-          dataCompleteness: Math.floor(Math.random() * 100),
-          trendDirection: ["up", "stable", "down"][Math.floor(Math.random() * 3)] as any,
-          competitionLevel: ["low", "medium", "high"][Math.floor(Math.random() * 3)] as any,
+          activityScore: Math.min(100, contractor.active + countyUsers.recent),
+          opportunityScore: null,
+          dataCompleteness: completenessSignals * 25,
+          trendDirection: null,
+          competitionLevel: null,
         },
-        lastUpdated: new Date(),
-      };
-
-      this.countyData.set(fips, data);
-      this.lastUpdateTime.set(fips, new Date());
-
-      return data;
-    } catch (error) {
-      console.error(`[Heatmap Intelligence] Error fetching data for ${fips}:`, error);
-      return null;
-    }
+        evidence: {
+          source: "database",
+          opportunityEvidenceAvailable: false,
+          riskEvidenceAvailable: false,
+          rankingEvidenceAvailable: false,
+        },
+        lastUpdated: fileOrg?.lastModified || new Date(),
+      } satisfies CountyIntelligenceData;
+    });
   }
 
-  /**
-   * Trigger a scouting mission for a specific county
-   */
-  async triggerCountyScouting(fips: string, missionType: string): Promise<any> {
-    console.log(`[Heatmap Intelligence] Triggering ${missionType} mission for ${fips}`);
-
-    // In production, this would queue a Scout mission
-    return {
-      missionId: `mission-${Date.now()}`,
-      fips,
-      type: missionType,
-      status: "queued",
-      createdAt: new Date(),
-    };
+  async triggerCountyScouting(
+    fips: string,
+    missionType: string,
+    requestedBy: string,
+    requestId?: string
+  ): Promise<ManualMissionRecord> {
+    const normalized = normalizeFips(fips);
+    const county = await this.database.query(
+      "SELECT fips FROM counties WHERE fips = $1 LIMIT 1",
+      [normalized]
+    );
+    if (!county.rows[0]) throw new Error(`County ${normalized} was not found`);
+    return scoutScheduledMissions.recordManualMission({
+      fips: normalized,
+      missionType,
+      requestedBy,
+      requestId,
+    });
   }
 
-  /**
-   * Get files for a county
-   */
   async getCountyFiles(
     fips: string,
-    filters?: {
-      type?: string;
-      sortBy?: "recent" | "relevant" | "size";
-      limit?: number;
-    }
-  ): Promise<FileSummary[]> {
-    const data = await this.getCountyIntelligence(fips);
-    if (!data) return [];
-
-    let files = data.files.recentFiles;
-
-    if (filters?.type) {
-      files = files.filter((f) => f.type === filters.type);
-    }
-
-    if (filters?.sortBy === "relevant") {
-      files.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    } else if (filters?.sortBy === "size") {
-      files.sort((a, b) => b.size - a.size);
-    }
-
-    return files.slice(0, filters?.limit || 10);
+    filters?: { type?: string; sortBy?: "recent" | "type"; limit?: number; offset?: number }
+  ): Promise<CountyFileOrganization | null> {
+    return this.fileReader.getCountyFiles(fips, filters);
   }
 
-  /**
-   * Assign a file to a county
-   */
-  async assignFileToCounty(fileId: string, fips: string): Promise<boolean> {
-    console.log(`[Heatmap Intelligence] Assigning file ${fileId} to county ${fips}`);
-    // In production, this would update the database
-    return true;
-  }
-
-  /**
-   * Get comparison between counties
-   */
-  async compareCounties(fips1: string, fips2: string): Promise<any> {
-    const data1 = await this.getCountyIntelligence(fips1);
-    const data2 = await this.getCountyIntelligence(fips2);
-
-    if (!data1 || !data2) return null;
-
+  async compareCounties(fips1: string, fips2: string): Promise<Record<string, unknown> | null> {
+    const data = await this.getMultiCountyIntelligence({ counties: [fips1, fips2] });
+    if (data.length !== 2) return null;
+    const byFips = new Map(data.map((item) => [item.fips, item]));
+    const first = byFips.get(normalizeFips(fips1));
+    const second = byFips.get(normalizeFips(fips2));
+    if (!first || !second) return null;
     return {
-      county1: {
-        name: data1.county,
-        metrics: data1.metrics,
-        contractors: data1.contractors.total,
-        users: data1.users.total,
-      },
-      county2: {
-        name: data2.county,
-        metrics: data2.metrics,
-        contractors: data2.contractors.total,
-        users: data2.users.total,
-      },
+      county1: first,
+      county2: second,
       differences: {
-        contractorDiff: data1.contractors.total - data2.contractors.total,
-        userDiff: data1.users.total - data2.users.total,
-        opportunityDiff: data1.metrics.opportunityScore - data2.metrics.opportunityScore,
+        contractorDiff: first.contractors.total - second.contractors.total,
+        userDiff: first.users.total - second.users.total,
+        opportunityDiff: null,
       },
+      evidence: { opportunityComparisonAvailable: false },
     };
   }
 
-  /**
-   * Get heat intensity for a county (for color coding)
-   */
   getCountyHeatIntensity(data: CountyIntelligenceData): number {
-    // Combine multiple factors to determine heat intensity
-    const activityWeight = 0.3;
-    const opportunityWeight = 0.4;
-    const dataWeight = 0.3;
-
-    return (
-      data.metrics.activityScore * activityWeight +
-      data.metrics.opportunityScore * opportunityWeight +
-      data.metrics.dataCompleteness * dataWeight
-    );
-  }
-
-  /**
-   * Helper: Get county name from FIPS code
-   */
-  private getFipsCountyName(fips: string): string {
-    // In production, look this up from a database
-    const fipsMap: Record<string, string> = {
-      "48453": "Travis",
-      "48201": "Harris",
-      "48439": "Tarrant",
-      "48113": "Dallas",
-    };
-    return fipsMap[fips] || "Unknown County";
-  }
-
-  /**
-   * Helper: Get state name from FIPS code
-   */
-  private getFipsStateName(fips: string): string {
-    // FIPS code format: SSCCC (SS = state, CCC = county)
-    const stateCode = fips.substring(0, 2);
-    const stateMap: Record<string, string> = {
-      "48": "TX",
-      "06": "CA",
-      "36": "NY",
-    };
-    return stateMap[stateCode] || "US";
-  }
-
-  /**
-   * Helper: Generate trade breakdown
-   */
-  private generateTradeBreakdown(): Record<string, number> {
-    return {
-      electrician: Math.floor(Math.random() * 100) + 20,
-      plumber: Math.floor(Math.random() * 80) + 15,
-      carpenter: Math.floor(Math.random() * 120) + 30,
-      hvac: Math.floor(Math.random() * 60) + 10,
-      roofer: Math.floor(Math.random() * 50) + 8,
-      other: Math.floor(Math.random() * 100) + 20,
-    };
-  }
-
-  /**
-   * Helper: Generate top contractors
-   */
-  private generateTopContractors(): ContractorSummary[] {
-    const trades = ["electrician", "plumber", "carpenter", "hvac", "roofer"];
-    return trades.map((trade, i) => ({
-      id: `contractor-${i}`,
-      name: `Top ${trade.charAt(0).toUpperCase() + trade.slice(1)}`,
-      trade,
-      rating: 4.5 + Math.random() * 0.5,
-      reviewCount: Math.floor(Math.random() * 200) + 20,
-      availability: ["high", "medium", "low"][Math.floor(Math.random() * 3)] as any,
-    }));
-  }
-
-  /**
-   * Helper: Generate recent files
-   */
-  private generateRecentFiles(): FileSummary[] {
-    const types = ["building-codes", "pricing-data", "contractor-profiles"];
-    return types.map((type, i) => ({
-      id: `file-${i}`,
-      name: `${type}-${Date.now()}.pdf`,
-      type,
-      size: Math.floor(Math.random() * 5000) + 100,
-      uploadedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-      relevanceScore: Math.floor(Math.random() * 100),
-    }));
-  }
-
-  /**
-   * Helper: Generate opportunities
-   */
-  private generateOpportunities(): OpportunitySummary[] {
-    return [
-      {
-        id: "opp-1",
-        title: "High demand for electricians",
-        type: "high-demand",
-        score: 85,
-        description: "Shortage of licensed electricians in this area",
-      },
-      {
-        id: "opp-2",
-        title: "Underserved HVAC market",
-        type: "underserved",
-        score: 72,
-        description: "Limited HVAC contractors available",
-      },
-    ];
-  }
-
-  /**
-   * Helper: Generate risks
-   */
-  private generateRisks(): RiskSummary[] {
-    return [
-      {
-        id: "risk-1",
-        title: "Recent code changes",
-        severity: "high",
-        description: "Building codes updated in the last 30 days",
-      },
-    ];
+    return Math.round((data.metrics.activityScore + data.metrics.dataCompleteness) / 2);
   }
 }
 
-// Singleton instance
 export const scoutHeatmapIntelligence = new ScoutHeatmapIntelligence();
