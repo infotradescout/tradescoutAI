@@ -40,10 +40,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "@/lib/homeidPersistence";
+import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
+import { resolveHomeIdFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
+import {
+  trackFirstUseGuidanceViewed,
+  trackFirstUseTaskPromptClicked,
+  trackFirstUseTaskPromptViewed,
+} from "@/lib/firstUseAnalytics";
 
 type Tab =
   | "overview"
@@ -326,6 +334,7 @@ function Empty({
 }
 
 export default function HomeIdWorkspace() {
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -373,7 +382,11 @@ export default function HomeIdWorkspace() {
     if (!homeId || typeof window === "undefined") return;
     const url = new URL(window.location.href);
     url.searchParams.set("homeId", homeId);
-    tab === "overview" ? url.searchParams.delete("tab") : url.searchParams.set("tab", tab);
+    if (tab === "overview") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", tab);
+    }
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }, [homeId, tab]);
 
@@ -410,6 +423,35 @@ export default function HomeIdWorkspace() {
   const packets = list<HomeIdRequestPacket>(persistence.requestPackets);
   const components = list<Component>(persistence.components);
   const evidence = list<Evidence>(persistence.evidence);
+  const homeIdFirstTaskPrompt = useMemo(
+    () =>
+      resolveHomeIdFirstUseTaskPrompt({
+        hasSelectedHome: Boolean(homeId),
+        knownDetailsCount: facts.filter((fact) => fact.status === "known").length,
+        hasComponentLikeDetail:
+          components.length > 0 ||
+          facts.some((fact) =>
+            ["roof", "hvac", "plumbing", "electrical", "foundation", "appliances"].includes(
+              String(fact.category || "").toLowerCase()
+            )
+          ),
+      }),
+    [components.length, facts, homeId]
+  );
+  const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
+
+  useEffect(() => {
+    trackFirstUseGuidanceViewed("homes", firstUseUserState);
+  }, [firstUseUserState]);
+
+  useEffect(() => {
+    trackFirstUseTaskPromptViewed({
+      surface: "homes",
+      promptMessage: homeIdFirstTaskPrompt.message,
+      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+      userState: firstUseUserState,
+    });
+  }, [firstUseUserState, homeIdFirstTaskPrompt.ctaLabel, homeIdFirstTaskPrompt.message]);
 
   const projects = list<HomeProject>(record(projectsQuery.data).projects);
   const project =
@@ -575,7 +617,10 @@ export default function HomeIdWorkspace() {
     onSuccess: async () => {
       setSelectedDetailIds([]);
       await refresh();
-      toast({ title: "Request details saved" });
+      toast({
+        title: "HomeID request packet saved",
+        description: "Nothing was routed or sent. Open it in Direct Connect when you are ready.",
+      });
     },
     onError: (error: any) => fail("Could not save request details", error),
   });
@@ -599,6 +644,27 @@ export default function HomeIdWorkspace() {
     });
     if (packetId) params.set("homePacketId", packetId);
     navigate(`/direct-connect?${params.toString()}`);
+  };
+
+  const handleFirstTask = () => {
+    let targetRoute = "/homes?tab=property";
+    if (homeIdFirstTaskPrompt.ctaLabel === "Create request details") {
+      targetRoute = "/homes?tab=requests";
+      setTab("requests");
+    } else {
+      setTab("property");
+      if (homeIdFirstTaskPrompt.ctaLabel === "Add component detail") {
+        setDetail((current) => ({ ...current, category: "hvac", status: "known" }));
+      }
+      window.setTimeout(() => detailRef.current?.focus(), 60);
+    }
+    trackFirstUseTaskPromptClicked({
+      surface: "homes",
+      promptMessage: homeIdFirstTaskPrompt.message,
+      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+      targetRoute,
+      userState: firstUseUserState,
+    });
   };
 
   if (!homeId && !homesQuery.isLoading && homes.length === 0) {
@@ -789,6 +855,19 @@ export default function HomeIdWorkspace() {
 
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto max-w-[1500px] px-4 py-5 pb-28 sm:px-6 lg:pb-10">
+          <div
+            className="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            data-testid="homeid-first-use-task"
+          >
+            <FirstUseGuidanceCard
+              title="Next useful step"
+              description={homeIdFirstTaskPrompt.message}
+            />
+            <Button className={`min-h-11 ${PRIMARY}`} onClick={handleFirstTask}>
+              {homeIdFirstTaskPrompt.ctaLabel}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
           {loading ? (
             <div className="grid min-h-[460px] place-items-center">
               <div className="text-center">
@@ -1585,8 +1664,13 @@ function Requests({
 
   return (
     <div className="grid gap-5 xl:grid-cols-[440px_minmax(0,1fr)]">
-      <Panel eyebrow="Prepare first" title="Build a request from HomeID facts">
+      <Panel eyebrow="Prepare first" title="Build a request packet from HomeID facts">
         <div className="space-y-4">
+          <p className="rounded-2xl border border-white/[0.09] bg-white/[0.035] p-3 text-xs leading-5 text-white/[0.55]">
+            HomeID remembers useful property history. Direct Connect starts the job when you
+            choose to act. Saving this packet does not dispatch, route, charge, or contact a
+            provider.
+          </p>
           <Select value={requestType} onValueChange={setRequestType}>
             <SelectTrigger className={INPUT}><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -1609,14 +1693,18 @@ function Requests({
               {missing.length} planning inputs remain unresolved. HomeID will keep them visible.
             </p>
           ) : null}
-          <Button className={`w-full ${PRIMARY}`} onClick={save} disabled={pending || !selected.length}>Save request details</Button>
+          <Button className={`w-full ${PRIMARY}`} onClick={save} disabled={pending || !selected.length}>Save request packet</Button>
         </div>
       </Panel>
 
       <Panel
         eyebrow="Saved packets"
         title={`Requests prepared from this HomeID (${packets.length})`}
-        action={<Button className={PRIMARY} onClick={() => open()}>Start a Request</Button>}
+        action={
+          packets.length === 0 ? (
+            <Button className={PRIMARY} onClick={() => open()}>Start without a packet</Button>
+          ) : undefined
+        }
       >
         {packets.length ? (
           <div className="space-y-3">
@@ -1630,9 +1718,13 @@ function Requests({
                   </div>
                   <div className="flex items-center gap-2">
                     <Pill status={String(packet.status)} />
-                    <Button variant="outline" className={SECONDARY} onClick={() => open(packet.id)}>Open in Direct Connect</Button>
+                    <Button variant="outline" className={SECONDARY} onClick={() => open(packet.id)}>Review in Direct Connect</Button>
                   </div>
                 </div>
+                <p className="mt-3 text-xs leading-5 text-white/[0.42]">
+                  Nothing is sent until you review this request and confirm the next step in
+                  Direct Connect.
+                </p>
               </article>
             ))}
           </div>
