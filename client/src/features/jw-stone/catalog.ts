@@ -31,6 +31,69 @@ const PUBLIC_LABEL_BY_CATEGORY: Readonly<Record<string, string>> = {
   soapstone: "Soapstone",
 };
 
+/**
+ * Quiet merchandising order for ordinary browse, filter, and search results.
+ * This changes ranking only: no badge, label, special section, or public reason.
+ */
+const JW_STONE_BROWSE_PRIORITY_ALIASES = [
+  ["black-dunes"],
+  ["avalanche"],
+  ["cristalita-blue", "cristallita-blue"],
+  ["rhino-white"],
+  ["blue-bahia"],
+  ["calacatta-vaguili", "calacatta-vagli"],
+  ["matarazzo", "matarazzo-dolomite"],
+  ["calacatta-cremo"],
+  ["casa-blanca", "casablanca"],
+  ["white-santorini", "santorini-white"],
+] as const;
+
+const JW_STONE_BROWSE_PRIORITY_RANK: ReadonlyMap<string, number> = new Map(
+  JW_STONE_BROWSE_PRIORITY_ALIASES.flatMap((aliases, rank) =>
+    aliases.map((alias) => [alias, rank] as const)
+  )
+);
+
+function normalizeBrowsePriorityKey(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getBrowsePriorityRank(stone: JwStoneCatalogItem): number {
+  const candidates = [stone.id, stone.shareSlug, stone.displayName, stone.publicLabel];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const rank = JW_STONE_BROWSE_PRIORITY_RANK.get(normalizeBrowsePriorityKey(candidate));
+    if (rank != null) return rank;
+  }
+
+  return Number.POSITIVE_INFINITY;
+}
+
+export function rankJwStoneCatalogForBrowse(
+  catalog: readonly JwStoneCatalogItem[]
+): JwStoneCatalogItem[] {
+  return catalog
+    .map((stone, sourceIndex) => ({
+      stone,
+      sourceIndex,
+      priorityRank: getBrowsePriorityRank(stone),
+    }))
+    .sort((a, b) => {
+      if (a.priorityRank !== b.priorityRank) {
+        return a.priorityRank < b.priorityRank ? -1 : 1;
+      }
+      return a.sourceIndex - b.sourceIndex;
+    })
+    .map(({ stone }) => stone);
+}
+
 export function resolveVerifiedOrigin(value: unknown): VerifiedOrigin | null {
   if (!value || typeof value !== "object") return null;
 
@@ -110,17 +173,17 @@ export function projectJwStoneCatalogItem(args: {
 }
 
 function buildCatalog(): readonly JwStoneCatalogItem[] {
-  return Object.freeze(
-    JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap((category) =>
-      category.stones.map((stone) =>
-        projectJwStoneCatalogItem({
-          stone,
-          categorySlug: category.categorySlug,
-          verifiedOrigin: JW_STONE_VERIFIED_ORIGIN_BY_SLUG[stone.slug],
-        })
-      )
+  const projected = JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap((category) =>
+    category.stones.map((stone) =>
+      projectJwStoneCatalogItem({
+        stone,
+        categorySlug: category.categorySlug,
+        verifiedOrigin: JW_STONE_VERIFIED_ORIGIN_BY_SLUG[stone.slug],
+      })
     )
   );
+
+  return Object.freeze(rankJwStoneCatalogForBrowse(projected));
 }
 
 export const JW_STONE_CATALOG = buildCatalog();
