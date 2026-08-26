@@ -1,18 +1,10 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import {
-  Calculator,
-  DollarSign,
-  Percent,
-  Calendar,
-  TrendingDown,
-  TrendingUp,
-  FileText,
-} from "lucide-react";
+import { Calculator, DollarSign, Percent, Calendar, TrendingUp } from "lucide-react";
+import { calculateAmortizedLoan, calculateAutoLoan } from "@/lib/financialCalculators";
 
 export default function CarSalesPaymentCalculator() {
   const [vehiclePrice, setVehiclePrice] = useState(25000);
@@ -21,18 +13,16 @@ export default function CarSalesPaymentCalculator() {
   const [loanTerm, setLoanTerm] = useState([60]);
   const [tradeValue, setTradeValue] = useState(0);
 
-  const loanAmount = vehiclePrice - downPayment - tradeValue;
-  const monthlyRate = interestRate[0] / 100 / 12;
-  const numPayments = loanTerm[0];
-
-  const monthlyPayment =
-    loanAmount > 0 && monthlyRate > 0
-      ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
-        (Math.pow(1 + monthlyRate, numPayments) - 1)
-      : 0;
-
-  const totalPaid = monthlyPayment * numPayments + downPayment + tradeValue;
-  const totalInterest = totalPaid - vehiclePrice;
+  const calculation = calculateAutoLoan({
+    vehiclePrice,
+    downPayment,
+    tradeInValue: tradeValue,
+    annualRatePercent: interestRate[0],
+    termMonths: loanTerm[0],
+  });
+  const { loanAmount, monthlyPayment, totalInterest } = calculation;
+  const totalPaid = calculation.totalCost;
+  const downPaymentPercent = vehiclePrice > 0 ? (downPayment / vehiclePrice) * 100 : 0;
 
   return (
     <div className=" text-tsText">
@@ -82,7 +72,7 @@ export default function CarSalesPaymentCalculator() {
                       data-testid="input-down-payment"
                     />
                     <div className="text-sm text-white/60 mt-1">
-                      {((downPayment / vehiclePrice) * 100).toFixed(1)}% of vehicle price
+                      {downPaymentPercent.toFixed(1)}% of vehicle price
                     </div>
                   </div>
 
@@ -213,24 +203,16 @@ export default function CarSalesPaymentCalculator() {
                   <div className="flex justify-between items-center border-t border-white/10 pt-3">
                     <span className="text-white/60">Interest as % of Vehicle Price</span>
                     <span className="font-semibold">
-                      {((totalInterest / vehiclePrice) * 100).toFixed(1)}%
+                      {(vehiclePrice > 0 ? (totalInterest / vehiclePrice) * 100 : 0).toFixed(1)}%
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
-              <div className="flex gap-3">
-                <Button
-                  className="flex-1 bg-ts-orange hover:bg-ts-orange/80"
-                  data-testid="button-generate-quote"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Generate Quote
-                </Button>
-                <Button variant="outline" className="flex-1" data-testid="button-compare-options">
-                  Compare Options
-                </Button>
-              </div>
+              <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-xs leading-5 text-white/60">
+                Estimates are for comparison only and are not a financing offer or approval.
+                Taxes, fees, insurance, and lender-specific terms are not included.
+              </p>
             </div>
           </div>
 
@@ -255,14 +237,15 @@ export default function CarSalesPaymentCalculator() {
                   </thead>
                   <tbody>
                     {[36, 48, 60, 72].map((term) => {
-                      const termRate = interestRate[0] / 100 / 12;
-                      const termPayment =
-                        loanAmount > 0 && termRate > 0
-                          ? (loanAmount * termRate * Math.pow(1 + termRate, term)) /
-                            (Math.pow(1 + termRate, term) - 1)
-                          : 0;
-                      const termTotal = termPayment * term + downPayment + tradeValue;
-                      const termInterest = termTotal - vehiclePrice;
+                      const termLoan = calculateAmortizedLoan(
+                        loanAmount,
+                        interestRate[0],
+                        term
+                      );
+                      const termPayment = termLoan.monthlyPayment;
+                      const termTotal =
+                        termLoan.totalPaid + Math.min(vehiclePrice, downPayment + tradeValue);
+                      const termInterest = termLoan.totalInterest;
 
                       return (
                         <tr key={term} className="border-b border-white/10">

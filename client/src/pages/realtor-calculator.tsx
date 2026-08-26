@@ -1,19 +1,15 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Calculator, 
-  DollarSign, 
-  Percent, 
-  Home,
-  TrendingUp,
-  FileText,
-  PiggyBank
-} from "lucide-react";
+import { Calculator, DollarSign, Percent, Home, TrendingUp, PiggyBank } from "lucide-react";
+import {
+  calculateAffordableHomePrice,
+  calculateAmortizedLoan,
+  calculateCommission,
+} from "@/lib/financialCalculators";
 
 export default function RealtorCalculator() {
   // Mortgage Calculator State
@@ -32,24 +28,29 @@ export default function RealtorCalculator() {
   const [monthlyDebts, setMonthlyDebts] = useState(500);
   const [downPaymentAmount, setDownPaymentAmount] = useState(40000);
 
-  // Calculate mortgage payment
-  const loanAmount = homePrice - (homePrice * downPayment[0] / 100);
-  const monthlyRate = interestRate[0] / 100 / 12;
-  const numPayments = loanTerm[0] * 12;
-  const monthlyPayment = loanAmount > 0 && monthlyRate > 0 
-    ? (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1)
-    : 0;
+  const mortgage = calculateAmortizedLoan(
+    homePrice - (homePrice * downPayment[0]) / 100,
+    interestRate[0],
+    loanTerm[0] * 12
+  );
+  const loanAmount = mortgage.principal;
+  const monthlyPayment = mortgage.monthlyPayment;
 
-  // Calculate commission
-  const grossCommission = salesPrice * (commissionRate[0] / 100);
-  const agentCommission = grossCommission * (splitPercentage[0] / 100);
+  const commission = calculateCommission({
+    salesPrice,
+    commissionRatePercent: commissionRate[0],
+    agentSplitPercent: splitPercentage[0],
+  });
+  const { grossCommission, agentCommission } = commission;
 
-  // Calculate affordability
-  const maxMonthlyPayment = (annualIncome / 12) * 0.28 - monthlyDebts;
-  const maxLoanAmount = maxMonthlyPayment > 0 
-    ? (maxMonthlyPayment * (Math.pow(1 + monthlyRate, numPayments) - 1)) / (monthlyRate * Math.pow(1 + monthlyRate, numPayments))
-    : 0;
-  const maxHomePrice = maxLoanAmount + downPaymentAmount;
+  const affordability = calculateAffordableHomePrice({
+    annualIncome,
+    monthlyDebts,
+    downPayment: downPaymentAmount,
+    annualRatePercent: interestRate[0],
+    termYears: loanTerm[0],
+  });
+  const { maxMonthlyPayment, maxLoanAmount, maxHomePrice } = affordability;
 
   return (
     <div className="text-foreground">
@@ -164,10 +165,10 @@ export default function RealtorCalculator() {
                     </div>
                   </div>
 
-                  <Button className="w-full mt-6 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-generate-amortization">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate Amortization Schedule
-                  </Button>
+                  <p className="mt-6 rounded-lg border border-border bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
+                    Principal and interest estimate only. Taxes, insurance, fees, and lender terms
+                    are not included.
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
