@@ -56,9 +56,9 @@ describe("JW Stone marketplace public HTML", () => {
     expect(jsonLd).toEqual({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "JW Stone | Stone Discovery",
+      name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
       description:
-        "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.",
+        "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
       mainEntity: {
@@ -96,6 +96,8 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
     expect(html).toContain('data-seo-jw-stone-company="true"');
     expect(html).toContain("Material Library");
+    expect(html).toContain("Natural stone slabs in Pensacola, Florida");
+    expect(html).toContain("fabricators, builders, architects, designers, and homeowners");
     expect(html).toContain("not a claim of confirmed physical stock");
     expect(html).not.toContain("Browse current selections by photo");
     expect(html).toContain("by material, aesthetic, or color");
@@ -131,6 +133,12 @@ describe("JW Stone marketplace public HTML", () => {
     const text = buildJwStoneMarketplaceLlmsText("https://jwstonelogistics.com");
 
     expect(text).toContain("Founded in 2017 by Jared and Wagner");
+    expect(text).toContain("Useful customer entry points:");
+    expect(text).toContain("- Granite slabs: https://jwstonelogistics.com/materials/granite");
+    expect(text).toContain("- Marble slabs: https://jwstonelogistics.com/materials/marble");
+    expect(text).toContain("- Quartzite slabs: https://jwstonelogistics.com/materials/quartzite");
+    expect(text).toContain("Individual named materials:");
+    expect(text).toContain("https://jwstonelogistics.com/stones/{slug}");
     expect(text).toContain("Address: 2103 W Herman Ave, Pensacola, FL 32505");
     expect(text).toContain("Instagram: @jwstonellc");
     expect(text).toContain("Facebook: JW Stone Logistics");
@@ -236,6 +244,14 @@ describe("JW Stone marketplace public HTML", () => {
       `link rel="canonical" href="https://jwstonelogistics.com/stones/${canonical}"`
     );
     expect(html).toContain(name);
+  });
+
+  it("routes JW custom-domain feeds through the JW inventory discovery graph", () => {
+    const source = read("server/index.ts");
+
+    expect(source).toContain("buildJwStoneMarketplaceSitemapXml");
+    expect(source).toContain("buildJwStoneMarketplaceLlmsText");
+    expect(source).toContain("slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG");
   });
 
   it("registers legacy marketplace aliases after custom-domain authority and before the SPA catch-all", () => {
