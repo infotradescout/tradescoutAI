@@ -202,7 +202,7 @@ export class ScoutVisualFileSorting {
       } catch {
         // Preserve the original error.
       }
-      mapWriteError(error);
+      return mapWriteError(error);
     } finally {
       client.release?.();
     }
