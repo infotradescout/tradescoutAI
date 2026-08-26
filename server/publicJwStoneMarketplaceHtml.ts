@@ -1,5 +1,10 @@
 import { formatTradeScoutTitle } from "@shared/brand";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import {
+  buildJwStoneMaterialDescription,
+  getJwStoneMaterialSeo,
+  JW_STONE_ROOT_SEO,
+} from "@shared/jwStoneSeo";
 import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import {
   createProfileInventoryCategoryShareMetadata,
@@ -16,9 +21,8 @@ export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/
 /** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
 export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_URL;
 
-const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
-const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle(JW_STONE_ROOT_SEO.title);
+const JW_STONE_MARKETPLACE_DESCRIPTION = JW_STONE_ROOT_SEO.description;
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
@@ -142,6 +146,17 @@ export function buildPublicJwStoneMarketplaceHtml(
           publicRouteContentBlocks: contentBlocks,
         })
       : null;
+  const categoryMaterialSeo = categoryShare
+    ? getJwStoneMaterialSeo(categoryShare.sourceCategorySlug || categoryShare.categorySlug)
+    : null;
+  const categorySeoTitle = categoryMaterialSeo
+    ? formatTradeScoutTitle(categoryMaterialSeo.title)
+    : categoryShare?.title || null;
+  const categorySeoDescription =
+    categoryShare && categoryMaterialSeo
+      ? buildJwStoneMaterialDescription(categoryMaterialSeo, categoryShare.itemCount)
+      : categoryShare?.description || null;
+
   const collectionCategoryShares = listProfileInventoryCategories(
     JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
     contentBlocks
@@ -178,16 +193,17 @@ export function buildPublicJwStoneMarketplaceHtml(
       ? Boolean(categoryShare?.indexable)
       : true;
 
-  const title = escapeHtml(itemShare?.title || categoryShare?.title || JW_STONE_MARKETPLACE_TITLE);
-  const description = escapeHtml(
-    itemShare?.description || categoryShare?.description || JW_STONE_MARKETPLACE_DESCRIPTION
-  );
+  const rawTitle = itemShare?.title || categorySeoTitle || JW_STONE_MARKETPLACE_TITLE;
+  const rawDescription =
+    itemShare?.description || categorySeoDescription || JW_STONE_MARKETPLACE_DESCRIPTION;
+  const title = escapeHtml(rawTitle);
+  const description = escapeHtml(rawDescription);
   const canonical = escapeHtml(itemShare?.canonical || categoryShare?.canonical || collectionUrl);
   const imageUrl = escapeHtml(
     itemShare?.imageUrl || categoryShare?.imageUrl || JW_STONE_MARKETPLACE_IMAGE_URL
   );
   const imageAlt = escapeHtml(
-    itemShare?.imageAlt || categoryShare?.title || "JW Stone Logistics logo"
+    itemShare?.imageAlt || categoryShare?.imageAlt || "JW Stone Logistics logo"
   );
 
   const companySummary = `
@@ -225,7 +241,11 @@ ${companySummary}
       ? `
 <main data-seo-jw-stone-marketplace="true" data-seo-jw-stone-category="${escapeHtml(categoryShare.categorySlug)}" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
-    <h1>${escapeHtml(categoryShare.title)}</h1>
+    <h1>${escapeHtml(
+      categoryMaterialSeo
+        ? `${categoryMaterialSeo.label} Slabs in Pensacola`
+        : categoryShare.categoryName
+    )}</h1>
     <p>${description}</p>
     <h2>Browse ${escapeHtml(categoryShare.categoryName)} selections</h2>
     <ul>
@@ -245,10 +265,11 @@ ${companySummary}
   <article>
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
     <h1>Natural stone, selected at the source.</h1>
+    <p>${escapeHtml(JW_STONE_ROOT_SEO.supportingLine)}</p>
     <p>${description}</p>
     <h2>Material Library</h2>
-    <p>Browse JW Stone's reconciled photo catalog by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
-    <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
+    <p>Browse JW Stone's published slab photographs by material, color, or aesthetic. These offerings are not a claim of confirmed physical stock.</p>
+    <p>Compare the collection, save stones, and ask JW Stone to confirm current pricing or availability when ready.</p>
     <h2>Browse by material</h2>
     <ul>
       ${collectionCategoryShares
@@ -406,8 +427,8 @@ ${companySummary}
       ? {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: categoryShare.title,
-          description: categoryShare.description,
+          name: categorySeoTitle || categoryShare.title,
+          description: categorySeoDescription || categoryShare.description,
           url: categoryShare.canonical,
           image: categoryShare.imageUrl,
           about: organizationJsonLd,
@@ -425,7 +446,7 @@ ${companySummary}
       : {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: "JW Stone | Stone Discovery",
+          name: JW_STONE_MARKETPLACE_TITLE,
           description: JW_STONE_MARKETPLACE_DESCRIPTION,
           url: collectionUrl,
           image: JW_STONE_MARKETPLACE_IMAGE_URL,
@@ -464,7 +485,7 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
   return [
     "# JW Stone",
     "",
-    "Natural stone marketplace on TradeScout.",
+    "Natural stone and engineered quartz slab library in Pensacola, Florida.",
     "",
     JW_STONE_PUBLIC_IDENTITY.about,
     "",
@@ -480,7 +501,7 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     `- Stones: ${publicOrigin}/stones/{slug}`,
     `- Materials: ${publicOrigin}/materials/{slug}`,
     "",
-    "Calls and requests are available through Express Direct Connect on the profile.",
+    "Current pricing, availability, finishes, quantities, and delivery details are confirmed through Express Direct Connect on the profile.",
     "",
   ].join("\n");
 }
