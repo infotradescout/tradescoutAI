@@ -43,6 +43,14 @@ describe("JW Stone discovery and request conversion", () => {
     expect(panel).toContain('setView("choice")');
   });
 
+  it("keeps hydrated deep metadata local while keeping schema descriptions factual", () => {
+    const seo = read("client/src/features/jw-stone/JwStoneProfileSeo.tsx");
+
+    expect(seo).toContain("resolveMarketplaceSeo");
+    expect(seo).toContain("marketplaceSeo.structuredDescription");
+    expect(seo).toContain("JW_STONE_STRUCTURED_DESCRIPTION");
+  });
+
   it("gives crawlers direct paths to the strongest applicable inventory without exposing economics", () => {
     const crawlerHtml = read("server/publicJwStoneMarketplaceHtml.ts");
 
