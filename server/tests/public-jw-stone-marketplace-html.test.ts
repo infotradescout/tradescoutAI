@@ -58,7 +58,7 @@ describe("JW Stone marketplace public HTML", () => {
       "@type": "CollectionPage",
       name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
       description:
-        "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.",
+        "Natural stone slabs in Pensacola, Florida: browse named granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt materials from JW Stone Logistics.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
       mainEntity: {
