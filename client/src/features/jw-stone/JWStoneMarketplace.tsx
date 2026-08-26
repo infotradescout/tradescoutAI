@@ -29,7 +29,7 @@ import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
 const JW_STONE_DESCRIPTION =
-  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+  "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.";
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
