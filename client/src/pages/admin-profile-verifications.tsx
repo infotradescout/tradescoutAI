@@ -1,103 +1,93 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, FileCheck2, Loader2, ShieldCheck } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { buildApiUrl } from "@/lib/apiBaseUrl";
-import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  FileCheck2,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminToolbar,
+  AdminWorkspace,
+} from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
-type ReviewState = "not_submitted" | "pending" | "approved" | "rejected";
-type BusinessFieldKey = "businessRegistration" | "license" | "insurance" | "taxDocument";
+type RequirementFieldKey = "license" | "insurance" | "tax_id" | "business_registration";
+type ReviewState = "not_required" | "not_submitted" | "pending" | "approved" | "rejected";
 type UnknownRecord = Record<string, unknown>;
 
-type AddressVerificationItem = Readonly<{
-  id: string;
-  fullAddress?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  verificationMethod?: string;
-  status?: string;
-  adminNotes?: string | null;
-  createdAt?: string;
-  user?: Readonly<{
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-  }>;
-}>;
-
 type BusinessFieldView = Readonly<{
-  key: BusinessFieldKey;
+  key: RequirementFieldKey;
   label: string;
   required: boolean;
   status: ReviewState;
   rejectionReason: string;
-  hasEvidence: boolean;
   documentUrl: string;
+  hasEvidence: boolean;
+  canReview: boolean;
 }>;
 
-const BUSINESS_FIELDS: readonly Readonly<{
-  key: BusinessFieldKey;
+export const REQUIREMENT_FIELDS: readonly Readonly<{
+  key: RequirementFieldKey;
   label: string;
+  description: string;
 }>[] = [
   {
-    key: "businessRegistration",
+    key: "business_registration",
     label: "Business registration",
+    description: "Registration evidence for the legal business record.",
   },
   {
     key: "license",
     label: "Business or trade license",
+    description: "License number or supporting license document.",
   },
   {
     key: "insurance",
     label: "Insurance certificate",
+    description: "Current coverage evidence submitted by the owner.",
   },
   {
-    key: "taxDocument",
-    label: "Tax document",
+    key: "tax_id",
+    label: "Tax ID",
+    description: "Masked tax identifier or supporting tax document.",
   },
 ];
+
+const FILTER_STATUSES = ["pending", "under_review", "approved", "rejected"] as const;
 
 function asRecord(value: unknown): UnknownRecord {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as UnknownRecord)
     : {};
 }
+
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeState(value: unknown): ReviewState {
-  const normalized = stringValue(value).toLowerCase();
-  if (normalized === "approved" || normalized === "verified" || normalized === "complete") {
-    return "approved";
-  }
-  if (normalized === "rejected" || normalized === "denied" || normalized === "changes_required") {
-    return "rejected";
-  }
-  if (normalized === "pending" || normalized === "submitted" || normalized === "under_review") {
-    return "pending";
-  }
-  return "not_submitted";
-}
-
-function statusLabel(status: ReviewState): string {
-  if (status === "approved") return "Approved";
-  if (status === "rejected") return "Rejected";
-  if (status === "pending") return "Pending review";
-  return "Not submitted";
-}
-
-function statusClasses(status: ReviewState): string {
-  if (status === "approved") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700";
-  if (status === "rejected") return "border-red-500/40 bg-red-500/10 text-red-700";
-  if (status === "pending") return "border-amber-500/40 bg-amber-500/10 text-amber-700";
-  return "border-stone-300 bg-stone-100 text-stone-700";
 }
 
 function rowsFrom(value: unknown): UnknownRecord[] {
@@ -109,134 +99,145 @@ function rowsFrom(value: unknown): UnknownRecord[] {
   return [];
 }
 
-function businessFieldsFor(profile: UnknownRecord): BusinessFieldView[] {
+function readable(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function normalizeState(value: unknown, required: boolean): ReviewState {
+  const normalized = stringValue(value).toLowerCase();
+  if (normalized === "approved" || normalized === "verified" || normalized === "complete") {
+    return "approved";
+  }
+  if (normalized === "rejected" || normalized === "denied" || normalized === "changes_required") {
+    return "rejected";
+  }
+  if (normalized === "pending" || normalized === "submitted" || normalized === "under_review") {
+    return "pending";
+  }
+  return required ? "not_submitted" : "not_required";
+}
+
+function statusLabel(status: ReviewState): string {
+  if (status === "approved") return "Approved";
+  if (status === "rejected") return "Rejected";
+  if (status === "pending") return "Pending review";
+  if (status === "not_required") return "Not required";
+  return "Not submitted";
+}
+
+function statusClasses(status: ReviewState): string {
+  if (status === "approved") return "border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
+  if (status === "rejected") return "border-red-400/30 bg-red-400/10 text-red-200";
+  if (status === "pending") return "border-amber-400/30 bg-amber-400/10 text-amber-100";
+  return "border-white/12 bg-white/[0.035] text-white/50";
+}
+
+function formatDate(value: unknown): string {
+  if (!value) return "Not recorded";
+  const parsed = new Date(String(value));
+  if (!Number.isFinite(parsed.getTime())) return "Not recorded";
+  return parsed.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function verifiedField(profile: UnknownRecord, key: RequirementFieldKey): boolean {
+  const property: Record<RequirementFieldKey, string> = {
+    license: "license_verified",
+    insurance: "insurance_verified",
+    tax_id: "tax_id_verified",
+    business_registration: "business_registration_verified",
+  };
+  return profile[property[key]] === true;
+}
+
+export function businessFieldsFor(profile: UnknownRecord): BusinessFieldView[] {
+  const requirements = asRecord(profile.verificationRequirements);
   const fieldReview = asRecord(profile.fieldReview);
   const documentUrls = asRecord(profile.documentUrls);
+  const submissions = asRecord(profile.verificationSubmissions);
 
-  return BUSINESS_FIELDS.map((config) => {
-    const rawField = asRecord(fieldReview[config.key]);
-    const required = rawField.required === true;
+  return REQUIREMENT_FIELDS.map((config) => {
+    const review = asRecord(fieldReview[config.key]);
+    const required = review.required === true || requirements[config.key] === true;
     const documentUrl = stringValue(documentUrls[config.key]);
-    const explicitState = normalizeState(rawField.reviewStatus || rawField.status);
-    const status: ReviewState =
-      explicitState !== "not_submitted"
-        ? explicitState
-        : rawField.approved === true
-          ? "approved"
-          : documentUrl
-            ? "pending"
-            : "not_submitted";
-    const rejectionReason = stringValue(rawField.rejectionReason);
+    const scalarEvidence =
+      (config.key === "license" && Boolean(stringValue(submissions.licenseNumber))) ||
+      (config.key === "tax_id" && Boolean(stringValue(submissions.taxId)));
+    const hasEvidence = Boolean(documentUrl) || scalarEvidence;
+    const status = verifiedField(profile, config.key)
+      ? "approved"
+      : normalizeState(review.status || review.reviewStatus, required);
+    const rejectionReason = stringValue(review.rejectionReason);
 
     return {
-      key: config.key,
-      label: config.label,
+      ...config,
       required,
       status,
       rejectionReason,
-      hasEvidence: Boolean(documentUrl),
       documentUrl,
+      hasEvidence,
+      canReview: hasEvidence || status === "approved" || status === "rejected",
     };
   }).filter(
     (field) =>
       field.required ||
       field.hasEvidence ||
-      field.status !== "not_submitted" ||
-      Boolean(field.rejectionReason)
+      field.status === "approved" ||
+      field.status === "rejected"
   );
 }
 
-function evidenceHref(profileId: string, fieldKey: BusinessFieldKey, documentUrl: string): string {
-  const path =
-    documentUrl ||
-    `/api/admin/profile-verifications/${encodeURIComponent(profileId)}/documents/${encodeURIComponent(
-      fieldKey
-    )}`;
-  return /^https?:\/\//i.test(path) ? path : buildApiUrl(path);
+function evidenceHref(documentUrl: string): string {
+  return /^https?:\/\//i.test(documentUrl) ? documentUrl : buildApiUrl(documentUrl);
 }
 
 export default function AdminProfileVerificationsPage() {
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [search, setSearch] = useState("");
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState("pending");
-  const [businessStatusFilter, setBusinessStatusFilter] = useState("pending");
-  const [addressNotes, setAddressNotes] = useState<Record<string, string>>({});
-  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
+  const endpoint = `/api/admin/profile-verifications?status=${encodeURIComponent(statusFilter)}`;
 
-  const addressEndpoint = `/api/admin/address-verifications?status=${encodeURIComponent(statusFilter)}`;
-  const businessEndpoint = `/api/admin/profile-verifications?status=${encodeURIComponent(businessStatusFilter)}`;
-
-  const {
-    data: addressData,
-    isLoading: loadingAddresses,
-    error: addressError,
-  } = useQuery<unknown>({
-    queryKey: [addressEndpoint],
-    queryFn: () => apiRequest("GET", addressEndpoint),
+  const verificationsQuery = useQuery<unknown>({
+    queryKey: ["/api/admin/profile-verifications", statusFilter],
+    queryFn: () => apiRequest("GET", endpoint),
     retry: false,
-  });
-
-  const {
-    data: businessData,
-    isLoading: loadingBusinesses,
-    error: businessError,
-  } = useQuery<unknown>({
-    queryKey: [businessEndpoint],
-    queryFn: () => apiRequest("GET", businessEndpoint),
-    retry: false,
-  });
-
-  const addressDecision = useMutation({
-    mutationFn: ({
-      id,
-      status,
-      adminNotes,
-    }: {
-      id: string;
-      status: "approved" | "rejected";
-      adminNotes: string;
-    }) =>
-      apiRequest("PUT", `/api/admin/address-verifications/${id}`, {
-        status,
-        adminNotes,
-      }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [addressEndpoint] });
-      toast({ title: "Address decision saved" });
-    },
-    onError: (error: unknown) => {
-      toast({
-        title: "Could not save address decision",
-        description: formatUserFacingErrorMessage(error, "Please try again."),
-        variant: "destructive",
-      });
-    },
   });
 
   const businessDecision = useMutation({
     mutationFn: ({
-      id,
-      fieldKey,
-      status,
+      profileId,
+      field,
+      decision,
       rejectionReason,
     }: {
-      id: string;
-      fieldKey: BusinessFieldKey;
-      status: "approved" | "rejected";
-      rejectionReason: string;
+      profileId: string;
+      field: RequirementFieldKey;
+      decision: "approved" | "rejected";
+      rejectionReason?: string;
     }) =>
-      apiRequest("PUT", `/api/admin/profile-verifications/${id}`, {
-        field: fieldKey,
-        decision: status,
-        ...(status === "rejected" ? { rejectionReason } : {}),
+      apiRequest("PUT", `/api/admin/profile-verifications/${profileId}`, {
+        field,
+        ...(decision === "approved"
+          ? { decision: "approved" }
+          : { decision: "rejected", rejectionReason }),
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [businessEndpoint] });
-      toast({ title: "Business verification decision saved" });
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/profile-verifications"] });
+      toast({
+        title: "Business verification decision saved",
+        description: "The selected requirement was updated independently.",
+      });
     },
     onError: (error: unknown) => {
       toast({
-        title: "Could not save business verification decision",
+        title: "Business verification decision was not saved",
         description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
@@ -244,13 +245,13 @@ export default function AdminProfileVerificationsPage() {
   });
 
   const submitBusinessDecision = (
-    id: string,
-    fieldKey: BusinessFieldKey,
-    status: "approved" | "rejected"
+    profileId: string,
+    field: RequirementFieldKey,
+    decision: "approved" | "rejected"
   ) => {
-    const reasonKey = `${id}:${fieldKey}`;
+    const reasonKey = `${profileId}:${field}`;
     const rejectionReason = stringValue(rejectionReasons[reasonKey]);
-    if (status === "rejected" && (rejectionReason.length < 12 || rejectionReason.length > 1000)) {
+    if (decision === "rejected" && (rejectionReason.length < 12 || rejectionReason.length > 1000)) {
       toast({
         title: "Valid rejection reason required",
         description: "Use 12 to 1000 characters and explain what the owner must correct.",
@@ -259,226 +260,222 @@ export default function AdminProfileVerificationsPage() {
       return;
     }
     businessDecision.mutate({
-      id,
-      fieldKey,
-      status,
-      rejectionReason: status === "rejected" ? rejectionReason : "",
+      profileId,
+      field,
+      decision,
+      ...(decision === "rejected" ? { rejectionReason } : {}),
     });
   };
 
-  const addresses = rowsFrom(addressData) as AddressVerificationItem[];
-  const businesses = Array.isArray(businessData) ? businessData.map(asRecord) : [];
+  const businesses = useMemo(() => rowsFrom(verificationsQuery.data), [verificationsQuery.data]);
+  const profileRows = useMemo(
+    () =>
+      businesses.map((item) => {
+        const profile = asRecord(item.profile);
+        const user = asRecord(item.user);
+        return { profile, user, fields: businessFieldsFor(profile) };
+      }),
+    [businesses]
+  );
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return profileRows;
+    return profileRows.filter(({ profile, user }) =>
+      [
+        profile.displayName,
+        profile.name,
+        profile.businessType,
+        user.email,
+        user.firstName,
+        user.lastName,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [profileRows, search]);
+  const allFields = profileRows.flatMap((row) => row.fields);
+  const counts = {
+    profiles: profileRows.length,
+    reviewable: allFields.filter((field) => field.status === "pending" && field.canReview).length,
+    approved: allFields.filter((field) => field.status === "approved").length,
+    rejected: allFields.filter((field) => field.status === "rejected").length,
+  };
+
+  if (verificationsQuery.isLoading) {
+    return (
+      <AdminWorkspace data-testid="admin-business-verifications-v2">
+        <div className="flex min-h-64 items-center justify-center border-y border-white/10 text-sm text-white/50">
+          <RefreshCw className="mr-3 h-5 w-5 animate-spin" />
+          Loading business verifications…
+        </div>
+      </AdminWorkspace>
+    );
+  }
+
+  if (verificationsQuery.isError) {
+    return (
+      <AdminWorkspace data-testid="admin-business-verifications-v2">
+        <AdminEmptyState
+          title="Business verification queue unavailable"
+          description="The queue could not be read. No verification state was changed."
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => verificationsQuery.refetch()}
+              className="border-white/15 bg-transparent text-white"
+            >
+              Retry
+            </Button>
+          }
+        />
+      </AdminWorkspace>
+    );
+  }
 
   return (
-    <div className="space-y-8 px-4 py-5 md:px-6">
-      <header>
-        <h1 className="text-2xl font-bold text-foreground">Profile verifications</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review address records and the specific business evidence submitted by owners.
-        </p>
-      </header>
-
-      <section
-        data-testid="admin-address-verifications-v2"
-        className="space-y-4 rounded-xl border border-border bg-card/60 p-4"
-      >
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Address and identity queue</h2>
-            <p className="text-sm text-muted-foreground">
-              Approve complete records or leave a clear correction note.
-            </p>
-          </div>
-          <label className="text-sm">
-            <span className="mb-1 block text-muted-foreground">Status</span>
-            <select
-              className="h-10 rounded-md border border-input bg-background px-3"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
+    <AdminWorkspace data-testid="admin-business-verifications-v2">
+      <AdminSection
+        title="Business verification queue"
+        description="Approve or reject each required field independently. Evidence links stay authenticated, and every rejection must explain what the owner needs to correct."
+        className="pt-0"
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => verificationsQuery.refetch()}
+              disabled={verificationsQuery.isFetching}
+              className="border-white/12 bg-white/[0.025] text-white/65 hover:bg-white/[0.06] hover:text-white"
             >
-              <option value="pending">Pending</option>
-              <option value="overdue">Overdue</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="all">All</option>
-            </select>
-          </label>
-        </div>
-
-        {loadingAddresses ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading address records...
-          </p>
-        ) : addressError ? (
-          <p className="text-sm text-red-700">
-            {formatUserFacingErrorMessage(addressError, "Could not load address records.")}
-          </p>
-        ) : addresses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No address records match this filter.</p>
-        ) : (
-          <div className="space-y-3">
-            {addresses.map((item) => {
-              const notes = addressNotes[item.id] ?? item.adminNotes ?? "";
-              return (
-                <article
-                  key={item.id}
-                  className="rounded-lg border border-border bg-background p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold">
-                        {[item.user?.firstName, item.user?.lastName].filter(Boolean).join(" ") ||
-                          item.user?.email ||
-                          "Account owner"}
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {[item.fullAddress, item.city, item.state, item.zipCode]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </p>
-                    </div>
-                    <Badge variant="outline">{item.status || "pending"}</Badge>
-                  </div>
-                  <Input
-                    className="mt-3"
-                    aria-label="Address decision notes"
-                    placeholder="Decision notes"
-                    value={notes}
-                    onChange={(event) =>
-                      setAddressNotes((current) => ({
-                        ...current,
-                        [item.id]: event.target.value,
-                      }))
-                    }
-                  />
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      disabled={addressDecision.isPending}
-                      onClick={() =>
-                        addressDecision.mutate({
-                          id: item.id,
-                          status: "approved",
-                          adminNotes: notes,
-                        })
-                      }
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={addressDecision.isPending || !notes.trim()}
-                      onClick={() =>
-                        addressDecision.mutate({
-                          id: item.id,
-                          status: "rejected",
-                          adminNotes: notes,
-                        })
-                      }
-                    >
-                      Reject
-                    </Button>
-                    <span className="self-center text-xs text-muted-foreground">Save decision</span>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <section
-        data-testid="admin-business-verifications-v2"
-        className="space-y-4 rounded-xl border border-border bg-card/60 p-4"
-      >
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <ShieldCheck className="h-5 w-5 text-ts-orange" />
-              Business verification queue
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Review each requested item separately. Documents open through authenticated links.
-            </p>
-          </div>
-          <label className="text-sm">
-            <span className="mb-1 block text-muted-foreground">Status</span>
-            <select
-              className="h-10 rounded-md border border-input bg-background px-3"
-              value={businessStatusFilter}
-              onChange={(event) => setBusinessStatusFilter(event.target.value)}
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${verificationsQuery.isFetching ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="border-white/12 bg-transparent text-white/65"
             >
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
-              <option value="approved">Approved</option>
-              <option value="all">All</option>
-            </select>
-          </label>
-        </div>
+              <Link href="/admin/address-verifications">Address &amp; identity queue</Link>
+            </Button>
+          </>
+        }
+      >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Profiles",
+              value: counts.profiles,
+              detail: "Businesses in the current server filter",
+            },
+            {
+              label: "Ready to review",
+              value: counts.reviewable,
+              detail: "Submitted fields with reviewable evidence",
+              tone: counts.reviewable > 0 ? "warning" : "good",
+            },
+            {
+              label: "Approved fields",
+              value: counts.approved,
+              detail: "Requirements approved independently",
+              tone: "good",
+            },
+            {
+              label: "Rejected fields",
+              value: counts.rejected,
+              detail: "Requirements waiting for correction",
+              tone: counts.rejected > 0 ? "danger" : "neutral",
+            },
+          ]}
+        />
 
-        {loadingBusinesses ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading business records...
-          </p>
-        ) : businessError ? (
-          <p className="text-sm text-red-700">
-            {formatUserFacingErrorMessage(businessError, "Could not load business records.")}
-          </p>
-        ) : businesses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No business records match this filter.</p>
-        ) : (
-          <div className="space-y-4">
-            {businesses.map((item) => {
-              const profile = asRecord(item.profile);
-              const user = asRecord(item.user);
-              const id = stringValue(profile.id);
+        <AdminToolbar className="mt-4">
+          <div className="relative min-w-0 flex-1 md:max-w-2xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search business, owner, email, or business type"
+              className="border-white/10 bg-black/20 pl-9 text-white placeholder:text-white/30"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[12rem] border-white/10 bg-black/20 text-white">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {FILTER_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {readable(status)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="hidden text-xs text-white/35 xl:inline">
+              {filteredRows.length} shown
+            </span>
+          </div>
+        </AdminToolbar>
+
+        {filteredRows.length ? (
+          <AdminList className="mt-4">
+            {filteredRows.map(({ profile, user, fields }) => {
+              const profileId = stringValue(profile.id);
               const submissions = asRecord(profile.verificationSubmissions);
               const maskedTaxId = stringValue(submissions.taxId);
-              const fields = businessFieldsFor(profile);
+              const licenseNumber = stringValue(submissions.licenseNumber);
+              const overallStatus =
+                stringValue(profile.verificationStatus || profile.status) || "pending";
               return (
-                <article key={id} className="rounded-lg border border-border bg-background p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold">
-                        {stringValue(profile.displayName || profile.name) || "Business"}
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                <div key={profileId} className="px-3 py-5 sm:px-4">
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(12rem,0.65fr)_auto] lg:items-start">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-orange-300" />
+                        <h3 className="truncate font-semibold text-white">
+                          {stringValue(profile.displayName || profile.name) || "Business"}
+                        </h3>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-white/40">
                         Owner: {stringValue(user.email) || "Not provided"}
                       </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Tax ID: {maskedTaxId || "Not provided"}
+                      <p className="mt-1 text-xs text-white/35">
+                        Updated {formatDate(profile.updatedAt)}
                       </p>
                     </div>
-                    <Badge variant="outline">
-                      {stringValue(
-                        profile.overallStatus || profile.verificationStatus || profile.status
-                      ) || "pending"}
+                    <div className="text-sm text-white/55">
+                      <p>License: {licenseNumber || "Not provided"}</p>
+                      <p className="mt-1">Tax ID: {maskedTaxId || "Not provided"}</p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={statusClasses(normalizeState(overallStatus, true))}
+                    >
+                      {readable(overallStatus)}
                     </Badge>
                   </div>
 
-                  {fields.length === 0 ? (
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      No reviewable evidence is attached.
-                    </p>
-                  ) : (
-                    <div className="mt-4 space-y-3">
+                  {fields.length ? (
+                    <div className="mt-5 grid gap-3 xl:grid-cols-2">
                       {fields.map((field) => {
-                        const reasonKey = `${id}:${field.key}`;
-                        const draftReason =
-                          rejectionReasons[reasonKey] ?? field.rejectionReason ?? "";
+                        const reasonKey = `${profileId}:${field.key}`;
+                        const draftReason = rejectionReasons[reasonKey] ?? field.rejectionReason;
+                        const validReason =
+                          draftReason.trim().length >= 12 && draftReason.trim().length <= 1000;
                         return (
-                          <div
+                          <section
                             key={field.key}
-                            className="rounded-md border border-border bg-muted/20 p-3"
+                            className="border border-white/10 bg-white/[0.022] p-4"
                           >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div>
-                                <h4 className="font-medium">{field.label}</h4>
-                                <p className="text-xs text-muted-foreground">
-                                  {field.required ? "Required evidence" : "Additional evidence"}
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h4 className="font-medium text-white">{field.label}</h4>
+                                <p className="mt-1 text-xs leading-5 text-white/42">
+                                  {field.description}
                                 </p>
                               </div>
                               <Badge variant="outline" className={statusClasses(field.status)}>
@@ -486,78 +483,108 @@ export default function AdminProfileVerificationsPage() {
                               </Badge>
                             </div>
 
-                            {field.rejectionReason ? (
-                              <p className="mt-2 rounded border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-700">
-                                Previous reason: {field.rejectionReason}
-                              </p>
-                            ) : null}
-
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                              {field.hasEvidence ? (
+                            <div className="mt-3 flex min-h-9 items-center">
+                              {field.documentUrl ? (
                                 <a
-                                  href={evidenceHref(id, field.key, field.documentUrl)}
+                                  href={evidenceHref(field.documentUrl)}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex min-h-9 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium hover:bg-muted"
+                                  className="inline-flex min-h-9 items-center gap-2 border border-white/12 px-3 text-sm font-medium text-white/65 transition hover:bg-white/[0.05] hover:text-white"
                                 >
                                   <FileCheck2 className="h-4 w-4" />
                                   View secure evidence
                                   <ExternalLink className="h-3.5 w-3.5" />
                                 </a>
+                              ) : field.hasEvidence ? (
+                                <span className="inline-flex items-center gap-2 text-sm text-white/55">
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                                  Submitted value available above
+                                </span>
                               ) : (
-                                <span className="text-sm text-muted-foreground">
-                                  No document submitted
+                                <span className="inline-flex items-center gap-2 text-sm text-white/38">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  No evidence submitted
                                 </span>
                               )}
                             </div>
 
-                            <Textarea
-                              className="mt-3"
-                              maxLength={1000}
-                              aria-label={`Rejection reason for ${field.label}`}
-                              placeholder="Required when rejecting: explain what must be corrected"
-                              value={draftReason}
-                              onChange={(event) =>
-                                setRejectionReasons((current) => ({
-                                  ...current,
-                                  [reasonKey]: event.target.value,
-                                }))
-                              }
-                            />
+                            {field.rejectionReason ? (
+                              <p className="mt-3 border-l-2 border-red-300/35 bg-red-300/[0.055] px-3 py-2 text-sm leading-6 text-red-100/75">
+                                Previous reason: {field.rejectionReason}
+                              </p>
+                            ) : null}
 
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                disabled={!field.hasEvidence || businessDecision.isPending}
-                                onClick={() => submitBusinessDecision(id, field.key, "approved")}
+                            <div className="mt-3 space-y-2">
+                              <Label
+                                htmlFor={`rejection-${profileId}-${field.key}`}
+                                className="text-xs text-white/45"
                               >
-                                Approve item
+                                Seller-facing rejection reason
+                              </Label>
+                              <Textarea
+                                id={`rejection-${profileId}-${field.key}`}
+                                value={draftReason}
+                                maxLength={1000}
+                                placeholder="Required when rejecting: explain exactly what must be corrected"
+                                onChange={(event) =>
+                                  setRejectionReasons((current) => ({
+                                    ...current,
+                                    [reasonKey]: event.target.value,
+                                  }))
+                                }
+                                className="min-h-24 border-white/10 bg-black/20 text-white placeholder:text-white/28"
+                              />
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-2 gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={!field.canReview || businessDecision.isPending}
+                                onClick={() =>
+                                  submitBusinessDecision(profileId, field.key, "approved")
+                                }
+                                className="bg-emerald-500 text-black hover:bg-emerald-400"
+                              >
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Approve
                               </Button>
                               <Button
+                                type="button"
                                 size="sm"
-                                variant="destructive"
+                                variant="outline"
                                 disabled={
-                                  !field.hasEvidence ||
-                                  businessDecision.isPending ||
-                                  draftReason.trim().length < 12 ||
-                                  draftReason.trim().length > 1000
+                                  !field.canReview || businessDecision.isPending || !validReason
                                 }
-                                onClick={() => submitBusinessDecision(id, field.key, "rejected")}
+                                onClick={() =>
+                                  submitBusinessDecision(profileId, field.key, "rejected")
+                                }
+                                className="border-red-300/20 bg-transparent text-red-100 hover:bg-red-300/10"
                               >
-                                Reject item
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject
                               </Button>
                             </div>
-                          </div>
+                          </section>
                         );
                       })}
                     </div>
+                  ) : (
+                    <div className="mt-5 text-sm text-white/42">
+                      No required business evidence is available for review.
+                    </div>
                   )}
-                </article>
+                </div>
               );
             })}
-          </div>
+          </AdminList>
+        ) : (
+          <AdminEmptyState
+            title="No business verification records"
+            description="No businesses match the current server status and search filters."
+          />
         )}
-      </section>
-    </div>
+      </AdminSection>
+    </AdminWorkspace>
   );
 }
