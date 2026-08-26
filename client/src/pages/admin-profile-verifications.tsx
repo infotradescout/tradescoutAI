@@ -43,6 +43,7 @@ type UnknownRecord = Record<string, unknown>;
 type BusinessFieldView = Readonly<{
   key: RequirementFieldKey;
   label: string;
+  description: string;
   required: boolean;
   status: ReviewState;
   rejectionReason: string;
