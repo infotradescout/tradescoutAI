@@ -348,6 +348,10 @@ import { computeAllocationShares } from "./utils/communityCauseAllocation";
 import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
 import type { IStorage } from "./storage/contracts";
 export type { IStorage } from "./storage/contracts";
+import {
+  affiliateCommissionApprovalService,
+  type AffiliateCommissionApprovalResult,
+} from "./services/affiliateCommissionApproval";
 
 // Helper to safely convert strings/numbers to Decimal format
 const decimal = (value: any): string => {
@@ -365,11 +369,11 @@ type InsertAffiliateProgram = InsertAffiliateAccount;
 type AffiliateReferral = DbAffiliateReferral;
 type AffiliatePayout = DbAffiliatePayout;
 
-// Minimal commission shape mapped onto affiliate referral records.
+// Commission records are persisted on affiliate_referrals with explicit approval state.
 type AffiliateCommission = {
   id: string;
   affiliateProgramId: string;
-  status: string;
+  status: "legacy_unverified" | "pending" | "approved" | "paid";
   commissionAmount?: string;
   revenueAmount?: string;
   referralId?: string;
@@ -377,10 +381,13 @@ type AffiliateCommission = {
   description?: string;
   createdAt: Date;
   approvedAt?: Date | null;
+  approvedBy?: string | null;
+  approvalReason?: string | null;
   paidAt?: Date | null;
+  created?: boolean;
 };
 
-type InsertAffiliateCommission = Omit<AffiliateCommission, "id" | "createdAt"> & {
+type InsertAffiliateCommission = Omit<AffiliateCommission, "id" | "createdAt" | "approvedAt" | "approvedBy" | "approvalReason" | "paidAt"> & {
   id?: string;
   createdAt?: Date;
 };
@@ -6401,93 +6408,37 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   // Commission management
   async createCommission(data: InsertAffiliateCommission): Promise<AffiliateCommission> {
-    const commissionAmount = data.commissionAmount || "0";
-
-    if (data.referralId) {
-      const [updated] = await db
-        .update(affiliateReferrals)
-        .set({
-          commissionAmount,
-        })
-        .where(eq(affiliateReferrals.id, data.referralId))
-        .returning();
-
-      if (updated) {
-        return {
-          id: updated.id,
-          affiliateProgramId: data.affiliateProgramId,
-          status: data.status || "pending",
-          commissionAmount,
-          revenueAmount: data.revenueAmount,
-          referralId: updated.id,
-          transactionId: data.transactionId,
-          description: data.description,
-          createdAt: updated.createdAt || new Date(),
-          approvedAt: null,
-          paidAt: null,
-        };
-      }
-    }
-
-    const [created] = await db
-      .insert(affiliateReferrals)
-      .values({
-        affiliateId: data.affiliateProgramId,
-        referredUserId: null,
-        shareLinkId: null,
-        customLink: data.transactionId || null,
-        commissionAmount,
-        discountAmount: "0",
-        conversionSource: "commission",
-        conversionType: "commission",
-        couponCode: null,
-      } as any)
-      .returning();
-
-    return {
-      id: created.id,
-      affiliateProgramId: data.affiliateProgramId,
-      status: data.status || "pending",
-      commissionAmount,
-      revenueAmount: data.revenueAmount,
-      referralId: created.id,
-      transactionId: data.transactionId,
-      description: data.description,
-      createdAt: created.createdAt || new Date(),
-      approvedAt: null,
-      paidAt: null,
-    };
+    return affiliateCommissionApprovalService.createPendingCommission(data);
   }
 
-  async getCommissionsForAffiliate(affiliateProgramId: string): Promise<AffiliateCommission[]> {
-    const rows = await db
-      .select()
-      .from(affiliateReferrals)
-      .where(eq(affiliateReferrals.affiliateId, affiliateProgramId))
-      .orderBy(desc(affiliateReferrals.createdAt));
-
-    return rows
-      .filter((row) => Number(row.commissionAmount || 0) > 0)
-      .map((row) => ({
-        id: row.id,
-        affiliateProgramId,
-        status: "pending",
-        commissionAmount: row.commissionAmount || "0",
-        referralId: row.id,
-        transactionId: row.customLink || undefined,
-        createdAt: row.createdAt || new Date(),
-        approvedAt: null,
-        paidAt: null,
-      }));
+  async getCommissionsForAffiliate(
+    affiliateProgramId: string
+  ): Promise<AffiliateCommission[]> {
+    return affiliateCommissionApprovalService.getCommissionsForAffiliate(
+      affiliateProgramId,
+      { limit: 200 }
+    );
   }
 
-  async approveCommission(commissionId: string): Promise<void> {
-    // No-op: commission persistence not available in current schema
-    void commissionId;
+  async approveCommission(
+    commissionId: string,
+    approvedByUserId: string,
+    reason: string
+  ): Promise<AffiliateCommissionApprovalResult> {
+    return affiliateCommissionApprovalService.approveCommission({
+      commissionId,
+      approvedByUserId,
+      reason,
+    });
   }
 
-  async getUnpaidCommissions(affiliateProgramId: string): Promise<AffiliateCommission[]> {
-    return this.getCommissionsForAffiliate(affiliateProgramId);
+  async getUnpaidCommissions(
+    affiliateProgramId: string
+  ): Promise<AffiliateCommission[]> {
+    return affiliateCommissionApprovalService.getCommissionsForAffiliate(
+      affiliateProgramId,
+      { unpaidOnly: true, limit: 200 }
+    );
   }
 
   // Payout management
@@ -6573,7 +6524,12 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
         earned: sql<string>`coalesce(sum(coalesce(${affiliateReferrals.commissionAmount}, '0')::numeric), 0)::text`,
       })
       .from(affiliateReferrals)
-      .where(eq(affiliateReferrals.affiliateId, affiliateProgramId));
+      .where(
+        and(
+          eq(affiliateReferrals.affiliateId, affiliateProgramId),
+          inArray(affiliateReferrals.commissionStatus, ["approved", "paid"])
+        )
+      );
 
     const [payoutTotals] = await db
       .select({
