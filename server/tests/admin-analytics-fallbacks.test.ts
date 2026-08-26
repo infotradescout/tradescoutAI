@@ -36,4 +36,11 @@ describe("admin analytics fallback counters", () => {
     expect(analytics.fallbacks).toBe(1);
     expect(analytics.lastQuery).toBeTruthy();
   });
+
+  it("discloses that counters are process-local and non-durable", () => {
+    const analytics = getAnalytics() as any;
+    expect(analytics.scope).toBe("process_local");
+    expect(analytics.durable).toBe(false);
+  });
+
 });
