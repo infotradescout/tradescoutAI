@@ -18,7 +18,7 @@ export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_
 
 const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+  "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
@@ -225,7 +225,7 @@ ${companySummary}
       ? `
 <main data-seo-jw-stone-marketplace="true" data-seo-jw-stone-category="${escapeHtml(categoryShare.categorySlug)}" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
-    <h1>${escapeHtml(categoryShare.title)}</h1>
+    <h1>${escapeHtml(categoryShare.categoryName)} slabs in Pensacola, Florida</h1>
     <p>${description}</p>
     <h2>Browse ${escapeHtml(categoryShare.categoryName)} selections</h2>
     <ul>
@@ -246,8 +246,9 @@ ${companySummary}
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
     <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
-    <h2>Material Library</h2>
-    <p>Browse JW Stone's reconciled photo catalog by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
+    <h2>Material Library: natural stone slabs in Pensacola, Florida</h2>
+    <p>JW Stone Logistics gives fabricators, builders, architects, designers, and homeowners a photo-led way to browse granite, marble, quartzite, engineered quartz, onyx, soapstone, and basalt from its Pensacola operation.</p>
+    <p>Review named material photos, then ask JW Stone to confirm current pricing or availability for your project. These offerings are not a claim of confirmed physical stock.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
     <h2>Browse by material</h2>
     <ul>
@@ -461,24 +462,34 @@ export function buildJwStoneMarketplaceSitemapXml(origin: string): string {
 
 export function buildJwStoneMarketplaceLlmsText(origin: string): string {
   const publicOrigin = normalizeOrigin(origin);
+  const contentBlocks = [JW_STONE_PUBLIC_DISCOVERY_BLOCK];
+  const categories = listProfileInventoryCategories(
+    JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+    contentBlocks
+  ).filter((category) => category.indexable);
+
   return [
-    "# JW Stone",
+    "# JW Stone Logistics",
     "",
-    "Natural stone marketplace on TradeScout.",
+    "Natural stone slabs and named material collections in Pensacola, Florida.",
     "",
     JW_STONE_PUBLIC_IDENTITY.about,
     "",
     `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
-    ...JW_STONE_PUBLIC_IDENTITY.socials.map((social) => `${social.label}: ${social.publicHandle}`),
+    "",
+    "Useful customer entry points:",
+    `- Natural stone slabs in Pensacola: ${publicOrigin}/`,
+    ...categories.map(
+      (category) =>
+        `- ${category.name} slabs: ${publicOrigin}/materials/${category.slug} — ${category.summary}`
+    ),
+    "",
+    "Individual named materials:",
+    `- ${publicOrigin}/stones/{slug}`,
     "",
     `Canonical: ${publicOrigin}/`,
     `Robots: ${publicOrigin}/robots.txt`,
     `Sitemap: ${publicOrigin}/sitemap.xml`,
-    "",
-    "Indexable surfaces:",
-    `- Collection: ${publicOrigin}/`,
-    `- Stones: ${publicOrigin}/stones/{slug}`,
-    `- Materials: ${publicOrigin}/materials/{slug}`,
     "",
     "Calls and requests are available through Express Direct Connect on the profile.",
     "",
