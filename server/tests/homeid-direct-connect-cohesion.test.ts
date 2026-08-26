@@ -6,7 +6,8 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 const shellSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-const homesSource = read("client/src/pages/homes.tsx");
+const homeIdSource = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
+const handoffSource = read("client/src/pages/direct-connect/homeIdComposerHandoff.ts");
 const routesSource = read("server/routes/direct-connect.ts");
 const notificationSafetySource = read(
   "server/tests/direct-connect-notification-delivery-safety.contract.test.ts"
@@ -27,7 +28,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
 
   it("keeps HomeID helpful, optional, and non-blocking during Direct Connect submit", () => {
     expect(shellSource).toContain("const [homeContextIntent, setHomeContextIntent] = useState<");
-    expect(shellSource).toContain('>("skip_for_now")');
+    expect(shellSource).toContain('prefillHomeIdHandoff?.homeContextIntent || "skip_for_now"');
     expect(shellSource).toContain(
       "Save it with your property or project so the next step starts with the right"
     );
@@ -69,16 +70,18 @@ describe("HomeID and Direct Connect cohesion contract", () => {
   });
 
   it("keeps HomeID page copy aligned as durable memory feeding request action", () => {
-    expect(homesSource).toContain(
+    expect(homeIdSource).toContain(
       "HomeID remembers useful property history. Direct Connect starts the job when you"
     );
-    expect(homesSource).toContain(
-      "This creates a draft request only. HomeID context can help prepare it"
+    expect(homeIdSource).toContain(
+      "Saving this packet does not dispatch, route, charge, or contact a"
     );
-    expect(homesSource).toMatch(
-      /Direct Connect starts the job\s+only\s+when you submit; HomeID remains the property memory\./
+    expect(homeIdSource).toContain("Review in Direct Connect");
+    expect(homeIdSource).toContain(
+      "Nothing is sent until you review this request and confirm the next step"
     );
-    expect(homesSource).toContain("future requests start with better property history.");
+    expect(handoffSource).toContain("resolveHomeIdComposerHandoff");
+    expect(handoffSource).toContain("if (!packet) return null");
   });
 
   it("allows completed Direct Connect work to project into HomeID history", () => {
