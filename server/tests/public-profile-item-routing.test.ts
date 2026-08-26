@@ -176,6 +176,41 @@ describe("public profile category request routing", () => {
     ).toEqual({ kind: "invalid-category-route" });
   });
 
+  it("recovers indexed JW Stone material URLs from the prior website", () => {
+    const legacyPaths = [
+      ["/products-granite/", "granite"],
+      ["/products-marble/", "marble"],
+      ["/products-quartzite/", "quartzite"],
+      ["/products-quartz/", "engineered-quartz"],
+      ["/products-soapstone/", "soapstone"],
+      ["/products-onyx/", "onyx"],
+      ["/products-basalt/", "basalt"],
+    ] as const;
+
+    for (const [pathname, categorySlug] of legacyPaths) {
+      expect(
+        resolvePublicProfileCategoryRequest({
+          profile: { slug: "jw-stone", contentBlocks: jwContentBlocks },
+          pathname,
+          profileBasePath: "/",
+        })
+      ).toMatchObject({
+        kind: "category",
+        source: "legacy-query",
+        categorySlug,
+        canonicalPath: `/materials/${categorySlug}`,
+      });
+    }
+
+    expect(
+      resolvePublicProfileCategoryRequest({
+        profile: { slug: "example-supplier", contentBlocks: jwContentBlocks },
+        pathname: "/products-granite/",
+        profileBasePath: "/",
+      })
+    ).toEqual({ kind: "none" });
+  });
+
   it("uses the generic /categories route when a profile has no route override", () => {
     const genericContentBlocks = [
       {
