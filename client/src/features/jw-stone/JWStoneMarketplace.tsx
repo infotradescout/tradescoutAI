@@ -28,15 +28,26 @@ import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
+const JW_STONE_TITLE = "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
 const JW_STONE_DESCRIPTION =
-  "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.";
+  "Browse quarry-direct granite, marble, quartzite, onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
+const JW_STONE_KNOWS_ABOUT = [
+  "Natural stone slabs",
+  "Granite",
+  "Marble",
+  "Quartzite",
+  "Onyx",
+  "Soapstone",
+  "Engineered quartz",
+] as const;
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
-    const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
-    return `${window.location.origin}${pathname}`;
+    const pathname = window.location.pathname || "/";
+    const normalizedPath = pathname === "/" ? "/" : pathname.replace(/\/+$/, "");
+    return `${window.location.origin}${normalizedPath}`;
   }
   return "https://www.thetradescout.com/jw-stone";
 }
@@ -273,17 +284,19 @@ export default function JWStoneMarketplace() {
   const collectionData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
+    name: JW_STONE_TITLE,
     description: JW_STONE_DESCRIPTION,
     url: canonicalUrl,
     image: JW_STONE_SOCIAL_IMAGE_URL,
     mainEntity: {
-      "@type": "LocalBusiness",
+      "@type": "Store",
       name: JW_STONE_PUBLIC_IDENTITY.brandName,
       description: JW_STONE_PUBLIC_IDENTITY.about,
       foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
       url: canonicalUrl,
       hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
+      areaServed: { "@type": "AdministrativeArea", name: "Gulf Coast" },
+      knowsAbout: JW_STONE_KNOWS_ABOUT,
       address: {
         "@type": "PostalAddress",
         streetAddress: JW_STONE_PUBLIC_IDENTITY.address.streetAddress,
@@ -304,8 +317,8 @@ export default function JWStoneMarketplace() {
       data-jw-marketplace-base={marketplaceBasePath() || "/"}
     >
       <SEOHelmet
-        title="Natural stone slabs in Pensacola, FL"
-        socialTitle="JW Stone Logistics | Natural stone slabs"
+        title={JW_STONE_TITLE}
+        socialTitle={JW_STONE_TITLE}
         description={JW_STONE_DESCRIPTION}
         canonical={canonicalUrl}
         ogType="website"
@@ -411,7 +424,7 @@ export default function JWStoneMarketplace() {
         stayInProfile
         requestMode="materials"
         initialStoneSelections={requestTargets}
-        initialView="choice"
+        initialView="request"
         initialRequestType="request_material"
       />
     </div>
