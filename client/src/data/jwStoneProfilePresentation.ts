@@ -1,4 +1,5 @@
 import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
+import { JW_STONE_MATERIAL_SEO } from "@shared/jwStoneSeo";
 
 /**
  * JW Stone's profile-owned presentation data.
@@ -52,7 +53,14 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       browseCtaEyebrow: "White Rhino · full inventory",
       featuredCollection: {
         label: "JW Stone Picks",
-        slugs: ["blue-dunes", "cristallo", "gold-macaubas", "rhino-white", "taj-mahal", "titanium"],
+        slugs: [
+          "blue-dunes",
+          "cristallo",
+          "gold-macaubas",
+          "rhino-white",
+          "taj-mahal",
+          "titanium",
+        ],
       },
     },
     audience: {
@@ -116,77 +124,14 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
       inventory: "stones",
       categories: "materials",
     },
-    categories: [
-      {
-        sourceSlug: "granite",
-        publicSlug: "granite",
-        title: "Granite",
-        summary:
-          "Explore named Granite materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
-        leadItemSlug: "arizona-gold",
-        indexable: true,
-        collectionKind: "offerings",
-      },
-      {
-        sourceSlug: "marble",
-        publicSlug: "marble",
-        title: "Marble",
-        summary:
-          "Explore named Marble materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
-        leadItemSlug: "alabama-rose",
-        indexable: true,
-        collectionKind: "offerings",
-      },
-      {
-        sourceSlug: "quartzite",
-        publicSlug: "quartzite",
-        title: "Quartzite",
-        summary:
-          "Explore named Quartzite materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
-        leadItemSlug: "atlantic",
-        indexable: true,
-        collectionKind: "offerings",
-      },
-      {
-        sourceSlug: "quartz",
-        publicSlug: "engineered-quartz",
-        title: "Engineered Quartz",
-        summary:
-          "Explore named Engineered Quartz materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
-        leadItemSlug: "aj-quartz",
-        indexable: true,
-        collectionKind: "offerings",
-      },
-      {
-        sourceSlug: "onyx",
-        publicSlug: "onyx",
-        title: "Onyx",
-        summary:
-          "Explore Onyx in JW Stone's full inventory, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
-        leadItemSlug: "honey-onyx",
-        indexable: true,
-        collectionKind: "offerings",
-      },
-      {
-        sourceSlug: "soapstone",
-        publicSlug: "soapstone",
-        title: "Soapstone",
-        summary:
-          "Explore Soapstone in JW Stone's full inventory, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
-        leadItemSlug: "marina-black-soapstone",
-        indexable: true,
-        collectionKind: "offerings",
-      },
-      {
-        sourceSlug: "basalt",
-        publicSlug: "basalt",
-        title: "Basalt",
-        summary:
-          "Explore Basalt in JW Stone's full inventory, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
-        leadItemSlug: "matrix-basalt",
-        indexable: true,
-        collectionKind: "offerings",
-      },
-    ],
+    categories: JW_STONE_MATERIAL_SEO.map((material) => ({
+      sourceSlug: material.sourceSlug,
+      publicSlug: material.publicSlug,
+      title: material.label,
+      summary: material.summary,
+      leadItemSlug: material.leadItemSlug,
+      indexable: true,
+      collectionKind: "offerings" as const,
+    })),
   },
 } as const;
