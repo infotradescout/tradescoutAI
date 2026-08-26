@@ -23,7 +23,6 @@ const routes = {
   wallet: `${productUrl}/wallet`,
   supplyRun: `${productUrl}/utilities/supply-run`,
   scoutFitters: `${productUrl}/marketing/scoutfitters`,
-  socialIntegration: `${productUrl}/social-integration`,
   notifications: `${productUrl}/notifications`,
   backgroundCheck: `${productUrl}/background-check`,
   businessRequests: `${productUrl}/direct-connect/inbox`,
@@ -442,12 +441,6 @@ const featureGroups = [
         name: "Promotions",
         copy: "Create a business promotion while keeping paid visibility separate from CVS, recommendations, and organic trust ordering.",
         href: routes.createBusiness,
-      },
-      {
-        action: "Publish once and extend it outside TradeScout",
-        name: "Social publishing and external auto-sharing",
-        copy: "Use connected accounts, post templates, content choices, and destination choices to share approved project completions, recommendations, offers, community posts, achievements, and referral milestones beyond TradeScout. Each external account must be connected and authorized first. The management area exists, but dependable end-to-end automatic publishing is still expanding by platform.",
-        href: routes.socialIntegration,
       },
       {
         action: "Track money moving through the account",
