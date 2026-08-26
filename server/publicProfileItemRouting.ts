@@ -1,3 +1,4 @@
+import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
   resolveProfileGalleryItem,
   type ResolvedProfileGalleryItem,
@@ -59,6 +60,16 @@ export type PublicProfileCategoryRequestResolution =
   | { kind: "none" }
   | { kind: "invalid-category-route" };
 
+const JW_STONE_LEGACY_CATEGORY_BY_PATH: Readonly<Record<string, string>> = Object.freeze({
+  "products-granite": "granite",
+  "products-marble": "marble",
+  "products-quartzite": "quartzite",
+  "products-quartz": "engineered-quartz",
+  "products-soapstone": "soapstone",
+  "products-onyx": "onyx",
+  "products-basalt": "basalt",
+});
+
 function firstQueryValue(value: unknown): string {
   if (Array.isArray(value)) return firstQueryValue(value[0]);
   return typeof value === "string" ? value.trim() : "";
@@ -111,6 +122,11 @@ function routePrefix(pathname: string, profileBasePath: string): string {
   } catch {
     return "";
   }
+}
+
+function resolveLegacyProfileCategoryPath(profileSlug: string, prefix: string): string {
+  if (profileSlug.trim().toLowerCase() !== JW_STONE_PROFILE_SLUG) return "";
+  return JW_STONE_LEGACY_CATEGORY_BY_PATH[prefix] || "";
 }
 
 export function resolvePublicProfileItemRequest(args: {
@@ -212,8 +228,11 @@ export function resolvePublicProfileCategoryRequest(args: {
   const routes = readProfilePublicItemRouteSegments(contentBlocks);
   const prefix = routePrefix(args.pathname, args.profileBasePath);
   const addressedCategoryRoute = prefix === routes.categories;
-  const legacyCategory = prefix ? "" : firstQueryValue(args.category);
-  const requestedSlug = routedCategory?.categorySlug || legacyCategory;
+  const legacyPathCategory = routedCategory
+    ? ""
+    : resolveLegacyProfileCategoryPath(args.profile.slug, prefix);
+  const legacyCategory = prefix && !legacyPathCategory ? "" : firstQueryValue(args.category);
+  const requestedSlug = routedCategory?.categorySlug || legacyPathCategory || legacyCategory;
 
   if (!requestedSlug) {
     return addressedCategoryRoute ? { kind: "invalid-category-route" } : { kind: "none" };
