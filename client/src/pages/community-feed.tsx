@@ -52,6 +52,7 @@ import {
 } from "@/components/community/ContactOutcomeModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { buildCommunityPostPath, normalizeCommunityPostId } from "@shared/communityPostShare";
+import { parseCommunityComposerQuery } from "./communityComposerQuery";
 
 interface Post {
   id: string;
@@ -355,12 +356,12 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (typeof window === "undefined") return;
     const onLocationChange = () => setSearchState(window.location.search || "");
     window.addEventListener("popstate", onLocationChange);
-    window.addEventListener("pushstate", onLocationChange as EventListener);
-    window.addEventListener("replacestate", onLocationChange as EventListener);
+    window.addEventListener("pushState", onLocationChange as EventListener);
+    window.addEventListener("replaceState", onLocationChange as EventListener);
     return () => {
       window.removeEventListener("popstate", onLocationChange);
-      window.removeEventListener("pushstate", onLocationChange as EventListener);
-      window.removeEventListener("replacestate", onLocationChange as EventListener);
+      window.removeEventListener("pushState", onLocationChange as EventListener);
+      window.removeEventListener("replaceState", onLocationChange as EventListener);
     };
   }, []);
 
@@ -981,38 +982,16 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   // Allow Scout to prefill the composer via /community-feed?compose=1&prefill=...
   useEffect(() => {
-    if (!route) return;
+    const routeSearch = route.includes("?") ? route.slice(route.indexOf("?")) : "";
+    const composerQuery = parseCommunityComposerQuery(searchState || routeSearch);
 
-    const queryIndex = route.indexOf("?");
-    if (queryIndex === -1) return;
-
-    const search = route.slice(queryIndex + 1);
-    const params = new URLSearchParams(search);
-    const compose = params.get("compose");
-    const prefill = params.get("prefill");
-    const category = params.get("category");
-
-    if (compose === "1") {
+    if (composerQuery.shouldOpen) {
       setIsComposerOpen(true);
-      if (prefill) setNewPostContent(prefill);
-      if (
-        category &&
-        [
-          "general",
-          "question",
-          "recommendation",
-          "event",
-          "tip",
-          "request",
-          "alert",
-          "forsale",
-        ].includes(category)
-      ) {
-        setSelectedCategory(category);
-      }
+      if (composerQuery.prefill) setNewPostContent(composerQuery.prefill);
+      if (composerQuery.category) setSelectedCategory(composerQuery.category);
       window.setTimeout(() => composerRef.current?.focus(), 0);
     }
-  }, [route]);
+  }, [route, searchState]);
 
   const seededPrompts: string[] = [
     "Can anyone recommend a reliable electrician?",
