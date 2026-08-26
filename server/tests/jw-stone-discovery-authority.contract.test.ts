@@ -77,7 +77,7 @@ describe("JW Stone custom-domain discovery authority", () => {
     expect(html).toContain("Amazonic Green");
     expect(html).toContain("Slabs | JW Stone Pensacola");
     expect(html).toContain("slab photos from JW Stone Logistics in Pensacola, Florida");
-    expect(html).toContain("Ask about current availability");
+    expect(html).toContain("Ask whether it is currently available");
     expect(jsonLd.mainEntity).toMatchObject({
       "@type": "Product",
       name: "Amazonic Green",
