@@ -343,7 +343,7 @@ ${companySummary}
     <p>Browse granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt slab photos from JW Stone Logistics in Pensacola, Florida. Compare named materials and ask JW Stone what is currently available for your project.</p>`
         : ""
     }
-    <h2>Material Library</h2>
+    <h2>Material Library: natural stone slabs in Pensacola, Florida</h2>
     <p>JW Stone Logistics helps fabricators, builders, architects, designers, and homeowners browse named material photos by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
     <p>Review named material photos, then ask JW Stone to confirm current pricing or availability for your project.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
