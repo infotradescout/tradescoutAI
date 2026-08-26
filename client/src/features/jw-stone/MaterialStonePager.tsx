@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { trackJwStoneBrowseAction, type JwStoneBrowseEventInput } from "./browseAnalytics";
 import { StoneCard } from "./StoneCard";
 import type { JwStoneCatalogItem } from "./types";
 import { useMomentumRail } from "./useMomentumRail";
@@ -10,6 +11,8 @@ type MaterialStonePagerProps = {
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
   onAsk: (stone: JwStoneCatalogItem) => void;
+  analyticsSurface?: JwStoneBrowseEventInput["surface"];
+  activeFilterCount?: number;
 };
 
 const NAV_BUTTON_CLASS =
@@ -26,6 +29,8 @@ export function MaterialStonePager({
   onToggleSaved,
   onOpen,
   onAsk,
+  analyticsSurface,
+  activeFilterCount = 0,
 }: MaterialStonePagerProps) {
   const total = stones.length;
   const railKey = `${materialLabel}:${stones.map((stone) => stone.id).join("|")}`;
@@ -39,6 +44,22 @@ export function MaterialStonePager({
 
   const go = (direction: -1 | 1) => {
     scrollToIndex(safeIndex + direction);
+  };
+
+  const track = (
+    action: JwStoneBrowseEventInput["action"],
+    stone: JwStoneCatalogItem,
+    resultPosition: number
+  ) => {
+    if (!analyticsSurface) return;
+    trackJwStoneBrowseAction({
+      action,
+      stone,
+      surface: analyticsSurface,
+      resultPosition,
+      mode: "browse",
+      activeFilterCount,
+    });
   };
 
   return (
@@ -126,25 +147,37 @@ export function MaterialStonePager({
         role="list"
         onScroll={onScroll}
       >
-        {stones.map((stone, index) => (
-          <div
-            key={stone.id}
-            data-momentum-item="true"
-            data-testid={`jw-material-stone-${stone.id}`}
-            data-active={index === safeIndex ? "true" : "false"}
-            className="min-w-[92%] flex-none sm:min-w-[88%] lg:min-w-[82%]"
-            role="listitem"
-          >
-            <StoneCard
-              stone={stone}
-              saved={isSaved(stone.id)}
-              onToggleSaved={onToggleSaved}
-              onOpen={onOpen}
-              onAsk={onAsk}
-              photoBrowsing={false}
-            />
-          </div>
-        ))}
+        {stones.map((stone, index) => {
+          const resultPosition = index + 1;
+          return (
+            <div
+              key={stone.id}
+              data-momentum-item="true"
+              data-testid={`jw-material-stone-${stone.id}`}
+              data-active={index === safeIndex ? "true" : "false"}
+              className="min-w-[92%] flex-none sm:min-w-[88%] lg:min-w-[82%]"
+              role="listitem"
+            >
+              <StoneCard
+                stone={stone}
+                saved={isSaved(stone.id)}
+                onToggleSaved={(selected) => {
+                  track(isSaved(selected.id) ? "unsave" : "save", selected, resultPosition);
+                  onToggleSaved(selected);
+                }}
+                onOpen={(selected) => {
+                  track("open", selected, resultPosition);
+                  onOpen(selected);
+                }}
+                onAsk={(selected) => {
+                  track("request", selected, resultPosition);
+                  onAsk(selected);
+                }}
+                photoBrowsing={false}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
