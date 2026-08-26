@@ -133,6 +133,12 @@ describe("JW Stone marketplace public HTML", () => {
     const text = buildJwStoneMarketplaceLlmsText("https://jwstonelogistics.com");
 
     expect(text).toContain("Founded in 2017 by Jared and Wagner");
+    expect(text).toContain("Useful customer entry points:");
+    expect(text).toContain("- Granite slabs: https://jwstonelogistics.com/materials/granite");
+    expect(text).toContain("- Marble slabs: https://jwstonelogistics.com/materials/marble");
+    expect(text).toContain("- Quartzite slabs: https://jwstonelogistics.com/materials/quartzite");
+    expect(text).toContain("Individual named materials:");
+    expect(text).toContain("https://jwstonelogistics.com/stones/{slug}");
     expect(text).toContain("Address: 2103 W Herman Ave, Pensacola, FL 32505");
     expect(text).toContain("Instagram: @jwstonellc");
     expect(text).toContain("Facebook: JW Stone Logistics");
