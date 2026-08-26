@@ -1372,13 +1372,6 @@ export const explainerChapters: readonly ExplainerChapter[] = [
               "Create a business promotion while keeping paid visibility separate from CVS, recommendations, and organic trust ordering.",
           },
           {
-            number: "04.20",
-            action: "Publish once and extend it outside TradeScout",
-            name: "Social publishing and external auto-sharing",
-            description:
-              "Use connected accounts, post templates, content choices, and destination choices to share approved project completions, recommendations, offers, community posts, achievements, and referral milestones beyond TradeScout. Dependable end-to-end automatic publishing is still expanding by platform.",
-          },
-          {
             number: "04.21",
             action: "Track money moving through the account",
             name: "Wallet",
