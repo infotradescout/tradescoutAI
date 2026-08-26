@@ -53,7 +53,7 @@ export function JwStoneProfileSeo({ canonical }: { canonical: string }) {
         "@type": "ProfilePage",
         "@id": `${canonicalUrl}#profile-page`,
         name: "JW Stone Logistics",
-        description: JW_STONE_PUBLIC_IDENTITY.about,
+        description: JW_STONE_DISCOVERY_DESCRIPTION,
         url: canonicalUrl,
         mainEntity: businessIdentity,
         hasPart: {
