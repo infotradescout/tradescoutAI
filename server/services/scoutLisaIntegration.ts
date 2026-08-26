@@ -5,6 +5,7 @@
  * LISA uses Scout's findings to make smarter routing and recommendation decisions.
  */
 
+import { unavailableRuntimeCapability } from "./runtimeCapability";
 import { scoutLearningPipeline, IndexedIntelligence } from "./scoutLearningPipeline";
 
 export interface LisaDecisionContext {
@@ -207,27 +208,28 @@ export class ScoutLisaIntegration {
 /**
  * Hook for Scout learning pipeline to notify LISA of new intelligence
  */
-export function setupScoutLisaHooks(): void {
-  scoutLearningPipeline.on("intelligence-indexed", (event) => {
-    // When Scout indexes new intelligence, notify LISA
-    console.log(`[Scout-LISA] New intelligence indexed:`, {
-      reportId: event.reportId,
-      itemCount: event.intelligence.length,
-      timestamp: event.timestamp,
-    });
+let lisaHookWarningEmitted = false;
 
-    // LISA can now use this intelligence for decisions
-    // This would trigger LISA to re-evaluate any pending decisions
-    // that might benefit from this new intelligence
-  });
+export function setupScoutLisaHooks(): void {
+  if (lisaHookWarningEmitted) return;
+  lisaHookWarningEmitted = true;
+  console.warn(
+    "[Scout-LISA] unavailable: no durable decision notification queue is configured"
+  );
 }
 
 export const scoutLisaIntegration = {
-  async triggerCountyUpdate(fips: string, reason: string): Promise<void> {
-    console.log("[Scout-LISA] County intelligence update queued", { fips, reason });
+  async triggerCountyUpdate(_fips: string, _reason: string): Promise<void> {
+    unavailableRuntimeCapability(
+      "Scout-LISA county update",
+      "a durable decision notification queue is not configured"
+    );
   },
 
-  async monitorMission(missionId: string, fips?: string): Promise<void> {
-    console.log("[Scout-LISA] Mission monitoring queued", { missionId, fips });
+  async monitorMission(_missionId: string, _fips?: string): Promise<void> {
+    unavailableRuntimeCapability(
+      "Scout-LISA mission monitoring",
+      "a durable mission monitor is not configured"
+    );
   },
 };

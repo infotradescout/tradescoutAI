@@ -105,7 +105,7 @@ export async function trackReferral(
 
 export async function convertReferral(referralId: string): Promise<boolean> {
   try {
-    // For now, just log a traffic event for conversion
+    // Persist the conversion signal in the affiliate traffic ledger before reporting success
     await db.insert(affiliateTrafficEvents).values({
       shareLinkId: referralId,
       conversionType: "conversion",

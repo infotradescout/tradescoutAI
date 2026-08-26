@@ -12,6 +12,8 @@
  * - Assignment history
  */
 
+import { unavailableRuntimeCapability } from "./runtimeCapability";
+
 export interface FileAssignment {
   id: string;
   fileId: string;
@@ -67,283 +69,108 @@ export interface FileAssignmentBatch {
 }
 
 class ScoutVisualFileSorting {
-  private assignments: Map<string, FileAssignment> = new Map();
-  private unassignedFiles: Map<string, UnassignedFile> = new Map();
-  private countyOrganization: Map<string, CountyFileOrganization> = new Map();
-  private assignmentHistory: FileAssignment[] = [];
-  private batches: Map<string, FileAssignmentBatch> = new Map();
-
-  /**
-   * Assign a file to a county
-   */
   async assignFileToCounty(
-    fileId: string,
-    countyFips: string,
-    assignedBy: string,
-    notes?: string
+    _fileId: string,
+    _countyFips: string,
+    _assignedBy: string,
+    _notes?: string
   ): Promise<FileAssignment> {
-    const assignment: FileAssignment = {
-      id: `assign-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      fileId,
-      countyFips,
-      assignedAt: new Date(),
-      assignedBy,
-      notes,
-    };
-
-    this.assignments.set(assignment.id, assignment);
-    this.assignmentHistory.push(assignment);
-
-    // Remove from unassigned
-    this.unassignedFiles.delete(fileId);
-
-    // Update county organization
-    this.updateCountyOrganization(countyFips, fileId);
-
-    console.log(`[Visual Sorting] Assigned file ${fileId} to county ${countyFips}`);
-
-    return assignment;
+    return unavailableRuntimeCapability(
+      "visual file assignment",
+      "a durable file assignment repository is not configured"
+    );
   }
 
-  /**
-   * Batch assign multiple files to a county
-   */
   async batchAssignFiles(
-    fileIds: string[],
-    countyFips: string,
-    assignedBy: string
+    _fileIds: string[],
+    _countyFips: string,
+    _assignedBy: string
   ): Promise<FileAssignmentBatch> {
-    const batchId = `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const batch: FileAssignmentBatch = {
-      id: batchId,
-      fileIds,
-      countyFips,
-      status: "processing",
-      createdAt: new Date(),
-    };
-
-    this.batches.set(batchId, batch);
-
-    let successful = 0;
-    let failed = 0;
-    const errors: string[] = [];
-
-    for (const fileId of fileIds) {
-      try {
-        await this.assignFileToCounty(fileId, countyFips, assignedBy);
-        successful++;
-      } catch (error) {
-        failed++;
-        errors.push(`Failed to assign ${fileId}: ${String(error)}`);
-      }
-    }
-
-    batch.status = "completed";
-    batch.completedAt = new Date();
-    batch.results = { successful, failed, errors: errors.length > 0 ? errors : undefined };
-
-    console.log(
-      `[Visual Sorting] Batch assignment completed: ${successful}/${fileIds.length} successful`
+    return unavailableRuntimeCapability(
+      "visual file batch assignment",
+      "a durable file assignment repository is not configured"
     );
-
-    return batch;
   }
 
-  /**
-   * Unassign a file from a county
-   */
-  async unassignFile(assignmentId: string): Promise<boolean> {
-    const assignment = this.assignments.get(assignmentId);
-    if (!assignment) return false;
-
-    this.assignments.delete(assignmentId);
-    this.unassignedFiles.set(assignment.fileId, {
-      id: assignment.fileId,
-      name: `file-${assignment.fileId}`,
-      type: "unknown",
-      size: 0,
-      uploadedAt: new Date(),
-      uploadedBy: assignment.assignedBy,
-    });
-
-    console.log(`[Visual Sorting] Unassigned file ${assignment.fileId}`);
-
-    return true;
+  async unassignFile(_assignmentId: string): Promise<boolean> {
+    return unavailableRuntimeCapability(
+      "visual file unassignment",
+      "a durable file assignment repository is not configured"
+    );
   }
 
-  /**
-   * Get unassigned files
-   */
   getUnassignedFiles(): UnassignedFile[] {
-    return Array.from(this.unassignedFiles.values()).sort(
-      (a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime()
+    return unavailableRuntimeCapability(
+      "unassigned file listing",
+      "a durable file assignment repository is not configured"
     );
   }
 
-  /**
-   * Get files for a county
-   */
-  getCountyFiles(countyFips: string): CountyFileOrganization | null {
-    return this.countyOrganization.get(countyFips) || null;
+  getCountyFiles(_countyFips: string): CountyFileOrganization | null {
+    return unavailableRuntimeCapability(
+      "county file listing",
+      "a durable file assignment repository is not configured"
+    );
   }
 
-  /**
-   * Get all county organizations
-   */
   getAllCountyOrganizations(): CountyFileOrganization[] {
-    return Array.from(this.countyOrganization.values());
+    return unavailableRuntimeCapability(
+      "county file organization",
+      "a durable file assignment repository is not configured"
+    );
   }
 
-  /**
-   * Move file between counties
-   */
   async moveFileBetweenCounties(
-    fileId: string,
-    fromCountyFips: string,
-    toCountyFips: string,
-    movedBy: string
+    _fileId: string,
+    _fromCountyFips: string,
+    _toCountyFips: string,
+    _movedBy: string
   ): Promise<FileAssignment> {
-    // Find existing assignment
-    let assignment: FileAssignment | null = null;
-    for (const [, assign] of this.assignments) {
-      if (assign.fileId === fileId && assign.countyFips === fromCountyFips) {
-        assignment = assign;
-        break;
-      }
-    }
-
-    if (!assignment) {
-      throw new Error(`File ${fileId} not found in county ${fromCountyFips}`);
-    }
-
-    // Unassign from old county
-    await this.unassignFile(assignment.id);
-
-    // Assign to new county
-    return this.assignFileToCounty(fileId, toCountyFips, movedBy);
+    return unavailableRuntimeCapability(
+      "visual file move",
+      "a durable file assignment repository is not configured"
+    );
   }
 
-  /**
-   * Get suggested counties for a file based on content
-   */
   getSuggestedCounties(
-    fileId: string,
-    limit: number = 3
+    _fileId: string,
+    _limit: number = 3
   ): { fips: string; county: string; confidence: number }[] {
-    // In production, this would use ML to analyze file content
-    // For now, return empty
-    return [];
+    return unavailableRuntimeCapability(
+      "file county suggestions",
+      "a source-backed file classifier is not configured"
+    );
   }
 
-  /**
-   * Get assignment history
-   */
-  getAssignmentHistory(limit: number = 100, countyFips?: string): FileAssignment[] {
-    let history = this.assignmentHistory;
-
-    if (countyFips) {
-      history = history.filter((a) => a.countyFips === countyFips);
-    }
-
-    return history.slice(-limit);
+  getAssignmentHistory(
+    _limit: number = 100,
+    _countyFips?: string
+  ): FileAssignment[] {
+    return unavailableRuntimeCapability(
+      "file assignment history",
+      "a durable file assignment repository is not configured"
+    );
   }
 
-  /**
-   * Get batch status
-   */
-  getBatchStatus(batchId: string): FileAssignmentBatch | null {
-    return this.batches.get(batchId) || null;
+  getBatchStatus(_batchId: string): FileAssignmentBatch | null {
+    return unavailableRuntimeCapability(
+      "file assignment batch status",
+      "a durable file assignment repository is not configured"
+    );
   }
 
-  /**
-   * Get statistics
-   */
   getStatistics() {
-    const totalAssignments = this.assignments.size;
-    const totalUnassigned = this.unassignedFiles.size;
-    const totalCounties = this.countyOrganization.size;
-
-    const assignmentsByType: Record<string, number> = {};
-    const assignmentsByCounty: Record<string, number> = {};
-
-    for (const [, org] of this.countyOrganization) {
-      assignmentsByCounty[org.county] = org.files.length;
-      Object.entries(org.filesByType).forEach(([type, count]) => {
-        assignmentsByType[type] = (assignmentsByType[type] || 0) + count;
-      });
-    }
-
     return {
-      totalAssignments,
-      totalUnassigned,
-      totalCounties,
-      assignmentsByType,
-      assignmentsByCounty,
-      totalSize: Array.from(this.countyOrganization.values()).reduce(
-        (sum, org) => sum + org.totalSize,
-        0
-      ),
+      available: false as const,
+      durable: false as const,
+      reason: "durable file assignment repository is not configured",
+      totalAssignments: 0,
+      totalUnassigned: 0,
+      totalCounties: 0,
+      assignmentsByType: {} as Record<string, number>,
+      assignmentsByCounty: {} as Record<string, number>,
+      totalSize: 0,
     };
-  }
-
-  /**
-   * Update county organization
-   */
-  private updateCountyOrganization(countyFips: string, fileId: string): void {
-    let org = this.countyOrganization.get(countyFips);
-
-    if (!org) {
-      org = {
-        countyFips,
-        county: this.getCountyName(countyFips),
-        state: this.getStateName(countyFips),
-        files: [],
-        filesByType: {},
-        totalSize: 0,
-        lastModified: new Date(),
-      };
-      this.countyOrganization.set(countyFips, org);
-    }
-
-    // Add file (in production, fetch real file data)
-    const file = {
-      id: fileId,
-      name: `file-${fileId}`,
-      type: "unknown",
-      size: 0,
-      assignedAt: new Date(),
-    };
-
-    org.files.push(file);
-    org.filesByType[file.type] = (org.filesByType[file.type] || 0) + 1;
-    org.totalSize += file.size;
-    org.lastModified = new Date();
-  }
-
-  /**
-   * Helper: Get county name from FIPS
-   */
-  private getCountyName(fips: string): string {
-    const fipsMap: Record<string, string> = {
-      "48453": "Travis",
-      "48201": "Harris",
-      "48439": "Tarrant",
-      "48113": "Dallas",
-    };
-    return fipsMap[fips] || "Unknown";
-  }
-
-  /**
-   * Helper: Get state name from FIPS
-   */
-  private getStateName(fips: string): string {
-    const stateCode = fips.substring(0, 2);
-    const stateMap: Record<string, string> = {
-      "48": "TX",
-      "06": "CA",
-      "36": "NY",
-    };
-    return stateMap[stateCode] || "US";
   }
 }
 
