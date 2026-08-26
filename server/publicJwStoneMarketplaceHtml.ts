@@ -271,16 +271,18 @@ export function buildPublicJwStoneMarketplaceHtml(
         : JW_STONE_MARKETPLACE_DESCRIPTION;
 
   const structuredDescription =
-    itemShare && opts.marketplaceDomainSurface && itemShare.hasPublicName
+    itemShare && itemShare.hasPublicName
       ? "View " +
         itemShare.itemName +
         (itemShare.category ? " " + itemShare.category : "") +
         " slab photos from JW Stone Logistics in Pensacola, Florida."
-      : categoryShare && opts.marketplaceDomainSurface
+      : categoryShare
         ? "Browse " +
           categoryShare.categoryName +
           " slab photos from JW Stone Logistics in Pensacola, Florida."
-        : resolvedDescription;
+        : opts.marketplaceDomainSurface
+          ? JW_STONE_CUSTOM_DOMAIN_DESCRIPTION
+          : JW_STONE_MARKETPLACE_DESCRIPTION;
 
   const title = escapeHtml(resolvedTitle);
   const description = escapeHtml(resolvedDescription);
