@@ -286,21 +286,10 @@ export class PaymentService {
         createdAt: new Date(),
       });
 
-      // Credit the affiliate's on-platform wallet balance so they can spend earnings
-      try {
-        if (affiliateCommissionAmount > 0) {
-          await storage.creditWallet(affiliateProgram.affiliateId, affiliateCommissionAmount, {
-            type: "affiliate_commission",
-            referenceType: "payment",
-            referenceId,
-            memo: `Affiliate commission from ${paymentType} payment`,
-          });
-
-          // Keep affiliateAccounts lifetimeEarned/available in sync for dashboards
-          await storage.incrementAffiliateEarnings(affiliateProgram.id, affiliateCommissionAmount);
-        }
-      } catch (walletError) {
-        console.error("Error crediting affiliate wallet or earnings:", walletError);
+      // Pending commissions are deliberately non-spendable. The privileged,
+      // auditable approval transaction performs the one wallet credit.
+      if ((commission as any).created === false) {
+        return commission;
       }
 
       // Award the Community Builder badge to the affiliate who drove this paid conversion.
