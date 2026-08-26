@@ -1158,6 +1158,11 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     return normalized;
   }
 
+  async getCountyById(id: string): Promise<County | undefined> {
+    const [county] = await db.select().from(counties).where(eq(counties.id, id));
+    return county;
+  }
+
   async getCountyByFips(fips: string): Promise<County | undefined> {
     const [county] = await db.select().from(counties).where(eq(counties.fips, fips));
     return county;

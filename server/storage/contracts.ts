@@ -478,6 +478,7 @@ export interface IStorage {
 
   // County operations
   getCounties(stateCode?: string): Promise<County[]>;
+  getCountyById(id: string): Promise<County | undefined>;
   getCountyByFips(fips: string): Promise<County | undefined>;
   upsertCounty(county: InsertCounty): Promise<County>;
 

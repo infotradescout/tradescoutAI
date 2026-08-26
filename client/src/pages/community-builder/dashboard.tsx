@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle, Clock, DollarSign, TrendingUp, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  activateCommunityBuilder,
+  CommunityBuilderActivationError,
+} from "./communityBuilderActivation";
 
 interface BuilderProfile {
   id: string;
@@ -121,6 +125,26 @@ export default function CommunityBuilderDashboard() {
 
   const evaluation = profile ? computeBuilderEvaluation(profile) : null;
 
+  const activateProfileMutation = useMutation({
+    mutationFn: () => activateCommunityBuilder(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["builderProfile"] });
+      toast({
+        title: "Community Builder activated",
+        description: "Your Community Builder badge is active.",
+      });
+    },
+    onError: (error: Error) => {
+      const activationError =
+        error instanceof CommunityBuilderActivationError ? error : undefined;
+      toast({
+        title: "Activation unavailable",
+        description: activationError?.action || error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const markNotificationReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       const res = await fetch(`/api/community-builder/notifications/${notificationId}/read`, {
@@ -185,10 +209,13 @@ export default function CommunityBuilderDashboard() {
               </div>
               <Button
                 size="lg"
-                onClick={() => navigate("/foundation")}
+                onClick={() => activateProfileMutation.mutate()}
+                disabled={activateProfileMutation.isPending}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
-                Activate Your Community Builder Badge
+                {activateProfileMutation.isPending
+                  ? "Activating Community Builder..."
+                  : "Activate Your Community Builder Badge"}
               </Button>
             </CardContent>
           </Card>
