@@ -416,6 +416,18 @@ export class ScoutVisualFileSorting {
       );
       const row = current.rows[0];
       if (!row) {
+        const active = await client.query(
+          `SELECT county_fips
+             FROM scout_file_assignments
+            WHERE verification_document_id = $1 AND active = true
+            LIMIT 1`,
+          [fileId]
+        );
+        if (active.rows[0]) {
+          throw new ScoutFileAssignmentConflictError(
+            `File ${fileId} is now assigned to county ${active.rows[0].county_fips}`
+          );
+        }
         throw new ScoutFileAssignmentNotFoundError(
           `File ${fileId} is not actively assigned to county ${fromCountyFips}`
         );
