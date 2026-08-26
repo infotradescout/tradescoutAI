@@ -34,7 +34,7 @@ export function getAuditLog(limit = 100) {
     .filter(Boolean);
 }
 
-// Simple in-memory analytics (replace with DB for production)
+// Process-local diagnostic counters. These are explicitly non-durable and never release evidence.
 const analytics = {
   queries: 0,
   fallbacks: 0,
@@ -53,7 +53,11 @@ export function recordFallback(reason = "unknown") {
 }
 
 export function getAnalytics() {
-  return { ...analytics };
+  return {
+    ...analytics,
+    scope: "process_local" as const,
+    durable: false as const,
+  };
 }
 
 export function __resetAnalyticsForTests() {
