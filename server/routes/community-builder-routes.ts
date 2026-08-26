@@ -11,6 +11,9 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" })
   : null;
 
+const normalizeCountyReference = (value: unknown): string =>
+  typeof value === "string" ? value.trim() : "";
+
 // ==================== COMMUNITY BUILDER ROUTES ====================
 
 /**
@@ -68,8 +71,24 @@ router.post("/profile", requireAuth, async (req: Request, res: Response) => {
       return res.json(updated);
     }
 
-    // Create new Community Builder record
-    const profile = await storage.createBuilderProfile(userId, user.county || "", {
+    const countyId = normalizeCountyReference(user.countyId);
+    const countyFips = normalizeCountyReference(user.countyFips);
+
+    let verifiedCounty = countyId ? await storage.getCountyById(countyId) : undefined;
+    if (!verifiedCounty && countyFips) {
+      verifiedCounty = await storage.getCountyByFips(countyFips);
+    }
+
+    if (!verifiedCounty) {
+      return res.status(422).json({
+        error: "A verified county is required to activate Community Builder.",
+        code: "COMMUNITY_BUILDER_COUNTY_REQUIRED",
+        action: "Open Profile Settings and choose your county, then try again.",
+      });
+    }
+
+    // Persist only a verified canonical counties.id value.
+    const profile = await storage.createBuilderProfile(userId, verifiedCounty.id, {
       businessName,
       description,
       profileImageUrl,
