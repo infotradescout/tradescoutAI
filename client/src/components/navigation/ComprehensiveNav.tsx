@@ -102,7 +102,11 @@ const ALL_NAVIGATION: NavItem[] = [
     children: [
       { label: "Community Feed", href: "/community", icon: Users },
       { label: "Groups", href: "/groups", icon: GroupIcon },
-      { label: "Events", href: "/event-management", icon: Calendar },
+      {
+        label: "Events",
+        href: "/community-feed?compose=1&category=event",
+        icon: Calendar,
+      },
       { label: "Leaderboard", href: "/leaderboard", icon: Award },
     ],
   },
