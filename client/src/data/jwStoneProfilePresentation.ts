@@ -122,7 +122,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "granite",
         title: "Granite",
         summary:
-          "Explore named Granite materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
+          "Browse granite slabs and named granite materials from JW Stone's Pensacola, Florida material library. Compare published photos, then ask JW Stone to confirm current pricing or availability for your project.",
         leadItemSlug: "arizona-gold",
         indexable: true,
         collectionKind: "offerings",
@@ -132,7 +132,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "marble",
         title: "Marble",
         summary:
-          "Explore named Marble materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
+          "Browse marble slabs and named marble materials from JW Stone's Pensacola, Florida material library. Compare published photos, then ask JW Stone to confirm current pricing or availability for your project.",
         leadItemSlug: "alabama-rose",
         indexable: true,
         collectionKind: "offerings",
@@ -142,7 +142,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "quartzite",
         title: "Quartzite",
         summary:
-          "Explore named Quartzite materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
+          "Browse quartzite slabs and named quartzite materials from JW Stone's Pensacola, Florida material library. Compare published photos, then ask JW Stone to confirm current pricing or availability for your project.",
         leadItemSlug: "atlantic",
         indexable: true,
         collectionKind: "offerings",
@@ -152,7 +152,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "engineered-quartz",
         title: "Engineered Quartz",
         summary:
-          "Explore named Engineered Quartz materials in JW Stone's full inventory, compare the published photographs, and ask JW Stone to confirm current pricing or availability.",
+          "Browse engineered quartz materials from JW Stone's Pensacola, Florida material library. Compare published photos, then ask JW Stone to confirm current pricing or availability for your project.",
         leadItemSlug: "aj-quartz",
         indexable: true,
         collectionKind: "offerings",
@@ -162,7 +162,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "onyx",
         title: "Onyx",
         summary:
-          "Explore Onyx in JW Stone's full inventory, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
+          "Browse onyx slabs and named onyx materials from JW Stone's Pensacola, Florida material library. Review published photos, then ask JW Stone to confirm current pricing or availability for your project.",
         leadItemSlug: "honey-onyx",
         indexable: true,
         collectionKind: "offerings",
@@ -172,7 +172,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "soapstone",
         title: "Soapstone",
         summary:
-          "Explore Soapstone in JW Stone's full inventory, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
+          "Browse soapstone slabs and named soapstone materials from JW Stone's Pensacola, Florida material library. Review published photos, then ask JW Stone to confirm current pricing or availability for your project.",
         leadItemSlug: "marina-black-soapstone",
         indexable: true,
         collectionKind: "offerings",
@@ -182,7 +182,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "basalt",
         title: "Basalt",
         summary:
-          "Explore Basalt in JW Stone's full inventory, review the published material photographs, and ask JW Stone to confirm current pricing or availability.",
+          "Browse basalt slabs and named basalt materials from JW Stone's Pensacola, Florida material library. Review published photos, then ask JW Stone to confirm current pricing or availability for your project.",
         leadItemSlug: "matrix-basalt",
         indexable: true,
         collectionKind: "offerings",
