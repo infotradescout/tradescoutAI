@@ -56,7 +56,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(jsonLd).toEqual({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "JW Stone | Stone Discovery",
+      name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
       description:
         "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.",
       url: "https://www.thetradescout.com/jw-stone",
