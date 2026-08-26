@@ -178,6 +178,7 @@ export default function ExpressDirectConnectPanel({
   const [callTel, setCallTel] = useState("");
   const [requestId, setRequestId] = useState("");
   const [requestWorkspacePath, setRequestWorkspacePath] = useState("");
+  const [onboardingPath, setOnboardingPath] = useState("");
   const [requestDeliveryCustody, setRequestDeliveryCustody] =
     useState<ExpressDirectConnectDeliveryCustody>(deliveryCustody);
   const [form, setForm] = useState({
@@ -230,6 +231,7 @@ export default function ExpressDirectConnectPanel({
     setCallTel("");
     setRequestId("");
     setRequestWorkspacePath("");
+    setOnboardingPath("");
     setRequestDeliveryCustody(deliveryCustody);
     setForm((current) => ({
       ...current,
@@ -281,6 +283,13 @@ export default function ExpressDirectConnectPanel({
     stableItemId,
   ]);
   const requestHref = qualifyPublicProfileItemDestination(requestPath, platformBaseHref);
+  const anonymousRequestPath =
+    onboardingPath ||
+    `/pre-scout-setup?mode=signin&next=${encodeURIComponent(requestPath)}`;
+  const anonymousRequestHref = qualifyPublicProfileItemDestination(
+    anonymousRequestPath,
+    platformBaseHref
+  );
 
   if (!open) return null;
 
@@ -396,6 +405,7 @@ export default function ExpressDirectConnectPanel({
       setRequestWorkspacePath(
         typeof json?.requestWorkspacePath === "string" ? json.requestWorkspacePath : ""
       );
+      setOnboardingPath(typeof json?.onboardingPath === "string" ? json.onboardingPath : "");
       setRequestDeliveryCustody(
         json?.deliveryCustody === "tradescout_pending_owner"
           ? "tradescout_pending_owner"
@@ -724,6 +734,9 @@ export default function ExpressDirectConnectPanel({
                     : `${businessName} received your project details.`}
                 </p>
               ) : null}
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-stone-600">
+                You can add this project to your HomeID later after you set up or sign in.
+              </p>
 
               {hasViewerSession ? (
                 requiresDocumentNavigation(requestHref) ? (
@@ -741,15 +754,32 @@ export default function ExpressDirectConnectPanel({
                     Manage this request
                   </Link>
                 )
-              ) : stayInProfile ? (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="mt-6 w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900"
-                >
-                  Back to {businessName}
-                </button>
-              ) : null}
+              ) : (
+                <div className="mt-6 space-y-3">
+                  <a
+                    href={anonymousRequestHref}
+                    className="inline-block rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                  >
+                    {onboardingPath
+                      ? "Finish setup and manage this request"
+                      : "Sign in and manage this request"}
+                  </a>
+                  {onboardingPath ? (
+                    <p className="text-xs leading-5 text-stone-500">
+                      No email is required to continue from this browser.
+                    </p>
+                  ) : null}
+                  {stayInProfile ? (
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="block w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900"
+                    >
+                      Back to {businessName}
+                    </button>
+                  ) : null}
+                </div>
+              )}
             </div>
           ) : null}
 
