@@ -9,6 +9,8 @@
  * LISA decisions are brand-specific.
  */
 
+import { unavailableRuntimeCapability } from "./runtimeCapability";
+
 type FoodBrandType = `${"meal"}${"scout"}`;
 const FOOD_BRAND_ID = `${"meal"}${"scout"}` as FoodBrandType;
 
@@ -34,15 +36,7 @@ export interface IndexedIntelligence {
 }
 
 class ScoutBrandGuardrails {
-  // Separate knowledge bases per brand
-  private brandKnowledge: Map<BrandType, IndexedIntelligence[]> = new Map([
-    ["trade-scout", []],
-    ["traders-corner", []],
-    [FOOD_BRAND_ID, []],
-  ]);
-
-  // Brand-specific configuration
-  private brandConfig: Record<BrandType, BrandConfiguration> = {
+  private readonly brandConfig: Record<BrandType, BrandConfiguration> = {
     "trade-scout": {
       name: "Trade Scout",
       description: "Intelligence for contractors, homeowners, and local service businesses",
@@ -58,7 +52,7 @@ class ScoutBrandGuardrails {
       ],
       jurisdictionRequired: true,
       tradeRequired: false,
-      maxIntelligenceAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxIntelligenceAge: 30 * 24 * 60 * 60 * 1000,
     },
     "traders-corner": {
       name: "Non-TradeScout trading brand",
@@ -73,7 +67,7 @@ class ScoutBrandGuardrails {
       ],
       jurisdictionRequired: false,
       tradeRequired: false,
-      maxIntelligenceAge: 24 * 60 * 60 * 1000, // 1 day
+      maxIntelligenceAge: 24 * 60 * 60 * 1000,
     },
     [FOOD_BRAND_ID]: {
       name: "Non-TradeScout food brand",
@@ -90,156 +84,73 @@ class ScoutBrandGuardrails {
       ],
       jurisdictionRequired: true,
       tradeRequired: false,
-      maxIntelligenceAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxIntelligenceAge: 7 * 24 * 60 * 60 * 1000,
     },
   };
 
-  /**
-   * Validate that intelligence is appropriate for a brand
-   */
-  validateIntelligenceForBrand(intelligence: IndexedIntelligence, brand: BrandType): boolean {
+  validateIntelligenceForBrand(
+    intelligence: IndexedIntelligence,
+    brand: BrandType
+  ): boolean {
     const config = this.brandConfig[brand];
-
-    // Check if intelligence type is allowed
-    if (!config.allowedTypes.includes(intelligence.type)) {
-      console.warn(
-        `[Brand Guard] Intelligence type "${intelligence.type}" not allowed for ${brand}`
-      );
-      return false;
-    }
-
-    // Check jurisdiction requirement
+    if (!config.allowedTypes.includes(intelligence.type)) return false;
     if (config.jurisdictionRequired && !intelligence.metadata.jurisdiction) {
-      console.warn(`[Brand Guard] Jurisdiction required for ${brand}`);
       return false;
     }
-
-    // Check age
-    const age = Date.now() - intelligence.timestamp.getTime();
-    if (age > config.maxIntelligenceAge) {
-      console.warn(`[Brand Guard] Intelligence too old for ${brand}`);
-      return false;
-    }
-
-    return true;
+    return Date.now() - intelligence.timestamp.getTime() <= config.maxIntelligenceAge;
   }
 
-  /**
-   * Index intelligence for a specific brand
-   */
-  indexIntelligence(intelligence: Omit<IndexedIntelligence, "id">): void {
-    const config = this.brandConfig[intelligence.brand];
-
-    // Validate
-    if (
-      !this.validateIntelligenceForBrand(intelligence as IndexedIntelligence, intelligence.brand)
-    ) {
-      throw new Error(`Invalid intelligence for brand: ${intelligence.brand}`);
-    }
-
-    // Create indexed record
-    const indexed: IndexedIntelligence = {
-      ...intelligence,
-      id: `${intelligence.brand}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-
-    // Store in brand-specific knowledge base
-    const knowledge = this.brandKnowledge.get(intelligence.brand) || [];
-    knowledge.push(indexed);
-    this.brandKnowledge.set(intelligence.brand, knowledge);
-
-    console.log(`[Brand Guard] Indexed intelligence for ${intelligence.brand}: ${indexed.id}`);
+  indexIntelligence(
+    _intelligence: Omit<IndexedIntelligence, "id">
+  ): void {
+    unavailableRuntimeCapability(
+      "brand intelligence indexing",
+      "a durable brand-partitioned intelligence repository is not configured"
+    );
   }
 
-  /**
-   * Search intelligence for a specific brand
-   * Returns ONLY intelligence from that brand
-   */
   searchIntelligence(
-    brand: BrandType,
-    query: string,
-    filters?: {
+    _brand: BrandType,
+    _query: string,
+    _filters?: {
       type?: string;
       jurisdiction?: string;
       minConfidence?: "high" | "medium" | "low";
     }
   ): IndexedIntelligence[] {
-    const knowledge = this.brandKnowledge.get(brand) || [];
-    const lowerQuery = query.toLowerCase();
-
-    const results = knowledge.filter((intel) => {
-      // Text search
-      if (!intel.content.toLowerCase().includes(lowerQuery)) {
-        return false;
-      }
-
-      // Type filter
-      if (filters?.type && intel.type !== filters.type) {
-        return false;
-      }
-
-      // Jurisdiction filter
-      if (filters?.jurisdiction && intel.metadata.jurisdiction !== filters.jurisdiction) {
-        return false;
-      }
-
-      // Confidence filter
-      if (filters?.minConfidence) {
-        const confidenceRank = { high: 3, medium: 2, low: 1 };
-        if (confidenceRank[intel.confidence] < confidenceRank[filters.minConfidence]) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    return results.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return unavailableRuntimeCapability(
+      "brand intelligence search",
+      "a durable brand-partitioned intelligence repository is not configured"
+    );
   }
 
-  /**
-   * Get intelligence for a specific brand context
-   * Respects all brand boundaries
-   */
-  getContextualIntelligence(context: BrandContext): IndexedIntelligence[] {
-    let results = this.searchIntelligence(context.brand, "");
-
-    // Filter by jurisdiction if provided
-    if (context.jurisdiction) {
-      results = results.filter((intel) => intel.metadata.jurisdiction === context.jurisdiction);
-    }
-
-    // Filter by trade if provided
-    if (context.trade) {
-      results = results.filter((intel) => intel.metadata.trade === context.trade);
-    }
-
-    return results;
+  getContextualIntelligence(
+    _context: BrandContext
+  ): IndexedIntelligence[] {
+    return unavailableRuntimeCapability(
+      "contextual brand intelligence",
+      "a durable brand-partitioned intelligence repository is not configured"
+    );
   }
 
-  /**
-   * Get brand-specific statistics
-   */
   getBrandStats(brand: BrandType) {
-    const knowledge = this.brandKnowledge.get(brand) || [];
     const config = this.brandConfig[brand];
-
     return {
+      available: false as const,
+      durable: false as const,
+      reason: "brand intelligence repository is not configured",
       brand,
       name: config.name,
       description: config.description,
-      totalIntelligence: knowledge.length,
-      byType: this.groupBy(knowledge, (i) => i.type),
-      byConfidence: this.groupBy(knowledge, (i) => i.confidence),
-      bySource: this.groupBy(knowledge, (i) => i.source),
-      oldestIntelligence: knowledge.length > 0 ? knowledge[knowledge.length - 1].timestamp : null,
-      newestIntelligence: knowledge.length > 0 ? knowledge[0].timestamp : null,
+      totalIntelligence: 0,
+      byType: {} as Record<string, number>,
+      byConfidence: {} as Record<string, number>,
+      bySource: {} as Record<string, number>,
+      oldestIntelligence: null,
+      newestIntelligence: null,
     };
   }
 
-  /**
-   * Get all brand statistics
-   */
   getAllBrandStats() {
     return {
       "trade-scout": this.getBrandStats("trade-scout"),
@@ -248,59 +159,21 @@ class ScoutBrandGuardrails {
     };
   }
 
-  /**
-   * Verify that a user has access to a brand's intelligence
-   */
-  verifyBrandAccess(userId: string, brand: BrandType): boolean {
-    // In production, check user's brand permissions
-    // For now, assume all users have access to all brands
-    // but their data is isolated
-    return true;
+  verifyBrandAccess(_userId: string, _brand: BrandType): boolean {
+    return false;
   }
 
-  /**
-   * Purge old intelligence from a brand
-   */
-  purgeOldIntelligence(brand: BrandType): number {
-    const knowledge = this.brandKnowledge.get(brand) || [];
-    const config = this.brandConfig[brand];
-    const now = Date.now();
-
-    const before = knowledge.length;
-    const filtered = knowledge.filter(
-      (intel) => now - intel.timestamp.getTime() <= config.maxIntelligenceAge
+  purgeOldIntelligence(_brand: BrandType): number {
+    return unavailableRuntimeCapability(
+      "brand intelligence purge",
+      "a durable brand-partitioned intelligence repository is not configured"
     );
-
-    this.brandKnowledge.set(brand, filtered);
-
-    const purged = before - filtered.length;
-    console.log(`[Brand Guard] Purged ${purged} old intelligence from ${brand}`);
-
-    return purged;
   }
 
-  /**
-   * Clear all intelligence for a brand (admin only)
-   */
-  clearBrandIntelligence(brand: BrandType): number {
-    const knowledge = this.brandKnowledge.get(brand) || [];
-    const count = knowledge.length;
-    this.brandKnowledge.set(brand, []);
-    console.log(`[Brand Guard] Cleared ${count} intelligence records for ${brand}`);
-    return count;
-  }
-
-  /**
-   * Helper: group array by key
-   */
-  private groupBy<T>(arr: T[], keyFn: (item: T) => string): Record<string, number> {
-    return arr.reduce(
-      (acc, item) => {
-        const key = keyFn(item);
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
+  clearBrandIntelligence(_brand: BrandType): number {
+    return unavailableRuntimeCapability(
+      "brand intelligence clearing",
+      "a durable brand-partitioned intelligence repository is not configured"
     );
   }
 }
