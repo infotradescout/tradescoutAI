@@ -3,6 +3,8 @@ import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
+const JW_STONE_DISCOVERY_DESCRIPTION =
+  "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.";
 
 function resolveCanonical(value: string): string {
   if (typeof window === "undefined") {
@@ -23,7 +25,7 @@ export function JwStoneProfileSeo({ canonical }: { canonical: string }) {
     "@type": "LocalBusiness",
     "@id": `${canonicalUrl}#identity`,
     name: JW_STONE_PUBLIC_IDENTITY.brandName,
-    description: JW_STONE_PUBLIC_IDENTITY.about,
+    description: JW_STONE_DISCOVERY_DESCRIPTION,
     foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
     url: canonicalUrl,
     hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
@@ -40,9 +42,9 @@ export function JwStoneProfileSeo({ canonical }: { canonical: string }) {
 
   return (
     <SEOHelmet
-      title="JW Stone Logistics"
+      title="JW Stone Logistics | Natural stone slabs"
       socialTitle="JW Stone Logistics"
-      description={JW_STONE_PUBLIC_IDENTITY.about}
+      description={JW_STONE_DISCOVERY_DESCRIPTION}
       canonical={canonicalUrl}
       ogType="profile"
       ogImage={JW_STONE_SOCIAL_IMAGE_URL}
