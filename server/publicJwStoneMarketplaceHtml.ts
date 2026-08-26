@@ -16,7 +16,7 @@ export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/
 /** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
 export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_URL;
 
-const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
+const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("Natural stone slabs in Pensacola, FL");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
   "Natural stone slabs, granite, marble, quartzite, and engineered quartz from JW Stone Logistics in Pensacola, Florida. Browse named material photos and ask about current pricing or availability.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
@@ -407,7 +407,7 @@ ${companySummary}
       ? {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: categoryShare.title,
+          name: `${categoryShare.categoryName} slabs in Pensacola, FL | JW Stone Logistics`,
           description: categoryShare.description,
           url: categoryShare.canonical,
           image: categoryShare.imageUrl,
@@ -426,7 +426,7 @@ ${companySummary}
       : {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: "JW Stone | Stone Discovery",
+          name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
           description: JW_STONE_MARKETPLACE_DESCRIPTION,
           url: collectionUrl,
           image: JW_STONE_MARKETPLACE_IMAGE_URL,
