@@ -418,7 +418,11 @@ export function AuthenticatedSocialFrame({
                 pathOnly={pathOnly}
               />
               <RailNavLink
-                item={{ label: "Calendar", href: "/event-management", icon: CalendarDays }}
+                item={{
+                  label: "Calendar",
+                  href: "/community-feed?compose=1&category=event",
+                  icon: CalendarDays,
+                }}
                 pathOnly={pathOnly}
               />
             </nav>
