@@ -37,39 +37,6 @@ async function ensureBranch(repoRoot, branchName) {
   return finalBranch;
 }
 
-async function ensureStubPlaceholderCommit(repoRoot, branchName, logger) {
-  const finalBranch = await ensureBranch(repoRoot, branchName);
-
-  // Create a scoped placeholder change: a skipped test stub
-  const testsDir = path.join(repoRoot, "tests");
-  const agentDir = path.join(testsDir, "agent");
-  await fs.mkdir(agentDir, { recursive: true });
-  const filePath = path.join(agentDir, `${slugify(finalBranch)}.spec.ts`);
-  const body = `// builder placeholder test (skipped)\n// TODO(agent): replace with real task later\nimport { test } from '@playwright/test';\n\ntest.skip('builder placeholder: ${finalBranch}', async () => {\n  // no-op\n});\n`;
-  await fs.writeFile(filePath, body, "utf-8");
-
-  await runGit(["add", path.relative(repoRoot, filePath)], repoRoot);
-  await execFile(
-    "git",
-    [
-      "-c",
-      "user.name=TradeScout Agent",
-      "-c",
-      "user.email=agent@local",
-      "commit",
-      "-m",
-      "chore(builder): scoped placeholder change [agent]",
-    ],
-    { cwd: repoRoot }
-  );
-
-  const commitSha = await runGit(["rev-parse", "HEAD"], repoRoot);
-  const filesChangedOutput = await runGit(["diff", "--name-only", "HEAD~1..HEAD"], repoRoot);
-  const filesChanged = filesChangedOutput ? filesChangedOutput.split("\n").filter(Boolean).length : 0;
-
-  return { branch: finalBranch, commitSha, filesChanged };
-}
-
 async function runNpmCheck(repoRoot) {
   const cmd = process.platform === "win32" ? "npm.cmd" : "npm";
   try {
@@ -118,6 +85,7 @@ async function executeTypecheckTask(task, intent, logger) {
         files_changed: 0,
       },
       intent,
+      completion: "blocked",
       flags: ["typecheck_blocked_missing_target"],
     };
   }
@@ -136,6 +104,7 @@ async function executeTypecheckTask(task, intent, logger) {
         files_changed: 0,
       },
       intent,
+      completion: "blocked",
       flags: ["typecheck_blocked_missing_file"],
     };
   }
@@ -215,6 +184,7 @@ async function executeTypecheckTask(task, intent, logger) {
       files_changed: 0,
     },
     intent,
+      completion: "blocked",
     flags: ["typecheck_blocked_no_improvement"],
   };
 }
@@ -246,29 +216,20 @@ export function createBuilderAgent() {
         }
       }
 
-      const baseSlug = slugify(`builder-${intent}`);
-      await logger.info("Executing builder task", { intent, branch: baseSlug });
-
-      try {
-        const { branch, commitSha, filesChanged } = await ensureStubPlaceholderCommit(
-          repoRoot,
-          baseSlug,
-          logger
-        );
-        await sleep(jitteredDelay(200, 400));
-        return {
-          artifact: {
-            type: "git-branch",
-            uri: `local://branch/${branch}`,
-            commit: commitSha,
-            files_changed: filesChanged,
-          },
-          intent,
-        };
-      } catch (error) {
-        await logger.error("Builder commit failed", { error: error.message });
-        throw error;
-      }
+      await logger.warn("Builder task blocked: no task-specific implementation", {
+        intent,
+        task,
+      });
+      return {
+        artifact: {
+          type: "builder-blocked",
+          uri: "local://builder-blocked/" + slugify(intent),
+          files_changed: 0,
+        },
+        intent,
+        completion: "blocked",
+        flags: ["builder_blocked_missing_task_specific_implementation"],
+      };
     },
   };
 }
