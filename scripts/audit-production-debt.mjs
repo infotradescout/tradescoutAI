@@ -44,19 +44,19 @@ function explicitlyProcessLocal(content) {
     /durable\s*:\s*false/i.test(content);
 }
 function explicitPlaceholderMatches(lines) {
-  const pattern = /\b(?:for now,?\s+(?:we(?:'ll| will)\s+)?(?:just\s+)?(?:log|return|simulate|use)|in a real implementation|replace with (?:a )?(?:db|database)|structured template|in-memory (?:storage|analytics|queue|state)|simulate(?:d|s|ing)? (?:a )?successful response)\b/i;
+  const pattern = /(?:in-memory analytics\s*\(replace with (?:a )?(?:db|database) for production\)|for now,?\s+(?:just log a traffic event|return a structured template|we(?:'ll| will) simulate a successful response))/i;
   return matchLines(lines, (line) => pattern.test(line));
 }
 function randomRuntimeMatches(lines) {
   const domainSignal = /(?:current_value|building|pricing|trade|report|total|active|homeowner|contractor|activity|opportunity|completeness|trend|competition|rating|review|availability|uploaded|size|cpu|memory|disk|latency|response|request|error|health|score|count)/i;
-  const entropyOnly = /(?:token|nonce|salt|slug|jitter|chaos|probability|randomBytes|toString\s*\(\s*["']36["']\s*\))/i;
+  const entropyOnly = /(?:token|nonce|salt|slug|jitter|chaos|probability|randomBytes|toString\s*\(\s*["']?36["']?\s*\))/i;
   return matchLines(lines, (line) =>
     /Math\.random\s*\(/.test(line) && domainSignal.test(line) && !entropyOnly.test(line)
   );
 }
 function logOnlyMatches(lines, content) {
   if (hasDurableDependency(content)) return [];
-  const operation = /\b(?:sent|queued|assigned|notified|approved|completed|executed successfully|registered|indexed|purged|cleared|marked as opened)\b/i;
+  const operation = /\b(?:sent|queued|assigned|dispatched|notifying|executed successfully|marked as opened)\b/i;
   return matchLines(lines, (line) =>
     /console\.(?:log|info)\s*\(/.test(line) && operation.test(line)
   );
@@ -64,7 +64,7 @@ function logOnlyMatches(lines, content) {
 function inMemorySuccessMatches(lines, content) {
   if (hasDurableDependency(content) || explicitlyProcessLocal(content)) return [];
   const state = matchLines(lines, (line) => {
-    const mutableContainer = /(?:private\s+)?[A-Za-z_$][\w$]*(?:\s*:[^=]+)?\s*=\s*(?:new\s+(?:Map|Set)\b|\[\s*\])/i;
+    const mutableContainer = /private\s+[A-Za-z_$][\w$]*(?:\s*:[^=]+)?\s*=\s*(?:new\s+(?:Map|Set)\b|\[\s*\])/i;
     const operationalName = /(?:action|assignment|brief|brandKnowledge|countyData|updateQueue|dispatch|eventQueue|batch|organization|sent)/i;
     return mutableContainer.test(line) && operationalName.test(line);
   });

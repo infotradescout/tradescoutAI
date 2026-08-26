@@ -43,6 +43,20 @@ describe("production-debt bounded static audit", () => {
     expect(rulesFor('private reports = [];\ngetStats() { return { scope: "process_local", durable: false }; }'))
       .not.toContain("in-memory-success-state");
   });
+  it("does not block generic future-work comments or completed durable jobs", () => {
+    expect(
+      rulesFor("// In a real implementation, a provider may be added")
+    ).not.toContain("explicit-runtime-placeholder");
+    expect(
+      rulesFor('console.info("aggregation completed");')
+    ).not.toContain("log-only-operational-claim");
+    expect(
+      rulesFor(
+        'const actionTimeByRequest = new Map<string, number>();\nreturn { success: true };'
+      )
+    ).not.toContain("in-memory-success-state");
+  });
+
   it("scans synthetic fixture roots and excludes tests", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "production-debt-audit-"));
     temporaryRoots.push(root);
