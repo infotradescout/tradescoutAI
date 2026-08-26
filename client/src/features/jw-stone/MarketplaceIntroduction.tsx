@@ -39,7 +39,7 @@ export function MarketplaceIntroduction() {
         />
       </div>
       <div className="mx-auto max-w-[1600px] bg-[var(--jw-bg)] px-5 py-3 sm:px-9 sm:py-4 lg:px-12">
-        <div className="mx-auto max-w-2xl text-center">
+        <div className="mx-auto max-w-3xl text-center">
           <h1
             id="jw-marketplace-title"
             className="font-editorial text-[1.5rem] leading-tight tracking-tight text-[var(--jw-ink)] sm:text-[1.75rem] md:text-[1.875rem]"
@@ -47,10 +47,11 @@ export function MarketplaceIntroduction() {
             Natural stone, selected at the source.
           </h1>
           <p
-            data-testid="jw-marketplace-discovery-copy"
-            className="mt-2 text-xs leading-5 text-[var(--jw-ink)]/72 sm:text-sm sm:leading-6"
+            data-testid="jw-marketplace-local-description"
+            className="mx-auto mt-1.5 max-w-2xl text-xs leading-5 text-[var(--jw-muted)] sm:text-sm"
           >
-            Browse granite, marble, quartzite, engineered quartz, onyx, soapstone, and basalt from JW Stone in Pensacola, Florida, then ask about current pricing or availability.
+            Natural stone slabs for fabricators, builders, designers, architects, and homeowners
+            in Pensacola and across the Gulf Coast.
           </p>
         </div>
       </div>
