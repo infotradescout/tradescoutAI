@@ -177,9 +177,14 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(groupNamedCatalogByMaterial(JW_STONE_ANONYMOUS_CATALOG)).toEqual([]);
   });
 
-  it("keeps current origin empty and accepts only explicit verified origin fixtures", () => {
-    expect(JW_STONE_CATALOG.every((stone) => stone.origin === null)).toBe(true);
-    expect(getOriginFilterOptions()).toEqual([]);
+  it("publishes only explicitly sourced origins and rejects unverified fixtures", () => {
+    expect(JW_STONE_CATALOG.filter((stone) => stone.origin !== null)).toHaveLength(7);
+    expect(getOriginFilterOptions()).toEqual([
+      { value: "brazil", label: "Brazil", count: 3 },
+      { value: "india", label: "India", count: 1 },
+      { value: "italy", label: "Italy", count: 2 },
+      { value: "norway", label: "Norway", count: 1 },
+    ]);
     expect(resolveVerifiedOrigin(null)).toBeNull();
     expect(
       resolveVerifiedOrigin({ country: "Brazil", verified: false, source: "supplier" })

@@ -15,6 +15,7 @@ describe("JW Stone verified-origin collection path", () => {
     if (!sourceStone.materialId) throw new Error("Expected fixture materialId");
     const fixtureStone = {
       ...sourceStone,
+      sourceEvidence: { counts: [1] },
       origin: {
         country: "Brazil",
         verified: true as const,
@@ -66,7 +67,7 @@ describe("JW Stone verified-origin collection path", () => {
     expect(container.querySelector('select[aria-label="Color"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).toBeNull();
-    expect(container.querySelector('select[aria-label="Source evidence"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Availability"]')).toBeNull();
 
     act(() => {
       inventoryToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -89,7 +90,7 @@ describe("JW Stone verified-origin collection path", () => {
     expect(container.querySelector('select[aria-label="Color"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).not.toBeNull();
-    expect(container.querySelector('select[aria-label="Source evidence"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Availability"]')).not.toBeNull();
 
     act(() => root.unmount());
     container.remove();

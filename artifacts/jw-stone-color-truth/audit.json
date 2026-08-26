@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-08-26T05:33:01.392Z",
+  "generatedAt": "2026-08-26T05:55:40.550Z",
   "counts": {
-    "detected-slab-core": 106,
+    "detected-slab-core": 108,
     "center-safe": 0,
     "hand-safe-center": 0,
     "missing": 0,
     "total": 158,
-    "safeAutomatic": 106,
+    "safeAutomatic": 108,
     "explicit": 0,
-    "excluded": 52
+    "excluded": 50
   },
   "collageEvidence": {
     "01-white": [
@@ -37,10 +37,10 @@
     ],
     "04-black": [
       "blue-fantasy",
+      "panda",
       "titanium-black-leathered",
       "black-dunes",
-      "panda",
-      "trending-selection-08",
+      "trending-selection-05",
       "blue-deep"
     ],
     "05-brown": [
@@ -114,6 +114,20 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
+      "name": "trending-selection-07",
+      "slug": "trending-selection-07",
+      "cover": "/images/businesses/jw-stone/inventory-source/1Mx11ZKOTQk7YPoshukC-BQrpkpmVJnUM.webp",
+      "auditImage": "images/trending-selection-07.webp",
+      "sliver": null,
+      "swatches": [],
+      "buckets": [],
+      "mode": "center-safe",
+      "confidence": 0.165,
+      "status": "excluded",
+      "reason": "unsafe-center-safe",
+      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
+    },
+    {
       "name": "trending-selection-23",
       "slug": "trending-selection-23",
       "cover": "/images/businesses/jw-stone/inventory-source/1Mx11ZKOTQk7YPoshukC-BQrpkpmVJnUM.webp",
@@ -123,6 +137,20 @@
       "buckets": [],
       "mode": "center-safe",
       "confidence": 0.165,
+      "status": "excluded",
+      "reason": "unsafe-center-safe",
+      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
+    },
+    {
+      "name": "trending-selection-06",
+      "slug": "trending-selection-06",
+      "cover": "/images/businesses/jw-stone/inventory-source/1C9d2bGz4j5FORrcXnNYtp0u5QZbGmUhn.webp",
+      "auditImage": "images/trending-selection-06.webp",
+      "sliver": null,
+      "swatches": [],
+      "buckets": [],
+      "mode": "center-safe",
+      "confidence": 0.235,
       "status": "excluded",
       "reason": "unsafe-center-safe",
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
@@ -422,38 +450,10 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
-      "name": "trending-selection-04",
-      "slug": "trending-selection-04",
-      "cover": "/images/businesses/jw-stone/inventory-source/1oFvizap7o10nAf8oYj1rc-G2JDddQh7X.webp",
-      "auditImage": "images/trending-selection-04.webp",
-      "sliver": null,
-      "swatches": [],
-      "buckets": [],
-      "mode": "center-safe",
-      "confidence": 0.824,
-      "status": "excluded",
-      "reason": "unsafe-center-safe",
-      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
-    },
-    {
-      "name": "trending-selection-05",
-      "slug": "trending-selection-05",
-      "cover": "/images/businesses/jw-stone/inventory-source/1xcxfeAyznEImugsl7FP0NZcEOSr0BPpv.webp",
-      "auditImage": "images/trending-selection-05.webp",
-      "sliver": null,
-      "swatches": [],
-      "buckets": [],
-      "mode": "center-safe",
-      "confidence": 0.841,
-      "status": "excluded",
-      "reason": "unsafe-center-safe",
-      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
-    },
-    {
-      "name": "trending-selection-06",
-      "slug": "trending-selection-06",
+      "name": "trending-selection-02",
+      "slug": "trending-selection-02",
       "cover": "/images/businesses/jw-stone/inventory-source/1Dy53txj9cNOVdHNKmh458bjYzm052deH.webp",
-      "auditImage": "images/trending-selection-06.webp",
+      "auditImage": "images/trending-selection-02.webp",
       "sliver": null,
       "swatches": [],
       "buckets": [],
@@ -487,20 +487,6 @@
       "buckets": [],
       "mode": "center-safe",
       "confidence": 0.863,
-      "status": "excluded",
-      "reason": "unsafe-center-safe",
-      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
-    },
-    {
-      "name": "trending-selection-02",
-      "slug": "trending-selection-02",
-      "cover": "/images/businesses/jw-stone/inventory-source/1WDWrRZ8_VTsm4_07XDQvSOeRsknrawjQ.webp",
-      "auditImage": "images/trending-selection-02.webp",
-      "sliver": null,
-      "swatches": [],
-      "buckets": [],
-      "mode": "center-safe",
-      "confidence": 0.868,
       "status": "excluded",
       "reason": "unsafe-center-safe",
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
@@ -545,20 +531,6 @@
       "confidence": 0.948,
       "status": "excluded",
       "reason": "visual-audit-obstruction",
-      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
-    },
-    {
-      "name": "trending-selection-07",
-      "slug": "trending-selection-07",
-      "cover": "/images/businesses/jw-stone/inventory-source/1wvU8fEHLZE67-AEmEgOVeYPY-hO9dIBA.webp",
-      "auditImage": "images/trending-selection-07.webp",
-      "sliver": null,
-      "swatches": [],
-      "buckets": [],
-      "mode": "center-safe",
-      "confidence": 0.949,
-      "status": "excluded",
-      "reason": "unsafe-center-safe",
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
@@ -896,44 +868,6 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
-      "name": "trending-selection-03",
-      "slug": "trending-selection-03",
-      "cover": "/images/businesses/jw-stone/inventory-source/13fz-Eh_2neFClTI0tbBNc1fjUBaY3lOi.webp",
-      "auditImage": "images/trending-selection-03.webp",
-      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-03.webp",
-      "swatches": [
-        {
-          "hex": "#9f6644",
-          "bucket": "gold"
-        },
-        {
-          "hex": "#d1cfbf",
-          "bucket": "white"
-        },
-        {
-          "hex": "#afaba0",
-          "bucket": "beige"
-        },
-        {
-          "hex": "#8d867b",
-          "bucket": "gray"
-        },
-        {
-          "hex": "#22120a",
-          "bucket": "black"
-        }
-      ],
-      "buckets": [
-        "gold",
-        "white"
-      ],
-      "mode": "detected-slab-core",
-      "confidence": 0.894,
-      "status": "safe",
-      "reason": "high-confidence-slab-detection",
-      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
-    },
-    {
       "name": "valle-nevada-luna-pearl",
       "slug": "valle-nevada-luna-pearl",
       "cover": "/images/businesses/jw-stone/inventory-source/1erwq9cndI5VchrGoZOg9L1UuL9lT1gGw.webp",
@@ -1125,11 +1059,11 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
-      "name": "panda",
-      "slug": "panda",
+      "name": "trending-selection-05",
+      "slug": "trending-selection-05",
       "cover": "/images/businesses/jw-stone/inventory-source/12vSbzs1Z0X_SXNmWTR8vSqmNeFBOe-5z.webp",
-      "auditImage": "images/panda.webp",
-      "sliver": "/images/businesses/jw-stone/color-slivers/panda.webp",
+      "auditImage": "images/trending-selection-05.webp",
+      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-05.webp",
       "swatches": [
         {
           "hex": "#031221",
@@ -3109,6 +3043,44 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
+      "name": "panda",
+      "slug": "panda",
+      "cover": "/images/businesses/jw-stone/inventory-source/1Q_oJUEDTytSHugWBAMMhcnIQpK-qklPB.webp",
+      "auditImage": "images/panda.webp",
+      "sliver": "/images/businesses/jw-stone/color-slivers/panda.webp",
+      "swatches": [
+        {
+          "hex": "#231f1d",
+          "bucket": "black"
+        },
+        {
+          "hex": "#adaca9",
+          "bucket": "beige"
+        },
+        {
+          "hex": "#888885",
+          "bucket": "beige"
+        },
+        {
+          "hex": "#43423f",
+          "bucket": "black"
+        },
+        {
+          "hex": "#646360",
+          "bucket": "gray"
+        }
+      ],
+      "buckets": [
+        "black",
+        "beige"
+      ],
+      "mode": "detected-slab-core",
+      "confidence": 1,
+      "status": "safe",
+      "reason": "high-confidence-slab-detection",
+      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
+    },
+    {
       "name": "picasso",
       "slug": "picasso",
       "cover": "/images/businesses/jw-stone/inventory-source/17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu.webp",
@@ -3421,23 +3393,19 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
-      "name": "trending-selection-08",
-      "slug": "trending-selection-08",
-      "cover": "/images/businesses/jw-stone/inventory-source/1GiUPLUu4QBoSbq6C09C2_HuG1Q0PfWo6.webp",
-      "auditImage": "images/trending-selection-08.webp",
-      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-08.webp",
+      "name": "trending-selection-03",
+      "slug": "trending-selection-03",
+      "cover": "/images/businesses/jw-stone/inventory-source/1odhzSOPfgIreDvbpZSpfjv5o0k84enoq.webp",
+      "auditImage": "images/trending-selection-03.webp",
+      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-03.webp",
       "swatches": [
         {
-          "hex": "#101316",
-          "bucket": "black"
-        },
-        {
-          "hex": "#2b303c",
-          "bucket": "black"
+          "hex": "#dcdfdd",
+          "bucket": "white"
         }
       ],
       "buckets": [
-        "black"
+        "white"
       ],
       "mode": "detected-slab-core",
       "confidence": 1,
@@ -3446,30 +3414,47 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
-      "name": "trending-selection-09",
-      "slug": "trending-selection-09",
-      "cover": "/images/businesses/jw-stone/inventory-source/13tATxUTbXlffEFW5HT-kJWANpQpjFMN7.webp",
-      "auditImage": "images/trending-selection-09.webp",
-      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-09.webp",
+      "name": "trending-selection-04",
+      "slug": "trending-selection-04",
+      "cover": "/images/businesses/jw-stone/inventory-source/12aYuqPztR6Spm6tRpPoCbrwKBfjb5qUa.webp",
+      "auditImage": "images/trending-selection-04.webp",
+      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-04.webp",
       "swatches": [
         {
-          "hex": "#d1d6d4",
+          "hex": "#c4bdb4",
           "bucket": "white"
         },
         {
-          "hex": "#5c656c",
-          "bucket": "gray"
+          "hex": "#e8e0d6",
+          "bucket": "white"
         },
         {
-          "hex": "#a6adaf",
-          "bucket": "gray"
+          "hex": "#a29b93",
+          "bucket": "beige"
+        }
+      ],
+      "buckets": [
+        "white"
+      ],
+      "mode": "detected-slab-core",
+      "confidence": 1,
+      "status": "safe",
+      "reason": "high-confidence-slab-detection",
+      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
+    },
+    {
+      "name": "trending-selection-08",
+      "slug": "trending-selection-08",
+      "cover": "/images/businesses/jw-stone/inventory-source/1zU2HuiSRWOyn-uWHgocd3oGogae9zdIl.webp",
+      "auditImage": "images/trending-selection-08.webp",
+      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-08.webp",
+      "swatches": [
+        {
+          "hex": "#d0d1cc",
+          "bucket": "white"
         },
         {
-          "hex": "#81888b",
-          "bucket": "gray"
-        },
-        {
-          "hex": "#3c444c",
+          "hex": "#acafa6",
           "bucket": "gray"
         }
       ],
@@ -3484,19 +3469,45 @@
       "overrideDisposition": "removed or not required; generated slab evidence is canonical"
     },
     {
+      "name": "trending-selection-09",
+      "slug": "trending-selection-09",
+      "cover": "/images/businesses/jw-stone/inventory-source/15zjZsdfUipX9sv-1DK1lzHaR-XS9BiGN.webp",
+      "auditImage": "images/trending-selection-09.webp",
+      "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-09.webp",
+      "swatches": [
+        {
+          "hex": "#969c9f",
+          "bucket": "gray"
+        }
+      ],
+      "buckets": [
+        "gray"
+      ],
+      "mode": "detected-slab-core",
+      "confidence": 1,
+      "status": "safe",
+      "reason": "high-confidence-slab-detection",
+      "overrideDisposition": "removed or not required; generated slab evidence is canonical"
+    },
+    {
       "name": "trending-selection-10",
       "slug": "trending-selection-10",
-      "cover": "/images/businesses/jw-stone/inventory-source/1HE-1qmjjx63Hk53BhavO1Xt382q4JSjQ.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo.webp",
       "auditImage": "images/trending-selection-10.webp",
       "sliver": "/images/businesses/jw-stone/color-slivers/trending-selection-10.webp",
       "swatches": [
         {
-          "hex": "#e0dfd5",
+          "hex": "#f6f6e3",
           "bucket": "white"
+        },
+        {
+          "hex": "#d6d6bb",
+          "bucket": "beige"
         }
       ],
       "buckets": [
-        "white"
+        "white",
+        "beige"
       ],
       "mode": "detected-slab-core",
       "confidence": 1,
