@@ -20,10 +20,15 @@ describe("assetid phase 1g homeid draft submit contracts", () => {
     expect(source).toContain('source: "homeid_packet"');
   });
 
-  it("shows explicit draft review and submit UI in Homes flow", () => {
-    const source = read("client/src/pages/homes.tsx");
-    expect(source).toContain("Direct Connect draft review and submit");
-    expect(source).toContain("Submit Direct Connect request");
-    expect(source).toContain("/submit-homeid-draft");
+  it("submits HomeID packets only from the reviewed Direct Connect composer", () => {
+    const workspace = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
+    const shell = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    const routes = read("server/routes/direct-connect.ts");
+
+    expect(workspace).toContain("Review in Direct Connect");
+    expect(shell).toContain("Review before anything is shared");
+    expect(shell).toContain("payload.homePacketSubmissionConfirmed = true");
+    expect(routes).toContain("homePacketSubmissionConfirmed: z.literal(true).optional()");
+    expect(routes).toContain("if (body.homePacketSubmissionConfirmed)");
   });
 });
