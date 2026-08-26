@@ -402,6 +402,7 @@ export function ColorPaletteRail({
 }: ColorPaletteRailProps) {
   const hasSelection = Boolean(color);
   const selectionLabel = activeColorSwatchLabel(color);
+  const activeFilterCount = 1 + Number(Boolean(material)) + Number(Boolean(origin));
   const matches = useMemo(() => {
     if (!hasSelection) return [];
     return filterJwStoneCatalog(
@@ -450,6 +451,8 @@ export function ColorPaletteRail({
               onToggleSaved={onToggleSaved}
               onOpen={onOpen}
               onAsk={onAsk}
+              analyticsSurface="color_results"
+              activeFilterCount={activeFilterCount}
             />
           ) : (
             <p
@@ -491,6 +494,7 @@ export function MoodPaletteRail({
 }: MoodPaletteRailProps) {
   const hasSelection = Boolean(aesthetic);
   const selectionLabel = activeMoodSwatchLabel(aesthetic);
+  const activeFilterCount = 1 + Number(Boolean(material)) + Number(Boolean(origin));
   const matches = useMemo(() => {
     if (!hasSelection) return [];
     return filterJwStoneCatalog(
@@ -538,6 +542,8 @@ export function MoodPaletteRail({
               onToggleSaved={onToggleSaved}
               onOpen={onOpen}
               onAsk={onAsk}
+              analyticsSurface="mood_results"
+              activeFilterCount={activeFilterCount}
             />
           ) : (
             <p
