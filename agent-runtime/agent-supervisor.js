@@ -8,7 +8,8 @@ import { createBuilderAgent } from "./agents/builder.agent.js";
 import { createFixerAgent } from "./agents/fixer.agent.js";
 import { createVerifierAgent } from "./agents/verifier.agent.js";
 import { createSynthesizerAgent } from "./agents/synthesizer.agent.js";
-import { execSync } from "node:child_process";
+import { classifyAgentCompletion } from "./completion-state.js";
+import { auditGitArtifact } from "./git-artifact-audit.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -155,6 +156,45 @@ async function main() {
         }
       }
 
+      if (!result.artifact.type || !result.artifact.uri) {
+        await logger.error("Invalid artifact", { result });
+        await shutdown("Invalid artifact payload");
+        return;
+      }
+
+      const reportedArtifact = {
+        type: result.artifact.type,
+        uri: result.artifact.uri,
+        commit: result.artifact.commit || undefined,
+        files_changed:
+          typeof result.artifact.files_changed === "number"
+            ? result.artifact.files_changed
+            : undefined,
+      };
+      const artifactAudit =
+        reportedArtifact.type === "git-branch"
+          ? auditGitArtifact({
+              repoRoot: path.resolve(config.baseDir, ".."),
+              artifact: reportedArtifact,
+              task,
+            })
+          : {
+              status: "not_applicable",
+              reason: "not_git_branch",
+              flags: [],
+            };
+      const classification = classifyAgentCompletion(result, artifactAudit);
+      const auditFlags = Array.isArray(artifactAudit.flags)
+        ? artifactAudit.flags
+        : [];
+      const verifiedArtifact =
+        artifactAudit.status === "verified"
+          ? {
+              commit: artifactAudit.commit,
+              files_changed: artifactAudit.filesChanged,
+            }
+          : {};
+
       const entry = {
         agent_id: agent.id,
         intent: result.intent || task,
@@ -163,92 +203,68 @@ async function main() {
           db: config.dbScope,
         },
         artifact: {
-          type: result.artifact.type,
-          uri: result.artifact.uri,
-          commit: result.artifact.commit || undefined,
-          files_changed: typeof result.artifact.files_changed === 'number' ? result.artifact.files_changed : undefined,
+          type: reportedArtifact.type,
+          uri: reportedArtifact.uri,
+          ...verifiedArtifact,
         },
-        result: "success",
+        artifact_audit: artifactAudit,
+        result: classification,
         started_at: new Date(started).toISOString(),
         ended_at: nowIso(),
         duration_ms: Date.now() - started,
-        error: null,
-        flags: Array.isArray(result.flags) ? result.flags : [],
+        error:
+          classification === "failed"
+            ? result.error || artifactAudit.error || artifactAudit.reason
+            : null,
+        flags: [
+          ...(Array.isArray(result.flags) ? result.flags : []),
+          ...auditFlags,
+        ],
       };
 
-      if (!entry.artifact.type || !entry.artifact.uri) {
-        await logger.error("Invalid artifact", { entry });
-        await shutdown("Invalid artifact payload");
-        return;
+      if (
+        reportedArtifact.type === "git-branch" &&
+        artifactAudit.status !== "verified"
+      ) {
+        await logger.warn("Repository artifact rejected", {
+          status: artifactAudit.status,
+          reason: artifactAudit.reason,
+          reported: reportedArtifact,
+          audit: artifactAudit,
+        });
       }
 
-      // Builder-specific audit: reject stub-only artifacts (tests/agent/*)
-      try {
-        if (agent.id === "builder" && entry.artifact.commit) {
-          const raw = execSync(`git show --name-only --pretty="" ${entry.artifact.commit}`, { encoding: "utf8" }).trim();
-          const files = raw.split("\n").map((s) => s.trim()).filter(Boolean).map((f) => f.replace(/\\/g, "/"));
-          const isAgentStub = (f) => f.startsWith("tests/agent/") || (f.endsWith(".spec.ts") && f.includes("agent"));
-          const touchesRuntime = files.some((f) => f.startsWith("client/") || f.startsWith("server/") || f.startsWith("shared/") || f.startsWith("src/") || f.includes("/client/") || f.includes("/server/") || f.includes("/shared/") || f.includes("/src/"));
-          const stubOnly = files.length > 0 && files.every(isAgentStub);
-          const requiredPaths = Array.isArray(task?.guardrails?.must_touch_paths)
-            ? task.guardrails.must_touch_paths.map((p) => p.replace(/\\/g, "/"))
-            : [];
+      if (agent.id === "builder") {
+        const meta = state.get(agent.id) || {};
+        if (entry.result === "success") {
+          state.set(agent.id, { ...meta, noopGuardrailCount: 0 });
+        } else {
+          const consecutiveNoops =
+            (typeof meta.noopGuardrailCount === "number"
+              ? meta.noopGuardrailCount
+              : 0) + 1;
+          state.set(agent.id, {
+            ...meta,
+            noopGuardrailCount: consecutiveNoops,
+          });
 
-          let mustTouchViolation = false;
-          if (requiredPaths.length > 0) {
-            const touchedRequired = files.some((fRaw) => {
-              const f = fRaw.toLowerCase();
-              return requiredPaths.some((reqRaw) => {
-                const reqTrimmed = reqRaw.replace(/\s+$/g, "");
-                if (!reqTrimmed) return false;
-                const req = reqTrimmed.toLowerCase();
-                if (f === req) return true;
-                const base = req.endsWith("/") ? req : `${req}/`;
-                return f.startsWith(base);
-              });
-            });
-            mustTouchViolation = !touchedRequired;
+          const stamps = intentLog.get(agent.id) || [];
+          if (stamps.length > 0) {
+            stamps.pop();
+            intentLog.set(agent.id, stamps);
           }
 
-          if ((stubOnly && !touchesRuntime) || mustTouchViolation) {
-            const flag = stubOnly && !touchesRuntime
-              ? "stub_artifact_rejected"
-              : "must_touch_violation";
-            entry.result = "noop";
-            entry.flags = [...entry.flags, flag];
-            // Do not consume budget for rejected artifacts
-            const stamps = intentLog.get(agent.id) || [];
-            if (stamps.length > 0) {
-              stamps.pop();
-              intentLog.set(agent.id, stamps);
-            }
-            const label = flag === "stub_artifact_rejected" ? "STUB_ARTIFACT_REJECTED" : "MUST_TOUCH_VIOLATION";
-            await logger.warn(label, { commit: entry.artifact.commit, files, requiredPaths });
-
-            // Guardrail loop detection: halt after 3 consecutive builder noops
-            const meta = state.get(agent.id) || {};
-            const prevNoops = typeof meta.noopGuardrailCount === "number" ? meta.noopGuardrailCount : 0;
-            const consecutiveNoops = prevNoops + 1;
-            state.set(agent.id, { ...meta, noopGuardrailCount: consecutiveNoops });
-
-            if (consecutiveNoops >= 3) {
-              await supervisorLogger.error("BUILDER_HALTED_GUARDRAIL_LOOP", {
-                agent: agent.id,
-                consecutiveNoops,
-                flag,
-                requiredPaths,
-              });
-              await logger.error(
-                "BUILDER_HALTED_GUARDRAIL_LOOP — tickets require must_touch_paths; builder not complying",
-                { consecutiveNoops, flag, requiredPaths }
-              );
-              await shutdown("Builder guardrail noop loop");
-              return;
-            }
+          if (consecutiveNoops >= 3) {
+            await supervisorLogger.error("BUILDER_HALTED_GUARDRAIL_LOOP", {
+              agent: agent.id,
+              consecutiveNoops,
+              classification: entry.result,
+              audit: artifactAudit,
+            });
+            await shutdown("Builder completion-proof loop");
+            return;
           }
         }
-      } catch (e) {
-        await logger.warn("Artifact audit skipped (git show failed)", { error: e.message });
       }
 
       outcomes.push(entry);
@@ -256,18 +272,17 @@ async function main() {
       await persistMemory();
 
       const prevMeta = state.get(agent.id) || {};
-      const resetNoops = agent.id === "builder" && entry.result !== "noop";
-      const noopGuardrailCount = resetNoops
-        ? 0
-        : (typeof prevMeta.noopGuardrailCount === "number" ? prevMeta.noopGuardrailCount : 0);
       state.set(agent.id, {
         ...prevMeta,
         lastArtifactAt: Date.now(),
         crashes: 0,
-        noopGuardrailCount,
+        noopGuardrailCount:
+          typeof prevMeta.noopGuardrailCount === "number"
+            ? prevMeta.noopGuardrailCount
+            : 0,
       });
 
-      await logger.info("Task complete", { entry });
+      await logger.info("Task result recorded", { entry });
     } catch (error) {
       const current = state.get(agent.id) || { crashes: 0 };
       const crashes = current.crashes + 1;
