@@ -239,11 +239,11 @@ type InsertAffiliateProgram = InsertAffiliateAccount;
 type AffiliateReferral = DbAffiliateReferral;
 type AffiliatePayout = DbAffiliatePayout;
 
-// Minimal commission shape mapped onto affiliate referral records.
+// Commission records use explicit financial eligibility states.
 type AffiliateCommission = {
   id: string;
   affiliateProgramId: string;
-  status: string;
+  status: "legacy_unverified" | "pending" | "approved" | "paid";
   commissionAmount?: string;
   revenueAmount?: string;
   referralId?: string;
@@ -251,12 +251,21 @@ type AffiliateCommission = {
   description?: string;
   createdAt: Date;
   approvedAt?: Date | null;
+  approvedBy?: string | null;
+  approvalReason?: string | null;
   paidAt?: Date | null;
+  created?: boolean;
 };
 
-type InsertAffiliateCommission = Omit<AffiliateCommission, "id" | "createdAt"> & {
+type InsertAffiliateCommission = Omit<AffiliateCommission, "id" | "createdAt" | "approvedAt" | "approvedBy" | "approvalReason" | "paidAt"> & {
   id?: string;
   createdAt?: Date;
+};
+
+type AffiliateCommissionApprovalResult = {
+  commission: AffiliateCommission;
+  transitioned: boolean;
+  credited: boolean;
 };
 
 export interface IStorage {
@@ -1159,7 +1168,11 @@ export interface IStorage {
   // Commission management
   createCommission(commission: InsertAffiliateCommission): Promise<AffiliateCommission>;
   getCommissionsForAffiliate(affiliateProgramId: string): Promise<AffiliateCommission[]>;
-  approveCommission(commissionId: string): Promise<void>;
+  approveCommission(
+    commissionId: string,
+    approvedByUserId: string,
+    reason: string
+  ): Promise<AffiliateCommissionApprovalResult>;
   getUnpaidCommissions(affiliateProgramId: string): Promise<AffiliateCommission[]>;
 
   // Payout management

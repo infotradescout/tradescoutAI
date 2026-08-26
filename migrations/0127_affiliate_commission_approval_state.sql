@@ -5,6 +5,8 @@
 ALTER TABLE affiliate_referrals
   ADD COLUMN IF NOT EXISTS commission_status varchar(32),
   ADD COLUMN IF NOT EXISTS commission_reference_id varchar(255),
+  ADD COLUMN IF NOT EXISTS commission_revenue_amount numeric(14, 2),
+  ADD COLUMN IF NOT EXISTS commission_description text,
   ADD COLUMN IF NOT EXISTS commission_source_referral_id varchar,
   ADD COLUMN IF NOT EXISTS commission_approved_at timestamp,
   ADD COLUMN IF NOT EXISTS commission_approved_by varchar,

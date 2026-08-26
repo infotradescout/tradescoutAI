@@ -1056,6 +1056,8 @@ export const affiliateReferrals = pgTable(
     // Monetary approval is explicit. NULL is reserved for non-commission/legacy rows.
     commissionStatus: varchar("commission_status", { length: 32 }),
     commissionReferenceId: varchar("commission_reference_id", { length: 255 }),
+    commissionRevenueAmount: decimal("commission_revenue_amount", { precision: 14, scale: 2 }),
+    commissionDescription: text("commission_description"),
     commissionSourceReferralId: varchar("commission_source_referral_id"),
     commissionApprovedAt: timestamp("commission_approved_at"),
     commissionApprovedBy: varchar("commission_approved_by").references(() => users.id, {

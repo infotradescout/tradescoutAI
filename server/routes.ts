@@ -205,6 +205,7 @@ import {
   resolvePrivilegedActor,
   suppliedEmailMatchesTarget,
 } from "./utils/privilegedActions";
+import { AffiliateCommissionError } from "./services/affiliateCommissionApproval";
 import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice, DeviceAuthService } from "./deviceAuth";
@@ -22020,34 +22021,49 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
-  // Process commission (internal use - called when revenue is generated)
-  app.post("/api/affiliate/commission", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { affiliateProgramId, referralId, transactionId, revenueAmount, commissionAmount } =
-        req.body;
-
-      if (!affiliateProgramId || !revenueAmount || !commissionAmount) {
-        return res.status(400).json({
-          message: "Affiliate program ID, revenue amount, and commission amount are required",
+  // Process commission (privileged internal/admin use).
+  app.post(
+    "/api/affiliate/commission",
+    isAuthenticated,
+    requireRole(["ops_admin", "super_admin"]),
+    async (req: any, res: any) => {
+      try {
+        const {
+          affiliateProgramId,
+          referralId,
+          transactionId,
+          revenueAmount,
+          commissionAmount,
+          description,
+        } = req.body ?? {};
+        if (!affiliateProgramId || !transactionId || !revenueAmount || !commissionAmount) {
+          return res.status(400).json({
+            message:
+              "Affiliate program ID, transaction ID, revenue amount, and commission amount are required",
+          });
+        }
+        const commission = await storage.createCommission({
+          affiliateProgramId,
+          referralId,
+          transactionId,
+          revenueAmount: String(revenueAmount),
+          commissionAmount: String(commissionAmount),
+          description,
+          status: "pending",
         });
+        return res.status(commission.created === false ? 200 : 201).json(commission);
+      } catch (error: any) {
+        console.error("Error creating commission:", error);
+        if (error instanceof AffiliateCommissionError) {
+          return res.status(error.statusCode).json({
+            message: error.message,
+            code: error.code,
+          });
+        }
+        return res.status(500).json({ message: "Failed to create commission" });
       }
-
-      const commission = await storage.createCommission({
-        affiliateProgramId,
-        referralId,
-        transactionId,
-        revenueAmount: revenueAmount.toString(),
-        commissionAmount: commissionAmount.toString(),
-        // description: description || 'Commission earned',
-        status: "pending",
-      });
-
-      res.status(201).json(commission);
-    } catch (error: any) {
-      console.error("Error creating commission:", error);
-      res.status(500).json({ message: "Failed to create commission" });
     }
-  });
+  );
 
   // Get referrals for affiliate
   app.get("/api/affiliate/referrals", isAuthenticated, async (req: any, res: any) => {
@@ -22112,31 +22128,40 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
-  // Admin: Approve commission
+  // Admin: Approve and atomically credit a commission.
   app.put(
     "/api/admin/affiliate/commissions/:commissionId/approve",
     isAuthenticated,
+    requireRole(["ops_admin", "super_admin"]),
     async (req: any, res: any) => {
       try {
-        const userId = req.user?.claims?.sub;
-        if (!userId) {
+        const approvedByUserId = String(
+          req.user?.claims?.sub || req.user?.id || ""
+        ).trim();
+        if (!approvedByUserId) {
           return res.status(401).json({ message: "User not authenticated" });
         }
-        const user = await storage.getUser(userId);
-
-        // Check admin permissions
-        const userRole = user?.role || "";
-        if (!user || !["ops_admin", "super_admin"].includes(userRole)) {
-          return res.status(403).json({ message: "Admin access required" });
+        const reason = normalizePrivilegedReason(req.body?.reason, 12);
+        if (!reason) {
+          return res.status(400).json({
+            message: "Approval reason is required (min 12 characters)",
+          });
         }
-
-        const { commissionId } = req.params;
-        await storage.approveCommission(commissionId);
-
-        res.json({ success: true });
+        const result = await storage.approveCommission(
+          req.params.commissionId,
+          approvedByUserId,
+          reason
+        );
+        return res.json(result);
       } catch (error: any) {
         console.error("Error approving commission:", error);
-        res.status(500).json({ message: "Failed to approve commission" });
+        if (error instanceof AffiliateCommissionError) {
+          return res.status(error.statusCode).json({
+            message: error.message,
+            code: error.code,
+          });
+        }
+        return res.status(500).json({ message: "Failed to approve commission" });
       }
     }
   );
