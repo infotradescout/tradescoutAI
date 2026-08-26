@@ -141,6 +141,7 @@ export function MaterialCategoryRail({
     () => getMaterialRailItems(catalog, { aesthetic, color }),
     [aesthetic, catalog, color]
   );
+  const activeFilterCount = 1 + Number(Boolean(aesthetic)) + Number(Boolean(color));
 
   useEffect(() => {
     if (!active) return;
@@ -231,6 +232,8 @@ export function MaterialCategoryRail({
                       onToggleSaved={onToggleSaved}
                       onOpen={onOpen}
                       onAsk={onAsk}
+                      analyticsSurface="material_results"
+                      activeFilterCount={activeFilterCount}
                     />
                   ) : (
                     <p

@@ -14,6 +14,8 @@ import {
   getMaterialFilterOptions,
 } from "./catalog";
 import { jw } from "./brand";
+import { trackJwStoneBrowseAction } from "./browseAnalytics";
+import { matchesJwStoneSearch, rankJwStoneSearchResults } from "./browseIntelligence";
 import { isHandOnlyStone } from "./coverImages";
 import { InventoryCollageBackground } from "./InventoryCollageBackground";
 import { JwCollapsibleSection } from "./JwCollapsibleSection";
@@ -169,14 +171,12 @@ export function StoneCollection({
       namedCatalog
     ).filter((stone) => (availability === "with-count" ? confirmedSlabCount(stone) != null : true));
 
-    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const normalizedQuery = query.trim();
     if (!normalizedQuery) return base;
-    return base.filter((stone) =>
-      Boolean(
-        stone.displayName?.toLocaleLowerCase().includes(normalizedQuery) ||
-        stone.materialLabel?.toLocaleLowerCase().includes(normalizedQuery) ||
-        stone.finishes.some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
-      )
+
+    return rankJwStoneSearchResults(
+      base.filter((stone) => matchesJwStoneSearch(stone, normalizedQuery)),
+      normalizedQuery
     );
   }, [
     availability,
@@ -302,6 +302,8 @@ export function StoneCollection({
   );
   const visibleStart = filtered.length ? safePage * INVENTORY_PAGE_SIZE + 1 : 0;
   const visibleEnd = Math.min(filtered.length, (safePage + 1) * INVENTORY_PAGE_SIZE);
+  const browseMode = query.trim() ? "search" : "browse";
+  const activeFilterCount = chips.length;
 
   useEffect(() => {
     setPage(0);
@@ -400,7 +402,7 @@ export function StoneCollection({
             aria-label="Search the collection"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search the collection"
+            placeholder="Search by name, color, material, or finish"
             className="min-h-12 w-full border-0 border-b border-[var(--jw-border)] bg-transparent pl-7 pr-3 text-sm text-[var(--jw-ink)] outline-none [color-scheme:light] placeholder:text-[var(--jw-muted)] focus:border-[var(--jw-accent)]"
           />
         </label>
@@ -443,18 +445,51 @@ export function StoneCollection({
                 onChange={changePage}
               />
               <ul className="mt-5 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {visibleStones.map((stone) => (
-                  <li key={stone.id} className="min-w-0">
-                    <StoneCard
-                      stone={stone}
-                      saved={isSaved(stone.id)}
-                      onToggleSaved={onToggleSaved}
-                      onOpen={onOpen}
-                      onAsk={onAsk}
-                      photoBrowsing={false}
-                    />
-                  </li>
-                ))}
+                {visibleStones.map((stone, index) => {
+                  const resultPosition = safePage * INVENTORY_PAGE_SIZE + index + 1;
+                  return (
+                    <li key={stone.id} className="min-w-0">
+                      <StoneCard
+                        stone={stone}
+                        saved={isSaved(stone.id)}
+                        onToggleSaved={(selected) => {
+                          trackJwStoneBrowseAction({
+                            action: isSaved(selected.id) ? "unsave" : "save",
+                            stone: selected,
+                            surface: "full_inventory",
+                            resultPosition,
+                            mode: browseMode,
+                            activeFilterCount,
+                          });
+                          onToggleSaved(selected);
+                        }}
+                        onOpen={(selected) => {
+                          trackJwStoneBrowseAction({
+                            action: "open",
+                            stone: selected,
+                            surface: "full_inventory",
+                            resultPosition,
+                            mode: browseMode,
+                            activeFilterCount,
+                          });
+                          onOpen(selected);
+                        }}
+                        onAsk={(selected) => {
+                          trackJwStoneBrowseAction({
+                            action: "request",
+                            stone: selected,
+                            surface: "full_inventory",
+                            resultPosition,
+                            mode: browseMode,
+                            activeFilterCount,
+                          });
+                          onAsk(selected);
+                        }}
+                        photoBrowsing={false}
+                      />
+                    </li>
+                  );
+                })}
               </ul>
               <div className="mt-8">
                 <InventoryPager
