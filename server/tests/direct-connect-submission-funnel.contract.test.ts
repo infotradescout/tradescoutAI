@@ -16,7 +16,7 @@ const analyticsSource = fs.readFileSync(analyticsPath, "utf8");
 describe("direct connect submission funnel contract harness", () => {
   it("keeps request review reachable without requiring Home Record selection", () => {
     expect(shellSource).toContain("const [homeContextIntent, setHomeContextIntent] = useState<");
-    expect(shellSource).toContain('>("skip_for_now")');
+    expect(shellSource).toContain('prefillHomeIdHandoff?.homeContextIntent || "skip_for_now"');
     expect(shellSource).toContain("handleSkipAndAutoRoute");
     expect(shellSource).toContain("createMutation.mutate({");
     expect(shellSource).toContain("autoRoute: true");
