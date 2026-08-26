@@ -186,6 +186,21 @@ describe("JW Stone marketplace public HTML", () => {
     expect(JSON.stringify(jsonLd)).not.toMatch(/price|availability|telephone|email/i);
   });
 
+  it("keeps platform deep-page schema factual without losing the buyer-facing description", () => {
+    const html = buildPublicJwStoneMarketplaceHtml({
+      templateHtml,
+      stoneSlug: "amazonic-green",
+    });
+
+    const scripts = Array.from(
+      html.matchAll(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/g)
+    );
+    const jsonLd = JSON.parse(scripts[0][1]);
+
+    expect(html).toContain("Ask whether it is currently available");
+    expect(JSON.stringify(jsonLd)).not.toMatch(/price|priceRange|offers|availability|telephone|email/i);
+  });
+
   it("links material collections to named stone pages with ItemList schema", () => {
     const html = buildPublicJwStoneMarketplaceHtml({
       templateHtml,
