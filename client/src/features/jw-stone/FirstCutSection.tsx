@@ -25,10 +25,10 @@ function tileAriaLabel(item: Extract<FirstCutPresentation, { kind: "stone" | "ph
   return "First Cut stone";
 }
 
-function tileFrameClass(role: TileRole): string {
+function tileAspectClass(role: TileRole): string {
   return role === "lead"
-    ? "relative block aspect-[2/1] w-full overflow-hidden bg-[var(--jw-bg)] lg:aspect-[12/5]"
-    : "relative block aspect-[4/3] w-full overflow-hidden bg-[var(--jw-bg)] sm:aspect-[3/2] lg:aspect-[8/5]";
+    ? "aspect-[2/1] lg:aspect-[12/5]"
+    : "aspect-[4/3] sm:aspect-[3/2] lg:aspect-[8/5]";
 }
 
 export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
@@ -69,7 +69,11 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
           consume most of a desktop viewport. Mobile retains the original crop;
           larger screens become progressively wider and shorter.
         */}
-        <span className={tileFrameClass(role)}>
+        <span
+          className={`relative block w-full overflow-hidden bg-[var(--jw-bg)] ${tileAspectClass(
+            role
+          )}`}
+        >
           <img
             src={tileImageSrc(item)}
             alt=""
@@ -94,7 +98,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       data-first-cut-placeholder="true"
       data-first-cut-lead={role === "lead" ? "true" : undefined}
       data-first-cut-support={role === "support" ? "true" : undefined}
-      className={`jw-first-cut__tile jw-first-cut__tile--${role} flex min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${tileFrameClass(
+      className={`jw-first-cut__tile jw-first-cut__tile--${role} flex w-full min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${tileAspectClass(
         role
       )}`}
     >
