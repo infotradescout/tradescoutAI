@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
   DISCOVERY_LANDING_SESSION_STORAGE_KEY,
+  DISCOVERY_LANDING_SENT_STORAGE_KEY,
   getOrCreateDiscoveryAnonymousSessionId,
   getStoredDiscoveryLandingAttribution,
   resetDiscoveryLandingDedupeForTests,
@@ -25,6 +26,11 @@ describe("trackDiscoveryLandingOnce", () => {
       meta.content = content;
       document.head.appendChild(meta);
     }
+    Object.defineProperty(window.navigator, "sendBeacon", {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockReturnValue(false),
+    });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 204 }));
   });
 
@@ -36,6 +42,8 @@ describe("trackDiscoveryLandingOnce", () => {
       .forEach((meta) => meta.remove());
     sessionStorage.removeItem(DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY);
     sessionStorage.removeItem(DISCOVERY_LANDING_SESSION_STORAGE_KEY);
+    sessionStorage.removeItem(DISCOVERY_LANDING_SENT_STORAGE_KEY);
+    delete (window.navigator as Navigator & { sendBeacon?: unknown }).sendBeacon;
     vi.unstubAllGlobals();
     resetDiscoveryLandingDedupeForTests();
   });
@@ -69,6 +77,7 @@ describe("trackDiscoveryLandingOnce", () => {
     expect((fetch as any).mock.calls[0][1].headers["X-Anonymous-Session-Id"]).toBe(
       body.anonymousSessionId
     );
+    expect((fetch as any).mock.calls[0][1].keepalive).toBe(true);
     expect(getStoredDiscoveryLandingAttribution("jw-stone")).toEqual({
       discoveryAttributionToken,
       businessSlug: "jw-stone",
@@ -131,6 +140,33 @@ describe("trackDiscoveryLandingOnce", () => {
       businessSlug: "example-profile",
       entityType: "business_profile",
     });
+  });
+
+  it("uses beacon transport when the browser accepts it", async () => {
+    const beacon = vi.fn().mockReturnValue(true);
+    Object.defineProperty(window.navigator, "sendBeacon", {
+      configurable: true,
+      writable: true,
+      value: beacon,
+    });
+
+    const ok = await trackDiscoveryLandingOnce({ canonicalRoute: "/jw-stone" });
+
+    expect(ok).toBe(true);
+    expect(beacon).toHaveBeenCalledTimes(1);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("retries after a transient transport failure instead of suppressing the landing", async () => {
+    (fetch as any).mockRejectedValueOnce(new Error("network down"));
+    (fetch as any).mockResolvedValueOnce({ ok: true, status: 204 });
+
+    const first = await trackDiscoveryLandingOnce({ canonicalRoute: "/jw-stone" });
+    const second = await trackDiscoveryLandingOnce({ canonicalRoute: "/jw-stone" });
+
+    expect(first).toBe(false);
+    expect(second).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("does not block when analytics fetch fails", async () => {
