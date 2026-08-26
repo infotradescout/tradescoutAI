@@ -273,7 +273,7 @@ export default function JWStoneMarketplace() {
   const collectionData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "JW Stone | Stone Discovery",
+    name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
     description: JW_STONE_DESCRIPTION,
     url: canonicalUrl,
     image: JW_STONE_SOCIAL_IMAGE_URL,
@@ -304,8 +304,8 @@ export default function JWStoneMarketplace() {
       data-jw-marketplace-base={marketplaceBasePath() || "/"}
     >
       <SEOHelmet
-        title="JW Stone | Stone Discovery"
-        socialTitle="JW Stone | Stone Discovery"
+        title="Natural stone slabs in Pensacola, FL"
+        socialTitle="JW Stone Logistics | Natural stone slabs"
         description={JW_STONE_DESCRIPTION}
         canonical={canonicalUrl}
         ogType="website"
