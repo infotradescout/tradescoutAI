@@ -8,8 +8,11 @@ import type { DiscoveryLandingEntityType } from "@shared/discoveryLanding";
 
 let lastDiscoveryLandingKey: string | null = null;
 let fallbackDiscoverySessionId: string | null = null;
+const inFlightDiscoveryLandingKeys = new Set<string>();
+const DISCOVERY_LANDING_SENT_KEYS_LIMIT = 24;
 export const DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY = "tradescout:discovery-attribution:v1";
 export const DISCOVERY_LANDING_SESSION_STORAGE_KEY = "tradescout:discovery-session:v1";
+export const DISCOVERY_LANDING_SENT_STORAGE_KEY = "tradescout:discovery-landing-sent:v1";
 
 export type StoredDiscoveryLandingAttribution = {
   discoveryAttributionToken: string;
@@ -98,9 +101,41 @@ export function getStoredDiscoveryLandingAttribution(
 }
 
 /** Test helper - clears in-memory once-per-landing dedupe. */
+function readRememberedDiscoveryLandingKeys(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(
+      window.sessionStorage.getItem(DISCOVERY_LANDING_SENT_STORAGE_KEY) || "[]"
+    );
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string").slice(-DISCOVERY_LANDING_SENT_KEYS_LIMIT)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function hasRememberedDiscoveryLandingKey(key: string): boolean {
+  return readRememberedDiscoveryLandingKeys().includes(key);
+}
+
+function rememberDiscoveryLandingKey(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const keys = readRememberedDiscoveryLandingKeys().filter((value) => value !== key);
+    window.sessionStorage.setItem(
+      DISCOVERY_LANDING_SENT_STORAGE_KEY,
+      JSON.stringify([...keys, key].slice(-DISCOVERY_LANDING_SENT_KEYS_LIMIT))
+    );
+  } catch {
+    // Session persistence is best-effort and never affects the landing UX.
+  }
+}
+
 export function resetDiscoveryLandingDedupeForTests(): void {
   lastDiscoveryLandingKey = null;
   fallbackDiscoverySessionId = null;
+  inFlightDiscoveryLandingKeys.clear();
 }
 
 /**
@@ -162,21 +197,50 @@ export async function trackDiscoveryLandingOnce(options: {
     ]
       .map((value) => String(value || ""))
       .join("|");
-    if (lastDiscoveryLandingKey === dedupeKey) return false;
-    lastDiscoveryLandingKey = dedupeKey;
+    if (
+      lastDiscoveryLandingKey === dedupeKey ||
+      hasRememberedDiscoveryLandingKey(dedupeKey) ||
+      inFlightDiscoveryLandingKeys.has(dedupeKey)
+    ) {
+      return false;
+    }
 
-    await fetch("/api/analytics/shell", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(raw.anonymousSessionId
-          ? { "X-Anonymous-Session-Id": String(raw.anonymousSessionId) }
-          : {}),
-      },
-      body: JSON.stringify(raw),
-    });
-    return true;
+    inFlightDiscoveryLandingKeys.add(dedupeKey);
+    const body = JSON.stringify(raw);
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+        const accepted = navigator.sendBeacon(
+          "/api/analytics/shell",
+          new Blob([body], { type: "application/json" })
+        );
+        if (accepted) {
+          lastDiscoveryLandingKey = dedupeKey;
+          rememberDiscoveryLandingKey(dedupeKey);
+          return true;
+        }
+      }
+
+      const response = await fetch("/api/analytics/shell", {
+        method: "POST",
+        credentials: "include",
+        keepalive: true,
+        headers: {
+          "Content-Type": "application/json",
+          ...(raw.anonymousSessionId
+            ? { "X-Anonymous-Session-Id": String(raw.anonymousSessionId) }
+            : {}),
+        },
+        body,
+      });
+      const accepted = response.ok || response.status === 204;
+      if (accepted) {
+        lastDiscoveryLandingKey = dedupeKey;
+        rememberDiscoveryLandingKey(dedupeKey);
+      }
+      return accepted;
+    } finally {
+      inFlightDiscoveryLandingKeys.delete(dedupeKey);
+    }
   } catch {
     return false;
   }
