@@ -104,7 +104,7 @@ function customDomainItemTitle(itemName: string, category: string | null): strin
 
 function customDomainItemDescription(itemName: string, category: string | null): string {
   const material = category ? ` ${category}` : "";
-  return `Explore ${itemName}${material} slab photos from JW Stone Logistics in Pensacola, Florida. Ask about current availability.`;
+  return `View ${itemName}${material} slab photos from JW Stone Logistics in Pensacola, Florida. Ask whether it is currently available.`;
 }
 
 function customDomainCategoryTitle(categoryName: string): string {
@@ -112,7 +112,7 @@ function customDomainCategoryTitle(categoryName: string): string {
 }
 
 function customDomainCategoryDescription(categoryName: string): string {
-  return `Browse ${categoryName} slab photos from JW Stone Logistics in Pensacola, Florida. Compare selections, save favorites and ask about current availability.`;
+  return `Browse ${categoryName} slab photos from JW Stone Logistics in Pensacola, Florida. Compare selections and ask what is currently available.`;
 }
 
 /**
