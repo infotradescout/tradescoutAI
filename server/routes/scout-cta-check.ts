@@ -9,7 +9,7 @@
 
 import type { Express, Request, Response } from "express";
 import { selectAction, inferSituation, type ScoutAction } from "../scout/governor";
-import { db } from "../db";
+import { getScoutControlState } from "../services/scoutControlState";
 
 type CTAAction = "direct_connect" | "message" | "apply";
 type CTAContext = "trade_deal" | "community_post" | "contractor_profile";
@@ -29,39 +29,6 @@ interface CTACheckResponse {
   label?: string; // Optional visual label for UI
 }
 
-// In-memory cache: {key: {result, timestamp}}
-const cache = new Map<string, { result: CTACheckResponse; timestamp: number }>();
-const CACHE_TTL_MS = 30000; // 30 seconds
-
-function getCacheKey(req: CTACheckRequest, userId?: string): string {
-  return `${userId || "anon"}:${req.action}:${req.context}:${req.contextId}:${req.scope || "global"}`;
-}
-
-function getCached(key: string): CTACheckResponse | null {
-  const entry = cache.get(key);
-  if (!entry) return null;
-
-  const age = Date.now() - entry.timestamp;
-  if (age > CACHE_TTL_MS) {
-    cache.delete(key);
-    return null;
-  }
-
-  return entry.result;
-}
-
-function setCache(key: string, result: CTACheckResponse): void {
-  cache.set(key, { result, timestamp: Date.now() });
-
-  // Simple cache cleanup: remove entries older than 2x TTL
-  if (cache.size > 1000) {
-    const cutoff = Date.now() - CACHE_TTL_MS * 2;
-    for (const [k, v] of Array.from(cache.entries())) {
-      if (v.timestamp < cutoff) cache.delete(k);
-    }
-  }
-}
-
 /**
  * Check if CTA action is allowed through Scout authority
  */
@@ -69,10 +36,6 @@ export async function checkCTAAuthority(
   req: CTACheckRequest,
   userId?: string
 ): Promise<CTACheckResponse> {
-  const cacheKey = getCacheKey(req, userId);
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
-
   // Construct minimal situation for Governor
   const situation = await inferSituation({
     message: `User wants to ${req.action} on ${req.context}`,
@@ -81,7 +44,8 @@ export async function checkCTAAuthority(
     countyCode: req.scope,
   });
 
-  const { action, authorityProof } = selectAction(situation);
+  const controls = await getScoutControlState();
+  const { action, authorityProof } = selectAction(situation, controls);
 
   let result: CTACheckResponse;
 
@@ -121,7 +85,6 @@ export async function checkCTAAuthority(
     };
   }
 
-  setCache(cacheKey, result);
   return result;
 }
 
