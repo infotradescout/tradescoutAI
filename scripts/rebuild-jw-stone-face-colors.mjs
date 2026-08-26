@@ -154,7 +154,12 @@ function isHandOrCloseImage(imagePath, sourceNames) {
 
 function chooseCover(slug, existingCover, inventoryBySlug, sourceNames) {
   const images = inventoryBySlug.get(slug)?.images || [];
-  if (existingCover && !isHandOrCloseImage(existingCover, sourceNames)) return existingCover;
+  // Never carry forward a legacy cover that is no longer attached to this
+  // inventory record. That can assign another stone's face (or a hand detail)
+  // to the wrong picker result.
+  if (existingCover && images.includes(existingCover) && !isHandOrCloseImage(existingCover, sourceNames)) {
+    return existingCover;
+  }
   return images.find((image) => !isHandOrCloseImage(image, sourceNames)) || existingCover || images[0] || null;
 }
 

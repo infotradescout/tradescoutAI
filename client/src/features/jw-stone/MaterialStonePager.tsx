@@ -122,7 +122,7 @@ export function MaterialStonePager({
       <div
         ref={railRef}
         data-testid="jw-material-stone-track"
-        className="scrollbar-hide flex max-w-full cursor-grab gap-3 overflow-x-auto overscroll-x-contain px-[4%] pb-4 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing sm:gap-4 sm:px-[6%] lg:px-[9%] [&::-webkit-scrollbar]:hidden"
+        className="scrollbar-hide flex max-w-full cursor-grab gap-3 overflow-x-auto overscroll-x-contain px-[3%] pb-5 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing sm:gap-4 sm:px-[5%] lg:px-[7%] [&::-webkit-scrollbar]:hidden"
         role="list"
         onScroll={onScroll}
       >
@@ -132,7 +132,7 @@ export function MaterialStonePager({
             data-momentum-item="true"
             data-testid={`jw-material-stone-${stone.id}`}
             data-active={index === safeIndex ? "true" : "false"}
-            className="min-w-[92%] flex-none sm:min-w-[88%] lg:min-w-[82%]"
+            className="min-w-[87%] flex-none sm:min-w-[72%] lg:min-w-[58%] xl:min-w-[52%]"
             role="listitem"
           >
             <StoneCard

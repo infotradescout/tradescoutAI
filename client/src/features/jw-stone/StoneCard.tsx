@@ -19,7 +19,7 @@ type StoneCardProps = {
 };
 
 const PHOTO_ARROW_CLASS =
-  "absolute top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-[0_12px_28px_rgba(0,0,0,0.28)] backdrop-blur-md transition-[background-color,border-color,opacity,transform] hover:border-white/45 hover:bg-black/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 disabled:pointer-events-none disabled:opacity-30 sm:h-12 sm:w-12";
+  "absolute top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-[0_12px_28px_rgba(0,0,0,0.28)] backdrop-blur-md transition-[background-color,border-color,opacity,transform] hover:border-white/45 hover:bg-black/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 disabled:pointer-events-none disabled:opacity-30 sm:inline-flex sm:h-12 sm:w-12";
 
 /**
  * Showroom inventory tile with a stable stone-photo stage. Multi-photo cards
@@ -105,12 +105,12 @@ export function StoneCard({
       data-stone-card="true"
       data-stone-id={stone.id}
       data-photo-count={imageCount}
-      className="group mx-auto w-full min-w-0 max-w-[1120px]"
+      className="group mx-auto w-full min-w-0 max-w-[1120px] overflow-hidden bg-[var(--jw-surface)] shadow-[0_20px_55px_rgba(30,24,18,0.10)] ring-1 ring-black/[0.07]"
       data-anonymous={stone.anonymous ? "true" : "false"}
     >
       <div
         data-testid="jw-stone-card-media"
-        className="relative isolate aspect-[4/3] max-w-full overflow-hidden bg-[var(--jw-dark)] shadow-[0_24px_70px_rgba(30,24,18,0.13)] ring-1 ring-black/10 sm:aspect-[16/10]"
+        className="relative isolate aspect-[4/3] max-w-full overflow-hidden bg-[var(--jw-dark)] sm:aspect-[16/10]"
       >
         <div
           ref={railRef}
@@ -131,12 +131,24 @@ export function StoneCard({
               className="relative block h-full min-w-full flex-none overflow-hidden"
               aria-label={`Open ${stone.publicLabel}, photo ${index + 1} of ${imageCount}`}
             >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-6 bg-cover bg-center opacity-35 blur-2xl saturate-75"
+                style={
+                  nearViewport && requestedImageIndexes.has(index)
+                    ? { backgroundImage: `url(${image})` }
+                    : undefined
+                }
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-black/15"
+              />
               <img
                 src={nearViewport && requestedImageIndexes.has(index) ? image : undefined}
                 alt={photoAlt(index)}
                 loading="lazy"
                 decoding="async"
-                fetchPriority="low"
                 draggable={false}
                 onLoad={(event) => {
                   delete event.currentTarget.dataset.retryCount;
@@ -156,7 +168,7 @@ export function StoneCard({
                     target.src = `${image}${separator}jw_retry=${nextRetry}`;
                   }, retryDelayMs);
                 }}
-                className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
+                className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain p-1.5 sm:p-2"
               />
             </button>
           ))}
@@ -172,7 +184,7 @@ export function StoneCard({
               saved ? " from" : " to"
             } saved stones`}
             aria-pressed={saved}
-            className="absolute right-3 top-3 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/45 bg-[var(--jw-bg)]/90 text-[var(--jw-ink)] shadow-[0_10px_28px_rgba(0,0,0,0.18)] backdrop-blur-md transition-[background-color,transform] hover:bg-[var(--jw-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95"
+            className="absolute right-2.5 top-2.5 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/45 bg-[var(--jw-bg)]/92 text-[var(--jw-ink)] shadow-[0_10px_28px_rgba(0,0,0,0.18)] backdrop-blur-md transition-[background-color,transform] hover:bg-[var(--jw-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 sm:right-3 sm:top-3 sm:h-11 sm:w-11"
           >
             {saved ? (
               <BookmarkCheck className="h-5 w-5 text-[var(--jw-accent)]" aria-hidden="true" />
@@ -242,26 +254,26 @@ export function StoneCard({
         ) : null}
       </div>
 
-      <div className="flex flex-col items-center px-3 pb-2 pt-4 text-center sm:px-4 sm:pt-5">
+      <div className="flex flex-col px-4 pb-4 pt-4 text-left sm:px-5 sm:pb-5 sm:pt-5">
         {title ? (
-          <h3 className="font-editorial text-2xl leading-tight tracking-tight text-[var(--jw-ink)] sm:text-[1.75rem]">
+          <h3 className="font-editorial text-[1.45rem] leading-tight tracking-tight text-[var(--jw-ink)] sm:text-[1.7rem]">
             {title}
           </h3>
         ) : null}
 
         {caption ? (
           <p
-            className={`mt-1.5 max-w-md text-xs leading-5 tracking-[0.03em] sm:text-sm ${jw.muted}`}
+            className={`mt-1.5 max-w-md text-xs leading-5 tracking-[0.02em] sm:text-sm ${jw.muted}`}
           >
             {caption}
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-3 sm:mt-3.5 sm:gap-4">
+        <div className="mt-4 grid grid-cols-[1fr_auto_auto] items-center gap-1.5 border-t border-[var(--jw-border)] pt-3 sm:gap-2">
           <button
             type="button"
             onClick={() => onOpen(stone)}
-            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--jw-ink)] underline decoration-[var(--jw-border-strong)] underline-offset-4 transition-colors hover:decoration-[var(--jw-ink)]"
+            className="inline-flex min-h-10 items-center justify-center border border-[var(--jw-border-strong)] px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--jw-ink)] transition-colors hover:border-[var(--jw-ink)] sm:text-[11px]"
           >
             View stone
           </button>
@@ -276,14 +288,14 @@ export function StoneCard({
               }
               imageUrl={selectedImage}
               label="Share"
-              className="inline-flex min-h-9 items-center justify-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--jw-ink)]"
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--jw-ink)] sm:text-[11px]"
             />
           ) : null}
           {stone.wishlistEligible ? (
             <button
               type="button"
               onClick={() => onAsk(stone)}
-              className={`inline-flex min-h-10 items-center justify-center gap-1.5 px-4 text-[11px] font-semibold uppercase tracking-[0.18em] ${jw.accentCta}`}
+              className={`inline-flex min-h-10 items-center justify-center gap-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] sm:px-4 sm:text-[11px] ${jw.accentCta}`}
             >
               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
               Ask

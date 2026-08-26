@@ -18,6 +18,7 @@ import {
 
 export type JwStoneMaterialStatus =
   | "user_confirmed"
+  | "published_source"
   | "source_folder"
   | "filename"
   | "historical_assignment"
@@ -82,6 +83,47 @@ const USER_CONFIRMED = new Set([
 
 const FILENAME_CONFIRMED = new Set(["calacatta-vaguili"]);
 
+type PublishedMaterialEvidence = Readonly<{
+  categorySlug: Exclude<(typeof CATEGORY_ORDER)[number], "unconfirmed">;
+  source: string;
+}>;
+
+/** Exact commercial-name matches from independent stone suppliers. */
+const PUBLISHED_MATERIAL_BY_SLUG: Readonly<Record<string, PublishedMaterialEvidence>> = {
+  apollonis: {
+    categorySlug: "quartzite",
+    source: "https://ssstonedesign.com/inventory",
+  },
+  artemis: {
+    categorySlug: "quartzite",
+    source: "https://www.arizonatile.com/products/slab/quartzite/artemis/",
+  },
+  "calacatta-corchia": {
+    categorySlug: "marble",
+    source: "https://www.ssccountertops.com/calacatta-corchia",
+  },
+  "calacatta-cremo": {
+    categorySlug: "marble",
+    source: "https://arcsurfaces.com/live-inventory/calacatta-cremo/19215/",
+  },
+  "ceara-white": {
+    categorySlug: "granite",
+    source: "https://www.msisurfaces.com/granite/ceara-white/",
+  },
+  "emerald-pearl": {
+    categorySlug: "granite",
+    source: "https://www.greatlakesgm.com/products/emerald-pearl-granite/",
+  },
+  "new-caledonia": {
+    categorySlug: "granite",
+    source: "https://www.arizonatile.com/products/slab/granite/new-caledonia/",
+  },
+  "steel-gray": {
+    categorySlug: "granite",
+    source: "https://www.regattagranitesindia.com/steel-grey-granite-a-low-variation-durable-granite/",
+  },
+};
+
 /** Source-title spellings that the generated finish parser did not normalize. */
 const MARKETPLACE_FINISH_BY_SOURCE_ID: Readonly<Record<string, readonly string[]>> = {
   "1Xa7SrSqU8QkEQ2loN5e0MJAiBwqh5d7d": ["Leathered"],
@@ -104,6 +146,7 @@ function sourceTitleFinishes(sourceFileId: string): readonly string[] | undefine
 function materialStatus(generated: GeneratedJwStoneRecord): JwStoneMaterialStatus {
   if (USER_CONFIRMED.has(generated.slug)) return "user_confirmed";
   if (FILENAME_CONFIRMED.has(generated.slug)) return "filename";
+  if (PUBLISHED_MATERIAL_BY_SLUG[generated.slug]) return "published_source";
   if (generated.categorySlug === "unconfirmed") return "unconfirmed";
   return "source_folder";
 }
@@ -126,9 +169,11 @@ function projectStone(generated: GeneratedJwStoneRecord): JwStoneInventoryStone 
     ),
   ];
   const status = materialStatus(generated);
+  const publishedMaterial = PUBLISHED_MATERIAL_BY_SLUG[generated.slug];
+  const categorySlug = publishedMaterial?.categorySlug ?? generated.categorySlug;
 
   return {
-    categorySlug: generated.categorySlug,
+    categorySlug,
     name: generated.name,
     ...namePresentation,
     slug: generated.slug,
@@ -144,6 +189,8 @@ function projectStone(generated: GeneratedJwStoneRecord): JwStoneInventoryStone 
     sourceNote:
       status === "user_confirmed"
         ? "Material confirmed during JW Stone reconciliation."
+        : status === "published_source"
+          ? `Material stated by an independent stone supplier: ${publishedMaterial!.source}`
         : status === "filename"
           ? "Material stated in the source filename."
           : status === "source_folder"

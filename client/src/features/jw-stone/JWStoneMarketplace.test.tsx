@@ -477,9 +477,9 @@ describe("JW Stone marketplace luxury layout", () => {
 
     const inventory = container.querySelector('[data-testid="jw-inventory-grid"]');
     expect(inventory?.querySelector("ul")?.className).toMatch(/\bgrid\b/);
-    expect(inventory?.querySelector("ul")?.className).toMatch(/sm:grid-cols-2/);
-    expect(inventory?.querySelector("ul")?.className).toMatch(/lg:grid-cols-3/);
-    expect(inventory?.querySelector("ul")?.className).toMatch(/xl:grid-cols-4/);
+    expect(inventory?.querySelector("ul")?.className).toMatch(/md:grid-cols-2/);
+    expect(inventory?.querySelector("ul")?.className).toMatch(/xl:grid-cols-3/);
+    expect(inventory?.querySelector("ul")?.className).toMatch(/2xl:grid-cols-4/);
     expect(inventory?.querySelector("ul")?.className).not.toMatch(/flex-col/);
     expect(
       container.querySelector('[data-testid="jw-inventory-visible-range"]')?.textContent
