@@ -14,7 +14,7 @@
 
 import type { User } from "../assistantActions";
 import { classifyRisk, explainRisk, type RiskAssessment } from "./riskClassifier";
-import { assessConfidence, type ConfidenceAssessment } from "./confidenceScorer";
+import { assessConfidence, getAllowedActions, type ConfidenceAssessment } from "./confidenceScorer";
 import { getUserConfidenceState, getOutcomeStats } from "./outcomeTracker";
 import { computeConfidenceScope, type ConfidenceScope } from "./confidenceScope";
 import { db } from "../db";
@@ -22,12 +22,11 @@ import { toolProposals } from "../../shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { toolDiscovery } from "./toolDiscovery";
 
-// Import admin control state
 import {
-  getAuthorityMode,
-  getConfidenceDampener,
-  isOutcomeLearningEnabled,
-} from "../routes/admin-control";
+  DEFAULT_SCOUT_CONTROL_STATE,
+  getScoutControlState,
+  type ScoutControlState,
+} from "../services/scoutControlState";
 
 let toolProposalTableAvailable: boolean | null = null;
 
@@ -248,6 +247,7 @@ export interface GovernorDecision {
   intervention: Intervention;
   outcomeGraph: OutcomeGraph | null;
   confidence: "low" | "medium" | "high";
+  effectiveConfidence: number;
   requiresLLM: boolean; // Does this need generative text or is it deterministic?
 }
 
@@ -605,20 +605,25 @@ function evaluateAuthorityProof(situation: Situation): AuthorityProof {
  * This is the core decision point that determines whether Scout
  * complies, defers, redirects, or blocks.
  */
-export function selectAction(situation: Situation): {
+export function selectAction(
+  situation: Situation,
+  controls: Pick<ScoutControlState, "authorityMode" | "confidenceDampener"> =
+    DEFAULT_SCOUT_CONTROL_STATE
+): {
   action: ScoutAction;
   role: ScoutRole;
   authorityProof: AuthorityProof;
   allowOverride: boolean;
+  effectiveConfidence: number;
 } {
-  // Apply global admin controls
-  const authorityMode = getAuthorityMode();
-  const dampener = getConfidenceDampener();
+  const authorityMode = controls.authorityMode;
+  const dampener = controls.confidenceDampener;
 
   const authorityProof = evaluateAuthorityProof(situation);
   const rawConfidence = situation.confidenceAssessment?.confidence ?? 0.25;
-  const confidence = rawConfidence * dampener; // Apply dampener
-  const allowedActions = situation.confidenceAssessment?.allowedActions ?? ["COMPLY", "DEFER"];
+  const effectiveConfidence = Math.min(1, Math.max(0, rawConfidence * dampener));
+  const confidence = effectiveConfidence;
+  const allowedActions = getAllowedActions(effectiveConfidence);
   let allowOverride = false;
 
   // AUTHORITY MODE OVERRIDES
@@ -629,9 +634,9 @@ export function selectAction(situation: Situation): {
     );
     if (highRisks.length > 0) {
       allowOverride = true;
-      return { action: "DEFER", role: "INTERPRETER", authorityProof, allowOverride };
+      return { action: "DEFER", role: "INTERPRETER", authorityProof, allowOverride, effectiveConfidence };
     }
-    return { action: "COMPLY", role: "INTERPRETER", authorityProof, allowOverride };
+    return { action: "COMPLY", role: "INTERPRETER", authorityProof, allowOverride, effectiveConfidence };
   }
 
   // BLOCK: Only allowed when confidence > 0.85 AND critical risks present
@@ -640,30 +645,35 @@ export function selectAction(situation: Situation): {
   // Conservative mode: never BLOCK
   if (authorityMode === "conservative" && criticalRisks.length > 0) {
     allowOverride = true;
-    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride, effectiveConfidence };
   }
 
-  if (criticalRisks.length > 0 && allowedActions.includes("BLOCK") && authorityProof.hasProof) {
+  if (
+    criticalRisks.length > 0 &&
+    effectiveConfidence >= 0.85 &&
+    allowedActions.includes("BLOCK") &&
+    authorityProof.hasProof
+  ) {
     allowOverride = true;
-    return { action: "BLOCK", role: "SAFEGUARD", authorityProof, allowOverride };
+    return { action: "BLOCK", role: "SAFEGUARD", authorityProof, allowOverride, effectiveConfidence };
   }
 
   if (criticalRisks.length > 0 && allowedActions.includes("BLOCK") && !authorityProof.hasProof) {
     allowOverride = true;
-    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride, effectiveConfidence };
   }
 
   // If BLOCK needed but confidence too low, DEFER instead
   if (criticalRisks.length > 0 && !allowedActions.includes("BLOCK")) {
     allowOverride = true;
-    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride, effectiveConfidence };
   }
 
   // DEFER: High risks + missing critical info (allowed at confidence >= 0.30)
   const highRisks = situation.risks.filter((r) => r.severity === "high");
   if (highRisks.length > 0 && situation.unknowns.length > 0) {
     allowOverride = !authorityProof.hasProof;
-    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride };
+    return { action: "DEFER", role: "SAFEGUARD", authorityProof, allowOverride, effectiveConfidence };
   }
 
   // REDIRECT: User goal valid but framing wrong (requires confidence >= 0.30)
@@ -673,22 +683,22 @@ export function selectAction(situation: Situation): {
   if (hasAnchoringRisk && allowedActions.includes("REDIRECT")) {
     // Soft redirect at low confidence, assertive at high confidence
     const role = confidence < 0.7 ? "INTERPRETER" : "AUTHORITY";
-    return { action: "REDIRECT", role, authorityProof, allowOverride };
+    return { action: "REDIRECT", role, authorityProof, allowOverride, effectiveConfidence };
   }
 
   // DEFER: Missing critical unknowns for high-stakes decision
   if (situation.unknowns.length >= 2 && highRisks.length > 0) {
     allowOverride = !authorityProof.hasProof;
-    return { action: "DEFER", role: "INTERPRETER", authorityProof, allowOverride };
+    return { action: "DEFER", role: "INTERPRETER", authorityProof, allowOverride, effectiveConfidence };
   }
 
   // COMPLY: Low risk, sufficient info, clear path
   if (situation.risks.length === 0 || situation.risks.every((r) => r.severity === "low")) {
-    return { action: "COMPLY", role: "EXECUTOR", authorityProof, allowOverride };
+    return { action: "COMPLY", role: "EXECUTOR", authorityProof, allowOverride, effectiveConfidence };
   }
 
   // Default: COMPLY with guidance (always allowed)
-  return { action: "COMPLY", role: "INTERPRETER", authorityProof, allowOverride };
+  return { action: "COMPLY", role: "INTERPRETER", authorityProof, allowOverride, effectiveConfidence };
 }
 
 /**
@@ -785,10 +795,15 @@ export function generateIntervention(
   action: ScoutAction,
   role: ScoutRole,
   outcomeGraph: OutcomeGraph | null,
-  options: { authorityProof?: AuthorityProof; allowOverride?: boolean } = {}
+  options: {
+    authorityProof?: AuthorityProof;
+    allowOverride?: boolean;
+    effectiveConfidence?: number;
+  } = {}
 ): Intervention {
   const { authorityProof, allowOverride } = options;
-  const confidence = situation.confidenceAssessment?.confidence ?? 0.25;
+  const confidence =
+    options.effectiveConfidence ?? situation.confidenceAssessment?.confidence ?? 0.25;
   const confidenceLevel = confidence < 0.5 ? "low" : confidence < 0.7 ? "medium" : "high";
 
   let reasoning = "";
@@ -909,8 +924,10 @@ export async function govern(args: {
   // 1. Infer situation (not just intent)
   const situation = await inferSituation(args);
 
-  // 2. Select action based on risk assessment
-  const { action, role, authorityProof, allowOverride } = selectAction(situation);
+  // 2. Load durable controls and select an action using effective confidence.
+  const controls = await getScoutControlState();
+  const { action, role, authorityProof, allowOverride, effectiveConfidence } =
+    selectAction(situation, controls);
 
   // 3. Compose flow if needed
   const outcomeGraph = composeFlow(situation, action);
@@ -919,6 +936,7 @@ export async function govern(args: {
   const intervention = generateIntervention(situation, action, role, outcomeGraph, {
     authorityProof,
     allowOverride,
+    effectiveConfidence,
   });
 
   // 5. Determine if LLM is needed for response text
@@ -932,6 +950,7 @@ export async function govern(args: {
     intervention,
     outcomeGraph,
     confidence: situation.confidence,
+    effectiveConfidence,
     requiresLLM,
   };
 }
