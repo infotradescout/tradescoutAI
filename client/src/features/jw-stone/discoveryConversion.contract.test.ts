@@ -10,10 +10,10 @@ describe("JW Stone discovery and request conversion", () => {
     const hero = read("client/src/features/jw-stone/MarketplaceIntroduction.tsx");
     const firstCut = read("client/src/features/jw-stone/FirstCutSection.tsx");
 
-    expect(hero).toContain("h-[36svh]");
-    expect(hero).toContain("sm:h-[38svh]");
-    expect(hero).toContain("lg:h-[40svh]");
-    expect(firstCut).toContain("aspect-[21/9]");
+    expect(hero).toContain("h-[42svh]");
+    expect(hero).toContain("sm:h-[44svh]");
+    expect(hero).toContain("lg:h-[46svh]");
+    expect(firstCut).toContain("aspect-[12/5]");
     expect(firstCut).toContain("aspect-[3/2]");
   });
 
@@ -41,6 +41,14 @@ describe("JW Stone discovery and request conversion", () => {
     expect(marketplace).toContain("allowCall");
     expect(panel).toContain('aria-label="Back to contact options"');
     expect(panel).toContain('setView("choice")');
+  });
+
+  it("keeps hydrated deep metadata local while keeping schema descriptions factual", () => {
+    const seo = read("client/src/features/jw-stone/JwStoneProfileSeo.tsx");
+
+    expect(seo).toContain("resolveMarketplaceSeo");
+    expect(seo).toContain("marketplaceSeo.structuredDescription");
+    expect(seo).toContain("JW_STONE_STRUCTURED_DESCRIPTION");
   });
 
   it("gives crawlers direct paths to the strongest applicable inventory without exposing economics", () => {

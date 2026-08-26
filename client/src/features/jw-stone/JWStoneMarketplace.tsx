@@ -45,7 +45,9 @@ const JW_STONE_KNOWS_ABOUT = [
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
-    return `${window.location.origin}/`;
+    const pathname = window.location.pathname || "/";
+    const normalizedPath = pathname === "/" ? "/" : pathname.replace(/\/+$/, "");
+    return `${window.location.origin}${normalizedPath}`;
   }
   return "https://www.thetradescout.com/jw-stone";
 }

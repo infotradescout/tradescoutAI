@@ -16,9 +16,9 @@ export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/
 /** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
 export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_URL;
 
-const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
+const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("Natural stone slabs in Pensacola, FL");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+  "Natural stone slabs in Pensacola, Florida: browse named granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt materials from JW Stone Logistics.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
@@ -270,6 +270,20 @@ export function buildPublicJwStoneMarketplaceHtml(
         ? JW_STONE_CUSTOM_DOMAIN_DESCRIPTION
         : JW_STONE_MARKETPLACE_DESCRIPTION;
 
+  const structuredDescription =
+    itemShare && itemShare.hasPublicName
+      ? "View " +
+        itemShare.itemName +
+        (itemShare.category ? " " + itemShare.category : "") +
+        " slab photos from JW Stone Logistics in Pensacola, Florida."
+      : categoryShare
+        ? "Browse " +
+          categoryShare.categoryName +
+          " slab photos from JW Stone Logistics in Pensacola, Florida."
+        : opts.marketplaceDomainSurface
+          ? JW_STONE_CUSTOM_DOMAIN_DESCRIPTION
+          : JW_STONE_MARKETPLACE_DESCRIPTION;
+
   const title = escapeHtml(resolvedTitle);
   const description = escapeHtml(resolvedDescription);
   const canonicalValue = itemShare && !indexable
@@ -350,11 +364,12 @@ ${companySummary}
     ${
       opts.marketplaceDomainSurface
         ? `<h2>Granite, marble, quartzite and specialty slabs for the Gulf Coast</h2>
-    <p>Explore natural stone and engineered quartz photos, save selections, and ask JW Stone to confirm current availability for your project.</p>`
+    <p>Browse granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt slab photos from JW Stone Logistics in Pensacola, Florida. Compare named materials and ask JW Stone what is currently available for your project.</p>`
         : ""
     }
-    <h2>Material Library</h2>
-    <p>Browse JW Stone's reconciled photo catalog by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
+    <h2>Material Library: natural stone slabs in Pensacola, Florida</h2>
+    <p>JW Stone Logistics helps fabricators, builders, architects, designers, and homeowners browse named material photos by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
+    <p>Review named material photos, then ask JW Stone to confirm current pricing or availability for your project.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
     <h2>Browse by material</h2>
     <ul>
@@ -504,7 +519,7 @@ ${companySummary}
         "@context": "https://schema.org",
         "@type": "WebPage",
         name: resolvedTitle,
-        description: resolvedDescription,
+        description: structuredDescription,
         url: canonicalValue,
         image: itemShare.imageUrl,
         isPartOf: { "@type": "CollectionPage", url: collectionUrl },
@@ -513,7 +528,7 @@ ${companySummary}
           ? {
               "@type": "Product",
               name: itemShare.itemName,
-              description: resolvedDescription,
+              description: structuredDescription,
               image: itemShare.imageUrl,
               category: itemShare.category || "Natural stone",
               brand: { "@type": "Brand", name: JW_STONE_PUBLIC_IDENTITY.brandName },
@@ -525,7 +540,7 @@ ${companySummary}
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           name: resolvedTitle,
-          description: resolvedDescription,
+          description: structuredDescription,
           url: categoryShare.canonical,
           image: categoryShare.imageUrl,
           about: organizationJsonLd,
@@ -545,7 +560,7 @@ ${companySummary}
           "@type": "CollectionPage",
           name: opts.marketplaceDomainSurface
             ? JW_STONE_CUSTOM_DOMAIN_TITLE
-            : "JW Stone | Stone Discovery",
+            : "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
           description: opts.marketplaceDomainSurface
             ? JW_STONE_CUSTOM_DOMAIN_DESCRIPTION
             : JW_STONE_MARKETPLACE_DESCRIPTION,
@@ -585,6 +600,12 @@ export function buildJwStoneMarketplaceSitemapXml(origin: string): string {
 
 export function buildJwStoneMarketplaceLlmsText(origin: string): string {
   const publicOrigin = normalizeOrigin(origin);
+  const contentBlocks = [JW_STONE_PUBLIC_DISCOVERY_BLOCK];
+  const categories = listProfileInventoryCategories(
+    JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+    contentBlocks
+  ).filter((category) => category.indexable);
+
   return [
     "# JW Stone Logistics",
     "",
@@ -595,6 +616,16 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "",
     `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
     ...JW_STONE_PUBLIC_IDENTITY.socials.map((social) => `${social.label}: ${social.publicHandle}`),
+    "",
+    "Useful customer entry points:",
+    "- Natural stone slabs in Pensacola: " + publicOrigin + "/",
+    ...categories.map(
+      (category) =>
+        "- " + category.name + " slabs: " + publicOrigin + "/materials/" + category.slug + " — " + category.summary
+    ),
+    "",
+    "Individual named materials:",
+    "- " + publicOrigin + "/stones/{slug}",
     "",
     `Canonical: ${publicOrigin}/`,
     `Robots: ${publicOrigin}/robots.txt`,

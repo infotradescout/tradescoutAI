@@ -82,7 +82,11 @@ import {
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
-import { buildPublicJwStoneMarketplaceHtml } from "./publicJwStoneMarketplaceHtml";
+import {
+  buildJwStoneMarketplaceLlmsText,
+  buildJwStoneMarketplaceSitemapXml,
+  buildPublicJwStoneMarketplaceHtml,
+} from "./publicJwStoneMarketplaceHtml";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
@@ -713,19 +717,25 @@ async function serveCustomDomainProfilePath(
     return true;
   }
   if (path === "/sitemap.xml") {
-    const sitemap = await buildPublicProfileSitemapXml({
-      slug,
-      origin: `https://${host}`,
-    });
+    const sitemap =
+      slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG
+        ? buildJwStoneMarketplaceSitemapXml(`https://${host}`)
+        : await buildPublicProfileSitemapXml({
+            slug,
+            origin: `https://${host}`,
+          });
     if (!sitemap) return false;
     res.type("application/xml").send(sitemap);
     return true;
   }
   if (path === "/llms.txt") {
-    const guidance = await buildPublicProfileLlmsText({
-      slug,
-      origin: `https://${host}`,
-    });
+    const guidance =
+      slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG
+        ? buildJwStoneMarketplaceLlmsText(`https://${host}`)
+        : await buildPublicProfileLlmsText({
+            slug,
+            origin: `https://${host}`,
+          });
     if (!guidance) return false;
     res.type("text/plain").send(guidance);
     return true;
