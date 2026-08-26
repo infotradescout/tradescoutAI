@@ -30,7 +30,7 @@ export function CollageBand({ strips, testId, version = "face-1" }: CollageBandP
               src={`${strip.src}?v=${version}`}
               alt=""
               className="absolute inset-0 h-full w-full object-cover"
-              loading="eager"
+              loading="lazy"
               decoding="async"
             />
           </div>

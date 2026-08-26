@@ -67,6 +67,12 @@ describe("MaterialStonePager", () => {
     expect(track?.className).toMatch(/overscroll-x-contain/);
     expect(track?.className).toContain("[-webkit-overflow-scrolling:touch]");
     expect(track?.className).not.toMatch(/snap-/);
+    expect(track?.className).toMatch(/\bpx-0\b/);
+    const firstItem = track?.querySelector<HTMLElement>('[data-momentum-item="true"]');
+    expect(firstItem?.className).toMatch(/min-w-\[78%\]/);
+    expect(firstItem?.className).toMatch(/sm:min-w-\[56%\]/);
+    expect(firstItem?.className).toMatch(/lg:min-w-\[42%\]/);
+    expect(firstItem?.className).toMatch(/xl:min-w-\[34%\]/);
     expect(track?.querySelectorAll("[data-stone-card]")).toHaveLength(3);
     expect(track?.querySelector('[data-testid="jw-stone-card-photo-dots"]')).toBeNull();
     expect(status?.textContent).toBe("Gray & silver · 1 of 3");

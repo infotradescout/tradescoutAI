@@ -164,9 +164,9 @@ describe("JW Stone public discovery coverage", () => {
     expect(
       categories.map(({ slug, sourceSlug, itemCount }) => ({ slug, sourceSlug, itemCount }))
     ).toEqual([
-      { slug: "granite", sourceSlug: "granite", itemCount: 23 },
-      { slug: "marble", sourceSlug: "marble", itemCount: 25 },
-      { slug: "quartzite", sourceSlug: "quartzite", itemCount: 23 },
+      { slug: "granite", sourceSlug: "granite", itemCount: 26 },
+      { slug: "marble", sourceSlug: "marble", itemCount: 27 },
+      { slug: "quartzite", sourceSlug: "quartzite", itemCount: 25 },
       { slug: "engineered-quartz", sourceSlug: "quartz", itemCount: 9 },
       { slug: "onyx", sourceSlug: "onyx", itemCount: 1 },
       { slug: "soapstone", sourceSlug: "soapstone", itemCount: 2 },

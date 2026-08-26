@@ -70,11 +70,21 @@ describe("JW Stone compact color swatch selector", () => {
     }
   });
 
-  it("uses stone-face collage cues instead of flat paint swatches", () => {
+  it("uses one representative stone-face cue per color instead of composites", () => {
     for (const option of COLOR_SWATCH_OPTIONS) {
-      expect(option.faceSrc).toContain("/color-collage/");
+      expect(option.faceSrc).toContain("/color-slivers/");
       expect(option.faces).toBeNull();
     }
+    expect(COLOR_SWATCH_OPTIONS.map((option) => option.faceSrc)).toEqual([
+      "/images/businesses/jw-stone/color-slivers/alabama-white.webp",
+      "/images/businesses/jw-stone/color-slivers/calacatta-gold.webp",
+      "/images/businesses/jw-stone/color-slivers/blue-dunes.webp",
+      "/images/businesses/jw-stone/color-slivers/preto-sao-gabriel.webp",
+      "/images/businesses/jw-stone/color-slivers/emperor-brown.webp",
+      "/images/businesses/jw-stone/color-slivers/gold-macaubas.webp",
+      "/images/businesses/jw-stone/color-slivers/marbella-green.webp",
+      "/images/businesses/jw-stone/color-slivers/blue-dream.webp",
+    ]);
   });
 
   it("has no All chip; re-click clears color filter", () => {
@@ -163,9 +173,21 @@ describe("JW Stone compact color swatch selector", () => {
       const row = container.querySelector('[data-testid="jw-palette-chip-row"]');
       expect(row).not.toBeNull();
       expect(row?.className).toMatch(/grid/);
-      expect(row?.className).toMatch(/grid-cols-3/);
+      expect(row?.className).toMatch(/grid-cols-2/);
+      expect(row?.className).toMatch(/sm:grid-cols-4/);
+      expect(row?.className).toMatch(/lg:grid-cols-8/);
+      expect(row?.getAttribute("role")).toBe("group");
+      expect(
+        container.querySelector('[data-testid="jw-palette-white"]')?.getAttribute("role")
+      ).toBeNull();
       expect(row?.className).not.toMatch(/overflow-x-auto/);
       expect(row?.className).not.toMatch(/snap-x/);
+      expect(container.textContent).toContain("Browse by Color");
+      expect(
+        container
+          .querySelector('[data-testid="jw-palette-rail-toggle"]')
+          ?.getAttribute("aria-label")
+      ).toBe("Close Browse by Color");
 
       expect(container.querySelector('[data-testid="jw-palette-all"]')).toBeNull();
       expect(container.querySelector('[data-testid="jw-palette-prompt"]')).not.toBeNull();
@@ -255,13 +277,18 @@ describe("JW Stone compact color swatch selector", () => {
 
       const beige = container.querySelector('[data-testid="jw-palette-beige"]');
       expect(beige?.getAttribute("aria-pressed")).toBe("true");
-      expect(beige?.querySelector("img")?.getAttribute("src")).toContain("/color-collage/02-warm");
-      expect(beige?.querySelector("img")?.getAttribute("src")).toContain("v=face-5");
+      expect(beige?.querySelector('[aria-hidden="true"]')?.className).toMatch(/aspect-\[4\/3\]/);
+      expect(beige?.querySelector("img")?.getAttribute("src")).toContain(
+        "/color-slivers/calacatta-gold"
+      );
+      expect(beige?.querySelector("img")?.getAttribute("src")).toContain("v=single-face-1");
       expect(beige?.textContent).toContain("Beige");
       expect(beige?.className).not.toMatch(/bg-\[var\(--jw-accent\)\]/);
 
       const green = container.querySelector('[data-testid="jw-palette-green"]');
-      expect(green?.querySelector("img")?.getAttribute("src")).toContain("/color-collage/06-green");
+      expect(green?.querySelector("img")?.getAttribute("src")).toContain(
+        "/color-slivers/marbella-green"
+      );
 
       act(() => {
         green?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -279,9 +306,7 @@ describe("JW Stone compact color swatch selector", () => {
         container.querySelector('[data-testid="jw-mood-rail"]')?.getAttribute("data-expanded")
       ).toBe("false");
       expect(
-        container
-          .querySelector('[data-testid="jw-mood-rail-toggle"] img')
-          ?.getAttribute("src")
+        container.querySelector('[data-testid="jw-mood-rail-toggle"] img')?.getAttribute("src")
       ).toContain("/story/taj-living-room.webp");
       act(() => {
         container

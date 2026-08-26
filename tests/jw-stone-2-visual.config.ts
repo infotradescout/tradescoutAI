@@ -18,13 +18,14 @@ export default defineConfig({
   webServer: externalBaseURL
     ? undefined
     : {
-        command: "node --import tsx -r dotenv/config server/index.ts",
+        command: `node_modules/.bin/vite --host 127.0.0.1 --port ${port} --strictPort`,
         cwd: repositoryRoot,
         url: `${baseURL}/jw-stone`,
         reuseExistingServer: false,
         timeout: 120_000,
         env: {
-          PORT: port,
+          CHOKIDAR_INTERVAL: "1000",
+          CHOKIDAR_USEPOLLING: "true",
           NODE_ENV: "development",
         },
       },

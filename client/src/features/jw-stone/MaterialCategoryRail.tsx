@@ -141,6 +141,7 @@ export function MaterialCategoryRail({
     () => getMaterialRailItems(catalog, { aesthetic, color }),
     [aesthetic, catalog, color]
   );
+  const activeItem = active ? (items.find((item) => item.materialId === active) ?? null) : null;
 
   useEffect(() => {
     if (!active) return;
@@ -162,12 +163,12 @@ export function MaterialCategoryRail({
       id="jw-material-rail"
       testId="jw-material-rail"
       headingId="jw-material-heading"
-      title="Browse by material"
+      title="Browse by Material"
       defaultExpanded={false}
       background={<MaterialCollageBackground />}
     >
       <ul
-        className="flex flex-col gap-4 sm:gap-5"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7"
         role="list"
         aria-label="Material categories"
         data-testid="jw-material-stack"
@@ -188,9 +189,13 @@ export function MaterialCategoryRail({
                 aria-expanded={expanded}
                 aria-controls={panelId}
                 onClick={() => onSelect(expanded ? null : item.materialId)}
-                className="group relative block w-full overflow-hidden bg-[var(--jw-dark)] text-left"
+                className={`group relative block w-full overflow-hidden bg-[var(--jw-dark)] text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] ${
+                  expanded
+                    ? "ring-2 ring-[var(--jw-accent)] ring-offset-2 ring-offset-[var(--jw-bg)]"
+                    : ""
+                }`}
               >
-                <span className="relative flex min-h-[12rem] items-stretch sm:min-h-[15rem] lg:min-h-[17rem]">
+                <span className="relative flex aspect-[4/3] min-h-[7rem] items-stretch sm:aspect-[5/4] lg:aspect-[4/3]">
                   {item.coverSrc ? (
                     <img
                       src={item.coverSrc}
@@ -202,51 +207,51 @@ export function MaterialCategoryRail({
                   )}
                 </span>
                 <span
-                  className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-4 pb-4 pt-16 sm:px-5 sm:pb-5"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent px-3 pb-3 pt-12 sm:px-4 sm:pb-4"
                   aria-hidden="true"
                 />
-                <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
+                <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 px-3 pb-3 sm:px-4 sm:pb-4">
                   <span>
-                    <span className="block font-editorial text-2xl leading-tight text-white sm:text-3xl">
+                    <span className="block font-editorial text-xl leading-tight text-white sm:text-2xl">
                       {item.materialLabel}
                     </span>
-                    <span className="mt-0.5 block text-sm text-white/85">
+                    <span className="mt-0.5 block text-xs text-white/85 sm:text-sm">
                       {item.count} {item.count === 1 ? "selection" : "selections"}
                     </span>
                   </span>
                 </span>
               </button>
-
-              {expanded ? (
-                <div
-                  id={panelId}
-                  data-testid={`jw-material-stone-rail-${item.materialId}`}
-                  className="mt-3 sm:mt-4"
-                >
-                  {item.stones.length ? (
-                    <MaterialStonePager
-                      materialLabel={item.materialLabel}
-                      stones={item.stones}
-                      isSaved={isSaved}
-                      onToggleSaved={onToggleSaved}
-                      onOpen={onOpen}
-                      onAsk={onAsk}
-                    />
-                  ) : (
-                    <p
-                      className={`text-sm leading-relaxed ${jw.muted}`}
-                      data-testid="jw-material-color-empty"
-                    >
-                      No {item.materialLabel.toLowerCase()} selections match the active color
-                      filter. Clear color in Browse by color, or pick another material.
-                    </p>
-                  )}
-                </div>
-              ) : null}
             </li>
           );
         })}
       </ul>
+
+      {activeItem ? (
+        <div
+          id={`jw-material-panel-${activeItem.materialId}`}
+          data-testid={`jw-material-stone-rail-${activeItem.materialId}`}
+          className="mt-6 border-t border-[var(--jw-border)] pt-5 sm:mt-8 sm:pt-6"
+        >
+          {activeItem.stones.length ? (
+            <MaterialStonePager
+              materialLabel={activeItem.materialLabel}
+              stones={activeItem.stones}
+              isSaved={isSaved}
+              onToggleSaved={onToggleSaved}
+              onOpen={onOpen}
+              onAsk={onAsk}
+            />
+          ) : (
+            <p
+              className={`text-sm leading-relaxed ${jw.muted}`}
+              data-testid="jw-material-color-empty"
+            >
+              No {activeItem.materialLabel.toLowerCase()} selections match the active color filter.
+              Clear color in Browse by Color, or pick another material.
+            </p>
+          )}
+        </div>
+      ) : null}
     </JwCollapsibleSection>
   );
 }

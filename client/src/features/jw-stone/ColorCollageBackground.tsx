@@ -6,5 +6,7 @@ import { COLOR_COLLAGE_STRIPS } from "./storyBackgrounds";
  * static collage band (same stature; title overlay from the section shell).
  */
 export function ColorCollageBackground() {
-  return <CollageBand strips={COLOR_COLLAGE_STRIPS} testId="jw-color-collage" version="face-truth-1" />;
+  return (
+    <CollageBand strips={COLOR_COLLAGE_STRIPS} testId="jw-color-collage" version="single-face-1" />
+  );
 }

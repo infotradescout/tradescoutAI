@@ -4,22 +4,30 @@ import {
   FINISHED_WORK_BRIDGE_BACKGROUND,
   INVENTORY_SECTION_BACKGROUND,
   JW_FINISHED_WORK_PHOTOS,
+  MATERIAL_COLLAGE_STRIPS,
   MATERIAL_SECTION_BACKGROUND,
 } from "./storyBackgrounds";
 
 describe("JW story backgrounds", () => {
-  it("uses face-only color strips; material warehouse + inventory outdoor yard", () => {
+  it("uses one face per color, multiple material faces, and the inventory yard", () => {
     expect(COLOR_COLLAGE_STRIPS).toHaveLength(8);
-    expect(COLOR_COLLAGE_STRIPS.every((strip) => strip.src.includes("/color-collage/"))).toBe(true);
+    expect(COLOR_COLLAGE_STRIPS.every((strip) => strip.src.includes("/color-slivers/"))).toBe(true);
 
     const colorJoined = COLOR_COLLAGE_STRIPS.map((strip) => strip.src).join(" ");
-    expect(colorJoined).toContain("04-black.webp");
-    expect(colorJoined).toContain("07-blue.webp");
-    expect(colorJoined).toContain("09-gold.webp");
-    expect(colorJoined).not.toContain("08-red.webp");
+    expect(colorJoined).toContain("preto-sao-gabriel.webp");
+    expect(colorJoined).toContain("blue-dream.webp");
+    expect(colorJoined).toContain("gold-macaubas.webp");
     expect(colorJoined).not.toContain("/inventory/");
     expect(colorJoined).not.toContain("/inventory-source/");
     expect(colorJoined).not.toContain("/black-pearl/");
+
+    expect(MATERIAL_COLLAGE_STRIPS).toHaveLength(5);
+    expect(MATERIAL_COLLAGE_STRIPS.every((strip) => strip.src.includes("/material-covers/"))).toBe(
+      true
+    );
+    expect(new Set(MATERIAL_COLLAGE_STRIPS.map((strip) => strip.src)).size).toBe(
+      MATERIAL_COLLAGE_STRIPS.length
+    );
 
     expect(MATERIAL_SECTION_BACKGROUND.src).toContain(
       "/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp"

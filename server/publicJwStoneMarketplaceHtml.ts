@@ -246,10 +246,14 @@ ${companySummary}
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
     <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
-    <h2>Material Library</h2>
-    <p>Browse JW Stone's reconciled photo catalog by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
+    <h2>First Cut Exclusives</h2>
+    <p>Explore JW Stone's exclusive stone sourcing selections in the interactive marketplace.</p>
+    <h2>Browse Full Inventory</h2>
+    <p>Browse JW Stone's complete maintained photo catalog. These offerings are not a claim of confirmed physical stock.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
-    <h2>Browse by material</h2>
+    <h2>Browse by Color</h2>
+    <p>Explore the maintained catalog by colors evidenced in the photographed stone.</p>
+    <h2>Browse by Material</h2>
     <ul>
       ${collectionCategoryShares
         .map(

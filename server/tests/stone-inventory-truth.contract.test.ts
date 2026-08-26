@@ -71,20 +71,26 @@ describe("stone inventory truth and freshness", () => {
     expect(STONE_CURRENT_INVENTORY_VERIFIED_STATUS).toBe("verified");
   });
 
-  it("presents JW's static catalog as a Material Library", () => {
+  it("presents JW's maintained catalog as Browse Full Inventory", () => {
     const presentation = read("client/src/data/jwStoneProfilePresentation.ts");
     const collection = read("client/src/features/jw-stone/StoneCollection.tsx");
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const crawlerHtml = read("server/publicJwStoneMarketplaceHtml.ts");
 
-    expect(presentation).toContain('inventoryTitle: "Material Library"');
-    expect(presentation).toContain("material library");
+    expect(presentation).toContain('inventoryTitle: "Browse Full Inventory"');
+    expect(presentation).toContain("full inventory");
+    expect(presentation).not.toContain("Material Library");
     expect(presentation).not.toContain("· current inventory");
-    expect(collection).toContain('title="Material Library"');
-    expect(collection).toContain('id="material-library"');
-    expect(collection).not.toContain('title="Full inventory"');
+    expect(collection).toContain('title="Browse Full Inventory"');
+    expect(collection).toContain('id="current-inventory"');
+    expect(collection).not.toContain('title="Material Library"');
     expect(marketplace).toContain("<CurrentInventorySection");
-    expect(crawlerHtml).toContain("<h2>Material Library</h2>");
+    expect(crawlerHtml).toContain("<h2>First Cut Exclusives</h2>");
+    expect(crawlerHtml).toContain("<h2>Browse Full Inventory</h2>");
+    expect(crawlerHtml).toContain("<h2>Browse by Color</h2>");
+    expect(crawlerHtml).toContain("<h2>Browse by Material</h2>");
+    expect(crawlerHtml).not.toContain("<h2>Material Library</h2>");
+    expect(crawlerHtml).not.toContain("<h2>New Arrivals</h2>");
     expect(crawlerHtml).not.toContain("Browse current selections by photo");
   });
 

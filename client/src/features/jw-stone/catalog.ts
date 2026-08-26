@@ -1,13 +1,13 @@
 import type { JwStoneInventoryStone } from "@/data/jwStoneInventory";
 import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import { getColorDirectionForStone } from "./colorDirections";
-import { rankImagePathsForCover, reorderParallelByPermutation } from "./coverImages";
-import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
 import {
-  getColorsForStone,
-  getStoneColorLabel,
-  getSwatchesForStone,
-} from "./stoneColors";
+  rankImagePathsForCover,
+  remapShareImageOrder,
+  reorderParallelByPermutation,
+} from "./coverImages";
+import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
+import { getColorsForStone, getStoneColorLabel, getSwatchesForStone } from "./stoneColors";
 import type {
   CatalogFilterOption,
   CatalogFilters,
@@ -69,7 +69,11 @@ export function projectJwStoneCatalogItem(args: {
   // cleaner face exists (cover ranking already enforces that).
   const coverPermutation = rankImagePathsForCover(stone.images, { stoneSlug: stone.slug });
   const images = coverPermutation.map((oldIndex) => stone.images[oldIndex]!);
-  const shareImageOrder = images.map((_, index) => index);
+  const shareImageOrder = remapShareImageOrder(
+    stone.shareImageOrder,
+    coverPermutation,
+    stone.images.length
+  );
   const imageFinishes = reorderParallelByPermutation(stone.imageFinishes, coverPermutation);
 
   return Object.freeze({

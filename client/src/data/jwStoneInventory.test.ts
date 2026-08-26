@@ -17,7 +17,6 @@ describe("JW Stone reconciled inventory", () => {
       "artemis",
       "calacatta-corchia",
       "calacatta-cremo",
-      "ceara-white",
       "emerald-pearl",
       "new-caledonia",
       "steel-gray",
@@ -25,6 +24,9 @@ describe("JW Stone reconciled inventory", () => {
       expect(bySlug.get(slug)?.materialStatus).toBe("published_source");
       expect(bySlug.get(slug)?.sourceNote).toContain("https://");
     }
+    expect(bySlug.get("ceara-white")?.materialStatus).toBe("unconfirmed");
+    expect(bySlug.get("ceara-white")?.categorySlug).toBe("unconfirmed");
+    expect(bySlug.get("ceara-white")?.sourceNote).not.toContain("https://");
     expect(bySlug.get("artemis")?.categorySlug).toBe("quartzite");
     expect(bySlug.get("calacatta-corchia")?.categorySlug).toBe("marble");
   });
@@ -47,7 +49,7 @@ describe("JW Stone reconciled inventory", () => {
 
   it("keeps every usable source image while isolating uncertain photos", () => {
     const trending = stones.filter((stone) => stone.categorySlug === "unconfirmed");
-    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(127);
+    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(130);
     expect(stones.find((stone) => stone.slug === "honey-onyx")?.images).toHaveLength(6);
     expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(25);
   });
@@ -89,7 +91,7 @@ describe("JW Stone reconciled inventory", () => {
     const sourceNamed = materialToConfirm.filter((stone) => stone.nameStatus === "source");
     const syntheticGroups = materialToConfirm.filter((stone) => stone.nameStatus === "placeholder");
 
-    expect(sourceNamed).toHaveLength(25);
+    expect(sourceNamed).toHaveLength(26);
     expect(syntheticGroups).toHaveLength(38);
     expect(syntheticGroups.every((stone) => stone.displayName === null)).toBe(true);
 

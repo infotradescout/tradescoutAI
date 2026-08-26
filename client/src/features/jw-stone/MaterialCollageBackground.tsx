@@ -1,23 +1,16 @@
-import { MATERIAL_SECTION_BACKGROUND } from "./storyBackgrounds";
+import { CollageBand } from "./CollageBand";
+import { MATERIAL_COLLAGE_STRIPS } from "./storyBackgrounds";
 
 /**
- * Browse-by-material collapsed-row atmosphere: warehouse slab yard (distinct
- * from color face strips and full-inventory outdoor yard photo).
+ * Browse-by-material collapsed-row atmosphere: distinct material faces rather
+ * than one slab. The shared band keeps these below-fold images lazy.
  */
 export function MaterialCollageBackground() {
   return (
-    <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-      data-testid="jw-material-collage"
-      aria-hidden="true"
-    >
-      <img
-        src={MATERIAL_SECTION_BACKGROUND.src}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-        loading="eager"
-        decoding="async"
-      />
-    </div>
+    <CollageBand
+      strips={MATERIAL_COLLAGE_STRIPS}
+      testId="jw-material-collage"
+      version="material-faces-1"
+    />
   );
 }

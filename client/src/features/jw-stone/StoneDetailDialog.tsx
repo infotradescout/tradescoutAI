@@ -109,14 +109,18 @@ export function StoneDetailDialog({
                   data-momentum-item="true"
                   data-testid={`jw-stone-detail-photo-${index}`}
                   className="flex h-full min-w-full flex-none items-center justify-center overflow-hidden"
-                  aria-label={`Photo ${index + 1} of ${imageCount}`}
+                  aria-label={imageCount > 1 ? `Photo ${index + 1} of ${imageCount}` : undefined}
                 >
                   <img
                     src={image}
                     alt={
                       stone.displayName
-                        ? `${stone.displayName} stone, view ${index + 1}`
-                        : `JW Stone selection, view ${index + 1}`
+                        ? `${stone.displayName} stone photograph${
+                            imageCount > 1 ? `, view ${index + 1} of ${imageCount}` : ""
+                          }`
+                        : `JW Stone selection photograph${
+                            imageCount > 1 ? `, view ${index + 1} of ${imageCount}` : ""
+                          }`
                     }
                     draggable={false}
                     className="h-full w-full select-none object-contain"
@@ -192,7 +196,8 @@ export function StoneDetailDialog({
                 {stone.displayName || stone.publicLabel}
               </DialogTitle>
               <DialogDescription className="sr-only">
-                Image {imageIndex + 1} of {imageCount}. Confirmed stone details and inquiry.
+                {imageCount > 1 ? `Image ${imageIndex + 1} of ${imageCount}. ` : ""}
+                Confirmed stone details and inquiry.
               </DialogDescription>
 
               {hasConfirmedFacts ? (

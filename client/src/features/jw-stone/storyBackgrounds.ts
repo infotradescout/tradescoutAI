@@ -36,42 +36,71 @@ type CollageStrip = Readonly<{
 }>;
 
 /**
- * Browse-by-color atmosphere: pre-cropped stone-face strips (no yard chrome).
+ * Browse-by-color atmosphere: one clean representative face per color family
+ * (no yard chrome and no multi-stone composite inside an individual strip).
  * Available picker colors L→R: white → beige → gray → black → brown → gold → green → blue.
- * Assets built by tmp/build-color-collage-faces.mjs into color-collage/.
+ * The same representative slivers are used by the expanded color picker.
  */
 export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
   {
-    src: "/images/businesses/jw-stone/color-collage/01-white.webp",
+    src: "/images/businesses/jw-stone/color-slivers/alabama-white.webp",
     alt: "White stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/02-warm.webp",
+    src: "/images/businesses/jw-stone/color-slivers/calacatta-gold.webp",
     alt: "Beige stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/03-gray.webp",
+    src: "/images/businesses/jw-stone/color-slivers/blue-dunes.webp",
     alt: "Gray stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/04-black.webp",
+    src: "/images/businesses/jw-stone/color-slivers/preto-sao-gabriel.webp",
     alt: "Black stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/05-brown.webp",
+    src: "/images/businesses/jw-stone/color-slivers/emperor-brown.webp",
     alt: "Brown stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/09-gold.webp",
+    src: "/images/businesses/jw-stone/color-slivers/gold-macaubas.webp",
     alt: "Gold stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/06-green.webp",
+    src: "/images/businesses/jw-stone/color-slivers/marbella-green.webp",
     alt: "Green stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/07-blue.webp",
+    src: "/images/businesses/jw-stone/color-slivers/blue-dream.webp",
     alt: "Blue stone face",
+  },
+]);
+
+/**
+ * Browse-by-material atmosphere: a concise run of distinct real material-face
+ * covers. Five strips communicate variety while staying lighter than the old
+ * single raw warehouse frame; CollageBand defers them until near the viewport.
+ */
+export const MATERIAL_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
+  {
+    src: "/images/businesses/jw-stone/material-covers/granite.webp",
+    alt: "Granite stone face",
+  },
+  {
+    src: "/images/businesses/jw-stone/material-covers/marble.webp",
+    alt: "Marble stone face",
+  },
+  {
+    src: "/images/businesses/jw-stone/material-covers/quartzite.webp",
+    alt: "Quartzite stone face",
+  },
+  {
+    src: "/images/businesses/jw-stone/material-covers/quartz.webp",
+    alt: "Quartz stone face",
+  },
+  {
+    src: "/images/businesses/jw-stone/material-covers/onyx.webp",
+    alt: "Onyx stone face",
   },
 ]);
 

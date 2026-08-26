@@ -18,11 +18,6 @@ export const JW_STONE_VERIFIED_ORIGIN_BY_SLUG: Readonly<Record<string, VerifiedO
       verified: true,
       source: "https://arcsurfaces.com/live-inventory/calacatta-cremo/19215/",
     }),
-    "ceara-white": Object.freeze({
-      country: "Brazil",
-      verified: true,
-      source: "https://www.msisurfaces.com/granite/ceara-white/",
-    }),
     "emerald-pearl": Object.freeze({
       country: "Norway",
       verified: true,
@@ -36,6 +31,7 @@ export const JW_STONE_VERIFIED_ORIGIN_BY_SLUG: Readonly<Record<string, VerifiedO
     "steel-gray": Object.freeze({
       country: "India",
       verified: true,
-      source: "https://www.regattagranitesindia.com/steel-grey-granite-a-low-variation-durable-granite/",
+      source:
+        "https://www.regattagranitesindia.com/steel-grey-granite-a-low-variation-durable-granite/",
     }),
   });

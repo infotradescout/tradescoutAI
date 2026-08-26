@@ -14,7 +14,7 @@ export function InventoryCollageBackground() {
       <img
         src={INVENTORY_SECTION_BACKGROUND.src}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover object-bottom"
+        className="absolute inset-0 h-full w-full object-cover object-[22%_center] sm:object-[35%_60%] lg:object-[50%_70%]"
         loading="eager"
         decoding="async"
       />

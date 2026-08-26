@@ -94,9 +94,11 @@ export function StoneCard({
 
   const photoAlt = (index: number) =>
     stone.displayName
-      ? `${stone.displayName} stone photograph${imageCount > 1 ? `, view ${index + 1} of ${imageCount}` : ""}`
+      ? `${stone.displayName} stone photograph${
+          hasPhotoRail ? `, view ${index + 1} of ${galleryCount}` : ""
+        }`
       : `Stone selection photograph from JW Stone${
-          imageCount > 1 ? `, view ${index + 1} of ${imageCount}` : ""
+          hasPhotoRail ? `, view ${index + 1} of ${galleryCount}` : ""
         }`;
 
   return (
@@ -129,21 +131,12 @@ export function StoneCard({
               data-testid={`jw-stone-card-photo-${index}`}
               onClick={() => onOpen(stone)}
               className="relative block h-full min-w-full flex-none overflow-hidden"
-              aria-label={`Open ${stone.publicLabel}, photo ${index + 1} of ${imageCount}`}
+              aria-label={
+                hasPhotoRail
+                  ? `Open ${stone.publicLabel}, photo ${index + 1} of ${galleryCount}`
+                  : `Open ${stone.publicLabel}`
+              }
             >
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-6 bg-cover bg-center opacity-35 blur-2xl saturate-75"
-                style={
-                  nearViewport && requestedImageIndexes.has(index)
-                    ? { backgroundImage: `url(${image})` }
-                    : undefined
-                }
-              />
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-black/15"
-              />
               <img
                 src={nearViewport && requestedImageIndexes.has(index) ? image : undefined}
                 alt={photoAlt(index)}
@@ -168,7 +161,7 @@ export function StoneCard({
                     target.src = `${image}${separator}jw_retry=${nextRetry}`;
                   }, retryDelayMs);
                 }}
-                className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain p-1.5 sm:p-2"
+                className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-center"
               />
             </button>
           ))}
@@ -184,7 +177,7 @@ export function StoneCard({
               saved ? " from" : " to"
             } saved stones`}
             aria-pressed={saved}
-            className="absolute right-2.5 top-2.5 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/45 bg-[var(--jw-bg)]/92 text-[var(--jw-ink)] shadow-[0_10px_28px_rgba(0,0,0,0.18)] backdrop-blur-md transition-[background-color,transform] hover:bg-[var(--jw-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 sm:right-3 sm:top-3 sm:h-11 sm:w-11"
+            className="absolute right-2.5 top-2.5 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/45 bg-[var(--jw-bg)]/92 text-[var(--jw-ink)] shadow-[0_10px_28px_rgba(0,0,0,0.18)] backdrop-blur-md transition-[background-color,transform] hover:bg-[var(--jw-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 sm:right-3 sm:top-3"
           >
             {saved ? (
               <BookmarkCheck className="h-5 w-5 text-[var(--jw-accent)]" aria-hidden="true" />
@@ -196,29 +189,14 @@ export function StoneCard({
 
         {hasPhotoRail ? (
           <div
-            className="pointer-events-none absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/15 bg-black/35 px-2.5 py-2 shadow-lg backdrop-blur-md"
-            data-testid="jw-stone-card-photo-dots"
-            role="group"
-            aria-label={`Photo ${imageIndex + 1} of ${imageCount}`}
+            className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/15 bg-black/50 px-2.5 py-1.5 text-[10px] font-bold tabular-nums tracking-[0.14em] text-white shadow-lg backdrop-blur-md"
+            data-testid="jw-stone-card-photo-indicator"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            aria-label={`Photo ${imageIndex + 1} of ${galleryCount}`}
           >
-            {visibleImages.map((image, index) => (
-              <button
-                key={`${image}-${index}`}
-                type="button"
-                data-testid={`jw-stone-card-photo-dot-${index}`}
-                aria-label={`Show photo ${index + 1} of ${imageCount}`}
-                aria-current={index === imageIndex ? "true" : undefined}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  scrollToIndex(index);
-                }}
-                className={`pointer-events-auto h-1.5 rounded-full transition-[width,background-color,opacity] duration-300 ${
-                  index === imageIndex
-                    ? "w-5 bg-white opacity-100"
-                    : "w-1.5 bg-white/60 opacity-80 hover:opacity-100"
-                }`}
-              />
-            ))}
+            {imageIndex + 1} / {galleryCount}
           </div>
         ) : null}
 
@@ -273,7 +251,7 @@ export function StoneCard({
           <button
             type="button"
             onClick={() => onOpen(stone)}
-            className="inline-flex min-h-10 items-center justify-center border border-[var(--jw-border-strong)] px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--jw-ink)] transition-colors hover:border-[var(--jw-ink)] sm:text-[11px]"
+            className="inline-flex min-h-11 items-center justify-center border border-[var(--jw-border-strong)] px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--jw-ink)] transition-colors hover:border-[var(--jw-ink)] sm:text-[11px]"
           >
             View stone
           </button>
@@ -288,14 +266,14 @@ export function StoneCard({
               }
               imageUrl={selectedImage}
               label="Share"
-              className="inline-flex min-h-10 items-center justify-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--jw-ink)] sm:text-[11px]"
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--jw-ink)] sm:text-[11px]"
             />
           ) : null}
           {stone.wishlistEligible ? (
             <button
               type="button"
               onClick={() => onAsk(stone)}
-              className={`inline-flex min-h-10 items-center justify-center gap-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] sm:px-4 sm:text-[11px] ${jw.accentCta}`}
+              className={`inline-flex min-h-11 items-center justify-center gap-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] sm:px-4 sm:text-[11px] ${jw.accentCta}`}
             >
               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
               Ask

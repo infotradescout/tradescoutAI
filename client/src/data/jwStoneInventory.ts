@@ -106,10 +106,6 @@ const PUBLISHED_MATERIAL_BY_SLUG: Readonly<Record<string, PublishedMaterialEvide
     categorySlug: "marble",
     source: "https://arcsurfaces.com/live-inventory/calacatta-cremo/19215/",
   },
-  "ceara-white": {
-    categorySlug: "granite",
-    source: "https://www.msisurfaces.com/granite/ceara-white/",
-  },
   "emerald-pearl": {
     categorySlug: "granite",
     source: "https://www.greatlakesgm.com/products/emerald-pearl-granite/",
@@ -120,7 +116,8 @@ const PUBLISHED_MATERIAL_BY_SLUG: Readonly<Record<string, PublishedMaterialEvide
   },
   "steel-gray": {
     categorySlug: "granite",
-    source: "https://www.regattagranitesindia.com/steel-grey-granite-a-low-variation-durable-granite/",
+    source:
+      "https://www.regattagranitesindia.com/steel-grey-granite-a-low-variation-durable-granite/",
   },
 };
 
@@ -191,11 +188,11 @@ function projectStone(generated: GeneratedJwStoneRecord): JwStoneInventoryStone 
         ? "Material confirmed during JW Stone reconciliation."
         : status === "published_source"
           ? `Material stated by an independent stone supplier: ${publishedMaterial!.source}`
-        : status === "filename"
-          ? "Material stated in the source filename."
-          : status === "source_folder"
-            ? "Material follows the JW Stone source folder; finish remains separate evidence."
-            : "Source material is conflicting or absent; confirmation required.",
+          : status === "filename"
+            ? "Material stated in the source filename."
+            : status === "source_folder"
+              ? "Material follows the JW Stone source folder; finish remains separate evidence."
+              : "Source material is conflicting or absent; confirmation required.",
   };
 }
 

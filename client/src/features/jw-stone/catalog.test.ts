@@ -48,6 +48,35 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(getCatalogItemById("trending-selection-01")?.slabDimensions).toBe('126×76"');
   });
 
+  it("publishes every catalog image URL exactly once", () => {
+    const imageUrls = JW_STONE_CATALOG.flatMap((stone) => stone.images);
+    expect(new Set(imageUrls).size).toBe(imageUrls.length);
+  });
+
+  it("preserves stable share ordinals when cover ranking changes display order", () => {
+    const canonical = canonicalStones.find(({ stone }) => stone.slug === "alabama-white")?.stone;
+    const projected = getCatalogItemById("alabama-white");
+    expect(canonical?.shareImageOrder).toBeTruthy();
+    expect(projected?.shareImageOrder).toBeTruthy();
+    if (!canonical?.shareImageOrder || !projected?.shareImageOrder || !projected) {
+      throw new Error("Expected Alabama White share ordering");
+    }
+
+    expect(projected.images[0]).not.toBe(canonical.images[0]);
+    canonical.shareImageOrder.forEach((sourceDisplayIndex, shareOrdinal) => {
+      const projectedDisplayIndex = projected.shareImageOrder?.[shareOrdinal];
+      expect(projectedDisplayIndex).toBeTypeOf("number");
+      if (projectedDisplayIndex === undefined) {
+        throw new Error(`Missing projected display index for share ordinal ${shareOrdinal}`);
+      }
+      expect(projected.images[projectedDisplayIndex]).toBe(canonical.images[sourceDisplayIndex]);
+    });
+
+    const withoutStableOrder = canonicalStones.find(({ stone }) => stone.slug === "black-pearl");
+    expect(withoutStableOrder?.stone.shareImageOrder).toBeUndefined();
+    expect(getCatalogItemById("black-pearl")?.shareImageOrder).toBeUndefined();
+  });
+
   it("keeps released item slugs bound to their original photographed stones", () => {
     expect(getCatalogItemById("soapstone")?.id).toBe("marina-black-soapstone");
     expect(getNamedCatalogItemByShareSlug("soapstone")?.id).toBe("marina-black-soapstone");
@@ -178,13 +207,14 @@ describe("JW Stone 2.0 catalog projection", () => {
   });
 
   it("publishes only explicitly sourced origins and rejects unverified fixtures", () => {
-    expect(JW_STONE_CATALOG.filter((stone) => stone.origin !== null)).toHaveLength(7);
+    expect(JW_STONE_CATALOG.filter((stone) => stone.origin !== null)).toHaveLength(6);
     expect(getOriginFilterOptions()).toEqual([
-      { value: "brazil", label: "Brazil", count: 3 },
+      { value: "brazil", label: "Brazil", count: 2 },
       { value: "india", label: "India", count: 1 },
       { value: "italy", label: "Italy", count: 2 },
       { value: "norway", label: "Norway", count: 1 },
     ]);
+    expect(getCatalogItemById("ceara-white")?.origin).toBeNull();
     expect(resolveVerifiedOrigin(null)).toBeNull();
     expect(
       resolveVerifiedOrigin({ country: "Brazil", verified: false, source: "supplier" })

@@ -175,9 +175,22 @@ describe("StoneDetailDialog", () => {
     );
 
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    const figure = dialog?.querySelector<HTMLElement>('[data-testid="jw-stone-detail-photo-0"]');
+    const image = figure?.querySelector("img");
+    const descriptionId = dialog?.getAttribute("aria-describedby");
+    const description = descriptionId ? document.getElementById(descriptionId) : null;
+    expect(dialog?.querySelectorAll('[data-momentum-item="true"]')).toHaveLength(1);
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-prev"]')).toBeNull();
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]')).toBeNull();
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumbs"]')).toBeNull();
+    expect(figure?.getAttribute("aria-label")).toBeNull();
+    expect(image?.getAttribute("alt")).not.toMatch(/view 1|1 of 1/i);
+    expect(description?.textContent).not.toMatch(/image 1 of 1/i);
+    expect(dialog?.textContent).not.toMatch(/1 \/ 1/);
+    const accessibleLabels = Array.from(
+      dialog?.querySelectorAll<HTMLElement>("[aria-label]") || []
+    ).map((element) => element.getAttribute("aria-label") || "");
+    expect(accessibleLabels.some((label) => /1 of 1/i.test(label))).toBe(false);
   });
 
   it("keeps Ask and Share for First Cut photos without Save or invented specs", () => {

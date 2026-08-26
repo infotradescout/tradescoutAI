@@ -92,19 +92,29 @@ describe("JW Stone marketplace public HTML", () => {
 
   it("renders useful inventory crawl paths and an Express-gated request path", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
+    const article = html.match(/<article>([\s\S]*?)<\/article>/)?.[1] ?? "";
+    const discoveryHeadings = Array.from(
+      article.matchAll(/<h2>([^<]+)<\/h2>/g),
+      (match) => match[1]
+    );
 
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
     expect(html).toContain('data-seo-jw-stone-company="true"');
-    expect(html).toContain("Material Library");
+    expect(discoveryHeadings).toEqual([
+      "First Cut Exclusives",
+      "Browse Full Inventory",
+      "Browse by Color",
+      "Browse by Material",
+    ]);
+    expect(html).not.toContain("Material Library");
+    expect(html).not.toContain("Browse by Mood");
     expect(html).toContain("not a claim of confirmed physical stock");
     expect(html).not.toContain("Browse current selections by photo");
-    expect(html).toContain("by material, aesthetic, or color");
     expect(html).toContain("Saving never starts a request");
     expect(html).toContain("About JW Stone");
     expect(html).toContain(
       "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone"
     );
-    expect(html).toContain("Browse by material");
     expect(html).toContain("/jw-stone/materials/granite");
     expect(html).toContain("request=collection");
     expect(html).toContain("Start a JW Stone request");
