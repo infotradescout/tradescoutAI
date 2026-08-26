@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getAnalytics } from "../services/adminAnalytics";
 import { scoutBrandGuardrails } from "../services/scoutBrandGuardrails";
 import { scoutExecutiveBriefs } from "../services/scoutExecutiveBriefs";
-import { scoutHeatmapIntelligence } from "../services/scoutHeatmapIntelligence";
+import { ScoutHeatmapIntelligence } from "../services/scoutHeatmapIntelligence";
 import {
   scoutLisaActionHooks,
   setupScoutLisaActionHooks,
@@ -12,7 +12,7 @@ import {
   setupScoutLisaHooks,
 } from "../services/scoutLisaIntegration";
 import ScoutOutboundDispatcher from "../services/scoutOutboundDispatcher";
-import { scoutVisualFileSorting } from "../services/scoutVisualFileSorting";
+import { ScoutVisualFileSorting } from "../services/scoutVisualFileSorting";
 import ScoutWatchdog from "../services/scoutWatchdog";
 
 describe("production-debt runtime behavior", () => {
@@ -32,10 +32,57 @@ describe("production-debt runtime behavior", () => {
     ).toThrow(/durable brand-partitioned intelligence repository/i);
   });
 
-  it("rejects fabricated heatmap, brief, and LISA operations", async () => {
-    await expect(
-      scoutHeatmapIntelligence.getCountyIntelligence("48453")
-    ).rejects.toMatchObject({ code: "RUNTIME_CAPABILITY_UNAVAILABLE" });
+  it("derives heatmap evidence without fabricating signals and rejects unavailable operations", async () => {
+    const database = {
+      query: async (sql: string) => {
+        const normalized = sql.replace(/\s+/g, " ");
+        if (normalized.includes("contractor_counties")) {
+          return { rows: [{ fips: "48453", total: 3, active: 2 }] };
+        }
+        if (normalized.includes(" FROM users")) {
+          return {
+            rows: [
+              {
+                fips: "48453",
+                total: 8,
+                homeowners: 5,
+                contractors: 3,
+                recent: 4,
+              },
+            ],
+          };
+        }
+        if (normalized.includes(" FROM county_notes")) {
+          return { rows: [{ fips: "48453", category: "permit", count: 2 }] };
+        }
+        if (normalized.includes(" FROM counties")) {
+          return { rows: [{ fips: "48453", name: "Travis", state_code: "TX" }] };
+        }
+        throw new Error(`Unhandled heatmap query: ${normalized}`);
+      },
+    };
+    const fileReader = {
+      getCountyFilesBatch: async () => new Map(),
+    };
+    const heatmap = new ScoutHeatmapIntelligence(database as any, fileReader as any);
+
+    await expect(heatmap.getCountyIntelligence("48453")).resolves.toMatchObject({
+      opportunities: [],
+      risks: [],
+      metrics: {
+        activityScore: 6,
+        opportunityScore: null,
+        dataCompleteness: 75,
+        trendDirection: null,
+        competitionLevel: null,
+      },
+      evidence: {
+        source: "database",
+        opportunityEvidenceAvailable: false,
+        riskEvidenceAvailable: false,
+        rankingEvidenceAvailable: false,
+      },
+    });
     await expect(
       scoutExecutiveBriefs.generateWeeklyBrief()
     ).rejects.toMatchObject({ code: "RUNTIME_CAPABILITY_UNAVAILABLE" });
@@ -76,18 +123,32 @@ describe("production-debt runtime behavior", () => {
     });
   });
 
-  it("rejects process-local visual assignment state", async () => {
+  it("never falls back to process-local visual assignment state", async () => {
+    const missingTable = Object.assign(new Error("assignment table unavailable"), {
+      code: "42P01",
+    });
+    const database = {
+      query: async () => {
+        throw missingTable;
+      },
+      connect: async () => ({
+        query: async () => {
+          throw missingTable;
+        },
+        release: () => undefined,
+      }),
+    };
+    const fileSorting = new ScoutVisualFileSorting(database as any);
+
     await expect(
-      scoutVisualFileSorting.assignFileToCounty(
-        "file",
+      fileSorting.assignFileToCounty(
+        "document-1",
         "48453",
-        "user"
+        "admin-1"
       )
-    ).rejects.toMatchObject({ code: "RUNTIME_CAPABILITY_UNAVAILABLE" });
-    expect(scoutVisualFileSorting.getStatistics()).toMatchObject({
-      available: false,
-      durable: false,
-      totalAssignments: 0,
+    ).rejects.toMatchObject({
+      code: "SCOUT_FILE_ASSIGNMENT_STORAGE_UNAVAILABLE",
+      statusCode: 503,
     });
   });
 
