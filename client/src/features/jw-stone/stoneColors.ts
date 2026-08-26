@@ -9,6 +9,7 @@
  * photographed hues — not sampled from the photo.
  */
 import dominantColors from "@/data/jwStoneDominantColors.generated.json";
+import reviewedOverrides from "@/data/jwStoneColorOverrides.json";
 
 export const STONE_COLOR_VOCABULARY = [
   { id: "white", label: "White" },
@@ -35,6 +36,7 @@ type DominantColorStone = {
   cover: string | null;
   swatches: ReadonlyArray<{ hex: string; bucket: string }>;
   buckets: readonly string[];
+  sample?: { mode?: string; confidence?: number } | null;
 };
 
 type DominantColorFile = {
@@ -46,31 +48,18 @@ const PALETTE_BY_ID = (dominantColors as DominantColorFile).stones;
 const MAX_STONE_SWATCHES = 5;
 const MAX_PAIRING_SWATCHES = 4;
 
-/**
- * Face-true color bucket overrides when cover sampling still picks up yard /
- * floor / sky / clamp chrome instead of the stone face. When set, these buckets
- * fully replace photographed filter buckets (surround chrome must not linger).
- * Never invent hex swatches here.
- */
+type ReviewedOverride = { categories: readonly string[]; disposition: string; reason: string };
+
+/** Small, declared set of image-reviewed corrections; undeclared overrides are forbidden. */
 export const JW_STONE_FACE_TRUE_COLOR_OVERRIDES: Readonly<Record<string, readonly StoneColorId[]>> =
-  Object.freeze({
-    "mexican-brown": Object.freeze(["brown", "gray"] as const),
-    "chocolate-brown": Object.freeze(["brown", "black"] as const),
-    dueto: Object.freeze(["brown", "black"] as const),
-    "pinta-verde": Object.freeze(["green", "white"] as const),
-    "blue-bahia": Object.freeze(["blue", "gray"] as const),
-    "emerald-pearl": Object.freeze(["green", "black"] as const),
-    // Dark faces misread as light gray/white or blue from outdoor glare.
-    "preto-sao-gabriel": Object.freeze(["black", "gray"] as const),
-    "venta-black": Object.freeze(["black", "blue"] as const),
-    // Emperor Brown's photographed face is brown; clamp/sky sampling returned gold/white.
-    "emperor-brown": Object.freeze(["brown", "beige"] as const),
-    "fusion-yellow": Object.freeze(["yellow", "gold", "black"] as const),
-    // Soft white faces misread as blue from yard/sky wash or hand-close chrome.
-    "alabama-white": Object.freeze(["white", "gray"] as const),
-    "dallas-white": Object.freeze(["white", "gray"] as const),
-    "namib-fantasy": Object.freeze(["white", "gray"] as const),
-  });
+  Object.freeze(
+    Object.fromEntries(
+      Object.entries(reviewedOverrides as Record<string, ReviewedOverride>).map(([slug, entry]) => [
+        slug,
+        Object.freeze(entry.categories.filter(isStoneColorId)),
+      ])
+    )
+  );
 
 export function isStoneColorId(value: unknown): value is StoneColorId {
   return typeof value === "string" && COLOR_IDS.has(value);
@@ -96,24 +85,22 @@ export function getSwatchesForStone(stoneId: string): readonly StoneColorSwatch[
 }
 
 /**
- * Filter buckets derived from the photographed palette.
+ * Filter bucket derived from the photographed palette's dominant face color.
  * Empty only when the stone has no sampled cover data.
  * Face-true overrides fully replace photographed buckets when surround chrome
  * washed the face hue (so a wrong "blue" cannot linger beside "white").
  */
 export function getColorsForStone(stoneId: string): readonly StoneColorId[] {
-  const override = JW_STONE_FACE_TRUE_COLOR_OVERRIDES[stoneId];
-  if (override?.length) return Object.freeze([...override]);
-
   const raw = PALETTE_BY_ID[stoneId];
-  if (!raw) return Object.freeze([]);
-  const fromBuckets = (raw.buckets ?? []).filter(isStoneColorId);
-  if (fromBuckets.length) return Object.freeze(fromBuckets);
-  return Object.freeze(
-    asSwatches(raw)
-      .map((swatch) => swatch.bucket)
-      .filter((bucket, index, list) => list.indexOf(bucket) === index)
-  );
+  if (!raw?.sample) return Object.freeze([]);
+  const override = JW_STONE_FACE_TRUE_COLOR_OVERRIDES[stoneId];
+  if (override?.length) return override;
+  // A stone may contain light veins or isolated warm flecks, but those must not
+  // place a visibly dark slab in Beige (or vice versa). Automatic membership is
+  // therefore limited to the most prevalent sampled slab-face cluster. Only a
+  // visually reviewed override may intentionally declare multiple families.
+  const dominant = asSwatches(raw)[0]?.bucket;
+  return dominant ? Object.freeze([dominant]) : Object.freeze([]);
 }
 
 function clamp01(value: number): number {

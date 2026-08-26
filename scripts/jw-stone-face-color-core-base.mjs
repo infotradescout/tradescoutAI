@@ -225,9 +225,13 @@ export function detectSlabFaceBoxFromRaw(data, info, { handBias = false } = {}) 
   // Inset aggressively. The resulting sample is the slab core, never its border.
   // This is what prevents sky, trees, gravel, racks, clamps and neighboring slabs
   // from becoming shopper-facing stone colors.
-  const insetX = Math.round(outer.width * 0.18);
-  const insetTop = Math.round(outer.height * 0.22);
-  const insetBottom = Math.round(outer.height * 0.2);
+  // The lifting clamp and its shadow usually occupy the upper quarter of a
+  // correctly detected slab. Stay in the lower-middle face so those pixels do
+  // not become shopper-facing color evidence even though they are technically
+  // inside the slab boundary.
+  const insetX = Math.round(outer.width * 0.22);
+  const insetTop = Math.round(outer.height * 0.36);
+  const insetBottom = Math.round(outer.height * 0.16);
   const sample = {
     left: outer.left + insetX,
     top: outer.top + insetTop,

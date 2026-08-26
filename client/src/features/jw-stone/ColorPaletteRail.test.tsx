@@ -282,7 +282,7 @@ describe("JW Stone compact color swatch selector", () => {
         container
           .querySelector('[data-testid="jw-mood-rail-toggle"] img')
           ?.getAttribute("src")
-      ).toContain("/story/mont-blanc-bar.webp");
+      ).toContain("/story/taj-living-room.webp");
       act(() => {
         container
           .querySelector('[data-testid="jw-mood-rail-toggle"]')

@@ -350,7 +350,7 @@ export function StoneCollection({
         id="current-inventory"
         testId="jw-inventory"
         headingId="jw-inventory-heading"
-        title="Full inventory"
+        title="Browse Full Inventory"
         onExpandedChange={(expanded) => {
           if (!expanded) return;
           // Local sheet-only refinements reset with URL tags so inventory starts clean.

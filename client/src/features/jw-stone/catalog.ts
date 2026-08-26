@@ -5,7 +5,6 @@ import { rankImagePathsForCover, reorderParallelByPermutation } from "./coverIma
 import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
 import {
   getColorsForStone,
-  getPairingSwatchesForStone,
   getStoneColorLabel,
   getSwatchesForStone,
 } from "./stoneColors";
@@ -64,7 +63,6 @@ export function projectJwStoneCatalogItem(args: {
   const displayName = anonymous ? null : stone.displayName;
   const colors = getColorsForStone(stone.slug);
   const colorSwatches = getSwatchesForStone(stone.slug).map((swatch) => swatch.hex);
-  const pairingSwatches = getPairingSwatchesForStone(stone.slug);
 
   // Lead with the best showroom face, but keep every mapped photo in the gallery.
   // Hand/close siblings stay available as extras — they must not win index 0 when a
@@ -85,7 +83,9 @@ export function projectJwStoneCatalogItem(args: {
     colorDirection,
     colors,
     colorSwatches: Object.freeze(colorSwatches),
-    pairingSwatches: Object.freeze([...pairingSwatches]),
+    // Design-pairing suggestions are intentionally hidden from public catalog
+    // data so they cannot be mistaken for slab colors or enter filters/counts.
+    pairingSwatches: Object.freeze([]),
     images: Object.freeze(images),
     shareImageOrder: shareImageOrder ? Object.freeze(shareImageOrder) : undefined,
     imageFinishes: imageFinishes

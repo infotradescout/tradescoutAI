@@ -305,7 +305,7 @@ export function createProfileInventoryItemShareMetadata(args: {
             : `Current stone selection | ${profileName}`,
         description: capDescription(
           item.publicKind === "offering"
-            ? `View this stone selection in ${profileName}'s material library. See this photo.`
+            ? `View this stone selection in ${profileName}'s full inventory. See this photo.`
             : `View this stone selection in ${profileName}'s current inventory. See this photo.`
         ),
         imageUrl,
@@ -328,7 +328,7 @@ export function createProfileInventoryItemShareMetadata(args: {
           (itemIsProfile
             ? `View ${item.name}${categoryDetail} and explore the material photos.`
             : item.publicKind === "offering"
-              ? `View ${item.name}${categoryDetail} in ${profileName}'s material library. See this photo.`
+              ? `View ${item.name}${categoryDetail} in ${profileName}'s full inventory. See this photo.`
               : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo.`)
       ),
       imageUrl,
