@@ -66,7 +66,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
         <span
           className={
             role === "lead"
-              ? "relative block aspect-[21/9] w-full overflow-hidden bg-[var(--jw-bg)]"
+              ? "relative block aspect-[12/5] w-full overflow-hidden bg-[var(--jw-bg)]"
               : "relative block aspect-[3/2] w-full overflow-hidden bg-[var(--jw-bg)]"
           }
         >
@@ -95,7 +95,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       data-first-cut-lead={role === "lead" ? "true" : undefined}
       data-first-cut-support={role === "support" ? "true" : undefined}
       className={`jw-first-cut__tile jw-first-cut__tile--${role} flex w-full min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${
-        role === "lead" ? "aspect-[21/9]" : "aspect-[3/2]"
+        role === "lead" ? "aspect-[12/5]" : "aspect-[3/2]"
       }`}
     >
       <span className={`text-[10px] uppercase tracking-[0.16em] sm:text-xs ${jw.muted}`}>
@@ -114,7 +114,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
     <section
       aria-labelledby="first-cut-title"
       data-testid="jw-first-cut"
-      className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-9 pt-5 sm:pb-12 sm:pt-7 ${jw.scrollTarget}`}
+      className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-8 pt-4 sm:pb-10 sm:pt-6 ${jw.scrollTarget}`}
     >
       <div className={`mx-auto w-full max-w-[1680px] px-3 sm:px-6 lg:px-8 ${jw.scrollTarget}`}>
         <header className="jw-first-cut__intro mb-3 sm:mb-4">
