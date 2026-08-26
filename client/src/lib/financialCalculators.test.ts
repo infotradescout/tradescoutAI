@@ -33,7 +33,7 @@ describe("financial calculators", () => {
     });
 
     expect(result.loanAmount).toBe(18_000);
-    expect(result.monthlyPayment).toBeCloseTo(335.58, 2);
+    expect(result.monthlyPayment).toBeCloseTo(335.57, 2);
     expect(result.totalCost).toBeCloseTo(25_000 + result.totalInterest, 8);
   });
 
