@@ -1,5 +1,11 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import {
+  buildJwStoneItemSeo,
+  buildJwStoneMaterialDescription,
+  getJwStoneMaterialSeo,
+  JW_STONE_ROOT_SEO,
+} from "@shared/jwStoneSeo";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
 import type { ProfileAccountMode } from "@/components/profile/profileAccountClient";
@@ -24,20 +30,41 @@ import { isJwStoneMarketplaceDomainSurface, marketplaceBasePath } from "./market
 import { StoneCollection } from "./StoneCollection";
 import { StoneDetailDialog } from "./StoneDetailDialog";
 import { WishlistPanel } from "./WishlistPanel";
-import type { JwStoneCatalogItem } from "./types";
+import type { JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
-const JW_STONE_DESCRIPTION =
-  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
+const JW_STONE_ASSET_ORIGIN = "https://www.thetradescout.com";
 
-function marketplaceCanonicalUrl(): string {
-  if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
-    return `${window.location.origin}/`;
+function absoluteJwStoneImageUrl(value: string | null | undefined): string {
+  if (!value) return JW_STONE_SOCIAL_IMAGE_URL;
+  try {
+    return new URL(value, JW_STONE_ASSET_ORIGIN).toString();
+  } catch {
+    return JW_STONE_SOCIAL_IMAGE_URL;
   }
-  return "https://www.thetradescout.com/jw-stone";
+}
+
+function marketplaceCanonicalUrl(args: {
+  state: MarketplaceUrlState;
+  routedStone: JwStoneCatalogItem | null;
+}): string {
+  const customDomain = typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface();
+  const origin = customDomain ? window.location.origin : "https://www.thetradescout.com";
+  const basePath = customDomain ? "" : "/jw-stone";
+
+  if (args.routedStone?.shareSlug) {
+    return `${origin}${basePath}/stones/${encodeURIComponent(args.routedStone.shareSlug)}`;
+  }
+
+  const material = getJwStoneMaterialSeo(args.state.material);
+  if (material) {
+    return `${origin}${basePath}/materials/${encodeURIComponent(material.publicSlug)}`;
+  }
+
+  return basePath ? `${origin}${basePath}` : `${origin}/`;
 }
 
 function readProfileAccountRequest(): { open: boolean; mode: ProfileAccountMode } {
@@ -137,8 +164,8 @@ export default function JWStoneMarketplace() {
     void trackDiscoveryLandingOnce({ canonicalRoute, search: landingSearch });
   }, []);
 
-  const activeStone =
-    (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) || detailOverride;
+  const routedStone = state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null;
+  const activeStone = routedStone || detailOverride;
 
   useLayoutEffect(() => {
     if (requestEntryHandledRef.current || typeof window === "undefined") return;
@@ -268,14 +295,36 @@ export default function JWStoneMarketplace() {
     );
   };
 
-  const canonicalUrl = marketplaceCanonicalUrl();
+  const materialSeo = getJwStoneMaterialSeo(state.material);
+  const materialCount = materialSeo
+    ? JW_STONE_CATALOG.filter(
+        (stone) => !stone.anonymous && stone.materialId === materialSeo.sourceSlug
+      ).length
+    : 0;
+  const routedStoneSeo =
+    routedStone?.displayName
+      ? buildJwStoneItemSeo({
+          name: routedStone.displayName,
+          materialLabel: routedStone.materialLabel,
+        })
+      : null;
+  const seoTitle = routedStoneSeo?.title || materialSeo?.title || JW_STONE_ROOT_SEO.title;
+  const seoDescription =
+    routedStoneSeo?.description ||
+    (materialSeo ? buildJwStoneMaterialDescription(materialSeo, materialCount) : null) ||
+    JW_STONE_ROOT_SEO.description;
+  const canonicalUrl = marketplaceCanonicalUrl({ state, routedStone });
+  const materialLead = materialSeo ? getCatalogItemById(materialSeo.leadItemSlug) : null;
+  const socialImageUrl = absoluteJwStoneImageUrl(
+    routedStone?.images[0] || materialLead?.images[0] || JW_STONE_SOCIAL_IMAGE_URL
+  );
   const collectionData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "JW Stone | Stone Discovery",
-    description: JW_STONE_DESCRIPTION,
+    name: seoTitle,
+    description: seoDescription,
     url: canonicalUrl,
-    image: JW_STONE_SOCIAL_IMAGE_URL,
+    image: socialImageUrl,
     mainEntity: {
       "@type": "LocalBusiness",
       name: JW_STONE_PUBLIC_IDENTITY.brandName,
@@ -303,12 +352,12 @@ export default function JWStoneMarketplace() {
       data-jw-marketplace-base={marketplaceBasePath() || "/"}
     >
       <SEOHelmet
-        title="JW Stone | Stone Discovery"
-        socialTitle="JW Stone | Stone Discovery"
-        description={JW_STONE_DESCRIPTION}
+        title={seoTitle}
+        socialTitle={seoTitle}
+        description={seoDescription}
         canonical={canonicalUrl}
         ogType="website"
-        ogImage={JW_STONE_SOCIAL_IMAGE_URL}
+        ogImage={socialImageUrl}
         structuredData={collectionData}
       />
       <MarketplaceHeader
