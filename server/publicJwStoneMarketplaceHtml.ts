@@ -27,6 +27,18 @@ const JW_STONE_CUSTOM_DOMAIN_TITLE =
 const JW_STONE_CUSTOM_DOMAIN_DESCRIPTION =
   "Browse quarry-direct granite, marble, quartzite, onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_LEGACY_DOMAIN = "https://jwstonellc.com/";
+const JW_STONE_DISCOVERY_PRIORITY_SLUGS = [
+  "black-dunes",
+  "avalanche",
+  "cristalita-blue",
+  "rhino-white",
+  "blue-bahia",
+  "calacatta-vaguili",
+  "matarazzo",
+  "calacatta-cremo",
+  "casa-blanca",
+  "white-santorini",
+] as const;
 
 export type PublicJwStoneMarketplaceHtmlOptions = {
   templateHtml: string;
@@ -205,6 +217,16 @@ export function buildPublicJwStoneMarketplaceHtml(
       })
     )
     .filter((category): category is NonNullable<typeof category> => Boolean(category));
+  const priorityItemShares = JW_STONE_DISCOVERY_PRIORITY_SLUGS.map((itemSlug) =>
+    createProfileInventoryItemShareMetadata({
+      profileName: "JW Stone Logistics",
+      profileUrl,
+      assetOrigin: `${origin}/`,
+      categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+      itemSlug,
+      publicRouteContentBlocks: contentBlocks,
+    })
+  ).filter((item): item is NonNullable<typeof item> => Boolean(item?.hasPublicName));
   const categoryItemShares = categoryShare
     ? categoryShare.itemSlugs
         .map((itemSlug) =>
@@ -340,6 +362,15 @@ ${companySummary}
         .map(
           (category) =>
             `<li><a href="${escapeHtml(category.canonical)}">${escapeHtml(category.categoryName)}</a> <small>(${category.itemCount} selections)</small></li>`
+        )
+        .join("\n")}
+    </ul>
+    <h2>Popular stone selections</h2>
+    <ul>
+      ${priorityItemShares
+        .map(
+          (item) =>
+            `<li><a href="${escapeHtml(item.canonical)}">${escapeHtml(item.itemName)}</a></li>`
         )
         .join("\n")}
     </ul>
@@ -573,6 +604,9 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     `- Collection: ${publicOrigin}/`,
     `- Stones: ${publicOrigin}/stones/{slug}`,
     `- Materials: ${publicOrigin}/materials/{slug}`,
+    "",
+    "Priority named stone pages:",
+    ...JW_STONE_DISCOVERY_PRIORITY_SLUGS.map((slug) => `- ${publicOrigin}/stones/${slug}`),
     "",
     "Calls and requests are available through Express Direct Connect on the profile.",
     "",

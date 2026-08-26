@@ -28,10 +28,20 @@ import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
+const JW_STONE_TITLE = "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
 const JW_STONE_DESCRIPTION =
-  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+  "Browse quarry-direct granite, marble, quartzite, onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
+const JW_STONE_KNOWS_ABOUT = [
+  "Natural stone slabs",
+  "Granite",
+  "Marble",
+  "Quartzite",
+  "Onyx",
+  "Soapstone",
+  "Engineered quartz",
+] as const;
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
@@ -272,17 +282,19 @@ export default function JWStoneMarketplace() {
   const collectionData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "JW Stone | Stone Discovery",
+    name: JW_STONE_TITLE,
     description: JW_STONE_DESCRIPTION,
     url: canonicalUrl,
     image: JW_STONE_SOCIAL_IMAGE_URL,
     mainEntity: {
-      "@type": "LocalBusiness",
+      "@type": "Store",
       name: JW_STONE_PUBLIC_IDENTITY.brandName,
       description: JW_STONE_PUBLIC_IDENTITY.about,
       foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
       url: canonicalUrl,
       hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
+      areaServed: { "@type": "AdministrativeArea", name: "Gulf Coast" },
+      knowsAbout: JW_STONE_KNOWS_ABOUT,
       address: {
         "@type": "PostalAddress",
         streetAddress: JW_STONE_PUBLIC_IDENTITY.address.streetAddress,
@@ -303,8 +315,8 @@ export default function JWStoneMarketplace() {
       data-jw-marketplace-base={marketplaceBasePath() || "/"}
     >
       <SEOHelmet
-        title="JW Stone | Stone Discovery"
-        socialTitle="JW Stone | Stone Discovery"
+        title={JW_STONE_TITLE}
+        socialTitle={JW_STONE_TITLE}
         description={JW_STONE_DESCRIPTION}
         canonical={canonicalUrl}
         ogType="website"
@@ -410,7 +422,7 @@ export default function JWStoneMarketplace() {
         stayInProfile
         requestMode="materials"
         initialStoneSelections={requestTargets}
-        initialView="choice"
+        initialView="request"
         initialRequestType="request_material"
       />
     </div>
