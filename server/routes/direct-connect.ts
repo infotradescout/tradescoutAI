@@ -830,6 +830,7 @@ const directConnectRequestSchema = z.object({
   homePacketId: z.string().trim().min(1).max(120).optional(),
   homePacketSelectedDetailIds: z.array(z.string().trim().min(1).max(120)).max(50).optional(),
   homePacketReadinessState: z.enum(["ready_for_handoff"]).optional(),
+  homePacketSubmissionConfirmed: z.literal(true).optional(),
 });
 
 const ADMIN_DIRECT_CONNECT_CATEGORIES = [
@@ -6871,8 +6872,35 @@ export function registerDirectConnectRoutes(app: Express) {
                 readinessState: body.homePacketReadinessState || null,
               },
             });
+            if (body.homePacketSubmissionConfirmed) {
+              await db.insert(workRequestEvents).values([
+                {
+                  workRequestId: created.id,
+                  type: "homeid_draft_reviewed",
+                  actorUserId: ownerUserId ? String(ownerUserId) : null,
+                  metadata: {
+                    source: "homeid_packet",
+                    homeId: body.homeId || null,
+                    homePacketId: body.homePacketId,
+                    selectedDetailIds: body.homePacketSelectedDetailIds || [],
+                  },
+                },
+                {
+                  workRequestId: created.id,
+                  type: "homeid_draft_submitted",
+                  actorUserId: ownerUserId ? String(ownerUserId) : null,
+                  metadata: {
+                    source: "homeid_packet",
+                    homeId: body.homeId || null,
+                    homePacketId: body.homePacketId,
+                    selectedDetailIds: body.homePacketSelectedDetailIds || [],
+                    directConnectRequestId: String(created.id),
+                  },
+                },
+              ]);
+            }
           } catch (e) {
-            console.warn("[direct-connect] Failed to record homeid_draft_created event", e);
+            console.warn("[direct-connect] Failed to record HomeID request submission events", e);
           }
         }
 
@@ -6918,6 +6946,24 @@ export function registerDirectConnectRoutes(app: Express) {
                 homePacketSelectedDetailIds: body.homePacketSelectedDetailIds || [],
                 homePacketReadinessState: body.homePacketReadinessState || null,
               });
+              if (body.homePacketId && body.homePacketSubmissionConfirmed) {
+                await db.insert(userHomeRecords).values({
+                  homeId: targetHomeId,
+                  createdByUserId: ownerUserId,
+                  recordType: "note",
+                  title: "homeid:direct_connect_request_submitted",
+                  details: JSON.stringify({
+                    source: "homeid_packet",
+                    event: "direct_connect_request_submitted",
+                    directConnectRequestId: String(created.id),
+                    homePacketId: body.homePacketId,
+                    selectedDetailIds: body.homePacketSelectedDetailIds || [],
+                    submittedAt: new Date().toISOString(),
+                  }),
+                  tags: ["homeid", "direct_connect", "submitted"],
+                  updatedAt: new Date(),
+                } as any);
+              }
               if (
                 homeContextIntent === "create_from_request" ||
                 homeContextIntent === "update_from_request"
