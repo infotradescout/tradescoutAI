@@ -134,6 +134,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(footer?.querySelector('a[href="/u/jw-stone"]')).not.toBeNull();
     expect(footer?.querySelector('nav[aria-label="JW Stone sections"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
+    expect(
+      container.querySelector('[data-testid="jw-marketplace-local-description"]')?.textContent
+    ).toContain("Pensacola");
     const companyIdentity = container.querySelector<HTMLElement>(
       '[data-testid="jw-company-identity"]'
     );
@@ -173,6 +176,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.textContent).not.toContain("Open for stacked materials");
     expect(container.textContent).not.toContain("expand to search and browse");
     expect(container.textContent).toContain("First Cut");
+    expect(
+      container.querySelector('[data-testid="jw-first-cut"] [data-first-cut-lead] > span')?.className
+    ).toMatch(/aspect-\[12\/5\]/);
     expect(container.textContent).toContain("Browse by color");
     expect(container.textContent).not.toContain("Browse by mood");
     expect(container.textContent).toContain("Browse by material");
@@ -348,6 +354,7 @@ describe("JW Stone marketplace luxury layout", () => {
       "/images/businesses/jw-stone/video/hero-poster.jpg"
     );
     expect(heroVideo?.className).toContain("max-w-[1920px]");
+    expect(hero?.querySelector("div.relative")?.className).toMatch(/h-\[42svh\]/);
     expect(hero?.querySelector('[data-testid="jw-marketplace-hero-image"]')).toBeNull();
     expect(hero?.querySelector('[data-testid="jw-marketplace-hero-brand"]')).toBeNull();
     expect(hero?.innerHTML).toMatch(/bg-gradient-to-t/);
@@ -896,7 +903,7 @@ describe("JW Stone marketplace luxury layout", () => {
     // Lead is the physically long green bookmatched pair (05), not burgundy (02) or black vein (01).
     expect(leadImg?.getAttribute("src")).toContain("/first-cut/05.jpg");
     expect(leadImg?.getAttribute("src")).toContain("v=green-bookmatch-lead-1");
-    expect(leadFrame?.className).toMatch(/aspect-\[2\/1\]/);
+    expect(leadFrame?.className).toMatch(/aspect-\[12\/5\]/);
     const supportSrcs = Array.from(supportImgs).map((img) => img.getAttribute("src") ?? "");
     expect(supportSrcs.some((src) => src.includes("/first-cut/01.jpg"))).toBe(true);
     expect(supportSrcs.some((src) => src.includes("/first-cut/02.jpg"))).toBe(true);
