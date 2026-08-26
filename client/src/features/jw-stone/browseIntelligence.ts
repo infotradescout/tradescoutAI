@@ -78,17 +78,24 @@ function relevanceRank(stone: JwStoneCatalogItem, query: string): number {
   const document = searchDocument(stone);
 
   if (document.names.some((value) => value === normalizedQuery)) return 0;
-  if (document.names.some((value) => value.startsWith(normalizedQuery))) return 1;
-  if (document.names.some((value) => value.includes(normalizedQuery))) return 2;
-  if (includesAllTokens(document.names, queryTokens)) return 3;
 
-  if (document.materials.some((value) => value === normalizedQuery)) return 4;
-  if (document.colors.some((value) => value === normalizedQuery)) return 5;
-  if (document.finishes.some((value) => value === normalizedQuery)) return 6;
-  if (document.origins.some((value) => value === normalizedQuery)) return 7;
+  // Generic buyer intent such as "blue", "quartzite", or "polished" should
+  // give every exact field match equal relevance, then let merchandising order
+  // choose the strongest applicable stones rather than favoring name wording.
+  if (
+    document.materials.some((value) => value === normalizedQuery) ||
+    document.colors.some((value) => value === normalizedQuery) ||
+    document.finishes.some((value) => value === normalizedQuery) ||
+    document.origins.some((value) => value === normalizedQuery)
+  ) {
+    return 1;
+  }
 
-  if (includesAllTokens([...document.materials, ...document.colors], queryTokens)) return 8;
-  if (includesAllTokens(document.all, queryTokens)) return 9;
+  if (document.names.some((value) => value.startsWith(normalizedQuery))) return 2;
+  if (document.names.some((value) => value.includes(normalizedQuery))) return 3;
+  if (includesAllTokens(document.names, queryTokens)) return 4;
+  if (includesAllTokens([...document.materials, ...document.colors], queryTokens)) return 5;
+  if (includesAllTokens(document.all, queryTokens)) return 6;
   return Number.POSITIVE_INFINITY;
 }
 
