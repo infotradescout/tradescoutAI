@@ -25,6 +25,12 @@ function tileAriaLabel(item: Extract<FirstCutPresentation, { kind: "stone" | "ph
   return "First Cut stone";
 }
 
+function tileFrameClass(role: TileRole): string {
+  return role === "lead"
+    ? "relative block aspect-[2/1] w-full overflow-hidden bg-[var(--jw-bg)] lg:aspect-[12/5]"
+    : "relative block aspect-[4/3] w-full overflow-hidden bg-[var(--jw-bg)] sm:aspect-[3/2] lg:aspect-[8/5]";
+}
+
 export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
   const presentation = buildFirstCutPresentation().slice(0, 3);
   const [lead, ...support] = presentation;
@@ -59,17 +65,11 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
         aria-label={tileAriaLabel(item)}
       >
         {/*
-          In-flow frames sized by aspect-ratio — no svh min-heights that leave beige voids.
-          Lead: wide frame for green bookmatched pair. Supports: identical 4/3 cells + cover
-          so mixed slab ratios never look like uneven tiles.
+          Fixed responsive frames keep the premiere cinematic without letting it
+          consume most of a desktop viewport. Mobile retains the original crop;
+          larger screens become progressively wider and shorter.
         */}
-        <span
-          className={
-            role === "lead"
-              ? "relative block aspect-[2/1] w-full overflow-hidden bg-[var(--jw-bg)]"
-              : "relative block aspect-[4/3] w-full overflow-hidden bg-[var(--jw-bg)]"
-          }
-        >
+        <span className={tileFrameClass(role)}>
           <img
             src={tileImageSrc(item)}
             alt=""
@@ -94,9 +94,9 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       data-first-cut-placeholder="true"
       data-first-cut-lead={role === "lead" ? "true" : undefined}
       data-first-cut-support={role === "support" ? "true" : undefined}
-      className={`jw-first-cut__tile jw-first-cut__tile--${role} flex w-full min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${
-        role === "lead" ? "aspect-[2/1]" : "aspect-[4/3]"
-      }`}
+      className={`jw-first-cut__tile jw-first-cut__tile--${role} flex min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${tileFrameClass(
+        role
+      )}`}
     >
       <span className={`text-[10px] uppercase tracking-[0.16em] sm:text-xs ${jw.muted}`}>
         Coming soon
@@ -114,7 +114,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
     <section
       aria-labelledby="first-cut-title"
       data-testid="jw-first-cut"
-      className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-10 pt-6 sm:pb-14 sm:pt-8 ${jw.scrollTarget}`}
+      className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-8 pt-5 sm:pb-12 sm:pt-7 ${jw.scrollTarget}`}
     >
       <div className={`mx-auto w-full max-w-[1680px] px-3 sm:px-6 lg:px-8 ${jw.scrollTarget}`}>
         <header className="jw-first-cut__intro mb-3 sm:mb-4">
