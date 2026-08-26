@@ -911,6 +911,20 @@
       "when": 1787584906949,
       "tag": "0126_jw_stone_offer_publication",
       "breakpoints": false
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1787766000000,
+      "tag": "0127_affiliate_commission_approval_state",
+      "breakpoints": false
+    },
+    {
+      "idx": 131,
+      "version": "7",
+      "when": 1787766060000,
+      "tag": "0128_scout_file_assignments",
+      "breakpoints": false
     }
   ]
 }

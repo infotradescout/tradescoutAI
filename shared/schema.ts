@@ -1053,6 +1053,16 @@ export const affiliateReferrals = pgTable(
     shareLinkId: varchar("share_link_id").references(() => affiliateShareLinks.id),
     customLink: varchar("custom_link"),
     commissionAmount: decimal("commission_amount").default("0"),
+    // Monetary approval is explicit. NULL is reserved for non-commission/legacy rows.
+    commissionStatus: varchar("commission_status", { length: 32 }),
+    commissionReferenceId: varchar("commission_reference_id", { length: 255 }),
+    commissionSourceReferralId: varchar("commission_source_referral_id"),
+    commissionApprovedAt: timestamp("commission_approved_at"),
+    commissionApprovedBy: varchar("commission_approved_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    commissionApprovalReason: text("commission_approval_reason"),
+    commissionPaidAt: timestamp("commission_paid_at"),
     discountAmount: decimal("discount_amount").default("0"),
     conversionSource: varchar("conversion_source"),
     conversionType: varchar("conversion_type").default("lead"),
@@ -1063,6 +1073,13 @@ export const affiliateReferrals = pgTable(
     index("idx_affiliate_referrals_affiliate").on(table.affiliateId),
     index("idx_affiliate_referrals_user").on(table.referredUserId),
     index("idx_affiliate_referrals_share_link").on(table.shareLinkId),
+    index("idx_affiliate_referrals_commission_status").on(
+      table.affiliateId,
+      table.commissionStatus
+    ),
+    uniqueIndex("uq_affiliate_referrals_commission_reference")
+      .on(table.affiliateId, table.commissionReferenceId)
+      .where(sql`${table.commissionReferenceId} is not null`),
   ]
 );
 
@@ -11554,3 +11571,97 @@ export type ToolProposalEvidence = typeof toolProposalEvidence.$inferSelect;
 export type InsertToolProposalEvidence = typeof toolProposalEvidence.$inferInsert;
 export type ToolProposalDecision = typeof toolProposalDecisions.$inferSelect;
 export type InsertToolProposalDecision = typeof toolProposalDecisions.$inferInsert;
+
+
+// Durable, cross-instance current assignment for private verification-document metadata.
+// File content/URLs are never copied into this table or returned by Scout heatmap APIs.
+export const scoutFileAssignments = pgTable(
+  "scout_file_assignments",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    verificationDocumentId: varchar("verification_document_id")
+      .notNull()
+      .references(() => verificationDocuments.id, { onDelete: "cascade" }),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips, { onDelete: "restrict" }),
+    assignedBy: varchar("assigned_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    notes: text("notes"),
+    active: boolean("active").notNull().default(true),
+    assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    version: integer("version").notNull().default(1),
+  },
+  (table) => [
+    uniqueIndex("uq_scout_file_assignments_active_document")
+      .on(table.verificationDocumentId)
+      .where(sql`${table.active} = true`),
+    index("idx_scout_file_assignments_county_updated").on(
+      table.countyFips,
+      table.updatedAt
+    ),
+  ]
+);
+
+export const scoutFileAssignmentEvents = pgTable(
+  "scout_file_assignment_events",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    assignmentId: varchar("assignment_id")
+      .notNull()
+      .references(() => scoutFileAssignments.id, { onDelete: "cascade" }),
+    verificationDocumentId: varchar("verification_document_id")
+      .notNull()
+      .references(() => verificationDocuments.id, { onDelete: "cascade" }),
+    eventType: varchar("event_type", { length: 16 }).notNull(),
+    fromCountyFips: varchar("from_county_fips", { length: 5 }),
+    toCountyFips: varchar("to_county_fips", { length: 5 }),
+    actorUserId: varchar("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_scout_file_assignment_events_created").on(table.createdAt),
+    index("idx_scout_file_assignment_events_county_created").on(
+      table.toCountyFips,
+      table.createdAt
+    ),
+    check(
+      "scout_file_assignment_events_type_check",
+      sql`${table.eventType} in ('assigned', 'moved', 'unassigned')`
+    ),
+  ]
+);
+
+export const scoutFileAssignmentBatches = pgTable(
+  "scout_file_assignment_batches",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    countyFips: varchar("county_fips", { length: 5 })
+      .notNull()
+      .references(() => counties.fips, { onDelete: "restrict" }),
+    assignedBy: varchar("assigned_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    fileIds: jsonb("file_ids").$type<string[]>().notNull(),
+    status: varchar("status", { length: 16 }).notNull(),
+    results: jsonb("results").$type<{ successful: number; failed: number }>().notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    index("idx_scout_file_assignment_batches_created").on(table.createdAt),
+    index("idx_scout_file_assignment_batches_county_created").on(
+      table.countyFips,
+      table.createdAt
+    ),
+    check(
+      "scout_file_assignment_batches_status_check",
+      sql`${table.status} in ('processing', 'completed', 'failed')`
+    ),
+  ]
+);
