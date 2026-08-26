@@ -193,7 +193,7 @@ describe("JW Stone marketplace public HTML", () => {
     });
 
     const scripts = Array.from(
-      html.matchAll(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/g)
+      html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)
     );
     const jsonLd = JSON.parse(scripts[0][1]);
 
