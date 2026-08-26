@@ -903,7 +903,7 @@ describe("JW Stone marketplace luxury layout", () => {
     // Lead is the physically long green bookmatched pair (05), not burgundy (02) or black vein (01).
     expect(leadImg?.getAttribute("src")).toContain("/first-cut/05.jpg");
     expect(leadImg?.getAttribute("src")).toContain("v=green-bookmatch-lead-1");
-    expect(leadFrame?.className).toMatch(/aspect-\[2\/1\]/);
+    expect(leadFrame?.className).toMatch(/aspect-\[12\/5\]/);
     const supportSrcs = Array.from(supportImgs).map((img) => img.getAttribute("src") ?? "");
     expect(supportSrcs.some((src) => src.includes("/first-cut/01.jpg"))).toBe(true);
     expect(supportSrcs.some((src) => src.includes("/first-cut/02.jpg"))).toBe(true);
