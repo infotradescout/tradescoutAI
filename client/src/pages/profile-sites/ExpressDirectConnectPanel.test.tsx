@@ -316,7 +316,7 @@ describe("Express Direct Connect anonymous inventory context", () => {
     expect(container.textContent).toContain("Enter a complete phone number so they can reach you.");
   });
 
-  it("shows request success without a signup CTA for anonymous visitors", async () => {
+  it("keeps anonymous request recovery available without depending on email", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 201,
@@ -324,8 +324,9 @@ describe("Express Direct Connect anonymous inventory context", () => {
         requestId: "request-success",
         requestWorkspacePath: "/direct-connect/engagements?requestId=request-success",
         accountCreated: true,
-        onboardingPath: "/pre-scout-setup?mode=create",
-        onboardingEmailStatus: "sent",
+        onboardingPath:
+          "/reset-password?token=request-token&next=%2Fdirect-connect%2Fengagements%3FrequestId%3Drequest-success",
+        onboardingEmailStatus: "skipped",
         deliveryCustody: "business",
       }),
     });
@@ -366,11 +367,10 @@ describe("Express Direct Connect anonymous inventory context", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Request sent");
     expect(container.textContent).toContain("JW Stone received your project details.");
+    expect(container.textContent).toContain("Finish setup and manage this request");
+    expect(container.textContent).toContain("No email is required to continue from this browser.");
+    expect(container.textContent).toContain("add this project to your HomeID later");
     expect(container.textContent).toContain("Back to JW Stone");
-    expect(container.textContent).not.toContain("Sign in to manage this request");
-    expect(container.textContent).not.toContain("Finish setup and manage this request");
-    expect(container.textContent).not.toContain("Sign in and manage it");
-    expect(container.textContent).not.toContain("Manage this in TradeScout");
-    expect(container.querySelector('a[href*="pre-scout-setup"]')).toBeNull();
+    expect(container.querySelector('a[href*="reset-password"]')).not.toBeNull();
   });
 });
