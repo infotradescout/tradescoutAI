@@ -71,7 +71,7 @@ function resolveMarketplaceSeo(location: string): MarketplaceSeo {
   }
   return {
     title: "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics",
-    description: marketplaceSeo.structuredDescription,
+    description: JW_STONE_DISCOVERY_DESCRIPTION,
     structuredDescription: JW_STONE_STRUCTURED_DESCRIPTION,
     socialTitle: "JW Stone Logistics | Natural stone slabs",
   };
@@ -118,7 +118,7 @@ export function JwStoneProfileSeo({ canonical }: { canonical: string }) {
     "@type": "LocalBusiness",
     "@id": `${canonicalUrl}#identity`,
     name: JW_STONE_PUBLIC_IDENTITY.brandName,
-    description: JW_STONE_DISCOVERY_DESCRIPTION,
+    description: marketplaceSeo.structuredDescription,
     foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
     url: canonicalUrl,
     hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
