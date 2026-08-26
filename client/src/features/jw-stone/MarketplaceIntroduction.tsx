@@ -17,7 +17,7 @@ export function MarketplaceIntroduction() {
       className="bg-[var(--jw-bg)]"
       aria-labelledby="jw-marketplace-title"
     >
-      <div className="relative flex h-[36svh] justify-center overflow-hidden bg-[var(--jw-dark)] sm:h-[38svh] lg:h-[40svh]">
+      <div className="relative flex h-[42svh] justify-center overflow-hidden bg-[var(--jw-dark)] sm:h-[44svh] lg:h-[46svh]">
         <video
           autoPlay
           muted
@@ -46,6 +46,12 @@ export function MarketplaceIntroduction() {
           >
             Natural stone, selected at the source.
           </h1>
+          <p
+            data-testid="jw-marketplace-discovery-copy"
+            className="mt-2 text-xs leading-5 text-[var(--jw-ink)]/72 sm:text-sm sm:leading-6"
+          >
+            Browse granite, marble, quartzite, engineered quartz, onyx, soapstone, and basalt from JW Stone in Pensacola, Florida, then ask about current pricing or availability.
+          </p>
         </div>
       </div>
     </section>
