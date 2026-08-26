@@ -66,8 +66,8 @@ export function JwStoneProfileSeo({ canonical }: { canonical: string }) {
 
   return (
     <SEOHelmet
-      title="JW Stone Logistics | Natural stone slabs"
-      socialTitle="JW Stone Logistics"
+      title="Natural stone slabs in Pensacola, FL"
+      socialTitle="JW Stone Logistics | Natural stone slabs"
       description={JW_STONE_DISCOVERY_DESCRIPTION}
       canonical={canonicalUrl}
       ogType="profile"
