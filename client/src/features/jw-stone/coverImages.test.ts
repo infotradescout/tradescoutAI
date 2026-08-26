@@ -227,6 +227,13 @@ describe("JW Stone marketplace cover image ranking", () => {
     }
   });
 
+  it("uses a hand photo first only when every supplied image is hand or close-up", () => {
+    for (const stone of JW_STONE_CATALOG) {
+      if (!stone.images.length || !isHandScaleCoverImage(stone.images[0]!)) continue;
+      expect(stone.images.every((image) => isHandScaleCoverImage(image)), stone.id).toBe(true);
+    }
+  });
+
   it("reports stones that only have close-up or hand photography", () => {
     const onlyCloseOrHand = listStonesWithoutFullSlabCover(
       JW_STONE_CATALOG.map((stone) => ({ slug: stone.id, images: stone.images }))

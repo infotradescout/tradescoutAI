@@ -133,7 +133,12 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(getColorFilterOptions().some((option) => option.value === "white")).toBe(true);
     // Beige appears from photographed palettes (not name matching).
     expect(getColorFilterOptions().some((option) => option.value === "beige")).toBe(true);
-    expect(JW_STONE_CATALOG.every((stone) => stone.colorSwatches.length > 0)).toBe(true);
+    expect(JW_STONE_CATALOG.some((stone) => stone.colorSwatches.length === 0)).toBe(true);
+    expect(
+      JW_STONE_CATALOG.filter((stone) => stone.colorSwatches.length === 0).every(
+        (stone) => stone.colors.length === 0 && stone.pairingSwatches.length === 0
+      )
+    ).toBe(true);
 
     const quartzite = filterJwStoneCatalog({ material: "quartzite" });
     expect(quartzite.length).toBeGreaterThan(0);

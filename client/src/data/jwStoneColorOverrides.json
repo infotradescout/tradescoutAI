@@ -1,0 +1,32 @@
+{
+  "mexican-brown": {
+    "categories": ["brown", "gray"],
+    "disposition": "retained",
+    "reason": "The reviewed slab face visibly contains warm brown and gray bands."
+  },
+  "dueto": {
+    "categories": ["brown"],
+    "disposition": "corrected",
+    "reason": "The reviewed slab face is visibly reddish brown; the old black claim was unsupported."
+  },
+  "preto-sao-gabriel": {
+    "categories": ["black", "gray"],
+    "disposition": "retained",
+    "reason": "The reviewed slab face is visibly charcoal black with gray reflection."
+  },
+  "venta-black": {
+    "categories": ["black", "blue"],
+    "disposition": "retained",
+    "reason": "The reviewed slab face visibly contains a near-black field with a strong blue cast."
+  },
+  "emperor-brown": {
+    "categories": ["brown", "beige"],
+    "disposition": "retained",
+    "reason": "The reviewed slab face visibly contains brown and warm beige."
+  },
+  "namib-fantasy": {
+    "categories": ["white", "gray"],
+    "disposition": "retained",
+    "reason": "The reviewed slab face is visibly white with gray movement."
+  }
+}

@@ -5,6 +5,7 @@ import {
   getPairingSwatchesForStone,
   getSwatchesForStone,
   isStoneColorId,
+  JW_STONE_FACE_TRUE_COLOR_OVERRIDES,
 } from "./stoneColors";
 
 describe("JW Stone photographed color palettes", () => {
@@ -15,9 +16,9 @@ describe("JW Stone photographed color palettes", () => {
     const blackPearl = getColorsForStone("black-pearl");
     const cristallo = getColorsForStone("cristallo");
 
-    expect(dallas.length).toBeGreaterThan(0);
+    expect(dallas).toEqual([]);
     expect(amazonic).toContain("green");
-    expect(blackPearl.length).toBeGreaterThan(0);
+    expect(blackPearl).toEqual([]);
     expect(cristallo.length).toBeGreaterThan(0);
 
     // Cristallo has no color word in the name; still has photo buckets.
@@ -30,7 +31,6 @@ describe("JW Stone photographed color palettes", () => {
       "amazonic-green",
       "cristallo",
       "blue-dunes",
-      "steel-gray",
       "gold-macaubas",
     ];
     for (const slug of spotlight) {
@@ -45,54 +45,44 @@ describe("JW Stone photographed color palettes", () => {
   });
 
   it("spot-check: spotlight stones keep expected visual buckets", () => {
-    expect(getColorsForStone("amazonic-green")).toEqual(expect.arrayContaining(["green", "white"]));
-    expect(getColorsForStone("arizona-gold")).toEqual(expect.arrayContaining(["black", "gold"]));
+    expect(getColorsForStone("amazonic-green")).toContain("green");
+    expect(getColorsForStone("arizona-gold")).toEqual(["brown"]);
     // Blue Dunes reads cool gray in yard photos — not a name-derived "blue".
     expect(getColorsForStone("blue-dunes")).toContain("gray");
-    expect(getColorsForStone("steel-gray")).toEqual(expect.arrayContaining(["gray", "blue"]));
-    expect(getColorsForStone("cristallo")).toEqual(expect.arrayContaining(["beige", "black"]));
+    expect(getColorsForStone("steel-gray")).toEqual([]);
+    expect(getColorsForStone("cristallo")).toEqual(["gold"]);
+    // Pale veins are secondary detail, not permission to file a black slab as Beige.
+    expect(getColorsForStone("black-dunes")).toEqual(["black"]);
+    expect(getColorsForStone("black-dunes")).not.toContain("beige");
   });
 
-  it("face-true overrides restore hue washed out by yard/floor/sky sampling", () => {
+  it("keeps only the declared, visually reviewed correction set", () => {
+    expect(Object.keys(JW_STONE_FACE_TRUE_COLOR_OVERRIDES).sort()).toEqual(
+      ["dueto", "emperor-brown", "mexican-brown", "namib-fantasy", "preto-sao-gabriel", "venta-black"].sort()
+    );
     expect(getColorsForStone("mexican-brown")).toEqual(expect.arrayContaining(["brown"]));
-    expect(getColorsForStone("chocolate-brown")).toEqual(expect.arrayContaining(["brown"]));
     expect(getColorsForStone("dueto")).toEqual(expect.arrayContaining(["brown"]));
-    expect(getColorsForStone("pinta-verde")).toEqual(expect.arrayContaining(["green"]));
-    expect(getColorsForStone("blue-bahia")).toEqual(expect.arrayContaining(["blue"]));
-    expect(getColorsForStone("emerald-pearl")).toEqual(expect.arrayContaining(["green"]));
     expect(getColorsForStone("preto-sao-gabriel")).toEqual(
       expect.arrayContaining(["black"])
     );
     expect(getColorsForStone("venta-black")).toEqual(expect.arrayContaining(["black"]));
     expect(getColorsForStone("emperor-brown")).toEqual(expect.arrayContaining(["brown"]));
-    expect(getColorsForStone("fusion-yellow")).toEqual(expect.arrayContaining(["yellow", "gold"]));
+    expect(getColorsForStone("fusion-yellow")).toEqual([]);
   });
 
   it("Alabama White stays white/gray — never blue (yard/sky wash)", () => {
     const colors = getColorsForStone("alabama-white");
     expect(colors).toEqual(expect.arrayContaining(["white"]));
     expect(colors).not.toContain("blue");
+    expect(getColorsForStone("dallas-white")).toEqual([]);
     expect(getColorsForStone("dallas-white")).not.toContain("blue");
     expect(getColorsForStone("namib-fantasy")).not.toContain("blue");
   });
 
-  it("Black Pearl swatches stay on the dark stone face (no cream / crane yellow)", () => {
+  it("fails Black Pearl closed when its slab boundary is not confidently detected", () => {
     const swatches = getSwatchesForStone("black-pearl");
-    expect(swatches.length).toBeGreaterThanOrEqual(3);
-    expect(getColorsForStone("black-pearl")).toEqual(expect.arrayContaining(["gray"]));
-    for (const swatch of swatches) {
-      const hex = swatch.hex;
-      const r = Number.parseInt(hex.slice(1, 3), 16);
-      const g = Number.parseInt(hex.slice(3, 5), 16);
-      const b = Number.parseInt(hex.slice(5, 7), 16);
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      const l = (max + min) / (2 * 255);
-      const s = max === min ? 0 : (max - min) / (255 - Math.abs(max + min - 255));
-      // No pale cream / industrial yellow from yard equipment or gravel.
-      expect(l, hex).toBeLessThan(0.55);
-      expect(!(s > 0.4 && l > 0.35), hex).toBe(true);
-    }
+    expect(swatches).toEqual([]);
+    expect(getColorsForStone("black-pearl")).toEqual([]);
   });
 
   it("derives soft pairing swatches from stone hues (not from photo sampling)", () => {
@@ -126,9 +116,7 @@ describe("JW Stone photographed color palettes", () => {
       expect(!(coolHue && s > 0.22 && l > 0.45 && l < 0.85), hex).toBe(true);
     }
 
-    const fromStone = getPairingSwatchesForStone("black-pearl");
-    expect(fromStone.length).toBeGreaterThan(0);
-    expect(fromStone.length).toBeLessThanOrEqual(4);
+    expect(getPairingSwatchesForStone("black-pearl")).toEqual([]);
   });
 
   it("accepts only vocabulary color ids", () => {
