@@ -61,5 +61,8 @@ describe("TradeScout About explainer route", () => {
     expect(nativeAbout).not.toContain("250,000+");
     expect(nativeAbout).not.toContain("$50M+");
     expect(nativeAbout).not.toContain("Mike Rowe Works Foundation");
+    expect(nativeAbout).not.toContain("socialIntegration");
+    expect(nativeAbout).not.toContain("Social publishing and external auto-sharing");
+    expect(nativeAbout).not.toContain("Dependable end-to-end automatic publishing");
   });
 });
