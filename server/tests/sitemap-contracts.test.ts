@@ -61,7 +61,7 @@ describe("sitemap contracts", () => {
 
   it("submits restored public detail feeds through the advertised static sitemap index", () => {
     const staticIndex = read("client/public/sitemap-index.xml");
-    const generator = read("scripts/generate-sitemap.mjs");
+    const generator = read("scripts/generate-sitemap-core.mjs");
     const guard = read("scripts/guard-sitemap-integrity.mjs");
 
     for (const loc of restoredPublicDetailSitemapLocs) {

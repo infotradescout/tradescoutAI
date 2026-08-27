@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import express from "express";
 import fs from "fs";
 import path from "path";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { streamR2PublicObject } from "./publicMediaStorage";
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
 const COMMON_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".bmp", ".avif"];
@@ -45,64 +45,18 @@ function buildCandidateRelativePaths(uploadPath: string): string[] {
   return Array.from(candidates);
 }
 
-function createR2ClientIfConfigured(): { client: S3Client; bucketName: string } | null {
-  const accountId = String(process.env.R2_ACCOUNT_ID || "").trim();
-  const accessKeyId = String(process.env.R2_ACCESS_KEY_ID || "").trim();
-  const secretAccessKey = String(process.env.R2_SECRET_ACCESS_KEY || "").trim();
-  const bucketName = String(process.env.R2_BUCKET_NAME || "").trim();
-
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) return null;
-
-  const client = new S3Client({
-    region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: { accessKeyId, secretAccessKey },
-  });
-
-  return { client, bucketName };
-}
-
 async function streamFromR2IfPresent(
   req: Request,
   res: Response,
-  r2: { client: S3Client; bucketName: string },
   uploadPath: string
 ): Promise<boolean> {
   const candidates = buildCandidateRelativePaths(uploadPath);
   for (const relative of candidates) {
     const key = `uploads/${relative}`;
-    try {
-      const object = await r2.client.send(
-        new GetObjectCommand({
-          Bucket: r2.bucketName,
-          Key: key,
-        })
-      );
-
-      if (object.ContentType) {
-        res.setHeader("Content-Type", object.ContentType);
-      }
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-
-      const body: any = object.Body;
-      if (body && typeof body.pipe === "function") {
-        body.pipe(res);
-        return true;
-      }
-      if (body && typeof body.transformToByteArray === "function") {
-        const bytes = await body.transformToByteArray();
-        res.status(200).send(Buffer.from(bytes));
-        return true;
-      }
-      return false;
-    } catch (error: any) {
-      const statusCode = Number(error?.$metadata?.httpStatusCode || 0);
-      const code = String(error?.Code || error?.name || "");
-      const notFoundLike = statusCode === 404 || code === "NoSuchKey" || code === "NotFound";
-      if (notFoundLike) continue;
-      console.error("[uploads-fallback] R2 fetch failed", { key, error });
-      return false;
-    }
+    const result = await streamR2PublicObject({ req, res, key });
+    if (result === "served") return true;
+    if (result === "not_found") continue;
+    return false;
   }
   return false;
 }
@@ -134,11 +88,8 @@ export function registerUploadsFallback(app: Express) {
       }
 
       // R2 fallback (handles cases where DB has /uploads/... but objects live in R2).
-      const r2 = createR2ClientIfConfigured();
-      if (r2) {
-        const streamed = await streamFromR2IfPresent(req, res, r2, requested);
-        if (streamed) return;
-      }
+      const streamed = await streamFromR2IfPresent(req, res, requested);
+      if (streamed) return;
 
       // Avoid noisy broken-image UX for known image requests.
       if (IMAGE_EXT_RE.test(requested)) {

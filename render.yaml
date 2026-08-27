@@ -11,7 +11,10 @@ services:
     # Do NOT use checksPass (deadlock risk with post-deploy observers).
     # GitHub Actions deploy workflow is optional backup only — not required for prod.
     autoDeployTrigger: commit
-    preDeployCommand: npm run db:migrate && npm run db:verify:required
+    # The media migrations are idempotent and write their markers only after every
+    # pinned public object is present and verified in the existing R2 bucket.
+    # A failure blocks traffic swap and leaves the current production release live.
+    preDeployCommand: npm run media:migrate:red-graniti && npm run media:migrate:jw-stone && npm run db:migrate && npm run db:verify:required
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION

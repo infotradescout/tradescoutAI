@@ -71,3 +71,11 @@ render-recovery.env
 # Google Search Console raw exports (commit only reviewed aggregate output)
 search-console-exports/
 artifacts/search-console/raw/
+# JW Stone public media lives in the existing R2 bucket. The checked-in
+# migration manifest preserves source identity without returning image bytes
+# to the application repository or Docker build context.
+/client/public/images/businesses/jw-stone/
+
+# R.E.D. Graniti source imagery follows the same R2-backed public-media path.
+# Build-time downloads and generated image payloads are intentionally forbidden.
+/client/public/images/businesses/red-graniti/source/

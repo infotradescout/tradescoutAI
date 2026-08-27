@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import generatedInventory from "@/data/jwStoneInventory.generated.json";
 import { JW_STONE_INVENTORY_CATEGORIES, JW_STONE_INVENTORY_SUMMARY } from "@/data/jwStoneInventory";
@@ -8,6 +6,7 @@ import {
   JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES,
   JW_STONE_MARKETPLACE_INVENTORY_SUMMARY,
 } from "./reconciledInventory";
+import { isJwStonePublicMediaPath } from "@shared/jwStonePublicMedia";
 
 const baseStones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) => category.stones);
 const marketplaceStones = JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap(
@@ -41,10 +40,7 @@ describe("JW Stone unified reconciled inventory", () => {
 
     for (const stone of marketplaceStones) {
       for (const image of stone.images) {
-        expect(
-          fs.existsSync(path.resolve(process.cwd(), "client/public", image.replace(/^\//, ""))),
-          image
-        ).toBe(true);
+        expect(isJwStonePublicMediaPath(image), image).toBe(true);
       }
     }
   });

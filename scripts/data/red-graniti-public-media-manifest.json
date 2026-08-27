@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "migrationId": "red-graniti-public-media-v1",
+  "source": {
+    "kind": "current-production",
+    "origin": "https://www.thetradescout.com",
+    "legacyUrlPrefix": "/images/businesses/red-graniti/source/"
+  },
+  "target": {
+    "storage": "cloudflare-r2",
+    "keyPrefix": "public-media/images/businesses/red-graniti/source/",
+    "legacyUrlPrefix": "/images/businesses/red-graniti/source/"
+  },
+  "expected": {
+    "files": 11,
+    "bytes": 2433960,
+    "entryDigestSha256": "604a10ccbcdfd80e3924691da57df094f206c309ced63c71c22748055730fbd6"
+  },
+  "assets": [
+    {
+      "relativePath": "home-hero.svg",
+      "bytes": 388637,
+      "sha256": "8b143e0cdf70be96e54fd81d3ac744e97a23b4a619afc80221471f425a228d61",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "business-blocks.svg",
+      "bytes": 4576,
+      "sha256": "35eb492719a8c184b017ed43baf4f8c4518fb0397d018e02fd4dae60c8ca6606",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "business-slabs.svg",
+      "bytes": 2538,
+      "sha256": "1c6d7867df37de92d8a28e5fbde5d3a28e450c7b1325197fc4c1a1d5572bf1c3",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "business-distribution.svg",
+      "bytes": 7428,
+      "sha256": "0f74c50dfb94fdc411ce8ee6593c3f01f93d6826afca67af394ec2142b8bbd64",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "lemurian-blue.svg",
+      "bytes": 388639,
+      "sha256": "9425ec23fa842b519b1f28227d6a7e0e906eca13d75156b5273b08271f747fcc",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "nero-africa.svg",
+      "bytes": 532311,
+      "sha256": "9a6b0d6eea6e22be7f5fbfa87e36e3ea4f8612e3f8840071b48ac239ba6fb537",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "eureka-danby.svg",
+      "bytes": 410535,
+      "sha256": "4adf36645ba85b56c2bc9429bfe2741158dcc79c816293dcdcbf4c2a154713c1",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "project-arkansas-office.svg",
+      "bytes": 130025,
+      "sha256": "4cef3920c28b3172bcb2c6f2a5e52a169a765f0a1b0d3ab340705934790df816",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "project-colorado-bank.svg",
+      "bytes": 199681,
+      "sha256": "d2ea4452e81fbb44079c9049893e6166c61cfbacc534ab729506979d68cf028c",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "project-lincoln-memorial.svg",
+      "bytes": 151139,
+      "sha256": "97f6bec80bc91887495a5c50080c89dbd850e89bd70da15869152a3a841e01da",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "relativePath": "project-mansion-dubai.svg",
+      "bytes": 218451,
+      "sha256": "34e5eeebdb58a375ac6c6a3d10d60c3ae62ce85d6c9ea79021366f79c19841de",
+      "contentType": "image/svg+xml"
+    }
+  ]
+}

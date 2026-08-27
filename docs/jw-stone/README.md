@@ -11,11 +11,12 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 | [BRANCH_LANES.md](./BRANCH_LANES.md) | Branch naming, merge rules, what must not land on `main` casually |
 | [CLOSED_LOOP_STRATEGY.md](./CLOSED_LOOP_STRATEGY.md) | Corrected closed-loop market plan (JW sources; Levon sells; five customer bases) |
 | [MARKETPLACE_DOMAIN_CUTOVER.md](./MARKETPLACE_DOMAIN_CUTOVER.md) | Custom domain → marketplace replace-profile cutover |
+| [PUBLIC_MEDIA_MIGRATION.md](./PUBLIC_MEDIA_MIGRATION.md) | R2 media ownership, safe cutover, rollback, and proof |
 
 ## Related repo areas (already on `main` — change only from `jw-stone/*`)
 
 - `client/src/features/jw-stone/`
-- `client/public/images/businesses/jw-stone/`
+- JW Stone public media manifest and R2-backed compatibility routes
 - `server/publicJwStoneMarketplaceHtml.ts`
 - `.selective-intelligence/builds/jw-stone-marketplace/`
 - JW runbooks under `docs/runbooks/JW_STONE_*` and audits under `docs/audits/JW_STONE_*`

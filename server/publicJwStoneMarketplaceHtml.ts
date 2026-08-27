@@ -61,6 +61,17 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function imageMimeType(url: string): string {
+  const pathname = String(url || "")
+    .split(/[?#]/, 1)[0]
+    .toLowerCase();
+  if (pathname.endsWith(".webp")) return "image/webp";
+  if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) return "image/jpeg";
+  if (pathname.endsWith(".gif")) return "image/gif";
+  if (pathname.endsWith(".svg")) return "image/svg+xml";
+  return "image/png";
+}
+
 function upsertTag(html: string, regex: RegExp, tag: string): string {
   if (regex.test(html)) return html.replace(regex, tag);
   return html.replace("</head>", `${tag}\n</head>`);
@@ -455,7 +466,7 @@ ${companySummary}
   html = upsertTag(
     html,
     /<meta property="og:image:type"[^>]*>/i,
-    '<meta property="og:image:type" content="image/png" />'
+    `<meta property="og:image:type" content="${imageMimeType(imageUrl)}" />`
   );
   html = upsertTag(
     html,

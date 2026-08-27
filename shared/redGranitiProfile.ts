@@ -9,7 +9,7 @@ export const RED_GRANITI_GROUP_URL =
 export const RED_GRANITI_BLOCKS_AND_SLABS_URL =
   "https://www.redgraniti.com/en/r-e-d-graniti-group/red-quarries-blocks-and-slabs/";
 
-/** Owner-supplied company mark, hosted locally so the profile never depends on a hotlink. */
+/** Owner-supplied small shell asset. */
 export const RED_GRANITI_LOGO_URL =
   "/images/businesses/red-graniti/logo/red-graniti.png";
 export const RED_GRANITI_OFFICIAL_LOGO_SOURCE_URL =
@@ -37,9 +37,9 @@ export const RED_GRANITI_MANAGED_CONTACT = {
 } as const;
 
 /**
- * Official source-region imagery cached into TradeScout during the production
- * build. Local delivery prevents CSP and source-site hotlink failures while
- * every card remains linked to the corresponding official quarry page.
+ * Official source-region imagery served from TradeScout's existing R2-backed
+ * public-media path. The stable same-origin URLs avoid hotlinks while every
+ * card remains linked to the corresponding official quarry page.
  */
 export const RED_GRANITI_QUARRY_MEDIA = {
   madagascar: {

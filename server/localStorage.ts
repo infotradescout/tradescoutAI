@@ -1,6 +1,7 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
+import { createR2Client, requireR2Configuration } from "./r2Client";
 
 /**
  * Cloudflare R2 storage service (S3-compatible)
@@ -11,26 +12,10 @@ export class R2StorageService {
   private publicUrlBase: string;
 
   constructor() {
-    const accountId = process.env.R2_ACCOUNT_ID;
-    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-    this.bucketName = process.env.R2_BUCKET_NAME || "";
-    this.publicUrlBase = process.env.R2_PUBLIC_URL || "";
-
-    if (!accountId || !accessKeyId || !secretAccessKey || !this.bucketName) {
-      throw new Error(
-        "R2 configuration missing. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in .env"
-      );
-    }
-
-    this.s3Client = new S3Client({
-      region: "auto",
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-    });
+    const configuration = requireR2Configuration();
+    this.bucketName = configuration.bucketName;
+    this.publicUrlBase = configuration.publicUrlBase;
+    this.s3Client = createR2Client(configuration);
   }
 
   /**
