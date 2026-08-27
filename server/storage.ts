@@ -2627,6 +2627,13 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
         : 0;
 
     // Query for active ads matching audience and location
+    const adOrdering = [
+      desc(advertisements.communityScore),
+      desc(advertisements.priority),
+      ...(preferAffiliate ? [desc(advertisements.isAffiliate)] : []),
+      sql`RANDOM()`,
+    ];
+
     const ads = await db
       .select()
       .from(advertisements)
@@ -2642,12 +2649,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
           minCommunityScore > 0 ? gte(advertisements.communityScore, minCommunityScore) : sql`1=1`
         )
       )
-      .orderBy(
-        desc(advertisements.communityScore),
-        desc(advertisements.priority),
-        preferAffiliate ? desc(advertisements.isAffiliate) : sql`0`,
-        sql`RANDOM()`
-      )
+      .orderBy(...adOrdering)
       .limit(1);
 
     return ads[0] || null;
