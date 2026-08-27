@@ -28,6 +28,13 @@ test("runtime lock retains the root security/version overrides used to generate 
   const rootPackage = JSON.parse(read("package.json"));
   const runtimePackage = JSON.parse(read("runtime/package.json"));
   assert.deepEqual(runtimePackage.overrides, rootPackage.overrides);
+  const rootLock = JSON.parse(read("package-lock.json"));
+  const runtimeLock = JSON.parse(read("runtime/package-lock.json"));
+  assert.equal(runtimePackage.dependencies["drizzle-orm"], "0.45.2");
+  assert.deepEqual(
+    runtimeLock.packages["node_modules/drizzle-orm"],
+    rootLock.packages["node_modules/drizzle-orm"]
+  );
 });
 
 test("Render lifecycle invokes only compiled release entrypoints", () => {

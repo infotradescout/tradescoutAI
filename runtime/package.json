@@ -14,6 +14,7 @@
     "cors": "2.8.6",
     "dotenv": "16.6.1",
     "drizzle-kit": "0.31.9",
+    "drizzle-orm": "0.45.2",
     "express": "4.22.2",
     "express-session": "1.18.2",
     "helmet": "8.1.0",
