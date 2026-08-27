@@ -83,14 +83,20 @@ describe("Pro Fab Specialty Services public profile contract", () => {
   });
 
   it("uses the explicit slug-and-source authority exception without asserting verification", () => {
-    const authority = read("server/services/ownerConfirmedDirectProfile.ts");
+    const authorityRegistry = read("shared/publicProfileExposureRegistry.ts");
+    const authorityService = read("server/services/ownerConfirmedDirectProfile.ts");
     const provisioning = read("server/services/proFabProfileProvisioning.ts");
 
-    expect(authority).toContain('PRO_FAB_PROFILE_SLUG = "pro-fab-specialty-services"');
-    expect(authority).toContain(
+    expect(authorityRegistry).toContain('PRO_FAB_PROFILE_SLUG = "pro-fab-specialty-services"');
+    expect(authorityRegistry).toContain(
       'ADMIN_MANAGED_PROFILE_SOURCE = "admin_provisioned_business_profile"'
     );
-    expect(authority).toContain("[PRO_FAB_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE");
+    expect(authorityRegistry).toContain("[PRO_FAB_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE");
+    expect(authorityService).toContain(
+      '} from "@shared/publicProfileExposureRegistry";'
+    );
+    expect(authorityService).toContain("PRO_FAB_PROFILE_SLUG,");
+    expect(authorityService).toContain("ADMIN_MANAGED_PROFILE_SOURCE,");
     expect(provisioning).toContain(
       "PRO_FAB_PROFILE_PROVISIONING_SOURCE = ADMIN_MANAGED_PROFILE_SOURCE"
     );
@@ -117,11 +123,30 @@ describe("Pro Fab Specialty Services public profile contract", () => {
       generalDirectConnectEnd
     );
 
-    expect(profileView).toContain("import ProFabProfileTheme");
+    expect(profileView).not.toContain('import ProFabProfileTheme from');
+    expect(profileView).toMatch(
+      /const ProFabProfileTheme = lazy\(\(\) => import\("@\/pages\/profile-sites\/ProFabProfileTheme"\)\)/
+    );
     expect(profileView).toContain('profile.slug === "pro-fab-specialty-services"');
     expect(proFabBranchStart).toBeGreaterThanOrEqual(0);
     expect(proFabBranchEnd).toBeGreaterThan(proFabBranchStart);
     expect(proFabBranch).toContain("<ProFabProfileTheme");
+    expect(proFabBranch).toContain("<ProFabProfileBoundary>");
+    expect(profileView).toContain('data-testid="pro-fab-profile-loading"');
+    expect(profileView).toContain('role="status"');
+    expect(profileView).toContain('aria-live="polite"');
+    expect(proFabBranch.indexOf("<SEOHelmet")).toBeLessThan(
+      proFabBranch.indexOf("<ProFabProfileBoundary>")
+    );
+    expect(proFabBranch.indexOf("{manageChrome}")).toBeLessThan(
+      proFabBranch.indexOf("<ProFabProfileBoundary>")
+    );
+    expect(proFabBranch.indexOf("{templateIndependentInventoryContext}")).toBeLessThan(
+      proFabBranch.indexOf("<ProFabProfileBoundary>")
+    );
+    expect(proFabBranch.indexOf("</ProFabProfileBoundary>")).toBeLessThan(
+      proFabBranch.indexOf("<ExpressDirectConnectPanel")
+    );
     expect(proFabBranch).toContain('trustActions={renderProfileTrustActions("dark")}');
     expect(proFabBranch).toContain("recommendationsDirectory={recommendationsDirectory}");
     expect(proFabBranch).toContain("onDirectConnect={openGeneralDirectConnect}");

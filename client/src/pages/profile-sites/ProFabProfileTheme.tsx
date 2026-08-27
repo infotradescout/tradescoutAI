@@ -70,6 +70,7 @@ type Props = {
 };
 
 const assetRoot = "/images/businesses/pro-fab-specialty-services";
+const highFetchPriority = { fetchpriority: "high" } as const;
 
 export default function ProFabProfileTheme({
   profileSlug,
@@ -118,7 +119,7 @@ export default function ProFabProfileTheme({
               src={`${assetRoot}/cover.svg`}
               alt="Pro Fab welding and metal fabrication"
               className="absolute inset-0 h-full w-full object-cover object-right opacity-80"
-              fetchPriority="high"
+              {...highFetchPriority}
             />
             <span className="absolute inset-0 bg-[linear-gradient(90deg,#050505_0%,#050505_48%,rgba(5,5,5,0.86)_61%,rgba(5,5,5,0.08)_100%)]" />
             <div className="absolute inset-y-0 left-0 flex w-[62%] flex-col justify-center px-5">
@@ -135,7 +136,7 @@ export default function ProFabProfileTheme({
             src={`${assetRoot}/cover.svg`}
             alt="Pro Fab welding and metal fabrication"
             className="hidden aspect-[5/2] w-full object-contain sm:block"
-            fetchPriority="high"
+            {...highFetchPriority}
           />
         </section>
 

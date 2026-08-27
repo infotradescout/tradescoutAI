@@ -23,7 +23,6 @@ for (const staticTheme of [
   "DefaultProfileTheme",
   "WholesalerProfileTheme",
   "JrsAutoGlassProfileTheme",
-  "ProFabProfileTheme",
   "VideographerProfileTheme",
   "LocalServiceProfileTheme",
 ]) {
