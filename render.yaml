@@ -17,7 +17,7 @@ services:
     # If neither is active, the existing production PostgreSQL service owns the
     # isolated public-media object table; no ephemeral disk is used.
     # A failure blocks traffic swap and leaves the current production release live.
-    preDeployCommand: node dist/release/migrate-red-graniti-public-media.mjs && node dist/release/migrate-jw-stone-public-media.mjs && node dist/release/db-migrate-safe.mjs && node dist/release/check-required-production-schema.mjs
+    preDeployCommand: node dist/release/migrate-red-graniti-public-media.mjs && node dist/release/migrate-jw-stone-public-media.mjs && node dist/release/migrate-profile-public-media.mjs && node dist/release/db-migrate-safe.mjs && node dist/release/check-required-production-schema.mjs
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION

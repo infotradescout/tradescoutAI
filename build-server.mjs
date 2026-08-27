@@ -128,6 +128,7 @@ const releaseResult = await esbuild.build({
     'ensure-public-media-ready': 'scripts/ensure-public-media-ready.mjs',
     'migrate-jw-stone-public-media': 'scripts/migrate-jw-stone-public-media.mjs',
     'migrate-red-graniti-public-media': 'scripts/migrate-red-graniti-public-media.mjs',
+    'migrate-profile-public-media': 'scripts/migrate-profile-public-media.mjs',
     'db-migrate-safe': 'scripts/db-migrate-safe.mjs',
     'db-baseline-drizzle': 'scripts/db-baseline-drizzle.mjs',
     'check-required-production-schema': 'scripts/check-required-production-schema.mjs',
@@ -154,6 +155,7 @@ fs.mkdirSync(releaseManifestDirectory, { recursive: true });
 for (const manifestName of [
   'jw-stone-public-media-manifest.json',
   'red-graniti-public-media-manifest.json',
+  'profile-public-media-manifest.json',
 ]) {
   fs.copyFileSync(
     path.join(__dirname, 'scripts', 'data', manifestName),

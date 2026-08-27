@@ -37,7 +37,7 @@ describe("Render Docker deploy lifecycle", () => {
     expect(blueprint).toContain("dockerfilePath: ./Dockerfile");
     expect(blueprint).toContain("autoDeployTrigger: commit");
     expect(blueprint).toContain(
-      "preDeployCommand: node dist/release/migrate-red-graniti-public-media.mjs && node dist/release/migrate-jw-stone-public-media.mjs && node dist/release/db-migrate-safe.mjs && node dist/release/check-required-production-schema.mjs"
+      "preDeployCommand: node dist/release/migrate-red-graniti-public-media.mjs && node dist/release/migrate-jw-stone-public-media.mjs && node dist/release/migrate-profile-public-media.mjs && node dist/release/db-migrate-safe.mjs && node dist/release/check-required-production-schema.mjs"
     );
     expect(blueprint).toContain("healthCheckPath: /api/health");
     expect(blueprint).toContain("RUNTIME_MIGRATIONS_MODE");

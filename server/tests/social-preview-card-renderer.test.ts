@@ -161,6 +161,33 @@ describe.sequential("social preview card renderer", () => {
     }
   }, 30_000);
 
+  it("reads allowlisted profile media from storage on arbitrary custom domains", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("must not self-fetch"));
+    const serverPublicAssetReader = vi.fn(async () => null);
+    try {
+      const rendered = await renderSocialPreviewCard(
+        {
+          ...blueMareContext,
+          sourceImageUrl:
+            "https://precision-aerial.example/images/profiles/precision-aerial/hero-reel-poster.jpg",
+          logoUrl: null,
+        },
+        { publicRoots: [PUBLIC_ROOT], serverPublicAssetReader }
+      );
+      expectSocialPreviewPng(rendered.png);
+      expect(rendered.sourceImageLoaded).toBe(false);
+      expect(serverPublicAssetReader).toHaveBeenCalledWith(
+        "public-media/images/profiles/precision-aerial/hero-reel-poster.jpg",
+        5 * 1024 * 1024
+      );
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  }, 30_000);
+
   it("bounds process-wide render concurrency and rejects immediately when the queue is full", async () => {
     let releaseFetches: (() => void) | null = null;
     const fetchGate = new Promise<void>((resolve) => {
