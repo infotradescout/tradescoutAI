@@ -6,8 +6,19 @@ import {
   isSafePostgresPublicObjectKey,
   postgresConditionalStatus,
   publicObjectEtag,
+  resolvePostgresPublicMediaCommandOperation,
   resolvePostgresByteRange,
 } from "../shared/postgresPublicMediaS3Client.mjs";
+
+test("PostgreSQL adapter uses stable Smithy operation names after bundling", () => {
+  const bundledCommand = {
+    constructor: { name: "HeadObjectCommand2" },
+    schema: [9, "com.amazonaws.s3", "HeadObject"],
+    input: { Key: "public-media/images/stone.webp" },
+  };
+
+  assert.equal(resolvePostgresPublicMediaCommandOperation(bundledCommand), "HeadObject");
+});
 
 test("PostgreSQL public object keys reject traversal and private prefixes", () => {
   assert.equal(isSafePostgresPublicObjectKey("public-media/images/stone.webp"), true);

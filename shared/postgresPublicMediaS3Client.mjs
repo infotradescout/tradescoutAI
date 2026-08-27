@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Readable } from "node:stream";
 
 const SAFE_PUBLIC_OBJECT_KEY = /^(?:public-media|uploads)\/[A-Za-z0-9._/-]+$/;
+const SUPPORTED_OBJECT_OPERATIONS = new Set(["PutObject", "HeadObject", "GetObject"]);
 
 function storageError(status, name, message) {
   const error = new Error(message || name);
@@ -22,6 +23,21 @@ export function isSafePostgresPublicObjectKey(value) {
 export function publicObjectEtag(body) {
   const bytes = Buffer.isBuffer(body) ? body : Buffer.from(body);
   return `"${createHash("sha256").update(bytes).digest("hex")}"`;
+}
+
+/**
+ * Smithy exposes the stable operation name on the command schema. Constructor
+ * names are only a development fallback because bundlers are allowed to rename
+ * classes (for example HeadObjectCommand -> HeadObjectCommand2).
+ */
+export function resolvePostgresPublicMediaCommandOperation(command) {
+  const schemaOperation = command?.schema?.[2];
+  if (typeof schemaOperation === "string" && SUPPORTED_OBJECT_OPERATIONS.has(schemaOperation)) {
+    return schemaOperation;
+  }
+
+  const constructorOperation = String(command?.constructor?.name || "").replace(/Command$/, "");
+  return SUPPORTED_OBJECT_OPERATIONS.has(constructorOperation) ? constructorOperation : null;
 }
 
 function comparableEtag(value) {
@@ -135,11 +151,11 @@ export function createPostgresPublicMediaS3Client(options) {
 
   return Object.freeze({
     async send(command) {
-      const name = String(command?.constructor?.name || "");
+      const operation = resolvePostgresPublicMediaCommandOperation(command);
       const input = command?.input || {};
       const key = String(input.Key || "");
 
-      if (name === "PutObjectCommand") {
+      if (operation === "PutObject") {
         if (!isSafePostgresPublicObjectKey(key)) {
           throw storageError(400, "InvalidObjectKey", "Public object key was rejected");
         }
@@ -172,8 +188,10 @@ export function createPostgresPublicMediaS3Client(options) {
         return { ETag: etag, $metadata: { httpStatusCode: 200 } };
       }
 
-      if (name !== "HeadObjectCommand" && name !== "GetObjectCommand") {
-        throw new TypeError(`Unsupported public-media object command: ${name || "unknown"}`);
+      if (operation !== "HeadObject" && operation !== "GetObject") {
+        throw new TypeError(
+          `Unsupported public-media object command: ${String(command?.constructor?.name || "unknown")}`
+        );
       }
 
       const metadata = await metadataForKey(key);
@@ -184,7 +202,7 @@ export function createPostgresPublicMediaS3Client(options) {
           conditionalStatus === 304 ? "NotModified" : "PreconditionFailed"
         );
       }
-      if (name === "HeadObjectCommand") return metadata;
+      if (operation === "HeadObject") return metadata;
 
       let range;
       if (input.Range) {
