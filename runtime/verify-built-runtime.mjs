@@ -105,17 +105,10 @@ const gitBlobSha = (buffer) =>
   createHash("sha1").update(`blob ${buffer.length}\0`).update(buffer).digest("hex");
 for (const entry of shellEntries) {
   const publicFile = path.join(appRoot, "dist/public", `.${entry.publicPath}`);
-  assert.ok(fs.existsSync(publicFile), `public shell runtime path missing: ${entry.publicPath}`);
-  const bytes = fs.readFileSync(publicFile);
   assert.equal(
-    bytes.length,
-    entry.bytes,
-    `public shell runtime bytes changed: ${entry.publicPath}`
-  );
-  assert.equal(
-    gitBlobSha(bytes),
-    entry.gitBlobSha,
-    `public shell runtime blob changed: ${entry.publicPath}`
+    fs.existsSync(publicFile),
+    false,
+    `removed public shell path leaked into runtime: ${entry.publicPath}`
   );
   if (entry.kind === "alias") {
     const canonicalFile = path.join(appRoot, "dist/public", `.${entry.canonicalPath}`);
@@ -123,10 +116,16 @@ for (const entry of shellEntries) {
       fs.existsSync(canonicalFile),
       `public shell canonical path missing: ${entry.canonicalPath}`
     );
-    assert.deepEqual(
-      bytes,
-      fs.readFileSync(canonicalFile),
-      `public shell alias diverged: ${entry.publicPath}`
+    const canonicalBytes = fs.readFileSync(canonicalFile);
+    assert.equal(
+      canonicalBytes.length,
+      entry.bytes,
+      `public shell canonical bytes changed: ${entry.canonicalPath}`
+    );
+    assert.equal(
+      gitBlobSha(canonicalBytes),
+      entry.gitBlobSha,
+      `public shell canonical blob changed: ${entry.canonicalPath}`
     );
   }
 }

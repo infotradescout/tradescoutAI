@@ -29,7 +29,8 @@ test("production runner uses a positive artifact and dependency allowlist", () =
   assert.match(runtimeVerifier, /profile media leaked into the production runner/);
   assert.match(runtimeVerifier, /profile-public-media-manifest\.json/);
   assert.match(runtimeVerifier, /public-shell-local-dedupe-manifest\.json/);
-  assert.match(runtimeVerifier, /public shell runtime blob changed/);
+  assert.match(runtimeVerifier, /removed public shell path leaked into runtime/);
+  assert.match(runtimeVerifier, /public shell canonical blob changed/);
 });
 
 test("runtime lock retains the root security/version overrides used to generate it", () => {

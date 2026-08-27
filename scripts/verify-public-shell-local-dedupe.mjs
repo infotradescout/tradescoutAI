@@ -62,20 +62,40 @@ const roots = [path.join(root, manifest.source.pathPrefix)];
 if (process.argv.includes("--built")) roots.push(path.join(root, "dist/public"));
 for (const publicRoot of roots) {
   for (const entry of manifest.entries) {
-    const source = fs.readFileSync(path.join(publicRoot, `.${entry.publicPath}`));
-    if (source.length !== entry.bytes || gitBlobSha(source) !== entry.gitBlobSha) {
-      throw new Error(`Public shell source identity changed: ${entry.publicPath}`);
-    }
+    const removedPath = path.join(publicRoot, `.${entry.publicPath}`);
+    if (fs.existsSync(removedPath))
+      throw new Error(`Removed public shell path leaked into Release B: ${entry.publicPath}`);
     if (entry.kind === "alias") {
       const canonical = fs.readFileSync(path.join(publicRoot, `.${entry.canonicalPath}`));
-      if (!source.equals(canonical)) {
-        throw new Error(
-          `Public shell alias bytes differ from canonical target: ${entry.publicPath}`
-        );
+      if (canonical.length !== entry.bytes || gitBlobSha(canonical) !== entry.gitBlobSha) {
+        throw new Error(`Public shell canonical identity changed: ${entry.canonicalPath}`);
       }
     }
   }
 }
+function publicFileStats(directory) {
+  let files = 0;
+  let bytes = 0;
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      const nested = publicFileStats(absolute);
+      files += nested.files;
+      bytes += nested.bytes;
+    } else if (entry.isFile()) {
+      files += 1;
+      bytes += fs.statSync(absolute).size;
+    }
+  }
+  return { files, bytes };
+}
+const clientPublic = publicFileStats(path.join(root, manifest.source.pathPrefix));
+if (
+  clientPublic.files !== manifest.expected.clientPublicFiles ||
+  clientPublic.bytes !== manifest.expected.clientPublicBytes
+) {
+  throw new Error("Release B client/public totals changed without review");
+}
 console.log(
-  `[public-shell-dedupe] Release A verified ${summary.files} retained paths (${summary.bytes} bytes), ${summary.aliases} exact aliases, and ${summary.deadPinned} dead pinned paths`
+  `[public-shell-dedupe] Release B verified ${summary.files} removed paths (${summary.bytes} bytes), ${summary.aliases} compatibility aliases, and ${summary.deadPinned} dead pinned paths`
 );
