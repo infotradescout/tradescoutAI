@@ -28,6 +28,7 @@ runNode([
   path.join(scriptsDir, "jw-stone-public-media-core.contract.test.mjs"),
   path.join(scriptsDir, "red-graniti-public-media-core.contract.test.mjs"),
   path.join(scriptsDir, "profile-public-media-core.contract.test.mjs"),
+  path.join(scriptsDir, "public-shell-local-dedupe-core.contract.test.mjs"),
   path.join(scriptsDir, "public-media-deployment-gate-core.contract.test.mjs"),
   path.join(scriptsDir, "server-object-storage.contract.test.mjs"),
   path.join(scriptsDir, "postgres-public-media-s3-client.contract.test.mjs"),
@@ -35,5 +36,6 @@ runNode([
 runNode([path.join(scriptsDir, "verify-jw-stone-public-media.mjs")]);
 runNode([path.join(scriptsDir, "verify-red-graniti-public-media.mjs")]);
 runNode([path.join(scriptsDir, "verify-profile-public-media.mjs")]);
+runNode([path.join(scriptsDir, "verify-public-shell-local-dedupe.mjs")]);
 
 await import("./generate-sitemap-core.mjs");

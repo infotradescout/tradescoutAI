@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 
 const appRoot = process.cwd();
 const requireFromRunner = createRequire(path.join(appRoot, "package.json"));
@@ -57,6 +58,7 @@ for (const requiredPath of [
   "dist/release/manifests/jw-stone-public-media-manifest.json",
   "dist/release/manifests/red-graniti-public-media-manifest.json",
   "dist/release/manifests/profile-public-media-manifest.json",
+  "dist/release/manifests/public-shell-local-dedupe-manifest.json",
   "migrations/meta/_journal.json",
   "runtime/drizzle.config.mjs",
   "runtime/run-release.mjs",
@@ -79,6 +81,54 @@ for (const asset of profileMediaManifest.assets || []) {
     false,
     `profile media leaked into the production runner: ${asset.publicPath}`
   );
+}
+
+const shellDedupeManifest = JSON.parse(
+  fs.readFileSync(
+    path.join(appRoot, "dist/release/manifests/public-shell-local-dedupe-manifest.json"),
+    "utf8"
+  )
+);
+const shellEntries = shellDedupeManifest.entries || [];
+assert.equal(shellEntries.length, 10, "public shell runtime manifest path count changed");
+assert.equal(
+  shellEntries.filter((entry) => entry.kind === "alias").length,
+  6,
+  "public shell runtime alias count changed"
+);
+assert.equal(
+  shellEntries.filter((entry) => entry.kind === "dead-pinned").length,
+  4,
+  "public shell runtime dead-path count changed"
+);
+const gitBlobSha = (buffer) =>
+  createHash("sha1").update(`blob ${buffer.length}\0`).update(buffer).digest("hex");
+for (const entry of shellEntries) {
+  const publicFile = path.join(appRoot, "dist/public", `.${entry.publicPath}`);
+  assert.ok(fs.existsSync(publicFile), `public shell runtime path missing: ${entry.publicPath}`);
+  const bytes = fs.readFileSync(publicFile);
+  assert.equal(
+    bytes.length,
+    entry.bytes,
+    `public shell runtime bytes changed: ${entry.publicPath}`
+  );
+  assert.equal(
+    gitBlobSha(bytes),
+    entry.gitBlobSha,
+    `public shell runtime blob changed: ${entry.publicPath}`
+  );
+  if (entry.kind === "alias") {
+    const canonicalFile = path.join(appRoot, "dist/public", `.${entry.canonicalPath}`);
+    assert.ok(
+      fs.existsSync(canonicalFile),
+      `public shell canonical path missing: ${entry.canonicalPath}`
+    );
+    assert.deepEqual(
+      bytes,
+      fs.readFileSync(canonicalFile),
+      `public shell alias diverged: ${entry.publicPath}`
+    );
+  }
 }
 
 console.log(`Built runtime boundary passed (${evidence.packages?.length || 0} externals).`);

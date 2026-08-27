@@ -24,9 +24,12 @@ test("production runner uses a positive artifact and dependency allowlist", () =
   assert.match(dockerfile, /COPY --from=builder \/app\/migrations \.\/migrations/);
   const packageJson = JSON.parse(read("package.json"));
   assert.match(packageJson.scripts.build, /verify-profile-public-media\.mjs --built/);
+  assert.match(packageJson.scripts.build, /verify-public-shell-local-dedupe\.mjs --built/);
   const runtimeVerifier = read("runtime/verify-built-runtime.mjs");
   assert.match(runtimeVerifier, /profile media leaked into the production runner/);
   assert.match(runtimeVerifier, /profile-public-media-manifest\.json/);
+  assert.match(runtimeVerifier, /public-shell-local-dedupe-manifest\.json/);
+  assert.match(runtimeVerifier, /public shell runtime blob changed/);
 });
 
 test("runtime lock retains the root security/version overrides used to generate it", () => {

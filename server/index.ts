@@ -9,6 +9,7 @@ import compression from "compression";
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import { registerRoutes } from "./routes";
+import { registerPublicShellAliasRoutes } from "./publicShellAliasRoutes";
 import { logger } from "./services/logger";
 import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
 import { db, pool } from "./db";
@@ -1601,6 +1602,10 @@ app.use(landingContractHeaders);
                   return res.sendFile(currentStylesheet);
                 });
               }
+
+              // Release A keeps every duplicate file while canonicalizing exact public aliases.
+              // This must remain before identity and general static serving.
+              registerPublicShellAliasRoutes(app);
 
               // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)
               const identityAssets = new Set([
