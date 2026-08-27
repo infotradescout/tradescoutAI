@@ -1,6 +1,11 @@
 const GIT_COMMIT_SHA = /^[a-f0-9]{40}$/;
 const MIGRATION_ID = /^[a-z0-9][a-z0-9-]*$/;
 
+export function migrationArgumentsForReadiness(markerReady, alwaysVerify = false) {
+  if (!markerReady) return [];
+  return alwaysVerify ? ["--verify-only"] : null;
+}
+
 export function deploymentRevisionFromEnvironment(environment = process.env) {
   const revision = String(environment.RENDER_GIT_COMMIT || "")
     .trim()

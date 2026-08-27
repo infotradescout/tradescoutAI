@@ -27,11 +27,13 @@ runNode([
   path.join(scriptsDir, "jw-stone-color-bucket-accuracy.contract.test.mjs"),
   path.join(scriptsDir, "jw-stone-public-media-core.contract.test.mjs"),
   path.join(scriptsDir, "red-graniti-public-media-core.contract.test.mjs"),
+  path.join(scriptsDir, "profile-public-media-core.contract.test.mjs"),
   path.join(scriptsDir, "public-media-deployment-gate-core.contract.test.mjs"),
   path.join(scriptsDir, "server-object-storage.contract.test.mjs"),
   path.join(scriptsDir, "postgres-public-media-s3-client.contract.test.mjs"),
 ]);
 runNode([path.join(scriptsDir, "verify-jw-stone-public-media.mjs")]);
 runNode([path.join(scriptsDir, "verify-red-graniti-public-media.mjs")]);
+runNode([path.join(scriptsDir, "verify-profile-public-media.mjs")]);
 
 await import("./generate-sitemap-core.mjs");

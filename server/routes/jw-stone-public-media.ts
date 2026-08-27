@@ -1,6 +1,7 @@
 import type { Express, NextFunction, Request, Response } from "express";
 import { resolveJwStonePublicMediaObjectKey } from "@shared/jwStonePublicMedia";
 import { streamPublicObject, type PublicMediaStreamResult } from "../publicMediaStorage";
+import { registerProfilePublicMediaRoutes } from "./profile-public-media";
 
 const JW_STONE_PUBLIC_MEDIA_ROUTE = "/images/businesses/jw-stone/*";
 
@@ -31,4 +32,5 @@ export function registerJwStonePublicMediaRoutes(
   // Register HEAD first so Express does not fall through to its implicit GET handling.
   app.head(JW_STONE_PUBLIC_MEDIA_ROUTE, handler);
   app.get(JW_STONE_PUBLIC_MEDIA_ROUTE, handler);
+  registerProfilePublicMediaRoutes(app);
 }

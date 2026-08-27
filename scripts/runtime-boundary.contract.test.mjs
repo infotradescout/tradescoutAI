@@ -44,6 +44,7 @@ test("Render lifecycle invokes only compiled release entrypoints", () => {
   assert.doesNotMatch(dockerfile, /node scripts\//);
   assert.match(blueprint, /node dist\/release\/migrate-red-graniti-public-media\.mjs/);
   assert.match(blueprint, /node dist\/release\/migrate-jw-stone-public-media\.mjs/);
+  assert.match(blueprint, /node dist\/release\/migrate-profile-public-media\.mjs/);
   assert.match(blueprint, /node dist\/release\/db-migrate-safe\.mjs/);
   assert.match(blueprint, /node dist\/release\/check-required-production-schema\.mjs/);
   assert.doesNotMatch(blueprint, /preDeployCommand:.*npm run/);
@@ -64,6 +65,7 @@ test("legacy service npm lifecycle commands select compiled release workers", ()
     ["db:verify:required", "check-required-production-schema"],
     ["media:migrate:red-graniti", "migrate-red-graniti-public-media"],
     ["media:migrate:jw-stone", "migrate-jw-stone-public-media"],
+    ["media:migrate:profiles", "migrate-profile-public-media"],
   ]) {
     assert.match(packageJson.scripts[scriptName], new RegExp(`runtime/run-release\\.mjs ${builtName}`));
   }

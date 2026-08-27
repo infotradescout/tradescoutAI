@@ -12,6 +12,7 @@ test("production release entries are bundled with evidence and an external guard
     "ensure-public-media-ready",
     "migrate-jw-stone-public-media",
     "migrate-red-graniti-public-media",
+    "migrate-profile-public-media",
     "db-migrate-safe",
     "db-baseline-drizzle",
     "check-required-production-schema",
@@ -35,13 +36,14 @@ test("media readiness supports source and colocated bundled migrations", () => {
   assert.match(source, /scriptDirectory, "manifests", filename/);
 });
 
-test("both bundled migration workers resolve copied manifests", () => {
+test("all bundled migration workers resolve copied manifests", () => {
   const resolver = read("scripts/public-media-manifest-path.mjs");
   assert.match(resolver, /PUBLIC_MEDIA_MANIFEST_DIR/);
   assert.match(resolver, /scriptDirectory, "manifests", filename/);
   for (const script of [
     "scripts/migrate-jw-stone-public-media.mjs",
     "scripts/migrate-red-graniti-public-media.mjs",
+    "scripts/migrate-profile-public-media.mjs",
   ]) {
     assert.match(read(script), /resolvePublicMediaManifest\(/);
     assert.doesNotMatch(read(script), /scripts\/data\/(jw-stone|red-graniti)-public-media-manifest/);

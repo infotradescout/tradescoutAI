@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveJwStonePublicMediaObjectKey } from "@shared/jwStonePublicMedia";
 import { resolveRedGranitiPublicMediaObjectKey } from "@shared/redGranitiPublicMedia";
+import { resolveProfilePublicMediaObjectKey } from "@shared/profilePublicMedia";
 import { readPublicObjectBuffer } from "./publicMediaStorage";
 
 export const SOCIAL_PREVIEW_WIDTH = 1200;
@@ -201,6 +202,16 @@ function serverPublicMediaObjectKey(value: unknown): string | null {
     const parsed = new URL(candidate, "https://www.thetradescout.com");
     const isRelative = candidate.startsWith("/") && !candidate.startsWith("//");
     const host = parsed.hostname.toLowerCase();
+    const publicPath = pathnameFromPublicAsset(parsed.pathname, true);
+    if (!publicPath) return null;
+    const profileObjectKey = resolveProfilePublicMediaObjectKey(publicPath);
+    if (
+      profileObjectKey &&
+      (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+      !parsed.username &&
+      !parsed.password
+    )
+      return profileObjectKey;
     if (
       !isRelative &&
       host !== "thetradescout.com" &&
@@ -209,8 +220,6 @@ function serverPublicMediaObjectKey(value: unknown): string | null {
     ) {
       return null;
     }
-    const publicPath = pathnameFromPublicAsset(parsed.pathname, true);
-    if (!publicPath) return null;
     return (
       resolveJwStonePublicMediaObjectKey(publicPath) ||
       resolveRedGranitiPublicMediaObjectKey(publicPath)

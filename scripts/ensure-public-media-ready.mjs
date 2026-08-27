@@ -8,9 +8,11 @@ import {
   deploymentMarkerObjectKey,
   deploymentRevisionFromEnvironment,
   deploymentVerificationMarkerMatches,
+  migrationArgumentsForReadiness,
 } from "./public-media-deployment-gate-core.mjs";
 import { validateJwStonePublicMediaManifest } from "./jw-stone-public-media-core.mjs";
 import { validateRedGranitiPublicMediaManifest } from "./red-graniti-public-media-core.mjs";
+import { validateProfilePublicMediaManifest } from "./profile-public-media-core.mjs";
 import {
   createServerObjectStorageClient,
   requireServerObjectStorageConfiguration,
@@ -94,11 +96,11 @@ async function markerIsReady(client, GetObjectCommand, bucketName, contract, rev
   }
 }
 
-function runMigration(scriptName) {
+function runMigration(scriptName, args = []) {
   const bundledPath = path.join(scriptDirectory, scriptName);
   const sourcePath = path.join(repoRoot, "scripts", scriptName);
   const executablePath = fs.existsSync(bundledPath) ? bundledPath : sourcePath;
-  const result = spawnSync(process.execPath, [executablePath], {
+  const result = spawnSync(process.execPath, [executablePath, ...args], {
     cwd: repoRoot,
     env: process.env,
     stdio: "inherit",
@@ -119,6 +121,7 @@ if (!revision) throw new Error("Render did not provide RENDER_GIT_COMMIT");
 
 const jwManifest = readManifest("scripts/data/jw-stone-public-media-manifest.json");
 const redManifest = readManifest("scripts/data/red-graniti-public-media-manifest.json");
+const profileManifest = readManifest("scripts/data/profile-public-media-manifest.json");
 const contracts = [
   {
     manifest: redManifest,
@@ -129,6 +132,12 @@ const contracts = [
     manifest: jwManifest,
     summary: validateJwStonePublicMediaManifest(jwManifest),
     migrationScript: "migrate-jw-stone-public-media.mjs",
+  },
+  {
+    manifest: profileManifest,
+    summary: validateProfilePublicMediaManifest(profileManifest),
+    migrationScript: "migrate-profile-public-media.mjs",
+    alwaysVerify: true,
   },
 ];
 
@@ -143,7 +152,11 @@ const initialReadiness = await Promise.all(
 );
 
 for (let index = 0; index < contracts.length; index += 1) {
-  if (!initialReadiness[index]) runMigration(contracts[index].migrationScript);
+  const migrationArgs = migrationArgumentsForReadiness(
+    initialReadiness[index],
+    contracts[index].alwaysVerify
+  );
+  if (migrationArgs) runMigration(contracts[index].migrationScript, migrationArgs);
 }
 
 const finalReadiness = await Promise.all(
