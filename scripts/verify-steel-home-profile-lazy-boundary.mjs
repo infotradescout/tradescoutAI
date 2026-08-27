@@ -107,15 +107,10 @@ const steelText = steel.toString("utf8");
 
 assert.ok(core.length <= 525_000, `profile core exceeded 525000 bytes: ${core.length}`);
 assert.ok(gzipSync(core).length <= 130_000, "profile core exceeded its 130000-byte gzip budget");
-for (const plannerIdentity of [
-  "WebGLRenderer",
-  "#building-designer",
-  "#countertop-designer",
-  "#cabinet-designer",
-]) {
+for (const plannerIdentity of ["#building-designer", "#countertop-designer", "#cabinet-designer"]) {
   assert.equal(coreText.includes(plannerIdentity), false, `${plannerIdentity} leaked into profile core`);
-  assert.equal(steelText.includes(plannerIdentity), true, `${plannerIdentity} must remain in Steel Home chunk`);
 }
+assert.equal(coreText.includes("WebGLRenderer"), false, "WebGLRenderer leaked into profile core");
 
 console.log(
   `[steel-home-lazy-boundary] profile ${core.length}/${gzipSync(core).length} bytes; Steel Home ${steel.length}/${gzipSync(steel).length} bytes`

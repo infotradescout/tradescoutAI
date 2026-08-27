@@ -5,11 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./steel-home-project-tools/CountertopDesigner", () => ({
-  default: ({
-    onRequest,
-  }: {
-    onRequest: (intent: "stone" | "fabricator") => void;
-  }) => (
+  default: ({ onRequest }: { onRequest: (intent: "stone" | "fabricator") => void }) => (
     <div data-testid="mock-countertop-planner">
       <button
         type="button"
@@ -57,8 +53,7 @@ import type { SteelHomePlanner } from "./steel-home-project-tools/SteelHomeBuild
 
 const requestHref =
   "/direct-connect?profile=steel-home-packages&profileName=Steel%20Home%20Planning%20Tools&source=steel_home_planning_tools&subject=product";
-const laborRequestHref =
-  "/direct-connect?source=steel_home_planning_tools_labor&subject=service";
+const laborRequestHref = "/direct-connect?source=steel_home_planning_tools_labor&subject=service";
 
 function click(container: HTMLElement, testId: string) {
   const element = container.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
@@ -73,11 +68,41 @@ async function flushEffects() {
   });
 }
 
+async function waitForTestId(container: HTMLElement, testId: string) {
+  await act(async () => {
+    await Promise.resolve();
+  });
+  await vi.waitFor(() => {
+    expect(container.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
+  });
+}
+
+async function clickAndWaitForTestId(
+  container: HTMLElement,
+  clickTestId: string,
+  resultTestId: string
+) {
+  const element = container.querySelector<HTMLElement>(`[data-testid="${clickTestId}"]`);
+  if (!element) throw new Error(`Missing ${clickTestId}`);
+  await act(async () => {
+    element.click();
+    await Promise.resolve();
+  });
+  await vi.waitFor(() => {
+    expect(container.querySelector(`[data-testid="${resultTestId}"]`)).not.toBeNull();
+  });
+}
+
 describe("SteelHomePackagesProfile planner orchestration", () => {
   let container: HTMLDivElement;
   let root: Root;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await Promise.all([
+      import("./steel-home-project-tools/CountertopDesigner"),
+      import("./steel-home-project-tools/CabinetDesigner"),
+      import("./steel-home-project-tools/BuildingDesigner"),
+    ]);
     window.localStorage.clear();
     window.history.replaceState(null, "", "/u/steel-home-packages");
     vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -116,9 +141,15 @@ describe("SteelHomePackagesProfile planner orchestration", () => {
 
     expect(container.querySelector('[data-testid="steel-home-builder-directory"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid^="steel-home-builder-card-"]')).toHaveLength(3);
-    expect(container.querySelector('[data-testid="steel-home-builder-open-countertops"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="steel-home-builder-open-cabinets"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="steel-home-builder-open-building"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="steel-home-builder-open-countertops"]')
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="steel-home-builder-open-cabinets"]')
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="steel-home-builder-open-building"]')
+    ).not.toBeNull();
     expect(container.textContent).toContain("Three stand-alone planners");
     expect(container.textContent).toContain("Stone ordering covers material supply only");
     expect(container.textContent).not.toMatch(/early price estimate|planning range/i);
@@ -134,15 +165,18 @@ describe("SteelHomePackagesProfile planner orchestration", () => {
     ];
 
     for (const [planner, previewTestId] of cases) {
-      click(container, `steel-home-builder-open-${planner}`);
+      await clickAndWaitForTestId(container, `steel-home-builder-open-${planner}`, previewTestId);
       expect(
-        container.querySelector(`[data-testid="steel-home-builder-workbench"][data-builder="${planner}"]`)
+        container.querySelector(
+          `[data-testid="steel-home-builder-workbench"][data-builder="${planner}"]`
+        )
       ).not.toBeNull();
-      expect(container.querySelector(`[data-testid="${previewTestId}"]`)).not.toBeNull();
       expect(container.querySelector('[data-testid="steel-home-builder-directory"]')).toBeNull();
 
       click(container, "steel-home-builder-close");
-      expect(container.querySelector('[data-testid="steel-home-builder-directory"]')).not.toBeNull();
+      expect(
+        container.querySelector('[data-testid="steel-home-builder-directory"]')
+      ).not.toBeNull();
     }
   });
 
@@ -150,7 +184,7 @@ describe("SteelHomePackagesProfile planner orchestration", () => {
     const onNavigateBuilder = vi.fn<(builder: SteelHomePlanner | null) => void>();
     await renderProfile({ initialBuilder: "cabinets", onNavigateBuilder });
 
-    expect(container.querySelector('[data-testid="mock-cabinet-planner"]')).not.toBeNull();
+    await waitForTestId(container, "mock-cabinet-planner");
     click(container, "steel-home-builder-close");
     expect(onNavigateBuilder).toHaveBeenLastCalledWith(null);
 
@@ -171,6 +205,7 @@ describe("SteelHomePackagesProfile planner orchestration", () => {
 
   it("keeps stone supply and fabricator matching as separate request intents", async () => {
     await renderProfile({ initialBuilder: "countertops" });
+    await waitForTestId(container, "mock-countertop-planner");
 
     click(container, "mock-countertop-stone-request");
     let dialog = container.querySelector<HTMLElement>(
@@ -192,6 +227,7 @@ describe("SteelHomePackagesProfile planner orchestration", () => {
 
   it("opens quote-required cabinet and building request drawers with only the active planner", async () => {
     await renderProfile({ initialBuilder: "cabinets" });
+    await waitForTestId(container, "mock-cabinet-planner");
     click(container, "mock-cabinet-request");
 
     let dialog = container.querySelector<HTMLElement>(
@@ -213,6 +249,7 @@ describe("SteelHomePackagesProfile planner orchestration", () => {
       );
     });
     await flushEffects();
+    await waitForTestId(container, "mock-building-planner");
     click(container, "mock-building-request");
 
     dialog = container.querySelector<HTMLElement>(
