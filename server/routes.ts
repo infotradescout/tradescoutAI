@@ -30,6 +30,7 @@ import { metalsRouter } from "./routes/metals";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerAdRoutes } from "./routes/ads";
+import { registerQuoteCalculatorRoutes } from "./routes/quote-calculator";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
 import { registerProviderSearchRoutes } from "./routes/provider-search";
 import { registerProcurementRoutes } from "./routes/procurement";
@@ -11640,95 +11641,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Quote calculator pricing
-  app.get("/api/pricing/:service", async (req: any, res: any) => {
-    try {
-      const { service } = req.params;
-      const { fips } = req.query;
-
-      const pricingData = await storage.getPricingData(service, fips as string);
-      res.json(pricingData);
-    } catch (error: any) {
-      console.error("Error fetching pricing data:", error);
-      res.status(500).json({ message: "Failed to fetch pricing data" });
-    }
-  });
-
-  // Quote calculator endpoint (public access)
-  app.post("/api/calculator", async (req: any, res: any) => {
-    try {
-      const { projectType, squareFootage, countyFips, urgency } = (req.body ?? {}) as any;
-
-      // Track calculator usage with locality context
-      // LocalityTracker call removed
-
-      // Get pricing data for the project type and county
-      const pricingData = await storage.getPricingData(projectType, countyFips);
-
-      if (!pricingData || pricingData.length === 0) {
-        // Fallback pricing calculations
-        const baseRates: Record<string, number> = {
-          roofing: 15,
-          "roof-replacement": 15,
-          "roof-repair": 8,
-          plumbing: 12,
-          electrical: 10,
-          hvac: 25,
-          flooring: 12,
-          "kitchen-remodel": 100,
-          "bathroom-remodel": 85,
-          painting: 6,
-        };
-
-        const baseRate = baseRates[projectType] || 20;
-        const sqft = parseInt(squareFootage) || 1000;
-
-        const baseLow = baseRate * sqft * 0.8;
-        const baseHigh = baseRate * sqft * 1.2;
-
-        // Apply urgency multiplier
-        const urgencyMultiplier = urgency === "urgent" ? 1.2 : urgency === "soon" ? 1.1 : 1.0;
-
-        const estimate = {
-          low: Math.round(baseLow * urgencyMultiplier),
-          high: Math.round(baseHigh * urgencyMultiplier),
-          projectType,
-          // squareFootage: sqft,
-          urgency: urgency || "planning",
-          calculatedAt: new Date(),
-        };
-
-        return res.json(estimate);
-      }
-
-      // Use database pricing data
-      const pricing = pricingData[0];
-      const sqft = parseInt(squareFootage) || 1000;
-      const baseLow = pricing.baseLow ? parseInt(pricing.baseLow, 10) : 0;
-      const baseHigh = pricing.baseHigh ? parseInt(pricing.baseHigh, 10) : 0;
-
-      // Calculate estimate based on square footage
-      const low = Math.round((baseLow / 1000) * sqft);
-      const high = Math.round((baseHigh / 1000) * sqft);
-
-      // Apply urgency multiplier
-      const urgencyMultiplier = urgency === "urgent" ? 1.2 : urgency === "soon" ? 1.1 : 1.0;
-
-      const estimate = {
-        low: Math.round(low * urgencyMultiplier),
-        high: Math.round(high * urgencyMultiplier),
-        projectType,
-        // squareFootage: sqft,
-        urgency: urgency || "planning",
-        calculatedAt: new Date(),
-      };
-
-      res.json(estimate);
-    } catch (error: any) {
-      console.error("Error calculating estimate:", error);
-      res.status(500).json({ message: "Failed to calculate estimate" });
-    }
-  });
+  registerQuoteCalculatorRoutes(app, { storage });
 
   // Lead submission (public - no auth required for homeowners to get quotes)
   app.post("/api/leads", isAuthenticated, async (req: any, res: any) => {
