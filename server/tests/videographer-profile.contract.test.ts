@@ -12,10 +12,17 @@ describe("videographer public profile", () => {
   const expressRoute = read("server/routes/tradepartner-express.ts");
 
   it("is a reusable template wired into the canonical public profile route", () => {
-    expect(profileView).toContain(
-      'import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme"'
+    expect(profileView).not.toMatch(/import VideographerProfileTheme from/);
+    expect(profileView).toMatch(
+      /const VideographerProfileTheme = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/VideographerProfileTheme"\)\s*\)/
     );
     expect(profileView).toContain('if (siteTemplate === "videographer")');
+    expect(profileView).not.toMatch(/siteTemplate === "videographer"\s*\|\|/);
+    expect(profileView).toContain("<VideographerProfileBoundary>");
+    expect(profileView).toContain("</VideographerProfileBoundary>");
+    expect(profileView).toMatch(
+      /data-testid="videographer-profile-loading"[\s\S]*?role="status"[\s\S]*?aria-live="polite"/
+    );
     expect(profileView).toContain("<VideographerProfileTheme");
     expect(profileView).toContain("services={serviceTags}");
     expect(profileView).toContain("galleryItems={galleryItems}");
