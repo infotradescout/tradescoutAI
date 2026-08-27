@@ -6,7 +6,7 @@ import { registerProfilePublicMediaRoutes } from "../routes/profile-public-media
 
 const precisionHero = "/images/profiles/precision-aerial/hero-reel.mp4";
 
-describe("profile public media Release A compatibility", () => {
+describe("profile public media Release B compatibility", () => {
   it("maps exact pinned paths, including aliases, and rejects traversal", () => {
     expect(resolveProfilePublicMediaObjectKey(precisionHero)).toBe(
       "public-media/images/profiles/precision-aerial/hero-reel.mp4"
@@ -52,14 +52,49 @@ describe("profile public media Release A compatibility", () => {
   });
 
   it.each(["not_found", "unconfigured", "error"] as const)(
-    "falls through to retained static media on %s during Release A",
+    "fails truthfully without a static fallback on %s",
     async (result) => {
       const app = express();
       registerProfilePublicMediaRoutes(app, {
         stream: async () => result,
       });
       app.get(precisionHero, (_req, res) => res.status(200).send("static"));
-      await request(app).get(precisionHero).expect(200, "static");
+      await request(app)
+        .get(precisionHero)
+        .expect("Cache-Control", "no-store")
+        .expect(502, "Public media is temporarily unavailable");
     }
   );
+
+  it("fails truthfully when the storage reader throws", async () => {
+    const app = express();
+    registerProfilePublicMediaRoutes(app, {
+      stream: async () => {
+        throw new Error("storage unavailable");
+      },
+    });
+    app.get(precisionHero, (_req, res) => res.status(200).send("static"));
+    await request(app)
+      .get(precisionHero)
+      .expect("Cache-Control", "no-store")
+      .expect(502, "Public media is temporarily unavailable");
+  });
+
+  it("does not fall through to static media for a failed HEAD request", async () => {
+    const app = express();
+    registerProfilePublicMediaRoutes(app, { stream: async () => "not_found" });
+    app.head(precisionHero, (_req, res) => res.status(200).end());
+    await request(app).head(precisionHero).expect("Cache-Control", "no-store").expect(502);
+  });
+
+  it("lets unknown image paths continue to the static shell", async () => {
+    const app = express();
+    registerProfilePublicMediaRoutes(app, {
+      stream: async () => {
+        throw new Error("unknown paths must not reach storage");
+      },
+    });
+    app.get("/images/shell/logo.png", (_req, res) => res.status(200).send("shell"));
+    await request(app).get("/images/shell/logo.png").expect(200, "shell");
+  });
 });

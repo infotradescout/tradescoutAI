@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { resolveProfilePublicMediaObjectKey } from "@shared/profilePublicMedia";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -116,7 +117,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(presentation).toContain('callActionLabel: "Call LA Plumbing"');
     expect(presentation).toContain('directionsActionLabel: "Get Directions"');
     expect(presentation).toContain('websiteActionLabel: "Company Website"');
-    expect(presentation).toContain("Residential and commercial plumbing across southeast Louisiana.");
+    expect(presentation).toContain(
+      "Residential and commercial plumbing across southeast Louisiana."
+    );
     expect(presentation).toContain("Financing available");
     expect(presentation).toContain('financingProvider: "Hearth"');
     expect(presentation).toContain("13073 Hwy 190 West, Hammond, LA 70401");
@@ -142,14 +145,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
       "mechanical-room.jpg",
       "water-heaters.jpg",
     ]) {
-      expect(
-        fs.existsSync(
-          path.resolve(
-            process.cwd(),
-            `client/public/images/businesses/la-plumbing-solutions/${asset}`
-          )
-        )
-      ).toBe(true);
+      const publicPath = `/images/businesses/la-plumbing-solutions/${asset}`;
+      expect(resolveProfilePublicMediaObjectKey(publicPath)).toBe(`public-media${publicPath}`);
+      expect(fs.existsSync(path.resolve(process.cwd(), `client/public${publicPath}`))).toBe(false);
     }
   });
 
@@ -204,7 +202,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(theme).toContain("<details");
     expect(theme).toContain("Community Verification Score · {verificationScore}");
 
-    expect(sourceRecord).toContain("The profile must not claim that every credential is currently active");
+    expect(sourceRecord).toContain(
+      "The profile must not claim that every credential is currently active"
+    );
     expect(sourceRecord).toContain("TradeScout does not replace a current authority lookup");
     expect(sourceRecord).toContain("BBB is supporting evidence only");
   });

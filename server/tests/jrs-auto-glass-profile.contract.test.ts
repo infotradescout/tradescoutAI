@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { resolveProfilePublicMediaObjectKey } from "@shared/profilePublicMedia";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -84,24 +85,11 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("cover.webp");
     expect(profileContent).toContain("before.webp");
     expect(profileContent).toContain("after.webp");
-    expect(
-      fs.existsSync(
-        path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/cover.webp")
-      )
-    ).toBe(true);
-    expect(
-      fs.existsSync(
-        path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/logo.webp")
-      )
-    ).toBe(true);
-    expect(
-      fs.existsSync(
-        path.resolve(
-          process.cwd(),
-          "client/public/images/businesses/jrs-auto-glass/social-preview.jpg"
-        )
-      )
-    ).toBe(true);
+    for (const asset of ["cover.webp", "logo.webp", "social-preview.jpg"]) {
+      const publicPath = `/images/businesses/jrs-auto-glass/${asset}`;
+      expect(resolveProfilePublicMediaObjectKey(publicPath)).toBe(`public-media${publicPath}`);
+      expect(fs.existsSync(path.resolve(process.cwd(), `client/public${publicPath}`))).toBe(false);
+    }
     expect(theme.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(theme).not.toContain("Request auto glass service");
     expect(theme).not.toContain("Send job details");

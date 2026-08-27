@@ -22,6 +22,11 @@ test("production runner uses a positive artifact and dependency allowlist", () =
   }
   assert.match(dockerfile, /COPY --from=builder \/app\/server\/cache \.\/runtime\/scout-cache/);
   assert.match(dockerfile, /COPY --from=builder \/app\/migrations \.\/migrations/);
+  const packageJson = JSON.parse(read("package.json"));
+  assert.match(packageJson.scripts.build, /verify-profile-public-media\.mjs --built/);
+  const runtimeVerifier = read("runtime/verify-built-runtime.mjs");
+  assert.match(runtimeVerifier, /profile media leaked into the production runner/);
+  assert.match(runtimeVerifier, /profile-public-media-manifest\.json/);
 });
 
 test("runtime lock retains the root security/version overrides used to generate it", () => {
@@ -67,7 +72,10 @@ test("legacy service npm lifecycle commands select compiled release workers", ()
     ["media:migrate:jw-stone", "migrate-jw-stone-public-media"],
     ["media:migrate:profiles", "migrate-profile-public-media"],
   ]) {
-    assert.match(packageJson.scripts[scriptName], new RegExp(`runtime/run-release\\.mjs ${builtName}`));
+    assert.match(
+      packageJson.scripts[scriptName],
+      new RegExp(`runtime/run-release\\.mjs ${builtName}`)
+    );
   }
 });
 
@@ -75,8 +83,14 @@ test("immutable production disables source mutation and source static fallbacks"
   const sourceFixes = read("server/ai-code-fixes.ts");
   const uiIssues = read("server/routes/admin/ui-issues.ts");
   const socialPreview = read("server/socialPreviewCardRenderer.ts");
+  const profileMediaRoute = read("server/routes/profile-public-media.ts");
   assert.match(sourceFixes, /RUNTIME_SOURCE_MUTATION_DISABLED/);
   assert.match(sourceFixes, /process\.env\.NODE_ENV !== "production"/);
   assert.match(uiIssues, /process\.env\.NODE_ENV === "production" \? \[\] : newIssues/);
   assert.match(socialPreview, /process\.env\.NODE_ENV === "production"/);
+  assert.doesNotMatch(profileMediaRoute, /static fallback|return next\(\);\s*\n\s*}/);
+  assert.match(
+    profileMediaRoute,
+    /status\(502\)\.send\("Public media is temporarily unavailable"\)/
+  );
 });
