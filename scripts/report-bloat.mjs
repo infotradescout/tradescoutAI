@@ -70,6 +70,12 @@ function printHuman(metrics, enforcement) {
       `(${formatCount(metrics.dockerContextTracked.excludedFiles)} files excluded by .dockerignore)`
   );
   console.log(
+    `Docker context contract: ${metrics.dockerContextContract.status}` +
+      (metrics.dockerContextContract.failures.length
+        ? ` (${metrics.dockerContextContract.failures.join("; ")})`
+        : "")
+  );
+  console.log(
     `Tracked client/public: ${formatCount(metrics.clientPublicTracked.files)} files, ` +
       formatBytes(metrics.clientPublicTracked.bytes)
   );
@@ -118,7 +124,7 @@ function printHuman(metrics, enforcement) {
     for (const check of enforcement.checks) {
       console.log(
         `${check.status} ${check.metric}: ${formatCount(check.current)} <= ${formatCount(check.maximum)} ` +
-          `(main baseline ${formatCount(check.baseline)})`
+          `(pinned baseline ${formatCount(check.baseline)}, signed delta ${formatCount(check.delta)})`
       );
     }
     console.log(`${enforcement.status} bloat budget`);
@@ -145,6 +151,11 @@ try {
     const budgetPath = resolveWithinRepo(repoRoot, "scripts/bloat-budget.json");
     const budget = JSON.parse(fs.readFileSync(budgetPath, "utf8"));
     enforcement = evaluateBloatBudget(metrics, budget, { repoRoot });
+    if (metrics.dockerContextContract.status !== "PASS") {
+      throw new Error(
+        `Docker context contract failed: ${metrics.dockerContextContract.failures.join("; ")}`
+      );
+    }
   }
 
   if (options.json) {

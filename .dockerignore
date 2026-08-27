@@ -2,8 +2,42 @@ node_modules
 dist
 .git
 .vercel
+.selective-intelligence
+.github
+.husky
+.vscode
+.cursor
+.config
+.env*
+
+# Native/mobile and generated evidence are not part of the web build.
+android
+ios
+artifacts
+exports
+tmp
+
+# Documentation and quarantined source corpora do not enter the container.
+# The builder creates empty /app/data and /app/docs directories for the
+# existing runner COPY contract; generated Scout corpus retrieval is disabled.
 data
+docs
+
+# Removed legacy/generated roots stay outside future Docker contexts.
 __trash_candidate__
+legacy
+components
+services
+assets
+
+# Root-only operator notes, scratch reports, and duplicate presentation assets.
+/*.md
+/*.txt
+/bg.png
+/tradescout-logo.png
+/*.bat
+/*.ps1
+
 secrets
 *.rar
 *.zip

@@ -126,10 +126,10 @@ This update brings Scout to production-ready status with three major enhancement
 
 | File | Purpose |
 |------|---------|
-| `exports/workspaces/frontend/client/src/scout/ScoutOS.tsx` | Main chat interface |
-| `exports/workspaces/frontend/client/src/scout/ScoutThread.tsx` | Message display |
-| `exports/workspaces/frontend/client/src/scout/ScoutSourceAttribution.tsx` | Source attribution UI |
-| `exports/workspaces/frontend/client/src/scout/ScoutInputRow.tsx` | User input component |
+| `client/src/scout/ScoutOS.tsx` | Main chat interface |
+| `client/src/scout/ScoutThread.tsx` | Message display and source presentation |
+| `client/src/scout/provenance.ts` | Source provenance normalization |
+| `client/src/scout/ScoutInputRow.tsx` | User input component |
 
 ### Documentation
 

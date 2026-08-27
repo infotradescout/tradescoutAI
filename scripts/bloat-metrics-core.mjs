@@ -10,6 +10,53 @@ export const MONOLITH_PATHS = Object.freeze([
   "shared/schema.ts",
 ]);
 
+export const DOCKER_CONTEXT_REQUIRED_PATHS = Object.freeze([
+  "Dockerfile",
+  "package.json",
+  "package-lock.json",
+  "build-server.mjs",
+  "vite.config.ts",
+  "client/index.html",
+  "client/src/main.tsx",
+  "server/index.ts",
+  "shared/schema.ts",
+  "scripts/generate-sitemap.mjs",
+  "scripts/verify-jw-stone-public-media.mjs",
+  "migrations/meta/_journal.json",
+  "drizzle.config.ts",
+  "tsconfig.json",
+  "tailwind.config.ts",
+  "postcss.config.js",
+  "components.json",
+]);
+
+export const DOCKER_CONTEXT_IGNORED_PROBES = Object.freeze([
+  ".selective-intelligence/project-index.json",
+  ".github/pull_request_template.md",
+  ".husky/pre-commit",
+  ".vscode/settings.json",
+  ".cursor/rules/repository.md",
+  ".config/local/tool.json",
+  ".env",
+  ".env.example",
+  "android/app/src/main/AndroidManifest.xml",
+  "ios/App/App/AppDelegate.swift",
+  "artifacts/ui-surface-audit/ui-surface-audit.json",
+  "docs/audits/generated.md",
+  "exports/workspaces/frontend/package.json",
+  "legacy/App-legacy.tsx",
+  "tmp/local-preview.mjs",
+  "components/LegacyComponent.tsx",
+  "services/legacy.ts",
+  "assets/old-bundle.js",
+  "root-report.md",
+  "root-scratch.txt",
+  "bg.png",
+  "tradescout-logo.png",
+  "operator-script.bat",
+  "operator-script.ps1",
+]);
+
 export const BLOAT_BUDGET_METRIC_KEYS = Object.freeze([
   "tracked.files",
   "tracked.bytes",
@@ -32,9 +79,9 @@ export const REPORT_ONLY_WARNING_LEVELS = Object.freeze({
   productionPackagePathLogicalBytes: 625_000_000,
 });
 
-export const CANONICAL_BASELINE_GIT_REF = "3ebe93911ed988942e6c5f6966fafe1fee7a5cbd";
+export const CANONICAL_BASELINE_GIT_REF = "a5329eae77698c439ea1a3fdc52d9c916b665b0a";
 export const CANONICAL_BLOAT_POLICY_SHA256 =
-  "36270374cf986106e480d37dd3879d1cdce4b89499752caa2e981bcd879cf856";
+  "9ec77fe286ad57a8786dab0cc1dd2bf989ccaaf4172f0b1291040ca8e3109aed";
 
 const MAX_GIT_OUTPUT_BYTES = 64 * 1024 * 1024;
 
@@ -265,6 +312,32 @@ export function isDockerIgnored(relativePath, rules) {
   return ignored;
 }
 
+export function evaluateDockerContextContract(entries, rules) {
+  const trackedPaths = new Set(entries.map((entry) => entry.path));
+  const required = DOCKER_CONTEXT_REQUIRED_PATHS.map((requiredPath) => ({
+    path: requiredPath,
+    present: trackedPaths.has(requiredPath),
+    ignored: isDockerIgnored(requiredPath, rules),
+  }));
+  const ignored = DOCKER_CONTEXT_IGNORED_PROBES.map((probePath) => ({
+    path: probePath,
+    ignored: isDockerIgnored(probePath, rules),
+  }));
+  const failures = [
+    ...required
+      .filter((check) => !check.present || check.ignored)
+      .map((check) => `${check.path}: ${check.present ? "ignored" : "missing"}`),
+    ...ignored.filter((check) => !check.ignored).map((check) => `${check.path}: not ignored`),
+  ];
+
+  return {
+    status: failures.length === 0 ? "PASS" : "FAIL",
+    required,
+    ignored,
+    failures,
+  };
+}
+
 function summarizeEntries(entries) {
   return {
     files: entries.length,
@@ -491,6 +564,7 @@ export function collectBloatMetrics(
   const tracked = summarizeTrackedEntries(entries);
   const dockerignoreSource = readGitFile(repoRoot, resolvedCommit, ".dockerignore").toString("utf8");
   const dockerignoreRules = parseDockerignore(dockerignoreSource);
+  const dockerContextContract = evaluateDockerContextContract(entries, dockerignoreRules);
   const dockerEntries = entries.filter((entry) => !isDockerIgnored(entry.path, dockerignoreRules));
   const dockerContextTracked = {
     ...summarizeEntries(dockerEntries),
@@ -542,6 +616,7 @@ export function collectBloatMetrics(
     },
     tracked,
     dockerContextTracked,
+    dockerContextContract,
     clientPublicTracked,
     buildOutputs: {
       serverBundle,
@@ -603,7 +678,7 @@ export function computeBaselineSnapshotSha256(budget) {
     BLOAT_BUDGET_METRIC_KEYS.map((metric) => [metric, budget?.ceilings?.[metric]?.baseline])
   );
   const payload = JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     baselineGitRef: budget?.baselineGitRef,
     metrics,
   });
@@ -618,14 +693,14 @@ export function computeBloatPolicySha256(budget) {
         metric,
         {
           baseline: ceiling?.baseline,
-          allowance: ceiling?.allowance,
+          delta: ceiling?.delta,
           maximum: ceiling?.maximum,
         },
       ];
     })
   );
   const payload = JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     baselineGitRef: budget?.baselineGitRef,
     ceilings,
   });
@@ -634,7 +709,7 @@ export function computeBloatPolicySha256(budget) {
 
 export function evaluateBloatBudget(metrics, budget, { repoRoot, baselineMetrics } = {}) {
   if (
-    budget?.schemaVersion !== 1 ||
+    budget?.schemaVersion !== 2 ||
     typeof budget?.ceilings !== "object" ||
     !/^[0-9a-f]{40}$/.test(budget?.baselineGitRef || "") ||
     !/^[0-9a-f]{64}$/.test(budget?.baselineSnapshotSha256 || "") ||
@@ -647,6 +722,21 @@ export function evaluateBloatBudget(metrics, budget, { repoRoot, baselineMetrics
   const actualKeys = Object.keys(budget.ceilings).sort();
   if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) {
     throw new Error("Bloat budget metric keys do not match the canonical set");
+  }
+  for (const metric of BLOAT_BUDGET_METRIC_KEYS) {
+    const ceiling = budget.ceilings[metric];
+    if (
+      !Number.isSafeInteger(ceiling?.baseline) ||
+      !Number.isSafeInteger(ceiling?.delta) ||
+      !Number.isSafeInteger(ceiling?.maximum) ||
+      ceiling.baseline < 0 ||
+      ceiling.maximum < 0
+    ) {
+      throw new Error(`Invalid bloat budget ceiling: ${metric}`);
+    }
+    if (ceiling.maximum !== ceiling.baseline + ceiling.delta) {
+      throw new Error(`Bloat budget signed delta does not equal maximum: ${metric}`);
+    }
   }
   if (
     budget.baselineGitRef !== CANONICAL_BASELINE_GIT_REF ||
@@ -677,22 +767,6 @@ export function evaluateBloatBudget(metrics, budget, { repoRoot, baselineMetrics
 
   const checks = BLOAT_BUDGET_METRIC_KEYS.map((metric) => {
     const ceiling = budget.ceilings[metric];
-    if (
-      !Number.isSafeInteger(ceiling?.baseline) ||
-      !Number.isSafeInteger(ceiling?.allowance) ||
-      !Number.isSafeInteger(ceiling?.maximum) ||
-      ceiling.baseline < 0 ||
-      ceiling.allowance < 0
-    ) {
-      throw new Error(`Invalid bloat budget ceiling: ${metric}`);
-    }
-    if (ceiling.maximum < ceiling.baseline) {
-      throw new Error(`Bloat budget maximum is below baseline: ${metric}`);
-    }
-    if (ceiling.maximum !== ceiling.baseline + ceiling.allowance) {
-      throw new Error(`Bloat budget allowance does not equal maximum: ${metric}`);
-    }
-
     if (recomputedBaseline) {
       const recomputed = getBloatBudgetMetric(recomputedBaseline, metric);
       if (ceiling.baseline !== recomputed) {
@@ -708,7 +782,7 @@ export function evaluateBloatBudget(metrics, budget, { repoRoot, baselineMetrics
     return {
       metric,
       baseline: ceiling.baseline,
-      allowance: ceiling.allowance,
+      delta: ceiling.delta,
       maximum: ceiling.maximum,
       current,
       status: current <= ceiling.maximum ? "PASS" : "FAIL",

@@ -29,7 +29,8 @@ export const MATERIAL_RAIL_COVER_STONE_IDS: Readonly<Record<string, string>> = {
 
 /**
  * Face-only material rail covers (no hands, clamps, yard chrome).
- * Built by tmp/build-material-covers.mjs into material-covers/.
+ * Original derivatives were built by scripts/jw-stone/build-material-covers.mjs.
+ * Production bytes are served through the pinned public-media storage manifest.
  */
 export const MATERIAL_RAIL_COVER_IMAGES: Readonly<Record<string, string>> = Object.freeze({
   granite: "/images/businesses/jw-stone/material-covers/granite.webp",

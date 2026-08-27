@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
+import { frontendItems } from "./split-workspaces.config.mjs";
 import {
   assertCleanWorktree,
   assertSafeRepoRelative,
@@ -11,6 +12,7 @@ import {
   computeBaselineSnapshotSha256,
   computeBloatPolicySha256,
   evaluateBloatBudget,
+  evaluateDockerContextContract,
   isDockerIgnored,
   measureOptionalDirectory,
   measureOptionalFile,
@@ -19,7 +21,7 @@ import {
   resolveWithinRepo,
 } from "./bloat-metrics-core.mjs";
 
-const BASELINE_REF = "3ebe93911ed988942e6c5f6966fafe1fee7a5cbd";
+const BASELINE_REF = "a5329eae77698c439ea1a3fdc52d9c916b665b0a";
 
 function temporaryDirectory(t) {
   const fixtureRoot = path.join(process.cwd(), "tmp");
@@ -95,22 +97,66 @@ test("alternate Dockerfile-specific ignore files fail closed", (t) => {
 });
 
 test("repository baseline matches exact current .dockerignore and Git storage totals", () => {
-  const metrics = collectBloatMetrics(process.cwd(), { gitRef: BASELINE_REF });
+  const metrics = collectBloatMetrics(process.cwd(), {
+    gitRef: BASELINE_REF,
+    includeEnvironmentReports: false,
+  });
   assert.deepEqual(metrics.tracked, {
-    files: 5660,
-    bytes: 305103012,
-    uniqueBlobs: 4562,
-    uniqueBytes: 195068733,
+    files: 5664,
+    bytes: 305149888,
+    uniqueBlobs: 4566,
+    uniqueBytes: 195115609,
     repeatedBytes: 110034279,
     duplicateGroups: 1046,
     duplicateExtraPaths: 1098,
   });
   assert.deepEqual(metrics.dockerContextTracked, {
-    files: 5055,
-    bytes: 146466692,
+    files: 5059,
+    bytes: 146513568,
     excludedFiles: 605,
     excludedBytes: 158636320,
   });
+});
+
+test("Docker context contract keeps build inputs and excludes non-build roots", () => {
+  const rules = parseDockerignore(fs.readFileSync(new URL("../.dockerignore", import.meta.url), "utf8"));
+  const entries = collectBloatMetrics(process.cwd(), {
+    gitRef: BASELINE_REF,
+    includeEnvironmentReports: false,
+  });
+  const tracked = execFileSync("git", ["ls-tree", "-r", "-z", "--name-only", "HEAD"], {
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean)
+    .map((filePath) => ({ path: filePath }));
+  const contract = evaluateDockerContextContract(tracked, rules);
+  assert.equal(entries.source.resolvedCommit, BASELINE_REF);
+  assert.deepEqual(contract.failures, []);
+  assert.equal(contract.status, "PASS");
+});
+
+test("workspace splits and UI audits remain generated-only outputs", () => {
+  assert.equal(frontendItems.includes("assets"), false);
+  assert.equal(frontendItems.includes("client"), true);
+  assert.equal(frontendItems.includes("shared"), true);
+
+  for (const generatedPath of [
+    "exports/workspaces/frontend/package.json",
+    "tmp/local-preview.mjs",
+    "artifacts/ui-surface-audit/ui-surface-audit.json",
+  ]) {
+    assert.doesNotThrow(() =>
+      execFileSync("git", ["check-ignore", "--no-index", "--quiet", generatedPath], {
+        cwd: process.cwd(),
+      })
+    );
+  }
+
+  assert.equal(fs.existsSync(path.join(process.cwd(), "ui-surface-audit.json")), false);
+  assert.equal(fs.existsSync(path.join(process.cwd(), "ui-surface-audit.md")), false);
+  assert.equal(fs.existsSync(path.join(process.cwd(), "types.ts")), true);
+  assert.equal(fs.existsSync(path.join(process.cwd(), "scripts/verify-legacy-guard.js")), true);
 });
 
 test("Git blob accounting counts duplicate paths once and never follows a tracked symlink", (t) => {
@@ -158,7 +204,22 @@ test("budget validation rejects subsets, extras, and every policy-contract mutat
     includeEnvironmentReports: false,
   });
   const budget = JSON.parse(fs.readFileSync(new URL("./bloat-budget.json", import.meta.url), "utf8"));
-  assert.equal(evaluateBloatBudget(baseline, budget, { baselineMetrics: baseline }).status, "PASS");
+  const atCeilings = structuredClone(baseline);
+  for (const metric of Object.keys(budget.ceilings)) {
+    const parts = metric.split(".");
+    if (metric.startsWith("monolith:")) {
+      const monolithPath = metric.slice("monolith:".length);
+      atCeilings.monoliths[monolithPath].bytes = budget.ceilings[metric].maximum;
+    } else if (parts.length === 2) {
+      atCeilings[parts[0]][parts[1]] = budget.ceilings[metric].maximum;
+    }
+  }
+  assert.equal(evaluateBloatBudget(atCeilings, budget, { baselineMetrics: baseline }).status, "PASS");
+  assert.equal(evaluateBloatBudget(baseline, budget, { baselineMetrics: baseline }).status, "FAIL");
+  assert.ok(
+    Object.values(budget.ceilings).some((ceiling) => ceiling.delta < 0),
+    "cleanup policy must contain negative ratchets"
+  );
 
   const growth = structuredClone(baseline);
   growth.tracked.files = budget.ceilings["tracked.files"].maximum + 1;
@@ -171,7 +232,7 @@ test("budget validation rejects subsets, extras, and every policy-contract mutat
     /canonical set/
   );
   const extra = structuredClone(budget);
-  extra.ceilings["unknown.metric"] = { baseline: 0, allowance: 0, maximum: 0 };
+  extra.ceilings["unknown.metric"] = { baseline: 0, delta: 0, maximum: 0 };
   assert.throws(() => evaluateBloatBudget(baseline, extra, { baselineMetrics: baseline }), /canonical set/);
   const stale = structuredClone(budget);
   stale.ceilings["tracked.bytes"].baseline += 1;
@@ -184,9 +245,12 @@ test("budget validation rejects subsets, extras, and every policy-contract mutat
   );
   const below = structuredClone(budget);
   below.ceilings["tracked.bytes"].maximum -= 1;
-  assert.throws(() => evaluateBloatBudget(baseline, below, { baselineMetrics: baseline }));
+  assert.throws(
+    () => evaluateBloatBudget(atCeilings, below, { baselineMetrics: baseline }),
+    /signed delta/
+  );
   const raised = structuredClone(budget);
-  raised.ceilings["tracked.bytes"].allowance += 1;
+  raised.ceilings["tracked.bytes"].delta += 1;
   raised.ceilings["tracked.bytes"].maximum += 1;
   raised.policySha256 = computeBloatPolicySha256(raised);
   assert.throws(

@@ -79,3 +79,10 @@ artifacts/search-console/raw/
 # R.E.D. Graniti source imagery follows the same R2-backed public-media path.
 # Build-time downloads and generated image payloads are intentionally forbidden.
 /client/public/images/businesses/red-graniti/source/
+
+# Generated workspace splits and local preview scratch are reproducible outputs.
+/exports/
+/tmp/
+
+# UI surface audits are generated on demand and must not dirty the repository root.
+/artifacts/ui-surface-audit/

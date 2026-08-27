@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 const ROOT = process.cwd();
+const OUTPUT_DIR = path.join(ROOT, "artifacts", "ui-surface-audit");
 // Scout previously had no coverage at all here -- this script only ever
 // walked client/src/pages/**, so client/src/scout/** (ScoutHome.tsx et al.)
 // was structurally invisible to it regardless of content.
@@ -89,7 +90,11 @@ const summary = {
   filesWithBg: results.filter((r) => r.hits.some((h) => h.pattern === "bg-*")).length,
 };
 
-fs.writeFileSync(path.join(ROOT, "ui-surface-audit.json"), JSON.stringify({ summary, results }, null, 2));
+fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+fs.writeFileSync(
+  path.join(OUTPUT_DIR, "ui-surface-audit.json"),
+  JSON.stringify({ summary, results }, null, 2)
+);
 
 const top = results.slice(0, 40);
 const md = [
@@ -110,7 +115,7 @@ const md = [
   ``,
 ].join("\n");
 
-fs.writeFileSync(path.join(ROOT, "ui-surface-audit.md"), md);
+fs.writeFileSync(path.join(OUTPUT_DIR, "ui-surface-audit.md"), md);
 
-console.log("Wrote ui-surface-audit.json and ui-surface-audit.md");
+console.log("Wrote artifacts/ui-surface-audit/ui-surface-audit.json and ui-surface-audit.md");
 console.log(`Root violations: ${summary.rootViolations}`);
