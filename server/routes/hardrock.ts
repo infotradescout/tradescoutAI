@@ -9,6 +9,7 @@ import { emailService } from "../services/emailService";
 import { isStaff } from "../auth";
 import { storage } from "../storage";
 import { PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
+import { runtimePaths } from "../runtimePaths";
 
 const hardrockApplyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -74,7 +75,7 @@ export function registerHardrockRoutes(app: Express) {
       const multer = (await import("multer")).default;
       const crypto = await import("crypto");
 
-      const uploadRoot = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+      const uploadRoot = runtimePaths.publicUploads;
       const hardrockRoot = path.join(uploadRoot, "hardrock");
       ensureDir(hardrockRoot);
 

@@ -1,12 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { runtimePaths } from "../runtimePaths";
 
-// ES module friendly __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const MANUAL_CACHE_DIR = path.join(__dirname, "..", "cache", "manual");
+const MANUAL_CACHE_DIR = runtimePaths.scoutManualCache;
 const COUNTY_DIR = path.join(MANUAL_CACHE_DIR, "county_overrides");
 const LOCAL_GUIDES_DIR = path.join(MANUAL_CACHE_DIR, "local_guides");
 const BULK_DIR = path.join(MANUAL_CACHE_DIR, "bulk_uploads");

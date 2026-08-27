@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
-import path from "node:path";
 import {
   createScoutHybridSearchIndex,
   DeterministicDenseEmbeddingProvider,
@@ -11,6 +10,7 @@ import {
   type ScoutHybridSearchIndex,
 } from "./scoutHybridRetrievalService";
 import { GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED } from "./scoutCorpusContainment";
+import { runtimePaths } from "../runtimePaths";
 
 export type ScoutHybridShadowObservation = {
   observedAt: string;
@@ -47,10 +47,7 @@ function queryHash(value: string): string {
 }
 
 function resolveIndexPath(): string {
-  const configured = String(process.env.SCOUT_HYBRID_INDEX_PATH || "").trim();
-  return configured
-    ? path.resolve(configured)
-    : path.resolve(process.cwd(), "data", "scout-hybrid-index.v1.json");
+  return runtimePaths.scoutHybridIndex;
 }
 
 function createEmbeddingProvider(artifact: ScoutHybridIndexArtifact) {

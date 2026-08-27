@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { runtimePaths } from "../runtimePaths";
 
 export interface CacheOverride {
   id: string;
@@ -24,7 +25,7 @@ export interface CacheStats {
 // CACHE MANAGEMENT
 // ============================================================================
 
-const MANUAL_CACHE_DIR = path.join(process.cwd(), "server", "cache", "manual");
+const MANUAL_CACHE_DIR = runtimePaths.scoutManualCache;
 
 // Ensure cache directory exists
 if (!fs.existsSync(MANUAL_CACHE_DIR)) {

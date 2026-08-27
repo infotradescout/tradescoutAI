@@ -1,16 +1,36 @@
 import dotenv from "dotenv";
 import pg from "pg";
 import { runCommand } from "./lib/subprocess.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 dotenv.config();
 
 const { Client } = pg;
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+
+function baselineEntrypoint() {
+  const bundled = path.join(scriptDirectory, "db-baseline-drizzle.mjs");
+  return fs.existsSync(bundled)
+    ? bundled
+    : path.resolve(process.cwd(), "scripts/db-baseline-drizzle.mjs");
+}
 
 function run(commandLine, options = {}) {
   const parts = String(commandLine || "").trim().split(/\s+/).filter(Boolean);
   const cmd = parts[0];
   const args = parts.slice(1);
   return runCommand(cmd, args, { stdio: "inherit", ...options });
+}
+
+function drizzleMigrationCommand() {
+  const productionConfig = path.resolve(process.cwd(), "runtime/drizzle.config.mjs");
+  const config =
+    process.env.NODE_ENV === "production" && fs.existsSync(productionConfig)
+      ? "runtime/drizzle.config.mjs"
+      : "drizzle.config.ts";
+  return `npx drizzle-kit migrate --config=${config}`;
 }
 
 async function migrationCount() {
@@ -41,7 +61,7 @@ async function main() {
   const args = process.argv.slice(2);
   const autoRepair = !args.includes("--no-repair");
 
-  const first = await run("npx drizzle-kit migrate");
+  const first = await run(drizzleMigrationCommand());
   if (first === 0) {
     process.exit(0);
   }
@@ -65,13 +85,13 @@ async function main() {
     "[db:migrate] Initial migrate failed with empty migration history. Attempting baseline + retry..."
   );
 
-  const baseline = await run("node scripts/db-baseline-drizzle.mjs");
+  const baseline = await run(`node ${baselineEntrypoint()}`);
   if (baseline !== 0) {
     console.error("[db:migrate] Baseline failed. Migration not retried.");
     process.exit(first);
   }
 
-  const retry = await run("npx drizzle-kit migrate");
+  const retry = await run(drizzleMigrationCommand());
   process.exit(retry);
 }
 

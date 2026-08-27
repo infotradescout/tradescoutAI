@@ -6,6 +6,7 @@ import type { Request, Response } from "express";
 import multer from "multer";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
+import { runtimePaths } from "../runtimePaths";
 
 type TierKey = string;
 type PlacementKey = "front_center" | "left_chest";
@@ -342,7 +343,7 @@ export function registerScoutFittersRoutes(app: any) {
         return res.status(413).json({ message: "Design too large" });
       }
 
-      const uploadDir = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+      const uploadDir = runtimePaths.publicUploads;
       const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "_");
       const outDir = path.join(uploadDir, "scoutfitters", safeUserId);
       fs.mkdirSync(outDir, { recursive: true });

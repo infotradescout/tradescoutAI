@@ -2,6 +2,7 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import { createR2Client, requireR2Configuration } from "./r2Client";
+import { runtimePaths } from "./runtimePaths";
 
 /**
  * Cloudflare R2 storage service (S3-compatible)
@@ -130,8 +131,8 @@ export class LocalStorageService {
   private privateUploadDir: string;
 
   constructor() {
-    this.uploadDir = process.env.UPLOAD_DIR || "./public/uploads";
-    this.privateUploadDir = process.env.PRIVATE_UPLOAD_DIR || "./private/uploads";
+    this.uploadDir = runtimePaths.publicUploads;
+    this.privateUploadDir = runtimePaths.privateUploads;
     const configuredBase = (process.env.PUBLIC_URL_BASE || "/uploads").trim();
     this.publicUrlBase = configuredBase.replace(/\/+$/, "") || "/uploads";
   }

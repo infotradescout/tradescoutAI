@@ -5,14 +5,11 @@ import fs from "fs";
 import path from "path";
 import { reloadSystemPrompt, getPromptStatus } from "../services/promptService";
 import type { AuthenticatedUser } from "../types";
-import { fileURLToPath } from "url";
+import { runtimePaths } from "../runtimePaths";
 
 const router = express.Router();
 
-// ESM-safe directory resolution
-const routeDir = path.dirname(fileURLToPath(import.meta.url));
-
-const PROMPT_PATH = path.join(routeDir, "..", "cache", "manual", "system_prompt.md");
+const PROMPT_PATH = path.join(runtimePaths.scoutManualCache, "system_prompt.md");
 
 /**
  * Middleware to check if user is super admin

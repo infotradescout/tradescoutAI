@@ -48,6 +48,7 @@ import {
   businessSuggestions,
 } from "../../shared/schema";
 import { and } from "drizzle-orm";
+import { resolveRuntimeEntrypoint } from "../runtimeEntrypoints";
 
 function parseIsoDateParam(value: unknown): Date | null {
   if (typeof value !== "string") return null;
@@ -588,7 +589,12 @@ export function mountAdminRoutes(app: any) {
         } as any);
 
         const repoRoot = process.cwd();
-        const child = spawn(process.execPath, ["scripts/seed_businesses_places_new.mjs"], {
+        const seedEntrypoint = resolveRuntimeEntrypoint(
+          "seed-businesses-places-new.mjs",
+          "scripts/seed_businesses_places_new.mjs",
+          repoRoot
+        );
+        const child = spawn(process.execPath, [seedEntrypoint], {
           cwd: repoRoot,
           env: {
             ...process.env,

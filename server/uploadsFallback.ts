@@ -3,6 +3,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { streamPublicObject } from "./publicMediaStorage";
+import { runtimePaths } from "./runtimePaths";
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
 const COMMON_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".bmp", ".avif"];
@@ -62,7 +63,7 @@ async function streamFromR2IfPresent(
 }
 
 export function registerUploadsFallback(app: Express) {
-  const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+  const uploadsPath = runtimePaths.publicUploads;
 
   // Keep direct disk serving first for fast path.
   app.use(

@@ -16,10 +16,28 @@ import {
   requireServerObjectStorageConfiguration,
 } from "./server-object-storage.mjs";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+
+function findRuntimeRoot(start) {
+  let current = start;
+  while (true) {
+    if (fs.existsSync(path.join(current, "package.json"))) return current;
+    const parent = path.dirname(current);
+    if (parent === current) return process.cwd();
+    current = parent;
+  }
+}
+
+const repoRoot = findRuntimeRoot(scriptDirectory);
 
 function readManifest(relativePath) {
-  return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), "utf8"));
+  const manifestDirectory = String(process.env.PUBLIC_MEDIA_MANIFEST_DIR || "").trim();
+  const filename = path.basename(relativePath);
+  const bundledPath = path.join(scriptDirectory, "manifests", filename);
+  const configuredPath = manifestDirectory ? path.join(manifestDirectory, filename) : null;
+  const sourcePath = path.join(repoRoot, relativePath);
+  const manifestPath = configuredPath || (fs.existsSync(bundledPath) ? bundledPath : sourcePath);
+  return JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 }
 
 function envValue(key) {
@@ -77,7 +95,10 @@ async function markerIsReady(client, GetObjectCommand, bucketName, contract, rev
 }
 
 function runMigration(scriptName) {
-  const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts", scriptName)], {
+  const bundledPath = path.join(scriptDirectory, scriptName);
+  const sourcePath = path.join(repoRoot, "scripts", scriptName);
+  const executablePath = fs.existsSync(bundledPath) ? bundledPath : sourcePath;
+  const result = spawnSync(process.execPath, [executablePath], {
     cwd: repoRoot,
     env: process.env,
     stdio: "inherit",
