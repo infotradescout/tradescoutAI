@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import { SiFacebook, SiGoogle } from "react-icons/si";
+import { FacebookBrandIcon, GoogleBrandIcon } from "@/components/icons/BrandIcons";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -172,7 +172,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             onClick={() => (window.location.href = buildApiUrl("/api/auth/google"))}
             data-testid="button-google-login"
           >
-            <SiGoogle className="mr-2 h-4 w-4 text-red-500" />
+            <GoogleBrandIcon className="mr-2 h-4 w-4 text-red-500" />
             Continue with Google
           </Button>
 
@@ -185,7 +185,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
               onClick={() => (window.location.href = buildApiUrl("/api/auth/facebook"))}
               data-testid="button-facebook-login"
             >
-              <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />
+              <FacebookBrandIcon className="mr-2 h-4 w-4 text-blue-600" />
               Continue with Facebook
             </Button>
           )}
