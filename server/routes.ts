@@ -32,6 +32,7 @@ import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerAdRoutes } from "./routes/ads";
 import { registerQuoteCalculatorRoutes } from "./routes/quote-calculator";
 import { registerEventRoutes } from "./routes/events";
+import { registerPublicHeatmapRoutes } from "./routes/public-heatmap";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
 import { registerProviderSearchRoutes } from "./routes/provider-search";
 import { registerProcurementRoutes } from "./routes/procurement";
@@ -10275,21 +10276,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Public heatmap data endpoint (promotional feature)
-  app.get("/api/heatmap", async (req: any, res: any) => {
-    try {
-      const timeframe = (req.query.timeframe as string) || "30d";
-      const days = timeframe === "7d" ? 7 : timeframe === "30d" ? 30 : 90;
-
-      // Get heatmap data from locality interactions
-      const heatmapData = await storage.getLocalityHeatmapData(days);
-
-      res.json(heatmapData);
-    } catch (error: any) {
-      console.error("Error fetching heatmap data:", error);
-      res.status(500).json({ message: "Failed to fetch heatmap data" });
-    }
-  });
+  registerPublicHeatmapRoutes(app, { storage });
 
   const mapApiCacheTtlMs = Math.max(0, Number(process.env.MAP_API_CACHE_TTL_MS || 15_000));
   const mapApiResponseCache = new Map<string, { expiresAt: number; payload: unknown }>();
