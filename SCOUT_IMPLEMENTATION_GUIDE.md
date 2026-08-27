@@ -132,7 +132,7 @@ const enriched = buildEnrichedPrompt(
 const response = await generateWithFallback(enriched.systemPrompt, providers, options);
 ```
 
-### Frontend: `exports/workspaces/frontend/client/src/scout/ScoutOS.tsx`
+### Frontend: `client/src/scout/ScoutOS.tsx`
 
 **Current Structure:**
 - `ScoutThread` component displays messages
@@ -359,7 +359,7 @@ console.log(extractRelevantKnowledge("Do I need a permit?", "carpentry"));
 | `server/services/llmProvider.ts` | Reviewed | OpenAI provider already implemented |
 | `server/services/scoutKnowledgeIntegration.ts` | Created | Knowledge detection and enrichment |
 | `server/routes/scout.ts` | Needs Integration | Wire up knowledge integration |
-| `exports/workspaces/frontend/client/src/scout/ScoutOS.tsx` | Needs Enhancement | Add source attribution UI |
+| `client/src/scout/ScoutOS.tsx` | Needs Enhancement | Add source attribution UI |
 | `SCOUT_IMPLEMENTATION_GUIDE.md` | Created | This document |
 
 ---

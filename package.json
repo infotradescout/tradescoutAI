@@ -21,7 +21,7 @@
     "mobile:open:ios": "npx cap open ios",
     "printful:list-variants": "node scripts/printful-list-variants.mjs",
     "audit:ui": "node ./scripts/ui-surface-audit.mjs",
-    "audit:ui:next5": "node ./scripts/ui-surface-next5.mjs",
+    "audit:ui:next5": "node ./scripts/ui-surface-audit.mjs && node ./scripts/ui-surface-next5.mjs",
     "audit:ui:enforce": "node ./scripts/ui-surface-audit.mjs && node ./scripts/ui-surface-enforce.mjs",
     "audit:scout-behaviors": "node scripts/audit-scout-behaviors.mjs",
     "report:scout-intent-coverage": "node scripts/generate-scout-intent-coverage.mjs",

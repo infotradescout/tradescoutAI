@@ -2,7 +2,12 @@ import fs from "fs";
 import path from "path";
 
 const ROOT = process.cwd();
-const AUDIT_PATH = path.join(ROOT, "ui-surface-audit.json");
+const AUDIT_PATH = path.join(
+  ROOT,
+  "artifacts",
+  "ui-surface-audit",
+  "ui-surface-audit.json"
+);
 
 if (!fs.existsSync(AUDIT_PATH)) {
   console.error(`Missing ${AUDIT_PATH}. Run: node ./scripts/ui-surface-audit.mjs`);

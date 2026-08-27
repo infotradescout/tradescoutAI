@@ -38,7 +38,8 @@ type CollageStrip = Readonly<{
 /**
  * Browse-by-color atmosphere: pre-cropped stone-face strips (no yard chrome).
  * Available picker colors L→R: white → beige → gray → black → brown → gold → green → blue.
- * Assets built by tmp/build-color-collage-faces.mjs into color-collage/.
+ * Original derivatives were built by scripts/jw-stone/build-color-collage-faces.mjs.
+ * Production bytes are served through the pinned public-media storage manifest.
  */
 export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
   {

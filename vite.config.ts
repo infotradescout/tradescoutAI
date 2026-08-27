@@ -137,7 +137,6 @@ export default defineConfig({
         path.resolve(__dirname, "validation-results-*.json"),
         path.resolve(__dirname, "test-results", "**"),
         path.resolve(__dirname, "response.json"),
-        path.resolve(__dirname, "test.json"),
       ],
     },
     proxy: {

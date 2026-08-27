@@ -4,9 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
+const UI_AUDIT_DIR = path.join(ROOT, "artifacts", "ui-surface-audit");
 const UI_AUDIT_ARTIFACTS = [
-  path.join(ROOT, "ui-surface-audit.json"),
-  path.join(ROOT, "ui-surface-audit.md"),
+  path.join(UI_AUDIT_DIR, "ui-surface-audit.json"),
+  path.join(UI_AUDIT_DIR, "ui-surface-audit.md"),
 ];
 
 type ArtifactSnapshot = { existed: true; content: Buffer } | { existed: false };
@@ -105,13 +106,15 @@ describe("theme audit scripts -- regression fixtures for the closed blind spots"
 
     execSync("node scripts/ui-surface-audit.mjs", { cwd: ROOT, encoding: "utf8" });
     const report = JSON.parse(
-      fs.readFileSync(path.join(ROOT, "ui-surface-audit.json"), "utf8")
+      fs.readFileSync(path.join(UI_AUDIT_DIR, "ui-surface-audit.json"), "utf8")
     ) as { results: Array<{ file: string; hits: Array<{ pattern: string }> }> };
     const hit = report.results.find(
       (r) => r.file === "client/src/scout/__UiSurfaceAuditFixture.tsx"
     );
     expect(hit).toBeTruthy();
     expect(hit?.hits.some((h) => h.pattern === "bg-*")).toBe(true);
+    expect(fs.existsSync(path.join(ROOT, "ui-surface-audit.json"))).toBe(false);
+    expect(fs.existsSync(path.join(ROOT, "ui-surface-audit.md"))).toBe(false);
   });
 });
 

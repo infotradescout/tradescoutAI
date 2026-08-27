@@ -1,7 +1,6 @@
 export const frontendItems = [
   "client",
   "shared",
-  "assets",
   "attached_assets",
   "vite.config.ts",
   "tailwind.config.ts",

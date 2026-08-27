@@ -81,5 +81,6 @@ To fix this locally, run `npm run test:release-gates:local` and re-check `artifa
 - Local dev + env setup: `docs/CONFIG_AND_DEPLOYMENT.md`
 - Release gate definition: `docs/release-gate-metrics.md`
 - Skip policy evidence: `TEST_SKIP_BREAKDOWN.md`
-- UI consistency audits: `ui-surface-audit.md`, `UI_SURFACE_VIOLATION_REPORT.md`
+- UI consistency audit: run `npm run audit:ui`; generated reports are written to
+  `artifacts/ui-surface-audit/` and are intentionally not committed.
 - Scout contracts: `SCOUT_QUALITY_REPORT.md`, `docs/SCOUT_CONTRACT.md`

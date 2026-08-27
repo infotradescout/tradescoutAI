@@ -1,4 +1,0 @@
-docs\CODEX_SECURITY_HARDENING_EXECUTION_CHECKLIST.md:3:Status: Approved execution guide
-docs\MODULAR_GTM_HOA_SYSTEM_BLUEPRINT.md:4:Status: Draft for execution alignment
-docs\audits\documentation\DOCUMENTATION_GOVERNANCE_RESET.md:4:Status: Active plan
-docs\TRADESCOUT_PRODUCT_AND_COPY_LAW.md:5:Status: Locked unless explicitly changed by owner
