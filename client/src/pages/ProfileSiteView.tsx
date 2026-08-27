@@ -29,7 +29,6 @@ import {
 import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
 import DefaultProfileTheme from "@/pages/profile-sites/DefaultProfileTheme";
-import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import {
   createProfileHistoryBoundaryState,
   isProfileHistoryBoundaryState,
@@ -120,6 +119,9 @@ const VideographerProfileTheme = lazy(
 );
 const LocalServiceProfileTheme = lazy(
   () => import("@/pages/profile-sites/LocalServiceProfileTheme")
+);
+const WholesalerProfileTheme = lazy(
+  () => import("@/pages/profile-sites/WholesalerProfileTheme")
 );
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
@@ -261,6 +263,31 @@ function LocalServiceProfileBoundary({ children }: { children: ReactNode }) {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">
               Local service profile
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading business details…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function WholesalerProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-stone-50 px-6 text-center text-stone-900"
+          data-testid="wholesaler-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-stone-500">
+              TradePartner profile
             </p>
             <p className="mt-3 text-2xl font-semibold">Loading business details…</p>
           </div>
@@ -2207,7 +2234,8 @@ export default function ProfileSiteView() {
             } as CSSProperties
           }
         >
-          <WholesalerProfileTheme
+          <WholesalerProfileBoundary>
+            <WholesalerProfileTheme
             profileSlug={profile.slug}
             displayName={displayName}
             businessAddress={publicBusinessAddress}
@@ -2248,7 +2276,8 @@ export default function ProfileSiteView() {
                 />
               ) : null
             }
-          />
+            />
+          </WholesalerProfileBoundary>
         </div>
       </>
     );
