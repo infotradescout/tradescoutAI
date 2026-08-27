@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   markerObjectKey,
   sha256,
@@ -20,13 +18,10 @@ import {
   createServerObjectStorageClient,
   requireServerObjectStorageConfiguration,
 } from "./server-object-storage.mjs";
+import { resolvePublicMediaManifest } from "./public-media-manifest-path.mjs";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(
-  fs.readFileSync(
-    path.join(repoRoot, "scripts/data/red-graniti-public-media-manifest.json"),
-    "utf8"
-  )
+  fs.readFileSync(resolvePublicMediaManifest("red-graniti-public-media-manifest.json"), "utf8")
 );
 const summary = validateRedGranitiPublicMediaManifest(manifest);
 const args = new Set(process.argv.slice(2));

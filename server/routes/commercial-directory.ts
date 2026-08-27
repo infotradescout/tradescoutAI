@@ -6,6 +6,7 @@ import { z } from "zod";
 import { isAdmin, isAuthenticated } from "../auth";
 import { db } from "../db";
 import { storage } from "../storage";
+import { runtimePaths } from "../runtimePaths";
 import {
   commercialProjectBids,
   commercialProjectDocuments,
@@ -314,7 +315,7 @@ export function registerCommercialDirectoryRoutes(app: Express) {
 
         const multer = (await import("multer")).default;
         const crypto = await import("crypto");
-        const uploadRoot = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+        const uploadRoot = runtimePaths.publicUploads;
         const verificationRoot = path.join(uploadRoot, "contractor-verification");
         ensureDir(verificationRoot);
 
@@ -703,7 +704,7 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const multer = (await import("multer")).default;
         const crypto = await import("crypto");
 
-        const uploadRoot = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+        const uploadRoot = runtimePaths.publicUploads;
         const projectRoot = path.join(uploadRoot, "commercial-projects");
         ensureDir(projectRoot);
 
@@ -824,7 +825,7 @@ export function registerCommercialDirectoryRoutes(app: Express) {
 
         const multer = (await import("multer")).default;
         const crypto = await import("crypto");
-        const uploadRoot = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+        const uploadRoot = runtimePaths.publicUploads;
         const projectRoot = path.join(uploadRoot, "commercial-projects");
         ensureDir(projectRoot);
 

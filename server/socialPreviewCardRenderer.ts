@@ -126,7 +126,10 @@ function normalizeAccentColor(value: unknown): string {
 }
 
 function defaultPublicRoots(): string[] {
-  return [path.resolve(process.cwd(), "dist/public"), path.resolve(process.cwd(), "client/public")];
+  const builtRoot = path.resolve(process.cwd(), "dist/public");
+  return process.env.NODE_ENV === "production"
+    ? [builtRoot]
+    : [builtRoot, path.resolve(process.cwd(), "client/public")];
 }
 
 async function getSharp(): Promise<typeof import("sharp").default> {

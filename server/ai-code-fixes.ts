@@ -254,6 +254,16 @@ function canAccessAICodeFixes(user: any): boolean {
   );
 }
 
+function sourceMutationUnavailableInProduction(res: any): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
+  res.status(410).json({
+    message:
+      "Runtime source mutation is unavailable in production; submit the issue for the normal reviewed release workflow.",
+    code: "RUNTIME_SOURCE_MUTATION_DISABLED",
+  });
+  return true;
+}
+
 export function registerAICodeFixRoutes(app: Express) {
   // Auto-analyze and potentially fix new issues
   app.post("/api/ai/analyze-issue", isAuthenticated, async (req: any, res) => {
@@ -263,6 +273,7 @@ export function registerAICodeFixRoutes(app: Express) {
       if (!canAccessAICodeFixes(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
+      if (sourceMutationUnavailableInProduction(res)) return;
 
       const { issueDescription, location } = (req.body ?? {}) as any;
 
@@ -296,6 +307,7 @@ export function registerAICodeFixRoutes(app: Express) {
       if (!canAccessAICodeFixes(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
+      if (sourceMutationUnavailableInProduction(res)) return;
 
       const fixes = aiCodeFixingService.getFixes();
       res.json({ fixes });
@@ -313,6 +325,7 @@ export function registerAICodeFixRoutes(app: Express) {
       if (!canAccessAICodeFixes(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
+      if (sourceMutationUnavailableInProduction(res)) return;
 
       const { fixId } = req.params;
       const success = await aiCodeFixingService.applyFix(fixId);
@@ -335,6 +348,7 @@ export function registerAICodeFixRoutes(app: Express) {
       if (!canAccessAICodeFixes(user)) {
         return res.status(403).json({ message: "Admin access required" });
       }
+      if (sourceMutationUnavailableInProduction(res)) return;
 
       await aiCodeFixingService.autoApplyHighConfidenceFixes();
 

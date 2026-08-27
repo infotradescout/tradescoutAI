@@ -21,7 +21,7 @@ describe("BidRock closure migration and readiness contracts", () => {
     const entries = journal.entries as Array<{ idx: number; when: number; tag: string }>;
     const recoveryEntries = entries.filter((entry) => /^012[1-5]_/.test(entry.tag));
 
-    expect(packageJson.scripts["db:migrate"]).toBe("node scripts/db-migrate-safe.mjs");
+    expect(packageJson.scripts["db:migrate"]).toContain("runtime/run-release.mjs db-migrate-safe");
     expect(migrateScript).toContain('run("npx drizzle-kit migrate")');
     expect(recoveryEntries.map((entry) => entry.tag)).toEqual([
       "0121_jw_stone_inventory_truth",

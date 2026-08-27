@@ -51,6 +51,7 @@ import {
   suppliedEmailMatchesTarget,
 } from "../utils/privilegedActions";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { runtimePaths } from "../runtimePaths";
 
 const objectStorageService = new ObjectStorageService();
 const ADMIN_WRITE_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
@@ -1440,8 +1441,8 @@ export function registerWorkerTasksRoutes(app: Express): void {
 
         // Prevent ingesting arbitrary server directories.
         const allowedRoots = [
-          path.join(__dirname, "uploads"),
-          path.join(__dirname, "cache", "manual", "bulk_uploads"),
+          runtimePaths.publicUploads,
+          path.join(runtimePaths.scoutManualCache, "bulk_uploads"),
         ];
         const resolvedFolder = path.resolve(folderPath);
         const allowed = allowedRoots.some((root) => isPathUnder(root, resolvedFolder));
@@ -1466,7 +1467,11 @@ export function registerWorkerTasksRoutes(app: Express): void {
   app.post("/api/admin/knowledge/upload", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
       const multer = (await import("multer")).default;
-      const uploadDir = path.join(__dirname, "uploads", `batch_${Date.now()}`);
+      const uploadDir = path.join(
+        runtimePaths.scoutManualCache,
+        "bulk_uploads",
+        `batch_${Date.now()}`
+      );
       if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
       const maxBytes = Number.parseInt(process.env.MAX_KNOWLEDGE_UPLOAD_BYTES || "", 10);

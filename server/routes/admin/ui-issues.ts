@@ -169,7 +169,7 @@ export function registerUIIssuesRoutes(app: Express) {
       console.log(`📊 AI Monitoring: Received ${newIssues.length} new issues`);
 
       // Auto-analyze new issues for potential fixes
-      for (const issue of newIssues) {
+      for (const issue of process.env.NODE_ENV === "production" ? [] : newIssues) {
         if (issue.severity === "high" || issue.severity === "critical") {
           try {
             const fix = await aiCodeFixingService.analyzeAndFixIssue(

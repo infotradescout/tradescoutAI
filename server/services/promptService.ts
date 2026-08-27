@@ -1,21 +1,16 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { runtimePaths } from "../runtimePaths";
 
 let cachedPrompt: string | null = null;
 let lastLoaded: number | null = null;
 let cachedEnhancedPrompt: string | null = null;
 let lastLoadedEnhanced: number | null = null;
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const PROMPT_PATH = path.join(__dirname, "..", "cache", "manual", "system_prompt.md");
+const PROMPT_PATH = path.join(runtimePaths.scoutManualCache, "system_prompt.md");
 
 const ENHANCED_PROMPT_PATH = path.join(
-  __dirname,
-  "..",
-  "cache",
-  "manual",
+  runtimePaths.scoutManualCache,
   "system_prompt_enhanced.md"
 );
 

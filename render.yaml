@@ -17,7 +17,7 @@ services:
     # If neither is active, the existing production PostgreSQL service owns the
     # isolated public-media object table; no ephemeral disk is used.
     # A failure blocks traffic swap and leaves the current production release live.
-    preDeployCommand: npm run media:migrate:red-graniti && npm run media:migrate:jw-stone && npm run db:migrate && npm run db:verify:required
+    preDeployCommand: node dist/release/migrate-red-graniti-public-media.mjs && node dist/release/migrate-jw-stone-public-media.mjs && node dist/release/db-migrate-safe.mjs && node dist/release/check-required-production-schema.mjs
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -119,7 +119,13 @@ services:
       - key: AWS_S3_BUCKET
         sync: false
       - key: UPLOAD_DIR
-        value: uploads
+        value: /app/runtime/uploads/public
+      - key: PRIVATE_UPLOAD_DIR
+        value: /app/runtime/uploads/private
+      - key: TRADESCOUT_RUNTIME_DIR
+        value: /app/runtime
+      - key: SCOUT_CACHE_DIR
+        value: /app/runtime/scout-cache
       - key: PUBLIC_URL_BASE
         sync: false
       - key: MEALSCOUT_BASE_URL

@@ -8,23 +8,21 @@ const read = (relativePath: string) =>
 describe("Render Docker deploy lifecycle", () => {
   it("keeps the migration runner executable in the pruned production image", () => {
     const dockerfile = read("Dockerfile");
-    const packageJson = JSON.parse(read("package.json"));
+    const runtimePackage = JSON.parse(read("runtime/package.json"));
     const mediaGate = read("scripts/ensure-public-media-ready.mjs");
 
-    expect(packageJson.dependencies?.["drizzle-kit"]).toBe("^0.31.9");
-    expect(packageJson.devDependencies?.["drizzle-kit"]).toBeUndefined();
-    expect(dockerfile).toContain("COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts");
-    expect(dockerfile).toContain("COPY --from=builder /app/shared ./shared");
-    expect(dockerfile).toContain("COPY --from=builder /app/scripts ./scripts");
+    expect(runtimePackage.dependencies?.["drizzle-kit"]).toBe("0.31.9");
+    expect(dockerfile).toContain("COPY --from=runtime-deps /runtime/node_modules ./node_modules");
+    expect(dockerfile).toContain("COPY --from=builder /app/runtime/drizzle.config.mjs ./runtime/drizzle.config.mjs");
     expect(dockerfile).toContain("COPY --from=builder /app/migrations ./migrations");
-    expect(dockerfile.indexOf("COPY --from=builder /app/scripts ./scripts")).toBeLessThan(
-      dockerfile.indexOf("node scripts/ensure-public-media-ready.mjs")
-    );
+    expect(dockerfile).not.toContain("COPY --from=builder /app/server ./server");
+    expect(dockerfile).not.toContain("COPY --from=builder /app/shared ./shared");
+    expect(dockerfile).not.toContain("COPY --from=builder /app/scripts ./scripts");
+    expect(dockerfile).not.toContain("COPY --from=builder /app/client ./client");
+    expect(dockerfile).not.toContain("COPY --from=builder /app/docs ./docs");
+    expect(dockerfile).not.toContain("COPY --from=builder /app/data ./data");
     expect(dockerfile).toContain(
-      'CMD ["sh", "-c", "node scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]'
-    );
-    expect(packageJson.scripts?.["media:ensure:production"]).toBe(
-      "node scripts/ensure-public-media-ready.mjs"
+      'CMD ["sh", "-c", "node dist/release/ensure-public-media-ready.mjs && exec node dist/index.js"]'
     );
     expect(mediaGate).toContain("RENDER_GIT_COMMIT");
     expect(mediaGate).toContain("deploymentMarkerObjectKey");
@@ -39,7 +37,7 @@ describe("Render Docker deploy lifecycle", () => {
     expect(blueprint).toContain("dockerfilePath: ./Dockerfile");
     expect(blueprint).toContain("autoDeployTrigger: commit");
     expect(blueprint).toContain(
-      "preDeployCommand: npm run media:migrate:red-graniti && npm run media:migrate:jw-stone && npm run db:migrate && npm run db:verify:required"
+      "preDeployCommand: node dist/release/migrate-red-graniti-public-media.mjs && node dist/release/migrate-jw-stone-public-media.mjs && node dist/release/db-migrate-safe.mjs && node dist/release/check-required-production-schema.mjs"
     );
     expect(blueprint).toContain("healthCheckPath: /api/health");
     expect(blueprint).toContain("RUNTIME_MIGRATIONS_MODE");
