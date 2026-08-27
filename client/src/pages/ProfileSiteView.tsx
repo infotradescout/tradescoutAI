@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,6 @@ import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileT
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
 import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
-import SteelHomePackagesProfile from "@/pages/profile-sites/SteelHomePackagesProfile";
 import {
   createProfileHistoryBoundaryState,
   isProfileHistoryBoundaryState,
@@ -111,6 +110,35 @@ import {
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 
 const PROFILE_HISTORY_BOUNDARY_KEY = "__tradeScoutProfileHistoryBoundary";
+
+const SteelHomePackagesProfile = lazy(
+  () => import("@/pages/profile-sites/SteelHomePackagesProfile")
+);
+
+function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <main
+          className="flex min-h-[45vh] items-center justify-center bg-[#f4f0e8] px-6 text-center text-[#18312f]"
+          data-testid="steel-home-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#a94f2e]">
+              Steel Home Planning Tools
+            </p>
+            <p className="mt-3 font-editorial text-2xl font-semibold">Loading your planner…</p>
+          </div>
+        </main>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -1691,27 +1719,29 @@ export default function ProfileSiteView() {
           noIndex
         />
         {manageChrome}
-        <SteelHomePackagesProfile
-          requestHref={steelHomeRequestHref}
-          laborRequestHref={steelHomeLaborRequestHref}
-          platformBaseHref={platformBaseHref}
-          initialBuilder={steelHomeBuilderRoute}
-          onNavigateBuilder={(builder) =>
-            navigate(
-              builder
-                ? buildSteelHomeBuilderPath(builder)
-                : `/u/${encodeURIComponent(profile.slug)}`,
-              {
-                replace: false,
-                state: createProfileHistoryBoundaryState(
-                  window.history.state,
-                  PROFILE_HISTORY_BOUNDARY_KEY,
-                  profile.slug
-                ),
-              }
-            )
-          }
-        />
+        <SteelHomeProfileBoundary>
+          <SteelHomePackagesProfile
+            requestHref={steelHomeRequestHref}
+            laborRequestHref={steelHomeLaborRequestHref}
+            platformBaseHref={platformBaseHref}
+            initialBuilder={steelHomeBuilderRoute}
+            onNavigateBuilder={(builder) =>
+              navigate(
+                builder
+                  ? buildSteelHomeBuilderPath(builder)
+                  : `/u/${encodeURIComponent(profile.slug)}`,
+                {
+                  replace: false,
+                  state: createProfileHistoryBoundaryState(
+                    window.history.state,
+                    PROFILE_HISTORY_BOUNDARY_KEY,
+                    profile.slug
+                  ),
+                }
+              )
+            }
+          />
+        </SteelHomeProfileBoundary>
       </>
     );
   }
