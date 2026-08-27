@@ -15,10 +15,7 @@ import {
 } from "../socialPreviewCardRenderer";
 
 const PUBLIC_ROOT = path.resolve(process.cwd(), "client/public");
-const SMALL_PUBLIC_IMAGE = path.join(
-  PUBLIC_ROOT,
-  "images/businesses/red-graniti/logo/red-graniti.png"
-);
+const SMALL_PUBLIC_IMAGE = path.join(PUBLIC_ROOT, "tradescout-logo-circle.png");
 const BLUE_MARE_IMAGE =
   "/images/businesses/jw-stone/inventory-source/1vGOdELy1LIE5i-A8lurdUMnRdjzotBMo.webp";
 const JW_STONE_LOGO = "/images/businesses/jw-stone/logo.svg";

@@ -16,6 +16,7 @@ import {
   isIssaBuildProfileSlug,
 } from "@shared/issaBuildProfile";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
+import { resolveProfilePublicMediaObjectKey } from "@shared/profilePublicMedia";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -73,15 +74,13 @@ describe("ISSA Build public profile contract", () => {
       ISSA_BUILD_HERO_VIDEO,
       ISSA_BUILD_HERO_POSTER,
     ]) {
-      expect(fs.existsSync(path.resolve(process.cwd(), `client/public${publicAsset}`))).toBe(true);
+      expect(resolveProfilePublicMediaObjectKey(publicAsset)).toBeTruthy();
+      expect(fs.existsSync(path.resolve(process.cwd(), `client/public${publicAsset}`))).toBe(false);
     }
 
     expect(inventory?.categories).toHaveLength(1);
     expect(stones).toHaveLength(2);
-    expect(stones.map((entry: any) => entry.name)).toEqual([
-      "Honey Onyx",
-      "Multi Green Onyx",
-    ]);
+    expect(stones.map((entry: any) => entry.name)).toEqual(["Honey Onyx", "Multi Green Onyx"]);
     expect(stones[0].publicKind).toBe("offering");
     expect(stones[1].publicKind).toBe("offering");
     expect(stones[0].images).toEqual(ISSA_BUILD_HONEY_ONYX_IMAGES);
@@ -102,7 +101,9 @@ describe("ISSA Build public profile contract", () => {
   it("uses the premium ISSA presentation and states the complete service scope", () => {
     const wrapper = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const legacyTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
-    const premiumSections = read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx");
+    const premiumSections = read(
+      "client/src/pages/profile-sites/PremiumProductProfileSections.tsx"
+    );
     const luxShowcase = read("client/src/pages/profile-sites/LuxuryMaterialHouseShowcase.tsx");
     const normalizer = read("server/services/issaBuildVerifiedProfileNormalization.ts");
 
@@ -141,7 +142,7 @@ describe("ISSA Build public profile contract", () => {
     expect(serverIndex).toContain("ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(serverIndex).toContain("ISSA_BUILD_PROFILE_SLUG");
     expect(serverIndex).toContain(
-      'if (slug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG)'
+      "if (slug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG)"
     );
     expect(serverIndex).toContain(
       "`${origin}/u/${ISSA_BUILD_PROFILE_SLUG}${requestSearchSuffix(req)}`"

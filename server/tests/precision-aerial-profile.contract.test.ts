@@ -13,6 +13,7 @@ import {
   PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { userRoleEnum } from "@shared/schema";
+import { resolveProfilePublicMediaObjectKey } from "@shared/profilePublicMedia";
 import {
   ADMIN_MANAGED_PROFILE_SOURCE,
   hasTradeScoutPendingOwnerCustody,
@@ -406,27 +407,14 @@ describe("Precision Aerial production profile contract", () => {
     expect(profile).toContain("href={featuredWorkUrl}");
     expect(profile).toContain("precision-aerial-hero-video");
     expect(profile).not.toContain("<iframe");
-    expect(
-      fs.existsSync(
-        path.resolve(
-          process.cwd(),
-          "client/public/images/profiles/precision-aerial/real-estate-aerial-01.jpg"
-        )
-      )
-    ).toBe(true);
-    expect(
-      fs.existsSync(
-        path.resolve(process.cwd(), "client/public/images/profiles/precision-aerial/hero-reel.mp4")
-      )
-    ).toBe(true);
-    expect(
-      fs.existsSync(
-        path.resolve(
-          process.cwd(),
-          "client/public/images/profiles/precision-aerial/hero-reel-poster.jpg"
-        )
-      )
-    ).toBe(true);
+    for (const asset of [
+      "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
+      "/images/profiles/precision-aerial/hero-reel.mp4",
+      "/images/profiles/precision-aerial/hero-reel-poster.jpg",
+    ]) {
+      expect(resolveProfilePublicMediaObjectKey(asset)).toBe(`public-media${asset}`);
+      expect(fs.existsSync(path.resolve(process.cwd(), `client/public${asset}`))).toBe(false);
+    }
   });
 
   it("preserves custody routing without exposing it as public-profile copy", () => {

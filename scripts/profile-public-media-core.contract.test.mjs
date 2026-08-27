@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import {
+  gitBlobSha,
   profilePublicMediaMarkerObjectKey,
   profilePublicMediaObjectMatches,
   profilePublicMediaSourceUrl,
@@ -13,7 +14,7 @@ const manifest = JSON.parse(
   fs.readFileSync(new URL("./data/profile-public-media-manifest.json", import.meta.url), "utf8")
 );
 
-test("profile public media manifest pins the complete Release A contract", () => {
+test("profile public media manifest pins the complete storage-only contract", () => {
   const summary = validateProfilePublicMediaManifest(manifest);
   assert.deepEqual(summary, {
     files: 56,
@@ -61,10 +62,13 @@ test("validator rejects traversal and unversioned inventory changes", () => {
 });
 
 test("missing or corrupt alias objects fail identity verification", async () => {
-  const alias = manifest.assets.find((asset) => asset.aliasOfExistingObject);
-  const body = fs.readFileSync(
-    new URL(`../${manifest.source.pathPrefix}${alias.publicPath}`, import.meta.url)
-  );
+  const manifestAlias = manifest.assets.find((asset) => asset.aliasOfExistingObject);
+  const body = Buffer.from("verified-storage-body");
+  const alias = {
+    ...manifestAlias,
+    bytes: body.length,
+    gitBlobSha: gitBlobSha(body),
+  };
   const valid = {
     ContentLength: alias.bytes,
     ContentType: alias.contentType,
@@ -132,4 +136,24 @@ test("startup always verifies profile objects even when a deployment marker is v
   );
   assert.match(source, /migrationArgumentsForReadiness/);
   assert.match(source, /runMigration\(contracts\[index\]\.migrationScript, migrationArgs\)/);
+});
+
+test("Release B source and build verifier requires zero local manifest paths", () => {
+  const source = fs.readFileSync(
+    new URL("./verify-profile-public-media.mjs", import.meta.url),
+    "utf8"
+  );
+  assert.match(source, /Release B profile media leaked into client\/public/);
+  assert.match(source, /Release B profile media leaked into dist\/public/);
+  assert.match(source, /Profile media references are outside the storage manifest/);
+  assert.match(source, /process\.argv\.includes\("--built"\)/);
+  for (const asset of manifest.assets) {
+    assert.equal(
+      fs.existsSync(
+        new URL(`../${manifest.source.pathPrefix}${asset.publicPath}`, import.meta.url)
+      ),
+      false,
+      `${asset.publicPath} must remain storage-only`
+    );
+  }
 });

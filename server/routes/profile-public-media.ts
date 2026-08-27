@@ -20,12 +20,15 @@ export function registerProfilePublicMediaRoutes(
       const result = await stream({ req, res, key });
       if (result === "served") return;
     } catch (error) {
-      console.error("[profile-public-media] storage read failed; using Release A static fallback", {
+      console.error("[profile-public-media] storage read failed", {
         path: req.path,
         error: error instanceof Error ? error.message : "unknown error",
       });
     }
-    if (!res.headersSent) return next();
+    if (!res.headersSent) {
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(502).send("Public media is temporarily unavailable");
+    }
   };
 
   app.head("/images/*", handler);

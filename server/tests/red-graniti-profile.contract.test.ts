@@ -16,6 +16,7 @@ import {
   STONE_CORE_RED_GRANITI_MATERIALS,
   STONE_CORE_RED_GRANITI_PUBLICATION_TARGETS,
 } from "@shared/stoneCore";
+import { resolveProfilePublicMediaObjectKey } from "@shared/profilePublicMedia";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -35,16 +36,16 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(RED_GRANITI_BUSINESS_NAME).toBe("R.E.D. Graniti");
     expect(RED_GRANITI_PROFILE_CONTROL).toBe("tradescout_admin_controlled");
     expect(provisioner).toContain("hasVerifiedTradeScoutAdminCustody");
-    expect(provisioner).toContain('ne(users.id, jwOwner.id)');
+    expect(provisioner).toContain("ne(users.id, jwOwner.id)");
     expect(provisioner).toContain("ownerUserId: adminOwner.id");
-    expect(provisioner).toContain('profile_control: RED_GRANITI_PROFILE_CONTROL');
+    expect(provisioner).toContain("profile_control: RED_GRANITI_PROFILE_CONTROL");
     expect(provisioner).toContain('profile_steward: "tradescout_verified_admin"');
     expect(provisioner).toContain('claimStatus: "admin_managed"');
-    expect(provisioner).toContain('publicDiscoveryEnabled: true');
+    expect(provisioner).toContain("publicDiscoveryEnabled: true");
     expect(provisioner).toContain('status: "published"');
-    expect(provisioner).toContain('phone: REQUEST_ONLY_PHONE_SENTINEL');
-    expect(provisioner).toContain('notificationEmail: TRADE_SCOUT_DIRECT_CONNECT_INBOX');
-    expect(provisioner).toContain('email: TRADE_SCOUT_DIRECT_CONNECT_INBOX');
+    expect(provisioner).toContain("phone: REQUEST_ONLY_PHONE_SENTINEL");
+    expect(provisioner).toContain("notificationEmail: TRADE_SCOUT_DIRECT_CONNECT_INBOX");
+    expect(provisioner).toContain("email: TRADE_SCOUT_DIRECT_CONNECT_INBOX");
     expect(provisioner).toContain("adminOwner.id === jwOwner.id");
     expect(provisioner).not.toContain("ownerUserId: jwOwner.id");
     expect(provisioner).not.toContain("activeBusinessId");
@@ -148,17 +149,15 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     ).toBe(true);
   });
 
-  it("uses local media and keeps admin identity out of public sections", () => {
+  it("uses server-owned media and keeps admin identity out of public sections", () => {
     const hero = block("hero")?.data;
     const sections = block("profileSections")?.data?.sections;
-    const logoPath = path.resolve(
-      process.cwd(),
-      "client/public",
-      RED_GRANITI_LOGO_URL.replace(/^\//, "")
+    expect(resolveProfilePublicMediaObjectKey(RED_GRANITI_LOGO_URL)).toBe(
+      `public-media${RED_GRANITI_LOGO_URL}`
     );
-
-    expect(fs.existsSync(logoPath)).toBe(true);
-    expect(fs.statSync(logoPath).size).toBe(2523);
+    expect(fs.existsSync(path.resolve(process.cwd(), `client/public${RED_GRANITI_LOGO_URL}`))).toBe(
+      false
+    );
     expect(hero?.logoUrl).toBe(RED_GRANITI_LOGO_URL);
     expect(hero?.presentationVariant).toBe("classic");
     expect(sections?.rolesAndBadges).toBe(false);

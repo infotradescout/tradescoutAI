@@ -1,11 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  PROFILE_PUBLIC_MEDIA_MANIFEST,
+  resolveProfilePublicMediaObjectKey,
+} from "@shared/profilePublicMedia";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
-
-const exists = (relativePath: string) => fs.existsSync(path.resolve(process.cwd(), relativePath));
 
 describe("Pro Fab Specialty Services public profile contract", () => {
   it("provisions a pending, unverified, non-discoverable profile with private routing data", () => {
@@ -109,10 +111,7 @@ describe("Pro Fab Specialty Services public profile contract", () => {
     const generalDirectConnectStart = profileView.indexOf(
       "const openGeneralDirectConnect = () => {"
     );
-    const generalDirectConnectEnd = profileView.indexOf(
-      "};",
-      generalDirectConnectStart
-    );
+    const generalDirectConnectEnd = profileView.indexOf("};", generalDirectConnectStart);
     const generalDirectConnect = profileView.slice(
       generalDirectConnectStart,
       generalDirectConnectEnd
@@ -144,33 +143,28 @@ describe("Pro Fab Specialty Services public profile contract", () => {
   it("renders honest business-name artwork, responsive DOM service cards, and community actions near the top", () => {
     const theme = read("client/src/pages/profile-sites/ProFabProfileTheme.tsx");
     const provisioning = read("server/services/proFabProfileProvisioning.ts");
-    const logo = read("client/public/images/businesses/pro-fab-specialty-services/logo.svg");
-    const cover = read("client/public/images/businesses/pro-fab-specialty-services/cover.svg");
 
     expect(theme).toContain("/images/businesses/pro-fab-specialty-services");
     expect(theme).toContain("logo.svg");
     expect(theme).toContain("cover.svg");
     expect(theme).toContain("capabilities.svg");
-    expect(exists("client/public/images/businesses/pro-fab-specialty-services/logo.svg")).toBe(
-      true
-    );
-    expect(exists("client/public/images/businesses/pro-fab-specialty-services/cover.svg")).toBe(
-      true
-    );
-    expect(
-      exists("client/public/images/businesses/pro-fab-specialty-services/capabilities.svg")
-    ).toBe(true);
+    for (const asset of ["logo.svg", "cover.svg", "capabilities.svg", "social-preview.jpg"]) {
+      const publicPath = `/images/businesses/pro-fab-specialty-services/${asset}`;
+      expect(resolveProfilePublicMediaObjectKey(publicPath)).toBe(`public-media${publicPath}`);
+      expect(fs.existsSync(path.resolve(process.cwd(), `client/public${publicPath}`))).toBe(false);
+      const manifestEntry = PROFILE_PUBLIC_MEDIA_MANIFEST.assets.find(
+        (candidate) => candidate.publicPath === publicPath
+      );
+      expect(manifestEntry?.gitBlobSha).toMatch(/^[a-f0-9]{40}$/);
+      expect(manifestEntry?.bytes).toBeGreaterThan(0);
+    }
     expect(provisioning).toContain(
       "/images/businesses/pro-fab-specialty-services/social-preview.jpg"
     );
     expect(
-      exists("client/public/images/businesses/pro-fab-specialty-services/social-preview.jpg")
-    ).toBe(true);
-    expect(logo).toContain('aria-label="Pro Fab Specialty Services LLC"');
-    expect(logo).toContain("SPECIALTY SERVICES LLC");
-    expect(logo).not.toContain("data:image/");
-    expect(cover).toContain("SPECIALTY SERVICES LLC");
-    expect(cover).not.toContain('<image href="/images/businesses/');
+      PROFILE_PUBLIC_MEDIA_MANIFEST.assets.find((asset) => asset.publicPath.endsWith("logo.svg"))
+        ?.contentType
+    ).toBe("image/svg+xml");
     expect(theme).toContain("services.map");
     expect(theme).toContain('className="hidden border-b border-white/10 px-6 py-7 md:block"');
     expect(theme.indexOf("{trustActions ?")).toBeLessThan(theme.indexOf("services.map"));

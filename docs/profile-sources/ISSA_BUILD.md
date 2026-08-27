@@ -35,7 +35,7 @@ A project address or service territory should be confirmed through the request. 
 ## Product evidence (owner-supplied pack only)
 
 - Website / marketing photography and the official logo come from the owner-supplied `Marketing Honey OnyxISSA Build (2).zip` pack.
-- Public assets live under `client/public/images/businesses/issa-build/`.
+- Public URLs remain under `/images/businesses/issa-build/`, but their bytes are owned by `scripts/data/profile-public-media-manifest.json` and the existing server-side public-media storage path. They must not be restored to `client/public`.
 - The pack and its corroborating inventory source identify **Honey Onyx** and **Multi Green Onyx** as separate offerings. Public records, galleries, shared links, and Direct Connect source context must preserve that distinction.
 - Public facts: premium book-matched translucent onyx, sourced from the Middle East, hand-finished, and used for counters, walls, floors, stairs, and complete custom interiors.
 - The supplied stills are genuine ISSA Build project/material imagery. Do not add concept or design-visualization labels.
@@ -43,9 +43,9 @@ A project address or service territory should be confirmed through the request. 
 
 ## Approved hero media
 
-- The only public video is `client/public/images/businesses/issa-build/video/hero.mp4`, derived from the designated ISSA Build `slow_push_shot_2.mp4` source already committed with the profile.
-- The current optimized file is the committed 1280×720 H.264 profile asset with no audio.
-- The poster remains `client/public/images/businesses/issa-build/video/hero-poster.jpg`. Do not introduce a second video path.
+- The only public video URL is `/images/businesses/issa-build/video/hero.mp4`, derived from the designated ISSA Build `slow_push_shot_2.mp4` source.
+- The current optimized file is the storage-backed 1280×720 H.264 profile asset with no audio.
+- The poster URL remains `/images/businesses/issa-build/video/hero-poster.jpg`. Video and poster bytes are not committed in the current client build. The immutable rollback source for both is Git revision `044bd8710dc76d614544605637c1c360732d2ef2`; do not introduce a second video path or copy either asset back into `client/public`.
 
 ## Direct Connect and managed contact
 

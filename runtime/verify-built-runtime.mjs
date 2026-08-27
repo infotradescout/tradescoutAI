@@ -27,7 +27,10 @@ const packageName = (specifier) =>
 
 for (const specifier of evidence.packages || []) {
   const owner = packageName(specifier);
-  assert.ok(declared.has(owner) || optional.has(owner), `undeclared runtime external: ${specifier}`);
+  assert.ok(
+    declared.has(owner) || optional.has(owner),
+    `undeclared runtime external: ${specifier}`
+  );
   try {
     requireFromRunner.resolve(specifier);
   } catch (error) {
@@ -36,7 +39,11 @@ for (const specifier of evidence.packages || []) {
 }
 
 for (const forbiddenRoot of ["server", "shared", "scripts", "client", "docs", "data"]) {
-  assert.equal(fs.existsSync(path.join(appRoot, forbiddenRoot)), false, `${forbiddenRoot} leaked into runner`);
+  assert.equal(
+    fs.existsSync(path.join(appRoot, forbiddenRoot)),
+    false,
+    `${forbiddenRoot} leaked into runner`
+  );
 }
 
 for (const requiredPath of [
@@ -54,7 +61,24 @@ for (const requiredPath of [
   "runtime/drizzle.config.mjs",
   "runtime/run-release.mjs",
 ]) {
-  assert.ok(fs.existsSync(path.join(appRoot, requiredPath)), `missing runtime artifact: ${requiredPath}`);
+  assert.ok(
+    fs.existsSync(path.join(appRoot, requiredPath)),
+    `missing runtime artifact: ${requiredPath}`
+  );
+}
+
+const profileMediaManifest = JSON.parse(
+  fs.readFileSync(
+    path.join(appRoot, "dist/release/manifests/profile-public-media-manifest.json"),
+    "utf8"
+  )
+);
+for (const asset of profileMediaManifest.assets || []) {
+  assert.equal(
+    fs.existsSync(path.join(appRoot, "dist/public", `.${asset.publicPath}`)),
+    false,
+    `profile media leaked into the production runner: ${asset.publicPath}`
+  );
 }
 
 console.log(`Built runtime boundary passed (${evidence.packages?.length || 0} externals).`);
