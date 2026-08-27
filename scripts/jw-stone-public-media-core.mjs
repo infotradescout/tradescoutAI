@@ -49,8 +49,8 @@ export function validateJwStonePublicMediaManifest(manifest) {
   if (manifest.source?.pathPrefix !== "client/public/images/businesses/jw-stone/") {
     throw new Error("Unexpected media source prefix");
   }
-  if (manifest.target?.storage !== "cloudflare-r2") {
-    throw new Error("JW Stone media must target Cloudflare R2");
+  if (manifest.target?.storage !== "server-object-storage") {
+    throw new Error("JW Stone media must target production server object storage");
   }
   if (manifest.target?.keyPrefix !== "public-media/images/businesses/jw-stone/") {
     throw new Error("Unexpected public media object prefix");

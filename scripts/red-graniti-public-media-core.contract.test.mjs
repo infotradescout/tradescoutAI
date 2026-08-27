@@ -19,7 +19,7 @@ test("R.E.D. Graniti public media manifest is complete and internally consistent
   assert.equal(summary.bytes, 2433960);
 });
 
-test("legacy URLs map into the isolated R2 prefix", () => {
+test("legacy URLs map into the isolated object prefix", () => {
   const asset = manifest.assets.find((candidate) => candidate.relativePath === "home-hero.svg");
   assert.ok(asset);
   assert.equal(

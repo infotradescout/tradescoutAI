@@ -1,6 +1,6 @@
 import type { Express, NextFunction, Request, Response } from "express";
 import { resolveRedGranitiPublicMediaObjectKey } from "@shared/redGranitiPublicMedia";
-import { streamR2PublicObject, type PublicMediaStreamResult } from "../publicMediaStorage";
+import { streamPublicObject, type PublicMediaStreamResult } from "../publicMediaStorage";
 
 const RED_GRANITI_PUBLIC_MEDIA_ROUTE = "/images/businesses/red-graniti/source/*";
 
@@ -14,7 +14,7 @@ export function registerRedGranitiPublicMediaRoutes(
   app: Express,
   options: { stream?: PublicMediaStreamer } = {}
 ): void {
-  const stream = options.stream || streamR2PublicObject;
+  const stream = options.stream || streamPublicObject;
   const handler = async (req: Request, res: Response, next: NextFunction) => {
     const key = resolveRedGranitiPublicMediaObjectKey(req.path);
     if (!key) return next();

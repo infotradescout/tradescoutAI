@@ -8,7 +8,7 @@ import {
   isStoneDesignerPhotoKey,
   resolveStoneDesignerPhotoIndex,
 } from "../../client/src/pages/profile-sites/steel-home-project-tools/stoneDesignerImages";
-import { streamR2PublicObject, type PublicMediaStreamResult } from "../publicMediaStorage";
+import { streamPublicObject, type PublicMediaStreamResult } from "../publicMediaStorage";
 
 const LEGACY_INDEX_ROUTE = "/images/stone-designer/:stoneId/:imageNumber.webp";
 const NAMED_PHOTO_ROUTE = "/images/stone-designer/named/:stoneShareSlug/:photoKey.webp";
@@ -47,7 +47,7 @@ export function registerStoneDesignerImageRoutes(
   app: Express,
   options: { stream?: PublicMediaStreamer } = {}
 ): void {
-  const stream = options.stream || streamR2PublicObject;
+  const stream = options.stream || streamPublicObject;
   const namedHandler = async (req: Request, res: Response, next: NextFunction) => {
     const stoneShareSlug = String(req.params.stoneShareSlug || "").trim();
     const photoKey = String(req.params.photoKey || "").trim();

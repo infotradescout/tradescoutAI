@@ -46,8 +46,8 @@ export function validateRedGranitiPublicMediaManifest(manifest) {
   if (manifest.source?.legacyUrlPrefix !== "/images/businesses/red-graniti/source/") {
     throw new Error("Unexpected R.E.D. Graniti source URL prefix");
   }
-  if (manifest.target?.storage !== "cloudflare-r2") {
-    throw new Error("R.E.D. Graniti media must target Cloudflare R2");
+  if (manifest.target?.storage !== "server-object-storage") {
+    throw new Error("R.E.D. Graniti media must target production server object storage");
   }
   if (manifest.target?.keyPrefix !== "public-media/images/businesses/red-graniti/source/") {
     throw new Error("Unexpected R.E.D. Graniti object prefix");

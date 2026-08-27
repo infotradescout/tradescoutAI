@@ -7,7 +7,7 @@
     "pathPrefix": "client/public/images/businesses/jw-stone/"
   },
   "target": {
-    "storage": "cloudflare-r2",
+    "storage": "server-object-storage",
     "keyPrefix": "public-media/images/businesses/jw-stone/",
     "legacyUrlPrefix": "/images/businesses/jw-stone/"
   },

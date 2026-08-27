@@ -7,7 +7,7 @@
     "legacyUrlPrefix": "/images/businesses/red-graniti/source/"
   },
   "target": {
-    "storage": "cloudflare-r2",
+    "storage": "server-object-storage",
     "keyPrefix": "public-media/images/businesses/red-graniti/source/",
     "legacyUrlPrefix": "/images/businesses/red-graniti/source/"
   },

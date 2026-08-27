@@ -12,7 +12,8 @@ services:
     # GitHub Actions deploy workflow is optional backup only — not required for prod.
     autoDeployTrigger: commit
     # The media migrations are idempotent and write their markers only after every
-    # pinned public object is present and verified in the existing R2 bucket.
+    # pinned public object is present and verified in existing server object storage.
+    # Complete R2 configuration is preferred; the existing AWS S3 contract is the fallback.
     # A failure blocks traffic swap and leaves the current production release live.
     preDeployCommand: npm run media:migrate:red-graniti && npm run media:migrate:jw-stone && npm run db:migrate && npm run db:verify:required
     healthCheckPath: /api/health
@@ -106,6 +107,14 @@ services:
       - key: R2_BUCKET_NAME
         sync: false
       - key: R2_PUBLIC_URL
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET
         sync: false
       - key: UPLOAD_DIR
         value: uploads
