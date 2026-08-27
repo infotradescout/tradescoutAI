@@ -17,8 +17,8 @@ import {
   deploymentVerificationMarkerMatches,
 } from "./public-media-deployment-gate-core.mjs";
 import {
+  createServerObjectStorageClient,
   requireServerObjectStorageConfiguration,
-  serverObjectStorageClientOptions,
 } from "./server-object-storage.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -178,10 +178,10 @@ if (dryRun) {
   process.exit(0);
 }
 
-const { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } =
+const { GetObjectCommand, HeadObjectCommand, PutObjectCommand } =
   await import("@aws-sdk/client-s3");
 const configuration = requireServerObjectStorageConfiguration(process.env);
-const client = new S3Client(serverObjectStorageClientOptions(configuration));
+const client = await createServerObjectStorageClient(configuration);
 
 const existingMarker = await readMarker(client, configuration.bucketName);
 const existingMarkerMatches = markerMatches(existingMarker);
@@ -263,6 +263,7 @@ if (deploymentRevision) {
   }
 }
 
+await client.close?.();
 console.log(
   `[jw-stone-media-migration] verified ${summary.files} files (${summary.bytes} bytes); migrated=${totals.migrated} reused=${totals.reused} backend=${configuration.provider}`
 );

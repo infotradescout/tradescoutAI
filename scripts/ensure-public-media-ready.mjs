@@ -12,8 +12,8 @@ import {
 import { validateJwStonePublicMediaManifest } from "./jw-stone-public-media-core.mjs";
 import { validateRedGranitiPublicMediaManifest } from "./red-graniti-public-media-core.mjs";
 import {
+  createServerObjectStorageClient,
   requireServerObjectStorageConfiguration,
-  serverObjectStorageClientOptions,
 } from "./server-object-storage.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -111,9 +111,9 @@ const contracts = [
   },
 ];
 
-const { GetObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
+const { GetObjectCommand } = await import("@aws-sdk/client-s3");
 const configuration = requireServerObjectStorageConfiguration(process.env);
-const client = new S3Client(serverObjectStorageClientOptions(configuration));
+const client = await createServerObjectStorageClient(configuration);
 
 const initialReadiness = await Promise.all(
   contracts.map((contract) =>
@@ -134,6 +134,7 @@ if (finalReadiness.some((ready) => !ready)) {
   throw new Error("Public media deployment verification is incomplete; refusing to start");
 }
 
+await client.close?.();
 console.log(
   `[public-media-readiness] exact release verified: ${revision.slice(0, 12)} backend=${configuration.provider}`
 );

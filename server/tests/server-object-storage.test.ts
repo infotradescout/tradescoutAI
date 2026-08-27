@@ -49,6 +49,19 @@ describe("server object storage selection", () => {
     expect(getServerObjectStorageConfiguration({})).toBeNull();
   });
 
+  it("uses the existing production database when no S3-compatible contract is complete", () => {
+    expect(
+      getServerObjectStorageConfiguration({
+        R2_ACCOUNT_ID: "incomplete-r2",
+        DATABASE_URL: "postgresql://production/database",
+      })
+    ).toEqual({
+      provider: "postgres-public-media",
+      bucketName: "postgres-public-media",
+      databaseUrl: "postgresql://production/database",
+    });
+  });
+
   it("rejects partial configuration without mixing providers", () => {
     expect(() =>
       getServerObjectStorageConfiguration({

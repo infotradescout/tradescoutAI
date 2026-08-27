@@ -16,7 +16,7 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 ## Related repo areas (already on `main` — change only from `jw-stone/*`)
 
 - `client/src/features/jw-stone/`
-- JW Stone public media manifest and server-object-storage compatibility routes
+- JW Stone public media manifest and persistent server-storage compatibility routes
 - `server/publicJwStoneMarketplaceHtml.ts`
 - `.selective-intelligence/builds/jw-stone-marketplace/`
 - JW runbooks under `docs/runbooks/JW_STONE_*` and audits under `docs/audits/JW_STONE_*`
