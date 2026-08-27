@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "contractId": "public-shell-local-dedupe-v1",
+  "source": {
+    "repository": "infotradescout/tradescoutAI",
+    "revision": "9ca431ea4199089fd7ae52071dc06b3eb375c30f",
+    "pathPrefix": "client/public"
+  },
+  "expected": {
+    "files": 10,
+    "bytes": 1433218,
+    "aliases": 6,
+    "deadPinned": 4,
+    "entryDigestSha256": "cc384baaf127ea06cfd89e6e12f15d1a4d1eb5a0b9189aa6b26ba097ca530839"
+  },
+  "liveLandingOwners": {
+    "/landing/hero.jpg": ["client/src/index.css", "client/src/pages/landingVariants.ts"],
+    "/landing/community.jpg": ["client/src/pages/landingVariants.ts"]
+  },
+  "entries": [
+    {
+      "kind": "alias",
+      "publicPath": "/apple-touch-icon-precomposed.png",
+      "canonicalPath": "/apple-touch-icon.png",
+      "bytes": 26536,
+      "gitBlobSha": "06b8b67a1602651f7abc2d5d8c3696c45d531dd0",
+      "contentType": "image/png"
+    },
+    {
+      "kind": "alias",
+      "publicPath": "/icon-192-maskable.png",
+      "canonicalPath": "/icon-192.png",
+      "bytes": 30124,
+      "gitBlobSha": "e0c5280925b0de56764cf09232edb3c0faec6caa",
+      "contentType": "image/png"
+    },
+    {
+      "kind": "alias",
+      "publicPath": "/icon-512-maskable.png",
+      "canonicalPath": "/icon-512.png",
+      "bytes": 234423,
+      "gitBlobSha": "b77ede023573cd986b77584d9067f61e9e85951b",
+      "contentType": "image/png"
+    },
+    {
+      "kind": "dead-pinned",
+      "publicPath": "/landing/blueprint-continuous.svg",
+      "bytes": 2632,
+      "gitBlobSha": "70c80c3d22bdebc3970757152a2f834c84f1819a",
+      "contentType": "image/svg+xml"
+    },
+    {
+      "kind": "dead-pinned",
+      "publicPath": "/landing/craft.jpg",
+      "bytes": 136282,
+      "gitBlobSha": "3727b4b6379898dc76d702dd43053972211f85f1",
+      "contentType": "image/webp"
+    },
+    {
+      "kind": "alias",
+      "publicPath": "/landing/logo.png",
+      "canonicalPath": "/tradescout-logo.png",
+      "bytes": 222237,
+      "gitBlobSha": "34bc38e210243fcc4a836c538250bedb3ad9e1fe",
+      "contentType": "image/png"
+    },
+    {
+      "kind": "dead-pinned",
+      "publicPath": "/landing/scoutAi.jpg",
+      "bytes": 88216,
+      "gitBlobSha": "da0b396f262fab61471ccb8e75b4c47ecda7f294",
+      "contentType": "image/webp"
+    },
+    {
+      "kind": "dead-pinned",
+      "publicPath": "/landing/trust.jpg",
+      "bytes": 248294,
+      "gitBlobSha": "3c6fe5aa625c9c48a60a7f514669a7967491e0f9",
+      "contentType": "image/webp"
+    },
+    {
+      "kind": "alias",
+      "publicPath": "/logo.png",
+      "canonicalPath": "/tradescout-logo.png",
+      "bytes": 222237,
+      "gitBlobSha": "34bc38e210243fcc4a836c538250bedb3ad9e1fe",
+      "contentType": "image/png"
+    },
+    {
+      "kind": "alias",
+      "publicPath": "/tradescout-brand.png",
+      "canonicalPath": "/tradescout-logo.png",
+      "bytes": 222237,
+      "gitBlobSha": "34bc38e210243fcc4a836c538250bedb3ad9e1fe",
+      "contentType": "image/png"
+    }
+  ]
+}

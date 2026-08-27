@@ -156,6 +156,7 @@ for (const manifestName of [
   'jw-stone-public-media-manifest.json',
   'red-graniti-public-media-manifest.json',
   'profile-public-media-manifest.json',
+  'public-shell-local-dedupe-manifest.json',
 ]) {
   fs.copyFileSync(
     path.join(__dirname, 'scripts', 'data', manifestName),

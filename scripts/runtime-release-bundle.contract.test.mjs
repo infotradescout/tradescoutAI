@@ -25,6 +25,7 @@ test("production release entries are bundled with evidence and an external guard
   assert.match(source, /dist\/runtime-externals\.json/);
   assert.match(source, /runtime['"], ['"]package\.json/);
   assert.match(source, /releaseManifestDirectory/);
+  assert.match(source, /public-shell-local-dedupe-manifest\.json/);
   assert.match(source, /outExtension:\s*\{ ['"]\.js['"]: ['"]\.mjs['"] \}/);
 });
 
@@ -46,7 +47,10 @@ test("all bundled migration workers resolve copied manifests", () => {
     "scripts/migrate-profile-public-media.mjs",
   ]) {
     assert.match(read(script), /resolvePublicMediaManifest\(/);
-    assert.doesNotMatch(read(script), /scripts\/data\/(jw-stone|red-graniti)-public-media-manifest/);
+    assert.doesNotMatch(
+      read(script),
+      /scripts\/data\/(jw-stone|red-graniti)-public-media-manifest/
+    );
   }
 });
 
@@ -68,5 +72,8 @@ test("admin seed execution resolves the stable runtime worker", () => {
   const source = read("server/routes/admin.ts");
   assert.match(source, /resolveRuntimeEntrypoint\(/);
   assert.match(source, /"seed-businesses-places-new\.mjs"/);
-  assert.doesNotMatch(source, /spawn\(process\.execPath, \["scripts\/seed_businesses_places_new\.mjs"\]/);
+  assert.doesNotMatch(
+    source,
+    /spawn\(process\.execPath, \["scripts\/seed_businesses_places_new\.mjs"\]/
+  );
 });

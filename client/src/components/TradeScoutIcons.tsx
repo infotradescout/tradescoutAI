@@ -19,7 +19,7 @@ const sizeClasses = {
 // as a public static asset by Vite and the production server.
 // Use a square-safe mark for icon containers to prevent crop/clip artifacts.
 const BRAND_LOGO_URL = "/tradescout-logo-circle.png?v=1";
-const FALLBACK_LOGO_URL = "/tradescout-brand.png?v=8";
+const FALLBACK_LOGO_URL = "/tradescout-logo.png?v=8";
 
 export function TradeScoutLogo({ className = "", size = "md" }: IconProps) {
   const sizeClass = sizeClasses[size];
