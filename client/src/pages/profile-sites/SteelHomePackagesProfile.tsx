@@ -1,13 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity } from "@shared/steelHomePackagesProfile";
 import {
   buildSteelHomeBuilderPath,
   resolveSteelHomeBuilderPathname,
 } from "@shared/steelHomeBuilderRoutes";
-import BuildingDesigner from "./steel-home-project-tools/BuildingDesigner";
-import CabinetDesigner from "./steel-home-project-tools/CabinetDesigner";
-import CountertopDesigner from "./steel-home-project-tools/CountertopDesigner";
 import SteelHomeBuilderDirectory, {
   STEEL_HOME_BUILDERS,
   plannerFromHash,
@@ -25,6 +22,41 @@ import {
   saveSteelHomeProjectDraft,
   type SteelHomeProjectDraft,
 } from "./steel-home-project-tools/projectModel";
+
+const BuildingDesigner = lazy(() => import("./steel-home-project-tools/BuildingDesigner"));
+const CabinetDesigner = lazy(() => import("./steel-home-project-tools/CabinetDesigner"));
+const CountertopDesigner = lazy(() => import("./steel-home-project-tools/CountertopDesigner"));
+
+function PlannerBodyBoundary({
+  children,
+  plannerTitle,
+}: {
+  children: ReactNode;
+  plannerTitle: string;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[50vh] place-items-center bg-[#f5f1e8] p-8 text-center text-[#18312f]"
+          data-testid="steel-home-planner-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#a94f2e]">
+              Steel Home Planning Tools
+            </p>
+            <p className="mt-3 font-editorial text-2xl font-semibold">Loading {plannerTitle}…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 type Props = {
   requestHref: string;
@@ -344,35 +376,37 @@ export default function SteelHomePackagesProfile({
             className="min-h-0 flex-1"
             data-testid={plannerPanelId(activePlanner)}
           >
-            {activePlanner === "building" ? (
-              <BuildingDesigner
-                design={draft.building}
-                onChange={updateBuilding}
-                extension={draft.building.planner}
-                onExtensionChange={(planner) =>
-                  updateBuilding({ ...draft.building, included: true, planner })
-                }
-                onRequest={() => setRequestSelection({ planner: "building", intent: "builder" })}
-              />
-            ) : null}
-            {activePlanner === "countertops" ? (
-              <CountertopDesigner
-                design={draft.countertops}
-                onChange={updateCountertops}
-                onRequest={(intent) => setRequestSelection({ planner: "countertops", intent })}
-              />
-            ) : null}
-            {activePlanner === "cabinets" ? (
-              <CabinetDesigner
-                design={draft.cabinets}
-                onChange={updateCabinets}
-                plannerExtension={draft.cabinets.planner}
-                onPlannerExtensionChange={(planner) =>
-                  updateCabinets({ ...draft.cabinets, planner })
-                }
-                onRequest={() => setRequestSelection({ planner: "cabinets", intent: "builder" })}
-              />
-            ) : null}
+            <PlannerBodyBoundary plannerTitle={activeBuilder.title}>
+              {activePlanner === "building" ? (
+                <BuildingDesigner
+                  design={draft.building}
+                  onChange={updateBuilding}
+                  extension={draft.building.planner}
+                  onExtensionChange={(planner) =>
+                    updateBuilding({ ...draft.building, included: true, planner })
+                  }
+                  onRequest={() => setRequestSelection({ planner: "building", intent: "builder" })}
+                />
+              ) : null}
+              {activePlanner === "countertops" ? (
+                <CountertopDesigner
+                  design={draft.countertops}
+                  onChange={updateCountertops}
+                  onRequest={(intent) => setRequestSelection({ planner: "countertops", intent })}
+                />
+              ) : null}
+              {activePlanner === "cabinets" ? (
+                <CabinetDesigner
+                  design={draft.cabinets}
+                  onChange={updateCabinets}
+                  plannerExtension={draft.cabinets.planner}
+                  onPlannerExtensionChange={(planner) =>
+                    updateCabinets({ ...draft.cabinets, planner })
+                  }
+                  onRequest={() => setRequestSelection({ planner: "cabinets", intent: "builder" })}
+                />
+              ) : null}
+            </PlannerBodyBoundary>
           </div>
         </section>
       ) : null}
