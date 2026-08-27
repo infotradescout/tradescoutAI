@@ -32,12 +32,12 @@ export function gitBlobSha(buffer) {
 }
 
 export function validatePublicShellDedupeManifest(manifest) {
-  if (manifest?.version !== 1 || manifest?.contractId !== "public-shell-local-dedupe-v1") {
+  if (manifest?.version !== 2 || manifest?.contractId !== "public-shell-local-dedupe-v2") {
     throw new Error("Unexpected public shell dedupe contract");
   }
   if (
     manifest.source?.repository !== "infotradescout/tradescoutAI" ||
-    manifest.source?.revision !== "9ca431ea4199089fd7ae52071dc06b3eb375c30f" ||
+    manifest.source?.revision !== "2d2ff5539bf3505fd637524609a3725409dc7dc1" ||
     manifest.source?.pathPrefix !== "client/public"
   ) {
     throw new Error("Public shell dedupe source is not the pinned PR500 release");
@@ -82,6 +82,8 @@ export function validatePublicShellDedupeManifest(manifest) {
     manifest.expected?.bytes !== 1_433_218 ||
     manifest.expected?.aliases !== 6 ||
     manifest.expected?.deadPinned !== 4 ||
+    manifest.expected?.clientPublicFiles !== 200 ||
+    manifest.expected?.clientPublicBytes !== 2_804_076 ||
     manifest.expected?.entryDigestSha256 !== digest ||
     manifest.entries.length !== 10 ||
     bytes !== 1_433_218 ||

@@ -65,7 +65,7 @@ describe("public shell local dedupe Release A", () => {
     expect(read("server/publicProfileHtml.ts")).toContain("/tradescout-logo.png");
   });
 
-  it("keeps canonical PWA dimensions and purposes while retaining legacy duplicates", () => {
+  it("keeps canonical PWA dimensions and purposes after removing legacy duplicates", () => {
     const root = path.resolve(process.cwd(), "client/public");
     const manifests = ["manifest.json", "site.webmanifest"].map((file) =>
       JSON.parse(fs.readFileSync(path.join(root, file), "utf8"))
@@ -119,10 +119,8 @@ describe("public shell local dedupe Release A", () => {
       ["icon-512-maskable.png", "icon-512.png"],
       ["apple-touch-icon-precomposed.png", "apple-touch-icon.png"],
     ]) {
-      expect(fs.existsSync(path.join(root, legacy))).toBe(true);
-      expect(fs.readFileSync(path.join(root, legacy))).toEqual(
-        fs.readFileSync(path.join(root, canonical))
-      );
+      expect(fs.existsSync(path.join(root, legacy))).toBe(false);
+      expect(fs.existsSync(path.join(root, canonical))).toBe(true);
     }
   });
 });

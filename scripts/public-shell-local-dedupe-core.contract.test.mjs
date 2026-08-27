@@ -15,7 +15,7 @@ const manifest = JSON.parse(
   )
 );
 
-test("Release A pins six aliases and four dead paths without deleting bytes", () => {
+test("Release B pins six redirects and four dead paths after deleting only their local bytes", () => {
   assert.deepEqual(validatePublicShellDedupeManifest(manifest), {
     files: 10,
     bytes: 1433218,
@@ -24,19 +24,20 @@ test("Release A pins six aliases and four dead paths without deleting bytes", ()
     digest: "cc384baaf127ea06cfd89e6e12f15d1a4d1eb5a0b9189aa6b26ba097ca530839",
   });
   for (const entry of manifest.entries) {
-    const bytes = fs.readFileSync(new URL(`client/public/${entry.publicPath.slice(1)}`, root));
-    assert.equal(bytes.length, entry.bytes);
-    assert.equal(gitBlobSha(bytes), entry.gitBlobSha);
+    assert.equal(
+      fs.existsSync(new URL(`client/public/${entry.publicPath.slice(1)}`, root)),
+      false
+    );
   }
 });
 
-test("every alias is byte-identical to its canonical retained file", () => {
+test("every removed alias retains an exact canonical file", () => {
   for (const entry of manifest.entries.filter((candidate) => candidate.kind === "alias")) {
-    const alias = fs.readFileSync(new URL(`client/public/${entry.publicPath.slice(1)}`, root));
     const canonical = fs.readFileSync(
       new URL(`client/public/${entry.canonicalPath.slice(1)}`, root)
     );
-    assert.deepEqual(alias, canonical);
+    assert.equal(canonical.length, entry.bytes);
+    assert.equal(gitBlobSha(canonical), entry.gitBlobSha);
   }
 });
 
@@ -55,7 +56,7 @@ test("unsafe or changed alias contracts fail closed", () => {
   );
 });
 
-test("production route order canonicalizes aliases before identity and static serving", () => {
+test("production route order canonicalizes removed aliases before identity and static serving", () => {
   const server = fs.readFileSync(new URL("../server/index.ts", import.meta.url), "utf8");
   const alias = server.indexOf("registerPublicShellAliasRoutes(app)");
   const identity = server.indexOf("const identityAssets = new Set", alias);
