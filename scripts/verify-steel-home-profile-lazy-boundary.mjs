@@ -22,7 +22,6 @@ assert.match(
 for (const staticTheme of [
   "DefaultProfileTheme",
   "WholesalerProfileTheme",
-  "VideographerProfileTheme",
   "LocalServiceProfileTheme",
 ]) {
   assert.match(

@@ -30,7 +30,6 @@ import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
 import DefaultProfileTheme from "@/pages/profile-sites/DefaultProfileTheme";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
-import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
 import {
   createProfileHistoryBoundaryState,
   isProfileHistoryBoundaryState,
@@ -117,6 +116,9 @@ const PrecisionAerialProfile = lazy(
 const ProFabProfileTheme = lazy(() => import("@/pages/profile-sites/ProFabProfileTheme"));
 const JrsAutoGlassProfileTheme = lazy(
   () => import("@/pages/profile-sites/JrsAutoGlassProfileTheme")
+);
+const VideographerProfileTheme = lazy(
+  () => import("@/pages/profile-sites/VideographerProfileTheme")
 );
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
@@ -210,6 +212,31 @@ function JrsAutoGlassProfileBoundary({ children }: { children: ReactNode }) {
               JR&apos;s Auto Glass
             </p>
             <p className="mt-3 text-2xl font-semibold">Loading the mobile glass profile…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function VideographerProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-zinc-950 px-6 text-center text-white"
+          data-testid="videographer-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-300">
+              Portfolio
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading the videography profile…</p>
           </div>
         </div>
       }
@@ -2084,31 +2111,33 @@ export default function ProfileSiteView() {
         />
         {manageChrome}
         {templateIndependentInventoryContext}
-        <VideographerProfileTheme
-          profileSlug={profile.slug}
-          platformBaseHref={platformBaseHref}
-          businessName={displayName}
-          headline={publicHeadline}
-          contentBlocks={contentBlocks}
-          services={serviceTags}
-          serviceAreas={serviceAreas}
-          aboutText={aboutText}
-          galleryItems={galleryItems}
-          sharedGallerySlug={sharedGallerySlug}
-          profileShareDestination={profileShareDestination}
-          onDirectConnect={openServiceDirectConnect}
-          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
-          trustActions={renderProfileTrustActions("dark")}
-          profileItems={
-            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems
-                items={profileItems}
-                profileSections={profileSections}
-                platformBaseHref={platformBaseHref}
-              />
-            ) : null
-          }
-        />
+        <VideographerProfileBoundary>
+          <VideographerProfileTheme
+            profileSlug={profile.slug}
+            platformBaseHref={platformBaseHref}
+            businessName={displayName}
+            headline={publicHeadline}
+            contentBlocks={contentBlocks}
+            services={serviceTags}
+            serviceAreas={serviceAreas}
+            aboutText={aboutText}
+            galleryItems={galleryItems}
+            sharedGallerySlug={sharedGallerySlug}
+            profileShareDestination={profileShareDestination}
+            onDirectConnect={openServiceDirectConnect}
+            deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+            trustActions={renderProfileTrustActions("dark")}
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </VideographerProfileBoundary>
         <ExpressDirectConnectPanel
           open={expressPanelOpen}
           onClose={() => setExpressPanelOpen(false)}
