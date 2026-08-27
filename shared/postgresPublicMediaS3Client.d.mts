@@ -9,6 +9,9 @@ export type PostgresPublicMediaS3Client = {
 
 export function isSafePostgresPublicObjectKey(value: unknown): boolean;
 export function publicObjectEtag(body: Buffer | Uint8Array | string): string;
+export function resolvePostgresPublicMediaCommandOperation(
+  command: unknown
+): "PutObject" | "HeadObject" | "GetObject" | null;
 export function postgresConditionalStatus(
   input: Record<string, any>,
   object: { ETag?: string; LastModified?: Date }
