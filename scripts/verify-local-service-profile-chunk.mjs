@@ -13,7 +13,7 @@ assert.match(
   source,
   /const LocalServiceProfileTheme = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/LocalServiceProfileTheme"\)\s*\)/
 );
-for (const staticTheme of ["DefaultProfileTheme", "WholesalerProfileTheme"]) {
+for (const staticTheme of ["DefaultProfileTheme"]) {
   assert.match(source, new RegExp(`import ${staticTheme}(?:,| from)`));
 }
 

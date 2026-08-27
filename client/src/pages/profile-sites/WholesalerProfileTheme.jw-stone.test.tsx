@@ -23,6 +23,18 @@ vi.mock("./WholesalerProfileThemeLegacy", () => ({
   ),
 }));
 
+vi.mock("./RedGranitiWebsiteProfile", () => ({
+  default: ({ profileSlug }: { profileSlug: string }) => (
+    <div data-testid="red-graniti-theme">{profileSlug}</div>
+  ),
+}));
+
+vi.mock("./IssaBuildProfileTruthFrame", () => ({
+  default: ({ profileSlug }: { profileSlug: string }) => (
+    <div data-testid="issa-build-theme">{profileSlug}</div>
+  ),
+}));
+
 const baseProps = {
   profileSlug: "jw-stone",
   displayName: "JW Stone Logistics",
@@ -91,5 +103,76 @@ describe("WholesalerProfileTheme JW Stone profile selection", () => {
     expect(container.querySelector('[data-testid="legacy-wholesaler-theme"]')?.textContent).toBe(
       "another-tradepartner"
     );
+  });
+
+  it.each([
+    ["  JW-Stone  ", "jw-stone-2-surface"],
+    ["  RED-GRANITI  ", "red-graniti-theme"],
+    ["  ISSA-BUILD  ", "issa-build-theme"],
+    ["jw-stones", "legacy-wholesaler-theme"],
+    ["red-graniti-logistics", "legacy-wholesaler-theme"],
+    ["issa-builder", "legacy-wholesaler-theme"],
+  ])("normalizes exact slug %s without accepting near matches", async (profileSlug, testId) => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    mounted.push(() => {
+      act(() => root.unmount());
+      container.remove();
+    });
+
+    await act(async () => root.render(<WholesalerProfileTheme {...baseProps} profileSlug={profileSlug} />));
+    await act(async () => {
+      await vi.waitFor(() => expect(container.querySelector(`[data-testid="${testId}"]`)).not.toBeNull());
+    });
+  });
+
+  it("cleans JW marketplace scroll ownership when dispatch changes or unmounts", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    mounted.push(() => {
+      act(() => root.unmount());
+      container.remove();
+    });
+
+    await act(async () => root.render(<WholesalerProfileTheme {...baseProps} />));
+    document.documentElement.classList.add("jw-marketplace-scroll");
+    document.body.classList.add("jw-marketplace-scroll");
+    await act(async () =>
+      root.render(<WholesalerProfileTheme {...baseProps} profileSlug="another-tradepartner" />)
+    );
+    expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(false);
+    expect(document.body.classList.contains("jw-marketplace-scroll")).toBe(false);
+  });
+
+  it("cleans JW marketplace scroll ownership on direct JW unmount", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => root.render(<WholesalerProfileTheme {...baseProps} />));
+    document.documentElement.classList.add("jw-marketplace-scroll");
+    document.body.classList.add("jw-marketplace-scroll");
+    act(() => root.unmount());
+    expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(false);
+    expect(document.body.classList.contains("jw-marketplace-scroll")).toBe(false);
+    container.remove();
+  });
+
+  it("does not claim JW scroll cleanup for a generic TradePartner render", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() =>
+      root.render(<WholesalerProfileTheme {...baseProps} profileSlug="another-tradepartner" />)
+    );
+    document.documentElement.classList.add("jw-marketplace-scroll");
+    document.body.classList.add("jw-marketplace-scroll");
+    act(() => root.unmount());
+    expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
+    expect(document.body.classList.contains("jw-marketplace-scroll")).toBe(true);
+    document.documentElement.classList.remove("jw-marketplace-scroll");
+    document.body.classList.remove("jw-marketplace-scroll");
+    container.remove();
   });
 });

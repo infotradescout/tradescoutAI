@@ -22,6 +22,10 @@ const wholesaler = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
   "utf8"
 );
+const legacyWholesaler = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx"),
+  "utf8"
+);
 const contentAdapters = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/data/profileSiteContentAdapters.ts"),
   "utf8"
@@ -54,13 +58,21 @@ describe("profile template manage surface contracts", () => {
     expect(profileView).toContain('siteTemplate === "wholesaler"');
     expect(profileView).toContain("ProfileSiteManageChrome");
     expect(profileView).toContain("viewerCanManage");
+    expect(profileView).not.toMatch(/import WholesalerProfileTheme from/);
+    expect(profileView).toMatch(
+      /const WholesalerProfileTheme = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/WholesalerProfileTheme"\)\s*\)/
+    );
+    expect(profileView).toContain("<WholesalerProfileBoundary>");
+    expect(profileView).toMatch(
+      /data-testid="wholesaler-profile-loading"[\s\S]*?role="status"[\s\S]*?aria-live="polite"[\s\S]*?aria-busy="true"/
+    );
   });
 
   it("keeps owner controls in document flow above every profile site", () => {
     expect(manageChrome).toContain('className="relative z-[80]');
     expect(manageChrome).not.toContain('className="fixed inset-x-0 top-0');
     expect(profileView).not.toContain("manageChromeSpacer");
-    expect(profileView.match(/\{manageChrome\}/g)).toHaveLength(7);
+    expect(profileView.match(/\{manageChrome\}/g)).toHaveLength(8);
   });
 
   it("offers the v1 template gallery in the profile editor", () => {
@@ -70,8 +82,9 @@ describe("profile template manage surface contracts", () => {
   });
 
   it("honors curated featuredStoneSlugs on wholesaler profiles", () => {
-    expect(wholesaler).toContain("featuredStoneSlugs");
-    expect(wholesaler).toContain("Curated featured picks win");
+    expect(wholesaler).toContain("LegacyWholesalerProfileTheme");
+    expect(legacyWholesaler).toContain("featuredStoneSlugs");
+    expect(legacyWholesaler).toContain("Curated featured picks win");
   });
 
   it("exposes lead-photo picking for JW Stone inventory on the live manage chrome", () => {
