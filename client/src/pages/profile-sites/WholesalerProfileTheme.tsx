@@ -1,13 +1,12 @@
-import { useEffect, type ComponentProps } from "react";
+import { lazy, Suspense, useEffect, type ComponentProps } from "react";
 import { ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import { RED_GRANITI_PROFILE_SLUG } from "@shared/redGranitiProfile";
-import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace";
-import { JwStoneProfileProvider } from "@/features/jw-stone/JwStoneProfileContext";
-import { JwStoneProfileSeo } from "@/features/jw-stone/JwStoneProfileSeo";
 import IssaBuildProfileTruthFrame from "./IssaBuildProfileTruthFrame";
 import RedGranitiWebsiteProfile from "./RedGranitiWebsiteProfile";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
+
+const JwStoneMarketplaceProfile = lazy(() => import("./JwStoneMarketplaceProfile"));
 
 export type { WholesalerBrandColors } from "./WholesalerProfileThemeLegacy";
 
@@ -36,13 +35,16 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
 
   if (isJwStoneProfile) {
     return (
-      <JwStoneProfileProvider
-        profileActions={props.trustActions}
-        profileCanonicalUrl={props.profileShareDestination}
+      <Suspense
+        fallback={
+          <div aria-label="Loading JW Stone inventory" className="min-h-screen bg-[#f7f4ec]" />
+        }
       >
-        <JWStoneMarketplace />
-        <JwStoneProfileSeo canonical={props.profileShareDestination} />
-      </JwStoneProfileProvider>
+        <JwStoneMarketplaceProfile
+          profileActions={props.trustActions}
+          profileCanonicalUrl={props.profileShareDestination}
+        />
+      </Suspense>
     );
   }
 

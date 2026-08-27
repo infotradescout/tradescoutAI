@@ -1,0 +1,158 @@
+#!/usr/bin/env node
+
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import {
+  deploymentMarkerObjectKey,
+  deploymentRevisionFromEnvironment,
+  deploymentVerificationMarkerMatches,
+} from "./public-media-deployment-gate-core.mjs";
+import { validateJwStonePublicMediaManifest } from "./jw-stone-public-media-core.mjs";
+import { validateRedGranitiPublicMediaManifest } from "./red-graniti-public-media-core.mjs";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function readManifest(relativePath) {
+  return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), "utf8"));
+}
+
+function envValue(key) {
+  return String(process.env[key] || "").trim();
+}
+
+function r2Configuration() {
+  const configuration = {
+    accountId: envValue("R2_ACCOUNT_ID"),
+    accessKeyId: envValue("R2_ACCESS_KEY_ID"),
+    secretAccessKey: envValue("R2_SECRET_ACCESS_KEY"),
+    bucketName: envValue("R2_BUCKET_NAME"),
+  };
+  const missing = Object.entries(configuration)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+  if (missing.length > 0) {
+    throw new Error(
+      `Public media readiness requires existing R2 configuration; missing ${missing.join(", ")}`
+    );
+  }
+  return configuration;
+}
+
+async function bodyToJson(body, contentLength) {
+  if (Number(contentLength || 0) > 32 * 1024) {
+    throw new SyntaxError("Public media deployment marker is unexpectedly large");
+  }
+  if (body && typeof body.transformToString === "function") {
+    return JSON.parse(await body.transformToString("utf8"));
+  }
+  const chunks = [];
+  let bytes = 0;
+  for await (const chunk of body || []) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    bytes += buffer.length;
+    if (bytes > 32 * 1024) {
+      throw new SyntaxError("Public media deployment marker is unexpectedly large");
+    }
+    chunks.push(buffer);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+async function markerIsReady(client, GetObjectCommand, bucketName, contract, revision) {
+  try {
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: bucketName,
+        Key: deploymentMarkerObjectKey(contract.manifest, revision),
+      })
+    );
+    const marker = await bodyToJson(response.Body, response.ContentLength);
+    return deploymentVerificationMarkerMatches(
+      marker,
+      contract.manifest,
+      contract.summary,
+      revision
+    );
+  } catch (error) {
+    const status = Number(error?.$metadata?.httpStatusCode || 0);
+    const code = String(error?.Code || error?.code || error?.name || "");
+    if (
+      error instanceof SyntaxError ||
+      status === 404 ||
+      code === "NoSuchKey" ||
+      code === "NotFound"
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function runMigration(scriptName) {
+  const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts", scriptName)], {
+    cwd: repoRoot,
+    env: process.env,
+    stdio: "inherit",
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`${scriptName} failed with exit code ${result.status ?? "unknown"}`);
+  }
+}
+
+if (envValue("RENDER") !== "true") {
+  console.log("[public-media-readiness] non-Render runtime; deployment gate skipped");
+  process.exit(0);
+}
+
+const revision = deploymentRevisionFromEnvironment(process.env);
+if (!revision) throw new Error("Render did not provide RENDER_GIT_COMMIT");
+
+const jwManifest = readManifest("scripts/data/jw-stone-public-media-manifest.json");
+const redManifest = readManifest("scripts/data/red-graniti-public-media-manifest.json");
+const contracts = [
+  {
+    manifest: redManifest,
+    summary: validateRedGranitiPublicMediaManifest(redManifest),
+    migrationScript: "migrate-red-graniti-public-media.mjs",
+  },
+  {
+    manifest: jwManifest,
+    summary: validateJwStonePublicMediaManifest(jwManifest),
+    migrationScript: "migrate-jw-stone-public-media.mjs",
+  },
+];
+
+const { GetObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
+const configuration = r2Configuration();
+const client = new S3Client({
+  region: "auto",
+  endpoint: `https://${configuration.accountId}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: configuration.accessKeyId,
+    secretAccessKey: configuration.secretAccessKey,
+  },
+});
+
+const initialReadiness = await Promise.all(
+  contracts.map((contract) =>
+    markerIsReady(client, GetObjectCommand, configuration.bucketName, contract, revision)
+  )
+);
+
+for (let index = 0; index < contracts.length; index += 1) {
+  if (!initialReadiness[index]) runMigration(contracts[index].migrationScript);
+}
+
+const finalReadiness = await Promise.all(
+  contracts.map((contract) =>
+    markerIsReady(client, GetObjectCommand, configuration.bucketName, contract, revision)
+  )
+);
+if (finalReadiness.some((ready) => !ready)) {
+  throw new Error("Public media deployment verification is incomplete; refusing to start");
+}
+
+console.log(`[public-media-readiness] exact release verified: ${revision.slice(0, 12)}`);

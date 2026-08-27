@@ -8,9 +8,7 @@ const read = (relativePath: string) =>
 
 describe("R.E.D. Graniti profile image delivery", () => {
   it("serves all canonical quarry imagery from TradeScout-owned paths", () => {
-    const localImages = Object.values(RED_GRANITI_QUARRY_MEDIA).map(
-      (entry) => entry.imageUrl
-    );
+    const localImages = Object.values(RED_GRANITI_QUARRY_MEDIA).map((entry) => entry.imageUrl);
 
     expect(localImages).toEqual([
       "/images/businesses/red-graniti/source/lemurian-blue.svg",
@@ -21,17 +19,35 @@ describe("R.E.D. Graniti profile image delivery", () => {
     expect(localImages.some((imageUrl) => /^https?:\/\//i.test(imageUrl))).toBe(false);
   });
 
-  it("caches the official homepage, business, quarry, and project imagery before Vite builds", () => {
+  it("pins homepage, business, quarry, and project imagery to R2 before Vite builds", () => {
     const sitemapBuild = read("scripts/generate-sitemap.mjs");
-    const cacheScript = read("scripts/cache-red-graniti-assets.mjs");
+    const sitemapCore = read("scripts/generate-sitemap-core.mjs");
+    const migrationScript = read("scripts/migrate-red-graniti-public-media.mjs");
+    const route = read("server/routes/red-graniti-public-media.ts");
     const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
+    const profileMetadata = read("shared/redGranitiProfile.ts");
+    const manifest = JSON.parse(read("scripts/data/red-graniti-public-media-manifest.json")) as {
+      expected: { files: number; bytes: number };
+      target: { storage: string; keyPrefix: string; legacyUrlPrefix: string };
+      assets: Array<{ relativePath: string }>;
+    };
 
-    expect(sitemapBuild).toContain("import './cache-red-graniti-assets.mjs';");
-    expect(cacheScript).toContain(
-      "client/public/images/businesses/red-graniti/source"
+    expect(sitemapBuild).toContain("verify-red-graniti-public-media.mjs");
+    expect(sitemapCore).not.toContain("cache-red-graniti-assets.mjs");
+    expect(fs.existsSync(path.resolve(process.cwd(), "scripts/cache-red-graniti-assets.mjs"))).toBe(
+      false
     );
+    expect(manifest.expected).toMatchObject({ files: 11, bytes: 2433960 });
+    expect(manifest.target).toEqual({
+      storage: "cloudflare-r2",
+      keyPrefix: "public-media/images/businesses/red-graniti/source/",
+      legacyUrlPrefix: "/images/businesses/red-graniti/source/",
+    });
+    expect(migrationScript).toContain('envValue("R2_BUCKET_NAME")');
+    expect(migrationScript).toContain("source digest did not match the pinned manifest");
+    expect(route).toContain("resolveRedGranitiPublicMediaObjectKey");
 
-    for (const outputFile of [
+    const expectedFiles = [
       "home-hero.svg",
       "business-blocks.svg",
       "business-slabs.svg",
@@ -43,25 +59,17 @@ describe("R.E.D. Graniti profile image delivery", () => {
       "project-colorado-bank.svg",
       "project-lincoln-memorial.svg",
       "project-mansion-dubai.svg",
-    ]) {
-      expect(cacheScript).toContain(outputFile);
-      expect(profile).toContain(outputFile);
+    ];
+    expect(manifest.assets.map((asset) => asset.relativePath)).toEqual(expectedFiles);
+    for (const outputFile of expectedFiles) {
+      expect(`${profile}\n${profileMetadata}`).toContain(outputFile);
     }
-
-    expect(cacheScript).toContain("https://www.redgraniti.com/wp-content/uploads/");
-    expect(cacheScript).toContain("blocchi-grezzi.png");
-    expect(cacheScript).toContain("commercializzazione.png");
-    expect(cacheScript).toContain("LincolnMemorialWashington.jpg");
-    expect(cacheScript).toContain("fallbackSourceSvg");
-    expect(cacheScript).toContain("official image unavailable");
   });
 
   it("keeps canonical quarry cards tied to official R.E.D. Graniti pages", () => {
     for (const entry of Object.values(RED_GRANITI_QUARRY_MEDIA)) {
       expect(entry.sourceUrl).toMatch(/^https:\/\/www\.redgraniti\.com\/en\/portfolio\//);
     }
-    expect(RED_GRANITI_QUARRY_MEDIA.vermont.sourceUrl).toContain(
-      "eureka-danbycalacatta-danby"
-    );
+    expect(RED_GRANITI_QUARRY_MEDIA.vermont.sourceUrl).toContain("eureka-danbycalacatta-danby");
   });
 });

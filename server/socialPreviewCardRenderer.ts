@@ -1,6 +1,9 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { resolveJwStonePublicMediaObjectKey } from "@shared/jwStonePublicMedia";
+import { resolveRedGranitiPublicMediaObjectKey } from "@shared/redGranitiPublicMedia";
+import { readR2PublicObjectBuffer } from "./publicMediaStorage";
 
 export const SOCIAL_PREVIEW_WIDTH = 1200;
 export const SOCIAL_PREVIEW_HEIGHT = 630;
@@ -57,8 +60,11 @@ export type SocialPreviewCardContext = {
   layout?: "split" | "brand-hero";
 };
 
+type ServerPublicAssetReader = (key: string, maxBytes: number) => Promise<Buffer | null>;
+
 type RenderSocialPreviewOptions = {
   publicRoots?: string[];
+  serverPublicAssetReader?: ServerPublicAssetReader;
 };
 
 export type RenderedSocialPreviewCard = {
@@ -182,6 +188,33 @@ async function readLocalPublicAsset(
   }
 
   return null;
+}
+
+function serverPublicMediaObjectKey(value: unknown): string | null {
+  const candidate = cleanText(value, 2048);
+  if (!candidate || candidate.startsWith("//") || /[\r\n\\\0]/.test(candidate)) return null;
+
+  try {
+    const parsed = new URL(candidate, "https://www.thetradescout.com");
+    const isRelative = candidate.startsWith("/") && !candidate.startsWith("//");
+    const host = parsed.hostname.toLowerCase();
+    if (
+      !isRelative &&
+      host !== "thetradescout.com" &&
+      host !== "www.thetradescout.com" &&
+      !host.endsWith(".thetradescout.com")
+    ) {
+      return null;
+    }
+    const publicPath = pathnameFromPublicAsset(parsed.pathname, true);
+    if (!publicPath) return null;
+    return (
+      resolveJwStonePublicMediaObjectKey(publicPath) ||
+      resolveRedGranitiPublicMediaObjectKey(publicPath)
+    );
+  } catch {
+    return null;
+  }
 }
 
 function configuredRemoteAssetHosts(): Set<string> {
@@ -494,17 +527,34 @@ async function renderSocialPreviewCardWithinSlot(
 ): Promise<RenderedSocialPreviewCard> {
   const sharp = await getSharp();
   const publicRoots = options.publicRoots || defaultPublicRoots();
+  const serverPublicAssetReader =
+    options.serverPublicAssetReader ||
+    ((key: string, maxBytes: number) => readR2PublicObjectBuffer({ key, maxBytes }));
   const accent = normalizeAccentColor(context.accentColor);
   const isBrandHero = context.layout === "brand-hero";
   const imageWidth = isBrandHero ? SOCIAL_PREVIEW_WIDTH : IMAGE_PANEL_WIDTH;
   const sourceImageRequested = Boolean(cleanText(context.sourceImageUrl, 2048));
+  const sourceObjectKey = serverPublicMediaObjectKey(context.sourceImageUrl);
+  const logoObjectKey = serverPublicMediaObjectKey(context.logoUrl);
+  const [serverSourceAsset, serverLogoAsset] = await Promise.all([
+    sourceObjectKey ? serverPublicAssetReader(sourceObjectKey, MAX_SOURCE_ASSET_BYTES) : null,
+    logoObjectKey ? serverPublicAssetReader(logoObjectKey, MAX_LOGO_ASSET_BYTES) : null,
+  ]);
   const [localSourceAsset, localLogoAsset] = await Promise.all([
-    readLocalPublicAsset(context.sourceImageUrl, publicRoots, false, MAX_SOURCE_ASSET_BYTES),
-    readLocalPublicAsset(context.logoUrl, publicRoots, true, MAX_LOGO_ASSET_BYTES),
+    sourceObjectKey
+      ? null
+      : readLocalPublicAsset(context.sourceImageUrl, publicRoots, false, MAX_SOURCE_ASSET_BYTES),
+    logoObjectKey
+      ? null
+      : readLocalPublicAsset(context.logoUrl, publicRoots, true, MAX_LOGO_ASSET_BYTES),
   ]);
   const [sourceAsset, logoAsset] = await Promise.all([
-    localSourceAsset || readRemotePublicAsset(context.sourceImageUrl, MAX_SOURCE_ASSET_BYTES),
-    localLogoAsset || readRemotePublicAsset(context.logoUrl, MAX_LOGO_ASSET_BYTES),
+    sourceObjectKey
+      ? serverSourceAsset
+      : localSourceAsset || readRemotePublicAsset(context.sourceImageUrl, MAX_SOURCE_ASSET_BYTES),
+    logoObjectKey
+      ? serverLogoAsset
+      : localLogoAsset || readRemotePublicAsset(context.logoUrl, MAX_LOGO_ASSET_BYTES),
   ]);
 
   let imagePanel: Buffer;

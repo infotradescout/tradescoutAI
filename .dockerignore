@@ -1,5 +1,6 @@
 node_modules
 dist
+.git
 .vercel
 data
 __trash_candidate__
@@ -10,3 +11,5 @@ secrets
 validation-results-*.json
 test-results
 server/logs
+client/public/images/businesses/jw-stone
+client/public/images/businesses/red-graniti/source

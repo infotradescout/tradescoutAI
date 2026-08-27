@@ -54,10 +54,10 @@ COPY --from=builder /app/docs ./docs
 
 EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10m --retries=3 \
   CMD wget --no-verbose --tries=1 --spider "http://127.0.0.1:${PORT:-5000}/api/health" || exit 1
 
-# Render runs db:migrate + db:verify:required as the service pre-deploy command.
-# Keep the migration scripts, config, shared schema, SQL, and production drizzle-kit
-# dependency in this image so a failed migration or verification blocks traffic swap.
-CMD ["node", "dist/index.js"]
+# Render normally verifies public media in pre-deploy. The runtime gate requires an
+# exact-release marker and performs the same idempotent migration if Blueprint sync
+# ever lags, so a container cannot become healthy with missing public inventory.
+CMD ["sh", "-c", "node scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]

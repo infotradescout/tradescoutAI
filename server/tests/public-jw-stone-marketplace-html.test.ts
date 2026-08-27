@@ -41,6 +41,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain(
       "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png"
     );
+    expect(html).toContain('property="og:image:type" content="image/png"');
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
   });
@@ -197,7 +198,8 @@ describe("JW Stone marketplace public HTML", () => {
     );
     const jsonLd = JSON.parse(scripts[0][1]);
 
-    expect(html).toContain("Ask whether it is currently available");
+    expect(html).toContain("Ask JW Stone to confirm current pricing");
+    expect(html).toContain('property="og:image:type" content="image/webp"');
     expect(JSON.stringify(jsonLd)).not.toMatch(/price|priceRange|offers|availability|telephone|email/i);
   });
 

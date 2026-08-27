@@ -15,6 +15,10 @@ import {
 } from "../socialPreviewCardRenderer";
 
 const PUBLIC_ROOT = path.resolve(process.cwd(), "client/public");
+const SMALL_PUBLIC_IMAGE = path.join(
+  PUBLIC_ROOT,
+  "images/businesses/red-graniti/logo/red-graniti.png"
+);
 const BLUE_MARE_IMAGE =
   "/images/businesses/jw-stone/inventory-source/1vGOdELy1LIE5i-A8lurdUMnRdjzotBMo.webp";
 const JW_STONE_LOGO = "/images/businesses/jw-stone/logo.svg";
@@ -41,13 +45,19 @@ function expectSocialPreviewPng(png: Buffer): void {
   expect(png.length).toBeGreaterThan(10_000);
 }
 
+async function readPinnedServerAsset(): Promise<Buffer> {
+  return fs.readFile(SMALL_PUBLIC_IMAGE);
+}
+
 describe.sequential("social preview card renderer", () => {
-  it("renders the real Blue Mare WebP and JW Stone logo as a 1200x630 PNG", async () => {
-    const png = await renderSocialPreviewCardPng(blueMareContext, {
+  it("renders server-owned JW Stone media as a 1200x630 PNG", async () => {
+    const rendered = await renderSocialPreviewCard(blueMareContext, {
       publicRoots: [PUBLIC_ROOT],
+      serverPublicAssetReader: readPinnedServerAsset,
     });
 
-    expectSocialPreviewPng(png);
+    expectSocialPreviewPng(rendered.png);
+    expect(rendered.sourceImageLoaded).toBe(true);
   }, 30_000);
 
   it("renders the JW Stone profile as a full-bleed brand hero without changing item cards", async () => {
@@ -62,10 +72,12 @@ describe.sequential("social preview card renderer", () => {
       },
       {
         publicRoots: [PUBLIC_ROOT],
+        serverPublicAssetReader: readPinnedServerAsset,
       }
     );
     const split = await renderSocialPreviewCardPng(blueMareContext, {
       publicRoots: [PUBLIC_ROOT],
+      serverPublicAssetReader: readPinnedServerAsset,
     });
 
     expectSocialPreviewPng(rendered.png);
@@ -112,6 +124,37 @@ describe.sequential("social preview card renderer", () => {
       expectSocialPreviewPng(rendered.png);
       expect(rendered.sourceImageRequested).toBe(true);
       expect(rendered.sourceImageLoaded).toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  }, 30_000);
+
+  it("never falls back to local files or a self-fetch for pinned server media", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValue(new Error("Pinned media must not self-fetch"));
+    const serverPublicAssetReader = vi.fn(async () => null);
+
+    try {
+      const rendered = await renderSocialPreviewCard(
+        {
+          ...blueMareContext,
+          sourceImageUrl: `https://www.thetradescout.com${BLUE_MARE_IMAGE}`,
+          logoUrl: null,
+        },
+        {
+          publicRoots: [PUBLIC_ROOT],
+          serverPublicAssetReader,
+        }
+      );
+
+      expectSocialPreviewPng(rendered.png);
+      expect(rendered.sourceImageLoaded).toBe(false);
+      expect(serverPublicAssetReader).toHaveBeenCalledWith(
+        "public-media/images/businesses/jw-stone/inventory-source/1vGOdELy1LIE5i-A8lurdUMnRdjzotBMo.webp",
+        5 * 1024 * 1024
+      );
       expect(fetchSpy).not.toHaveBeenCalled();
     } finally {
       fetchSpy.mockRestore();

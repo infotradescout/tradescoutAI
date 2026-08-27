@@ -8,13 +8,12 @@ import WholesalerProfileTheme from "./WholesalerProfileTheme";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
-vi.mock("@/features/jw-stone/JWStoneMarketplace", () => ({
-  default: () => <div data-testid="jw-stone-2-surface">JW Stone 2.0</div>,
-}));
-
-vi.mock("@/features/jw-stone/JwStoneProfileSeo", () => ({
-  JwStoneProfileSeo: ({ canonical }: { canonical: string }) => (
-    <div data-testid="jw-stone-profile-seo" data-canonical={canonical} />
+vi.mock("./JwStoneMarketplaceProfile", () => ({
+  default: ({ profileCanonicalUrl }: { profileCanonicalUrl: string }) => (
+    <>
+      <div data-testid="jw-stone-2-surface">JW Stone 2.0</div>
+      <div data-testid="jw-stone-profile-seo" data-canonical={profileCanonicalUrl} />
+    </>
   ),
 }));
 
@@ -51,7 +50,7 @@ afterEach(() => {
 });
 
 describe("WholesalerProfileTheme JW Stone profile selection", () => {
-  it("keeps the JW Stone 2.0 surface as the JW TradeScout profile theme", () => {
+  it("keeps the lazy JW Stone 2.0 surface as the JW TradeScout profile theme", async () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -60,14 +59,18 @@ describe("WholesalerProfileTheme JW Stone profile selection", () => {
       container.remove();
     });
 
-    act(() => root.render(<WholesalerProfileTheme {...baseProps} />));
+    await act(async () => root.render(<WholesalerProfileTheme {...baseProps} />));
 
-    expect(container.querySelector('[data-testid="jw-stone-2-surface"]')).not.toBeNull();
+    await act(async () => {
+      await vi.waitFor(() => {
+        expect(container.querySelector('[data-testid="jw-stone-2-surface"]')).not.toBeNull();
+      });
+    });
     expect(container.querySelector('[data-testid="legacy-wholesaler-theme"]')).toBeNull();
     expect(
-      container.querySelector('[data-testid="jw-stone-profile-seo"]')?.getAttribute(
-        "data-canonical"
-      )
+      container
+        .querySelector('[data-testid="jw-stone-profile-seo"]')
+        ?.getAttribute("data-canonical")
     ).toBe("/u/jw-stone");
   });
 
@@ -81,9 +84,7 @@ describe("WholesalerProfileTheme JW Stone profile selection", () => {
     });
 
     act(() =>
-      root.render(
-        <WholesalerProfileTheme {...baseProps} profileSlug="another-tradepartner" />
-      )
+      root.render(<WholesalerProfileTheme {...baseProps} profileSlug="another-tradepartner" />)
     );
 
     expect(container.querySelector('[data-testid="jw-stone-2-surface"]')).toBeNull();

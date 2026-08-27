@@ -23,8 +23,9 @@ export const JW_STONE_FIRST_CUT_ASSIGNMENTS: readonly FirstCutAssignment[] = Obj
 
 /**
  * Photo-only First Cut slots (exactly three render in FirstCutSection).
- * Assets live in `client/public/images/businesses/jw-stone/first-cut/` (01–05 may exist;
- * marketplace First Cut uses three distinct photo slots). Captions stay pending — do not invent names/specs.
+ * Stable same-origin URLs resolve through the server-owned R2 media manifest
+ * (01–05 may exist; marketplace First Cut uses three distinct photo slots).
+ * Captions stay pending — do not invent names/specs.
  *
  * Lead (first slot) is the physically long green bookmatched pair (`05.jpg`) —
  * reads ~twice as wide as the single-slab supports. Supports: black vein (`01`) + Rouge De Roi (`02`).
