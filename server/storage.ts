@@ -57,8 +57,6 @@ import {
   // Professional profiles
   realtorProfiles,
   carSalesmanProfiles,
-  // Feature flags
-  featureFlags,
   // New marketplace features
   marketplaceTransactions,
   transactionDisputes,
@@ -315,6 +313,7 @@ import { BusinessRepository, type PublicBusinessRecord } from "./repositories/bu
 import { ProfileRepository, type PublicProfileRecord } from "./repositories/profileRepository";
 import { OutcomeOnboardingRepository } from "./repositories/outcomeOnboardingRepository";
 import { CrmAndDealsStorageRepository } from "./storage/repositories/crm-and-deals";
+import { FeatureFlagRepository } from "./storage/repositories/feature-flags";
 import type {
   AtomicBusinessOutcomeArgs,
   AtomicExpressOutcomeArgs,
@@ -391,6 +390,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   private readonly businessRepository = new BusinessRepository();
   private readonly profileRepository = new ProfileRepository();
   private readonly outcomeOnboardingRepository = new OutcomeOnboardingRepository();
+  private readonly featureFlagRepository = new FeatureFlagRepository();
 
   private normalizeLegacyAdminUser(user: User | undefined): User | undefined {
     if (!user) return user;
@@ -7114,49 +7114,27 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   // Feature Flags Management
   async getFeatureFlags(): Promise<any> {
-    return await db.select().from(featureFlags).orderBy(desc(featureFlags.createdAt));
+    return this.featureFlagRepository.getFeatureFlags();
   }
 
   async getFeatureFlag(key: string): Promise<any | undefined> {
-    const [flag] = await db.select().from(featureFlags).where(eq(featureFlags.key, key));
-    return flag;
+    return this.featureFlagRepository.getFeatureFlag(key);
   }
 
   async createFeatureFlag(flagData: any): Promise<any> {
-    const [flag] = await db
-      .insert(featureFlags)
-      .values({
-        ...flagData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
-    return flag;
+    return this.featureFlagRepository.createFeatureFlag(flagData);
   }
 
   async updateFeatureFlag(id: string, updates: any): Promise<any> {
-    const [flag] = await db
-      .update(featureFlags)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(featureFlags.id, id))
-      .returning();
-    return flag;
+    return this.featureFlagRepository.updateFeatureFlag(id, updates);
   }
 
   async deleteFeatureFlag(id: string): Promise<void> {
-    await db.delete(featureFlags).where(eq(featureFlags.id, id));
+    return this.featureFlagRepository.deleteFeatureFlag(id);
   }
 
   async isFeatureEnabled(key: string, userRole?: string): Promise<boolean> {
-    const flag = await this.getFeatureFlag(key);
-    if (!flag || !flag.enabled) return false;
-
-    // Check if user role is allowed
-    if (userRole && flag.userRoles && flag.userRoles.length > 0) {
-      return flag.userRoles.includes(userRole);
-    }
-
-    return flag.enabled;
+    return this.featureFlagRepository.isFeatureEnabled(key, userRole);
   }
 
   // HOA Management operations
