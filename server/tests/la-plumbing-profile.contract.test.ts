@@ -88,8 +88,16 @@ describe("LA Plumbing Solutions public profile contract", () => {
     const theme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
     const presentation = read("shared/localServiceProfile.ts");
 
-    expect(profileView).toContain("import LocalServiceProfileTheme");
+    expect(profileView).not.toMatch(/import LocalServiceProfileTheme(?:,| from)/);
+    expect(profileView).toMatch(
+      /const LocalServiceProfileTheme = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/LocalServiceProfileTheme"\)\s*\)/
+    );
     expect(profileView).toContain('resolvedLocalServicePresentation.template === "local-service"');
+    expect(profileView).toContain("<LocalServiceProfileBoundary>");
+    expect(profileView).toContain("</LocalServiceProfileBoundary>");
+    expect(profileView).toMatch(
+      /data-testid="local-service-profile-loading"[\s\S]*?role="status"[\s\S]*?aria-live="polite"[\s\S]*?aria-busy="true"/
+    );
     expect(profileView).toContain("<LocalServiceProfileTheme");
     expect(theme).toContain('data-testid="local-service-profile-theme"');
     expect(theme).toContain('data-profile-layout="compact-business-profile"');

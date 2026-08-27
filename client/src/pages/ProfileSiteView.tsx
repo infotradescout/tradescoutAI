@@ -34,9 +34,7 @@ import {
   createProfileHistoryBoundaryState,
   isProfileHistoryBoundaryState,
 } from "@/pages/profileHistoryBoundary";
-import LocalServiceProfileTheme, {
-  type PublicCommunityVerification,
-} from "@/pages/profile-sites/LocalServiceProfileTheme";
+import type { PublicCommunityVerification } from "@/pages/profile-sites/LocalServiceProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
@@ -119,6 +117,9 @@ const JrsAutoGlassProfileTheme = lazy(
 );
 const VideographerProfileTheme = lazy(
   () => import("@/pages/profile-sites/VideographerProfileTheme")
+);
+const LocalServiceProfileTheme = lazy(
+  () => import("@/pages/profile-sites/LocalServiceProfileTheme")
 );
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
@@ -237,6 +238,31 @@ function VideographerProfileBoundary({ children }: { children: ReactNode }) {
               Portfolio
             </p>
             <p className="mt-3 text-2xl font-semibold">Loading the videography profile…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function LocalServiceProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-slate-100 px-6 text-center text-slate-950"
+          data-testid="local-service-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-700">
+              Local service profile
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading business details…</p>
           </div>
         </div>
       }
@@ -2050,33 +2076,35 @@ export default function ProfileSiteView() {
         />
         {manageChrome}
         {templateIndependentInventoryContext}
-        <LocalServiceProfileTheme
-          profileSlug={profile.slug}
-          platformBaseHref={platformBaseHref}
-          businessName={displayName}
-          presentation={resolvedLocalServicePresentation}
-          onDirectConnect={openGeneralDirectConnect}
-          hasViewerSession={hasViewerSession}
-          tradeScoutReturnHref={tradeScoutReturnHref}
-          profileShareDestination={profileShareDestination}
-          publicRouteContentBlocks={contentBlocks}
-          galleryItems={galleryItems}
-          sharedGallerySlug={sharedGallerySlug}
-          recommendationsDirectory={recommendationsDirectory}
-          trustActions={renderProfileTrustActions("dark")}
-          verificationStatus={business?.verificationStatus}
-          verifiedBadge={business?.verifiedBadge === true}
-          communityVerification={business?.communityVerification}
-          profileItems={
-            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems
-                items={profileItems}
-                profileSections={profileSections}
-                platformBaseHref={platformBaseHref}
-              />
-            ) : null
-          }
-        />
+        <LocalServiceProfileBoundary>
+          <LocalServiceProfileTheme
+            profileSlug={profile.slug}
+            platformBaseHref={platformBaseHref}
+            businessName={displayName}
+            presentation={resolvedLocalServicePresentation}
+            onDirectConnect={openGeneralDirectConnect}
+            hasViewerSession={hasViewerSession}
+            tradeScoutReturnHref={tradeScoutReturnHref}
+            profileShareDestination={profileShareDestination}
+            publicRouteContentBlocks={contentBlocks}
+            galleryItems={galleryItems}
+            sharedGallerySlug={sharedGallerySlug}
+            recommendationsDirectory={recommendationsDirectory}
+            trustActions={renderProfileTrustActions("dark")}
+            verificationStatus={business?.verificationStatus}
+            verifiedBadge={business?.verifiedBadge === true}
+            communityVerification={business?.communityVerification}
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </LocalServiceProfileBoundary>
         <ExpressDirectConnectPanel
           open={expressPanelOpen}
           onClose={() => setExpressPanelOpen(false)}

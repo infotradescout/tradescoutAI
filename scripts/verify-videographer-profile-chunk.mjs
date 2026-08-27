@@ -14,7 +14,7 @@ assert.match(
   /const VideographerProfileTheme = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/VideographerProfileTheme"\)\s*\)/,
   "Videographer must retain its dedicated lazy owner"
 );
-for (const staticTheme of ["DefaultProfileTheme", "WholesalerProfileTheme", "LocalServiceProfileTheme"]) {
+for (const staticTheme of ["DefaultProfileTheme", "WholesalerProfileTheme"]) {
   assert.match(profileSource, new RegExp(`import ${staticTheme}(?:,| from)`));
 }
 
