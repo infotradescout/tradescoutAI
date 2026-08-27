@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "node scripts/check-node-spawn.mjs && cross-env NODE_ENV=development tsx -r dotenv/config server/index.ts",
-    "build": "node scripts/check-node-spawn.mjs && node scripts/generate-sitemap.mjs && vite build && node scripts/verify-app-entry-bundle.mjs && node scripts/verify-profile-public-media.mjs --built && node scripts/verify-public-shell-local-dedupe.mjs --built && node scripts/verify-public-landing-bundle.mjs && node scripts/verify-built-asset-urls.mjs && node build-server.mjs",
+    "build": "node scripts/check-node-spawn.mjs && node scripts/generate-sitemap.mjs && vite build && node scripts/verify-app-entry-bundle.mjs && node scripts/verify-steel-home-profile-lazy-boundary.mjs && node scripts/verify-profile-public-media.mjs --built && node scripts/verify-public-shell-local-dedupe.mjs --built && node scripts/verify-public-landing-bundle.mjs && node scripts/verify-built-asset-urls.mjs && node build-server.mjs",
     "media:verify:jw-stone": "node scripts/verify-jw-stone-public-media.mjs",
     "media:migrate:jw-stone": "node runtime/run-release.mjs migrate-jw-stone-public-media scripts/migrate-jw-stone-public-media.mjs",
     "media:migrate:jw-stone:dry-run": "node scripts/migrate-jw-stone-public-media.mjs --dry-run",
