@@ -11,6 +11,10 @@ import {
 } from "./public-media-deployment-gate-core.mjs";
 import { validateJwStonePublicMediaManifest } from "./jw-stone-public-media-core.mjs";
 import { validateRedGranitiPublicMediaManifest } from "./red-graniti-public-media-core.mjs";
+import {
+  requireServerObjectStorageConfiguration,
+  serverObjectStorageClientOptions,
+} from "./server-object-storage.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -20,24 +24,6 @@ function readManifest(relativePath) {
 
 function envValue(key) {
   return String(process.env[key] || "").trim();
-}
-
-function r2Configuration() {
-  const configuration = {
-    accountId: envValue("R2_ACCOUNT_ID"),
-    accessKeyId: envValue("R2_ACCESS_KEY_ID"),
-    secretAccessKey: envValue("R2_SECRET_ACCESS_KEY"),
-    bucketName: envValue("R2_BUCKET_NAME"),
-  };
-  const missing = Object.entries(configuration)
-    .filter(([, value]) => !value)
-    .map(([key]) => key);
-  if (missing.length > 0) {
-    throw new Error(
-      `Public media readiness requires existing R2 configuration; missing ${missing.join(", ")}`
-    );
-  }
-  return configuration;
 }
 
 async function bodyToJson(body, contentLength) {
@@ -126,15 +112,8 @@ const contracts = [
 ];
 
 const { GetObjectCommand, S3Client } = await import("@aws-sdk/client-s3");
-const configuration = r2Configuration();
-const client = new S3Client({
-  region: "auto",
-  endpoint: `https://${configuration.accountId}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: configuration.accessKeyId,
-    secretAccessKey: configuration.secretAccessKey,
-  },
-});
+const configuration = requireServerObjectStorageConfiguration(process.env);
+const client = new S3Client(serverObjectStorageClientOptions(configuration));
 
 const initialReadiness = await Promise.all(
   contracts.map((contract) =>
@@ -155,4 +134,6 @@ if (finalReadiness.some((ready) => !ready)) {
   throw new Error("Public media deployment verification is incomplete; refusing to start");
 }
 
-console.log(`[public-media-readiness] exact release verified: ${revision.slice(0, 12)}`);
+console.log(
+  `[public-media-readiness] exact release verified: ${revision.slice(0, 12)} backend=${configuration.provider}`
+);

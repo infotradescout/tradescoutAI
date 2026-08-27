@@ -30,7 +30,7 @@ describe("R.E.D. Graniti server-side public media", () => {
     expect(RED_GRANITI_PUBLIC_MEDIA_BYTES).toBe(2433960);
   });
 
-  it("preserves GET and HEAD URLs while delegating bytes to R2", async () => {
+  it("preserves GET and HEAD URLs while delegating bytes to server storage", async () => {
     const calls: Array<{ method: string; key: string }> = [];
     const app = express();
     registerRedGranitiPublicMediaRoutes(app, {

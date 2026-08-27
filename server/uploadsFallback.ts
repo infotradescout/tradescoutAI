@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import express from "express";
 import fs from "fs";
 import path from "path";
-import { streamR2PublicObject } from "./publicMediaStorage";
+import { streamPublicObject } from "./publicMediaStorage";
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
 const COMMON_IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".bmp", ".avif"];
@@ -53,7 +53,7 @@ async function streamFromR2IfPresent(
   const candidates = buildCandidateRelativePaths(uploadPath);
   for (const relative of candidates) {
     const key = `uploads/${relative}`;
-    const result = await streamR2PublicObject({ req, res, key });
+    const result = await streamPublicObject({ req, res, key });
     if (result === "served") return true;
     if (result === "not_found") continue;
     return false;
@@ -72,7 +72,7 @@ export function registerUploadsFallback(app: Express) {
     })
   );
 
-  // Miss handler: try extension variants and R2 object keys.
+  // Miss handler: try extension variants and server object-storage keys.
   app.get("/uploads/*", async (req, res) => {
     try {
       const requested = String(req.path || "").replace(/^\/uploads\/?/, "");
@@ -87,7 +87,7 @@ export function registerUploadsFallback(app: Express) {
         }
       }
 
-      // R2 fallback (handles cases where DB has /uploads/... but objects live in R2).
+      // Object-store fallback (handles cases where DB paths outlive local upload files).
       const streamed = await streamFromR2IfPresent(req, res, requested);
       if (streamed) return;
 

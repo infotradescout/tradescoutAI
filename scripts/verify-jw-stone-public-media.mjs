@@ -71,5 +71,5 @@ if (missingManifestPaths.size > 0) {
 }
 
 console.log(
-  `[jw-stone-public-media] verified ${summary.files} R2 assets (${summary.bytes} bytes), ${referencedPaths.size} source references, and zero bundled JW media files`
+  `[jw-stone-public-media] verified ${summary.files} server-storage assets (${summary.bytes} bytes), ${referencedPaths.size} source references, and zero bundled JW media files`
 );

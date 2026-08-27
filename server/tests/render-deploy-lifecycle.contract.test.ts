@@ -48,6 +48,10 @@ describe("Render Docker deploy lifecycle", () => {
     expect(blueprint).toContain("R2_ACCESS_KEY_ID");
     expect(blueprint).toContain("R2_SECRET_ACCESS_KEY");
     expect(blueprint).toContain("R2_BUCKET_NAME");
+    expect(blueprint).toContain("AWS_ACCESS_KEY_ID");
+    expect(blueprint).toContain("AWS_SECRET_ACCESS_KEY");
+    expect(blueprint).toContain("AWS_REGION");
+    expect(blueprint).toContain("AWS_S3_BUCKET");
   });
 
   it("uses the IPv4 public release-health endpoint for the container probe", () => {

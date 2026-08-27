@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveJwStonePublicMediaObjectKey } from "@shared/jwStonePublicMedia";
 import { resolveRedGranitiPublicMediaObjectKey } from "@shared/redGranitiPublicMedia";
-import { readR2PublicObjectBuffer } from "./publicMediaStorage";
+import { readPublicObjectBuffer } from "./publicMediaStorage";
 
 export const SOCIAL_PREVIEW_WIDTH = 1200;
 export const SOCIAL_PREVIEW_HEIGHT = 630;
@@ -529,7 +529,7 @@ async function renderSocialPreviewCardWithinSlot(
   const publicRoots = options.publicRoots || defaultPublicRoots();
   const serverPublicAssetReader =
     options.serverPublicAssetReader ||
-    ((key: string, maxBytes: number) => readR2PublicObjectBuffer({ key, maxBytes }));
+    ((key: string, maxBytes: number) => readPublicObjectBuffer({ key, maxBytes }));
   const accent = normalizeAccentColor(context.accentColor);
   const isBrandHero = context.layout === "brand-hero";
   const imageWidth = isBrandHero ? SOCIAL_PREVIEW_WIDTH : IMAGE_PANEL_WIDTH;

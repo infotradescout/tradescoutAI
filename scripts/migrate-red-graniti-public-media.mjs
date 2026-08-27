@@ -16,6 +16,10 @@ import {
   deploymentRevisionFromEnvironment,
   deploymentVerificationMarkerMatches,
 } from "./public-media-deployment-gate-core.mjs";
+import {
+  requireServerObjectStorageConfiguration,
+  serverObjectStorageClientOptions,
+} from "./server-object-storage.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(
@@ -37,28 +41,6 @@ const fetchTimeoutMs = Math.max(
   Number.parseInt(process.env.RED_GRANITI_MEDIA_FETCH_TIMEOUT_MS || "60000", 10) || 60_000
 );
 const deploymentRevision = deploymentRevisionFromEnvironment(process.env);
-
-function envValue(key) {
-  return String(process.env[key] || "").trim();
-}
-
-function r2Configuration() {
-  const configuration = {
-    accountId: envValue("R2_ACCOUNT_ID"),
-    accessKeyId: envValue("R2_ACCESS_KEY_ID"),
-    secretAccessKey: envValue("R2_SECRET_ACCESS_KEY"),
-    bucketName: envValue("R2_BUCKET_NAME"),
-  };
-  const missing = Object.entries(configuration)
-    .filter(([, value]) => !value)
-    .map(([key]) => key);
-  if (missing.length > 0) {
-    throw new Error(
-      `R.E.D. Graniti media migration requires the existing R2 configuration; missing ${missing.join(", ")}`
-    );
-  }
-  return configuration;
-}
 
 function isNotFound(error) {
   const status = Number(error?.$metadata?.httpStatusCode || 0);
@@ -151,7 +133,9 @@ async function processAsset(client, bucketName, asset, totals) {
     totals.bytes += asset.bytes;
     return;
   }
-  if (verifyOnly) throw new Error(`${asset.relativePath}: R2 object is missing or unverified`);
+  if (verifyOnly) {
+    throw new Error(`${asset.relativePath}: server object is missing or unverified`);
+  }
 
   const body = await fetchSourceAsset(asset);
   await client.send(
@@ -170,7 +154,7 @@ async function processAsset(client, bucketName, asset, totals) {
   );
   const verified = await headObject(client, bucketName, key);
   if (!objectMatches(asset, verified)) {
-    throw new Error(`${asset.relativePath}: uploaded R2 object failed verification`);
+    throw new Error(`${asset.relativePath}: uploaded object failed verification`);
   }
   totals.migrated += 1;
   totals.bytes += asset.bytes;
@@ -198,15 +182,8 @@ if (dryRun) {
 
 const { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } =
   await import("@aws-sdk/client-s3");
-const configuration = r2Configuration();
-const client = new S3Client({
-  region: "auto",
-  endpoint: `https://${configuration.accountId}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: configuration.accessKeyId,
-    secretAccessKey: configuration.secretAccessKey,
-  },
-});
+const configuration = requireServerObjectStorageConfiguration(process.env);
+const client = new S3Client(serverObjectStorageClientOptions(configuration));
 
 const existingMarker = await readMarker(client, configuration.bucketName);
 const existingMarkerMatches = markerMatches(existingMarker);
@@ -285,5 +262,5 @@ if (deploymentRevision) {
 }
 
 console.log(
-  `[red-graniti-media-migration] verified ${summary.files} files (${summary.bytes} bytes); migrated=${totals.migrated} reused=${totals.reused}`
+  `[red-graniti-media-migration] verified ${summary.files} files (${summary.bytes} bytes); migrated=${totals.migrated} reused=${totals.reused} backend=${configuration.provider}`
 );

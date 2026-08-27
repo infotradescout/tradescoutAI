@@ -19,7 +19,7 @@ test("JW Stone public media manifest is complete and internally consistent", () 
   assert.equal(summary.bytes, 175020735);
 });
 
-test("public media migration preserves URL paths under an isolated R2 prefix", () => {
+test("public media migration preserves URL paths under an isolated object prefix", () => {
   const asset = manifest.assets.find((candidate) => candidate.relativePath.endsWith("logo.svg"));
   assert.ok(asset);
   assert.equal(

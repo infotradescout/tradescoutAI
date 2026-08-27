@@ -1,17 +1,20 @@
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import type { Request, Response } from "express";
-import { createR2Client, getR2Configuration } from "./r2Client";
+import {
+  createServerObjectStorageClient,
+  getServerObjectStorageConfiguration,
+} from "./serverObjectStorage";
 
 export type PublicMediaStreamResult = "served" | "not_found" | "unconfigured" | "error";
 
-type R2Sender = {
+type ObjectStorageSender = {
   send(command: unknown): Promise<any>;
 };
 
 type ReadPublicMediaBufferOptions = {
   key: string;
   maxBytes: number;
-  client?: R2Sender;
+  client?: ObjectStorageSender;
   bucketName?: string;
 };
 
@@ -20,7 +23,7 @@ type StreamPublicMediaOptions = {
   res: Response;
   key: string;
   cacheControl?: string;
-  client?: R2Sender;
+  client?: ObjectStorageSender;
   bucketName?: string;
 };
 
@@ -96,7 +99,7 @@ async function objectBodyToBuffer(body: any, maxBytes: number): Promise<Buffer |
  * a generated social card). Callers must resolve the key through a public
  * allowlist before invoking this helper.
  */
-export async function readR2PublicObjectBuffer(
+export async function readPublicObjectBuffer(
   options: ReadPublicMediaBufferOptions
 ): Promise<Buffer | null> {
   if (!Number.isSafeInteger(options.maxBytes) || options.maxBytes <= 0) return null;
@@ -106,15 +109,15 @@ export async function readR2PublicObjectBuffer(
   if (!client || !bucketName) {
     let configuration;
     try {
-      configuration = getR2Configuration();
+      configuration = getServerObjectStorageConfiguration();
     } catch (error) {
-      console.error("[public-media] R2 configuration is incomplete", {
+      console.error("[public-media] server object storage configuration is incomplete", {
         message: error instanceof Error ? error.message : "unknown configuration error",
       });
       return null;
     }
     if (!configuration) return null;
-    client = createR2Client(configuration);
+    client = createServerObjectStorageClient(configuration);
     bucketName = configuration.bucketName;
   }
 
@@ -142,7 +145,7 @@ export async function readR2PublicObjectBuffer(
     return await objectBodyToBuffer(object.Body, options.maxBytes);
   } catch (error: any) {
     if (isNotFound(error)) return null;
-    console.error("[public-media] R2 object buffer read failed", {
+    console.error("[public-media] object buffer read failed", {
       key: options.key,
       status: errorStatus(error) || undefined,
       code: String(error?.Code || error?.code || error?.name || "unknown"),
@@ -151,7 +154,7 @@ export async function readR2PublicObjectBuffer(
   }
 }
 
-export async function streamR2PublicObject(
+export async function streamPublicObject(
   options: StreamPublicMediaOptions
 ): Promise<PublicMediaStreamResult> {
   const { req, res, key } = options;
@@ -169,15 +172,15 @@ export async function streamR2PublicObject(
   if (!client || !bucketName) {
     let configuration;
     try {
-      configuration = getR2Configuration();
+      configuration = getServerObjectStorageConfiguration();
     } catch (error) {
-      console.error("[public-media] R2 configuration is incomplete", {
+      console.error("[public-media] server object storage configuration is incomplete", {
         message: error instanceof Error ? error.message : "unknown configuration error",
       });
       return "error";
     }
     if (!configuration) return "unconfigured";
-    client = createR2Client(configuration);
+    client = createServerObjectStorageClient(configuration);
     bucketName = configuration.bucketName;
   }
 
@@ -238,7 +241,7 @@ export async function streamR2PublicObject(
       res.status(status).end();
       return "served";
     }
-    console.error("[public-media] R2 object read failed", {
+    console.error("[public-media] object read failed", {
       key,
       status: status || undefined,
       code: String(error?.Code || error?.code || error?.name || "unknown"),

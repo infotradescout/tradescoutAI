@@ -71,5 +71,5 @@ if (missingManifestPaths.size > 0) {
 }
 
 console.log(
-  `[red-graniti-public-media] verified ${summary.files} R2 assets (${summary.bytes} bytes), ${referencedPaths.size} source references, and zero bundled source-media files`
+  `[red-graniti-public-media] verified ${summary.files} server-storage assets (${summary.bytes} bytes), ${referencedPaths.size} source references, and zero bundled source-media files`
 );

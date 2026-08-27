@@ -1,6 +1,6 @@
 import type { Express, NextFunction, Request, Response } from "express";
 import { resolveJwStonePublicMediaObjectKey } from "@shared/jwStonePublicMedia";
-import { streamR2PublicObject, type PublicMediaStreamResult } from "../publicMediaStorage";
+import { streamPublicObject, type PublicMediaStreamResult } from "../publicMediaStorage";
 
 const JW_STONE_PUBLIC_MEDIA_ROUTE = "/images/businesses/jw-stone/*";
 
@@ -14,7 +14,7 @@ export function registerJwStonePublicMediaRoutes(
   app: Express,
   options: { stream?: PublicMediaStreamer } = {}
 ): void {
-  const stream = options.stream || streamR2PublicObject;
+  const stream = options.stream || streamPublicObject;
   const handler = async (req: Request, res: Response, next: NextFunction) => {
     const key = resolveJwStonePublicMediaObjectKey(req.path);
     if (!key) return next();

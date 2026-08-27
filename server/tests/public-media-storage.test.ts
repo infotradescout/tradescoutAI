@@ -1,12 +1,12 @@
 import express from "express";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
-import { readR2PublicObjectBuffer, streamR2PublicObject } from "../publicMediaStorage";
+import { readPublicObjectBuffer, streamPublicObject } from "../publicMediaStorage";
 
 function createApp(client: { send: (command: unknown) => Promise<unknown> }) {
   const app = express();
   const handler = async (req: express.Request, res: express.Response) => {
-    const result = await streamR2PublicObject({
+    const result = await streamPublicObject({
       req,
       res,
       key: "public-media/images/example.webp",
@@ -34,7 +34,7 @@ function publicObject(body = "stone") {
   };
 }
 
-describe("R2 public media delivery", () => {
+describe("server object storage public media delivery", () => {
   it("reads a bounded server-owned object without touching local files", async () => {
     const send = vi.fn(async (command: unknown) => {
       if ((command as { constructor: { name: string } }).constructor.name === "HeadObjectCommand") {
@@ -43,7 +43,7 @@ describe("R2 public media delivery", () => {
       return publicObject();
     });
 
-    const body = await readR2PublicObjectBuffer({
+    const body = await readPublicObjectBuffer({
       key: "public-media/images/example.webp",
       maxBytes: 5,
       client: { send },
@@ -57,7 +57,7 @@ describe("R2 public media delivery", () => {
   it("rejects an oversized server-owned object before downloading its body", async () => {
     const send = vi.fn(async () => ({ ContentLength: 6 }));
 
-    const body = await readR2PublicObjectBuffer({
+    const body = await readPublicObjectBuffer({
       key: "public-media/images/example.webp",
       maxBytes: 5,
       client: { send },

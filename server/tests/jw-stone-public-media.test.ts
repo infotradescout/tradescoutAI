@@ -29,7 +29,7 @@ describe("JW Stone server-side public media", () => {
     expect(JW_STONE_PUBLIC_MEDIA_BYTES).toBe(175020735);
   });
 
-  it("preserves GET and HEAD URLs while delegating bytes to R2", async () => {
+  it("preserves GET and HEAD URLs while delegating bytes to server storage", async () => {
     const calls: Array<{ method: string; key: string }> = [];
     const app = express();
     registerJwStonePublicMediaRoutes(app, {

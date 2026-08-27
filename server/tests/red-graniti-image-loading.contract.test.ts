@@ -19,7 +19,7 @@ describe("R.E.D. Graniti profile image delivery", () => {
     expect(localImages.some((imageUrl) => /^https?:\/\//i.test(imageUrl))).toBe(false);
   });
 
-  it("pins homepage, business, quarry, and project imagery to R2 before Vite builds", () => {
+  it("pins homepage, business, quarry, and project imagery to server storage before Vite builds", () => {
     const sitemapBuild = read("scripts/generate-sitemap.mjs");
     const sitemapCore = read("scripts/generate-sitemap-core.mjs");
     const migrationScript = read("scripts/migrate-red-graniti-public-media.mjs");
@@ -39,11 +39,11 @@ describe("R.E.D. Graniti profile image delivery", () => {
     );
     expect(manifest.expected).toMatchObject({ files: 11, bytes: 2433960 });
     expect(manifest.target).toEqual({
-      storage: "cloudflare-r2",
+      storage: "server-object-storage",
       keyPrefix: "public-media/images/businesses/red-graniti/source/",
       legacyUrlPrefix: "/images/businesses/red-graniti/source/",
     });
-    expect(migrationScript).toContain('envValue("R2_BUCKET_NAME")');
+    expect(migrationScript).toContain("requireServerObjectStorageConfiguration");
     expect(migrationScript).toContain("source digest did not match the pinned manifest");
     expect(route).toContain("resolveRedGranitiPublicMediaObjectKey");
 
