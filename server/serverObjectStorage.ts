@@ -1,15 +1,34 @@
 import { S3Client } from "@aws-sdk/client-s3";
+import { createPostgresPublicMediaS3Client } from "@shared/postgresPublicMediaS3Client.mjs";
 
-export type ServerObjectStorageProvider = "cloudflare-r2" | "aws-s3";
+export type ServerObjectStorageProvider =
+  | "cloudflare-r2"
+  | "aws-s3"
+  | "postgres-public-media";
 
-export type ServerObjectStorageConfiguration = Readonly<{
-  provider: ServerObjectStorageProvider;
+type S3ObjectStorageConfiguration = Readonly<{
+  provider: "cloudflare-r2" | "aws-s3";
   accessKeyId: string;
   secretAccessKey: string;
   bucketName: string;
   region: string;
   endpoint?: string;
 }>;
+
+type PostgresObjectStorageConfiguration = Readonly<{
+  provider: "postgres-public-media";
+  bucketName: "postgres-public-media";
+  databaseUrl: string;
+}>;
+
+export type ServerObjectStorageConfiguration =
+  | S3ObjectStorageConfiguration
+  | PostgresObjectStorageConfiguration;
+
+export type ServerObjectStorageClient = {
+  send(command: unknown): Promise<any>;
+  close?: () => Promise<void>;
+};
 
 type EnvironmentGroup = Readonly<{
   values: Record<string, string>;
@@ -80,6 +99,15 @@ export function getServerObjectStorageConfiguration(
     });
   }
 
+  const databaseUrl = envValue(env, "DATABASE_URL");
+  if (databaseUrl) {
+    return Object.freeze({
+      provider: "postgres-public-media",
+      bucketName: "postgres-public-media",
+      databaseUrl,
+    });
+  }
+
   if (r2.present === 0 && aws.present === 0) return null;
   throw incompleteConfigurationError(r2, aws);
 }
@@ -90,7 +118,7 @@ export function requireServerObjectStorageConfiguration(
   const configuration = getServerObjectStorageConfiguration(env);
   if (!configuration) {
     throw new Error(
-      "Server object storage is not configured; expected complete R2 or AWS S3 environment contract"
+      "Server object storage is not configured; expected complete R2, AWS S3, or production database contract"
     );
   }
   return configuration;
@@ -98,7 +126,15 @@ export function requireServerObjectStorageConfiguration(
 
 export function createServerObjectStorageClient(
   configuration: ServerObjectStorageConfiguration
-): S3Client {
+): ServerObjectStorageClient {
+  if (configuration.provider === "postgres-public-media") {
+    return createPostgresPublicMediaS3Client({
+      query: async (text: string, values: unknown[] = []) => {
+        const { pool } = await import("./db");
+        return await pool.query(text, values as any[]);
+      },
+    });
+  }
   return new S3Client({
     region: configuration.region,
     ...(configuration.endpoint ? { endpoint: configuration.endpoint } : {}),

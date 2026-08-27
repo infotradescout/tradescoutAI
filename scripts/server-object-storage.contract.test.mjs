@@ -57,3 +57,14 @@ test("partial storage contracts fail without mixing credentials", () => {
 test("an empty environment reports object storage as unconfigured", () => {
   assert.equal(serverObjectStorageConfiguration({}), null);
 });
+
+test("production PostgreSQL is the persistent fallback when object credentials are absent", () => {
+  assert.deepEqual(
+    serverObjectStorageConfiguration({ DATABASE_URL: "postgresql://production/database" }),
+    {
+      provider: "postgres-public-media",
+      bucketName: "postgres-public-media",
+      databaseUrl: "postgresql://production/database",
+    }
+  );
+});

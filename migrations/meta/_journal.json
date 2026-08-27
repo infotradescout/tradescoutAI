@@ -911,6 +911,13 @@
       "when": 1787584906949,
       "tag": "0126_jw_stone_offer_publication",
       "breakpoints": false
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1787802773000,
+      "tag": "0127_public_media_objects",
+      "breakpoints": false
     }
   ]
 }

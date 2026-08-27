@@ -46,6 +46,15 @@ export function serverObjectStorageConfiguration(environment = process.env) {
     });
   }
 
+  const databaseUrl = envValue(environment, "DATABASE_URL");
+  if (databaseUrl) {
+    return Object.freeze({
+      provider: "postgres-public-media",
+      bucketName: "postgres-public-media",
+      databaseUrl,
+    });
+  }
+
   if (r2.present === 0 && aws.present === 0) return null;
   const details = [];
   if (r2.present > 0) details.push(`R2 missing ${r2.missing.join(", ")}`);
@@ -57,13 +66,16 @@ export function requireServerObjectStorageConfiguration(environment = process.en
   const configuration = serverObjectStorageConfiguration(environment);
   if (!configuration) {
     throw new Error(
-      "Server object storage is not configured; expected complete R2 or AWS S3 environment contract"
+      "Server object storage is not configured; expected complete R2, AWS S3, or production database contract"
     );
   }
   return configuration;
 }
 
 export function serverObjectStorageClientOptions(configuration) {
+  if (configuration.provider === "postgres-public-media") {
+    throw new TypeError("PostgreSQL public media does not use S3 client options");
+  }
   return {
     region: configuration.region,
     ...(configuration.endpoint ? { endpoint: configuration.endpoint } : {}),
@@ -73,3 +85,24 @@ export function serverObjectStorageClientOptions(configuration) {
     },
   };
 }
+
+export async function createServerObjectStorageClient(configuration) {
+  if (configuration.provider === "postgres-public-media") {
+    const pg = await import("pg");
+    const Pool = pg.default?.Pool || pg.Pool;
+    const pool = new Pool({
+      connectionString: configuration.databaseUrl,
+      max: 8,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+    });
+    return createPostgresPublicMediaS3Client({
+      query: (text, values = []) => pool.query(text, values),
+      close: () => pool.end(),
+    });
+  }
+
+  const { S3Client } = await import("@aws-sdk/client-s3");
+  return new S3Client(serverObjectStorageClientOptions(configuration));
+}
+import { createPostgresPublicMediaS3Client } from "../shared/postgresPublicMediaS3Client.mjs";
