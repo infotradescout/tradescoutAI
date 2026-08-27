@@ -31,6 +31,7 @@ import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-g
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerAdRoutes } from "./routes/ads";
 import { registerQuoteCalculatorRoutes } from "./routes/quote-calculator";
+import { registerEventRoutes } from "./routes/events";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
 import { registerProviderSearchRoutes } from "./routes/provider-search";
 import { registerProcurementRoutes } from "./routes/procurement";
@@ -12006,35 +12007,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Event tracking endpoint
-  app.post("/api/events", async (req: any, res: any) => {
-    try {
-      const payload = (req.body ?? {}) as any;
-      const rawEventType = typeof payload?.eventType === "string" ? payload.eventType.trim() : "";
-      const eventType = rawEventType || "event.unknown";
-      const data = payload?.data ?? {};
-      const sessionUser = (req as any)?.user ?? null;
-
-      // Never block UX on telemetry writes.
-      res.status(204).end();
-
-      void storage
-        .logEvent(eventType, {
-          ...data,
-          userId: sessionUser?.id || data?.userId || null,
-          contractorId: sessionUser?.contractorId || data?.contractorId || null,
-          ipAddress: req.ip,
-          userAgent: req.get("User-Agent"),
-        })
-        .catch((error: any) => {
-          console.error("Error persisting /api/events telemetry", error);
-        });
-    } catch (error: any) {
-      console.error("Error logging event:", error);
-      // Fail-soft: telemetry should never block the client.
-      res.status(204).end();
-    }
-  });
+  registerEventRoutes(app, { storage });
 
   // Pro / Business analytics (contractor-facing)
   app.get(
