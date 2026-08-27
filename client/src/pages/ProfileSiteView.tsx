@@ -30,7 +30,6 @@ import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
 import DefaultProfileTheme from "@/pages/profile-sites/DefaultProfileTheme";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
-import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
 import {
   createProfileHistoryBoundaryState,
@@ -116,6 +115,9 @@ const PrecisionAerialProfile = lazy(
   () => import("@/pages/profile-sites/PrecisionAerialProfile")
 );
 const ProFabProfileTheme = lazy(() => import("@/pages/profile-sites/ProFabProfileTheme"));
+const JrsAutoGlassProfileTheme = lazy(
+  () => import("@/pages/profile-sites/JrsAutoGlassProfileTheme")
+);
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
   return (
@@ -183,6 +185,31 @@ function ProFabProfileBoundary({ children }: { children: ReactNode }) {
               Pro Fab Specialty Services
             </p>
             <p className="mt-3 text-2xl font-semibold">Loading the fabrication profile…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function JrsAutoGlassProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-black px-6 text-center text-white"
+          data-testid="jrs-auto-glass-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-red-500">
+              JR&apos;s Auto Glass
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading the mobile glass profile…</p>
           </div>
         </div>
       }
@@ -1878,28 +1905,30 @@ export default function ProfileSiteView() {
         />
         {manageChrome}
         {templateIndependentInventoryContext}
-        <JrsAutoGlassProfileTheme
-          profileSlug={profile.slug}
-          platformBaseHref={platformBaseHref}
-          onDirectConnect={openGeneralDirectConnect}
-          hasViewerSession={hasViewerSession}
-          tradeScoutReturnHref={tradeScoutReturnHref}
-          profileShareDestination={profileShareDestination}
-          publicRouteContentBlocks={contentBlocks}
-          galleryItems={galleryItems}
-          sharedGallerySlug={sharedGallerySlug}
-          recommendationsDirectory={recommendationsDirectory}
-          trustActions={renderProfileTrustActions("dark")}
-          profileItems={
-            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems
-                items={profileItems}
-                profileSections={profileSections}
-                platformBaseHref={platformBaseHref}
-              />
-            ) : null
-          }
-        />
+        <JrsAutoGlassProfileBoundary>
+          <JrsAutoGlassProfileTheme
+            profileSlug={profile.slug}
+            platformBaseHref={platformBaseHref}
+            onDirectConnect={openGeneralDirectConnect}
+            hasViewerSession={hasViewerSession}
+            tradeScoutReturnHref={tradeScoutReturnHref}
+            profileShareDestination={profileShareDestination}
+            publicRouteContentBlocks={contentBlocks}
+            galleryItems={galleryItems}
+            sharedGallerySlug={sharedGallerySlug}
+            recommendationsDirectory={recommendationsDirectory}
+            trustActions={renderProfileTrustActions("dark")}
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </JrsAutoGlassProfileBoundary>
         <ExpressDirectConnectPanel
           open={expressPanelOpen}
           onClose={() => setExpressPanelOpen(false)}

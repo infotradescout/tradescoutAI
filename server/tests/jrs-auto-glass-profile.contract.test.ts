@@ -10,7 +10,8 @@ describe("JR's Auto Glass public profile contract", () => {
   it("provisions the confirmed owner, business, and published profile at production boot", () => {
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
     const profileContent = read("shared/jrsAutoGlassProfile.ts");
-    const authority = read("server/services/ownerConfirmedDirectProfile.ts");
+    const authority = read("shared/publicProfileExposureRegistry.ts");
+    const authorityService = read("server/services/ownerConfirmedDirectProfile.ts");
     const entry = read("server/index.ts");
     const recommendationInsertStart = provisioning.indexOf(
       "} else if (hasNoRecommendationBinding)"
@@ -34,6 +35,8 @@ describe("JR's Auto Glass public profile contract", () => {
 
     expect(authority).toContain('export const JRS_PROFILE_SLUG = "jrs-auto-glass"');
     expect(authority).toContain('OWNER_CONFIRMED_PROFILE_SOURCE = "owner_confirmed_profile"');
+    expect(authority).toContain("[JRS_PROFILE_SLUG]: OWNER_CONFIRMED_PROFILE_SOURCE");
+    expect(authorityService).toContain('from "@shared/publicProfileExposureRegistry"');
     expect(provisioning).toContain('displayName: "JR\'s Auto Glass"');
     expect(provisioning).toContain('status: "published"');
     expect(provisioning).toContain('profileVisibility: "public"');
@@ -77,8 +80,17 @@ describe("JR's Auto Glass public profile contract", () => {
     const theme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const profileContent = read("shared/jrsAutoGlassProfile.ts");
 
-    expect(profileView).toContain("import JrsAutoGlassProfileTheme");
+    expect(profileView).not.toMatch(/import JrsAutoGlassProfileTheme from/);
+    expect(profileView).toMatch(
+      /const JrsAutoGlassProfileTheme = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/JrsAutoGlassProfileTheme"\)\s*\)/
+    );
     expect(profileView).toContain('profile.slug === "jrs-auto-glass"');
+    expect(profileView).toContain('siteTemplate === "auto-glass"');
+    expect(profileView).toContain("<JrsAutoGlassProfileBoundary>");
+    expect(profileView).toContain("</JrsAutoGlassProfileBoundary>");
+    expect(profileView).toMatch(
+      /data-testid="jrs-auto-glass-profile-loading"[\s\S]*?role="status"[\s\S]*?aria-live="polite"/
+    );
     expect(profileView).toContain("<JrsAutoGlassProfileTheme");
     expect(theme).toContain("/images/businesses/jrs-auto-glass");
     expect(theme).toContain("logo.webp");
