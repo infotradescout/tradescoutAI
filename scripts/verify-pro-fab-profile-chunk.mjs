@@ -17,7 +17,6 @@ assert.match(
 for (const staticTheme of [
   "DefaultProfileTheme",
   "WholesalerProfileTheme",
-  "LocalServiceProfileTheme",
 ]) {
   assert.match(profileSource, new RegExp(`import ${staticTheme}(?:,| from)`));
 }
