@@ -23,7 +23,8 @@ The manifest pins every source file to an immutable repository revision, Git blo
 3. Every missing or mismatched object is downloaded from the pinned immutable source, byte-counted, Git-blob verified, uploaded to the existing R2 bucket, and verified again with object metadata.
 4. The migration marker is written only after all manifest entries pass.
 5. A missing credential, failed download, mismatched object, or incomplete total exits non-zero. Render keeps the current production release live.
-6. After pre-deploy and health checks pass, the same public URLs are served from R2 through TradeScout.
+6. Each migration writes a verification marker for the exact Render release commit. The production container checks both markers before it starts and performs the same idempotent migration if Blueprint synchronization ever lags.
+7. After pre-deploy and health checks pass, the same public URLs are served from R2 through TradeScout.
 
 No temporary Render service, new bucket, alternate host, or GitHub Actions workflow is part of this migration.
 

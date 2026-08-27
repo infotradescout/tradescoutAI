@@ -10,6 +10,12 @@ import {
   targetObjectKey,
   validateJwStonePublicMediaManifest,
 } from "./jw-stone-public-media-core.mjs";
+import {
+  createDeploymentVerificationMarker,
+  deploymentMarkerObjectKey,
+  deploymentRevisionFromEnvironment,
+  deploymentVerificationMarkerMatches,
+} from "./public-media-deployment-gate-core.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(
@@ -27,6 +33,7 @@ const fetchTimeoutMs = Math.max(
   10_000,
   Number.parseInt(process.env.JW_STONE_MEDIA_FETCH_TIMEOUT_MS || "120000", 10) || 120_000
 );
+const deploymentRevision = deploymentRevisionFromEnvironment(process.env);
 
 function envValue(key) {
   return String(process.env[key] || "").trim();
@@ -237,6 +244,46 @@ if (!verifyOnly && (!existingMarkerMatches || totals.migrated > 0)) {
   );
   const writtenMarker = await readMarker(client, configuration.bucketName);
   if (!markerMatches(writtenMarker)) throw new Error("Migration marker verification failed");
+}
+
+if (deploymentRevision) {
+  const deploymentMarker = createDeploymentVerificationMarker(
+    manifest,
+    summary,
+    deploymentRevision
+  );
+  const deploymentKey = deploymentMarkerObjectKey(manifest, deploymentRevision);
+  await client.send(
+    new PutObjectCommand({
+      Bucket: configuration.bucketName,
+      Key: deploymentKey,
+      Body: JSON.stringify(deploymentMarker),
+      ContentType: "application/json",
+      CacheControl: "no-store",
+      Metadata: { "migration-id": manifest.migrationId },
+    })
+  );
+  const writtenDeploymentMarker = JSON.parse(
+    (
+      await bodyToBuffer(
+        (
+          await client.send(
+            new GetObjectCommand({ Bucket: configuration.bucketName, Key: deploymentKey })
+          )
+        ).Body
+      )
+    ).toString("utf8")
+  );
+  if (
+    !deploymentVerificationMarkerMatches(
+      writtenDeploymentMarker,
+      manifest,
+      summary,
+      deploymentRevision
+    )
+  ) {
+    throw new Error("Deployment-specific JW Stone media verification marker failed");
+  }
 }
 
 console.log(

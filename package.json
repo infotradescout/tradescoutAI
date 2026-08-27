@@ -14,6 +14,7 @@
     "media:migrate:red-graniti": "node scripts/migrate-red-graniti-public-media.mjs",
     "media:migrate:red-graniti:dry-run": "node scripts/migrate-red-graniti-public-media.mjs --dry-run",
     "media:migrate:red-graniti:verify": "node scripts/migrate-red-graniti-public-media.mjs --verify-only",
+    "media:ensure:production": "node scripts/ensure-public-media-ready.mjs",
     "mobile:web": "npm run build",
     "mobile:sync": "npm run mobile:web && npx cap sync",
     "mobile:open:android": "npx cap open android",
