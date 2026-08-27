@@ -37,28 +37,12 @@ function getPackageChunkName(id: string): string | undefined {
     react: "vendor-react",
     "react-dom": "vendor-react",
     scheduler: "vendor-react",
-    recharts: "vendor-recharts",
-    "d3-array": "vendor-d3",
-    "d3-color": "vendor-d3",
-    "d3-ease": "vendor-d3",
-    "d3-format": "vendor-d3",
-    "d3-interpolate": "vendor-d3",
-    "d3-path": "vendor-d3",
-    "d3-scale": "vendor-d3",
-    "d3-shape": "vendor-d3",
-    "d3-time": "vendor-d3",
-    "d3-time-format": "vendor-d3",
-    "d3-timer": "vendor-d3",
-    "d3-geo": "vendor-d3-geo",
-    "topojson-client": "vendor-topojson",
     xlsx: "vendor-xlsx",
     jszip: "vendor-jszip",
     html2canvas: "vendor-html2canvas",
     fabric: "vendor-fabric",
-    jspdf: "vendor-jspdf",
     pdfkit: "vendor-pdfkit",
     mammoth: "vendor-mammoth",
-    "@googlemaps/markerclusterer": "vendor-googlemaps",
   };
 
   return chunkByPackage[packageName];
@@ -109,6 +93,10 @@ export default defineConfig({
         landing: path.resolve(__dirname, "client", "landing.html"),
       },
       output: {
+        // Keep dependencies owned only by lazy features in those feature
+        // graphs. Without this, Rollup merges their transitive dependencies
+        // into shared manual chunks and preloads them from the app entry.
+        onlyExplicitManualChunks: true,
         manualChunks(id) {
           if (!id.includes("node_modules")) {
             return;
