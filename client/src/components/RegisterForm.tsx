@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import { SiFacebook } from "react-icons/si";
+import { FacebookBrandIcon } from "@/components/icons/BrandIcons";
 import { formatUserFacingErrorMessage, getRawErrorMessage } from "@/lib/userFacingError";
 
 const roleOptions = ["homeowner", "contractor", "realtor", "car_dealer"] as const;
@@ -437,7 +437,7 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
           onClick={() => (window.location.href = `${apiBaseUrl}/api/auth/facebook`)}
           data-testid="button-facebook-signup"
         >
-          <SiFacebook className="mr-2 h-4 w-4 text-blue-600" />
+          <FacebookBrandIcon className="mr-2 h-4 w-4 text-blue-600" />
           Sign up with Facebook
         </Button>
 

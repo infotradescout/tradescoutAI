@@ -23,6 +23,7 @@ const removedDirectDependencies = Object.freeze([
   "memorystore",
   "next-themes",
   "openid-client",
+  "react-icons",
   "tw-animate-css",
   "zod-validation-error",
 ]);
@@ -62,6 +63,10 @@ const reviewedGuardStrings = Object.freeze({
     ".config/replit/.semgrep/semgrep_rules.json",
     "scripts/verify-scout-tiles.js",
     "server/utils/requestActor.ts",
+  ]),
+  "react-icons": new Set([
+    "client/src/components/AuthBrandIcons.contract.test.ts",
+    "client/src/components/icons/BrandIcons.test.tsx",
   ]),
 });
 
