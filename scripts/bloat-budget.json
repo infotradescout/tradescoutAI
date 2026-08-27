@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "baselineGitRef": "3ebe93911ed988942e6c5f6966fafe1fee7a5cbd",
+  "baselineSnapshotSha256": "690b17384480d84c3becb7920cb4bfcbe3e587f5ed8dc5f4b584747f02bc6b4d",
+  "policySha256": "36270374cf986106e480d37dd3879d1cdce4b89499752caa2e981bcd879cf856",
+  "ceilings": {
+    "tracked.files": { "baseline": 5660, "allowance": 4, "maximum": 5664 },
+    "tracked.bytes": { "baseline": 305103012, "allowance": 46876, "maximum": 305149888 },
+    "tracked.uniqueBlobs": { "baseline": 4562, "allowance": 4, "maximum": 4566 },
+    "tracked.uniqueBytes": { "baseline": 195068733, "allowance": 46876, "maximum": 195115609 },
+    "tracked.repeatedBytes": { "baseline": 110034279, "allowance": 0, "maximum": 110034279 },
+    "tracked.duplicateGroups": { "baseline": 1046, "allowance": 0, "maximum": 1046 },
+    "tracked.duplicateExtraPaths": { "baseline": 1098, "allowance": 0, "maximum": 1098 },
+    "dockerContextTracked.files": { "baseline": 5055, "allowance": 4, "maximum": 5059 },
+    "dockerContextTracked.bytes": { "baseline": 146466692, "allowance": 46876, "maximum": 146513568 },
+    "clientPublicTracked.files": { "baseline": 266, "allowance": 0, "maximum": 266 },
+    "clientPublicTracked.bytes": { "baseline": 28768529, "allowance": 0, "maximum": 28768529 },
+    "monolith:server/routes.ts": { "baseline": 1009836, "allowance": 0, "maximum": 1009836 },
+    "monolith:server/routes/direct-connect.ts": { "baseline": 412727, "allowance": 0, "maximum": 412727 },
+    "monolith:server/storage.ts": { "baseline": 284246, "allowance": 0, "maximum": 284246 },
+    "monolith:shared/schema.ts": { "baseline": 420744, "allowance": 0, "maximum": 420744 }
+  }
+}
