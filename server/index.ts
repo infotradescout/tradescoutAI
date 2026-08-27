@@ -96,6 +96,7 @@ import { buildPublicHomeScoutCountyHtml } from "./publicHomeScoutCountyHtml";
 import { buildPublicContractorPromoHtml } from "./publicContractorPromoHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
+import { runJwStoneAssetMigration } from "./jwStoneAssetMigration";
 import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
 import { and, eq, or, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -1461,6 +1462,9 @@ app.use(landingContractHeaders);
             // Only serve frontend if dist/public exists (allows API-only deployment)
             if (fs.existsSync(publicDistPath)) {
               console.log("Production mode - serving static files from:", publicDistPath);
+              void runJwStoneAssetMigration(publicDistPath).catch((error) => {
+                console.error("[JW Stone assets] Migration failed; legacy fallback remains active:", error);
+              });
 
               // Emergency client reset endpoint:
               // Clears browser caches / SW / storage so users can recover from a stale bundle after deploys.

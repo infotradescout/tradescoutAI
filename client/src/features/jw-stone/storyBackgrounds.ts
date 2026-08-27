@@ -42,35 +42,35 @@ type CollageStrip = Readonly<{
  */
 export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
   {
-    src: "/images/businesses/jw-stone/color-collage/01-white.webp",
+    src: "/uploads/jw-stone/color-collage/01-white.webp",
     alt: "White stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/02-warm.webp",
+    src: "/uploads/jw-stone/color-collage/02-warm.webp",
     alt: "Beige stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/03-gray.webp",
+    src: "/uploads/jw-stone/color-collage/03-gray.webp",
     alt: "Gray stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/04-black.webp",
+    src: "/uploads/jw-stone/color-collage/04-black.webp",
     alt: "Black stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/05-brown.webp",
+    src: "/uploads/jw-stone/color-collage/05-brown.webp",
     alt: "Brown stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/09-gold.webp",
+    src: "/uploads/jw-stone/color-collage/09-gold.webp",
     alt: "Gold stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/06-green.webp",
+    src: "/uploads/jw-stone/color-collage/06-green.webp",
     alt: "Green stone face",
   },
   {
-    src: "/images/businesses/jw-stone/color-collage/07-blue.webp",
+    src: "/uploads/jw-stone/color-collage/07-blue.webp",
     alt: "Blue stone face",
   },
 ]);
@@ -80,7 +80,7 @@ export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
  * not finished-room photography. Same yard frame used as the profile browse CTA.
  */
 export const MATERIAL_SECTION_BACKGROUND = {
-  src: "/images/businesses/jw-stone/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp",
+  src: "/uploads/jw-stone/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp",
   alt: "Detailed natural stone slab from the JW Stone inventory",
 } as const;
 

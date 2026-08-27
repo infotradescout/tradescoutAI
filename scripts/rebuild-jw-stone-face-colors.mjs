@@ -43,7 +43,16 @@ const collageDir = path.join(
 );
 const auditDir = path.join(repoRoot, "artifacts/jw-stone-color-truth");
 const auditImageDir = path.join(auditDir, "images");
-const sliverPublicPrefix = "/images/businesses/jw-stone/color-slivers";
+
+function localPublicPath(publicPath) {
+  const value = String(publicPath || "").replace(/^\/+/, "");
+  const uploadPrefix = "uploads/jw-stone/";
+  if (value.startsWith(uploadPrefix)) {
+    return path.join(publicRoot, "images/businesses/jw-stone", value.slice(uploadPrefix.length));
+  }
+  return path.join(publicRoot, value);
+}
+const sliverPublicPrefix = "/uploads/jw-stone/color-slivers";
 
 const PREVIEW_WIDTH = 280;
 const PREVIEW_HEIGHT = 240;
@@ -184,7 +193,7 @@ function validateSample(sample, slug) {
 }
 
 async function analyzeStone(slug, cover) {
-  const absolute = path.join(publicRoot, String(cover).replace(/^\//, ""));
+  const absolute = localPublicPath(cover);
   if (!fs.existsSync(absolute)) {
     return {
       palette: { swatches: [], buckets: [] },
@@ -372,7 +381,7 @@ function escapeHtml(value) {
 
 async function writeAuditImage(slug, cover, detection, sample) {
   if (!cover || !detection) return null;
-  const absolute = path.join(publicRoot, String(cover).replace(/^\//, ""));
+  const absolute = localPublicPath(cover);
   if (!fs.existsSync(absolute)) return null;
   fs.mkdirSync(auditImageDir, { recursive: true });
   const base = await sharp(absolute).rotate().resize({ width: 900, withoutEnlargement: true })
@@ -398,7 +407,7 @@ async function writeAudit(auditRows, counts, collageEvidence) {
   const riskOrder = { excluded: 0, corrected: 1, safe: 2 };
   auditRows.sort((a, b) => (riskOrder[a.status] ?? 9) - (riskOrder[b.status] ?? 9) || a.confidence - b.confidence || a.slug.localeCompare(b.slug));
   fs.writeFileSync(path.join(auditDir, "audit.json"), `${JSON.stringify({ generatedAt: new Date().toISOString(), counts, collageEvidence, stones: auditRows }, null, 2)}\n`);
-  const cards = auditRows.map((row) => `<article><h2>${escapeHtml(row.name)} <small>${escapeHtml(row.slug)}</small></h2><div class="grid"><img src="${escapeHtml(row.auditImage || "")}" alt="Detected slab and inset sample for ${escapeHtml(row.name)}"><img src="${escapeHtml(row.sliver ? `../../client/public${row.sliver}` : "")}" alt="Final slab-face crop for ${escapeHtml(row.name)}"></div><p><b>${row.status}</b> · ${escapeHtml(row.mode)} · confidence ${row.confidence.toFixed(3)} · ${escapeHtml(row.reason)}</p><p>Cover: <code>${escapeHtml(row.cover)}</code></p><p>Swatches: ${(row.swatches || []).map((swatch) => `<i style="background:${escapeHtml(swatch.hex)}" title="${escapeHtml(swatch.bucket)}"></i>`).join("")} · Categories: ${escapeHtml((row.buckets || []).join(", ") || "none")}</p><p>Manual override: ${escapeHtml(row.overrideDisposition)}</p></article>`).join("\n");
+  const cards = auditRows.map((row) => `<article><h2>${escapeHtml(row.name)} <small>${escapeHtml(row.slug)}</small></h2><div class="grid"><img src="${escapeHtml(row.auditImage || "")}" alt="Detected slab and inset sample for ${escapeHtml(row.name)}"><img src="${escapeHtml(row.sliver ? `../../client/public/images/businesses/jw-stone/${String(row.sliver).replace(/^\/uploads\/jw-stone\//, "")}` : "")}" alt="Final slab-face crop for ${escapeHtml(row.name)}"></div><p><b>${row.status}</b> · ${escapeHtml(row.mode)} · confidence ${row.confidence.toFixed(3)} · ${escapeHtml(row.reason)}</p><p>Cover: <code>${escapeHtml(row.cover)}</code></p><p>Swatches: ${(row.swatches || []).map((swatch) => `<i style="background:${escapeHtml(swatch.hex)}" title="${escapeHtml(swatch.bucket)}"></i>`).join("")} · Categories: ${escapeHtml((row.buckets || []).join(", ") || "none")}</p><p>Manual override: ${escapeHtml(row.overrideDisposition)}</p></article>`).join("\n");
   const html = `<!doctype html><meta charset="utf-8"><title>JW Stone color-truth audit</title><style>body{font:14px system-ui;margin:24px;background:#171512;color:#f6f1e8}header{max-width:1100px;margin:auto}article{max-width:1100px;margin:24px auto;padding:20px;background:#26221c;border:1px solid #51483c;border-radius:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid img{width:100%;height:360px;object-fit:contain;background:#0d0c0a}small,code{color:#cbbda8}i{display:inline-block;width:24px;height:24px;border-radius:50%;border:1px solid #fff8;margin:0 3px;vertical-align:middle}@media(max-width:700px){.grid{grid-template-columns:1fr}.grid img{height:280px}}</style><header><h1>JW Stone slab-face color evidence</h1><p>${counts.total} catalog stones · ${counts.safeAutomatic} safe automatic crops · ${counts.explicit} explicit crops · ${counts.excluded} excluded</p><p>Yellow: detected boundary. Green: exact shopper-facing sample. No green box means no color claim.</p></header>${cards}`;
   fs.writeFileSync(path.join(auditDir, "index.html"), html);
 }

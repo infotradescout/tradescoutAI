@@ -227,6 +227,20 @@ export function buildPublicJwStoneMarketplaceHtml(
       publicRouteContentBlocks: contentBlocks,
     })
   ).filter((item): item is NonNullable<typeof item> => Boolean(item?.hasPublicName));
+  const namedItemShares = listProfileInventoryItems(JW_STONE_CANONICAL_INVENTORY_CATEGORIES)
+    .filter((item) => item.hasPublicName && item.publicKind === "offering" && item.publicSummary)
+    .map((item) =>
+      createProfileInventoryItemShareMetadata({
+        profileName: "JW Stone Logistics",
+        profileUrl,
+        assetOrigin: `${origin}/`,
+        categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+        itemSlug: item.slug,
+        publicRouteContentBlocks: contentBlocks,
+      })
+    )
+    .filter((item): item is NonNullable<typeof item> => Boolean(item?.hasPublicName));
+
   const categoryItemShares = categoryShare
     ? categoryShare.itemSlugs
         .map((itemSlug) =>
@@ -386,6 +400,16 @@ ${companySummary}
         .map(
           (item) =>
             `<li><a href="${escapeHtml(item.canonical)}">${escapeHtml(item.itemName)}</a></li>`
+        )
+        .join("\n")}
+    </ul>
+    <h2>Browse named stone materials</h2>
+    <p>Open a named material page for photos, then ask JW Stone to confirm current pricing or availability for your project.</p>
+    <ul>
+      ${namedItemShares
+        .map(
+          (item) =>
+            `<li><a href="${escapeHtml(item.canonical)}">${escapeHtml(item.itemName)}</a>${item.category ? ` <small>(${escapeHtml(item.category)})</small>` : ""}</li>`
         )
         .join("\n")}
     </ul>
@@ -606,6 +630,20 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     contentBlocks
   ).filter((category) => category.indexable);
 
+  const namedItemShares = listProfileInventoryItems(JW_STONE_CANONICAL_INVENTORY_CATEGORIES)
+    .filter((item) => item.hasPublicName && item.publicKind === "offering" && item.publicSummary)
+    .map((item) =>
+      createProfileInventoryItemShareMetadata({
+        profileName: "JW Stone Logistics",
+        profileUrl: `${publicOrigin}/`,
+        assetOrigin: `${publicOrigin}/`,
+        categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+        itemSlug: item.slug,
+        publicRouteContentBlocks: contentBlocks,
+      })
+    )
+    .filter((item): item is NonNullable<typeof item> => Boolean(item?.hasPublicName));
+
   return [
     "# JW Stone Logistics",
     "",
@@ -638,6 +676,9 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "",
     "Priority named stone pages:",
     ...JW_STONE_DISCOVERY_PRIORITY_SLUGS.map((slug) => `- ${publicOrigin}/stones/${slug}`),
+    "",
+    "Named material pages:",
+    ...namedItemShares.map((item) => `- ${item.itemName}: ${item.canonical}`),
     "",
     "Calls and requests are available through Express Direct Connect on the profile.",
     "",

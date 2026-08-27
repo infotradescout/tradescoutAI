@@ -96,6 +96,8 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
     expect(html).toContain('data-seo-jw-stone-company="true"');
     expect(html).toContain("Material Library");
+    expect(html).toContain("Browse named stone materials");
+    expect(html).toContain("/stones/arizona-gold");
     expect(html).toContain("Natural stone slabs in Pensacola, Florida");
     expect(html).toContain("fabricators, builders, architects, designers, and homeowners");
     expect(html).toContain("not a claim of confirmed physical stock");
@@ -138,6 +140,8 @@ describe("JW Stone marketplace public HTML", () => {
     expect(text).toContain("- Marble slabs: https://jwstonelogistics.com/materials/marble");
     expect(text).toContain("- Quartzite slabs: https://jwstonelogistics.com/materials/quartzite");
     expect(text).toContain("Individual named materials:");
+    expect(text).toContain("Named material pages:");
+    expect(text).toContain("Arizona Gold");
     expect(text).toContain("https://jwstonelogistics.com/stones/{slug}");
     expect(text).toContain("Address: 2103 W Herman Ave, Pensacola, FL 32505");
     expect(text).toContain("Instagram: @jwstonellc");

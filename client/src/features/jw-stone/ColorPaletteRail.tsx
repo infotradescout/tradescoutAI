@@ -26,7 +26,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "white" as const,
     representativeStoneId: "alabama-white",
-    faceSrc: "/images/businesses/jw-stone/color-collage/01-white.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/01-white.webp",
     faces: null,
   },
   {
@@ -35,7 +35,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "beige" as const,
     representativeStoneId: "calacatta-amala",
-    faceSrc: "/images/businesses/jw-stone/color-collage/02-warm.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/02-warm.webp",
     faces: null,
   },
   {
@@ -44,7 +44,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "gray" as const,
     representativeStoneId: "blue-dunes",
-    faceSrc: "/images/businesses/jw-stone/color-collage/03-gray.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/03-gray.webp",
     faces: null,
   },
   {
@@ -53,7 +53,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "black" as const,
     representativeStoneId: "preto-sao-gabriel",
-    faceSrc: "/images/businesses/jw-stone/color-collage/04-black.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/04-black.webp",
     faces: null,
   },
   {
@@ -62,7 +62,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "brown" as const,
     representativeStoneId: "emperor-brown",
-    faceSrc: "/images/businesses/jw-stone/color-collage/05-brown.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/05-brown.webp",
     faces: null,
   },
   {
@@ -71,7 +71,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "gold" as const,
     representativeStoneId: "gold-macaubas",
-    faceSrc: "/images/businesses/jw-stone/color-collage/09-gold.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/09-gold.webp",
     faces: null,
   },
   {
@@ -80,7 +80,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "green" as const,
     representativeStoneId: "marbella-green",
-    faceSrc: "/images/businesses/jw-stone/color-collage/06-green.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/06-green.webp",
     faces: null,
   },
   {
@@ -89,7 +89,7 @@ export const COLOR_SWATCH_OPTIONS = [
     aesthetic: null,
     color: "blue" as const,
     representativeStoneId: "blue-dream",
-    faceSrc: "/images/businesses/jw-stone/color-collage/07-blue.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/07-blue.webp",
     faces: null,
   },
 ] as const satisfies readonly ColorSwatchOptionDef[];
@@ -106,7 +106,7 @@ export const MOOD_SWATCH_OPTIONS = [
     aesthetic: "soft-light" as const,
     color: null,
     representativeStoneId: "alabama-white",
-    faceSrc: "/images/businesses/jw-stone/color-collage/01-white.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/01-white.webp",
     faces: null,
   },
   {
@@ -115,7 +115,7 @@ export const MOOD_SWATCH_OPTIONS = [
     aesthetic: "warm-earthy" as const,
     color: null,
     representativeStoneId: "cristallo",
-    faceSrc: "/images/businesses/jw-stone/color-collage/02-warm.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/02-warm.webp",
     faces: null,
   },
   {
@@ -124,7 +124,7 @@ export const MOOD_SWATCH_OPTIONS = [
     aesthetic: "deep-dramatic" as const,
     color: null,
     representativeStoneId: "preto-sao-gabriel",
-    faceSrc: "/images/businesses/jw-stone/color-collage/04-black.webp",
+    faceSrc: "/uploads/jw-stone/color-collage/04-black.webp",
     faces: null,
   },
   {
@@ -135,10 +135,10 @@ export const MOOD_SWATCH_OPTIONS = [
     representativeStoneId: "blue-goias",
     faceSrc: null,
     faces: [
-      "/images/businesses/jw-stone/color-collage/07-blue.webp",
-      "/images/businesses/jw-stone/color-collage/06-green.webp",
-      "/images/businesses/jw-stone/color-collage/09-gold.webp",
-      "/images/businesses/jw-stone/color-collage/02-warm.webp",
+      "/uploads/jw-stone/color-collage/07-blue.webp",
+      "/uploads/jw-stone/color-collage/06-green.webp",
+      "/uploads/jw-stone/color-collage/09-gold.webp",
+      "/uploads/jw-stone/color-collage/02-warm.webp",
     ] as const,
   },
 ] as const satisfies readonly ColorSwatchOptionDef[];

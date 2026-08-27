@@ -107,8 +107,17 @@ async function streamFromR2IfPresent(
   return false;
 }
 
-export function registerUploadsFallback(app: Express) {
+export function registerUploadsFallback(
+  app: Express,
+  options?: { legacyJwStoneRoots?: string[] }
+) {
   const uploadsPath = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
+  const legacyJwStoneRoots = (
+    options?.legacyJwStoneRoots || [
+      path.join(process.cwd(), "dist/public/images/businesses/jw-stone"),
+      path.join(process.cwd(), "client/public/images/businesses/jw-stone"),
+    ]
+  ).map((root) => path.resolve(root));
 
   // Keep direct disk serving first for fast path.
   app.use(
@@ -138,6 +147,26 @@ export function registerUploadsFallback(app: Express) {
       if (r2) {
         const streamed = await streamFromR2IfPresent(req, res, r2, requested);
         if (streamed) return;
+      }
+
+      // During the one-time JW Stone asset migration, serve the old bundled
+      // bytes only for the new /uploads/jw-stone/... namespace. This keeps the
+      // URL cutover lossless while R2 fills; R2 remains the preferred source.
+      const jwStonePrefix = "jw-stone/";
+      if (requested.startsWith(jwStonePrefix)) {
+        const legacyRelative = requested.slice(jwStonePrefix.length);
+        const legacyCandidates = buildCandidateRelativePaths(legacyRelative);
+        for (const root of legacyJwStoneRoots) {
+          for (const relative of legacyCandidates) {
+            const fullPath = path.resolve(root, relative);
+            if (!fullPath.startsWith(root + path.sep)) continue;
+            if (fs.existsSync(fullPath)) {
+              res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
+              res.setHeader("X-TradeScout-JW-Asset-Recovery", "legacy-static");
+              return res.sendFile(fullPath);
+            }
+          }
+        }
       }
 
       // Avoid noisy broken-image UX for known image requests.

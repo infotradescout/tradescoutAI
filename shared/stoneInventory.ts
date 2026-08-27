@@ -50,7 +50,7 @@ export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
     slabCount: 8,
     finishQuantities: [],
     primaryImageUrl:
-      "/images/businesses/jw-stone/inventory-source/16XiKXpuST1VEIuUn5jhX9RH9rAYq86jG.webp",
+      "/uploads/jw-stone/inventory-source/16XiKXpuST1VEIuUn5jhX9RH9rAYq86jG.webp",
   },
   {
     fixtureKey: "jw-bianco-carrara-122x70-5-6",
@@ -62,7 +62,7 @@ export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
     slabCount: 6,
     finishQuantities: [],
     primaryImageUrl:
-      "/images/businesses/jw-stone/inventory-source/1BoLQprq014WBrpdxTyYU5LErye7D5O0U.webp",
+      "/uploads/jw-stone/inventory-source/1BoLQprq014WBrpdxTyYU5LErye7D5O0U.webp",
   },
   {
     fixtureKey: "jw-cristallo-130x77-5-22",
@@ -74,7 +74,7 @@ export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
     slabCount: 22,
     finishQuantities: [],
     primaryImageUrl:
-      "/images/businesses/jw-stone/inventory-source/1D8bvWASTFtKs4ri4KK553drHwWXeAzxQ.webp",
+      "/uploads/jw-stone/inventory-source/1D8bvWASTFtKs4ri4KK553drHwWXeAzxQ.webp",
   },
   {
     fixtureKey: "jw-gold-macaubas-135x78-5-6",
@@ -86,7 +86,7 @@ export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
     slabCount: 6,
     finishQuantities: [{ finish: "Polished", slabCount: 2 }],
     primaryImageUrl:
-      "/images/businesses/jw-stone/inventory-source/18wiHWv2R9xYmyrU3DS7FFi6h1pUoHtpe.webp",
+      "/uploads/jw-stone/inventory-source/18wiHWv2R9xYmyrU3DS7FFi6h1pUoHtpe.webp",
   },
   {
     fixtureKey: "jw-rhino-white-111x69-25-7",
@@ -99,7 +99,7 @@ export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
     slabCount: 7,
     finishQuantities: [],
     primaryImageUrl:
-      "/images/businesses/jw-stone/inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp",
+      "/uploads/jw-stone/inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp",
   },
   {
     fixtureKey: "jw-taj-mahal-126x79-27",
@@ -111,7 +111,7 @@ export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
     slabCount: 27,
     finishQuantities: [],
     primaryImageUrl:
-      "/images/businesses/jw-stone/inventory-source/1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW.webp",
+      "/uploads/jw-stone/inventory-source/1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW.webp",
   },
   {
     fixtureKey: "jw-titanium-115x76-6",
@@ -123,7 +123,7 @@ export const JW_STONE_CONFIRMED_STOCK_LOTS = Object.freeze([
     slabCount: 6,
     finishQuantities: [],
     primaryImageUrl:
-      "/images/businesses/jw-stone/inventory-source/1O3crQvhlMBAEVQxmiLKw6PC-EFl3du8o.webp",
+      "/uploads/jw-stone/inventory-source/1O3crQvhlMBAEVQxmiLKw6PC-EFl3du8o.webp",
   },
 ] satisfies readonly ConfirmedStoneStockLot[]);
 

@@ -35,12 +35,12 @@ const auditOutput = path.join(
 const supplementalPublishedImagesBySlug = {
   "honey-onyx": {
     images: [
-      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/2.jpg",
-      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/6.jpg",
-      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/1.webp",
-      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/3.jpg",
-      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/4.jpg",
-      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/5.jpg",
+      "/uploads/jw-stone/inventory/onyx/honey-onyx/2.jpg",
+      "/uploads/jw-stone/inventory/onyx/honey-onyx/6.jpg",
+      "/uploads/jw-stone/inventory/onyx/honey-onyx/1.webp",
+      "/uploads/jw-stone/inventory/onyx/honey-onyx/3.jpg",
+      "/uploads/jw-stone/inventory/onyx/honey-onyx/4.jpg",
+      "/uploads/jw-stone/inventory/onyx/honey-onyx/5.jpg",
     ],
     sourceFileIds: [
       "1Kfn1NfVZwueiPoGrpteEjSdBm9WTIVIC",
@@ -177,7 +177,7 @@ const rejected = [];
 for (let index = 0; index < identified.length; index += 1) {
   const item = identified[index];
   const input = path.join(workspaceRoot, "jw_source_images", `${item.driveFileId}.${item.ext}`);
-  const relativeImage = `/images/businesses/jw-stone/inventory-source/${item.driveFileId}.webp`;
+  const relativeImage = `/uploads/jw-stone/inventory-source/${item.driveFileId}.webp`;
   try {
     await sharp(input)
       .rotate()

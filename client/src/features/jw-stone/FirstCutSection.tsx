@@ -60,14 +60,14 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       >
         {/*
           In-flow frames sized by aspect-ratio — no svh min-heights that leave beige voids.
-          Lead: wide frame for green bookmatched pair. Supports: identical 3/2 cells + cover
+          Lead: wide frame for green bookmatched pair. Supports: identical 4/3 cells + cover
           so mixed slab ratios never look like uneven tiles.
         */}
         <span
           className={
             role === "lead"
               ? "relative block aspect-[12/5] w-full overflow-hidden bg-[var(--jw-bg)]"
-              : "relative block aspect-[3/2] w-full overflow-hidden bg-[var(--jw-bg)]"
+              : "relative block aspect-[4/3] w-full overflow-hidden bg-[var(--jw-bg)]"
           }
         >
           <img
@@ -95,7 +95,7 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       data-first-cut-lead={role === "lead" ? "true" : undefined}
       data-first-cut-support={role === "support" ? "true" : undefined}
       className={`jw-first-cut__tile jw-first-cut__tile--${role} flex w-full min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${
-        role === "lead" ? "aspect-[12/5]" : "aspect-[3/2]"
+        role === "lead" ? "aspect-[12/5]" : "aspect-[4/3]"
       }`}
     >
       <span className={`text-[10px] uppercase tracking-[0.16em] sm:text-xs ${jw.muted}`}>
@@ -126,14 +126,14 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
           </h2>
         </header>
 
-        {/* Full-width lead on top; two supports in one tight row below — no side column / beige void. */}
+        {/* Desktop keeps the lead and two support tiles in one compact row; mobile stacks the lead above the support pair. */}
         <div
-          className="jw-first-cut__premiere grid grid-cols-1 gap-2 sm:gap-2.5"
+          className="jw-first-cut__premiere grid grid-cols-1 gap-2 sm:gap-2.5 lg:grid-cols-4 lg:items-stretch"
           aria-label={ariaLabel}
           data-testid="jw-first-cut-rail"
         >
-          <div className="jw-first-cut__lead w-full">{renderItem(lead, "lead")}</div>
-          <div className="jw-first-cut__support grid w-full grid-cols-2 items-stretch gap-2 sm:gap-2.5">
+          <div className="jw-first-cut__lead w-full lg:col-span-2">{renderItem(lead, "lead")}</div>
+          <div className="jw-first-cut__support grid w-full grid-cols-2 items-stretch gap-2 sm:gap-2.5 lg:contents">
             {support.map((item) => renderItem(item, "support"))}
           </div>
         </div>

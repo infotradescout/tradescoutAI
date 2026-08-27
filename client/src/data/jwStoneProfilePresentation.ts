@@ -48,7 +48,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       stickyControls: true,
       sourceRequests: true,
       browseCtaImage:
-        "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
+        "/uploads/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
       browseCtaEyebrow: "White Rhino · full inventory",
       featuredCollection: {
         label: "JW Stone Picks",

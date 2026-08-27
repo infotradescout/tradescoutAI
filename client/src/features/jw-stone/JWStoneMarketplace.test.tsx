@@ -354,7 +354,7 @@ describe("JW Stone marketplace luxury layout", () => {
       "/images/businesses/jw-stone/video/hero-poster.jpg"
     );
     expect(heroVideo?.className).toContain("max-w-[1920px]");
-    expect(hero?.querySelector("div.relative")?.className).toMatch(/h-\[42svh\]/);
+    expect(hero?.querySelector("div.relative")?.className).toMatch(/h-\[48svh\]/);
     expect(hero?.querySelector('[data-testid="jw-marketplace-hero-image"]')).toBeNull();
     expect(hero?.querySelector('[data-testid="jw-marketplace-hero-brand"]')).toBeNull();
     expect(hero?.innerHTML).toMatch(/bg-gradient-to-t/);
@@ -851,12 +851,15 @@ describe("JW Stone marketplace luxury layout", () => {
     const rail = firstCut.querySelector('[data-testid="jw-first-cut-rail"]');
     expect(rail?.className).toMatch(/jw-first-cut__premiere/);
     expect(rail?.className).toMatch(/grid-cols-1/);
-    expect(rail?.className).not.toMatch(/snap-x|overflow-x-auto|grid-cols-3|lg:grid-cols-/);
+    expect(rail?.className).toMatch(/lg:grid-cols-4/);
+    expect(rail?.className).not.toMatch(/snap-x|overflow-x-auto|grid-cols-3/);
     expect(firstCut.className).toMatch(/jw-first-cut/);
     expect(firstCut.querySelector(".jw-first-cut__lead")).not.toBeNull();
+    expect(firstCut.querySelector(".jw-first-cut__lead")?.className).toMatch(/lg:col-span-2/);
     const supportRow = firstCut.querySelector(".jw-first-cut__support");
     expect(supportRow).not.toBeNull();
     expect(supportRow?.className).toMatch(/grid-cols-2/);
+    expect(supportRow?.className).toMatch(/lg:contents/);
     expect(supportRow?.className).not.toMatch(/lg:grid-cols-1|min-h-\[56svh\]|lg:min-h-/);
     const photoSlots = firstCut.querySelectorAll('[data-first-cut-photo="true"]');
     expect(photoSlots.length).toBe(3);

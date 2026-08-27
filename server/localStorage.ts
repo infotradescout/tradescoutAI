@@ -1,10 +1,25 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { createReadStream } from "fs";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 
 /**
  * Cloudflare R2 storage service (S3-compatible)
  */
+export function isR2StorageConfigured(): boolean {
+  return Boolean(
+    String(process.env.R2_ACCOUNT_ID || "").trim() &&
+      String(process.env.R2_ACCESS_KEY_ID || "").trim() &&
+      String(process.env.R2_SECRET_ACCESS_KEY || "").trim() &&
+      String(process.env.R2_BUCKET_NAME || "").trim()
+  );
+}
+
 export class R2StorageService {
   private s3Client: S3Client;
   private bucketName: string;
@@ -98,6 +113,67 @@ export class R2StorageService {
     const objectKey = `private/${safeUserId || "user"}/${fileId}`;
     const { uploadURL } = await this.getUploadURLForKey(objectKey);
     return { uploadURL, objectKey };
+  }
+
+  /**
+   * Upload a public asset from the server filesystem under a stable key.
+   * This is used only by the one-time JW Stone migration worker.
+   */
+  async uploadPublicAssetFromDisk(
+    key: string,
+    filePath: string,
+    contentType: string,
+    contentLength?: number
+  ): Promise<void> {
+    const normalizedKey = String(key || "").replace(/^\/+/, "");
+    if (!normalizedKey.startsWith("uploads/")) {
+      throw new Error("Public asset keys must stay under uploads/");
+    }
+
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: normalizedKey,
+        Body: createReadStream(filePath),
+        ContentType: contentType,
+        CacheControl: "public, max-age=31536000, immutable",
+        ...(Number.isFinite(contentLength) ? { ContentLength: contentLength } : {}),
+      })
+    );
+  }
+
+  async hasObject(key: string): Promise<boolean> {
+    try {
+      await this.s3Client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucketName,
+          Key: String(key || "").replace(/^\/+/, ""),
+        })
+      );
+      return true;
+    } catch (error: any) {
+      const statusCode = Number(error?.$metadata?.httpStatusCode || 0);
+      const code = String(error?.Code || error?.name || "");
+      if (statusCode === 404 || code === "NotFound" || code === "NoSuchKey") return false;
+      throw error;
+    }
+  }
+
+  async putTextObject(key: string, value: string): Promise<void> {
+    const normalizedKey = String(key || "").replace(/^\/+/, "");
+    if (!normalizedKey.startsWith("uploads/")) {
+      throw new Error("Text object keys must stay under uploads/");
+    }
+
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: normalizedKey,
+        Body: value,
+        ContentType: "application/json; charset=utf-8",
+        CacheControl: "no-store",
+      })
+    );
   }
 
   /**

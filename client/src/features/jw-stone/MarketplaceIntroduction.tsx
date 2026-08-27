@@ -17,7 +17,7 @@ export function MarketplaceIntroduction() {
       className="bg-[var(--jw-bg)]"
       aria-labelledby="jw-marketplace-title"
     >
-      <div className="relative flex h-[42svh] justify-center overflow-hidden bg-[var(--jw-dark)] sm:h-[44svh] lg:h-[46svh]">
+      <div className="relative flex h-[48svh] justify-center overflow-hidden bg-[var(--jw-dark)] sm:h-[52svh] lg:h-[56svh] lg:max-h-[42rem]">
         <video
           autoPlay
           muted

@@ -32,13 +32,13 @@ export const MATERIAL_RAIL_COVER_STONE_IDS: Readonly<Record<string, string>> = {
  * Built by tmp/build-material-covers.mjs into material-covers/.
  */
 export const MATERIAL_RAIL_COVER_IMAGES: Readonly<Record<string, string>> = Object.freeze({
-  granite: "/images/businesses/jw-stone/material-covers/granite.webp",
-  marble: "/images/businesses/jw-stone/material-covers/marble.webp",
-  quartzite: "/images/businesses/jw-stone/material-covers/quartzite.webp",
-  quartz: "/images/businesses/jw-stone/material-covers/quartz.webp",
-  onyx: "/images/businesses/jw-stone/material-covers/onyx.webp",
-  soapstone: "/images/businesses/jw-stone/material-covers/soapstone.webp",
-  basalt: "/images/businesses/jw-stone/material-covers/basalt.webp",
+  granite: "/uploads/jw-stone/material-covers/granite.webp",
+  marble: "/uploads/jw-stone/material-covers/marble.webp",
+  quartzite: "/uploads/jw-stone/material-covers/quartzite.webp",
+  quartz: "/uploads/jw-stone/material-covers/quartz.webp",
+  onyx: "/uploads/jw-stone/material-covers/onyx.webp",
+  soapstone: "/uploads/jw-stone/material-covers/soapstone.webp",
+  basalt: "/uploads/jw-stone/material-covers/basalt.webp",
 });
 
 export type MaterialRailItem = Readonly<{
