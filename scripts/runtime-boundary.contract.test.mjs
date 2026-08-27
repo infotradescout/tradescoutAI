@@ -24,6 +24,12 @@ test("production runner uses a positive artifact and dependency allowlist", () =
   assert.match(dockerfile, /COPY --from=builder \/app\/migrations \.\/migrations/);
 });
 
+test("runtime lock retains the root security/version overrides used to generate it", () => {
+  const rootPackage = JSON.parse(read("package.json"));
+  const runtimePackage = JSON.parse(read("runtime/package.json"));
+  assert.deepEqual(runtimePackage.overrides, rootPackage.overrides);
+});
+
 test("Render lifecycle invokes only compiled release entrypoints", () => {
   const dockerfile = read("Dockerfile");
   const blueprint = read("render.yaml");
