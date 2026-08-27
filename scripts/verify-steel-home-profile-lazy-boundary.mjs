@@ -25,13 +25,12 @@ for (const staticTheme of [
   "JrsAutoGlassProfileTheme",
   "ProFabProfileTheme",
   "VideographerProfileTheme",
-  "PrecisionAerialProfile",
   "LocalServiceProfileTheme",
 ]) {
   assert.match(
     profileSource,
     new RegExp(`import ${staticTheme}(?:,| from)`),
-    `${staticTheme} must remain static in Release B`
+    `${staticTheme} must remain static`
   );
 }
 

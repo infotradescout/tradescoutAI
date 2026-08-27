@@ -390,14 +390,34 @@ describe("Precision Aerial production profile contract", () => {
     expect(entry).toContain('"https://www.instagram.com"');
     expect(entry).toContain('"media-src": [');
     expect(entry).toContain('"https://www.thetradescout.com"');
-    expect(profileView).toContain(
+    expect(profileView).not.toContain(
       'import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile"'
+    );
+    expect(profileView).toMatch(
+      /const PrecisionAerialProfile = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/PrecisionAerialProfile"\)/
     );
     expect(profileView).toContain(
       'import { PRECISION_AERIAL_PROFILE_SLUG } from "@shared/precisionAerialProfile"'
     );
     expect(profileView).toContain("if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG)");
     expect(profileView).toContain("<PrecisionAerialProfile");
+    expect(profileView).toContain("<PrecisionAerialProfileBoundary>");
+    expect(profileView).toContain('data-testid="precision-aerial-profile-loading"');
+    expect(profileView).toContain('role="status"');
+    expect(profileView).toContain('aria-live="polite"');
+    const precisionBranch = profileView.slice(
+      profileView.indexOf("if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG)"),
+      profileView.indexOf('if (siteTemplate === "auto-glass"')
+    );
+    expect(precisionBranch.indexOf("<SEOHelmet")).toBeLessThan(
+      precisionBranch.indexOf("<PrecisionAerialProfileBoundary>")
+    );
+    expect(precisionBranch.indexOf("{manageChrome}")).toBeLessThan(
+      precisionBranch.indexOf("<PrecisionAerialProfileBoundary>")
+    );
+    expect(precisionBranch.indexOf("</PrecisionAerialProfileBoundary>")).toBeLessThan(
+      precisionBranch.indexOf("<ExpressDirectConnectPanel")
+    );
     expect(profileView).toContain("onDirectConnect={openServiceDirectConnect}");
     expect(profileView).toContain(
       "deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}"

@@ -33,7 +33,6 @@ import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
-import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
 import {
   createProfileHistoryBoundaryState,
   isProfileHistoryBoundaryState,
@@ -114,6 +113,9 @@ const PROFILE_HISTORY_BOUNDARY_KEY = "__tradeScoutProfileHistoryBoundary";
 const SteelHomePackagesProfile = lazy(
   () => import("@/pages/profile-sites/SteelHomePackagesProfile")
 );
+const PrecisionAerialProfile = lazy(
+  () => import("@/pages/profile-sites/PrecisionAerialProfile")
+);
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
   return (
@@ -133,6 +135,31 @@ function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
             <p className="mt-3 font-editorial text-2xl font-semibold">Loading your planner…</p>
           </div>
         </main>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function PrecisionAerialProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-[#08111f] px-6 text-center text-white"
+          data-testid="precision-aerial-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-300">
+              Precision Aerial
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading the aerial portfolio…</p>
+          </div>
+        </div>
       }
     >
       {children}
@@ -1762,33 +1789,35 @@ export default function ProfileSiteView() {
         />
         {manageChrome}
         {templateIndependentInventoryContext}
-        <PrecisionAerialProfile
-          profileSlug={profile.slug}
-          platformBaseHref={platformBaseHref}
-          businessName={displayName}
-          headline={publicHeadline}
-          contentBlocks={contentBlocks}
-          brandColors={business?.brandColors}
-          services={serviceTags}
-          serviceAreas={serviceAreas}
-          aboutText={aboutText}
-          galleryItems={galleryItems}
-          sharedGallerySlug={sharedGallerySlug}
-          profileShareDestination={profileShareDestination}
-          profileShareImage={seoImage}
-          onDirectConnect={openServiceDirectConnect}
-          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
-          trustActions={renderProfileTrustActions("light", "compact")}
-          profileItems={
-            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems
-                items={profileItems}
-                profileSections={profileSections}
-                platformBaseHref={platformBaseHref}
-              />
-            ) : null
-          }
-        />
+        <PrecisionAerialProfileBoundary>
+          <PrecisionAerialProfile
+            profileSlug={profile.slug}
+            platformBaseHref={platformBaseHref}
+            businessName={displayName}
+            headline={publicHeadline}
+            contentBlocks={contentBlocks}
+            brandColors={business?.brandColors}
+            services={serviceTags}
+            serviceAreas={serviceAreas}
+            aboutText={aboutText}
+            galleryItems={galleryItems}
+            sharedGallerySlug={sharedGallerySlug}
+            profileShareDestination={profileShareDestination}
+            profileShareImage={seoImage}
+            onDirectConnect={openServiceDirectConnect}
+            deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+            trustActions={renderProfileTrustActions("light", "compact")}
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </PrecisionAerialProfileBoundary>
         <ExpressDirectConnectPanel
           open={expressPanelOpen}
           onClose={() => setExpressPanelOpen(false)}
