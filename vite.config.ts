@@ -59,7 +59,6 @@ function getPackageChunkName(id: string): string | undefined {
     pdfkit: "vendor-pdfkit",
     mammoth: "vendor-mammoth",
     "@googlemaps/markerclusterer": "vendor-googlemaps",
-    "google-auth-library": "vendor-google-auth",
   };
 
   return chunkByPackage[packageName];
