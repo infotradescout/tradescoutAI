@@ -4998,3 +4998,470 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   transform: scale(0.97);
 }
 .scout-tool-tray__btn--primary {
+  background: var(--ts-accent, #f97316);
+  border-color: var(--ts-accent, #f97316);
+  color: white;
+}
+.scout-tool-tray__btn--primary:hover {
+  background: #ea580c;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+}
+.scout-tool-tray__btn__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+/* ----------------------------------------------------------
+   @reusable: scout-cluster-card (Morphic upgrade)
+   Use: Replaces the legacy .scout-result-card in any context.
+   Matches the dark card with hard orange border on featured items.
+   ---------------------------------------------------------- */
+.scout-cluster-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 14px;
+  padding: 14px;
+  transition: border-color 0.18s ease;
+}
+.scout-cluster-card:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+}
+.scout-cluster-card--featured {
+  border-color: var(--ts-accent, #f97316);
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.15), 0 4px 20px rgba(249, 115, 22, 0.08);
+}
+.scout-cluster-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(249, 115, 22, 0.9);
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  margin-bottom: 10px;
+}
+.scout-cluster-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.scout-cluster-card__icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-intermediate);
+  border: 1px solid var(--border-subtle);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 22px;
+}
+.scout-cluster-card__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary, #fafafa);
+  line-height: 1.2;
+}
+.scout-cluster-card__subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(250, 250, 250, 0.5));
+  margin-top: 2px;
+}
+.scout-cluster-card__chevron {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: var(--surface-intermediate);
+  border: 1px solid var(--border-subtle);
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary, rgba(250, 250, 250, 0.5));
+  flex-shrink: 0;
+}
+.scout-cluster-card__status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.scout-cluster-card__open-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  letter-spacing: 0.04em;
+}
+.scout-cluster-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-secondary, rgba(250, 250, 250, 0.45));
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.scout-cluster-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.scout-cluster-card__meta-divider {
+  width: 1px;
+  height: 10px;
+  background: var(--border-subtle);
+}
+
+@media (max-width: 640px) {
+  .scout-cluster-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .scout-cluster-card__header {
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .scout-cluster-card__icon-wrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .scout-cluster-card__title {
+    font-size: 16px;
+  }
+
+  .scout-cluster-card__subtitle {
+    font-size: 11px;
+  }
+
+  .scout-cluster-card__chevron {
+    width: 28px;
+    height: 28px;
+  }
+}
+/* ----------------------------------------------------------
+   @reusable: scout-home-snapshot-tile
+   Use: The 4-stat snapshot tiles on the Scout home surface.
+   Shows live local data (listings, pros, events, members).
+   ---------------------------------------------------------- */
+.scout-snapshot-tile {
+  background: var(--surface-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 14px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.scout-snapshot-tile__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(250, 250, 250, 0.45));
+}
+.scout-snapshot-tile__value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary, #fafafa);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.scout-snapshot-tile__value--accent {
+  color: var(--ts-accent, #f97316);
+}
+.scout-snapshot-tile__sub {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(250, 250, 250, 0.4));
+}
+/* ----------------------------------------------------------
+   @reusable: scout-prompt-chip
+   Use: Tappable quick-prompt chips on the Scout home surface.
+   Shows icon, question text, and category label.
+   ---------------------------------------------------------- */
+.scout-prompt-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+.scout-prompt-chip:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  background: color-mix(in oklab, var(--surface-card) 105%, rgba(249,115,22,0.03));
+}
+.scout-prompt-chip__icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: rgba(249, 115, 22, 0.08);
+  display: grid;
+  place-items: center;
+}
+.scout-prompt-chip__text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #fafafa);
+  line-height: 1.35;
+}
+.scout-prompt-chip__category {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ts-accent, #f97316);
+  flex-shrink: 0;
+}
+
+/* Dark workshop: AppShell owns this scope; standalone public profiles bypass it. */
+body.ts-app-workshop {
+  --ts-bg: #101112;
+  --ts-surface: #191b1d;
+  --ts-surface-strong: #0b0c0d;
+  --ts-surface-hover: #232629;
+  --ts-input-bg: #141617;
+  --ts-text: #fbf8f3;
+  --ts-text-muted: rgba(251, 248, 243, 0.66);
+  --ts-border-subtle: rgba(255, 255, 255, 0.075);
+  --ts-border-strong: rgba(255, 255, 255, 0.15);
+  --ts-shadow-soft: 0 22px 60px rgba(0, 0, 0, 0.34);
+  background-color: var(--ts-bg);
+  color: var(--ts-text);
+}
+
+body.ts-app-workshop .ts-shell-header,
+body.ts-app-workshop .ts-shell-header-mobile,
+body.ts-app-workshop .ts-bottom-nav-inner {
+  background: color-mix(in oklab, var(--ts-surface-strong) 88%, transparent) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+body.ts-app-workshop .ts-bottom-nav-inner {
+  position: relative;
+}
+
+body.ts-app-workshop .ts-shell-header::before,
+body.ts-app-workshop .ts-shell-header-mobile::before,
+body.ts-app-workshop .ts-bottom-nav-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+body.ts-app-workshop .ts-shell-header > *,
+body.ts-app-workshop .ts-shell-header-mobile > *,
+body.ts-app-workshop .ts-bottom-nav-inner > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.ts-app-workshop .app-page {
+  background: transparent;
+}
+
+/* Community is the reference surface for the shared app language. */
+.ts-community-workshop {
+  position: relative;
+  isolation: isolate;
+}
+
+body.ts-app-workshop .app-page .ts-community-submit-action {
+  background: var(--theme-accent-primary) !important;
+  color: var(--ts-text-on-accent, #101112) !important;
+}
+
+body.ts-app-workshop .app-page .ts-community-create-action {
+  border: 1px solid rgba(255, 154, 82, 0.36) !important;
+  background: #ff6a00 !important;
+  color: #101112 !important;
+  box-shadow: 0 8px 24px rgba(255, 106, 0, 0.16) !important;
+}
+
+body.ts-app-workshop .app-page button.ts-community-submit-action:disabled,
+body.ts-app-workshop.ts-mobile-simplified .app-page button.ts-community-submit-action:disabled {
+  background: rgba(255, 106, 0, 0.13) !important;
+  color: rgba(255, 185, 135, 0.54) !important;
+  box-shadow: none !important;
+}
+
+.ts-community-composer {
+  border-radius: 18px !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(255, 255, 255, 0.022)
+  ) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035) !important;
+}
+
+.ts-community-composer__input {
+  background: rgba(0, 0, 0, 0.24) !important;
+}
+.ts-community-stream {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ts-community-viewbar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ts-community-viewbar__item {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  color: rgba(251, 248, 243, 0.52);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.ts-community-start-actions > summary:focus-visible,
+.ts-community-viewbar__item:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--theme-accent-primary) 72%, white);
+  outline-offset: 2px;
+}
+
+.ts-community-viewbar__item:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(251, 248, 243, 0.84);
+}
+
+.ts-community-viewbar__item[aria-pressed="true"] {
+  background: rgba(255, 106, 0, 0.12);
+  color: #ff8b39;
+}
+
+@media (min-width: 641px) {
+  .ts-community-viewbar {
+    padding-top: 0.25rem;
+    padding-inline: 0.25rem;
+  }
+}
+
+.ts-community-context-card {
+  border-top: 2px solid rgba(255, 106, 0, 0.72);
+  background: linear-gradient(145deg, rgba(255, 106, 0, 0.075), rgba(255, 255, 255, 0.025));
+  padding: 1.15rem;
+}
+
+body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
+  margin: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.075) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  .ts-community-viewbar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+  .ts-community-viewbar__divider {
+    display: block !important;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 0;
+    margin: 0 !important;
+    opacity: 0;
+  }
+  .ts-community-composer .w-10.h-10 {
+    display: none;
+  }
+  .ts-community-workshop__inner {
+    padding-top: 0.75rem;
+  }
+  .ts-community-composer {
+    max-width: 100%;
+    border-radius: 14px !important;
+  }
+  .ts-community-composer > div {
+    padding: 0.75rem !important;
+  }
+  .ts-community-composer__hint {
+    display: none;
+  }
+  .ts-community-composer__input {
+    min-height: 72px !important;
+  }
+  .ts-community-composer__types {
+    max-width: 100%;
+    margin-top: -0.125rem;
+  }
+  .ts-community-composer__actions {
+    min-width: 0;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ts-community-composer__attachments {
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  .ts-community-composer__actions .ts-community-submit-action {
+    min-height: 44px !important;
+    width: auto !important;
+    flex: 0 0 auto;
+    padding-inline: 1rem;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 480px) {
+  .ts-community-composer {
+    position: static !important;
+    top: auto !important;
+    scroll-margin-top: 5rem;
+  }
+
+  .ts-community-composer__input {
+    scroll-margin-top: 5rem;
+  }
+}
+
+@media (max-width: 1023px) {
+  .ts-community-rail {
+    display: none;
+  }
+}

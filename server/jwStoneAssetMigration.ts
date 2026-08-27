@@ -71,6 +71,12 @@ export async function runJwStoneAssetMigration(publicDistPath: string): Promise<
     return;
   }
 
+  const storage = new R2StorageService();
+  if (await storage.hasObject(JW_STONE_MIGRATION_MARKER)) {
+    console.log("[JW Stone assets] R2 migration marker found; nothing to copy.");
+    return;
+  }
+
   const root = path.join(publicDistPath, JW_STONE_ASSET_ROOT);
   if (!fs.existsSync(root)) {
     console.warn("[JW Stone assets] Bundled source tree is missing; migration deferred.");
@@ -80,12 +86,6 @@ export async function runJwStoneAssetMigration(publicDistPath: string): Promise<
   const files = await collectFiles(root);
   if (!files.length) {
     console.warn("[JW Stone assets] No bundled inventory assets found; migration deferred.");
-    return;
-  }
-
-  const storage = new R2StorageService();
-  if (await storage.hasObject(JW_STONE_MIGRATION_MARKER)) {
-    console.log("[JW Stone assets] R2 migration marker found; nothing to copy.");
     return;
   }
 

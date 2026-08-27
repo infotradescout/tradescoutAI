@@ -161,8 +161,8 @@ export class R2StorageService {
 
   async putTextObject(key: string, value: string): Promise<void> {
     const normalizedKey = String(key || "").replace(/^\/+/, "");
-    if (!normalizedKey.startsWith("uploads/")) {
-      throw new Error("Text object keys must stay under uploads/");
+    if (!normalizedKey.startsWith("uploads/") && !normalizedKey.startsWith("private/")) {
+      throw new Error("Text object keys must stay under uploads/ or private/");
     }
 
     await this.s3Client.send(
