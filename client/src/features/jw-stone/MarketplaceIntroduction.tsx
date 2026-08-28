@@ -6,7 +6,7 @@ const JW_STONE_HERO_POSTER = "/images/businesses/jw-stone/video/hero-poster.jpg"
 const JW_STONE_HERO_WIDTH = 1920;
 const JW_STONE_HERO_HEIGHT = 1080;
 
-/** Hero film + approved headline. The supporting paragraph is not visible. */
+/** Hero film + approved headline. The supporting paragraph is not rendered. */
 export function MarketplaceIntroduction() {
   return (
     <section
@@ -14,7 +14,7 @@ export function MarketplaceIntroduction() {
       className="bg-[var(--jw-bg)]"
       aria-labelledby="jw-marketplace-title"
     >
-      <p data-testid="jw-marketplace-local-description" className="sr-only">
+      <p data-testid="jw-marketplace-local-description" hidden aria-hidden="true">
         Natural stone slabs for fabricators, builders, designers, architects, and homeowners in
         Pensacola and across the Gulf Coast.
       </p>
