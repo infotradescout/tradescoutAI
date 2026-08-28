@@ -28,6 +28,8 @@ type StreamPublicMediaOptions = {
 };
 
 const DEFAULT_PUBLIC_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const JW_STONE_PUBLIC_MEDIA_PREFIX = "public-media/images/businesses/jw-stone/";
+const SEEKABLE_MEDIA_EXTENSION = /\.(?:mp4|webm|mov|m4v|mp3|m4a|ogg|wav)$/i;
 
 function requestHeader(req: Request, name: string): string | undefined {
   const value = req.get(name);
@@ -45,6 +47,16 @@ function requestRange(req: Request): string | undefined {
   const value = requestHeader(req, "range");
   if (!value) return undefined;
   return /^bytes=(?:\d+-\d*|-\d+)$/.test(value) ? value : "invalid";
+}
+
+/**
+ * JW Stone still images must arrive as complete files. Browser/CDN range requests
+ * produced partial WebP responses that could not be decoded. Video and audio keep
+ * byte-range support for normal seeking; unrelated public-media routes are unchanged.
+ */
+function shouldHonorByteRange(key: string): boolean {
+  if (!key.startsWith(JW_STONE_PUBLIC_MEDIA_PREFIX)) return true;
+  return SEEKABLE_MEDIA_EXTENSION.test(key);
 }
 
 function setObjectHeaders(res: Response, object: Record<string, any>, cacheControl: string): void {
@@ -159,7 +171,8 @@ export async function streamPublicObject(
 ): Promise<PublicMediaStreamResult> {
   const { req, res, key } = options;
   const cacheControl = options.cacheControl || DEFAULT_PUBLIC_CACHE_CONTROL;
-  const range = requestRange(req);
+  const honorByteRange = shouldHonorByteRange(key);
+  const range = honorByteRange ? requestRange(req) : undefined;
   if (range === "invalid") {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Accept-Ranges", "bytes");
@@ -201,6 +214,7 @@ export async function streamPublicObject(
         })
       );
       setObjectHeaders(res, object, cacheControl);
+      if (!honorByteRange) res.setHeader("Accept-Ranges", "none");
       res.status(200).end();
       return "served";
     }
@@ -214,6 +228,7 @@ export async function streamPublicObject(
       })
     );
     setObjectHeaders(res, object, cacheControl);
+    if (!honorByteRange) res.setHeader("Accept-Ranges", "none");
     res.status(object.ContentRange ? 206 : 200);
 
     const body = object.Body;

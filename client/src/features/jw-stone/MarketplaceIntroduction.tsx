@@ -6,10 +6,7 @@ const JW_STONE_HERO_POSTER = "/images/businesses/jw-stone/video/hero-poster.jpg"
 const JW_STONE_HERO_WIDTH = 1920;
 const JW_STONE_HERO_HEIGHT = 1080;
 
-/**
- * Hero film + brand headline (no Browse inventory CTA).
- * Warm ivory panel under the film — no full-hero darken.
- */
+/** Hero film only. Keep the page title available to assistive technology without adding visible copy. */
 export function MarketplaceIntroduction() {
   return (
     <section
@@ -17,6 +14,13 @@ export function MarketplaceIntroduction() {
       className="bg-[var(--jw-bg)]"
       aria-labelledby="jw-marketplace-title"
     >
+      <h1 id="jw-marketplace-title" className="sr-only">
+        Natural stone, selected at the source.
+      </h1>
+      <p data-testid="jw-marketplace-local-description" className="sr-only">
+        Natural stone slabs for fabricators, builders, designers, architects, and homeowners in
+        Pensacola and across the Gulf Coast.
+      </p>
       <div className="relative flex h-[42svh] justify-center overflow-hidden bg-[var(--jw-dark)] sm:h-[44svh] lg:h-[46svh]">
         <video
           autoPlay
@@ -32,28 +36,10 @@ export function MarketplaceIntroduction() {
         >
           <source src={JW_STONE_HERO_VIDEO} type="video/mp4" />
         </video>
-        {/* Restrained bottom fade only — keeps the film bright. */}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-[22%] bg-gradient-to-t from-[var(--jw-bg)] to-transparent"
           aria-hidden="true"
         />
-      </div>
-      <div className="mx-auto max-w-[1600px] bg-[var(--jw-bg)] px-5 py-3 sm:px-9 sm:py-4 lg:px-12">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1
-            id="jw-marketplace-title"
-            className="font-editorial text-[1.5rem] leading-tight tracking-tight text-[var(--jw-ink)] sm:text-[1.75rem] md:text-[1.875rem]"
-          >
-            Natural stone, selected at the source.
-          </h1>
-          <p
-            data-testid="jw-marketplace-local-description"
-            className="mx-auto mt-1.5 max-w-2xl text-xs leading-5 text-[var(--jw-muted)] sm:text-sm"
-          >
-            Natural stone slabs for fabricators, builders, designers, architects, and homeowners
-            in Pensacola and across the Gulf Coast.
-          </p>
-        </div>
       </div>
     </section>
   );
