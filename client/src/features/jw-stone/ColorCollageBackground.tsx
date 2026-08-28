@@ -13,7 +13,7 @@ export function ColorCollageBackground() {
       data-testid="jw-color-collage"
       aria-hidden="true"
     >
-      <div className="grid h-full w-full grid-cols-2 gap-px bg-black/45 sm:grid-cols-4">
+      <div className="grid h-full w-full grid-cols-2 grid-rows-4 gap-px bg-black/45 sm:grid-cols-4 sm:grid-rows-2">
         {COLOR_COLLAGE_STRIPS.map((strip, index) => (
           <span key={strip.src} className="relative min-h-0 min-w-0 overflow-hidden bg-black/30">
             <img
