@@ -24,7 +24,7 @@ describe("JW Stone requested visual scope", () => {
     container.remove();
   });
 
-  it("keeps the approved hero headline visible and hides only the supporting subtext", () => {
+  it("keeps the approved hero headline visible and removes only the supporting subtext", () => {
     act(() => root.render(<MarketplaceIntroduction />));
 
     const title = container.querySelector<HTMLElement>("#jw-marketplace-title");
@@ -34,7 +34,8 @@ describe("JW Stone requested visual scope", () => {
 
     expect(title?.textContent).toContain("Natural stone, selected at the source.");
     expect(title?.className).not.toContain("sr-only");
-    expect(subtext?.className).toContain("sr-only");
+    expect(subtext?.hidden).toBe(true);
+    expect(subtext?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("keeps Browse by color as one row of eight equal vertical slices", () => {
