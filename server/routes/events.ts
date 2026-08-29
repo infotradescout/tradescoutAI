@@ -19,6 +19,7 @@ const MAX_SAFE_ID_LENGTH = 128;
 const MAX_ROUTE_LENGTH = 320;
 const MAX_SAFE_COUNT = 1_000_000;
 const SERVER_DERIVED_FUNNEL_STALL_EVENT = "direct_connect_funnel_step_stalled";
+const DIRECT_CONNECT_ISSUE_SCHEMA_VERSION = 1;
 
 export const PUBLIC_DEMAND_EVENT_TYPES = new Set([
   "demand.landing_view",
@@ -279,6 +280,47 @@ function sanitizeIsoTimestamp(value: unknown): string | undefined {
   return parsed.toISOString();
 }
 
+function resolveReleaseSha(): string {
+  return (
+    process.env.RENDER_GIT_COMMIT ||
+    process.env.GITHUB_SHA ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.COMMIT_REF ||
+    "unknown"
+  );
+}
+
+function issueMetadata(eventType: string): SanitizedEventData {
+  const common: SanitizedEventData = {
+    issuePacket: true,
+    schemaVersion: DIRECT_CONNECT_ISSUE_SCHEMA_VERSION,
+    releaseSha: resolveReleaseSha(),
+  };
+
+  switch (eventType) {
+    case "direct_connect_client_runtime_error":
+      return { ...common, severity: "high", inspectNext: "client_runtime_and_route_boundary" };
+    case "direct_connect_api_request_failed":
+      return { ...common, severity: "high", inspectNext: "failed_api_route_and_server_logs" };
+    case "direct_connect_auth_handoff_stalled":
+      return { ...common, severity: "high", inspectNext: "auth_return_and_draft_continuity" };
+    case "direct_connect_draft_restore_failed":
+      return { ...common, severity: "high", inspectNext: "draft_scope_parse_and_restore" };
+    case "direct_connect_permission_or_role_blocked":
+      return { ...common, severity: "high", inspectNext: "effective_role_and_request_authority" };
+    case "direct_connect_form_validation_blocked":
+      return { ...common, severity: "medium", inspectNext: "validation_field_and_review_transition" };
+    case "direct_connect_repeated_submit_attempt":
+      return { ...common, severity: "medium", inspectNext: "submit_state_and_response_confirmation" };
+    case "direct_connect_repeated_cta_click":
+      return { ...common, severity: "medium", inspectNext: "cta_handler_navigation_and_loading_state" };
+    case "direct_connect_empty_state_seen":
+      return { ...common, severity: "medium", inspectNext: "empty_state_data_source_and_next_action" };
+    default:
+      return {};
+  }
+}
+
 export function sanitizeDemandAttribution(value: unknown): SanitizedDemandAttribution | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const input = value as Record<string, unknown>;
@@ -474,34 +516,39 @@ function startServerDerivedFunnelDetector(): void {
 }
 
 export function registerEventRoutes(app: Express, { storage }: EventRoutesDependencies) {
-  // These are mounted in the real server route stack, after the global CORS
-  // middleware and before the broad analytics route.
   app.use(handleCorsOriginDeniedError);
   app.use(rejectUnsupportedCmsProbe);
 
-  // Compatibility and privacy bridge for Direct Connect shell events. Exact
-  // event registries are intercepted before the broad analytics owner can add
-  // raw IP or full browser strings. Unknown shell events continue unchanged.
+  // Every recognized Direct Connect shell event is intercepted before broad
+  // analytics can attach raw IP or full browser strings. Unknown Direct
+  // Connect names fail closed until they receive an explicit schema.
   app.post("/api/analytics/shell", (req: Request, res: Response, next: NextFunction) => {
     const shellEvent =
       req.body && typeof req.body === "object" && !Array.isArray(req.body)
         ? (req.body as Record<string, unknown>)
         : {};
-    const eventType = normalizeDirectConnectShellType(shellEvent.type);
-    if (!eventType) return next();
+    const rawType = typeof shellEvent.type === "string" ? shellEvent.type.trim() : "";
+    const eventType = normalizeDirectConnectShellType(rawType);
+    if (!eventType) {
+      return rawType.startsWith("direct_connect_") ? res.status(204).end() : next();
+    }
     if (eventType === SERVER_DERIVED_FUNNEL_STALL_EVENT) return res.status(204).end();
 
     return publicEventLimiter(req, res, () => {
       if (serializedByteLength(shellEvent) > MAX_EVENT_BODY_BYTES) {
         return res.status(204).end();
       }
+      const isFriction = CLIENT_DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(eventType);
       scheduleEventWrite({
         storage,
         eventType,
-        data: sanitizeDirectConnectEventData(shellEvent),
+        data: {
+          ...sanitizeDirectConnectEventData(shellEvent),
+          ...(isFriction ? issueMetadata(eventType) : {}),
+        },
         req: req as Request & { user?: { id?: string; contractorId?: string } },
         res,
-        includeAnonymousSession: DIRECT_CONNECT_KPI_EVENT_TYPES.has(eventType),
+        includeAnonymousSession: true,
       });
     });
   });
@@ -518,8 +565,12 @@ export function registerEventRoutes(app: Express, { storage }: EventRoutesDepend
       return res.status(204).end();
     }
 
-    const data = CLIENT_DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(eventType)
-      ? sanitizeDirectConnectEventData(payload.data)
+    const isFriction = CLIENT_DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(eventType);
+    const data = isFriction
+      ? {
+          ...sanitizeDirectConnectEventData(payload.data),
+          ...issueMetadata(eventType),
+        }
       : sanitizeEventData(payload.data);
 
     scheduleEventWrite({
@@ -528,6 +579,7 @@ export function registerEventRoutes(app: Express, { storage }: EventRoutesDepend
       data,
       req: req as Request & { user?: { id?: string; contractorId?: string } },
       res,
+      includeAnonymousSession: isFriction,
     });
   });
 
