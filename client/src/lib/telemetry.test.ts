@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  ALL_DIRECT_CONNECT_FRICTION_EVENTS,
   DIRECT_CONNECT_FRICTION_EVENTS,
-  armDirectConnectFunnelStall,
-  clearDirectConnectFunnelStall,
+  DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS,
   installDirectConnectRuntimeErrorCapture,
-  observeDirectConnectFunnelEvent,
   resetFrictionTelemetryForTests,
   sanitizeFrictionPayload,
   toDirectConnectRouteTemplate,
@@ -20,7 +19,6 @@ function installBrowser(pathname = "/direct-connect") {
   const target = new EventTarget() as FakeWindow;
   target.location = { pathname, search: "" };
   vi.stubGlobal("window", target);
-  vi.stubGlobal("document", { visibilityState: "visible" });
   return target;
 }
 
@@ -29,20 +27,16 @@ function readFetchBody(fetchMock: ReturnType<typeof vi.fn>, index = 0) {
   return { url, options, body: JSON.parse(String(options.body)) };
 }
 
-beforeEach(() => {
-  resetFrictionTelemetryForTests();
-  vi.useRealTimers();
-});
+beforeEach(() => resetFrictionTelemetryForTests());
 
 afterEach(() => {
   resetFrictionTelemetryForTests();
-  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("Direct Connect friction registry", () => {
-  it("contains the exact ten required passive signals", () => {
+  it("keeps nine browser-observed signals and one server-derived stall", () => {
     expect(DIRECT_CONNECT_FRICTION_EVENTS).toEqual([
       "direct_connect_client_runtime_error",
       "direct_connect_api_request_failed",
@@ -53,8 +47,11 @@ describe("Direct Connect friction registry", () => {
       "direct_connect_repeated_cta_click",
       "direct_connect_empty_state_seen",
       "direct_connect_permission_or_role_blocked",
+    ]);
+    expect(DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS).toEqual([
       "direct_connect_funnel_step_stalled",
     ]);
+    expect(ALL_DIRECT_CONNECT_FRICTION_EVENTS).toHaveLength(10);
   });
 
   it("removes query strings and replaces identifying route segments", () => {
@@ -69,8 +66,8 @@ describe("Direct Connect friction registry", () => {
   });
 });
 
-describe("Direct Connect friction payload safety", () => {
-  it("keeps only flat safe metadata", () => {
+describe("Direct Connect payload safety", () => {
+  it("keeps only flat safe metadata and rejects phone-like IDs", () => {
     installBrowser("/direct-connect/requests/1234567890123456");
 
     expect(
@@ -78,8 +75,10 @@ describe("Direct Connect friction payload safety", () => {
         source: "request_submit",
         section: "post",
         reason: "validation_failed",
+        field: "title",
         funnelStep: "review",
         requestId: "req_123",
+        assignmentId: "9856626247",
         statusCode: 422,
         retryCount: 2.9,
         blocked: true,
@@ -98,6 +97,7 @@ describe("Direct Connect friction payload safety", () => {
       source: "request_submit",
       section: "post",
       reason: "validation_failed",
+      field: "title",
       funnelStep: "review",
       requestId: "req_123",
       blocked: true,
@@ -107,12 +107,13 @@ describe("Direct Connect friction payload safety", () => {
     });
   });
 
-  it("rejects contact-like values even when placed in an allowed field", () => {
+  it("rejects contact values placed in allowed fields", () => {
     installBrowser();
     expect(
       sanitizeFrictionPayload({
         source: "private@example.com",
         reason: "+1 (985) 662-6247",
+        requestId: "9856626247",
         section: "post",
       })
     ).toEqual({
@@ -123,8 +124,8 @@ describe("Direct Connect friction payload safety", () => {
 });
 
 describe("Direct Connect friction transport", () => {
-  it("uses the hardened first-party event endpoint and never sends raw content", () => {
-    installBrowser("/direct-connect");
+  it("uses the hardened endpoint and never sends raw content", () => {
+    installBrowser();
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -168,7 +169,7 @@ describe("Direct Connect friction transport", () => {
     expect(serialized).not.toContain("private stack");
   });
 
-  it("emits one repeated-click signal only after the configured threshold", () => {
+  it("emits one repeated signal only after the configured threshold", () => {
     installBrowser();
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
@@ -189,13 +190,13 @@ describe("Direct Connect friction transport", () => {
       data: {
         section: "post",
         reason: "start-request",
-        clickCount: 3,
+        dispatchCount: 3,
       },
     });
   });
 });
 
-describe("Direct Connect runtime and funnel evidence", () => {
+describe("Direct Connect runtime evidence", () => {
   it("captures one controlled runtime signal without reading error details", () => {
     const target = installBrowser();
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
@@ -215,39 +216,12 @@ describe("Direct Connect runtime and funnel evidence", () => {
     expect(serialized).not.toContain("private stack");
   });
 
-  it("emits a stall only when the user remains on the same visible Direct Connect step", () => {
-    installBrowser("/direct-connect");
+  it("does not report runtime failures outside Direct Connect", () => {
+    const target = installBrowser("/community");
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-29T16:00:00Z"));
-
-    armDirectConnectFunnelStall("request_started", 1_000);
-    vi.advanceTimersByTime(1_001);
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(readFetchBody(fetchMock).body).toMatchObject({
-      eventType: "direct_connect_funnel_step_stalled",
-      data: {
-        source: "funnel_watchdog",
-        funnelStep: "request_started",
-        blocked: false,
-        routeTemplate: "/direct-connect",
-      },
-    });
-  });
-
-  it("clears the watchdog when a submission succeeds", () => {
-    installBrowser("/direct-connect");
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal("fetch", fetchMock);
-    vi.useFakeTimers();
-
-    observeDirectConnectFunnelEvent({ type: "direct_connect_request_started" });
-    observeDirectConnectFunnelEvent({ type: "direct_connect_request_submitted" });
-    vi.advanceTimersByTime(11 * 60 * 1_000);
-
+    installDirectConnectRuntimeErrorCapture(target as unknown as Window);
+    target.dispatchEvent(new Event("error"));
     expect(fetchMock).not.toHaveBeenCalled();
-    clearDirectConnectFunnelStall();
   });
 });
