@@ -14,12 +14,94 @@ type DemandAttribution = {
 type SegmentCategory = "homeowner" | "contractor" | "mixed" | "unknown";
 type SegmentIntentLevel = "passive" | "problem_aware" | "actively_looking" | "unknown";
 
+type DemandEventName =
+  | "landing_view"
+  | "cta_click"
+  | "auth_view"
+  | "signin_success"
+  | "create_success"
+  | "setup_complete"
+  | "intent_submitted";
+
+type SafeDemandPayload = Record<string, string | boolean>;
+
 const STORAGE_KEY = "ts_demand_attribution_v1";
+const SAFE_DEMAND_STRING_FIELDS = [
+  "placement",
+  "variant",
+  "mode",
+  "presenceType",
+  "intent",
+  "source",
+  "surface",
+  "cta",
+] as const;
+const SAFE_DEMAND_BOOLEAN_FIELDS = ["verificationRequired", "hasPrompt"] as const;
+const SAFE_DEMAND_TOKEN_PATTERN = /^[a-z0-9][a-z0-9._:/ +~-]*$/i;
 
 function normalize(value: string | null | undefined): string | null {
   if (!value) return null;
   const v = String(value).trim();
   return v.length ? v.slice(0, 120) : null;
+}
+
+function normalizeSafeToken(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  if (
+    normalized.length === 0 ||
+    normalized.length > 120 ||
+    !SAFE_DEMAND_TOKEN_PATTERN.test(normalized)
+  ) {
+    return undefined;
+  }
+  return normalized;
+}
+
+function normalizeSafeRoute(value: unknown): string | undefined {
+  if (typeof value !== "string" || typeof window === "undefined") return undefined;
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin || !url.pathname.startsWith("/")) return undefined;
+    return url.pathname.slice(0, 320);
+  } catch {
+    return undefined;
+  }
+}
+
+export function sanitizeDemandEventPayload(
+  payload: Record<string, unknown> | undefined
+): SafeDemandPayload {
+  if (!payload) return {};
+  const safe: SafeDemandPayload = {};
+
+  for (const key of SAFE_DEMAND_STRING_FIELDS) {
+    const token = normalizeSafeToken(payload[key]);
+    if (token !== undefined) safe[key] = token;
+  }
+
+  for (const key of SAFE_DEMAND_BOOLEAN_FIELDS) {
+    if (typeof payload[key] === "boolean") safe[key] = payload[key] as boolean;
+  }
+
+  for (const key of ["href", "target"] as const) {
+    const route = normalizeSafeRoute(payload[key]);
+    if (route !== undefined) safe[key] = route;
+  }
+
+  const stateCode = typeof payload.stateCode === "string" ? payload.stateCode.trim() : "";
+  if (/^[a-z]{2}$/i.test(stateCode)) safe.stateCode = stateCode.toUpperCase();
+
+  const countyFips = normalizeCountyFips(
+    typeof payload.countyFips === "string"
+      ? payload.countyFips
+      : typeof payload.county_fips === "string"
+        ? payload.county_fips
+        : undefined
+  );
+  if (countyFips) safe.countyFips = countyFips;
+
+  return safe;
 }
 
 function extractVariant(pathname: string): string | null {
@@ -160,14 +242,7 @@ function normalizeIntentLevel(value: string | undefined): SegmentIntentLevel | u
 }
 
 function deriveSegmentIntentLevel(
-  event:
-    | "landing_view"
-    | "cta_click"
-    | "auth_view"
-    | "signin_success"
-    | "create_success"
-    | "setup_complete"
-    | "intent_submitted",
+  event: DemandEventName,
   payload: Record<string, unknown> | undefined
 ): SegmentIntentLevel {
   const explicit = normalizeIntentLevel(
@@ -260,14 +335,7 @@ export function withDemandQueryParams(targetHref: string): string {
 }
 
 export async function trackDemandEvent(
-  event:
-    | "landing_view"
-    | "cta_click"
-    | "auth_view"
-    | "signin_success"
-    | "create_success"
-    | "setup_complete"
-    | "intent_submitted",
+  event: DemandEventName,
   payload?: Record<string, unknown>
 ) {
   if (typeof window === "undefined") return;
@@ -280,17 +348,12 @@ export async function trackDemandEvent(
   const body = {
     eventType: `demand.${event}`,
     data: {
-      ...normalizedPayload,
-      countyFips: countyFips || null,
-      county_fips: countyFips || null,
+      ...sanitizeDemandEventPayload(normalizedPayload),
+      countyFips: countyFips || undefined,
       segmentCategory,
-      segment_category: segmentCategory,
       segmentIntentLevel,
-      segment_intent_level: segmentIntentLevel,
       attribution,
-      path: window.location.pathname,
-      search: window.location.search,
-      timestamp: new Date().toISOString(),
+      route: window.location.pathname,
     },
   };
 
