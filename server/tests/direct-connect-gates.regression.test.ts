@@ -319,10 +319,14 @@ describe("direct-connect gate regressions", () => {
   it("records giveaway eligibility without blocking Direct Connect request creation", () => {
     const routeFile = readRepoFile("server/routes/direct-connect.ts");
     const schemaFile = readRepoFile("shared/schema.ts");
+    const directConnectSchemaFile = readRepoFile("shared/schema/directConnect.ts");
     const migrationFile = readRepoFile("migrations/0097_direct_connect_giveaway_entries.sql");
 
-    expect(schemaFile).toContain("export const directConnectGiveawayEntries = pgTable");
-    expect(schemaFile).toContain('boolean("is_eligible").notNull().default(false)');
+    expect(schemaFile).toContain(
+      "export const { profileRequestDecisionProofs, directConnectGiveawayEntries }"
+    );
+    expect(directConnectSchemaFile).toContain("const directConnectGiveawayEntries = pgTable");
+    expect(directConnectSchemaFile).toContain('boolean("is_eligible").notNull().default(false)');
     expect(migrationFile).toContain("is_eligible boolean NOT NULL DEFAULT false");
     expect(routeFile).toContain('DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE = "FL"');
     expect(routeFile).toContain("residencyStateCode === DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE");
