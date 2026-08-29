@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  allowExplicitInsecureTestDatabase,
   secureDatabaseEnvironment,
   securePostgresConnectionString,
 } from "../shared/database-url-security.mjs";
@@ -29,11 +30,32 @@ test("remote certificate verification cannot be disabled or weakened", () => {
   }
 });
 
-test("localhost connections remain available for explicit development and test use", () => {
+test("localhost connections remain available for development and test use", () => {
   for (const host of ["localhost", "127.0.0.1", "[::1]"]) {
     const input = `postgresql://user:pass@${host}:5432/tradescout?sslmode=disable`;
     assert.equal(securePostgresConnectionString(input), input);
   }
+});
+
+test("the insecure test escape requires both NODE_ENV=test and an explicit flag", () => {
+  assert.equal(
+    allowExplicitInsecureTestDatabase({
+      NODE_ENV: "test",
+      ALLOW_INSECURE_TEST_DATABASE: "true",
+    }),
+    true
+  );
+  assert.equal(
+    allowExplicitInsecureTestDatabase({
+      NODE_ENV: "production",
+      ALLOW_INSECURE_TEST_DATABASE: "true",
+    }),
+    false
+  );
+  assert.equal(
+    allowExplicitInsecureTestDatabase({ NODE_ENV: "test" }),
+    false
+  );
 });
 
 test("the explicit test-only escape does not rewrite a private test database", () => {
