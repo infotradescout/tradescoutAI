@@ -52,6 +52,9 @@ describe("JW Stone requested visual scope", () => {
       "earth",
       "black",
     ]);
+    expect(COLOR_RANGE_STONE_DEFS.find((slice) => slice.colorFamily === "blue")?.stoneId).toBe(
+      "blue-goias"
+    );
     expect(COLOR_RANGE_SLICES).toHaveLength(8);
     expect(new Set(COLOR_RANGE_SLICES.map((slice) => slice.stoneId)).size).toBe(8);
     expect(COLOR_RANGE_SLICES.every((slice) => Boolean(slice.src))).toBe(true);
@@ -101,7 +104,7 @@ describe("JW Stone requested visual scope", () => {
     expect(images.every((image) => image.style.display === "block")).toBe(true);
     expect(images.every((image) => image.style.left === "-1px")).toBe(true);
     expect(images.every((image) => image.style.width === "calc(100% + 2px)")).toBe(true);
-    expect(images.every((image) => image.src.includes("single-stone-spectrum-1"))).toBe(true);
+    expect(images.every((image) => image.src.includes("single-stone-spectrum-2"))).toBe(true);
     expect(images.every((image) => image.src.includes("/inventory-source/"))).toBe(true);
     expect(images.every((image) => !image.src.includes("/color-collage/"))).toBe(true);
   });
@@ -131,7 +134,7 @@ describe("JW Stone requested visual scope", () => {
 
     expect(image?.dataset.fallbackApplied).toBe("true");
     expect(image?.src).toContain(fallbackSrc!);
-    expect(image?.src).toContain("single-stone-spectrum-1-fallback");
+    expect(image?.src).toContain("single-stone-spectrum-2-fallback");
 
     act(() => {
       image?.dispatchEvent(new Event("error", { bubbles: true }));

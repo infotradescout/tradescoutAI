@@ -1,12 +1,12 @@
 import { getCatalogItemById } from "./catalog";
 
-const COLOR_RANGE_VERSION = "single-stone-spectrum-1";
+const COLOR_RANGE_VERSION = "single-stone-spectrum-2";
 
 /**
  * Curated for immediate visual range, not eight near-neutral swatches.
  * One real catalog stone photo per slice makes the card communicate that JW
  * Stone carries everything from light/translucent stone through rose, gold,
- * green, blue, earth tones, and deep black.
+ * green, unmistakable blue, earth tones, and deep black.
  */
 export const COLOR_RANGE_STONE_DEFS = [
   { stoneId: "rhino-white", colorFamily: "white" },
@@ -14,7 +14,7 @@ export const COLOR_RANGE_STONE_DEFS = [
   { stoneId: "alabama-rose", colorFamily: "rose" },
   { stoneId: "gold-macaubas", colorFamily: "gold" },
   { stoneId: "amazonic-green", colorFamily: "green" },
-  { stoneId: "blue-bahia", colorFamily: "blue" },
+  { stoneId: "blue-goias", colorFamily: "blue" },
   { stoneId: "emperor-brown", colorFamily: "earth" },
   { stoneId: "titanium", colorFamily: "black" },
 ] as const;
