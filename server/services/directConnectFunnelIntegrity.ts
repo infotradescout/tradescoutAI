@@ -115,44 +115,57 @@ export async function detectDirectConnectFunnelStalls(options?: {
     lockAcquired = await acquireDetectorLock(client);
     if (!lockAcquired) return { scanned: 0, stalled: 0, lockAcquired: false };
 
+    // Select the newest bounded window first, then restore chronological order
+    // for the pure state-machine computation. Taking the oldest rows under a
+    // LIMIT can drop a recent completion event and falsely label a request as
+    // stalled during a traffic spike.
     const eventsResult = await client.query(
       `
-      SELECT
-        CASE
-          WHEN user_id IS NOT NULL THEN 'u:' || user_id
-          WHEN data->>'anonymousSessionId' IS NOT NULL
-            THEN 'anon:' || (data->>'anonymousSessionId')
-          ELSE NULL
-        END AS identity_key,
-        event_type,
-        created_at
-      FROM events
-      WHERE event_type = ANY($1::text[])
-        AND created_at >= $2
-        AND created_at <= $3
-        AND (user_id IS NOT NULL OR data->>'anonymousSessionId' IS NOT NULL)
+      SELECT identity_key, event_type, created_at
+      FROM (
+        SELECT
+          CASE
+            WHEN user_id IS NOT NULL THEN 'u:' || user_id
+            WHEN data->>'anonymousSessionId' IS NOT NULL
+              THEN 'anon:' || (data->>'anonymousSessionId')
+            ELSE NULL
+          END AS identity_key,
+          event_type,
+          created_at
+        FROM events
+        WHERE event_type = ANY($1::text[])
+          AND created_at >= $2
+          AND created_at <= $3
+          AND (user_id IS NOT NULL OR data->>'anonymousSessionId' IS NOT NULL)
+        ORDER BY created_at DESC
+        LIMIT $4
+      ) AS recent_funnel_events
       ORDER BY created_at ASC
-      LIMIT $4
       `,
       [DIRECT_CONNECT_FUNNEL_EVENT_TYPES, lookbackStart, now, maxRows]
     );
 
     const stalledResult = await client.query(
       `
-      SELECT
-        CASE
-          WHEN user_id IS NOT NULL THEN 'u:' || user_id
-          WHEN data->>'anonymousSessionId' IS NOT NULL
-            THEN 'anon:' || (data->>'anonymousSessionId')
-          ELSE NULL
-        END AS identity_key,
-        data->>'funnelStartedAt' AS started_at,
-        data->>'funnelStep' AS funnel_step
-      FROM events
-      WHERE event_type = 'direct_connect_funnel_step_stalled'
-        AND created_at >= $1
+      SELECT identity_key, started_at, funnel_step
+      FROM (
+        SELECT
+          CASE
+            WHEN user_id IS NOT NULL THEN 'u:' || user_id
+            WHEN data->>'anonymousSessionId' IS NOT NULL
+              THEN 'anon:' || (data->>'anonymousSessionId')
+            ELSE NULL
+          END AS identity_key,
+          data->>'funnelStartedAt' AS started_at,
+          data->>'funnelStep' AS funnel_step,
+          created_at
+        FROM events
+        WHERE event_type = 'direct_connect_funnel_step_stalled'
+          AND created_at >= $1
+        ORDER BY created_at DESC
+        LIMIT $2
+      ) AS recent_funnel_stalls
       ORDER BY created_at ASC
-      LIMIT $2
       `,
       [lookbackStart, maxRows]
     );
