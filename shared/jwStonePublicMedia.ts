@@ -38,6 +38,18 @@ const ASSET_BY_RELATIVE_PATH: ReadonlyMap<string, JwStonePublicMediaAsset> = new
   JW_STONE_PUBLIC_MEDIA_MANIFEST.assets.map((asset) => [asset.relativePath, asset])
 );
 
+/**
+ * The original generated white collage derivative returns bytes that Chromium
+ * cannot decode reliably. Preserve the public URL, but serve a verified white
+ * slab photo already present in the same pinned JW Stone media manifest.
+ */
+const PUBLIC_MEDIA_REPLACEMENT_BY_RELATIVE_PATH: ReadonlyMap<string, string> = new Map([
+  [
+    "color-collage/01-white.webp",
+    "inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp",
+  ],
+]);
+
 function pathnameWithoutQueryOrHash(value: string): string {
   return value.split(/[?#]/, 1)[0] || "";
 }
@@ -63,7 +75,10 @@ export function resolveJwStonePublicMediaAsset(
   ) {
     return null;
   }
-  return ASSET_BY_RELATIVE_PATH.get(relativePath) ?? null;
+
+  const resolvedRelativePath =
+    PUBLIC_MEDIA_REPLACEMENT_BY_RELATIVE_PATH.get(relativePath) ?? relativePath;
+  return ASSET_BY_RELATIVE_PATH.get(resolvedRelativePath) ?? null;
 }
 
 export function isJwStonePublicMediaPath(publicUrlPath: unknown): boolean {
