@@ -41,7 +41,7 @@ describe("JW Stone requested visual scope", () => {
     expect(subtext?.className).toContain("sr-only");
   });
 
-  it("shows a deliberate full-spectrum range using one real stone photo per equal slice", () => {
+  it("uses eight slab-only vertical crops to communicate the full color range", () => {
     expect(COLOR_RANGE_STONE_DEFS.map((slice) => slice.colorFamily)).toEqual([
       "white",
       "crystal",
@@ -53,16 +53,27 @@ describe("JW Stone requested visual scope", () => {
       "black",
     ]);
     expect(COLOR_RANGE_STONE_DEFS.find((slice) => slice.colorFamily === "blue")?.stoneId).toBe(
-      "blue-goias"
+      "blue-dream"
     );
+    expect(
+      COLOR_RANGE_STONE_DEFS.find((slice) => slice.colorFamily === "black")?.stoneId
+    ).toBe("titanium-black-leathered");
     expect(COLOR_RANGE_SLICES).toHaveLength(8);
     expect(new Set(COLOR_RANGE_SLICES.map((slice) => slice.stoneId)).size).toBe(8);
     expect(COLOR_RANGE_SLICES.every((slice) => Boolean(slice.src))).toBe(true);
     expect(
-      COLOR_RANGE_SLICES.every((slice) => slice.src.includes("/inventory-source/"))
+      COLOR_RANGE_SLICES.every((slice) => slice.src.includes("/color-slivers/"))
+    ).toBe(true);
+    expect(
+      COLOR_RANGE_SLICES.every((slice) => !slice.src.includes("/inventory-source/"))
     ).toBe(true);
     expect(
       COLOR_RANGE_SLICES.every((slice) => !slice.src.includes("/color-collage/"))
+    ).toBe(true);
+    expect(
+      COLOR_RANGE_SLICES.every(
+        (slice) => !slice.fallbackSrc || slice.fallbackSrc.includes("/color-slivers/")
+      )
     ).toBe(true);
 
     act(() =>
@@ -96,30 +107,23 @@ describe("JW Stone requested visual scope", () => {
       expect(["0", "0px"]).toContain(slice.style.margin);
       expect(["0", "0px"]).toContain(slice.style.padding);
       expect(["0", "0px"]).toContain(slice.style.borderWidth || slice.style.border);
-      expect(slice.style.containerType).toBe("size");
-      expect(slice.dataset.cropMode).toBe("rotated-slab-face");
       expect(slice.dataset.stoneId).toBe(COLOR_RANGE_SLICES[index]?.stoneId);
       expect(slice.dataset.colorFamily).toBe(COLOR_RANGE_SLICES[index]?.colorFamily);
+      expect(slice.dataset.cropMode).toBe("slab-core-sliver");
     }
 
     expect(images).toHaveLength(8);
     expect(images.every((image) => image.style.display === "block")).toBe(true);
-    expect(images.every((image) => image.style.top === "50%")).toBe(true);
-    expect(images.every((image) => image.style.left === "50%")).toBe(true);
-    expect(images.every((image) => image.style.width === "calc(100cqh + 4px)")).toBe(true);
-    expect(images.every((image) => image.style.height === "calc(100cqw + 4px)")).toBe(true);
-    expect(images.every((image) => image.style.maxWidth === "none")).toBe(true);
-    expect(images.every((image) => image.style.maxHeight === "none")).toBe(true);
-    expect(images.every((image) => image.style.objectFit === "cover")).toBe(true);
-    expect(images.every((image) => image.style.objectPosition === "50% 54%")).toBe(true);
-    expect(images.every((image) => image.style.transform.includes("rotate(90deg)"))).toBe(true);
-    expect(images.every((image) => image.style.transform.includes("scale(1.1)"))).toBe(true);
-    expect(images.every((image) => image.src.includes("single-stone-spectrum-3"))).toBe(true);
-    expect(images.every((image) => image.src.includes("/inventory-source/"))).toBe(true);
+    expect(images.every((image) => image.style.left === "-1px")).toBe(true);
+    expect(images.every((image) => image.style.width === "calc(100% + 2px)")).toBe(true);
+    expect(images.every((image) => image.style.objectPosition === "center")).toBe(true);
+    expect(images.every((image) => image.src.includes("slab-core-spectrum-1"))).toBe(true);
+    expect(images.every((image) => image.src.includes("/color-slivers/"))).toBe(true);
+    expect(images.every((image) => !image.src.includes("/inventory-source/"))).toBe(true);
     expect(images.every((image) => !image.src.includes("/color-collage/"))).toBe(true);
   });
 
-  it("tries another photo of the same stone and never leaves a broken-image icon", () => {
+  it("falls back only to another slab crop and never leaves a broken-image icon", () => {
     act(() =>
       root.render(
         <div className="relative h-64">
@@ -144,8 +148,9 @@ describe("JW Stone requested visual scope", () => {
 
     expect(image?.dataset.fallbackApplied).toBe("true");
     expect(image?.src).toContain(fallbackSrc!);
-    expect(image?.src).toContain("single-stone-spectrum-3-fallback");
-    expect(image?.style.transform).toContain("rotate(90deg)");
+    expect(image?.src).toContain("slab-core-spectrum-1-fallback");
+    expect(image?.src).toContain("/color-slivers/");
+    expect(image?.src).not.toContain("/inventory-source/");
 
     act(() => {
       image?.dispatchEvent(new Event("error", { bubbles: true }));
