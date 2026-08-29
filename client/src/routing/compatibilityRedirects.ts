@@ -135,9 +135,7 @@ export const COMPATIBILITY_REDIRECTS = [
     slot: "standard",
   },
   { from: "/file-management", to: "/admin/attachments", access: "admin", slot: "standard" },
-  { from: "/admin-dashboard", to: "/admin", access: "admin", slot: "standard" },
   { from: "/admin-users", to: "/admin/users", access: "admin", slot: "standard" },
-  { from: "/admin-panel", to: "/admin/panel", access: "admin", slot: "standard" },
 
   { from: "/settings/profile", to: "/profile-settings", access: "public", slot: "standard" },
   {

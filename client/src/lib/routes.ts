@@ -35,7 +35,7 @@ export const ROUTES = {
   connections: "/connections",
 
   // Admin routes (require admin role)
-  ADMIN_PANEL: "/admin",
+  ADMIN_PANEL: "/admin/panel",
   ADMIN_DASHBOARD: "/admin",
   ADMIN_USERS: "/admin/users",
 

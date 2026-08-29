@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const ROOTS = [path.resolve("client", "src"), path.resolve("server")];
+const ROOTS = [path.resolve("client", "src"), path.resolve("server"), path.resolve("shared")];
 const INCLUDE_EXT = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const EXCLUDE_DIRS = new Set([
   "node_modules",
@@ -50,6 +50,10 @@ const ALLOWLIST_FILES = new Set([
   "client/src/routing/compatibilityRedirects.test.ts",
 ]);
 
+// These top-level names used to collapse two distinct admin surfaces. Runtime
+// code must not restore them, including in the compatibility registry.
+const RUNTIME_RETIRED_ALIASES = new Set(["/admin-panel", "/admin-dashboard"]);
+
 function walk(dir, out) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -81,7 +85,8 @@ for (const root of ROOTS) {
 
 const rules = FORBIDDEN_ROUTE_ALIASES.map((route) => ({
   route,
-  re: new RegExp(`[\"'\`]${escapeRegex(route)}(?=[\"'\`/?#])`, "g"),
+  // No global flag: RegExp.test must be stateless across files and lines.
+  re: new RegExp(`[\"'\`]${escapeRegex(route)}(?=[\"'\`/?#])`, "i"),
 }));
 
 const violations = [];
@@ -94,7 +99,7 @@ for (const file of files) {
     const line = lines[i];
     for (const rule of rules) {
       if (!rule.re.test(line)) continue;
-      if (ALLOWLIST_FILES.has(relative)) continue;
+      if (ALLOWLIST_FILES.has(relative) && !RUNTIME_RETIRED_ALIASES.has(rule.route)) continue;
       violations.push(`${relative}:${i + 1} uses legacy route alias "${rule.route}"`);
     }
   }

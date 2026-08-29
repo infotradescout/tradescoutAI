@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { isSafeNextPath } from "../../client/src/lib/postOnboardingRoute";
+import { COMPATIBILITY_REDIRECT_ALIASES } from "../../client/src/routing/compatibilityRedirects";
 
 const read = (relativePath: string) => {
   const fullPath = path.resolve(process.cwd(), relativePath);
@@ -9,8 +10,6 @@ const read = (relativePath: string) => {
 };
 
 const LEGACY_ALIAS_REDIRECTS: Array<{ legacy: string; canonical: string }> = [
-  { legacy: "/admin-panel", canonical: "/admin/panel" },
-  { legacy: "/admin-dashboard", canonical: "/admin" },
   { legacy: "/admin/dashboard", canonical: "/admin" },
   { legacy: "/admin-users", canonical: "/admin/users" },
   { legacy: "/admin-observability", canonical: "/admin/live-stream" },
@@ -26,6 +25,8 @@ const LEGACY_ALIAS_REDIRECTS: Array<{ legacy: string; canonical: string }> = [
   { legacy: "/payment-processing", canonical: "/admin/payment-model" },
   { legacy: "/file-management", canonical: "/admin/attachments" },
 ];
+
+const RETIRED_RUNTIME_ALIASES = ["/admin-panel", "/admin-dashboard"] as const;
 
 describe("admin route alias contracts", () => {
   it("keeps legacy route redirects in the runtime compatibility registry", () => {
@@ -56,6 +57,18 @@ describe("admin route alias contracts", () => {
     expect(routeConfig).toContain("ALIASES: COMPATIBILITY_REDIRECT_ALIASES");
   });
 
+  it("retires ambiguous top-level aliases and keeps /admin and /admin/panel distinct", () => {
+    const source = read("client/src/routing/compatibilityRedirects.ts");
+    const routeConfig = read("client/src/lib/routes.ts");
+
+    for (const alias of RETIRED_RUNTIME_ALIASES) {
+      expect(COMPATIBILITY_REDIRECT_ALIASES[alias]).toBeUndefined();
+      expect(source).not.toContain(`from: "${alias}"`);
+    }
+    expect(routeConfig).toContain('ADMIN_DASHBOARD: "/admin"');
+    expect(routeConfig).toContain('ADMIN_PANEL: "/admin/panel"');
+  });
+
   it("allows onboarding deep-links for approved legacy admin aliases", () => {
     const requiredSafePrefixes = [
       "/admin/professional-verification",
@@ -65,8 +78,6 @@ describe("admin route alias contracts", () => {
       "/contractor-verification",
       "/content-moderation",
       "/admin/dashboard",
-      "/admin-panel",
-      "/admin-dashboard",
       "/admin-users",
       "/admin/workspace",
       "/staff/hardrock-directory",
@@ -92,8 +103,15 @@ describe("admin route alias contracts", () => {
     for (const entry of LEGACY_ALIAS_REDIRECTS) {
       expect(source).toContain(`"${entry.legacy}"`);
     }
+    for (const alias of RETIRED_RUNTIME_ALIASES) {
+      expect(source).toContain(`"${alias}"`);
+    }
     expect(source).toContain('"/admin/contractors"');
     expect(source).toContain('"/admin/contractor-settings"');
+    expect(source).toContain('path.resolve("shared")');
+    expect(source).toContain("RUNTIME_RETIRED_ALIASES");
+    expect(source).toMatch(/re: new RegExp\([^\n]+, "i"\)/);
+    expect(source).not.toMatch(/re: new RegExp\([^\n]+, "g"\)/);
     expect(source).toContain('"client/src/AppRoutes.tsx"');
     expect(source).toContain('"client/src/admin/adminTools.tsx"');
     expect(source).toContain('"client/src/lib/postOnboardingRoute.ts"');
