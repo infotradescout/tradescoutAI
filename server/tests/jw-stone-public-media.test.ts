@@ -17,17 +17,18 @@ const verifiedWhiteReplacementKey =
 const verticalColorSlivers = [
   "rhino-white.webp",
   "galaxy-white.webp",
-  "cristallo.webp",
-  "calacatta-cremo.webp",
-  "alabama-rose.webp",
+  "trending-selection-03.webp",
+  "dueto.webp",
+  "honey-onyx.webp",
+  "fusion-brown.webp",
   "gold-macaubas.webp",
   "giallo-ornamental.webp",
   "amazonic-green.webp",
-  "juparana-blue.webp",
+  "marbella-green.webp",
   "blue-dream.webp",
   "blue-bahia.webp",
-  "emperor-brown.webp",
-  "mexican-brown.webp",
+  "bronzonite.webp",
+  "chocolate-brown.webp",
   "titanium-black-leathered.webp",
   "preto-sao-gabriel.webp",
 ].map((fileName) => `/images/businesses/jw-stone/color-slivers/${fileName}`);
@@ -57,11 +58,11 @@ describe("JW Stone server-side public media", () => {
   });
 
   it("pins every slab-only vertical color image to verified production storage", () => {
-    expect(verticalColorSlivers).toHaveLength(15);
+    expect(verticalColorSlivers).toHaveLength(16);
 
     for (const publicPath of verticalColorSlivers) {
       expect(resolveJwStonePublicMediaObjectKey(publicPath)).toBe(`public-media${publicPath}`);
-      expect(resolveJwStonePublicMediaObjectKey(`${publicPath}?v=slab-core-spectrum-1`)).toBe(
+      expect(resolveJwStonePublicMediaObjectKey(`${publicPath}?v=slab-core-spectrum-2`)).toBe(
         `public-media${publicPath}`
       );
     }
