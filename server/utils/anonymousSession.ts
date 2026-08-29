@@ -17,16 +17,17 @@ function readCookieValue(req: Request, name: string): string {
 }
 
 /**
- * Resolves an existing anonymous session identifier already supplied by the
- * browser or the active Express session. It never derives identity from IP
- * address, user-agent, screen dimensions, or any fingerprinting signal.
+ * Resolves an existing anonymous session identifier. The server-owned Express
+ * session wins whenever present; caller-supplied headers and legacy cookies
+ * are fallback continuity only. Identity is never derived from IP address,
+ * user-agent, screen dimensions, or any fingerprinting signal.
  */
 export function resolveAnonymousSessionId(req: Request): string {
-  const fromHeader = String(req.headers["x-anonymous-session-id"] || "").trim();
-  if (fromHeader) return fromHeader;
-
   const fromExpressSession = String((req as Request & { sessionID?: string }).sessionID || "").trim();
   if (fromExpressSession) return fromExpressSession;
+
+  const fromHeader = String(req.headers["x-anonymous-session-id"] || "").trim();
+  if (fromHeader) return fromHeader;
 
   const fromQuery = String((req.query as any)?.anonymousSessionId || "").trim();
   if (fromQuery) return fromQuery;
