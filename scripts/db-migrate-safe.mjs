@@ -4,7 +4,10 @@ import { runCommand } from "./lib/subprocess.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { securePostgresConnectionString } from "../shared/database-url-security.mjs";
+import {
+  allowExplicitInsecureTestDatabase,
+  securePostgresConnectionString,
+} from "../shared/database-url-security.mjs";
 
 dotenv.config();
 
@@ -37,8 +40,7 @@ function drizzleMigrationCommand() {
 async function migrationCount() {
   const rawDbUrl = process.env.DATABASE_URL ?? process.env.TEST_DATABASE_URL;
   const dbUrl = securePostgresConnectionString(rawDbUrl, {
-    allowInsecureTestConnection:
-      process.env.NODE_ENV === "test" && Boolean(process.env.TEST_DATABASE_URL),
+    allowInsecureTestConnection: allowExplicitInsecureTestDatabase(process.env),
   });
   if (!dbUrl) return null;
 
