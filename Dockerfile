@@ -50,6 +50,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/runtime/package.json /app/runtime/package.json
 COPY --from=builder /app/runtime/verify-built-runtime.mjs /app/runtime/verify-built-runtime.mjs
 COPY --from=builder /app/runtime/run-release.mjs /app/runtime/run-release.mjs
+COPY --from=builder /app/shared/database-url-security.mjs /app/runtime/database-url-security.mjs
 COPY --from=builder /app/runtime/drizzle.config.mjs ./runtime/drizzle.config.mjs
 # SQL and metadata are read by pre-deploy migrations and release health.
 COPY --from=builder /app/migrations ./migrations
@@ -72,5 +73,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10m --retries=3 \
 # Render normally verifies public media in pre-deploy. The runtime gate requires an
 # exact-release marker in the selected existing object store and performs the same
 # idempotent migration if Blueprint sync ever lags, so a container cannot become
-# healthy with missing public inventory.
-CMD ["sh", "-c", "node dist/release/ensure-public-media-ready.mjs && exec node dist/index.js"]
+# healthy with missing public inventory. The release launcher also upgrades every
+# remote PostgreSQL URL to explicit verify-full certificate validation.
+CMD ["sh", "-c", "node runtime/run-release.mjs ensure-public-media-ready scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]
