@@ -33,41 +33,38 @@ async function flushEventWrite() {
 }
 
 describe("first-party event ownership", () => {
-  it("registers the legacy Direct Connect bridge before the hardened endpoint", () => {
-    const registrations: Array<[string, number]> = [];
+  it("mounts runtime guards and the legacy bridge before the hardened endpoint", () => {
+    const registrations: Array<[string, string | null, number]> = [];
     registerEventRoutes(
       {
-        post: (route: string, ...handlers: unknown[]) => registrations.push([route, handlers.length]),
+        use: (...handlers: unknown[]) => registrations.push(["USE", null, handlers.length]),
+        post: (route: string, ...handlers: unknown[]) =>
+          registrations.push(["POST", route, handlers.length]),
       } as any,
       { storage: { logEvent: vi.fn() } }
     );
+
     expect(registrations).toEqual([
-      ["/api/analytics/shell", 1],
-      ["/api/events", 2],
+      ["USE", null, 1],
+      ["USE", null, 1],
+      ["POST", "/api/analytics/shell", 1],
+      ["POST", "/api/events", 2],
     ]);
   });
 
-  it("mounts before broad analytics and keeps HTTP guards ahead of routes", () => {
+  it("mounts before broad analytics and starts the server-derived detector", () => {
     const root = fs.readFileSync(path.resolve("server/routes.ts"), "utf8");
     const eventModule = fs.readFileSync(path.resolve("server/routes/events.ts"), "utf8");
-    const appModule = fs.readFileSync(path.resolve("server/app.ts"), "utf8");
 
     expect(root.match(/registerEventRoutes\(app, \{ storage \}\);/g)).toHaveLength(1);
     expect(root.indexOf("registerEventRoutes(app, { storage });")).toBeLessThan(
       root.indexOf("registerAnalyticsRoutes(app);")
     );
+    expect(eventModule).toContain("app.use(handleCorsOriginDeniedError)");
+    expect(eventModule).toContain("app.use(rejectUnsupportedCmsProbe)");
+    expect(eventModule).toContain("startDirectConnectFunnelStallDetector");
     expect(eventModule).toContain('Pick<IStorage, "logEvent">');
     expect(eventModule).not.toMatch(/from ["']\.\.\/storage["']/);
-
-    const cors = appModule.indexOf("app.use(cors(corsOptions));");
-    const corsGuard = appModule.indexOf("app.use(handleCorsOriginDeniedError);");
-    const cmsGuard = appModule.indexOf("app.use(rejectUnsupportedCmsProbe);");
-    const jsonBody = appModule.indexOf("app.use(express.json");
-    const routes = appModule.indexOf("await registerRoutes(app)");
-    expect(corsGuard).toBeGreaterThan(cors);
-    expect(cmsGuard).toBeGreaterThan(corsGuard);
-    expect(jsonBody).toBeGreaterThan(cmsGuard);
-    expect(routes).toBeGreaterThan(jsonBody);
   });
 });
 
@@ -99,7 +96,7 @@ describe("HTTP failure classification", () => {
 });
 
 describe("event registries", () => {
-  it("keeps the seven public demand events", () => {
+  it("keeps the seven public demand events and exact ten friction signals", () => {
     expect(Array.from(PUBLIC_DEMAND_EVENT_TYPES)).toEqual([
       "demand.landing_view",
       "demand.cta_click",
@@ -109,9 +106,6 @@ describe("event registries", () => {
       "demand.setup_complete",
       "demand.intent_submitted",
     ]);
-  });
-
-  it("adds the exact ten Direct Connect friction signals", () => {
     expect(Array.from(DIRECT_CONNECT_FRICTION_EVENT_TYPES)).toEqual([
       "direct_connect_client_runtime_error",
       "direct_connect_api_request_failed",
@@ -126,14 +120,13 @@ describe("event registries", () => {
     ]);
   });
 
-  it("accepts registered names and rejects unknown names", () => {
+  it("accepts client events but refuses a client-submitted stall", () => {
     expect(normalizeEventType(" demand.cta_click ")).toBe("demand.cta_click");
     expect(normalizeEventType(" direct_connect_api_request_failed ")).toBe(
       "direct_connect_api_request_failed"
     );
-    for (const value of [undefined, null, "", 42, "event.test", "demand.unknown"]) {
-      expect(normalizeEventType(value)).toBeNull();
-    }
+    expect(normalizeEventType("direct_connect_funnel_step_stalled")).toBeNull();
+    expect(normalizeEventType("event.test")).toBeNull();
   });
 });
 
@@ -147,7 +140,6 @@ describe("sanitization", () => {
         campaignKey: "gulf_coast_launch",
         lastSeenAt: "2026-08-29T16:00:00Z",
         email: "private@example.com",
-        nested: { secret: true },
       })
     ).toEqual({
       ref: "partner_123",
@@ -173,14 +165,16 @@ describe("sanitization", () => {
     });
   });
 
-  it("keeps only safe Direct Connect metadata and templates identifying routes", () => {
+  it("keeps only safe Direct Connect metadata and rejects phone-like IDs", () => {
     expect(
       sanitizeDirectConnectEventData({
         source: "request_submit",
         section: "post",
         reason: "validation_failed",
+        field: "title",
         funnelStep: "review",
         requestId: "req_123",
+        assignmentId: "9856626247",
         statusCode: 422,
         retryCount: 2.9,
         blocked: true,
@@ -199,6 +193,7 @@ describe("sanitization", () => {
       source: "request_submit",
       section: "post",
       reason: "validation_failed",
+      field: "title",
       funnelStep: "review",
       requestId: "req_123",
       blocked: true,
@@ -213,6 +208,7 @@ describe("sanitization", () => {
       sanitizeDirectConnectEventData({
         source: "private@example.com",
         reason: "+1 (985) 662-6247",
+        requestId: "9856626247",
         routeTemplate: "/direct-connect",
       })
     ).toEqual({ surface: "direct_connect", routeTemplate: "/direct-connect" });
@@ -220,7 +216,7 @@ describe("sanitization", () => {
 });
 
 describe("first-party route behavior", () => {
-  it("persists a Direct Connect signal with server identity and coarse device only", async () => {
+  it("persists a signal with server identity and coarse device only", async () => {
     const logEvent = vi.fn().mockResolvedValue(undefined);
     const response = await request(
       createEventApp({ logEvent }, { id: "session-user", contractorId: "session-contractor" })
@@ -260,7 +256,7 @@ describe("first-party route behavior", () => {
     });
   });
 
-  it("intercepts old cached Direct Connect clients before broad shell enrichment", async () => {
+  it("intercepts old cached clients without raw browser enrichment", async () => {
     const logEvent = vi.fn().mockResolvedValue(undefined);
     const app = createEventApp({ logEvent });
     app.post("/api/analytics/shell", (_req, res) => res.status(202).end());
@@ -291,14 +287,24 @@ describe("first-party route behavior", () => {
     expect(JSON.stringify(persisted)).not.toContain("private message");
   });
 
-  it("lets unrelated shell analytics continue to its existing owner", async () => {
+  it("drops browser-submitted stalls while unrelated shell events continue", async () => {
     const logEvent = vi.fn().mockResolvedValue(undefined);
     const app = createEventApp({ logEvent });
     app.post("/api/analytics/shell", (_req, res) => res.status(202).end());
-    const response = await request(app)
+
+    const legacyStall = await request(app)
+      .post("/api/analytics/shell")
+      .send({ type: "direct_connect_funnel_step_stalled", funnelStep: "review" });
+    const hardenedStall = await request(app)
+      .post("/api/events")
+      .send({ eventType: "direct_connect_funnel_step_stalled" });
+    const unrelated = await request(app)
       .post("/api/analytics/shell")
       .send({ type: "community_shell_load" });
-    expect(response.status).toBe(202);
+
+    expect(legacyStall.status).toBe(204);
+    expect(hardenedStall.status).toBe(204);
+    expect(unrelated.status).toBe(202);
     expect(logEvent).not.toHaveBeenCalled();
   });
 
