@@ -96,15 +96,25 @@ describe("JW Stone requested visual scope", () => {
       expect(["0", "0px"]).toContain(slice.style.margin);
       expect(["0", "0px"]).toContain(slice.style.padding);
       expect(["0", "0px"]).toContain(slice.style.borderWidth || slice.style.border);
+      expect(slice.style.containerType).toBe("size");
+      expect(slice.dataset.cropMode).toBe("rotated-slab-face");
       expect(slice.dataset.stoneId).toBe(COLOR_RANGE_SLICES[index]?.stoneId);
       expect(slice.dataset.colorFamily).toBe(COLOR_RANGE_SLICES[index]?.colorFamily);
     }
 
     expect(images).toHaveLength(8);
     expect(images.every((image) => image.style.display === "block")).toBe(true);
-    expect(images.every((image) => image.style.left === "-1px")).toBe(true);
-    expect(images.every((image) => image.style.width === "calc(100% + 2px)")).toBe(true);
-    expect(images.every((image) => image.src.includes("single-stone-spectrum-2"))).toBe(true);
+    expect(images.every((image) => image.style.top === "50%")).toBe(true);
+    expect(images.every((image) => image.style.left === "50%")).toBe(true);
+    expect(images.every((image) => image.style.width === "calc(100cqh + 4px)")).toBe(true);
+    expect(images.every((image) => image.style.height === "calc(100cqw + 4px)")).toBe(true);
+    expect(images.every((image) => image.style.maxWidth === "none")).toBe(true);
+    expect(images.every((image) => image.style.maxHeight === "none")).toBe(true);
+    expect(images.every((image) => image.style.objectFit === "cover")).toBe(true);
+    expect(images.every((image) => image.style.objectPosition === "50% 54%")).toBe(true);
+    expect(images.every((image) => image.style.transform.includes("rotate(90deg)"))).toBe(true);
+    expect(images.every((image) => image.style.transform.includes("scale(1.1)"))).toBe(true);
+    expect(images.every((image) => image.src.includes("single-stone-spectrum-3"))).toBe(true);
     expect(images.every((image) => image.src.includes("/inventory-source/"))).toBe(true);
     expect(images.every((image) => !image.src.includes("/color-collage/"))).toBe(true);
   });
@@ -134,7 +144,8 @@ describe("JW Stone requested visual scope", () => {
 
     expect(image?.dataset.fallbackApplied).toBe("true");
     expect(image?.src).toContain(fallbackSrc!);
-    expect(image?.src).toContain("single-stone-spectrum-2-fallback");
+    expect(image?.src).toContain("single-stone-spectrum-3-fallback");
+    expect(image?.style.transform).toContain("rotate(90deg)");
 
     act(() => {
       image?.dispatchEvent(new Event("error", { bubbles: true }));
