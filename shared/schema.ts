@@ -3550,6 +3550,63 @@ export const workRequests = pgTable("work_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Short-lived authority for an anonymous public-profile request. The submitted
+// contact payload is not allowed to resolve or create a user until the same
+// browser session explicitly confirms this one-time Decision Card proof.
+export const profileRequestDecisionProofs = pgTable(
+  "profile_request_decision_proofs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    proofHash: varchar("proof_hash", { length: 64 }).notNull(),
+    sessionBindingHash: varchar("session_binding_hash", { length: 64 }).notNull(),
+    authorityGate: varchar("authority_gate", { length: 32 }).notNull().default("decision_card"),
+    source: varchar("source", { length: 64 }).notNull(),
+    targetProfileId: varchar("target_profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    targetProfileSlug: varchar("target_profile_slug", { length: 255 }).notNull(),
+    targetBusinessId: varchar("target_business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    targetOwnerUserId: varchar("target_owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    decisionScope: text("decision_scope").notNull(),
+    requestPayload: jsonb("request_payload").$type<Record<string, unknown>>().notNull(),
+    status: varchar("status", { length: 24 }).notNull().default("pending"),
+    expiresAt: timestamp("expires_at").notNull(),
+    consumedAt: timestamp("consumed_at"),
+    workRequestId: varchar("work_request_id").references(() => workRequests.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("profile_request_decision_proofs_hash_uidx").on(table.proofHash),
+    index("profile_request_decision_proofs_expiry_idx").on(table.status, table.expiresAt),
+    index("profile_request_decision_proofs_target_idx").on(
+      table.targetProfileId,
+      table.targetBusinessId,
+      table.targetOwnerUserId
+    ),
+    check(
+      "profile_request_decision_proofs_authority_check",
+      sql`${table.authorityGate} = 'decision_card'`
+    ),
+    check(
+      "profile_request_decision_proofs_source_check",
+      sql`${table.source} = 'tradepartner_profile'`
+    ),
+    check(
+      "profile_request_decision_proofs_status_check",
+      sql`${table.status} IN ('pending', 'confirmed')`
+    ),
+  ]
+);
+
 export const directConnectGiveawayEntries = pgTable(
   "direct_connect_giveaway_entries",
   {
@@ -4379,6 +4436,8 @@ export type VerificationRequest = typeof verificationRequests.$inferSelect;
 export type InsertVerificationRequest = typeof verificationRequests.$inferInsert;
 export type WorkRequest = typeof workRequests.$inferSelect;
 export type InsertWorkRequest = typeof workRequests.$inferInsert;
+export type ProfileRequestDecisionProof = typeof profileRequestDecisionProofs.$inferSelect;
+export type InsertProfileRequestDecisionProof = typeof profileRequestDecisionProofs.$inferInsert;
 export type WorkRequestEvent = typeof workRequestEvents.$inferSelect;
 export type InsertWorkRequestEvent = typeof workRequestEvents.$inferInsert;
 export type WorkRequestAssignment = typeof workRequestAssignments.$inferSelect;
