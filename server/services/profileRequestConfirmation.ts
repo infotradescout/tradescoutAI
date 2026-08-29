@@ -122,6 +122,7 @@ function assertTargetAuthority(decision: LockedProfileRequestDecision): void {
   const candidate = {
     profileSlug: decision.target.profileSlug,
     profileStatus: decision.target.profileStatus,
+    profileRoleContext: decision.target.profileRoleContext,
     profileOwnerUserId: decision.target.profileOwnerUserId,
     businessStatus: decision.target.businessStatus,
     businessOwnerUserId: decision.target.businessOwnerUserId,

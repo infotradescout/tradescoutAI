@@ -32,6 +32,7 @@ function decision(overrides: Partial<LockedProfileRequestDecision["target"]> = {
       profileId: "profile-1",
       profileSlug: "example-business",
       profileStatus: "published",
+      profileRoleContext: "business_owner",
       profileOwnerUserId: "owner-1",
       businessId: "business-1",
       businessName: "Example Business",
@@ -154,6 +155,23 @@ describe("confirmed anonymous profile request", () => {
       finalizeConfirmedAnonymousProfileRequest(
         client,
         decision({ profileStatus: "draft", publicDiscoveryEnabled: false })
+      )
+    ).rejects.toEqual(
+      expect.objectContaining<Partial<ProfileRequestDecisionError>>({ code: "AUTHORITY_CHANGED" })
+    );
+    expect(client.query).not.toHaveBeenCalled();
+  });
+
+  it("rejects an internal role-context change before requester lookup or mutation", async () => {
+    const client: ProfileRequestDecisionQueryClient = {
+      query: vi.fn() as ProfileRequestDecisionQueryClient["query"],
+      release: vi.fn(),
+    };
+
+    await expect(
+      finalizeConfirmedAnonymousProfileRequest(
+        client,
+        decision({ profileRoleContext: "super_admin" })
       )
     ).rejects.toEqual(
       expect.objectContaining<Partial<ProfileRequestDecisionError>>({ code: "AUTHORITY_CHANGED" })

@@ -40,6 +40,7 @@ export type LockedProfileRequestDecision = {
     profileId: string;
     profileSlug: string;
     profileStatus: string | null;
+    profileRoleContext: string | null;
     profileOwnerUserId: string;
     businessId: string;
     businessName: string;
@@ -76,6 +77,7 @@ type LockedDecisionRow = {
   profile_id: string;
   profile_slug: string;
   profile_status: string | null;
+  profile_role_context: string | null;
   profile_owner_user_id: string;
   business_id: string;
   business_name: string;
@@ -246,6 +248,7 @@ export class ProfileRequestDecisionService {
            profile.id AS profile_id,
            profile.slug AS profile_slug,
            profile.status AS profile_status,
+           profile.role_context AS profile_role_context,
            profile.owner_user_id AS profile_owner_user_id,
            business.id AS business_id,
            business.name AS business_name,
@@ -324,6 +327,7 @@ export class ProfileRequestDecisionService {
           profileId: row.profile_id,
           profileSlug: row.profile_slug,
           profileStatus: row.profile_status,
+          profileRoleContext: row.profile_role_context,
           profileOwnerUserId: row.profile_owner_user_id,
           businessId: row.business_id,
           businessName: row.business_name,

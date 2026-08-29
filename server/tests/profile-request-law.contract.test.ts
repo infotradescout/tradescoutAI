@@ -50,6 +50,22 @@ describe("anonymous public-profile request law", () => {
     expect(decisionService).toContain("row.target_owner_user_id !== row.owner_user_id");
   });
 
+  it("carries current role context through stage and locked authority revalidation", () => {
+    const targetResolver = route.slice(
+      route.indexOf("async function resolveTradePartnerTarget"),
+      route.indexOf("type ConfirmedProfileRequestDelivery")
+    );
+
+    expect(targetResolver).toContain("profileRoleContext: profiles.roleContext");
+    expect(targetResolver).toContain("profileRoleContext: row?.profileRoleContext");
+    expect(targetResolver.indexOf("profileRoleContext: row?.profileRoleContext")).toBeLessThan(
+      targetResolver.indexOf("!canExposePublishedProfilePublicly({")
+    );
+    expect(decisionService).toContain("profile.role_context AS profile_role_context");
+    expect(decisionService).toContain("profileRoleContext: row.profile_role_context");
+    expect(confirmationService).toContain("profileRoleContext: decision.target.profileRoleContext");
+  });
+
   it("locks every mutable authority row and consumes proof in the winning transaction", () => {
     expect(decisionService).toContain("FOR UPDATE OF decision, profile, business, owner_account");
     expect(decisionService.indexOf("FOR UPDATE OF decision")).toBeLessThan(

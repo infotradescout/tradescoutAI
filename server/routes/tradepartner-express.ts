@@ -217,6 +217,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       profileId: profiles.id,
       profileSlug: profiles.slug,
       profileStatus: profiles.status,
+      profileRoleContext: profiles.roleContext,
       ownerUserId: profiles.ownerUserId,
       businessId: businesses.id,
       businessName: businesses.name,
@@ -242,6 +243,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   const directProfileCandidate = {
     profileSlug: row?.profileSlug,
     profileStatus: row?.profileStatus,
+    profileRoleContext: row?.profileRoleContext,
     profileOwnerUserId: row?.ownerUserId,
     businessStatus: row?.businessStatus,
     businessOwnerUserId: row?.businessOwnerUserId,

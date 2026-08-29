@@ -34,6 +34,7 @@ function lockedRow(overrides: Record<string, unknown> = {}) {
     profile_id: "profile-1",
     profile_slug: "example-business",
     profile_status: "published",
+    profile_role_context: "business_owner",
     profile_owner_user_id: "owner-1",
     business_id: "business-1",
     business_name: "Example Business",
@@ -123,6 +124,7 @@ describe("ProfileRequestDecisionService", () => {
       expect(_client).toBe(client);
       expect(decision.target).toMatchObject({
         profileId: "profile-1",
+        profileRoleContext: "business_owner",
         businessId: "business-1",
         ownerUserId: "owner-1",
       });
@@ -143,6 +145,7 @@ describe("ProfileRequestDecisionService", () => {
     expect(finalize).toHaveBeenCalledTimes(1);
     const lockQuery = queries.find(({ sql }) => sql.includes("FOR UPDATE"))?.sql || "";
     expect(lockQuery).toContain("FOR UPDATE OF decision, profile, business, owner_account");
+    expect(lockQuery).toContain("profile.role_context AS profile_role_context");
     expect(lockQuery).toContain("business.id = profile.business_id");
     expect(lockQuery).toContain("owner_account.id = business.owner_user_id");
     const consumeQuery = queries.find(({ sql }) =>

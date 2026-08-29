@@ -4,6 +4,7 @@ import {
   JRS_PROFILE_SLUG,
   OWNER_CONFIRMED_PROFILE_SOURCE,
   PRO_FAB_PROFILE_SLUG,
+  canExposePublishedProfilePublicly,
   isOwnerConfirmedDirectProfile,
 } from "../services/ownerConfirmedDirectProfile";
 
@@ -54,6 +55,26 @@ describe("owner-confirmed direct profile authority", () => {
       isOwnerConfirmedDirectProfile({
         ...approvedCandidate,
         businessSources: [ADMIN_MANAGED_PROFILE_SOURCE],
+      })
+    ).toBe(false);
+  });
+
+  it("rejects an internal profile role context at the public stage gate", () => {
+    const stageCandidate = {
+      profileId: "profile-1",
+      businessId: "business-1",
+      ...approvedCandidate,
+      profileRoleContext: "business_owner",
+      ownerVerifiedBadge: true,
+      ownerVerificationStatus: "approved",
+      ownerPreferences: { publicProfileIds: ["profile-1"] },
+    };
+
+    expect(canExposePublishedProfilePublicly(stageCandidate)).toBe(true);
+    expect(
+      canExposePublishedProfilePublicly({
+        ...stageCandidate,
+        profileRoleContext: "super_admin",
       })
     ).toBe(false);
   });
