@@ -34,6 +34,7 @@ export function parsePluginClients(raw = process.env.TRADESCOUT_PLUGIN_OAUTH_CLI
       !value.clientId ||
       !value.name ||
       !Array.isArray(value.redirectUris) ||
+      value.redirectUris.length === 0 ||
       value.redirectUris.some((uri) => !/^https:\/\//i.test(uri))
     ) {
       throw new Error("Invalid TradeScout plugin OAuth client configuration");
@@ -102,8 +103,8 @@ export function isPluginOAuthConfigured(env: NodeJS.ProcessEnv = process.env): b
 
   try {
     createPrivateKey(keyPem);
-    parsePluginClients(env.TRADESCOUT_PLUGIN_OAUTH_CLIENTS || "");
-    return true;
+    const clients = parsePluginClients(env.TRADESCOUT_PLUGIN_OAUTH_CLIENTS || "");
+    return clients.length > 0;
   } catch {
     return false;
   }
