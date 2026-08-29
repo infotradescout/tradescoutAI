@@ -18,6 +18,11 @@ import { storage } from "./storage";
 import { stripPublicSeoBootPlaceholders } from "./publicSeoHtml";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
 import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/publicPageResponse";
+import {
+  absoluteCanonicalPublicProfileMediaUrl,
+  buildCanonicalPublicProfileProjection,
+  resolveCanonicalPublicProfileUrl,
+} from "./publicProfileProjection";
 
 const CLIENT_MODULE_SCRIPT_PATTERN =
   /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
@@ -50,17 +55,6 @@ function upsertTag(html: string, pattern: RegExp, tag: string): string {
 function safeAccentColor(value: unknown): string {
   const candidate = String(value || "").trim();
   return /^#[0-9a-f]{6}$/i.test(candidate) ? candidate : "#f97316";
-}
-
-function absolutePublicUrl(value: unknown, origin: string): string | null {
-  const candidate = String(value || "").trim();
-  if (!candidate || /[\r\n\\]/.test(candidate)) return null;
-  try {
-    const url = new URL(candidate, origin);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 function readTemplate(): string | null {
@@ -122,15 +116,28 @@ export function buildPublicProfileServiceAreaHtml(args: {
     brandColors?: Record<string, any> | null;
   } | null;
 }): string | null {
+  const projection = buildCanonicalPublicProfileProjection({
+    profile: args.profile,
+    business: args.business,
+  });
+  if (!projection) return null;
+  args = {
+    ...args,
+    profile: projection.profile,
+    business: projection.business,
+  };
   const hub = resolveProfileServiceAreaHub(args.profile.contentBlocks);
   const services = listFactBearingProfileServices(args.profile.contentBlocks);
   if (!hub || services.length === 0) return null;
 
   const profileName =
     cleanPublicText(args.business?.name || args.profile.displayName, 120) || "Public profile";
-  const profileUrl = args.profile.seoMeta?.customDomain
-    ? `https://${String(args.profile.seoMeta.customDomain).trim().toLowerCase()}/`
-    : `${args.origin}/u/${encodeURIComponent(args.profile.slug)}`;
+  const profileUrl = resolveCanonicalPublicProfileUrl({
+    profileSlug: args.profile.slug,
+    customDomain: args.profile.seoMeta?.customDomain,
+    platformOrigin: args.origin,
+  });
+  if (!profileUrl) return null;
   const canonical = buildProfileServiceAreaUrl(profileUrl);
   if (!canonical) return null;
 
@@ -145,14 +152,14 @@ export function buildPublicProfileServiceAreaHtml(args: {
     args.business?.brandColors?.accent || args.business?.brandColors?.primary
   );
   const profileImage =
-    absolutePublicUrl(args.profile.seoMeta?.imageUrl, args.origin) ||
+    absoluteCanonicalPublicProfileMediaUrl(args.profile.seoMeta?.imageUrl, args.origin) ||
     buildProfileSocialPreviewImageUrl({
       pageOrigin: args.origin,
       profileSlug: args.profile.slug,
       versionSeed: `${profileName}|service-areas|${coverageLabel}`,
     }) ||
     `${CANONICAL_TRADESCOUT_ORIGIN}/tradescout-social-preview.png?v=12`;
-  const favicon = absolutePublicUrl(
+  const favicon = absoluteCanonicalPublicProfileMediaUrl(
     args.profile.seoMeta?.faviconUrl || args.profile.seoMeta?.imageUrl,
     args.origin
   );
@@ -356,11 +363,23 @@ export async function handlePublicProfileServiceAreaRequest(
   }
 
   try {
-    const profile = await storage.getProfileBySlugPublic(profileSlug);
-    if (!profile) {
+    const storedProfile = await storage.getProfileBySlugPublic(profileSlug);
+    if (!storedProfile) {
       sendPublicPageNotFound(res, "Service areas not found");
       return true;
     }
+    const storedBusiness = storedProfile.businessId
+      ? await storage.getBusinessPublicById(storedProfile.businessId)
+      : null;
+    const projection = buildCanonicalPublicProfileProjection({
+      profile: storedProfile,
+      business: storedBusiness,
+    });
+    if (!projection) {
+      sendPublicPageNotFound(res, "Service areas not found");
+      return true;
+    }
+    const { profile, business } = projection;
     const hub = resolveProfileServiceAreaHub(profile.contentBlocks);
     const services = listFactBearingProfileServices(profile.contentBlocks);
     if (!hub || services.length === 0) {
@@ -380,7 +399,10 @@ export async function handlePublicProfileServiceAreaRequest(
       res.redirect(301, destination);
       return true;
     }
-    if (route.source === "custom_domain" && (!mappedProfileSlug || mappedProfileSlug !== profileSlug)) {
+    if (
+      route.source === "custom_domain" &&
+      (!mappedProfileSlug || mappedProfileSlug !== profileSlug)
+    ) {
       sendPublicPageNotFound(res, "Service areas not found");
       return true;
     }
@@ -394,10 +416,8 @@ export async function handlePublicProfileServiceAreaRequest(
       sendPublicPageRenderFailure(res, "Application temporarily unavailable");
       return true;
     }
-    const business = profile.businessId
-      ? await storage.getBusinessPublicById(profile.businessId)
-      : null;
-    const origin = route.source === "custom_domain" ? `https://${req.hostname}` : resolvePublicOrigin(req);
+    const origin =
+      route.source === "custom_domain" ? `https://${req.hostname}` : resolvePublicOrigin(req);
     const html = buildPublicProfileServiceAreaHtml({
       templateHtml,
       origin,

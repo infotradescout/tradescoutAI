@@ -107,9 +107,7 @@ const PROFILE_HISTORY_BOUNDARY_KEY = "__tradeScoutProfileHistoryBoundary";
 const SteelHomePackagesProfile = lazy(
   () => import("@/pages/profile-sites/SteelHomePackagesProfile")
 );
-const PrecisionAerialProfile = lazy(
-  () => import("@/pages/profile-sites/PrecisionAerialProfile")
-);
+const PrecisionAerialProfile = lazy(() => import("@/pages/profile-sites/PrecisionAerialProfile"));
 const ProFabProfileTheme = lazy(() => import("@/pages/profile-sites/ProFabProfileTheme"));
 const JrsAutoGlassProfileTheme = lazy(
   () => import("@/pages/profile-sites/JrsAutoGlassProfileTheme")
@@ -120,9 +118,7 @@ const VideographerProfileTheme = lazy(
 const LocalServiceProfileTheme = lazy(
   () => import("@/pages/profile-sites/LocalServiceProfileTheme")
 );
-const WholesalerProfileTheme = lazy(
-  () => import("@/pages/profile-sites/WholesalerProfileTheme")
-);
+const WholesalerProfileTheme = lazy(() => import("@/pages/profile-sites/WholesalerProfileTheme"));
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
   return (
@@ -625,7 +621,6 @@ type PublicProfile = {
 };
 
 type PublicBusinessSubset = {
-  id: string;
   name: string;
   categories: string[];
   services?: string[];
@@ -639,7 +634,6 @@ type PublicBusinessSubset = {
     background?: string;
     surface?: string;
   };
-  directConnectOwnerUserId?: string;
   verificationStatus?: string | null;
   verifiedBadge?: boolean;
   cvsScore?: number | null;
@@ -652,10 +646,8 @@ type PublicBusinessSubset = {
     request?: boolean;
     deliveryCustody?: "business" | "tradescout_pending_owner";
   };
-  address?: string;
   city?: string;
   stateCode?: string;
-  zipCode?: string;
 } | null;
 
 type PublicProfileResponse = {
@@ -1424,32 +1416,16 @@ export default function ProfileSiteView() {
   // business. The /direct-connect portal retains the full discovery path.
   const useExpressDirectConnect = true;
   const canExpressCall = business?.expressContactCapabilities?.call === true;
-  const publicBusinessAddress = business?.address?.trim()
-    ? [
-        business.address.trim(),
-        [business.city, business.stateCode, business.zipCode]
-          .map((part) => String(part || "").trim())
-          .filter(Boolean)
-          .join(" "),
-      ]
-        .filter(Boolean)
-        .join(", ")
-    : null;
-  // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
-  // Connect targeted straight at their own account (via the target/targetName
-  // prefill params DirectConnectShell already reads), instead of the
-  // anonymous, business-agnostic request flow every other profile uses.
+  // Exact addresses and internal target IDs never cross the anonymous profile
+  // response. Direct Connect resolves the published profile slug server-side.
+  const publicBusinessAddress = null;
   const jrsRequestDescription =
     "Vehicle year, make, model, and VIN (if available):\nWhich glass is damaged:\nChip or crack size and location:\nCamera or sensors near the glass:\nInsurance claim or self-pay:\nVehicle location:\nPreferred timing:\nPhotos attached:";
-  const jrsDirectConnectTarget = business?.directConnectOwnerUserId
-    ? `target=${encodeURIComponent(business.directConnectOwnerUserId)}`
-    : `profile=${encodeURIComponent(profile.slug)}`;
+  const jrsDirectConnectTarget = `profile=${encodeURIComponent(profile.slug)}`;
   const directConnectPath =
     profile.slug === "jrs-auto-glass"
       ? `/direct-connect?${jrsDirectConnectTarget}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
-      : business?.directConnectOwnerUserId
-        ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`
-        : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
+      : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const directConnectHref = qualifyPublicProfileItemDestination(
     directConnectPath,
     platformBaseHref
@@ -2236,46 +2212,46 @@ export default function ProfileSiteView() {
         >
           <WholesalerProfileBoundary>
             <WholesalerProfileTheme
-            profileSlug={profile.slug}
-            displayName={displayName}
-            businessAddress={publicBusinessAddress}
-            headline={publicHeadline}
-            contentBlocks={contentBlocks}
-            categories={publicCategories}
-            serviceAreas={publicServiceAreas}
-            brandColors={business?.brandColors}
-            contactReason={profile.contactPolicy?.reason}
-            hasViewerSession={hasViewerSession}
-            isSuperAdminViewer={isSuperAdminViewer}
-            useExpressDirectConnect={useExpressDirectConnect}
-            allowExpressCall={canExpressCall}
-            profileShareDestination={profileShareDestination}
-            currentPageShareDestination={currentPageShareDestination}
-            currentPageShareTitle={
-              currentPageShareTitle === displayName
-                ? displayName
-                : `${currentPageShareTitle} | ${displayName}`
-            }
-            sharedInventoryCategorySlug={categoryShareMeta?.categorySlug || null}
-            platformBaseHref={platformBaseHref}
-            sharedGallerySlug={sharedGallerySlug}
-            tradeScoutReturnHref={tradeScoutReturnHref}
-            directConnectHref={directConnectHref}
-            preScoutCreateHref={preScoutCreateHref}
-            preScoutSignInHref={preScoutSignInHref}
-            recommendationsDirectory={recommendationsDirectory}
-            recommendationDirectorySummary={recommendationDirectorySummary}
-            trustActions={renderProfileTrustActions("light")}
-            featuredStoneSlugs={featuredStoneSlugs}
-            profileItems={
-              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-                <PublicProfileItems
-                  items={profileItems}
-                  profileSections={profileSections}
-                  platformBaseHref={platformBaseHref}
-                />
-              ) : null
-            }
+              profileSlug={profile.slug}
+              displayName={displayName}
+              businessAddress={publicBusinessAddress}
+              headline={publicHeadline}
+              contentBlocks={contentBlocks}
+              categories={publicCategories}
+              serviceAreas={publicServiceAreas}
+              brandColors={business?.brandColors}
+              contactReason={profile.contactPolicy?.reason}
+              hasViewerSession={hasViewerSession}
+              isSuperAdminViewer={isSuperAdminViewer}
+              useExpressDirectConnect={useExpressDirectConnect}
+              allowExpressCall={canExpressCall}
+              profileShareDestination={profileShareDestination}
+              currentPageShareDestination={currentPageShareDestination}
+              currentPageShareTitle={
+                currentPageShareTitle === displayName
+                  ? displayName
+                  : `${currentPageShareTitle} | ${displayName}`
+              }
+              sharedInventoryCategorySlug={categoryShareMeta?.categorySlug || null}
+              platformBaseHref={platformBaseHref}
+              sharedGallerySlug={sharedGallerySlug}
+              tradeScoutReturnHref={tradeScoutReturnHref}
+              directConnectHref={directConnectHref}
+              preScoutCreateHref={preScoutCreateHref}
+              preScoutSignInHref={preScoutSignInHref}
+              recommendationsDirectory={recommendationsDirectory}
+              recommendationDirectorySummary={recommendationDirectorySummary}
+              trustActions={renderProfileTrustActions("light")}
+              featuredStoneSlugs={featuredStoneSlugs}
+              profileItems={
+                hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                  <PublicProfileItems
+                    items={profileItems}
+                    profileSections={profileSections}
+                    platformBaseHref={platformBaseHref}
+                  />
+                ) : null
+              }
             />
           </WholesalerProfileBoundary>
         </div>

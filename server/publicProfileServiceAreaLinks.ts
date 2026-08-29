@@ -1,8 +1,12 @@
 import type { Request, Response } from "express";
-import { buildProfileServiceAreaUrl, resolveProfileServiceAreaHub } from "@shared/profileServiceAreaShare";
+import {
+  buildProfileServiceAreaUrl,
+  resolveProfileServiceAreaHub,
+} from "@shared/profileServiceAreaShare";
 import { listFactBearingProfileServices } from "@shared/profileServiceShare";
 import { storage } from "./storage";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
+import { buildCanonicalPublicProfileProjection } from "./publicProfileProjection";
 
 function escapeHtml(value: string): string {
   return value
@@ -33,8 +37,12 @@ export async function attachPublicProfileServiceAreaLink(
     return;
   }
 
-  const profile = await storage.getProfileBySlugPublic(profileSlug);
-  if (!profile || profile.seoMeta?.customDomain) return;
+  const storedProfile = await storage.getProfileBySlugPublic(profileSlug);
+  if (!storedProfile) return;
+  const projection = buildCanonicalPublicProfileProjection({ profile: storedProfile });
+  if (!projection) return;
+  const profile = projection.profile;
+  if (profile.seoMeta?.customDomain) return;
   const hub = resolveProfileServiceAreaHub(profile.contentBlocks);
   const services = listFactBearingProfileServices(profile.contentBlocks);
   if (!hub || services.length === 0) return;

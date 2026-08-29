@@ -31,7 +31,9 @@ describe("canonical profile item parity", () => {
     expect(profilesRoute).toContain(".map(({ sellerUserId: _sellerUserId, ...offer }) => offer)");
     expect(profilesRoute).toContain("sanitizePublicProfileOfferText(product.title)");
     expect(profilesRoute).toContain("sanitizePublicProfileOfferText(post.content)");
-    expect(profilesRoute).toContain("profileItems: {");
+    expect(profilesRoute).toContain(
+      "profileItems: projectCanonicalPublicProfilePayloadValue(auxiliaryProfileItems)"
+    );
     expect(profilesRoute).toContain("marketplaceListings: publicMarketplaceListings");
     expect(profilesRoute).not.toContain("profileItems: {\n      ownerUserId");
     expect(profilesRoute).not.toContain("profileItems: {\n      sellerUserId");

@@ -16,6 +16,11 @@ import { resolvePublicProfileSocialPreview } from "../publicProfileSocialPreview
 
 const BLUE_MARE_SOURCE_IMAGE =
   "https://www.thetradescout.com/images/businesses/jw-stone/inventory-source/1vGOdELy1LIE5i-A8lurdUMnRdjzotBMo.webp";
+const PUBLIC_PRESENTATION_LOGO = "/images/businesses/pro-fab-specialty-services/logo.svg";
+const PUBLIC_PRESENTATION_HERO = "/images/businesses/pro-fab-specialty-services/cover.svg";
+const PUBLIC_ROOFING_LOGO = "/images/businesses/la-plumbing-solutions/logo.jpg";
+const PUBLIC_ROOFING_HERO = "/images/businesses/la-plumbing-solutions/hero.jpg";
+const PUBLIC_GENERIC_MARK = "/images/businesses/jrs-auto-glass/logo.webp";
 const JW_CATEGORY_PREVIEW_CASES = JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map((config) => {
   const sourceCategory = JW_STONE_INVENTORY_CATEGORIES.find(
     (category) => category.categorySlug === config.sourceSlug
@@ -205,7 +210,7 @@ describe("public profile social preview context", () => {
         images: [
           {
             id: "blue-stone-patio",
-            url: "/uploads/profiles/blue-stone-patio.jpg",
+            url: new URL(BLUE_MARE_SOURCE_IMAGE).pathname,
             title: "Blue Stone Patio",
             caption: "A finished local patio installation.",
             alt: "Finished blue stone patio",
@@ -229,13 +234,11 @@ describe("public profile social preview context", () => {
     expect(preview?.context).toMatchObject({
       kind: "gallery",
       title: "Blue Stone Patio",
-      sourceImageUrl: "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg",
+      sourceImageUrl: BLUE_MARE_SOURCE_IMAGE,
       logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo.svg",
       layout: "split",
     });
-    expect(preview?.sourceImageUrl).toBe(
-      "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg"
-    );
+    expect(preview?.sourceImageUrl).toBe(BLUE_MARE_SOURCE_IMAGE);
   });
 
   it("uses a legacy presentation hero instead of treating the wide SEO logo as the profile photo", async () => {
@@ -302,8 +305,8 @@ describe("public profile social preview context", () => {
           data: {
             social: {
               brandName: "Other Business",
-              logoUrl: "/images/businesses/other/logo.svg",
-              profileImageUrl: "/images/businesses/other/hero.jpg",
+              logoUrl: PUBLIC_PRESENTATION_LOGO,
+              profileImageUrl: PUBLIC_PRESENTATION_HERO,
               accentColor: "#123456",
               profileCta: "View profile",
             },
@@ -326,8 +329,8 @@ describe("public profile social preview context", () => {
 
     expect(preview?.context).toMatchObject({
       brandName: "Other Business",
-      sourceImageUrl: "https://www.thetradescout.com/images/businesses/other/hero.jpg",
-      logoUrl: "https://www.thetradescout.com/images/businesses/other/logo.svg",
+      sourceImageUrl: `https://www.thetradescout.com${PUBLIC_PRESENTATION_HERO}`,
+      logoUrl: `https://www.thetradescout.com${PUBLIC_PRESENTATION_LOGO}`,
       accentColor: "#123456",
       layout: "split",
     });
@@ -392,8 +395,8 @@ describe("public profile social preview context", () => {
       businessId: "business-roofing",
       updatedAt: "2026-07-28T13:00:00.000Z",
       seoMeta: {
-        imageUrl: "/uploads/profiles/blue-sky-roofing/hero.webp",
-        faviconUrl: "/uploads/profiles/blue-sky-roofing/favicon.png",
+        imageUrl: PUBLIC_ROOFING_HERO,
+        faviconUrl: PUBLIC_ROOFING_LOGO,
       },
       ctaConfig: {
         primary: {
@@ -408,8 +411,8 @@ describe("public profile social preview context", () => {
           data: {
             social: {
               brandName: "Blue Sky Roofing Co.",
-              logoUrl: "/uploads/profiles/blue-sky-roofing/logo.svg",
-              profileImageUrl: "/uploads/profiles/blue-sky-roofing/share-hero.webp",
+              logoUrl: PUBLIC_ROOFING_LOGO,
+              profileImageUrl: PUBLIC_ROOFING_HERO,
               accentColor: "#2563eb",
               profileCta: "Plan a roof project",
             },
@@ -441,9 +444,8 @@ describe("public profile social preview context", () => {
       supportingText: "Roofing for local homes",
       locationLabel: "Dallas, TX",
       ctaLabel: "Plan a roof project",
-      sourceImageUrl:
-        "https://www.thetradescout.com/uploads/profiles/blue-sky-roofing/share-hero.webp",
-      logoUrl: "https://www.thetradescout.com/uploads/profiles/blue-sky-roofing/logo.svg",
+      sourceImageUrl: `https://www.thetradescout.com${PUBLIC_ROOFING_HERO}`,
+      logoUrl: `https://www.thetradescout.com${PUBLIC_ROOFING_LOGO}`,
       accentColor: "#2563eb",
     });
     expect(Object.values(preview!.context).join(" ")).not.toContain("owner@private.example");
@@ -463,7 +465,7 @@ describe("public profile social preview context", () => {
       businessId: "business-generic",
       updatedAt: "2026-07-28T14:00:00.000Z",
       seoMeta: {
-        faviconUrl: "/uploads/profiles/generic-repair/mark.png",
+        faviconUrl: PUBLIC_GENERIC_MARK,
       },
       ctaConfig: {
         primary: {
@@ -490,7 +492,7 @@ describe("public profile social preview context", () => {
 
     expect(preview?.context).toMatchObject({
       brandName: "Generic Repair LLC",
-      logoUrl: "https://www.thetradescout.com/uploads/profiles/generic-repair/mark.png",
+      logoUrl: `https://www.thetradescout.com${PUBLIC_GENERIC_MARK}`,
       accentColor: "#16a34a",
       ctaLabel: "View profile · Direct Connect",
       locationLabel: "",

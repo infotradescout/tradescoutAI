@@ -164,11 +164,9 @@ describe("JR's Auto Glass public profile contract", () => {
     const route = read("server/routes/direct-connect.ts");
 
     expect(profileView).toContain(
-      "const jrsDirectConnectTarget = business?.directConnectOwnerUserId"
+      "const jrsDirectConnectTarget = `profile=${encodeURIComponent(profile.slug)}`"
     );
-    expect(profileView).toContain(
-      "target=${encodeURIComponent(business.directConnectOwnerUserId)}"
-    );
+    expect(profileView).not.toContain("business.directConnectOwnerUserId");
     expect(profileView).toContain("Vehicle year, make, model, and VIN (if available)");
     expect(profileView).toContain("Camera or sensors near the glass");
     expect(profileView).toContain("Insurance claim or self-pay");

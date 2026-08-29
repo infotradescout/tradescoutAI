@@ -40,6 +40,12 @@ import {
   isProfileInventoryCategoryPubliclyAddressable,
   isProfileInventoryItemPubliclyAddressable,
 } from "./profileSitemapDiscovery";
+import {
+  buildCanonicalPublicProfileProjection,
+  normalizeCanonicalPublicProfileCustomDomain,
+  normalizeCanonicalPublicProfileSlug,
+  resolveCanonicalPublicProfileUrl,
+} from "./publicProfileProjection";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -227,16 +233,23 @@ export async function buildPublicProfileLlmsText({
   slug,
   origin,
 }: PublicProfileLlmsTextOptions): Promise<string | null> {
-  if (!shouldIndexPublicProfileSlug(slug)) return null;
-  const profileRecord = await storage.getProfileBySlugPublic(slug);
-  if (!profileRecord) return null;
+  const requestedSlug = normalizeCanonicalPublicProfileSlug(slug);
+  if (!requestedSlug || !shouldIndexPublicProfileSlug(requestedSlug)) return null;
+  const storedProfile = await storage.getProfileBySlugPublic(requestedSlug);
+  if (!storedProfile) return null;
 
   const publicOrigin = normalizePublicOrigin(origin);
   if (!publicOrigin) return null;
 
-  const businessRecord = profileRecord.businessId
-    ? await storage.getBusinessPublicById(profileRecord.businessId)
+  const storedBusiness = storedProfile.businessId
+    ? await storage.getBusinessPublicById(storedProfile.businessId)
     : null;
+  const projection = buildCanonicalPublicProfileProjection({
+    profile: storedProfile,
+    business: storedBusiness,
+  });
+  if (!projection) return null;
+  const { profile: profileRecord, business: businessRecord } = projection;
   const displayName = cleanLlmsLabel(
     businessRecord?.name || profileRecord.displayName || "Public profile",
     120
@@ -292,11 +305,7 @@ export async function buildPublicProfileLlmsText({
     lines.push("", "## Service areas", ...serviceAreas.map((value) => `- ${value}`));
   }
   if (publicChildPages.length > 0) {
-    lines.push(
-      "",
-      "## Published profile pages",
-      ...publicChildPages.map((value) => `- ${value}`)
-    );
+    lines.push("", "## Published profile pages", ...publicChildPages.map((value) => `- ${value}`));
   }
 
   return `${lines.join("\n")}\n`;
@@ -309,9 +318,13 @@ export async function buildPublicProfileSitemapXml({
 }: PublicProfileSitemapOptions): Promise<string | null> {
   const publicOrigin = normalizePublicOrigin(origin);
   if (!publicOrigin) return null;
-  if (!shouldIndexPublicProfileSlug(slug)) return null;
-  const profileRecord = await storage.getProfileBySlugPublic(slug);
-  if (!profileRecord) return null;
+  const requestedSlug = normalizeCanonicalPublicProfileSlug(slug);
+  if (!requestedSlug || !shouldIndexPublicProfileSlug(requestedSlug)) return null;
+  const storedProfile = await storage.getProfileBySlugPublic(requestedSlug);
+  if (!storedProfile) return null;
+  const projection = buildCanonicalPublicProfileProjection({ profile: storedProfile });
+  if (!projection) return null;
+  const profileRecord = projection.profile;
 
   const urls = [
     `${publicOrigin}/`,
@@ -385,18 +398,19 @@ export function buildPublicProfileEarlyHtml({
   origin,
   templateHtml,
 }: PublicProfileEarlyHtmlOptions): string {
+  const publicSlug = normalizeCanonicalPublicProfileSlug(slug) || "unavailable-profile";
   const title = formatTradeScoutTitle("Public profile unavailable");
   const description = "This public TradeScout profile is not available.";
-  const canonical = `${origin}/u/${encodeURIComponent(slug)}`;
+  const canonical = `${origin}/u/${encodeURIComponent(publicSlug)}`;
   const tradeScoutHome = `${origin}/`;
   const scoutUrl = `${origin}/scout`;
   const communityUrl = `${origin}/community-feed`;
   const logoUrl = `${origin}/tradescout-logo.png`;
   const reportPayload = JSON.stringify({
     title: "Unavailable public profile link reported",
-    description: `A visitor reported the unavailable public-profile fallback at /u/${slug}.`,
+    description: `A visitor reported the unavailable public-profile fallback at /u/${publicSlug}.`,
     errorType: "ui_issue",
-    browserInfo: { profileSlug: slug, arrivalMode: "unavailable" },
+    browserInfo: { profileSlug: publicSlug, arrivalMode: "unavailable" },
   }).replace(/</g, "\\u003c");
   let html = templateHtml.replace(
     /<title>[\s\S]*?<\/title>/i,
@@ -532,9 +546,13 @@ function buildFaqJsonLd(profile: PublicProfileData) {
 // under /u/:slug -- Google and structured-data consumers should be pointed
 // at the business's own domain regardless of which host the request came in on.
 function resolveProfileUrl(profile: PublicProfileData, origin: string): string {
-  const customDomain = profile.profile.seoMeta?.customDomain?.trim().toLowerCase();
-  if (customDomain) return `https://${customDomain}/`;
-  return `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
+  return (
+    resolveCanonicalPublicProfileUrl({
+      profileSlug: profile.profile.slug,
+      customDomain: profile.profile.seoMeta?.customDomain,
+      platformOrigin: origin,
+    }) || `${origin}/u/unavailable-profile`
+  );
 }
 
 function withProfileItemJsonLd(
@@ -962,16 +980,24 @@ export async function buildPublicProfileHtml({
   categorySlug,
   pageMetadata,
 }: PublicProfileHtmlOptions): Promise<string | null> {
-  const profileRecord = await storage.getProfileBySlugPublic(slug);
-  if (!profileRecord) return null;
+  const requestedSlug = normalizeCanonicalPublicProfileSlug(slug);
+  if (!requestedSlug) return null;
+  const storedProfile = await storage.getProfileBySlugPublic(requestedSlug);
+  if (!storedProfile) return null;
 
-  const businessRecord = profileRecord.businessId
-    ? await storage.getBusinessPublicById(profileRecord.businessId)
+  const storedBusiness = storedProfile.businessId
+    ? await storage.getBusinessPublicById(storedProfile.businessId)
     : null;
+  const projection = buildCanonicalPublicProfileProjection({
+    profile: storedProfile,
+    business: storedBusiness,
+  });
+  if (!projection) return null;
+  const { profile: profileRecord, business: businessRecord } = projection;
 
   const data: PublicProfileData = {
     profile: {
-      id: profileRecord.id,
+      id: profileRecord.id || "public-profile",
       slug: profileRecord.slug,
       displayName: profileRecord.displayName,
       headline: profileRecord.headline,
@@ -990,11 +1016,8 @@ export async function buildPublicProfileHtml({
           categories: businessRecord.categories || [],
           serviceAreas: businessRecord.serviceAreas || [],
           tradePartner: businessRecord.tradePartner === true,
-          website: businessRecord.website,
-          address: businessRecord.address,
           city: businessRecord.city,
           stateCode: businessRecord.stateCode,
-          zipCode: businessRecord.zipCode,
           brandColors: businessRecord.brandColors,
         }
       : null,
@@ -1193,7 +1216,9 @@ export async function buildPublicProfileHtml({
       return "";
     }
   })();
-  const customDomain = profileRecord.seoMeta?.customDomain?.trim().toLowerCase();
+  const customDomain = normalizeCanonicalPublicProfileCustomDomain(
+    profileRecord.seoMeta?.customDomain
+  );
   if (customDomain && requestHost === customDomain) {
     html = injectCustomDomainProfileSlug(html, profileRecord.slug);
   }
@@ -1335,9 +1360,7 @@ export async function buildPublicProfileHtml({
         itemSlug: item.slug,
         contentBlocks: data.profile.contentBlocks,
       });
-      return url
-        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.title)}</a></li>`
-        : "";
+      return url ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.title)}</a></li>` : "";
     })
     .filter(Boolean)
     .join("");

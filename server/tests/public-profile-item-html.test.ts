@@ -17,6 +17,7 @@ const jwSocialPresentationBlock = {
   },
 };
 const jwPublicDiscoveryBlock = JW_STONE_PUBLIC_DISCOVERY_BLOCK;
+const JW_GALLERY_IMAGE_PATH = "/images/businesses/jw-stone/color-collage/01-white.webp";
 
 const profileRecord = {
   id: "profile-jw",
@@ -359,9 +360,7 @@ describe("public profile item HTML", () => {
       itemPhoto: "2",
     });
 
-    profileRecord.contentBlocks = withProfileImage(
-      "/images/businesses/jw-stone/video/alternate-hero-poster.jpg"
-    );
+    profileRecord.contentBlocks = withProfileImage(JW_GALLERY_IMAGE_PATH);
     const secondProfileHtml = await buildPublicProfileHtml({
       slug: "jw-stone",
       origin: "https://jwstonelogistics.com",
@@ -449,7 +448,7 @@ describe("public profile item HTML", () => {
           images: [
             {
               id: "finished-patio",
-              url: "/uploads/profiles/finished-patio.jpg",
+              url: JW_GALLERY_IMAGE_PATH,
               title: "Finished Patio",
               caption: "Email patio@example.com or visit 42 River Road.",
               alt: "Call 423-555-0177 about this patio",
@@ -509,7 +508,7 @@ describe("public profile item HTML", () => {
           images: [
             {
               id: "blue-stone-patio",
-              url: "/uploads/profiles/blue-stone-patio.jpg",
+              url: JW_GALLERY_IMAGE_PATH,
               title: "Blue Stone Patio",
               caption: "A finished local patio installation.",
               alt: "Finished blue stone patio",
@@ -526,7 +525,7 @@ describe("public profile item HTML", () => {
       templateHtml,
       gallerySlug: galleryItem.slug,
     });
-    const sourceImageUrl = "https://jwstonelogistics.com/uploads/profiles/blue-stone-patio.jpg";
+    const sourceImageUrl = `https://jwstonelogistics.com${JW_GALLERY_IMAGE_PATH}`;
 
     expect(html).toContain('property="og:title" content="Blue Stone Patio | JW Stone Logistics"');
     expect(html).toContain(

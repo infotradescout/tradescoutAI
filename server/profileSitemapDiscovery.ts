@@ -17,6 +17,10 @@ import {
   resolveProfileServiceAreaHub,
 } from "@shared/profileServiceAreaShare";
 import { inventoryCategoriesForProfile } from "./profileItemShareMetadata";
+import {
+  normalizeCanonicalPublicProfileSlug,
+  projectCanonicalPublicProfileContentBlocks,
+} from "./publicProfileProjection";
 
 type ProfileSitemapOptions = {
   profileSlug: string;
@@ -56,9 +60,7 @@ function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPr
     ...(typeof sitemap?.categories === "boolean" ? { categories: sitemap.categories } : {}),
     ...(typeof sitemap?.gallery === "boolean" ? { gallery: sitemap.gallery } : {}),
     ...(typeof sitemap?.services === "boolean" ? { services: sitemap.services } : {}),
-    ...(typeof sitemap?.serviceAreas === "boolean"
-      ? { serviceAreas: sitemap.serviceAreas }
-      : {}),
+    ...(typeof sitemap?.serviceAreas === "boolean" ? { serviceAreas: sitemap.serviceAreas } : {}),
   };
 }
 
@@ -145,6 +147,11 @@ export function buildProfileSitemapUrls({
   profileUrl,
   contentBlocks,
 }: ProfileSitemapOptions): string[] {
+  const canonicalProfileSlug = normalizeCanonicalPublicProfileSlug(profileSlug);
+  if (!canonicalProfileSlug) return [];
+  const canonicalContentBlocks = projectCanonicalPublicProfileContentBlocks(contentBlocks);
+  profileSlug = canonicalProfileSlug;
+  contentBlocks = canonicalContentBlocks;
   const preferences = readProfileSitemapPreferences(contentBlocks);
   const inventoryCategories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
   const inventory = publishableInventoryItems(

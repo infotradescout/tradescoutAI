@@ -7,6 +7,7 @@ import {
   normalizeCanonicalPublicProfileSlug,
   projectCanonicalPublicBusinessRecord,
   projectCanonicalPublicProfileContentBlocks,
+  projectCanonicalPublicProfilePayloadValue,
   projectCanonicalPublicProfileRecord,
   resolveCanonicalPublicProfileUrl,
 } from "../publicProfileProjection";
@@ -106,6 +107,66 @@ describe("canonical public profile projection", () => {
     );
     expect(serialized).toContain(PROFILE_MEDIA);
     expect(serialized).not.toContain("/uploads/profiles/unowned.jpg");
+  });
+
+  it("preserves safe nested presentation metadata while projecting every leaf", () => {
+    const projected = projectCanonicalPublicProfileContentBlocks([
+      {
+        type: "profilePresentation",
+        data: {
+          social: {
+            brandName: "Safe Stone",
+            logoUrl: PROFILE_MEDIA,
+            profileImageUrl: JW_MEDIA,
+            accentColor: "#123456",
+            profileCta: "View profile",
+            website: "https://owner.example/?email=owner@example.com",
+          },
+          email: {
+            label: "Private email",
+            value: "owner@example.com",
+          },
+          contact: {
+            label: "Private contact",
+            value: "850-555-0199",
+          },
+        },
+      },
+    ]);
+
+    expect(projected).toEqual([
+      {
+        type: "profilePresentation",
+        data: {
+          social: {
+            brandName: "Safe Stone",
+            logoUrl: PROFILE_MEDIA,
+            profileImageUrl: JW_MEDIA,
+            accentColor: "#123456",
+            profileCta: "View profile",
+          },
+        },
+      },
+    ]);
+  });
+
+  it("projects auxiliary /api/u collections through the same leaf authority", () => {
+    const projected = projectCanonicalPublicProfilePayloadValue({
+      communityPosts: [
+        {
+          id: "post-1",
+          title: "Email owner@example.com at 123 Main Street",
+          imageUrls: [PROFILE_MEDIA, "/uploads/profiles/unowned.jpg"],
+          website: "https://owner.example/?email=owner@example.com",
+        },
+      ],
+    });
+    const serialized = JSON.stringify(projected);
+
+    expect(serialized).toContain(PROFILE_MEDIA);
+    expect(serialized).not.toMatch(
+      /owner@example\.com|123 Main Street|owner\.example|\/uploads\/profiles\/unowned\.jpg/
+    );
   });
 
   it("projects SEO through the same custom-domain and media authority", () => {

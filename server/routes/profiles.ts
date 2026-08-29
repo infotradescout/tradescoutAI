@@ -89,6 +89,12 @@ import {
 } from "../services/indexNowPublicationEvents";
 import { shouldIndexPublicProfileSlug } from "../../shared/publicProfileIndexing";
 import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
+import {
+  buildCanonicalPublicProfileProjection,
+  normalizeCanonicalPublicProfileCustomDomain,
+  normalizeCanonicalPublicProfileSlug,
+  projectCanonicalPublicProfilePayloadValue,
+} from "../publicProfileProjection";
 
 const router = Router();
 
@@ -197,7 +203,6 @@ const CORE_STATIC_PATHS = [
 ];
 
 const COUNTY_SLUG_PATTERN = /^[a-z0-9-]+$/;
-const SITEMAP_CUSTOM_DOMAIN_PATTERN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i;
 
 type PublishedProfileSitemapTarget = {
   profileSlug: string;
@@ -274,23 +279,22 @@ function slugifyCategory(value: string): string {
 }
 
 function normalizeSitemapCustomDomain(value: unknown): string | null {
-  const domain = String(value || "")
-    .trim()
-    .toLowerCase();
-  return SITEMAP_CUSTOM_DOMAIN_PATTERN.test(domain) ? domain : null;
+  return normalizeCanonicalPublicProfileCustomDomain(value);
 }
 
 function canonicalPublishedProfileSitemapLoc(
   baseUrl: string,
   target: Pick<PublishedProfileSitemapTarget, "profileSlug" | "customDomain">
 ): string | null {
+  const profileSlug = normalizeCanonicalPublicProfileSlug(target.profileSlug);
+  if (!profileSlug) return null;
   // Keep the runtime sitemap path fail-closed even if a lower-level query or
   // future repository implementation returns a reserved internal profile.
-  if (!shouldIndexPublicProfileSlug(target.profileSlug)) return null;
+  if (!shouldIndexPublicProfileSlug(profileSlug)) return null;
   // Custom-domain profiles own a host-local /sitemap.xml and robots.txt.
   // Do not mix another host into TradeScout's platform sitemap URL sets.
   if (target.customDomain) return null;
-  return `${baseUrl}/u/${encodeURIComponent(target.profileSlug)}`;
+  return `${baseUrl}/u/${encodeURIComponent(profileSlug)}`;
 }
 
 function canonicalBusinessPresenceSitemapLoc(args: {
@@ -355,7 +359,7 @@ async function listPublishedProfileSitemapTargets(
 
   return result.rows
     .map((row) => {
-      const profileSlug = String(row.profile_slug || "").trim();
+      const profileSlug = normalizeCanonicalPublicProfileSlug(row.profile_slug);
       if (!profileSlug) return null;
       return {
         profileSlug,
@@ -652,9 +656,7 @@ function buildAutoSeoMeta(args: {
   // to itself; this lets client-side navigation (no full page load) do the
   // same redirect instead of rendering the profile inline.
   const customDomain =
-    typeof args.seoMeta?.customDomain === "string" && args.seoMeta.customDomain.trim().length > 0
-      ? args.seoMeta.customDomain.trim().toLowerCase()
-      : undefined;
+    normalizeCanonicalPublicProfileCustomDomain(args.seoMeta?.customDomain) || undefined;
 
   return { title, description, imageUrl, customDomain };
 }
@@ -1478,6 +1480,12 @@ function recordProfileView(profileId: string, req: any): void {
 }
 
 const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
+  const canonicalSlug = normalizeCanonicalPublicProfileSlug(slug);
+  if (!canonicalSlug) {
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(404).json({ message: "Profile not found" });
+  }
+  slug = canonicalSlug;
   const viewerUserId = req ? getAuthedUserId(req) : "";
   const [profileOwner] = await db
     .select({ profileId: profiles.id, ownerUserId: profiles.ownerUserId })
@@ -1898,20 +1906,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
         },
         ...(business.city ? { city: business.city } : {}),
         ...(business.stateCode ? { stateCode: business.stateCode } : {}),
-        ...(business.tradePartner === true && (business.address || business.zipCode)
-          ? {
-              address: business.address || undefined,
-              zipCode: business.zipCode || undefined,
-            }
-          : {}),
         ...(business.brandColors ? { brandColors: business.brandColors } : {}),
-        // Targeting remains limited to a TradePartner or the explicit narrow
-        // owner-confirmed profile exception. Other approved profiles still use
-        // the slug-based Express Direct Connect resolver without exposing an id.
-        ...((business.tradePartner === true || ownerConfirmedDirectProfile) &&
-        directConnectOwnerUserId
-          ? { directConnectOwnerUserId }
-          : {}),
       }
     : null;
   const effectiveSeoMeta = buildAutoSeoMeta({
@@ -2258,38 +2253,50 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
 
   if (req && !viewerCanManage) recordProfileView(profile.id, req);
 
-  return res.json({
-    profile: {
-      id: profile.id,
-      slug: profile.slug,
-      roleContext: profile.roleContext,
-      displayName: profile.displayName,
-      headline: profile.headline,
-      contentBlocks: profile.contentBlocks,
-      ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
-      seoMeta: effectiveSeoMeta,
-      profileSections,
-      profileBooking: sanitizePublicProfileBookingConfig(profile.profileBooking),
-      siteTemplate,
-      contactPolicy: {
-        mode: "direct_connect_only",
-        requiresTradeScoutAccount: false,
-        reason: "Spam prevention",
-      },
+  const publicProfilePayload = {
+    id: profile.id,
+    slug: profile.slug,
+    roleContext: profile.roleContext,
+    displayName: profile.displayName,
+    headline: profile.headline,
+    servicesDescription: profile.servicesDescription,
+    contentBlocks: profile.contentBlocks,
+    ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
+    seoMeta: effectiveSeoMeta,
+    profileSections,
+    profileBooking: sanitizePublicProfileBookingConfig(profile.profileBooking),
+    siteTemplate,
+    contactPolicy: {
+      mode: "direct_connect_only",
+      requiresTradeScoutAccount: false,
+      reason: "Spam prevention",
     },
+  };
+  const canonicalProjection = buildCanonicalPublicProfileProjection({
+    profile: publicProfilePayload,
     business: safeBusiness,
+  });
+  if (!canonicalProjection) {
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(404).json({ message: "Profile not found" });
+  }
+  const auxiliaryProfileItems = {
+    offers: publicProfileOffers,
+    handmadeProducts: publicHandmadeProducts,
+    marketplaceListings: publicMarketplaceListings,
+    homeScoutListings: publicHomeScoutListings,
+    contractorPromos: publicContractorPromos,
+    communityPosts: publicCommunityPosts,
+  };
+
+  return res.json({
+    profile: canonicalProjection.profile,
+    business: canonicalProjection.business,
     viewerCanManage,
-    recommendationsDirectory,
+    recommendationsDirectory: projectCanonicalPublicProfilePayloadValue(recommendationsDirectory),
     recommendationDirectorySummary,
     recommendationDirectoryMode,
-    profileItems: {
-      offers: publicProfileOffers,
-      handmadeProducts: publicHandmadeProducts,
-      marketplaceListings: publicMarketplaceListings,
-      homeScoutListings: publicHomeScoutListings,
-      contractorPromos: publicContractorPromos,
-      communityPosts: publicCommunityPosts,
-    },
+    profileItems: projectCanonicalPublicProfilePayloadValue(auxiliaryProfileItems),
   });
 };
 
@@ -2448,11 +2455,7 @@ router.get("/api/u/:slug/selective-intelligence", async (req, res) => {
     const requestedSlug = String(req.params.slug || "")
       .trim()
       .toLowerCase();
-    if (
-      requestedSlug.length === 0 ||
-      requestedSlug.length > 120 ||
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedSlug)
-    ) {
+    if (!normalizeCanonicalPublicProfileSlug(requestedSlug)) {
       return res.status(404).json({ message: "Profile not found" });
     }
     const profile = await storage.getProfileBySlugPublic(requestedSlug);

@@ -66,7 +66,10 @@ const genericContentBlocks = [
             {
               name: "Blue Widget",
               slug: "blue-widget",
-              images: ["/uploads/blue-widget-1.webp", "/uploads/blue-widget-2.webp"],
+              images: [
+                "/images/businesses/jrs-auto-glass/before.webp",
+                "/images/businesses/jrs-auto-glass/after.webp",
+              ],
             },
           ],
         },

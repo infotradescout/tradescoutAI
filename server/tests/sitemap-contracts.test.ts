@@ -85,7 +85,7 @@ describe("sitemap contracts", () => {
     expect(source).toContain("profileUrl: profileLoc");
     expect(source).toContain("if (args.linkedProfile?.isPublic)");
     expect(source).toContain("if (target.customDomain) return null");
-    expect(source).toContain("return `${baseUrl}/u/${encodeURIComponent(target.profileSlug)}`");
+    expect(source).toContain("return `${baseUrl}/u/${encodeURIComponent(profileSlug)}`");
     expect(source).toContain(
       "return `${args.baseUrl}/business/${encodeURIComponent(args.businessSlug)}`"
     );

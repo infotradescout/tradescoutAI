@@ -17,6 +17,11 @@ import { storage } from "./storage";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
 import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/publicPageResponse";
 import { stripPublicSeoBootPlaceholders } from "./publicSeoHtml";
+import {
+  absoluteCanonicalPublicProfileMediaUrl,
+  buildCanonicalPublicProfileProjection,
+  resolveCanonicalPublicProfileUrl,
+} from "./publicProfileProjection";
 
 const CLIENT_MODULE_SCRIPT_PATTERN =
   /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
@@ -46,17 +51,6 @@ function escapeHtml(value: string): string {
 function upsertTag(html: string, pattern: RegExp, tag: string): string {
   if (pattern.test(html)) return html.replace(pattern, tag);
   return html.replace("</head>", `${tag}\n</head>`);
-}
-
-function absolutePublicUrl(value: unknown, origin: string): string | null {
-  const candidate = String(value || "").trim();
-  if (!candidate || /[\r\n\\]/.test(candidate)) return null;
-  try {
-    const url = new URL(candidate, origin);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 function safeAccentColor(value: unknown): string {
@@ -122,12 +116,28 @@ export function buildPublicProfileServiceHtml(args: {
     brandColors?: Record<string, any> | null;
   } | null;
   service: ResolvedProfileServiceItem;
-}): string {
+}): string | null {
+  const projection = buildCanonicalPublicProfileProjection({
+    profile: args.profile,
+    business: args.business,
+  });
+  if (!projection) return null;
+  const service = resolveProfileServiceItem(projection.profile.contentBlocks, args.service.slug);
+  if (!service) return null;
+  args = {
+    ...args,
+    profile: projection.profile,
+    business: projection.business,
+    service,
+  };
   const profileName =
     cleanPublicText(args.business?.name || args.profile.displayName, 120) || "Public profile";
-  const profileUrl = args.profile.seoMeta?.customDomain
-    ? `https://${String(args.profile.seoMeta.customDomain).trim().toLowerCase()}/`
-    : `${args.origin}/u/${encodeURIComponent(args.profile.slug)}`;
+  const profileUrl = resolveCanonicalPublicProfileUrl({
+    profileSlug: args.profile.slug,
+    customDomain: args.profile.seoMeta?.customDomain,
+    platformOrigin: args.origin,
+  });
+  if (!profileUrl) return null;
   const share = createProfileServiceShareMetadata({
     profileName,
     profileUrl,
@@ -142,7 +152,7 @@ export function buildPublicProfileServiceHtml(args: {
   const title = formatTradeScoutTitle(share?.title || `${args.service.title} | ${profileName}`);
   const description = cleanPublicText(share?.description || args.service.description, 160);
   const profileImage =
-    absolutePublicUrl(args.profile.seoMeta?.imageUrl, args.origin) ||
+    absoluteCanonicalPublicProfileMediaUrl(args.profile.seoMeta?.imageUrl, args.origin) ||
     buildProfileSocialPreviewImageUrl({
       pageOrigin: args.origin,
       profileSlug: args.profile.slug,
@@ -150,7 +160,7 @@ export function buildPublicProfileServiceHtml(args: {
     }) ||
     `${CANONICAL_TRADESCOUT_ORIGIN}/tradescout-social-preview.png?v=12`;
   const sourceImage = share?.imageUrl || profileImage;
-  const favicon = absolutePublicUrl(
+  const favicon = absoluteCanonicalPublicProfileMediaUrl(
     args.profile.seoMeta?.faviconUrl || args.profile.seoMeta?.imageUrl,
     args.origin
   );
@@ -246,9 +256,7 @@ export function buildPublicProfileServiceHtml(args: {
   const relatedLinks = relatedServices
     .map((service) => {
       const url = buildProfileServiceUrl({ profileUrl, serviceSlug: service.slug });
-      return url
-        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(service.title)}</a></li>`
-        : "";
+      return url ? `<li><a href="${escapeHtml(url)}">${escapeHtml(service.title)}</a></li>` : "";
     })
     .filter(Boolean)
     .join("");
@@ -380,7 +388,9 @@ function resolveServiceRequest(req: Request): ServiceRequestResolution | null {
         serviceSlug: decodeURIComponent(platform[3]).trim().toLowerCase(),
         source: platform[1].toLowerCase() === "p" ? "legacy-platform" : "platform",
         requestOrigin: resolvePublicOrigin(req),
-        requestHost: String(req.hostname || "").trim().toLowerCase(),
+        requestHost: String(req.hostname || "")
+          .trim()
+          .toLowerCase(),
       };
     } catch {
       return null;
@@ -398,7 +408,9 @@ function resolveServiceRequest(req: Request): ServiceRequestResolution | null {
       serviceSlug: "",
       source: "custom-domain",
       requestOrigin: resolvePublicOrigin(req),
-      requestHost: String(req.hostname || "").trim().toLowerCase(),
+      requestHost: String(req.hostname || "")
+        .trim()
+        .toLowerCase(),
     };
   }
   try {
@@ -406,8 +418,12 @@ function resolveServiceRequest(req: Request): ServiceRequestResolution | null {
       profileSlug: mappedProfileSlug,
       serviceSlug: decodeURIComponent(custom[1]).trim().toLowerCase(),
       source: "custom-domain",
-      requestOrigin: `https://${String(req.hostname || "").trim().toLowerCase()}`,
-      requestHost: String(req.hostname || "").trim().toLowerCase(),
+      requestOrigin: `https://${String(req.hostname || "")
+        .trim()
+        .toLowerCase()}`,
+      requestHost: String(req.hostname || "")
+        .trim()
+        .toLowerCase(),
     };
   } catch {
     return null;
@@ -430,11 +446,23 @@ export async function handlePublicProfileServiceRequest(
   }
 
   try {
-    const profile = await storage.getProfileBySlugPublic(resolution.profileSlug);
-    if (!profile) {
+    const storedProfile = await storage.getProfileBySlugPublic(resolution.profileSlug);
+    if (!storedProfile) {
       sendPublicPageNotFound(res, "Profile service not found");
       return true;
     }
+    const storedBusiness = storedProfile.businessId
+      ? await storage.getBusinessPublicById(storedProfile.businessId)
+      : null;
+    const projection = buildCanonicalPublicProfileProjection({
+      profile: storedProfile,
+      business: storedBusiness,
+    });
+    if (!projection) {
+      sendPublicPageNotFound(res, "Profile service not found");
+      return true;
+    }
+    const { profile, business } = projection;
     const service = resolveProfileServiceItem(profile.contentBlocks, resolution.serviceSlug);
     if (!service) {
       sendPublicPageNotFound(res, "Profile service not found");
@@ -488,9 +516,6 @@ export async function handlePublicProfileServiceRequest(
       sendPublicPageRenderFailure(res, "Application files not found");
       return true;
     }
-    const business = profile.businessId
-      ? await storage.getBusinessPublicById(profile.businessId)
-      : null;
     const html = buildPublicProfileServiceHtml({
       templateHtml,
       origin: resolution.requestOrigin,
@@ -498,6 +523,10 @@ export async function handlePublicProfileServiceRequest(
       business,
       service,
     });
+    if (!html) {
+      sendPublicPageNotFound(res, "Profile service not found");
+      return true;
+    }
     res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
     res.type("html").send(html);
     return true;
@@ -508,10 +537,7 @@ export async function handlePublicProfileServiceRequest(
   }
 }
 
-export async function attachPublicProfileServiceLinks(
-  req: Request,
-  res: Response
-): Promise<void> {
+export async function attachPublicProfileServiceLinks(req: Request, res: Response): Promise<void> {
   const requestPath = String(req.path || "").replace(/\/+$/, "") || "/";
   const match = requestPath.match(/^\/u\/([^/]+)$/i);
   if (!match) return;
@@ -522,8 +548,12 @@ export async function attachPublicProfileServiceLinks(
   } catch {
     return;
   }
-  const profile = await storage.getProfileBySlugPublic(profileSlug);
-  if (!profile || profile.seoMeta?.customDomain) return;
+  const storedProfile = await storage.getProfileBySlugPublic(profileSlug);
+  if (!storedProfile) return;
+  const projection = buildCanonicalPublicProfileProjection({ profile: storedProfile });
+  if (!projection) return;
+  const profile = projection.profile;
+  if (profile.seoMeta?.customDomain) return;
   const services = listFactBearingProfileServices(profile.contentBlocks);
   if (services.length === 0) return;
 
@@ -557,7 +587,9 @@ export async function attachPublicProfileServiceLinks(
 }
 
 export function isPublicProfileServicePath(pathname: string): boolean {
-  return PLATFORM_SERVICE_ROUTE_PATTERN.test(pathname) || CUSTOM_SERVICE_ROUTE_PATTERN.test(pathname);
+  return (
+    PLATFORM_SERVICE_ROUTE_PATTERN.test(pathname) || CUSTOM_SERVICE_ROUTE_PATTERN.test(pathname)
+  );
 }
 
 export function validateProfileServiceRoute(args: {

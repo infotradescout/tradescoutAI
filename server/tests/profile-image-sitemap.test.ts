@@ -6,12 +6,23 @@ import {
   collectProfileImageSitemapEntries,
 } from "../profileImageSitemap";
 
+const PROFILE_SOCIAL_IMAGE = "/images/businesses/jrs-auto-glass/social-preview.jpg";
+const PROFILE_HERO_IMAGE = "/images/businesses/jrs-auto-glass/cover.webp";
+const PROFILE_LOGO_IMAGE = "/images/businesses/jrs-auto-glass/logo.webp";
+const SERVICE_HERO_IMAGE = "/images/businesses/la-plumbing-solutions/hero.jpg";
+const INVENTORY_IMAGE_ONE = "/images/businesses/honey-onyx/1.webp";
+const INVENTORY_IMAGE_TWO = "/images/businesses/honey-onyx/2.jpg";
+const PLACEHOLDER_IMAGE = "/images/businesses/honey-onyx/3.jpg";
+const PROJECT_IMAGE = "/images/businesses/jrs-auto-glass/after.webp";
+const GENERIC_GALLERY_IMAGE = "/images/businesses/jrs-auto-glass/before.webp";
+const SERVICE_IMAGE = "/images/businesses/la-plumbing-solutions/bathroom.jpg";
+
 const contentBlocks = [
   {
     type: "hero",
     data: {
-      imageUrl: "/images/provider/hero.jpg",
-      logoUrl: "/images/provider/logo.png",
+      imageUrl: PROFILE_HERO_IMAGE,
+      logoUrl: PROFILE_LOGO_IMAGE,
     },
   },
   {
@@ -25,16 +36,13 @@ const contentBlocks = [
             {
               name: "Taj Mahal",
               slug: "taj-mahal",
-              images: [
-                "/images/provider/taj-mahal-1.jpg",
-                "/images/provider/taj-mahal-2.jpg",
-              ],
+              images: [INVENTORY_IMAGE_ONE, INVENTORY_IMAGE_TWO],
             },
             {
               name: "Internal placeholder",
               nameStatus: "placeholder",
               slug: "unnamed-selection",
-              images: ["/images/provider/unnamed.jpg"],
+              images: [PLACEHOLDER_IMAGE],
             },
           ],
         },
@@ -50,16 +58,16 @@ const contentBlocks = [
           id: "completed-kitchen",
           title: "Completed quartzite kitchen",
           description: "A completed kitchen installation using a named quartzite selection.",
-          imageUrl: "/images/provider/completed-kitchen.jpg",
+          imageUrl: PROJECT_IMAGE,
         },
-        "/images/provider/generic-gallery-photo.jpg",
+        GENERIC_GALLERY_IMAGE,
       ],
     },
   },
   {
     type: "localServiceProfile",
     data: {
-      heroImage: "/images/provider/service-hero.jpg",
+      heroImage: SERVICE_HERO_IMAGE,
       serviceAreas: ["Hammond"],
       serviceAreaDescription:
         "Published service coverage for residential and commercial projects in the local area.",
@@ -68,7 +76,7 @@ const contentBlocks = [
           title: "Countertop installation",
           description:
             "Measure, plan, fabricate, and install stone countertops with project details reviewed before work begins.",
-          imageUrl: "/images/provider/countertop-installation.jpg",
+          imageUrl: SERVICE_IMAGE,
         },
       ],
     },
@@ -81,7 +89,7 @@ describe("governed public profile image sitemap", () => {
       candidate: {
         slug: "sample-provider",
         contentBlocks,
-        seoMeta: { imageUrl: "/images/provider/social.jpg" },
+        seoMeta: { imageUrl: PROFILE_SOCIAL_IMAGE },
         updatedAt: "2026-08-25T20:00:00.000Z",
       },
       profileUrl: "https://www.thetradescout.com/u/sample-provider",
@@ -90,35 +98,28 @@ describe("governed public profile image sitemap", () => {
     const byPage = new Map(entries.map((entry) => [entry.pageUrl, entry]));
     expect(byPage.get("https://www.thetradescout.com/u/sample-provider")?.imageUrls).toEqual(
       expect.arrayContaining([
-        "https://www.thetradescout.com/images/provider/social.jpg",
-        "https://www.thetradescout.com/images/provider/hero.jpg",
-        "https://www.thetradescout.com/images/provider/logo.png",
-        "https://www.thetradescout.com/images/provider/service-hero.jpg",
+        `https://www.thetradescout.com${PROFILE_SOCIAL_IMAGE}`,
+        `https://www.thetradescout.com${PROFILE_HERO_IMAGE}`,
+        `https://www.thetradescout.com${PROFILE_LOGO_IMAGE}`,
+        `https://www.thetradescout.com${SERVICE_HERO_IMAGE}`,
       ])
     );
     expect(
-      byPage.get(
-        "https://www.thetradescout.com/u/sample-provider/inventory/taj-mahal"
-      )?.imageUrls
+      byPage.get("https://www.thetradescout.com/u/sample-provider/inventory/taj-mahal")?.imageUrls
     ).toEqual([
-      "https://www.thetradescout.com/images/provider/taj-mahal-1.jpg",
-      "https://www.thetradescout.com/images/provider/taj-mahal-2.jpg",
+      `https://www.thetradescout.com${INVENTORY_IMAGE_ONE}`,
+      `https://www.thetradescout.com${INVENTORY_IMAGE_TWO}`,
     ]);
     expect(
-      byPage.get(
-        "https://www.thetradescout.com/u/sample-provider/categories/quartzite"
-      )?.imageUrls
-    ).toEqual(["https://www.thetradescout.com/images/provider/taj-mahal-1.jpg"]);
+      byPage.get("https://www.thetradescout.com/u/sample-provider/categories/quartzite")?.imageUrls
+    ).toEqual([`https://www.thetradescout.com${INVENTORY_IMAGE_ONE}`]);
     expect(
       [...byPage.keys()].some((url) => url.includes("/gallery/completed-quartzite-kitchen-"))
     ).toBe(true);
     expect(
-      byPage.get(
-        "https://www.thetradescout.com/u/sample-provider/services/countertop-installation"
-      )?.imageUrls
-    ).toEqual([
-      "https://www.thetradescout.com/images/provider/countertop-installation.jpg",
-    ]);
+      byPage.get("https://www.thetradescout.com/u/sample-provider/services/countertop-installation")
+        ?.imageUrls
+    ).toEqual([`https://www.thetradescout.com${SERVICE_IMAGE}`]);
   });
 
   it("keeps placeholders and generic gallery photos out of the feed", () => {
@@ -134,8 +135,8 @@ describe("governed public profile image sitemap", () => {
     );
 
     expect(xml).not.toContain("unnamed-selection");
-    expect(xml).not.toContain("unnamed.jpg");
-    expect(xml).not.toContain("generic-gallery-photo.jpg");
+    expect(xml).not.toContain(PLACEHOLDER_IMAGE);
+    expect(xml).not.toContain(GENERIC_GALLERY_IMAGE);
   });
 
   it("uses the current image sitemap tags without deprecated caption or title tags", () => {
@@ -175,9 +176,7 @@ describe("governed public profile image sitemap", () => {
       entries.flatMap((entry) => entry.imageUrls).every((url) => url.startsWith("https://"))
     ).toBe(true);
     expect(
-      entries.some((entry) =>
-        entry.pageUrl.includes("/landing/service/countertop-installation")
-      )
+      entries.some((entry) => entry.pageUrl.includes("/landing/service/countertop-installation"))
     ).toBe(true);
   });
 
@@ -188,15 +187,15 @@ describe("governed public profile image sitemap", () => {
         contentBlocks,
         seoMeta: {
           customDomain: "provider.example.com",
-          imageUrl: "/images/provider/social.jpg",
+          imageUrl: PROFILE_SOCIAL_IMAGE,
         },
       },
     });
 
     expect(entries.length).toBeGreaterThan(0);
-    expect(entries.every((entry) => entry.pageUrl.startsWith("https://www.thetradescout.com/"))).toBe(
-      true
-    );
+    expect(
+      entries.every((entry) => entry.pageUrl.startsWith("https://www.thetradescout.com/"))
+    ).toBe(true);
     expect(JSON.stringify(entries)).not.toContain("provider.example.com");
   });
 
@@ -225,7 +224,7 @@ describe("governed public profile image sitemap", () => {
       contentBlocks,
       seoMeta: {
         customDomain: "provider.example.com",
-        imageUrl: "/images/provider/social.jpg",
+        imageUrl: PROFILE_SOCIAL_IMAGE,
       },
       updatedAt: "2026-08-25T20:00:00.000Z",
     }));
@@ -336,9 +335,7 @@ describe("governed public profile image sitemap", () => {
     mapped.response.send(
       '<?xml version="1.0"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>'
     );
-    expect(mapped.state.body).toContain(
-      "https://www.thetradescout.com/sitemap-profile-images.xml"
-    );
+    expect(mapped.state.body).toContain("https://www.thetradescout.com/sitemap-profile-images.xml");
     expect(mapped.state.body).not.toContain(
       "https://provider.example.com/sitemap-profile-images.xml"
     );

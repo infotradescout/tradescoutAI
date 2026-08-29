@@ -5,14 +5,18 @@ import {
   collectPublicCustomDomainCanonicalAuditTargets,
   type PublicCustomDomainCanonicalAuditTarget,
 } from "./services/publicCustomDomainCanonicalAudit";
+import {
+  canonicalPublicProfileText,
+  normalizeCanonicalPublicProfileCustomDomain,
+} from "./publicProfileProjection";
 
-const CANONICAL_TRADESCOUT_HOSTS = new Set([
-  "www.thetradescout.com",
-  "thetradescout.com",
+const CANONICAL_TRADESCOUT_HOSTS = new Set(["www.thetradescout.com", "thetradescout.com"]);
+const ROOT_ALIAS_SOURCE_KINDS = new Set<PublicCustomDomainCanonicalAuditTarget["sourceKind"]>([
+  "profile_root",
+  "legacy_profile_root",
+  "business_root",
+  "vanity_root",
 ]);
-const ROOT_ALIAS_SOURCE_KINDS = new Set<
-  PublicCustomDomainCanonicalAuditTarget["sourceKind"]
->(["profile_root", "legacy_profile_root", "business_root", "vanity_root"]);
 const LEGACY_SELECTOR_KEYS = ["stone", "gallery", "category"] as const;
 const CACHE_TTL_MS = 5 * 60 * 1_000;
 const SAFE_QUERY_KEYS = new Set([
@@ -65,7 +69,9 @@ function cleanQueryValue(value: string): string | null {
     .replace(/[\r\n\u0000-\u001f\u007f]/g, "")
     .trim()
     .slice(0, MAX_QUERY_VALUE_LENGTH);
-  return candidate || null;
+  if (!candidate) return null;
+  const projected = canonicalPublicProfileText(candidate, MAX_QUERY_VALUE_LENGTH);
+  return projected === candidate ? candidate : null;
 }
 
 function isAllowedReservedQueryValue(key: string, value: string): boolean {
@@ -115,11 +121,14 @@ export function buildPublicCustomDomainCanonicalAliasMap(
       const path = normalizePath(source.pathname);
       if (!path || aliases.has(path)) continue;
       const canonical = new URL(target.expectedCanonicalUrl);
+      const canonicalDomain = normalizeCanonicalPublicProfileCustomDomain(canonical.hostname);
       if (
         canonical.protocol !== "https:" ||
         canonical.username ||
         canonical.password ||
         canonical.port ||
+        !canonicalDomain ||
+        canonical.hostname.toLowerCase() !== canonicalDomain ||
         CANONICAL_TRADESCOUT_HOSTS.has(normalizeHost(canonical.hostname))
       ) {
         continue;

@@ -12,11 +12,16 @@ import { pool } from "./db";
 import { buildProfileSitemapUrls } from "./profileSitemapDiscovery";
 import { canUseLinkedProfileAsCanonicalBusinessRoute } from "./services/canonicalBusinessProfileRoute";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
+import {
+  canonicalPublicProfileText,
+  normalizeCanonicalPublicProfileCustomDomain,
+  normalizeCanonicalPublicProfileSlug,
+  projectCanonicalPublicProfileContentBlocks,
+  resolveCanonicalPublicProfileUrl,
+} from "./publicProfileProjection";
 
 const DIRECTORY_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_DIRECTORY_SERVICE_LINKS = 8;
-const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const CUSTOM_DOMAIN_PATTERN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i;
 const DIRECTORY_PATH_PATTERN = /^\/(?:county|city|best|trade)(?:\/|$)/i;
 const DIRECTORY_GRAPH_MARKER = 'data-seo-directory-profile-service-graph="true"';
 
@@ -69,17 +74,11 @@ function normalizeOrigin(value: unknown): string | null {
 }
 
 function normalizeSlug(value: unknown): string | null {
-  const slug = String(value || "")
-    .trim()
-    .toLowerCase();
-  return slug && slug.length <= 120 && PUBLIC_SLUG_PATTERN.test(slug) ? slug : null;
+  return normalizeCanonicalPublicProfileSlug(value);
 }
 
 function normalizeCustomDomain(value: unknown): string | null {
-  const domain = String(value || "")
-    .trim()
-    .toLowerCase();
-  return CUSTOM_DOMAIN_PATTERN.test(domain) ? domain : null;
+  return normalizeCanonicalPublicProfileCustomDomain(value);
 }
 
 function databaseBoolean(value: unknown): boolean {
@@ -98,9 +97,13 @@ function canonicalProfileUrl(args: {
   seoMeta: unknown;
 }): string {
   const customDomain = normalizeCustomDomain(profileSeoMeta(args.seoMeta).customDomain);
-  return customDomain
-    ? `https://${customDomain}/`
-    : `${args.origin}/u/${encodeURIComponent(args.profileSlug)}`;
+  return (
+    resolveCanonicalPublicProfileUrl({
+      profileSlug: args.profileSlug,
+      customDomain,
+      platformOrigin: args.origin,
+    }) || `${args.origin}/u/unavailable-profile`
+  );
 }
 
 function exposureCandidate(row: DirectoryProfileRow): Record<string, unknown> {
@@ -152,7 +155,7 @@ export function buildPublicDirectoryProfileDiscoveries(
       profileSlug,
       seoMeta: row.profile_seo_meta,
     });
-    const contentBlocks = row.profile_content_blocks;
+    const contentBlocks = projectCanonicalPublicProfileContentBlocks(row.profile_content_blocks);
     const governedUrls = new Set(
       buildProfileSitemapUrls({
         profileSlug,
@@ -178,17 +181,15 @@ export function buildPublicDirectoryProfileDiscoveries(
       .slice(0, MAX_DIRECTORY_SERVICE_LINKS);
 
     const serviceAreaHub = resolveProfileServiceAreaHub(contentBlocks);
-    const candidateServiceAreaUrl = serviceAreaHub
-      ? buildProfileServiceAreaUrl(profileUrl)
-      : null;
+    const candidateServiceAreaUrl = serviceAreaHub ? buildProfileServiceAreaUrl(profileUrl) : null;
     const serviceAreaUrl =
       candidateServiceAreaUrl && governedUrls.has(candidateServiceAreaUrl)
         ? candidateServiceAreaUrl
         : null;
-    const profileName = String(row.profile_display_name || row.business_name || businessSlug)
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 120);
+    const profileName = canonicalPublicProfileText(
+      row.profile_display_name || row.business_name || businessSlug,
+      120
+    );
 
     discoveries.set(businessSlug, {
       businessSlug,
@@ -265,13 +266,10 @@ async function loadPublicDirectoryProfileDiscoveries(
 function serviceListHtml(discovery: PublicDirectoryProfileDiscovery): string {
   const links = [
     ...discovery.services.map(
-      (service) =>
-        `<li><a href="${escapeHtml(service.url)}">${escapeHtml(service.title)}</a></li>`
+      (service) => `<li><a href="${escapeHtml(service.url)}">${escapeHtml(service.title)}</a></li>`
     ),
     ...(discovery.serviceAreaUrl
-      ? [
-          `<li><a href="${escapeHtml(discovery.serviceAreaUrl)}">Service areas</a></li>`,
-        ]
+      ? [`<li><a href="${escapeHtml(discovery.serviceAreaUrl)}">Service areas</a></li>`]
       : []),
   ];
   if (links.length === 0) return "";
@@ -357,9 +355,7 @@ export function enrichPublicDirectoryProfileHtml(args: {
         )}\\1>[^<]*<\\/a>(?:\\s*<small>[^<]*<\\/small>)?\\s*<\\/li>`,
         "gi"
       );
-      html = html.replace(itemPattern, (match) =>
-        match.replace(/\s*<\/li>$/i, `${details}</li>`)
-      );
+      html = html.replace(itemPattern, (match) => match.replace(/\s*<\/li>$/i, `${details}</li>`));
     }
 
     linkedDiscoveries.push(discovery);

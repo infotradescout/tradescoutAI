@@ -21,6 +21,12 @@ import {
   isProfileInventoryItemPubliclyAddressable,
 } from "./profileSitemapDiscovery";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
+import {
+  absoluteCanonicalPublicProfileMediaUrl,
+  normalizeCanonicalPublicProfileCustomDomain,
+  normalizeCanonicalPublicProfileSlug,
+  projectCanonicalPublicProfileRecord,
+} from "./publicProfileProjection";
 
 const CANONICAL_ORIGIN = "https://www.thetradescout.com";
 const PLATFORM_IMAGE_SITEMAP_PATH = "/sitemap-profile-images.xml";
@@ -30,7 +36,6 @@ const MAX_SITEMAP_URLS = 50_000;
 const MAX_IMAGES_PER_PAGE = 1_000;
 const MAX_ROOT_IMAGES = 24;
 const CACHE_TTL_MS = 5 * 60 * 1_000;
-const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type ProfileImageCandidate = {
   slug?: unknown;
@@ -65,10 +70,7 @@ function escapeXml(value: string): string {
 }
 
 function normalizeSlug(value: unknown): string | null {
-  const slug = String(value || "")
-    .trim()
-    .toLowerCase();
-  return slug && slug.length <= 120 && PUBLIC_SLUG_PATTERN.test(slug) ? slug : null;
+  return normalizeCanonicalPublicProfileSlug(value);
 }
 
 function objectValue(value: unknown): Record<string, unknown> {
@@ -98,14 +100,7 @@ function lastmodYmd(value: unknown): string | undefined {
 }
 
 function publicImageUrl(value: unknown, pageUrl: string): string | null {
-  const imageUrl = normalizeHttpUrl(value, pageUrl);
-  if (!imageUrl) return null;
-  try {
-    const protocol = new URL(imageUrl).protocol;
-    return protocol === "https:" || protocol === "http:" ? imageUrl : null;
-  } catch {
-    return null;
-  }
+  return absoluteCanonicalPublicProfileMediaUrl(value, pageUrl);
 }
 
 function distinctImages(values: Iterable<unknown>, pageUrl: string): string[] {
@@ -133,13 +128,7 @@ function rootProfileImages(candidate: ProfileImageCandidate, pageUrl: string): s
       if (type === "hero") {
         images.push(data.imageUrl, data.logoUrl, data.image, data.logo);
       } else if (type === "localserviceprofile") {
-        images.push(
-          data.heroImage,
-          data.logoImage,
-          data.aboutImage,
-          data.imageUrl,
-          data.logoUrl
-        );
+        images.push(data.heroImage, data.logoImage, data.aboutImage, data.imageUrl, data.logoUrl);
       } else if (type === "profilepresentation") {
         images.push(
           data.imageUrl,
@@ -183,14 +172,21 @@ export function collectProfileImageSitemapEntries(args: {
   candidate: ProfileImageCandidate;
   profileUrl?: string;
 }): ProfileImageSitemapEntry[] {
-  const profileSlug = normalizeSlug(args.candidate.slug);
+  const projectedCandidate = projectCanonicalPublicProfileRecord({
+    slug: args.candidate.slug,
+    displayName: "Public profile",
+    contentBlocks: args.candidate.contentBlocks,
+    seoMeta: args.candidate.seoMeta,
+    updatedAt: args.candidate.updatedAt,
+  });
+  if (!projectedCandidate) return [];
+  const candidate: ProfileImageCandidate = projectedCandidate;
+  const profileSlug = normalizeSlug(candidate.slug);
   if (!profileSlug || !shouldIndexPublicProfileSlug(profileSlug)) return [];
-  const profileUrl = normalizeHttpUrl(
-    args.profileUrl || canonicalPlatformProfileUrl(profileSlug)
-  );
+  const profileUrl = normalizeHttpUrl(args.profileUrl || canonicalPlatformProfileUrl(profileSlug));
   if (!profileUrl) return [];
 
-  const contentBlocks = args.candidate.contentBlocks;
+  const contentBlocks = candidate.contentBlocks;
   const governedUrls = new Set(
     buildProfileSitemapUrls({
       profileSlug,
@@ -199,9 +195,9 @@ export function collectProfileImageSitemapEntries(args: {
     }).map((value) => normalizeHttpUrl(value))
   );
   const entries = new Map<string, ProfileImageSitemapEntry>();
-  const lastmod = lastmodYmd(args.candidate.updatedAt);
+  const lastmod = lastmodYmd(candidate.updatedAt);
 
-  appendEntry(entries, profileUrl, rootProfileImages(args.candidate, profileUrl), lastmod);
+  appendEntry(entries, profileUrl, rootProfileImages(candidate, profileUrl), lastmod);
 
   const inventoryCategories = inventoryCategoriesForProfile(profileSlug, contentBlocks);
   for (const item of listProfileInventoryItems(inventoryCategories)) {
@@ -218,13 +214,7 @@ export function collectProfileImageSitemapEntries(args: {
   }
 
   for (const category of listProfileInventoryCategories(inventoryCategories, contentBlocks)) {
-    if (
-      !isProfileInventoryCategoryPubliclyAddressable(
-        profileSlug,
-        contentBlocks,
-        category
-      )
-    ) {
+    if (!isProfileInventoryCategoryPubliclyAddressable(profileSlug, contentBlocks, category)) {
       continue;
     }
     const pageUrl = buildProfilePublicCategoryUrl({
@@ -256,19 +246,13 @@ export function collectProfileImageSitemapEntries(args: {
       serviceSlug: service.slug,
     });
     const normalizedPageUrl = normalizeHttpUrl(pageUrl);
-    if (
-      !service.imageUrl ||
-      !normalizedPageUrl ||
-      !governedUrls.has(normalizedPageUrl)
-    ) {
+    if (!service.imageUrl || !normalizedPageUrl || !governedUrls.has(normalizedPageUrl)) {
       continue;
     }
     appendEntry(entries, normalizedPageUrl, [service.imageUrl], lastmod);
   }
 
-  return [...entries.values()].sort((left, right) =>
-    left.pageUrl.localeCompare(right.pageUrl)
-  );
+  return [...entries.values()].sort((left, right) => left.pageUrl.localeCompare(right.pageUrl));
 }
 
 /** Current Google image sitemap shape: page loc plus image:image/image:loc. */
@@ -283,9 +267,7 @@ export function buildProfileImageSitemapXml(entries: ProfileImageSitemapEntry[])
             `    <image:image>\n      <image:loc>${escapeXml(imageUrl)}</image:loc>\n    </image:image>`
         )
         .join("\n");
-      const lastmod = entry.lastmod
-        ? `\n    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`
-        : "";
+      const lastmod = entry.lastmod ? `\n    <lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
       return `  <url>\n    <loc>${escapeXml(entry.pageUrl)}</loc>${lastmod}\n${images}\n  </url>`;
     })
     .join("\n");
@@ -336,14 +318,8 @@ type PublicProfileImageCandidateLoader = (
   slug: string
 ) => Promise<ProfileImageCandidate | null | undefined>;
 
-const CUSTOM_DOMAIN_HOST_PATTERN =
-  /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
-
 function normalizeCustomDomainHost(value: unknown): string | null {
-  const host = String(value || "")
-    .trim()
-    .toLowerCase();
-  return CUSTOM_DOMAIN_HOST_PATTERN.test(host) ? host : null;
+  return normalizeCanonicalPublicProfileCustomDomain(value);
 }
 
 function directRequestHost(req: Pick<Request, "headers">): string | null {
@@ -372,12 +348,7 @@ export async function buildMappedCustomDomainImageSitemap(
   const directHost = directRequestHost(req);
   const mappedHost = normalizeCustomDomainHost((req as any).mappedProfileDomainHost);
   const slug = normalizeSlug((req as any)[MAPPED_PROFILE_DOMAIN_SLUG_KEY]);
-  if (
-    !directHost ||
-    mappedHost !== directHost ||
-    !slug ||
-    !shouldIndexPublicProfileSlug(slug)
-  ) {
+  if (!directHost || mappedHost !== directHost || !slug || !shouldIndexPublicProfileSlug(slug)) {
     return null;
   }
 
@@ -437,10 +408,7 @@ export async function handlePublicProfileImageSitemapRequest(
  * index and robots.txt. Custom-domain profiles use their separately governed
  * host-local feed at the route above.
  */
-export function attachPublicProfileImageSitemapReferences(
-  req: Request,
-  res: Response
-): void {
+export function attachPublicProfileImageSitemapReferences(req: Request, res: Response): void {
   const path = String(req.path || "").replace(/\/+$/, "") || "/";
   if (path !== "/sitemap.xml" && path !== "/sitemap-index.xml" && path !== "/robots.txt") {
     return;

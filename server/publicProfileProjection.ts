@@ -42,18 +42,22 @@ export type CanonicalPublicProfileRecord = {
   headline: string | null;
   roleContext: string;
   servicesDescription: string | null;
-  contentBlocks: unknown[];
-  ctaConfig: unknown;
+  contentBlocks: any[];
+  ctaConfig: any;
   seoMeta: {
     title?: string;
     description?: string;
     imageUrl?: string;
     faviconUrl?: string;
+    imageWidth?: number;
+    imageHeight?: number;
     customDomain?: string;
   };
-  updatedAt?: unknown;
-  profileSections?: unknown;
-  profileBooking?: unknown;
+  updatedAt?: any;
+  profileSections?: any;
+  profileBooking?: any;
+  siteTemplate?: string;
+  contactPolicy?: any;
 };
 
 export type CanonicalPublicBusinessRecord = {
@@ -71,8 +75,8 @@ export type CanonicalPublicBusinessRecord = {
   cvsPerformanceScore?: number | null;
   cvsBoostPoints?: number | null;
   trustComputedAt?: string | null;
-  communityVerification?: unknown;
-  expressContactCapabilities?: unknown;
+  communityVerification?: any;
+  expressContactCapabilities?: any;
 };
 
 function recordValue(value: unknown): UnknownRecord {
@@ -191,7 +195,8 @@ function safeLocationLabel(value: unknown, maxLength = 160): string | null {
   const raw = rawString(value, maxLength + 1);
   if (!raw || raw.length > maxLength) return null;
   const projected = canonicalPublicProfileText(raw, maxLength);
-  if (!projected || projected !== raw || /Continue through TradeScout/i.test(projected)) return null;
+  if (!projected || projected !== raw || /Continue through TradeScout/i.test(projected))
+    return null;
   return projected;
 }
 
@@ -244,6 +249,15 @@ function keyIsSensitive(key: string): boolean {
   return SENSITIVE_FIELD_PATTERN.test(normalized) || EXTERNAL_LINK_FIELD_PATTERN.test(normalized);
 }
 
+function isSafeNestedPresentationContainer(key: string, value: unknown): boolean {
+  return (
+    key.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase() === "social" &&
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  );
+}
+
 function projectContentValue(
   value: unknown,
   key: string,
@@ -284,7 +298,13 @@ function projectContentValue(
       0,
       MAX_PROFILE_CONTENT_OBJECT_KEYS
     )) {
-      if (keyIsSensitive(childKey) && !keyLooksLikeMedia(childKey, key)) continue;
+      if (
+        keyIsSensitive(childKey) &&
+        !keyLooksLikeMedia(childKey, key) &&
+        !isSafeNestedPresentationContainer(childKey, childValue)
+      ) {
+        continue;
+      }
       const child = projectContentValue(childValue, childKey, key, depth + 1);
       if (child !== undefined) projected[childKey] = child;
     }
@@ -309,6 +329,11 @@ function projectSafeMetadata(value: unknown): unknown {
   return projectContentValue(value, "metadata", "metadata", 0);
 }
 
+/** Applies the same fail-closed rules to auxiliary public API collections. */
+export function projectCanonicalPublicProfilePayloadValue(value: unknown): unknown {
+  return projectSafeMetadata(value);
+}
+
 export function projectCanonicalPublicProfileRecord(
   value: unknown
 ): CanonicalPublicProfileRecord | null {
@@ -323,6 +348,8 @@ export function projectCanonicalPublicProfileRecord(
   const imageUrl = normalizeCanonicalPublicProfileMediaPath(seoSource.imageUrl);
   const faviconUrl = normalizeCanonicalPublicProfileMediaPath(seoSource.faviconUrl);
   const customDomain = normalizeCanonicalPublicProfileCustomDomain(seoSource.customDomain);
+  const imageWidth = Number(seoSource.imageWidth);
+  const imageHeight = Number(seoSource.imageHeight);
   const id = safeOpaqueId(source.id);
   const headline = canonicalPublicProfileText(source.headline, 500);
   const roleContext = canonicalPublicProfileText(source.roleContext, 160);
@@ -342,6 +369,12 @@ export function projectCanonicalPublicProfileRecord(
       ...(description ? { description } : {}),
       ...(imageUrl ? { imageUrl } : {}),
       ...(faviconUrl ? { faviconUrl } : {}),
+      ...(Number.isInteger(imageWidth) && imageWidth > 0 && imageWidth <= 8_192
+        ? { imageWidth }
+        : {}),
+      ...(Number.isInteger(imageHeight) && imageHeight > 0 && imageHeight <= 8_192
+        ? { imageHeight }
+        : {}),
       ...(customDomain ? { customDomain } : {}),
     },
     ...(source.updatedAt !== undefined ? { updatedAt: source.updatedAt } : {}),
@@ -350,6 +383,15 @@ export function projectCanonicalPublicProfileRecord(
       : {}),
     ...(source.profileBooking !== undefined
       ? { profileBooking: projectSafeMetadata(source.profileBooking) ?? null }
+      : {}),
+    ...(source.siteTemplate !== undefined
+      ? {
+          siteTemplate:
+            canonicalPublicProfileText(source.siteTemplate, 80) || "default-professional",
+        }
+      : {}),
+    ...(source.contactPolicy !== undefined
+      ? { contactPolicy: projectSafeMetadata(source.contactPolicy) ?? null }
       : {}),
   };
 }
@@ -383,9 +425,7 @@ export function projectCanonicalPublicBusinessRecord(
     ...(source.verificationStatus !== undefined
       ? { verificationStatus: verificationStatus || null }
       : {}),
-    ...(typeof source.verifiedBadge === "boolean"
-      ? { verifiedBadge: source.verifiedBadge }
-      : {}),
+    ...(typeof source.verifiedBadge === "boolean" ? { verifiedBadge: source.verifiedBadge } : {}),
     ...(source.cvsScore !== undefined ? { cvsScore: finiteOrNull(source.cvsScore) } : {}),
     ...(source.cvsPerformanceScore !== undefined
       ? { cvsPerformanceScore: finiteOrNull(source.cvsPerformanceScore) }
@@ -393,9 +433,7 @@ export function projectCanonicalPublicBusinessRecord(
     ...(source.cvsBoostPoints !== undefined
       ? { cvsBoostPoints: finiteOrNull(source.cvsBoostPoints) }
       : {}),
-    ...(source.trustComputedAt !== undefined
-      ? { trustComputedAt: trustComputedAt || null }
-      : {}),
+    ...(source.trustComputedAt !== undefined ? { trustComputedAt: trustComputedAt || null } : {}),
     ...(source.communityVerification !== undefined
       ? { communityVerification: projectSafeMetadata(source.communityVerification) ?? null }
       : {}),

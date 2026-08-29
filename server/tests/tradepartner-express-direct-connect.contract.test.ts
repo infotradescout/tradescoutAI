@@ -84,19 +84,18 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(repository).not.toContain("phone: business.profileData?.phone");
   });
 
-  it("shows a public business address with the call-or-form choice when one is available", () => {
+  it("keeps an exact business address out of the anonymous call-or-form choice", () => {
     const publicProfileRoute = read("server/routes/profiles.ts");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
-    expect(publicProfileRoute).toContain(
-      "business.tradePartner === true && (business.address || business.zipCode)"
-    );
-    expect(publicProfileRoute).toContain("...(business.city ? { city: business.city } : {})");
-    expect(profileView).toContain("const publicBusinessAddress = business?.address?.trim()");
+    expect(publicProfileRoute).toContain("business: canonicalProjection.business");
+    expect(profileView).toContain("const publicBusinessAddress = null");
+    expect(profileView).not.toContain("business?.address?.trim()");
+    expect(profileView).not.toContain("business?.zipCode");
     expect(profileView).toContain("businessAddress={publicBusinessAddress}");
-    expect(wholesalerTheme).toContain("businessAddress={businessAddress}");
+    expect(wholesalerTheme).toContain("<LegacyWholesalerProfileTheme {...props} />");
     expect(panel).toContain("{businessAddress ? (");
     expect(panel).toContain("<address");
     expect(panel).toContain("<MapPin");

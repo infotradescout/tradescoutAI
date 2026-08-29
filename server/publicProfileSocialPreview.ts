@@ -21,8 +21,13 @@ import {
   renderSocialPreviewCard,
   type SocialPreviewCardContext,
 } from "./socialPreviewCardRenderer";
+import {
+  absoluteCanonicalPublicProfileMediaUrl,
+  buildCanonicalPublicProfileProjection,
+  normalizeCanonicalPublicProfileSlug,
+  resolveCanonicalPublicProfileUrl,
+} from "./publicProfileProjection";
 
-const PROFILE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // Rendered PNG cards are large relative to ordinary metadata. A small hot
 // cache avoids retaining tens or hundreds of megabytes in the app process.
 const MAX_PREVIEW_CACHE_ENTRIES = 8;
@@ -56,27 +61,6 @@ function cleanText(value: unknown, maxLength: number): string {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);
-}
-
-function normalizeProfileSlug(value: unknown): string | null {
-  const slug = cleanText(value, 120).toLowerCase();
-  return slug && PROFILE_SLUG_PATTERN.test(slug) ? slug : null;
-}
-
-function absolutePublicAsset(value: unknown, origin: string): string | null {
-  const candidate = String(value || "")
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .trim()
-    .slice(0, 2048);
-  if (!candidate || /[\r\n\\\0]/.test(candidate)) return null;
-  try {
-    const resolved = new URL(candidate, origin);
-    return resolved.protocol === "https:" || resolved.protocol === "http:"
-      ? resolved.toString()
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 function publicLocationLabel(
@@ -124,19 +108,28 @@ function cachePromise(
 export async function resolvePublicProfileSocialPreview(
   options: PublicProfileSocialPreviewOptions
 ): Promise<ResolvedPublicProfileSocialPreview | null> {
-  const profileSlug = normalizeProfileSlug(options.profileSlug);
+  const profileSlug = normalizeCanonicalPublicProfileSlug(options.profileSlug);
   if (!profileSlug) return null;
 
-  const profileRecord = await storage.getProfileBySlugPublic(profileSlug);
-  if (!profileRecord) return null;
-  const businessRecord = profileRecord.businessId
-    ? await storage.getBusinessPublicById(profileRecord.businessId)
+  const storedProfile = await storage.getProfileBySlugPublic(profileSlug);
+  if (!storedProfile) return null;
+  const storedBusiness = storedProfile.businessId
+    ? await storage.getBusinessPublicById(storedProfile.businessId)
     : null;
+  const projection = buildCanonicalPublicProfileProjection({
+    profile: storedProfile,
+    business: storedBusiness,
+  });
+  if (!projection) return null;
+  const { profile: profileRecord, business: businessRecord } = projection;
   const canonicalBusinessName = cleanText(businessRecord?.name || profileRecord.displayName, 100);
   const assetOrigin = "https://www.thetradescout.com";
-  const profileUrl = profileRecord.seoMeta?.customDomain
-    ? `https://${String(profileRecord.seoMeta.customDomain).trim().toLowerCase()}/`
-    : `${assetOrigin}/u/${encodeURIComponent(profileSlug)}`;
+  const profileUrl = resolveCanonicalPublicProfileUrl({
+    profileSlug,
+    customDomain: profileRecord.seoMeta?.customDomain,
+    platformOrigin: assetOrigin,
+  });
+  if (!profileUrl) return null;
 
   let sourceImageUrl: string | null = null;
   let title = canonicalBusinessName;
@@ -215,8 +208,8 @@ export async function resolvePublicProfileSocialPreview(
   } else {
     title = presentation.brandName;
     sourceImageUrl =
-      absolutePublicAsset(presentation.profileImageUrl, assetOrigin) ||
-      absolutePublicAsset(profileRecord.seoMeta?.imageUrl, assetOrigin);
+      absoluteCanonicalPublicProfileMediaUrl(presentation.profileImageUrl, assetOrigin) ||
+      absoluteCanonicalPublicProfileMediaUrl(profileRecord.seoMeta?.imageUrl, assetOrigin);
   }
   const context: SocialPreviewCardContext = {
     kind: resolvedItemType || "profile",
@@ -227,7 +220,7 @@ export async function resolvePublicProfileSocialPreview(
     locationLabel: publicLocationLabel(businessRecord),
     ctaLabel: presentation.ctaLabel,
     sourceImageUrl,
-    logoUrl: absolutePublicAsset(
+    logoUrl: absoluteCanonicalPublicProfileMediaUrl(
       profileSlug === JW_STONE_PROFILE_SLUG && !resolvedItemType
         ? JW_STONE_PROFILE_SOCIAL_LOGO_URL
         : presentation.logoUrl,

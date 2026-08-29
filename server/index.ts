@@ -132,6 +132,11 @@ import {
   type ResolvedPublicProfileItemRequest,
 } from "./publicProfileItemRouting";
 import { serveSteelHomeBuilderProfileRoute } from "./steelHomeBuilderProfileRoute";
+import {
+  normalizeCanonicalPublicProfileCustomDomain,
+  normalizeCanonicalPublicProfileSlug,
+  projectCanonicalPublicProfileRecord,
+} from "./publicProfileProjection";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -559,12 +564,9 @@ async function renderProfileOnCustomDomain(
           origin,
           collectionUrl: `${origin}/`,
           marketplaceDomainSurface: true,
-          stoneSlug:
-            itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
+          stoneSlug: itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
           photo:
-            itemRequest?.itemType === "inventory"
-              ? String(itemRequest.imageIndex + 1)
-              : undefined,
+            itemRequest?.itemType === "inventory" ? String(itemRequest.imageIndex + 1) : undefined,
           materialSlug:
             categoryRequest?.kind === "category" ? categoryRequest.categorySlug : undefined,
         })
@@ -1924,22 +1926,27 @@ app.use(landingContractHeaders);
                         businessClaimStatus: profileRecord.businessClaimStatus,
                       })
                     )
-                    .map((profileRecord) => ({
-                      profileRecord,
-                      itemRequest: resolvePublicProfileItemRequest({
-                        profile: profileRecord,
-                        pathname: `/${collection}/${String(req.params.itemSlug || "")}`,
-                        profileBasePath: "/",
-                        photo: req.query.photo,
-                      }),
-                    }))
+                    .map((storedProfile) => {
+                      const profileRecord = projectCanonicalPublicProfileRecord({
+                        ...storedProfile,
+                        id: storedProfile.profileId,
+                        displayName: storedProfile.slug,
+                      });
+                      return profileRecord
+                        ? {
+                            profileRecord,
+                            itemRequest: resolvePublicProfileItemRequest({
+                              profile: profileRecord,
+                              pathname: `/${collection}/${String(req.params.itemSlug || "")}`,
+                              profileBasePath: "/",
+                              photo: req.query.photo,
+                            }),
+                          }
+                        : null;
+                    })
                     .filter(
-                      (
-                        candidate
-                      ): candidate is {
-                        profileRecord: (typeof candidates)[number];
-                        itemRequest: ResolvedPublicProfileItemRequest;
-                      } => candidate.itemRequest.kind === "item"
+                      (candidate): candidate is NonNullable<typeof candidate> =>
+                        candidate !== null && candidate.itemRequest.kind === "item"
                     );
 
                   if (matches.length !== 1) {
@@ -1947,7 +1954,9 @@ app.use(landingContractHeaders);
                   }
 
                   const { profileRecord, itemRequest } = matches[0];
-                  const customDomain = profileRecord.seoMeta?.customDomain?.trim().toLowerCase();
+                  const customDomain = normalizeCanonicalPublicProfileCustomDomain(
+                    profileRecord.seoMeta?.customDomain
+                  );
                   const destination = buildPublicProfileCanonicalRedirectTarget({
                     origin: customDomain
                       ? `https://${customDomain}`
@@ -1981,9 +1990,12 @@ app.use(landingContractHeaders);
                     }
 
                     const origin = resolvePublicOrigin(req);
-                    const slug = String(req.params.slug || "");
-                    const profileRecord = await storage.getProfileBySlugPublic(slug);
-                    if (!profileRecord) {
+                    const slug = normalizeCanonicalPublicProfileSlug(req.params.slug);
+                    if (!slug) {
+                      return sendPublicPageNotFound(res, "Profile not found");
+                    }
+                    const storedProfile = await storage.getProfileBySlugPublic(slug);
+                    if (!storedProfile) {
                       return sendPublicPageNotFound(res, "Profile not found");
                     }
 
@@ -1998,6 +2010,11 @@ app.use(landingContractHeaders);
                       renderProfileHtml: buildPublicProfileHtml,
                     });
                     if (handledSteelHomeBuilder) return;
+
+                    const profileRecord = projectCanonicalPublicProfileRecord(storedProfile);
+                    if (!profileRecord) {
+                      return sendPublicPageNotFound(res, "Profile not found");
+                    }
 
                     const requestedBasePath = req.path.startsWith("/p/")
                       ? `/p/${encodeURIComponent(slug)}`
@@ -2026,7 +2043,9 @@ app.use(landingContractHeaders);
                     if (!destinationSuffix) {
                       return sendPublicPageNotFound(res, "Profile destination not found");
                     }
-                    const customDomain = profileRecord.seoMeta?.customDomain?.trim().toLowerCase();
+                    const customDomain = normalizeCanonicalPublicProfileCustomDomain(
+                      profileRecord.seoMeta?.customDomain
+                    );
                     if (customDomain) {
                       const destination = buildPublicProfileCanonicalRedirectTarget({
                         origin: `https://${customDomain}`,
@@ -2100,7 +2119,18 @@ app.use(landingContractHeaders);
 
                   const origin = resolvePublicOrigin(req);
 
-                  const slug = String(req.params.slug || "");
+                  const requestedSlug = String(req.params.slug || "");
+                  const slug = normalizeCanonicalPublicProfileSlug(requestedSlug);
+                  if (!slug) {
+                    res.setHeader("Cache-Control", "no-store");
+                    return res.status(404).send(
+                      buildPublicProfileEarlyHtml({
+                        slug: "unavailable-profile",
+                        origin,
+                        templateHtml,
+                      })
+                    );
+                  }
 
                   // The old product-only profile is a URL alias, never a second
                   // public profile. Preserve item/photo context while sending
@@ -2116,7 +2146,10 @@ app.use(landingContractHeaders);
                   // served there -- send visitors straight to the business's
                   // own domain instead of dual-hosting the same profile under
                   // /u/:slug too.
-                  const profileRecord = await storage.getProfileBySlugPublic(slug);
+                  const storedProfile = await storage.getProfileBySlugPublic(slug);
+                  const profileRecord = storedProfile
+                    ? projectCanonicalPublicProfileRecord(storedProfile)
+                    : null;
                   if (!profileRecord) {
                     res.setHeader("Cache-Control", "no-store");
                     return res
@@ -2144,7 +2177,9 @@ app.use(landingContractHeaders);
                   if (categoryRequest.kind === "invalid-category-route") {
                     return sendPublicPageNotFound(res, "Profile category not found");
                   }
-                  const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
+                  const customDomain = normalizeCanonicalPublicProfileCustomDomain(
+                    profileRecord.seoMeta?.customDomain
+                  );
                   if (itemRequest.kind === "item") {
                     const itemSuffix = profileItemPathSuffix(itemRequest, canonicalProfileBase);
                     const destination = buildPublicProfileCanonicalRedirectTarget({
