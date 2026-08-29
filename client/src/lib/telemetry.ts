@@ -8,7 +8,15 @@ export const DIRECT_CONNECT_FRICTION_EVENTS = [
   "direct_connect_repeated_cta_click",
   "direct_connect_empty_state_seen",
   "direct_connect_permission_or_role_blocked",
+] as const;
+
+export const DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS = [
   "direct_connect_funnel_step_stalled",
+] as const;
+
+export const ALL_DIRECT_CONNECT_FRICTION_EVENTS = [
+  ...DIRECT_CONNECT_FRICTION_EVENTS,
+  ...DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS,
 ] as const;
 
 export type DirectConnectFrictionEvent = (typeof DIRECT_CONNECT_FRICTION_EVENTS)[number];
@@ -17,14 +25,17 @@ const DIRECT_CONNECT_FRICTION_EVENT_SET = new Set<string>(DIRECT_CONNECT_FRICTIO
 const MAX_SAFE_STRING_LENGTH = 120;
 const MAX_SAFE_ID_LENGTH = 128;
 const MAX_SAFE_COUNT = 1_000_000;
-const DEFAULT_FUNNEL_STALL_MS = 10 * 60 * 1000;
 const SAFE_TOKEN_PATTERN = /^[a-z0-9][a-z0-9._:/ +~-]*$/i;
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
+const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LONG_ID_SEGMENT = /^[A-Za-z0-9_-]{16,}$/;
+const NUMERIC_SEGMENT = /^\d+$/;
 
 const SAFE_STRING_FIELDS = [
   "source",
   "section",
   "reason",
+  "field",
   "funnelStep",
   "permission",
   "role",
@@ -39,14 +50,12 @@ const SAFE_STRING_FIELDS = [
   "fromSection",
   "toSection",
 ] as const;
-
 const SAFE_ID_FIELDS = [
   "requestId",
   "assignmentId",
   "sessionId",
   "conversationId",
 ] as const;
-
 const SAFE_BOOLEAN_FIELDS = [
   "blocked",
   "success",
@@ -55,7 +64,6 @@ const SAFE_BOOLEAN_FIELDS = [
   "isAuthenticated",
   "hasDraft",
 ] as const;
-
 const SAFE_NUMBER_FIELDS = [
   "status",
   "statusCode",
@@ -103,6 +111,8 @@ function sanitizeId(value: unknown): string | undefined {
   ) {
     return undefined;
   }
+  if (/^\d{10,15}$/.test(normalized)) return undefined;
+  if (!UUID_SEGMENT.test(normalized) && containsObviousPrivateData(normalized)) return undefined;
   return normalized;
 }
 
@@ -118,14 +128,19 @@ function sanitizeStatusCode(value: unknown): number | undefined {
   return value;
 }
 
-const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LONG_ID_SEGMENT = /^[A-Za-z0-9_-]{16,}$/;
-const NUMERIC_SEGMENT = /^\d+$/;
+function resolvePathname(): string {
+  if (typeof window === "undefined") return "/direct-connect";
+  return window.location.pathname || "/direct-connect";
+}
+
+export function isDirectConnectRoute(path = resolvePathname()): boolean {
+  return /^\/direct-connect(?:\/|$|\?)/.test(path);
+}
 
 /**
- * Converts a Direct Connect path into a stable, non-identifying route shape.
- * Query strings and fragments are always removed, and ID-shaped segments are
- * replaced before the route is allowed into telemetry.
+ * Converts a real Direct Connect path into a stable, non-identifying route.
+ * Query strings and fragments are removed, and ID-shaped path segments are
+ * replaced before the route is sent.
  */
 export function toDirectConnectRouteTemplate(pathname: string): string {
   const pathOnly = String(pathname || "").trim().split(/[?#]/)[0];
@@ -143,19 +158,11 @@ export function toDirectConnectRouteTemplate(pathname: string): string {
   return `/${templated.join("/")}`.slice(0, 320) || "/direct-connect";
 }
 
-function resolvePathname(): string {
-  if (typeof window === "undefined") return "/direct-connect";
-  return window.location.pathname || "/direct-connect";
-}
-
-export function isDirectConnectRoute(path = resolvePathname()): boolean {
-  return /^\/direct-connect(?:\/|$|\?)/.test(path);
-}
-
 /**
- * Strict, flat allowlist for Direct Connect friction evidence. Unknown fields,
- * arrays, objects, request text, messages, contact details, notes, uploads,
- * exception text, stack traces, raw URLs, and browser fingerprints are dropped.
+ * Direct Connect friction accepts a strict flat metadata contract. Unknown
+ * fields, arrays, objects, request text, messages, contact details, notes,
+ * uploads, exception text, stack traces, URLs, and browser fingerprints are
+ * discarded before transport.
  */
 export function sanitizeFrictionPayload(
   payload: Record<string, unknown>
@@ -177,10 +184,10 @@ export function sanitizeFrictionPayload(
   }
 
   for (const key of SAFE_NUMBER_FIELDS) {
-    const raw = payload[key];
+    const rawValue = payload[key];
     const value = key === "status" || key === "statusCode"
-      ? sanitizeStatusCode(raw)
-      : sanitizeCount(raw);
+      ? sanitizeStatusCode(rawValue)
+      : sanitizeCount(rawValue);
     if (value !== undefined) safe[key] = value;
   }
 
@@ -195,17 +202,13 @@ export function sanitizeFrictionPayload(
   return safe;
 }
 
-function dispatchFrictionEvent(
+export function trackFrictionEvent(
   type: DirectConnectFrictionEvent,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown> = {}
 ): void {
   if (!DIRECT_CONNECT_FRICTION_EVENT_SET.has(type)) return;
 
-  const data = sanitizeFrictionPayload({
-    ...payload,
-    surface: "direct_connect",
-  });
-
+  const data = sanitizeFrictionPayload({ ...payload, surface: "direct_connect" });
   try {
     void fetch("/api/events", {
       method: "POST",
@@ -219,13 +222,6 @@ function dispatchFrictionEvent(
   } catch {
     // Same fail-soft guarantee when fetch itself is unavailable.
   }
-}
-
-export function trackFrictionEvent(
-  type: DirectConnectFrictionEvent,
-  payload: Record<string, unknown> = {}
-): void {
-  dispatchFrictionEvent(type, payload);
 }
 
 export function trackRepeatedFrictionSignal({
@@ -253,7 +249,7 @@ export function trackRepeatedFrictionSignal({
     trackFrictionEvent(type, {
       ...payload,
       reason: key,
-      clickCount: next.count,
+      dispatchCount: next.count,
     });
   }
   repeatedWindows.set(key, next);
@@ -290,8 +286,8 @@ function recordControlledRuntimeFailure(source: "error" | "unhandledrejection") 
 }
 
 /**
- * Installs one Direct Connect-only runtime listener. Raw messages, promise
- * reasons, filenames, line numbers, and stack traces are never read or sent.
+ * Raw messages, promise reasons, filenames, line numbers, and stack traces are
+ * deliberately never read or sent.
  */
 export function installDirectConnectRuntimeErrorCapture(
   target: Window | undefined = typeof window !== "undefined" ? window : undefined
@@ -318,97 +314,17 @@ export function removeDirectConnectRuntimeErrorCapture(): void {
   runtimeRejectionListener = null;
 }
 
-type ActiveFunnelStall = {
-  funnelStep: string;
-  routeTemplate: string;
-  startedAt: number;
-  timer: ReturnType<typeof setTimeout>;
-};
-
-let activeFunnelStall: ActiveFunnelStall | null = null;
-
-export function clearDirectConnectFunnelStall(): void {
-  if (activeFunnelStall) clearTimeout(activeFunnelStall.timer);
-  activeFunnelStall = null;
-}
-
-/**
- * Arms a bounded funnel-step watchdog. Repeated start events for the same step
- * do not extend the timer. A signal is emitted only when the user remains on
- * the same Direct Connect route and the tab is visible at expiry.
- */
-export function armDirectConnectFunnelStall(
-  funnelStep: string,
-  timeoutMs = DEFAULT_FUNNEL_STALL_MS
-): void {
-  if (typeof window === "undefined" || !isDirectConnectRoute()) return;
-  const safeStep = sanitizeToken(funnelStep);
-  if (!safeStep) return;
-
-  const routeTemplate = toDirectConnectRouteTemplate(resolvePathname());
-  if (
-    activeFunnelStall?.funnelStep === safeStep &&
-    activeFunnelStall.routeTemplate === routeTemplate
-  ) {
-    return;
-  }
-
-  clearDirectConnectFunnelStall();
-  const startedAt = Date.now();
-  const safeTimeout = Math.max(1_000, Math.min(60 * 60 * 1000, Math.trunc(timeoutMs)));
-  const timer = setTimeout(() => {
-    const current = activeFunnelStall;
-    activeFunnelStall = null;
-    if (!current || typeof window === "undefined") return;
-    if (!isDirectConnectRoute()) return;
-    if (toDirectConnectRouteTemplate(resolvePathname()) !== current.routeTemplate) return;
-    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-
-    trackOncePerSession(
-      `direct-connect-stall:${current.funnelStep}:${current.routeTemplate}`,
-      "direct_connect_funnel_step_stalled",
-      {
-        source: "funnel_watchdog",
-        funnelStep: current.funnelStep,
-        elapsedMs: Date.now() - current.startedAt,
-        blocked: false,
-        routeTemplate: current.routeTemplate,
-      }
-    );
-  }, safeTimeout);
-
-  activeFunnelStall = { funnelStep: safeStep, routeTemplate, startedAt, timer };
-}
-
-export function observeDirectConnectFunnelEvent(event: { type?: string }): void {
-  switch (event.type) {
-    case "direct_connect_request_started":
-      armDirectConnectFunnelStall("request_started");
-      break;
-    case "direct_connect_request_review_opened":
-      armDirectConnectFunnelStall("review_opened");
-      break;
-    case "direct_connect_request_submitted":
-    case "direct_connect_request_submitted_after_home_record_skip":
-    case "direct_connect_visible_to_contractors":
-    case "direct_connect_request_visible_to_contractors":
-      clearDirectConnectFunnelStall();
-      break;
-  }
-}
-
 export function resetFrictionTelemetryForTests(): void {
   repeatedWindows.clear();
   onceKeys.clear();
   cooldowns.clear();
-  clearDirectConnectFunnelStall();
   removeDirectConnectRuntimeErrorCapture();
 }
 
 // --- Direct Connect conversion-integrity lane ---------------------------
-// These four severe issue-packet events retain the existing analytics-shell
-// route because that server owner already applies a dedicated strict schema
-// and powers the current internal conversion-integrity view.
+// Severe browser-observed issue packets retain the existing strict shell
+// endpoint. Funnel stalls are deliberately absent: they are derived on the
+// server from the persisted stage sequence.
 
 export const DIRECT_CONNECT_INTEGRITY_EVENTS = [
   "direct_connect_integrity_blocked_action",
@@ -479,7 +395,7 @@ export function trackConversionIntegrityEvent(
       body: JSON.stringify(event),
       keepalive: true,
     }).catch(() => {
-      // A failed telemetry beacon is not itself a telemetry event.
+      // A broken evidence endpoint must never affect the user flow.
     });
   } catch {
     // Same fail-soft guarantee synchronously.
