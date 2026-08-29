@@ -96,4 +96,35 @@ describe("homeidPersistence", () => {
     });
     expect(result.warning).toContain("Server save unavailable");
   });
+
+  it("rejects shape-only detail and packet objects returned by the server", async () => {
+    const shapeOnlyDetail = vi.fn(async () => ({
+      persistence: {
+        ...makeState(),
+        propertyDetails: [{ id: "detail_1" }],
+      },
+    }));
+    const detailResult = await loadHomeIdPersistence(HOME_ID, shapeOnlyDetail);
+    expect(detailResult.state).toBeNull();
+    expect(detailResult.source).toBe("none");
+
+    const shapeOnlyPacket = vi.fn(async () => ({
+      persistence: {
+        ...makeState(),
+        requestPackets: [{ id: "packet_1" }],
+      },
+    }));
+    const packetResult = await loadHomeIdPersistence(HOME_ID, shapeOnlyPacket);
+    expect(packetResult.state).toBeNull();
+    expect(packetResult.source).toBe("none");
+  });
+
+  it("rejects a packet graph whose selected detail is not complete and present", async () => {
+    const state = makeState();
+    state.requestPackets[0].selectedDetailIds = ["detail_missing"];
+    const fetcher = vi.fn(async () => ({ persistence: state }));
+    const loaded = await loadHomeIdPersistence(HOME_ID, fetcher);
+    expect(loaded.state).toBeNull();
+    expect(loaded.source).toBe("none");
+  });
 });

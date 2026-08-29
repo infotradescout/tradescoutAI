@@ -19,7 +19,6 @@ import {
   businessCounties,
   profiles,
   workers,
-  userHomes,
   userHomeRecords,
   users,
 } from "@shared/schema";
@@ -89,6 +88,13 @@ import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { hasVerifiedTradeScoutAdminCustody } from "../services/ownerConfirmedDirectProfile";
 import { isSteelHomePackagesProfileSlug } from "@shared/steelHomePackagesProfile";
 import { getCountyByFips as getStaticCountyByFips } from "@shared/states-counties";
+import {
+  appendHomeIdRequestContextRecord,
+  createHomeIdShellFromRequest,
+  resolveHomeIdDraftSubmissionAuthority,
+  resolveOwnedHomeForDirectConnect,
+  resolveOwnedReadyHomeIdPacketGraph,
+} from "../services/homeIdPacketAuthority";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -881,17 +887,6 @@ const directConnectRouteRequestSchema = z.object({
   targetProviderIds: z.array(z.string().min(1)).max(25).optional(),
 });
 
-async function resolveOwnedHomeForDirectConnect(userId: string, homeId?: string | null) {
-  const normalizedHomeId = String(homeId || "").trim();
-  if (!normalizedHomeId) return null;
-  const [home] = await db
-    .select()
-    .from(userHomes)
-    .where(and(eq(userHomes.id, normalizedHomeId), eq(userHomes.ownerUserId, userId)))
-    .limit(1);
-  return home || null;
-}
-
 const HOMEID_PERSISTENCE_COMPONENTS_TITLE = "homeid:persistence:components";
 const HOMEID_PERSISTENCE_EVIDENCE_TITLE = "homeid:persistence:evidence";
 const HOMEID_COMPONENT_TYPES = new Set([
@@ -1086,61 +1081,6 @@ async function upsertHomeIdComponentFromDirectConnect(params: {
   return nextComponent;
 }
 
-async function appendHomeIdRequestContextRecord(params: {
-  homeId: string;
-  userId: string;
-  requestId: string;
-  title: string;
-  description: string;
-  requestCategory: string;
-  componentType?: string | null;
-  componentId?: string | null;
-  componentLabel?: string | null;
-  homeContextIntent: string;
-  homePacketId?: string | null;
-  homePacketSelectedDetailIds?: string[] | null;
-  homePacketReadinessState?: string | null;
-}) {
-  await db.insert(userHomeRecords).values({
-    homeId: params.homeId,
-    createdByUserId: params.userId,
-    recordType: "note",
-    title: "homeid:direct_connect_request_context",
-    details: JSON.stringify({
-      source: "direct_connect_request",
-      requestId: params.requestId,
-      requestCategory: params.requestCategory,
-      requestTitle: params.title,
-      requestDescription: params.description,
-      componentType: params.componentType || null,
-      componentId: params.componentId || null,
-      componentLabel: params.componentLabel || null,
-      status: "needs_review",
-      homeContextIntent: params.homeContextIntent,
-      homePacketId: params.homePacketId || null,
-      homePacketSelectedDetailIds: Array.isArray(params.homePacketSelectedDetailIds)
-        ? params.homePacketSelectedDetailIds
-        : [],
-      homePacketReadinessState: params.homePacketReadinessState || null,
-      capturedAt: new Date().toISOString(),
-    }),
-    tags: ["homeid", "direct_connect", "needs_review"],
-    updatedAt: new Date(),
-  } as any);
-
-  await upsertHomeIdComponentFromDirectConnect({
-    homeId: params.homeId,
-    userId: params.userId,
-    requestId: params.requestId,
-    homePacketId: params.homePacketId || null,
-    componentType: params.componentType || null,
-    componentLabel: params.componentLabel || null,
-    source:
-      params.homeContextIntent === "link_existing" ? "homeid_packet" : "direct_connect_request",
-    status: "needs_review",
-  });
-}
-
 async function upsertHomeIdEvidenceFromDirectConnect(params: {
   homeId: string;
   userId: string;
@@ -1219,61 +1159,6 @@ async function upsertHomeIdEvidenceFromDirectConnect(params: {
       updatedAt: new Date(),
     } as any);
   }
-}
-
-async function createHomeIdShellFromRequest(params: {
-  userId: string;
-  title: string;
-  requestCategory: string;
-  stateCode?: string | null;
-  countyFips?: string | null;
-}) {
-  const nickname = `From Direct Connect: ${params.title}`.slice(0, 120);
-  const [createdHome] = await db
-    .insert(userHomes)
-    .values({
-      ownerUserId: params.userId,
-      nickname,
-      propertyType: "other",
-      stateCode: params.stateCode || null,
-      countyFips: params.countyFips || null,
-      updatedAt: new Date(),
-    })
-    .returning();
-
-  if (!createdHome) return null;
-
-  await db.insert(userHomeRecords).values({
-    homeId: createdHome.id,
-    createdByUserId: params.userId,
-    recordType: "note",
-    title: "homeid:authority",
-    details: JSON.stringify({
-      subjectId: params.userId,
-      role: "owner",
-      status: "active",
-      source: "direct_connect_request",
-      createdAt: new Date().toISOString(),
-    }),
-    tags: ["homeid", "authority"],
-    updatedAt: new Date(),
-  } as any);
-
-  await db.insert(userHomeRecords).values({
-    homeId: createdHome.id,
-    createdByUserId: params.userId,
-    recordType: "note",
-    title: "homeid:creation",
-    details: JSON.stringify({
-      source: "direct_connect_request",
-      requestCategory: params.requestCategory,
-      createdAt: new Date().toISOString(),
-    }),
-    tags: ["homeid", "creation"],
-    updatedAt: new Date(),
-  } as any);
-
-  return createdHome;
 }
 
 type HomeIdTimelineContext = {
@@ -6378,6 +6263,41 @@ export function registerDirectConnectRoutes(app: Express) {
             .json({ message: "Invalid request body", issues: parse.error.flatten() });
         }
         const body = parse.data;
+        const hasHomePacketClaim =
+          body.homePacketId !== undefined ||
+          body.homePacketSelectedDetailIds !== undefined ||
+          body.homePacketReadinessState !== undefined;
+        if (hasHomePacketClaim) {
+          const completeClaim =
+            body.homeId &&
+            body.homePacketId &&
+            body.homePacketReadinessState === "ready_for_handoff" &&
+            body.homePacketSelectedDetailIds?.length &&
+            (body.homeContextIntent === "link_existing" ||
+              body.homeContextIntent === "update_from_request");
+          if (!completeClaim) {
+            return res.status(400).json({
+              code: "HOMEID_PACKET_GRAPH_INVALID",
+              message: "The saved HomeID request details are incomplete. Review them in HomeID.",
+            });
+          }
+          const authority = await resolveOwnedReadyHomeIdPacketGraph({
+            userId: ownerUserId,
+            homeId: body.homeId!,
+            packetId: body.homePacketId!,
+            claimedSelectedDetailIds: body.homePacketSelectedDetailIds,
+          });
+          if (!authority.ok) {
+            return res.status(400).json({
+              code: "HOMEID_PACKET_GRAPH_INVALID",
+              message: "The saved HomeID request details are incomplete. Review them in HomeID.",
+            });
+          }
+          body.homeId = authority.homeId;
+          body.homePacketId = authority.graph.packet.id;
+          body.homePacketSelectedDetailIds = [...authority.graph.packet.selectedDetailIds];
+          body.homePacketReadinessState = "ready_for_handoff";
+        }
         const sanitizedTitle = sanitizeWorkRequestText(body.title, 180);
         const sanitizedDescription = sanitizeWorkRequestText(body.description, 5000);
         if (!sanitizedTitle || !sanitizedDescription) {
@@ -7307,9 +7227,9 @@ export function registerDirectConnectRoutes(app: Express) {
           homePacketId?: string;
           selectedDetailIds?: string[];
         };
-        const homeId = String(payload.homeId || "").trim();
-        const homePacketId = String(payload.homePacketId || "").trim();
-        const selectedDetailIds = Array.isArray(payload.selectedDetailIds)
+        const claimedHomeId = String(payload.homeId || "").trim();
+        const claimedHomePacketId = String(payload.homePacketId || "").trim();
+        const claimedSelectedDetailIds = Array.isArray(payload.selectedDetailIds)
           ? payload.selectedDetailIds
               .map((id) => String(id || "").trim())
               .filter(Boolean)
@@ -7325,6 +7245,26 @@ export function registerDirectConnectRoutes(app: Express) {
         if (String(requestRow.createdByUserId || "") !== userId) {
           return res.status(403).json({ message: "Request not available for this requester" });
         }
+        if (String(requestRow.source || "") !== "direct_connect") {
+          return res.status(400).json({ message: "Only Direct Connect drafts can be submitted" });
+        }
+
+        const authority = await resolveHomeIdDraftSubmissionAuthority({
+          userId,
+          requestId,
+          claimedHomeId,
+          claimedPacketId: claimedHomePacketId,
+          claimedSelectedDetailIds,
+        });
+        if (!authority.ok) {
+          return res.status(400).json({
+            code: "HOMEID_PACKET_GRAPH_INVALID",
+            message: "The saved HomeID request details changed. Review the packet before submitting.",
+          });
+        }
+        const homeId = authority.homeId;
+        const homePacketId = authority.graph.packet.id;
+        const selectedDetailIds = [...authority.graph.packet.selectedDetailIds];
 
         await db
           .update(workRequests)

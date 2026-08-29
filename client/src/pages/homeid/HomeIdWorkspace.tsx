@@ -43,7 +43,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { buildHomeIdHandoffPreview } from "@/lib/homeidHandoffPreview";
 import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "@/lib/homeidPersistence";
+import {
+  parseHomeIdPersistenceGraph,
+  resolveReadyHomeIdPacketGraph,
+} from "@shared/homeIdPacketAuthority";
 
 type Tab =
   | "overview"
@@ -119,6 +124,16 @@ type Evidence = {
   status: "pending" | "verified" | "needs_review";
   fileUrl?: string;
   fileName?: string;
+};
+
+type DirectConnectHomeIdDraft = {
+  requestId: string;
+  homeId: string;
+  homePacketId: string;
+  selectedDetailIds: string[];
+  requestType: string;
+  description: string;
+  readinessState: "ready_for_handoff";
 };
 
 const TABS: Array<{ id: Tab; label: string }> = [
@@ -361,6 +376,8 @@ export default function HomeIdWorkspace() {
   const [schedule, setSchedule] = useState({ title: "", cadenceDays: "90", nextDueAt: "" });
   const [requestType, setRequestType] = useState("documentation");
   const [selectedDetailIds, setSelectedDetailIds] = useState<string[]>([]);
+  const [directConnectDraft, setDirectConnectDraft] =
+    useState<DirectConnectHomeIdDraft | null>(null);
 
   const homesQuery = useQuery({ queryKey: ["/api/homes"] });
   const homes = list<HomeRow>(record(homesQuery.data).homes);
@@ -406,8 +423,12 @@ export default function HomeIdWorkspace() {
   const appliances = list<any>(detailData.appliances);
 
   const persistence = record(record(persistenceQuery.data).persistence);
-  const facts = list<HomeIdPropertyDetail>(persistence.propertyDetails);
-  const packets = list<HomeIdRequestPacket>(persistence.requestPackets);
+  const persistenceGraph = parseHomeIdPersistenceGraph({
+    propertyDetails: persistence.propertyDetails,
+    requestPackets: persistence.requestPackets,
+  });
+  const facts = persistenceGraph?.propertyDetails || [];
+  const packets = persistenceGraph?.requestPackets || [];
   const components = list<Component>(persistence.components);
   const evidence = list<Evidence>(persistence.evidence);
 
@@ -580,6 +601,100 @@ export default function HomeIdWorkspace() {
     onError: (error: any) => fail("Could not save request details", error),
   });
 
+  const createDirectConnectDraft = useMutation({
+    mutationFn: async (packetId: string) => {
+      if (!homeId || !persistenceGraph) throw new Error("Load a complete HomeID first");
+      const authority = resolveReadyHomeIdPacketGraph({
+        persistence: persistenceGraph,
+        packetId,
+      });
+      if (!authority.ok) {
+        throw new Error("Review and save every selected HomeID fact before creating a draft");
+      }
+      const packet = authority.graph.packet;
+      const preview = buildHomeIdHandoffPreview({
+        homeId,
+        homeType: String(selectedHome?.propertyType || "other"),
+        creatorRole: "homeowner",
+        packet,
+        propertyDetails: facts,
+        nonBlockingContext: authority.graph.selectedDetails
+          .filter((detail) => detail.status === "needs_review")
+          .map((detail) => `Review ${human(detail.category)} detail`),
+      });
+      if (!preview) throw new Error("The saved HomeID packet is incomplete");
+
+      const firstDetail = preview.selectedPropertyDetails[0];
+      if (!firstDetail) throw new Error("The saved HomeID packet has no complete details");
+      const componentByCategory: Record<string, string> = {
+        roof: "roof",
+        hvac: "hvac",
+        plumbing: "plumbing",
+        electrical: "electrical",
+        foundation: "foundation",
+        exterior: "exterior",
+        interior: "interior",
+        appliances: "appliance",
+        permits_documents: "permit_document",
+      };
+      const description = [
+        "HomeID context attached for review before this Direct Connect request is submitted.",
+        ...preview.selectedPropertyDetails.map(
+          (detail) => `${human(detail.category)}: ${detail.note}`
+        ),
+      ].join("\n");
+      const response = await apiRequest("POST", "/api/direct-connect/requests", {
+        title: `${human(packet.requestType)} for ${title(selectedHome)}`.slice(0, 180),
+        description,
+        category: packet.requestType,
+        autoRoute: false,
+        homeId,
+        assetComponentType: componentByCategory[firstDetail.category] || "other",
+        assetLabel: human(firstDetail.category),
+        homeContextIntent: "update_from_request",
+        homePacketId: packet.id,
+        homePacketSelectedDetailIds: [...packet.selectedDetailIds],
+        homePacketReadinessState: preview.packetReadinessState,
+      });
+      const requestId = String(response?.id || "").trim();
+      if (!requestId) throw new Error("Direct Connect did not return a draft id");
+      return {
+        requestId,
+        homeId,
+        homePacketId: packet.id,
+        selectedDetailIds: [...packet.selectedDetailIds],
+        requestType: packet.requestType,
+        description,
+        readinessState: preview.packetReadinessState,
+      } satisfies DirectConnectHomeIdDraft;
+    },
+    onSuccess: (draft) => {
+      setDirectConnectDraft(draft);
+      toast({ title: "Direct Connect draft created" });
+    },
+    onError: (error: any) => fail("Could not create Direct Connect draft", error),
+  });
+
+  const submitDirectConnectDraft = useMutation({
+    mutationFn: async () => {
+      if (!directConnectDraft) throw new Error("Create a HomeID-backed draft first");
+      return apiRequest(
+        "POST",
+        `/api/direct-connect/requests/${encodeURIComponent(directConnectDraft.requestId)}/submit-homeid-draft`,
+        {
+          homeId: directConnectDraft.homeId,
+          homePacketId: directConnectDraft.homePacketId,
+          selectedDetailIds: [...directConnectDraft.selectedDetailIds],
+        }
+      );
+    },
+    onSuccess: () => {
+      setDirectConnectDraft(null);
+      toast({ title: "Direct Connect request submitted" });
+    },
+    onError: (error: any) => fail("Could not submit Direct Connect request", error),
+  });
+
   const openProperty = () => {
     setTab("property");
     setDetail((current) => ({ ...current, category: "permits_documents", status: "needs_review" }));
@@ -591,13 +706,12 @@ export default function HomeIdWorkspace() {
     window.setTimeout(() => fileRef.current?.click(), 60);
   };
 
-  const openRequest = (packetId?: string) => {
+  const openRequest = () => {
     if (!homeId) return;
     const params = new URLSearchParams({
       homeId,
       homeContextIntent: "update_from_request",
     });
-    if (packetId) params.set("homePacketId", packetId);
     navigate(`/direct-connect?${params.toString()}`);
   };
 
@@ -868,7 +982,13 @@ export default function HomeIdWorkspace() {
               missing={missing}
               save={() => savePacket.mutate()}
               open={openRequest}
+              createDraft={(packetId) => createDirectConnectDraft.mutate(packetId)}
+              draft={directConnectDraft}
+              submitDraft={() => submitDirectConnectDraft.mutate()}
               pending={savePacket.isPending}
+              draftPending={
+                createDirectConnectDraft.isPending || submitDirectConnectDraft.isPending
+              }
             />
           ) : (
             <Sale
@@ -1565,7 +1685,11 @@ function Requests({
   missing,
   save,
   open,
+  createDraft,
+  draft,
+  submitDraft,
   pending,
+  draftPending,
 }: {
   facts: HomeIdPropertyDetail[];
   packets: HomeIdRequestPacket[];
@@ -1575,8 +1699,12 @@ function Requests({
   setSelected: React.Dispatch<React.SetStateAction<string[]>>;
   missing: string[];
   save: () => void;
-  open: (packetId?: string) => void;
+  open: () => void;
+  createDraft: (packetId: string) => void;
+  draft: DirectConnectHomeIdDraft | null;
+  submitDraft: () => void;
   pending: boolean;
+  draftPending: boolean;
 }) {
   const toggle = (id: string) =>
     setSelected((current) =>
@@ -1587,6 +1715,11 @@ function Requests({
     <div className="grid gap-5 xl:grid-cols-[440px_minmax(0,1fr)]">
       <Panel eyebrow="Prepare first" title="Build a request from HomeID facts">
         <div className="space-y-4">
+          <p className="text-xs leading-5 text-white/[0.46]">
+            HomeID remembers useful property history. Direct Connect starts the job only when you
+            submit; HomeID remains the property memory. Keep this context current so future requests
+            start with better property history.
+          </p>
           <Select value={requestType} onValueChange={setRequestType}>
             <SelectTrigger className={INPUT}><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -1630,7 +1763,14 @@ function Requests({
                   </div>
                   <div className="flex items-center gap-2">
                     <Pill status={String(packet.status)} />
-                    <Button variant="outline" className={SECONDARY} onClick={() => open(packet.id)}>Open in Direct Connect</Button>
+                    <Button
+                      variant="outline"
+                      className={SECONDARY}
+                      onClick={() => createDraft(packet.id)}
+                      disabled={draftPending || packet.status !== "ready_for_handoff"}
+                    >
+                      Create Direct Connect draft
+                    </Button>
                   </div>
                 </div>
               </article>
@@ -1639,6 +1779,30 @@ function Requests({
         ) : (
           <Empty icon={<ClipboardList className="h-5 w-5" />} title="No request details saved" text="Choose the HomeID facts that matter, save the packet, then carry that context into Direct Connect." />
         )}
+        <p className="mt-4 rounded-2xl border border-white/[0.09] bg-black/[0.15] p-3 text-xs leading-5 text-white/[0.46]">
+          This creates a draft request only. HomeID context can help prepare it, but no provider
+          dispatch, routing, or payment happens here.
+        </p>
+        {draft ? (
+          <section className="mt-4 rounded-2xl border border-orange-400/[0.24] bg-orange-400/[0.06] p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-300">
+              Direct Connect draft review and submit
+            </p>
+            <p className="mt-2 text-sm font-black text-white/[0.80]">
+              {human(draft.requestType)} request · {draft.selectedDetailIds.length} HomeID facts
+            </p>
+            <p className="mt-2 whitespace-pre-line text-xs leading-5 text-white/[0.46]">
+              {draft.description}
+            </p>
+            <Button
+              className={`mt-4 ${PRIMARY}`}
+              onClick={submitDraft}
+              disabled={draftPending}
+            >
+              Submit Direct Connect request
+            </Button>
+          </section>
+        ) : null}
       </Panel>
     </div>
   );

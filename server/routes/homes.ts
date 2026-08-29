@@ -18,6 +18,7 @@ import {
   userHomes,
 } from "../../shared/schema";
 import { addPropertyLifecycleEvent } from "../services/propertyLifecycleService";
+import { parseHomeIdPersistenceGraph } from "@shared/homeIdPacketAuthority";
 
 const router = Router();
 const HOMEID_DASHBOARD_SECTION_TIMEOUT_MS = 2500;
@@ -36,7 +37,7 @@ type HomeIdServerRequestPacket = {
   selectedDetailIds: string[];
   missingHelpfulInfo: string[];
   missingHelpfulInfoCount: number;
-  status: "draft" | "ready" | "needs_info";
+  status: "draft" | "ready_for_handoff" | "needs_info";
   createdAt: string;
   savedAt: string;
 };
@@ -544,12 +545,17 @@ async function loadHomeIdPersistenceFromDb(
   const componentsPayload = parseJsonObjectSafe(componentsRecord?.details);
   const evidencePayload = parseJsonObjectSafe(evidenceRecord?.details);
 
-  const propertyDetails = Array.isArray(propertyDetailsPayload?.propertyDetails)
+  const rawPropertyDetails = Array.isArray(propertyDetailsPayload?.propertyDetails)
     ? (propertyDetailsPayload?.propertyDetails as HomeIdServerPropertyDetail[])
     : [];
-  const requestPackets = Array.isArray(requestPacketsPayload?.requestPackets)
+  const rawRequestPackets = Array.isArray(requestPacketsPayload?.requestPackets)
     ? (requestPacketsPayload?.requestPackets as HomeIdServerRequestPacket[])
     : [];
+  const persistenceGraph = parseHomeIdPersistenceGraph({
+    propertyDetails: rawPropertyDetails,
+    requestPackets: rawRequestPackets,
+  });
+  if (!persistenceGraph) throw new Error("Stored HomeID detail/request-packet graph is invalid");
   const components = Array.isArray(componentsPayload?.components)
     ? (componentsPayload?.components as HomeIdServerComponent[])
     : [];
@@ -569,8 +575,8 @@ async function loadHomeIdPersistenceFromDb(
   ].filter(Boolean);
 
   return {
-    propertyDetails,
-    requestPackets,
+    propertyDetails: persistenceGraph.propertyDetails,
+    requestPackets: persistenceGraph.requestPackets,
     components,
     evidence,
     updatedAt: updatedAtCandidates[0] || new Date().toISOString(),

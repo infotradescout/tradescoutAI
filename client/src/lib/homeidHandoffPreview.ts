@@ -1,4 +1,5 @@
 import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "./homeidPersistence";
+import { resolveReadyHomeIdPacketGraph } from "@shared/homeIdPacketAuthority";
 
 export type HomeIdHandoffPreview = {
   homeId: string;
@@ -33,11 +34,17 @@ export function buildHomeIdHandoffPreview(
 ): HomeIdHandoffPreview | null {
   const homeId = String(input.homeId || "").trim();
   if (!homeId) return null;
-  if (input.packet.status !== "ready_for_handoff") return null;
+  const authority = resolveReadyHomeIdPacketGraph({
+    persistence: {
+      propertyDetails: input.propertyDetails,
+      requestPackets: [input.packet],
+    },
+    packetId: input.packet.id,
+    claimedSelectedDetailIds: input.packet.selectedDetailIds,
+  });
+  if (!authority.ok) return null;
 
-  const selectedIds = new Set(input.packet.selectedDetailIds);
-  const selectedPropertyDetails = input.propertyDetails
-    .filter((detail) => selectedIds.has(detail.id))
+  const selectedPropertyDetails = authority.graph.selectedDetails
     .map((detail) => ({
       id: detail.id,
       category: detail.category,
@@ -46,15 +53,13 @@ export function buildHomeIdHandoffPreview(
       savedAt: detail.savedAt,
     }));
 
-  if (selectedPropertyDetails.length === 0) return null;
-
   return {
     homeId,
     homeType: input.homeType,
     creatorRole: input.creatorRole,
-    requestType: input.packet.requestType,
+    requestType: authority.graph.packet.requestType,
     packetReadinessState: "ready_for_handoff",
-    packetSavedAt: input.packet.savedAt,
+    packetSavedAt: authority.graph.packet.savedAt,
     generatedAt: input.now || new Date().toISOString(),
     selectedPropertyDetails,
     nonBlockingContext: input.nonBlockingContext.map((item) => item.trim()).filter(Boolean),

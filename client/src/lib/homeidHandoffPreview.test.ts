@@ -84,4 +84,44 @@ describe("buildHomeIdHandoffPreview", () => {
     expect(preview && "dispatchId" in preview).toBe(false);
     expect(preview && "directConnectRequestId" in preview).toBe(false);
   });
+
+  it("rejects a partial detail graph even when one selected detail resolves", () => {
+    const partialPacket = {
+      ...packet("ready_for_handoff"),
+      selectedDetailIds: ["detail_1", "detail_missing"],
+    };
+    const preview = buildHomeIdHandoffPreview({
+      homeId: "home_1",
+      homeType: "single_family",
+      creatorRole: "homeowner",
+      packet: partialPacket,
+      propertyDetails: [detail("detail_1", "roof", "Roof replaced in 2021")],
+      nonBlockingContext: [],
+    });
+    expect(preview).toBeNull();
+  });
+
+  it("rejects shape-only detail and packet objects at the client boundary", () => {
+    expect(
+      buildHomeIdHandoffPreview({
+        homeId: "home_1",
+        homeType: "single_family",
+        creatorRole: "homeowner",
+        packet: packet("ready_for_handoff"),
+        propertyDetails: [{ id: "detail_1" } as HomeIdPropertyDetail],
+        nonBlockingContext: [],
+      })
+    ).toBeNull();
+
+    expect(
+      buildHomeIdHandoffPreview({
+        homeId: "home_1",
+        homeType: "single_family",
+        creatorRole: "homeowner",
+        packet: { id: "packet_1" } as HomeIdRequestPacket,
+        propertyDetails: [detail("detail_1", "roof", "Roof replaced in 2021")],
+        nonBlockingContext: [],
+      })
+    ).toBeNull();
+  });
 });

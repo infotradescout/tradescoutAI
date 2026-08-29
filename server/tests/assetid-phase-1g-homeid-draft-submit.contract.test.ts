@@ -21,7 +21,7 @@ describe("assetid phase 1g homeid draft submit contracts", () => {
   });
 
   it("shows explicit draft review and submit UI in Homes flow", () => {
-    const source = read("client/src/pages/homes.tsx");
+    const source = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
     expect(source).toContain("Direct Connect draft review and submit");
     expect(source).toContain("Submit Direct Connect request");
     expect(source).toContain("/submit-homeid-draft");

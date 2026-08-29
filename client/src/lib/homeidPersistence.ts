@@ -1,3 +1,5 @@
+import { parseHomeIdPersistenceGraph } from "@shared/homeIdPacketAuthority";
+
 export type HomeIdDetailStatus = "known" | "needs_review";
 
 export type HomeIdPropertyDetail = {
@@ -48,65 +50,12 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function sanitizeState(raw: unknown): HomeIdPersistenceState | null {
   if (!isObject(raw)) return null;
-  const propertyDetailsRaw = Array.isArray(raw.propertyDetails) ? raw.propertyDetails : [];
-  const requestPacketsRaw = Array.isArray(raw.requestPackets) ? raw.requestPackets : [];
-
-  const propertyDetails: HomeIdPropertyDetail[] = propertyDetailsRaw
-    .map((entry) => {
-      if (!isObject(entry)) return null;
-      const id = String(entry.id || "").trim();
-      const category = String(entry.category || "").trim();
-      const note = String(entry.note || "").trim();
-      const status = entry.status === "needs_review" ? "needs_review" : "known";
-      const createdAt = String(entry.createdAt || "").trim() || new Date().toISOString();
-      const savedAt = String(entry.savedAt || "").trim() || createdAt;
-      if (!id || !category || !note) return null;
-      return { id, category, note, status, createdAt, savedAt } as HomeIdPropertyDetail;
-    })
-    .filter(Boolean) as HomeIdPropertyDetail[];
-
-  const requestPackets: HomeIdRequestPacket[] = requestPacketsRaw
-    .map((entry) => {
-      if (!isObject(entry)) return null;
-      const id = String(entry.id || "").trim();
-      const requestType = String(entry.requestType || "").trim();
-      const selectedDetailIds = Array.isArray(entry.selectedDetailIds)
-        ? entry.selectedDetailIds.map((value) => String(value || "").trim()).filter(Boolean)
-        : [];
-      const missingHelpfulInfo = Array.isArray(entry.missingHelpfulInfo)
-        ? entry.missingHelpfulInfo.map((value) => String(value || "").trim()).filter(Boolean)
-        : [];
-      const missingHelpfulInfoCount =
-        Number.isFinite(Number(entry.missingHelpfulInfoCount)) &&
-        Number(entry.missingHelpfulInfoCount) >= 0
-          ? Number(entry.missingHelpfulInfoCount)
-          : missingHelpfulInfo.length;
-      const statusValue = String(entry.status || "").trim();
-      const status: HomeIdRequestPacketStatus =
-        statusValue === "ready_for_handoff" || statusValue === "needs_info"
-          ? statusValue
-          : statusValue === "ready"
-            ? "ready_for_handoff"
-            : "draft";
-      const createdAt = String(entry.createdAt || "").trim() || new Date().toISOString();
-      const savedAt = String(entry.savedAt || "").trim() || createdAt;
-      if (!id || !requestType) return null;
-      return {
-        id,
-        requestType,
-        selectedDetailIds,
-        missingHelpfulInfo,
-        missingHelpfulInfoCount,
-        status,
-        createdAt,
-        savedAt,
-      } as HomeIdRequestPacket;
-    })
-    .filter(Boolean) as HomeIdRequestPacket[];
+  const graph = parseHomeIdPersistenceGraph(raw);
+  if (!graph) return null;
 
   return {
-    propertyDetails,
-    requestPackets,
+    propertyDetails: graph.propertyDetails,
+    requestPackets: graph.requestPackets,
     updatedAt: String(raw.updatedAt || "").trim() || new Date().toISOString(),
   };
 }
