@@ -6,14 +6,22 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("Render Docker deploy lifecycle", () => {
-  it("keeps the migration runner executable in the pruned production image", () => {
+  it("keeps the migration runner and database TLS guard executable in the pruned image", () => {
     const dockerfile = read("Dockerfile");
     const runtimePackage = JSON.parse(read("runtime/package.json"));
     const mediaGate = read("scripts/ensure-public-media-ready.mjs");
 
     expect(runtimePackage.dependencies?.["drizzle-kit"]).toBe("0.31.9");
     expect(dockerfile).toContain("COPY --from=runtime-deps /runtime/node_modules ./node_modules");
-    expect(dockerfile).toContain("COPY --from=builder /app/runtime/drizzle.config.mjs ./runtime/drizzle.config.mjs");
+    expect(dockerfile).toContain(
+      "COPY --from=builder /app/runtime/drizzle.config.mjs ./runtime/drizzle.config.mjs"
+    );
+    expect(dockerfile).toContain(
+      "COPY --from=builder /app/shared/database-url-security.mjs /app/runtime/database-url-security.mjs"
+    );
+    expect(dockerfile).toContain(
+      "COPY --from=builder /app/runtime/run-release.mjs /app/runtime/run-release.mjs"
+    );
     expect(dockerfile).toContain("COPY --from=builder /app/migrations ./migrations");
     expect(dockerfile).not.toContain("COPY --from=builder /app/server ./server");
     expect(dockerfile).not.toContain("COPY --from=builder /app/shared ./shared");
@@ -22,14 +30,14 @@ describe("Render Docker deploy lifecycle", () => {
     expect(dockerfile).not.toContain("COPY --from=builder /app/docs ./docs");
     expect(dockerfile).not.toContain("COPY --from=builder /app/data ./data");
     expect(dockerfile).toContain(
-      'CMD ["sh", "-c", "node dist/release/ensure-public-media-ready.mjs && exec node dist/index.js"]'
+      'CMD ["sh", "-c", "node runtime/run-release.mjs ensure-public-media-ready scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]'
     );
     expect(mediaGate).toContain("RENDER_GIT_COMMIT");
     expect(mediaGate).toContain("deploymentMarkerObjectKey");
     expect(mediaGate).not.toContain("client/public");
   });
 
-  it("keeps provider configuration on commit-triggered migrate, verify, and readiness", () => {
+  it("keeps provider configuration on commit-triggered verified-TLS migrate and readiness", () => {
     const blueprint = read("render.yaml");
 
     expect(blueprint).toContain("name: tradescoutAI");
@@ -37,8 +45,9 @@ describe("Render Docker deploy lifecycle", () => {
     expect(blueprint).toContain("dockerfilePath: ./Dockerfile");
     expect(blueprint).toContain("autoDeployTrigger: commit");
     expect(blueprint).toContain(
-      "preDeployCommand: node dist/release/migrate-red-graniti-public-media.mjs && node dist/release/migrate-jw-stone-public-media.mjs && node dist/release/migrate-profile-public-media.mjs && node dist/release/db-migrate-safe.mjs && node dist/release/check-required-production-schema.mjs"
+      "preDeployCommand: node runtime/run-release.mjs migrate-red-graniti-public-media scripts/migrate-red-graniti-public-media.mjs && node runtime/run-release.mjs migrate-jw-stone-public-media scripts/migrate-jw-stone-public-media.mjs && node runtime/run-release.mjs migrate-profile-public-media scripts/migrate-profile-public-media.mjs && node runtime/run-release.mjs db-migrate-safe scripts/db-migrate-safe.mjs && node runtime/run-release.mjs check-required-production-schema scripts/check-required-production-schema.mjs"
     );
+    expect(blueprint).not.toContain("preDeployCommand: node dist/release/");
     expect(blueprint).toContain("healthCheckPath: /api/health");
     expect(blueprint).toContain("RUNTIME_MIGRATIONS_MODE");
     expect(blueprint).toContain('value: "off"');
