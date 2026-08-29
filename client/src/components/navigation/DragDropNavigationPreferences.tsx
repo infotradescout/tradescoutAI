@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { isBusinessProviderRole } from "@/lib/roleChecks";
+import { ROUTES } from "@/lib/routes";
 import {
   GripVertical,
   Eye,
@@ -93,7 +94,7 @@ const getIconComponent = (iconName: string) => {
 };
 
 // Default navigation items based on user role
-function getDefaultNavigationItems(userRole: string): NavigationItem[] {
+export function getDefaultNavigationItems(userRole: string): NavigationItem[] {
   const baseItems: NavigationItem[] = [
     // Core navigation items - available to all users
     {
@@ -327,14 +328,14 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: "admin-dashboard",
         label: "Admin Dashboard",
         icon: "Settings",
-        href: "/admin/panel",
+        href: ROUTES.ADMIN_DASHBOARD,
         visible: true,
       },
       {
         id: "admin-panel",
         label: "Admin Panel",
         icon: "Crown",
-        href: "/admin/panel",
+        href: ROUTES.ADMIN_PANEL,
         visible: true,
       },
       {
