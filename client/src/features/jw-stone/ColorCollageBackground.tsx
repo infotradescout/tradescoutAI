@@ -1,4 +1,4 @@
-const COLOR_RANGE_VERSION = "slab-core-spectrum-1";
+const COLOR_RANGE_VERSION = "slab-core-spectrum-2";
 
 /**
  * Vertical-slice presentation uses the existing slab-core derivatives rather
@@ -7,9 +7,10 @@ const COLOR_RANGE_VERSION = "slab-core-spectrum-1";
  * clamps, forklifts, sky, gravel, racks, and neighboring slabs, then resized to
  * a 400 × 1200 vertical face.
  *
- * The sequence is deliberately high contrast so one glance communicates broad
- * choice: white, translucent crystal, rose, gold, green, vivid blue, earth, and
- * black.
+ * This surface is an abundance signal, not a neutral-material sample. Only one
+ * light neutral remains. The other seven slices deliberately move through
+ * rust, amber, gold, green, vivid blue, bronze, and black so the first glance
+ * communicates that JW Stone can cover an unusually broad color spectrum.
  */
 export const COLOR_RANGE_STONE_DEFS = [
   {
@@ -19,16 +20,16 @@ export const COLOR_RANGE_STONE_DEFS = [
     fallbackSrc: "/images/businesses/jw-stone/color-slivers/galaxy-white.webp",
   },
   {
-    stoneId: "cristallo",
-    colorFamily: "crystal",
-    src: "/images/businesses/jw-stone/color-slivers/cristallo.webp",
-    fallbackSrc: "/images/businesses/jw-stone/color-slivers/calacatta-cremo.webp",
+    stoneId: "trending-selection-03",
+    colorFamily: "rust",
+    src: "/images/businesses/jw-stone/color-slivers/trending-selection-03.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/dueto.webp",
   },
   {
-    stoneId: "alabama-rose",
-    colorFamily: "rose",
-    src: "/images/businesses/jw-stone/color-slivers/alabama-rose.webp",
-    fallbackSrc: null,
+    stoneId: "honey-onyx",
+    colorFamily: "amber",
+    src: "/images/businesses/jw-stone/color-slivers/honey-onyx.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/fusion-brown.webp",
   },
   {
     stoneId: "gold-macaubas",
@@ -40,7 +41,7 @@ export const COLOR_RANGE_STONE_DEFS = [
     stoneId: "amazonic-green",
     colorFamily: "green",
     src: "/images/businesses/jw-stone/color-slivers/amazonic-green.webp",
-    fallbackSrc: "/images/businesses/jw-stone/color-slivers/juparana-blue.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/marbella-green.webp",
   },
   {
     stoneId: "blue-dream",
@@ -49,10 +50,10 @@ export const COLOR_RANGE_STONE_DEFS = [
     fallbackSrc: "/images/businesses/jw-stone/color-slivers/blue-bahia.webp",
   },
   {
-    stoneId: "emperor-brown",
-    colorFamily: "earth",
-    src: "/images/businesses/jw-stone/color-slivers/emperor-brown.webp",
-    fallbackSrc: "/images/businesses/jw-stone/color-slivers/mexican-brown.webp",
+    stoneId: "bronzonite",
+    colorFamily: "bronze",
+    src: "/images/businesses/jw-stone/color-slivers/bronzonite.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/chocolate-brown.webp",
   },
   {
     stoneId: "titanium-black-leathered",
