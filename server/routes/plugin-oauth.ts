@@ -17,7 +17,24 @@ import {
 
 const router = Router();
 
-export function requirePluginOAuthConfiguration(_req: any, res: any, next: () => void) {
+const PLUGIN_OAUTH_ROUTE_PATHS = new Set([
+  "/.well-known/oauth-authorization-server",
+  "/.well-known/oauth-protected-resource",
+  "/.well-known/jwks.json",
+  "/oauth/authorize",
+  "/oauth/token",
+]);
+
+export function isPluginOAuthRoutePath(value: unknown): boolean {
+  return typeof value === "string" && PLUGIN_OAUTH_ROUTE_PATHS.has(value.trim());
+}
+
+export function requirePluginOAuthConfiguration(req: any, res: any, next: () => void) {
+  // This router is mounted at the application root. The configuration gate must
+  // therefore own only the OAuth/JWKS paths; otherwise a disabled plugin setup
+  // turns every unrelated route, including /api/health, into a false 404.
+  if (!isPluginOAuthRoutePath(req.path)) return next();
+
   if (!isPluginOAuthConfigured()) {
     res.setHeader("cache-control", "no-store");
     return res.status(404).json({ error: "not_found" });

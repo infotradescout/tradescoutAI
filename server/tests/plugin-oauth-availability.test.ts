@@ -3,12 +3,17 @@ import express from "express";
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isPluginOAuthConfigured } from "../plugin/oauth";
-import { pluginOAuthRouter } from "../routes/plugin-oauth";
+import {
+  isPluginOAuthRoutePath,
+  pluginOAuthRouter,
+} from "../routes/plugin-oauth";
 
 function createApp() {
   const app = express();
   app.use(express.json());
   app.use(pluginOAuthRouter);
+  app.get("/api/health", (_req, res) => res.status(200).json({ status: "healthy" }));
+  app.get("/unrelated", (_req, res) => res.status(200).json({ ok: true }));
   return app;
 }
 
@@ -37,16 +42,50 @@ function configureValidPluginOAuth() {
   );
 }
 
+function disablePluginOAuth() {
+  vi.stubEnv("TRADESCOUT_PLUGIN_JWT_PRIVATE_KEY", "");
+  vi.stubEnv("TRADESCOUT_PLUGIN_ISSUER", "");
+  vi.stubEnv("TRADESCOUT_PLUGIN_AUDIENCE", "");
+  vi.stubEnv("TRADESCOUT_PLUGIN_OAUTH_CLIENTS", "");
+}
+
 afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+describe("plugin OAuth route ownership", () => {
+  it("owns only the five plugin OAuth and JWKS paths", () => {
+    for (const route of [
+      "/.well-known/jwks.json",
+      "/.well-known/oauth-authorization-server",
+      "/.well-known/oauth-protected-resource",
+      "/oauth/authorize",
+      "/oauth/token",
+    ]) {
+      expect(isPluginOAuthRoutePath(route), route).toBe(true);
+    }
+    for (const route of ["/api/health", "/api/version", "/direct-connect", "/unrelated"] ) {
+      expect(isPluginOAuthRoutePath(route), route).toBe(false);
+    }
+  });
+
+  it("never swallows unrelated application routes when plugin OAuth is disabled", async () => {
+    disablePluginOAuth();
+    const app = createApp();
+
+    const health = await request(app).get("/api/health");
+    expect(health.status).toBe(200);
+    expect(health.body).toEqual({ status: "healthy" });
+
+    const unrelated = await request(app).get("/unrelated");
+    expect(unrelated.status).toBe(200);
+    expect(unrelated.body).toEqual({ ok: true });
+  });
+});
+
 describe("plugin OAuth availability", () => {
   it("is unavailable when the signing contract is absent", () => {
-    vi.stubEnv("TRADESCOUT_PLUGIN_JWT_PRIVATE_KEY", "");
-    vi.stubEnv("TRADESCOUT_PLUGIN_ISSUER", "");
-    vi.stubEnv("TRADESCOUT_PLUGIN_AUDIENCE", "");
-    vi.stubEnv("TRADESCOUT_PLUGIN_OAUTH_CLIENTS", "");
+    disablePluginOAuth();
     expect(isPluginOAuthConfigured()).toBe(false);
   });
 
@@ -64,10 +103,7 @@ describe("plugin OAuth availability", () => {
   });
 
   it("returns a clean, non-cacheable 404 instead of throwing when disabled", async () => {
-    vi.stubEnv("TRADESCOUT_PLUGIN_JWT_PRIVATE_KEY", "");
-    vi.stubEnv("TRADESCOUT_PLUGIN_ISSUER", "");
-    vi.stubEnv("TRADESCOUT_PLUGIN_AUDIENCE", "");
-    vi.stubEnv("TRADESCOUT_PLUGIN_OAUTH_CLIENTS", "");
+    disablePluginOAuth();
 
     for (const route of [
       "/.well-known/jwks.json",
