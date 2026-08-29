@@ -20,6 +20,10 @@ import { emitHttpStatus } from "./observability/metrics";
 import { assertStartupInvariants } from "./startupInvariants";
 import { recordCrawlerRequestEvent } from "./services/crawlerTelemetryService";
 import { landingContractHeaders } from "./middleware/landingContractHeaders";
+import {
+  handleCorsOriginDeniedError,
+  rejectUnsupportedCmsProbe,
+} from "./http/publicRequestGuards";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
@@ -172,6 +176,12 @@ export async function createApp() {
 
   app.use(cors(corsOptions));
   app.options("*", cors(corsOptions));
+
+  // CORS denial is a client authorization failure, not a server fault. Common
+  // WordPress discovery probes are unsupported paths, not application errors.
+  // Both guards must run before body parsing and the application route graph.
+  app.use(handleCorsOriginDeniedError);
+  app.use(rejectUnsupportedCmsProbe);
 
   // Body parsing
   const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
