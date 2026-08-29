@@ -60,6 +60,7 @@ for (const requiredPath of [
   "dist/release/manifests/profile-public-media-manifest.json",
   "dist/release/manifests/public-shell-local-dedupe-manifest.json",
   "migrations/meta/_journal.json",
+  "runtime/database-url-security.mjs",
   "runtime/drizzle.config.mjs",
   "runtime/run-release.mjs",
 ]) {
@@ -68,6 +69,21 @@ for (const requiredPath of [
     `missing runtime artifact: ${requiredPath}`
   );
 }
+
+const databaseUrlSecuritySource = fs.readFileSync(
+  path.join(appRoot, "runtime", "database-url-security.mjs"),
+  "utf8"
+);
+assert.match(
+  databaseUrlSecuritySource,
+  /sslmode["']?,?\s*["']verify-full["']/,
+  "runtime database URL guard must enforce sslmode=verify-full"
+);
+assert.doesNotMatch(
+  databaseUrlSecuritySource,
+  /rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*=\s*["']?0/,
+  "runtime database URL guard may not disable TLS certificate verification"
+);
 
 const profileMediaManifest = JSON.parse(
   fs.readFileSync(

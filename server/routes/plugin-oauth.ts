@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "../db";
 import { isAuthenticated } from "../auth";
 import {
+  isPluginOAuthConfigured,
   issueAccessToken,
   normalizeScopes,
   opaqueSecret,
@@ -15,6 +16,16 @@ import {
 } from "../plugin/oauth";
 
 const router = Router();
+
+export function requirePluginOAuthConfiguration(_req: any, res: any, next: () => void) {
+  if (!isPluginOAuthConfigured()) {
+    res.setHeader("cache-control", "no-store");
+    return res.status(404).json({ error: "not_found" });
+  }
+  return next();
+}
+
+router.use(requirePluginOAuthConfiguration);
 
 function ownerId(req: any) {
   return String(req.user?.id || req.user?.claims?.sub || "").trim();
