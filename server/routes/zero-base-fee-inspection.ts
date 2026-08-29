@@ -1,5 +1,4 @@
 import { Router, type Request, type Response } from "express";
-import Stripe from "stripe";
 import PDFDocument from "pdfkit";
 import { createHmac } from "crypto";
 import { arucoMarkerMatrix } from "aruco-marker";
@@ -13,12 +12,9 @@ import {
   TRADESCOUT_TRANSACTION_FEE_LABEL,
   TRADESCOUT_TRANSACTION_FEE_MODEL,
 } from "@shared/platformRevenue";
+import { getStripeClient } from "../services/stripeClient";
 
 const router = Router();
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" })
-  : null;
 
 const PRICE_CENTS = 1000;
 const MARKER_SIZE_IN = 2;
@@ -176,6 +172,7 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
       message: "Admin/staff access enabled; checkout not required.",
     });
   }
+  const stripe = getStripeClient();
   if (!stripe) return res.status(400).json({ error: "Stripe is not configured." });
   const userId = clean((req.user as any)?.id, 80);
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -248,6 +245,7 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
 });
 
 router.get("/verify-checkout", requireAuth, async (req: Request, res: Response) => {
+  const stripe = getStripeClient();
   if (!stripe) return res.status(400).json({ error: "Stripe is not configured." });
   const userId = clean((req.user as any)?.id, 80);
   const sessionId = clean(req.query.sessionId, 200);

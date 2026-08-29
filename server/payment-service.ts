@@ -8,6 +8,7 @@ import {
   type ProfileBookingRequest,
 } from "@shared/schema";
 import { TRADESCOUT_TRANSACTION_FEE_USD } from "@shared/platformRevenue";
+import { getStripeClient, type StripeClientProvider } from "./services/stripeClient";
 
 type PaymentType = "marketplace_transaction" | "contractor_service" | "premium_subscription";
 type ProcessingMethod = "card" | "ach";
@@ -21,20 +22,15 @@ function getAchIncentiveConfig() {
 
 // Payment service for handling platform transactions
 export class PaymentService {
-  private stripe: Stripe | null = null;
+  private readonly stripeProvider: StripeClientProvider;
 
-  constructor(stripeClient?: Stripe | null) {
-    if (stripeClient !== undefined) {
-      this.stripe = stripeClient;
-      return;
-    }
-
-    // Initialize Stripe only if API key is available
-    if (process.env.STRIPE_SECRET_KEY) {
-      this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: "2020-08-27" as any,
-      });
-    }
+  constructor(stripeClientOrProvider?: Stripe | null | StripeClientProvider) {
+    this.stripeProvider =
+      typeof stripeClientOrProvider === "function"
+        ? stripeClientOrProvider
+        : stripeClientOrProvider !== undefined
+          ? () => stripeClientOrProvider
+          : getStripeClient;
   }
 
   private async getMatchingProfileBookingRequest(
@@ -72,13 +68,14 @@ export class PaymentService {
     if (bookingRequest.paymentStatus === "refunded") {
       return;
     }
-    if (!this.stripe) {
+    const stripe = this.stripeProvider();
+    if (!stripe) {
       throw new Error(
         `Cannot refund captured deposit for terminal booking ${bookingRequest.id}: Stripe is not configured`
       );
     }
 
-    const refund = await this.stripe.refunds.create(
+    const refund = await stripe.refunds.create(
       {
         payment_intent: paymentIntent.id,
         metadata: {
@@ -334,13 +331,14 @@ export class PaymentService {
 
   // Create Stripe payment intent for contractor payments
   async createContractorPaymentIntent(payment: ContractorPayment) {
-    if (!this.stripe || payment.isOffPlatform) {
+    const stripe = this.stripeProvider();
+    if (!stripe || payment.isOffPlatform) {
       throw new Error("Stripe not available or payment is off-platform");
     }
 
     const fees = await this.calculatePaymentFees(Number(payment.totalAmount), "contractor_service");
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
+    const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(Number(payment.totalAmount) * 100), // Convert to cents
       currency: payment.currency || "usd",
       metadata: {
@@ -365,7 +363,8 @@ export class PaymentService {
       processingMethod?: ProcessingMethod;
     }
   ) {
-    if (!this.stripe || transaction.isOffPlatform) {
+    const stripe = this.stripeProvider();
+    if (!stripe || transaction.isOffPlatform) {
       throw new Error("Stripe not available or payment is off-platform");
     }
 
@@ -388,7 +387,7 @@ export class PaymentService {
       processingMethod: desiredMethod,
     });
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
+    const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(effectiveTotal * 100), // Convert to cents
       currency: "usd",
       payment_method_types: desiredMethod === "ach" ? ["us_bank_account"] : ["card"],

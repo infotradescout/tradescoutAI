@@ -2,14 +2,11 @@ import { Router, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
 import { buildCountyVaultAllocation } from "../services/countyVaultAllocation";
-import Stripe from "stripe";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { getStripeClient } from "../services/stripeClient";
 
 const router = Router();
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" })
-  : null;
 
 // ==================== COMMUNITY BUILDER ROUTES ====================
 
@@ -532,6 +529,7 @@ router.post(
  */
 router.post("/connect/onboard", requireAuth, async (req: Request, res: Response) => {
   try {
+    const stripe = getStripeClient();
     if (!stripe) return res.status(400).json({ error: "Stripe not configured" });
 
     const userId = (req.user as any).id;
@@ -581,6 +579,7 @@ router.post("/connect/onboard", requireAuth, async (req: Request, res: Response)
  */
 router.post("/checkout-session", requireAuth, async (req: Request, res: Response) => {
   try {
+    const stripe = getStripeClient();
     if (!stripe) return res.status(400).json({ error: "Stripe not configured" });
 
     const userId = (req.user as any).id;

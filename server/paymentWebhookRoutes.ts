@@ -24,8 +24,8 @@ type PlatformSupportWebhookHandler = {
 type StripeWebhookVerifier = Pick<Stripe, "webhooks">;
 
 export type PaymentWebhookDependencies = {
-  stripe: StripeWebhookVerifier | null;
-  webhookSecret?: string;
+  stripeProvider: () => StripeWebhookVerifier | null;
+  webhookSecretProvider: () => string | undefined;
   paymentService: PaymentWebhookHandler;
   communityBuilderPaymentService: CommunityBuilderWebhookHandler;
   platformSupportPaymentService: PlatformSupportWebhookHandler;
@@ -44,7 +44,7 @@ export function preserveStripeWebhookRawBody(req: Request, _res: Response, body:
 
 export async function dispatchVerifiedStripeEvent(
   event: Stripe.Event,
-  dependencies: Omit<PaymentWebhookDependencies, "stripe" | "webhookSecret">
+  dependencies: Omit<PaymentWebhookDependencies, "stripeProvider" | "webhookSecretProvider">
 ): Promise<void> {
   switch (event.type) {
     case "payment_intent.succeeded":
@@ -93,11 +93,13 @@ export function registerPaymentWebhookRoutes(
   });
 
   app.post(STRIPE_PAYMENT_WEBHOOK_PATH, async (req: Request, res: Response) => {
-    if (!dependencies.stripe) {
+    const stripe = dependencies.stripeProvider();
+    if (!stripe) {
       return res.status(400).json({ message: "Stripe not configured" });
     }
 
-    if (!dependencies.webhookSecret) {
+    const webhookSecret = String(dependencies.webhookSecretProvider() || "").trim();
+    if (!webhookSecret) {
       return res.status(400).json({ message: "STRIPE_WEBHOOK_SECRET not configured" });
     }
 
@@ -113,11 +115,7 @@ export function registerPaymentWebhookRoutes(
 
     let event: Stripe.Event;
     try {
-      event = dependencies.stripe.webhooks.constructEvent(
-        rawBody,
-        signature,
-        dependencies.webhookSecret
-      );
+      event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid signature";
       console.error("[stripe] signature verification failed", message);

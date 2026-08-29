@@ -1,13 +1,9 @@
-import { Router, type Request, type Response } from 'express';
-import Stripe from 'stripe';
-import { z } from 'zod';
-import { storage } from '../storage';
+import { Router, type Request, type Response } from "express";
+import { z } from "zod";
+import { storage } from "../storage";
+import { getStripeClient } from "../services/stripeClient";
 
 const router = Router();
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
-  : null;
 
 const createCheckoutSchema = z.object({
   profileId: z.string().min(1),
@@ -17,7 +13,7 @@ const createCheckoutSchema = z.object({
   cancelUrl: z.string().url(),
 });
 
-router.get('/profile/:profileId/vault', async (req: Request, res: Response) => {
+router.get("/profile/:profileId/vault", async (req: Request, res: Response) => {
   try {
     const profileId = String(req.params.profileId);
     const snapshot = await storage.getCommunityVaultSnapshot({ profileId, limit: 0 });
@@ -34,18 +30,18 @@ router.get('/profile/:profileId/vault', async (req: Request, res: Response) => {
         : null,
     });
   } catch (error) {
-    console.error('Error fetching community vault:', error);
-    res.status(500).json({ error: 'Failed to fetch community vault' });
+    console.error("Error fetching community vault:", error);
+    res.status(500).json({ error: "Failed to fetch community vault" });
   }
 });
 
-router.get('/profile/:profileId/ledger', async (req: Request, res: Response) => {
+router.get("/profile/:profileId/ledger", async (req: Request, res: Response) => {
   try {
     const profileId = String(req.params.profileId);
     const limit = req.query.limit ? Math.max(1, Math.min(200, Number(req.query.limit))) : 50;
 
     const snapshot = await storage.getCommunityVaultSnapshot({ profileId, limit });
-    if (!snapshot.profile) return res.status(404).json({ error: 'Profile not found' });
+    if (!snapshot.profile) return res.status(404).json({ error: "Profile not found" });
 
     return res.json({
       profile: snapshot.profile,
@@ -63,29 +59,33 @@ router.get('/profile/:profileId/ledger', async (req: Request, res: Response) => 
       })),
     });
   } catch (error) {
-    console.error('Error fetching community vault ledger:', error);
-    res.status(500).json({ error: 'Failed to fetch community vault ledger' });
+    console.error("Error fetching community vault ledger:", error);
+    res.status(500).json({ error: "Failed to fetch community vault ledger" });
   }
 });
 
 // Donate directly into a community vault (real money in; no withdrawals/payouts)
-router.post('/checkout-session', async (req: Request, res: Response) => {
+router.post("/checkout-session", async (req: Request, res: Response) => {
   try {
-    if (!stripe) return res.status(400).json({ error: 'Stripe not configured' });
+    const stripe = getStripeClient();
+    if (!stripe) return res.status(400).json({ error: "Stripe not configured" });
 
     const parsed = createCheckoutSchema.parse(req.body);
-    const amountNum = typeof parsed.amount === 'string' ? Number(parsed.amount) : parsed.amount;
+    const amountNum = typeof parsed.amount === "string" ? Number(parsed.amount) : parsed.amount;
 
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive number' });
+      return res.status(400).json({ error: "Amount must be a positive number" });
     }
 
     // Ensure profile exists (also initializes vault)
-    const snapshot = await storage.getCommunityVaultSnapshot({ profileId: parsed.profileId, limit: 0 });
-    if (!snapshot.profile) return res.status(404).json({ error: 'Profile not found' });
+    const snapshot = await storage.getCommunityVaultSnapshot({
+      profileId: parsed.profileId,
+      limit: 0,
+    });
+    if (!snapshot.profile) return res.status(404).json({ error: "Profile not found" });
 
     const metadata: Record<string, string> = {
-      type: 'community_vault_donation',
+      type: "community_vault_donation",
       profileId: parsed.profileId,
       amount: amountNum.toFixed(2),
     };
@@ -93,17 +93,17 @@ router.post('/checkout-session', async (req: Request, res: Response) => {
     if (parsed.causeId) metadata.causeId = parsed.causeId;
 
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+      mode: "payment",
       success_url: parsed.successUrl,
       cancel_url: parsed.cancelUrl,
-      currency: 'usd',
+      currency: "usd",
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: "usd",
             product_data: {
               name: `Donate to ${snapshot.profile.displayName} vault`,
-              description: 'Community vault donation (no withdrawals/payouts during beta)',
+              description: "Community vault donation (no withdrawals/payouts during beta)",
             },
             unit_amount: Math.round(amountNum * 100),
           },
@@ -115,11 +115,11 @@ router.post('/checkout-session', async (req: Request, res: Response) => {
 
     res.json({ url: session.url, id: session.id });
   } catch (error: any) {
-    if (error?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Invalid request', details: error.errors });
+    if (error?.name === "ZodError") {
+      return res.status(400).json({ error: "Invalid request", details: error.errors });
     }
-    console.error('Error creating community vault checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    console.error("Error creating community vault checkout session:", error);
+    res.status(500).json({ error: "Failed to create checkout session" });
   }
 });
 

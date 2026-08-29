@@ -3,25 +3,15 @@ import Stripe from "stripe";
 import { db } from "./db";
 import { builderPayouts } from "@shared/schema";
 import { and, eq, isNull, lte, or } from "drizzle-orm";
-
-let stripe: Stripe | null = null;
-
-function getStripe(): Stripe {
-  const stripeSecret = process.env.STRIPE_SECRET_KEY;
-  if (!stripeSecret) {
-    throw new Error("STRIPE_SECRET_KEY is missing");
-  }
-
-  if (!stripe) {
-    stripe = new Stripe(stripeSecret, {
-      apiVersion: "2024-04-10" as any,
-    });
-  }
-
-  return stripe;
-}
+import {
+  getStripeClient,
+  requireStripeClient,
+  type StripeClientProvider,
+} from "./services/stripeClient";
 
 export class CommunityBuilderPaymentService {
+  constructor(private readonly stripeProvider: StripeClientProvider = getStripeClient) {}
+
   /**
    * Process a verified contribution to the county vault
    */
@@ -136,7 +126,7 @@ export class CommunityBuilderPaymentService {
     if (builder.bankAccountId && process.env.STRIPE_CONNECTED_ACCOUNT_ID) {
       try {
         // Create a transfer to the connected account
-        const transfer = await getStripe().transfers.create(
+        const transfer = await requireStripeClient(this.stripeProvider).transfers.create(
           {
             amount: Math.round(parseFloat(amount) * 100), // Convert to cents
             currency: "usd",
@@ -283,7 +273,7 @@ export class CommunityBuilderPaymentService {
             processingMethod: "stripe",
           } as any);
 
-          const transfer = await getStripe().transfers.create(
+          const transfer = await requireStripeClient(this.stripeProvider).transfers.create(
             {
               amount: Math.round(amountNumber * 100),
               currency: "usd",

@@ -1,10 +1,7 @@
-import Stripe from 'stripe';
-import { storage } from './storage';
-import { grantCommunityBuilderBadge } from './communityBuilderBadgeService';
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
-  : null;
+import Stripe from "stripe";
+import { storage } from "./storage";
+import { grantCommunityBuilderBadge } from "./communityBuilderBadgeService";
+import { getStripeClient, type StripeClientProvider } from "./services/stripeClient";
 
 function toDollars(cents: number | null | undefined): number | null {
   if (cents == null) return null;
@@ -12,17 +9,19 @@ function toDollars(cents: number | null | undefined): number | null {
 }
 
 function safeNumber(value: any): number {
-  const n = typeof value === 'string' ? parseFloat(value) : Number(value);
+  const n = typeof value === "string" ? parseFloat(value) : Number(value);
   return Number.isFinite(n) ? n : 0;
 }
 
 export class PlatformSupportPaymentService {
+  constructor(private readonly stripeProvider: StripeClientProvider = getStripeClient) {}
+
   async handleStripeEvent(event: Stripe.Event): Promise<void> {
     switch (event.type) {
-      case 'checkout.session.completed':
+      case "checkout.session.completed":
         await this.handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
         return;
-      case 'invoice.paid':
+      case "invoice.paid":
         await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
         return;
       default:
@@ -34,14 +33,14 @@ export class PlatformSupportPaymentService {
     const metadata = session.metadata ?? {};
     const type = metadata.type;
 
-    if (type === 'community_vault_donation') {
+    if (type === "community_vault_donation") {
       await this.handleCommunityVaultDonation(session);
       return;
     }
 
-    if (type === 'platform_support') {
+    if (type === "platform_support") {
       // For subscriptions, record on invoice.paid to ensure we only record captured money.
-      if (session.mode === 'subscription') return;
+      if (session.mode === "subscription") return;
       await this.handlePlatformSupportOneTime(session);
       return;
     }
@@ -52,7 +51,7 @@ export class PlatformSupportPaymentService {
     const profileId = metadata.profileId;
 
     if (!profileId) {
-      console.warn('[stripe][community_vault_donation] missing profileId; skipping');
+      console.warn("[stripe][community_vault_donation] missing profileId; skipping");
       return;
     }
 
@@ -60,7 +59,7 @@ export class PlatformSupportPaymentService {
     const amountValue = amount ?? safeNumber(metadata.amount);
 
     if (!amountValue) {
-      console.warn('[stripe][community_vault_donation] missing amount; skipping');
+      console.warn("[stripe][community_vault_donation] missing amount; skipping");
       return;
     }
 
@@ -70,21 +69,26 @@ export class PlatformSupportPaymentService {
       const result = await storage.recordCommunityVaultLedgerEntry({
         profileId,
         amount: amountValue,
-        sourceType: 'direct_donation',
+        sourceType: "direct_donation",
         sourceId: session.id,
         externalKey,
-        memo: 'Stripe community vault donation',
+        memo: "Stripe community vault donation",
         causeId: metadata.causeId || undefined,
       });
 
       // Award Community Builder badge to the owner of this profile when money flows into their vault.
       const ownerUserId = await storage.getProfileOwnerUserId(profileId);
       if (ownerUserId) {
-        await grantCommunityBuilderBadge(ownerUserId, 'community_vault_donation');
+        await grantCommunityBuilderBadge(ownerUserId, "community_vault_donation");
       }
     } catch (error: any) {
       // Idempotency: unique externalKey
-      if (String(error?.message || '').toLowerCase().includes('duplicate') || String(error?.code) === '23505') {
+      if (
+        String(error?.message || "")
+          .toLowerCase()
+          .includes("duplicate") ||
+        String(error?.code) === "23505"
+      ) {
         return;
       }
       throw error;
@@ -99,11 +103,11 @@ export class PlatformSupportPaymentService {
     const total = amount ?? safeNumber(metadata.amount);
 
     if (!total) {
-      console.warn('[stripe][platform_support] missing amount; skipping');
+      console.warn("[stripe][platform_support] missing amount; skipping");
       return;
     }
 
-    const currency = (session.currency || 'usd').toUpperCase();
+    const currency = (session.currency || "usd").toUpperCase();
 
     const hasCommunity = Boolean(originatingProfileId);
     const communityShare = hasCommunity ? Number((total * 0.5).toFixed(2)) : 0;
@@ -112,28 +116,30 @@ export class PlatformSupportPaymentService {
     // Always record platform entry
     await this.insertPlatformSupportLedgerEntrySafe({
       externalKey: `stripe:checkout_session:${session.id}:platform`,
-      allocation: 'platform',
+      allocation: "platform",
       originatingProfileId: originatingProfileId ?? null,
-      mode: 'one_time',
+      mode: "one_time",
       amount: platformShare.toFixed(2),
       currency,
       stripeCheckoutSessionId: session.id,
-      stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-      memo: hasCommunity ? 'Platform Support (split: platform share)' : 'Platform Support',
+      stripePaymentIntentId:
+        typeof session.payment_intent === "string" ? session.payment_intent : null,
+      memo: hasCommunity ? "Platform Support (split: platform share)" : "Platform Support",
       createdAt: new Date(),
     });
 
     if (hasCommunity && originatingProfileId) {
       await this.insertPlatformSupportLedgerEntrySafe({
         externalKey: `stripe:checkout_session:${session.id}:community`,
-        allocation: 'community',
+        allocation: "community",
         originatingProfileId,
-        mode: 'one_time',
+        mode: "one_time",
         amount: communityShare.toFixed(2),
         currency,
         stripeCheckoutSessionId: session.id,
-        stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-        memo: 'Platform Support (split: community share)',
+        stripePaymentIntentId:
+          typeof session.payment_intent === "string" ? session.payment_intent : null,
+        memo: "Platform Support (split: community share)",
         createdAt: new Date(),
       });
 
@@ -152,48 +158,53 @@ export class PlatformSupportPaymentService {
               await storage.recordVaultLedgerEntry({
                 countyId: countySnapshot.county.id,
                 amount: communityShare,
-                sourceType: 'platform_support_share',
+                sourceType: "platform_support_share",
                 sourceId: session.id,
-                memo: 'Platform Support split credit (county vault)',
+                memo: "Platform Support split credit (county vault)",
               });
             }
           }
         } catch (err) {
-          console.error('[platform_support] Error crediting county vault for one-time support:', err);
+          console.error(
+            "[platform_support] Error crediting county vault for one-time support:",
+            err
+          );
         }
 
         // The originating profile owner effectively drove a paid platform support action.
-        await grantCommunityBuilderBadge(ownerUserId, 'builder_fund');
+        await grantCommunityBuilderBadge(ownerUserId, "builder_fund");
       }
     }
   }
 
   private async handleInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
+    const stripe = this.stripeProvider();
     if (!stripe) return;
 
     // Stripe typings vary across versions; use a narrow `any` view for optional fields.
     const invoiceAny = invoice as any;
 
-    const subscriptionId = typeof invoiceAny.subscription === 'string' ? invoiceAny.subscription : null;
+    const subscriptionId =
+      typeof invoiceAny.subscription === "string" ? invoiceAny.subscription : null;
     if (!subscriptionId) return;
 
     let subscription: Stripe.Subscription | null = null;
     try {
       subscription = await stripe.subscriptions.retrieve(subscriptionId);
     } catch (e) {
-      console.warn('[stripe][invoice.paid] failed to retrieve subscription', subscriptionId);
+      console.warn("[stripe][invoice.paid] failed to retrieve subscription", subscriptionId);
       return;
     }
 
     const metadata = (subscription?.metadata ?? {}) as Record<string, string>;
-    if (metadata.type !== 'platform_support') return;
+    if (metadata.type !== "platform_support") return;
 
     const originatingProfileId = metadata.originatingProfileId || undefined;
 
     const total = toDollars(invoice.amount_paid) ?? 0;
     if (!total) return;
 
-    const currency = (invoice.currency || 'usd').toUpperCase();
+    const currency = (invoice.currency || "usd").toUpperCase();
 
     const hasCommunity = Boolean(originatingProfileId);
     const communityShare = hasCommunity ? Number((total * 0.5).toFixed(2)) : 0;
@@ -202,30 +213,32 @@ export class PlatformSupportPaymentService {
     // Two rows per split payment
     await this.insertPlatformSupportLedgerEntrySafe({
       externalKey: `stripe:invoice:${invoice.id}:platform`,
-      allocation: 'platform',
+      allocation: "platform",
       originatingProfileId: originatingProfileId ?? null,
-      mode: 'subscription',
+      mode: "subscription",
       amount: platformShare.toFixed(2),
       currency,
       stripeInvoiceId: invoice.id,
       stripeSubscriptionId: subscriptionId,
-      stripeChargeId: typeof invoiceAny.charge === 'string' ? invoiceAny.charge : null,
-      memo: hasCommunity ? 'Platform Support (monthly split: platform share)' : 'Platform Support (monthly)',
+      stripeChargeId: typeof invoiceAny.charge === "string" ? invoiceAny.charge : null,
+      memo: hasCommunity
+        ? "Platform Support (monthly split: platform share)"
+        : "Platform Support (monthly)",
       createdAt: new Date(invoice.created * 1000),
     });
 
     if (hasCommunity && originatingProfileId) {
       await this.insertPlatformSupportLedgerEntrySafe({
         externalKey: `stripe:invoice:${invoice.id}:community`,
-        allocation: 'community',
+        allocation: "community",
         originatingProfileId,
-        mode: 'subscription',
+        mode: "subscription",
         amount: communityShare.toFixed(2),
         currency,
         stripeInvoiceId: invoice.id,
         stripeSubscriptionId: subscriptionId,
-        stripeChargeId: typeof invoiceAny.charge === 'string' ? invoiceAny.charge : null,
-        memo: 'Platform Support (monthly split: community share)',
+        stripeChargeId: typeof invoiceAny.charge === "string" ? invoiceAny.charge : null,
+        memo: "Platform Support (monthly split: community share)",
         createdAt: new Date(invoice.created * 1000),
       });
 
@@ -243,17 +256,20 @@ export class PlatformSupportPaymentService {
               await storage.recordVaultLedgerEntry({
                 countyId: countySnapshot.county.id,
                 amount: communityShare,
-                sourceType: 'platform_support_share',
+                sourceType: "platform_support_share",
                 sourceId: invoice.id,
-                memo: 'Platform Support monthly split credit (county vault)',
+                memo: "Platform Support monthly split credit (county vault)",
               });
             }
           }
         } catch (err) {
-          console.error('[platform_support] Error crediting county vault for subscription support:', err);
+          console.error(
+            "[platform_support] Error crediting county vault for subscription support:",
+            err
+          );
         }
 
-        await grantCommunityBuilderBadge(ownerUserId, 'builder_fund');
+        await grantCommunityBuilderBadge(ownerUserId, "builder_fund");
       }
     }
   }
@@ -262,7 +278,12 @@ export class PlatformSupportPaymentService {
     try {
       await storage.insertPlatformSupportLedgerEntry(data);
     } catch (error: any) {
-      if (String(error?.message || '').toLowerCase().includes('duplicate') || String(error?.code) === '23505') {
+      if (
+        String(error?.message || "")
+          .toLowerCase()
+          .includes("duplicate") ||
+        String(error?.code) === "23505"
+      ) {
         return;
       }
       throw error;

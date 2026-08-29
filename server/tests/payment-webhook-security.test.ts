@@ -23,8 +23,8 @@ function buildTestApp() {
   const app = express();
   app.use(express.json({ verify: preserveStripeWebhookRawBody }));
   registerPaymentWebhookRoutes(app, {
-    stripe,
-    webhookSecret,
+    stripeProvider: () => stripe,
+    webhookSecretProvider: () => webhookSecret,
     paymentService: { handleStripeWebhook: paymentHandler },
     communityBuilderPaymentService: {
       handleCheckoutSessionCompleted: checkoutHandler,

@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
 import type { Express, Request, Response } from "express";
-import Stripe from "stripe";
 import { z } from "zod";
 import { pool } from "../db";
 import { isAuthenticated } from "../auth";
@@ -21,6 +20,7 @@ import {
   TRADESCOUT_TRANSACTION_FEE_LABEL,
   TRADESCOUT_TRANSACTION_FEE_MODEL,
 } from "@shared/platformRevenue";
+import { getStripeClient } from "../services/stripeClient";
 
 const adminRoles = new Set([
   "moderator",
@@ -30,10 +30,6 @@ const adminRoles = new Set([
   "owner",
   "head_admin",
 ]);
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2026-02-25.clover" as any })
-  : null;
 
 const text = (max: number) => z.string().trim().max(max).optional().nullable();
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
@@ -1227,6 +1223,7 @@ export function registerProcurementRoutes(app: Express) {
   });
 
   app.post("/api/procurement/orders/:id/checkout-session", async (req, res) => {
+    const stripe = getStripeClient();
     if (!stripe) return res.status(400).json({ message: "Stripe is not configured" });
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
@@ -1333,6 +1330,7 @@ export function registerProcurementRoutes(app: Express) {
   });
 
   app.post("/api/procurement/orders/:id/verify-checkout", async (req, res) => {
+    const stripe = getStripeClient();
     if (!stripe) return res.status(400).json({ message: "Stripe is not configured" });
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
