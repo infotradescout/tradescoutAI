@@ -6,11 +6,12 @@ Neon project ID: `mute-rice-47282135`
 Production branch: `production` (`br-late-wildflower-ad3dn9vm`)
 PostgreSQL: 17
 Region: `aws-us-east-1`
+Confirmed project permission: **ADMIN**
 
 ## Direct findings
 
-- Production logical size reported by Neon: **15,958,564,864 bytes**.
-- Project synthetic storage reported by Neon: **15,958,548,480 bytes**.
+- Production logical size reported by Neon: **15,959,015,424 bytes** at the latest project read.
+- Project synthetic storage reported by Neon: **15,958,974,464 bytes**.
 - The known public-media manifests account for approximately:
   - JW Stone: 899 files / 175,020,735 bytes.
   - R.E.D. Graniti: 11 files / 2,433,960 bytes.
@@ -80,7 +81,16 @@ The project reported 14 branches: production plus 13 non-production proof/develo
 
 ## Cleanup disposition
 
-Delete the 13 non-production branches after a final active-release reference check. The connector exposed contradictory argument schemas for SQL and branch deletion during this audit, so no branch deletion or row-level production query is claimed. This is an execution-tool blocker, not evidence that the branches should remain.
+A final authority check confirmed administrator permission and confirmed that `production` is the default branch. Deletion was attempted only against the first non-production proof branch. The Neon connector then blocked the operation because its published action schema requires `projectId` and `branchId`, while its backend rejects those exact fields and demands hidden `project_id` and `branch_id` names that the wrapper forbids. The same schema defect blocks the read-only production SQL action.
+
+Therefore:
+
+- production was not touched;
+- no non-production branch deletion is falsely claimed;
+- no production row-level storage result is falsely claimed;
+- the 13 listed branches remain cleanup targets once the connector contract is repaired.
+
+This is an execution-tool blocker, not a permission or product decision.
 
 ## Long-term media exit conditions
 
