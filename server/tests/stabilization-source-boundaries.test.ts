@@ -31,7 +31,9 @@ describe("database adapter selection boundary", () => {
 
     expect(source).toContain("new URL(connectionString).hostname.toLowerCase()");
     expect(source).toContain("localDatabaseHosts.has(databaseHostname)");
-    expect(source).not.toMatch(/\/localhost\\\|127\\\.0\\\.0\\\.1\\\|\\\[::1\\\]\//);
+    expect(source).not.toContain(
+      "/localhost|127\\.0\\.0\\.1|\\[::1\\]/i.test(connectionString)"
+    );
     expect(source).not.toContain("test(connectionString)");
   });
 });
