@@ -18,14 +18,19 @@ function readCookieValue(req: Request, name: string): string {
 
 /**
  * Resolves an existing anonymous session identifier already supplied by the
- * browser. It never derives identity from IP address, user-agent, screen
- * dimensions, or any other fingerprinting signal.
+ * browser or the active Express session. It never derives identity from IP
+ * address, user-agent, screen dimensions, or any fingerprinting signal.
  */
 export function resolveAnonymousSessionId(req: Request): string {
   const fromHeader = String(req.headers["x-anonymous-session-id"] || "").trim();
   if (fromHeader) return fromHeader;
+
+  const fromExpressSession = String((req as Request & { sessionID?: string }).sessionID || "").trim();
+  if (fromExpressSession) return fromExpressSession;
+
   const fromQuery = String((req.query as any)?.anonymousSessionId || "").trim();
   if (fromQuery) return fromQuery;
+
   const cookieCandidates = [
     DIRECT_CONNECT_ANONYMOUS_SESSION_COOKIE,
     "anonymousSessionId",
