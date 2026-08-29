@@ -66,6 +66,7 @@ import { createNotificationSchema } from "./schema/notifications";
 import { createProcurementSchema } from "./schema/procurement";
 
 export * from "./schema/core";
+export * from "./schema/paymentAuthority";
 export type {
   InsertPartnerWebhookEvent,
   InsertProcurementDeliveryProof,
