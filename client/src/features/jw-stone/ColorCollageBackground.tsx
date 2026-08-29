@@ -38,13 +38,15 @@ export function ColorCollageBackground() {
               margin: 0,
               padding: 0,
               border: 0,
+              boxSizing: "border-box",
             }}
           >
             <img
               src={`${strip.src}?v=${COLOR_COLLAGE_VERSION}&delivery=${COLOR_COLLAGE_DELIVERY_VERSION}`}
               alt=""
-              className="absolute block object-cover"
+              className="absolute object-cover"
               style={{
+                display: "block",
                 inset: 0,
                 left: "-1px",
                 width: "calc(100% + 2px)",
