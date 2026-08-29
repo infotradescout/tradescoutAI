@@ -10,6 +10,10 @@ import { registerJwStonePublicMediaRoutes } from "../routes/jw-stone-public-medi
 
 const knownImage =
   "/images/businesses/jw-stone/inventory-source/16XiKXpuST1VEIuUn5jhX9RH9rAYq86jG.webp";
+const brokenWhiteCollageImage =
+  "/images/businesses/jw-stone/color-collage/01-white.webp";
+const verifiedWhiteReplacementKey =
+  "public-media/images/businesses/jw-stone/inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp";
 
 describe("JW Stone server-side public media", () => {
   it("maps only pinned legacy URLs into the isolated R2 namespace", () => {
@@ -17,6 +21,12 @@ describe("JW Stone server-side public media", () => {
       "public-media/images/businesses/jw-stone/inventory-source/16XiKXpuST1VEIuUn5jhX9RH9rAYq86jG.webp"
     );
     expect(resolveJwStonePublicMediaObjectKey(`${knownImage}?v=4`)).toBeTruthy();
+    expect(resolveJwStonePublicMediaObjectKey(brokenWhiteCollageImage)).toBe(
+      verifiedWhiteReplacementKey
+    );
+    expect(
+      resolveJwStonePublicMediaObjectKey(`${brokenWhiteCollageImage}?v=face-truth-1&delivery=full-2`)
+    ).toBe(verifiedWhiteReplacementKey);
     expect(
       resolveJwStonePublicMediaObjectKey(
         "/images/businesses/jw-stone/inventory-source/not-in-manifest.webp"
@@ -57,6 +67,28 @@ describe("JW Stone server-side public media", () => {
         "public-media/images/businesses/jw-stone/inventory-source/16XiKXpuST1VEIuUn5jhX9RH9rAYq86jG.webp",
       ])
     );
+  });
+
+  it("serves the legacy broken white collage URL from the verified replacement object", async () => {
+    const calls: string[] = [];
+    const app = express();
+    registerJwStonePublicMediaRoutes(app, {
+      stream: async ({ res, key }) => {
+        calls.push(key);
+        res.setHeader("Content-Type", "image/webp");
+        res.status(200).send(Buffer.from("verified-white-stone"));
+        return "served";
+      },
+    });
+    app.use((_req, res) => res.status(404).end());
+
+    const response = await request(app).get(
+      `${brokenWhiteCollageImage}?v=face-truth-1&delivery=full-2`
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(Buffer.from("verified-white-stone"));
+    expect(calls).toEqual([verifiedWhiteReplacementKey]);
   });
 
   it("does not expose unlisted or traversal-like paths", async () => {
