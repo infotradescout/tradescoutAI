@@ -9,6 +9,7 @@ RUN npm ci
 
 # Copy source (dockerignore will prevent huge/unneeded folders)
 COPY . .
+RUN node --test scripts/database-url-security.contract.test.mjs
 
 # Ensure optional knowledge folder exists even when excluded from Docker context
 RUN mkdir -p /app/data
