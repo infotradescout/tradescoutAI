@@ -17,8 +17,8 @@ const verifiedWhiteReplacementKey =
 const verticalColorSlivers = [
   "rhino-white.webp",
   "galaxy-white.webp",
-  "trending-selection-03.webp",
   "dueto.webp",
+  "versace.webp",
   "honey-onyx.webp",
   "fusion-brown.webp",
   "gold-macaubas.webp",
@@ -57,12 +57,13 @@ describe("JW Stone server-side public media", () => {
     expect(JW_STONE_PUBLIC_MEDIA_BYTES).toBe(175020735);
   });
 
-  it("pins every slab-only vertical color image to verified production storage", () => {
+  it("pins every reviewed slab-only vertical color image to production storage", () => {
     expect(verticalColorSlivers).toHaveLength(16);
+    expect(verticalColorSlivers.some((path) => path.includes("trending-selection-"))).toBe(false);
 
     for (const publicPath of verticalColorSlivers) {
       expect(resolveJwStonePublicMediaObjectKey(publicPath)).toBe(`public-media${publicPath}`);
-      expect(resolveJwStonePublicMediaObjectKey(`${publicPath}?v=slab-core-spectrum-2`)).toBe(
+      expect(resolveJwStonePublicMediaObjectKey(`${publicPath}?v=slab-core-spectrum-3`)).toBe(
         `public-media${publicPath}`
       );
     }
