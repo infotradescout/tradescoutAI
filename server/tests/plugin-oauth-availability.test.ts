@@ -12,7 +12,7 @@ function createApp() {
   return app;
 }
 
-function configureValidPluginOAuth() {
+function configureSigningWithoutClient() {
   const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
   vi.stubEnv(
     "TRADESCOUT_PLUGIN_JWT_PRIVATE_KEY",
@@ -21,6 +21,20 @@ function configureValidPluginOAuth() {
   vi.stubEnv("TRADESCOUT_PLUGIN_ISSUER", "https://www.thetradescout.com");
   vi.stubEnv("TRADESCOUT_PLUGIN_AUDIENCE", "tradescout-plugin-api");
   vi.stubEnv("TRADESCOUT_PLUGIN_OAUTH_CLIENTS", "[]");
+}
+
+function configureValidPluginOAuth() {
+  configureSigningWithoutClient();
+  vi.stubEnv(
+    "TRADESCOUT_PLUGIN_OAUTH_CLIENTS",
+    JSON.stringify([
+      {
+        clientId: "tradescout-test-client",
+        name: "TradeScout Test Client",
+        redirectUris: ["https://client.example.com/oauth/callback"],
+      },
+    ])
+  );
 }
 
 afterEach(() => {
@@ -41,6 +55,11 @@ describe("plugin OAuth availability", () => {
     vi.stubEnv("TRADESCOUT_PLUGIN_ISSUER", "http://thetradescout.com");
     vi.stubEnv("TRADESCOUT_PLUGIN_AUDIENCE", "tradescout-plugin-api");
     vi.stubEnv("TRADESCOUT_PLUGIN_OAUTH_CLIENTS", "not-json");
+    expect(isPluginOAuthConfigured()).toBe(false);
+  });
+
+  it("is unavailable when signing exists but no OAuth client is registered", () => {
+    configureSigningWithoutClient();
     expect(isPluginOAuthConfigured()).toBe(false);
   });
 
