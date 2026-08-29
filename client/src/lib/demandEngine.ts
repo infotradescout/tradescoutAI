@@ -11,6 +11,21 @@ type DemandAttribution = {
   lastSeenAt: string;
 };
 
+type SafeDemandAttribution = Partial<
+  Pick<
+    DemandAttribution,
+    | "ref"
+    | "utmSource"
+    | "utmMedium"
+    | "utmCampaign"
+    | "utmContent"
+    | "variant"
+    | "campaignKey"
+    | "firstSeenAt"
+    | "lastSeenAt"
+  >
+>;
+
 type SegmentCategory = "homeowner" | "contractor" | "mixed" | "unknown";
 type SegmentIntentLevel = "passive" | "problem_aware" | "actively_looking" | "unknown";
 
@@ -45,13 +60,19 @@ function normalize(value: string | null | undefined): string | null {
   return v.length ? v.slice(0, 120) : null;
 }
 
+function containsObviousPrivateData(value: string): boolean {
+  if (/@|%40/i.test(value)) return true;
+  return /(?:\d[+(). -]*){10,}/.test(value);
+}
+
 function normalizeSafeToken(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const normalized = value.trim();
   if (
     normalized.length === 0 ||
     normalized.length > 120 ||
-    !SAFE_DEMAND_TOKEN_PATTERN.test(normalized)
+    !SAFE_DEMAND_TOKEN_PATTERN.test(normalized) ||
+    containsObviousPrivateData(normalized)
   ) {
     return undefined;
   }
@@ -62,11 +83,51 @@ function normalizeSafeRoute(value: unknown): string | undefined {
   if (typeof value !== "string" || typeof window === "undefined") return undefined;
   try {
     const url = new URL(value, window.location.origin);
-    if (url.origin !== window.location.origin || !url.pathname.startsWith("/")) return undefined;
-    return url.pathname.slice(0, 320);
+    if (
+      url.origin !== window.location.origin ||
+      !url.pathname.startsWith("/") ||
+      url.pathname.length > 320 ||
+      containsObviousPrivateData(url.pathname)
+    ) {
+      return undefined;
+    }
+    return url.pathname;
   } catch {
     return undefined;
   }
+}
+
+function normalizeSafeTimestamp(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length > 40) return undefined;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
+export function sanitizeDemandAttributionForTelemetry(
+  attribution: DemandAttribution | null
+): SafeDemandAttribution | null {
+  if (!attribution) return null;
+  const safe: SafeDemandAttribution = {};
+
+  for (const key of [
+    "ref",
+    "utmSource",
+    "utmMedium",
+    "utmCampaign",
+    "utmContent",
+    "variant",
+    "campaignKey",
+  ] as const) {
+    const token = normalizeSafeToken(attribution[key]);
+    if (token !== undefined) safe[key] = token;
+  }
+
+  for (const key of ["firstSeenAt", "lastSeenAt"] as const) {
+    const timestamp = normalizeSafeTimestamp(attribution[key]);
+    if (timestamp) safe[key] = timestamp;
+  }
+
+  return Object.keys(safe).length > 0 ? safe : null;
 }
 
 export function sanitizeDemandEventPayload(
@@ -344,7 +405,7 @@ export async function trackDemandEvent(
   const countyFips = deriveCountyFips(normalizedPayload);
   const segmentCategory = deriveSegmentCategory(normalizedPayload);
   const segmentIntentLevel = deriveSegmentIntentLevel(event, normalizedPayload);
-  const attribution = bootstrapDemandAttribution();
+  const attribution = sanitizeDemandAttributionForTelemetry(bootstrapDemandAttribution());
   const body = {
     eventType: `demand.${event}`,
     data: {
