@@ -41,25 +41,35 @@ describe("JW Stone requested visual scope", () => {
     expect(subtext?.className).toContain("sr-only");
   });
 
-  it("uses eight slab-only vertical crops to communicate the full color range", () => {
+  it("uses one neutral and seven clearly different color signals instead of a pale cluster", () => {
     expect(COLOR_RANGE_STONE_DEFS.map((slice) => slice.colorFamily)).toEqual([
       "white",
-      "crystal",
-      "rose",
+      "rust",
+      "amber",
       "gold",
       "green",
       "blue",
-      "earth",
+      "bronze",
       "black",
     ]);
-    expect(COLOR_RANGE_STONE_DEFS.find((slice) => slice.colorFamily === "blue")?.stoneId).toBe(
-      "blue-dream"
-    );
+    expect(COLOR_RANGE_STONE_DEFS.map((slice) => slice.stoneId)).toEqual([
+      "rhino-white",
+      "trending-selection-03",
+      "honey-onyx",
+      "gold-macaubas",
+      "amazonic-green",
+      "blue-dream",
+      "bronzonite",
+      "titanium-black-leathered",
+    ]);
     expect(
-      COLOR_RANGE_STONE_DEFS.find((slice) => slice.colorFamily === "black")?.stoneId
-    ).toBe("titanium-black-leathered");
+      COLOR_RANGE_STONE_DEFS.some((slice) =>
+        ["cristallo", "alabama-rose", "emperor-brown"].includes(slice.stoneId)
+      )
+    ).toBe(false);
     expect(COLOR_RANGE_SLICES).toHaveLength(8);
     expect(new Set(COLOR_RANGE_SLICES.map((slice) => slice.stoneId)).size).toBe(8);
+    expect(new Set(COLOR_RANGE_SLICES.map((slice) => slice.colorFamily)).size).toBe(8);
     expect(COLOR_RANGE_SLICES.every((slice) => Boolean(slice.src))).toBe(true);
     expect(
       COLOR_RANGE_SLICES.every((slice) => slice.src.includes("/color-slivers/"))
@@ -117,7 +127,7 @@ describe("JW Stone requested visual scope", () => {
     expect(images.every((image) => image.style.left === "-1px")).toBe(true);
     expect(images.every((image) => image.style.width === "calc(100% + 2px)")).toBe(true);
     expect(images.every((image) => image.style.objectPosition === "center")).toBe(true);
-    expect(images.every((image) => image.src.includes("slab-core-spectrum-1"))).toBe(true);
+    expect(images.every((image) => image.src.includes("slab-core-spectrum-2"))).toBe(true);
     expect(images.every((image) => image.src.includes("/color-slivers/"))).toBe(true);
     expect(images.every((image) => !image.src.includes("/inventory-source/"))).toBe(true);
     expect(images.every((image) => !image.src.includes("/color-collage/"))).toBe(true);
@@ -148,7 +158,7 @@ describe("JW Stone requested visual scope", () => {
 
     expect(image?.dataset.fallbackApplied).toBe("true");
     expect(image?.src).toContain(fallbackSrc!);
-    expect(image?.src).toContain("slab-core-spectrum-1-fallback");
+    expect(image?.src).toContain("slab-core-spectrum-2-fallback");
     expect(image?.src).toContain("/color-slivers/");
     expect(image?.src).not.toContain("/inventory-source/");
 
