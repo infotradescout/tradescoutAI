@@ -5,6 +5,7 @@ import {
   handleCorsOriginDeniedError,
   rejectUnsupportedCmsProbe,
 } from "../http/publicRequestGuards";
+import { resolveAnonymousSessionId } from "../utils/anonymousSession";
 
 export type EventRoutesStorage = Pick<IStorage, "logEvent">;
 
@@ -40,6 +41,27 @@ export const DIRECT_CONNECT_FRICTION_EVENT_TYPES = new Set([
   "direct_connect_empty_state_seen",
   "direct_connect_permission_or_role_blocked",
   SERVER_DERIVED_FUNNEL_STALL_EVENT,
+]);
+
+export const DIRECT_CONNECT_KPI_EVENT_TYPES = new Set([
+  "direct_connect_landed",
+  "direct_connect_entry_resolved",
+  "direct_connect_tab_selected",
+  "direct_connect_request_started",
+  "direct_connect_request_review_opened",
+  "direct_connect_homeid_link_selected",
+  "direct_connect_home_record_prompt_viewed",
+  "direct_connect_home_record_link_selected",
+  "direct_connect_home_record_create_selected",
+  "direct_connect_home_record_skipped",
+  "direct_connect_request_submitted_after_home_record_skip",
+  "direct_connect_request_submitted",
+  "direct_connect_visible_to_contractors",
+  "direct_connect_request_visible_to_contractors",
+  "direct_connect_contractor_action_started",
+  "direct_connect_requester_reply_viewed",
+  "direct_connect_homeid_created_from_request",
+  "direct_connect_homeid_updated_from_request",
 ]);
 
 const CLIENT_DIRECT_CONNECT_FRICTION_EVENT_TYPES = new Set(
@@ -78,9 +100,21 @@ const SAFE_DIRECT_CONNECT_STRING_KEYS = [
   "requestState",
   "fromSection",
   "toSection",
+  "userState",
+  "viewport",
+  "deviceType",
+  "category",
+  "dispatchMode",
+  "decision",
+  "responderType",
+  "homeContextIntent",
+  "entry",
+  "componentType",
 ] as const;
 const SAFE_DIRECT_CONNECT_ID_KEYS = [
+  "homeId",
   "requestId",
+  "packetId",
   "assignmentId",
   "sessionId",
   "conversationId",
@@ -92,6 +126,8 @@ const SAFE_DIRECT_CONNECT_BOOLEAN_KEYS = [
   "authenticated",
   "isAuthenticated",
   "hasDraft",
+  "hasBudget",
+  "hasCountyFips",
 ] as const;
 const SAFE_DIRECT_CONNECT_NUMBER_KEYS = [
   "retryCount",
@@ -103,6 +139,9 @@ const SAFE_DIRECT_CONNECT_NUMBER_KEYS = [
   "openRequestCount",
   "replyCount",
   "elapsedMs",
+  "attachmentCount",
+  "directTargets",
+  "visibleContractorCount",
 ] as const;
 
 const SAFE_TOKEN_PATTERN = /^[a-z0-9][a-z0-9._:/ +~-]*$/i;
@@ -140,10 +179,12 @@ export function normalizeEventType(value: unknown): string | null {
   return null;
 }
 
-function normalizeDirectConnectFrictionType(value: unknown): string | null {
+function normalizeDirectConnectShellType(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
-  return DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(normalized) ? normalized : null;
+  if (DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(normalized)) return normalized;
+  if (DIRECT_CONNECT_KPI_EVENT_TYPES.has(normalized)) return normalized;
+  return null;
 }
 
 function serializedByteLength(value: unknown): number {
@@ -351,6 +392,9 @@ export function sanitizeDirectConnectEventData(value: unknown): SanitizedEventDa
   const statusCode = sanitizeStatusCode(input.statusCode ?? input.status);
   if (statusCode !== undefined) output.statusCode = statusCode;
 
+  const timestamp = sanitizeIsoTimestamp(input.ts);
+  if (timestamp) output.ts = timestamp;
+
   const routeCandidate =
     input.routeTemplate ??
     input.route ??
@@ -392,6 +436,7 @@ function scheduleEventWrite(args: {
   data: SanitizedEventData;
   req: Request & { user?: { id?: string; contractorId?: string } };
   res: Response;
+  includeAnonymousSession?: boolean;
 }) {
   const sessionUser = args.req.user ?? null;
   const deviceClass = inferDeviceClass(args.req.get("User-Agent"));
@@ -401,6 +446,11 @@ function scheduleEventWrite(args: {
     contractorId:
       typeof sessionUser?.contractorId === "string" ? sessionUser.contractorId : null,
   };
+
+  if (args.includeAnonymousSession && !persistedData.userId) {
+    const anonymousSessionId = sanitizeId(resolveAnonymousSessionId(args.req));
+    if (anonymousSessionId) persistedData.anonymousSessionId = anonymousSessionId;
+  }
   if (deviceClass) persistedData.deviceClass = deviceClass;
 
   args.res.status(204).end();
@@ -424,35 +474,34 @@ function startServerDerivedFunnelDetector(): void {
 }
 
 export function registerEventRoutes(app: Express, { storage }: EventRoutesDependencies) {
-  // registerRoutes is mounted after the runtime CORS layer in server/index.ts.
-  // Keeping these guards here therefore fixes both the test app and the real
-  // production runtime without duplicating the full server bootstrap.
+  // These are mounted in the real server route stack, after the global CORS
+  // middleware and before the broad analytics route.
   app.use(handleCorsOriginDeniedError);
   app.use(rejectUnsupportedCmsProbe);
 
-  // Compatibility bridge for browsers still holding the previous client bundle.
-  // It intercepts exact Direct Connect friction names before broad shell
-  // analytics can attach raw IP or browser strings. Stall evidence is never
-  // accepted from a browser; it is derived from persisted server stages.
+  // Compatibility and privacy bridge for Direct Connect shell events. Exact
+  // event registries are intercepted before the broad analytics owner can add
+  // raw IP or full browser strings. Unknown shell events continue unchanged.
   app.post("/api/analytics/shell", (req: Request, res: Response, next: NextFunction) => {
-    const legacyEvent =
+    const shellEvent =
       req.body && typeof req.body === "object" && !Array.isArray(req.body)
         ? (req.body as Record<string, unknown>)
         : {};
-    const eventType = normalizeDirectConnectFrictionType(legacyEvent.type);
+    const eventType = normalizeDirectConnectShellType(shellEvent.type);
     if (!eventType) return next();
     if (eventType === SERVER_DERIVED_FUNNEL_STALL_EVENT) return res.status(204).end();
 
     return publicEventLimiter(req, res, () => {
-      if (serializedByteLength(legacyEvent) > MAX_EVENT_BODY_BYTES) {
+      if (serializedByteLength(shellEvent) > MAX_EVENT_BODY_BYTES) {
         return res.status(204).end();
       }
       scheduleEventWrite({
         storage,
         eventType,
-        data: sanitizeDirectConnectEventData(legacyEvent),
+        data: sanitizeDirectConnectEventData(shellEvent),
         req: req as Request & { user?: { id?: string; contractorId?: string } },
         res,
+        includeAnonymousSession: DIRECT_CONNECT_KPI_EVENT_TYPES.has(eventType),
       });
     });
   });
