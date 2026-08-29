@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { secureDatabaseEnvironment } from "./database-url-security.mjs";
 
 const [builtName, sourcePath, ...args] = process.argv.slice(2);
 if (!builtName || !sourcePath || !/^[a-z0-9-]+$/i.test(builtName)) {
@@ -13,9 +14,14 @@ const fallbackPath = path.resolve(root, sourcePath);
 const target = fs.existsSync(builtPath) ? builtPath : fallbackPath;
 if (!fs.existsSync(target)) throw new Error(`Release entrypoint is missing: ${target}`);
 
+const env = secureDatabaseEnvironment(process.env, {
+  allowInsecureTestConnection:
+    process.env.NODE_ENV === "test" && Boolean(process.env.TEST_DATABASE_URL),
+});
+
 const result = spawnSync(process.execPath, [target, ...args], {
   cwd: root,
-  env: process.env,
+  env,
   stdio: "inherit",
 });
 if (result.error) throw result.error;
