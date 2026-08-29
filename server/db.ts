@@ -1,8 +1,5 @@
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool as NodePgPool } from "pg";
 import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
-import ws from "ws";
 import * as schema from "@shared/schema";
 import {
   allowExplicitInsecureTestDatabase,
@@ -10,8 +7,6 @@ import {
 } from "@shared/database-url-security.mjs";
 import { emitPoolMetrics } from "./observability/metrics";
 import { recomputeBaselinesFromObservedData } from "./observability/alerts";
-
-neonConfig.webSocketConstructor = ws;
 
 const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST_WORKER_ID);
 const allowInsecureTestConnection =
@@ -21,15 +16,7 @@ const rawConnectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.
 const connectionString = securePostgresConnectionString(rawConnectionString, {
   allowInsecureTestConnection,
 });
-const localDatabaseHosts = new Set(["localhost", "127.0.0.1", "::1"]);
-const databaseHostname = connectionString
-  ? new URL(connectionString).hostname.toLowerCase()
-  : "";
-const useLocalNodePg = Boolean(connectionString) && localDatabaseHosts.has(databaseHostname);
 
-// The app uses the pg-compatible Pool surface everywhere. Neon implements that
-// runtime contract, but its published type is not assignment-compatible with
-// node-postgres, so we normalize the exported boundary to the node-postgres type.
 let pool: NodePgPool;
 let db: any;
 
@@ -54,35 +41,24 @@ if (!connectionString) {
   pool = disabled as unknown as NodePgPool;
   db = disabled;
 } else {
-  const resolvedConnectionString = connectionString;
+  // TradeScout runs this server in Node on Render. Use node-postgres for both
+  // local and remote databases so sslmode=verify-full is actually enforced by
+  // the PostgreSQL TLS client. The Neon serverless Pool secures its WebSocket
+  // transport but disables PostgreSQL-protocol TLS by default, so changing its
+  // connection-string sslmode alone would not prove hostname verification.
+  const nodePool = new NodePgPool({
+    connectionString,
+    // The database itself allows far more than this (checked live: 901 max,
+    // typically under 25 in use) -- this cap was the actual bottleneck
+    // behind crawler-telemetry writes timing out under bot traffic spikes,
+    // not the database. PG_POOL_MAX still overrides this if ever needed.
+    max: Number(process.env.PG_POOL_MAX || 50),
+    idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
+    connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
+  });
 
-  if (useLocalNodePg) {
-    const localPool = new NodePgPool({
-      connectionString: resolvedConnectionString,
-      // The database itself allows far more than this (checked live: 901 max,
-      // typically under 25 in use) -- this cap was the actual bottleneck
-      // behind crawler-telemetry writes timing out under bot traffic spikes,
-      // not the database. PG_POOL_MAX still overrides this if ever needed.
-      max: Number(process.env.PG_POOL_MAX || 50),
-      idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
-      connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
-    });
-    pool = localPool;
-    db = drizzleNodePg({ client: localPool, schema });
-  } else {
-    const neonPool = new Pool({
-      connectionString: resolvedConnectionString,
-      // The database itself allows far more than this (checked live: 901 max,
-      // typically under 25 in use) -- this cap was the actual bottleneck
-      // behind crawler-telemetry writes timing out under bot traffic spikes,
-      // not the database. PG_POOL_MAX still overrides this if ever needed.
-      max: Number(process.env.PG_POOL_MAX || 50),
-      idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
-      connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
-    });
-    pool = neonPool as unknown as NodePgPool;
-    db = drizzle({ client: neonPool, schema });
-  }
+  pool = nodePool;
+  db = drizzleNodePg({ client: nodePool, schema });
 
   // Emit DB pool metrics every 60 seconds
   const poolMetricsTimer = setInterval(() => {
@@ -104,7 +80,9 @@ if (!connectionString) {
   // Don't keep the process alive for background observability timers (scripts/tests/CLI).
   poolMetricsTimer.unref?.();
 
-  const OBS_BASELINE_RECOMPUTE_MS = Number(process.env.OBS_BASELINE_RECOMPUTE_MS || 15 * 60 * 1000);
+  const OBS_BASELINE_RECOMPUTE_MS = Number(
+    process.env.OBS_BASELINE_RECOMPUTE_MS || 15 * 60 * 1000
+  );
   // Recompute observability baselines on a fixed cadence from real observed metrics.
   const baselineTimer = setInterval(() => {
     try {
