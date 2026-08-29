@@ -4,6 +4,7 @@ import { Pool as NodePgPool } from "pg";
 import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { securePostgresConnectionString } from "@shared/database-url-security.mjs";
 import { emitPoolMetrics } from "./observability/metrics";
 import { recomputeBaselinesFromObservedData } from "./observability/alerts";
 
@@ -11,7 +12,10 @@ neonConfig.webSocketConstructor = ws;
 
 const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST_WORKER_ID);
 
-const connectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
+const rawConnectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
+const connectionString = securePostgresConnectionString(rawConnectionString, {
+  allowInsecureTestConnection: isTestEnv,
+});
 const connectionStringForCheck = connectionString ?? "";
 const useLocalNodePg =
   Boolean(connectionString) &&
