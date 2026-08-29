@@ -216,7 +216,7 @@ describe("sanitization", () => {
 });
 
 describe("first-party route behavior", () => {
-  it("persists a signal with server identity and coarse device only", async () => {
+  it("persists an actionable issue packet with server identity and coarse device only", async () => {
     const logEvent = vi.fn().mockResolvedValue(undefined);
     const response = await request(
       createEventApp({ logEvent }, { id: "session-user", contractorId: "session-contractor" })
@@ -236,24 +236,38 @@ describe("first-party route behavior", () => {
           userId: "spoofed-user",
           ipAddress: "spoofed-ip",
           userAgent: "spoofed-agent",
+          severity: "low",
+          inspectNext: "attacker_controlled",
+          releaseSha: "attacker_controlled",
         },
       });
     await flushEventWrite();
 
     expect(response.status).toBe(204);
-    expect(logEvent).toHaveBeenCalledWith("direct_connect_api_request_failed", {
-      surface: "direct_connect",
-      source: "request_submit",
-      section: "post",
-      errorCode: "server_error",
-      requestId: "req_123",
-      blocked: true,
-      statusCode: 500,
-      routeTemplate: "/direct-connect",
-      userId: "session-user",
-      contractorId: "session-contractor",
-      deviceClass: "mobile",
-    });
+    expect(logEvent).toHaveBeenCalledWith(
+      "direct_connect_api_request_failed",
+      expect.objectContaining({
+        surface: "direct_connect",
+        source: "request_submit",
+        section: "post",
+        errorCode: "server_error",
+        requestId: "req_123",
+        blocked: true,
+        statusCode: 500,
+        routeTemplate: "/direct-connect",
+        issuePacket: true,
+        schemaVersion: 1,
+        releaseSha: expect.any(String),
+        severity: "high",
+        inspectNext: "failed_api_route_and_server_logs",
+        userId: "session-user",
+        contractorId: "session-contractor",
+        deviceClass: "mobile",
+      })
+    );
+    const persisted = logEvent.mock.calls[0]?.[1];
+    expect(persisted.releaseSha).not.toBe("attacker_controlled");
+    expect(persisted.inspectNext).not.toBe("attacker_controlled");
   });
 
   it("intercepts old cached clients without raw browser enrichment", async () => {
@@ -281,13 +295,17 @@ describe("first-party route behavior", () => {
       section: "inbox",
       reason: "no_assignments",
       routeTemplate: "/direct-connect/inbox",
+      issuePacket: true,
+      schemaVersion: 1,
+      severity: "medium",
+      inspectNext: "empty_state_data_source_and_next_action",
     });
     expect(persisted).not.toHaveProperty("ipAddress");
     expect(persisted).not.toHaveProperty("userAgent");
     expect(JSON.stringify(persisted)).not.toContain("private message");
   });
 
-  it("drops browser-submitted stalls while unrelated shell events continue", async () => {
+  it("drops browser-submitted stalls and unknown Direct Connect events", async () => {
     const logEvent = vi.fn().mockResolvedValue(undefined);
     const app = createEventApp({ logEvent });
     app.post("/api/analytics/shell", (_req, res) => res.status(202).end());
@@ -298,12 +316,16 @@ describe("first-party route behavior", () => {
     const hardenedStall = await request(app)
       .post("/api/events")
       .send({ eventType: "direct_connect_funnel_step_stalled" });
+    const futureDirectConnect = await request(app)
+      .post("/api/analytics/shell")
+      .send({ type: "direct_connect_future_unreviewed_event", privateText: "secret" });
     const unrelated = await request(app)
       .post("/api/analytics/shell")
       .send({ type: "community_shell_load" });
 
     expect(legacyStall.status).toBe(204);
     expect(hardenedStall.status).toBe(204);
+    expect(futureDirectConnect.status).toBe(204);
     expect(unrelated.status).toBe(202);
     expect(logEvent).not.toHaveBeenCalled();
   });
