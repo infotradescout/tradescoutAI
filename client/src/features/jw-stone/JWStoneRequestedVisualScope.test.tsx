@@ -3,7 +3,11 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ColorCollageBackground } from "./ColorCollageBackground";
+import {
+  COLOR_RANGE_SLICES,
+  COLOR_RANGE_STONE_DEFS,
+  ColorCollageBackground,
+} from "./ColorCollageBackground";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -37,7 +41,27 @@ describe("JW Stone requested visual scope", () => {
     expect(subtext?.className).toContain("sr-only");
   });
 
-  it("keeps Browse by color as one continuous row of eight equal slices with no gaps", () => {
+  it("shows a deliberate full-spectrum range using one real stone photo per equal slice", () => {
+    expect(COLOR_RANGE_STONE_DEFS.map((slice) => slice.colorFamily)).toEqual([
+      "white",
+      "crystal",
+      "rose",
+      "gold",
+      "green",
+      "blue",
+      "earth",
+      "black",
+    ]);
+    expect(COLOR_RANGE_SLICES).toHaveLength(8);
+    expect(new Set(COLOR_RANGE_SLICES.map((slice) => slice.stoneId)).size).toBe(8);
+    expect(COLOR_RANGE_SLICES.every((slice) => Boolean(slice.src))).toBe(true);
+    expect(
+      COLOR_RANGE_SLICES.every((slice) => slice.src.includes("/inventory-source/"))
+    ).toBe(true);
+    expect(
+      COLOR_RANGE_SLICES.every((slice) => !slice.src.includes("/color-collage/"))
+    ).toBe(true);
+
     act(() =>
       root.render(
         <div className="relative h-64">
@@ -60,28 +84,29 @@ describe("JW Stone requested visual scope", () => {
     expect(["0", "0px"]).toContain(slices?.style.gap);
     expect(["0", "0px"]).toContain(slices?.style.columnGap);
     expect(["0", "0px"]).toContain(slices?.style.rowGap);
-    expect(["0", "0px"]).toContain(slices?.style.margin);
-    expect(["0", "0px"]).toContain(slices?.style.padding);
     expect(sliceElements).toHaveLength(8);
 
-    for (const slice of sliceElements) {
+    for (const [index, slice] of sliceElements.entries()) {
       expect(slice.style.flex).toBe("0 0 12.5%");
       expect(slice.style.width).toBe("12.5%");
       expect(slice.style.maxWidth).toBe("12.5%");
       expect(["0", "0px"]).toContain(slice.style.margin);
       expect(["0", "0px"]).toContain(slice.style.padding);
       expect(["0", "0px"]).toContain(slice.style.borderWidth || slice.style.border);
+      expect(slice.dataset.stoneId).toBe(COLOR_RANGE_SLICES[index]?.stoneId);
+      expect(slice.dataset.colorFamily).toBe(COLOR_RANGE_SLICES[index]?.colorFamily);
     }
 
     expect(images).toHaveLength(8);
     expect(images.every((image) => image.style.display === "block")).toBe(true);
     expect(images.every((image) => image.style.left === "-1px")).toBe(true);
     expect(images.every((image) => image.style.width === "calc(100% + 2px)")).toBe(true);
-    expect(images.every((image) => image.src.includes("v=face-truth-1"))).toBe(true);
-    expect(images.every((image) => image.src.includes("delivery=full-3"))).toBe(true);
+    expect(images.every((image) => image.src.includes("single-stone-spectrum-1"))).toBe(true);
+    expect(images.every((image) => image.src.includes("/inventory-source/"))).toBe(true);
+    expect(images.every((image) => !image.src.includes("/color-collage/"))).toBe(true);
   });
 
-  it("replaces the failed white derivative with a verified full slab photo", () => {
+  it("tries another photo of the same stone and never leaves a broken-image icon", () => {
     act(() =>
       root.render(
         <div className="relative h-64">
@@ -90,18 +115,27 @@ describe("JW Stone requested visual scope", () => {
       )
     );
 
-    const firstImage = container.querySelector<HTMLImageElement>(
-      '[data-testid="jw-color-collage"] img'
+    const fallbackIndex = COLOR_RANGE_SLICES.findIndex((slice) => Boolean(slice.fallbackSrc));
+    expect(fallbackIndex).toBeGreaterThanOrEqual(0);
+
+    const image = container.querySelector<HTMLImageElement>(
+      `[data-testid="jw-color-collage-slice-${fallbackIndex}"] img`
     );
-    expect(firstImage).not.toBeNull();
+    const fallbackSrc = COLOR_RANGE_SLICES[fallbackIndex]?.fallbackSrc;
+    expect(image).not.toBeNull();
+    expect(fallbackSrc).toBeTruthy();
 
     act(() => {
-      firstImage?.dispatchEvent(new Event("error", { bubbles: true }));
+      image?.dispatchEvent(new Event("error", { bubbles: true }));
     });
 
-    expect(firstImage?.src).toContain(
-      "/images/businesses/jw-stone/inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp"
-    );
-    expect(firstImage?.src).toContain("v=white-face-fallback-1");
+    expect(image?.dataset.fallbackApplied).toBe("true");
+    expect(image?.src).toContain(fallbackSrc!);
+    expect(image?.src).toContain("single-stone-spectrum-1-fallback");
+
+    act(() => {
+      image?.dispatchEvent(new Event("error", { bubbles: true }));
+    });
+    expect(image?.style.visibility).toBe("hidden");
   });
 });
