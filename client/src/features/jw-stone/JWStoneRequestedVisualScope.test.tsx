@@ -58,6 +58,30 @@ describe("JW Stone requested visual scope", () => {
     expect(slices?.className).not.toMatch(/grid-cols-2|grid-cols-4|grid-rows-/);
     expect(images).toHaveLength(8);
     expect(images.every((image) => image.src.includes("v=face-truth-1"))).toBe(true);
-    expect(images.every((image) => image.src.includes("delivery=full-1"))).toBe(true);
+    expect(images.every((image) => image.src.includes("delivery=full-2"))).toBe(true);
+  });
+
+  it("replaces the failed white derivative with a verified full slab photo", () => {
+    act(() =>
+      root.render(
+        <div className="relative h-64">
+          <ColorCollageBackground />
+        </div>
+      )
+    );
+
+    const firstImage = container.querySelector<HTMLImageElement>(
+      '[data-testid="jw-color-collage"] img'
+    );
+    expect(firstImage).not.toBeNull();
+
+    act(() => {
+      firstImage?.dispatchEvent(new Event("error", { bubbles: true }));
+    });
+
+    expect(firstImage?.src).toContain(
+      "/images/businesses/jw-stone/inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp"
+    );
+    expect(firstImage?.src).toContain("v=white-face-fallback-1");
   });
 });
