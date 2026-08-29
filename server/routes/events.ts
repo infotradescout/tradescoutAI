@@ -1,4 +1,5 @@
-import type { Express } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 import type { IStorage } from "../storage/contracts";
 
 export type EventRoutesStorage = Pick<IStorage, "logEvent">;
@@ -7,124 +8,31 @@ export interface EventRoutesDependencies {
   storage: EventRoutesStorage;
 }
 
-const MAX_EVENT_TYPE_LENGTH = 96;
 const MAX_EVENT_BODY_BYTES = 8 * 1024;
-const MAX_SAFE_STRING_LENGTH = 240;
-const MAX_ATTRIBUTION_STRING_LENGTH = 120;
+const MAX_SAFE_STRING_LENGTH = 120;
 const MAX_ROUTE_LENGTH = 320;
-const MAX_IDENTIFIER_LENGTH = 128;
-const CORS_DENIAL_PREFIX = "CORS: Origin not allowed:";
 
-const SAFE_EVENT_KEYS = new Set([
-  "route",
-  "path",
-  "href",
-  "target",
+export const PUBLIC_DEMAND_EVENT_TYPES = new Set([
+  "demand.landing_view",
+  "demand.cta_click",
+  "demand.auth_view",
+  "demand.signin_success",
+  "demand.create_success",
+  "demand.setup_complete",
+  "demand.intent_submitted",
+]);
+
+const SAFE_STRING_KEYS = [
   "surface",
   "placement",
   "variant",
-  "funnelStep",
-  "stage",
-  "requestId",
-  "workRequestId",
-  "sessionId",
-  "anonymousSessionId",
-  "statusCode",
-  "errorCode",
-  "blocked",
-  "success",
-  "verificationRequired",
-  "hasPrompt",
-  "retryCount",
-  "attemptCount",
-  "clickCount",
-  "selectedItemCount",
-  "position",
-  "resultCount",
-  "resultPosition",
-  "filterCount",
-  "durationMs",
-  "source",
-  "action",
-  "cta",
-  "category",
   "mode",
   "presenceType",
   "intent",
-  "scope",
-  "reason",
-  "outcome",
-  "searchMode",
-  "segmentCategory",
-  "segment_category",
-  "segmentIntentLevel",
-  "segment_intent_level",
-  "stateCode",
-  "countyFips",
-  "county_fips",
-  "profileSlug",
-  "businessId",
-  "businessSlug",
-  "itemId",
-  "itemSlug",
-  "attribution",
-]);
-
-const IDENTIFIER_KEYS = new Set([
-  "requestId",
-  "workRequestId",
-  "sessionId",
-  "anonymousSessionId",
-  "businessId",
-  "itemId",
-]);
-
-const COUNT_KEYS = new Set([
-  "retryCount",
-  "attemptCount",
-  "clickCount",
-  "selectedItemCount",
-  "position",
-  "resultCount",
-  "resultPosition",
-  "filterCount",
-  "durationMs",
-]);
-
-const BOOLEAN_KEYS = new Set([
-  "blocked",
-  "success",
-  "verificationRequired",
-  "hasPrompt",
-]);
-
-const TOKEN_KEYS = new Set([
-  "surface",
-  "placement",
-  "variant",
-  "funnelStep",
-  "stage",
-  "errorCode",
   "source",
-  "action",
   "cta",
-  "category",
-  "mode",
-  "presenceType",
-  "intent",
-  "scope",
-  "reason",
-  "outcome",
-  "searchMode",
-  "segmentCategory",
-  "segmentIntentLevel",
-  "profileSlug",
-  "businessSlug",
-  "itemSlug",
-]);
-
-const EVENT_TYPE_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
-const SAFE_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
+] as const;
+const SAFE_BOOLEAN_KEYS = ["verificationRequired", "hasPrompt"] as const;
 const SAFE_TOKEN_PATTERN = /^[a-z0-9][a-z0-9._:/ +~-]*$/i;
 
 export type SanitizedDemandAttribution = {
@@ -133,7 +41,6 @@ export type SanitizedDemandAttribution = {
   utmMedium?: string | null;
   utmCampaign?: string | null;
   utmContent?: string | null;
-  utmTerm?: string | null;
   variant?: string | null;
   campaignKey?: string;
   firstSeenAt?: string;
@@ -142,24 +49,16 @@ export type SanitizedDemandAttribution = {
 
 export type SanitizedEventValue =
   | string
-  | number
   | boolean
   | null
   | SanitizedDemandAttribution;
 
 export type SanitizedEventData = Record<string, SanitizedEventValue>;
 
-export function normalizeEventType(value: unknown): string {
-  if (typeof value !== "string") return "event.unknown";
+export function normalizeEventType(value: unknown): string | null {
+  if (typeof value !== "string") return null;
   const normalized = value.trim();
-  if (
-    normalized.length === 0 ||
-    normalized.length > MAX_EVENT_TYPE_LENGTH ||
-    !EVENT_TYPE_PATTERN.test(normalized)
-  ) {
-    return "event.unknown";
-  }
-  return normalized;
+  return PUBLIC_DEMAND_EVENT_TYPES.has(normalized) ? normalized : null;
 }
 
 function serializedByteLength(value: unknown): number {
@@ -170,49 +69,36 @@ function serializedByteLength(value: unknown): number {
   }
 }
 
+function containsObviousPrivateData(value: string): boolean {
+  if (/@|%40/i.test(value)) return true;
+  const digits = value.match(/\d/g)?.length ?? 0;
+  if (digits >= 10 && /[+(). -]/.test(value)) return true;
+  return false;
+}
+
 function sanitizeRoute(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const [route = ""] = value.trim().split(/[?#]/, 1);
-  if (!route.startsWith("/") || route.length > MAX_ROUTE_LENGTH || /[\u0000-\u001f\u007f]/.test(route)) {
+  if (
+    !route.startsWith("/") ||
+    route.length > MAX_ROUTE_LENGTH ||
+    /[\u0000-\u001f\u007f]/.test(route) ||
+    containsObviousPrivateData(route)
+  ) {
     return undefined;
   }
   return route;
 }
 
-function sanitizeIdentifier(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const normalized = value.trim();
-  if (
-    normalized.length === 0 ||
-    normalized.length > MAX_IDENTIFIER_LENGTH ||
-    !SAFE_IDENTIFIER_PATTERN.test(normalized)
-  ) {
-    return undefined;
-  }
-  return normalized;
-}
-
-function sanitizeToken(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const normalized = value.trim();
-  if (
-    normalized.length === 0 ||
-    normalized.length > MAX_SAFE_STRING_LENGTH ||
-    !SAFE_TOKEN_PATTERN.test(normalized)
-  ) {
-    return undefined;
-  }
-  return normalized;
-}
-
-function sanitizeAttributionString(value: unknown): string | null | undefined {
+function sanitizeToken(value: unknown): string | null | undefined {
   if (value === null) return null;
   if (typeof value !== "string") return undefined;
   const normalized = value.trim();
   if (normalized.length === 0) return null;
   if (
-    normalized.length > MAX_ATTRIBUTION_STRING_LENGTH ||
-    !SAFE_TOKEN_PATTERN.test(normalized)
+    normalized.length > MAX_SAFE_STRING_LENGTH ||
+    !SAFE_TOKEN_PATTERN.test(normalized) ||
+    containsObviousPrivateData(normalized)
   ) {
     return undefined;
   }
@@ -237,11 +123,10 @@ export function sanitizeDemandAttribution(value: unknown): SanitizedDemandAttrib
     "utmMedium",
     "utmCampaign",
     "utmContent",
-    "utmTerm",
     "variant",
     "campaignKey",
   ] as const) {
-    const sanitized = sanitizeAttributionString(input[key]);
+    const sanitized = sanitizeToken(input[key]);
     if (sanitized === undefined) continue;
     if (key === "campaignKey") {
       if (sanitized !== null) output.campaignKey = sanitized;
@@ -258,92 +143,50 @@ export function sanitizeDemandAttribution(value: unknown): SanitizedDemandAttrib
   return Object.keys(output).length > 0 ? output : undefined;
 }
 
-function sanitizeCount(value: unknown): number | undefined {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
-  return Math.min(Math.trunc(value), 1_000_000_000);
-}
-
-function sanitizeStatusCode(value: unknown): number | undefined {
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 100 || value > 599) {
-    return undefined;
-  }
-  return value;
-}
-
 export function sanitizeEventData(value: unknown): SanitizedEventData {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-
   const input = value as Record<string, unknown>;
   const output: SanitizedEventData = {};
 
-  for (const key of SAFE_EVENT_KEYS) {
-    const rawValue = input[key];
-    if (rawValue === undefined) continue;
+  const route = sanitizeRoute(input.route ?? input.path);
+  if (route) output.route = route;
 
-    if (key === "route" || key === "path" || key === "href" || key === "target") {
-      const route = sanitizeRoute(rawValue);
-      if (route !== undefined) {
-        output[key === "path" ? "route" : key] = route;
-      }
-      continue;
-    }
-
-    if (key === "statusCode") {
-      const statusCode = sanitizeStatusCode(rawValue);
-      if (statusCode !== undefined) output[key] = statusCode;
-      continue;
-    }
-
-    if (key === "stateCode") {
-      if (typeof rawValue === "string" && /^[a-z]{2}$/i.test(rawValue.trim())) {
-        output[key] = rawValue.trim().toUpperCase();
-      }
-      continue;
-    }
-
-    if (key === "countyFips" || key === "county_fips") {
-      if (typeof rawValue === "string" && /^\d{5}$/.test(rawValue.trim())) {
-        output.countyFips = rawValue.trim();
-      }
-      continue;
-    }
-
-    if (key === "segment_category" || key === "segment_intent_level") {
-      const canonicalKey = key === "segment_category" ? "segmentCategory" : "segmentIntentLevel";
-      if (output[canonicalKey] !== undefined) continue;
-      const token = sanitizeToken(rawValue);
-      if (token !== undefined) output[canonicalKey] = token;
-      continue;
-    }
-
-    if (key === "attribution") {
-      const attribution = sanitizeDemandAttribution(rawValue);
-      if (attribution) output.attribution = attribution;
-      continue;
-    }
-
-    if (IDENTIFIER_KEYS.has(key)) {
-      const identifier = sanitizeIdentifier(rawValue);
-      if (identifier !== undefined) output[key] = identifier;
-      continue;
-    }
-
-    if (COUNT_KEYS.has(key)) {
-      const count = sanitizeCount(rawValue);
-      if (count !== undefined) output[key] = count;
-      continue;
-    }
-
-    if (BOOLEAN_KEYS.has(key)) {
-      if (typeof rawValue === "boolean") output[key] = rawValue;
-      continue;
-    }
-
-    if (TOKEN_KEYS.has(key)) {
-      const token = sanitizeToken(rawValue);
-      if (token !== undefined) output[key] = token;
-    }
+  for (const key of ["href", "target"] as const) {
+    const safeRoute = sanitizeRoute(input[key]);
+    if (safeRoute) output[key] = safeRoute;
   }
+
+  for (const key of SAFE_STRING_KEYS) {
+    const token = sanitizeToken(input[key]);
+    if (token !== undefined && token !== null) output[key] = token;
+  }
+
+  for (const key of SAFE_BOOLEAN_KEYS) {
+    if (typeof input[key] === "boolean") output[key] = input[key] as boolean;
+  }
+
+  const stateCode = typeof input.stateCode === "string" ? input.stateCode.trim() : "";
+  if (/^[a-z]{2}$/i.test(stateCode)) output.stateCode = stateCode.toUpperCase();
+
+  const countyFipsValue = input.countyFips ?? input.county_fips;
+  if (typeof countyFipsValue === "string" && /^\d{5}$/.test(countyFipsValue.trim())) {
+    output.countyFips = countyFipsValue.trim();
+  }
+
+  const segmentCategory = sanitizeToken(input.segmentCategory ?? input.segment_category);
+  if (segmentCategory !== undefined && segmentCategory !== null) {
+    output.segmentCategory = segmentCategory;
+  }
+
+  const segmentIntentLevel = sanitizeToken(
+    input.segmentIntentLevel ?? input.segment_intent_level
+  );
+  if (segmentIntentLevel !== undefined && segmentIntentLevel !== null) {
+    output.segmentIntentLevel = segmentIntentLevel;
+  }
+
+  const attribution = sanitizeDemandAttribution(input.attribution);
+  if (attribution) output.attribution = attribution;
 
   return output;
 }
@@ -353,51 +196,28 @@ function inferDeviceClass(userAgent: unknown): "mobile" | "desktop" | undefined 
   return /android|iphone|ipad|ipod|mobile/i.test(userAgent) ? "mobile" : "desktop";
 }
 
-export function isCorsOriginDeniedError(error: unknown): boolean {
-  return error instanceof Error && error.message.startsWith(CORS_DENIAL_PREFIX);
+function readPublicEventLimit(): number {
+  const parsed = Number(process.env.PUBLIC_EVENT_LIMIT_1M || 120);
+  if (!Number.isFinite(parsed) || parsed < 1) return 120;
+  return Math.min(10_000, Math.trunc(parsed));
 }
 
-export function isUnsupportedCmsProbeRequest(req: {
-  path?: string;
-  query?: Record<string, unknown>;
-}): boolean {
-  const requestPath = String(req.path || "").trim().toLowerCase();
-  if (
-    requestPath === "/wp-json" ||
-    requestPath.startsWith("/wp-json/") ||
-    requestPath === "/wordpress/wp-json" ||
-    requestPath.startsWith("/wordpress/wp-json/") ||
-    requestPath === "/blog/wp-json" ||
-    requestPath.startsWith("/blog/wp-json/")
-  ) {
-    return true;
-  }
-
-  if (requestPath !== "/" && requestPath !== "/index.php") return false;
-  const restRouteValue = req.query?.rest_route;
-  const restRoute = Array.isArray(restRouteValue) ? restRouteValue[0] : restRouteValue;
-  return typeof restRoute === "string" && restRoute.trim().startsWith("/");
-}
+const noopRateLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
+const publicEventLimiter =
+  process.env.NODE_ENV === "production"
+    ? rateLimit({
+        windowMs: 60 * 1000,
+        max: readPublicEventLimit(),
+        standardHeaders: false,
+        legacyHeaders: false,
+        handler: (_req: Request, res: Response) => res.status(204).end(),
+      })
+    : noopRateLimiter;
 
 export function registerEventRoutes(app: Express, { storage }: EventRoutesDependencies) {
-  // The CORS package reports a denied browser origin through next(error). A
-  // rejected origin is a client authorization failure, not a server fault.
-  // Keep the response generic so an attacker cannot use it to reflect headers.
-  app.use((error: unknown, _req: any, res: any, next: (error?: unknown) => void) => {
-    if (!isCorsOriginDeniedError(error)) return next(error);
-    return res.status(403).json({ error: "Origin not allowed", code: "CORS_ORIGIN_DENIED" });
-  });
-
-  // TradeScout does not run WordPress. Reject common CMS discovery and batch
-  // probes before the SPA/error fallback so hostile scans remain clean 404s.
-  app.use((req: any, res: any, next: () => void) => {
-    if (!isUnsupportedCmsProbeRequest(req)) return next();
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(404).end();
-  });
-
-  app.post("/api/events", (req: any, res: any) => {
-    const payload = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+  app.post("/api/events", publicEventLimiter, (req: any, res: Response) => {
+    const payload =
+      req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
     const eventType = normalizeEventType(payload.eventType);
     const bodyWithinLimit = serializedByteLength(payload) <= MAX_EVENT_BODY_BYTES;
     const data = bodyWithinLimit ? sanitizeEventData(payload.data) : {};
@@ -409,12 +229,11 @@ export function registerEventRoutes(app: Express, { storage }: EventRoutesDepend
       userId: typeof sessionUser?.id === "string" ? sessionUser.id : null,
       contractorId: typeof sessionUser?.contractorId === "string" ? sessionUser.contractorId : null,
     };
-
     if (deviceClass) persistedData.deviceClass = deviceClass;
 
     res.status(204).end();
 
-    if (!bodyWithinLimit) return;
+    if (!eventType || !bodyWithinLimit) return;
 
     void Promise.resolve()
       .then(() => storage.logEvent(eventType, persistedData))
