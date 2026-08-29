@@ -1,6 +1,9 @@
 import { getCatalogItemById } from "./catalog";
 
-const COLOR_RANGE_VERSION = "single-stone-spectrum-2";
+const COLOR_RANGE_VERSION = "single-stone-spectrum-3";
+const COLOR_SLICE_ROTATION_DEGREES = 90;
+const COLOR_SLICE_ZOOM = 1.1;
+const COLOR_SLICE_OBJECT_POSITION = "50% 54%";
 
 /**
  * Curated for immediate visual range, not eight near-neutral swatches.
@@ -49,7 +52,12 @@ function versionedImageUrl(src: string, version: string): string {
   return `${src}${src.includes("?") ? "&" : "?"}v=${version}`;
 }
 
-/** Browse-by-color preview: one continuous row of eight equal, single-photo slices. */
+/**
+ * Browse-by-color preview: one continuous row of eight equal slab-face crops.
+ * Source photos are landscape yard captures. Each image is rotated into the
+ * portrait slice, then center-cropped and slightly enlarged so cranes, clamps,
+ * sky, pavement, and yard edges stay outside the visible area.
+ */
 export function ColorCollageBackground() {
   return (
     <div
@@ -75,6 +83,7 @@ export function ColorCollageBackground() {
             data-testid={`jw-color-collage-slice-${index}`}
             data-stone-id={slice.stoneId}
             data-color-family={slice.colorFamily}
+            data-crop-mode="rotated-slab-face"
             className="relative h-full min-h-0 min-w-0 overflow-hidden"
             style={{
               flex: `0 0 ${COLOR_SLICE_PERCENT}%`,
@@ -84,20 +93,26 @@ export function ColorCollageBackground() {
               padding: 0,
               border: 0,
               boxSizing: "border-box",
+              containerType: "size",
             }}
           >
             {slice.src ? (
               <img
                 src={versionedImageUrl(slice.src, COLOR_RANGE_VERSION)}
                 alt=""
-                className="absolute object-cover"
+                className="absolute"
                 style={{
                   display: "block",
-                  inset: 0,
-                  left: "-1px",
-                  width: "calc(100% + 2px)",
-                  height: "100%",
+                  top: "50%",
+                  left: "50%",
+                  width: "calc(100cqh + 4px)",
+                  height: "calc(100cqw + 4px)",
                   maxWidth: "none",
+                  maxHeight: "none",
+                  objectFit: "cover",
+                  objectPosition: COLOR_SLICE_OBJECT_POSITION,
+                  transform: `translate(-50%, -50%) rotate(${COLOR_SLICE_ROTATION_DEGREES}deg) scale(${COLOR_SLICE_ZOOM})`,
+                  transformOrigin: "center",
                   margin: 0,
                   padding: 0,
                   border: 0,
