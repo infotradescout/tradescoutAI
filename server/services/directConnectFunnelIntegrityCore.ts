@@ -15,6 +15,8 @@ const FUNNEL_STAGE_INDEX = new Map<string, number>(
 
 const FUNNEL_EVENT_ALIASES = new Map<string, DirectConnectFunnelStage>([
   ["direct_connect_request_visible_to_contractors", "direct_connect_visible_to_contractors"],
+  ["direct_connect_request_submitted_after_home_record_skip", "direct_connect_request_submitted"],
+  ["homeid_direct_connect_request_submitted", "direct_connect_request_submitted"],
 ]);
 
 export type DirectConnectFunnelEventRow = {
@@ -53,10 +55,9 @@ function buildStallKey(
 }
 
 /**
- * Finds the highest measured stage reached within each request attempt. A new
- * request_started event begins a new attempt. Visibility aliases are collapsed
- * into one canonical stage, and historical attempt-wide stall rows remain a
- * backward-compatible dedupe.
+ * Finds the highest funnel stage reached within each request attempt. A new
+ * request_started event begins a new attempt. The clock starts when that stage
+ * is first reached; duplicate telemetry cannot postpone a real stall.
  */
 export function computeDirectConnectFunnelStalls(params: {
   events: DirectConnectFunnelEventRow[];
@@ -112,17 +113,13 @@ export function computeDirectConnectFunnelStalls(params: {
       for (const row of attemptRows) {
         const stageIndex = FUNNEL_STAGE_INDEX.get(row.eventType);
         if (stageIndex === undefined) continue;
-        if (
-          stageIndex > highestStageIndex ||
-          (stageIndex === highestStageIndex &&
-            row.createdAt.getTime() > highestStageReachedAt.getTime())
-        ) {
+        if (stageIndex > highestStageIndex) {
           highestStageIndex = stageIndex;
           highestStageReachedAt = row.createdAt;
         }
       }
 
-      // Requester reply viewed is the final measured stage.
+      // Requester reply viewed is the final measured stage; no next-stage stall.
       if (highestStageIndex >= DIRECT_CONNECT_FUNNEL_ORDER.length - 1) continue;
       if (now.getTime() - highestStageReachedAt.getTime() < windowMs) continue;
 
