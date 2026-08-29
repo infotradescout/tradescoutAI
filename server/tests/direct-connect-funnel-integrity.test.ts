@@ -20,10 +20,18 @@ const compute = (
 ) => computeDirectConnectFunnelStalls({ events, alreadyStalled, windowMs, now });
 
 describe("Direct Connect server-derived funnel stalls", () => {
-  it("normalizes both visibility names into one milestone", () => {
+  it("normalizes visibility and successful-submission aliases", () => {
     expect(
       normalizeDirectConnectFunnelEvent("direct_connect_request_visible_to_contractors")
     ).toBe("direct_connect_visible_to_contractors");
+    expect(
+      normalizeDirectConnectFunnelEvent(
+        "direct_connect_request_submitted_after_home_record_skip"
+      )
+    ).toBe("direct_connect_request_submitted");
+    expect(
+      normalizeDirectConnectFunnelEvent("homeid_direct_connect_request_submitted")
+    ).toBe("direct_connect_request_submitted");
   });
 
   it("stalls at the highest stage actually reached", () => {
@@ -62,6 +70,29 @@ describe("Direct Connect server-derived funnel stalls", () => {
         event("direct_connect_contractor_action_started", 60),
       ])[0]?.funnelStep
     ).toBe("direct_connect_contractor_action_started");
+  });
+
+  it("treats submission after HomeID skip as a real submission", () => {
+    expect(
+      compute([
+        event("direct_connect_request_started", 100),
+        event("direct_connect_request_review_opened", 90),
+        event("direct_connect_request_submitted_after_home_record_skip", 60),
+      ])[0]?.funnelStep
+    ).toBe("direct_connect_request_submitted");
+  });
+
+  it("starts the stall clock when a stage is first reached", () => {
+    const stalls = compute([
+      event("direct_connect_request_started", 120),
+      event("direct_connect_request_review_opened", 70),
+      event("direct_connect_request_review_opened", 10),
+    ]);
+    expect(stalls).toHaveLength(1);
+    expect(stalls[0]).toMatchObject({
+      funnelStep: "direct_connect_request_review_opened",
+      stepReachedAt: ago(70),
+    });
   });
 
   it("does not stall a completed sequence or a recent active step", () => {
