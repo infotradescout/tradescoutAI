@@ -64,8 +64,14 @@ import {
 } from "./schema/core";
 import { createNotificationSchema } from "./schema/notifications";
 import { createProcurementSchema } from "./schema/procurement";
+import { workRequestEvents } from "./schema/workRequestEvents";
 
 export * from "./schema/core";
+export {
+  WORK_REQUEST_EVENT_TYPES,
+  type WorkRequestEventType,
+  workRequestEvents,
+} from "./schema/workRequestEvents";
 export type {
   InsertPartnerWebhookEvent,
   InsertProcurementDeliveryProof,
@@ -3581,42 +3587,6 @@ export const directConnectGiveawayEntries = pgTable(
     index("dc_giveaway_entries_user_idx").on(table.userId),
   ]
 );
-
-// Event log for each work request (append-only history)
-export const workRequestEvents = pgTable("work_request_events", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  workRequestId: varchar("work_request_id").notNull(),
-
-  type: varchar("type", {
-    enum: [
-      "created",
-      "updated",
-      "sent_to_board",
-      "routed",
-      "status_changed",
-      "exposure_mode_changed",
-      "provider_suggested",
-      "provider_invited",
-      "provider_self_selected",
-      "provider_accepted",
-      "provider_declined",
-      "provider_completed",
-      "completed",
-      "cancelled",
-    ],
-  }).notNull(),
-
-  actorUserId: varchar("actor_user_id"),
-  fromStatus: varchar("from_status"),
-  toStatus: varchar("to_status"),
-
-  // Flexible metadata blob (routing scores, reasons, etc.)
-  metadata: jsonb("metadata").$type<Record<string, any>>(),
-
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
 // Provider assignments per work request
 export const workRequestAssignments = pgTable("work_request_assignments", {
