@@ -25,15 +25,16 @@ describe("stabilization privacy boundary", () => {
   });
 });
 
-describe("database adapter selection boundary", () => {
-  it("selects the local adapter from the parsed database hostname only", () => {
+describe("production database transport boundary", () => {
+  it("uses node-postgres for remote and local Node server connections", () => {
     const source = fs.readFileSync(path.resolve("server/db.ts"), "utf8");
 
-    expect(source).toContain("new URL(connectionString).hostname.toLowerCase()");
-    expect(source).toContain("localDatabaseHosts.has(databaseHostname)");
-    expect(source).not.toContain(
-      "/localhost|127\\.0\\.0\\.1|\\[::1\\]/i.test(connectionString)"
-    );
-    expect(source).not.toContain("test(connectionString)");
+    expect(source).toContain('import { Pool as NodePgPool } from "pg"');
+    expect(source).toContain('drizzle as drizzleNodePg');
+    expect(source).toContain("const nodePool = new NodePgPool");
+    expect(source).toContain("db = drizzleNodePg({ client: nodePool, schema })");
+    expect(source).not.toContain('@neondatabase/serverless');
+    expect(source).not.toContain('drizzle-orm/neon-serverless');
+    expect(source).not.toContain("neonConfig.forceDisablePgSSL");
   });
 });
