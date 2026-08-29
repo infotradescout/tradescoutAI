@@ -169,7 +169,7 @@ describe("Direct Connect friction transport", () => {
     expect(serialized).not.toContain("private stack");
   });
 
-  it("emits one repeated signal only after the configured threshold", () => {
+  it("records repeated CTA clicks as clickCount", () => {
     installBrowser();
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
@@ -190,7 +190,33 @@ describe("Direct Connect friction transport", () => {
       data: {
         section: "post",
         reason: "start-request",
-        dispatchCount: 3,
+        clickCount: 3,
+      },
+    });
+  });
+
+  it("records repeated submissions as attemptCount", () => {
+    installBrowser();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+
+    for (let index = 0; index < 4; index += 1) {
+      trackRepeatedFrictionSignal({
+        key: "submit-request",
+        type: "direct_connect_repeated_submit_attempt",
+        threshold: 2,
+        windowMs: 2_000,
+        payload: { section: "review" },
+      });
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(readFetchBody(fetchMock).body).toMatchObject({
+      eventType: "direct_connect_repeated_submit_attempt",
+      data: {
+        section: "review",
+        reason: "submit-request",
+        attemptCount: 3,
       },
     });
   });
