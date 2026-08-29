@@ -409,7 +409,9 @@ async function loadCurrentCandidates(): Promise<PublicProfileAuditCandidate[]> {
         : null;
     })
   );
-  return candidates.filter((candidate): candidate is PublicProfileAuditCandidate => Boolean(candidate));
+  return candidates.filter(
+    (candidate): candidate is NonNullable<(typeof candidates)[number]> => candidate !== null
+  );
 }
 
 async function persistAudit(args: {
