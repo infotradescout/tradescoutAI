@@ -14,6 +14,23 @@ const brokenWhiteCollageImage =
   "/images/businesses/jw-stone/color-collage/01-white.webp";
 const verifiedWhiteReplacementKey =
   "public-media/images/businesses/jw-stone/inventory-source/1eFzZ0N8SlJaweTLRTthTXfQtUyLinqRT.webp";
+const verticalColorSlivers = [
+  "rhino-white.webp",
+  "galaxy-white.webp",
+  "cristallo.webp",
+  "calacatta-cremo.webp",
+  "alabama-rose.webp",
+  "gold-macaubas.webp",
+  "giallo-ornamental.webp",
+  "amazonic-green.webp",
+  "juparana-blue.webp",
+  "blue-dream.webp",
+  "blue-bahia.webp",
+  "emperor-brown.webp",
+  "mexican-brown.webp",
+  "titanium-black-leathered.webp",
+  "preto-sao-gabriel.webp",
+].map((fileName) => `/images/businesses/jw-stone/color-slivers/${fileName}`);
 
 describe("JW Stone server-side public media", () => {
   it("maps only pinned legacy URLs into the isolated R2 namespace", () => {
@@ -37,6 +54,17 @@ describe("JW Stone server-side public media", () => {
     ).toBeNull();
     expect(JW_STONE_PUBLIC_MEDIA_FILE_COUNT).toBe(899);
     expect(JW_STONE_PUBLIC_MEDIA_BYTES).toBe(175020735);
+  });
+
+  it("pins every slab-only vertical color image to verified production storage", () => {
+    expect(verticalColorSlivers).toHaveLength(15);
+
+    for (const publicPath of verticalColorSlivers) {
+      expect(resolveJwStonePublicMediaObjectKey(publicPath)).toBe(`public-media${publicPath}`);
+      expect(resolveJwStonePublicMediaObjectKey(`${publicPath}?v=slab-core-spectrum-1`)).toBe(
+        `public-media${publicPath}`
+      );
+    }
   });
 
   it("preserves GET and HEAD URLs while delegating bytes to server storage", async () => {

@@ -1,63 +1,77 @@
-import { getCatalogItemById } from "./catalog";
-
-const COLOR_RANGE_VERSION = "single-stone-spectrum-3";
-const COLOR_SLICE_ROTATION_DEGREES = 90;
-const COLOR_SLICE_ZOOM = 1.1;
-const COLOR_SLICE_OBJECT_POSITION = "50% 54%";
+const COLOR_RANGE_VERSION = "slab-core-spectrum-1";
 
 /**
- * Curated for immediate visual range, not eight near-neutral swatches.
- * One real catalog stone photo per slice makes the card communicate that JW
- * Stone carries everything from light/translucent stone through rose, gold,
- * green, unmistakable blue, earth tones, and deep black.
+ * Vertical-slice presentation uses the existing slab-core derivatives rather
+ * than the original yard photographs. Each derivative was built from the
+ * detected interior of one slab, normalized for orientation, cropped to remove
+ * clamps, forklifts, sky, gravel, racks, and neighboring slabs, then resized to
+ * a 400 × 1200 vertical face.
+ *
+ * The sequence is deliberately high contrast so one glance communicates broad
+ * choice: white, translucent crystal, rose, gold, green, vivid blue, earth, and
+ * black.
  */
 export const COLOR_RANGE_STONE_DEFS = [
-  { stoneId: "rhino-white", colorFamily: "white" },
-  { stoneId: "cristallo", colorFamily: "crystal" },
-  { stoneId: "alabama-rose", colorFamily: "rose" },
-  { stoneId: "gold-macaubas", colorFamily: "gold" },
-  { stoneId: "amazonic-green", colorFamily: "green" },
-  { stoneId: "blue-goias", colorFamily: "blue" },
-  { stoneId: "emperor-brown", colorFamily: "earth" },
-  { stoneId: "titanium", colorFamily: "black" },
+  {
+    stoneId: "rhino-white",
+    colorFamily: "white",
+    src: "/images/businesses/jw-stone/color-slivers/rhino-white.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/galaxy-white.webp",
+  },
+  {
+    stoneId: "cristallo",
+    colorFamily: "crystal",
+    src: "/images/businesses/jw-stone/color-slivers/cristallo.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/calacatta-cremo.webp",
+  },
+  {
+    stoneId: "alabama-rose",
+    colorFamily: "rose",
+    src: "/images/businesses/jw-stone/color-slivers/alabama-rose.webp",
+    fallbackSrc: null,
+  },
+  {
+    stoneId: "gold-macaubas",
+    colorFamily: "gold",
+    src: "/images/businesses/jw-stone/color-slivers/gold-macaubas.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/giallo-ornamental.webp",
+  },
+  {
+    stoneId: "amazonic-green",
+    colorFamily: "green",
+    src: "/images/businesses/jw-stone/color-slivers/amazonic-green.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/juparana-blue.webp",
+  },
+  {
+    stoneId: "blue-dream",
+    colorFamily: "blue",
+    src: "/images/businesses/jw-stone/color-slivers/blue-dream.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/blue-bahia.webp",
+  },
+  {
+    stoneId: "emperor-brown",
+    colorFamily: "earth",
+    src: "/images/businesses/jw-stone/color-slivers/emperor-brown.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/mexican-brown.webp",
+  },
+  {
+    stoneId: "titanium-black-leathered",
+    colorFamily: "black",
+    src: "/images/businesses/jw-stone/color-slivers/titanium-black-leathered.webp",
+    fallbackSrc: "/images/businesses/jw-stone/color-slivers/preto-sao-gabriel.webp",
+  },
 ] as const;
 
-type ColorRangeSlice = Readonly<{
-  stoneId: (typeof COLOR_RANGE_STONE_DEFS)[number]["stoneId"];
-  colorFamily: (typeof COLOR_RANGE_STONE_DEFS)[number]["colorFamily"];
-  src: string;
-  fallbackSrc: string | null;
-}>;
-
-function resolveColorRangeSlices(): readonly ColorRangeSlice[] {
-  return Object.freeze(
-    COLOR_RANGE_STONE_DEFS.map((definition) => {
-      const stone = getCatalogItemById(definition.stoneId);
-      const src = stone?.images[0] ?? "";
-      const fallbackSrc = stone?.images[1] ?? null;
-
-      return Object.freeze({
-        ...definition,
-        src,
-        fallbackSrc,
-      });
-    })
-  );
-}
-
-export const COLOR_RANGE_SLICES = resolveColorRangeSlices();
+export const COLOR_RANGE_SLICES = Object.freeze(
+  COLOR_RANGE_STONE_DEFS.map((definition) => Object.freeze({ ...definition }))
+);
 const COLOR_SLICE_PERCENT = 100 / COLOR_RANGE_SLICES.length;
 
 function versionedImageUrl(src: string, version: string): string {
   return `${src}${src.includes("?") ? "&" : "?"}v=${version}`;
 }
 
-/**
- * Browse-by-color preview: one continuous row of eight equal slab-face crops.
- * Source photos are landscape yard captures. Each image is rotated into the
- * portrait slice, then center-cropped and slightly enlarged so cranes, clamps,
- * sky, pavement, and yard edges stay outside the visible area.
- */
+/** Browse-by-color preview: one continuous row of eight slab-only vertical slices. */
 export function ColorCollageBackground() {
   return (
     <div
@@ -83,7 +97,7 @@ export function ColorCollageBackground() {
             data-testid={`jw-color-collage-slice-${index}`}
             data-stone-id={slice.stoneId}
             data-color-family={slice.colorFamily}
-            data-crop-mode="rotated-slab-face"
+            data-crop-mode="slab-core-sliver"
             className="relative h-full min-h-0 min-w-0 overflow-hidden"
             style={{
               flex: `0 0 ${COLOR_SLICE_PERCENT}%`,
@@ -93,48 +107,41 @@ export function ColorCollageBackground() {
               padding: 0,
               border: 0,
               boxSizing: "border-box",
-              containerType: "size",
             }}
           >
-            {slice.src ? (
-              <img
-                src={versionedImageUrl(slice.src, COLOR_RANGE_VERSION)}
-                alt=""
-                className="absolute"
-                style={{
-                  display: "block",
-                  top: "50%",
-                  left: "50%",
-                  width: "calc(100cqh + 4px)",
-                  height: "calc(100cqw + 4px)",
-                  maxWidth: "none",
-                  maxHeight: "none",
-                  objectFit: "cover",
-                  objectPosition: COLOR_SLICE_OBJECT_POSITION,
-                  transform: `translate(-50%, -50%) rotate(${COLOR_SLICE_ROTATION_DEGREES}deg) scale(${COLOR_SLICE_ZOOM})`,
-                  transformOrigin: "center",
-                  margin: 0,
-                  padding: 0,
-                  border: 0,
-                }}
-                loading="eager"
-                decoding="async"
-                onError={(event) => {
-                  const image = event.currentTarget;
-                  if (image.dataset.fallbackApplied !== "true" && slice.fallbackSrc) {
-                    image.dataset.fallbackApplied = "true";
-                    image.src = versionedImageUrl(
-                      slice.fallbackSrc,
-                      `${COLOR_RANGE_VERSION}-fallback`
-                    );
-                    return;
-                  }
+            <img
+              src={versionedImageUrl(slice.src, COLOR_RANGE_VERSION)}
+              alt=""
+              className="absolute object-cover"
+              style={{
+                display: "block",
+                inset: 0,
+                left: "-1px",
+                width: "calc(100% + 2px)",
+                height: "100%",
+                maxWidth: "none",
+                objectPosition: "center",
+                margin: 0,
+                padding: 0,
+                border: 0,
+              }}
+              loading="eager"
+              decoding="async"
+              onError={(event) => {
+                const image = event.currentTarget;
+                if (image.dataset.fallbackApplied !== "true" && slice.fallbackSrc) {
+                  image.dataset.fallbackApplied = "true";
+                  image.src = versionedImageUrl(
+                    slice.fallbackSrc,
+                    `${COLOR_RANGE_VERSION}-fallback`
+                  );
+                  return;
+                }
 
-                  // Never leave a browser broken-image icon in the color range card.
-                  image.style.visibility = "hidden";
-                }}
-              />
-            ) : null}
+                // Never expose the browser's broken-image icon inside the color card.
+                image.style.visibility = "hidden";
+              }}
+            />
           </div>
         ))}
       </div>
