@@ -4,23 +4,28 @@ import { Pool as NodePgPool } from "pg";
 import { drizzle as drizzleNodePg } from "drizzle-orm/node-postgres";
 import ws from "ws";
 import * as schema from "@shared/schema";
-import { securePostgresConnectionString } from "@shared/database-url-security.mjs";
+import {
+  allowExplicitInsecureTestDatabase,
+  securePostgresConnectionString,
+} from "@shared/database-url-security.mjs";
 import { emitPoolMetrics } from "./observability/metrics";
 import { recomputeBaselinesFromObservedData } from "./observability/alerts";
 
 neonConfig.webSocketConstructor = ws;
 
 const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST_WORKER_ID);
+const allowInsecureTestConnection =
+  isTestEnv && allowExplicitInsecureTestDatabase(process.env);
 
 const rawConnectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
 const connectionString = securePostgresConnectionString(rawConnectionString, {
-  allowInsecureTestConnection: isTestEnv,
+  allowInsecureTestConnection,
 });
 const connectionStringForCheck = connectionString ?? "";
 const useLocalNodePg =
   Boolean(connectionString) &&
   /^(postgres|postgresql):\/\//i.test(connectionStringForCheck) &&
-  /(localhost|127\.0\.0\.1)/i.test(connectionStringForCheck);
+  /(localhost|127\.0\.0\.1|\[::1\])/i.test(connectionStringForCheck);
 
 // The app uses the pg-compatible Pool surface everywhere. Neon implements that
 // runtime contract, but its published type is not assignment-compatible with
