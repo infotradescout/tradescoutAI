@@ -1,5 +1,5 @@
 const POSTGRES_PROTOCOLS = new Set(["postgres:", "postgresql:"]);
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const LEGACY_SECURE_MODES = new Set(["", "prefer", "require", "verify-ca"]);
 
 export function securePostgresConnectionString(
@@ -35,6 +35,13 @@ export function securePostgresConnectionString(
   }
 
   return parsed.toString();
+}
+
+export function allowExplicitInsecureTestDatabase(environment = process.env) {
+  return (
+    environment.NODE_ENV === "test" &&
+    environment.ALLOW_INSECURE_TEST_DATABASE === "true"
+  );
 }
 
 export function secureDatabaseEnvironment(
