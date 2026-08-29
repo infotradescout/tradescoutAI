@@ -6,6 +6,10 @@ const mocks = vi.hoisted(() => {
   const state = {
     selectQueue: [] as any[][],
     updates: [] as Array<Record<string, unknown>>,
+    preferenceWrites: [] as Array<{
+      userId: string;
+      preferences: Record<string, unknown>;
+    }>,
   };
 
   const database: any = {
@@ -36,6 +40,14 @@ const mocks = vi.hoisted(() => {
     state,
     database,
     resolveTxt: vi.fn(),
+    writeProfileDomainPreferences: vi.fn(
+      async (args: { userId: string; preferences: Record<string, unknown> }) => {
+        state.preferenceWrites.push({
+          userId: args.userId,
+          preferences: args.preferences,
+        });
+      }
+    ),
     storage: {
       getProfileByIdForOwner: vi.fn(),
       getBusinessProfileByUserId: vi.fn(),
@@ -53,6 +65,9 @@ vi.mock("../auth", () => ({
 vi.mock("../storage", () => ({ storage: mocks.storage }));
 vi.mock("../db", () => ({ db: mocks.database }));
 vi.mock("dns/promises", () => ({ resolveTxt: mocks.resolveTxt }));
+vi.mock("../profileDomainPreferenceWriter", () => ({
+  writeProfileDomainPreferences: mocks.writeProfileDomainPreferences,
+}));
 
 import { registerBusinessProfileRoutes } from "../routes/business-profile";
 
@@ -94,6 +109,7 @@ describe("profile-scoped custom domain routes", () => {
     vi.clearAllMocks();
     mocks.state.selectQueue = [];
     mocks.state.updates = [];
+    mocks.state.preferenceWrites = [];
     mocks.storage.getBusinessProfileByUserId.mockResolvedValue(null);
     mocks.storage.getProfileByIdForOwner.mockResolvedValue({
       ...activeProfile,
@@ -130,9 +146,10 @@ describe("profile-scoped custom domain routes", () => {
     expect(response.body.domainStatus.candidateDomain).toBe("new.example");
     expect(response.body.domainStatus.verification.state).toBe("pending");
     expect(mocks.storage.getBusinessProfileByUserId).not.toHaveBeenCalled();
-    const preferencesUpdate = mocks.state.updates.find((update) => "preferences" in update) as any;
-    expect(preferencesUpdate.preferences.theme).toBe("dark");
-    expect(preferencesUpdate.preferences.profileDomainStates["profile-a"].candidateDomain).toBe(
+    const [preferencesWrite] = mocks.state.preferenceWrites;
+    expect(preferencesWrite.userId).toBe("owner-a");
+    expect(preferencesWrite.preferences.theme).toBe("dark");
+    expect(preferencesWrite.preferences.profileDomainStates["profile-a"].candidateDomain).toBe(
       "new.example"
     );
     expect(activeProfile.seoMeta.customDomain).toBe("old.example");
@@ -262,8 +279,8 @@ describe("profile-scoped custom domain routes", () => {
       title: "Profile A",
       description: "Public description",
     });
-    const preferencesUpdate = mocks.state.updates.find((update) => "preferences" in update) as any;
-    expect(preferencesUpdate.preferences.profileDomainStates["profile-a"]).toBeUndefined();
+    const [preferencesWrite] = mocks.state.preferenceWrites;
+    expect(preferencesWrite.preferences.profileDomainStates["profile-a"]).toBeUndefined();
   });
 
   it("clears a matching legacy provisional proof during disconnect", async () => {
@@ -289,11 +306,9 @@ describe("profile-scoped custom domain routes", () => {
       .send({ profileId: "profile-a" });
 
     expect(response.status).toBe(200);
-    const preferencesUpdate = mocks.state.updates.find((update) => "preferences" in update) as any;
-    expect(preferencesUpdate.preferences.provisional.profileDraft.customDomain).toBeNull();
-    expect(
-      preferencesUpdate.preferences.provisional.profileDraft.customDomainVerification
-    ).toBeNull();
+    const [preferencesWrite] = mocks.state.preferenceWrites;
+    expect(preferencesWrite.preferences.provisional.profileDraft.customDomain).toBeNull();
+    expect(preferencesWrite.preferences.provisional.profileDraft.customDomainVerification).toBeNull();
   });
 
   it("cancels pending setup even when no active domain has been published", async () => {
@@ -308,8 +323,8 @@ describe("profile-scoped custom domain routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.disconnectedDomain).toBeNull();
-    const preferencesUpdate = mocks.state.updates.find((update) => "preferences" in update) as any;
-    expect(preferencesUpdate.preferences.profileDomainStates["profile-a"]).toBeUndefined();
+    const [preferencesWrite] = mocks.state.preferenceWrites;
+    expect(preferencesWrite.preferences.profileDomainStates["profile-a"]).toBeUndefined();
   });
 
   it("preserves another profile's provisional proof when disconnecting the selected profile", async () => {
@@ -332,7 +347,7 @@ describe("profile-scoped custom domain routes", () => {
       .send({ profileId: "profile-a" });
 
     expect(response.status).toBe(200);
-    expect(mocks.state.updates.filter((update) => "preferences" in update)).toEqual([]);
+    expect(mocks.state.preferenceWrites).toEqual([]);
     expect(mocks.state.updates.some((update) => "seoMeta" in update)).toBe(true);
   });
 });

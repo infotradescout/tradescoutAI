@@ -13,6 +13,7 @@ import { affiliateAccounts, profiles, users } from "../../shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { resolveTxt } from "dns/promises";
+import { writeProfileDomainPreferences } from "../profileDomainPreferenceWriter";
 import {
   buildPublicBusinessListingCards,
   type PublicBusinessListingCard,
@@ -819,10 +820,11 @@ export function registerBusinessProfileRoutes(app: Express) {
             candidateDomain: domain,
             verification,
           });
-          await tx
-            .update(users)
-            .set({ preferences: nextPreferences as any, updatedAt: new Date() })
-            .where(eq(users.id, userId));
+          await writeProfileDomainPreferences({
+            database: tx,
+            userId,
+            preferences: nextPreferences,
+          });
           return nextPreferences;
         });
 
@@ -951,10 +953,7 @@ export function registerBusinessProfileRoutes(app: Express) {
             candidateDomain: domain,
             verification,
           });
-          await tx
-            .update(users)
-            .set({ preferences: preferences as any, updatedAt: new Date() })
-            .where(eq(users.id, userId));
+          await writeProfileDomainPreferences({ database: tx, userId, preferences });
           return profileDomainStatus(profileId, targetProfile, preferences);
         });
 
@@ -1060,10 +1059,7 @@ export function registerBusinessProfileRoutes(app: Express) {
                 verification: null,
               });
             }
-            await tx
-              .update(users)
-              .set({ preferences: preferences as any, updatedAt: new Date() })
-              .where(eq(users.id, userId));
+            await writeProfileDomainPreferences({ database: tx, userId, preferences });
           }
 
           await tx
