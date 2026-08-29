@@ -18,7 +18,6 @@ const verticalColorSlivers = [
   "rhino-white.webp",
   "galaxy-white.webp",
   "dueto.webp",
-  "versace.webp",
   "honey-onyx.webp",
   "fusion-brown.webp",
   "gold-macaubas.webp",
@@ -58,7 +57,7 @@ describe("JW Stone server-side public media", () => {
   });
 
   it("pins every reviewed slab-only vertical color image to production storage", () => {
-    expect(verticalColorSlivers).toHaveLength(16);
+    expect(verticalColorSlivers).toHaveLength(15);
     expect(verticalColorSlivers.some((path) => path.includes("trending-selection-"))).toBe(false);
 
     for (const publicPath of verticalColorSlivers) {
