@@ -876,6 +876,7 @@ import {
 } from "./services/profileBookingPayment";
 import { registerPaymentWebhookRoutes } from "./paymentWebhookRoutes";
 import { getStripeClient } from "./services/stripeClient";
+import { paymentEventAuthority } from "./services/paymentEventAuthority";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -24861,6 +24862,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     paymentService,
     communityBuilderPaymentService,
     platformSupportPaymentService,
+    paymentEventAuthority,
   });
 
   // Admin payment configuration routes

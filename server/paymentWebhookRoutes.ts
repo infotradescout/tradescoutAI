@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type Stripe from "stripe";
+import type { PaymentEventAuthority } from "./services/paymentEventAuthority";
 
 export const LEGACY_PAYMENT_WEBHOOK_PATH = "/api/payments/webhook";
 export const STRIPE_PAYMENT_WEBHOOK_PATH = "/api/payments/stripe/webhook";
@@ -29,6 +30,7 @@ export type PaymentWebhookDependencies = {
   paymentService: PaymentWebhookHandler;
   communityBuilderPaymentService: CommunityBuilderWebhookHandler;
   platformSupportPaymentService: PlatformSupportWebhookHandler;
+  paymentEventAuthority: PaymentEventAuthority;
 };
 
 /**
@@ -54,6 +56,9 @@ export async function dispatchVerifiedStripeEvent(
 
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
+      if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+        return;
+      }
       const metadataType = session.metadata?.type;
 
       if (metadataType === "community_vault_donation" || metadataType === "platform_support") {
@@ -70,6 +75,7 @@ export async function dispatchVerifiedStripeEvent(
 
     case "transfer.created":
     case "transfer.updated":
+    case "transfer.reversed":
       await dependencies.communityBuilderPaymentService.handleStripeWebhook(event);
       return;
 
@@ -122,9 +128,38 @@ export function registerPaymentWebhookRoutes(
       return res.status(400).send(`Webhook Error: ${message}`);
     }
 
+    let claim;
+    try {
+      claim = await dependencies.paymentEventAuthority.claimVerifiedStripeEvent(event, rawBody);
+    } catch (error) {
+      console.error(`[stripe] durable event authority failed for ${event.type}`, error);
+      return res.status(500).json({ message: "Webhook event persistence failed" });
+    }
+
+    if (claim.kind === "duplicate") {
+      return res.json({ received: true, duplicate: true });
+    }
+    if (claim.kind === "in_progress") {
+      res.set("retry-after", "5");
+      return res.status(503).json({ message: "Webhook event is already processing" });
+    }
+
     try {
       await dispatchVerifiedStripeEvent(event, dependencies);
+      await dependencies.paymentEventAuthority.completeStripeEvent(
+        claim.eventId,
+        claim.claimToken
+      );
     } catch (error) {
+      try {
+        await dependencies.paymentEventAuthority.failStripeEvent(
+          claim.eventId,
+          claim.claimToken,
+          error
+        );
+      } catch (claimError) {
+        console.error(`[stripe] failed to release event claim for ${event.type}`, claimError);
+      }
       console.error(`[stripe] webhook handler failed for ${event.type}`, error);
       return res.status(500).json({ message: "Webhook handling failed" });
     }

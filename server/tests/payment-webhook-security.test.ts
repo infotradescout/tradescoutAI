@@ -19,6 +19,13 @@ function buildTestApp() {
   const checkoutHandler = vi.fn(async () => undefined);
   const communityWebhookHandler = vi.fn(async () => undefined);
   const platformSupportHandler = vi.fn(async () => undefined);
+  const claimVerifiedStripeEvent = vi.fn(async (event: Stripe.Event) => ({
+    kind: "dispatch" as const,
+    eventId: event.id,
+    claimToken: `claim:${event.id}`,
+  }));
+  const completeStripeEvent = vi.fn(async () => undefined);
+  const failStripeEvent = vi.fn(async () => undefined);
 
   const app = express();
   app.use(express.json({ verify: preserveStripeWebhookRawBody }));
@@ -31,6 +38,11 @@ function buildTestApp() {
       handleStripeWebhook: communityWebhookHandler,
     },
     platformSupportPaymentService: { handleStripeEvent: platformSupportHandler },
+    paymentEventAuthority: {
+      claimVerifiedStripeEvent,
+      completeStripeEvent,
+      failStripeEvent,
+    },
   });
 
   return {
@@ -40,6 +52,9 @@ function buildTestApp() {
     checkoutHandler,
     communityWebhookHandler,
     platformSupportHandler,
+    claimVerifiedStripeEvent,
+    completeStripeEvent,
+    failStripeEvent,
   };
 }
 
@@ -143,6 +158,78 @@ describe("payment webhook security", () => {
     });
   });
 
+  it("persists verified evidence before dispatch and suppresses an exact duplicate", async () => {
+    const {
+      app,
+      stripe,
+      paymentHandler,
+      claimVerifiedStripeEvent,
+      completeStripeEvent,
+    } = buildTestApp();
+    const payload = JSON.stringify({
+      id: "evt_durable_duplicate",
+      object: "event",
+      type: "payment_intent.succeeded",
+      data: {
+        object: {
+          id: "pi_durable_duplicate",
+          object: "payment_intent",
+          metadata: { type: "profile_booking", bookingRequestId: "booking_durable" },
+        },
+      },
+    });
+    const signature = stripe.webhooks.generateTestHeaderString({
+      payload,
+      secret: webhookSecret,
+    });
+
+    await request(app)
+      .post(STRIPE_PAYMENT_WEBHOOK_PATH)
+      .set("content-type", "application/json")
+      .set("stripe-signature", signature)
+      .send(payload)
+      .expect(200, { received: true });
+
+    claimVerifiedStripeEvent.mockResolvedValueOnce({
+      kind: "duplicate",
+      eventId: "evt_durable_duplicate",
+    });
+    await request(app)
+      .post(STRIPE_PAYMENT_WEBHOOK_PATH)
+      .set("content-type", "application/json")
+      .set("stripe-signature", signature)
+      .send(payload)
+      .expect(200, { received: true, duplicate: true });
+
+    expect(claimVerifiedStripeEvent).toHaveBeenCalledTimes(2);
+    expect(paymentHandler).toHaveBeenCalledTimes(1);
+    expect(completeStripeEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("never mutates business state when durable evidence persistence fails", async () => {
+    const { app, stripe, paymentHandler, claimVerifiedStripeEvent } = buildTestApp();
+    claimVerifiedStripeEvent.mockRejectedValueOnce(new Error("payment ledger unavailable"));
+    const payload = JSON.stringify({
+      id: "evt_persistence_failure",
+      object: "event",
+      type: "payment_intent.succeeded",
+      data: { object: { id: "pi_persistence_failure", object: "payment_intent" } },
+    });
+    const signature = stripe.webhooks.generateTestHeaderString({
+      payload,
+      secret: webhookSecret,
+    });
+
+    await request(app)
+      .post(STRIPE_PAYMENT_WEBHOOK_PATH)
+      .set("content-type", "application/json")
+      .set("stripe-signature", signature)
+      .send(payload)
+      .expect(500, { message: "Webhook event persistence failed" });
+
+    expect(paymentHandler).not.toHaveBeenCalled();
+  });
+
   it("returns a retryable failure when terminal-booking refund handling fails", async () => {
     const { app, stripe, paymentHandler } = buildTestApp();
     paymentHandler.mockRejectedValueOnce(new Error("terminal booking refund failed"));
@@ -191,13 +278,25 @@ describe("payment webhook security", () => {
         id: "evt_community_checkout",
         object: "event",
         type: "checkout.session.completed",
-        data: { object: { id: "cs_community", metadata: { type: "builder_checkout" } } },
+        data: {
+          object: {
+            id: "cs_community",
+            payment_status: "paid",
+            metadata: { type: "builder_checkout" },
+          },
+        },
       },
       {
         id: "evt_support_checkout",
         object: "event",
         type: "checkout.session.completed",
-        data: { object: { id: "cs_support", metadata: { type: "platform_support" } } },
+        data: {
+          object: {
+            id: "cs_support",
+            payment_status: "paid",
+            metadata: { type: "platform_support" },
+          },
+        },
       },
       {
         id: "evt_transfer",
