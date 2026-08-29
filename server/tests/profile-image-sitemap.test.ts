@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   attachPublicProfileImageSitemapReferences,
+  buildMappedCustomDomainImageSitemap,
   buildProfileImageSitemapXml,
   collectProfileImageSitemapEntries,
 } from "../profileImageSitemap";
@@ -180,6 +181,103 @@ describe("governed public profile image sitemap", () => {
     ).toBe(true);
   });
 
+  it("keeps the platform feed on the TradeScout origin even when a profile has a custom domain", () => {
+    const entries = collectProfileImageSitemapEntries({
+      candidate: {
+        slug: "sample-provider",
+        contentBlocks,
+        seoMeta: {
+          customDomain: "provider.example.com",
+          imageUrl: "/images/provider/social.jpg",
+        },
+      },
+    });
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.every((entry) => entry.pageUrl.startsWith("https://www.thetradescout.com/"))).toBe(
+      true
+    );
+    expect(JSON.stringify(entries)).not.toContain("provider.example.com");
+  });
+
+  it("rejects an invalid direct Host before loading mapped profile data", async () => {
+    const loadPublicProfile = vi.fn();
+
+    const build = await buildMappedCustomDomainImageSitemap(
+      {
+        headers: {
+          host: "provider.example.com/path",
+          "x-forwarded-host": "provider.example.com",
+        },
+        mappedProfileDomainHost: "provider.example.com",
+        mappedProfileDomainSlug: "sample-provider",
+      } as any,
+      loadPublicProfile
+    );
+
+    expect(build).toBeNull();
+    expect(loadPublicProfile).not.toHaveBeenCalled();
+  });
+
+  it("binds a mapped feed to direct Host, loaded slug, and stored customDomain", async () => {
+    const loadPublicProfile = vi.fn(async () => ({
+      slug: "sample-provider",
+      contentBlocks,
+      seoMeta: {
+        customDomain: "provider.example.com",
+        imageUrl: "/images/provider/social.jpg",
+      },
+      updatedAt: "2026-08-25T20:00:00.000Z",
+    }));
+
+    const build = await buildMappedCustomDomainImageSitemap(
+      {
+        headers: {
+          host: "Provider.Example.com:443",
+          "x-forwarded-host": "attacker.example.com",
+        },
+        hostname: "attacker.example.com",
+        mappedProfileDomainHost: "provider.example.com",
+        mappedProfileDomainSlug: "sample-provider",
+      } as any,
+      loadPublicProfile
+    );
+
+    expect(loadPublicProfile).toHaveBeenCalledWith("sample-provider");
+    expect(build?.xml).toContain("https://provider.example.com/");
+    expect(build?.xml).not.toContain("attacker.example.com");
+  });
+
+  it.each([
+    {
+      label: "loaded slug",
+      profile: {
+        slug: "another-provider",
+        contentBlocks,
+        seoMeta: { customDomain: "provider.example.com" },
+      },
+    },
+    {
+      label: "stored custom domain",
+      profile: {
+        slug: "sample-provider",
+        contentBlocks,
+        seoMeta: { customDomain: "another.example.com" },
+      },
+    },
+  ])("fails closed when the $label does not match mapped authority", async ({ profile }) => {
+    const build = await buildMappedCustomDomainImageSitemap(
+      {
+        headers: { host: "provider.example.com" },
+        mappedProfileDomainHost: "provider.example.com",
+        mappedProfileDomainSlug: "sample-provider",
+      } as any,
+      async () => profile
+    );
+
+    expect(build).toBeNull();
+  });
+
   it("adds the image sitemap to the platform sitemap index and robots response", () => {
     const makeResponse = () => {
       const state: { body?: string } = {};
@@ -222,6 +320,27 @@ describe("governed public profile image sitemap", () => {
     robots.response.send("User-agent: *\nAllow: /\n");
     expect(robots.state.body).toContain(
       "Sitemap: https://www.thetradescout.com/sitemap-profile-images.xml"
+    );
+
+    const mapped = makeResponse();
+    attachPublicProfileImageSitemapReferences(
+      {
+        path: "/sitemap.xml",
+        protocol: "https",
+        headers: { host: "provider.example.com" },
+        mappedProfileDomainHost: "provider.example.com",
+        mappedProfileDomainSlug: "sample-provider",
+      } as any,
+      mapped.response
+    );
+    mapped.response.send(
+      '<?xml version="1.0"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>'
+    );
+    expect(mapped.state.body).toContain(
+      "https://www.thetradescout.com/sitemap-profile-images.xml"
+    );
+    expect(mapped.state.body).not.toContain(
+      "https://provider.example.com/sitemap-profile-images.xml"
     );
   });
 });

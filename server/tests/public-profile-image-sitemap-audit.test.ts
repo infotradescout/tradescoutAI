@@ -15,7 +15,7 @@ const platformEntries = [
     lastmod: "2026-08-25",
   },
   {
-    pageUrl: "https://jwstonelogistics.com/stones/taj-mahal",
+    pageUrl: "https://www.thetradescout.com/u/jw-stone/inventory/taj-mahal",
     imageUrls: [
       "https://www.thetradescout.com/images/businesses/jw-stone/taj-mahal-1.jpg",
       "https://www.thetradescout.com/images/businesses/jw-stone/taj-mahal-2.jpg",
@@ -24,7 +24,12 @@ const platformEntries = [
   },
 ];
 
-const customEntries = [platformEntries[1]];
+const customEntries = [
+  {
+    ...platformEntries[1],
+    pageUrl: "https://jwstonelogistics.com/stones/taj-mahal",
+  },
+];
 
 const graph: PublicProfileImageExpectedGraph = {
   platformFeed: {
@@ -32,7 +37,7 @@ const graph: PublicProfileImageExpectedGraph = {
     url: "https://www.thetradescout.com/sitemap-profile-images.xml",
     profileSlugs: ["jw-stone", "property-blessings"],
     expectedEntries: platformEntries,
-    allowedPageHosts: ["www.thetradescout.com", "jwstonelogistics.com"],
+    allowedPageHosts: ["www.thetradescout.com"],
   },
   customFeeds: [
     {
@@ -72,7 +77,7 @@ function response(args: {
 }
 
 describe("public profile image sitemap production audit", () => {
-  it("verifies the unified feed including canonical custom-domain pages", () => {
+  it("verifies the same-host platform feed", () => {
     const xml = buildProfileImageSitemapXml(platformEntries);
     const result = evaluatePublicProfileImageFeed({
       expected: graph.platformFeed,

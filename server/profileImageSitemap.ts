@@ -88,15 +88,8 @@ function normalizeHttpUrl(value: unknown, baseUrl?: string): string | null {
   }
 }
 
-function canonicalProfileUrl(candidate: ProfileImageCandidate, slug: string): string | null {
-  const customDomain = String(objectValue(candidate.seoMeta).customDomain || "")
-    .trim()
-    .toLowerCase();
-  return normalizeHttpUrl(
-    customDomain
-      ? `https://${customDomain}/`
-      : `${CANONICAL_ORIGIN}/u/${encodeURIComponent(slug)}`
-  );
+function canonicalPlatformProfileUrl(slug: string): string | null {
+  return normalizeHttpUrl(`${CANONICAL_ORIGIN}/u/${encodeURIComponent(slug)}`);
 }
 
 function lastmodYmd(value: unknown): string | undefined {
@@ -193,7 +186,7 @@ export function collectProfileImageSitemapEntries(args: {
   const profileSlug = normalizeSlug(args.candidate.slug);
   if (!profileSlug || !shouldIndexPublicProfileSlug(profileSlug)) return [];
   const profileUrl = normalizeHttpUrl(
-    args.profileUrl || canonicalProfileUrl(args.candidate, profileSlug)
+    args.profileUrl || canonicalPlatformProfileUrl(profileSlug)
   );
   if (!profileUrl) return [];
 
@@ -337,14 +330,61 @@ async function buildPlatformImageSitemap(): Promise<ImageSitemapBuild> {
   return build;
 }
 
-async function buildMappedCustomDomainImageSitemap(
-  req: Request
+type PublicProfileImageCandidateLoader = (
+  slug: string
+) => Promise<ProfileImageCandidate | null | undefined>;
+
+const CUSTOM_DOMAIN_HOST_PATTERN =
+  /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+
+function normalizeCustomDomainHost(value: unknown): string | null {
+  const host = String(value || "")
+    .trim()
+    .toLowerCase();
+  return CUSTOM_DOMAIN_HOST_PATTERN.test(host) ? host : null;
+}
+
+function directRequestHost(req: Pick<Request, "headers">): string | null {
+  const header = req.headers.host;
+  if (Array.isArray(header)) return null;
+  const raw = String(header || "").trim();
+  if (!raw || /[,\s/@\\?#]/.test(raw)) return null;
+
+  const match = raw.match(/^([^:]+)(?::(\d{1,5}))?$/);
+  if (!match) return null;
+  if (match[2]) {
+    const port = Number(match[2]);
+    if (!Number.isInteger(port) || port < 1 || port > 65_535) return null;
+  }
+  return normalizeCustomDomainHost(match[1]);
+}
+
+export async function buildMappedCustomDomainImageSitemap(
+  req: Request,
+  loadPublicProfile: PublicProfileImageCandidateLoader = (slug) =>
+    storage.getProfileBySlugPublic(slug)
 ): Promise<ImageSitemapBuild | null> {
+  // Resolve and bind direct request authority before any profile lookup. Express
+  // req.hostname can adopt X-Forwarded-Host under trust-proxy settings, so it is
+  // deliberately not an input to this feed.
+  const directHost = directRequestHost(req);
+  const mappedHost = normalizeCustomDomainHost((req as any).mappedProfileDomainHost);
   const slug = normalizeSlug((req as any)[MAPPED_PROFILE_DOMAIN_SLUG_KEY]);
-  if (!slug || !shouldIndexPublicProfileSlug(slug)) return null;
-  const profile = await storage.getProfileBySlugPublic(slug);
-  if (!profile) return null;
-  const profileUrl = normalizeHttpUrl(`https://${String(req.hostname || "").toLowerCase()}/`);
+  if (
+    !directHost ||
+    mappedHost !== directHost ||
+    !slug ||
+    !shouldIndexPublicProfileSlug(slug)
+  ) {
+    return null;
+  }
+
+  const profile = await loadPublicProfile(slug);
+  const loadedSlug = normalizeSlug(profile?.slug);
+  const storedDomain = normalizeCustomDomainHost(objectValue(profile?.seoMeta).customDomain);
+  if (!profile || loadedSlug !== slug || storedDomain !== directHost) return null;
+
+  const profileUrl = normalizeHttpUrl(`https://${directHost}/`);
   if (!profileUrl) return null;
   const entries = collectProfileImageSitemapEntries({
     candidate: {
@@ -391,10 +431,9 @@ export async function handlePublicProfileImageSitemapRequest(
 }
 
 /**
- * Advertises the platform image feed through both the root sitemap index and
- * robots.txt. Custom-domain profiles also have a host-local feed at the route
- * above; their canonical URLs remain in the unified feed for verified
- * cross-domain Search Console submission.
+ * Advertises the same-host platform image feed through both the root sitemap
+ * index and robots.txt. Custom-domain profiles use their separately governed
+ * host-local feed at the route above.
  */
 export function attachPublicProfileImageSitemapReferences(
   req: Request,

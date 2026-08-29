@@ -314,7 +314,6 @@ export async function loadPublicProfileImageExpectedGraph(): Promise<PublicProfi
 
   const platformEntries: ProfileImageSitemapEntry[] = [];
   const customFeeds: PublicProfileImageExpectedFeed[] = [];
-  const allowedPageHosts = new Set<string>(["www.thetradescout.com"]);
   const profileSlugs: string[] = [];
 
   for (const profile of profiles) {
@@ -329,7 +328,6 @@ export async function loadPublicProfileImageExpectedGraph(): Promise<PublicProfi
     platformEntries.push(...entries);
     const domain = customDomain(profile.seoMeta?.customDomain);
     if (!domain) continue;
-    allowedPageHosts.add(domain);
     const customEntries = collectProfileImageSitemapEntries({
       candidate,
       profileUrl: `https://${domain}/`,
@@ -349,7 +347,7 @@ export async function loadPublicProfileImageExpectedGraph(): Promise<PublicProfi
       url: PLATFORM_FEED_URL,
       profileSlugs: uniqueSorted(profileSlugs),
       expectedEntries: platformEntries,
-      allowedPageHosts: uniqueSorted(allowedPageHosts),
+      allowedPageHosts: ["www.thetradescout.com"],
     },
     customFeeds: customFeeds.sort((left, right) => left.url.localeCompare(right.url)),
     sitemapUrl: PLATFORM_SITEMAP_URL,
