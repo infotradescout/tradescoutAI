@@ -4,6 +4,8 @@ import path from "node:path";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 import {
+  isCorsOriginDeniedError,
+  isUnsupportedCmsProbeRequest,
   normalizeEventType,
   registerEventRoutes,
   sanitizeEventData,
@@ -23,13 +25,20 @@ async function flushEventWrite() {
 }
 
 describe("event route extraction contract", () => {
-  it("registers the exact public POST route with one handler", () => {
-    const registrations: Array<[string, string, number]> = [];
+  it("registers the exact public POST route and both HTTP safety boundaries", () => {
+    const registrations: Array<[string, string | null, number]> = [];
     registerEventRoutes(
-      { post: (route: string, ...handlers: unknown[]) => registrations.push(["POST", route, handlers.length]) } as any,
+      {
+        use: (...handlers: unknown[]) => registrations.push(["USE", null, handlers.length]),
+        post: (route: string, ...handlers: unknown[]) => registrations.push(["POST", route, handlers.length]),
+      } as any,
       { storage: { logEvent: vi.fn() } }
     );
-    expect(registrations).toEqual([["POST", "/api/events", 1]]);
+    expect(registrations).toEqual([
+      ["USE", null, 1],
+      ["USE", null, 1],
+      ["POST", "/api/events", 1],
+    ]);
   });
 
   it("keeps one in-place root registration and a narrow acyclic boundary", () => {
@@ -48,8 +57,57 @@ describe("event route extraction contract", () => {
   });
 });
 
+describe("HTTP failure classification", () => {
+  it("recognizes only the CORS package denial error", () => {
+    expect(isCorsOriginDeniedError(new Error("CORS: Origin not allowed: null"))).toBe(true);
+    expect(isCorsOriginDeniedError(new Error("database failed"))).toBe(false);
+    expect(isCorsOriginDeniedError("CORS: Origin not allowed: null")).toBe(false);
+  });
+
+  it("converts a rejected origin into 403 instead of 500", async () => {
+    const app = express();
+    const logEvent = vi.fn();
+    app.use((_req, _res, next) => next(new Error("CORS: Origin not allowed: null")));
+    registerEventRoutes(app, { storage: { logEvent } });
+
+    const response = await request(app).post("/api/events").send({ eventType: "event.test" });
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: "Origin not allowed", code: "CORS_ORIGIN_DENIED" });
+    expect(logEvent).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { path: "/wp-json/batch/v1", query: {} },
+    { path: "/wordpress/wp-json/batch/v1", query: {} },
+    { path: "/blog/wp-json/batch/v1", query: {} },
+    { path: "/index.php", query: { rest_route: "/batch/v1" } },
+    { path: "/", query: { rest_route: "/batch/v1" } },
+  ])("recognizes unsupported CMS probe $path", ({ path: requestPath, query }) => {
+    expect(isUnsupportedCmsProbeRequest({ path: requestPath, query })).toBe(true);
+  });
+
+  it("does not classify an ordinary TradeScout route as a CMS probe", () => {
+    expect(isUnsupportedCmsProbeRequest({ path: "/", query: {} })).toBe(false);
+    expect(isUnsupportedCmsProbeRequest({ path: "/direct-connect", query: {} })).toBe(false);
+  });
+
+  it.each([
+    "/wp-json/batch/v1",
+    "/wordpress/wp-json/batch/v1",
+    "/blog/wp-json/batch/v1",
+    "/index.php?rest_route=/batch/v1",
+    "/?rest_route=/batch/v1",
+  ])("returns a clean 404 for unsupported CMS probe %s", async (probeUrl) => {
+    const logEvent = vi.fn();
+    const response = await request(createApp({ logEvent })).post(probeUrl).send({ requests: [] });
+    expect(response.status).toBe(404);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(logEvent).not.toHaveBeenCalled();
+  });
+});
+
 describe("event payload safety", () => {
-  it.each([undefined, null, "", 42, "contains private text"]) (
+  it.each([undefined, null, "", 42, "contains private text"])(
     "normalizes unsafe event type %p to event.unknown",
     (eventType) => {
       expect(normalizeEventType(eventType)).toBe("event.unknown");
