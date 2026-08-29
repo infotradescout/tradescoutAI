@@ -1,6 +1,10 @@
 import type { Express, NextFunction, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import type { IStorage } from "../storage/contracts";
+import {
+  handleCorsOriginDeniedError,
+  rejectUnsupportedCmsProbe,
+} from "../http/publicRequestGuards";
 
 export type EventRoutesStorage = Pick<IStorage, "logEvent">;
 
@@ -13,6 +17,7 @@ const MAX_SAFE_STRING_LENGTH = 120;
 const MAX_SAFE_ID_LENGTH = 128;
 const MAX_ROUTE_LENGTH = 320;
 const MAX_SAFE_COUNT = 1_000_000;
+const SERVER_DERIVED_FUNNEL_STALL_EVENT = "direct_connect_funnel_step_stalled";
 
 export const PUBLIC_DEMAND_EVENT_TYPES = new Set([
   "demand.landing_view",
@@ -34,8 +39,14 @@ export const DIRECT_CONNECT_FRICTION_EVENT_TYPES = new Set([
   "direct_connect_repeated_cta_click",
   "direct_connect_empty_state_seen",
   "direct_connect_permission_or_role_blocked",
-  "direct_connect_funnel_step_stalled",
+  SERVER_DERIVED_FUNNEL_STALL_EVENT,
 ]);
+
+const CLIENT_DIRECT_CONNECT_FRICTION_EVENT_TYPES = new Set(
+  Array.from(DIRECT_CONNECT_FRICTION_EVENT_TYPES).filter(
+    (eventType) => eventType !== SERVER_DERIVED_FUNNEL_STALL_EVENT
+  )
+);
 
 const SAFE_DEMAND_STRING_KEYS = [
   "surface",
@@ -53,6 +64,7 @@ const SAFE_DIRECT_CONNECT_STRING_KEYS = [
   "source",
   "section",
   "reason",
+  "field",
   "funnelStep",
   "permission",
   "role",
@@ -124,7 +136,7 @@ export function normalizeEventType(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   if (PUBLIC_DEMAND_EVENT_TYPES.has(normalized)) return normalized;
-  if (DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(normalized)) return normalized;
+  if (CLIENT_DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(normalized)) return normalized;
   return null;
 }
 
@@ -202,6 +214,8 @@ function sanitizeId(value: unknown): string | undefined {
   ) {
     return undefined;
   }
+  if (/^\d{10,15}$/.test(normalized)) return undefined;
+  if (!UUID_SEGMENT.test(normalized) && containsObviousPrivateData(normalized)) return undefined;
   return normalized;
 }
 
@@ -398,10 +412,28 @@ function scheduleEventWrite(args: {
     });
 }
 
+function startServerDerivedFunnelDetector(): void {
+  if (process.env.NODE_ENV !== "production") return;
+  void import("../services/directConnectFunnelIntegrity")
+    .then(({ startDirectConnectFunnelStallDetector }) => {
+      startDirectConnectFunnelStallDetector();
+    })
+    .catch((error) => {
+      console.error("[direct-connect-friction] detector startup failed", error);
+    });
+}
+
 export function registerEventRoutes(app: Express, { storage }: EventRoutesDependencies) {
+  // registerRoutes is mounted after the runtime CORS layer in server/index.ts.
+  // Keeping these guards here therefore fixes both the test app and the real
+  // production runtime without duplicating the full server bootstrap.
+  app.use(handleCorsOriginDeniedError);
+  app.use(rejectUnsupportedCmsProbe);
+
   // Compatibility bridge for browsers still holding the previous client bundle.
-  // It intercepts only the exact Direct Connect friction registry before the
-  // broader shell-analytics route can attach raw IP or browser strings.
+  // It intercepts exact Direct Connect friction names before broad shell
+  // analytics can attach raw IP or browser strings. Stall evidence is never
+  // accepted from a browser; it is derived from persisted server stages.
   app.post("/api/analytics/shell", (req: Request, res: Response, next: NextFunction) => {
     const legacyEvent =
       req.body && typeof req.body === "object" && !Array.isArray(req.body)
@@ -409,6 +441,7 @@ export function registerEventRoutes(app: Express, { storage }: EventRoutesDepend
         : {};
     const eventType = normalizeDirectConnectFrictionType(legacyEvent.type);
     if (!eventType) return next();
+    if (eventType === SERVER_DERIVED_FUNNEL_STALL_EVENT) return res.status(204).end();
 
     return publicEventLimiter(req, res, () => {
       if (serializedByteLength(legacyEvent) > MAX_EVENT_BODY_BYTES) {
@@ -436,7 +469,7 @@ export function registerEventRoutes(app: Express, { storage }: EventRoutesDepend
       return res.status(204).end();
     }
 
-    const data = DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(eventType)
+    const data = CLIENT_DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(eventType)
       ? sanitizeDirectConnectEventData(payload.data)
       : sanitizeEventData(payload.data);
 
@@ -448,4 +481,6 @@ export function registerEventRoutes(app: Express, { storage }: EventRoutesDepend
       res,
     });
   });
+
+  startServerDerivedFunnelDetector();
 }
