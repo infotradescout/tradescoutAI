@@ -246,10 +246,16 @@ export function trackRepeatedFrictionSignal({
 
   if (next.count > threshold && !next.emitted) {
     next.emitted = true;
+    const countMetadata =
+      type === "direct_connect_repeated_cta_click"
+        ? { clickCount: next.count }
+        : type === "direct_connect_repeated_submit_attempt"
+          ? { attemptCount: next.count }
+          : { retryCount: next.count };
     trackFrictionEvent(type, {
       ...payload,
       reason: key,
-      dispatchCount: next.count,
+      ...countMetadata,
     });
   }
   repeatedWindows.set(key, next);
