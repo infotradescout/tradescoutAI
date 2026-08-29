@@ -1,4 +1,4 @@
-const COLOR_RANGE_VERSION = "slab-core-spectrum-2";
+const COLOR_RANGE_VERSION = "slab-core-spectrum-3";
 
 /**
  * Vertical-slice presentation uses the existing slab-core derivatives rather
@@ -9,8 +9,9 @@ const COLOR_RANGE_VERSION = "slab-core-spectrum-2";
  *
  * This surface is an abundance signal, not a neutral-material sample. Only one
  * light neutral remains. The other seven slices deliberately move through
- * rust, amber, gold, green, vivid blue, bronze, and black so the first glance
- * communicates that JW Stone can cover an unusually broad color spectrum.
+ * actual rust red, amber, gold, green, vivid blue, bronze, and black so the
+ * first glance communicates that JW Stone can cover an unusually broad color
+ * spectrum. Unnamed "trending selection" crops are not allowed on this surface.
  */
 export const COLOR_RANGE_STONE_DEFS = [
   {
@@ -20,10 +21,10 @@ export const COLOR_RANGE_STONE_DEFS = [
     fallbackSrc: "/images/businesses/jw-stone/color-slivers/galaxy-white.webp",
   },
   {
-    stoneId: "trending-selection-03",
+    stoneId: "dueto",
     colorFamily: "rust",
-    src: "/images/businesses/jw-stone/color-slivers/trending-selection-03.webp",
-    fallbackSrc: "/images/businesses/jw-stone/color-slivers/dueto.webp",
+    src: "/images/businesses/jw-stone/color-slivers/dueto.webp",
+    fallbackSrc: null,
   },
   {
     stoneId: "honey-onyx",

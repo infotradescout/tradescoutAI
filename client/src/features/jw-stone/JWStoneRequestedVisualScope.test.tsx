@@ -41,7 +41,7 @@ describe("JW Stone requested visual scope", () => {
     expect(subtext?.className).toContain("sr-only");
   });
 
-  it("uses one neutral and seven clearly different color signals instead of a pale cluster", () => {
+  it("uses one neutral and seven clearly different reviewed stone faces", () => {
     expect(COLOR_RANGE_STONE_DEFS.map((slice) => slice.colorFamily)).toEqual([
       "white",
       "rust",
@@ -54,7 +54,7 @@ describe("JW Stone requested visual scope", () => {
     ]);
     expect(COLOR_RANGE_STONE_DEFS.map((slice) => slice.stoneId)).toEqual([
       "rhino-white",
-      "trending-selection-03",
+      "dueto",
       "honey-onyx",
       "gold-macaubas",
       "amazonic-green",
@@ -62,11 +62,11 @@ describe("JW Stone requested visual scope", () => {
       "bronzonite",
       "titanium-black-leathered",
     ]);
-    expect(
-      COLOR_RANGE_STONE_DEFS.some((slice) =>
-        ["cristallo", "alabama-rose", "emperor-brown"].includes(slice.stoneId)
-      )
-    ).toBe(false);
+    expect(COLOR_RANGE_STONE_DEFS[1]).toMatchObject({
+      stoneId: "dueto",
+      colorFamily: "rust",
+      src: "/images/businesses/jw-stone/color-slivers/dueto.webp",
+    });
     expect(COLOR_RANGE_SLICES).toHaveLength(8);
     expect(new Set(COLOR_RANGE_SLICES.map((slice) => slice.stoneId)).size).toBe(8);
     expect(new Set(COLOR_RANGE_SLICES.map((slice) => slice.colorFamily)).size).toBe(8);
@@ -85,6 +85,14 @@ describe("JW Stone requested visual scope", () => {
         (slice) => !slice.fallbackSrc || slice.fallbackSrc.includes("/color-slivers/")
       )
     ).toBe(true);
+
+    const everyConfiguredAsset = COLOR_RANGE_SLICES.flatMap((slice) =>
+      slice.fallbackSrc ? [slice.src, slice.fallbackSrc] : [slice.src]
+    );
+    expect(everyConfiguredAsset.some((src) => src.includes("trending-selection-"))).toBe(false);
+    expect(everyConfiguredAsset).not.toContain(
+      "/images/businesses/jw-stone/color-slivers/trending-selection-03.webp"
+    );
 
     act(() =>
       root.render(
@@ -127,13 +135,14 @@ describe("JW Stone requested visual scope", () => {
     expect(images.every((image) => image.style.left === "-1px")).toBe(true);
     expect(images.every((image) => image.style.width === "calc(100% + 2px)")).toBe(true);
     expect(images.every((image) => image.style.objectPosition === "center")).toBe(true);
-    expect(images.every((image) => image.src.includes("slab-core-spectrum-2"))).toBe(true);
+    expect(images.every((image) => image.src.includes("slab-core-spectrum-3"))).toBe(true);
     expect(images.every((image) => image.src.includes("/color-slivers/"))).toBe(true);
     expect(images.every((image) => !image.src.includes("/inventory-source/"))).toBe(true);
     expect(images.every((image) => !image.src.includes("/color-collage/"))).toBe(true);
+    expect(images.every((image) => !image.src.includes("trending-selection-"))).toBe(true);
   });
 
-  it("falls back only to another slab crop and never leaves a broken-image icon", () => {
+  it("falls back only to another reviewed slab crop and never leaves a broken-image icon", () => {
     act(() =>
       root.render(
         <div className="relative h-64">
@@ -158,9 +167,10 @@ describe("JW Stone requested visual scope", () => {
 
     expect(image?.dataset.fallbackApplied).toBe("true");
     expect(image?.src).toContain(fallbackSrc!);
-    expect(image?.src).toContain("slab-core-spectrum-2-fallback");
+    expect(image?.src).toContain("slab-core-spectrum-3-fallback");
     expect(image?.src).toContain("/color-slivers/");
     expect(image?.src).not.toContain("/inventory-source/");
+    expect(image?.src).not.toContain("trending-selection-");
 
     act(() => {
       image?.dispatchEvent(new Event("error", { bubbles: true }));
