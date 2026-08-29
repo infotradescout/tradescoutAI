@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { registerQueryCacheLowMemoryLifecycle } from "@/lib/browserLifecycle";
 
 export class ApiError extends Error {
   code?: string;
@@ -294,8 +295,4 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Listen for low memory events and clear cache
-window.addEventListener("lowMemory", () => {
-  queryClient.clear();
-  console.log("Query cache cleared due to low memory");
-});
+registerQueryCacheLowMemoryLifecycle(queryClient);
