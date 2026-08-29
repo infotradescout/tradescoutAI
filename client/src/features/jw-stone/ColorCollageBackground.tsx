@@ -24,7 +24,7 @@ export const COLOR_RANGE_STONE_DEFS = [
     stoneId: "dueto",
     colorFamily: "rust",
     src: "/images/businesses/jw-stone/color-slivers/dueto.webp",
-    fallbackSrc: "/images/businesses/jw-stone/color-slivers/versace.webp",
+    fallbackSrc: null,
   },
   {
     stoneId: "honey-onyx",
