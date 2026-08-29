@@ -72,8 +72,7 @@ function serializedByteLength(value: unknown): number {
 function containsObviousPrivateData(value: string): boolean {
   if (/@|%40/i.test(value)) return true;
   const digits = value.match(/\d/g)?.length ?? 0;
-  if (digits >= 10 && /[+(). -]/.test(value)) return true;
-  return false;
+  return digits >= 10;
 }
 
 function sanitizeRoute(value: unknown): string | undefined {
