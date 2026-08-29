@@ -12,6 +12,7 @@ const MAX_EVENT_BODY_BYTES = 8 * 1024;
 const MAX_SAFE_STRING_LENGTH = 240;
 const MAX_ROUTE_LENGTH = 320;
 const MAX_IDENTIFIER_LENGTH = 128;
+const CORS_DENIAL_PREFIX = "CORS: Origin not allowed:";
 
 const SAFE_EVENT_KEYS = new Set([
   "route",
@@ -120,7 +121,7 @@ function serializedByteLength(value: unknown): number {
 
 function sanitizeRoute(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
-  const route = value.trim().split(/[?#]/, 1)[0];
+  const [route = ""] = value.trim().split(/[?#]/, 1);
   if (!route.startsWith("/") || route.length > MAX_ROUTE_LENGTH || /[\u0000-\u001f\u007f]/.test(route)) {
     return undefined;
   }
@@ -232,7 +233,49 @@ function inferDeviceClass(userAgent: unknown): "mobile" | "desktop" | undefined 
   return /android|iphone|ipad|ipod|mobile/i.test(userAgent) ? "mobile" : "desktop";
 }
 
+export function isCorsOriginDeniedError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith(CORS_DENIAL_PREFIX);
+}
+
+export function isUnsupportedCmsProbeRequest(req: {
+  path?: string;
+  query?: Record<string, unknown>;
+}): boolean {
+  const requestPath = String(req.path || "").trim().toLowerCase();
+  if (
+    requestPath === "/wp-json" ||
+    requestPath.startsWith("/wp-json/") ||
+    requestPath === "/wordpress/wp-json" ||
+    requestPath.startsWith("/wordpress/wp-json/") ||
+    requestPath === "/blog/wp-json" ||
+    requestPath.startsWith("/blog/wp-json/")
+  ) {
+    return true;
+  }
+
+  if (requestPath !== "/" && requestPath !== "/index.php") return false;
+  const restRouteValue = req.query?.rest_route;
+  const restRoute = Array.isArray(restRouteValue) ? restRouteValue[0] : restRouteValue;
+  return typeof restRoute === "string" && restRoute.trim().startsWith("/");
+}
+
 export function registerEventRoutes(app: Express, { storage }: EventRoutesDependencies) {
+  // The CORS package reports a denied browser origin through next(error). A
+  // rejected origin is a client authorization failure, not a server fault.
+  // Keep the response generic so an attacker cannot use it to reflect headers.
+  app.use((error: unknown, _req: any, res: any, next: (error?: unknown) => void) => {
+    if (!isCorsOriginDeniedError(error)) return next(error);
+    return res.status(403).json({ error: "Origin not allowed", code: "CORS_ORIGIN_DENIED" });
+  });
+
+  // TradeScout does not run WordPress. Reject common CMS discovery and batch
+  // probes before the SPA/error fallback so hostile scans remain clean 404s.
+  app.use((req: any, res: any, next: () => void) => {
+    if (!isUnsupportedCmsProbeRequest(req)) return next();
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(404).end();
+  });
+
   app.post("/api/events", (req: any, res: any) => {
     const payload = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
     const eventType = normalizeEventType(payload.eventType);
