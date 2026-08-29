@@ -30,7 +30,10 @@ describe("direct connect asset link contracts", () => {
   });
 
   it("captures request context into HomeID for create/update intents", () => {
-    const source = read("server/routes/direct-connect.ts");
+    const source = [
+      read("server/routes/direct-connect.ts"),
+      read("server/services/homeIdPacketAuthority.ts"),
+    ].join("\n");
     expect(source).toContain("createHomeIdShellFromRequest");
     expect(source).toContain("appendHomeIdRequestContextRecord");
     expect(source).toContain("homeid:direct_connect_request_context");
