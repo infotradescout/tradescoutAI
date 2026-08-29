@@ -37,7 +37,7 @@ describe("JW Stone requested visual scope", () => {
     expect(subtext?.className).toContain("sr-only");
   });
 
-  it("keeps Browse by color as one row of eight equal vertical slices", () => {
+  it("keeps Browse by color as one continuous row of eight equal slices with no gaps", () => {
     act(() =>
       root.render(
         <div className="relative h-64">
@@ -49,16 +49,36 @@ describe("JW Stone requested visual scope", () => {
     const slices = container.querySelector<HTMLElement>(
       '[data-testid="jw-color-collage-slices"]'
     );
+    const sliceElements = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid^="jw-color-collage-slice-"]')
+    );
     const images = Array.from(
       container.querySelectorAll<HTMLImageElement>('[data-testid="jw-color-collage"] img')
     );
 
-    expect(slices?.style.gridTemplateColumns).toBe("repeat(8, minmax(0, 1fr))");
-    expect(slices?.children).toHaveLength(8);
-    expect(slices?.className).not.toMatch(/grid-cols-2|grid-cols-4|grid-rows-/);
+    expect(slices?.style.display).toBe("flex");
+    expect(["0", "0px"]).toContain(slices?.style.gap);
+    expect(["0", "0px"]).toContain(slices?.style.columnGap);
+    expect(["0", "0px"]).toContain(slices?.style.rowGap);
+    expect(["0", "0px"]).toContain(slices?.style.margin);
+    expect(["0", "0px"]).toContain(slices?.style.padding);
+    expect(sliceElements).toHaveLength(8);
+
+    for (const slice of sliceElements) {
+      expect(slice.style.flex).toBe("0 0 12.5%");
+      expect(slice.style.width).toBe("12.5%");
+      expect(slice.style.maxWidth).toBe("12.5%");
+      expect(["0", "0px"]).toContain(slice.style.margin);
+      expect(["0", "0px"]).toContain(slice.style.padding);
+      expect(["0", "0px"]).toContain(slice.style.borderWidth || slice.style.border);
+    }
+
     expect(images).toHaveLength(8);
+    expect(images.every((image) => image.style.display === "block")).toBe(true);
+    expect(images.every((image) => image.style.left === "-1px")).toBe(true);
+    expect(images.every((image) => image.style.width === "calc(100% + 2px)")).toBe(true);
     expect(images.every((image) => image.src.includes("v=face-truth-1"))).toBe(true);
-    expect(images.every((image) => image.src.includes("delivery=full-2"))).toBe(true);
+    expect(images.every((image) => image.src.includes("delivery=full-3"))).toBe(true);
   });
 
   it("replaces the failed white derivative with a verified full slab photo", () => {
