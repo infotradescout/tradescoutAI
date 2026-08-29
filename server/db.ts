@@ -21,11 +21,11 @@ const rawConnectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.
 const connectionString = securePostgresConnectionString(rawConnectionString, {
   allowInsecureTestConnection,
 });
-const connectionStringForCheck = connectionString ?? "";
-const useLocalNodePg =
-  Boolean(connectionString) &&
-  /^(postgres|postgresql):\/\//i.test(connectionStringForCheck) &&
-  /(localhost|127\.0\.0\.1|\[::1\])/i.test(connectionStringForCheck);
+const localDatabaseHosts = new Set(["localhost", "127.0.0.1", "::1"]);
+const databaseHostname = connectionString
+  ? new URL(connectionString).hostname.toLowerCase()
+  : "";
+const useLocalNodePg = Boolean(connectionString) && localDatabaseHosts.has(databaseHostname);
 
 // The app uses the pg-compatible Pool surface everywhere. Neon implements that
 // runtime contract, but its published type is not assignment-compatible with
