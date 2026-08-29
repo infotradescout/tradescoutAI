@@ -1,5 +1,4 @@
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
-import { observeDirectConnectFunnelEvent } from "@/lib/telemetry";
 
 export type CoreProductUserState = "anonymous" | "authenticated";
 
@@ -67,9 +66,6 @@ function trackHomesEvent(
     | "homeid_direct_connect_request_submitted",
   args: HomesArgs
 ) {
-  if (type === "homeid_direct_connect_request_submitted") {
-    observeDirectConnectFunnelEvent({ type: "direct_connect_request_submitted" });
-  }
   void trackShellEvent({
     type,
     surface: "homes",
@@ -166,7 +162,6 @@ export function trackDirectConnectHomeIdLinkSelected(args: DirectConnectArgs) {
 }
 
 export function trackDirectConnectRequestStarted(args: DirectConnectArgs) {
-  observeDirectConnectFunnelEvent({ type: "direct_connect_request_started" });
   void trackShellEvent({
     type: "direct_connect_request_started",
     surface: "direct_connect",
@@ -192,7 +187,6 @@ function trackDirectConnectHomeRecordEvent(
   type: DirectConnectHomeRecordEventType,
   args: DirectConnectArgs
 ) {
-  observeDirectConnectFunnelEvent({ type });
   void trackShellEvent({
     type,
     surface: "direct_connect",
@@ -231,7 +225,6 @@ export function trackDirectConnectRequestSubmittedAfterHomeRecordSkip(args: Dire
 }
 
 export function trackDirectConnectHomeIdCreatedFromRequest(args: DirectConnectArgs) {
-  observeDirectConnectFunnelEvent({ type: "direct_connect_request_submitted" });
   void trackShellEvent({
     type: "direct_connect_homeid_created_from_request",
     surface: "direct_connect",
@@ -247,7 +240,6 @@ export function trackDirectConnectHomeIdCreatedFromRequest(args: DirectConnectAr
 }
 
 export function trackDirectConnectHomeIdUpdatedFromRequest(args: DirectConnectArgs) {
-  observeDirectConnectFunnelEvent({ type: "direct_connect_request_submitted" });
   void trackShellEvent({
     type: "direct_connect_homeid_updated_from_request",
     surface: "direct_connect",
