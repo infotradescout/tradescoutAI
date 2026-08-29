@@ -71,8 +71,12 @@ export function verifyPkce(verifier: string, challenge: string): boolean {
   return actualBytes.length === expectedBytes.length && timingSafeEqual(actualBytes, expectedBytes);
 }
 
+function privateKeyPem(env: NodeJS.ProcessEnv = process.env) {
+  return env.TRADESCOUT_PLUGIN_JWT_PRIVATE_KEY?.replace(/\\n/g, "\n") || "";
+}
+
 function signingKey() {
-  const pem = process.env.TRADESCOUT_PLUGIN_JWT_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const pem = privateKeyPem();
   if (!pem) throw new Error("TRADESCOUT_PLUGIN_JWT_PRIVATE_KEY is required");
   return createPrivateKey(pem);
 }
@@ -87,6 +91,22 @@ export function pluginAudience() {
   const value = String(process.env.TRADESCOUT_PLUGIN_AUDIENCE || "").trim();
   if (!value) throw new Error("TRADESCOUT_PLUGIN_AUDIENCE is required");
   return value;
+}
+
+export function isPluginOAuthConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  const issuer = String(env.TRADESCOUT_PLUGIN_ISSUER || "").replace(/\/$/, "");
+  const audience = String(env.TRADESCOUT_PLUGIN_AUDIENCE || "").trim();
+  const keyPem = privateKeyPem(env);
+
+  if (!keyPem || !audience || !/^https:\/\//i.test(issuer)) return false;
+
+  try {
+    createPrivateKey(keyPem);
+    parsePluginClients(env.TRADESCOUT_PLUGIN_OAUTH_CLIENTS || "");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function publicJwk() {
