@@ -8,6 +8,7 @@ import {
   isUnsupportedCmsProbeRequest,
   normalizeEventType,
   registerEventRoutes,
+  sanitizeDemandAttribution,
   sanitizeEventData,
   type EventRoutesStorage,
 } from "../routes/events";
@@ -114,7 +115,7 @@ describe("event payload safety", () => {
     }
   );
 
-  it("keeps only flat allowlisted metadata", () => {
+  it("keeps allowlisted metadata and rejects arbitrary nesting", () => {
     expect(
       sanitizeEventData({
         route: "/direct-connect/review?email=private@example.com#secret",
@@ -150,6 +151,94 @@ describe("event payload safety", () => {
     });
   });
 
+  it("preserves the bounded demand fields current reporting requires", () => {
+    expect(
+      sanitizeEventData({
+        placement: "hero_primary",
+        variant: "hybrid_public_landing",
+        href: "/direct-connect?email=private@example.com#secret",
+        target: "/scout?prompt=private",
+        mode: "create",
+        verificationRequired: true,
+        presenceType: "personal",
+        intent: "home_readiness",
+        source: "landing_primary_cta",
+        hasPrompt: false,
+        surface: "public_landing",
+        cta: "make_a_request",
+        path: "/landing/homeowner?email=private@example.com",
+        search: "?email=private@example.com",
+        timestamp: "2026-08-29T16:00:00.000Z",
+        county_fips: "22105",
+        segment_category: "homeowner",
+        segment_intent_level: "actively_looking",
+        attribution: {
+          ref: "partner_123",
+          utmSource: "facebook",
+          utmMedium: "social",
+          utmCampaign: "gulf_coast_launch",
+          utmContent: "hero_a",
+          utmTerm: "stone slabs",
+          variant: "homeowner",
+          campaignKey: "gulf_coast_launch",
+          firstSeenAt: "2026-08-29T15:00:00.000Z",
+          lastSeenAt: "2026-08-29T16:00:00.000Z",
+          email: "private@example.com",
+          nested: { secret: true },
+        },
+      })
+    ).toEqual({
+      route: "/landing/homeowner",
+      href: "/direct-connect",
+      target: "/scout",
+      surface: "public_landing",
+      placement: "hero_primary",
+      variant: "hybrid_public_landing",
+      verificationRequired: true,
+      hasPrompt: false,
+      source: "landing_primary_cta",
+      cta: "make_a_request",
+      mode: "create",
+      presenceType: "personal",
+      intent: "home_readiness",
+      segmentCategory: "homeowner",
+      segmentIntentLevel: "actively_looking",
+      countyFips: "22105",
+      attribution: {
+        ref: "partner_123",
+        utmSource: "facebook",
+        utmMedium: "social",
+        utmCampaign: "gulf_coast_launch",
+        utmContent: "hero_a",
+        utmTerm: "stone slabs",
+        variant: "homeowner",
+        campaignKey: "gulf_coast_launch",
+        firstSeenAt: "2026-08-29T15:00:00.000Z",
+        lastSeenAt: "2026-08-29T16:00:00.000Z",
+      },
+    });
+  });
+
+  it("sanitizes the attribution object field by field", () => {
+    expect(
+      sanitizeDemandAttribution({
+        ref: "partner_123",
+        utmSource: "facebook",
+        campaignKey: "launch__facebook__ref_partner_123",
+        firstSeenAt: "not-a-time",
+        lastSeenAt: "2026-08-29T16:00:00Z",
+        email: "private@example.com",
+        requestText: "private request",
+        nested: { secret: true },
+      })
+    ).toEqual({
+      ref: "partner_123",
+      utmSource: "facebook",
+      campaignKey: "launch__facebook__ref_partner_123",
+      lastSeenAt: "2026-08-29T16:00:00.000Z",
+    });
+  });
+
   it("rejects malformed identifiers, routes, status codes, and nested values", () => {
     expect(
       sanitizeEventData({
@@ -161,6 +250,7 @@ describe("event payload safety", () => {
         source: { nested: true },
         countyFips: "2210",
         stateCode: "Louisiana",
+        attribution: ["not", "an", "object"],
       })
     ).toEqual({});
   });
@@ -258,6 +348,46 @@ describe("event route behavior", () => {
     });
     expect(JSON.stringify(persisted)).not.toContain("private");
     expect(JSON.stringify(persisted)).not.toContain("9855550100");
+  });
+
+  it("keeps demand campaign attribution while removing raw search and private fields", async () => {
+    const logEvent = vi.fn().mockResolvedValue(undefined);
+    await request(createApp({ logEvent })).post("/api/events").send({
+      eventType: "demand.cta_click",
+      data: {
+        placement: "hero_primary",
+        variant: "hybrid_public_landing",
+        href: "/direct-connect?email=private@example.com",
+        path: "/?utm_campaign=launch&email=private@example.com",
+        search: "?utm_campaign=launch&email=private@example.com",
+        attribution: {
+          campaignKey: "launch",
+          variant: "hybrid_public_landing",
+          utmSource: "facebook",
+          email: "private@example.com",
+        },
+      },
+    });
+    await flushEventWrite();
+
+    expect(logEvent).toHaveBeenCalledWith(
+      "demand.cta_click",
+      expect.objectContaining({
+        placement: "hero_primary",
+        variant: "hybrid_public_landing",
+        href: "/direct-connect",
+        route: "/",
+        attribution: {
+          campaignKey: "launch",
+          variant: "hybrid_public_landing",
+          utmSource: "facebook",
+        },
+        userId: null,
+        contractorId: null,
+      })
+    );
+    expect(JSON.stringify(logEvent.mock.calls[0]?.[1])).not.toContain("private@example.com");
+    expect(logEvent.mock.calls[0]?.[1]).not.toHaveProperty("search");
   });
 
   it("drops oversized payloads instead of persisting partial private data", async () => {
