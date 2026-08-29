@@ -10,7 +10,9 @@ export interface EventRoutesDependencies {
 
 const MAX_EVENT_BODY_BYTES = 8 * 1024;
 const MAX_SAFE_STRING_LENGTH = 120;
+const MAX_SAFE_ID_LENGTH = 128;
 const MAX_ROUTE_LENGTH = 320;
+const MAX_SAFE_COUNT = 1_000_000;
 
 export const PUBLIC_DEMAND_EVENT_TYPES = new Set([
   "demand.landing_view",
@@ -22,7 +24,20 @@ export const PUBLIC_DEMAND_EVENT_TYPES = new Set([
   "demand.intent_submitted",
 ]);
 
-const SAFE_STRING_KEYS = [
+export const DIRECT_CONNECT_FRICTION_EVENT_TYPES = new Set([
+  "direct_connect_client_runtime_error",
+  "direct_connect_api_request_failed",
+  "direct_connect_auth_handoff_stalled",
+  "direct_connect_draft_restore_failed",
+  "direct_connect_form_validation_blocked",
+  "direct_connect_repeated_submit_attempt",
+  "direct_connect_repeated_cta_click",
+  "direct_connect_empty_state_seen",
+  "direct_connect_permission_or_role_blocked",
+  "direct_connect_funnel_step_stalled",
+]);
+
+const SAFE_DEMAND_STRING_KEYS = [
   "surface",
   "placement",
   "variant",
@@ -32,8 +47,57 @@ const SAFE_STRING_KEYS = [
   "source",
   "cta",
 ] as const;
-const SAFE_BOOLEAN_KEYS = ["verificationRequired", "hasPrompt"] as const;
+const SAFE_DEMAND_BOOLEAN_KEYS = ["verificationRequired", "hasPrompt"] as const;
+
+const SAFE_DIRECT_CONNECT_STRING_KEYS = [
+  "source",
+  "section",
+  "reason",
+  "funnelStep",
+  "permission",
+  "role",
+  "action",
+  "mode",
+  "emptyState",
+  "resumeAction",
+  "errorCode",
+  "safeErrorCode",
+  "authState",
+  "requestState",
+  "fromSection",
+  "toSection",
+] as const;
+const SAFE_DIRECT_CONNECT_ID_KEYS = [
+  "requestId",
+  "assignmentId",
+  "sessionId",
+  "conversationId",
+] as const;
+const SAFE_DIRECT_CONNECT_BOOLEAN_KEYS = [
+  "blocked",
+  "success",
+  "restored",
+  "authenticated",
+  "isAuthenticated",
+  "hasDraft",
+] as const;
+const SAFE_DIRECT_CONNECT_NUMBER_KEYS = [
+  "retryCount",
+  "clickCount",
+  "dispatchCount",
+  "attemptCount",
+  "validationCount",
+  "unreadCount",
+  "openRequestCount",
+  "replyCount",
+  "elapsedMs",
+] as const;
+
 const SAFE_TOKEN_PATTERN = /^[a-z0-9][a-z0-9._:/ +~-]*$/i;
+const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
+const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LONG_ID_SEGMENT = /^[A-Za-z0-9_-]{16,}$/;
+const NUMERIC_SEGMENT = /^\d+$/;
 
 export type SanitizedDemandAttribution = {
   ref?: string | null;
@@ -49,6 +113,7 @@ export type SanitizedDemandAttribution = {
 
 export type SanitizedEventValue =
   | string
+  | number
   | boolean
   | null
   | SanitizedDemandAttribution;
@@ -58,7 +123,15 @@ export type SanitizedEventData = Record<string, SanitizedEventValue>;
 export function normalizeEventType(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
-  return PUBLIC_DEMAND_EVENT_TYPES.has(normalized) ? normalized : null;
+  if (PUBLIC_DEMAND_EVENT_TYPES.has(normalized)) return normalized;
+  if (DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(normalized)) return normalized;
+  return null;
+}
+
+function normalizeDirectConnectFrictionType(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(normalized) ? normalized : null;
 }
 
 function serializedByteLength(value: unknown): number {
@@ -71,8 +144,7 @@ function serializedByteLength(value: unknown): number {
 
 function containsObviousPrivateData(value: string): boolean {
   if (/@|%40/i.test(value)) return true;
-  const digits = value.match(/\d/g)?.length ?? 0;
-  return digits >= 10;
+  return /(?:\d[+(). -]*){10,}/.test(value);
 }
 
 function sanitizeRoute(value: unknown): string | undefined {
@@ -89,6 +161,22 @@ function sanitizeRoute(value: unknown): string | undefined {
   return route;
 }
 
+function sanitizeDirectConnectRouteTemplate(value: unknown): string | undefined {
+  const route = sanitizeRoute(value);
+  if (!route || !/^\/direct-connect(?:\/|$)/i.test(route)) return undefined;
+
+  const segments = route
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => {
+      if (UUID_SEGMENT.test(segment) || NUMERIC_SEGMENT.test(segment)) return ":id";
+      if (LONG_ID_SEGMENT.test(segment) && !/^direct-connect$/i.test(segment)) return ":id";
+      return segment.slice(0, 80);
+    });
+
+  return `/${segments.join("/")}`.slice(0, MAX_ROUTE_LENGTH) || "/direct-connect";
+}
+
 function sanitizeToken(value: unknown): string | null | undefined {
   if (value === null) return null;
   if (typeof value !== "string") return undefined;
@@ -102,6 +190,31 @@ function sanitizeToken(value: unknown): string | null | undefined {
     return undefined;
   }
   return normalized;
+}
+
+function sanitizeId(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  if (
+    normalized.length === 0 ||
+    normalized.length > MAX_SAFE_ID_LENGTH ||
+    !SAFE_ID_PATTERN.test(normalized)
+  ) {
+    return undefined;
+  }
+  return normalized;
+}
+
+function sanitizeCount(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
+  return Math.min(MAX_SAFE_COUNT, Math.trunc(value));
+}
+
+function sanitizeStatusCode(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 100 || value > 599) {
+    return undefined;
+  }
+  return value;
 }
 
 function sanitizeIsoTimestamp(value: unknown): string | undefined {
@@ -155,12 +268,12 @@ export function sanitizeEventData(value: unknown): SanitizedEventData {
     if (safeRoute) output[key] = safeRoute;
   }
 
-  for (const key of SAFE_STRING_KEYS) {
+  for (const key of SAFE_DEMAND_STRING_KEYS) {
     const token = sanitizeToken(input[key]);
     if (token !== undefined && token !== null) output[key] = token;
   }
 
-  for (const key of SAFE_BOOLEAN_KEYS) {
+  for (const key of SAFE_DEMAND_BOOLEAN_KEYS) {
     if (typeof input[key] === "boolean") output[key] = input[key] as boolean;
   }
 
@@ -190,6 +303,52 @@ export function sanitizeEventData(value: unknown): SanitizedEventData {
   return output;
 }
 
+export function sanitizeDirectConnectEventData(value: unknown): SanitizedEventData {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { surface: "direct_connect", routeTemplate: "/direct-connect" };
+  }
+
+  const input = value as Record<string, unknown>;
+  const output: SanitizedEventData = { surface: "direct_connect" };
+
+  for (const key of SAFE_DIRECT_CONNECT_STRING_KEYS) {
+    const rawValue = input[key];
+    if (key === "source" && typeof rawValue === "string" && rawValue.trim().startsWith("/")) {
+      continue;
+    }
+    const token = sanitizeToken(rawValue);
+    if (token !== undefined && token !== null) output[key] = token;
+  }
+
+  for (const key of SAFE_DIRECT_CONNECT_ID_KEYS) {
+    const id = sanitizeId(input[key]);
+    if (id !== undefined) output[key] = id;
+  }
+
+  for (const key of SAFE_DIRECT_CONNECT_BOOLEAN_KEYS) {
+    if (typeof input[key] === "boolean") output[key] = input[key] as boolean;
+  }
+
+  for (const key of SAFE_DIRECT_CONNECT_NUMBER_KEYS) {
+    const count = sanitizeCount(input[key]);
+    if (count !== undefined) output[key] = count;
+  }
+
+  const statusCode = sanitizeStatusCode(input.statusCode ?? input.status);
+  if (statusCode !== undefined) output.statusCode = statusCode;
+
+  const routeCandidate =
+    input.routeTemplate ??
+    input.route ??
+    (typeof input.source === "string" && input.source.trim().startsWith("/")
+      ? input.source
+      : undefined);
+  output.routeTemplate =
+    sanitizeDirectConnectRouteTemplate(routeCandidate) ?? "/direct-connect";
+
+  return output;
+}
+
 function inferDeviceClass(userAgent: unknown): "mobile" | "desktop" | undefined {
   if (typeof userAgent !== "string" || userAgent.length === 0) return undefined;
   return /android|iphone|ipad|ipod|mobile/i.test(userAgent) ? "mobile" : "desktop";
@@ -213,31 +372,80 @@ const publicEventLimiter =
       })
     : noopRateLimiter;
 
+function scheduleEventWrite(args: {
+  storage: EventRoutesStorage;
+  eventType: string;
+  data: SanitizedEventData;
+  req: Request & { user?: { id?: string; contractorId?: string } };
+  res: Response;
+}) {
+  const sessionUser = args.req.user ?? null;
+  const deviceClass = inferDeviceClass(args.req.get("User-Agent"));
+  const persistedData: SanitizedEventData = {
+    ...args.data,
+    userId: typeof sessionUser?.id === "string" ? sessionUser.id : null,
+    contractorId:
+      typeof sessionUser?.contractorId === "string" ? sessionUser.contractorId : null,
+  };
+  if (deviceClass) persistedData.deviceClass = deviceClass;
+
+  args.res.status(204).end();
+
+  void Promise.resolve()
+    .then(() => args.storage.logEvent(args.eventType, persistedData))
+    .catch((error: unknown) => {
+      console.error("Error persisting first-party telemetry", error);
+    });
+}
+
 export function registerEventRoutes(app: Express, { storage }: EventRoutesDependencies) {
-  app.post("/api/events", publicEventLimiter, (req: any, res: Response) => {
+  // Compatibility bridge for browsers still holding the previous client bundle.
+  // It intercepts only the exact Direct Connect friction registry before the
+  // broader shell-analytics route can attach raw IP or browser strings.
+  app.post("/api/analytics/shell", (req: Request, res: Response, next: NextFunction) => {
+    const legacyEvent =
+      req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? (req.body as Record<string, unknown>)
+        : {};
+    const eventType = normalizeDirectConnectFrictionType(legacyEvent.type);
+    if (!eventType) return next();
+
+    return publicEventLimiter(req, res, () => {
+      if (serializedByteLength(legacyEvent) > MAX_EVENT_BODY_BYTES) {
+        return res.status(204).end();
+      }
+      scheduleEventWrite({
+        storage,
+        eventType,
+        data: sanitizeDirectConnectEventData(legacyEvent),
+        req: req as Request & { user?: { id?: string; contractorId?: string } },
+        res,
+      });
+    });
+  });
+
+  app.post("/api/events", publicEventLimiter, (req: Request, res: Response) => {
     const payload =
-      req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+      req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? (req.body as Record<string, unknown>)
+        : {};
     const eventType = normalizeEventType(payload.eventType);
     const bodyWithinLimit = serializedByteLength(payload) <= MAX_EVENT_BODY_BYTES;
-    const data = bodyWithinLimit ? sanitizeEventData(payload.data) : {};
-    const sessionUser = req.user ?? null;
-    const deviceClass = inferDeviceClass(req.get("User-Agent"));
 
-    const persistedData: SanitizedEventData = {
-      ...data,
-      userId: typeof sessionUser?.id === "string" ? sessionUser.id : null,
-      contractorId: typeof sessionUser?.contractorId === "string" ? sessionUser.contractorId : null,
-    };
-    if (deviceClass) persistedData.deviceClass = deviceClass;
+    if (!eventType || !bodyWithinLimit) {
+      return res.status(204).end();
+    }
 
-    res.status(204).end();
+    const data = DIRECT_CONNECT_FRICTION_EVENT_TYPES.has(eventType)
+      ? sanitizeDirectConnectEventData(payload.data)
+      : sanitizeEventData(payload.data);
 
-    if (!eventType || !bodyWithinLimit) return;
-
-    void Promise.resolve()
-      .then(() => storage.logEvent(eventType, persistedData))
-      .catch((error: unknown) => {
-        console.error("Error persisting /api/events telemetry", error);
-      });
+    scheduleEventWrite({
+      storage,
+      eventType,
+      data,
+      req: req as Request & { user?: { id?: string; contractorId?: string } },
+      res,
+    });
   });
 }
