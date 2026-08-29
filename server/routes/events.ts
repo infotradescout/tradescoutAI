@@ -10,13 +10,19 @@ export interface EventRoutesDependencies {
 const MAX_EVENT_TYPE_LENGTH = 96;
 const MAX_EVENT_BODY_BYTES = 8 * 1024;
 const MAX_SAFE_STRING_LENGTH = 240;
+const MAX_ATTRIBUTION_STRING_LENGTH = 120;
 const MAX_ROUTE_LENGTH = 320;
 const MAX_IDENTIFIER_LENGTH = 128;
 const CORS_DENIAL_PREFIX = "CORS: Origin not allowed:";
 
 const SAFE_EVENT_KEYS = new Set([
   "route",
+  "path",
+  "href",
+  "target",
   "surface",
+  "placement",
+  "variant",
   "funnelStep",
   "stage",
   "requestId",
@@ -27,6 +33,8 @@ const SAFE_EVENT_KEYS = new Set([
   "errorCode",
   "blocked",
   "success",
+  "verificationRequired",
+  "hasPrompt",
   "retryCount",
   "attemptCount",
   "clickCount",
@@ -38,19 +46,28 @@ const SAFE_EVENT_KEYS = new Set([
   "durationMs",
   "source",
   "action",
+  "cta",
   "category",
   "mode",
+  "presenceType",
+  "intent",
   "scope",
   "reason",
   "outcome",
   "searchMode",
+  "segmentCategory",
+  "segment_category",
+  "segmentIntentLevel",
+  "segment_intent_level",
   "stateCode",
   "countyFips",
+  "county_fips",
   "profileSlug",
   "businessId",
   "businessSlug",
   "itemId",
   "itemSlug",
+  "attribution",
 ]);
 
 const IDENTIFIER_KEYS = new Set([
@@ -74,19 +91,33 @@ const COUNT_KEYS = new Set([
   "durationMs",
 ]);
 
+const BOOLEAN_KEYS = new Set([
+  "blocked",
+  "success",
+  "verificationRequired",
+  "hasPrompt",
+]);
+
 const TOKEN_KEYS = new Set([
   "surface",
+  "placement",
+  "variant",
   "funnelStep",
   "stage",
   "errorCode",
   "source",
   "action",
+  "cta",
   "category",
   "mode",
+  "presenceType",
+  "intent",
   "scope",
   "reason",
   "outcome",
   "searchMode",
+  "segmentCategory",
+  "segmentIntentLevel",
   "profileSlug",
   "businessSlug",
   "itemSlug",
@@ -94,9 +125,29 @@ const TOKEN_KEYS = new Set([
 
 const EVENT_TYPE_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
 const SAFE_IDENTIFIER_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/i;
-const SAFE_TOKEN_PATTERN = /^[a-z0-9][a-z0-9._:/ -]*$/i;
+const SAFE_TOKEN_PATTERN = /^[a-z0-9][a-z0-9._:/ +~-]*$/i;
 
-export type SanitizedEventData = Record<string, string | number | boolean | null>;
+export type SanitizedDemandAttribution = {
+  ref?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  utmContent?: string | null;
+  utmTerm?: string | null;
+  variant?: string | null;
+  campaignKey?: string;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+};
+
+export type SanitizedEventValue =
+  | string
+  | number
+  | boolean
+  | null
+  | SanitizedDemandAttribution;
+
+export type SanitizedEventData = Record<string, SanitizedEventValue>;
 
 export function normalizeEventType(value: unknown): string {
   if (typeof value !== "string") return "event.unknown";
@@ -154,6 +205,59 @@ function sanitizeToken(value: unknown): string | undefined {
   return normalized;
 }
 
+function sanitizeAttributionString(value: unknown): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  if (normalized.length === 0) return null;
+  if (
+    normalized.length > MAX_ATTRIBUTION_STRING_LENGTH ||
+    !SAFE_TOKEN_PATTERN.test(normalized)
+  ) {
+    return undefined;
+  }
+  return normalized;
+}
+
+function sanitizeIsoTimestamp(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length > 40) return undefined;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString();
+}
+
+export function sanitizeDemandAttribution(value: unknown): SanitizedDemandAttribution | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const input = value as Record<string, unknown>;
+  const output: SanitizedDemandAttribution = {};
+
+  for (const key of [
+    "ref",
+    "utmSource",
+    "utmMedium",
+    "utmCampaign",
+    "utmContent",
+    "utmTerm",
+    "variant",
+    "campaignKey",
+  ] as const) {
+    const sanitized = sanitizeAttributionString(input[key]);
+    if (sanitized === undefined) continue;
+    if (key === "campaignKey") {
+      if (sanitized !== null) output.campaignKey = sanitized;
+    } else {
+      output[key] = sanitized;
+    }
+  }
+
+  for (const key of ["firstSeenAt", "lastSeenAt"] as const) {
+    const timestamp = sanitizeIsoTimestamp(input[key]);
+    if (timestamp) output[key] = timestamp;
+  }
+
+  return Object.keys(output).length > 0 ? output : undefined;
+}
+
 function sanitizeCount(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
   return Math.min(Math.trunc(value), 1_000_000_000);
@@ -176,9 +280,11 @@ export function sanitizeEventData(value: unknown): SanitizedEventData {
     const rawValue = input[key];
     if (rawValue === undefined) continue;
 
-    if (key === "route") {
+    if (key === "route" || key === "path" || key === "href" || key === "target") {
       const route = sanitizeRoute(rawValue);
-      if (route !== undefined) output[key] = route;
+      if (route !== undefined) {
+        output[key === "path" ? "route" : key] = route;
+      }
       continue;
     }
 
@@ -195,10 +301,24 @@ export function sanitizeEventData(value: unknown): SanitizedEventData {
       continue;
     }
 
-    if (key === "countyFips") {
+    if (key === "countyFips" || key === "county_fips") {
       if (typeof rawValue === "string" && /^\d{5}$/.test(rawValue.trim())) {
-        output[key] = rawValue.trim();
+        output.countyFips = rawValue.trim();
       }
+      continue;
+    }
+
+    if (key === "segment_category" || key === "segment_intent_level") {
+      const canonicalKey = key === "segment_category" ? "segmentCategory" : "segmentIntentLevel";
+      if (output[canonicalKey] !== undefined) continue;
+      const token = sanitizeToken(rawValue);
+      if (token !== undefined) output[canonicalKey] = token;
+      continue;
+    }
+
+    if (key === "attribution") {
+      const attribution = sanitizeDemandAttribution(rawValue);
+      if (attribution) output.attribution = attribution;
       continue;
     }
 
@@ -214,7 +334,7 @@ export function sanitizeEventData(value: unknown): SanitizedEventData {
       continue;
     }
 
-    if (key === "blocked" || key === "success") {
+    if (BOOLEAN_KEYS.has(key)) {
       if (typeof rawValue === "boolean") output[key] = rawValue;
       continue;
     }
