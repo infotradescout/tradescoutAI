@@ -30,6 +30,21 @@ export type HomeIdPersistenceState = {
   updatedAt: string;
 };
 
+export type HomeIdPendingDirectConnectDraft = {
+  requestId: string;
+  homeId: string;
+  homePacketId: string;
+  selectedDetailIds: string[];
+  requestType: string;
+  description: string;
+  readinessState: "ready_for_handoff";
+  status: "draft";
+  scope: "personal";
+  visibility: "private";
+  audience: "requester";
+  createdAt?: string;
+};
+
 export type HomeIdPersistenceFetcher = (
   method: "GET" | "PUT",
   url: string,
@@ -46,6 +61,51 @@ function storageKey(homeId: string): string {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export function resolveOwnedPendingHomeIdDraft(
+  response: unknown,
+  expectedHomeId: string
+): HomeIdPendingDirectConnectDraft | null {
+  if (!isObject(response) || !Array.isArray(response.pendingDrafts)) return null;
+  for (const value of response.pendingDrafts) {
+    if (!isObject(value)) continue;
+    const selectedDetailIds = Array.isArray(value.selectedDetailIds)
+      ? value.selectedDetailIds.map((id) => (typeof id === "string" ? id.trim() : ""))
+      : [];
+    const draft = {
+      requestId: String(value.requestId || "").trim(),
+      homeId: String(value.homeId || "").trim(),
+      homePacketId: String(value.homePacketId || "").trim(),
+      selectedDetailIds,
+      requestType: String(value.requestType || "").trim(),
+      description: String(value.description || "").trim(),
+      readinessState: value.readinessState,
+      status: value.status,
+      scope: value.scope,
+      visibility: value.visibility,
+      audience: value.audience,
+      createdAt: String(value.createdAt || "").trim() || undefined,
+    };
+    if (
+      draft.requestId &&
+      draft.homeId === expectedHomeId &&
+      draft.homePacketId &&
+      draft.requestType &&
+      draft.description &&
+      selectedDetailIds.length > 0 &&
+      selectedDetailIds.every(Boolean) &&
+      new Set(selectedDetailIds).size === selectedDetailIds.length &&
+      draft.readinessState === "ready_for_handoff" &&
+      draft.status === "draft" &&
+      draft.scope === "personal" &&
+      draft.visibility === "private" &&
+      draft.audience === "requester"
+    ) {
+      return draft as HomeIdPendingDirectConnectDraft;
+    }
+  }
+  return null;
 }
 
 function sanitizeState(raw: unknown): HomeIdPersistenceState | null {
@@ -130,15 +190,21 @@ export async function saveHomeIdPersistence(
   state: HomeIdPersistenceState,
   fetcher?: HomeIdPersistenceFetcher
 ): Promise<{ ok: boolean; warning?: string; serverSaved: boolean }> {
-  const local = saveLocal(homeId, state);
+  const canonical = sanitizeState(state);
+  if (!canonical) {
+    return {
+      ok: false,
+      warning: "HomeID changes were not saved because the detail and request graph is incomplete.",
+      serverSaved: false,
+    };
+  }
+  const local = saveLocal(homeId, canonical);
   if (!fetcher || !homeId) return { ...local, serverSaved: false };
 
   try {
-    await fetcher("PUT", `/api/homeid/${encodeURIComponent(homeId)}/property-details`, {
-      propertyDetails: state.propertyDetails,
-    });
-    await fetcher("PUT", `/api/homeid/${encodeURIComponent(homeId)}/request-packets`, {
-      requestPackets: state.requestPackets,
+    await fetcher("PUT", `/api/homeid/${encodeURIComponent(homeId)}/persistence`, {
+      propertyDetails: canonical.propertyDetails,
+      requestPackets: canonical.requestPackets,
     });
     return { ...local, serverSaved: true };
   } catch {

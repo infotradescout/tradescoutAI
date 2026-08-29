@@ -21,20 +21,21 @@ describe("assetid phase 1p homeid end-to-end production smoke contracts", () => 
 
   it("keeps the HomeID to Direct Connect draft and submit bridge with safety boundary", () => {
     const directConnectSource = read("server/routes/direct-connect.ts");
+    const authoritySource = read("server/services/homeIdPacketAuthority.ts");
 
     expect(directConnectSource).toContain('"/api/direct-connect/requests"');
-    expect(directConnectSource).toContain('type: "homeid_draft_created"');
+    expect(directConnectSource).toContain("await createHomeIdPacketDraft({");
+    expect(authoritySource).toContain('type: "homeid_draft_created"');
     expect(directConnectSource).toContain('"/api/direct-connect/requests/:id/submit-homeid-draft"');
-    expect(directConnectSource).toContain('type: "homeid_draft_submitted"');
-    expect(directConnectSource).toContain('title: "homeid:direct_connect_request_submitted"');
-    expect(directConnectSource).toContain('source: "homeid_packet"');
+    expect(directConnectSource).toContain("await submitHomeIdPacketDraft({");
+    expect(authoritySource).toContain('type: "homeid_draft_submitted"');
+    expect(authoritySource).toContain('source: "homeid_packet"');
   });
 
   it("keeps Direct Connect jobflow and completion enrichment writing back into HomeID", () => {
     const directConnectSource = read("server/routes/direct-connect.ts");
 
     expect(directConnectSource).toContain("appendHomeIdTimelineEventFromDirectConnect");
-    expect(directConnectSource).toContain('eventType: "direct_connect_request_submitted"');
     expect(directConnectSource).toContain('eventType: "direct_connect_completed"');
     expect(directConnectSource).toContain('source: "direct_connect_jobflow"');
 

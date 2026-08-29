@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadHomeIdPersistence,
+  resolveOwnedPendingHomeIdDraft,
   saveHomeIdPersistence,
   type HomeIdPersistenceState,
 } from "./homeidPersistence";
@@ -85,16 +86,27 @@ describe("homeidPersistence", () => {
   });
 
   it("saves to server and keeps local fallback warning on server error", async () => {
-    const fetcher = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true })
-      .mockRejectedValueOnce(new Error("server unavailable"));
+    const fetcher = vi.fn().mockRejectedValueOnce(new Error("server unavailable"));
     const result = await saveHomeIdPersistence(HOME_ID, makeState(), fetcher);
 
-    expect(fetcher).toHaveBeenCalledWith("PUT", "/api/homeid/home_123/property-details", {
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith("PUT", "/api/homeid/home_123/persistence", {
       propertyDetails: makeState().propertyDetails,
+      requestPackets: makeState().requestPackets,
     });
     expect(result.warning).toContain("Server save unavailable");
+  });
+
+  it("saves a complete graph with one server request", async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true });
+    const result = await saveHomeIdPersistence(HOME_ID, makeState(), fetcher);
+
+    expect(result.serverSaved).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith("PUT", "/api/homeid/home_123/persistence", {
+      propertyDetails: makeState().propertyDetails,
+      requestPackets: makeState().requestPackets,
+    });
   });
 
   it("rejects shape-only detail and packet objects returned by the server", async () => {
@@ -126,5 +138,38 @@ describe("homeidPersistence", () => {
     const loaded = await loadHomeIdPersistence(HOME_ID, fetcher);
     expect(loaded.state).toBeNull();
     expect(loaded.source).toBe("none");
+  });
+
+  it("hydrates only an owner-scoped private requester draft after remount", () => {
+    const draft = {
+      requestId: "request_1",
+      homeId: HOME_ID,
+      homePacketId: "packet_1",
+      selectedDetailIds: ["detail_1"],
+      requestType: "inspection",
+      description: "Inspect the saved roof context.",
+      readinessState: "ready_for_handoff",
+      status: "draft",
+      scope: "personal",
+      visibility: "private",
+      audience: "requester",
+    };
+    expect(resolveOwnedPendingHomeIdDraft({ pendingDrafts: [draft] }, HOME_ID)).toMatchObject({
+      requestId: "request_1",
+      audience: "requester",
+    });
+    expect(
+      resolveOwnedPendingHomeIdDraft(
+        { pendingDrafts: [{ ...draft, visibility: "community" }] },
+        HOME_ID
+      )
+    ).toBeNull();
+    expect(
+      resolveOwnedPendingHomeIdDraft(
+        { pendingDrafts: [{ ...draft, audience: "provider" }] },
+        HOME_ID
+      )
+    ).toBeNull();
+    expect(resolveOwnedPendingHomeIdDraft({ pendingDrafts: [draft] }, "home_other")).toBeNull();
   });
 });

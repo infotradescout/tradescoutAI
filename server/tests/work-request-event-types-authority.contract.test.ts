@@ -2,10 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  WORK_REQUEST_EVENT_TYPES,
-  workRequestEvents,
-} from "../../shared/schema/workRequestEvents";
+import { WORK_REQUEST_EVENT_TYPES, workRequestEvents } from "../../shared/schema/workRequestEvents";
 
 const EXPECTED_EVENT_TYPES = [
   "created",
@@ -53,6 +50,19 @@ describe("work-request event type authority", () => {
     const migrationTypes = Array.from(checkBody.matchAll(/'([a-z_]+)'/g), (match) => match[1]);
     expect(migrationTypes).toEqual(EXPECTED_EVENT_TYPES);
     expect(migration).toContain("final integration reserves HomeID as migration 0133");
+  });
+
+  it("enforces one immutable HomeID lifecycle event of each type per request", () => {
+    const schemaSource = read("shared/schema/workRequestEvents.ts");
+    const migration = read("migrations/0128_work_request_event_types_authority.sql");
+    expect(schemaSource).toContain('uniqueIndex("uq_work_request_events_homeid_draft_lifecycle")');
+    expect(migration).toContain(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_work_request_events_homeid_draft_lifecycle"
+    );
+    expect(migration).toContain("ON work_request_events (work_request_id, type)");
+    expect(migration).toContain(
+      "must carry both the event vocabulary and lifecycle uniqueness invariant"
+    );
   });
 
   it("preserves historical migration 0091 byte-for-byte", () => {

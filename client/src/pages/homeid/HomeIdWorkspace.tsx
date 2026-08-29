@@ -44,7 +44,12 @@ import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { buildHomeIdHandoffPreview } from "@/lib/homeidHandoffPreview";
-import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "@/lib/homeidPersistence";
+import {
+  resolveOwnedPendingHomeIdDraft,
+  type HomeIdPendingDirectConnectDraft,
+  type HomeIdPropertyDetail,
+  type HomeIdRequestPacket,
+} from "@/lib/homeidPersistence";
 import {
   parseHomeIdPersistenceGraph,
   resolveReadyHomeIdPacketGraph,
@@ -124,16 +129,6 @@ type Evidence = {
   status: "pending" | "verified" | "needs_review";
   fileUrl?: string;
   fileName?: string;
-};
-
-type DirectConnectHomeIdDraft = {
-  requestId: string;
-  homeId: string;
-  homePacketId: string;
-  selectedDetailIds: string[];
-  requestType: string;
-  description: string;
-  readinessState: "ready_for_handoff";
 };
 
 const TABS: Array<{ id: Tab; label: string }> = [
@@ -377,7 +372,11 @@ export default function HomeIdWorkspace() {
   const [requestType, setRequestType] = useState("documentation");
   const [selectedDetailIds, setSelectedDetailIds] = useState<string[]>([]);
   const [directConnectDraft, setDirectConnectDraft] =
-    useState<DirectConnectHomeIdDraft | null>(null);
+    useState<HomeIdPendingDirectConnectDraft | null>(null);
+
+  useEffect(() => {
+    setDirectConnectDraft(null);
+  }, [homeId]);
 
   const homesQuery = useQuery({ queryKey: ["/api/homes"] });
   const homes = list<HomeRow>(record(homesQuery.data).homes);
@@ -400,6 +399,10 @@ export default function HomeIdWorkspace() {
   });
   const persistenceQuery = useQuery({
     queryKey: [homeId ? `/api/homeid/${homeId}/persistence` : "/api/homeid/_none/persistence"],
+    enabled: Boolean(homeId),
+  });
+  const pendingDraftsQuery = useQuery({
+    queryKey: [homeId ? `/api/homeid/${homeId}/pending-direct-connect-drafts` : "/api/homeid/_none/pending-direct-connect-drafts"],
     enabled: Boolean(homeId),
   });
   const projectsQuery = useQuery({
@@ -431,6 +434,15 @@ export default function HomeIdWorkspace() {
   const packets = persistenceGraph?.requestPackets || [];
   const components = list<Component>(persistence.components);
   const evidence = list<Evidence>(persistence.evidence);
+  const persistedDirectConnectDraft = useMemo(
+    () => resolveOwnedPendingHomeIdDraft(pendingDraftsQuery.data, homeId || ""),
+    [homeId, pendingDraftsQuery.data]
+  );
+
+  useEffect(() => {
+    if (pendingDraftsQuery.isLoading) return;
+    setDirectConnectDraft(persistedDirectConnectDraft);
+  }, [homeId, pendingDraftsQuery.isLoading, persistedDirectConnectDraft]);
 
   const projects = list<HomeProject>(record(projectsQuery.data).projects);
   const project =
@@ -461,6 +473,7 @@ export default function HomeIdWorkspace() {
       queryClient.invalidateQueries({ queryKey: ["/api/homes"] }),
       queryClient.invalidateQueries({ queryKey: [`/api/homes/${homeId}`] }),
       queryClient.invalidateQueries({ queryKey: [`/api/homeid/${homeId}/persistence`] }),
+      queryClient.invalidateQueries({ queryKey: [`/api/homeid/${homeId}/pending-direct-connect-drafts`] }),
       queryClient.invalidateQueries({ queryKey: [`/api/homes/${homeId}/projects`] }),
       queryClient.invalidateQueries({ queryKey: [`/api/homes/${homeId}/maintenance-schedules`] }),
     ]);
@@ -506,8 +519,9 @@ export default function HomeIdWorkspace() {
         createdAt: now,
         savedAt: now,
       };
-      return apiRequest("PUT", `/api/homeid/${homeId}/property-details`, {
+      return apiRequest("PUT", `/api/homeid/${homeId}/persistence`, {
         propertyDetails: [next, ...facts],
+        requestPackets: packets,
       });
     },
     onSuccess: async () => {
@@ -589,7 +603,8 @@ export default function HomeIdWorkspace() {
         createdAt: now,
         savedAt: now,
       };
-      return apiRequest("PUT", `/api/homeid/${homeId}/request-packets`, {
+      return apiRequest("PUT", `/api/homeid/${homeId}/persistence`, {
+        propertyDetails: facts,
         requestPackets: [packet, ...packets],
       });
     },
@@ -658,18 +673,16 @@ export default function HomeIdWorkspace() {
       });
       const requestId = String(response?.id || "").trim();
       if (!requestId) throw new Error("Direct Connect did not return a draft id");
-      return {
-        requestId,
-        homeId,
-        homePacketId: packet.id,
-        selectedDetailIds: [...packet.selectedDetailIds],
-        requestType: packet.requestType,
-        description,
-        readinessState: preview.packetReadinessState,
-      } satisfies DirectConnectHomeIdDraft;
+      const persistedDraft = resolveOwnedPendingHomeIdDraft(
+        { pendingDrafts: [{ ...response, requestId }] },
+        homeId
+      );
+      if (!persistedDraft) throw new Error("Direct Connect returned an invalid draft projection");
+      return persistedDraft;
     },
-    onSuccess: (draft) => {
+    onSuccess: async (draft) => {
       setDirectConnectDraft(draft);
+      await queryClient.invalidateQueries({ queryKey: [`/api/homeid/${draft.homeId}/pending-direct-connect-drafts`] });
       toast({ title: "Direct Connect draft created" });
     },
     onError: (error: any) => fail("Could not create Direct Connect draft", error),
@@ -688,8 +701,12 @@ export default function HomeIdWorkspace() {
         }
       );
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      const submittedHomeId = directConnectDraft?.homeId;
       setDirectConnectDraft(null);
+      if (submittedHomeId) {
+        await queryClient.invalidateQueries({ queryKey: [`/api/homeid/${submittedHomeId}/pending-direct-connect-drafts`] });
+      }
       toast({ title: "Direct Connect request submitted" });
     },
     onError: (error: any) => fail("Could not submit Direct Connect request", error),
@@ -1701,7 +1718,7 @@ function Requests({
   save: () => void;
   open: () => void;
   createDraft: (packetId: string) => void;
-  draft: DirectConnectHomeIdDraft | null;
+  draft: HomeIdPendingDirectConnectDraft | null;
   submitDraft: () => void;
   pending: boolean;
   draftPending: boolean;
@@ -1784,15 +1801,18 @@ function Requests({
           dispatch, routing, or payment happens here.
         </p>
         {draft ? (
-          <section className="mt-4 rounded-2xl border border-orange-400/[0.24] bg-orange-400/[0.06] p-4">
+          <section className="mt-4 rounded-2xl border border-orange-400/[0.24] bg-orange-400/[0.06] p-4" data-testid="homeid-pending-requester-draft">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-300">
-              Direct Connect draft review and submit
+              Resume Direct Connect draft · Review and submit
             </p>
             <p className="mt-2 text-sm font-black text-white/[0.80]">
               {human(draft.requestType)} request · {draft.selectedDetailIds.length} HomeID facts
             </p>
             <p className="mt-2 whitespace-pre-line text-xs leading-5 text-white/[0.46]">
               {draft.description}
+            </p>
+            <p className="mt-3 text-xs leading-5 text-white/[0.42]">
+              This requester-only draft is private to this HomeID. Providers and community surfaces cannot see it before you review and submit it.
             </p>
             <Button
               className={`mt-4 ${PRIMARY}`}

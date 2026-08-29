@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 /**
  * Canonical database contract for append-only work-request event types.
@@ -31,15 +31,25 @@ export const WORK_REQUEST_EVENT_TYPES = [
 
 export type WorkRequestEventType = (typeof WORK_REQUEST_EVENT_TYPES)[number];
 
-export const workRequestEvents = pgTable("work_request_events", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  workRequestId: varchar("work_request_id").notNull(),
-  type: varchar("type", { enum: WORK_REQUEST_EVENT_TYPES }).notNull(),
-  actorUserId: varchar("actor_user_id"),
-  fromStatus: varchar("from_status"),
-  toStatus: varchar("to_status"),
-  metadata: jsonb("metadata").$type<Record<string, any>>(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const workRequestEvents = pgTable(
+  "work_request_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    workRequestId: varchar("work_request_id").notNull(),
+    type: varchar("type", { enum: WORK_REQUEST_EVENT_TYPES }).notNull(),
+    actorUserId: varchar("actor_user_id"),
+    fromStatus: varchar("from_status"),
+    toStatus: varchar("to_status"),
+    metadata: jsonb("metadata").$type<Record<string, any>>(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_work_request_events_homeid_draft_lifecycle")
+      .on(table.workRequestId, table.type)
+      .where(
+        sql`${table.type} IN ('homeid_draft_created', 'homeid_draft_reviewed', 'homeid_draft_submitted')`
+      ),
+  ]
+);

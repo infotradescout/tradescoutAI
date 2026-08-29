@@ -9,6 +9,7 @@ const readDirectConnectRouteSources = () =>
   [
     read("server/routes/direct-connect.ts"),
     read("server/routes/direct-connect/job-lifecycle.ts"),
+    read("server/services/homeIdPacketAuthority.ts"),
   ].join("\n");
 
 describe("assetid phase 1h direct connect jobflow -> homeid timeline contracts", () => {

@@ -19,6 +19,10 @@ import {
 } from "../../shared/schema";
 import { addPropertyLifecycleEvent } from "../services/propertyLifecycleService";
 import { parseHomeIdPersistenceGraph } from "@shared/homeIdPacketAuthority";
+import {
+  listOwnedPendingHomeIdDrafts,
+  persistHomeIdFullGraph,
+} from "../services/homeIdPacketAuthority";
 
 const router = Router();
 const HOMEID_DASHBOARD_SECTION_TIMEOUT_MS = 2500;
@@ -240,6 +244,11 @@ const upsertHomeIdPropertyDetailsSchema = z.object({
 });
 
 const upsertHomeIdRequestPacketsSchema = z.object({
+  requestPackets: z.array(homeIdRequestPacketSchema).max(500),
+});
+
+const upsertHomeIdFullGraphSchema = z.object({
+  propertyDetails: z.array(homeIdPropertyDetailSchema).max(500),
   requestPackets: z.array(homeIdRequestPacketSchema).max(500),
 });
 
@@ -793,6 +802,64 @@ router.get("/api/homeid/:homeId/persistence", isAuthenticated, async (req: any, 
     return res.status(500).json({ message: error?.message || "Could not load HomeID persistence" });
   }
 });
+
+router.put("/api/homeid/:homeId/persistence", isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+    const homeId = String(req.params.homeId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+    const parsed = upsertHomeIdFullGraphSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid HomeID persistence graph", issues: parsed.error.issues });
+    }
+    const result = await persistHomeIdFullGraph({
+      userId,
+      homeId,
+      propertyDetails: parsed.data.propertyDetails,
+      requestPackets: parsed.data.requestPackets,
+    });
+    if (!result.ok) {
+      if (result.reason === "home_not_owned") {
+        return res.status(404).json({ message: "Home not found" });
+      }
+      return res.status(result.reason === "invalid_packet_graph" ? 400 : 409).json({
+        code: "HOMEID_PACKET_GRAPH_INVALID",
+        message: "The complete HomeID detail and request-packet graph could not be saved.",
+      });
+    }
+    return res.json({ ok: true, persistence: result.persistence });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: error?.message || "Could not save the complete HomeID persistence graph",
+    });
+  }
+});
+
+router.get(
+  "/api/homeid/:homeId/pending-direct-connect-drafts",
+  isAuthenticated,
+  async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const homeId = String(req.params.homeId || "").trim();
+      if (!homeId) return res.status(400).json({ message: "homeId required" });
+      const home = await requireHomeOwner(userId, homeId);
+      if (!home) return res.status(404).json({ message: "Home not found" });
+
+      const pendingDrafts = await listOwnedPendingHomeIdDrafts({ userId, homeId });
+      return res.json({ ok: true, pendingDrafts });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: error?.message || "Could not load pending HomeID drafts",
+      });
+    }
+  }
+);
 
 router.put("/api/homeid/:homeId/property-details", isAuthenticated, async (req: any, res) => {
   try {

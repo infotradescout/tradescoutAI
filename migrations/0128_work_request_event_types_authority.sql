@@ -1,4 +1,5 @@
--- Lane migration: final integration reserves HomeID as migration 0133.
+-- Lane migration: final integration reserves HomeID as migration 0133 and
+-- must carry both the event vocabulary and lifecycle uniqueness invariant.
 -- Keep historical migration 0091 immutable; widen the active constraint only
 -- through this forward migration.
 ALTER TABLE IF EXISTS work_request_events
@@ -26,3 +27,11 @@ ALTER TABLE IF EXISTS work_request_events
       'homeid_draft_reviewed',
       'homeid_draft_submitted'
     ));
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_work_request_events_homeid_draft_lifecycle
+  ON work_request_events (work_request_id, type)
+  WHERE type IN (
+    'homeid_draft_created',
+    'homeid_draft_reviewed',
+    'homeid_draft_submitted'
+  );

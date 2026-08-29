@@ -90,10 +90,10 @@ import { isSteelHomePackagesProfileSlug } from "@shared/steelHomePackagesProfile
 import { getCountyByFips as getStaticCountyByFips } from "@shared/states-counties";
 import {
   appendHomeIdRequestContextRecord,
+  createHomeIdPacketDraft,
   createHomeIdShellFromRequest,
-  resolveHomeIdDraftSubmissionAuthority,
   resolveOwnedHomeForDirectConnect,
-  resolveOwnedReadyHomeIdPacketGraph,
+  submitHomeIdPacketDraft,
 } from "../services/homeIdPacketAuthority";
 
 type AuthedRequest = Request & {
@@ -6267,6 +6267,16 @@ export function registerDirectConnectRoutes(app: Express) {
           body.homePacketId !== undefined ||
           body.homePacketSelectedDetailIds !== undefined ||
           body.homePacketReadinessState !== undefined;
+        const sanitizedTitle = sanitizeWorkRequestText(body.title, 180);
+        const sanitizedDescription = sanitizeWorkRequestText(body.description, 5000);
+        if (!sanitizedTitle || !sanitizedDescription) {
+          return res.status(400).json({
+            message: "Please include non-contact project details in title and scope.",
+          });
+        }
+
+        // HomeID packet handoffs are private drafts. This branch returns before
+        // every ordinary create-path dispatch, sharing, funnel, and notification side effect.
         if (hasHomePacketClaim) {
           const completeClaim =
             body.homeId &&
@@ -6281,29 +6291,40 @@ export function registerDirectConnectRoutes(app: Express) {
               message: "The saved HomeID request details are incomplete. Review them in HomeID.",
             });
           }
-          const authority = await resolveOwnedReadyHomeIdPacketGraph({
+          const draft = await createHomeIdPacketDraft({
             userId: ownerUserId,
+            title: sanitizedTitle,
+            description: sanitizedDescription,
+            category: body.category,
+            countyFips: body.countyFips,
+            stateCode: body.stateCode?.toUpperCase(),
+            budgetMin: body.budgetMin ? String(body.budgetMin) : undefined,
+            budgetMax: body.budgetMax ? String(body.budgetMax) : undefined,
+            attachments: normalizeAttachmentKeys(body.attachments),
+            tradeId: body.tradeId,
             homeId: body.homeId!,
             packetId: body.homePacketId!,
             claimedSelectedDetailIds: body.homePacketSelectedDetailIds,
+            readinessState: body.homePacketReadinessState,
+            homeContextIntent: body.homeContextIntent,
+            autoRoute: body.autoRoute,
+            targetContractorIds: body.targetContractorIds,
+            targetProviderIds: body.targetProviderIds,
+            targetProfileSlug: body.targetProfileSlug,
+            discoveryAttributionToken: body.discoveryAttributionToken,
           });
-          if (!authority.ok) {
+          if (!draft.ok) {
+            const routingRejected = draft.reason === "routing_targets_forbidden";
             return res.status(400).json({
-              code: "HOMEID_PACKET_GRAPH_INVALID",
-              message: "The saved HomeID request details are incomplete. Review them in HomeID.",
+              code: routingRejected
+                ? "HOMEID_DRAFT_ROUTING_FORBIDDEN"
+                : "HOMEID_PACKET_GRAPH_INVALID",
+              message: routingRejected
+                ? "HomeID drafts cannot target, route, or share with providers before review."
+                : "The saved HomeID request details are incomplete. Review them in HomeID.",
             });
           }
-          body.homeId = authority.homeId;
-          body.homePacketId = authority.graph.packet.id;
-          body.homePacketSelectedDetailIds = [...authority.graph.packet.selectedDetailIds];
-          body.homePacketReadinessState = "ready_for_handoff";
-        }
-        const sanitizedTitle = sanitizeWorkRequestText(body.title, 180);
-        const sanitizedDescription = sanitizeWorkRequestText(body.description, 5000);
-        if (!sanitizedTitle || !sanitizedDescription) {
-          return res.status(400).json({
-            message: "Please include non-contact project details in title and scope.",
-          });
+          return res.status(201).json({ ...draft.request, ...draft.draft });
         }
 
         // Authenticated requester gates (profile/verification) stay enforced.
@@ -6777,25 +6798,6 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        if (created?.id && body.homePacketId) {
-          try {
-            await db.insert(workRequestEvents).values({
-              workRequestId: created.id,
-              type: "homeid_draft_created",
-              actorUserId: ownerUserId ? String(ownerUserId) : null,
-              metadata: {
-                source: "homeid_packet",
-                homeId: body.homeId || null,
-                homePacketId: body.homePacketId,
-                selectedDetailIds: body.homePacketSelectedDetailIds || [],
-                readinessState: body.homePacketReadinessState || null,
-              },
-            });
-          } catch (e) {
-            console.warn("[direct-connect] Failed to record homeid_draft_created event", e);
-          }
-        }
-
         if (created?.id && String(body.homeContextIntent || "skip_for_now") !== "skip_for_now") {
           try {
             const requestedHomeId = String(body.homeId || "").trim() || null;
@@ -7211,7 +7213,7 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Staff-facing: create a Direct Connect request for a user account
+  // Requester-facing: atomically review and submit a private HomeID draft.
   app.post(
     "/api/direct-connect/requests/:id/submit-homeid-draft",
     isAuthenticated,
@@ -7236,108 +7238,30 @@ export function registerDirectConnectRoutes(app: Express) {
               .slice(0, 50)
           : [];
 
-        const [requestRow] = await db
-          .select()
-          .from(workRequests)
-          .where(eq(workRequests.id, requestId))
-          .limit(1);
-        if (!requestRow) return res.status(404).json({ message: "Work request not found" });
-        if (String(requestRow.createdByUserId || "") !== userId) {
-          return res.status(403).json({ message: "Request not available for this requester" });
-        }
-        if (String(requestRow.source || "") !== "direct_connect") {
-          return res.status(400).json({ message: "Only Direct Connect drafts can be submitted" });
-        }
-
-        const authority = await resolveHomeIdDraftSubmissionAuthority({
+        const result = await submitHomeIdPacketDraft({
           userId,
           requestId,
           claimedHomeId,
           claimedPacketId: claimedHomePacketId,
           claimedSelectedDetailIds,
         });
-        if (!authority.ok) {
-          return res.status(400).json({
-            code: "HOMEID_PACKET_GRAPH_INVALID",
-            message: "The saved HomeID request details changed. Review the packet before submitting.",
-          });
-        }
-        const homeId = authority.homeId;
-        const homePacketId = authority.graph.packet.id;
-        const selectedDetailIds = [...authority.graph.packet.selectedDetailIds];
-
-        await db
-          .update(workRequests)
-          .set({ updatedAt: new Date() })
-          .where(eq(workRequests.id, requestId));
-
-        try {
-          await db.insert(workRequestEvents).values({
-            workRequestId: requestId,
-            type: "homeid_draft_reviewed",
-            actorUserId: userId,
-            metadata: {
-              source: "homeid_packet",
-              homeId: homeId || null,
-              homePacketId: homePacketId || null,
-              selectedDetailIds,
-            },
-          });
-          await db.insert(workRequestEvents).values({
-            workRequestId: requestId,
-            type: "homeid_draft_submitted",
-            actorUserId: userId,
-            metadata: {
-              source: "homeid_packet",
-              homeId: homeId || null,
-              homePacketId: homePacketId || null,
-              selectedDetailIds,
-              directConnectRequestId: requestId,
-            },
-          });
-        } catch (e) {
-          console.warn("[direct-connect] Failed to record homeid draft submit events", e);
-        }
-
-        if (homeId && homePacketId) {
-          const ownedHome = await resolveOwnedHomeForDirectConnect(userId, homeId);
-          if (ownedHome) {
-            try {
-              await db.insert(userHomeRecords).values({
-                homeId,
-                createdByUserId: userId,
-                recordType: "note",
-                title: "homeid:direct_connect_request_submitted",
-                details: JSON.stringify({
-                  source: "homeid_packet",
-                  event: "direct_connect_request_submitted",
-                  directConnectRequestId: requestId,
-                  homePacketId,
-                  selectedDetailIds,
-                  submittedAt: new Date().toISOString(),
-                }),
-                tags: ["homeid", "direct_connect", "submitted"],
-                updatedAt: new Date(),
-              } as any);
-            } catch (e) {
-              console.warn("[direct-connect] Failed to write HomeID submit backlink record", e);
-            }
+        if (!result.ok) {
+          if (result.reason === "request_not_found") {
+            return res.status(404).json({ message: "Work request not found" });
           }
+          if (result.reason === "request_not_owned") {
+            return res.status(403).json({ message: "Request not available for this requester" });
+          }
+          const graphChanged = result.reason === "packet_graph_changed";
+          return res.status(409).json({
+            code: graphChanged ? "HOMEID_PACKET_GRAPH_CHANGED" : "HOMEID_DRAFT_PROVENANCE_INVALID",
+            message: graphChanged
+              ? "The saved HomeID request details changed. Review the packet before submitting."
+              : "This HomeID draft cannot be submitted from the supplied request provenance.",
+          });
         }
 
-        await appendHomeIdTimelineEventFromDirectConnect({
-          requestId,
-          eventType: "direct_connect_request_submitted",
-          title: "Direct Connect request submitted",
-          summary: "A HomeID-linked request was reviewed and submitted.",
-        });
-
-        return res.status(200).json({
-          requestId,
-          status: String(requestRow.status || "open"),
-          submitted: true,
-          source: "homeid_packet",
-        });
+        return res.status(200).json({ ...result, source: "homeid_packet" });
       } catch (error) {
         console.error("Error submitting homeid draft request:", error);
         return res.status(500).json({
