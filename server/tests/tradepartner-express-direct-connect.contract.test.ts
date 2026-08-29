@@ -136,10 +136,11 @@ describe("Public-profile Express Direct Connect contract", () => {
 
   it("creates a provisional member without a post-request signup CTA", () => {
     const route = read("server/routes/tradepartner-express.ts");
+    const confirmation = read("server/services/profileRequestConfirmation.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
-    expect(route).toContain('provider: "express_profile"');
-    expect(route).toContain("onboardingCompleted: false");
+    expect(confirmation).toContain("'express_profile', false, false, false");
+    expect(confirmation).toContain("provisional_account_created_after_decision_confirmation");
     expect(route).toContain("passwordResetService.createToken");
     expect(route).toContain("emailVerificationService.createToken");
     expect(route).toContain("existing_account_match_unverified");
@@ -154,6 +155,7 @@ describe("Public-profile Express Direct Connect contract", () => {
 
   it("delivers Express request emails under production EMAIL_MODE restrictions", () => {
     const route = read("server/routes/tradepartner-express.ts");
+    const confirmation = read("server/services/profileRequestConfirmation.ts");
     const emailService = read("server/services/emailService.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
@@ -182,7 +184,7 @@ describe("Public-profile Express Direct Connect contract", () => {
     );
     expect(panel).toContain("updatesOptIn: form.updatesOptIn === true");
     expect(route).toContain("updatesOptIn: z.boolean().optional()");
-    expect(route).toContain("marketingEmails: updatesOptIn");
+    expect(confirmation).toContain("marketingEmails: payload.updatesOptIn");
     expect(route).toContain("updatesOptIn,");
   });
 

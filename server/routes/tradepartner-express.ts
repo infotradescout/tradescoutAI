@@ -33,6 +33,19 @@ import {
   sanitizeJwStoneDirectConnectSelections,
 } from "@shared/jwStoneDirectConnect";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
+import {
+  PROFILE_REQUEST_AUTHORITY_GATE,
+  PROFILE_REQUEST_SOURCE,
+  ProfileRequestDecisionError,
+  createProfileRequestSessionNonce,
+  hashProfileRequestSessionBinding,
+  profileRequestDecisionService,
+} from "../services/profileRequestDecisionService";
+import {
+  confirmAnonymousProfileRequest,
+  type ConfirmedAnonymousProfileRequest,
+  type StagedProfileRequestPayload,
+} from "../services/profileRequestConfirmation";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -58,6 +71,14 @@ const revealSchema = z.object({
   authorityGate: z.literal("profile_direct_connect"),
   decision: z.literal("call"),
 });
+
+const confirmRequestSchema = z
+  .object({
+    authorityGate: z.literal(PROFILE_REQUEST_AUTHORITY_GATE),
+    source: z.literal(PROFILE_REQUEST_SOURCE),
+    decisionProof: z.string().trim().min(32).max(512),
+  })
+  .strict();
 
 const requestSchema = z
   .object({
@@ -127,6 +148,28 @@ function normalizeEmail(value: unknown): string {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+const PROFILE_REQUEST_SESSION_NONCE_KEY = "profileRequestDecisionNonce";
+
+function existingProfileRequestSessionBinding(req: OptionalAuthedRequest): string | null {
+  const nonce = String((req.session as any)?.[PROFILE_REQUEST_SESSION_NONCE_KEY] || "").trim();
+  return nonce ? hashProfileRequestSessionBinding(nonce) : null;
+}
+
+async function ensureProfileRequestSessionBinding(
+  req: OptionalAuthedRequest
+): Promise<string | null> {
+  if (!req.session) return null;
+  let nonce = String((req.session as any)[PROFILE_REQUEST_SESSION_NONCE_KEY] || "").trim();
+  if (!nonce) {
+    nonce = createProfileRequestSessionNonce();
+    (req.session as any)[PROFILE_REQUEST_SESSION_NONCE_KEY] = nonce;
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((error) => (error ? reject(error) : resolve()));
+    });
+  }
+  return hashProfileRequestSessionBinding(nonce);
 }
 
 function escapeHtml(value: string): string {
@@ -245,6 +288,246 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   };
 }
 
+type ConfirmedProfileRequestDelivery = {
+  requestWorkspacePath: string;
+  onboardingPath: string | null;
+  onboardingEmailStatus: "sent" | "skipped" | "failed";
+  ownerNotificationStatus: "sent" | "failed";
+  businessNotificationEmailStatus: "sent" | "skipped" | "failed";
+};
+
+function confirmedRequestWorkspacePath(confirmed: ConfirmedAnonymousProfileRequest): string {
+  const params = new URLSearchParams({
+    requestId: confirmed.workRequestId,
+    offerHomeId: "1",
+    source: "profile_express",
+    from: "public_profile",
+    profile: confirmed.target.profileSlug,
+    profileName: confirmed.target.businessName,
+  });
+  if (confirmed.body.stoneName) params.set("item", confirmed.body.stoneName);
+  if (confirmed.body.itemId) params.set("itemId", confirmed.body.itemId);
+  if (confirmed.body.serviceName) params.set("service", confirmed.body.serviceName);
+  if (confirmed.body.stoneSelections.length) {
+    params.set("selectionCount", String(confirmed.body.stoneSelections.length));
+  }
+  return `/direct-connect/engagements?${params.toString()}`;
+}
+
+async function deliverConfirmedAnonymousProfileRequest(
+  confirmed: ConfirmedAnonymousProfileRequest,
+  correlationId: string | null
+): Promise<ConfirmedProfileRequestDelivery> {
+  const requestWorkspacePath = confirmedRequestWorkspacePath(confirmed);
+  let ownerNotificationStatus: "sent" | "failed" = "sent";
+  let businessNotificationEmailStatus: "sent" | "skipped" | "failed" = "skipped";
+  let onboardingEmailStatus: "sent" | "skipped" | "failed" = "skipped";
+
+  try {
+    await discoveryObservatory.recordRequestAction({
+      workRequestId: confirmed.workRequestId,
+      businessSlug: confirmed.target.profileSlug,
+      businessId: confirmed.target.businessId,
+      entryRequestId: confirmed.body.discoveryEntryRequestId || null,
+      occurredAt: confirmed.createdAt,
+    });
+  } catch (error) {
+    console.warn("[tradepartner-express] confirmed request observatory capture failed", {
+      requestId: confirmed.workRequestId,
+      correlationId,
+      error,
+    });
+  }
+
+  try {
+    await notificationService.createNotification({
+      userId: confirmed.target.ownerUserId,
+      type: "new_project_request",
+      title: `New request for ${confirmed.target.businessName}`,
+      message: `${confirmed.body.name} sent a request from the public profile.`,
+      actionUrl: "/direct-connect/inbox",
+      actionText: "Open request",
+      iconName: "briefcase",
+      iconColor: "orange",
+      deliveryMethods: ["in_app", "push"],
+    });
+  } catch (error) {
+    ownerNotificationStatus = "failed";
+    console.warn("[tradepartner-express] confirmed owner notification failed", {
+      requestId: confirmed.workRequestId,
+      correlationId,
+      error,
+    });
+  }
+
+  try {
+    await notifySuperAdminsOfDirectConnectRequest({
+      requestId: confirmed.workRequestId,
+      requestTitle: confirmed.title,
+      businessName: confirmed.target.businessName,
+    });
+  } catch (error) {
+    console.warn("[tradepartner-express] confirmed beta admin notification failed", {
+      requestId: confirmed.workRequestId,
+      correlationId,
+      error,
+    });
+  }
+
+  const emailConfigured = emailService.isConfigured();
+  const publicBase = String(process.env.APP_BASE_URL || "https://www.thetradescout.com").replace(
+    /\/$/,
+    ""
+  );
+  if (emailConfigured && confirmed.target.notificationEmail) {
+    try {
+      const result = await emailService.sendEmail({
+        to: confirmed.target.notificationEmail,
+        subject: `New request for ${confirmed.target.businessName}`,
+        html: [
+          `<p>${escapeHtml(confirmed.body.name)} sent a request through your ${escapeHtml(confirmed.target.businessName)} profile on TradeScout.</p>`,
+          confirmed.body.stoneName
+            ? `<p><strong>Stone:</strong> ${escapeHtml(confirmed.body.stoneName)}</p>`
+            : "",
+          confirmed.body.stoneSelections.length
+            ? `<p><strong>Saved stones:</strong></p><ul>${confirmed.body.stoneSelections
+                .map((selection) => `<li>${escapeHtml(selection.stoneName)}</li>`)
+                .join("")}</ul>`
+            : "",
+          confirmed.body.serviceName
+            ? `<p><strong>Service:</strong> ${escapeHtml(confirmed.body.serviceName)}</p>`
+            : "",
+          `<p>Contact details stay inside TradeScout until you respond.</p>`,
+          `<p><a href="${publicBase}/direct-connect/inbox">Open Direct Connect inbox</a>.</p>`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        text: [
+          `${confirmed.body.name} sent a request through your ${confirmed.target.businessName} profile on TradeScout.`,
+          confirmed.body.stoneName ? `Stone: ${confirmed.body.stoneName}` : null,
+          confirmed.body.serviceName ? `Service: ${confirmed.body.serviceName}` : null,
+          `Open Direct Connect inbox: ${publicBase}/direct-connect/inbox`,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        purpose: "tradepartner_request_notification",
+        requestId: confirmed.workRequestId,
+        correlationId,
+      });
+      businessNotificationEmailStatus = result.skipped ? "skipped" : "sent";
+    } catch (error) {
+      businessNotificationEmailStatus = "failed";
+      console.warn("[tradepartner-express] confirmed business email failed", {
+        requestId: confirmed.workRequestId,
+        correlationId,
+        notificationRecipient: maskEmailForLog(confirmed.target.notificationEmail),
+        error,
+      });
+    }
+  }
+
+  let activation: Awaited<ReturnType<typeof passwordResetService.createToken>> | null = null;
+  let verification: Awaited<ReturnType<typeof emailVerificationService.createToken>> | null = null;
+  if (confirmed.requesterWasCreated) {
+    try {
+      activation = await passwordResetService.createToken(confirmed.requesterUserId);
+    } catch (error) {
+      onboardingEmailStatus = "failed";
+      console.warn("[tradepartner-express] confirmed requester activation token failed", {
+        requestId: confirmed.workRequestId,
+        correlationId,
+        error,
+      });
+    }
+    try {
+      verification = await emailVerificationService.createToken(confirmed.requesterUserId);
+    } catch (error) {
+      console.warn("[tradepartner-express] confirmed requester verification token failed", {
+        requestId: confirmed.workRequestId,
+        correlationId,
+        error,
+      });
+    }
+  }
+  const onboardingPath = activation
+    ? `/reset-password?token=${encodeURIComponent(activation.token)}&next=${encodeURIComponent(requestWorkspacePath)}`
+    : null;
+
+  if (emailConfigured && (!confirmed.requesterWasCreated || activation)) {
+    const openPath = onboardingPath || requestWorkspacePath;
+    const verificationUrl = verification
+      ? `${publicBase}/verify-email?token=${verification.token}&next=${encodeURIComponent(requestWorkspacePath)}`
+      : null;
+    try {
+      const result = await emailService.sendEmail({
+        to: confirmed.requesterEmail,
+        subject:
+          confirmed.target.deliveryCustody === "tradescout_pending_owner"
+            ? `TradeScout received your request for ${confirmed.target.businessName}`
+            : `Your request was sent to ${confirmed.target.businessName}`,
+        html: [
+          `<p>Your confirmed request for ${escapeHtml(confirmed.target.businessName)} is now in TradeScout.</p>`,
+          `<p><a href="${publicBase}${openPath}">${confirmed.requesterWasCreated ? "Set up account access" : "Open My Requests"}</a>.</p>`,
+          verificationUrl ? `<p><a href="${verificationUrl}">Verify your email</a>.</p>` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        text: [
+          `Your confirmed request for ${confirmed.target.businessName} is now in TradeScout.`,
+          `Open My Requests: ${publicBase}${openPath}`,
+          verificationUrl ? `Verify your email: ${verificationUrl}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        purpose: confirmed.requesterWasCreated
+          ? "account_creation"
+          : "tradepartner_request_confirmation",
+        requestId: confirmed.workRequestId,
+        correlationId,
+      });
+      onboardingEmailStatus = result.skipped ? "skipped" : "sent";
+    } catch (error) {
+      onboardingEmailStatus = "failed";
+      console.warn("[tradepartner-express] confirmed requester email failed", {
+        requestId: confirmed.workRequestId,
+        correlationId,
+        requesterRecipient: maskEmailForLog(confirmed.requesterEmail),
+        error,
+      });
+    }
+  }
+
+  try {
+    await discoveryObservatory.recordProviderDeliveryAttempt({
+      workRequestId: confirmed.workRequestId,
+      state:
+        ownerNotificationStatus === "sent" || businessNotificationEmailStatus === "sent"
+          ? "target_delivery_queued_or_sent"
+          : "target_delivery_not_confirmed",
+      details: {
+        ownerNotificationStatus,
+        businessNotificationEmailStatus,
+        deliveryCustody: confirmed.target.deliveryCustody,
+        authorityGate: PROFILE_REQUEST_AUTHORITY_GATE,
+      },
+    });
+  } catch (error) {
+    console.warn("[tradepartner-express] confirmed delivery observatory capture failed", {
+      requestId: confirmed.workRequestId,
+      correlationId,
+      error,
+    });
+  }
+
+  return {
+    requestWorkspacePath,
+    onboardingPath,
+    onboardingEmailStatus,
+    ownerNotificationStatus,
+    businessNotificationEmailStatus,
+  };
+}
+
 export function registerTradePartnerExpressRoutes(app: Express) {
   const isProduction = process.env.NODE_ENV === "production";
   const noopLimiter: any = (_req: Request, _res: Response, next: () => void) => next();
@@ -334,6 +617,96 @@ export function registerTradePartnerExpressRoutes(app: Express) {
   );
 
   app.post(
+    "/api/tradepartner-profiles/:slug/express-request/confirm",
+    submitLimiter,
+    async (req: OptionalAuthedRequest, res: Response) => {
+      try {
+        const parsed = confirmRequestSchema.safeParse(req.body ?? {});
+        if (!parsed.success) {
+          return res.status(400).json({
+            message: "Review the request again before confirming it.",
+          });
+        }
+        const sessionBindingHash = existingProfileRequestSessionBinding(req);
+        if (!sessionBindingHash) {
+          return res.status(409).json({
+            message: "This request decision is no longer valid. Start the request again.",
+          });
+        }
+
+        const confirmed = await confirmAnonymousProfileRequest({
+          decisionProof: parsed.data.decisionProof,
+          sessionBindingHash,
+          targetProfileSlug: req.params.slug,
+        });
+        const correlationId =
+          String((req as any).requestId || req.get("x-request-id") || "").trim() || null;
+        let delivery: ConfirmedProfileRequestDelivery = {
+          requestWorkspacePath: confirmedRequestWorkspacePath(confirmed),
+          onboardingPath: null,
+          onboardingEmailStatus: "failed",
+          ownerNotificationStatus: "failed",
+          businessNotificationEmailStatus: "failed",
+        };
+        try {
+          delivery = await deliverConfirmedAnonymousProfileRequest(confirmed, correlationId);
+        } catch (error) {
+          // Confirmation already committed the request and consumed the proof.
+          // Never report a false failure that could invite a duplicate request.
+          console.warn("[tradepartner-express] confirmed request delivery failed after commit", {
+            requestId: confirmed.workRequestId,
+            correlationId,
+            error,
+          });
+        }
+
+        console.info("[tradepartner-express] anonymous request confirmed", {
+          requestId: confirmed.workRequestId,
+          correlationId,
+          profileId: confirmed.target.profileId,
+          businessId: confirmed.target.businessId,
+          requesterUserId: confirmed.requesterUserId,
+          authorityGate: PROFILE_REQUEST_AUTHORITY_GATE,
+          source: PROFILE_REQUEST_SOURCE,
+          accountCreated: confirmed.requesterWasCreated,
+          ownerNotificationStatus: delivery.ownerNotificationStatus,
+          businessNotificationEmailStatus: delivery.businessNotificationEmailStatus,
+          onboardingEmailStatus: delivery.onboardingEmailStatus,
+        });
+        return res.status(201).json({
+          requestId: confirmed.workRequestId,
+          status: confirmed.workRequestStatus,
+          businessName: confirmed.target.businessName,
+          delivered: confirmed.target.deliveryCustody === "business",
+          deliveryCustody: confirmed.target.deliveryCustody,
+          accountCreated: confirmed.requesterWasCreated,
+          onboardingPath: delivery.onboardingPath,
+          onboardingEmailStatus: delivery.onboardingEmailStatus,
+          requestWorkspacePath: delivery.requestWorkspacePath,
+          membershipNext: confirmed.requesterWasCreated
+            ? "Set up your TradeScout access to follow this request."
+            : "Sign in to follow this request in Direct Connect.",
+        });
+      } catch (error) {
+        if (error instanceof ProfileRequestDecisionError) {
+          console.warn("[tradepartner-express] anonymous request confirmation rejected", {
+            code: error.code,
+            profileSlug: String(req.params.slug || "")
+              .trim()
+              .toLowerCase(),
+            requestId: (req as any).requestId || null,
+          });
+          return res.status(error.code === "PROOF_EXPIRED" ? 410 : 409).json({
+            message: "This request decision is no longer valid. Start the request again.",
+          });
+        }
+        console.error("[tradepartner-express] anonymous request confirmation failed", error);
+        return res.status(500).json({ message: "The request could not be confirmed." });
+      }
+    }
+  );
+
+  app.post(
     "/api/tradepartner-profiles/:slug/express-request",
     submitLimiter,
     async (req: OptionalAuthedRequest, res: Response) => {
@@ -376,100 +749,91 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             message: "Choose at least two named stones for a saved-selection request.",
           });
         }
-        const email = normalizeEmail(body.email);
-        const { firstName, lastName } = splitName(body.name);
+        const sanitizedMessage = redactContactDetails(body.message).trim();
         const viewerId = String(req.user?.id || req.user?.claims?.sub || "").trim();
-        let requester = viewerId ? await storage.getUser(viewerId) : null;
-        if (!requester) requester = await storage.getUserByEmail(email);
-        const requesterWasCreated = !requester;
         const updatesOptIn = body.updatesOptIn === true;
-        if (!requester) {
-          requester = await storage.createUser({
-            email,
-            firstName,
-            lastName,
+
+        if (!viewerId) {
+          const sessionBindingHash = await ensureProfileRequestSessionBinding(req);
+          if (!sessionBindingHash) {
+            return res.status(503).json({ message: "The request could not be prepared." });
+          }
+          const stagedPayload: StagedProfileRequestPayload = {
+            name: body.name,
+            email: normalizeEmail(body.email),
             phone: body.phone,
-            role: "homeowner" as any,
-            roles: ["homeowner"],
-            activeRole: "homeowner",
-            provider: "express_profile",
-            emailVerified: false,
-            addressVerified: false,
-            onboardingCompleted: false,
-            preferences: {
-              // Targeting later uses preferences.marketingEmails (admin segments).
-              // No ESP sync is claimed here — consent is stored truthfully.
-              marketingEmails: updatesOptIn,
-              provisional: {
-                userTypes: ["homeowner"],
-                source: "tradepartner_profile_express_request",
-                capturedAt: new Date().toISOString(),
-              },
-              ...(updatesOptIn
-                ? {
-                    marketingConsent: {
-                      source: "tradepartner_profile_express_request",
-                      profileSlug: target.profileSlug,
-                      businessId: target.businessId,
-                      topics: ["new_arrivals", "first_cuts", "promotions"],
-                      optedInAt: new Date().toISOString(),
-                    },
-                  }
-                : {}),
+            requestType: body.requestType,
+            message: sanitizedMessage,
+            stoneName: publicStoneName || null,
+            serviceName: body.serviceName || null,
+            itemId: body.itemId || null,
+            stoneSelections: publicStoneSelections,
+            updatesOptIn,
+            discoveryEntryRequestId: verifiedDiscoveryAttribution?.entryRequestId || null,
+          };
+          const staged = await profileRequestDecisionService.stage({
+            sessionBindingHash,
+            target: {
+              profileId: target.profileId,
+              profileSlug: target.profileSlug,
+              businessId: target.businessId,
+              ownerUserId: target.ownerUserId,
             },
-          } as any);
-        } else if (viewerId) {
-          // Only mutate an existing account when the visitor owns the current
-          // authenticated session. A logged-out email match may receive the
-          // request, but cannot silently replace that member's profile data.
-          const updates: Record<string, any> = {};
-          if (!requester.firstName) updates.firstName = firstName;
-          if (!requester.lastName && lastName) updates.lastName = lastName;
-          if (!requester.phone) updates.phone = body.phone;
-          if (updatesOptIn) {
-            const existingPreferences =
-              requester.preferences && typeof requester.preferences === "object"
-                ? (requester.preferences as Record<string, any>)
-                : {};
-            updates.preferences = {
-              ...existingPreferences,
-              marketingEmails: true,
-              marketingConsent: {
-                source: "tradepartner_profile_express_request",
-                profileSlug: target.profileSlug,
-                businessId: target.businessId,
-                topics: ["new_arrivals", "first_cuts", "promotions"],
-                optedInAt: new Date().toISOString(),
-              },
-            };
-          }
-          if (Object.keys(updates).length > 0) {
-            requester = await storage.updateUser(String(requester.id), updates);
-          }
-        } else if (updatesOptIn && requester) {
-          // Logged-out email match: persist marketing consent only (no profile
-          // field overwrite). Still ties opt-in to the matched account so
-          // admin marketing segments can find them later.
+            requestPayload: stagedPayload,
+          });
+          console.info("[tradepartner-express] anonymous request decision staged", {
+            profileId: target.profileId,
+            businessId: target.businessId,
+            source: PROFILE_REQUEST_SOURCE,
+            authorityGate: PROFILE_REQUEST_AUTHORITY_GATE,
+            requestId: (req as any).requestId || null,
+          });
+          // Generic by design: do not reveal whether the submitted email maps
+          // to an account, and do not create/route a request until confirmation.
+          return res.status(202).json({
+            accepted: true,
+            status: "decision_required",
+            authorityGate: PROFILE_REQUEST_AUTHORITY_GATE,
+            source: PROFILE_REQUEST_SOURCE,
+            decisionProof: staged.decisionProof,
+            expiresAt: staged.expiresAt.toISOString(),
+            message: "Review and confirm this request before it is sent.",
+          });
+        }
+
+        let requester = await storage.getUser(viewerId);
+        if (!requester) {
+          return res.status(401).json({ message: "Sign in again before sending this request." });
+        }
+        const requesterWasCreated = false;
+        const { firstName, lastName } = splitName(body.name);
+        // An authenticated visitor may fill missing fields on their own
+        // account. Anonymous staged data never reaches this mutation path.
+        const updates: Record<string, any> = {};
+        if (!requester.firstName) updates.firstName = firstName;
+        if (!requester.lastName && lastName) updates.lastName = lastName;
+        if (!requester.phone) updates.phone = body.phone;
+        if (updatesOptIn) {
           const existingPreferences =
             requester.preferences && typeof requester.preferences === "object"
               ? (requester.preferences as Record<string, any>)
               : {};
-          requester = await storage.updateUser(String(requester.id), {
-            preferences: {
-              ...existingPreferences,
-              marketingEmails: true,
-              marketingConsent: {
-                source: "tradepartner_profile_express_request",
-                profileSlug: target.profileSlug,
-                businessId: target.businessId,
-                topics: ["new_arrivals", "first_cuts", "promotions"],
-                optedInAt: new Date().toISOString(),
-              },
+          updates.preferences = {
+            ...existingPreferences,
+            marketingEmails: true,
+            marketingConsent: {
+              source: "tradepartner_profile_express_request",
+              profileSlug: target.profileSlug,
+              businessId: target.businessId,
+              topics: ["new_arrivals", "first_cuts", "promotions"],
+              optedInAt: new Date().toISOString(),
             },
-          });
+          };
+        }
+        if (Object.keys(updates).length > 0) {
+          requester = await storage.updateUser(String(requester.id), updates);
         }
 
-        const sanitizedMessage = redactContactDetails(body.message).trim();
         const title = requestTitle(body.requestType, target.businessName);
         const now = new Date();
         const [created] = await db.transaction(async (tx: any) => {

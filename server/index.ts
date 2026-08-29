@@ -11,6 +11,10 @@ import "@sentry/tracing";
 import { registerRoutes } from "./routes";
 import { registerPublicShellAliasRoutes } from "./publicShellAliasRoutes";
 import { logger } from "./services/logger";
+import {
+  startProfileRequestDecisionCleanupWorker,
+  stopProfileRequestDecisionCleanupWorker,
+} from "./services/profileRequestDecisionCleanupWorker";
 import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
 import { db, pool } from "./db";
 import { notificationService } from "./notification-service";
@@ -174,6 +178,7 @@ const shutdown = async (signal: string) => {
   isShuttingDown = true;
   logger.info(`[lifecycle] Received ${signal}; shutting down gracefully`);
   try {
+    await stopProfileRequestDecisionCleanupWorker({ drain: true });
     await releaseSchedulerLeadership();
     await closeRedisClient();
     void pool.end();
@@ -1237,6 +1242,7 @@ app.use(landingContractHeaders);
     // If 'routes' is not implicitly available, it needs to be imported.
     // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
     const server = await registerRoutes(app);
+    await startProfileRequestDecisionCleanupWorker();
 
     // Attach job documents + invoicing/contract APIs after auth/session are configured
     app.use(createInvoicingDocumentsRouter(pool));

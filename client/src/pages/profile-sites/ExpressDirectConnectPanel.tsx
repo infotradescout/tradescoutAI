@@ -70,7 +70,7 @@ type ExpressDirectConnectPanelProps = {
   deliveryCustody?: ExpressDirectConnectDeliveryCustody;
 };
 
-type PanelView = "choice" | "request" | "call_started" | "success";
+type PanelView = "choice" | "request" | "decision" | "call_started" | "success";
 
 const REQUEST_MODE_CONFIG: Record<
   ExpressDirectConnectMode,
@@ -178,6 +178,7 @@ export default function ExpressDirectConnectPanel({
   const [callTel, setCallTel] = useState("");
   const [requestId, setRequestId] = useState("");
   const [requestWorkspacePath, setRequestWorkspacePath] = useState("");
+  const [decisionProof, setDecisionProof] = useState("");
   const [requestDeliveryCustody, setRequestDeliveryCustody] =
     useState<ExpressDirectConnectDeliveryCustody>(deliveryCustody);
   const [form, setForm] = useState({
@@ -230,6 +231,7 @@ export default function ExpressDirectConnectPanel({
     setCallTel("");
     setRequestId("");
     setRequestWorkspacePath("");
+    setDecisionProof("");
     setRequestDeliveryCustody(deliveryCustody);
     setForm((current) => ({
       ...current,
@@ -392,6 +394,16 @@ export default function ExpressDirectConnectPanel({
             : "We couldn’t send that yet."
         );
       }
+      if (
+        response.status === 202 &&
+        json?.status === "decision_required" &&
+        typeof json?.decisionProof === "string" &&
+        json.decisionProof
+      ) {
+        setDecisionProof(json.decisionProof);
+        setView("decision");
+        return;
+      }
       setRequestId(String(json?.requestId || ""));
       setRequestWorkspacePath(
         typeof json?.requestWorkspacePath === "string" ? json.requestWorkspacePath : ""
@@ -404,6 +416,55 @@ export default function ExpressDirectConnectPanel({
       setView("success");
     } catch (cause: any) {
       setError(cause?.message || "We couldn’t send that yet.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmRequest = async () => {
+    if (!decisionProof) {
+      setError("Review the request details again before sending.");
+      setView("request");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-request/confirm`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            authorityGate: "decision_card",
+            source: "tradepartner_profile",
+            decisionProof,
+          }),
+        }
+      );
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 409 || response.status === 410) {
+          setDecisionProof("");
+          setView("request");
+          throw new Error("That review expired or was already used. Review the details again.");
+        }
+        throw new Error("We couldn’t confirm that request yet.");
+      }
+      setDecisionProof("");
+      setRequestId(String(json?.requestId || ""));
+      setRequestWorkspacePath(
+        typeof json?.requestWorkspacePath === "string" ? json.requestWorkspacePath : ""
+      );
+      setRequestDeliveryCustody(
+        json?.deliveryCustody === "tradescout_pending_owner"
+          ? "tradescout_pending_owner"
+          : "business"
+      );
+      setView("success");
+    } catch (cause: any) {
+      setError(cause?.message || "We couldn’t confirm that request yet.");
     } finally {
       setBusy(false);
     }
@@ -426,12 +487,13 @@ export default function ExpressDirectConnectPanel({
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-stone-50 px-5 py-4">
           <div className="flex items-center gap-3">
-            {view === "request" ? (
+            {view === "request" || view === "decision" ? (
               <button
                 type="button"
                 onClick={() => {
                   setError("");
-                  setView("choice");
+                  if (view === "decision") setView("request");
+                  else setView("choice");
                 }}
                 className="rounded-full p-2 text-neutral-900 hover:bg-black/5"
                 aria-label="Back to contact options"
@@ -681,6 +743,57 @@ export default function ExpressDirectConnectPanel({
                 Make A Request
               </button>
             </form>
+          ) : null}
+
+          {view === "decision" ? (
+            <div data-testid="profile-request-decision-card">
+              <div className="rounded-2xl border border-ts-orange/25 bg-white p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-ts-orange-dark">
+                  Decision Card
+                </p>
+                <h3 className="mt-2 text-2xl font-bold text-neutral-900">Review before sending</h3>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  Confirming sends one private request to {businessName}. It does not publish your
+                  details or contact any other business.
+                </p>
+                <dl className="mt-5 space-y-3 text-sm">
+                  <div>
+                    <dt className="font-semibold text-neutral-900">Request</dt>
+                    <dd className="mt-1 whitespace-pre-wrap text-stone-600">{form.message}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-neutral-900">Contact supplied</dt>
+                    <dd className="mt-1 text-stone-600">
+                      {form.name} · {form.email} · {form.phone}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={confirmRequest}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-ts-orange px-7 py-3.5 font-bold text-white transition-colors hover:bg-ts-orange-dark disabled:opacity-60"
+              >
+                {busy ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5" />
+                )}
+                Confirm and send
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setError("");
+                  setView("request");
+                }}
+                className="mt-2 w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900 disabled:opacity-60"
+              >
+                Edit request
+              </button>
+            </div>
           ) : null}
 
           {view === "call_started" ? (

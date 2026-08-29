@@ -147,8 +147,19 @@ describe("beta Direct Connect super-admin oversight contract", () => {
   });
 
   it("fails soft after the customer request is committed", () => {
-    expect(expressSource.indexOf("await tx.insert(workRequestAssignments)")).toBeLessThan(
-      expressSource.indexOf("await notifySuperAdminsOfDirectConnectRequest({")
+    expect(expressSource.lastIndexOf("await tx.insert(workRequestAssignments)")).toBeLessThan(
+      expressSource.lastIndexOf("await notifySuperAdminsOfDirectConnectRequest({")
+    );
+    const confirmRouteStart = expressSource.indexOf(
+      '"/api/tradepartner-profiles/:slug/express-request/confirm"'
+    );
+    const confirmRouteEnd = expressSource.indexOf(
+      '"/api/tradepartner-profiles/:slug/express-request",',
+      confirmRouteStart
+    );
+    const confirmRoute = expressSource.slice(confirmRouteStart, confirmRouteEnd);
+    expect(confirmRoute.indexOf("await confirmAnonymousProfileRequest({")).toBeLessThan(
+      confirmRoute.indexOf("await deliverConfirmedAnonymousProfileRequest(")
     );
     expect(expressSource).toContain("beta admin notification failed");
     expect(directConnectSource).toContain("beta admin notification failed");

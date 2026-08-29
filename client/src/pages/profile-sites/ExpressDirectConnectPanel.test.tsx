@@ -373,4 +373,84 @@ describe("Express Direct Connect anonymous inventory context", () => {
     expect(container.textContent).not.toContain("Manage this in TradeScout");
     expect(container.querySelector('a[href*="pre-scout-setup"]')).toBeNull();
   });
+
+  it("requires the anonymous one-time Decision Card confirmation before showing success", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 202,
+        json: async () => ({
+          accepted: true,
+          status: "decision_required",
+          authorityGate: "decision_card",
+          source: "tradepartner_profile",
+          decisionProof: "opaque-session-bound-decision-proof-value-1234567890",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          requestId: "request-confirmed",
+          requestWorkspacePath: "/direct-connect/engagements?requestId=request-confirmed",
+          deliveryCustody: "business",
+        }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      root.render(
+        <ExpressDirectConnectPanel
+          open
+          onClose={vi.fn()}
+          profileSlug="example-business"
+          businessName="Example Business"
+          hasViewerSession={false}
+          allowCall={false}
+          stayInProfile
+          initialView="request"
+          requestMode="service"
+        />
+      );
+    });
+
+    change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");
+    change(container.querySelector<HTMLInputElement>('input[type="email"]'), "alex@example.com");
+    change(container.querySelector<HTMLInputElement>('input[type="tel"]'), "850-555-0100");
+    change(container.querySelector<HTMLTextAreaElement>("textarea"), "Please quote this project.");
+
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-testid="profile-request-decision-card"]')).toBeTruthy();
+    expect(container.textContent).toContain("Review before sending");
+    expect(container.textContent).not.toContain("Request sent");
+
+    const confirm = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Confirm and send")
+    );
+    await act(async () => {
+      click(confirm || null);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      "/api/tradepartner-profiles/example-business/express-request/confirm"
+    );
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body || "{}"))).toEqual({
+      authorityGate: "decision_card",
+      source: "tradepartner_profile",
+      decisionProof: "opaque-session-bound-decision-proof-value-1234567890",
+    });
+    expect(container.textContent).toContain("Request sent");
+  });
 });

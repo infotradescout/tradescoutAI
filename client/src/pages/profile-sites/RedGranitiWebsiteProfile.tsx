@@ -32,7 +32,7 @@ type Props = {
   platformBaseHref?: string;
 };
 
-type RequestStatus = "idle" | "sending" | "success" | "error";
+type RequestStatus = "idle" | "sending" | "review" | "success" | "error";
 
 type RequestForm = {
   name: string;
@@ -187,6 +187,7 @@ export default function RedGranitiWebsiteProfile({
   const [requestStatus, setRequestStatus] = useState<RequestStatus>("idle");
   const [requestError, setRequestError] = useState("");
   const [requestId, setRequestId] = useState("");
+  const [decisionProof, setDecisionProof] = useState("");
 
   const jwProfileHref = qualifyPublicProfileItemDestination(
     `/u/${JW_STONE_PROFILE_SLUG}`,
@@ -288,6 +289,17 @@ export default function RedGranitiWebsiteProfile({
         );
       }
 
+      if (
+        response.status === 202 &&
+        json?.status === "decision_required" &&
+        typeof json?.decisionProof === "string" &&
+        json.decisionProof
+      ) {
+        setDecisionProof(json.decisionProof);
+        setRequestStatus("review");
+        return;
+      }
+
       setRequestId(String(json?.requestId || ""));
       setRequestStatus("success");
     } catch (cause: unknown) {
@@ -296,6 +308,50 @@ export default function RedGranitiWebsiteProfile({
         cause instanceof Error
           ? cause.message
           : "The request could not be sent. Call or email the managed contact instead."
+      );
+    }
+  };
+
+  const confirmRequest = async () => {
+    if (!decisionProof) {
+      setRequestStatus("error");
+      setRequestError("Review the request details again before sending.");
+      return;
+    }
+    setRequestStatus("sending");
+    setRequestError("");
+    try {
+      const response = await fetch(
+        `/api/tradepartner-profiles/${JW_STONE_PROFILE_SLUG}/express-request/confirm`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            authorityGate: "decision_card",
+            source: "tradepartner_profile",
+            decisionProof,
+          }),
+        }
+      );
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          response.status === 409 || response.status === 410
+            ? "That review expired or was already used. Review the details again."
+            : "The request could not be confirmed. Call or email the managed contact instead."
+        );
+      }
+      setDecisionProof("");
+      setRequestId(String(json?.requestId || ""));
+      setRequestStatus("success");
+    } catch (cause: unknown) {
+      setDecisionProof("");
+      setRequestStatus("error");
+      setRequestError(
+        cause instanceof Error
+          ? cause.message
+          : "The request could not be confirmed. Call or email the managed contact instead."
       );
     }
   };
@@ -590,7 +646,24 @@ export default function RedGranitiWebsiteProfile({
                 <h3 className="mt-4 text-2xl font-semibold">Request sent.</h3>
                 <p className="mt-2 text-sm leading-7 text-black/65">The first-cut team will contact you using the details provided.</p>
                 {requestId ? <p className="mt-3 text-xs text-black/45">Reference: {requestId}</p> : null}
-                <button type="button" onClick={() => { setRequestForm(EMPTY_REQUEST_FORM); setRequestStatus("idle"); setRequestId(""); }} className="mt-5 border border-black/20 px-5 py-3 text-xs font-bold uppercase tracking-[0.14em]">Send another request</button>
+                <button type="button" onClick={() => { setRequestForm(EMPTY_REQUEST_FORM); setRequestStatus("idle"); setRequestId(""); setDecisionProof(""); }} className="mt-5 border border-black/20 px-5 py-3 text-xs font-bold uppercase tracking-[0.14em]">Send another request</button>
+              </div>
+            ) : requestStatus === "review" || (requestStatus === "sending" && decisionProof) ? (
+              <div className="mt-8 border border-white/45 bg-white p-6 text-[#252122]" data-testid="red-graniti-request-decision-card">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#d71920]">Decision Card</p>
+                <h3 className="mt-4 text-2xl font-semibold">Review before sending.</h3>
+                <p className="mt-2 text-sm leading-7 text-black/65">
+                  Confirming sends one private request to the first-cut team. It does not publish your contact details or contact another business.
+                </p>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <button type="button" onClick={confirmRequest} disabled={requestStatus === "sending"} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#d71920] px-8 text-xs font-bold uppercase tracking-[0.16em] text-white disabled:cursor-wait disabled:opacity-70" data-testid="red-graniti-confirm-request">
+                    {requestStatus === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    {requestStatus === "sending" ? "Confirming" : "Confirm and send"}
+                  </button>
+                  <button type="button" disabled={requestStatus === "sending"} onClick={() => { setDecisionProof(""); setRequestStatus("idle"); setRequestError(""); }} className="min-h-12 border border-black/20 px-7 text-xs font-bold uppercase tracking-[0.14em]">
+                    Edit details
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={submitRequest} className="mt-8 space-y-5" data-testid="red-graniti-request-form">
