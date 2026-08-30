@@ -6889,6 +6889,7 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
 
+        // Explicit targeting preserves requester choice; this is not automatic routing.
         if (created && targetProviderIds.length > 0) {
           try {
             const requestedIds = targetProviderIds;

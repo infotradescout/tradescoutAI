@@ -4,6 +4,10 @@ import path from "path";
 
 const routePath = path.resolve(process.cwd(), "server/routes/direct-connect/job-lifecycle.ts");
 const rootRoutePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
+const completionRoutePath = path.resolve(
+  process.cwd(),
+  "server/routes/direct-connect/completion.ts"
+);
 const servicePath = path.resolve(
   process.cwd(),
   "server/services/directConnectDispatchLedgerService.ts"
@@ -13,7 +17,8 @@ function read(filePath: string) {
   return fs.readFileSync(filePath, "utf8");
 }
 
-const readRouteSources = () => [read(rootRoutePath), read(routePath)].join("\n");
+const readRouteSources = () =>
+  [read(rootRoutePath), read(routePath), read(completionRoutePath)].join("\n");
 
 describe("direct-connect punch list and completion gate contract", () => {
   it("adds ready-for-punchout endpoint and gating", () => {
@@ -54,6 +59,7 @@ describe("direct-connect punch list and completion gate contract", () => {
     expect(source).toContain('"completion_confirmed"');
     expect(source).toContain('"completion_rejected"');
     expect(source).toContain('eventType: "job_completed"');
+    expect(source).toContain("const completionDecision = await finalizeDirectConnectCompletion({");
   });
 
   it("does not auto-create invoice or receipt in punch/completion module", () => {

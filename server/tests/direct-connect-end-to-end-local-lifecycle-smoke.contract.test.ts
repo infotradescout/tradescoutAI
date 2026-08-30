@@ -15,7 +15,7 @@ describe("direct connect end-to-end local lifecycle smoke", () => {
   it("keeps the requester lifecycle path intact without requiring Home Record", () => {
     const shellSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
-    expect(shellSource).toContain('>("skip_for_now")');
+    expect(shellSource).toContain('>(() => prefillHomeContextIntent || "skip_for_now")');
     expect(shellSource).toContain("handleSkipAndAutoRoute");
     expect(shellSource).toContain('type: "direct_connect_request_review_opened"');
     expect(shellSource).toContain('type: "direct_connect_request_submitted"');

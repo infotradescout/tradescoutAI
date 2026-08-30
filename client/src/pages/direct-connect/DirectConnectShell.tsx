@@ -129,6 +129,8 @@ import {
   getDirectConnectContextLabel,
   getDirectConnectIntent,
   type DirectConnectEntryContextType,
+  type DirectConnectHomeContextIntent,
+  type DirectConnectHomePacketReadinessState,
   type DirectConnectIntent,
 } from "./directConnectEntryContext";
 import { resolveDirectConnectEntryContext } from "./stagedDirectConnectEntryContext";
@@ -1459,6 +1461,11 @@ function DirectConnectRequestComposer({
   prefillLocation,
   prefillTiming,
   prefillTradeId,
+  prefillHomeId,
+  prefillHomeContextIntent,
+  prefillHomePacketId,
+  prefillHomePacketSelectedDetailIds,
+  prefillHomePacketReadinessState,
 }: {
   entryLocation?: string;
   defaultCountyFips?: string;
@@ -1478,6 +1485,11 @@ function DirectConnectRequestComposer({
   prefillLocation?: string;
   prefillTiming?: string;
   prefillTradeId?: string;
+  prefillHomeId?: string;
+  prefillHomeContextIntent?: DirectConnectHomeContextIntent;
+  prefillHomePacketId?: string;
+  prefillHomePacketSelectedDetailIds?: string[];
+  prefillHomePacketReadinessState?: DirectConnectHomePacketReadinessState;
 }) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -1535,7 +1547,7 @@ function DirectConnectRequestComposer({
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>(() =>
     prefillTargetProviderId ? [prefillTargetProviderId] : []
   );
-  const [selectedHomeId, setSelectedHomeId] = useState<string>("");
+  const [selectedHomeId, setSelectedHomeId] = useState<string>(() => prefillHomeId?.trim() || "");
   const [assetComponentType, setAssetComponentType] = useState<
     | "roof"
     | "hvac"
@@ -1552,7 +1564,7 @@ function DirectConnectRequestComposer({
   const [assetComponentId, setAssetComponentId] = useState("");
   const [homeContextIntent, setHomeContextIntent] = useState<
     "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now"
-  >("skip_for_now");
+  >(() => prefillHomeContextIntent || "skip_for_now");
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
@@ -1603,6 +1615,11 @@ function DirectConnectRequestComposer({
       location: String(prefillLocation || "").trim(),
       timing: String(prefillTiming || "").trim(),
       tradeId: String(prefillTradeId || "").trim(),
+      homeId: String(prefillHomeId || "").trim(),
+      homeContextIntent: String(prefillHomeContextIntent || "").trim(),
+      homePacketId: String(prefillHomePacketId || "").trim(),
+      homePacketSelectedDetailIds: (prefillHomePacketSelectedDetailIds || []).join(","),
+      homePacketReadinessState: String(prefillHomePacketReadinessState || "").trim(),
     };
     return Object.values(entryIdentity).some(Boolean) ? JSON.stringify(entryIdentity) : "";
   };
@@ -2284,6 +2301,24 @@ function DirectConnectRequestComposer({
       if (dispatch?.assetComponentId?.trim())
         payload.assetComponentId = dispatch.assetComponentId.trim();
       if (dispatch?.assetLabel?.trim()) payload.assetLabel = dispatch.assetLabel.trim();
+      const homePacketId = prefillHomePacketId?.trim();
+      const carriesHomePacket = Boolean(
+        (dispatch?.homeContextIntent === "link_existing" ||
+          dispatch?.homeContextIntent === "update_from_request") &&
+        dispatch.homeId?.trim() &&
+        homePacketId
+      );
+      if (carriesHomePacket && homePacketId) {
+        payload.homePacketId = homePacketId;
+        if (prefillHomePacketSelectedDetailIds?.length) {
+          payload.homePacketSelectedDetailIds = Array.from(
+            new Set(prefillHomePacketSelectedDetailIds)
+          ).slice(0, 50);
+        }
+        if (prefillHomePacketReadinessState === "ready_for_handoff") {
+          payload.homePacketReadinessState = prefillHomePacketReadinessState;
+        }
+      }
 
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
@@ -6408,6 +6443,11 @@ export default function DirectConnectShell() {
           prefillLocation={requestPrefill?.location}
           prefillTiming={requestPrefill?.timing}
           prefillTradeId={requestPrefill?.tradeId}
+          prefillHomeId={requestPrefill?.homeId}
+          prefillHomeContextIntent={requestPrefill?.homeContextIntent}
+          prefillHomePacketId={requestPrefill?.homePacketId}
+          prefillHomePacketSelectedDetailIds={requestPrefill?.homePacketSelectedDetailIds}
+          prefillHomePacketReadinessState={requestPrefill?.homePacketReadinessState}
         />
       );
       break;

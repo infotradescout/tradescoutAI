@@ -44,6 +44,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "@/lib/homeidPersistence";
+import { stageDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 
 type Tab =
   | "overview"
@@ -593,12 +594,22 @@ export default function HomeIdWorkspace() {
 
   const openRequest = (packetId?: string) => {
     if (!homeId) return;
-    const params = new URLSearchParams({
+    const packet = packetId ? packets.find((item) => item.id === packetId) : undefined;
+    const directConnectHref = stageDirectConnectEntryContext({
       homeId,
       homeContextIntent: "update_from_request",
+      source: "homeid_request_packet",
+      ...(packet
+        ? {
+            homePacketId: packet.id,
+            homePacketSelectedDetailIds: [...packet.selectedDetailIds],
+            ...(packet.status === "ready_for_handoff"
+              ? { homePacketReadinessState: packet.status }
+              : {}),
+          }
+        : {}),
     });
-    if (packetId) params.set("homePacketId", packetId);
-    navigate(`/direct-connect?${params.toString()}`);
+    navigate(directConnectHref);
   };
 
   if (!homeId && !homesQuery.isLoading && homes.length === 0) {
@@ -1587,6 +1598,15 @@ function Requests({
     <div className="grid gap-5 xl:grid-cols-[440px_minmax(0,1fr)]">
       <Panel eyebrow="Prepare first" title="Build a request from HomeID facts">
         <div className="space-y-4">
+          <p
+            className="text-sm leading-6 text-white/[0.48]"
+            data-testid="homeid-direct-connect-boundary"
+          >
+            HomeID remembers useful property history. Direct Connect starts the job only when you
+            submit. Opening Direct Connect prepares the draft composer; no provider dispatch,
+            routing, or payment happens here. Save the relevant facts so future requests start with
+            better property history.
+          </p>
           <Select value={requestType} onValueChange={setRequestType}>
             <SelectTrigger className={INPUT}><SelectValue /></SelectTrigger>
             <SelectContent>

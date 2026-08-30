@@ -2,6 +2,7 @@ import {
   parseDirectConnectEntryContext,
   type DirectConnectEntryContext,
   type DirectConnectEntryContextType,
+  type DirectConnectHomeContextIntent,
 } from "./directConnectEntryContext";
 
 const STAGED_CONTEXT_VERSION = 1;
@@ -23,6 +24,12 @@ const CONTEXT_TYPES: ReadonlySet<DirectConnectEntryContextType> = new Set([
 ]);
 
 const SUBJECT_TYPES: ReadonlySet<string> = new Set(["business", "product", "service", "evidence"]);
+const HOME_CONTEXT_INTENTS: ReadonlySet<DirectConnectHomeContextIntent> = new Set([
+  "link_existing",
+  "create_from_request",
+  "update_from_request",
+  "skip_for_now",
+]);
 
 type StagedContextEnvelope = {
   version: typeof STAGED_CONTEXT_VERSION;
@@ -93,6 +100,24 @@ function cleanSubjectType(value: unknown): DirectConnectEntryContext["subjectTyp
     : undefined;
 }
 
+function cleanHomeContextIntent(value: unknown): DirectConnectHomeContextIntent | undefined {
+  return typeof value === "string" &&
+    HOME_CONTEXT_INTENTS.has(value as DirectConnectHomeContextIntent)
+    ? (value as DirectConnectHomeContextIntent)
+    : undefined;
+}
+
+function cleanIdentityList(value: unknown, maxItems: number): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+
+  const cleaned = Array.from(
+    new Set(
+      value.map((item) => cleanIdentity(item, 120)).filter((item): item is string => Boolean(item))
+    )
+  ).slice(0, maxItems);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
 /**
  * Keeps only the Direct Connect entry fields the composer understands, removes
  * unsafe control characters, validates enums/geography/budgets, and enforces
@@ -122,6 +147,12 @@ export function sanitizeDirectConnectEntryContext(
     contextType: cleanContextType(source.contextType),
     contextId: cleanIdentity(source.contextId, 120),
     subjectType: cleanSubjectType(source.subjectType),
+    homeId: cleanIdentity(source.homeId, 120),
+    homeContextIntent: cleanHomeContextIntent(source.homeContextIntent),
+    homePacketId: cleanIdentity(source.homePacketId, 120),
+    homePacketSelectedDetailIds: cleanIdentityList(source.homePacketSelectedDetailIds, 50),
+    homePacketReadinessState:
+      source.homePacketReadinessState === "ready_for_handoff" ? "ready_for_handoff" : undefined,
   };
 
   for (const key of Object.keys(context) as Array<keyof DirectConnectEntryContext>) {
