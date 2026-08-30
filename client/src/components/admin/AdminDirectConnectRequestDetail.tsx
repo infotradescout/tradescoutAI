@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type AdminDirectConnectRequestDetailResponse = {
   request: {
@@ -206,7 +207,12 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
               </p>
             ) : null}
             {rescueMutation.isError ? (
-              <p className="mt-2 text-xs text-red-300">{rescueMutation.error.message}</p>
+              <p className="mt-2 text-xs text-red-300">
+                {formatUserFacingErrorMessage(
+                  rescueMutation.error,
+                  "Routing rescue failed. Review the request and try again."
+                )}
+              </p>
             ) : null}
           </div>
         ) : null}

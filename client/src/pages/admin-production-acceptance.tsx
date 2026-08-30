@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type AcceptanceStatus = "working" | "genuinely_empty" | "unavailable" | "blocked";
 
@@ -268,7 +269,10 @@ export default function AdminProductionAcceptancePage() {
                 <p className="mt-1 opacity-75">{report.controlledWriteCanary.detail}</p>
                 {writeCanaryMutation.isError ? (
                   <p className="mt-2 text-red-200">
-                    {writeCanaryMutation.error?.message || "The write canary request failed."}
+                    {formatUserFacingErrorMessage(
+                      writeCanaryMutation.error,
+                      "The write canary request failed."
+                    )}
                   </p>
                 ) : null}
               </div>

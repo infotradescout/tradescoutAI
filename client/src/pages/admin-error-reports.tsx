@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ErrorReport } from "@shared/schema";
 
 type ErrorReportPatch = {
@@ -179,7 +180,7 @@ export default function AdminErrorReports() {
     onError: (error: unknown) => {
       toast({
         title: "Error report was not updated",
-        description: error instanceof Error ? error.message : "Review the change and try again.",
+        description: formatUserFacingErrorMessage(error, "Review the change and try again."),
         variant: "destructive",
       });
     },
