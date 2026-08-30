@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { StateCountySelector } from "@/components/state-county-selector";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { createClientOperationId } from "@/lib/clientOperationId";
 
 type DirectConnectAdminResult = {
   request?: { id?: string | null; status?: string | null } | null;
@@ -32,6 +33,8 @@ type DirectConnectAdminResult = {
   requestEmailMessageId?: string;
   activationLinkIncluded?: boolean;
   verifyLinkIncluded?: boolean;
+  idempotentReplay?: boolean;
+  operationId?: string;
 };
 
 const adminDirectConnectRequestTypes = [
@@ -54,6 +57,10 @@ const adminDirectConnectRequestTypes = [
 
 export function AdminDirectConnectRequestCard() {
   const { toast } = useToast();
+  const pendingCreateOperationRef = useRef<{
+    fingerprint: string;
+    operationId: string;
+  } | null>(null);
 
   const [targetUserEmail, setTargetUserEmail] = useState("");
   const [targetUserId, setTargetUserId] = useState("");
@@ -93,18 +100,30 @@ export function AdminDirectConnectRequestCard() {
       if (requestBudgetMax.trim()) payload.budgetMax = Number(requestBudgetMax);
       if (contractorIds.length > 0) payload.targetProviderIds = contractorIds;
       payload.autoRoute = options.autoRoute;
+      const fingerprint = JSON.stringify(payload);
+      const operationId =
+        pendingCreateOperationRef.current?.fingerprint === fingerprint
+          ? pendingCreateOperationRef.current.operationId
+          : createClientOperationId("dc-admin");
+      pendingCreateOperationRef.current = { fingerprint, operationId };
+      payload.operationId = operationId;
 
       return apiRequest("POST", "/api/admin/direct-connect/requests", payload);
     },
     onSuccess: (data: any, variables) => {
+      pendingCreateOperationRef.current = null;
       setDirectConnectResult(data as DirectConnectAdminResult);
-      const emailSummary = data?.setupEmailSent
-        ? "Setup email sent"
-        : data?.requestEmailSent
-          ? "Request notification sent"
-          : "Request created (email not sent)";
+      const emailSummary = data?.idempotentReplay
+        ? "Existing request recovered; no email resent"
+        : data?.setupEmailSent
+          ? "Setup email sent"
+          : data?.requestEmailSent
+            ? "Request notification sent"
+            : "Request created (email not sent)";
       toast({
-        title: "Direct Connect request created",
+        title: data?.idempotentReplay
+          ? "Direct Connect request recovered"
+          : "Direct Connect request created",
         description: `${emailSummary} for ${data?.createdForUser?.email || "target user"}. ${
           variables?.autoRoute ? "Auto-route started." : "Manual routing preserved."
         }`,
