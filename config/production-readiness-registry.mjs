@@ -21,7 +21,7 @@ export const PR_RECOVERY_DISPOSITIONS = Object.freeze([
   { number: 223, status: "closed", disposition: "close", owner: "release-control", reason: "pnpm lock and historical evidence are obsolete in the npm-authoritative repository." },
   { number: 222, status: "closed", disposition: "close", owner: "direct-connect", reason: "Superseded by universal Express Direct Connect in 84aab242 and later hardening; the stale snapshot must not be replayed." },
   { number: 221, status: "closed", disposition: "close", owner: "stone-core", reason: "The branch includes hundreds of bundled stone images and conflicts with server-side media storage." },
-  { number: 219, status: "open", disposition: "extract", owner: "public-profiles", reason: "Reconcile public profile authority services without replaying stale route and profile implementations." },
+  { number: 219, status: "closed", disposition: "close", owner: "public-profiles", reason: "Superseded by the current-main canonical repository/pure-policy authority recovery in draft PR #549, including exact revocation, per-profile release, and account-custody guards without replaying the stale duplicate resolver or routes." },
   { number: 218, status: "closed", disposition: "close", owner: "release-control", reason: "pnpm lock is not authoritative for this npm repository." },
   { number: 215, status: "closed", disposition: "close", owner: "direct-connect", reason: "Superseded by the current-main operations queue and replay-safe create recovery in draft PR #545; the stale 99-file branch must not be replayed." },
   { number: 214, status: "open", disposition: "extract", owner: "exchange", reason: "Retain valid profile-catalog and About contracts only after current route and inventory reconciliation." },
