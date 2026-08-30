@@ -10,7 +10,7 @@ export const READINESS_STATES = Object.freeze([
 export const PR_DISPOSITIONS = Object.freeze(["extract", "rebuild", "close", "hold"]);
 
 export const PR_RECOVERY_DISPOSITIONS = Object.freeze([
-  { number: 409, status: "open", disposition: "extract", owner: "admin-os", reason: "Reapply the read-only truth workspace to current Admin OS contracts." },
+  { number: 409, status: "closed", disposition: "close", owner: "admin-os", reason: "Superseded by the current-main read-only Ecosystem Truth recovery in draft PR #546, including explicit closed-beta protection for realtor and car-sales." },
   { number: 396, status: "closed", disposition: "close", owner: "identity", reason: "Superseded by current-main profile-native identity work in 046c0e41 and 4a5f41e1; the stale branch must not be replayed." },
   { number: 318, status: "open", disposition: "hold", owner: "stone-core", reason: "Private offers remain bounded until the shared identity and canonical offer models are settled." },
   { number: 316, status: "open", disposition: "extract", owner: "public-profiles", reason: "Preserve profile-specific install identity without replaying stale profile and server files." },
