@@ -134,3 +134,74 @@ export const CLIENT_ROUTE_FAMILIES = Object.freeze([
 export function resolveClientRoute(pathname) {
   return CLIENT_ROUTE_FAMILIES.find((entry) => entry.match.test(pathname)) ?? null;
 }
+
+export const API_ROUTE_FAMILIES = Object.freeze([
+  family("admin-api", /^\/api\/(?:admin(?:\/|$)|admin-control|prompt-admin|seed-database|system|debug|error-reports|bug-report|bug-reports)/, {
+    owner: "admin-os", audience: "administrator", roles: ["ops_admin", "super_admin"],
+    canonicalObject: "user_identity", job: "Operate, audit, and recover TradeScout", readiness: "internal_only",
+  }),
+  family("identity-api", /^\/api\/(?:auth|user|users|profile-accounts|onboarding|invitations|identity-verification|address-verification|business-claim|claims|profile)(?:\/|$)/, {
+    owner: "identity", audience: "account-holder", roles: ["anonymous", "authenticated"],
+    canonicalObject: "user_identity", job: "Create, recover, and authorize one identity", readiness: "production",
+  }),
+  family("direct-connect-api", /^\/api\/(?:direct-connect|work-requests|tasks|jobs|conversations|messages|notifications|decision-cards|quotes|profile-booking|providers?|workers|employment)(?:\/|$)/, {
+    owner: "direct-connect", audience: "requester-provider-and-operator", roles: ["authenticated", "ops_admin"],
+    canonicalObject: "work_request", job: "Create, route, progress, and recover protected work", readiness: "production",
+  }),
+  family("profile-discovery-api", /^\/api\/(?:profiles|p|u|business-profile|business-contact|tradepartner-profiles|tradepartner-landing|contractors?|contractor-signup|saved-contractors|nationwide|commercial-directory|public|public-config|leaderboard|recommendations|recommendation-generator|preferred-source|pricing|stats|trending|market-signals|map|heatmap|geographic-coverage|counties|regions|states|trades|aggregates)(?:\/|$)/, {
+    owner: "public-profiles-discovery", audience: "public-and-profile-manager", roles: ["anonymous", "authenticated", "profile_manager"],
+    canonicalObject: "public_profile", job: "Publish, find, and manage truthful profiles", readiness: "public_beta",
+  }),
+  family("community-api", /^\/api\/(?:community|community-builder|community-causes|community-vault|social|moderation|groups|reviews|badges|local-impact|objectives|stories|events|xp)(?:\/|$)/, {
+    owner: "community", audience: "community-member-and-moderator", roles: ["anonymous", "authenticated", "moderator"],
+    canonicalObject: "persona", job: "Read and participate in the local community", readiness: "public_beta",
+  }),
+  family("exchange-api", /^\/api\/(?:marketplace|exchange|handmade|metals|daily-deals|deals|deal-engagements|vehicles|saved-searches|saved-ads)(?:\/|$)/, {
+    owner: "exchange", audience: "buyer-and-seller", roles: ["anonymous", "authenticated"],
+    canonicalObject: "listing", job: "Publish, discover, and progress a listing", readiness: "public_beta",
+  }),
+  family("stone-api", /^\/api\/(?:bidrock|jw-stone|hardrock)(?:\/|$)/, {
+    owner: "stone-core", audience: "verified-stone-business", roles: ["anonymous", "verified_business", "ops_admin"],
+    canonicalObject: "inventory_item", job: "Manage stone inventory and private offers", readiness: "closed_beta",
+  }),
+  family("home-api", /^\/api\/(?:homes|homeid|homescout|hoa|property-programs|foundation|inspection|solar)(?:\/|$)/, {
+    owner: "homeid-homescout", audience: "property-owner-buyer-and-provider", roles: ["anonymous", "authenticated"],
+    canonicalObject: "home", job: "Create, manage, and discover property records", readiness: "closed_beta",
+  }),
+  family("business-operations-api", /^\/api\/(?:accounting|crm|documents|invoices|payments|create-payment-intent|wallet|material-lists|procurement|grunt|businesses|partners|staff)(?:\/|$)/, {
+    owner: "business-platform", audience: "business-member-and-operator", roles: ["business_owner", "business_employee", "ops_admin"],
+    canonicalObject: "business", job: "Operate business records, money, and fulfillment", readiness: "closed_beta",
+  }),
+  family("offers-orders-api", /^\/api\/(?:profile-offers|profile-offer-purchases)(?:\/|$)/, {
+    owner: "offers-orders", audience: "buyer-seller-and-operator", roles: ["anonymous", "authenticated", "ops_admin"],
+    canonicalObject: "offer", job: "Publish, purchase, and fulfill an offer", readiness: "closed_beta",
+  }),
+  family("growth-api", /^\/api\/(?:affiliate|ads|boosts|contractor-promos|promo|promos|partnerships|partner-interest|referrals|growth-pack|accelerator|tradepartner-campaigns|tradepartner-rsvp|scoutfitters)(?:\/|$)/, {
+    owner: "growth", audience: "public-business-and-staff", roles: ["anonymous", "authenticated", "staff"],
+    canonicalObject: "business", job: "Attribute and operate bounded growth programs", readiness: "closed_beta",
+  }),
+  family("scout-api", /^\/api\/(?:scout|scout-analytics|scout-enhanced-v4|scout-heatmap|scout-v2|scout-v2-learning|assistant|ai|agent)(?:\/|$)/, {
+    owner: "scout", audience: "public-account-holder-and-staff", roles: ["anonymous", "authenticated", "staff"],
+    canonicalObject: "work_request", job: "Translate a need into the correct TradeScout action", readiness: "public_beta",
+  }),
+  family("platform-support-api", /^\/api\/(?:health|version|cors-test|email|platform-support|plugin|tutorials|legal|dashboard|task-categories|calculator|pro|zero-base-fee)(?:\/|$)/, {
+    owner: "platform-operations", audience: "public-account-holder-and-staff", roles: ["anonymous", "authenticated", "staff"],
+    canonicalObject: "user_identity", job: "Support platform health and bounded utilities", readiness: "internal_only",
+  }),
+  family("analytics-api", /^\/api\/(?:analytics)(?:\/|$)/, {
+    owner: "analytics", audience: "staff-and-operator", roles: ["staff", "ops_admin", "super_admin"],
+    canonicalObject: "business", job: "Measure platform and product outcomes", readiness: "internal_only",
+  }),
+  family("object-storage-api", /^\/api\/(?:objects)(?:\/|$)/, {
+    owner: "public-media-storage", audience: "authorized-uploader", roles: ["authenticated", "profile_manager", "staff"],
+    canonicalObject: "inventory_item", job: "Store and retrieve authorized media objects", readiness: "production",
+  }),
+  family("legacy-api", /^\/api\/(?:car-salesman|realtor|leads|disputes|vaults|scoutcoin)(?:\/|$)/, {
+    owner: "legacy-quarantine", audience: "none", roles: [],
+    canonicalObject: "persona", job: "No public job; pending reconciliation", readiness: "disabled",
+  }),
+]);
+
+export function resolveApiRoute(pathname) {
+  return API_ROUTE_FAMILIES.find((entry) => entry.match.test(pathname)) ?? null;
+}
