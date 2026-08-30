@@ -19,7 +19,7 @@ describe("admin direct-connect 'Review request' link", () => {
     expect(oversightSource).toContain('actionText: "Review request"');
   });
 
-  it("serves a staff-gated, read-only endpoint for the specific request behind that link", () => {
+  it("serves an operator-gated, read-only endpoint for the specific request behind that link", () => {
     const routes = read("server/routes/direct-connect.ts");
     expect(routes).toContain('"/api/admin/direct-connect/requests/:id"');
 
@@ -29,7 +29,7 @@ describe("admin direct-connect 'Review request' link", () => {
       '"/api/direct-connect/inbox"'
     );
     expect(detailHandler).toContain("isAuthenticated,");
-    expect(detailHandler).toContain("isStaff,");
+    expect(detailHandler).toContain("isDirectConnectOperator,");
 
     // Read-only: must not mutate lifecycle state or trigger notifications while an
     // admin is only looking at a request.

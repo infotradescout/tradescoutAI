@@ -336,7 +336,7 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         icon: Link2,
         description: "Inspect routed requests while preserving Intent -> Decision Card -> Contact.",
         keywords: ["contact gate", "routing", "requests", "decision card"],
-        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminDirectConnectRequests />,
       }),
       tool({
