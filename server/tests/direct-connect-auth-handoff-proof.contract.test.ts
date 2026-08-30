@@ -26,6 +26,19 @@ describe("direct connect auth handoff proof", () => {
     expect(shellSource).toContain("Create your free account to share this request");
   });
 
+  it("persists one submission key and re-saves every failed API attempt", () => {
+    expect(shellSource).toContain("submissionKey?: string");
+    expect(shellSource).toContain("submissionKey,");
+    expect(shellSource).toContain("setSubmissionKey(parsed.submissionKey)");
+    const errorIndex = shellSource.indexOf("onError: (error: any");
+    const persistIndex = shellSource.indexOf("persistDirectConnectDraft({", errorIndex);
+    const errorToastIndex = shellSource.indexOf('title: "Could not send request"', errorIndex);
+
+    expect(errorIndex).toBeGreaterThan(-1);
+    expect(persistIndex).toBeGreaterThan(errorIndex);
+    expect(errorToastIndex).toBeGreaterThan(persistIndex);
+  });
+
   it("clears the saved draft only after successful request submission", () => {
     const clearIndex = shellSource.lastIndexOf("clearDirectConnectDraft();");
     const successIndex = shellSource.indexOf("onSuccess: (data, variables) => {");

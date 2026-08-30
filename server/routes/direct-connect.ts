@@ -66,6 +66,11 @@ import {
   snapshotDispatchCandidate,
 } from "../services/directConnectDispatchLedgerService";
 import {
+  createOrReuseDirectConnectSubmission,
+  ensureDirectConnectSubmissionIdempotencyTable,
+  hashDirectConnectSubmissionPayload,
+} from "../services/directConnectSubmissionIdempotencyService";
+import {
   redactContactDetails,
   buildWorkRequestPreviewTitle,
   buildWorkRequestScopeSummary,
@@ -798,6 +803,13 @@ const directConnectRequestSchema = z.object({
   countyFips: z.string().length(5).optional(),
   stateCode: z.string().length(2).optional(),
   autoRoute: z.boolean().optional(),
+  submissionKey: z
+    .string()
+    .trim()
+    .min(16)
+    .max(120)
+    .regex(/^[A-Za-z0-9_-]+$/)
+    .optional(),
   attachments: z.array(z.string().trim().min(10).max(600)).max(8).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
   targetProviderIds: z.array(z.string().min(1)).optional(),
@@ -2022,6 +2034,9 @@ const toTradeDisplayName = (value: string): string => {
 export function registerDirectConnectRoutes(app: Express) {
   void ensureDirectConnectDispatchLedgerTables().catch((error) => {
     console.warn("[direct-connect] Failed to ensure dispatch ledger tables", error);
+  });
+  void ensureDirectConnectSubmissionIdempotencyTable().catch((error) => {
+    console.warn("[direct-connect] Failed to ensure submission idempotency table", error);
   });
   const isProductionEnv = process.env.NODE_ENV === "production";
   const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
@@ -6590,29 +6605,57 @@ export function registerDirectConnectRoutes(app: Express) {
         const useFastTestCreate =
           process.env.NODE_ENV === "test" && String(req.query?.e2eFast || "") === "1";
 
-        const [created] = await db
-          .insert(workRequests)
-          .values({
-            createdByUserId: String(ownerUserId),
-            title: sanitizedTitle,
-            description: sanitizedDescription,
-            category: body.category,
-            countyFips,
-            stateCode,
-            // Explicit profile/provider requests stay private and never enter the community board.
-            scope: isExplicitTarget ? "personal" : "community",
-            source: "direct_connect" as any,
-            sourceRefId: targetProfile?.id,
-            status: "open" as const,
-            visibility: isExplicitTarget ? "private" : "community",
-            exposureMode: "guided",
-            competitionMode: "none",
-            budgetMin,
-            budgetMax,
-            attachments,
-            tradeId: body.tradeId,
-          })
-          .returning();
+        const workRequestValues = {
+          createdByUserId: String(ownerUserId),
+          title: sanitizedTitle,
+          description: sanitizedDescription,
+          category: body.category,
+          countyFips,
+          stateCode,
+          scope: isExplicitTarget ? "personal" : "community",
+          source: "direct_connect" as any,
+          sourceRefId: targetProfile?.id,
+          status: "open" as const,
+          visibility: isExplicitTarget ? "private" : "community",
+          exposureMode: "guided",
+          competitionMode: "none",
+          budgetMin,
+          budgetMax,
+          attachments,
+          tradeId: body.tradeId,
+        };
+        const payloadHash = body.submissionKey
+          ? hashDirectConnectSubmissionPayload({
+              ...body,
+              submissionKey: undefined,
+              title: sanitizedTitle,
+              description: sanitizedDescription,
+              countyFips,
+              stateCode,
+              attachments,
+              targetProfileId: targetProfile?.id || null,
+              targetProviderIds: [...targetProviderIds].sort(),
+              shouldAutoRoute,
+            })
+          : null;
+        const creation =
+          body.submissionKey && payloadHash
+            ? await createOrReuseDirectConnectSubmission({
+                ownerUserId: String(ownerUserId),
+                submissionKey: body.submissionKey,
+                payloadHash,
+                workRequestValues,
+              })
+            : {
+                request: (
+                  await db.insert(workRequests).values(workRequestValues).returning()
+                )[0],
+                replayed: false as const,
+              };
+        const created = creation.request;
+        if (creation.replayed) {
+          return res.status(200).json({ ...created, idempotencyReplayed: true });
+        }
 
         if (created?.id) {
           const targetSlug = String(targetProfile?.slug || "")
@@ -7270,6 +7313,12 @@ export function registerDirectConnectRoutes(app: Express) {
         res.status(201).json(createdResponse ?? null);
       } catch (error: any) {
         console.error("Error creating direct connect request:", error);
+        if (String(error?.message || "") === "DIRECT_CONNECT_IDEMPOTENCY_CONFLICT") {
+          return res.status(409).json({
+            code: "DIRECT_CONNECT_IDEMPOTENCY_CONFLICT",
+            message: "This submission key was already used for different request details.",
+          });
+        }
         if (isSchemaMismatchError(error)) {
           return res.status(503).json({
             message: "Direct Connect is initializing right now. Please retry in a moment.",

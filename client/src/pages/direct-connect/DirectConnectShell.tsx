@@ -253,6 +253,13 @@ const DIRECT_CONNECT_DRAFT_SAVE_DEBOUNCE_MS = 300;
 const DIRECT_CONNECT_REPEATED_SUBMIT_WINDOW_MS = 3000;
 const DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS = 2000;
 
+function createDirectConnectSubmissionKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return `dc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+}
+
 function getSafeDirectConnectErrorCode(error: unknown): string {
   if (error && typeof error === "object") {
     const code = String((error as any).code || (error as any).name || "").trim();
@@ -286,6 +293,7 @@ const GENERATED_HOME_LABEL_PATTERN = /^(slice\d+\s+\d+|\d{8,}|[a-f0-9]{12,})$/i;
 
 type DirectConnectDraftSnapshot = {
   savedAt: number;
+  submissionKey?: string;
   returnPath: string;
   ownerUserId?: string;
   authHandoff?: boolean;
@@ -1560,6 +1568,7 @@ function DirectConnectRequestComposer({
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
   const draftSubmittedRef = useRef(false);
+  const [submissionKey, setSubmissionKey] = useState(createDirectConnectSubmissionKey);
   const latestAuthenticatedDraftSaveRef = useRef<() => void>(() => undefined);
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
@@ -1692,6 +1701,12 @@ function DirectConnectRequestComposer({
     const parsedProviderIds = (parsed.selectedProviderIds || [])
       .map((item) => (typeof item === "string" ? item.trim() : ""))
       .filter(Boolean);
+    if (
+      typeof parsed.submissionKey === "string" &&
+      /^[A-Za-z0-9_-]{16,120}$/.test(parsed.submissionKey)
+    ) {
+      setSubmissionKey(parsed.submissionKey);
+    }
 
     setTitle(resolveDirectConnectComposerDraftText(parsed.title, prefillTitle));
     setDescription(resolveDirectConnectComposerDraftText(parsed.description, prefillDescription));
@@ -1764,6 +1779,7 @@ function DirectConnectRequestComposer({
 
     const draft: DirectConnectDraftSnapshot = {
       savedAt: Date.now(),
+      submissionKey,
       returnPath: currentReturnPath(),
       ownerUserId: user?.id ? String(user.id) : undefined,
       authHandoff: !user?.id,
@@ -2175,6 +2191,7 @@ function DirectConnectRequestComposer({
     selectedContractorIds,
     selectedHomeId,
     showOptional,
+    submissionKey,
     title,
     user?.id,
   ]);
@@ -2218,6 +2235,7 @@ function DirectConnectRequestComposer({
       setDraftAttachmentKeys(Array.from(new Set(nextDraftAttachmentKeys)).slice(0, 8));
 
       const payload: Record<string, unknown> = {
+        submissionKey,
         title: title.trim(),
         description: description.trim(),
         category: activeRequestMeta.category,
@@ -2367,6 +2385,7 @@ function DirectConnectRequestComposer({
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
       draftSubmittedRef.current = true;
       clearDirectConnectDraft();
+      setSubmissionKey(createDirectConnectSubmissionKey());
       navigate(
         submittedRequestId
           ? `${DIRECT_CONNECT_REQUESTS_PATH}?selected=${encodeURIComponent(submittedRequestId)}`
@@ -2381,6 +2400,9 @@ function DirectConnectRequestComposer({
         status: Number(error?.status),
         error,
         blocked: true,
+      });
+      persistDirectConnectDraft({
+        selectedProviderIds: variables?.targetProviderIds || selectedContractorIds,
       });
       if (error?.status === 401) {
         trackFrictionEvent("direct_connect_permission_or_role_blocked", {

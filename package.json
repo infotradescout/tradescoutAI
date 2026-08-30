@@ -134,6 +134,7 @@
     "guard:forbidden": "node scripts/forbidden-patterns.mjs",
     "guard:architecture-hygiene": "node scripts/guard-architecture-hygiene.mjs",
     "guard:direct-connect-contact-release": "node scripts/guard-direct-connect-contact-release.mjs",
+    "guard:direct-connect-submission-idempotency": "node scripts/guard-direct-connect-submission-idempotency.mjs",
     "guard:identity-authority-spine": "node scripts/guard-identity-authority-spine.mjs",
     "guard:law-drift": "node scripts/guard-law-drift.mjs",
     "guard:prod-bypass": "node scripts/guard-prod-bypass.mjs",

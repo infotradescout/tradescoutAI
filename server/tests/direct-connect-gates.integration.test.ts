@@ -561,16 +561,31 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       onboardingCompleted: true,
     });
 
-    const createRes = await agent.post("/api/direct-connect/requests").send({
+    const submissionKey = crypto.randomUUID();
+    const payload = {
+      submissionKey,
       title: "Direct Connect create list project",
       description: "Quick project check for authenticated request list flow.",
       category: "service_request",
       autoRoute: false,
-    });
+    };
+    const createRes = await agent.post("/api/direct-connect/requests").send(payload);
 
     expect(createRes.status).toBe(201);
     const createdId = String(createRes.body?.id || "");
     expect(createdId.length).toBeGreaterThan(0);
+
+    const replayRes = await agent.post("/api/direct-connect/requests").send(payload);
+    expect(replayRes.status).toBe(200);
+    expect(String(replayRes.body?.id || "")).toBe(createdId);
+    expect(replayRes.body?.idempotencyReplayed).toBe(true);
+
+    const conflictRes = await agent.post("/api/direct-connect/requests").send({
+      ...payload,
+      title: "Different details must not reuse a submission key",
+    });
+    expect(conflictRes.status).toBe(409);
+    expect(conflictRes.body?.code).toBe("DIRECT_CONNECT_IDEMPOTENCY_CONFLICT");
 
     const inserted = await db
       .select()
@@ -585,6 +600,16 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
 
     expect(inserted).toHaveLength(1);
     expect(String(inserted[0]?.source || "")).toBe("direct_connect");
+    const duplicates = await db
+      .select()
+      .from(workRequests)
+      .where(
+        and(
+          eq(workRequests.createdByUserId, String(user.id)),
+          eq(workRequests.title, payload.title)
+        )
+      );
+    expect(duplicates).toHaveLength(1);
   });
 
   it("keeps the accepted-provider contact path gated, provider-bound, and idempotent", async () => {
