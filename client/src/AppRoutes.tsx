@@ -1677,7 +1677,7 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/membership-portal">
-                <LazyPage Component={MembershipPortal} />
+                <LazyPage Component={NotFound} />
               </Route>
               <Route path="/training-center">
                 <LazyPage Component={TrainingCenter} />

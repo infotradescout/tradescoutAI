@@ -61,15 +61,15 @@ export const CLIENT_ROUTE_FAMILIES = Object.freeze([
     owner: "identity", audience: "account-holder", roles: ["anonymous", "authenticated"],
     canonicalObject: "user_identity", job: "Create, recover, and enter one identity", readiness: "production",
   }),
-  family("direct-connect", /^\/(?:direct-connect(?:\/|$)|request-quote|quote$|quote-calculator$|tasks$|messages$|chat$|connections$)/, {
+  family("direct-connect", /^\/(?:direct-connect(?:\/|$)|request-quote|quote$|quote-calculator$|tasks$|messages$|chat$|connections$|helper-dashboard$)/, {
     owner: "direct-connect", audience: "requester-and-provider", roles: ["authenticated"],
     canonicalObject: "work_request", job: "Start and progress protected work", readiness: "production",
   }),
-  family("public-profiles", /^\/(?:p|u)(?:\/|$)|^\/business\/(?!requests$)[^/]+(?:\/edit)?$|^\/contractors(?:\/((?!board$|top$)[^/]+))?$|^\/commercial\/p\//, {
+  family("public-profiles", /^\/(?:p|u|helpers)(?:\/|$)|^\/business\/(?!requests$)[^/]+(?:\/edit)?$|^\/contractors(?:\/((?!board$|top$)[^/]+))?$|^\/commercial\/p\//, {
     owner: "public-profiles", audience: "public", roles: ["anonymous", "profile_manager"],
     canonicalObject: "public_profile", job: "Find and manage a truthful profile", readiness: "production",
   }),
-  family("discovery", /^\/(?:search|advanced-search|find-local-businesses|directory\/businesses|discover-people|best\/|trade\/|city\/|county\/|county-directory|county-hub|maps$|leaderboard$|recommendations$|saved-contractors$)/, {
+  family("discovery", /^\/(?:search|advanced-search|find-local-businesses|directory\/businesses|discover-people|best\/|trade\/|city\/|county\/|county-directory|county-hub|maps$|leaderboard$|recommendations$|saved-contractors$|contractors\/(?:board|top)$)/, {
     owner: "discovery", audience: "public", roles: ["anonymous", "authenticated"],
     canonicalObject: "public_profile", job: "Find a relevant local provider or business", readiness: "public_beta",
   }),
@@ -85,11 +85,11 @@ export const CLIENT_ROUTE_FAMILIES = Object.freeze([
     owner: "stone-core", audience: "verified-business", roles: ["anonymous", "verified_business"],
     canonicalObject: "inventory_item", job: "Discover and make private stone offers", readiness: "closed_beta",
   }),
-  family("home", /^\/(?:homes|homescout|homescout-listings|homeowner-dashboard|property-listing|foundation)(?:\/|$)/, {
+  family("home", /^\/(?:homes|homescout|homescout-listings|homeowner-dashboard|property-listing|foundation|hoa|hoa-dashboard|hoa-management)(?:\/|$)/, {
     owner: "homeid-homescout", audience: "property-owner-and-buyer", roles: ["anonymous", "authenticated"],
     canonicalObject: "home", job: "Manage or discover a home", readiness: "closed_beta",
   }),
-  family("business-operations", /^\/(?:business-dashboard|business-listing|business-verification|businesses\/apply|business\/requests|claim-my-business|offer-services|provider-setup|crm|lead-management|project-tracker|application-tracker|accounting|finances|payment-history|wallet)(?:\/|$)/, {
+  family("business-operations", /^\/(?:business-dashboard|business-listing|business-verification|businesses\/apply|business\/requests|claim-my-business|contractor-board|commercial-directory|offer-services|provider-setup|crm|lead-management|project-tracker|application-tracker|accounting|finances|payment-history|wallet)(?:\/|$)/, {
     owner: "business-platform", audience: "business-member", roles: ["business_owner", "business_employee"],
     canonicalObject: "business", job: "Operate the correct business", readiness: "closed_beta",
   }),
@@ -117,7 +117,11 @@ export const CLIENT_ROUTE_FAMILIES = Object.freeze([
     owner: "admin-os", audience: "staff", roles: ["staff", "ops_admin", "super_admin"],
     canonicalObject: "business", job: "Operate internal platform tools", readiness: "internal_only",
   }),
-  family("legacy-role-verticals", /^\/(?:car-sales(?:man)?|realtor|helper|hoa)(?:-|\/|$)|^\/(?:helpers|membership-portal|contractor-board|contractors\/board|contractors\/top|commercial-directory)(?:\/|$)/, {
+  family("professional-verticals", /^\/(?:car-sales(?:man)?|realtor)(?:-|\/|$)/, {
+    owner: "professional-verticals", audience: "professional-and-customer", roles: ["anonymous", "authenticated", "realtor", "car_salesman"],
+    canonicalObject: "business", job: "Operate professional real-estate and vehicle-sales work", readiness: "closed_beta",
+  }),
+  family("legacy-role-verticals", /^\/membership-portal(?:\/|$)/, {
     owner: "legacy-quarantine", audience: "none", roles: [],
     canonicalObject: "persona", job: "No public job; pending reconciliation", readiness: "disabled",
   }),

@@ -24,7 +24,7 @@ function walkServer(directory, files = []) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       if (!["_archive", "tests"].includes(entry.name)) walkServer(entryPath, files);
-    } else if (/\.(?:ts|js)$/.test(entry.name) && !entry.name.includes(".test.")) {
+    } else if (/\.(?:ts|tsx|js|jsx)$/.test(entry.name) && !entry.name.includes(".test.")) {
       files.push(entryPath);
     }
   }
@@ -107,6 +107,47 @@ if (ambiguousApi.length) {
   failures.push(`Multiply-owned API routes (${ambiguousApi.length}):\n${ambiguousApi.join("\n")}`);
 }
 
+const disabledClientRoutes = uniqueRoutes.filter(
+  (route) => resolveClientRoute(route)?.readiness === "disabled"
+);
+const publicExposureFailures = [];
+for (const route of disabledClientRoutes) {
+  const marker = `<Route path="${route}">`;
+  const start = appRoutes.indexOf(marker);
+  const end = start >= 0 ? appRoutes.indexOf("</Route>", start) : -1;
+  const routeBlock = start >= 0 && end >= 0 ? appRoutes.slice(start, end) : "";
+  if (!routeBlock.includes("Component={NotFound}")) {
+    publicExposureFailures.push(`client/src/AppRoutes.tsx -> ${route} is not fail-closed`);
+  }
+}
+const exposureFiles = [
+  ...walkServer(path.join(root, "client", "src")),
+  path.join(root, "client", "public", "sitemap.xml"),
+  path.join(root, "client", "public", "sitemap-index.xml"),
+  path.join(root, "scripts", "generate-sitemap-core.mjs"),
+].filter((file) => fs.existsSync(file) && !file.endsWith("AppRoutes.tsx"));
+
+for (const file of exposureFiles) {
+  const source = fs.readFileSync(file, "utf8");
+  for (const route of disabledClientRoutes) {
+    const escaped = route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const publicDocument = /(?:sitemap|manifest)/i.test(file);
+    const navigationReference = new RegExp(
+      `(?:href|to|dashboard)\\s*[=:]\\s*["'\x60]${escaped}["'\x60]|` +
+        `(?:navigate|setLocation)\\(\\s*["'\x60]${escaped}["'\x60]`
+    );
+    if ((publicDocument && source.includes(route)) || navigationReference.test(source)) {
+      publicExposureFailures.push(`${path.relative(root, file)} -> ${route}`);
+    }
+  }
+}
+if (publicExposureFailures.length) {
+  failures.push(
+    `Disabled routes exposed through public discovery or navigation (${publicExposureFailures.length}):\n` +
+      publicExposureFailures.join("\n")
+  );
+}
+
 if (failures.length) {
   console.error(`[production-readiness-registry] FAIL\n\n${failures.join("\n\n")}`);
   process.exit(1);
@@ -124,4 +165,5 @@ console.log(`Open PR dispositions: ${OPEN_PR_DISPOSITIONS.length}`);
 console.log(`Literal client routes: ${uniqueRoutes.length}`);
 console.log(`Literal API registrations: ${apiRegistrations.length}`);
 console.log(`Unique literal API routes: ${uniqueApiRoutes.length}`);
+console.log(`Disabled client routes quarantined: ${disabledClientRoutes.length}`);
 for (const [owner, count] of [...counts].sort()) console.log(`${owner}: ${count}`);

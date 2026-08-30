@@ -103,7 +103,6 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/leaderboard', priority: 0.6, changefreq: 'daily' },
   { path: '/foundation', priority: 0.6, changefreq: 'monthly' },
   { path: '/resource-center', priority: 0.7, changefreq: 'weekly' },
-  { path: '/membership-portal', priority: 0.6, changefreq: 'weekly' },
   { path: '/training-center', priority: 0.6, changefreq: 'weekly' },
   { path: '/trade', priority: 0.8, changefreq: 'daily' },
   { path: '/datasets', priority: 0.7, changefreq: 'weekly' },
