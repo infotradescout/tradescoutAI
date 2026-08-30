@@ -36,7 +36,7 @@ describe("JwCollapsibleSection", () => {
     container.remove();
   });
 
-  it("shows exactly one Open/Close cue — never Tap to open, never under-title duplicate", () => {
+  it("shows exactly one compact Open/Close cue — never duplicate hint copy", () => {
     act(() => {
       root.render(
         <JwCollapsibleSection
@@ -65,7 +65,11 @@ describe("JwCollapsibleSection", () => {
     expect(container.textContent).not.toMatch(/Tap to open/i);
     expect(container.textContent).not.toMatch(/Tap to close/i);
     expect(container.textContent).not.toContain("Must not appear on photo band");
-    expect(container.querySelector('[data-testid="jw-inventory-expand-chevron"]')).not.toBeNull();
+
+    const chevron = container.querySelector('[data-testid="jw-inventory-expand-chevron"]');
+    expect(chevron).not.toBeNull();
+    expect(chevron?.getAttribute("class")).toMatch(/h-6/);
+    expect(chevron?.getAttribute("class")).toMatch(/sm:h-7/);
 
     const cue = container.querySelector('[data-testid="jw-inventory-expand-cue"]');
     expect(cue?.className).not.toMatch(/bg-\[var\(--jw-accent\)\]/);
@@ -80,7 +84,7 @@ describe("JwCollapsibleSection", () => {
     ).toMatch(/rotate-180/);
   });
 
-  it("expands and collapses Browse Full Inventory via the photo header toggle", () => {
+  it("uses compact collapsed bands and preserves sticky expanded collapse", () => {
     act(() => {
       root.render(
         <JwCollapsibleSection
@@ -99,7 +103,10 @@ describe("JwCollapsibleSection", () => {
     const toggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
     expect(section?.getAttribute("data-expanded")).toBe("false");
     expect(container.querySelector('[data-testid="jw-inventory-body"]')).toBeNull();
-    expect(toggle?.className).toMatch(/min-h-\[25svh\]/);
+    expect(toggle?.className).toMatch(/min-h-\[8\.5rem\]/);
+    expect(toggle?.className).toMatch(/sm:min-h-\[8rem\]/);
+    expect(toggle?.className).toMatch(/lg:min-h-\[7\.5rem\]/);
+    expect(toggle?.className).not.toMatch(/25svh/);
     expect(toggle?.className).not.toMatch(/\bsticky\b/);
 
     click(toggle);
@@ -107,12 +114,13 @@ describe("JwCollapsibleSection", () => {
     expect(container.querySelector('[data-testid="jw-inventory-body"]')).not.toBeNull();
     expect(toggle?.className).toMatch(/\bsticky\b/);
     expect(toggle?.className).toMatch(/top-14/);
-    expect(toggle?.className).not.toMatch(/min-h-\[25svh\]/);
+    expect(toggle?.className).not.toMatch(/min-h-\[8\.5rem\]/);
+    expect(toggle?.className).not.toMatch(/25svh/);
 
     click(toggle);
     expect(section?.getAttribute("data-expanded")).toBe("false");
     expect(container.querySelector('[data-testid="jw-inventory-body"]')).toBeNull();
-    expect(toggle?.className).toMatch(/min-h-\[25svh\]/);
+    expect(toggle?.className).toMatch(/min-h-\[8\.5rem\]/);
     expect(toggle?.className).not.toMatch(/\bsticky\b/);
   });
 
@@ -176,6 +184,7 @@ describe("JwCollapsibleSection", () => {
     const toggle = container.querySelector('[data-testid="jw-palette-rail-toggle"]');
     expect(section?.getAttribute("data-expanded")).toBe("false");
     expect(toggle?.getAttribute("aria-label")).toBe("Open Browse by color");
+    expect(toggle?.className).toMatch(/min-h-\[8\.5rem\]/);
     expect(visibleOpenCloseLabels(container)).toEqual(["Open"]);
 
     click(toggle);
