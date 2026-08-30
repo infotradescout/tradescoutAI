@@ -25,8 +25,10 @@ describe("assetid phase 1i completed work enrichment contracts", () => {
   });
 
   it("writes completed-work enrichment on direct connect completion paths", () => {
-    const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("await appendHomeIdCompletedWorkEnrichmentFromDirectConnect({");
+    const source = read("server/routes/direct-connect/completion.ts");
+    expect(source).toContain(
+      "await callbacks.appendHomeIdCompletedWorkEnrichmentFromDirectConnect({"
+    );
     expect(source).toContain('eventType: "direct_connect_completed"');
   });
 });

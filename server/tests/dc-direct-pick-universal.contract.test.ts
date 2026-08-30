@@ -121,12 +121,12 @@ describe("route endpoint — direct-pick resolves business IDs", () => {
 
 // ─── Creation endpoint — direct-pick resolves business IDs ───────────────────
 describe("creation endpoint — direct-pick resolves business IDs", () => {
-  // Find the user-facing creation block
-  const creationIdx = DC_ROUTES.indexOf(
-    "// Resolve contractor IDs and business IDs from the universal provider search."
-  );
+  const listEndpointIdx = DC_ROUTES.indexOf('"/api/direct-connect/requests"');
+  const creationIdx = DC_ROUTES.indexOf('"/api/direct-connect/requests"', listEndpointIdx + 1);
+  const creationEnd = DC_ROUTES.indexOf('"/api/admin/direct-connect/requests"', creationIdx);
   expect(creationIdx).toBeGreaterThan(-1);
-  const creationBlock = DC_ROUTES.slice(creationIdx, creationIdx + 4000);
+  expect(creationEnd).toBeGreaterThan(creationIdx);
+  const creationBlock = DC_ROUTES.slice(creationIdx, creationEnd);
 
   it("resolves potential business IDs not found in contractors table", () => {
     expect(creationBlock).toContain("potentialBusinessIds");
@@ -152,22 +152,17 @@ describe("creation endpoint — direct-pick resolves business IDs", () => {
 
   it("notifies both contractor and business owner users", () => {
     expect(creationBlock).toContain("notifyUserIds");
-    expect(creationBlock).toContain("invitedBusinesses.map((b) => b.ownerUserId)");
+    expect(creationBlock).toContain("eligibleBusinesses.map((b) => b.ownerUserId)");
   });
 });
 
 // ─── Admin creation endpoint — direct-pick resolves business IDs ─────────────
 describe("admin creation endpoint — direct-pick resolves business IDs", () => {
-  // Find the second occurrence (admin-created request block)
-  const firstIdx = DC_ROUTES.indexOf(
-    "// Resolve contractor IDs and business IDs from the universal provider search."
-  );
-  const secondIdx = DC_ROUTES.indexOf(
-    "// Resolve contractor IDs and business IDs from the universal provider search.",
-    firstIdx + 1
-  );
-  expect(secondIdx).toBeGreaterThan(-1);
-  const adminBlock = DC_ROUTES.slice(secondIdx, secondIdx + 4000);
+  const adminStart = DC_ROUTES.indexOf('"/api/admin/direct-connect/requests"');
+  const adminEnd = DC_ROUTES.indexOf('"/api/admin/direct-connect/requests/:id"', adminStart);
+  expect(adminStart).toBeGreaterThan(-1);
+  expect(adminEnd).toBeGreaterThan(adminStart);
+  const adminBlock = DC_ROUTES.slice(adminStart, adminEnd);
 
   it("admin block also resolves business IDs", () => {
     expect(adminBlock).toContain("potentialBusinessIds");

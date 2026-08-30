@@ -162,6 +162,7 @@ describe("JR's Auto Glass public profile contract", () => {
     const expressRoute = read("server/routes/tradepartner-express.ts");
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const route = read("server/routes/direct-connect.ts");
+    const profileTargeting = read("server/services/directConnectProfileTargetingService.ts");
 
     expect(profileView).toContain(
       "const jrsDirectConnectTarget = business?.directConnectOwnerUserId"
@@ -178,9 +179,9 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(route).toContain("await storage.getProfileBySlugPublic(body.targetProfileSlug)");
     expect(route).toContain('scope: isExplicitTarget ? "personal" : "community"');
     expect(route).toContain('visibility: isExplicitTarget ? "private" : "community"');
-    expect(route).toContain("responderUserId: targetProfileOwnerUserId");
-    expect(route).toContain('routingMode: "profile_direct_connect"');
-    expect(route).toContain('source: "profile_direct_connect"');
+    expect(profileTargeting).toContain("responderUserId: args.targetProfileOwnerUserId");
+    expect(profileTargeting).toContain('routingMode: "profile_direct_connect"');
+    expect(profileTargeting).toContain('source: "profile_direct_connect"');
     expect(publicRoute).toContain("isOwnerConfirmedDirectProfile({");
     expect(expressRoute).toContain("const directProfileCandidate = {");
     expect(expressRoute).toContain("canExposePublishedProfilePublicly({");
