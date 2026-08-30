@@ -26,6 +26,7 @@ export type DirectConnectJobLifecycleRouteDependencies = Record<
   | "updateUserConfidenceStateFromOutcome"
   | "appendHomeIdTimelineEventFromDirectConnect"
   | "appendHomeIdCompletedWorkEnrichmentFromDirectConnect"
+  | "finalizeDirectConnectCompletion"
   | "estimateCreateSchema"
   | "estimateUpdateSchema"
   | "estimateSendSchema"
@@ -80,6 +81,7 @@ export function registerDirectConnectJobLifecycleRoutes(
     updateUserConfidenceStateFromOutcome,
     appendHomeIdTimelineEventFromDirectConnect,
     appendHomeIdCompletedWorkEnrichmentFromDirectConnect,
+    finalizeDirectConnectCompletion,
     estimateCreateSchema,
     estimateUpdateSchema,
     estimateSendSchema,
@@ -2734,16 +2736,50 @@ export function registerDirectConnectJobLifecycleRoutes(
           return res
             .status(403)
             .json({ message: "Only the request owner can respond to completion." });
-        if (String(completionRequest.status || "requested") !== "requested")
-          return res.status(409).json({ message: "Completion request is no longer pending." });
+        const completionStatus = String(completionRequest.status || "requested");
+        if (parse.data.decision === "reject") {
+          if (completionStatus !== "requested") {
+            return res.status(409).json({ message: "Completion request is no longer pending." });
+          }
+          const rejectionResult = await db.execute(sql`
+            UPDATE job_completion_requests
+            SET
+              status = 'rejected',
+              requester_notes = ${parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null},
+              responded_at = now(),
+              updated_at = now()
+            WHERE id = ${String(completionRequest.id)}
+              AND status = 'requested'
+            RETURNING id
+          `);
+          if (!((rejectionResult.rows || []) as any[])[0]) {
+            return res.status(409).json({ message: "Completion request is no longer pending." });
+          }
+          await appendDispatchEvent({
+            requestId: String(completionRequest.request_id || ""),
+            actorType: "requester",
+            actorId: userId,
+            eventType: "completion_rejected",
+            metadata: { completionRequestId: String(completionRequest.id) },
+          });
+          return res.status(200).json({
+            ok: true,
+            completionRequestId: String(completionRequest.id),
+            status: "rejected",
+            idempotencyReplayed: false,
+          });
+        }
 
-        if (parse.data.decision === "confirm") {
+        if (completionStatus !== "requested" && completionStatus !== "confirmed") {
+          return res.status(409).json({ message: "Completion request is no longer pending." });
+        }
+        if (completionStatus === "requested") {
           const unresolvedRows = await db.execute(sql`
-          SELECT COUNT(*)::int AS count
-          FROM job_punch_list_items
-          WHERE workspace_id = ${jobWorkspaceId}
-            AND status NOT IN ('resolved', 'waived', 'canceled')
-        `);
+            SELECT COUNT(*)::int AS count
+            FROM job_punch_list_items
+            WHERE workspace_id = ${jobWorkspaceId}
+              AND status NOT IN ('resolved', 'waived', 'canceled')
+          `);
           const unresolvedCount = Number(((unresolvedRows.rows || []) as any[])[0]?.count || 0);
           if (unresolvedCount > 0) {
             return res.status(409).json({
@@ -2753,51 +2789,23 @@ export function registerDirectConnectJobLifecycleRoutes(
           }
         }
 
-        const nextStatus = parse.data.decision === "confirm" ? "confirmed" : "rejected";
-        await db.execute(sql`
-        UPDATE job_completion_requests
-        SET status = ${nextStatus}, requester_notes = ${parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null}, responded_at = now(), updated_at = now()
-        WHERE id = ${String(completionRequest.id)}
-      `);
-        if (parse.data.decision === "confirm") {
-          await db.execute(sql`
-          UPDATE direct_connect_job_workspaces
-          SET active_stage = 'completed', status = 'completed', updated_at = now()
-          WHERE id = ${jobWorkspaceId}
-        `);
-        }
-        await appendDispatchEvent({
+        const completionDecision = await finalizeDirectConnectCompletion({
           requestId: String(completionRequest.request_id || ""),
-          actorType: "requester",
-          actorId: userId,
-          eventType:
-            parse.data.decision === "confirm" ? "completion_confirmed" : "completion_rejected",
-          metadata: { completionRequestId: String(completionRequest.id) },
+          actorUserId: userId,
+          confirmation: {
+            completionRequestId: String(completionRequest.id),
+            jobWorkspaceId,
+            requesterNotes: parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null,
+          },
         });
-        if (parse.data.decision === "confirm") {
-          await appendDispatchEvent({
-            requestId: String(completionRequest.request_id || ""),
-            actorType: "system",
-            actorId: null,
-            eventType: "job_completed",
-            metadata: { completionRequestId: String(completionRequest.id) },
-          });
-          await appendHomeIdTimelineEventFromDirectConnect({
-            requestId: String(completionRequest.request_id || ""),
-            eventType: "direct_connect_completed",
-            title: "Job completed",
-            summary: "Direct Connect completion was confirmed for this request.",
-          });
-          await appendHomeIdCompletedWorkEnrichmentFromDirectConnect({
-            requestId: String(completionRequest.request_id || ""),
-            completedAt: new Date().toISOString(),
-            workSummary: parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null,
-          });
+        if (!completionDecision.ok) {
+          return res.status(completionDecision.status).json(completionDecision.body);
         }
         return res.status(200).json({
           ok: true,
           completionRequestId: String(completionRequest.id),
-          status: nextStatus,
+          status: "confirmed",
+          idempotencyReplayed: !completionDecision.completedNow,
         });
       } catch (error) {
         console.error("Error responding to completion request:", error);

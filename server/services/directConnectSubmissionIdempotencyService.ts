@@ -7,8 +7,9 @@ let readinessPromise: Promise<void> | null = null;
 
 export function ensureDirectConnectSubmissionIdempotencyTable(): Promise<void> {
   if (readinessPromise) return readinessPromise;
-  readinessPromise = db
-    .execute(sql`
+  const pending = db
+    .execute(
+      sql`
       CREATE TABLE IF NOT EXISTS direct_connect_submission_idempotency (
         owner_user_id text NOT NULL,
         submission_key text NOT NULL,
@@ -19,13 +20,15 @@ export function ensureDirectConnectSubmissionIdempotencyTable(): Promise<void> {
         PRIMARY KEY (owner_user_id, submission_key),
         UNIQUE (request_id)
       )
-    `)
+    `
+    )
     .then(() => undefined)
     .catch((error) => {
       readinessPromise = null;
       throw error;
     });
-  return readinessPromise;
+  readinessPromise = pending;
+  return pending;
 }
 
 function stableJson(value: unknown): string {

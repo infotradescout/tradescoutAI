@@ -8,7 +8,10 @@ import {
 } from "@shared/schema";
 import { db } from "../../db";
 import { notificationService } from "../../notification-service";
-import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../../scout/outcomeTracker";
+import {
+  recordOutcomeEvent,
+  updateUserConfidenceStateFromOutcome,
+} from "../../scout/outcomeTracker";
 import { appendDispatchEvent } from "../../services/directConnectDispatchLedgerService";
 import { recordTrustLedgerEvent } from "../../services/trustLedgerService";
 
@@ -16,7 +19,7 @@ type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string } };
 };
 
-type CompletionCallbacks = {
+export type CompletionCallbacks = {
   appendHomeIdTimelineEventFromDirectConnect: (params: {
     requestId: string;
     eventType: "direct_connect_completed";
@@ -31,7 +34,13 @@ type CompletionCallbacks = {
   recordDiscoveryOutcome: (requestId: string) => Promise<void>;
 };
 
-type CompletionDecision =
+export type DirectConnectCompletionConfirmation = {
+  completionRequestId: string;
+  jobWorkspaceId: string;
+  requesterNotes?: string | null;
+};
+
+export type CompletionDecision =
   | {
       ok: false;
       status: 400 | 403 | 404 | 409;
@@ -40,6 +49,9 @@ type CompletionDecision =
   | {
       ok: true;
       completedNow: boolean;
+      confirmationRequestId: string | null;
+      confirmationUpdatedNow: boolean;
+      requesterNotes: string | null;
       request: {
         id: string;
         title: string;
@@ -52,6 +64,7 @@ type CompletionDecision =
 async function claimDirectConnectCompletion(args: {
   requestId: string;
   actorUserId: string;
+  confirmation?: DirectConnectCompletionConfirmation;
 }): Promise<CompletionDecision> {
   return db.transaction(async (tx): Promise<CompletionDecision> => {
     const requestResult = await tx.execute(sql`
@@ -89,8 +102,68 @@ async function claimDirectConnectCompletion(args: {
       ownerUserId,
       fromStatus: currentStatus,
     };
+
+    let confirmationStatus: string | null = null;
+    if (args.confirmation) {
+      const confirmationResult = await tx.execute(sql`
+        SELECT id, workspace_id, request_id, requester_user_id, status
+        FROM job_completion_requests
+        WHERE id = ${args.confirmation.completionRequestId}
+        FOR UPDATE
+      `);
+      const confirmationRow = ((confirmationResult.rows || []) as any[])[0] || null;
+      if (!confirmationRow) {
+        return { ok: false, status: 404, body: { message: "Completion request not found" } };
+      }
+      if (
+        String(confirmationRow.request_id || "") !== args.requestId ||
+        String(confirmationRow.workspace_id || "") !== args.confirmation.jobWorkspaceId ||
+        String(confirmationRow.requester_user_id || "") !== args.actorUserId
+      ) {
+        return {
+          ok: false,
+          status: 409,
+          body: {
+            code: "DIRECT_CONNECT_COMPLETION_CONFIRMATION_MISMATCH",
+            message: "The completion request no longer matches this Direct Connect job.",
+          },
+        };
+      }
+      confirmationStatus = String(confirmationRow.status || "requested");
+      if (confirmationStatus !== "requested" && confirmationStatus !== "confirmed") {
+        return {
+          ok: false,
+          status: 409,
+          body: { message: "Completion request is no longer pending." },
+        };
+      }
+    }
+
+    const confirmPendingRequest = async () => {
+      if (!args.confirmation || confirmationStatus !== "requested") return false;
+      await tx.execute(sql`
+        UPDATE job_completion_requests
+        SET
+          status = 'confirmed',
+          requester_notes = ${args.confirmation.requesterNotes?.trim() || null},
+          responded_at = now(),
+          updated_at = now()
+        WHERE id = ${args.confirmation.completionRequestId}
+          AND status = 'requested'
+      `);
+      return true;
+    };
+
     if (currentStatus === "completed") {
-      return { ok: true, completedNow: false, request };
+      const confirmationUpdatedNow = await confirmPendingRequest();
+      return {
+        ok: true,
+        completedNow: false,
+        confirmationRequestId: args.confirmation?.completionRequestId || null,
+        confirmationUpdatedNow,
+        requesterNotes: args.confirmation?.requesterNotes?.trim() || null,
+        request,
+      };
     }
     if (currentStatus !== "in_progress" && currentStatus !== "pending_outcome") {
       return {
@@ -123,7 +196,8 @@ async function claimDirectConnectCompletion(args: {
       !workspace ||
       String(workspace.requester_user_id || "") !== ownerUserId ||
       !providerUserId ||
-      contactGateState !== "released"
+      contactGateState !== "released" ||
+      (args.confirmation && String(workspace.id || "") !== args.confirmation.jobWorkspaceId)
     ) {
       return {
         ok: false,
@@ -159,6 +233,7 @@ async function claimDirectConnectCompletion(args: {
       };
     }
 
+    const confirmationUpdatedNow = await confirmPendingRequest();
     const now = new Date();
     await tx
       .update(workRequests)
@@ -175,11 +250,38 @@ async function claimDirectConnectCompletion(args: {
       actorUserId: args.actorUserId,
       fromStatus: currentStatus,
       toStatus: "completed",
-      metadata: { source: "direct_connect", reason: "mark_complete" },
+      metadata: {
+        source: "direct_connect",
+        reason: args.confirmation ? "completion_request_confirmed" : "mark_complete",
+        completionRequestId: args.confirmation?.completionRequestId || null,
+      },
     });
 
-    return { ok: true, completedNow: true, request };
+    return {
+      ok: true,
+      completedNow: true,
+      confirmationRequestId: args.confirmation?.completionRequestId || null,
+      confirmationUpdatedNow,
+      requesterNotes: args.confirmation?.requesterNotes?.trim() || null,
+      request,
+    };
   });
+}
+async function appendCompletionConfirmationEffect(
+  decision: Extract<CompletionDecision, { ok: true }>
+) {
+  if (!decision.confirmationUpdatedNow || !decision.confirmationRequestId) return;
+  try {
+    await appendDispatchEvent({
+      requestId: decision.request.id,
+      actorType: "requester",
+      actorId: decision.request.ownerUserId,
+      eventType: "completion_confirmed",
+      metadata: { completionRequestId: decision.confirmationRequestId },
+    });
+  } catch (error) {
+    console.warn("[direct-connect] Failed to append completion-confirmed event", error);
+  }
 }
 
 async function runDirectConnectCompletionEffects(
@@ -188,6 +290,7 @@ async function runDirectConnectCompletionEffects(
 ) {
   const { request } = decision;
   const completedAt = new Date().toISOString();
+  await appendCompletionConfirmationEffect(decision);
 
   try {
     await recordTrustLedgerEvent({
@@ -200,6 +303,7 @@ async function runDirectConnectCompletionEffects(
         source: "direct_connect",
         fromStatus: request.fromStatus,
         toStatus: "completed",
+        completionRequestId: decision.confirmationRequestId,
       },
     });
   } catch (error) {
@@ -233,7 +337,12 @@ async function runDirectConnectCompletionEffects(
       actorType: "system",
       actorId: null,
       eventType: "job_completed",
-      metadata: { source: "requester_completion" },
+      metadata: {
+        source: decision.confirmationRequestId
+          ? "completion_request_confirmed"
+          : "requester_completion",
+        completionRequestId: decision.confirmationRequestId,
+      },
     });
   } catch (error) {
     console.warn("[direct-connect] Failed to append job-completed dispatch event", error);
@@ -292,11 +401,27 @@ async function runDirectConnectCompletionEffects(
     await callbacks.appendHomeIdCompletedWorkEnrichmentFromDirectConnect({
       requestId: request.id,
       completedAt,
-      workSummary: request.description.trim() || request.title,
+      workSummary: decision.requesterNotes?.trim() || request.description.trim() || request.title,
     });
   } catch (error) {
     console.warn("[direct-connect] Failed to enrich HomeID after completion", error);
   }
+}
+
+export async function finalizeDirectConnectCompletion(args: {
+  requestId: string;
+  actorUserId: string;
+  callbacks: CompletionCallbacks;
+  confirmation?: DirectConnectCompletionConfirmation;
+}): Promise<CompletionDecision> {
+  const decision = await claimDirectConnectCompletion(args);
+  if (!decision.ok) return decision;
+  if (decision.completedNow) {
+    await runDirectConnectCompletionEffects(decision, args.callbacks);
+  } else if (decision.confirmationUpdatedNow) {
+    await appendCompletionConfirmationEffect(decision);
+  }
+  return decision;
 }
 
 export function registerDirectConnectCompletionRoute(
@@ -313,22 +438,15 @@ export function registerDirectConnectCompletionRoute(
       if (!actorUserId) return res.status(401).json({ message: "Unauthorized" });
 
       try {
-        const decision = await claimDirectConnectCompletion({
+        const decision = await finalizeDirectConnectCompletion({
           requestId: String(req.params.id || "").trim(),
           actorUserId,
+          callbacks,
         });
         if (!decision.ok) return res.status(decision.status).json(decision.body);
-        if (!decision.completedNow) {
-          return res.status(200).json({
-            status: "completed",
-            idempotencyReplayed: true,
-          });
-        }
-
-        await runDirectConnectCompletionEffects(decision, callbacks);
         return res.status(200).json({
           status: "completed",
-          idempotencyReplayed: false,
+          idempotencyReplayed: !decision.completedNow,
         });
       } catch (error) {
         console.error("[direct-connect] Failed to complete request", error);

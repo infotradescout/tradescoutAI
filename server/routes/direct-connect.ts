@@ -70,9 +70,7 @@ import {
   ensureDirectConnectSubmissionIdempotencyTable,
   hashDirectConnectSubmissionPayload,
 } from "../services/directConnectSubmissionIdempotencyService";
-import {
-  ensureDirectConnectProfileInvitation,
-} from "../services/directConnectProfileTargetingService";
+import { ensureDirectConnectProfileInvitation } from "../services/directConnectProfileTargetingService";
 import {
   redactContactDetails,
   buildWorkRequestPreviewTitle,
@@ -94,7 +92,10 @@ import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
 import { registerDirectConnectAdminRescueRoute } from "./direct-connect/admin-rescue";
-import { registerDirectConnectCompletionRoute } from "./direct-connect/completion";
+import {
+  finalizeDirectConnectCompletion,
+  registerDirectConnectCompletionRoute,
+} from "./direct-connect/completion";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { hasVerifiedTradeScoutAdminCustody } from "../services/ownerConfirmedDirectProfile";
@@ -6197,17 +6198,21 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  registerDirectConnectCompletionRoute(app, {
-    isAuthenticated,
+  const directConnectCompletionCallbacks = {
     appendHomeIdTimelineEventFromDirectConnect,
     appendHomeIdCompletedWorkEnrichmentFromDirectConnect,
-    recordDiscoveryOutcome: (requestId) =>
-      discoveryObservatory.recordJourneyOutcome({
+    recordDiscoveryOutcome: async (requestId: string) => {
+      await discoveryObservatory.recordJourneyOutcome({
         workRequestId: requestId,
         kind: "requester_verified_complete",
         state: "completed",
         actorAuthority: "authenticated_requester",
-      }),
+      });
+    },
+  };
+  registerDirectConnectCompletionRoute(app, {
+    isAuthenticated,
+    ...directConnectCompletionCallbacks,
   });
 
   // Requester-facing: create a new Direct Connect request
@@ -6494,9 +6499,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 workRequestValues,
               })
             : {
-                request: (
-                  await db.insert(workRequests).values(workRequestValues).returning()
-                )[0],
+                request: (await db.insert(workRequests).values(workRequestValues).returning())[0],
                 replayed: false as const,
               };
         const created = creation.request;
@@ -9503,6 +9506,11 @@ export function registerDirectConnectRoutes(app: Express) {
     updateUserConfidenceStateFromOutcome,
     appendHomeIdTimelineEventFromDirectConnect,
     appendHomeIdCompletedWorkEnrichmentFromDirectConnect,
+    finalizeDirectConnectCompletion: (args: any) =>
+      finalizeDirectConnectCompletion({
+        ...args,
+        callbacks: directConnectCompletionCallbacks,
+      }),
     estimateCreateSchema,
     estimateUpdateSchema,
     estimateSendSchema,
