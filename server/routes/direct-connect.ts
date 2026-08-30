@@ -91,6 +91,7 @@ import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
 import { registerDirectConnectAdminRescueRoute } from "./direct-connect/admin-rescue";
+import { registerDirectConnectCompletionRoute } from "./direct-connect/completion";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { hasVerifiedTradeScoutAdminCustody } from "../services/ownerConfirmedDirectProfile";
@@ -6193,174 +6194,18 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Requester-facing: mark a request as complete
-  app.post(
-    "/api/direct-connect/requests/:id/complete",
+  registerDirectConnectCompletionRoute(app, {
     isAuthenticated,
-    async (req: AuthedRequest, res: Response) => {
-      try {
-        // Contract anchor: status(200) on success
-        const userId = req.user?.id || req.user?.claims?.sub;
-        if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-        const requestId = String(req.params.id);
-
-        const [requestRow] = await db
-          .select()
-          .from(workRequests)
-          .where(eq(workRequests.id, requestId));
-
-        if (!requestRow) {
-          return res.status(404).json({ message: "Work request not found" });
-        }
-
-        if (String(requestRow.createdByUserId) !== String(userId)) {
-          return res.status(403).json({ message: "You can only complete your own requests" });
-        }
-
-        if ((requestRow.source as string | null) !== "direct_connect") {
-          return res
-            .status(400)
-            .json({ message: "Only Direct Connect requests can be completed here" });
-        }
-
-        const allowedStatuses = ["in_progress", "pending_outcome"];
-        if (!allowedStatuses.includes(requestRow.status as string)) {
-          return res.status(400).json({
-            message: "Only in-progress or pending-outcome requests can be marked complete",
-          });
-        }
-
-        const fromStatus = requestRow.status;
-        const now = new Date();
-
-        await db.transaction(async (tx) => {
-          await tx
-            .update(workRequests)
-            .set({ status: "completed", updatedAt: now })
-            .where(eq(workRequests.id, requestId));
-
-          try {
-            await tx.insert(workRequestEvents).values({
-              workRequestId: requestId,
-              type: "status_changed",
-              actorUserId: String(userId),
-              fromStatus: fromStatus as string,
-              toStatus: "completed",
-              metadata: { source: "direct_connect", reason: "mark_complete" },
-            });
-          } catch (e) {
-            console.warn("[direct-connect] Failed to record status_changed event on complete", e);
-          }
-        });
-
-        try {
-          await recordTrustLedgerEvent({
-            actorUserId: String(userId),
-            entityType: "work_request",
-            entityId: requestId,
-            eventType: "direct_connect_completed",
-            sourceSurface: "direct_connect",
-            verificationLevel: undefined,
-            confidence: undefined,
-            metadata: {
-              source: "direct_connect",
-              fromStatus: String(fromStatus || "unknown"),
-              toStatus: "completed",
-            },
-          });
-        } catch (e) {
-          console.warn("[direct-connect] Failed to write trust ledger event on complete", e);
-        }
-
-        // Outcome feedback: user completed a DC engagement (positive confidence signal)
-        try {
-          const scope = "direct_connect";
-          const outcomeEvent = {
-            userId: String(userId),
-            contextType: "direct_connect" as const,
-            contextId: requestId,
-            action: "completed_flow" as const,
-            scope,
-          };
-          await recordOutcomeEvent(outcomeEvent);
-          await updateUserConfidenceStateFromOutcome(String(userId), outcomeEvent, scope);
-        } catch (e) {
-          console.warn("[direct-connect] Failed to record outcome event for completion", e);
-        }
-        try {
-          await discoveryObservatory.recordJourneyOutcome({
-            workRequestId: requestId,
-            kind: "requester_verified_complete",
-            state: "completed",
-            actorAuthority: "authenticated_requester",
-          });
-        } catch (observatoryError) {
-          console.warn("[direct-connect] Discovery completion capture failed", observatoryError);
-        }
-        // Notify the accepted provider(s) that the requester marked the job complete.
-        try {
-          const acceptedAssignments = await db
-            .select()
-            .from(workRequestAssignments)
-            .where(
-              and(
-                eq(workRequestAssignments.workRequestId, requestId),
-                eq(workRequestAssignments.status, "accepted" as any)
-              )
-            );
-          const providerUserIds = new Set<string>();
-          for (const a of acceptedAssignments as any[]) {
-            if (a.responderUserId) providerUserIds.add(String(a.responderUserId));
-            if (a.contractorId) {
-              const [c] = await db
-                .select({ userId: contractors.userId })
-                .from(contractors)
-                .where(eq(contractors.id, String(a.contractorId)))
-                .limit(1);
-              if (c?.userId) providerUserIds.add(String(c.userId));
-            }
-          }
-          await Promise.all(
-            Array.from(providerUserIds).map(async (providerUserId) => {
-              try {
-                await notificationService.createNotification({
-                  userId: providerUserId,
-                  type: "dc_request_completed",
-                  title: "Job marked complete",
-                  message: `The requester marked "${String(requestRow.title || "your request")}" as complete.`,
-                  actionUrl: "/direct-connect/inbox",
-                  actionText: "View in inbox",
-                  iconName: "check-circle",
-                  iconColor: "green",
-                  deliveryMethods: ["in_app", "push"],
-                });
-              } catch (notifErr) {
-                console.warn("[direct-connect] Failed to notify provider of completion", notifErr);
-              }
-            })
-          );
-        } catch (e) {
-          console.warn("[direct-connect] Failed to send completion notifications to providers", e);
-        }
-        await appendHomeIdTimelineEventFromDirectConnect({
-          requestId,
-          eventType: "direct_connect_completed",
-          title: "Direct Connect request completed",
-          summary: "The linked Direct Connect request was marked complete.",
-        });
-        await appendHomeIdCompletedWorkEnrichmentFromDirectConnect({
-          requestId,
-          completedAt: new Date().toISOString(),
-          workSummary: String(requestRow.description || requestRow.title || "").trim() || null,
-        });
-        res.status(200).json({ status: "completed" });
-      } catch (error: any) {
-        console.error("Error completing direct connect request:", error);
-        res.status(500).json({ message: "Failed to complete request" });
-      }
-    }
-  );
+    appendHomeIdTimelineEventFromDirectConnect,
+    appendHomeIdCompletedWorkEnrichmentFromDirectConnect,
+    recordDiscoveryOutcome: (requestId) =>
+      discoveryObservatory.recordJourneyOutcome({
+        workRequestId: requestId,
+        kind: "requester_verified_complete",
+        state: "completed",
+        actorAuthority: "authenticated_requester",
+      }),
+  });
 
   // Requester-facing: create a new Direct Connect request
   app.post(

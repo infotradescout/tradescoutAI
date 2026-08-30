@@ -12,6 +12,7 @@ import {
   trades,
   workRequestAssignments,
   workRequests,
+  userHomes,
 } from "@shared/schema";
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 
@@ -656,6 +657,21 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       .where(eq(users.id, String(requesterUser.id)));
 
     const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const [home] = await db
+      .insert(userHomes)
+      .values({
+        ownerUserId: requesterUser.id,
+        nickname: `Golden path home ${unique}`,
+        propertyType: "single_family",
+        address1: "100 Golden Path Way",
+        city: "Pensacola",
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        countyFips: String((county as any).fips),
+        zipCode: "32501",
+      } as any)
+      .returning();
+    expect(home).toBeTruthy();
+
     const [providerContractor] = await db
       .insert(contractors)
       .values({
@@ -677,6 +693,10 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       category: "service_request",
       countyFips: String((county as any).fips),
       stateCode: String((county as any).stateCode || "").toUpperCase(),
+      homeId: String(home.id),
+      homeContextIntent: "link_existing",
+      assetComponentType: "plumbing",
+      assetLabel: "Outdoor faucet",
     });
     expect(createRes.status).toBe(201);
     const requestId = String(createRes.body?.id || "");
@@ -828,6 +848,71 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       `/api/direct-connect/messages/threads/${conversationId}/job`
     );
     expect(wrongProviderMessageJob.status).toBe(403);
+
+    const providerCompleteAttempt = await providerAgent
+      .post(`/api/direct-connect/requests/${requestId}/complete`)
+      .send({});
+    expect(providerCompleteAttempt.status).toBe(403);
+
+    const completeRes = await requesterAgent
+      .post(`/api/direct-connect/requests/${requestId}/complete`)
+      .send({});
+    expect(completeRes.status).toBe(200);
+    expect(completeRes.body?.idempotencyReplayed).toBe(false);
+
+    const repeatCompleteRes = await requesterAgent
+      .post(`/api/direct-connect/requests/${requestId}/complete`)
+      .send({});
+    expect(repeatCompleteRes.status).toBe(200);
+    expect(repeatCompleteRes.body?.idempotencyReplayed).toBe(true);
+
+    const [completedRequest] = await db
+      .select({ status: workRequests.status })
+      .from(workRequests)
+      .where(eq(workRequests.id, requestId))
+      .limit(1);
+    expect(String(completedRequest?.status || "")).toBe("completed");
+
+    const completedWorkspace = await db.execute(sql`
+      SELECT status, active_stage
+      FROM direct_connect_job_workspaces
+      WHERE request_id = ${requestId}
+    `);
+    expect(String((completedWorkspace.rows?.[0] as any)?.status || "")).toBe("completed");
+    expect(String((completedWorkspace.rows?.[0] as any)?.active_stage || "")).toBe("completed");
+
+    const trustCompletion = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM trust_ledger_events
+      WHERE entity_type = 'work_request'
+        AND entity_id = ${requestId}
+        AND event_type = 'direct_connect_completed'
+    `);
+    expect(Number((trustCompletion.rows?.[0] as any)?.count || 0)).toBe(1);
+
+    const dispatchCompletion = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM direct_connect_dispatch_events
+      WHERE request_id = ${requestId}
+        AND event_type = 'job_completed'
+    `);
+    expect(Number((dispatchCompletion.rows?.[0] as any)?.count || 0)).toBe(1);
+
+    const homeCompletion = await db.execute(sql`
+      SELECT title, details
+      FROM user_home_records
+      WHERE home_id = ${String(home.id)}
+        AND title IN (
+          'homeid:timeline:direct_connect_completed',
+          'homeid:completed_work_enrichment'
+        )
+      ORDER BY title
+    `);
+    expect(homeCompletion.rows).toHaveLength(2);
+    for (const row of homeCompletion.rows as any[]) {
+      const details = JSON.parse(String(row.details || "{}"));
+      expect(String(details.directConnectRequestId || "")).toBe(requestId);
+    }
   });
 
   it("promotes open direct-connect requests to routed when provider expresses interest", async () => {
