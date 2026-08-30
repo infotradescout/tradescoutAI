@@ -147,6 +147,7 @@ import {
   DIRECT_CONNECT_INCOMING_PATH,
   DIRECT_CONNECT_REQUESTS_PATH,
   buildCanonicalDirectConnectWorkspaceHref,
+  buildDirectConnectAuthHandoffHref,
   canonicalizeDirectConnectWorkspacePathname,
   getDirectConnectComposerDraftSessionKey,
   getDirectConnectWorkspaceTask,
@@ -2411,9 +2412,6 @@ function DirectConnectRequestComposer({
           reason: "auth_required",
           blocked: true,
         });
-        persistDirectConnectDraft({
-          selectedProviderIds: variables?.targetProviderIds || selectedContractorIds,
-        });
         trackOncePerSession(
           "direct-connect-auth-handoff-submit",
           "direct_connect_auth_handoff_stalled",
@@ -2428,8 +2426,7 @@ function DirectConnectRequestComposer({
           title: "Sign in to send",
           description: "Your request draft is ready. Sign in to review and send it.",
         });
-        const next = encodeURIComponent(currentReturnPath());
-        navigate(`/pre-scout-setup?mode=signin&next=${next}`);
+        navigate(buildDirectConnectAuthHandoffHref(currentReturnPath()));
         return;
       }
 
@@ -2585,8 +2582,7 @@ function DirectConnectRequestComposer({
         title: "Create your free account to share this request",
         description: "Your contact information stays private until you approve a contact request.",
       });
-      const next = encodeURIComponent(currentReturnPath());
-      navigate(`/pre-scout-setup?mode=signin&next=${next}`);
+      navigate(buildDirectConnectAuthHandoffHref(currentReturnPath()));
       return;
     }
     if (prefillContextType === "profile" && prefillContextId?.trim()) {

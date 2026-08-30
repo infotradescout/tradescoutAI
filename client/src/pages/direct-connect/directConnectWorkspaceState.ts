@@ -243,6 +243,27 @@ export function resolveDirectConnectComposerReturnPath(
   return fallback || DIRECT_CONNECT_START_PATH;
 }
 
+export function buildDirectConnectAuthHandoffHref(returnPath: string): string {
+  const fallback = DIRECT_CONNECT_START_PATH;
+  const candidate = resolveDirectConnectComposerReturnPath(returnPath, fallback);
+
+  try {
+    const baseOrigin = "https://www.thetradescout.com";
+    const parsed = new URL(candidate, baseOrigin);
+    const isSameOrigin = parsed.origin === baseOrigin;
+    const isComposerRoute = getDirectConnectWorkspaceTask(parsed.pathname) === "start";
+    if (!isSameOrigin || !isComposerRoute) {
+      return `/pre-scout-setup?mode=signin&next=${encodeURIComponent(fallback)}`;
+    }
+
+    const safeReturnPath =
+      `${canonicalizeDirectConnectWorkspacePathname(parsed.pathname)}${parsed.search}${parsed.hash}`;
+    return `/pre-scout-setup?mode=signin&next=${encodeURIComponent(safeReturnPath)}`;
+  } catch {
+    return `/pre-scout-setup?mode=signin&next=${encodeURIComponent(fallback)}`;
+  }
+}
+
 export function getDirectConnectComposerDraftSessionKey(
   authenticatedUserId: string | null | undefined,
   pathname: string,

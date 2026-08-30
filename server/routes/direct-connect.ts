@@ -71,6 +71,9 @@ import {
   hashDirectConnectSubmissionPayload,
 } from "../services/directConnectSubmissionIdempotencyService";
 import {
+  ensureDirectConnectProfileInvitation,
+} from "../services/directConnectProfileTargetingService";
+import {
   redactContactDetails,
   buildWorkRequestPreviewTitle,
   buildWorkRequestScopeSummary,
@@ -6497,8 +6500,39 @@ export function registerDirectConnectRoutes(app: Express) {
                 replayed: false as const,
               };
         const created = creation.request;
+        let createdResponse = created;
+        if (created && targetProfile && targetProfileOwnerUserId) {
+          const profileRouting = await ensureDirectConnectProfileInvitation({
+            requestId: String(created.id),
+            requesterUserId: String(ownerUserId),
+            targetProfileId: String(targetProfile.id),
+            targetProfileSlug: String(targetProfile.slug || ""),
+            targetProfileOwnerUserId: String(targetProfileOwnerUserId),
+          });
+          createdResponse = profileRouting.request;
+          if (profileRouting.assignmentCreated) {
+            try {
+              await notificationService.createNotification({
+                userId: targetProfileOwnerUserId,
+                type: "new_project_request",
+                title: "New Direct Connect request",
+                message: `You have a new Direct Connect request: ${created.title}`,
+                actionUrl: "/direct-connect/inbox",
+                actionText: "View in Direct Connect",
+                iconName: "briefcase",
+                iconColor: "orange",
+                deliveryMethods: ["in_app", "push"],
+              });
+            } catch (error) {
+              console.error(
+                "[direct-connect] Failed to notify selected profile owner; request remains routed",
+                error
+              );
+            }
+          }
+        }
         if (creation.replayed) {
-          return res.status(200).json({ ...created, idempotencyReplayed: true });
+          return res.status(200).json({ ...createdResponse, idempotencyReplayed: true });
         }
 
         if (created?.id) {
@@ -6529,7 +6563,6 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        let createdResponse = created;
         const createdRequestId = created?.id ? String(created.id) : undefined;
         if (useFastTestCreate && created) {
           try {
@@ -6851,63 +6884,6 @@ export function registerDirectConnectRoutes(app: Express) {
             operation: "create",
             requestId: createdRequestId,
           });
-        }
-
-        if (created && targetProfile && targetProfileOwnerUserId) {
-          try {
-            const now = new Date();
-            await db.transaction(async (tx) => {
-              await tx.insert(workRequestAssignments).values({
-                workRequestId: created.id,
-                contractorId: null,
-                responderUserId: targetProfileOwnerUserId,
-                status: "invited",
-                scoreSnapshot: {
-                  reasons: ["requester_selected_published_profile"],
-                  routingMode: "profile_direct_connect",
-                },
-                createdAt: now,
-                updatedAt: now,
-              });
-              await tx
-                .update(workRequests)
-                .set({ status: "routed", updatedAt: now })
-                .where(eq(workRequests.id, created.id));
-              await tx.insert(workRequestEvents).values({
-                workRequestId: created.id,
-                type: "provider_invited",
-                actorUserId: String(ownerUserId),
-                metadata: {
-                  profileId: targetProfile.id,
-                  profileSlug: targetProfile.slug,
-                  responderUserId: targetProfileOwnerUserId,
-                  source: "profile_direct_connect",
-                },
-              });
-            });
-            createdResponse = { ...created, status: "routed", updatedAt: now } as any;
-          } catch (error) {
-            console.error("[direct-connect] Failed to route request to selected profile", error);
-            throw error;
-          }
-          try {
-            await notificationService.createNotification({
-              userId: targetProfileOwnerUserId,
-              type: "new_project_request",
-              title: "New Direct Connect request",
-              message: `You have a new Direct Connect request: ${created.title}`,
-              actionUrl: "/direct-connect/inbox",
-              actionText: "View in Direct Connect",
-              iconName: "briefcase",
-              iconColor: "orange",
-              deliveryMethods: ["in_app", "push"],
-            });
-          } catch (error) {
-            console.error(
-              "[direct-connect] Failed to notify selected profile owner; request remains routed",
-              error
-            );
-          }
         }
 
         if (created && targetProviderIds.length > 0) {

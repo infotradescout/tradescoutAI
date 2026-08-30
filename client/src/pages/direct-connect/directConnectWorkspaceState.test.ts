@@ -6,6 +6,7 @@ import {
   DIRECT_CONNECT_START_PATH,
   DIRECT_CONNECT_TASKBAR_RESUME_HREF,
   buildCanonicalDirectConnectWorkspaceHref,
+  buildDirectConnectAuthHandoffHref,
   canonicalizeDirectConnectWorkspacePathname,
   getDirectConnectComposerDraftSessionKey,
   getDirectConnectLastTaskStorageKey,
@@ -150,6 +151,25 @@ describe("Direct Connect work-desk state", () => {
         null
       )
     ).toBe("/direct-connect?intent=hire&contractorId=provider-1");
+  });
+
+  it("builds a bounded auth return that preserves the exact profile composer entry", () => {
+    const href = buildDirectConnectAuthHandoffHref(
+      "/direct-connect/post?profile=jane-doe&from=public_profile#request"
+    );
+    const parsed = new URL(href, "https://www.thetradescout.com");
+
+    expect(parsed.pathname).toBe("/pre-scout-setup");
+    expect(parsed.searchParams.get("mode")).toBe("signin");
+    expect(parsed.searchParams.get("next")).toBe(
+      "/direct-connect?profile=jane-doe&from=public_profile#request"
+    );
+    expect(buildDirectConnectAuthHandoffHref("https://evil.example/direct-connect")).toBe(
+      "/pre-scout-setup?mode=signin&next=%2Fdirect-connect"
+    );
+    expect(buildDirectConnectAuthHandoffHref("/direct-connect/inbox")).toBe(
+      "/pre-scout-setup?mode=signin&next=%2Fdirect-connect"
+    );
   });
 
   it("retains authenticated session drafts across remount hydration but consumes guest handoff", () => {

@@ -6,6 +6,10 @@ const shellSource = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/direct-connect/DirectConnectShell.tsx"),
   "utf8"
 );
+const workspaceSource = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/pages/direct-connect/directConnectWorkspaceState.ts"),
+  "utf8"
+);
 
 describe("direct connect auth handoff proof", () => {
   it("persists anonymous Direct Connect drafts across auth handoff before redirecting", () => {
@@ -19,9 +23,16 @@ describe("direct connect auth handoff proof", () => {
     expect(shellSource).toContain("hydrateDirectConnectDraft()");
   });
 
-  it("routes unauthenticated send/share attempts through auth with the current Direct Connect return path", () => {
-    expect(shellSource).toContain("const next = encodeURIComponent(currentReturnPath());");
-    expect(shellSource).toContain("navigate(`/pre-scout-setup?mode=signin&next=${next}`)");
+  it("uses one bounded auth handoff helper for submit and dispatch selection", () => {
+    expect(workspaceSource).toContain("export function buildDirectConnectAuthHandoffHref");
+    expect(workspaceSource).toContain("parsed.origin === baseOrigin");
+    expect(workspaceSource).toContain(
+      'getDirectConnectWorkspaceTask(parsed.pathname) === "start"'
+    );
+    expect(workspaceSource).toContain("canonicalizeDirectConnectWorkspacePathname(parsed.pathname)");
+    expect(
+      shellSource.match(/buildDirectConnectAuthHandoffHref\(currentReturnPath\(\)\)/g)
+    ).toHaveLength(2);
     expect(shellSource).toContain("Your request draft is ready. Sign in to review and send it.");
     expect(shellSource).toContain("Create your free account to share this request");
   });
@@ -32,11 +43,15 @@ describe("direct connect auth handoff proof", () => {
     expect(shellSource).toContain("setSubmissionKey(parsed.submissionKey)");
     const errorIndex = shellSource.indexOf("onError: (error: any");
     const persistIndex = shellSource.indexOf("persistDirectConnectDraft({", errorIndex);
+    const authIndex = shellSource.indexOf("if (error?.status === 401)", errorIndex);
+    const nextPersistIndex = shellSource.indexOf("persistDirectConnectDraft({", persistIndex + 1);
     const errorToastIndex = shellSource.indexOf('title: "Could not send request"', errorIndex);
 
     expect(errorIndex).toBeGreaterThan(-1);
     expect(persistIndex).toBeGreaterThan(errorIndex);
-    expect(errorToastIndex).toBeGreaterThan(persistIndex);
+    expect(authIndex).toBeGreaterThan(persistIndex);
+    expect(errorToastIndex).toBeGreaterThan(authIndex);
+    expect(nextPersistIndex).toBeGreaterThan(errorToastIndex);
   });
 
   it("clears the saved draft only after successful request submission", () => {

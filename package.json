@@ -137,6 +137,7 @@
     "guard:direct-connect-submission-idempotency": "node scripts/guard-direct-connect-submission-idempotency.mjs",
     "guard:direct-connect-admin-rescue": "node scripts/guard-direct-connect-admin-rescue.mjs",
     "guard:direct-connect-completion": "node scripts/guard-direct-connect-completion.mjs",
+    "guard:direct-connect-entry-golden-paths": "node scripts/guard-direct-connect-entry-golden-paths.mjs",
     "guard:identity-authority-spine": "node scripts/guard-identity-authority-spine.mjs",
     "guard:law-drift": "node scripts/guard-law-drift.mjs",
     "guard:prod-bypass": "node scripts/guard-prod-bypass.mjs",
