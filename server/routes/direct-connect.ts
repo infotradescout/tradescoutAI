@@ -6393,7 +6393,6 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
 
-        // Authenticated requester gates (profile/verification) stay enforced.
         const viewer = await storage.getUser(String(ownerUserId));
         let bypassContext: ReturnType<typeof resolveDirectConnectVerificationBypass> | null = null;
         let canBypassVerification = false;
@@ -6488,7 +6487,6 @@ export function registerDirectConnectRoutes(app: Express) {
           budgetMax = String(budgetMaxNumber);
         }
 
-        // Use canonical location from the user where available
         let countyFips: string | undefined;
         let stateCode: string | undefined;
         try {
@@ -6605,7 +6603,7 @@ export function registerDirectConnectRoutes(app: Express) {
         const useFastTestCreate =
           process.env.NODE_ENV === "test" && String(req.query?.e2eFast || "") === "1";
 
-        const workRequestValues = {
+        const workRequestValues: typeof workRequests.$inferInsert = {
           createdByUserId: String(ownerUserId),
           title: sanitizedTitle,
           description: sanitizedDescription,
@@ -6678,8 +6676,6 @@ export function registerDirectConnectRoutes(app: Express) {
               occurredAt: new Date(),
             });
           } catch (observatoryError) {
-            // The work request is authoritative and already committed. Missing
-            // observatory telemetry must never turn a customer request into a failure.
             console.warn("[direct-connect] discovery action capture failed", {
               requestId: created.id,
               error: observatoryError,
@@ -7011,9 +7007,6 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
 
-        // A profile CTA is an explicit recipient choice. Route the private
-        // request to that published profile's owner without exposing contact
-        // details or placing the request into county-wide discovery.
         if (created && targetProfile && targetProfileOwnerUserId) {
           try {
             const now = new Date();
@@ -7071,11 +7064,9 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        // Explicit targeting preserves requester choice; this is not automatic routing.
         if (created && targetProviderIds.length > 0) {
           try {
             const requestedIds = targetProviderIds;
-            // Resolve contractor IDs and business IDs from the universal provider search.
             const invitedContractors = await db
               .select()
               .from(contractors)
@@ -7265,7 +7256,6 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        // Default behavior: submit -> live. Non-targeted requests auto-route on create.
         if (created && shouldAutoRoute) {
           try {
             await routeRequestToTopContractors({
@@ -7332,7 +7322,6 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Staff-facing: create a Direct Connect request for a user account
   app.post(
     "/api/direct-connect/requests/:id/submit-homeid-draft",
     isAuthenticated,
