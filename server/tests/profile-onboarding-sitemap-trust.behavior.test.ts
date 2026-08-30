@@ -16,10 +16,15 @@ const baseCandidate: ProfileSitemapEligibilityCandidate = {
   slug: "onboarded-business",
   businessId: "business-1",
   profileOwnerUserId: "owner-1",
+  profileRoleContext: "business_owner",
+  profileHeadline: "A released local business profile.",
+  profileContentBlocks: [{ type: "about", data: { text: "Useful public details." } }],
   ownerVerifiedBadge: false,
   ownerVerificationStatus: "pending",
+  ownerRole: "business_owner",
+  ownerRoles: ["business_owner"],
   ownerProvider: "local",
-  ownerPreferences: { profileVisibility: "public" },
+  ownerPreferences: { publicProfileIds: ["profile-1"] },
   businessStatus: "active",
   businessOwnerUserId: "owner-1",
   publicDiscoveryEnabled: false,
@@ -37,6 +42,7 @@ describe("onboarding profile sitemap trust boundary", () => {
         ...baseCandidate,
         slug: "community-member",
         businessId: null,
+        profileRoleContext: "community_builder",
       })
     ).toBe(true);
   });
@@ -46,6 +52,7 @@ describe("onboarding profile sitemap trust boundary", () => {
       shouldIncludePublicProfileInSitemap({
         ...baseCandidate,
         ownerVerificationStatus: "approved",
+        publicDiscoveryEnabled: true,
         ownerPreferences: { publicProfileIds: ["profile-1"] },
       })
     ).toBe(true);
@@ -54,6 +61,7 @@ describe("onboarding profile sitemap trust boundary", () => {
         ...baseCandidate,
         profileId: "profile-2",
         ownerVerificationStatus: "approved",
+        publicDiscoveryEnabled: true,
         ownerPreferences: { publicProfileIds: ["profile-1"] },
       })
     ).toBe(false);
@@ -81,6 +89,7 @@ describe("onboarding profile sitemap trust boundary", () => {
       shouldIncludePublicProfileInSitemap({
         ...baseCandidate,
         ownerVerificationStatus: " APPROVED ",
+        publicDiscoveryEnabled: true,
       })
     ).toBe(true);
     expect(
@@ -88,18 +97,19 @@ describe("onboarding profile sitemap trust boundary", () => {
         ...baseCandidate,
         ownerVerifiedBadge: true,
         ownerVerificationStatus: "pending",
+        publicDiscoveryEnabled: true,
       })
     ).toBe(true);
   });
 
-  it("retains only the exact existing owner-confirmed direct-profile exception", () => {
+  it("keeps exact owner-confirmed direct profiles reachable but out of sitemaps", () => {
     const exactAuthority = {
       ...baseCandidate,
       slug: JRS_PROFILE_SLUG,
       businessSources: [OWNER_CONFIRMED_PROFILE_SOURCE],
     };
 
-    expect(shouldIncludePublicProfileInSitemap(exactAuthority)).toBe(true);
+    expect(shouldIncludePublicProfileInSitemap(exactAuthority)).toBe(false);
     expect(
       shouldIncludePublicProfileInSitemap({
         ...exactAuthority,
@@ -136,8 +146,14 @@ describe("onboarding profile sitemap trust boundary", () => {
       profile_slug: "onboarded-business",
       business_id: "business-1",
       profile_owner_user_id: "owner-1",
+      profile_role_context: "business_owner",
+      profile_headline: "A released local business profile.",
+      profile_services_description: null,
+      content_blocks: [{ type: "about", data: { text: "Useful public details." } }],
       owner_verified_badge: false,
       owner_verification_status: "pending",
+      owner_role: "business_owner",
+      owner_roles: ["business_owner"],
       owner_provider: "local",
       owner_preferences: { publicProfileIds: ["profile-1"] },
       business_status: "active",
@@ -152,6 +168,7 @@ describe("onboarding profile sitemap trust boundary", () => {
       isPublishedProfileSitemapTargetPublic({
         ...rawTarget,
         business_id: null,
+        profile_role_context: "community_builder",
       })
     ).toBe(true);
     expect(
@@ -167,7 +184,7 @@ describe("onboarding profile sitemap trust boundary", () => {
         public_discovery_enabled: false,
         business_sources: [OWNER_CONFIRMED_PROFILE_SOURCE],
       })
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isPublishedProfileSitemapTargetPublic({
         ...rawTarget,
@@ -183,7 +200,10 @@ describe("onboarding profile sitemap trust boundary", () => {
     );
     expect(targetLoader).toContain("p.business_id");
     expect(targetLoader).toContain("p.id AS profile_id");
+    expect(targetLoader).toContain("p.role_context AS profile_role_context");
+    expect(targetLoader).toContain("p.content_blocks");
     expect(targetLoader).toContain("u.verified_badge AS owner_verified_badge");
+    expect(targetLoader).toContain("u.role AS owner_role");
     expect(targetLoader).toContain("b.sources AS business_sources");
     expect(targetLoader).toContain("isPublishedProfileSitemapTargetPublic(row)");
   });

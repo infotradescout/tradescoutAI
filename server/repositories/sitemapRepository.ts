@@ -8,7 +8,10 @@ import {
   profiles,
   users,
 } from "@shared/schema";
-import { INTERNAL_ADMIN_PROFILE_SLUGS } from "@shared/publicProfileIndexing";
+import {
+  INTERNAL_ADMIN_PROFILE_SLUGS,
+  shouldIndexPublicProfileSlug,
+} from "@shared/publicProfileIndexing";
 import { db, pool as neonPool } from "../db";
 import { and, asc, desc, eq, notInArray, or, sql } from "drizzle-orm";
 import {
@@ -29,6 +32,7 @@ export type ProfileSitemapEligibilityCandidate = Omit<
 export function shouldIncludePublicProfileInSitemap(
   candidate: ProfileSitemapEligibilityCandidate
 ): boolean {
+  if (!shouldIndexPublicProfileSlug(candidate.slug)) return false;
   return canExposePublishedProfilePublicly({
     ...candidate,
     profileSlug: candidate.slug,
@@ -45,6 +49,10 @@ export class SitemapRepository {
         updatedAt: profiles.updatedAt,
         businessId: profiles.businessId,
         profileOwnerUserId: profiles.ownerUserId,
+        profileRoleContext: profiles.roleContext,
+        profileHeadline: profiles.headline,
+        profileServicesDescription: sql<string | null>`(${users.preferences} ->> 'servicesDescription')`,
+        profileContentBlocks: profiles.contentBlocks,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
         ownerRole: users.role,
