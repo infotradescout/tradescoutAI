@@ -90,6 +90,7 @@ import { resolveAnonymousSessionId } from "../utils/anonymousSession";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
+import { registerDirectConnectAdminRescueRoute } from "./direct-connect/admin-rescue";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { hasVerifiedTradeScoutAdminCustody } from "../services/ownerConfirmedDirectProfile";
@@ -7913,10 +7914,15 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Beta super-admin oversight: view the specific Direct Connect request that
-  // triggered a "Review request" notification (see directConnectBetaOversight.ts).
-  // Read-only -- deliberately does not replicate the full homeowner/business
-  // Direct Connect workspace (estimates, payments, schedules, etc.).
+  registerDirectConnectAdminRescueRoute(app, {
+    isAuthenticated,
+    isStaff,
+    db,
+    routeRequestToTopContractors,
+    logAdminAction,
+    appendDispatchEvent,
+  });
+
   app.get(
     "/api/admin/direct-connect/requests/:id",
     isAuthenticated,
