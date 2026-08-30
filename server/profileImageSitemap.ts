@@ -302,7 +302,7 @@ export function buildProfileImageSitemapXml(entries: ProfileImageSitemapEntry[])
 async function loadPublicProfileCandidates(): Promise<ProfileImageCandidate[]> {
   const rows = await new SitemapRepository().listPublicProfilesForSitemap();
   const candidates = await Promise.all(
-    rows.map(async (row) => {
+    rows.map(async (row): Promise<ProfileImageCandidate | null> => {
       const profile = await storage.getProfileBySlugPublic(row.slug);
       return profile
         ? {

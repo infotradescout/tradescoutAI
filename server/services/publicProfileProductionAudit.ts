@@ -397,7 +397,7 @@ async function mapWithConcurrency<T, R>(
 async function loadCurrentCandidates(): Promise<PublicProfileAuditCandidate[]> {
   const rows = await new SitemapRepository().listPublicProfilesForSitemap();
   const candidates = await Promise.all(
-    rows.map(async (row) => {
+    rows.map(async (row): Promise<PublicProfileAuditCandidate | null> => {
       const profile = await storage.getProfileBySlugPublic(row.slug);
       return profile
         ? {

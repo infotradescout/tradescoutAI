@@ -119,7 +119,7 @@ export function fingerprintPublicProfileIndexNowUrls(urls: Iterable<string>): st
 async function loadCurrentCandidates(): Promise<PublicProfileIndexNowCandidate[]> {
   const targets = await new SitemapRepository().listPublicProfilesForSitemap();
   const profiles = await Promise.all(
-    targets.map(async ({ slug }) => {
+    targets.map(async ({ slug }): Promise<PublicProfileIndexNowCandidate | null> => {
       const profile = await storage.getProfileBySlugPublic(slug);
       return profile
         ? {
