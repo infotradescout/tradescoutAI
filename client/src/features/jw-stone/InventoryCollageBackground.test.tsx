@@ -34,7 +34,7 @@ describe("JW Stone Browse Full Inventory image treatment", () => {
     );
   }
 
-  it("keeps the yard image in its native landscape orientation", () => {
+  it("shows a smaller, gently rotated inventory panorama", () => {
     renderBackground();
 
     const background = container.querySelector<HTMLElement>(
@@ -44,32 +44,36 @@ describe("JW Stone Browse Full Inventory image treatment", () => {
       '[data-testid="jw-inventory-collage-image"]'
     );
 
-    expect(background?.dataset.imageTreatment).toBe("full-width-slab-panorama");
-    expect(background?.className).not.toContain("[container-type:size]");
+    expect(background?.dataset.imageTreatment).toBe("zoomed-out-slab-panorama");
     expect(image?.getAttribute("src")).toBe(INVENTORY_SECTION_BACKGROUND.src);
-    expect(image?.dataset.rotation).toBe("0");
-    expect(image?.dataset.cropFocus).toBe("full-slab-row");
-    expect(container.querySelector('[data-testid="jw-inventory-collage-rotated-frame"]')).toBeNull();
+    expect(image?.dataset.rotation).toBe("1.5");
+    expect(image?.dataset.zoom).toBe("0.88-desktop");
+    expect(image?.dataset.cropFocus).toBe("full-slab-yard");
+    expect(image?.className).toContain("rotate-[1.5deg]");
+    expect(image?.className).toContain("h-[92%]");
+    expect(image?.className).toContain("sm:w-[96%]");
+    expect(image?.className).toContain("lg:w-[88%]");
+    expect(image?.className).not.toContain("rotate-90");
+    expect(image?.className).not.toContain("w-full");
   });
 
-  it("shows the complete horizontal inventory run instead of a rotated narrow strip", () => {
+  it("uses a soft full-bleed copy behind the zoomed-out image instead of empty edges", () => {
     renderBackground();
 
     const images = container.querySelectorAll<HTMLImageElement>(
       '[data-testid="jw-inventory-collage"] img'
     );
-    const image = images[0];
+    const fill = container.querySelector<HTMLImageElement>(
+      '[data-testid="jw-inventory-collage-fill"]'
+    );
 
-    expect(images).toHaveLength(1);
-    expect(image?.className).toContain("absolute");
-    expect(image?.className).toContain("inset-0");
-    expect(image?.className).toContain("h-full");
-    expect(image?.className).toContain("w-full");
-    expect(image?.className).toContain("object-cover");
-    expect(image?.className).toContain("object-[50%_54%]");
-    expect(image?.className).not.toContain("rotate-90");
-    expect(image?.className).not.toContain("scale-");
-    expect(image?.className).not.toContain("h-[100cqw]");
-    expect(image?.className).not.toContain("w-[100cqh]");
+    expect(images).toHaveLength(2);
+    expect(fill?.getAttribute("src")).toBe(INVENTORY_SECTION_BACKGROUND.src);
+    expect(fill?.className).toContain("inset-0");
+    expect(fill?.className).toContain("h-full");
+    expect(fill?.className).toContain("w-full");
+    expect(fill?.className).toContain("object-cover");
+    expect(fill?.className).toContain("blur-[4px]");
+    expect(fill?.className).toContain("opacity-70");
   });
 });
