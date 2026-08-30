@@ -82,6 +82,10 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
+import {
+  applyPrivateShellNoindex,
+  isPrivateAppShellPath,
+} from "./privateShellIndexability";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
   buildJwStoneMarketplaceLlmsText,
@@ -3020,6 +3024,14 @@ app.use(landingContractHeaders);
                 // Check if file exists before trying to serve
                 if (fs.existsSync(indexPath)) {
                   res.setHeader("Cache-Control", "no-store");
+                  if (isPrivateAppShellPath(reqPath)) {
+                    const templateHtml = getCachedTemplate(indexPath);
+                    if (!templateHtml) {
+                      return res.status(404).send("Application files not found");
+                    }
+                    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+                    return res.type("text/html").send(applyPrivateShellNoindex(templateHtml));
+                  }
                   res.sendFile(indexPath, (err) => {
                     if (err) {
                       console.error("Error serving index.html:", err);
