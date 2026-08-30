@@ -12,7 +12,7 @@ export const PR_DISPOSITIONS = Object.freeze(["extract", "rebuild", "close", "ho
 export const PR_RECOVERY_DISPOSITIONS = Object.freeze([
   { number: 409, status: "closed", disposition: "close", owner: "admin-os", reason: "Superseded by the current-main read-only Ecosystem Truth recovery in draft PR #546, including explicit closed-beta protection for realtor and car-sales." },
   { number: 396, status: "closed", disposition: "close", owner: "identity", reason: "Superseded by current-main profile-native identity work in 046c0e41 and 4a5f41e1; the stale branch must not be replayed." },
-  { number: 318, status: "open", disposition: "hold", owner: "stone-core", reason: "Private offers remain bounded until the shared identity and canonical offer models are settled." },
+  { number: 318, status: "closed", disposition: "close", owner: "stone-core", reason: "Superseded by current-main Profile Accounts, Stone Core container inventory, and BidRock private-offer/order authority; the stale JW-specific credential system must not be replayed." },
   { number: 316, status: "open", disposition: "extract", owner: "public-profiles", reason: "Preserve profile-specific install identity without replaying stale profile and server files." },
   { number: 305, status: "open", disposition: "rebuild", owner: "public-profiles", reason: "Reconcile Dean's current profile and booking job against the latest profile framework." },
   { number: 265, status: "closed", disposition: "close", owner: "release-control", reason: "The broad remediation branch predates hundreds of main commits and is not a coherent release." },
