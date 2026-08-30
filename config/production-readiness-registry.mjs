@@ -25,7 +25,7 @@ export const PR_RECOVERY_DISPOSITIONS = Object.freeze([
   { number: 218, status: "closed", disposition: "close", owner: "release-control", reason: "pnpm lock is not authoritative for this npm repository." },
   { number: 215, status: "closed", disposition: "close", owner: "direct-connect", reason: "Superseded by the current-main operations queue and replay-safe create recovery in draft PR #545; the stale 99-file branch must not be replayed." },
   { number: 214, status: "closed", disposition: "close", owner: "exchange", reason: "Superseded by the current-main request-only profile-catalog and About-action recovery in draft PR #550; the obsolete 119-record/433-image inventory baseline and oversized readiness-registry replay were not carried forward." },
-  { number: 213, status: "open", disposition: "extract", owner: "discovery", reason: "Compare indexability fixes with current organic-growth work and retain only missing contracts." },
+  { number: 213, status: "closed", disposition: "close", owner: "discovery", reason: "Superseded by the current-main shared landing, recent-page, private-shell, and sitemap crawlability recovery in draft PR #551; outdated crawl evidence and already-superseded directory/profile code were not replayed." },
   { number: 211, status: "closed", disposition: "close", owner: "public-profiles", reason: "The narrow ISSA presentation change is stale and must not overwrite the current profile theme." },
 ]);
 
