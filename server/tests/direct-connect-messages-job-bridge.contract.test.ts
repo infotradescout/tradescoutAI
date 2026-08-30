@@ -16,6 +16,9 @@ describe("Direct Connect Messages job bridge", () => {
     expect(routeSource).toContain("buildMessageJobAssist");
     expect(routeSource).toContain("learningSignals");
     expect(routeSource).toContain("primaryAction");
+    expect(routeSource).toContain("getReleasedRequesterContactForProvider({");
+    expect(routeSource).toContain("contactGateState:");
+    expect(routeSource).toContain("releasedContact,");
     expect(routeSource).not.toContain("messages/threads/:threadId/job/share");
   });
 
@@ -30,5 +33,8 @@ describe("Direct Connect Messages job bridge", () => {
     expect(panelSource).toContain("directConnectJobActionMutation");
     expect(panelSource).toContain("Open Direct Connect job");
     expect(panelSource).toContain("allowedLifecycleActions");
+    expect(panelSource).toContain('data-testid="direct-connect-released-contact"');
+    expect(panelSource).toContain("Contact stays private until the homeowner explicitly approves");
+    expect(panelSource).toContain("Contact released by homeowner");
   });
 });

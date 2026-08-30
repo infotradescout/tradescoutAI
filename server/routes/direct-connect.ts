@@ -58,6 +58,7 @@ import {
   getAllowedLifecycleActions,
   getLifecycleStatusForRecipient,
   getJobWorkspaceByRequestId,
+  getReleasedRequesterContactForProvider,
   getUnreadLifecycleStatusCount,
   persistFinalizedDispatchRequest,
   recordContractorResponse,
@@ -5078,11 +5079,13 @@ export function registerDirectConnectRoutes(app: Express) {
             wr.city_area,
             wr.status AS request_status,
             wr.created_at AS request_created_at,
+            dispatch.contact_gate_state,
             a.id AS assignment_id,
             a.status AS assignment_status,
             a.response_summary
           FROM work_requests wr
           INNER JOIN work_request_assignments a ON a.work_request_id = wr.id
+          LEFT JOIN direct_connect_dispatch_requests dispatch ON dispatch.id = wr.id
           WHERE wr.created_by_user_id = ${requesterUserId}
             AND wr.source = 'direct_connect'
             AND a.status = 'accepted'
@@ -5259,12 +5262,21 @@ export function registerDirectConnectRoutes(app: Express) {
               ? null
               : Number(paymentSummary.latest_amount),
         });
+        const releasedContact = viewerIsProvider
+          ? await getReleasedRequesterContactForProvider({
+              requestId,
+              providerUserId: userId,
+              contractorId: contractor?.id ? String(contractor.id) : null,
+            }).catch(() => null)
+          : null;
 
         res.status(200).json({
           threadId,
           requestId,
           jobWorkspaceId: workspaceId,
           viewerRole,
+          contactGateState: String(accepted.contact_gate_state || "locked"),
+          releasedContact,
           request: {
             title: requestTitle,
             description: requestDescription,
@@ -5783,43 +5795,15 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
 
-        await setDispatchContactGateState({ requestId, nextState });
+        if (nextState !== "released") {
+          await setDispatchContactGateState({ requestId, nextState });
+        }
         if (nextState === "released" && ownerUserId) {
-          const candidateRows = await db.execute(sql`
-            SELECT contractor_id, business_id, responder_user_id
-            FROM direct_connect_dispatch_candidates
-            WHERE request_id = ${requestId}
-              AND eligibility_state = 'eligible'
-            ORDER BY created_at ASC
-            LIMIT 1
-          `);
-          const candidate = ((candidateRows.rows || []) as any[])[0] || null;
-          const responseRows = await db.execute(sql`
-            SELECT id
-            FROM direct_connect_contractor_responses
-            WHERE request_id = ${requestId}
-            ORDER BY created_at DESC
-            LIMIT 1
-          `);
-          const latestResponse = ((responseRows.rows || []) as any[])[0] || null;
-          const dispatchRows = await db.execute(sql`
-            SELECT category, county, city_area
-            FROM direct_connect_dispatch_requests
-            WHERE id = ${requestId}
-            LIMIT 1
-          `);
-          const dispatch = ((dispatchRows.rows || []) as any[])[0] || null;
           const workspace = await createOrGetJobWorkspaceAtContactRelease({
             requestId,
             requesterUserId: ownerUserId,
-            businessId: candidate?.business_id ? String(candidate.business_id) : null,
-            contractorId: candidate?.contractor_id ? String(candidate.contractor_id) : null,
-            contractorResponseId: latestResponse?.id ? String(latestResponse.id) : null,
-            category: dispatch?.category ? String(dispatch.category) : null,
-            county: dispatch?.county ? String(dispatch.county) : null,
-            cityArea: dispatch?.city_area ? String(dispatch.city_area) : null,
           });
-          if (workspace?.id) {
+          if (workspace?.id && workspace.createdNow) {
             await appendDispatchEvent({
               requestId,
               actorType: "system",
@@ -5852,6 +5836,14 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.status(409).json({
             message: "Contact cannot release without explicit user approval.",
           });
+        }
+        if (String(error?.message || "") === "CONTACT_RELEASE_REQUIRES_ACCEPTED_PROVIDER") {
+          return res.status(409).json({
+            message: "Contact cannot release without an eligible provider response.",
+          });
+        }
+        if (String(error?.message || "") === "CONTACT_GATE_TRANSITION_CONFLICT") {
+          return res.status(409).json({ message: "The contact gate changed. Refresh and retry." });
         }
         return res.status(500).json({ message: "Failed to update contact gate state" });
       }
@@ -9262,6 +9254,11 @@ export function registerDirectConnectRoutes(app: Express) {
             ? String(invoiceSummary.latest_invoice_status)
             : null,
         });
+        const releasedContact = await getReleasedRequesterContactForProvider({
+          requestId,
+          providerUserId: userId,
+          contractorId,
+        }).catch(() => null);
 
         return res.status(200).json({
           requestId,
@@ -9388,7 +9385,8 @@ export function registerDirectConnectRoutes(app: Express) {
             : null,
           createdAt: candidate.created_at || null,
           updatedAt: candidate.updated_at || null,
-          homeownerContact: null,
+          homeownerContact: releasedContact,
+          releasedContact,
           timeline: timelineItems,
         });
       } catch (error) {
@@ -9667,21 +9665,16 @@ export function registerDirectConnectRoutes(app: Express) {
     receiptCreateSchema,
   });
 
-  // Provider-facing: accept/decline an assignment, and create a conversation on accept
   app.post(
     "/api/direct-connect/assignments/:id/respond",
     isAuthenticated,
     directConnectProviderResponseLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
-        // Contract anchor: requester notifications on response outcomes.
-        // createNotification -> dc_provider_accepted / dc_provider_declined
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
         const contractor = await storage.getContractorByUserId(String(userId));
-        // Business providers don't need a contractor profile — they respond via responderUserId.
-        // We still look up contractor for backward compat with contractor-profile assignments.
 
         const parse = assignmentResponseSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -9722,11 +9715,8 @@ export function registerDirectConnectRoutes(app: Express) {
             : "";
           const assignmentStatus = assignment ? String(assignment.status || "") : "";
 
-          // Authorization: the calling user must be the contractor, the responderUserId,
-          // or the worker whose workerId is on the assignment.
           const isContractorAssignment = contractor && assignmentContractorId === contractor.id;
           const isBusinessAssignment = assignment && assignmentResponderUserId === String(userId);
-          // Worker assignment: check if this user owns the worker profile linked to the assignment
           let isWorkerAssignment = false;
           if (!isContractorAssignment && !isBusinessAssignment && assignmentWorkerId) {
             const [wp] = await tx
@@ -9818,9 +9808,6 @@ export function registerDirectConnectRoutes(app: Express) {
               .returning();
 
             try {
-              // Ensure there is exactly one conversation between requester and provider for this engagement.
-              // For contractor-profile providers, use contractor.id;
-              // for business/worker providers, use userId as the contractorId key.
               const homeownerId = String(requestRow.createdByUserId);
               const providerContractorId = isContractorAssignment ? contractor!.id : String(userId);
 
@@ -9851,7 +9838,6 @@ export function registerDirectConnectRoutes(app: Express) {
 
               conversationId = String(convo.id);
 
-              // Promote the work request to in_progress once at least one provider accepts
               await tx
                 .update(workRequests)
                 .set({ status: "in_progress", updatedAt: now })
@@ -9913,6 +9899,36 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           }
 
+          const ledgerResponseType =
+            updatedAssignment.status === "accepted"
+              ? "interested"
+              : declineReason
+                ? "not_a_fit"
+                : "unavailable";
+          await recordContractorResponse(
+            {
+              requestId: assignmentWorkRequestId,
+              contractorId: contractor?.id ? String(contractor.id) : null,
+              responderUserId: String(userId),
+              responseType: ledgerResponseType,
+              message:
+                ledgerResponseType === "interested"
+                  ? String(responseSummary?.scopeNote || "")
+                  : String(declineReason || ""),
+              availability:
+                ledgerResponseType === "interested"
+                  ? String(responseSummary?.availabilityWindow || "")
+                  : null,
+              estimatedTiming:
+                ledgerResponseType === "interested"
+                  ? String(responseSummary?.availabilityWindow || "")
+                  : null,
+              contactRequestState:
+                ledgerResponseType === "interested" ? "contractor_requested" : "locked",
+            },
+            tx
+          );
+
           return {
             status: 200 as const,
             body: { assignment: updatedAssignment, conversationId, responseSummary },
@@ -9951,25 +9967,6 @@ export function registerDirectConnectRoutes(app: Express) {
                 ? "not_a_fit"
                 : "unavailable";
           const requestId = String(updatedAssignment.workRequestId || "");
-          await recordContractorResponse({
-            requestId,
-            contractorId: contractor?.id ? String(contractor.id) : null,
-            responderUserId: String(userId),
-            responseType,
-            message:
-              responseType === "interested"
-                ? String(responseSummary?.scopeNote || "")
-                : String(declineReason || ""),
-            availability:
-              responseType === "interested"
-                ? String(responseSummary?.availabilityWindow || "")
-                : null,
-            estimatedTiming:
-              responseType === "interested"
-                ? String(responseSummary?.availabilityWindow || "")
-                : null,
-            contactRequestState: responseType === "interested" ? "contractor_requested" : "locked",
-          });
           await appendDispatchEvent({
             requestId,
             actorType: "contractor",
@@ -9992,11 +9989,8 @@ export function registerDirectConnectRoutes(app: Express) {
             ledgerError
           );
         }
-        // Notify the requester that a provider has accepted or declined their request.
-        // This runs outside the transaction so a notification failure never blocks the response.
         try {
           const { assignment: updatedAssignment, conversationId: convId } = result.body as any;
-          // Re-fetch the requester userId from the work request (already committed by the tx above).
           const [reqRow] = await db
             .select({ createdByUserId: workRequests.createdByUserId, title: workRequests.title })
             .from(workRequests)

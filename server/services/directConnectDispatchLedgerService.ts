@@ -127,6 +127,7 @@ export async function ensureDirectConnectDispatchLedgerTables() {
       id text PRIMARY KEY,
       request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
       requester_user_id text NOT NULL,
+      provider_user_id text NULL,
       business_id text NULL,
       contractor_id text NULL,
       contractor_response_id text NULL,
@@ -139,6 +140,10 @@ export async function ensureDirectConnectDispatchLedgerTables() {
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
+  `);
+  await db.execute(sql`
+    ALTER TABLE direct_connect_job_workspaces
+      ADD COLUMN IF NOT EXISTS provider_user_id text NULL;
   `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS direct_connect_notifications (
@@ -948,6 +953,7 @@ export async function getJobWorkspaceByRequestId(requestId: string) {
       id,
       request_id,
       requester_user_id,
+      provider_user_id,
       business_id,
       contractor_id,
       contractor_response_id,
@@ -970,41 +976,202 @@ export async function getJobWorkspaceByRequestId(requestId: string) {
 export async function createOrGetJobWorkspaceAtContactRelease(args: {
   requestId: string;
   requesterUserId: string;
-  businessId?: string | null;
-  contractorId?: string | null;
-  contractorResponseId?: string | null;
-  category?: string | null;
-  county?: string | null;
-  cityArea?: string | null;
 }) {
-  const existing = await getJobWorkspaceByRequestId(args.requestId);
-  if (existing) return existing;
+  return db.transaction(async (tx: any) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext(${`direct-connect-job:${args.requestId}`}))`
+    );
 
-  const id = randomUUID();
-  await db.execute(sql`
-    INSERT INTO direct_connect_job_workspaces (
-      id, request_id, requester_user_id, business_id, contractor_id, contractor_response_id,
-      source, category, county, city_area, status, active_stage, created_at, updated_at
-    )
-    VALUES (
-      ${id},
-      ${args.requestId},
-      ${args.requesterUserId},
-      ${args.businessId ?? null},
-      ${args.contractorId ?? null},
-      ${args.contractorResponseId ?? null},
-      'direct_connect',
-      ${args.category ?? null},
-      ${args.county ?? null},
-      ${args.cityArea ?? null},
-      'contact_started',
-      'contact',
-      now(),
-      now()
-    )
+    const dispatchResult = await tx.execute(sql`
+      SELECT
+        d.user_id,
+        d.contact_gate_state,
+        d.category,
+        d.county,
+        d.city_area,
+        wr.created_by_user_id
+      FROM direct_connect_dispatch_requests d
+      INNER JOIN work_requests wr ON wr.id = d.id
+      WHERE d.id = ${args.requestId}
+      FOR UPDATE OF d
+    `);
+    const dispatch = ((dispatchResult.rows || []) as any[])[0] || null;
+    if (!dispatch) throw new Error("CONTACT_RELEASE_REQUEST_NOT_FOUND");
+
+    const ownerUserId = String(dispatch.user_id || dispatch.created_by_user_id || "").trim();
+    if (!ownerUserId || ownerUserId !== args.requesterUserId) {
+      throw new Error("CONTACT_RELEASE_OWNER_MISMATCH");
+    }
+
+    const existingResult = await tx.execute(sql`
+      SELECT
+        id, request_id, requester_user_id, provider_user_id, business_id, contractor_id,
+        contractor_response_id, source, category, county, city_area, status, active_stage,
+        created_at, updated_at
+      FROM direct_connect_job_workspaces
+      WHERE request_id = ${args.requestId}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `);
+    const existing = ((existingResult.rows || []) as any[])[0] || null;
+
+    const providerResult = await tx.execute(sql`
+      SELECT
+        response.id AS response_id,
+        response.contractor_id,
+        response.responder_user_id AS provider_user_id,
+        COALESCE(candidate.business_id, contractor.business_id, owned_business.id) AS business_id,
+        EXISTS (
+          SELECT 1
+          FROM work_request_assignments assignment
+          WHERE assignment.work_request_id = response.request_id
+            AND assignment.status = 'accepted'
+            AND (
+              (response.contractor_id IS NOT NULL AND assignment.contractor_id = response.contractor_id)
+              OR (response.responder_user_id IS NOT NULL AND assignment.responder_user_id = response.responder_user_id)
+              OR (
+                response.responder_user_id IS NOT NULL
+                AND assignment.worker_id IN (
+                  SELECT worker.id FROM workers worker
+                  WHERE worker.user_id = response.responder_user_id
+                )
+              )
+            )
+        ) AS has_accepted_assignment
+      FROM direct_connect_contractor_responses response
+      INNER JOIN direct_connect_dispatch_candidates candidate
+        ON candidate.request_id = response.request_id
+        AND candidate.eligibility_state = 'eligible'
+        AND (
+          (response.contractor_id IS NOT NULL AND candidate.contractor_id = response.contractor_id)
+          OR (
+            response.responder_user_id IS NOT NULL
+            AND candidate.responder_user_id = response.responder_user_id
+          )
+        )
+      LEFT JOIN contractors contractor ON contractor.id = response.contractor_id
+      LEFT JOIN businesses owned_business
+        ON owned_business.owner_user_id = response.responder_user_id
+      WHERE response.request_id = ${args.requestId}
+        AND response.response_type IN ('interested', 'need_more_info')
+      ORDER BY has_accepted_assignment DESC, response.created_at DESC, candidate.created_at DESC
+      LIMIT 1
+    `);
+    const provider = ((providerResult.rows || []) as any[])[0] || null;
+    if (!provider && !existing) {
+      throw new Error("CONTACT_RELEASE_REQUIRES_ACCEPTED_PROVIDER");
+    }
+
+    const currentState = String(dispatch.contact_gate_state || "locked");
+    if (currentState === "user_approved") {
+      await tx.execute(sql`
+        UPDATE direct_connect_dispatch_requests
+        SET contact_gate_state = 'released', updated_at = now()
+        WHERE id = ${args.requestId}
+          AND contact_gate_state = 'user_approved'
+      `);
+    } else if (currentState !== "released") {
+      throw new Error("CONTACT_RELEASE_REQUIRES_APPROVAL");
+    }
+
+    if (existing) return { ...existing, createdNow: false };
+
+    const id = randomUUID();
+    const insertedResult = await tx.execute(sql`
+      INSERT INTO direct_connect_job_workspaces (
+        id, request_id, requester_user_id, provider_user_id, business_id, contractor_id,
+        contractor_response_id, source, category, county, city_area, status, active_stage,
+        created_at, updated_at
+      )
+      VALUES (
+        ${id},
+        ${args.requestId},
+        ${args.requesterUserId},
+        ${provider.provider_user_id ?? null},
+        ${provider.business_id ?? null},
+        ${provider.contractor_id ?? null},
+        ${provider.response_id},
+        'direct_connect',
+        ${dispatch.category ?? null},
+        ${dispatch.county ?? null},
+        ${dispatch.city_area ?? null},
+        'contact_started',
+        'contact',
+        now(),
+        now()
+      )
+      RETURNING
+        id, request_id, requester_user_id, provider_user_id, business_id, contractor_id,
+        contractor_response_id, source, category, county, city_area, status, active_stage,
+        created_at, updated_at
+    `);
+    const inserted = ((insertedResult.rows || []) as any[])[0] || null;
+    return inserted ? { ...inserted, createdNow: true } : null;
+  });
+}
+
+export async function getReleasedRequesterContactForProvider(args: {
+  requestId: string;
+  providerUserId: string;
+  contractorId?: string | null;
+}) {
+  const result = await db.execute(sql`
+    SELECT
+      owner.first_name,
+      owner.last_name,
+      owner.email,
+      owner.phone,
+      owner.address,
+      owner.city,
+      owner.state,
+      owner.zip_code
+    FROM direct_connect_job_workspaces workspace
+    INNER JOIN direct_connect_dispatch_requests dispatch
+      ON dispatch.id = workspace.request_id
+      AND dispatch.contact_gate_state = 'released'
+    INNER JOIN direct_connect_contractor_responses response
+      ON response.id = workspace.contractor_response_id
+      AND response.response_type IN ('interested', 'need_more_info')
+    INNER JOIN direct_connect_dispatch_candidates candidate
+      ON candidate.request_id = workspace.request_id
+      AND candidate.eligibility_state = 'eligible'
+      AND (
+        (response.contractor_id IS NOT NULL AND candidate.contractor_id = response.contractor_id)
+        OR (
+          response.responder_user_id IS NOT NULL
+          AND candidate.responder_user_id = response.responder_user_id
+        )
+      )
+    INNER JOIN work_requests work_request ON work_request.id = workspace.request_id
+    INNER JOIN users owner ON owner.id = work_request.created_by_user_id
+    WHERE workspace.request_id = ${args.requestId}
+      AND (
+        response.responder_user_id = ${args.providerUserId}
+        OR (
+          ${args.contractorId ?? null}::text IS NOT NULL
+          AND response.contractor_id = ${args.contractorId ?? null}
+        )
+      )
+    ORDER BY workspace.created_at DESC
+    LIMIT 1
   `);
+  const row = ((result.rows || []) as any[])[0] || null;
+  if (!row) return null;
 
-  return await getJobWorkspaceByRequestId(args.requestId);
+  const name = [row.first_name, row.last_name]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const address = [row.address, row.city, row.state, row.zip_code]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .join(", ");
+  return {
+    name: name || null,
+    email: row.email ? String(row.email) : null,
+    phone: row.phone ? String(row.phone) : null,
+    address: address || null,
+  };
 }
 
 export function getAllowedLifecycleActions(args: {
@@ -1814,24 +1981,30 @@ export async function setDispatchContactGateState(args: {
   requestId: string;
   nextState: ContactGateState;
 }) {
-  if (args.nextState === "released") {
-    const result = await db.execute(sql`
-      UPDATE direct_connect_dispatch_requests
-      SET contact_gate_state = 'released', updated_at = now()
-      WHERE id = ${args.requestId}
-        AND contact_gate_state = 'user_approved'
-    `);
-    const updated = Number((result as any)?.rowCount || 0);
-    if (updated < 1) {
-      throw new Error("CONTACT_RELEASE_REQUIRES_APPROVAL");
-    }
-    return;
-  }
-  await db.execute(sql`
+  const requiredPreviousState: ContactGateState =
+    args.nextState === "contractor_requested"
+      ? "locked"
+      : args.nextState === "user_approved" || args.nextState === "denied"
+        ? "contractor_requested"
+        : args.nextState === "released"
+          ? "user_approved"
+          : args.nextState === "expired"
+            ? "locked"
+            : "locked";
+  const result = await db.execute(sql`
     UPDATE direct_connect_dispatch_requests
     SET contact_gate_state = ${args.nextState}, updated_at = now()
     WHERE id = ${args.requestId}
+      AND contact_gate_state IN (${requiredPreviousState}, ${args.nextState})
+    RETURNING contact_gate_state
   `);
+  const updated = Number((result as any)?.rowCount || 0);
+  if (updated > 0) return;
+  throw new Error(
+    args.nextState === "released"
+      ? "CONTACT_RELEASE_REQUIRES_APPROVAL"
+      : "CONTACT_GATE_TRANSITION_CONFLICT"
+  );
 }
 
 export async function recordContractorResponse(args: {
@@ -1843,22 +2016,94 @@ export async function recordContractorResponse(args: {
   availability?: string | null;
   estimatedTiming?: string | null;
   contactRequestState: ContactGateState;
-}) {
-  await db.execute(sql`
-    INSERT INTO direct_connect_contractor_responses (
-      id, request_id, contractor_id, responder_user_id, response_type, message, availability, estimated_timing, contact_request_state, created_at
+}, executor: any = db) {
+  const responseId = randomUUID();
+  const candidateId = randomUUID();
+  const shouldRequestContact =
+    args.contactRequestState === "contractor_requested" &&
+    (args.responseType === "interested" || args.responseType === "need_more_info");
+  const result = await executor.execute(sql`
+    WITH parent AS (
+      SELECT id
+      FROM direct_connect_dispatch_requests
+      WHERE id = ${args.requestId}
+    ), inserted_response AS (
+      INSERT INTO direct_connect_contractor_responses (
+        id, request_id, contractor_id, responder_user_id, response_type, message, availability,
+        estimated_timing, contact_request_state, created_at
+      )
+      SELECT
+        ${responseId},
+        parent.id,
+        ${args.contractorId ?? null},
+        ${args.responderUserId ?? null},
+        ${args.responseType},
+        ${args.message ?? null},
+        ${args.availability ?? null},
+        ${args.estimatedTiming ?? null},
+        ${args.contactRequestState},
+        now()
+      FROM parent
+      RETURNING id
+    ), inserted_candidate AS (
+      INSERT INTO direct_connect_dispatch_candidates (
+        id, request_id, business_id, contractor_id, responder_user_id, worker_id,
+        eligibility_state, eligibility_reasons, ineligibility_reasons, territory_matched,
+        category_matched, verification_state, profile_readiness, contact_eligibility,
+        trust_state, created_at
+      )
+      SELECT
+        ${candidateId},
+        parent.id,
+        COALESCE(
+          (SELECT contractor.business_id FROM contractors contractor WHERE contractor.id = ${args.contractorId ?? null}),
+          (SELECT business.id FROM businesses business WHERE business.owner_user_id = ${args.responderUserId ?? null} ORDER BY business.id LIMIT 1)
+        ),
+        ${args.contractorId ?? null},
+        ${args.responderUserId ?? null},
+        null,
+        'eligible',
+        '["accepted_authorized_assignment"]'::jsonb,
+        '[]'::jsonb,
+        null,
+        null,
+        'assignment_authorized',
+        'assignment_authorized',
+        true,
+        'assignment_authorized',
+        now()
+      FROM parent
+      WHERE ${shouldRequestContact}
+        AND (
+          ${args.contractorId ?? null}::text IS NOT NULL
+          OR ${args.responderUserId ?? null}::text IS NOT NULL
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM direct_connect_dispatch_candidates candidate
+          WHERE candidate.request_id = parent.id
+            AND candidate.eligibility_state = 'eligible'
+            AND (
+              (
+                ${args.contractorId ?? null}::text IS NOT NULL
+                AND candidate.contractor_id = ${args.contractorId ?? null}
+              )
+              OR (
+                ${args.responderUserId ?? null}::text IS NOT NULL
+                AND candidate.responder_user_id = ${args.responderUserId ?? null}
+              )
+            )
+        )
+      RETURNING id
+    ), advanced_gate AS (
+      UPDATE direct_connect_dispatch_requests
+      SET contact_gate_state = 'contractor_requested', updated_at = now()
+      WHERE id = ${args.requestId}
+        AND ${shouldRequestContact}
+        AND contact_gate_state = 'locked'
+      RETURNING id
     )
-    VALUES (
-      ${randomUUID()},
-      ${args.requestId},
-      ${args.contractorId ?? null},
-      ${args.responderUserId ?? null},
-      ${args.responseType},
-      ${args.message ?? null},
-      ${args.availability ?? null},
-      ${args.estimatedTiming ?? null},
-      ${args.contactRequestState},
-      now()
-    )
+    SELECT EXISTS (SELECT 1 FROM inserted_response) AS response_recorded
   `);
+  return Boolean(((result.rows || []) as any[])[0]?.response_recorded);
 }

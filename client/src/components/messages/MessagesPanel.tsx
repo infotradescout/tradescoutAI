@@ -136,6 +136,13 @@ type DirectConnectThreadJob = {
   requestId: string;
   jobWorkspaceId: string | null;
   viewerRole: "requester" | "provider";
+  contactGateState: string;
+  releasedContact: {
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+  } | null;
   request: {
     title: string;
     description: string;
@@ -233,6 +240,7 @@ export function hasRenderableDirectConnectThreadJob(
   ) {
     return false;
   }
+  if (value.releasedContact != null && !isRecord(value.releasedContact)) return false;
 
   const summaries = value.summaries;
   if (
@@ -909,6 +917,64 @@ export default function MessagesPanel() {
                         </Badge>
                       </div>
                     </div>
+
+                    {directConnectThreadJob.viewerRole === "provider" && (
+                      <div
+                        className="mt-3 rounded-lg border border-white/10 bg-black/25 p-3 text-xs"
+                        data-testid="direct-connect-released-contact"
+                      >
+                        {directConnectThreadJob.releasedContact ? (
+                          <div className="space-y-1 text-white/75">
+                            <div className="font-semibold text-white">
+                              Contact released by homeowner
+                            </div>
+                            {directConnectThreadJob.releasedContact.name && (
+                              <div>{directConnectThreadJob.releasedContact.name}</div>
+                            )}
+                            {directConnectThreadJob.releasedContact.email && (
+                              <a
+                                className="block text-ts-orange hover:underline"
+                                href={`mailto:${directConnectThreadJob.releasedContact.email}`}
+                              >
+                                {directConnectThreadJob.releasedContact.email}
+                              </a>
+                            )}
+                            {directConnectThreadJob.releasedContact.phone && (
+                              <a
+                                className="block text-ts-orange hover:underline"
+                                href={`tel:${directConnectThreadJob.releasedContact.phone}`}
+                              >
+                                {directConnectThreadJob.releasedContact.phone}
+                              </a>
+                            )}
+                            {directConnectThreadJob.releasedContact.address && (
+                              <div>{directConnectThreadJob.releasedContact.address}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-white/60">
+                            Contact stays private until the homeowner explicitly approves and
+                            releases it.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {directConnectThreadJob.viewerRole === "requester" &&
+                      directConnectThreadJob.contactGateState === "contractor_requested" && (
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-ts-orange/20 bg-black/25 p-3 text-xs text-white/65">
+                          <span>The accepted provider requested contact access.</span>
+                          <Button
+                            size="sm"
+                            className="h-8 bg-ts-orange text-xs text-black hover:bg-ts-orange/90"
+                            onClick={() => {
+                              window.location.href = "/direct-connect";
+                            }}
+                          >
+                            Review contact request
+                          </Button>
+                        </div>
+                      )}
 
                     {directConnectThreadJob.assist && (
                       <div className="mt-3 rounded-lg border border-ts-orange/20 bg-black/25 p-3">

@@ -26,9 +26,12 @@ describe("direct connect contractor console contracts", () => {
     expect(source).not.toContain("featured placement");
   });
 
-  it("does not expose homeowner private contact in contractor detail payload", () => {
-    const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("homeownerContact: null");
+  it("exposes homeowner contact only through the released provider-bound payload", () => {
+    const routes = read("server/routes/direct-connect.ts");
+    const ledger = read("server/services/directConnectDispatchLedgerService.ts");
+    expect(routes).toContain("homeownerContact: releasedContact");
+    expect(routes).toContain("getReleasedRequesterContactForProvider({");
+    expect(ledger).toContain("dispatch.contact_gate_state = 'released'");
   });
 
   it("renders a minimal contractor request console surface", () => {
