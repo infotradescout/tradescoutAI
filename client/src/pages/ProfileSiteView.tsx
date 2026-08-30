@@ -117,6 +117,9 @@ const JrsAutoGlassProfileTheme = lazy(
 const VideographerProfileTheme = lazy(
   () => import("@/pages/profile-sites/VideographerProfileTheme")
 );
+const FinancialProfessionalProfileTheme = lazy(
+  () => import("@/pages/profile-sites/FinancialProfessionalProfileTheme")
+);
 const LocalServiceProfileTheme = lazy(
   () => import("@/pages/profile-sites/LocalServiceProfileTheme")
 );
@@ -240,6 +243,31 @@ function VideographerProfileBoundary({ children }: { children: ReactNode }) {
               Portfolio
             </p>
             <p className="mt-3 text-2xl font-semibold">Loading the videography profile…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function FinancialProfessionalProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-[#0d2e29] px-6 text-center text-white"
+          data-testid="financial-professional-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d8bd7d]">
+              Financial professional profile
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading profile details…</p>
           </div>
         </div>
       }
@@ -2145,6 +2173,128 @@ export default function ProfileSiteView() {
           initialStoneName={expressInventoryContext?.itemName}
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
+        />
+      </>
+    );
+  }
+
+  if (siteTemplate === "financial-professional") {
+    const bookingDetailsVisible =
+      bookingEnabled &&
+      ((calendarVisibility === "public" && slots.length > 0) ||
+        (booking.pricingTableEnabled === true && pricingRows.length > 0));
+
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          socialTitle={socialTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={pageOgType}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+          noIndex={categoryNoIndex}
+        />
+        {manageChrome}
+        {templateIndependentInventoryContext}
+        <FinancialProfessionalProfileBoundary>
+          <FinancialProfessionalProfileTheme
+            profileSlug={profile.slug}
+            platformBaseHref={platformBaseHref}
+            businessName={displayName}
+            headline={publicHeadline}
+            contentBlocks={contentBlocks}
+            services={serviceTags}
+            serviceAreas={serviceAreas}
+            aboutText={aboutText}
+            profileShareDestination={profileShareDestination}
+            onDirectConnect={openServiceDirectConnect}
+            trustActions={renderProfileTrustActions("light")}
+            bookingAction={
+              bookingEnabled ? (
+                <ProfileBookingRequestDialog
+                  profileId={profile.id}
+                  profileName={displayName}
+                  timezone={timezone}
+                  pricingRows={pricingRows}
+                  paidBookings={paidBookings}
+                  bookingPriceUsd={bookingPriceUsd}
+                  bookingCategory={bookingCategory}
+                  bookingStateCode={business?.stateCode || ""}
+                  hasViewerSession={hasViewerSession}
+                  viewerCanManage={viewerCanManage}
+                  signInHref={bookingSignInHref}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : undefined
+            }
+            bookingDetails={
+              bookingDetailsVisible ? (
+                <div className="rounded-3xl border border-[#17362f]/15 bg-[#f8f3e8] p-6 text-[#17362f] sm:p-8">
+                  <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#916425]">
+                    <Calendar className="h-4 w-4" />
+                    Booking details
+                  </p>
+                  {calendarVisibility === "public" && slots.length > 0 ? (
+                    <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                      {slots.slice(0, 14).map((slot) => (
+                        <div
+                          key={slot.id}
+                          className="flex items-center justify-between gap-4 rounded-xl border border-[#17362f]/12 px-4 py-3"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Clock3 className="h-3.5 w-3.5 text-[#916425]" />
+                            {dayNames[slot.dayOfWeek] || "Day"}
+                          </span>
+                          <span>
+                            {slot.startTime}–{slot.endTime}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
+                    <div className="mt-5 divide-y divide-[#17362f]/12 border-y border-[#17362f]/12 text-sm">
+                      {pricingRows.slice(0, 10).map((row) => (
+                        <div key={row.id} className="flex justify-between gap-4 py-3">
+                          <span>{row.name}</span>
+                          <span className="font-black">{row.priceLabel}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  <p className="mt-5 text-xs leading-5 text-[#17362f]/60">
+                    A request is not confirmed until the profile owner accepts it.
+                  </p>
+                </div>
+              ) : undefined
+            }
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </FinancialProfessionalProfileBoundary>
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          businessAddress={publicBusinessAddress}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
+          initialServiceName={expressServiceContext}
+          initialRequestType={expressServiceContext ? "request_service" : null}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
         />
       </>
     );
