@@ -120,7 +120,10 @@ import {
   toPublicCommunityPost,
 } from "./publicCommunityPost";
 import { resolveUserCountyWriteContext } from "./locationContext";
-import { resolveRequestEffectiveUser } from "./utils/requestEffectiveUser";
+import {
+  resolveRequestAuthorityContext,
+  resolveRequestEffectiveUser,
+} from "./utils/requestEffectiveUser";
 import {
   getHomeScoutAuthorityUserId,
   HOME_SCOUT_REPORT_DOWNLOAD_MAX_BYTES,
@@ -462,6 +465,7 @@ import { storage } from "./storage";
 import {
   applyRequestSessionCookieScope,
   setupAuth,
+  bindAuthenticatedRequestAuthority,
   isAuthenticated,
   isAdmin,
   isStaff,
@@ -1451,6 +1455,10 @@ export async function registerRoutes(app: any) {
 
   // Setup authentication
   await setupAuth(app);
+
+  // Bind every authenticated request to one server-resolved effective account
+  // before any feature or standalone admin router can evaluate req.user.
+  app.use(bindAuthenticatedRequestAuthority);
 
   // Emit build identity on every response so production log/debug can confirm
   // which revision is currently serving traffic.
@@ -4492,11 +4500,19 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      const userId: string = (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
-      if (!userId) {
-        res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
+      const identityContext = await resolveRequestAuthorityContext(
+        req,
+        async (targetUserId) => storage.getUser(targetUserId)
+      );
+      if (!identityContext.ok) {
+        res.status(403).json({
+          authenticated: false,
+          code: "AUTH_IDENTITY_CONTEXT_INVALID",
+          reason: identityContext.reason,
+        });
         return;
       }
+      const userId = identityContext.effectiveUserId;
 
       let user = await storage.getUser(userId);
       if (!user) {
@@ -4505,9 +4521,13 @@ export async function registerRoutes(app: any) {
       }
 
       user = await attachLatestTrustSnapshotToUser(user);
-      user = await syncBusinessOnboardingFromSignals(user);
+      if (!identityContext.isImpersonating) {
+        user = await syncBusinessOnboardingFromSignals(user);
+      }
 
-      const completedSetupBackfill = getCompletedSetupBackfillPatch(user);
+      const completedSetupBackfill = identityContext.isImpersonating
+        ? null
+        : getCompletedSetupBackfillPatch(user);
       if (completedSetupBackfill) {
         try {
           const existingUserId = user?.id;
@@ -4536,7 +4556,10 @@ export async function registerRoutes(app: any) {
       const userEmail = String((user as any)?.email || "")
         .trim()
         .toLowerCase();
-      const isAdminAliasEmail = userEmail.length > 0 && adminEmailAliases.has(userEmail);
+      const isAdminAliasEmail =
+        !identityContext.isImpersonating &&
+        userEmail.length > 0 &&
+        adminEmailAliases.has(userEmail);
       if (isAdminAliasEmail) {
         const currentRoles = Array.from(
           new Set(
@@ -4584,6 +4607,7 @@ export async function registerRoutes(app: any) {
       }
 
       const mergeSessionAuthority = (baseUser: any) => {
+        if (identityContext.isImpersonating) return baseUser;
         const authUser = (req.user || {}) as any;
         if (!baseUser || !authUser) return baseUser;
         const authClaims =
@@ -4662,32 +4686,34 @@ export async function registerRoutes(app: any) {
 
       // Resolve the current super admin support account for session-level support paths.
       // Do not create contact edges here; governed contact must remain gated.
-      try {
-        const sessionAny = req.session as any;
-        const ensuredForUserId =
-          typeof sessionAny?.superAdminConnectionEnsuredForUserId === "string"
-            ? sessionAny.superAdminConnectionEnsuredForUserId
-            : "";
-        if (ensuredForUserId !== String(userId)) {
-          await ensureSuperAdminConnectionForUser(String(userId));
-          if (sessionAny) {
-            sessionAny.superAdminConnectionEnsuredForUserId = String(userId);
+      if (!identityContext.isImpersonating) {
+        try {
+          const sessionAny = req.session as any;
+          const ensuredForUserId =
+            typeof sessionAny?.superAdminConnectionEnsuredForUserId === "string"
+              ? sessionAny.superAdminConnectionEnsuredForUserId
+              : "";
+          if (ensuredForUserId !== String(userId)) {
+            await ensureSuperAdminConnectionForUser(String(userId));
+            if (sessionAny) {
+              sessionAny.superAdminConnectionEnsuredForUserId = String(userId);
+            }
           }
+        } catch (ensureError) {
+          console.error("[auth/user] Failed to ensure super admin auto-connection", {
+            userId,
+            error: ensureError,
+          });
         }
-      } catch (ensureError) {
-        console.error("[auth/user] Failed to ensure super admin auto-connection", {
-          userId,
-          error: ensureError,
-        });
       }
 
       const applyImpersonation = (baseUser: any) => {
         const sessionAny = req.session as any;
-        if (sessionAny?.isImpersonating && sessionAny?.impersonatingRole) {
+        if (identityContext.isImpersonating) {
           return {
             ...baseUser,
-            role: sessionAny.impersonatingRole,
             isImpersonating: true,
+            impersonating: true,
             originalRole: sessionAny.originalUser?.role,
           };
         }
@@ -4726,7 +4752,7 @@ export async function registerRoutes(app: any) {
         res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
       }
-      if (!user.activeProfileId) {
+      if (!identityContext.isImpersonating && !user.activeProfileId) {
         try {
           const profiles = await storage.listProfilesByOwner(userId);
           if (profiles.length === 1) {
@@ -4749,7 +4775,7 @@ export async function registerRoutes(app: any) {
       // - If activeBusinessId exists, keep it.
       // - Else if user owns exactly 1 business, auto-set it.
       // Never let optional business resolution break authenticated sessions.
-      if (!user.activeBusinessId) {
+      if (!identityContext.isImpersonating && !user.activeBusinessId) {
         try {
           const businesses = await storage.listBusinessesByOwner(userId);
           if (businesses.length === 1) {

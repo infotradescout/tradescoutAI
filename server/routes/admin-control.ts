@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../db";
 import { scoutOutcomeEvents, scoutUserConfidenceState } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
+import { resolveRequestEffectiveUser } from "../utils/requestEffectiveUser";
 
 const router = Router();
 
@@ -16,6 +17,8 @@ let confidenceDampener: number = 1.0; // multiplier
 let outcomeLearningEnabled: boolean = true;
 
 function isSuperAdmin(req: any): boolean {
+  const identityContext = resolveRequestEffectiveUser(req);
+  if (!identityContext.ok || identityContext.isImpersonating) return false;
   const rawRole = typeof req.user?.role === "string" ? req.user.role.trim().toLowerCase() : "";
   const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
   return req.isAuthenticated() && role === "super_admin";

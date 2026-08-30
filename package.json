@@ -133,6 +133,7 @@
     "backfill:trust-snapshots": "node scripts/backfill-trust-snapshots.mjs",
     "guard:forbidden": "node scripts/forbidden-patterns.mjs",
     "guard:architecture-hygiene": "node scripts/guard-architecture-hygiene.mjs",
+    "guard:identity-authority-spine": "node scripts/guard-identity-authority-spine.mjs",
     "guard:law-drift": "node scripts/guard-law-drift.mjs",
     "guard:prod-bypass": "node scripts/guard-prod-bypass.mjs",
     "guard:precommit-spaced-paths": "node scripts/guard-precommit-spaced-paths.mjs",
