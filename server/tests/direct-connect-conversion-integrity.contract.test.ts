@@ -3,6 +3,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  DIRECT_CONNECT_FRICTION_EVENTS,
   resetFrictionTelemetryForTests,
   toDirectConnectRouteTemplate,
   trackConversionIntegrityEvent,
@@ -286,9 +287,9 @@ describe("Direct Connect conversion-integrity lane", () => {
       expect(stalls).toHaveLength(0);
     });
 
-    it("does not flag an attempt that advanced to a later funnel stage", () => {
+    it("does not flag an attempt whose later funnel stage is still inside the window", () => {
       const startedAt = new Date(baseNow.getTime() - windowMs - 1000);
-      const submittedAt = new Date(startedAt.getTime() + 1000);
+      const submittedAt = new Date(startedAt.getTime() + 2000);
       const stalls = computeDirectConnectFunnelStalls({
         events: [
           { identityKey: "u:1", eventType: "direct_connect_request_started", createdAt: startedAt },
@@ -321,6 +322,7 @@ describe("Direct Connect conversion-integrity lane", () => {
     it("evaluates a second, later attempt independently of a completed earlier one", () => {
       const firstStart = new Date(baseNow.getTime() - 3 * windowMs);
       const firstSubmit = new Date(firstStart.getTime() + 1000);
+      const firstReplyViewed = new Date(firstStart.getTime() + 2000);
       const secondStart = new Date(baseNow.getTime() - windowMs - 1000);
 
       const stalls = computeDirectConnectFunnelStalls({
@@ -334,6 +336,11 @@ describe("Direct Connect conversion-integrity lane", () => {
             identityKey: "u:1",
             eventType: "direct_connect_request_submitted",
             createdAt: firstSubmit,
+          },
+          {
+            identityKey: "u:1",
+            eventType: "direct_connect_requester_reply_viewed",
+            createdAt: firstReplyViewed,
           },
           {
             identityKey: "u:1",
@@ -358,12 +365,15 @@ describe("Direct Connect conversion-integrity lane", () => {
   });
 
   describe("no client-side stall emission (defers to server)", () => {
-    it("keeps the funnel-stall event name and timer-based capture out of the client bundle", () => {
+    it("keeps the funnel-stall event outside the client-emittable vocabulary", () => {
       const shell = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
       const telemetry = read("client/src/lib/telemetry.ts");
-      const combined = `${shell}\n${telemetry}`;
 
-      expect(combined).not.toContain("direct_connect_funnel_step_stalled");
+      expect(
+        new Set<string>(DIRECT_CONNECT_FRICTION_EVENTS).has("direct_connect_funnel_step_stalled")
+      ).toBe(false);
+      expect(shell).not.toContain("direct_connect_funnel_step_stalled");
+      expect(telemetry).toContain("DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS");
       expect(telemetry).not.toContain("setTimeout");
       expect(telemetry).not.toContain("setInterval");
     });
