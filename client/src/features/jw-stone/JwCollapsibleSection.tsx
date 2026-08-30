@@ -30,7 +30,7 @@ type JwCollapsibleSectionProps = {
   background?: ReactNode;
 };
 
-/** Exactly one visible cue per band: muted Open/Close + large rotating chevron. */
+/** Exactly one visible cue per band: muted Open/Close + rotating chevron. */
 function SectionToggleCue({
   expanded,
   tone,
@@ -49,13 +49,13 @@ function SectionToggleCue({
   return (
     <span
       data-testid={`${testId}-expand-cue`}
-      className={`inline-flex shrink-0 flex-col items-center gap-0.5 ${toneClass}`}
+      className={`inline-flex shrink-0 flex-col items-center gap-0 ${toneClass}`}
       aria-hidden="true"
     >
-      <span className="text-[11px] font-medium tracking-wide sm:text-xs">{label}</span>
+      <span className="text-[10px] font-medium tracking-wide sm:text-[11px]">{label}</span>
       <ChevronDown
         data-testid={`${testId}-expand-chevron`}
-        className={`h-8 w-8 shrink-0 transition-transform duration-200 sm:h-9 sm:w-9 ${
+        className={`h-6 w-6 shrink-0 transition-transform duration-200 sm:h-7 sm:w-7 ${
           expanded ? "rotate-180" : ""
         }`}
         strokeWidth={2.25}
@@ -68,11 +68,11 @@ const photoToggleBase =
   "cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--jw-accent)] focus-visible:ring-inset transition-[filter,transform] duration-150 group-hover:brightness-[1.06] active:brightness-95";
 
 /**
- * Luxury section shell: ~25svh full-bleed photo row when collapsed; body opens on tap.
- * When expanded, the photo title band stays sticky under the marketplace header so
- * tapping it again can always collapse — even deep in a long inventory list.
- * Re-opens from hash matches on `#id` (menu / hero jump links).
- * One calm cue only — large chevron + muted Open/Close (no under-title open copy, no pill).
+ * Compact full-bleed browse band when collapsed; the body opens on tap.
+ * Three collapsed browse choices now fit comfortably beneath the First Cut
+ * carousel in one desktop viewport instead of consuming three quarters of it.
+ * When expanded, the photo title band stays sticky under the marketplace header
+ * so tapping it again can always collapse, even deep in a long inventory list.
  */
 export function JwCollapsibleSection({
   id,
@@ -175,9 +175,9 @@ export function JwCollapsibleSection({
         className={
           expanded
             ? // Compact sticky title band — stays tappable while scrolling long panels.
-              // top offsets clear sticky MarketplaceHeader (h-14 / sm:h-[4.25rem]).
+              // Top offsets clear sticky MarketplaceHeader (h-14 / sm:h-[4.25rem]).
               `group sticky top-14 z-30 flex min-h-14 w-full flex-col justify-end overflow-hidden text-left sm:top-[4.25rem] sm:min-h-[3.75rem] ${photoToggleBase}`
-            : `group relative flex min-h-[25svh] w-full flex-col justify-end overflow-hidden text-left ${photoToggleBase}`
+            : `group relative flex min-h-[8.5rem] w-full flex-col justify-end overflow-hidden text-left sm:min-h-[8rem] lg:min-h-[7.5rem] ${photoToggleBase}`
         }
       >
         {background ?? (
@@ -198,7 +198,7 @@ export function JwCollapsibleSection({
           className={
             expanded
               ? "relative z-[1] mx-auto flex w-full max-w-[1600px] items-end justify-between gap-4 px-5 py-3 sm:px-9 sm:py-3.5 lg:px-12"
-              : "relative z-[1] mx-auto flex w-full max-w-[1600px] items-end justify-between gap-4 px-5 pb-5 pt-8 sm:px-9 sm:pb-6 sm:pt-10 lg:px-12"
+              : "relative z-[1] mx-auto flex w-full max-w-[1600px] items-end justify-between gap-4 px-5 pb-3 pt-5 sm:px-9 sm:pb-3.5 sm:pt-6 lg:px-12"
           }
         >
           <h2
@@ -206,7 +206,7 @@ export function JwCollapsibleSection({
             className={
               expanded
                 ? "min-w-0 max-w-3xl font-editorial text-xl leading-tight text-white sm:text-2xl"
-                : "min-w-0 max-w-3xl font-editorial text-2xl leading-tight text-white sm:text-3xl lg:text-4xl"
+                : "min-w-0 max-w-3xl font-editorial text-xl leading-tight text-white sm:text-2xl lg:text-[1.75rem]"
             }
           >
             {title}
@@ -219,7 +219,7 @@ export function JwCollapsibleSection({
         <div
           id={panelId}
           data-testid={panelId}
-          className="bg-[var(--jw-bg)] px-5 py-7 sm:px-9 sm:py-9 lg:px-12"
+          className="bg-[var(--jw-bg)] px-5 py-5 sm:px-9 sm:py-7 lg:px-12"
         >
           <div className="mx-auto max-w-[1600px]">{children}</div>
         </div>
