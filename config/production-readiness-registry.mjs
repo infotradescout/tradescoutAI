@@ -11,7 +11,7 @@ export const PR_DISPOSITIONS = Object.freeze(["extract", "rebuild", "close", "ho
 
 export const PR_RECOVERY_DISPOSITIONS = Object.freeze([
   { number: 409, status: "open", disposition: "extract", owner: "admin-os", reason: "Reapply the read-only truth workspace to current Admin OS contracts." },
-  { number: 396, status: "open", disposition: "rebuild", owner: "identity", reason: "Profile account entry is required, but 51 stale commits cannot define the one-identity model." },
+  { number: 396, status: "closed", disposition: "close", owner: "identity", reason: "Superseded by current-main profile-native identity work in 046c0e41 and 4a5f41e1; the stale branch must not be replayed." },
   { number: 318, status: "open", disposition: "hold", owner: "stone-core", reason: "Private offers remain bounded until the shared identity and canonical offer models are settled." },
   { number: 316, status: "open", disposition: "extract", owner: "public-profiles", reason: "Preserve profile-specific install identity without replaying stale profile and server files." },
   { number: 305, status: "open", disposition: "rebuild", owner: "public-profiles", reason: "Reconcile Dean's current profile and booking job against the latest profile framework." },
@@ -19,7 +19,7 @@ export const PR_RECOVERY_DISPOSITIONS = Object.freeze([
   { number: 255, status: "closed", disposition: "close", owner: "stone-core", reason: "Old JW mobile polish must not overwrite the current catalog and visual architecture." },
   { number: 254, status: "open", disposition: "extract", owner: "trust-cvs", reason: "Reconcile only the still-needed recommendation binding against current migrations and profile authority." },
   { number: 223, status: "closed", disposition: "close", owner: "release-control", reason: "pnpm lock and historical evidence are obsolete in the npm-authoritative repository." },
-  { number: 222, status: "open", disposition: "rebuild", owner: "direct-connect", reason: "Recover valid notification and profile entry behavior through the current Direct Connect spine." },
+  { number: 222, status: "closed", disposition: "close", owner: "direct-connect", reason: "Superseded by universal Express Direct Connect in 84aab242 and later hardening; the stale snapshot must not be replayed." },
   { number: 221, status: "closed", disposition: "close", owner: "stone-core", reason: "The branch includes hundreds of bundled stone images and conflicts with server-side media storage." },
   { number: 219, status: "open", disposition: "extract", owner: "public-profiles", reason: "Reconcile public profile authority services without replaying stale route and profile implementations." },
   { number: 218, status: "closed", disposition: "close", owner: "release-control", reason: "pnpm lock is not authoritative for this npm repository." },
@@ -200,7 +200,11 @@ export const API_ROUTE_FAMILIES = Object.freeze([
     owner: "public-media-storage", audience: "authorized-uploader", roles: ["authenticated", "profile_manager", "staff"],
     canonicalObject: "inventory_item", job: "Store and retrieve authorized media objects", readiness: "production",
   }),
-  family("legacy-api", /^\/api\/(?:car-salesman|realtor|leads|disputes|vaults|scoutcoin)(?:\/|$)/, {
+  family("professional-verticals-api", /^\/api\/(?:car-salesman|realtor)(?:\/|$)/, {
+    owner: "professional-verticals", audience: "professional-and-customer", roles: ["authenticated", "realtor", "car_salesman"],
+    canonicalObject: "business", job: "Operate professional real-estate and vehicle-sales work", readiness: "closed_beta",
+  }),
+  family("legacy-api", /^\/api\/(?:leads|disputes|vaults|scoutcoin)(?:\/|$)/, {
     owner: "legacy-quarantine", audience: "none", roles: [],
     canonicalObject: "persona", job: "No public job; pending reconciliation", readiness: "disabled",
   }),
