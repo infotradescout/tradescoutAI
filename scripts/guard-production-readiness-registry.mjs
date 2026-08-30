@@ -4,7 +4,7 @@ import {
   API_ROUTE_FAMILIES,
   CANONICAL_OBJECTS,
   CLIENT_ROUTE_FAMILIES,
-  OPEN_PR_DISPOSITIONS,
+  PR_RECOVERY_DISPOSITIONS,
   PR_DISPOSITIONS,
   READINESS_STATES,
   resolveApiRoute,
@@ -42,11 +42,15 @@ const uniqueApiRoutes = [...new Set(apiRegistrations)].sort();
 
 const failures = [];
 const prNumbers = new Set();
-for (const pr of OPEN_PR_DISPOSITIONS) {
+for (const pr of PR_RECOVERY_DISPOSITIONS) {
   if (prNumbers.has(pr.number)) failures.push(`Duplicate PR disposition for #${pr.number}`);
   prNumbers.add(pr.number);
   if (!PR_DISPOSITIONS.includes(pr.disposition)) {
     failures.push(`PR #${pr.number} has invalid disposition ${pr.disposition}`);
+  }
+  if (!["open", "closed"].includes(pr.status)) failures.push(`PR #${pr.number} has invalid status`);
+  if (pr.disposition === "close" && pr.status !== "closed") {
+    failures.push(`PR #${pr.number} is marked close but remains ${pr.status}`);
   }
   if (!pr.owner || !pr.reason) failures.push(`PR #${pr.number} lacks an owner or reason`);
 }
@@ -161,7 +165,8 @@ for (const route of uniqueRoutes) {
 
 console.log(`[production-readiness-registry] PASS`);
 console.log(`Canonical objects: ${Object.keys(CANONICAL_OBJECTS).length}`);
-console.log(`Open PR dispositions: ${OPEN_PR_DISPOSITIONS.length}`);
+console.log(`PR recovery dispositions: ${PR_RECOVERY_DISPOSITIONS.length}`);
+console.log(`Open PRs held for recovery: ${PR_RECOVERY_DISPOSITIONS.filter((pr) => pr.status === "open").length}`);
 console.log(`Literal client routes: ${uniqueRoutes.length}`);
 console.log(`Literal API registrations: ${apiRegistrations.length}`);
 console.log(`Unique literal API routes: ${uniqueApiRoutes.length}`);

@@ -9,24 +9,24 @@ export const READINESS_STATES = Object.freeze([
 
 export const PR_DISPOSITIONS = Object.freeze(["extract", "rebuild", "close", "hold"]);
 
-export const OPEN_PR_DISPOSITIONS = Object.freeze([
-  { number: 409, disposition: "extract", owner: "admin-os", reason: "Reapply the read-only truth workspace to current Admin OS contracts." },
-  { number: 396, disposition: "rebuild", owner: "identity", reason: "Profile account entry is required, but 51 stale commits cannot define the one-identity model." },
-  { number: 318, disposition: "hold", owner: "stone-core", reason: "Private offers remain bounded until the shared identity and canonical offer models are settled." },
-  { number: 316, disposition: "extract", owner: "public-profiles", reason: "Preserve profile-specific install identity without replaying stale profile and server files." },
-  { number: 305, disposition: "rebuild", owner: "public-profiles", reason: "Reconcile Dean's current profile and booking job against the latest profile framework." },
-  { number: 265, disposition: "close", owner: "release-control", reason: "The broad remediation branch predates hundreds of main commits and is not a coherent release." },
-  { number: 255, disposition: "close", owner: "stone-core", reason: "Old JW mobile polish must not overwrite the current catalog and visual architecture." },
-  { number: 254, disposition: "extract", owner: "trust-cvs", reason: "Reconcile only the still-needed recommendation binding against current migrations and profile authority." },
-  { number: 223, disposition: "close", owner: "release-control", reason: "pnpm lock and historical evidence are obsolete in the npm-authoritative repository." },
-  { number: 222, disposition: "rebuild", owner: "direct-connect", reason: "Recover valid notification and profile entry behavior through the current Direct Connect spine." },
-  { number: 221, disposition: "close", owner: "stone-core", reason: "The branch includes hundreds of bundled stone images and conflicts with server-side media storage." },
-  { number: 219, disposition: "extract", owner: "public-profiles", reason: "Reconcile public profile authority services without replaying stale route and profile implementations." },
-  { number: 218, disposition: "close", owner: "release-control", reason: "pnpm lock is not authoritative for this npm repository." },
-  { number: 215, disposition: "rebuild", owner: "direct-connect", reason: "Direct Connect recovery is critical but must be rebuilt from the current schema, routes, and admin surfaces." },
-  { number: 214, disposition: "extract", owner: "exchange", reason: "Retain valid profile-catalog and About contracts only after current route and inventory reconciliation." },
-  { number: 213, disposition: "extract", owner: "discovery", reason: "Compare indexability fixes with current organic-growth work and retain only missing contracts." },
-  { number: 211, disposition: "close", owner: "public-profiles", reason: "The narrow ISSA presentation change is stale and must not overwrite the current profile theme." },
+export const PR_RECOVERY_DISPOSITIONS = Object.freeze([
+  { number: 409, status: "open", disposition: "extract", owner: "admin-os", reason: "Reapply the read-only truth workspace to current Admin OS contracts." },
+  { number: 396, status: "open", disposition: "rebuild", owner: "identity", reason: "Profile account entry is required, but 51 stale commits cannot define the one-identity model." },
+  { number: 318, status: "open", disposition: "hold", owner: "stone-core", reason: "Private offers remain bounded until the shared identity and canonical offer models are settled." },
+  { number: 316, status: "open", disposition: "extract", owner: "public-profiles", reason: "Preserve profile-specific install identity without replaying stale profile and server files." },
+  { number: 305, status: "open", disposition: "rebuild", owner: "public-profiles", reason: "Reconcile Dean's current profile and booking job against the latest profile framework." },
+  { number: 265, status: "closed", disposition: "close", owner: "release-control", reason: "The broad remediation branch predates hundreds of main commits and is not a coherent release." },
+  { number: 255, status: "closed", disposition: "close", owner: "stone-core", reason: "Old JW mobile polish must not overwrite the current catalog and visual architecture." },
+  { number: 254, status: "open", disposition: "extract", owner: "trust-cvs", reason: "Reconcile only the still-needed recommendation binding against current migrations and profile authority." },
+  { number: 223, status: "closed", disposition: "close", owner: "release-control", reason: "pnpm lock and historical evidence are obsolete in the npm-authoritative repository." },
+  { number: 222, status: "open", disposition: "rebuild", owner: "direct-connect", reason: "Recover valid notification and profile entry behavior through the current Direct Connect spine." },
+  { number: 221, status: "closed", disposition: "close", owner: "stone-core", reason: "The branch includes hundreds of bundled stone images and conflicts with server-side media storage." },
+  { number: 219, status: "open", disposition: "extract", owner: "public-profiles", reason: "Reconcile public profile authority services without replaying stale route and profile implementations." },
+  { number: 218, status: "closed", disposition: "close", owner: "release-control", reason: "pnpm lock is not authoritative for this npm repository." },
+  { number: 215, status: "open", disposition: "rebuild", owner: "direct-connect", reason: "Direct Connect recovery is critical but must be rebuilt from the current schema, routes, and admin surfaces." },
+  { number: 214, status: "open", disposition: "extract", owner: "exchange", reason: "Retain valid profile-catalog and About contracts only after current route and inventory reconciliation." },
+  { number: 213, status: "open", disposition: "extract", owner: "discovery", reason: "Compare indexability fixes with current organic-growth work and retain only missing contracts." },
+  { number: 211, status: "closed", disposition: "close", owner: "public-profiles", reason: "The narrow ISSA presentation change is stale and must not overwrite the current profile theme." },
 ]);
 
 export const CANONICAL_OBJECTS = Object.freeze({
