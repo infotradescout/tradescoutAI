@@ -65,6 +65,7 @@ import {
   Trophy,
   Palette,
   Gem,
+  Layers3,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/states";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,7 +94,8 @@ interface ExchangeItem {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | null;
+  pricingMode?: "fixed" | "request_quote";
   category: string;
   condition: "new" | "like_new" | "good" | "fair";
   images: string[];
@@ -170,7 +172,10 @@ interface CompanyPromotion {
   restrictions?: string;
 }
 
-type SellFormCategorySlug = Exclude<ExchangeCategorySlug, "real-estate" | "metals">;
+type SellFormCategorySlug = Exclude<
+  ExchangeCategorySlug,
+  "real-estate" | "metals" | "building-materials"
+>;
 type ExchangePortalSlug = "" | "rental-property" | "rental-equipment";
 type ExchangeSearchScope = "local" | "state" | "nationwide";
 
@@ -193,6 +198,12 @@ const EXCHANGE_CATEGORIES = [
     name: "Construction Equipment",
     icon: Wrench,
     description: "Heavy machinery, tools, equipment",
+  },
+  {
+    id: "building-materials",
+    name: "Building Materials & Surfaces",
+    icon: Layers3,
+    description: "Profile catalogs for stone, onyx, and project materials",
   },
   {
     id: "tools",
@@ -263,7 +274,12 @@ const EXCHANGE_CATEGORIES = [
 ];
 
 function isSellFormCategorySlug(value: string): value is SellFormCategorySlug {
-  return value !== "real-estate" && value !== "metals" && value in SHARED_SELL_CATEGORY_FIELDS;
+  return (
+    value !== "real-estate" &&
+    value !== "metals" &&
+    value !== "building-materials" &&
+    value in SHARED_SELL_CATEGORY_FIELDS
+  );
 }
 
 const RENTAL_PORTALS: Array<{
@@ -851,6 +867,7 @@ export default function Exchange() {
       "business",
       "vehicles",
       "construction",
+      "building-materials",
       "tools",
       "furniture",
       "farm",
@@ -871,7 +888,8 @@ export default function Exchange() {
     return category ? category.icon : Package;
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | null) => {
+    if (price == null || !Number.isFinite(price) || price < 0) return "Request quote";
     if (price >= 1000000) {
       return `$${(price / 1000000).toFixed(1)}M`;
     } else if (price >= 1000) {
@@ -1320,6 +1338,8 @@ export default function Exchange() {
                     filteredItems.map((item) => {
                       const IconComponent = getCategoryIcon(item.category);
                       const isProfileOffer = item.sourceType === "profile_offer";
+                      const isProfileCatalog = item.sourceType === "profile_catalog";
+                      const isProfileLinked = isProfileOffer || isProfileCatalog;
                       const detailCategory = item.category || "other";
                       const detailPath = `/exchange/${detailCategory}/${item.id}`;
                       return (
@@ -1344,16 +1364,22 @@ export default function Exchange() {
                                 <IconComponent className="h-12 w-12 text-white/60" />
                               </div>
                             )}
-                            {item.featured && (
+                            {isProfileCatalog ? (
+                              <Badge className="absolute top-2 right-2 bg-sky-600">
+                                Profile catalog
+                              </Badge>
+                            ) : item.featured ? (
                               <Badge className="absolute top-2 right-2 bg-ts-orange">
                                 Featured
                               </Badge>
+                            ) : null}
+                            {!isProfileCatalog && (
+                              <Badge
+                                className={`absolute top-2 left-2 ${getConditionBadge(item.condition)}`}
+                              >
+                                {item.condition}
+                              </Badge>
                             )}
-                            <Badge
-                              className={`absolute top-2 left-2 ${getConditionBadge(item.condition)}`}
-                            >
-                              {item.condition}
-                            </Badge>
                           </div>
                           <CardContent className="p-3">
                             <p className="text-lg sm:text-xl font-bold text-white mb-1">
@@ -1370,26 +1396,32 @@ export default function Exchange() {
                                 <MapPin className="h-3 w-3 mr-1" />
                                 <span className="line-clamp-1">{item.location}</span>
                               </div>
-                              <span>{formatListedTime(item.createdAt)}</span>
+                              <span>
+                                {isProfileCatalog
+                                  ? "Managed request"
+                                  : formatListedTime(item.createdAt)}
+                              </span>
                             </div>
 
-                            <div className="mb-2 flex flex-wrap gap-1">
-                              {item.isLocalPickupOnly ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-white/10 text-[10px] text-white/65"
-                                >
-                                  Local pickup
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="border-emerald-500/30 text-[10px] text-emerald-300"
-                                >
-                                  Shipping available
-                                </Badge>
-                              )}
-                            </div>
+                            {!isProfileCatalog && (
+                              <div className="mb-2 flex flex-wrap gap-1">
+                                {item.isLocalPickupOnly ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-white/10 text-[10px] text-white/65"
+                                  >
+                                    Local pickup
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-emerald-500/30 text-[10px] text-emerald-300"
+                                  >
+                                    Shipping available
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
 
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex items-center">
@@ -1406,13 +1438,13 @@ export default function Exchange() {
                                     {item.seller.verified ? (
                                       <span className="text-emerald-400">Verified seller</span>
                                     ) : (
-                                      <span>Seller profile</span>
+                                      <span>{isProfileCatalog ? "Business profile" : "Seller profile"}</span>
                                     )}
                                   </div>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
-                                {!isProfileOffer && (
+                                {!isProfileLinked && (
                                   <Button
                                     size="sm"
                                     variant="ghost"
@@ -1460,7 +1492,7 @@ export default function Exchange() {
                                   size="sm"
                                   className="h-8 px-2.5 bg-ts-orange hover:bg-ts-orange-dark text-xs"
                                   onClick={() => {
-                                    if (isProfileOffer) {
+                                    if (isProfileLinked) {
                                       navigate(detailPath);
                                       return;
                                     }
@@ -1474,7 +1506,11 @@ export default function Exchange() {
                                     );
                                   }}
                                 >
-                                  {isProfileOffer ? "Buy" : "Request Quote"}
+                                  {isProfileOffer
+                                    ? "Buy"
+                                    : isProfileCatalog
+                                      ? "View Catalog"
+                                      : "Request Quote"}
                                 </Button>
                               </div>
                             </div>
@@ -1991,7 +2027,9 @@ export default function Exchange() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent className="bg-tsCard border-white/10">
-                          {EXCHANGE_CATEGORIES.map((category) => (
+                          {EXCHANGE_CATEGORIES.filter(
+                            (category) => category.id !== "building-materials"
+                          ).map((category) => (
                             <SelectItem key={category.id} value={category.id}>
                               {category.name}
                             </SelectItem>

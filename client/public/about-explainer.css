@@ -1024,7 +1024,7 @@ a:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: 4px; 
 .tool-action { margin: 15px 0 5px; display: block; font-size: 21px; font-weight: 650; line-height: 1.05; letter-spacing: -0.045em; }
 .public-tool-grid summary strong { display: block; font-size: 13px; line-height: 1.4; }
 .public-tool-grid p { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line-light); color: var(--ink-soft); font-size: 13px; line-height: 1.56; }
-.public-tool-grid a { margin-top: 18px; color: var(--orange-dark); font-size: 12px; font-weight: 730; }
+.public-tool-grid a { display: inline-block; margin-top: 18px; color: var(--orange-dark); font-size: 12px; font-weight: 730; }
 .support-group { margin-top: 50px; }
 .support-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding-top: 12px; }
 .support-grid article { padding: 22px; border: 1px solid var(--line-light); border-radius: 9px; background: #f8f5ee; }
