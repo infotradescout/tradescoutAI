@@ -52,7 +52,9 @@ describe("Admin OS v2 core workspaces", () => {
     expect(page).toContain('data-testid="admin-address-verifications-v2"');
     expect(page).toContain("Address and identity queue");
     expect(page).toContain("Overdue");
-    expect(page).toContain('/api/admin/address-verifications?status=${encodeURIComponent(statusFilter)}');
+    expect(page).toContain(
+      "/api/admin/address-verifications?status=${encodeURIComponent(statusFilter)}"
+    );
     expect(page).toContain('apiRequest("PUT", `/api/admin/address-verifications/${id}`');
     expect(page).toContain("Save decision");
     expect(page).not.toContain("<Card");
@@ -70,9 +72,13 @@ describe("Admin OS v2 core workspaces", () => {
     expect(page).toContain("Business verification queue");
     expect(page).toContain("Approve or reject each required field independently");
     expect(page).toContain("REQUIREMENT_FIELDS");
-    expect(page).toContain('apiRequest("GET",');
-    expect(page).toContain('/api/admin/profile-verifications?status=${encodeURIComponent(statusFilter)}');
-    expect(page).toContain('apiRequest("PUT", `/api/admin/profile-verifications/${profileId}`');
+    expect(page).toMatch(/apiRequest\(\s*"GET",/);
+    expect(page).toContain(
+      "/api/admin/profile-verifications?status=${encodeURIComponent(statusFilter)}"
+    );
+    expect(page).toContain(
+      'apiRequest("PUT", `/api/admin/profile-verifications/${args.profileId}`'
+    );
     expect(page).toContain('decision: "approved"');
     expect(page).toContain('decision: "rejected"');
     expect(page).not.toContain("<Table");
@@ -90,11 +96,13 @@ describe("Admin OS v2 core workspaces", () => {
     expect(page).toContain("Directory supply");
     expect(page).toContain("Suggested changes");
     expect(page).toContain("Pensacola and Escambia supply");
-    expect(page).toContain('/api/admin/business-seeding/runs?limit=50');
-    expect(page).toContain('/api/admin/business-seeding/places-textsearch/run');
-    expect(page).toContain('/api/admin/business-directory/pensacola-liquidity/summary');
-    expect(page).toContain('/api/admin/business-directory/suggestions?status=');
-    expect(page).toContain('/api/admin/business-directory/suggestions/${encodeURIComponent(id)}/status');
+    expect(page).toContain("/api/admin/business-seeding/runs?limit=50");
+    expect(page).toContain("/api/admin/business-seeding/places-textsearch/run");
+    expect(page).toContain("/api/admin/business-directory/pensacola-liquidity/summary");
+    expect(page).toContain("/api/admin/business-directory/suggestions?status=");
+    expect(page).toContain(
+      "/api/admin/business-directory/suggestions/${encodeURIComponent(id)}/status"
+    );
     expect(page).toContain("Start seed run");
     expect(page).toContain("View logs");
     expect(page).toContain("Resolve");
@@ -113,8 +121,8 @@ describe("Admin OS v2 core workspaces", () => {
     expect(page).toContain('data-testid="admin-marketplace-listings-v2"');
     expect(page).toContain("Marketplace approval queue");
     expect(page).toContain('apiRequest("GET", "/api/admin/marketplace/pending")');
-    expect(page).toContain('/api/admin/marketplace/listings/${id}/approve');
-    expect(page).toContain('/api/admin/marketplace/listings/${id}/reject');
+    expect(page).toContain("/api/admin/marketplace/listings/${id}/approve");
+    expect(page).toContain("/api/admin/marketplace/listings/${id}/reject");
     expect(page).toContain("Seller-facing rejection reason");
     expect(page).toContain("Approve listing");
     expect(page).toContain("Reject listing");
@@ -123,9 +131,7 @@ describe("Admin OS v2 core workspaces", () => {
   });
 
   it("records the Selective Intelligence preservation boundary", () => {
-    const evidence = read(
-      ".selective-intelligence/builds/admin-os-v2-core-workspaces/evidence.md"
-    );
+    const evidence = read(".selective-intelligence/builds/admin-os-v2-core-workspaces/evidence.md");
 
     expect(evidence).toContain("Core queues must become native workspaces");
     expect(evidence).toContain("Error Reports");

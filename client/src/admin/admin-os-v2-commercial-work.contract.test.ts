@@ -27,8 +27,12 @@ describe("Admin OS v2 commercial work", () => {
   it("preserves project, detail, bid, and verification read authority", () => {
     const source = read("client/src/pages/admin-commercial-directory.tsx");
 
-    expect(source).toContain('"GET", "/api/admin/commercial-directory/projects"');
-    expect(source).toContain('"GET", "/api/admin/commercial-directory/verification/pending"');
+    expect(source).toMatch(
+      /apiRequest\(\s*"GET",\s*"\/api\/admin\/commercial-directory\/projects"/
+    );
+    expect(source).toMatch(
+      /apiRequest\(\s*"GET",\s*"\/api\/admin\/commercial-directory\/verification\/pending"/
+    );
     expect(source).toContain("/api/commercial-directory/projects/${selectedProjectId}");
     expect(source).toContain("/api/admin/commercial-directory/projects/${selectedProjectId}/bids");
   });
@@ -39,7 +43,9 @@ describe("Admin OS v2 commercial work", () => {
     expect(source).toContain('fetch("/api/admin/commercial-directory/projects"');
     expect(source).toContain('method: "POST"');
     expect(source).toContain("/api/admin/commercial-directory/projects/${selectedProjectId}");
-    expect(source).toContain("/api/admin/commercial-directory/projects/${selectedProjectId}/documents");
+    expect(source).toContain(
+      "/api/admin/commercial-directory/projects/${selectedProjectId}/documents"
+    );
     expect(source).toContain(
       "/api/admin/commercial-directory/projects/${selectedProjectId}/bids/${bidId}"
     );
