@@ -10,6 +10,7 @@ import {
 } from "../scout/toolDiscoveryObserver";
 import { toolProposalStatusEnum } from "../../shared/schema";
 import { runProductionAcceptanceReport } from "../services/adminProductionAcceptance";
+import { runAdminEcosystemTruthReport } from "../services/adminEcosystemTruth";
 
 const router = Router();
 
@@ -70,6 +71,19 @@ router.get("/production-acceptance", async (_req: Request, res: Response) => {
     return res.status(500).json({
       error: "Production acceptance failed",
       detail: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.get("/ecosystem-truth", async (_req: Request, res: Response) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    return res.json(await runAdminEcosystemTruthReport());
+  } catch (error) {
+    console.error("[Admin] Ecosystem truth report failed:", error);
+    return res.status(500).json({
+      error: "Ecosystem truth report failed",
+      detail: "The current source owners could not be read. No fallback values were invented.",
     });
   }
 });
