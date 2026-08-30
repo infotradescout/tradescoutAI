@@ -21,6 +21,11 @@ import {
   isSteelHomePackagesProfilePubliclyReleased,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
 } from "@shared/steelHomePackagesProfile";
+import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+  MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+  MOULDING_MILLWORK_PROFILE_SLUG,
+} from "@shared/mouldingMillworkProfile";
 
 export type PublicProfileRecord = {
   id: string;
@@ -70,6 +75,7 @@ export async function loadCanonicalPublicMapProfileUrls(
       businessId: profiles.businessId,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
+      ownerEmailVerified: users.emailVerified,
       ownerRole: users.role,
       ownerRoles: users.roles,
       ownerProvider: users.provider,
@@ -79,6 +85,7 @@ export async function loadCanonicalPublicMapProfileUrls(
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       businessSources: businesses.sources,
       businessClaimStatus: businesses.claimStatus,
+      businessProfileData: businesses.profileData,
     })
     .from(profiles)
     .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -123,6 +130,24 @@ function publicProfileSearchExposurePredicate() {
     AND (
       ${users.verifiedBadge} = true
       OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
+      OR (
+        ${profiles.slug} = ${MOULDING_MILLWORK_PROFILE_SLUG}
+        AND ${businesses.ownerUserId} = ${profiles.ownerUserId}
+        AND lower(COALESCE(${businesses.profileData} ->> 'tradePartner', '')) = 'true'
+        AND ${businesses.sources} @> ${JSON.stringify([
+          MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+        ])}::jsonb
+        AND NOT (${businesses.sources} @> ${JSON.stringify([
+          MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+        ])}::jsonb)
+        AND lower(COALESCE(${users.verificationStatus}::text, ''))
+          NOT IN ('rejected', 'expired', 'suspended')
+        AND (
+          ${users.emailVerified} = true
+          OR lower(COALESCE(${users.provider}::text, '')) = 'admin_provisioned'
+          OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
+        )
+      )
     )
   )`;
 }
@@ -208,6 +233,7 @@ export class ProfileRepository {
         profileOwnerUserId: profiles.ownerUserId,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
+        ownerEmailVerified: users.emailVerified,
         ownerProvider: users.provider,
         ownerPreferences: users.preferences,
         businessStatus: businesses.status,
@@ -215,6 +241,7 @@ export class ProfileRepository {
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         businessSources: businesses.sources,
         businessClaimStatus: businesses.claimStatus,
+        businessProfileData: businesses.profileData,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -234,6 +261,7 @@ export class ProfileRepository {
       profileOwnerUserId: _profileOwnerUserId,
       ownerVerifiedBadge: _ownerVerifiedBadge,
       ownerVerificationStatus: _ownerVerificationStatus,
+      ownerEmailVerified: _ownerEmailVerified,
       ownerRole: _ownerRole,
       ownerProvider: _ownerProvider,
       ownerPreferences: _ownerPreferences,
@@ -242,6 +270,7 @@ export class ProfileRepository {
       publicDiscoveryEnabled: _publicDiscoveryEnabled,
       businessSources: _businessSources,
       businessClaimStatus: _businessClaimStatus,
+      businessProfileData: _businessProfileData,
       ...publicProfile
     } = row;
     return {
@@ -283,6 +312,7 @@ export class ProfileRepository {
         profileOwnerUserId: row.profileOwnerUserId,
         ownerVerifiedBadge: row.ownerVerifiedBadge,
         ownerVerificationStatus: row.ownerVerificationStatus,
+        ownerEmailVerified: row.ownerEmailVerified,
         ownerRole: row.ownerRole,
         ownerRoles: row.ownerRoles,
         ownerProvider: row.ownerProvider,
@@ -292,6 +322,7 @@ export class ProfileRepository {
         publicDiscoveryEnabled: row.publicDiscoveryEnabled,
         businessSources: row.businessSources,
         businessClaimStatus: row.businessClaimStatus,
+        businessProfileData: row.businessProfileData,
       })
     ) {
       return undefined;

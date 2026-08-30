@@ -1882,6 +1882,7 @@ app.use(landingContractHeaders);
                       profileOwnerUserId: profiles.ownerUserId,
                       ownerVerifiedBadge: users.verifiedBadge,
                       ownerVerificationStatus: users.verificationStatus,
+                      ownerEmailVerified: users.emailVerified,
                       ownerProvider: users.provider,
                       ownerPreferences: users.preferences,
                       businessStatus: businesses.status,
@@ -1889,6 +1890,7 @@ app.use(landingContractHeaders);
                       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
                       businessSources: businesses.sources,
                       businessClaimStatus: businesses.claimStatus,
+                      businessProfileData: businesses.profileData,
                     })
                     .from(profiles)
                     .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -1915,6 +1917,7 @@ app.use(landingContractHeaders);
                         profileOwnerUserId: profileRecord.profileOwnerUserId,
                         ownerVerifiedBadge: profileRecord.ownerVerifiedBadge,
                         ownerVerificationStatus: profileRecord.ownerVerificationStatus,
+                        ownerEmailVerified: profileRecord.ownerEmailVerified,
                         ownerProvider: profileRecord.ownerProvider,
                         ownerPreferences: profileRecord.ownerPreferences,
                         businessStatus: profileRecord.businessStatus,
@@ -1922,6 +1925,7 @@ app.use(landingContractHeaders);
                         publicDiscoveryEnabled: profileRecord.publicDiscoveryEnabled,
                         businessSources: profileRecord.businessSources,
                         businessClaimStatus: profileRecord.businessClaimStatus,
+                        businessProfileData: profileRecord.businessProfileData,
                       })
                     )
                     .map((profileRecord) => ({

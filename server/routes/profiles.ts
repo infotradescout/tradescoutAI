@@ -39,6 +39,7 @@ import {
   isPubliclyVerifiedProfileOwner,
   isSteelHomePackagesUnlistedDirectProfile,
 } from "../services/ownerConfirmedDirectProfile";
+import { isOperatorConfirmedTradePartnerProfile } from "../services/operatorConfirmedTradePartnerProfile";
 import {
   isExactPublicProfileContractorBindingCandidate,
   JW_STONE_RECOMMENDATION_COMPATIBILITY,
@@ -226,6 +227,7 @@ export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>):
     profileOwnerUserId: row.profile_owner_user_id,
     ownerVerifiedBadge: databaseBoolean(row.owner_verified_badge),
     ownerVerificationStatus: row.owner_verification_status,
+    ownerEmailVerified: databaseBoolean(row.owner_email_verified),
     ownerProvider: row.owner_provider,
     ownerPreferences: row.owner_preferences,
     businessStatus: row.business_status,
@@ -233,6 +235,7 @@ export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>):
     publicDiscoveryEnabled: databaseBoolean(row.public_discovery_enabled),
     businessSources: row.business_sources,
     businessClaimStatus: row.business_claim_status,
+    businessProfileData: row.business_profile_data,
   });
 }
 
@@ -334,6 +337,7 @@ async function listPublishedProfileSitemapTargets(
             p.content_blocks,
             u.verified_badge AS owner_verified_badge,
             u.verification_status AS owner_verification_status,
+            u.email_verified AS owner_email_verified,
             u.provider AS owner_provider,
             u.preferences AS owner_preferences,
             b.status AS business_status,
@@ -341,6 +345,7 @@ async function listPublishedProfileSitemapTargets(
             b.public_discovery_enabled,
             b.sources AS business_sources,
             b.claim_status AS business_claim_status,
+            b.profile_data AS business_profile_data,
             p.updated_at
        FROM profiles p
        INNER JOIN users u ON u.id = p.owner_user_id
@@ -485,11 +490,13 @@ export function canAuthenticatedViewerPreviewProfile(req: any, ownerUserId: stri
 export function canServeLinkedBusinessProfileToViewer(args: {
   ownerUser: any;
   ownerConfirmedDirectProfile: boolean;
+  operatorConfirmedTradePartnerProfile?: boolean;
   authenticatedViewerCanManage: boolean;
 }): boolean {
   return (
     isBusinessDiscoverable(args.ownerUser) ||
     args.ownerConfirmedDirectProfile ||
+    args.operatorConfirmedTradePartnerProfile === true ||
     args.authenticatedViewerCanManage
   );
 }
@@ -1799,6 +1806,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
+  let operatorConfirmedTradePartnerProfile = false;
   let unlistedSteelHomeDirectProfile = false;
   let directConnectDeliveryCustody: "business" | "tradescout_pending_owner" = "business";
   let hasGatedDirectConnectPhone = false;
@@ -1825,14 +1833,18 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
       businessSources: linkedBusiness?.sources,
       businessClaimStatus: linkedBusiness?.claimStatus,
+      businessProfileData: linkedBusiness?.profileData,
       ownerRole: ownerUser.role,
       ownerRoles: ownerUser.roles,
       ownerVerifiedBadge: ownerUser.verifiedBadge,
       ownerVerificationStatus: ownerUser.verificationStatus,
+      ownerEmailVerified: ownerUser.emailVerified,
       ownerProvider: ownerUser.provider,
       ownerPreferences: ownerUser.preferences,
     };
     ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile(directProfileCandidate);
+    operatorConfirmedTradePartnerProfile =
+      isOperatorConfirmedTradePartnerProfile(directProfileCandidate);
     unlistedSteelHomeDirectProfile =
       isSteelHomePackagesUnlistedDirectProfile(directProfileCandidate);
     directConnectDeliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
@@ -1842,6 +1854,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       !canServeLinkedBusinessProfileToViewer({
         ownerUser,
         ownerConfirmedDirectProfile: ownerConfirmedDirectProfile || unlistedSteelHomeDirectProfile,
+        operatorConfirmedTradePartnerProfile,
         authenticatedViewerCanManage,
       })
     ) {
@@ -2331,6 +2344,7 @@ export async function getPublicProfileTrustContext(
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         status: businesses.status,
         claimStatus: businesses.claimStatus,
+        profileData: businesses.profileData,
       })
       .from(businesses)
       .where(eq(businesses.id, profile.businessId))
@@ -2344,10 +2358,31 @@ export async function getPublicProfileTrustContext(
       publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
       businessSources: linkedBusiness?.sources,
       businessClaimStatus: linkedBusiness?.claimStatus,
+      businessProfileData: linkedBusiness?.profileData,
       ownerProvider: ownerUser.provider,
+      ownerEmailVerified: ownerUser.emailVerified,
       ownerPreferences: ownerUser.preferences,
     });
-    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) return null;
+    const operatorConfirmedTradePartnerProfile = isOperatorConfirmedTradePartnerProfile({
+      profileSlug: profile.slug,
+      profileStatus: "published",
+      profileOwnerUserId: ownerUserId,
+      businessStatus: linkedBusiness?.status,
+      businessOwnerUserId: linkedBusiness?.ownerUserId,
+      publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
+      businessSources: linkedBusiness?.sources,
+      businessProfileData: linkedBusiness?.profileData,
+      ownerVerificationStatus: ownerUser.verificationStatus,
+      ownerEmailVerified: ownerUser.emailVerified,
+      ownerProvider: ownerUser.provider,
+    });
+    if (
+      !isBusinessDiscoverable(ownerUser) &&
+      !ownerConfirmedDirectProfile &&
+      !operatorConfirmedTradePartnerProfile
+    ) {
+      return null;
+    }
   }
 
   const contractor = await getPublicProfileContractorBinding(
