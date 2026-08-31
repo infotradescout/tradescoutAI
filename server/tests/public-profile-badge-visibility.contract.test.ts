@@ -50,8 +50,8 @@ describe("public profile community-verification contract", () => {
     expect(routes).toContain("snapshotVerificationMatchesCurrent");
     expect(routes).toContain("currentCredentialHardFailure");
     expect(routes).toContain("businessVerifications.expiresAt");
-    expect(theme).toContain("Lifetime score change");
-    expect(theme).toContain("30-day history unavailable");
+    expect(theme).toContain("Score history begins");
+    expect(theme).toContain("30-day comparison is not available yet");
     expect(theme).not.toContain("History incomplete");
   });
 });

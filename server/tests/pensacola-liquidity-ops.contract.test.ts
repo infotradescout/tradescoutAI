@@ -131,7 +131,8 @@ describe("Pensacola liquidity ops aggregates", () => {
   it("reuses existing admin surfaces instead of creating a new dashboard", () => {
     expect(businessOpsPage).toContain("/api/admin/business-directory/pensacola-liquidity/summary");
     expect(platformAnalyticsPage).toContain("/api/analytics/pensacola-liquidity/summary");
-    expect(businessOpsPage).toContain("Aggregated counts only for county FIPS 12033");
+    expect(businessOpsPage).toContain("Aggregated county supply health only");
+    expect(businessOpsPage).toContain("does not expose contact lists or sell leads");
     expect(platformAnalyticsPage).toContain("No raw request text, contact fields");
     expect(platformAnalyticsPage).toContain("lead exports");
   });

@@ -27,7 +27,7 @@ export default function AdminShell() {
 
   if (error || !data?.ok) {
     return (
-      <div className="flex min-h-[var(--app-height)] items-center justify-center bg-[#08090a] px-4 py-20">
+      <div className="flex min-h-[var(--app-height)] items-center justify-center bg-tsBg px-4 py-20">
         <div className="w-full max-w-lg border-y border-red-400/20 bg-red-400/[0.035] px-5 py-10 text-center">
           <h1 className="text-xl font-semibold text-red-100">Admin access required</h1>
           <p className="mt-3 text-sm leading-6 text-red-100/65">

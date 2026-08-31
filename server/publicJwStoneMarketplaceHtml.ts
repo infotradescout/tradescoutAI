@@ -22,8 +22,7 @@ const JW_STONE_MARKETPLACE_DESCRIPTION =
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
-const JW_STONE_CUSTOM_DOMAIN_TITLE =
-  "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
+const JW_STONE_CUSTOM_DOMAIN_TITLE = "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
 const JW_STONE_CUSTOM_DOMAIN_DESCRIPTION =
   "Browse quarry-direct granite, marble, quartzite, onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_LEGACY_DOMAIN = "https://jwstonellc.com/";
@@ -104,7 +103,17 @@ function normalizeOrigin(origin: string | undefined): string {
 }
 
 function resolveCollectionUrl(opts: PublicJwStoneMarketplaceHtmlOptions): string {
-  if (opts.collectionUrl) return String(opts.collectionUrl).replace(/\/+$/, "") || "/";
+  if (opts.collectionUrl) {
+    const raw = String(opts.collectionUrl).trim();
+    if (!raw) return "/";
+    try {
+      const parsed = new URL(raw);
+      if (parsed.pathname === "/" && !parsed.search && !parsed.hash) return `${parsed.origin}/`;
+    } catch {
+      // Relative collection paths use the existing trailing-slash normalization.
+    }
+    return raw.replace(/\/+$/, "") || "/";
+  }
   const origin = normalizeOrigin(opts.origin);
   if (opts.marketplaceDomainSurface) return `${origin}/`;
   return JW_STONE_MARKETPLACE_PLATFORM_URL;
@@ -297,16 +306,15 @@ export function buildPublicJwStoneMarketplaceHtml(
 
   const title = escapeHtml(resolvedTitle);
   const description = escapeHtml(resolvedDescription);
-  const canonicalValue = itemShare && !indexable
-    ? collectionUrl
-    : itemShare?.canonical || categoryShare?.canonical || collectionUrl;
+  const canonicalValue =
+    itemShare && !indexable
+      ? collectionUrl
+      : itemShare?.canonical || categoryShare?.canonical || collectionUrl;
   const canonical = escapeHtml(canonicalValue);
   const imageUrl = escapeHtml(
     itemShare?.imageUrl || categoryShare?.imageUrl || JW_STONE_MARKETPLACE_IMAGE_URL
   );
-  const imageAlt = escapeHtml(
-    itemShare?.imageAlt || resolvedTitle || "JW Stone Logistics logo"
-  );
+  const imageAlt = escapeHtml(itemShare?.imageAlt || resolvedTitle || "JW Stone Logistics logo");
 
   const companySummary = `
   <section data-seo-jw-stone-company="true" aria-labelledby="seo-jw-stone-about">
@@ -632,7 +640,14 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "- Natural stone slabs in Pensacola: " + publicOrigin + "/",
     ...categories.map(
       (category) =>
-        "- " + category.name + " slabs: " + publicOrigin + "/materials/" + category.slug + " — " + category.summary
+        "- " +
+        category.name +
+        " slabs: " +
+        publicOrigin +
+        "/materials/" +
+        category.slug +
+        " — " +
+        category.summary
     ),
     "",
     "Individual named materials:",

@@ -190,13 +190,10 @@ export default function LocalServiceProfileTheme({
   const isVerified =
     verifiedBadge === true && String(verificationStatus || "").toLowerCase() === "approved";
   const verificationScore =
-    typeof communityVerification?.score === "number" &&
-    Number.isFinite(communityVerification.score)
+    typeof communityVerification?.score === "number" && Number.isFinite(communityVerification.score)
       ? Math.max(0, Math.round(communityVerification.score))
       : null;
-  const scoreHistoryStart = formatScoreHistoryDate(
-    communityVerification?.scoreHistoryStartsAt
-  );
+  const scoreHistoryStart = formatScoreHistoryDate(communityVerification?.scoreHistoryStartsAt);
   const score30dComparedAt = formatScoreHistoryDate(
     communityVerification?.scoreChange30dComparedAt
   );
@@ -453,9 +450,7 @@ export default function LocalServiceProfileTheme({
                   <button
                     key={service.title}
                     type="button"
-                    onClick={() =>
-                      openProtectedContact("service", "service_grid", service.title)
-                    }
+                    onClick={() => openProtectedContact("service", "service_grid", service.title)}
                     className="group flex min-h-[132px] items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50/60 hover:shadow-md"
                   >
                     <span className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-sky-100 text-sky-700">
@@ -531,9 +526,7 @@ export default function LocalServiceProfileTheme({
                         />
                         <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/5 to-transparent" />
                         <span className="absolute inset-x-0 bottom-0 p-4">
-                          <span className="block text-sm font-black text-white">
-                            {item.title}
-                          </span>
+                          <span className="block text-sm font-black text-white">{item.title}</span>
                           {item.description ? (
                             <span className="mt-1 line-clamp-2 block text-[11px] leading-4 text-white/70">
                               {item.description}
@@ -585,9 +578,7 @@ export default function LocalServiceProfileTheme({
                 <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-slate-950 sm:text-3xl">
                   {presentation.aboutTitle}
                 </h2>
-                <p className="mt-4 text-sm leading-7 text-slate-600">
-                  {presentation.aboutBody}
-                </p>
+                <p className="mt-4 text-sm leading-7 text-slate-600">{presentation.aboutBody}</p>
                 {presentation.commitments?.length ? (
                   <div className="mt-5 grid gap-2 sm:grid-cols-2">
                     {presentation.commitments.map((commitment) => (
@@ -613,9 +604,7 @@ export default function LocalServiceProfileTheme({
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {publicRecommendations.slice(0, 6).map((entry) => (
                   <article key={entry.id} className="rounded-2xl bg-slate-50 p-4">
-                    <p className="font-black text-slate-950">
-                      {entry.customerName || "Customer"}
-                    </p>
+                    <p className="font-black text-slate-950">{entry.customerName || "Customer"}</p>
                     {entry.projectType ? (
                       <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-sky-700">
                         {entry.projectType}
@@ -645,9 +634,7 @@ export default function LocalServiceProfileTheme({
                 <div>
                   <p className="font-black text-slate-900">{presentation.locationLabel}</p>
                   {presentation.addressLabel ? (
-                    <p className="mt-1 leading-5 text-slate-600">
-                      {presentation.addressLabel}
-                    </p>
+                    <p className="mt-1 leading-5 text-slate-600">{presentation.addressLabel}</p>
                   ) : null}
                 </div>
               </div>
@@ -735,7 +722,10 @@ export default function LocalServiceProfileTheme({
               </summary>
               <div className="mt-4 divide-y divide-slate-200">
                 {presentation.credentials.map((credential) => (
-                  <div key={`${credential.label}-${credential.value}`} className="py-4 first:pt-0 last:pb-0">
+                  <div
+                    key={`${credential.label}-${credential.value}`}
+                    className="py-4 first:pt-0 last:pb-0"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
@@ -792,8 +782,7 @@ export default function LocalServiceProfileTheme({
                   </p>
                   {typeof communityVerification?.scoreChange30d === "number" ? (
                     <p>
-                      30-day change:{" "}
-                      {communityVerification.scoreChange30d > 0 ? "+" : ""}
+                      30-day change: {communityVerification.scoreChange30d > 0 ? "+" : ""}
                       {Math.round(communityVerification.scoreChange30d)}
                       {score30dComparedAt ? ` compared with ${score30dComparedAt}` : ""}.
                     </p>
@@ -805,13 +794,19 @@ export default function LocalServiceProfileTheme({
             ) : null}
           </article>
 
-          <div className="rounded-3xl bg-[var(--service-surface)] p-4 text-white shadow-sm">
+          <div
+            className="rounded-3xl bg-[var(--service-surface)] p-4 text-white shadow-sm"
+            data-testid="profile-trust-section"
+          >
             {trustActions}
           </div>
         </aside>
       </div>
 
-      <footer className="border-t border-slate-200 bg-white px-4 py-6">
+      <footer
+        className="border-t border-slate-200 bg-white px-4 py-6"
+        data-testid="local-service-brand-footer"
+      >
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
           <a
             href={qualifyPublicProfileItemDestination("/", platformBaseHref)}
@@ -819,9 +814,7 @@ export default function LocalServiceProfileTheme({
           >
             Powered by TradeScout
           </a>
-          <p className="text-xs text-slate-400">
-            Connection Without Compromise
-          </p>
+          <p className="text-xs text-slate-400">Connection Without Compromise</p>
         </div>
       </footer>
 
@@ -859,9 +852,7 @@ export default function LocalServiceProfileTheme({
               <div className="min-w-0">
                 <p className="truncate font-black text-white">{activeGalleryItem.title}</p>
                 {activeGalleryItem.description ? (
-                  <p className="truncate text-xs text-slate-400">
-                    {activeGalleryItem.description}
-                  </p>
+                  <p className="truncate text-xs text-slate-400">{activeGalleryItem.description}</p>
                 ) : null}
               </div>
               <button

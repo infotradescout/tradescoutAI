@@ -7,13 +7,11 @@ const read = (relativePath: string) => {
   return fs.readFileSync(fullPath, "utf-8");
 };
 
-describe("public trade SEO fallback contracts", () => {
-  it("trade county html serves fallback content when listing query fails", () => {
+describe("public trade SEO failure contracts", () => {
+  it("trade county html propagates listing failures instead of serving an empty success", () => {
     const source = read("server/publicTradeHtml.ts");
-    expect(source).toContain(
-      "Trade county listing query failed; serving fallback page without listings"
-    );
-    expect(source).toContain("rows = []");
+    expect(source).not.toContain("serving fallback page without listings");
+    expect(source).toContain("const rows = await db");
   });
 
   it("recent html serves fallback content when activity query fails", () => {
@@ -22,11 +20,14 @@ describe("public trade SEO fallback contracts", () => {
     expect(source).toContain("rows = []");
   });
 
-  it("county and best county html avoid hard failure on discovery-column drift", () => {
+  it("keeps crawlable county failures strict while the noindex best page handles column drift", () => {
     const countySource = read("server/publicCountyHtml.ts");
     const bestSource = read("server/publicBestHtml.ts");
-    expect(countySource).toContain("County directory query failed; serving page without listings");
-    expect(countySource).toContain('isMissingColumnError(error, "public_discovery_enabled")');
+    expect(countySource).not.toContain(
+      "County directory query failed; serving page without listings"
+    );
+    expect(countySource).not.toContain("isMissingColumnError");
+    expect(countySource).toContain("eq(businesses.publicDiscoveryEnabled, true as any)");
     expect(bestSource).toContain("Best trade county query failed; serving page without listings");
     expect(bestSource).toContain('isMissingColumnError(error, "public_discovery_enabled")');
   });

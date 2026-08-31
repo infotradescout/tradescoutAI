@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { PROFILE_SITE_LAW_INVARIANTS } from "@shared/profileSiteTemplates";
 
 const themeFiles = [
-  ["client/src/pages/profile-sites/WholesalerProfileTheme.tsx", "Powered by TradeScout"],
+  ["client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx", "Powered by TradeScout"],
   ["client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx", "TradeScoutProfileHandoff"],
   ["client/src/pages/profile-sites/LocalServiceProfileTheme.tsx", "Powered by TradeScout"],
   ["client/src/pages/profile-sites/ProFabProfileTheme.tsx", "TradeScoutProfileHandoff"],

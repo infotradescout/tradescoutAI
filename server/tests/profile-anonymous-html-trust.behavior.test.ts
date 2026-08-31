@@ -65,7 +65,7 @@ function linkedRow(overrides: Record<string, unknown> = {}) {
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "pending",
     ownerProvider: "local",
-    ownerPreferences: { profileVisibility: "public" },
+    ownerPreferences: { publicProfileIds: ["profile-onboarding-1"] },
     businessStatus: "active",
     businessOwnerUserId: "owner-1",
     publicDiscoveryEnabled: true,
@@ -102,7 +102,7 @@ describe("anonymous public-profile HTML trust boundary", () => {
   it("keeps unlinked community profiles and verified linked profiles public", async () => {
     const repository = new ProfileRepository();
 
-    mocks.rows = [linkedRow({ businessId: null })];
+    mocks.rows = [linkedRow({ businessId: null, roleContext: "community_builder" })];
     await expect(repository.getProfileBySlugPublic("community-member")).resolves.toMatchObject({
       displayName: "PRIVATE ONBOARDING EVIDENCE",
     });

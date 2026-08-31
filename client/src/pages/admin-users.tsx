@@ -1307,7 +1307,7 @@ function RoleDialog({
 }) {
   return (
     <Dialog open={Boolean(user)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="border-white/12 bg-[#101112] text-white sm:max-w-lg">
+      <DialogContent className="border-white/12 bg-tsBg text-white sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-white">Edit account role</DialogTitle>
           <DialogDescription className="text-white/45">
@@ -1356,7 +1356,7 @@ function ProfileDialog({
 
   return (
     <Dialog open={Boolean(user)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/12 bg-[#101112] text-white sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/12 bg-tsBg text-white sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-white">Edit public profile and account state</DialogTitle>
           <DialogDescription className="text-white/45">

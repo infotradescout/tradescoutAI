@@ -10,15 +10,6 @@ export const DIRECT_CONNECT_FRICTION_EVENTS = [
   "direct_connect_permission_or_role_blocked",
 ] as const;
 
-export const DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS = [
-  "direct_connect_funnel_step_stalled",
-] as const;
-
-export const ALL_DIRECT_CONNECT_FRICTION_EVENTS = [
-  ...DIRECT_CONNECT_FRICTION_EVENTS,
-  ...DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS,
-] as const;
-
 export type DirectConnectFrictionEvent = (typeof DIRECT_CONNECT_FRICTION_EVENTS)[number];
 
 const DIRECT_CONNECT_FRICTION_EVENT_SET = new Set<string>(DIRECT_CONNECT_FRICTION_EVENTS);
@@ -50,12 +41,7 @@ const SAFE_STRING_FIELDS = [
   "fromSection",
   "toSection",
 ] as const;
-const SAFE_ID_FIELDS = [
-  "requestId",
-  "assignmentId",
-  "sessionId",
-  "conversationId",
-] as const;
+const SAFE_ID_FIELDS = ["requestId", "assignmentId", "sessionId", "conversationId"] as const;
 const SAFE_BOOLEAN_FIELDS = [
   "blocked",
   "success",
@@ -143,7 +129,9 @@ export function isDirectConnectRoute(path = resolvePathname()): boolean {
  * replaced before the route is sent.
  */
 export function toDirectConnectRouteTemplate(pathname: string): string {
-  const pathOnly = String(pathname || "").trim().split(/[?#]/)[0];
+  const pathOnly = String(pathname || "")
+    .trim()
+    .split(/[?#]/)[0];
   if (!/^\/direct-connect(?:\/|$)/i.test(pathOnly)) return "/direct-connect";
 
   const templated = pathOnly
@@ -185,9 +173,10 @@ export function sanitizeFrictionPayload(
 
   for (const key of SAFE_NUMBER_FIELDS) {
     const rawValue = payload[key];
-    const value = key === "status" || key === "statusCode"
-      ? sanitizeStatusCode(rawValue)
-      : sanitizeCount(rawValue);
+    const value =
+      key === "status" || key === "statusCode"
+        ? sanitizeStatusCode(rawValue)
+        : sanitizeCount(rawValue);
     if (value !== undefined) safe[key] = value;
   }
 

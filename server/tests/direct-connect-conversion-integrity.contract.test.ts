@@ -373,7 +373,7 @@ describe("Direct Connect conversion-integrity lane", () => {
         new Set<string>(DIRECT_CONNECT_FRICTION_EVENTS).has("direct_connect_funnel_step_stalled")
       ).toBe(false);
       expect(shell).not.toContain("direct_connect_funnel_step_stalled");
-      expect(telemetry).toContain("DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS");
+      expect(telemetry).not.toContain("direct_connect_funnel_step_stalled");
       expect(telemetry).not.toContain("setTimeout");
       expect(telemetry).not.toContain("setInterval");
     });
