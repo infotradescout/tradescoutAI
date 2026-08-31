@@ -9,6 +9,8 @@ function request(args: {
   return {
     method: args.method || "GET",
     path: args.path,
+    originalUrl: args.path,
+    hostname: "localhost",
     query: args.query || {},
   } as any;
 }
@@ -27,20 +29,20 @@ describe("legacy commerce server redirects", () => {
     vi.clearAllMocks();
   });
 
-  it("permanently redirects a legacy collection path before the SPA shell", () => {
+  it("permanently redirects a legacy collection path before the SPA shell", async () => {
     const res = response();
 
-    landingContractHeaders(request({ path: "/collections/all" }), res, next);
+    await landingContractHeaders(request({ path: "/collections/all" }), res, next);
 
     expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "public, max-age=86400");
     expect(res.redirect).toHaveBeenCalledWith(301, "/trade-deals");
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("redirects nested legacy product paths and preserves only attribution fields", () => {
+  it("redirects nested legacy product paths and preserves only attribution fields", async () => {
     const res = response();
 
-    landingContractHeaders(
+    await landingContractHeaders(
       request({
         path: "/collections/outdoor-gear/products/old-knife",
         query: {
@@ -62,10 +64,10 @@ describe("legacy commerce server redirects", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("uses the same permanent redirect for legacy product-only and HEAD requests", () => {
+  it("uses the same permanent redirect for legacy product-only and HEAD requests", async () => {
     const res = response();
 
-    landingContractHeaders(
+    await landingContractHeaders(
       request({ method: "HEAD", path: "/products/retired-product" }),
       res,
       next
@@ -75,9 +77,9 @@ describe("legacy commerce server redirects", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("does not intercept mutations or the real TradeDeals route", () => {
+  it("does not intercept mutations or the real TradeDeals route", async () => {
     const postRes = response();
-    landingContractHeaders(
+    await landingContractHeaders(
       request({ method: "POST", path: "/collections/all" }),
       postRes,
       next
@@ -86,7 +88,7 @@ describe("legacy commerce server redirects", () => {
     expect(next).toHaveBeenCalledTimes(1);
 
     const tradeDealsRes = response();
-    landingContractHeaders(request({ path: "/trade-deals" }), tradeDealsRes, next);
+    await landingContractHeaders(request({ path: "/trade-deals" }), tradeDealsRes, next);
     expect(tradeDealsRes.redirect).not.toHaveBeenCalled();
     expect(tradeDealsRes.setHeader).toHaveBeenCalledWith(
       "X-TradeScout-Intent-Stage",

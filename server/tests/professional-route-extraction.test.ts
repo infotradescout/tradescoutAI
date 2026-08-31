@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   isAuthenticated: vi.fn(),
   isAdmin: vi.fn(),
+  requireAdmin: vi.fn(),
   requireAddressVerification: vi.fn(),
   getPublicBaseUrlFromRequest: vi.fn(),
   sendEmail: vi.fn(),
@@ -42,6 +43,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../auth", () => ({
   isAuthenticated: mocks.isAuthenticated,
   isAdmin: mocks.isAdmin,
+  requireAdmin: mocks.requireAdmin,
 }));
 
 vi.mock("../requireAddressVerification", () => ({
@@ -78,6 +80,7 @@ function configureMiddleware() {
     next();
   });
   mocks.isAdmin.mockImplementation((_req: any, _res: any, next: () => void) => next());
+  mocks.requireAdmin.mockImplementation((_req: any, _res: any, next: () => void) => next());
   mocks.requireAddressVerification.mockImplementation((_req: any, _res: any, next: () => void) =>
     next()
   );
@@ -95,7 +98,7 @@ function buildApp() {
 }
 
 type CapturedRoute = {
-  method: "get" | "post";
+  method: "get" | "post" | "patch";
   path: string;
   handlers: RequestHandler[];
 };
@@ -108,6 +111,9 @@ function captureRouteRegistrations(): CapturedRoute[] {
     },
     post: (routePath: string, ...handlers: RequestHandler[]) => {
       routes.push({ method: "post", path: routePath, handlers });
+    },
+    patch: (routePath: string, ...handlers: RequestHandler[]) => {
+      routes.push({ method: "patch", path: routePath, handlers });
     },
   } as unknown as Express;
 
@@ -123,6 +129,7 @@ function middlewareSignature(route: CapturedRoute): string[] {
   return route.handlers.slice(0, -1).map((handler) => {
     if (handler === mocks.isAuthenticated) return "authenticated";
     if (handler === mocks.isAdmin) return "admin";
+    if (handler === mocks.requireAdmin) return "admin";
     if (handler === mocks.requireAddressVerification) return "address";
     return "unknown";
   });
@@ -139,10 +146,22 @@ describe("professional route extraction", () => {
     configureMiddleware();
   });
 
-  it("keeps all 16 method/path/middleware signatures in their original order", () => {
+  it("keeps the original 16 routes in order beside protected managed-partner operations", () => {
     const routes = captureRouteRegistrations();
+    const managedRoutes = routes.filter((route) => route.path.includes("managed-partner"));
+    const originalRoutes = routes.filter((route) => !route.path.includes("managed-partner"));
 
-    expect(routes.map((route) => [route.method, route.path, middlewareSignature(route)])).toEqual([
+    expect(
+      managedRoutes.map((route) => [route.method, route.path, middlewareSignature(route)])
+    ).toEqual([
+      ["get", "/api/admin/managed-partners", ["authenticated", "admin"]],
+      ["get", "/api/admin/managed-partner-intakes", ["authenticated", "admin"]],
+      ["post", "/api/admin/managed-partner-intakes", ["authenticated", "admin"]],
+      ["patch", "/api/admin/managed-partner-intakes/:id", ["authenticated", "admin"]],
+    ]);
+    expect(
+      originalRoutes.map((route) => [route.method, route.path, middlewareSignature(route)])
+    ).toEqual([
       ["post", "/api/invitations/send", ["authenticated"]],
       ["get", "/api/invitations/my", ["authenticated"]],
       ["post", "/api/invitations/accept/:code", []],

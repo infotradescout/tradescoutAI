@@ -12,7 +12,7 @@
  * 7. publicExchangeHtml.ts — BreadcrumbList JSON-LD injected for per-category pages
  * 8. client/public/robots.txt — static robots.txt includes Allow: /exchange/
  * 9. client/public/sitemap-index.xml — static sitemap-index.xml includes sitemap-exchange-listings.xml
- * 10. scripts/generate-sitemap.mjs — all 15 exchange category paths included
+ * 10. scripts/generate-sitemap-core.mjs — all 15 exchange category paths included
  * 11. server/storage.ts — IStorage interface declares listActiveExchangeListingsForSitemap
  * 12. server/repositories/sitemapRepository.ts — SitemapRepository has listActiveExchangeListingsForSitemap
  */
@@ -461,10 +461,21 @@ describe("client/public/sitemap-index.xml", () => {
   });
 });
 
-// ─── 10. scripts/generate-sitemap.mjs — all 15 exchange category paths ────────
+// ─── 10. scripts/generate-sitemap-core.mjs — all 15 exchange category paths ──
 
-describe("scripts/generate-sitemap.mjs", () => {
-  const src = fs.readFileSync(path.resolve(SCRIPTS_DIR, "generate-sitemap.mjs"), "utf-8");
+describe("scripts/generate-sitemap-core.mjs", () => {
+  const entrypoint = fs.readFileSync(
+    path.resolve(SCRIPTS_DIR, "generate-sitemap.mjs"),
+    "utf-8"
+  );
+  const src = fs.readFileSync(
+    path.resolve(SCRIPTS_DIR, "generate-sitemap-core.mjs"),
+    "utf-8"
+  );
+
+  it("is invoked by the production prebuild entrypoint", () => {
+    expect(entrypoint).toContain('await import("./generate-sitemap-core.mjs")');
+  });
 
   const expectedPaths = [
     "/exchange/vehicles",

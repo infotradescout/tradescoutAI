@@ -15,13 +15,15 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
   const app = read("client/src/App.tsx");
   const appRoutes = read("client/src/AppRoutes.tsx");
   const page = read("client/src/pages/trade-up-for-trade-schools.tsx");
-  const sitemapGenerator = read("scripts/generate-sitemap.mjs");
+  const sitemapEntrypoint = read("scripts/generate-sitemap.mjs");
+  const sitemapGenerator = read("scripts/generate-sitemap-core.mjs");
 
   it("registers the flat public campaign route", () => {
     expect(appRoutes).toContain(
       'const TradeUpForTradeSchools = React.lazy(() => import("./pages/trade-up-for-trade-schools"));'
     );
     expect(appRoutes).toContain('<Route path="/trade-up-for-trade-schools">');
+    expect(sitemapEntrypoint).toContain('await import("./generate-sitemap-core.mjs")');
     expect(sitemapGenerator).toContain("'/trade-up-for-trade-schools'");
   });
 

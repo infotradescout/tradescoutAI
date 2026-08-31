@@ -377,7 +377,8 @@ const SECTION_META: Record<
   },
   employment: {
     title: "Jobs",
-    description: "Find employment, post a job or resume, apply, and review applicants.",
+    description:
+      "Post work, share availability, and keep replies in Direct Connect. Find employment, post a job or resume, apply, and review applicants.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },

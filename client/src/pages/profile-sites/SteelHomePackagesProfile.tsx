@@ -284,7 +284,7 @@ export default function SteelHomePackagesProfile({
 
   return (
     <main
-      className="flex min-h-screen flex-col bg-[#f5f1e8] text-[#18312f]"
+      className="flex min-h-full flex-col bg-[#f5f1e8] text-[#18312f]"
       data-testid="steel-home-packages-profile"
       data-profile-slug={identity.slug}
       data-release-state={identity.releaseState}

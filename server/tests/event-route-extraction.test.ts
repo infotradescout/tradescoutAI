@@ -212,6 +212,12 @@ describe("sanitization", () => {
         routeTemplate: "/direct-connect",
       })
     ).toEqual({ surface: "direct_connect", routeTemplate: "/direct-connect" });
+
+    expect(
+      sanitizeDirectConnectEventData({
+        route: "/direct-connect/requests/private@example.com",
+      })
+    ).toEqual({ surface: "direct_connect", routeTemplate: "/direct-connect" });
   });
 });
 
