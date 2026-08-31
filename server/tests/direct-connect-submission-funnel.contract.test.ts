@@ -8,15 +8,20 @@ const shellPath = path.resolve(
 );
 const routesPath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
 const analyticsPath = path.resolve(process.cwd(), "server/routes/analytics-routes.ts");
+const workspacePath = path.resolve(
+  process.cwd(),
+  "client/src/pages/direct-connect/directConnectWorkspaceState.ts"
+);
 
 const shellSource = fs.readFileSync(shellPath, "utf8");
 const routesSource = fs.readFileSync(routesPath, "utf8");
 const analyticsSource = fs.readFileSync(analyticsPath, "utf8");
+const workspaceSource = fs.readFileSync(workspacePath, "utf8");
 
 describe("direct connect submission funnel contract harness", () => {
   it("keeps request review reachable without requiring Home Record selection", () => {
     expect(shellSource).toContain("const [homeContextIntent, setHomeContextIntent] = useState<");
-    expect(shellSource).toContain('>("skip_for_now")');
+    expect(shellSource).toContain('>(() => prefillHomeContextIntent || "skip_for_now")');
     expect(shellSource).toContain("handleSkipAndAutoRoute");
     expect(shellSource).toContain("createMutation.mutate({");
     expect(shellSource).toContain("autoRoute: true");
@@ -78,7 +83,10 @@ describe("direct connect submission funnel contract harness", () => {
     expect(shellSource).toContain("window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY");
     expect(shellSource).toContain("window.localStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY");
     expect(shellSource).toContain("hydrateDirectConnectDraft");
-    expect(shellSource).toContain("navigate(`/pre-scout-setup?mode=signin&next=${next}`)");
+    expect(shellSource).toContain(
+      "navigate(buildDirectConnectAuthHandoffHref(currentReturnPath()))"
+    );
+    expect(workspaceSource).toContain("export function buildDirectConnectAuthHandoffHref");
     expect(shellSource).toContain("Your request draft is ready. Sign in to review and send it.");
     expect(shellSource).toContain(
       "Save it with your property or project so the next step starts with the right"

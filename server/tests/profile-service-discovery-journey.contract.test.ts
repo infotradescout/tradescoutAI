@@ -21,14 +21,16 @@ describe("public profile service discovery journey", () => {
     const html = attachPublicProfileServiceJourneyScript(serviceHtml);
 
     expect(html).toContain('data-ts-profile-service-journey="true"');
-    expect(html).toContain('tradescout:discovery-session:v1');
+    expect(html).toContain("tradescout:discovery-session:v1");
     expect(html).toContain('type: "discovery_landing"');
-    expect(html).toContain('discoveryAttributionToken: token');
+    expect(html).toContain("discoveryAttributionToken: token");
     expect(html).toContain('"X-Anonymous-Session-Id": sessionId');
     expect(html).toContain('type: "public_profile_direct_connect_opened"');
-    expect(html).toContain('surface: "profile_service_page_cta"');
-    expect(html).toContain('linkageVersion: 1');
-    expect(html).toContain('destination.searchParams.get("source") !== "profile_service_page"');
+    expect(html).toContain('surface: source === "profile_service_area_page"');
+    expect(html).toContain('"profile_service_area_page_cta" : "profile_service_page_cta"');
+    expect(html).toContain("linkageVersion: 1");
+    expect(html).toContain('source !== "profile_service_page"');
+    expect(html).toContain('source !== "profile_service_area_page"');
   });
 
   it("emits browser-parseable JavaScript", () => {
@@ -57,11 +59,11 @@ describe("public profile service discovery journey", () => {
   it("does not add contact, account, request-text, or fingerprint fields", () => {
     const html = attachPublicProfileServiceJourneyScript(serviceHtml);
 
-    expect(html).not.toContain('email:');
-    expect(html).not.toContain('phone:');
-    expect(html).not.toContain('address:');
-    expect(html).not.toContain('userId:');
-    expect(html).not.toContain('fingerprint');
-    expect(html).not.toContain('requestText');
+    expect(html).not.toContain("email:");
+    expect(html).not.toContain("phone:");
+    expect(html).not.toContain("address:");
+    expect(html).not.toContain("userId:");
+    expect(html).not.toContain("fingerprint");
+    expect(html).not.toContain("requestText");
   });
 });

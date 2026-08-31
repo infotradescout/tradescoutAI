@@ -105,7 +105,7 @@ const START_GUIDE_ITEMS: NavItem[] = [
     description: "Browse jobs and resumes, post an opening, or apply.",
   },
   {
-    label: "Browse commercial work",
+    label: "Commercial Jobs",
     href: "/commercial-directory",
     icon: <ShoppingBag className="h-5 w-5" />,
     description: "Review published commercial projects and bid packages.",

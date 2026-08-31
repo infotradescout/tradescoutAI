@@ -502,14 +502,14 @@ describe("Scout entry framing contracts", () => {
   });
 
   it("saved Scout related links can reopen stable home and vehicle records", () => {
-    const homesSource = read("client/src/pages/homes.tsx");
+    const homesSource = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
     const vehiclesSource = read("client/src/pages/vehicles.tsx");
 
-    expect(homesSource).toContain("initialHomeIdFromUrl");
-    expect(homesSource).toContain('get("homeId")');
-    expect(homesSource).toContain("initialProjectIdFromUrl");
-    expect(homesSource).toContain('get("projectId")');
-    expect(homesSource).toContain("data-project-id");
+    expect(homesSource).toContain('initial("homeId")');
+    expect(homesSource).toContain('initial("projectId")');
+    expect(homesSource).toContain(
+      'projects.find((item) => String(item.id || "") === projectId)'
+    );
     expect(vehiclesSource).toContain("initialVehicleIdFromUrl");
     expect(vehiclesSource).toContain('get("vehicleId")');
   });

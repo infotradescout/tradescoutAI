@@ -14,8 +14,10 @@ describe("public profile request intent observatory", () => {
     expect(route).toContain("data->>'profileSlug'");
     expect(route).toContain("created_at >= $1::timestamptz");
     expect(route).toContain('stage: "request_intent"');
-    expect(route).toContain('label: "Direct Connect opens"');
-    expect(route).toContain('const entryIndex = funnel.findIndex((stage) => stage?.stage === "entry")');
+    expect(route).toContain('label: "Discovery sessions opening Direct Connect"');
+    expect(route).toContain(
+      'const entryIndex = funnel.findIndex((stage) => stage?.stage === "entry")'
+    );
     expect(route).toContain("const insertionIndex = entryIndex >= 0 ? entryIndex + 1");
     expect(route).toContain("funnel.splice(insertionIndex, 0");
     expect(route).toContain("res.json(await addPublicProfileRequestIntent(snapshot))");
@@ -29,7 +31,7 @@ describe("public profile request intent observatory", () => {
     expect(route).toContain("mobileOpenCount");
     expect(route).toContain("desktopOpenCount");
     expect(route).toContain('evidenceStrength: "client_correlated_unverified"');
-    expect(route).toContain('grain: "direct_connect_dialog_mount_events"');
+    expect(route).toContain('grain: "tab_scoped_profile_discovery_sessions"');
     expect(route).toContain("visibleProfileSummary");
     expect(route).toContain("Profile totals:");
     expect(route).toContain("not submitted requests or provider outcomes");

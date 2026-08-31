@@ -31,7 +31,10 @@ describe("assetid phase 1p homeid end-to-end production smoke contracts", () => 
   });
 
   it("keeps Direct Connect jobflow and completion enrichment writing back into HomeID", () => {
-    const directConnectSource = read("server/routes/direct-connect.ts");
+    const directConnectSource = [
+      read("server/routes/direct-connect.ts"),
+      read("server/routes/direct-connect/completion.ts"),
+    ].join("\n");
 
     expect(directConnectSource).toContain("appendHomeIdTimelineEventFromDirectConnect");
     expect(directConnectSource).toContain('eventType: "direct_connect_request_submitted"');

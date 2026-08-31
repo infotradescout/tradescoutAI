@@ -107,10 +107,7 @@ export function isProfileGalleryItemPubliclyAddressable(
 ): boolean {
   const preference = readProfileSitemapPreferences(contentBlocks).gallery;
   if (preference === true) return true;
-  return (
-    !/^(?:gallery|project|work) photo \d+$/i.test(item.title.trim()) &&
-    item.description.trim().length >= 20
-  );
+  return !/\bphoto \d+$/i.test(item.title.trim()) && item.description.trim().length >= 20;
 }
 
 function publishableInventoryItems(

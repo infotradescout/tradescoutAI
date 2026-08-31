@@ -10,7 +10,7 @@ import {
   type ScoutHybridSearchIndex,
 } from "./scoutHybridRetrievalService";
 import { GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED } from "./scoutCorpusContainment";
-import { runtimePaths } from "../runtimePaths";
+import { resolveTradeScoutRuntimePaths } from "../runtimePaths";
 
 export type ScoutHybridShadowObservation = {
   observedAt: string;
@@ -47,7 +47,7 @@ function queryHash(value: string): string {
 }
 
 function resolveIndexPath(): string {
-  return runtimePaths.scoutHybridIndex;
+  return resolveTradeScoutRuntimePaths(process.env).scoutHybridIndex;
 }
 
 function createEmbeddingProvider(artifact: ScoutHybridIndexArtifact) {

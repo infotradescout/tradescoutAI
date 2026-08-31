@@ -129,6 +129,8 @@ import {
   getDirectConnectContextLabel,
   getDirectConnectIntent,
   type DirectConnectEntryContextType,
+  type DirectConnectHomeContextIntent,
+  type DirectConnectHomePacketReadinessState,
   type DirectConnectIntent,
 } from "./directConnectEntryContext";
 import { resolveDirectConnectEntryContext } from "./stagedDirectConnectEntryContext";
@@ -147,6 +149,7 @@ import {
   DIRECT_CONNECT_INCOMING_PATH,
   DIRECT_CONNECT_REQUESTS_PATH,
   buildCanonicalDirectConnectWorkspaceHref,
+  buildDirectConnectAuthHandoffHref,
   canonicalizeDirectConnectWorkspacePathname,
   getDirectConnectComposerDraftSessionKey,
   getDirectConnectWorkspaceTask,
@@ -253,6 +256,13 @@ const DIRECT_CONNECT_DRAFT_SAVE_DEBOUNCE_MS = 300;
 const DIRECT_CONNECT_REPEATED_SUBMIT_WINDOW_MS = 3000;
 const DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS = 2000;
 
+function createDirectConnectSubmissionKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return `dc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+}
+
 function getSafeDirectConnectErrorCode(error: unknown): string {
   if (error && typeof error === "object") {
     const code = String((error as any).code || (error as any).name || "").trim();
@@ -286,6 +296,7 @@ const GENERATED_HOME_LABEL_PATTERN = /^(slice\d+\s+\d+|\d{8,}|[a-f0-9]{12,})$/i;
 
 type DirectConnectDraftSnapshot = {
   savedAt: number;
+  submissionKey?: string;
   returnPath: string;
   ownerUserId?: string;
   authHandoff?: boolean;
@@ -366,7 +377,8 @@ const SECTION_META: Record<
   },
   employment: {
     title: "Jobs",
-    description: "Find employment, post a job or resume, apply, and review applicants.",
+    description:
+      "Post work, share availability, and keep replies in Direct Connect. Find employment, post a job or resume, apply, and review applicants.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
@@ -1450,6 +1462,11 @@ function DirectConnectRequestComposer({
   prefillLocation,
   prefillTiming,
   prefillTradeId,
+  prefillHomeId,
+  prefillHomeContextIntent,
+  prefillHomePacketId,
+  prefillHomePacketSelectedDetailIds,
+  prefillHomePacketReadinessState,
 }: {
   entryLocation?: string;
   defaultCountyFips?: string;
@@ -1469,6 +1486,11 @@ function DirectConnectRequestComposer({
   prefillLocation?: string;
   prefillTiming?: string;
   prefillTradeId?: string;
+  prefillHomeId?: string;
+  prefillHomeContextIntent?: DirectConnectHomeContextIntent;
+  prefillHomePacketId?: string;
+  prefillHomePacketSelectedDetailIds?: string[];
+  prefillHomePacketReadinessState?: DirectConnectHomePacketReadinessState;
 }) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -1526,7 +1548,7 @@ function DirectConnectRequestComposer({
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>(() =>
     prefillTargetProviderId ? [prefillTargetProviderId] : []
   );
-  const [selectedHomeId, setSelectedHomeId] = useState<string>("");
+  const [selectedHomeId, setSelectedHomeId] = useState<string>(() => prefillHomeId?.trim() || "");
   const [assetComponentType, setAssetComponentType] = useState<
     | "roof"
     | "hvac"
@@ -1543,7 +1565,7 @@ function DirectConnectRequestComposer({
   const [assetComponentId, setAssetComponentId] = useState("");
   const [homeContextIntent, setHomeContextIntent] = useState<
     "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now"
-  >("skip_for_now");
+  >(() => prefillHomeContextIntent || "skip_for_now");
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
@@ -1560,6 +1582,7 @@ function DirectConnectRequestComposer({
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
   const draftSubmittedRef = useRef(false);
+  const [submissionKey, setSubmissionKey] = useState(createDirectConnectSubmissionKey);
   const latestAuthenticatedDraftSaveRef = useRef<() => void>(() => undefined);
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
@@ -1593,6 +1616,11 @@ function DirectConnectRequestComposer({
       location: String(prefillLocation || "").trim(),
       timing: String(prefillTiming || "").trim(),
       tradeId: String(prefillTradeId || "").trim(),
+      homeId: String(prefillHomeId || "").trim(),
+      homeContextIntent: String(prefillHomeContextIntent || "").trim(),
+      homePacketId: String(prefillHomePacketId || "").trim(),
+      homePacketSelectedDetailIds: (prefillHomePacketSelectedDetailIds || []).join(","),
+      homePacketReadinessState: String(prefillHomePacketReadinessState || "").trim(),
     };
     return Object.values(entryIdentity).some(Boolean) ? JSON.stringify(entryIdentity) : "";
   };
@@ -1692,6 +1720,12 @@ function DirectConnectRequestComposer({
     const parsedProviderIds = (parsed.selectedProviderIds || [])
       .map((item) => (typeof item === "string" ? item.trim() : ""))
       .filter(Boolean);
+    if (
+      typeof parsed.submissionKey === "string" &&
+      /^[A-Za-z0-9_-]{16,120}$/.test(parsed.submissionKey)
+    ) {
+      setSubmissionKey(parsed.submissionKey);
+    }
 
     setTitle(resolveDirectConnectComposerDraftText(parsed.title, prefillTitle));
     setDescription(resolveDirectConnectComposerDraftText(parsed.description, prefillDescription));
@@ -1764,6 +1798,7 @@ function DirectConnectRequestComposer({
 
     const draft: DirectConnectDraftSnapshot = {
       savedAt: Date.now(),
+      submissionKey,
       returnPath: currentReturnPath(),
       ownerUserId: user?.id ? String(user.id) : undefined,
       authHandoff: !user?.id,
@@ -2175,6 +2210,7 @@ function DirectConnectRequestComposer({
     selectedContractorIds,
     selectedHomeId,
     showOptional,
+    submissionKey,
     title,
     user?.id,
   ]);
@@ -2218,6 +2254,7 @@ function DirectConnectRequestComposer({
       setDraftAttachmentKeys(Array.from(new Set(nextDraftAttachmentKeys)).slice(0, 8));
 
       const payload: Record<string, unknown> = {
+        submissionKey,
         title: title.trim(),
         description: description.trim(),
         category: activeRequestMeta.category,
@@ -2265,6 +2302,24 @@ function DirectConnectRequestComposer({
       if (dispatch?.assetComponentId?.trim())
         payload.assetComponentId = dispatch.assetComponentId.trim();
       if (dispatch?.assetLabel?.trim()) payload.assetLabel = dispatch.assetLabel.trim();
+      const homePacketId = prefillHomePacketId?.trim();
+      const carriesHomePacket = Boolean(
+        (dispatch?.homeContextIntent === "link_existing" ||
+          dispatch?.homeContextIntent === "update_from_request") &&
+        dispatch.homeId?.trim() &&
+        homePacketId
+      );
+      if (carriesHomePacket && homePacketId) {
+        payload.homePacketId = homePacketId;
+        if (prefillHomePacketSelectedDetailIds?.length) {
+          payload.homePacketSelectedDetailIds = Array.from(
+            new Set(prefillHomePacketSelectedDetailIds)
+          ).slice(0, 50);
+        }
+        if (prefillHomePacketReadinessState === "ready_for_handoff") {
+          payload.homePacketReadinessState = prefillHomePacketReadinessState;
+        }
+      }
 
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
@@ -2367,6 +2422,7 @@ function DirectConnectRequestComposer({
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
       draftSubmittedRef.current = true;
       clearDirectConnectDraft();
+      setSubmissionKey(createDirectConnectSubmissionKey());
       navigate(
         submittedRequestId
           ? `${DIRECT_CONNECT_REQUESTS_PATH}?selected=${encodeURIComponent(submittedRequestId)}`
@@ -2382,15 +2438,15 @@ function DirectConnectRequestComposer({
         error,
         blocked: true,
       });
+      persistDirectConnectDraft({
+        selectedProviderIds: variables?.targetProviderIds || selectedContractorIds,
+      });
       if (error?.status === 401) {
         trackFrictionEvent("direct_connect_permission_or_role_blocked", {
           source: currentReturnPath(),
           section: "submit",
           reason: "auth_required",
           blocked: true,
-        });
-        persistDirectConnectDraft({
-          selectedProviderIds: variables?.targetProviderIds || selectedContractorIds,
         });
         trackOncePerSession(
           "direct-connect-auth-handoff-submit",
@@ -2406,8 +2462,7 @@ function DirectConnectRequestComposer({
           title: "Sign in to send",
           description: "Your request draft is ready. Sign in to review and send it.",
         });
-        const next = encodeURIComponent(currentReturnPath());
-        navigate(`/pre-scout-setup?mode=signin&next=${next}`);
+        navigate(buildDirectConnectAuthHandoffHref(currentReturnPath()));
         return;
       }
 
@@ -2563,8 +2618,7 @@ function DirectConnectRequestComposer({
         title: "Create your free account to share this request",
         description: "Your contact information stays private until you approve a contact request.",
       });
-      const next = encodeURIComponent(currentReturnPath());
-      navigate(`/pre-scout-setup?mode=signin&next=${next}`);
+      navigate(buildDirectConnectAuthHandoffHref(currentReturnPath()));
       return;
     }
     if (prefillContextType === "profile" && prefillContextId?.trim()) {
@@ -6390,6 +6444,11 @@ export default function DirectConnectShell() {
           prefillLocation={requestPrefill?.location}
           prefillTiming={requestPrefill?.timing}
           prefillTradeId={requestPrefill?.tradeId}
+          prefillHomeId={requestPrefill?.homeId}
+          prefillHomeContextIntent={requestPrefill?.homeContextIntent}
+          prefillHomePacketId={requestPrefill?.homePacketId}
+          prefillHomePacketSelectedDetailIds={requestPrefill?.homePacketSelectedDetailIds}
+          prefillHomePacketReadinessState={requestPrefill?.homePacketReadinessState}
         />
       );
       break;

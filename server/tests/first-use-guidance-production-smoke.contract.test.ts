@@ -43,10 +43,13 @@ describe("first-use guidance production smoke", () => {
     expect(resolverSource).toContain("Review your HomeID updates.");
     expect(resolverSource).toContain("Review saved context.");
 
-    const homesSource = read("client/src/pages/homes.tsx");
+    const homesSource = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
     const directConnectSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const scoutSource = read("client/src/scout/ScoutHome.tsx");
     expect(homesSource).toContain("homeIdFirstTaskPrompt.message");
+    expect(homesSource).toContain("homeIdFirstTaskPrompt.ctaLabel");
+    expect(homesSource).toContain("trackFirstUseTaskPromptClicked({");
+    expect(homesSource).toContain('data-testid="homeid-first-task-prompt"');
     expect(directConnectSource).toContain("directConnectFirstTaskPrompt.message");
     expect(scoutSource).not.toContain("contextualPrompt={scoutFirstTaskPrompt}");
     expect(scoutSource).toContain("<ScoutControlSnapshot");

@@ -49,7 +49,7 @@ describe("progressive feature gating contracts", () => {
     );
     expect(source).toContain("Set up or manage my business");
     expect(source).toMatch(/label: "Find work or hire",\s+href: "\/direct-connect\/opportunities"/);
-    expect(source).toContain("Browse commercial work");
+    expect(source).toContain("Commercial Jobs");
     expect(source).toContain("Ask my community");
     expect(source).toContain("Choose one goal. TradeScout will take you to the right place.");
     expect(source).toContain('title: "Make a request"');
@@ -67,7 +67,10 @@ describe("progressive feature gating contracts", () => {
     expect(directConnectSource).toContain('title: "Inbox"');
     expect(directConnectSource).toContain('employment: "Jobs"');
     expect(directConnectSource).toContain(
-      'description: "Find employment, post a job or resume, apply, and review applicants."'
+      "Post work, share availability, and keep replies in Direct Connect."
+    );
+    expect(directConnectSource).toContain(
+      "Find employment, post a job or resume, apply, and review applicants."
     );
     expect(directConnectSource).toContain("shouldRenderDirectConnectSectionChrome(activeSection)");
     expect(directConnectSource).toContain('"Track your requests."');

@@ -152,9 +152,16 @@ describe("DC universal provider — inbox endpoint", () => {
 describe("DC universal provider — respond endpoint", () => {
   it("respond endpoint no longer requires a contractor profile", () => {
     const dc = readRepoFile("server/routes/direct-connect.ts");
-    // The old hard gate was: if (!contractor) return 403
-    // It should now be: contractor is looked up but not required
-    expect(dc).toContain("Business providers don't need a contractor profile");
+    const respondSection = dc.slice(
+      dc.indexOf('"/api/direct-connect/assignments/:id/respond"'),
+      dc.indexOf('"/api/direct-connect/requests/:id/self-select"')
+    );
+
+    expect(respondSection).toContain(
+      "const contractor = await storage.getContractorByUserId(String(userId))"
+    );
+    expect(respondSection).toContain("const isBusinessAssignment =");
+    expect(respondSection).not.toMatch(/if\s*\(!contractor\)\s*return/);
   });
 
   it("respond endpoint authorizes by contractorId OR responderUserId", () => {

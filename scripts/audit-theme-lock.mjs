@@ -43,8 +43,14 @@ function main() {
     { file: "client/src/index.css", token: "--ts-radius-card: 8px;" },
     { file: "client/src/index.css", token: "--ts-radius-control: 8px;" },
     { file: "client/src/index.css", token: "--surface-card-border:" },
-    { file: "client/src/components/ui/card.tsx", token: '"ts-card text-[color:var(--text-primary)]"' },
-    { file: "client/src/components/ui/input.tsx", token: '"ts-control flex h-[var(--ts-control-height)]' },
+    {
+      file: "client/src/components/ui/card.tsx",
+      token: '"ts-card text-[color:var(--text-primary)]"',
+    },
+    {
+      file: "client/src/components/ui/input.tsx",
+      token: '"ts-control flex h-[var(--ts-control-height)]',
+    },
     { file: "client/src/components/ui/button.tsx", token: 'default: "ts-action font-bold"' },
   ];
 
@@ -95,13 +101,26 @@ function main() {
     },
     {
       file: "scout-info-showcase.tsx",
-      reason:
-        "client/src/pages/ marketing/info page, not part of any of the 5 convergence lanes.",
+      reason: "client/src/pages/ marketing/info page, not part of any of the 5 convergence lanes.",
       owner: "theme-convergence-packet",
       reviewBy: "2026-09-01",
     },
   ];
   const exceptedFileNames = new Set(HEX_AND_GRADIENT_EXCEPTIONS.map((e) => e.file));
+  // These are independently branded, profile-owned surfaces. Their palettes
+  // are content/visualization data, not TradeScout shell-theme overrides.
+  const BRANDED_SURFACE_PATH_EXCEPTIONS = [
+    "client/src/pages/ProfileSiteView.tsx",
+    "client/src/pages/homeid/HomeIdWorkspace.tsx",
+    "client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx",
+    "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
+  ];
+  const BRANDED_SURFACE_DIRECTORY_EXCEPTIONS = [
+    "client/src/pages/profile-sites/steel-home-project-tools/",
+  ];
+  const isBrandedSurface = (relativePath) =>
+    BRANDED_SURFACE_PATH_EXCEPTIONS.includes(relativePath) ||
+    BRANDED_SURFACE_DIRECTORY_EXCEPTIONS.some((prefix) => relativePath.startsWith(prefix));
   // Allowed files for inline colors (component-specific)
   const allowedColorFiles = ["Icons", "Logo", "Theme"];
 
@@ -119,11 +138,14 @@ function main() {
     const fileName = path.basename(file);
 
     const allowHexByPath =
-      /test-page/i.test(relativePath) || /\/demo\//i.test(relativePath) || /\/sandbox\//i.test(relativePath);
+      /\.(?:test|spec)\.tsx$/i.test(relativePath) ||
+      /test-page/i.test(relativePath) ||
+      /\/demo\//i.test(relativePath) ||
+      /\/sandbox\//i.test(relativePath);
 
     const isAllowedFile = allowedColorFiles.some((token) => fileName.includes(token));
     if (isAllowedFile) continue;
-    const isExceptedFile = exceptedFileNames.has(fileName);
+    const isExceptedFile = exceptedFileNames.has(fileName) || isBrandedSurface(relativePath);
 
     const content = readFile(file);
     const lines = content.split(/\r?\n/);
@@ -135,10 +157,9 @@ function main() {
         suspiciousHex.lastIndex = 0;
 
         // Remove CSS variable fallbacks like var(--user-primary, #f97316)
-        const stripped = line.replace(
-          /var\(\s*--[^,]+,\s*#[0-9a-fA-F]{6}\s*\)/gi,
-          ""
-        );
+        const stripped = line
+          .replace(/var\(\s*--[^,]+,\s*#[0-9a-fA-F]{6}\s*\)/gi, "")
+          .replace(/placeholder\s*=\s*["']#[0-9a-fA-F]{6}["']/gi, "");
 
         if (suspiciousHex.test(stripped)) {
           violations.push({

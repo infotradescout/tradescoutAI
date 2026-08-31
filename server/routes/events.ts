@@ -216,17 +216,36 @@ function sanitizeRoute(value: unknown): string | undefined {
 }
 
 function sanitizeDirectConnectRouteTemplate(value: unknown): string | undefined {
-  const route = sanitizeRoute(value);
-  if (!route || !/^\/direct-connect(?:\/|$)/i.test(route)) return undefined;
+  if (typeof value !== "string") return undefined;
+  const [route = ""] = value.trim().split(/[?#]/, 1);
+  if (
+    !route.startsWith("/") ||
+    route.length > MAX_ROUTE_LENGTH ||
+    /[\u0000-\u001f\u007f]/.test(route) ||
+    !/^\/direct-connect(?:\/|$)/i.test(route)
+  ) {
+    return undefined;
+  }
 
-  const segments = route
-    .split("/")
-    .filter(Boolean)
-    .map((segment) => {
-      if (UUID_SEGMENT.test(segment) || NUMERIC_SEGMENT.test(segment)) return ":id";
-      if (LONG_ID_SEGMENT.test(segment) && !/^direct-connect$/i.test(segment)) return ":id";
-      return segment.slice(0, 80);
-    });
+  const segments: string[] = [];
+  for (const segment of route.split("/").filter(Boolean)) {
+    if (UUID_SEGMENT.test(segment) || NUMERIC_SEGMENT.test(segment)) {
+      segments.push(":id");
+      continue;
+    }
+    if (LONG_ID_SEGMENT.test(segment) && !/^direct-connect$/i.test(segment)) {
+      segments.push(":id");
+      continue;
+    }
+    if (
+      segment.length > 80 ||
+      !SAFE_TOKEN_PATTERN.test(segment) ||
+      containsObviousPrivateData(segment)
+    ) {
+      return undefined;
+    }
+    segments.push(segment);
+  }
 
   return `/${segments.join("/")}`.slice(0, MAX_ROUTE_LENGTH) || "/direct-connect";
 }

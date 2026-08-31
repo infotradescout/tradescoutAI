@@ -302,7 +302,7 @@ export default function RedGranitiWebsiteProfile({
 
   return (
     <div
-      className="min-h-screen overflow-x-clip bg-white pb-[calc(5.25rem+env(safe-area-inset-bottom))] font-sans text-[#252122] sm:pb-0"
+      className="min-h-full overflow-x-clip bg-white pb-[calc(5.25rem+env(safe-area-inset-bottom))] font-sans text-[#252122] sm:pb-0"
       data-testid="red-graniti-website-profile"
       data-profile-slug={profileSlug}
       data-presentation="official-website-recreation"

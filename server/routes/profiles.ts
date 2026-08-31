@@ -218,14 +218,21 @@ function databaseBoolean(value: unknown): boolean {
 }
 
 export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>): boolean {
+  if (!shouldIndexPublicProfileSlug(row.profile_slug)) return false;
   return canExposePublishedProfilePublicly({
     profileId: row.profile_id,
     businessId: row.business_id,
     profileSlug: row.profile_slug,
     profileStatus: "published",
     profileOwnerUserId: row.profile_owner_user_id,
+    profileRoleContext: row.profile_role_context,
+    profileHeadline: row.profile_headline,
+    profileServicesDescription: row.profile_services_description,
+    profileContentBlocks: row.content_blocks,
     ownerVerifiedBadge: databaseBoolean(row.owner_verified_badge),
     ownerVerificationStatus: row.owner_verification_status,
+    ownerRole: row.owner_role,
+    ownerRoles: row.owner_roles,
     ownerProvider: row.owner_provider,
     ownerPreferences: row.owner_preferences,
     businessStatus: row.business_status,
@@ -329,11 +336,16 @@ async function listPublishedProfileSitemapTargets(
             p.id AS profile_id,
             p.business_id,
             p.owner_user_id AS profile_owner_user_id,
+            p.role_context AS profile_role_context,
+            p.headline AS profile_headline,
+            u.preferences->>'servicesDescription' AS profile_services_description,
             b.slug AS business_slug,
             NULLIF(lower(trim(p.seo_meta->>'customDomain')), '') AS custom_domain,
             p.content_blocks,
             u.verified_badge AS owner_verified_badge,
             u.verification_status AS owner_verification_status,
+            u.role AS owner_role,
+            u.roles AS owner_roles,
             u.provider AS owner_provider,
             u.preferences AS owner_preferences,
             b.status AS business_status,

@@ -5,6 +5,7 @@ import { getTableConfig } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
 import * as schema from "../../shared/schema";
 import * as core from "../../shared/schema/core";
+import * as scoutOnboarding from "../../shared/schema/scoutOnboarding";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -87,19 +88,33 @@ describe("shared schema module boundaries", () => {
     expect((schema.notificationsRelations as unknown as { table: unknown }).table).toBe(
       schema.notifications
     );
+
+    const onboardingUserReference = getTableConfig(schema.scoutOnboardingSessions)
+      .foreignKeys.map((foreignKey) => foreignKey.reference())
+      .find(({ foreignColumns }) => foreignColumns[0] === schema.users.id);
+
+    expect(onboardingUserReference?.columns[0]).toBe(schema.scoutOnboardingSessions.userId);
+    expect(onboardingUserReference?.foreignColumns[0]).toBe(schema.users.id);
   });
 
   it("keeps extracted domains dependency-safe", () => {
     const barrelSource = read("shared/schema.ts");
     const notificationSource = read("shared/schema/notifications.ts");
     const procurementSource = read("shared/schema/procurement.ts");
+    const scoutOnboardingSource = read("shared/schema/scoutOnboarding.ts");
 
     expect(barrelSource).toContain('export * from "./schema/core";');
     expect(barrelSource).toContain("createNotificationSchema(() => users.id)");
     expect(barrelSource).toContain("createProcurementSchema(() => users.id)");
+    expect(barrelSource).toContain("createScoutOnboardingSchema(() => users.id)");
     expect(notificationSource).not.toMatch(/from ["']\.\.\/schema(?:\.ts)?["']/);
     expect(notificationSource).not.toContain("users.id");
     expect(procurementSource).not.toMatch(/from ["']\.\.\/schema(?:\.ts)?["']/);
     expect(procurementSource).not.toContain("users.id");
+    expect(scoutOnboardingSource).not.toMatch(/from ["']\.\.\/schema(?:\.ts)?["']/);
+    expect(scoutOnboardingSource).not.toContain("users.id");
+    expect(schema.scoutOnboardingSessions).toBeDefined();
+    expect(schema).not.toHaveProperty("createScoutOnboardingSchema");
+    expect(scoutOnboarding.createScoutOnboardingSchema).toBeDefined();
   });
 });

@@ -37,7 +37,7 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
     return (
       <Suspense
         fallback={
-          <div aria-label="Loading JW Stone inventory" className="min-h-screen bg-[#f7f4ec]" />
+          <div aria-label="Loading JW Stone inventory" className="min-h-full bg-[#f7f4ec]" />
         }
       >
         <JwStoneMarketplaceProfile

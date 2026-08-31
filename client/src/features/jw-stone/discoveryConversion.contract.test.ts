@@ -20,24 +20,25 @@ describe("JW Stone discovery and request conversion", () => {
   it("aligns visible and hydrated metadata with Pensacola buyer intent", () => {
     const hero = read("client/src/features/jw-stone/MarketplaceIntroduction.tsx");
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+    const normalizedHero = hero.replace(/\s+/g, " ");
 
-    expect(hero).toContain(
+    expect(normalizedHero).toContain(
       "Natural stone slabs for fabricators, builders, designers, architects, and homeowners"
     );
-    expect(hero).toContain("in Pensacola and across the Gulf Coast.");
-    expect(marketplace).toContain(
-      "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics"
-    );
+    expect(normalizedHero).toContain("in Pensacola and across the Gulf Coast.");
+    expect(marketplace).toContain("Natural Stone Slabs in Pensacola, FL | JW Stone Logistics");
     expect(marketplace).toContain('"@type": "Store"');
-    expect(marketplace).toContain('areaServed: { "@type": "AdministrativeArea", name: "Gulf Coast" }');
+    expect(marketplace).toContain(
+      'areaServed: { "@type": "AdministrativeArea", name: "Gulf Coast" }'
+    );
     expect(marketplace).toContain("JW_STONE_KNOWS_ABOUT");
   });
 
-  it("opens the full request form first while preserving the call option behind Back", () => {
+  it("opens the contact choice before either the request form or call path", () => {
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
-    expect(marketplace).toContain('initialView="request"');
+    expect(marketplace).toContain('initialView="choice"');
     expect(marketplace).toContain("allowCall");
     expect(panel).toContain('aria-label="Back to contact options"');
     expect(panel).toContain('setView("choice")');

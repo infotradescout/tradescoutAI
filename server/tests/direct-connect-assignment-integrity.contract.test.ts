@@ -56,9 +56,13 @@ describe("direct connect assignment integrity contracts", () => {
     expect(source).toContain('message: "Only the eligible business can start work."');
   });
 
-  it("keeps requester contact redacted before contact-gate release", () => {
-    const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("homeownerContact: null");
+  it("keeps requester contact redacted unless an eligible provider receives gate release", () => {
+    const routes = read("server/routes/direct-connect.ts");
+    const ledger = read("server/services/directConnectDispatchLedgerService.ts");
+    expect(routes).toContain("homeownerContact: releasedContact");
+    expect(ledger).toContain("getReleasedRequesterContactForProvider");
+    expect(ledger).toContain("dispatch.contact_gate_state = 'released'");
+    expect(ledger).toContain("candidate.eligibility_state = 'eligible'");
   });
 
   it("keeps routing integrity independent of paid placement/ranking fields", () => {

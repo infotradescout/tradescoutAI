@@ -64,7 +64,7 @@ describe("Gap 1 – Provider self-select endpoint", () => {
 });
 
 describe("Gap 2 – Completion notification to accepted providers", () => {
-  const src = read("server/routes/direct-connect.ts");
+  const src = read("server/routes/direct-connect/completion.ts");
 
   it("sends dc_request_completed notification after mark-complete", () => {
     expect(src).toContain("dc_request_completed");
@@ -78,7 +78,7 @@ describe("Gap 2 – Completion notification to accepted providers", () => {
   });
 
   it("notifies all accepted providers (contractor + business paths)", () => {
-    expect(src).toContain("Failed to send completion notifications to providers");
+    expect(src).toContain("Failed to notify provider of completion");
   });
 });
 

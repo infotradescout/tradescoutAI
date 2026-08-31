@@ -50,6 +50,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type IntakeMutationResponse = {
   item: ManagedPartnerIntakeRecord;
@@ -252,8 +253,10 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Partner intake was not saved",
-        description:
-          error instanceof Error ? error.message : "Review the intake details and try again.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Review the intake details and try again."
+        ),
         variant: "destructive",
       });
     },
@@ -285,8 +288,7 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Queue update failed",
-        description:
-          error instanceof Error ? error.message : "Review the partner state and try again.",
+        description: formatUserFacingErrorMessage(error, "Review the partner state and try again."),
         variant: "destructive",
       });
     },
@@ -359,7 +361,7 @@ export default function AdminManagedPartnerIntakesPage() {
     if (stage === "blocked") {
       beginEdit(item, "blocked");
       toast({
-        title: "Name the blocker before saving",
+        title: "Add the blocker before saving",
         description: "The queue keeps the exact reason visible until the partner can move again.",
       });
       return;
@@ -580,7 +582,10 @@ export default function AdminManagedPartnerIntakesPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Operating request recipient" htmlFor="partner-request-recipient">
+              <Field
+                label="Operating request recipient slug"
+                htmlFor="partner-request-recipient"
+              >
                 <Input
                   id="partner-request-recipient"
                   value={form.requestRecipientSlug}
@@ -657,7 +662,10 @@ export default function AdminManagedPartnerIntakesPage() {
             </details>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Known facts and boundaries" htmlFor="partner-notes">
+              <Field
+                label="What is known and what must be preserved"
+                htmlFor="partner-notes"
+              >
                 <Textarea
                   id="partner-notes"
                   value={form.notes}

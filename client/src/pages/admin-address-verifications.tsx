@@ -460,7 +460,7 @@ export default function AdminAddressVerifications() {
           if (!open) setSelectedVerification(null);
         }}
       >
-        <DialogContent className="max-h-[88vh] overflow-y-auto border-white/12 bg-[#101112] text-white sm:max-w-[700px]">
+        <DialogContent className="max-h-[88vh] overflow-y-auto border-white/12 bg-tsBg text-white sm:max-w-[700px]">
           <DialogHeader>
             <DialogTitle className="text-white">Review address verification</DialogTitle>
             <DialogDescription className="text-white/48">

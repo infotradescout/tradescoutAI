@@ -64,8 +64,13 @@ import {
 } from "./schema/core";
 import { createNotificationSchema } from "./schema/notifications";
 import { createProcurementSchema } from "./schema/procurement";
+import { createScoutOnboardingSchema } from "./schema/scoutOnboarding";
 
 export * from "./schema/core";
+export type {
+  InsertScoutOnboardingSession,
+  ScoutOnboardingSession,
+} from "./schema/scoutOnboarding";
 export type {
   InsertPartnerWebhookEvent,
   InsertProcurementDeliveryProof,
@@ -11466,33 +11471,9 @@ export const scoutUserConfidenceState = pgTable(
   ]
 );
 
-// ─── Scout Onboarding Sessions ───────────────────────────────────────────────
-// Replaces the in-memory Map in onboardingService.ts with a persistent table.
-// Sessions expire after 2 hours; cleanup runs on each read and on a periodic
-// server-side interval.
-export const scoutOnboardingSessions = pgTable(
-  "scout_onboarding_sessions",
-  {
-    sessionId: varchar("session_id", { length: 255 }).primaryKey(),
-    userId: varchar("user_id", { length: 255 }).references(() => users.id, {
-      onDelete: "cascade",
-    }),
-    // Stored as JSON strings for flexibility without extra columns
-    snapshot: text("snapshot").notNull().default("{}"),
-    answeredQuestions: text("answered_questions").notNull().default("[]"),
-    skippedQuestions: text("skipped_questions").notNull().default("[]"),
-    expirationReason: varchar("expiration_reason", { length: 64 }),
-    startedAt: timestamp("started_at").notNull().defaultNow(),
-    expiresAt: timestamp("expires_at").notNull(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [
-    index("idx_scout_onboarding_user_id").on(table.userId),
-    index("idx_scout_onboarding_expires_at").on(table.expiresAt),
-  ]
-);
-export type ScoutOnboardingSession = typeof scoutOnboardingSessions.$inferSelect;
-export type InsertScoutOnboardingSession = typeof scoutOnboardingSessions.$inferInsert;
+const { scoutOnboardingSessions } = createScoutOnboardingSchema(() => users.id);
+
+export { scoutOnboardingSessions };
 
 const {
   procurementWorkspaces,

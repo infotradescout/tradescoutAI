@@ -22,6 +22,7 @@ describe("scout-v2 auth gates", () => {
     app.use((req, _res, next) => {
       (req as any).isAuthenticated = () => true;
       (req as any).user = { role: "member" };
+      (req as any).requestAuthorityContext = { ok: true, isImpersonating: false };
       next();
     });
     app.use("/api/scout-v2", scoutV2Router);

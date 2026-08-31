@@ -9,7 +9,7 @@ function read(relativePath: string) {
 describe("Public-profile Express Direct Connect contract", () => {
   it("keeps individual business CTAs separate from the Direct Connect portal", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
 
     expect(profileView).toContain("const useExpressDirectConnect = true");
     expect(profileView).toContain("The boundary is the surface, not the referrer");
@@ -22,7 +22,7 @@ describe("Public-profile Express Direct Connect contract", () => {
 
   it("preserves all five material intents and the selected product source context", () => {
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const route = read("server/routes/tradepartner-express.ts");
     const materialsStart = panel.indexOf("materials: {");
     const materialsEnd = panel.indexOf("auto_glass: {", materialsStart);
@@ -87,7 +87,7 @@ describe("Public-profile Express Direct Connect contract", () => {
   it("shows a public business address with the call-or-form choice when one is available", () => {
     const publicProfileRoute = read("server/routes/profiles.ts");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
-    const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
     expect(publicProfileRoute).toContain(

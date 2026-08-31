@@ -36,9 +36,12 @@ describe("direct connect contractor action surface contracts", () => {
     expect(source).toContain('nextState: "contractor_requested"');
   });
 
-  it("keeps requester contact redacted in contractor request detail payload", () => {
-    const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("homeownerContact: null");
+  it("keeps requester contact fail-closed until provider-bound release", () => {
+    const routes = read("server/routes/direct-connect.ts");
+    const ledger = read("server/services/directConnectDispatchLedgerService.ts");
+    expect(routes).toContain("homeownerContact: releasedContact");
+    expect(ledger).toContain("workspace.contractor_response_id");
+    expect(ledger).toContain("dispatch.contact_gate_state = 'released'");
   });
 
   it("blocks non-eligible/non-provider actors from unauthorized contractor action paths", () => {

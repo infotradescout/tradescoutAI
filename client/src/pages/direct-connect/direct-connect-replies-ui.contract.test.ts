@@ -36,7 +36,7 @@ describe("Direct Connect replies mobile control surface contracts", () => {
     expect(source).toContain('data-testid="direct-connect-incoming-workspace"');
     expect(source).toContain('data-testid="incoming-list"');
     expect(source).toContain('data-testid="incoming-inspector"');
-    expect(source).toContain("selectedItem ? [selectedItem].map");
+    expect(source).toContain("[selectedItem].map");
     expect(source).toContain("isRealDirectConnectAssignmentId(item.assignment.id)");
     expect(source).toContain("inboxNextStepCopy.summary");
   });

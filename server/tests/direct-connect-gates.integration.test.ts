@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { db } from "../db";
 import { clearAdminAuditLog, getAdminAuditLog } from "../services/adminAuditLogService";
@@ -12,6 +12,7 @@ import {
   trades,
   workRequestAssignments,
   workRequests,
+  userHomes,
 } from "@shared/schema";
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 
@@ -561,16 +562,31 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       onboardingCompleted: true,
     });
 
-    const createRes = await agent.post("/api/direct-connect/requests").send({
+    const submissionKey = crypto.randomUUID();
+    const payload = {
+      submissionKey,
       title: "Direct Connect create list project",
       description: "Quick project check for authenticated request list flow.",
       category: "service_request",
       autoRoute: false,
-    });
+    };
+    const createRes = await agent.post("/api/direct-connect/requests").send(payload);
 
     expect(createRes.status).toBe(201);
     const createdId = String(createRes.body?.id || "");
     expect(createdId.length).toBeGreaterThan(0);
+
+    const replayRes = await agent.post("/api/direct-connect/requests").send(payload);
+    expect(replayRes.status).toBe(200);
+    expect(String(replayRes.body?.id || "")).toBe(createdId);
+    expect(replayRes.body?.idempotencyReplayed).toBe(true);
+
+    const conflictRes = await agent.post("/api/direct-connect/requests").send({
+      ...payload,
+      title: "Different details must not reuse a submission key",
+    });
+    expect(conflictRes.status).toBe(409);
+    expect(conflictRes.body?.code).toBe("DIRECT_CONNECT_IDEMPOTENCY_CONFLICT");
 
     const inserted = await db
       .select()
@@ -585,16 +601,39 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
 
     expect(inserted).toHaveLength(1);
     expect(String(inserted[0]?.source || "")).toBe("direct_connect");
+    const duplicates = await db
+      .select()
+      .from(workRequests)
+      .where(
+        and(
+          eq(workRequests.createdByUserId, String(user.id)),
+          eq(workRequests.title, payload.title)
+        )
+      );
+    expect(duplicates).toHaveLength(1);
   });
 
-  it("allows provider express-interest assignment id to be respondable with required acceptance fields", async () => {
-    const { agent: requesterAgent, user: requesterUser } = await createAuthedAgent({
+  it("keeps the accepted-provider contact path gated, provider-bound, and idempotent", async () => {
+    const {
+      agent: requesterAgent,
+      user: requesterUser,
+      email: requesterEmail,
+    } = await createAuthedAgent({
       role: "homeowner",
       addressVerified: true,
       emailVerified: true,
       onboardingCompleted: true,
+      firstName: "Golden",
+      lastName: "Requester",
+      phone: "5558675309",
     });
     const { agent: providerAgent, user: providerUser } = await createAuthedAgent({
+      role: "contractor",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const { agent: wrongProviderAgent } = await createAuthedAgent({
       role: "contractor",
       addressVerified: true,
       emailVerified: true,
@@ -609,11 +648,30 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       .set({
         countyFips: String((county as any).fips),
         stateCode: String((county as any).stateCode || "").toUpperCase(),
+        address: "100 Golden Path Way",
+        city: "Pensacola",
+        state: "FL",
+        zipCode: "32501",
         updatedAt: new Date(),
       } as any)
       .where(eq(users.id, String(requesterUser.id)));
 
     const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const [home] = await db
+      .insert(userHomes)
+      .values({
+        ownerUserId: requesterUser.id,
+        nickname: `Golden path home ${unique}`,
+        propertyType: "single_family",
+        address1: "100 Golden Path Way",
+        city: "Pensacola",
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        countyFips: String((county as any).fips),
+        zipCode: "32501",
+      } as any)
+      .returning();
+    expect(home).toBeTruthy();
+
     const [providerContractor] = await db
       .insert(contractors)
       .values({
@@ -635,6 +693,10 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       category: "service_request",
       countyFips: String((county as any).fips),
       stateCode: String((county as any).stateCode || "").toUpperCase(),
+      homeId: String(home.id),
+      homeContextIntent: "link_existing",
+      assetComponentType: "plumbing",
+      assetLabel: "Outdoor faucet",
     });
     expect(createRes.status).toBe(201);
     const requestId = String(createRes.body?.id || "");
@@ -647,6 +709,16 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     const assignmentId = String(expressRes.body?.assignment?.id || "");
     expect(assignmentId.length).toBeGreaterThan(0);
 
+    const wrongResponse = await wrongProviderAgent
+      .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
+      .send({
+        decision: "accept",
+        availabilityWindow: "This week",
+        priceBand: "standard",
+        scopeNote: "I should not be able to accept another provider's assignment.",
+      });
+    expect(wrongResponse.status).toBe(404);
+
     const respondRes = await providerAgent
       .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
       .send({
@@ -657,6 +729,190 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       });
     expect([200, 201]).toContain(respondRes.status);
     expect(respondRes.status).not.toBe(404);
+    const conversationId = String(respondRes.body?.conversationId || "");
+    expect(conversationId.length).toBeGreaterThan(0);
+
+    const repeatResponse = await providerAgent
+      .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
+      .send({
+        decision: "accept",
+        availabilityWindow: "This week",
+        priceBand: "standard",
+        scopeNote: "Duplicate acceptance must not create duplicate ledger responses.",
+      });
+    expect(repeatResponse.status).toBe(409);
+
+    const preReleaseDetail = await providerAgent.get(
+      `/api/direct-connect/contractor/requests/${requestId}`
+    );
+    expect(preReleaseDetail.status).toBe(200);
+    expect(preReleaseDetail.body?.homeownerContact).toBeNull();
+    expect(preReleaseDetail.body?.releasedContact).toBeNull();
+
+    const preReleaseMessageJob = await providerAgent.get(
+      `/api/direct-connect/messages/threads/${conversationId}/job`
+    );
+    expect(preReleaseMessageJob.status).toBe(200);
+    expect(preReleaseMessageJob.body?.contactGateState).toBe("contractor_requested");
+    expect(preReleaseMessageJob.body?.releasedContact).toBeNull();
+
+    const gateBeforeApproval = await db.execute(sql`
+      SELECT contact_gate_state
+      FROM direct_connect_dispatch_requests
+      WHERE id = ${requestId}
+    `);
+    expect(String((gateBeforeApproval.rows?.[0] as any)?.contact_gate_state || "")).toBe(
+      "contractor_requested"
+    );
+
+    const providerReleaseAttempt = await providerAgent
+      .post(`/api/direct-connect/requests/${requestId}/contact-gate`)
+      .send({ nextState: "released" });
+    expect(providerReleaseAttempt.status).toBe(403);
+    const wrongProviderReleaseAttempt = await wrongProviderAgent
+      .post(`/api/direct-connect/requests/${requestId}/contact-gate`)
+      .send({ nextState: "released" });
+    expect(wrongProviderReleaseAttempt.status).toBe(403);
+
+    const approvalRes = await requesterAgent
+      .post(`/api/direct-connect/requests/${requestId}/contact-gate`)
+      .send({ nextState: "user_approved" });
+    expect(approvalRes.status).toBe(200);
+    expect(approvalRes.body?.contactGateState).toBe("user_approved");
+
+    const releaseRes = await requesterAgent
+      .post(`/api/direct-connect/requests/${requestId}/contact-gate`)
+      .send({ nextState: "released" });
+    expect(releaseRes.status).toBe(200);
+    expect(releaseRes.body?.contactGateState).toBe("released");
+
+    const repeatReleaseRes = await requesterAgent
+      .post(`/api/direct-connect/requests/${requestId}/contact-gate`)
+      .send({ nextState: "released" });
+    expect(repeatReleaseRes.status).toBe(200);
+
+    const workspaceResult = await db.execute(sql`
+      SELECT
+        requester_user_id,
+        provider_user_id,
+        contractor_id,
+        contractor_response_id
+      FROM direct_connect_job_workspaces
+      WHERE request_id = ${requestId}
+    `);
+    expect(workspaceResult.rows).toHaveLength(1);
+    expect(String((workspaceResult.rows[0] as any)?.requester_user_id || "")).toBe(
+      String(requesterUser.id)
+    );
+    expect(String((workspaceResult.rows[0] as any)?.provider_user_id || "")).toBe(
+      String(providerUser.id)
+    );
+    expect(String((workspaceResult.rows[0] as any)?.contractor_id || "")).toBe(
+      String(providerContractor.id)
+    );
+    expect(String((workspaceResult.rows[0] as any)?.contractor_response_id || "").length).toBeGreaterThan(0);
+
+    const responseCountResult = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM direct_connect_contractor_responses
+      WHERE request_id = ${requestId}
+        AND contractor_id = ${String(providerContractor.id)}
+    `);
+    expect(Number((responseCountResult.rows?.[0] as any)?.count || 0)).toBe(1);
+
+    const releasedDetail = await providerAgent.get(
+      `/api/direct-connect/contractor/requests/${requestId}`
+    );
+    expect(releasedDetail.status).toBe(200);
+    expect(releasedDetail.body?.releasedContact).toMatchObject({
+      name: "Golden Requester",
+      email: requesterEmail,
+      phone: "5558675309",
+    });
+    expect(String(releasedDetail.body?.releasedContact?.address || "")).toContain(
+      "100 Golden Path Way"
+    );
+
+    const releasedMessageJob = await providerAgent.get(
+      `/api/direct-connect/messages/threads/${conversationId}/job`
+    );
+    expect(releasedMessageJob.status).toBe(200);
+    expect(releasedMessageJob.body?.contactGateState).toBe("released");
+    expect(releasedMessageJob.body?.releasedContact?.email).toBe(requesterEmail);
+
+    const wrongProviderDetail = await wrongProviderAgent.get(
+      `/api/direct-connect/contractor/requests/${requestId}`
+    );
+    expect(wrongProviderDetail.status).toBe(403);
+    const wrongProviderMessageJob = await wrongProviderAgent.get(
+      `/api/direct-connect/messages/threads/${conversationId}/job`
+    );
+    expect(wrongProviderMessageJob.status).toBe(403);
+
+    const providerCompleteAttempt = await providerAgent
+      .post(`/api/direct-connect/requests/${requestId}/complete`)
+      .send({});
+    expect(providerCompleteAttempt.status).toBe(403);
+
+    const completeRes = await requesterAgent
+      .post(`/api/direct-connect/requests/${requestId}/complete`)
+      .send({});
+    expect(completeRes.status).toBe(200);
+    expect(completeRes.body?.idempotencyReplayed).toBe(false);
+
+    const repeatCompleteRes = await requesterAgent
+      .post(`/api/direct-connect/requests/${requestId}/complete`)
+      .send({});
+    expect(repeatCompleteRes.status).toBe(200);
+    expect(repeatCompleteRes.body?.idempotencyReplayed).toBe(true);
+
+    const [completedRequest] = await db
+      .select({ status: workRequests.status })
+      .from(workRequests)
+      .where(eq(workRequests.id, requestId))
+      .limit(1);
+    expect(String(completedRequest?.status || "")).toBe("completed");
+
+    const completedWorkspace = await db.execute(sql`
+      SELECT status, active_stage
+      FROM direct_connect_job_workspaces
+      WHERE request_id = ${requestId}
+    `);
+    expect(String((completedWorkspace.rows?.[0] as any)?.status || "")).toBe("completed");
+    expect(String((completedWorkspace.rows?.[0] as any)?.active_stage || "")).toBe("completed");
+
+    const trustCompletion = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM trust_ledger_events
+      WHERE entity_type = 'work_request'
+        AND entity_id = ${requestId}
+        AND event_type = 'direct_connect_completed'
+    `);
+    expect(Number((trustCompletion.rows?.[0] as any)?.count || 0)).toBe(1);
+
+    const dispatchCompletion = await db.execute(sql`
+      SELECT COUNT(*)::int AS count
+      FROM direct_connect_dispatch_events
+      WHERE request_id = ${requestId}
+        AND event_type = 'job_completed'
+    `);
+    expect(Number((dispatchCompletion.rows?.[0] as any)?.count || 0)).toBe(1);
+
+    const homeCompletion = await db.execute(sql`
+      SELECT title, details
+      FROM user_home_records
+      WHERE home_id = ${String(home.id)}
+        AND title IN (
+          'homeid:timeline:direct_connect_completed',
+          'homeid:completed_work_enrichment'
+        )
+      ORDER BY title
+    `);
+    expect(homeCompletion.rows).toHaveLength(2);
+    for (const row of homeCompletion.rows as any[]) {
+      const details = JSON.parse(String(row.details || "{}"));
+      expect(String(details.directConnectRequestId || "")).toBe(requestId);
+    }
   });
 
   it("promotes open direct-connect requests to routed when provider expresses interest", async () => {

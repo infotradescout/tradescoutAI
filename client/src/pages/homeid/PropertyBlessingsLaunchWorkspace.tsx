@@ -257,7 +257,7 @@ export default function PropertyBlessingsLaunchWorkspace() {
 
   if (detailQuery.isError || persistenceQuery.isError || projectsQuery.isError || !project) {
     return (
-      <div className="min-h-screen bg-background p-6 text-foreground">
+      <div className="min-h-full bg-background p-6 text-foreground">
         <EmptyState
           title="The Property Blessings launch record could not be loaded"
           text="The full property passport remains available while this launch-control record is checked."
@@ -301,7 +301,7 @@ export default function PropertyBlessingsLaunchWorkspace() {
   return (
     <div
       data-testid="property-blessings-launch-workspace"
-      className="min-h-screen bg-background text-foreground"
+      className="min-h-full bg-background text-foreground"
     >
       <header className="border-b border-border bg-card/40">
         <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-6 lg:py-8">

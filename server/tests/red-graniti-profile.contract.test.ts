@@ -65,10 +65,15 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
   it("keeps the public profile as company identity instead of a combined catalog", () => {
     const serialized = JSON.stringify(RED_GRANITI_PROFILE_CONTENT_BLOCKS);
     const partnership = block("partnership")?.data;
+    const discovery = block("publicDiscovery")?.data;
 
     expect(block("siteTemplate")?.data?.id).toBe("default");
     expect(block("inventoryCatalog")).toBeUndefined();
-    expect(block("publicDiscovery")).toBeUndefined();
+    expect(discovery?.routes).toEqual({ gallery: "quarries" });
+    expect(discovery?.sitemap).toEqual({ gallery: true });
+    expect(discovery?.routes).not.toHaveProperty("inventory");
+    expect(discovery?.routes).not.toHaveProperty("categories");
+    expect(discovery?.sourceBoundary).toContain("official R.E.D. Graniti quarry pages");
     expect(block("profilePresentation")).toBeUndefined();
     expect(partnership?.title).toBe("Exclusive first-cut distributor");
     expect(partnership?.text).toContain(

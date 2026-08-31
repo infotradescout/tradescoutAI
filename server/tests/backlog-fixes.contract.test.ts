@@ -27,7 +27,11 @@ const REDACTION_TEST_FILE = path.join(SERVER_DIR, "tests/direct-connect-redactio
 describe("Respond endpoint: requester notification on accept/decline", () => {
   const dcContent = fs.readFileSync(DC_FILE, "utf-8");
   const respondIdx = dcContent.indexOf("/assignments/:id/respond");
-  const respondWindow = dcContent.slice(respondIdx, respondIdx + 10000);
+  const expressInterestIdx = dcContent.indexOf(
+    "/api/direct-connect/requests/:id/express-interest",
+    respondIdx
+  );
+  const respondWindow = dcContent.slice(respondIdx, expressInterestIdx);
 
   it("fires createNotification to requester after provider accepts", () => {
     expect(respondWindow).toContain("dc_provider_accepted");

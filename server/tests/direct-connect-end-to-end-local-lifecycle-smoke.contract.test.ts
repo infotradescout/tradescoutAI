@@ -15,7 +15,7 @@ describe("direct connect end-to-end local lifecycle smoke", () => {
   it("keeps the requester lifecycle path intact without requiring Home Record", () => {
     const shellSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
-    expect(shellSource).toContain('>("skip_for_now")');
+    expect(shellSource).toContain('>(() => prefillHomeContextIntent || "skip_for_now")');
     expect(shellSource).toContain("handleSkipAndAutoRoute");
     expect(shellSource).toContain('type: "direct_connect_request_review_opened"');
     expect(shellSource).toContain('type: "direct_connect_request_submitted"');
@@ -53,8 +53,10 @@ describe("direct connect end-to-end local lifecycle smoke", () => {
 
   it("preserves contact gate and unauthorized-access protections in the integrated path", () => {
     const routesSource = read("server/routes/direct-connect.ts");
+    const ledgerSource = read("server/services/directConnectDispatchLedgerService.ts");
 
-    expect(routesSource).toContain("homeownerContact: null");
+    expect(routesSource).toContain("homeownerContact: releasedContact");
+    expect(ledgerSource).toContain("dispatch.contact_gate_state = 'released'");
     expect(routesSource).toContain(
       "Submit an interested or need_more_info response before requesting contact."
     );

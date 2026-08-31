@@ -8,7 +8,7 @@ const read = (relativePath: string) =>
 describe("public profile product-card contract", () => {
   const card = read("client/src/components/profile/PublicProfileProductCard.tsx");
   const items = read("client/src/components/profile/PublicProfileItems.tsx");
-  const stone = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+  const stone = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
   const autoGlass = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
 
   it("uses one image-forward card for things that are actually inventory", () => {
@@ -48,7 +48,7 @@ describe("public profile product-card contract", () => {
 describe("public profile Direct Connect entry contract", () => {
   const profile = read("client/src/pages/ProfileSiteView.tsx");
   const defaultTheme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
-  const stone = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+  const stone = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
   const autoGlass = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
   const express = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
   const directConnect = read("client/src/pages/direct-connect/DirectConnectShell.tsx");

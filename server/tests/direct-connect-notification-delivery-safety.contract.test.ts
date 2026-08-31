@@ -40,7 +40,7 @@ describe("direct connect notification/email delivery safety contracts", () => {
     expect(source).toContain("`/messages?thread=${encodeURIComponent(String(convId))}`");
     expect(source).toContain("await recordContractorResponse({");
     expect(source).toContain(
-      'contactRequestState: responseType === "interested" ? "contractor_requested" : "locked"'
+      'ledgerResponseType === "interested" ? "contractor_requested" : "locked"'
     );
   });
 
@@ -49,7 +49,9 @@ describe("direct connect notification/email delivery safety contracts", () => {
     expect(source).toContain(
       'canReleaseContact: String(dispatch?.contact_gate_state || "locked") === "user_approved"'
     );
-    expect(source).toContain("homeownerContact: null");
+    expect(source).toContain("homeownerContact: releasedContact");
+    const ledger = read("server/services/directConnectDispatchLedgerService.ts");
+    expect(ledger).toContain("dispatch.contact_gate_state = 'released'");
   });
 
   it("keeps draft and HomeID preview artifact paths out of production-style routing notifications", () => {

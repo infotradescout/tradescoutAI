@@ -51,6 +51,29 @@ describe("stagedDirectConnectEntryContext", () => {
     });
   });
 
+  it("round trips bounded HomeID packet context without exposing it in the URL", () => {
+    const path = stageDirectConnectEntryContext({
+      homeId: "home-17",
+      homeContextIntent: "update_from_request",
+      homePacketId: "packet-8",
+      homePacketSelectedDetailIds: ["detail-1", "detail-2", "detail-1"],
+      homePacketReadinessState: "ready_for_handoff",
+      source: "homeid_request_packet",
+    });
+
+    expect(path).toMatch(/^\/direct-connect\?staged=[a-f0-9]{64}$/);
+    expect(path).not.toContain("home-17");
+    expect(path).not.toContain("packet-8");
+    expect(readStagedDirectConnectEntryContext(path)).toEqual({
+      source: "homeid_request_packet",
+      homeId: "home-17",
+      homeContextIntent: "update_from_request",
+      homePacketId: "packet-8",
+      homePacketSelectedDetailIds: ["detail-1", "detail-2"],
+      homePacketReadinessState: "ready_for_handoff",
+    });
+  });
+
   it("uses staging on the same origin and keeps only safe routing across origins", () => {
     const sameOriginDestination = `${window.location.origin}/direct-connect?source=profile`;
     const sameOriginPath = stageDirectConnectEntryContext(
@@ -143,6 +166,13 @@ describe("stagedDirectConnectEntryContext", () => {
       budgetMax: "500000.123",
       contextType: "admin",
       subjectType: "secret",
+      homeContextIntent: "delete_home",
+      homePacketId: "x".repeat(121),
+      homePacketSelectedDetailIds: [
+        ...Array.from({ length: 55 }, (_, index) => `detail-${index}`),
+        "x".repeat(121),
+      ],
+      homePacketReadinessState: "needs_info",
       hidden: "must never survive",
     } as unknown as DirectConnectEntryContext;
     const path = stageDirectConnectEntryContext(unsafeContext);
@@ -158,6 +188,10 @@ describe("stagedDirectConnectEntryContext", () => {
     expect(restored).not.toHaveProperty("budgetMax");
     expect(restored).not.toHaveProperty("contextType");
     expect(restored).not.toHaveProperty("subjectType");
+    expect(restored).not.toHaveProperty("homeContextIntent");
+    expect(restored).not.toHaveProperty("homePacketId");
+    expect(restored).not.toHaveProperty("homePacketReadinessState");
+    expect(restored.homePacketSelectedDetailIds).toHaveLength(50);
     expect(restored).not.toHaveProperty("hidden");
   });
 

@@ -15,6 +15,7 @@ export const NATIVE_ADMIN_V2_TOOL_IDS = [
   "errors",
   "panel",
   "controls",
+  "production-acceptance",
   "live-stream",
   "business-onboarding-telemetry",
   "discovery-observatory",
@@ -32,13 +33,7 @@ export function isNativeAdminV2Tool(toolId: string): boolean {
   return NATIVE_ADMIN_V2_TOOLS.has(toolId);
 }
 
-export function AdminToolSurface({
-  tool,
-  children,
-}: {
-  tool: AdminTool;
-  children: ReactNode;
-}) {
+export function AdminToolSurface({ tool, children }: { tool: AdminTool; children: ReactNode }) {
   const native = isNativeAdminV2Tool(tool.id);
 
   return (

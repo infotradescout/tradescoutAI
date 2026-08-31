@@ -13,6 +13,10 @@ import fs from "fs";
 import path from "path";
 
 const DC_ROUTES = fs.readFileSync(path.resolve(__dirname, "../routes/direct-connect.ts"), "utf8");
+const DC_COMPLETION = fs.readFileSync(
+  path.resolve(__dirname, "../routes/direct-connect/completion.ts"),
+  "utf8"
+);
 const SCHEMA_TS = fs.readFileSync(path.resolve(__dirname, "../../shared/schema.ts"), "utf8");
 const DC_SHELL = fs.readFileSync(
   path.resolve(__dirname, "../../client/src/pages/direct-connect/DirectConnectShell.tsx"),
@@ -48,23 +52,18 @@ describe("Board endpoint — universal provider conversation threads", () => {
 // ─── 2. Complete endpoint: Scout outcome event ────────────────────────────────
 describe("Complete endpoint — recordOutcomeEvent on DC completion", () => {
   it("calls recordOutcomeEvent in the complete endpoint", () => {
-    const completeIdx = DC_ROUTES.indexOf("/api/direct-connect/requests/:id/complete");
+    const completeIdx = DC_COMPLETION.indexOf("/api/direct-connect/requests/:id/complete");
     expect(completeIdx).toBeGreaterThan(-1);
-    const completeBlock = DC_ROUTES.slice(completeIdx, completeIdx + 4000);
-    expect(completeBlock).toContain("recordOutcomeEvent");
+    expect(DC_COMPLETION).toContain("recordOutcomeEvent");
   });
 
   it("passes the correct outcome type to recordOutcomeEvent", () => {
-    const completeIdx = DC_ROUTES.indexOf("/api/direct-connect/requests/:id/complete");
-    const completeBlock = DC_ROUTES.slice(completeIdx, completeIdx + 4000);
     // Should record a positive completion outcome that matches the persisted enum.
-    expect(completeBlock).toContain('action: "completed_flow" as const');
+    expect(DC_COMPLETION).toContain('action: "completed_flow" as const');
   });
 
   it("wraps recordOutcomeEvent in a try/catch so completion is not blocked", () => {
-    const completeIdx = DC_ROUTES.indexOf("/api/direct-connect/requests/:id/complete");
-    const completeBlock = DC_ROUTES.slice(completeIdx, completeIdx + 4000);
-    expect(completeBlock).toContain("Failed to record outcome event for completion");
+    expect(DC_COMPLETION).toContain("Failed to write completion outcome event");
   });
 });
 

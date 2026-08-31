@@ -265,10 +265,16 @@ describe("direct-connect gate regressions", () => {
     const directConnectShellFile = readRepoFile(
       "client/src/pages/direct-connect/DirectConnectShell.tsx"
     );
+    const workspaceStateFile = readRepoFile(
+      "client/src/pages/direct-connect/directConnectWorkspaceState.ts"
+    );
 
     expect(directConnectShellFile).toContain("Sign in to send");
     expect(directConnectShellFile).toContain("currentReturnPath");
-    expect(directConnectShellFile).toContain("/pre-scout-setup?mode=signin&next=");
+    expect(directConnectShellFile).toContain(
+      "navigate(buildDirectConnectAuthHandoffHref(currentReturnPath()))"
+    );
+    expect(workspaceStateFile).toContain("/pre-scout-setup?mode=signin&next=");
     expect(directConnectShellFile).toContain("Choose who can receive this request");
     expect(directConnectShellFile).toContain("Send to top local companies");
     expect(directConnectShellFile).toContain("How many companies should receive this request?");

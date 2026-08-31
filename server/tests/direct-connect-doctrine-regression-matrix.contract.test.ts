@@ -16,7 +16,10 @@ describe("direct connect doctrine regression matrix", () => {
 
   it("locks no-lead-selling and contact-gate redaction pre-release", () => {
     const routes = read("server/routes/direct-connect.ts");
-    expect(routes).toContain("homeownerContact: null");
+    const ledger = read("server/services/directConnectDispatchLedgerService.ts");
+    expect(routes).toContain("homeownerContact: releasedContact");
+    expect(ledger).toContain("dispatch.contact_gate_state = 'released'");
+    expect(ledger).toContain("candidate.eligibility_state = 'eligible'");
     expect(routes).toContain(
       'canReleaseContact: String(dispatch?.contact_gate_state || "locked") === "user_approved"'
     );
@@ -30,7 +33,7 @@ describe("direct connect doctrine regression matrix", () => {
   it("locks Home Record optionality across create/review/submit/routing path", () => {
     const shell = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const routes = read("server/routes/direct-connect.ts");
-    expect(shell).toContain('>("skip_for_now")');
+    expect(shell).toContain('>(() => prefillHomeContextIntent || "skip_for_now")');
     expect(shell).toContain("handleSkipAndAutoRoute");
     expect(shell).toContain("autoRoute: true");
     expect(routes).toContain("if (created && shouldAutoRoute) {");

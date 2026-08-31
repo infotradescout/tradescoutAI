@@ -725,6 +725,17 @@ export default function ExpressDirectConnectPanel({
                 </p>
               ) : null}
 
+              {!hasViewerSession ? (
+                <div className="mx-auto mt-4 max-w-md space-y-2 text-sm leading-6 text-stone-600">
+                  <p>No email is required to continue from this browser. Your request is saved.</p>
+                  <p>
+                    {
+                      "After you sign in or set up access, you can add this project to your HomeID later."
+                    }
+                  </p>
+                </div>
+              ) : null}
+
               {hasViewerSession ? (
                 requiresDocumentNavigation(requestHref) ? (
                   <a

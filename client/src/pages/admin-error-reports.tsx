@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ErrorReport } from "@shared/schema";
 
 type ErrorReportPatch = {
@@ -179,7 +180,7 @@ export default function AdminErrorReports() {
     onError: (error: unknown) => {
       toast({
         title: "Error report was not updated",
-        description: error instanceof Error ? error.message : "Review the change and try again.",
+        description: formatUserFacingErrorMessage(error, "Review the change and try again."),
         variant: "destructive",
       });
     },
@@ -509,7 +510,7 @@ function ReportDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto border-white/12 bg-[#101112] text-white sm:max-w-[780px]">
+      <DialogContent className="max-h-[88vh] overflow-y-auto border-white/12 bg-tsBg text-white sm:max-w-[780px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-white">
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.045] text-white/60">

@@ -68,7 +68,7 @@ describe("BidRock last narrow correction", () => {
 
     const routes = read("server/routes/stone-inventory.ts");
     expect(routes.match(/managedMutationTarget\(req, res, "inventory_write"\)/g)).toHaveLength(2);
-    expect(routes.match(/managedMutationTarget\(req, res, "inventory_publish"\)/g)).toHaveLength(1);
+    expect(routes.match(/managedMutationTarget\(req, res, "inventory_publish"\)/g)).toHaveLength(2);
     expect(routes).toContain("Active verified BidRock seller entitlement");
   });
 

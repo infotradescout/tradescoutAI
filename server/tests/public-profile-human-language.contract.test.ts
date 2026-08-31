@@ -53,7 +53,7 @@ describe("public profile human-language contract", () => {
   });
 
   it("keeps paid profile themes customer-facing", () => {
-    const stoneTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const stoneTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const jwPresentation = read("client/src/data/jwStoneProfilePresentation.ts");
     const autoGlassTheme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const requestPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");

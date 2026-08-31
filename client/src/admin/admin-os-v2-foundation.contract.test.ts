@@ -13,8 +13,8 @@ describe("Admin OS v2 foundation", () => {
 
     expect(layout).toContain("getAdminNavWorkspacesForRole");
     expect(layout).toContain("getAdminToolPresentation");
-    expect(layout).toContain('lg:grid-cols-[16.5rem_minmax(0,1fr)]');
-    expect(layout).toContain('lg:grid-cols-[4.75rem_minmax(0,1fr)]');
+    expect(layout).toContain("lg:grid-cols-[16.5rem_minmax(0,1fr)]");
+    expect(layout).toContain("lg:grid-cols-[4.75rem_minmax(0,1fr)]");
     expect(layout).toContain("<AdminHeader");
     expect(layout).toContain("<SuperAdminLeftNav");
     expect(layout).toContain('window.addEventListener("keydown", handleShortcut)');
@@ -99,6 +99,7 @@ describe("Admin OS v2 foundation", () => {
       "errors",
       "panel",
       "controls",
+      "production-acceptance",
       "finance",
     ]) {
       expect(taxonomy).toContain(`id: "${toolId}"`);
@@ -198,20 +199,20 @@ describe("Admin OS v2 foundation", () => {
   });
 
   it("records the Selective Intelligence scope and release boundary", () => {
-    const evidence = read(
-      ".selective-intelligence/builds/admin-os-v2-foundation/evidence.md"
-    );
+    const evidence = read(".selective-intelligence/builds/admin-os-v2-foundation/evidence.md");
     const architecture = read("docs/architecture/ADMIN_OS_V2.md");
 
     expect(evidence).toContain("dashboards inside dashboards");
     expect(evidence).toContain("Native v2");
     expect(evidence).toContain("Adapted v1");
     expect(evidence).toContain("not a claim that all 21 individual workflows are fully redesigned");
-    expect(evidence).toContain("Unknown `/admin/...` paths no longer silently resolve to Admin Home");
+    expect(evidence).toContain(
+      "Unknown `/admin/...` paths no longer silently resolve to Admin Home"
+    );
 
     expect(architecture).toContain("one operating system for platform work");
-    expect(architecture).toContain("All 21 primary tools are represented");
-    expect(architecture).toContain("Individual tools migrate concurrently");
+    expect(architecture).toContain("All 22 primary tools are represented");
+    expect(architecture).toContain("continued concurrently");
     expect(architecture).toContain("Unknown admin routes must never silently render Admin Home");
   });
 });

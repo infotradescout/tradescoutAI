@@ -12,6 +12,10 @@ const DC_SHELL = fs.readFileSync(
 );
 
 const DC_ROUTES = fs.readFileSync(path.resolve(__dirname, "../routes/direct-connect.ts"), "utf8");
+const DC_COMPLETION = fs.readFileSync(
+  path.resolve(__dirname, "../routes/direct-connect/completion.ts"),
+  "utf8"
+);
 
 const ROUTES_TS = fs.readFileSync(path.resolve(__dirname, "../routes.ts"), "utf8");
 const PROVIDER_SEARCH_ROUTE_PATH = path.resolve(__dirname, "../routes/provider-search.ts");
@@ -79,8 +83,8 @@ describe("DC lifecycle rail — action flags", () => {
   });
 
   it("defines canMarkComplete for pending_outcome or active_conversation", () => {
-    expect(DC_SHELL).toContain(
-      'const canMarkComplete = stage === "pending_outcome" || stage === "active_conversation"'
+    expect(DC_SHELL).toMatch(
+      /const canMarkComplete =\s*stage === "pending_outcome" \|\| stage === "active_conversation"/
     );
   });
 
@@ -133,29 +137,22 @@ describe("DC server — mark-pending-outcome endpoint", () => {
 
 describe("DC server — complete endpoint", () => {
   it("registers the complete route", () => {
-    expect(DC_ROUTES).toContain('"/api/direct-connect/requests/:id/complete"');
+    expect(DC_COMPLETION).toContain('"/api/direct-connect/requests/:id/complete"');
   });
 
   it("allows both in_progress and pending_outcome to be completed", () => {
-    const routeStart = DC_ROUTES.indexOf('"/api/direct-connect/requests/:id/complete"');
-    const routeBody = DC_ROUTES.slice(routeStart, routeStart + 2500);
-    expect(routeBody).toContain('"in_progress"');
-    expect(routeBody).toContain('"pending_outcome"');
-    expect(routeBody).toContain('"completed"');
+    expect(DC_COMPLETION).toContain('currentStatus !== "in_progress"');
+    expect(DC_COMPLETION).toContain('currentStatus !== "pending_outcome"');
+    expect(DC_COMPLETION).toContain('status: "completed"');
   });
 
   it("records a status_changed event with reason mark_complete", () => {
-    const routeStart = DC_ROUTES.indexOf('"/api/direct-connect/requests/:id/complete"');
-    const routeBody = DC_ROUTES.slice(routeStart, routeStart + 2500);
-    expect(routeBody).toContain("mark_complete");
+    expect(DC_COMPLETION).toContain("mark_complete");
   });
 
   it("returns status completed on success", () => {
-    const routeStart = DC_ROUTES.indexOf('"/api/direct-connect/requests/:id/complete"');
-    // Window extended to 5000 chars to accommodate the completion notification block added in Apr 2026
-    const routeBody = DC_ROUTES.slice(routeStart, routeStart + 5000);
-    expect(routeBody).toContain('"completed"');
-    expect(routeBody).toContain("status(200)");
+    expect(DC_COMPLETION).toContain('status: "completed"');
+    expect(DC_COMPLETION).toContain("res.status(200)");
   });
 });
 
