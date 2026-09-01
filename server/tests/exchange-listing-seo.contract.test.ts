@@ -463,8 +463,8 @@ describe("client/public/sitemap-index.xml", () => {
 
 // ─── 10. scripts/generate-sitemap.mjs — all 15 exchange category paths ────────
 
-describe("scripts/generate-sitemap.mjs", () => {
-  const src = fs.readFileSync(path.resolve(SCRIPTS_DIR, "generate-sitemap.mjs"), "utf-8");
+describe("scripts/generate-sitemap-core.mjs", () => {
+  const src = fs.readFileSync(path.resolve(SCRIPTS_DIR, "generate-sitemap-core.mjs"), "utf-8");
 
   const expectedPaths = [
     "/exchange/vehicles",

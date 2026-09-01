@@ -209,7 +209,7 @@ describe("sanitization", () => {
         source: "private@example.com",
         reason: "+1 (985) 662-6247",
         requestId: "9856626247",
-        routeTemplate: "/direct-connect",
+        routeTemplate: "/direct-connect/requests/9856626247",
       })
     ).toEqual({ surface: "direct_connect", routeTemplate: "/direct-connect" });
   });

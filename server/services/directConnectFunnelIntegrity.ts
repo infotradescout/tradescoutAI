@@ -9,6 +9,11 @@ import {
   type ExistingDirectConnectFunnelStall,
 } from "./directConnectFunnelIntegrityCore";
 
+export {
+  computeDirectConnectFunnelStalls,
+  DIRECT_CONNECT_FUNNEL_ORDER,
+} from "./directConnectFunnelIntegrityCore";
+
 export const DIRECT_CONNECT_FUNNEL_EVENT_TYPES = [
   "direct_connect_request_started",
   "direct_connect_request_review_opened",
