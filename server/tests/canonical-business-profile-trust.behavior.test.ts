@@ -24,6 +24,7 @@ import {
 function pendingLinkedProfile(overrides: Record<string, unknown> = {}) {
   return {
     profileId: "profile-1",
+    profilePubliclyReleased: true,
     slug: "pending-onboarding-profile",
     profileRoleContext: "business_owner",
     profileHeadline: "A real public business profile.",
@@ -95,6 +96,7 @@ describe("canonical business profile route trust", () => {
       canUseLinkedProfileAsCanonicalBusinessRoute(
         pendingLinkedProfile({
           ownerPreferences: { publicProfileIds: ["another-profile"] },
+          profilePubliclyReleased: false,
           ownerVerificationStatus: "approved",
         })
       )
@@ -114,6 +116,7 @@ describe("canonical business profile route trust", () => {
       canUseLinkedProfileAsCanonicalBusinessRoute(
         pendingLinkedProfile({
           profileId: "profile-2",
+          profilePubliclyReleased: false,
           ownerPreferences: { publicProfileIds: ["profile-1"] },
           ownerVerificationStatus: "approved",
         })

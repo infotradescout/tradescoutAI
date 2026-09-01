@@ -49,6 +49,7 @@ for (const forbiddenRoot of ["server", "shared", "scripts", "client", "docs", "d
 
 for (const requiredPath of [
   "dist/index.js",
+  "dist/release/run-production-predeploy.mjs",
   "dist/release/ensure-public-media-ready.mjs",
   "dist/release/migrate-jw-stone-public-media.mjs",
   "dist/release/migrate-red-graniti-public-media.mjs",

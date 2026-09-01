@@ -1,5 +1,9 @@
-import { storage } from "./storage";
 import { USER_TYPE_BADGES } from "../shared/userTypes";
+import { db } from "./db";
+import {
+  canonicalizeProfessionalRole,
+  updateUserPreservingApprovedProfessionalRoles,
+} from "./services/professionalRoleAuthority";
 
 export type CommunityBuilderAwardReason =
   | "community_vault_donation"
@@ -17,41 +21,50 @@ export async function grantCommunityBuilderBadge(
   userId: string,
   _reason: CommunityBuilderAwardReason
 ): Promise<void> {
-  const user = await storage.getUser(userId);
-  if (!user) return;
-
-  // Normalize roles: keep existing primary/active role, just add community_builder to the list.
-  const existingRoles = Array.isArray(user.roles)
-    ? (user.roles.filter((r: any) => typeof r === "string") as string[])
-    : [];
-
-  const roles = existingRoles.includes("community_builder")
-    ? existingRoles
-    : [...existingRoles, "community_builder"];
-
-  // Normalize badges and add the Community Builder badge label if needed.
-  const existingBadges = Array.isArray(user.badges)
-    ? (user.badges.filter((b: any) => typeof b === "string") as string[])
-    : [];
-
   const builderBadgeLabel = USER_TYPE_BADGES["community_builder"];
-  const badges = builderBadgeLabel && !existingBadges.includes(builderBadgeLabel)
-    ? [...existingBadges, builderBadgeLabel]
-    : existingBadges;
+  const result = await updateUserPreservingApprovedProfessionalRoles({
+    database: db,
+    userId,
+    buildPatch: ({ currentUser, approvedProfessionalRoles }) => {
+      const approvedRoleSet = new Set<string>(approvedProfessionalRoles);
+      const existingRoles = Array.isArray(currentUser.roles)
+        ? currentUser.roles.filter((role: unknown) => {
+            const professionalRole = canonicalizeProfessionalRole(role);
+            if (!professionalRole) return typeof role === "string";
+            return (
+              professionalRole !== "car_salesman" &&
+              professionalRole !== "vehicle_dealer" &&
+              approvedRoleSet.has(professionalRole)
+            );
+          })
+        : [];
+      const roles = Array.from(new Set([...existingRoles, "community_builder"]));
+      const existingBadges = Array.isArray(currentUser.badges)
+        ? currentUser.badges.filter((badge: unknown): badge is string => typeof badge === "string")
+        : [];
+      const badges =
+        builderBadgeLabel && !existingBadges.includes(builderBadgeLabel)
+          ? [...existingBadges, builderBadgeLabel]
+          : existingBadges;
+      const currentPreferences = (currentUser.preferences as any) || {};
 
-  // Ensure badge visibility is on.
-  const currentPrefs = (user.preferences as any) || {};
-  const updatedPreferences = {
-    ...currentPrefs,
-    badges: {
-      ...(currentPrefs.badges || {}),
-      show: true,
+      return {
+        roles,
+        badges,
+        preferences: {
+          ...currentPreferences,
+          badges: {
+            ...(currentPreferences.badges || {}),
+            show: true,
+          },
+        },
+        updatedAt: new Date(),
+      };
     },
-  };
-
-  await storage.updateUser(userId, {
-    roles,
-    badges,
-    preferences: updatedPreferences as any,
   });
+
+  if (result.outcome === "not_found") return;
+  if (result.outcome !== "updated") {
+    throw new Error("Community Builder authority projection could not be updated");
+  }
 }

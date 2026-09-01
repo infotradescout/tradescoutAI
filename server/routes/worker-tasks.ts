@@ -3,17 +3,21 @@ import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import fs from "fs";
 import path from "path";
-import { randomUUID } from "crypto";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { createHash, randomBytes, randomUUID } from "crypto";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "@shared/roles";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { getUserTypeMetadata } from "@shared/userTypes";
 import {
   businesses,
   businessCounties,
+  carSalesmanProfiles,
   contractors,
   counties,
   profiles,
+  providerDeclarations,
+  providerEligibilities,
+  realtorProfiles,
   tasks,
   taskApplications,
   trades,
@@ -31,19 +35,30 @@ import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 import { ingestKnowledgeFolder } from "../services/knowledgeIngest";
 import { ObjectStorageService } from "../objectStorage";
 import { emailService } from "../services/emailService";
-import { passwordResetService } from "../services/passwordResetService";
-import { emailVerificationService } from "../services/emailVerificationService";
 import {
+  PROFESSIONAL_APPROVAL_REQUIRED_RESPONSE,
+  approvedProfessionalRolesFromProfiles,
+  reconcileUserRolePatchWithApprovedProfessionalRoles,
+  requestedProfessionalRole,
+} from "../services/professionalRoleAuthority";
+import {
+  buildComputedProviderEligibilities,
   getComputedProviderEligibilitiesForUser,
   getEligibilityDecisionForCounty,
 } from "../providerEligibility";
 import {
+  AdminProvisioningRequestError,
+  executeAdminProvisioningAtomically,
+} from "../services/adminProvisioningTransaction";
+import {
   collectAuthorityRoles,
-  getPrivilegedAliasEmails,
   isAdminTierRole,
+  isPrivilegedOrAdminRoleToken,
+  isReservedSignupIdentityEmail,
   normalizeAuthorityRole,
 } from "../utils/authorityPolicy";
 import {
+  actorHasPrivilegedCapability,
   auditPrivilegedAction,
   normalizeImmutableTargetId,
   normalizePrivilegedReason,
@@ -96,6 +111,85 @@ const getPublicBaseUrlFromRequest = (req: Request): string => {
   const host = hostHeader;
   if (!host) return "https://www.thetradescout.com";
   return `${proto}://${host}`;
+};
+
+const provisioningSlugify = (input: string): string =>
+  String(input || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 80);
+
+const generateUniqueProvisioningSlug = async (
+  tx: any,
+  table: any,
+  slugColumn: any,
+  base: string
+): Promise<string> => {
+  const baseSlug = provisioningSlugify(base);
+  if (!baseSlug) return randomUUID();
+
+  const existing = await tx
+    .select({ slug: slugColumn })
+    .from(table)
+    .where(like(slugColumn, `${baseSlug}%`));
+  const existingSet = new Set(existing.map((row: any) => String(row.slug)));
+  if (!existingSet.has(baseSlug)) return baseSlug;
+
+  for (let suffix = 2; suffix <= 200; suffix += 1) {
+    const candidate = `${baseSlug}-${suffix}`;
+    if (!existingSet.has(candidate)) return candidate;
+  }
+  return `${baseSlug}-${randomUUID().slice(0, 8)}`;
+};
+
+const hashProvisioningAuthToken = (value: string): string =>
+  createHash("sha256").update(value).digest("hex");
+
+const createProvisioningPasswordResetToken = async (tx: any, userId: string): Promise<string> => {
+  const token = randomBytes(32).toString("hex");
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const ttlMs = (Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES) || 30) * 60 * 1000;
+  const expiresAt = new Date(Date.now() + ttlMs);
+
+  await tx.execute(sql`
+    WITH expired AS (
+      DELETE FROM public.auth_action_tokens WHERE expires_at <= NOW()
+    ), link_insert AS (
+      INSERT INTO public.auth_action_tokens (user_id, purpose, token_hash, expires_at)
+      VALUES (${userId}, 'password_reset', ${hashProvisioningAuthToken(token)}, ${expiresAt})
+      RETURNING id
+    )
+    INSERT INTO public.auth_action_tokens (user_id, purpose, token_hash, expires_at)
+    VALUES (${userId}, 'password_reset_code', ${hashProvisioningAuthToken(code)}, ${expiresAt})
+    ON CONFLICT (user_id) WHERE purpose = 'password_reset_code'
+    DO UPDATE SET
+      token_hash = EXCLUDED.token_hash,
+      expires_at = EXCLUDED.expires_at,
+      created_at = NOW()
+  `);
+
+  return token;
+};
+
+const createProvisioningEmailVerificationToken = async (
+  tx: any,
+  userId: string
+): Promise<string> => {
+  const token = randomBytes(32).toString("hex");
+  const ttlMs = (Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES) || 60 * 24) * 60 * 1000;
+  const expiresAt = new Date(Date.now() + ttlMs);
+
+  await tx.execute(sql`
+    WITH expired AS (
+      DELETE FROM public.auth_action_tokens WHERE expires_at <= NOW()
+    )
+    INSERT INTO public.auth_action_tokens (user_id, purpose, token_hash, expires_at)
+    VALUES (${userId}, 'email_verification', ${hashProvisioningAuthToken(token)}, ${expiresAt})
+  `);
+
+  return token;
 };
 
 const parseOptionalIsoDate = (value?: string): Date | undefined => {
@@ -218,12 +312,6 @@ const sanitizeUserForResponse = (user: any) => {
     normalizedActiveRole === "super_admin" ||
     roles.some((role) => role === "super_admin");
 
-  const adminAliasEmails = getPrivilegedAliasEmails();
-  const normalizedEmail = String(user?.email || "")
-    .trim()
-    .toLowerCase();
-  const isAdminAliasEmail = normalizedEmail.length > 0 && adminAliasEmails.has(normalizedEmail);
-
   const canonicalStateCodeRaw =
     (user as any).stateCode ?? (user as any).state_code ?? (user as any).state ?? null;
   const canonicalCountyFipsRaw =
@@ -252,8 +340,8 @@ const sanitizeUserForResponse = (user: any) => {
     activeRole: normalizedActiveRole || user?.activeRole,
     roles,
     badges: computeBadgesForUser(user),
-    isAdmin: computedIsAdmin || isAdminAliasEmail,
-    isSuperAdmin: computedIsSuperAdmin || isAdminAliasEmail,
+    isAdmin: computedIsAdmin,
+    isSuperAdmin: computedIsSuperAdmin,
     themePreference: normalizedThemePreference || user?.themePreference,
     stateCode: hasCanonicalLocation ? canonicalStateCode : (user as any).stateCode,
     countyFips: hasCanonicalLocation ? canonicalCountyFips : (user as any).countyFips,
@@ -2326,13 +2414,93 @@ export function registerWorkerTasksRoutes(app: Express): void {
   // Admin: provision any user account (non-admin roles only)
   // - Creates user if missing
   // - Optionally sends a single "account setup" email (password set + verify email)
-  app.post("/api/admin/users/provision", isAuthenticated, isAdmin, async (req: any, res: any) => {
+  app.post("/api/admin/users/provision", isAuthenticated, async (req: any, res: any) => {
     try {
       const body = (req.body ?? {}) as any;
+      const sessionActorId = resolvePrivilegedActor(req.user).actorId;
+      const actor = sessionActorId ? await storage.getUser(sessionActorId) : null;
+      const actorContext = resolvePrivilegedActor(actor);
+      const actorId = actorContext.actorId;
+      const reason = normalizePrivilegedReason(body?.adminSafety?.reason ?? body?.reason, 12, 500);
+
+      if (!actorId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (!actorHasPrivilegedCapability(actor, ["ops_admin", "super_admin"])) {
+        await auditPrivilegedAction({
+          action: "admin_user_provision",
+          route: "/api/admin/users/provision",
+          operationType: "user_provision",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: null,
+          resolutionSource: "target_email",
+          reason,
+          outcome: "denied",
+          details: { message: "ops_admin_or_super_admin_required" },
+        });
+        return res.status(403).json({
+          message: "Ops admin or super admin access is required for user provisioning.",
+          code: "PROVISION_AUTHORITY_REQUIRED",
+        });
+      }
+      if (!reason) {
+        await auditPrivilegedAction({
+          action: "admin_user_provision",
+          route: "/api/admin/users/provision",
+          operationType: "user_provision",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: null,
+          resolutionSource: "target_email",
+          reason: null,
+          outcome: "denied",
+          details: { message: "invalid_or_missing_reason" },
+        });
+        return res.status(400).json({
+          message: "adminSafety.reason is required (12 to 500 characters)",
+          code: "PROVISION_REASON_REQUIRED",
+        });
+      }
+
       const rawEmail = typeof body.email === "string" ? body.email.trim() : "";
       if (!rawEmail) return res.status(400).json({ message: "email is required" });
 
       const email = rawEmail.toLowerCase();
+      const auditProvisionAttempt = (
+        outcome: "denied" | "completed",
+        details: Record<string, unknown>,
+        targetId: string | null = null,
+        database?: any
+      ) =>
+        auditPrivilegedAction({
+          action: "admin_user_provision",
+          route: "/api/admin/users/provision",
+          operationType: "user_provision",
+          actorId,
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId,
+          resolutionSource: "target_email",
+          reason,
+          outcome,
+          lookupInput: { targetEmail: email },
+          details,
+          database,
+        });
+
+      if (isReservedSignupIdentityEmail(email)) {
+        await auditProvisionAttempt("denied", { message: "reserved_signup_identity" });
+        return res.status(409).json({
+          message: "An account with this email already exists. Sign in to continue.",
+          code: "AUTH_ACCOUNT_EXISTS",
+        });
+      }
       const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
       const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
       const phone = typeof body.phone === "string" ? body.phone.trim() : "";
@@ -2357,7 +2525,9 @@ export function registerWorkerTasksRoutes(app: Express): void {
       const legacyBusinessInput =
         body && typeof body.business === "object" && body.business ? (body.business as any) : null;
       const normalizeRoleTag = (value: string) => {
-        const roleTag = String(value || "").trim();
+        const roleTag = String(value || "")
+          .trim()
+          .toLowerCase();
         if (roleTag === "contractor_user") return "contractor";
         if (roleTag === "vehicle_dealer" || roleTag === "car_salesman") return "car_dealer";
         if (roleTag === "hoa_admin") return "hoa_board";
@@ -2427,6 +2597,37 @@ export function registerWorkerTasksRoutes(app: Express): void {
           : legacyBusinessName;
       const profileRoleContext =
         typeof profileInput?.roleContext === "string" ? profileInput.roleContext.trim() : "";
+      const requestedProvisionRoleTokens = [role, profileRoleContext, ...rawProvisionUserTypes].map(
+        (value) => (typeof value === "string" ? value.trim().toLowerCase() : value)
+      );
+      const requestedPrivilegedProvisionRole = requestedProvisionRoleTokens.find((value) =>
+        isPrivilegedOrAdminRoleToken(value)
+      );
+      if (requestedPrivilegedProvisionRole) {
+        await auditProvisionAttempt("denied", {
+          message: "privileged_or_admin_role_forbidden",
+          requestedRole: String(requestedPrivilegedProvisionRole),
+        });
+        return res.status(403).json({
+          message: "Privileged and admin roles cannot be assigned through user provisioning.",
+          code: "PRIVILEGED_ROLE_PROVISIONING_FORBIDDEN",
+        });
+      }
+
+      const requestedProvisionProfessionalRole = requestedProfessionalRole(
+        requestedProvisionRoleTokens.map((value) =>
+          typeof value === "string" ? value.trim().toLowerCase() : value
+        )
+      );
+      if (requestedProvisionProfessionalRole) {
+        // Professional roles are granted only by the durable application
+        // approval decision handlers, never by generic account provisioning.
+        await auditProvisionAttempt("denied", {
+          message: "professional_approval_required",
+          requestedRole: requestedProvisionProfessionalRole,
+        });
+        return res.status(403).json(PROFESSIONAL_APPROVAL_REQUIRED_RESPONSE);
+      }
       const profileHeadline =
         typeof profileInput?.headline === "string" ? profileInput.headline.trim() : "";
       const profileAbout = typeof profileInput?.about === "string" ? profileInput.about.trim() : "";
@@ -2487,9 +2688,9 @@ export function registerWorkerTasksRoutes(app: Express): void {
         }
       }
 
-      const resolvedProvisionRole = (
+      const resolvedProvisionRole = normalizeRoleTag(
         role || (createBusinessProfile ? "business_owner" : "")
-      ).trim();
+      );
 
       if (profileRoleContext && (profileRoleContext.length < 2 || profileRoleContext.length > 64)) {
         return res.status(400).json({
@@ -2538,359 +2739,654 @@ export function registerWorkerTasksRoutes(app: Express): void {
         });
       }
 
-      // Prevent accidental admin creation via this endpoint; use /api/admin/create-account instead.
-      if (["moderator", "ops_admin", "super_admin"].includes(resolvedProvisionRole)) {
-        return res.status(400).json({
-          message:
-            "Admin roles must be created via the dedicated admin creation flow (not user provisioning).",
-        });
-      }
-
-      const resolvedProvisionTradeTags =
-        provisionTradeTags.length > 0
-          ? await resolveOrCreateTradeTagSlugs(provisionTradeTags)
-          : { slugs: [], created: [] };
-
-      let user = await storage.getUserByEmail(email);
-      const created = !user;
-
-      if (!user) {
-        const passwordHash = password ? await hashPassword(password) : undefined;
-        const initialPreferences: Record<string, unknown> = {};
-        if (provisionUserTypes.length > 0) {
-          initialPreferences.provisional = {
-            userTypes: provisionUserTypes,
-            capturedAt: new Date().toISOString(),
-          };
-        }
-        if (requestedProfileVisibility) {
-          initialPreferences.profileVisibility = requestedProfileVisibility;
-        }
-        if (requestedServicesDescription) {
-          initialPreferences.servicesDescription = requestedServicesDescription;
-        }
-        if (Object.keys(normalizedProfileSections).length > 0) {
-          initialPreferences.profileSections = normalizedProfileSections;
-        }
-        if (resolvedProvisionTradeTags.slugs.length > 0) {
-          initialPreferences.tradeTags = resolvedProvisionTradeTags.slugs;
-        }
-
-        user = await storage.createUser({
-          email,
-          password: passwordHash,
-          firstName,
-          lastName,
-          phone: phone || undefined,
-          city: city || undefined,
-          stateCode: stateCode || undefined,
-          countyFips: countyFips || undefined,
-          preferences: initialPreferences,
-          role: (resolvedProvisionRole || null) as any,
-          roles: resolvedProvisionRole ? [resolvedProvisionRole] : undefined,
-          activeRole: resolvedProvisionRole || undefined,
-          emailVerified: false,
-          addressVerified: false,
-        } as any);
-      } else {
-        const patch: any = {};
-        if (firstName) patch.firstName = firstName;
-        if (lastName) patch.lastName = lastName;
-        if (phone) patch.phone = phone;
-        if (city) patch.city = city;
-        if (stateCode) patch.stateCode = stateCode;
-        if (countyFips) patch.countyFips = countyFips;
-        if (provisionUserTypes.length > 0) {
-          const currentPreferences = ((user as any).preferences || {}) as Record<string, any>;
-          const currentProvisional = (currentPreferences.provisional || {}) as Record<string, any>;
-          const existingUserTypes = Array.isArray(currentProvisional.userTypes)
-            ? currentProvisional.userTypes
-            : [];
-          patch.preferences = {
-            ...currentPreferences,
-            provisional: {
-              ...currentProvisional,
-              userTypes: dedupeStrings([...existingUserTypes, ...provisionUserTypes]),
-              capturedAt: new Date().toISOString(),
-            },
-          };
-        }
-        if (requestedProfileVisibility) {
-          const currentPreferences = (patch.preferences ||
-            (user as any).preferences ||
-            {} ||
-            {}) as Record<string, any>;
-          patch.preferences = {
-            ...currentPreferences,
-            profileVisibility: requestedProfileVisibility,
-          };
-        }
-        if (requestedServicesDescription) {
-          const currentPreferences = (patch.preferences ||
-            (user as any).preferences ||
-            {} ||
-            {}) as Record<string, any>;
-          patch.preferences = {
-            ...currentPreferences,
-            servicesDescription: requestedServicesDescription,
-          };
-        }
-        if (Object.keys(normalizedProfileSections).length > 0) {
-          const currentPreferences = (patch.preferences ||
-            (user as any).preferences ||
-            {} ||
-            {}) as Record<string, any>;
-          const existingSections =
-            currentPreferences.profileSections &&
-            typeof currentPreferences.profileSections === "object"
-              ? currentPreferences.profileSections
-              : {};
-          patch.preferences = {
-            ...currentPreferences,
-            profileSections: {
-              ...existingSections,
-              ...normalizedProfileSections,
-            },
-          };
-        }
-        if (resolvedProvisionTradeTags.slugs.length > 0) {
-          const currentPreferences = (patch.preferences ||
-            (user as any).preferences ||
-            {} ||
-            {}) as Record<string, any>;
-          const existingTradeTags = Array.isArray(currentPreferences.tradeTags)
-            ? (currentPreferences.tradeTags as string[]).map((value) => String(value || ""))
-            : [];
-          patch.preferences = {
-            ...currentPreferences,
-            tradeTags: dedupeStrings([...existingTradeTags, ...resolvedProvisionTradeTags.slugs]),
-          };
-        }
-        if (resolvedProvisionRole) {
-          const currentRoles: string[] = Array.isArray((user as any).roles)
-            ? ((user as any).roles as string[]).filter(Boolean)
-            : [];
-          const nextRoles = Array.from(new Set([...currentRoles, resolvedProvisionRole]));
-          if (nextRoles.length !== currentRoles.length) {
-            patch.roles = nextRoles;
-          }
-          if (!(user as any).role) {
-            patch.role = resolvedProvisionRole;
-          }
-          if (!(user as any).activeRole) {
-            patch.activeRole = resolvedProvisionRole;
-          }
-        }
-        if (password) patch.password = await hashPassword(password);
-        if (Object.keys(patch).length > 0) {
-          patch.updatedAt = new Date();
-          user = (await storage.updateUser(user.id, patch)) || user;
-        }
-      }
-
-      if (resolvedProvisionTradeTags.slugs.length > 0) {
-        const existingDeclaration = await storage.getProviderDeclarationForUser(user.id);
-        const existingTradeIds = Array.isArray((existingDeclaration as any)?.tradeIds)
-          ? ((existingDeclaration as any).tradeIds as string[]).filter(Boolean)
-          : [];
-        const mergedTradeIds = Array.from(
-          new Set([...existingTradeIds, ...resolvedProvisionTradeTags.slugs])
-        );
-
-        const existingAreasRaw = Array.isArray((existingDeclaration as any)?.serviceAreas)
-          ? ((existingDeclaration as any).serviceAreas as Array<{ countyFips?: string }>)
-          : [];
-        const existingCountyFips = existingAreasRaw
-          .map((area) => String(area?.countyFips || "").trim())
-          .filter((value) => /^\d{5}$/.test(value));
-        const mergedCountyFips = Array.from(
-          new Set([
-            ...existingCountyFips,
-            ...(countyFips && /^\d{5}$/.test(countyFips) ? [countyFips] : []),
-          ])
-        );
-
-        const legalEligibilities = await getComputedProviderEligibilitiesForUser(user.id);
-        const ineligibleCounties: Array<{
-          countyFips: string;
-          countyName: string;
-          stateCode: string;
-        }> = [];
-        for (const county of mergedCountyFips) {
-          const countyRecord = await storage.getCountyByFips(county);
-          if (!countyRecord) continue;
-          const legalDecision = getEligibilityDecisionForCounty(legalEligibilities, {
-            fips: countyRecord.fips,
-            stateCode: countyRecord.stateCode,
-          });
-          if (!legalDecision.eligible) {
-            ineligibleCounties.push({
-              countyFips: countyRecord.fips,
-              countyName: countyRecord.name,
-              stateCode: countyRecord.stateCode,
-            });
-          }
-        }
-
-        if (ineligibleCounties.length > 0) {
-          return res.status(428).json({
-            message: "Verified legal eligibility is required before assigning provider counties.",
-            code: "ELIGIBILITY_REQUIRED",
-            blockedServiceAreas: ineligibleCounties,
-          });
-        }
-
-        await storage.upsertProviderDeclarationForUser({
-          userId: user.id,
-          tradeIds: mergedTradeIds,
-          serviceAreas: mergedCountyFips.map((county) => ({ countyFips: county })),
-          availabilityFlags:
-            (existingDeclaration as any)?.availabilityFlags &&
-            typeof (existingDeclaration as any).availabilityFlags === "object"
-              ? ((existingDeclaration as any).availabilityFlags as any)
-              : undefined,
-        });
-      }
-
-      let provisionedProfile: any = null;
-      let createdProfile = false;
-      let provisionedBusiness: any = null;
-
-      if (createBusinessProfile) {
-        const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
-        const defaultDisplayName =
-          profileDisplayName ||
-          businessNameInput ||
-          fullName ||
-          String(user.email || "TradeScout Business").split("@")[0];
-
-        const resolvedDisplayName = String(defaultDisplayName || "TradeScout Business").trim();
-        if (resolvedDisplayName.length < 2) {
-          return res.status(400).json({
-            message: "profile.displayName must be at least 2 characters",
-          });
-        }
-
-        const resolvedRoleContext = profileRoleContext || role || "business_owner";
-        const existingProfiles = await storage.listProfilesByOwner(user.id);
-
-        if (existingProfiles.length > 0) {
-          provisionedProfile = existingProfiles[0];
-        } else {
-          if (createBusinessRecord) {
-            const resolvedBusinessName = (businessNameInput || resolvedDisplayName).trim();
-            if (resolvedBusinessName.length < 2) {
-              return res.status(400).json({
-                message: "profile.businessName must be at least 2 characters",
-              });
-            }
-
-            provisionedBusiness = await storage.createBusinessForOwner(user.id, {
-              name: resolvedBusinessName,
-              slug: resolvedBusinessName,
-              type: "other" as any,
-              roleContext: resolvedRoleContext as any,
-              profileData: {
-                description: profileAbout || profileHeadline || undefined,
-                phone: businessPhone || undefined,
-                website: businessWebsite || undefined,
-                email: businessEmail || user.email,
-                city: city || undefined,
-                stateCode: stateCode || undefined,
-                services: businessTags.length > 0 ? businessTags : undefined,
-                category: businessTags[0] || undefined,
-              } as any,
-              status: "active" as any,
-              countyIds: [],
-            });
-
-            await storage.setUserActiveBusiness(user.id, provisionedBusiness.id);
-          }
-
-          provisionedProfile = await storage.createProfileForOwner(user.id, {
-            businessId: provisionedBusiness?.id || undefined,
-            roleContext: resolvedRoleContext as any,
-            slug: resolvedDisplayName,
-            displayName: resolvedDisplayName,
-            headline: profileHeadline || null,
-            contentBlocks: profileAbout
-              ? [
-                  {
-                    type: "about",
-                    data: { text: profileAbout },
-                  },
-                ]
-              : [],
-            ctaConfig: {},
-            seoMeta: profileAbout
-              ? {
-                  description: profileAbout.slice(0, 300),
-                }
-              : {},
-            status: "published" as any,
-          } as any);
-
-          createdProfile = true;
-        }
-
-        if (provisionedProfile?.id) {
-          await storage.setUserActiveProfile(user.id, provisionedProfile.id);
-        }
-      }
-
       const emailVerificationRequired = await getGeneralSetting<boolean>(
         "email_verification_required",
         true
       );
       const publicBase = getPublicBaseUrlFromRequest(req as any).replace(/\/$/, "");
-
       const debug: any = {};
-      let resetLink: string | null = null;
-      let verifyLink: string | null = null;
-
-      // Only include a set-password link if this account has no password set.
-      if (!user.password) {
-        const { token } = await passwordResetService.createToken(user.id);
-        resetLink = `${publicBase}/reset-password?token=${token}`;
-      }
-
-      if (emailVerificationRequired && user.emailVerified !== true) {
-        const verify = await emailVerificationService.createToken(user.id);
-        verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
-      }
-
       let emailSent = false;
-      if (sendActivationEmail || sendVerificationEmail) {
-        const canSend = emailService.isConfigured();
-        if (canSend) {
-          const parts: string[] = [];
-          parts.push(`<p>Your TradeScout account is ready.</p>`);
-          if (resetLink && sendActivationEmail) {
-            parts.push(`<p><a href="${resetLink}">Set your password</a>.</p>`);
-          }
-          if (verifyLink && sendVerificationEmail) {
-            parts.push(`<p><a href="${verifyLink}">Verify your email</a> (required).</p>`);
-          }
-          parts.push(`<p>If you did not request this, you can ignore this email.</p>`);
+      let emailDeliveryFailed = false;
+      const candidateUserId = randomUUID();
+      const passwordHash = password ? await hashPassword(password) : undefined;
 
-          await emailService.sendEmail({
-            to: email,
-            subject: "Set up your TradeScout account",
-            html: parts.join("\n"),
-            text: [
-              resetLink && sendActivationEmail ? `Set password: ${resetLink}` : null,
-              verifyLink && sendVerificationEmail ? `Verify email: ${verifyLink}` : null,
-            ]
-              .filter(Boolean)
-              .join("\n"),
-            purpose: "account_creation",
+      let transactionResult: any;
+      try {
+        transactionResult = await executeAdminProvisioningAtomically({
+          database: db,
+          validate: async (tx: any) => {
+            // Resolve trade tags without creating them. Missing tags are inserted only after every
+            // policy and eligibility check in this callback has succeeded.
+            const normalizedTradeInputs = Array.from(
+              new Set(
+                provisionTradeTags.map((tag) => normalizeAdminTradeTagInput(tag)).filter(Boolean)
+              )
+            );
+            const resolvedTradeSlugs: string[] = [];
+            const missingTradeSlugs: string[] = [];
+            for (const input of normalizedTradeInputs) {
+              const [bySlug] = await tx
+                .select({ id: trades.id, slug: trades.slug })
+                .from(trades)
+                .where(eq(trades.slug, input))
+                .limit(1);
+              if (bySlug?.slug) {
+                resolvedTradeSlugs.push(String(bySlug.slug));
+                continue;
+              }
+              const [byId] = await tx
+                .select({ id: trades.id, slug: trades.slug })
+                .from(trades)
+                .where(eq(trades.id, input))
+                .limit(1);
+              if (byId?.slug) {
+                resolvedTradeSlugs.push(String(byId.slug));
+                continue;
+              }
+              resolvedTradeSlugs.push(input);
+              missingTradeSlugs.push(input);
+            }
+
+            const [locatedUser] = await tx
+              .select({ id: users.id })
+              .from(users)
+              .where(eq(users.email, email))
+              .limit(1);
+            const userId = locatedUser?.id ? String(locatedUser.id) : candidateUserId;
+
+            let realtorProfile: any = null;
+            let carSalesmanProfile: any = null;
+            let currentUser: any = null;
+            if (locatedUser?.id) {
+              [realtorProfile] = await tx
+                .select({
+                  verificationStatus: realtorProfiles.verificationStatus,
+                  isActive: realtorProfiles.isActive,
+                  licenseState: realtorProfiles.licenseState,
+                })
+                .from(realtorProfiles)
+                .where(eq(realtorProfiles.userId, userId))
+                .limit(1)
+                .for("update");
+              [carSalesmanProfile] = await tx
+                .select({
+                  verificationStatus: carSalesmanProfiles.verificationStatus,
+                  isActive: carSalesmanProfiles.isActive,
+                  licenseState: carSalesmanProfiles.licenseState,
+                })
+                .from(carSalesmanProfiles)
+                .where(eq(carSalesmanProfiles.userId, userId))
+                .limit(1)
+                .for("update");
+              [currentUser] = await tx
+                .select()
+                .from(users)
+                .where(and(eq(users.id, userId), eq(users.email, email)))
+                .limit(1)
+                .for("update");
+              if (!currentUser) {
+                throw new AdminProvisioningRequestError(
+                  409,
+                  "PROVISION_TARGET_CHANGED",
+                  "The account changed while provisioning. Review it and retry."
+                );
+              }
+            }
+
+            const targetRoles = collectAuthorityRoles(currentUser);
+            if (
+              currentUser &&
+              (currentUser.isAdmin === true ||
+                currentUser.isSuperAdmin === true ||
+                targetRoles.some((targetRole) => isPrivilegedOrAdminRoleToken(targetRole)) ||
+                isReservedSignupIdentityEmail(currentUser.email))
+            ) {
+              throw new AdminProvisioningRequestError(
+                403,
+                "PROTECTED_PROVISION_TARGET",
+                "Protected, reserved, and privileged accounts cannot be provisioned here."
+              );
+            }
+            if (currentUser && password) {
+              throw new AdminProvisioningRequestError(
+                409,
+                "EXISTING_PASSWORD_IMMUTABLE",
+                "Provisioning cannot replace an existing account password."
+              );
+            }
+
+            const approvedProfessionalRoles = approvedProfessionalRolesFromProfiles(
+              realtorProfile,
+              carSalesmanProfile
+            );
+            let userPatch: Record<string, any> | null = null;
+            if (currentUser) {
+              const patch: Record<string, any> = {};
+              if (firstName) patch.firstName = firstName;
+              if (lastName) patch.lastName = lastName;
+              if (phone) patch.phone = phone;
+              if (city) patch.city = city;
+              if (stateCode) patch.stateCode = stateCode;
+              if (countyFips) patch.countyFips = countyFips;
+
+              let nextPreferences =
+                currentUser.preferences && typeof currentUser.preferences === "object"
+                  ? ({ ...currentUser.preferences } as Record<string, any>)
+                  : {};
+              let preferencesChanged = false;
+              if (provisionUserTypes.length > 0) {
+                const currentProvisional =
+                  nextPreferences.provisional && typeof nextPreferences.provisional === "object"
+                    ? nextPreferences.provisional
+                    : {};
+                const existingUserTypes = Array.isArray(currentProvisional.userTypes)
+                  ? currentProvisional.userTypes
+                  : [];
+                nextPreferences = {
+                  ...nextPreferences,
+                  provisional: {
+                    ...currentProvisional,
+                    userTypes: dedupeStrings([...existingUserTypes, ...provisionUserTypes]),
+                    capturedAt: new Date().toISOString(),
+                  },
+                };
+                preferencesChanged = true;
+              }
+              if (requestedProfileVisibility) {
+                nextPreferences.profileVisibility = requestedProfileVisibility;
+                preferencesChanged = true;
+              }
+              if (requestedServicesDescription) {
+                nextPreferences.servicesDescription = requestedServicesDescription;
+                preferencesChanged = true;
+              }
+              if (Object.keys(normalizedProfileSections).length > 0) {
+                const existingSections =
+                  nextPreferences.profileSections &&
+                  typeof nextPreferences.profileSections === "object"
+                    ? nextPreferences.profileSections
+                    : {};
+                nextPreferences.profileSections = {
+                  ...existingSections,
+                  ...normalizedProfileSections,
+                };
+                preferencesChanged = true;
+              }
+              if (resolvedTradeSlugs.length > 0) {
+                const existingTradeTags = Array.isArray(nextPreferences.tradeTags)
+                  ? nextPreferences.tradeTags.map((value: unknown) => String(value || ""))
+                  : [];
+                nextPreferences.tradeTags = dedupeStrings([
+                  ...existingTradeTags,
+                  ...resolvedTradeSlugs,
+                ]);
+                preferencesChanged = true;
+              }
+              if (preferencesChanged) patch.preferences = nextPreferences;
+
+              if (resolvedProvisionRole) {
+                const currentRoles = Array.isArray(currentUser.roles)
+                  ? currentUser.roles.filter((value: unknown): value is string =>
+                      Boolean(typeof value === "string" && value.trim())
+                    )
+                  : [];
+                patch.roles = Array.from(new Set([...currentRoles, resolvedProvisionRole]));
+                if (!currentUser.role) patch.role = resolvedProvisionRole;
+                if (!currentUser.activeRole) patch.activeRole = resolvedProvisionRole;
+              }
+              patch.updatedAt = new Date();
+
+              const reconciled = reconcileUserRolePatchWithApprovedProfessionalRoles({
+                currentUser,
+                patch,
+                approvedProfessionalRoles,
+                requestedProfessionalRoleValues: [resolvedProvisionRole],
+              });
+              if (reconciled.outcome === "professional_approval_required") {
+                throw new AdminProvisioningRequestError(
+                  403,
+                  "PROFESSIONAL_APPROVAL_REQUIRED",
+                  PROFESSIONAL_APPROVAL_REQUIRED_RESPONSE.message
+                );
+              }
+              userPatch = reconciled.patch as Record<string, any>;
+            }
+
+            let existingDeclaration: any = null;
+            let mergedTradeIds = Array.from(new Set(resolvedTradeSlugs));
+            let mergedCountyFips = countyFips && /^\d{5}$/.test(countyFips) ? [countyFips] : [];
+            if (resolvedTradeSlugs.length > 0 && currentUser) {
+              [existingDeclaration] = await tx
+                .select()
+                .from(providerDeclarations)
+                .where(eq(providerDeclarations.providerUserId, userId))
+                .limit(1)
+                .for("update");
+              const existingTradeIds = Array.isArray(existingDeclaration?.tradeIds)
+                ? existingDeclaration.tradeIds
+                    .map((value: unknown) => String(value))
+                    .filter(Boolean)
+                : [];
+              const existingAreas = Array.isArray(existingDeclaration?.serviceAreas)
+                ? (existingDeclaration.serviceAreas as Array<{ countyFips?: string }>)
+                : [];
+              mergedTradeIds = Array.from(new Set([...existingTradeIds, ...resolvedTradeSlugs]));
+              mergedCountyFips = Array.from(
+                new Set([
+                  ...existingAreas
+                    .map((area) => String(area?.countyFips || "").trim())
+                    .filter((value) => /^\d{5}$/.test(value)),
+                  ...mergedCountyFips,
+                ])
+              );
+            }
+
+            if (resolvedTradeSlugs.length > 0 && mergedCountyFips.length > 0) {
+              const explicitEligibilities = currentUser
+                ? await tx
+                    .select()
+                    .from(providerEligibilities)
+                    .where(eq(providerEligibilities.providerUserId, userId))
+                    .for("update")
+                : [];
+              const inferredStateCodes = [realtorProfile, carSalesmanProfile]
+                .filter(
+                  (profile) =>
+                    String(profile?.verificationStatus || "").toLowerCase() === "approved" &&
+                    profile?.isActive === true
+                )
+                .map((profile) =>
+                  String(profile?.licenseState || "")
+                    .trim()
+                    .toUpperCase()
+                )
+                .filter((value) => /^[A-Z]{2}$/.test(value));
+              const legalEligibilities = buildComputedProviderEligibilities({
+                explicitEligibilities,
+                inferredStateCodes,
+              });
+              const countyRows = await tx
+                .select({ fips: counties.fips, name: counties.name, stateCode: counties.stateCode })
+                .from(counties)
+                .where(inArray(counties.fips, mergedCountyFips));
+              const countiesByFips = new Map<
+                string,
+                { fips: string; name: string; stateCode: string }
+              >(countyRows.map((row: any) => [String(row.fips), row]));
+              const blockedServiceAreas = mergedCountyFips.flatMap((fips) => {
+                const countyRecord = countiesByFips.get(fips);
+                if (!countyRecord) {
+                  return [{ countyFips: fips, countyName: "Unknown county", stateCode: "" }];
+                }
+                const decision = getEligibilityDecisionForCounty(legalEligibilities, countyRecord);
+                return decision.eligible
+                  ? []
+                  : [
+                      {
+                        countyFips: countyRecord.fips,
+                        countyName: countyRecord.name,
+                        stateCode: countyRecord.stateCode,
+                      },
+                    ];
+              });
+              if (blockedServiceAreas.length > 0) {
+                throw new AdminProvisioningRequestError(
+                  428,
+                  "ELIGIBILITY_REQUIRED",
+                  "Verified legal eligibility is required before assigning provider counties.",
+                  { blockedServiceAreas }
+                );
+              }
+            }
+
+            let existingProfile: any = null;
+            let resolvedDisplayName = "";
+            let resolvedBusinessName = "";
+            let resolvedRoleContext =
+              profileRoleContext || resolvedProvisionRole || "business_owner";
+            let businessSlug: string | null = null;
+            let profileSlug: string | null = null;
+            if (createBusinessProfile) {
+              const effectiveFirstName = firstName || String(currentUser?.firstName || "");
+              const effectiveLastName = lastName || String(currentUser?.lastName || "");
+              const fullName = [effectiveFirstName, effectiveLastName]
+                .filter(Boolean)
+                .join(" ")
+                .trim();
+              resolvedDisplayName = String(
+                profileDisplayName ||
+                  businessNameInput ||
+                  fullName ||
+                  email.split("@")[0] ||
+                  "TradeScout Business"
+              ).trim();
+              if (resolvedDisplayName.length < 2) {
+                throw new AdminProvisioningRequestError(
+                  400,
+                  "PROFILE_DISPLAY_NAME_REQUIRED",
+                  "profile.displayName must be at least 2 characters"
+                );
+              }
+              [existingProfile] = currentUser
+                ? await tx
+                    .select()
+                    .from(profiles)
+                    .where(eq(profiles.ownerUserId, userId))
+                    .orderBy(desc(profiles.updatedAt))
+                    .limit(1)
+                    .for("update")
+                : [];
+              if (!existingProfile) {
+                resolvedBusinessName = (businessNameInput || resolvedDisplayName).trim();
+                if (createBusinessRecord && resolvedBusinessName.length < 2) {
+                  throw new AdminProvisioningRequestError(
+                    400,
+                    "PROFILE_BUSINESS_NAME_REQUIRED",
+                    "profile.businessName must be at least 2 characters"
+                  );
+                }
+                if (createBusinessRecord) {
+                  businessSlug = await generateUniqueProvisioningSlug(
+                    tx,
+                    businesses,
+                    businesses.slug,
+                    resolvedBusinessName
+                  );
+                }
+                profileSlug = await generateUniqueProvisioningSlug(
+                  tx,
+                  profiles,
+                  profiles.slug,
+                  resolvedDisplayName
+                );
+              }
+            }
+
+            return {
+              approvedProfessionalRoles,
+              businessSlug,
+              currentUser,
+              existingDeclaration,
+              existingProfile,
+              mergedCountyFips,
+              mergedTradeIds,
+              missingTradeSlugs,
+              profileSlug,
+              resolvedBusinessName,
+              resolvedDisplayName,
+              resolvedRoleContext,
+              resolvedTradeSlugs: Array.from(new Set(resolvedTradeSlugs)),
+              userId,
+              userPatch,
+            };
+          },
+          mutate: async (tx: any, validated: any) => {
+            const created = !validated.currentUser;
+            const createdTradeTags: string[] = [];
+            for (const tradeSlug of validated.missingTradeSlugs) {
+              const inserted = await tx
+                .insert(trades)
+                .values({ name: toAdminTradeDisplayName(tradeSlug), slug: tradeSlug } as any)
+                .onConflictDoNothing({ target: trades.slug })
+                .returning({ slug: trades.slug });
+              if (inserted[0]?.slug) createdTradeTags.push(String(inserted[0].slug));
+            }
+
+            let user: any;
+            if (created) {
+              const initialPreferences: Record<string, unknown> = {};
+              if (provisionUserTypes.length > 0) {
+                initialPreferences.provisional = {
+                  userTypes: provisionUserTypes,
+                  capturedAt: new Date().toISOString(),
+                };
+              }
+              if (requestedProfileVisibility) {
+                initialPreferences.profileVisibility = requestedProfileVisibility;
+              }
+              if (requestedServicesDescription) {
+                initialPreferences.servicesDescription = requestedServicesDescription;
+              }
+              if (Object.keys(normalizedProfileSections).length > 0) {
+                initialPreferences.profileSections = normalizedProfileSections;
+              }
+              if (validated.resolvedTradeSlugs.length > 0) {
+                initialPreferences.tradeTags = validated.resolvedTradeSlugs;
+              }
+              [user] = await tx
+                .insert(users)
+                .values({
+                  id: validated.userId,
+                  email,
+                  password: passwordHash,
+                  firstName: firstName || undefined,
+                  lastName: lastName || undefined,
+                  phone: phone || undefined,
+                  city: city || undefined,
+                  stateCode: stateCode || undefined,
+                  countyFips: countyFips || undefined,
+                  preferences: initialPreferences,
+                  role: (resolvedProvisionRole || null) as any,
+                  roles: resolvedProvisionRole ? [resolvedProvisionRole] : undefined,
+                  activeRole: resolvedProvisionRole || undefined,
+                  emailVerified: false,
+                  addressVerified: false,
+                } as any)
+                .returning();
+            } else {
+              [user] = await tx
+                .update(users)
+                .set(validated.userPatch || { updatedAt: new Date() })
+                .where(eq(users.id, validated.userId))
+                .returning();
+            }
+            if (!user) throw new Error("Provisioning user write returned no row");
+
+            if (validated.resolvedTradeSlugs.length > 0) {
+              const declarationValues = {
+                tradeIds: validated.mergedTradeIds,
+                serviceAreas: validated.mergedCountyFips.map((fips: string) => ({
+                  countyFips: fips,
+                })),
+                availabilityFlags:
+                  validated.existingDeclaration?.availabilityFlags &&
+                  typeof validated.existingDeclaration.availabilityFlags === "object"
+                    ? validated.existingDeclaration.availabilityFlags
+                    : undefined,
+                updatedAt: new Date(),
+              };
+              if (validated.existingDeclaration?.id) {
+                await tx
+                  .update(providerDeclarations)
+                  .set(declarationValues)
+                  .where(eq(providerDeclarations.id, validated.existingDeclaration.id));
+              } else {
+                await tx.insert(providerDeclarations).values({
+                  providerUserId: user.id,
+                  ...declarationValues,
+                });
+              }
+            }
+
+            let provisionedBusiness: any = null;
+            let provisionedProfile: any = validated.existingProfile || null;
+            let createdProfile = false;
+            if (createBusinessProfile && !provisionedProfile) {
+              if (createBusinessRecord) {
+                [provisionedBusiness] = await tx
+                  .insert(businesses)
+                  .values({
+                    name: validated.resolvedBusinessName,
+                    slug: validated.businessSlug,
+                    type: "other" as any,
+                    ownerUserId: user.id,
+                    roleContext: validated.resolvedRoleContext as any,
+                    profileData: {
+                      description: profileAbout || profileHeadline || undefined,
+                      phone: businessPhone || undefined,
+                      website: businessWebsite || undefined,
+                      email: businessEmail || user.email,
+                      city: city || undefined,
+                      stateCode: stateCode || undefined,
+                      services: businessTags.length > 0 ? businessTags : undefined,
+                      category: businessTags[0] || undefined,
+                    },
+                    claimStatus: "claimed",
+                    sources: [],
+                    status: "active" as any,
+                  } as any)
+                  .returning();
+              }
+              [provisionedProfile] = await tx
+                .insert(profiles)
+                .values({
+                  ownerUserId: user.id,
+                  businessId: provisionedBusiness?.id || undefined,
+                  roleContext: validated.resolvedRoleContext as any,
+                  slug: validated.profileSlug,
+                  displayName: validated.resolvedDisplayName,
+                  headline: profileHeadline || null,
+                  contentBlocks: profileAbout
+                    ? [{ type: "about", data: { text: profileAbout } }]
+                    : [],
+                  ctaConfig: {},
+                  seoMeta: profileAbout ? { description: profileAbout.slice(0, 300) } : {},
+                  status: "published" as any,
+                } as any)
+                .returning();
+              createdProfile = true;
+            }
+
+            const activePatch: Record<string, unknown> = { updatedAt: new Date() };
+            if (provisionedBusiness?.id) activePatch.activeBusinessId = provisionedBusiness.id;
+            if (provisionedProfile?.id) activePatch.activeProfileId = provisionedProfile.id;
+            if (Object.keys(activePatch).length > 1) {
+              const [activeUser] = await tx
+                .update(users)
+                .set(activePatch)
+                .where(eq(users.id, user.id))
+                .returning();
+              if (!activeUser)
+                throw new Error("Provisioning active-profile update returned no row");
+              user = activeUser;
+            }
+
+            let resetLink: string | null = null;
+            let verifyLink: string | null = null;
+            if (!user.password) {
+              const token = await createProvisioningPasswordResetToken(tx, user.id);
+              resetLink = `${publicBase}/reset-password?token=${token}`;
+            }
+            if (emailVerificationRequired && user.emailVerified !== true) {
+              const token = await createProvisioningEmailVerificationToken(tx, user.id);
+              verifyLink = `${publicBase}/verify-email?token=${token}&next=${encodeURIComponent("/pre-scout-setup")}`;
+            }
+
+            // The durable success audit is part of the same authority mutation. A failed audit
+            // insert must roll back the user, declaration, profile/business, and token writes.
+            await auditProvisionAttempt(
+              "completed",
+              {
+                created,
+                assignedRole: resolvedProvisionRole || null,
+                provisionUserTypes,
+                profileProvisioned: Boolean(provisionedProfile),
+                businessProvisioned: Boolean(provisionedBusiness),
+                activationEmailRequested: sendActivationEmail,
+                verificationEmailRequested: sendVerificationEmail,
+              },
+              user.id,
+              tx
+            );
+
+            return {
+              business: provisionedBusiness,
+              created,
+              createdProfile,
+              createdTradeTags,
+              profile: provisionedProfile,
+              resetLink,
+              resolvedTradeTags: validated.resolvedTradeSlugs,
+              user,
+              verifyLink,
+            };
+          },
+          afterCommit: async (result: any) => {
+            if (!sendActivationEmail && !sendVerificationEmail) return;
+            if (!emailService.isConfigured()) {
+              if (process.env.NODE_ENV !== "production") {
+                if (result.resetLink && sendActivationEmail)
+                  debug.activationLink = result.resetLink;
+                if (result.verifyLink && sendVerificationEmail)
+                  debug.verifyLink = result.verifyLink;
+              }
+              return;
+            }
+
+            const parts: string[] = ["<p>Your TradeScout account is ready.</p>"];
+            if (result.resetLink && sendActivationEmail) {
+              parts.push(`<p><a href="${result.resetLink}">Set your password</a>.</p>`);
+            }
+            if (result.verifyLink && sendVerificationEmail) {
+              parts.push(`<p><a href="${result.verifyLink}">Verify your email</a> (required).</p>`);
+            }
+            parts.push("<p>If you did not request this, you can ignore this email.</p>");
+            try {
+              await emailService.sendEmail({
+                to: email,
+                subject: "Set up your TradeScout account",
+                html: parts.join("\n"),
+                text: [
+                  result.resetLink && sendActivationEmail
+                    ? `Set password: ${result.resetLink}`
+                    : null,
+                  result.verifyLink && sendVerificationEmail
+                    ? `Verify email: ${result.verifyLink}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                purpose: "account_creation",
+              });
+              emailSent = true;
+            } catch (emailError) {
+              emailDeliveryFailed = true;
+              console.error(
+                "Admin provisioning committed but activation email failed:",
+                emailError
+              );
+            }
+          },
+        });
+      } catch (error: any) {
+        if (error instanceof AdminProvisioningRequestError) {
+          await auditProvisionAttempt("denied", { code: error.code }, null);
+          return res.status(error.status).json({
+            message: error.message,
+            code: error.code,
+            ...error.details,
           });
-          emailSent = true;
-        } else if (process.env.NODE_ENV !== "production") {
-          if (resetLink && sendActivationEmail) debug.activationLink = resetLink;
-          if (verifyLink && sendVerificationEmail) debug.verifyLink = verifyLink;
         }
+        if (String(error?.code || "") === "23505") {
+          await auditProvisionAttempt("denied", { code: "PROVISION_TARGET_CHANGED" }, null);
+          return res.status(409).json({
+            message: "The account changed while provisioning. Review it and retry.",
+            code: "PROVISION_TARGET_CHANGED",
+          });
+        }
+        throw error;
       }
+
+      const {
+        business: provisionedBusiness,
+        created,
+        createdProfile,
+        profile: provisionedProfile,
+        resetLink,
+        resolvedTradeTags,
+        user,
+        verifyLink,
+      } = transactionResult;
 
       return res.json({
         ok: true,
@@ -2902,6 +3398,7 @@ export function registerWorkerTasksRoutes(app: Express): void {
           lastName: user.lastName,
         },
         emailSent,
+        emailDeliveryFailed,
         activationLinkIncluded: Boolean(resetLink && sendActivationEmail),
         verifyLinkIncluded: Boolean(verifyLink && sendVerificationEmail),
         profileProvisioned: Boolean(provisionedProfile),
@@ -2912,8 +3409,8 @@ export function registerWorkerTasksRoutes(app: Express): void {
         businessSlug: provisionedBusiness?.slug || null,
         provisionUserTypes,
         businessTags,
-        resolvedTradeTags: resolvedProvisionTradeTags.slugs,
-        createdTradeTags: resolvedProvisionTradeTags.created,
+        resolvedTradeTags,
+        createdTradeTags: transactionResult.createdTradeTags,
         ...debug,
       });
     } catch (error: any) {

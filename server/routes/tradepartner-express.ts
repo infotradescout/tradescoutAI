@@ -1,11 +1,15 @@
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, pool } from "../db";
 import { isAuthenticated, isSuperAdmin } from "../auth";
 import {
   businesses,
+  contactPermissionEvents,
+  contactPermissions,
+  decisionCards,
+  notifications,
   profiles,
   users,
   workRequestAssignments,
@@ -22,8 +26,11 @@ import {
   canExposePublishedProfilePublicly,
   hasTradeScoutPendingOwnerCustody,
 } from "../services/ownerConfirmedDirectProfile";
-import { hasDirectConnectPhone, normalizeDirectConnectPhone } from "../services/directConnectPhone";
+import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
+import { hasDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { isReservedSignupIdentityEmail } from "../utils/authorityPolicy";
+import { ensureSuperAdminConnectionForUser } from "../utils/superAdminConnection";
 import { redactContactDetails } from "../utils/workRequestShare";
 import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
@@ -54,11 +61,6 @@ const EXPRESS_REQUEST_TYPES = [
   "other",
 ] as const;
 
-const revealSchema = z.object({
-  authorityGate: z.literal("profile_direct_connect"),
-  decision: z.literal("call"),
-});
-
 const requestSchema = z
   .object({
     name: z.string().trim().min(2).max(120),
@@ -70,6 +72,7 @@ const requestSchema = z
       .max(40)
       .refine((value) => hasDirectConnectPhone(value), "Enter a complete phone number."),
     requestType: z.enum(EXPRESS_REQUEST_TYPES),
+    contactPreference: z.enum(["platform_message", "call"]).default("platform_message"),
     message: z.string().trim().min(10).max(3000),
     stoneName: z.string().trim().max(180).optional(),
     serviceName: z.string().trim().max(180).optional(),
@@ -116,7 +119,6 @@ type TradePartnerTarget = {
   businessId: string;
   businessName: string;
   ownerUserId: string;
-  phone: string;
   // Where new-request emails go. Prefer profileData.notificationEmail
   // (shared inbox), then profileData.email, then the owner login email.
   notificationEmail: string;
@@ -161,6 +163,269 @@ function requestTitle(requestType: (typeof EXPRESS_REQUEST_TYPES)[number], busin
   return `${labels[requestType]} for ${businessName}`.slice(0, 180);
 }
 
+const EXPRESS_AUTHORITY_GATE = "decision_card";
+const EXPRESS_AUTHORITY_INTENT = "hire";
+
+export class ExpressContactAuthorityError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = "ExpressContactAuthorityError";
+  }
+}
+
+type ExpressContactAuthorityResult = {
+  sourceDecisionCardId: string;
+  contactPermissionId: string;
+  contactRequestNotificationId: string;
+  intent: typeof EXPRESS_AUTHORITY_INTENT;
+  decisionScope: string;
+  contactGateState: "pending_provider_response";
+  permissionDisposition: "created_pending" | "accepted_reused";
+};
+
+export async function createExpressDirectConnectAuthority(
+  tx: any,
+  params: {
+    workRequestId: string;
+    requesterUserId: string;
+    providerUserId: string;
+    profileId: string;
+    profileSlug: string;
+    businessId: string;
+    title: string;
+    description: string;
+    contactPreference: "platform_message" | "call";
+    now: Date;
+  }
+): Promise<ExpressContactAuthorityResult> {
+  const pairLockKey = `${params.requesterUserId}:${params.providerUserId}`;
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${pairLockKey}, 0))`);
+  const existingResult = await tx.execute(sql`
+    SELECT *
+    FROM contact_permissions
+    WHERE requester_id = ${params.requesterUserId}
+      AND target_user_id = ${params.providerUserId}
+    FOR UPDATE
+  `);
+  const existingPermission = (existingResult.rows?.[0] as any) || null;
+  const existingStatus = existingPermission ? String(existingPermission.status || "pending") : null;
+  const existingCooldown = existingPermission
+    ? (existingPermission.cooldownUntil ?? existingPermission.cooldown_until)
+    : null;
+  const cooldownUntil = existingCooldown ? new Date(existingCooldown) : null;
+  const hasActiveCooldown = Boolean(
+    cooldownUntil && Number.isFinite(cooldownUntil.getTime()) && cooldownUntil > params.now
+  );
+
+  if (existingStatus === "blocked") {
+    throw new ExpressContactAuthorityError(
+      403,
+      "EXPRESS_CONTACT_BLOCKED",
+      "This contact relationship is blocked."
+    );
+  }
+  if (hasActiveCooldown) {
+    throw new ExpressContactAuthorityError(
+      409,
+      "EXPRESS_CONTACT_COOLDOWN_ACTIVE",
+      "A contact cooldown is still active for this provider."
+    );
+  }
+  // contact_permissions is pair-unique on (requester_id, target_user_id), so a
+  // second scoped pending/declined authority cannot be represented without
+  // overwriting the first scope. Fail closed. Supporting concurrent/retry
+  // scopes requires a migration that keeps contact_permissions as the pair-level
+  // relationship and adds contact_permission_authorities with unique
+  // source_decision_card_id and work_request_id FKs plus decision_scope, intent,
+  // status, responded_by/at, and cooldown fields.
+  if (existingStatus === "pending") {
+    throw new ExpressContactAuthorityError(
+      409,
+      "EXPRESS_CONTACT_ALREADY_PENDING",
+      "A contact request for this provider is already awaiting a response."
+    );
+  }
+  if (existingStatus === "declined") {
+    throw new ExpressContactAuthorityError(
+      403,
+      "EXPRESS_CONTACT_PREVIOUSLY_DECLINED",
+      "This contact relationship was previously declined."
+    );
+  }
+  if (existingStatus && existingStatus !== "accepted") {
+    throw new ExpressContactAuthorityError(
+      409,
+      "EXPRESS_CONTACT_AUTHORITY_CONFLICT",
+      "The existing contact authority cannot be safely reused."
+    );
+  }
+
+  const decisionScope = JSON.stringify({
+    kind: "tradepartner_profile_express",
+    workRequestId: params.workRequestId,
+    requesterUserId: params.requesterUserId,
+    providerUserId: params.providerUserId,
+    profileId: params.profileId,
+    profileSlug: params.profileSlug,
+    businessId: params.businessId,
+    contactPreference: params.contactPreference,
+  });
+  const [decisionCard] = await tx
+    .insert(decisionCards)
+    .values({
+      userId: params.requesterUserId,
+      status: "active",
+      intent: EXPRESS_AUTHORITY_INTENT,
+      decisionScope,
+      title: params.title,
+      description: params.description,
+      createdAt: params.now,
+      updatedAt: params.now,
+      decidedAt: null,
+    })
+    .returning({ id: decisionCards.id });
+  if (!decisionCard?.id) {
+    throw new ExpressContactAuthorityError(
+      500,
+      "EXPRESS_DECISION_CARD_CREATE_FAILED",
+      "The contact Decision Card could not be created."
+    );
+  }
+
+  const [contactRequestNotification] = await tx
+    .insert(notifications)
+    .values({
+      userId: params.providerUserId,
+      type: "new_project_request",
+      priority: "normal",
+      title:
+        params.contactPreference === "call"
+          ? "New protected call request"
+          : "New Direct Connect request",
+      message:
+        params.contactPreference === "call"
+          ? "A requester asked you to call after you accept their Direct Connect request."
+          : "A requester is waiting for your response in Direct Connect.",
+      actionUrl: "/direct-connect/inbox",
+      actionText: "Open request",
+      iconName: "briefcase",
+      iconColor: "orange",
+      deliveryMethods: ["in_app", "push"],
+      metadata: {
+        kind: "express_contact_authority_request",
+        workRequestId: params.workRequestId,
+        requesterUserId: params.requesterUserId,
+        providerUserId: params.providerUserId,
+        profileId: params.profileId,
+        profileSlug: params.profileSlug,
+        businessId: params.businessId,
+        sourceDecisionCardId: String(decisionCard.id),
+        intent: EXPRESS_AUTHORITY_INTENT,
+        decisionScope,
+        contactPreference: params.contactPreference,
+        contactGateState: "pending_provider_response",
+      },
+      createdAt: params.now,
+      updatedAt: params.now,
+    })
+    .returning({ id: notifications.id });
+  const contactRequestNotificationId = String(contactRequestNotification?.id || "");
+  if (!contactRequestNotificationId) {
+    throw new ExpressContactAuthorityError(
+      500,
+      "EXPRESS_CONTACT_NOTIFICATION_CREATE_FAILED",
+      "The provider contact request notification could not be created."
+    );
+  }
+
+  let contactPermissionId = String(
+    existingPermission?.id ?? existingPermission?.contactPermissionId ?? ""
+  );
+  const permissionDisposition =
+    existingStatus === "accepted" ? "accepted_reused" : "created_pending";
+  // The pair-level relationship may already be accepted, but this new scoped
+  // request remains pending until its assigned provider responds.
+  const contactGateState = "pending_provider_response" as const;
+
+  if (!existingPermission) {
+    const [permission] = await tx
+      .insert(contactPermissions)
+      .values({
+        requesterId: params.requesterUserId,
+        targetUserId: params.providerUserId,
+        status: "pending",
+        lastRequestType: params.contactPreference === "call" ? "call" : "message",
+        lastRequestPreview: params.description.slice(0, 280) || null,
+        lastRequestNotificationId: contactRequestNotificationId,
+        authorityGate: EXPRESS_AUTHORITY_GATE,
+        sourceDecisionCardId: String(decisionCard.id),
+        sourceScoutRecommendationId: null,
+        intent: EXPRESS_AUTHORITY_INTENT,
+        decisionScope,
+        respondedAt: null,
+        respondedBy: null,
+        responseReason: null,
+        cooldownUntil: null,
+        createdAt: params.now,
+        updatedAt: params.now,
+      })
+      .returning({ id: contactPermissions.id });
+    contactPermissionId = String(permission?.id || "");
+  }
+  if (!contactPermissionId) {
+    throw new ExpressContactAuthorityError(
+      500,
+      "EXPRESS_CONTACT_PERMISSION_CREATE_FAILED",
+      "The contact permission could not be created."
+    );
+  }
+
+  await tx.insert(contactPermissionEvents).values({
+    contactPermissionId,
+    requesterId: params.requesterUserId,
+    targetUserId: params.providerUserId,
+    actorId: params.requesterUserId,
+    eventType:
+      permissionDisposition === "accepted_reused"
+        ? "express_authority_reused"
+        : "express_authority_created",
+    fromStatus: permissionDisposition === "accepted_reused" ? "accepted" : null,
+    toStatus: permissionDisposition === "accepted_reused" ? "accepted" : "pending",
+    reasonCode:
+      permissionDisposition === "accepted_reused" ? "existing_accepted_relationship" : null,
+    metadata: {
+      workRequestId: params.workRequestId,
+      profileId: params.profileId,
+      profileSlug: params.profileSlug,
+      businessId: params.businessId,
+      providerUserId: params.providerUserId,
+      contactPreference: params.contactPreference,
+      contactRequestNotificationId,
+      contactGateState,
+      permissionDisposition,
+    },
+    authorityGate: EXPRESS_AUTHORITY_GATE,
+    sourceDecisionCardId: String(decisionCard.id),
+    sourceScoutRecommendationId: null,
+    intent: EXPRESS_AUTHORITY_INTENT,
+    decisionScope,
+  });
+
+  return {
+    sourceDecisionCardId: String(decisionCard.id),
+    contactPermissionId,
+    contactRequestNotificationId,
+    intent: EXPRESS_AUTHORITY_INTENT,
+    decisionScope,
+    contactGateState,
+    permissionDisposition,
+  };
+}
+
 async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarget | null> {
   const requestedSlug = String(slug || "")
     .trim()
@@ -172,8 +437,12 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   const [row] = await db
     .select({
       profileId: profiles.id,
+      profilePubliclyReleased: profiles.publiclyReleased,
       profileSlug: profiles.slug,
       profileStatus: profiles.status,
+      profileRoleContext: profiles.roleContext,
+      profileHeadline: profiles.headline,
+      profileContentBlocks: profiles.contentBlocks,
       ownerUserId: profiles.ownerUserId,
       businessId: businesses.id,
       businessName: businesses.name,
@@ -187,8 +456,8 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       ownerPreferences: users.preferences,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
-      ownerPhone: users.phone,
       ownerEmail: users.email,
+      professionalRoleApproved: durableProfessionalProfileApprovalSql,
     })
     .from(profiles)
     .innerJoin(businesses, eq(profiles.businessId, businesses.id))
@@ -199,6 +468,10 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   const directProfileCandidate = {
     profileSlug: row?.profileSlug,
     profileStatus: row?.profileStatus,
+    profilePubliclyReleased: row?.profilePubliclyReleased,
+    profileRoleContext: row?.profileRoleContext,
+    profileHeadline: row?.profileHeadline,
+    profileContentBlocks: row?.profileContentBlocks,
     profileOwnerUserId: row?.ownerUserId,
     businessStatus: row?.businessStatus,
     businessOwnerUserId: row?.businessOwnerUserId,
@@ -207,12 +480,12 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     businessClaimStatus: row?.businessClaimStatus,
     ownerProvider: row?.ownerProvider,
     ownerPreferences: row?.ownerPreferences,
+    professionalRoleApproved: row?.professionalRoleApproved,
   };
   const deliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
     ? "tradescout_pending_owner"
     : "business";
   const profileData = (row?.profileData || {}) as Record<string, any>;
-  const phone = String(profileData.phone || row?.ownerPhone || "").trim();
   // Business-facing request mail must not silently no-op when only the
   // owner login email exists. Prefer an explicit shared inbox, then any
   // stored business email, then the account owner.
@@ -239,7 +512,6 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     businessId: String(row.businessId),
     businessName: String(row.businessName),
     ownerUserId: String(row.ownerUserId),
-    phone,
     notificationEmail,
     deliveryCustody,
   };
@@ -299,37 +571,21 @@ export function registerTradePartnerExpressRoutes(app: Express) {
     return res.redirect(308, canonicalUrl);
   });
 
-  // Clicking Direct Connect records intent; choosing Call is the decision.
-  // Only then is the number returned. It never appears in the public profile.
+  // Compatibility tombstone for clients that still call the former public
+  // phone-reveal endpoint. A caller-asserted literal is not durable authority,
+  // so this endpoint never resolves a profile or returns contact data. Call
+  // intent must be submitted through the private Express request lifecycle.
   app.post(
     "/api/tradepartner-profiles/:slug/express-contact/reveal",
     revealLimiter,
-    async (req: OptionalAuthedRequest, res: Response) => {
-      try {
-        const parsed = revealSchema.safeParse(req.body ?? {});
-        if (!parsed.success) return res.status(400).json({ message: "Choose a contact option." });
-        const target = await resolveTradePartnerTarget(req.params.slug);
-        if (!target) return res.status(404).json({ message: "Profile not found." });
-        const phone = normalizeDirectConnectPhone(target.phone);
-        if (!phone) return res.status(404).json({ message: "Calling is unavailable right now." });
-
-        console.info("[tradepartner-express] phone revealed after profile decision", {
-          profileId: target.profileId,
-          businessId: target.businessId,
-          source: "tradepartner_profile",
-          connectionMode: "express",
-          actor: req.user?.id || req.user?.claims?.sub || "anonymous",
-          requestId: (req as any).requestId || null,
-        });
-        return res.json({
-          businessName: target.businessName,
-          phone: phone.display,
-          tel: phone.tel,
-        });
-      } catch (error) {
-        console.error("[tradepartner-express] phone reveal failed", error);
-        return res.status(500).json({ message: "Calling is unavailable right now." });
-      }
+    (_req: OptionalAuthedRequest, res: Response) => {
+      return res.status(410).json({
+        code: "DIRECT_CONNECT_REQUEST_REQUIRED",
+        contactPreference: "call",
+        nextAction: "submit_express_request",
+        message:
+          "Request a call through Direct Connect. Contact stays gated until the business responds.",
+      });
     }
   );
 
@@ -379,104 +635,164 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         const email = normalizeEmail(body.email);
         const { firstName, lastName } = splitName(body.name);
         const viewerId = String(req.user?.id || req.user?.claims?.sub || "").trim();
-        let requester = viewerId ? await storage.getUser(viewerId) : null;
-        if (!requester) requester = await storage.getUserByEmail(email);
-        const requesterWasCreated = !requester;
-        const updatesOptIn = body.updatesOptIn === true;
-        if (!requester) {
-          requester = await storage.createUser({
-            email,
-            firstName,
-            lastName,
-            phone: body.phone,
-            role: "homeowner" as any,
-            roles: ["homeowner"],
-            activeRole: "homeowner",
-            provider: "express_profile",
-            emailVerified: false,
-            addressVerified: false,
-            onboardingCompleted: false,
-            preferences: {
-              // Targeting later uses preferences.marketingEmails (admin segments).
-              // No ESP sync is claimed here — consent is stored truthfully.
-              marketingEmails: updatesOptIn,
-              provisional: {
-                userTypes: ["homeowner"],
-                source: "tradepartner_profile_express_request",
-                capturedAt: new Date().toISOString(),
-              },
-              ...(updatesOptIn
-                ? {
-                    marketingConsent: {
-                      source: "tradepartner_profile_express_request",
-                      profileSlug: target.profileSlug,
-                      businessId: target.businessId,
-                      topics: ["new_arrivals", "first_cuts", "promotions"],
-                      optedInAt: new Date().toISOString(),
-                    },
-                  }
-                : {}),
-            },
-          } as any);
-        } else if (viewerId) {
-          // Only mutate an existing account when the visitor owns the current
-          // authenticated session. A logged-out email match may receive the
-          // request, but cannot silently replace that member's profile data.
-          const updates: Record<string, any> = {};
-          if (!requester.firstName) updates.firstName = firstName;
-          if (!requester.lastName && lastName) updates.lastName = lastName;
-          if (!requester.phone) updates.phone = body.phone;
-          if (updatesOptIn) {
-            const existingPreferences =
-              requester.preferences && typeof requester.preferences === "object"
-                ? (requester.preferences as Record<string, any>)
-                : {};
-            updates.preferences = {
-              ...existingPreferences,
-              marketingEmails: true,
-              marketingConsent: {
-                source: "tradepartner_profile_express_request",
-                profileSlug: target.profileSlug,
-                businessId: target.businessId,
-                topics: ["new_arrivals", "first_cuts", "promotions"],
-                optedInAt: new Date().toISOString(),
-              },
-            };
+        if (!viewerId && isReservedSignupIdentityEmail(email)) {
+          // Use the same response as any logged-out existing account. Reserved
+          // recovery identifiers must never enter guest onboarding, but the
+          // public endpoint must not reveal whether an address is privileged.
+          return res.status(401).json({
+            code: "EXISTING_ACCOUNT_SIGN_IN_REQUIRED",
+            message: "Sign in to continue with this email.",
+          });
+        }
+        let requester: Awaited<ReturnType<typeof storage.getUser>> | null = null;
+        if (viewerId) {
+          requester = await storage.getUser(viewerId);
+          if (!requester) {
+            return res.status(401).json({
+              code: "SESSION_USER_NOT_FOUND",
+              message: "Your session is no longer valid. Sign in again.",
+            });
           }
-          if (Object.keys(updates).length > 0) {
-            requester = await storage.updateUser(String(requester.id), updates);
+
+          const authenticatedEmail = normalizeEmail(requester.email);
+          if (!authenticatedEmail || authenticatedEmail !== email) {
+            return res.status(400).json({
+              code: "AUTHENTICATED_EMAIL_MISMATCH",
+              message: "Use the email address for your signed-in account.",
+            });
           }
-        } else if (updatesOptIn && requester) {
-          // Logged-out email match: persist marketing consent only (no profile
-          // field overwrite). Still ties opt-in to the matched account so
-          // admin marketing segments can find them later.
-          const existingPreferences =
-            requester.preferences && typeof requester.preferences === "object"
-              ? (requester.preferences as Record<string, any>)
-              : {};
-          requester = await storage.updateUser(String(requester.id), {
-            preferences: {
-              ...existingPreferences,
-              marketingEmails: true,
-              marketingConsent: {
-                source: "tradepartner_profile_express_request",
-                profileSlug: target.profileSlug,
-                businessId: target.businessId,
-                topics: ["new_arrivals", "first_cuts", "promotions"],
-                optedInAt: new Date().toISOString(),
-              },
-            },
+        } else {
+          requester = await storage.getUserByEmail(email);
+          if (requester) {
+            return res.status(401).json({
+              code: "EXISTING_ACCOUNT_SIGN_IN_REQUIRED",
+              message: "Sign in to continue with this email.",
+            });
+          }
+        }
+
+        if (requester && String(requester.id) === String(target.ownerUserId)) {
+          return res.status(400).json({
+            code: "EXPRESS_SELF_REQUEST_NOT_ALLOWED",
+            message: "You cannot send a Direct Connect request to your own business profile.",
           });
         }
 
+        const requesterWasCreated = !requester;
+        const authenticatedRequester = requester;
+        const updatesOptIn = body.updatesOptIn === true;
         const sanitizedMessage = redactContactDetails(body.message).trim();
-        const title = requestTitle(body.requestType, target.businessName);
+        const title =
+          body.contactPreference === "call"
+            ? `Call request for ${target.businessName}`.slice(0, 180)
+            : requestTitle(body.requestType, target.businessName);
         const now = new Date();
-        const [created] = await db.transaction(async (tx: any) => {
+        const guestPreferences = {
+          // Targeting later uses preferences.marketingEmails (admin segments).
+          // No ESP sync is claimed here — consent is stored truthfully.
+          marketingEmails: updatesOptIn,
+          provisional: {
+            userTypes: ["homeowner"],
+            source: "tradepartner_profile_express_request",
+            capturedAt: now.toISOString(),
+          },
+          ...(updatesOptIn
+            ? {
+                marketingConsent: {
+                  source: "tradepartner_profile_express_request",
+                  profileSlug: target.profileSlug,
+                  businessId: target.businessId,
+                  topics: ["new_arrivals", "first_cuts", "promotions"],
+                  optedInAt: now.toISOString(),
+                },
+              }
+            : {}),
+        };
+        const authenticatedUpdates: Record<string, any> = {};
+        if (authenticatedRequester) {
+          // Existing accounts reach this branch only through their authoritative
+          // authenticated session with a matching normalized email.
+          if (!authenticatedRequester.firstName) authenticatedUpdates.firstName = firstName;
+          if (!authenticatedRequester.lastName && lastName) {
+            authenticatedUpdates.lastName = lastName;
+          }
+          // The submitted number is the requester's explicit callback choice
+          // for this request lifecycle. Its mutation is committed only with the
+          // exact request and authority that can later release it.
+          if (String(authenticatedRequester.phone || "").trim() !== body.phone.trim()) {
+            authenticatedUpdates.phone = body.phone;
+          }
+          if (updatesOptIn) {
+            const existingPreferences =
+              authenticatedRequester.preferences &&
+              typeof authenticatedRequester.preferences === "object"
+                ? (authenticatedRequester.preferences as Record<string, any>)
+                : {};
+            authenticatedUpdates.preferences = {
+              ...existingPreferences,
+              marketingEmails: true,
+              marketingConsent: {
+                source: "tradepartner_profile_express_request",
+                profileSlug: target.profileSlug,
+                businessId: target.businessId,
+                topics: ["new_arrivals", "first_cuts", "promotions"],
+                optedInAt: now.toISOString(),
+              },
+            };
+          }
+        }
+
+        const {
+          request: created,
+          authority,
+          requester: committedRequester,
+        } = await db.transaction(async (tx: any) => {
+          let transactionRequester = authenticatedRequester as any;
+          if (!transactionRequester) {
+            [transactionRequester] = await tx
+              .insert(users)
+              .values({
+                email,
+                firstName,
+                lastName,
+                phone: body.phone,
+                role: "homeowner" as any,
+                roles: ["homeowner"],
+                activeRole: "homeowner",
+                provider: "express_profile",
+                emailVerified: false,
+                addressVerified: false,
+                onboardingCompleted: false,
+                preferences: guestPreferences,
+              } as any)
+              .returning();
+            if (!transactionRequester?.id) {
+              throw new ExpressContactAuthorityError(
+                500,
+                "EXPRESS_REQUESTER_CREATE_FAILED",
+                "The requester account could not be created."
+              );
+            }
+          } else if (Object.keys(authenticatedUpdates).length > 0) {
+            const [updatedRequester] = await tx
+              .update(users)
+              .set({ ...authenticatedUpdates, updatedAt: now })
+              .where(eq(users.id, String(transactionRequester.id)))
+              .returning();
+            if (!updatedRequester?.id) {
+              throw new ExpressContactAuthorityError(
+                409,
+                "EXPRESS_REQUESTER_UPDATE_CONFLICT",
+                "The requester account changed before this request was saved."
+              );
+            }
+            transactionRequester = updatedRequester;
+          }
+          const requesterId = String(transactionRequester.id);
           const [request] = await tx
             .insert(workRequests)
             .values({
-              createdByUserId: String(requester.id),
+              createdByUserId: requesterId,
               title,
               description: sanitizedMessage,
               category: "business_request",
@@ -489,6 +805,19 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               competitionMode: "none",
             })
             .returning();
+
+          const authority = await createExpressDirectConnectAuthority(tx, {
+            workRequestId: String(request.id),
+            requesterUserId: requesterId,
+            providerUserId: target.ownerUserId,
+            profileId: target.profileId,
+            profileSlug: target.profileSlug,
+            businessId: target.businessId,
+            title,
+            description: sanitizedMessage,
+            contactPreference: body.contactPreference,
+            now,
+          });
 
           await tx.insert(workRequestAssignments).values({
             workRequestId: request.id,
@@ -506,7 +835,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             {
               workRequestId: request.id,
               type: "created",
-              actorUserId: String(requester.id),
+              actorUserId: requesterId,
               metadata: {
                 source: "tradepartner_profile",
                 connectionMode: "express",
@@ -517,6 +846,16 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? { entryRequestId: verifiedDiscoveryAttribution.entryRequestId }
                   : {}),
                 requestType: body.requestType,
+                contactPreference: body.contactPreference,
+                authorityGate: EXPRESS_AUTHORITY_GATE,
+                sourceDecisionCardId: authority.sourceDecisionCardId,
+                contactPermissionId: authority.contactPermissionId,
+                contactRequestNotificationId: authority.contactRequestNotificationId,
+                intent: authority.intent,
+                decisionScope: authority.decisionScope,
+                contactGateState: authority.contactGateState,
+                contactReleaseState: authority.contactGateState,
+                permissionDisposition: authority.permissionDisposition,
                 stoneName: publicStoneName,
                 ...(publicStoneSelections.length ? { stoneSelections: publicStoneSelections } : {}),
                 serviceName: body.serviceName || null,
@@ -534,26 +873,55 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   : {}),
                 membershipOnboarding: requesterWasCreated
                   ? "provisional_account_created"
-                  : viewerId
-                    ? "signed_in_account_attached"
-                    : "existing_account_match_unverified",
+                  : "signed_in_account_attached",
               },
             },
             {
               workRequestId: request.id,
               type: "provider_invited",
-              actorUserId: String(requester.id),
+              actorUserId: requesterId,
               metadata: {
                 source: "tradepartner_profile",
                 connectionMode: "express",
                 businessId: target.businessId,
                 responderUserId: target.ownerUserId,
                 deliveryCustody: target.deliveryCustody,
+                contactPreference: body.contactPreference,
+                authorityGate: EXPRESS_AUTHORITY_GATE,
+                sourceDecisionCardId: authority.sourceDecisionCardId,
+                contactPermissionId: authority.contactPermissionId,
+                contactRequestNotificationId: authority.contactRequestNotificationId,
+                intent: authority.intent,
+                decisionScope: authority.decisionScope,
+                contactGateState: authority.contactGateState,
+                contactReleaseState: authority.contactGateState,
+                permissionDisposition: authority.permissionDisposition,
               },
             },
           ]);
-          return [request];
+          return { request, authority, requester: transactionRequester };
         });
+        requester = committedRequester;
+        if (!requester?.id) {
+          throw new ExpressContactAuthorityError(
+            500,
+            "EXPRESS_REQUESTER_COMMIT_MISSING",
+            "The requester account was not committed with this request."
+          );
+        }
+
+        if (requesterWasCreated) {
+          try {
+            await ensureSuperAdminConnectionForUser(String(requester.id));
+          } catch (connectionError) {
+            // Social support discoverability is non-authoritative and remains
+            // best effort after the account/request transaction commits.
+            console.error("[tradepartner-express] Failed to add support discovery follows", {
+              userId: requester.id,
+              error: connectionError,
+            });
+          }
+        }
 
         const httpRequestId =
           String((req as any).requestId || req.get("x-request-id") || "").trim() || null;
@@ -604,17 +972,10 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           deliveryMethods: ["in_app", "push"],
         });
         try {
-          await notificationService.createNotification({
-            userId: target.ownerUserId,
-            type: "new_project_request",
-            title: `New request for ${target.businessName}`,
-            message: `${body.name} sent a request from the public profile.`,
-            actionUrl: "/direct-connect/inbox",
-            actionText: "Open request",
-            iconName: "briefcase",
-            iconColor: "orange",
-            deliveryMethods: ["in_app", "push"],
-          });
+          // The in-app notification is created in the same transaction as the
+          // Decision Card and permission. Dispatch its configured channels only
+          // after commit so a delivery outage cannot orphan the authority rows.
+          await notificationService.sendNotification(authority.contactRequestNotificationId);
           console.info("[tradepartner-express] owner notification queued", {
             requestId: created.id,
             correlationId: httpRequestId,
@@ -692,6 +1053,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               subject: `New request for ${target.businessName}`,
               html: [
                 `<p>${escapeHtml(body.name)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
+                body.contactPreference === "call"
+                  ? `<p><strong>Contact preference:</strong> Call requested</p>`
+                  : "",
                 publicStoneName
                   ? `<p><strong>Stone:</strong> ${escapeHtml(publicStoneName)}</p>`
                   : "",
@@ -704,13 +1068,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
                   : "",
                 `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
-                `<p>Contact details stay inside TradeScout until you respond -- open Direct Connect to view the full message and reply.</p>`,
+                `<p>Your public profile phone number was not exposed. Open Direct Connect to review and respond before contact continues.</p>`,
                 `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
               ]
                 .filter(Boolean)
                 .join("\n"),
               text: [
                 `${body.name} sent a request through your ${target.businessName} profile on TradeScout.`,
+                body.contactPreference === "call" ? "Contact preference: Call requested" : null,
                 publicStoneName ? `Stone: ${publicStoneName}` : null,
                 publicStoneSelections.length
                   ? `Saved stones:\n${publicStoneSelections
@@ -719,6 +1084,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   : null,
                 body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
+                "Your public profile phone number was not exposed. Review and respond before contact continues.",
                 `Open Direct Connect inbox: ${inboxUrl}`,
               ]
                 .filter(Boolean)
@@ -800,7 +1166,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         // happens separately, through whatever contact the business
         // owner uses, once they accept the request.
         // New accounts keep purpose account_creation (already allow-listed).
-        // Existing-account matches must use tradepartner_request_confirmation
+        // Signed-in existing accounts use tradepartner_request_confirmation
         // — purpose "notification" is suppressed under EMAIL_MODE=
         // account_creation_only (production).
         const requesterEmailPurpose = requesterWasCreated
@@ -847,7 +1213,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               html: [
                 target.deliveryCustody === "tradescout_pending_owner"
                   ? `<p>TradeScout received your request for ${escapeHtml(target.businessName)}. The owner has not connected this profile yet, so TradeScout is holding the request for owner handoff.</p>`
-                  : `<p>Your request was sent directly to ${escapeHtml(target.businessName)}. This is a no-reply confirmation -- ${escapeHtml(target.businessName)} will follow up using the contact info you sent.</p>`,
+                  : body.contactPreference === "call"
+                    ? `<p>Your protected call request was sent to ${escapeHtml(target.businessName)}. They can call using the contact information you provided after accepting the request in Direct Connect.</p>`
+                    : `<p>Your request was sent directly to ${escapeHtml(target.businessName)}. They can continue contact after responding in Direct Connect.</p>`,
                 "<hr />",
                 requesterWasCreated
                   ? target.deliveryCustody === "tradescout_pending_owner"
@@ -862,7 +1230,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               text: [
                 target.deliveryCustody === "tradescout_pending_owner"
                   ? `TradeScout received your request for ${target.businessName}. The owner has not connected this profile yet, so TradeScout is holding the request for owner handoff.`
-                  : `Your request was sent directly to ${target.businessName}. This is a no-reply confirmation -- ${target.businessName} will follow up using the contact info you sent.`,
+                  : body.contactPreference === "call"
+                    ? `Your protected call request was sent to ${target.businessName}. They can call using the contact information you provided after accepting the request in Direct Connect.`
+                    : `Your request was sent directly to ${target.businessName}. They can continue contact after responding in Direct Connect.`,
                 requesterWasCreated
                   ? target.deliveryCustody === "tradescout_pending_owner"
                     ? "We also set up a free TradeScout account so you can track the request and any owner handoff in one place."
@@ -923,7 +1293,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           }
         }
 
-        console.info("[tradepartner-express] phone-gated request created", {
+        console.info("[tradepartner-express] contact-gated request created", {
           requestId: created.id,
           correlationId: httpRequestId,
           profileId: target.profileId,
@@ -931,6 +1301,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           requesterUserId: requester.id,
           source: "tradepartner_profile",
           connectionMode: "express",
+          contactPreference: body.contactPreference,
+          sourceDecisionCardId: authority.sourceDecisionCardId,
+          contactPermissionId: authority.contactPermissionId,
+          contactRequestNotificationId: authority.contactRequestNotificationId,
+          contactGateState: authority.contactGateState,
           deliveryCustody: target.deliveryCustody,
           accountCreated: requesterWasCreated,
           ownerNotificationStatus,
@@ -965,6 +1340,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           requestId: created.id,
           status: created.status,
           businessName: target.businessName,
+          contactPreference: body.contactPreference,
+          contactGateState: authority.contactGateState,
           delivered: target.deliveryCustody === "business",
           deliveryCustody: target.deliveryCustody,
           accountCreated: requesterWasCreated,
@@ -973,11 +1350,12 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           requestWorkspacePath,
           membershipNext: requesterWasCreated
             ? "Set up your TradeScout access to follow this request."
-            : viewerId
-              ? "Open My Requests to follow this request in Direct Connect."
-              : "Sign in to follow this request in Direct Connect.",
+            : "Open My Requests to follow this request in Direct Connect.",
         });
       } catch (error) {
+        if (error instanceof ExpressContactAuthorityError) {
+          return res.status(error.status).json({ code: error.code, message: error.message });
+        }
         console.error("[tradepartner-express] request creation failed", error);
         return res.status(500).json({ message: "The request could not be sent." });
       }

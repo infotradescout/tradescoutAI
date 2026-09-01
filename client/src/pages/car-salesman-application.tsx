@@ -175,7 +175,7 @@ const states = [
 ];
 
 export default function CarSalesmanApplication() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
@@ -202,16 +202,19 @@ export default function CarSalesmanApplication() {
 
   const submitApplicationMutation = useMutation({
     mutationFn: async (data: CarSalesmanApplicationForm) => {
+      const {
+        serviceCounties: submittedCounties,
+        serviceCities = [],
+        serviceZipCodes = [],
+        ...application
+      } = data;
       return apiRequest("POST", "/api/car-salesman/application", {
-        ...data,
-        userId: user?.id,
+        ...application,
         serviceAreas: {
-          counties: serviceCounties,
-          cities: data.serviceCities || [],
-          zipCodes: data.serviceZipCodes || [],
+          counties: submittedCounties,
+          cities: serviceCities,
+          zipCodes: serviceZipCodes,
         },
-        specializations: selectedSpecializations,
-        brandsSpecialty: selectedBrands,
       });
     },
     onSuccess: () => {
@@ -222,6 +225,9 @@ export default function CarSalesmanApplication() {
           "Your car salesman application has been submitted for review. You'll be notified once verified.",
       });
       form.reset();
+      setSelectedSpecializations([]);
+      setSelectedBrands([]);
+      setServiceCounties([]);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -248,17 +254,21 @@ export default function CarSalesmanApplication() {
   };
 
   const handleSpecializationToggle = (specialization: string) => {
-    setSelectedSpecializations((prev) =>
-      prev.includes(specialization)
+    setSelectedSpecializations((prev) => {
+      const next = prev.includes(specialization)
         ? prev.filter((s) => s !== specialization)
-        : [...prev, specialization]
-    );
+        : [...prev, specialization];
+      form.setValue("specializations", next, { shouldDirty: true, shouldValidate: true });
+      return next;
+    });
   };
 
   const handleBrandToggle = (brand: string) => {
-    setSelectedBrands((prev) =>
-      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
-    );
+    setSelectedBrands((prev) => {
+      const next = prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand];
+      form.setValue("brandsSpecialty", next, { shouldDirty: true, shouldValidate: true });
+      return next;
+    });
   };
 
   if (!isAuthenticated) {
@@ -538,9 +548,13 @@ export default function CarSalesmanApplication() {
                           <Input
                             placeholder="e.g., Los Angeles County, Orange County"
                             value={serviceCounties.join(", ")}
-                            onChange={(e) =>
-                              setServiceCounties(e.target.value.split(",").map((s) => s.trim()))
-                            }
+                            onChange={(e) => {
+                              const counties = e.target.value
+                                .split(",")
+                                .map((value) => value.trim());
+                              setServiceCounties(counties);
+                              field.onChange(counties.filter(Boolean));
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

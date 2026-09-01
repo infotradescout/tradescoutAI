@@ -9,6 +9,7 @@ import {
 } from "@shared/directConnectRoutingSpine";
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
+import AcceptedExpressCallAction from "./AcceptedExpressCallAction";
 import { CreateEstimatePanel, ReviewEstimatePanel } from "./EstimatePanel";
 import {
   ReviewSchedulePanel,
@@ -1023,6 +1024,7 @@ type DirectConnectInboxItem = {
     contractorId?: string | null;
     responderUserId?: string | null;
     workerId?: string | null;
+    contactPreference?: "platform_message" | "call" | null;
   };
   request: {
     id: string;
@@ -3935,7 +3937,11 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/inbox"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       // Accept opens the real Messages thread between the requester and provider.
-      if (variables?.decision === "accept" && data?.conversationId) {
+      if (
+        variables?.decision === "accept" &&
+        data?.conversationId &&
+        data?.contactPreference !== "call"
+      ) {
         window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
       }
     },
@@ -4464,6 +4470,12 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
                             {inboxNextStepCopy.actionHint}
                           </Button>
                         )}
+
+                        <AcceptedExpressCallAction
+                          assignmentId={assignment.id}
+                          assignmentStatus={status}
+                          contactPreference={assignment.contactPreference}
+                        />
 
                         <Button
                           size="sm"

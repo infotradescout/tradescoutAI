@@ -21,6 +21,7 @@ import {
   isSteelHomePackagesProfilePubliclyReleased,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
 } from "@shared/steelHomePackagesProfile";
+import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
 
 export type PublicProfileRecord = {
   id: string;
@@ -32,6 +33,7 @@ export type PublicProfileRecord = {
   ctaConfig: any;
   seoMeta: any;
   businessId: string | null;
+  publiclyReleased: boolean;
   updatedAt: Date | null;
   profileSections: any | null;
   profileBooking: any | null;
@@ -64,6 +66,7 @@ export async function loadCanonicalPublicMapProfileUrls(
       ownerUserId: profiles.ownerUserId,
       slug: profiles.slug,
       profileStatus: profiles.status,
+      profilePubliclyReleased: profiles.publiclyReleased,
       profileRoleContext: profiles.roleContext,
       profileHeadline: profiles.headline,
       profileContentBlocks: profiles.contentBlocks,
@@ -79,6 +82,7 @@ export async function loadCanonicalPublicMapProfileUrls(
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       businessSources: businesses.sources,
       businessClaimStatus: businesses.claimStatus,
+      professionalRoleApproved: durableProfessionalProfileApprovalSql,
     })
     .from(profiles)
     .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -118,20 +122,19 @@ function slugify(input: string): string {
 function publicProfileSearchExposurePredicate() {
   return sql`(
     ${profiles.businessId} IS NOT NULL
+    AND ${profiles.ownerUserId} = ${businesses.ownerUserId}
     AND ${businesses.status} = 'active'
     AND ${businesses.publicDiscoveryEnabled} = true
     AND (
       ${users.verifiedBadge} = true
       OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
     )
+    AND ${durableProfessionalProfileApprovalSql}
   )`;
 }
 
 function publicProfileVisibilityPredicate() {
-  return sql`(
-    COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
-      @> jsonb_build_array(CAST(${profiles.id} AS text))
-  )`;
+  return eq(profiles.publiclyReleased, true);
 }
 
 function publicProfileReleaseExposurePredicate() {
@@ -194,6 +197,7 @@ export class ProfileRepository {
         ctaConfig: profiles.ctaConfig,
         seoMeta: profiles.seoMeta,
         businessId: profiles.businessId,
+        publiclyReleased: profiles.publiclyReleased,
         updatedAt: profiles.updatedAt,
         profileSections: sql`(${users.preferences} -> 'profileSections')`,
         legacyProfileBooking: sql`(${users.preferences} -> 'profileBooking')`,
@@ -215,6 +219,7 @@ export class ProfileRepository {
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         businessSources: businesses.sources,
         businessClaimStatus: businesses.claimStatus,
+        professionalRoleApproved: durableProfessionalProfileApprovalSql,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -242,6 +247,7 @@ export class ProfileRepository {
       publicDiscoveryEnabled: _publicDiscoveryEnabled,
       businessSources: _businessSources,
       businessClaimStatus: _businessClaimStatus,
+      professionalRoleApproved: _professionalRoleApproved,
       ...publicProfile
     } = row;
     return {
@@ -276,6 +282,7 @@ export class ProfileRepository {
         businessId: row.businessId,
         profileSlug: row.slug,
         profileStatus: "published",
+        profilePubliclyReleased: row.publiclyReleased,
         profileRoleContext: row.roleContext,
         profileHeadline: row.headline,
         profileServicesDescription: row.servicesDescription,
@@ -292,6 +299,7 @@ export class ProfileRepository {
         publicDiscoveryEnabled: row.publicDiscoveryEnabled,
         businessSources: row.businessSources,
         businessClaimStatus: row.businessClaimStatus,
+        professionalRoleApproved: row.professionalRoleApproved,
       })
     ) {
       return undefined;

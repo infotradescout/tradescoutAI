@@ -9,12 +9,14 @@ function read(relativePath: string) {
 describe("Public-profile Express Direct Connect contract", () => {
   it("keeps individual business CTAs separate from the Direct Connect portal", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const themeEntry = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
 
     expect(profileView).toContain("const useExpressDirectConnect = true");
     expect(profileView).toContain("The boundary is the surface, not the referrer");
     expect(profileView).not.toContain("sameOriginReferrer");
     expect(profileView).not.toContain("explicitInternalEntry");
+    expect(themeEntry).toContain("return <LegacyWholesalerProfileTheme {...props} />");
     expect(theme).toContain("if (useExpressDirectConnect)");
     expect(theme).toContain("setExpressPanelOpen(true)");
     expect(theme).toContain("navigate(ctaHref)");
@@ -22,7 +24,7 @@ describe("Public-profile Express Direct Connect contract", () => {
 
   it("preserves all five material intents and the selected product source context", () => {
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const route = read("server/routes/tradepartner-express.ts");
     const materialsStart = panel.indexOf("materials: {");
     const materialsEnd = panel.indexOf("auto_glass: {", materialsStart);
@@ -71,14 +73,21 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("ownerPreferences: row?.ownerPreferences");
   });
 
-  it("reveals the business number only after the profile CTA call decision", () => {
+  it("keeps the retired reveal endpoint contact-safe and stages calls as requests", () => {
     const route = read("server/routes/tradepartner-express.ts");
     const publicHtml = read("server/publicProfileHtml.ts");
     const repository = read("server/repositories/businessRepository.ts");
 
-    expect(route).toContain('authorityGate: z.literal("profile_direct_connect")');
-    expect(route).toContain('decision: z.literal("call")');
     expect(route).toContain('"/api/tradepartner-profiles/:slug/express-contact/reveal"');
+    expect(route).toContain('code: "DIRECT_CONNECT_REQUEST_REQUIRED"');
+    expect(route).toContain('nextAction: "submit_express_request"');
+    expect(route).toContain('contactPreference: z.enum(["platform_message", "call"])');
+    expect(route).toContain("createExpressDirectConnectAuthority(tx, {");
+    expect(route).toContain(".insert(decisionCards)");
+    expect(route).toContain(".insert(contactPermissions)");
+    expect(route).toContain("contactGateState: authority.contactGateState");
+    expect(route).not.toContain("normalizeDirectConnectPhone");
+    expect(route).not.toContain("target.phone");
     expect(publicHtml).not.toContain("localBusiness.telephone");
     expect(publicHtml).not.toContain("businessRecord.phone");
     expect(repository).not.toContain("phone: business.profileData?.phone");
@@ -87,7 +96,7 @@ describe("Public-profile Express Direct Connect contract", () => {
   it("shows a public business address with the call-or-form choice when one is available", () => {
     const publicProfileRoute = read("server/routes/profiles.ts");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
-    const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
     expect(publicProfileRoute).toContain(
@@ -111,7 +120,7 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(sharedPhone).toContain("digits.length >= 10 && digits.length <= 15");
     expect(phoneAuthority).toContain("isValidDirectConnectRequestPhone");
     expect(route).toContain("hasDirectConnectPhone(value)");
-    expect(route).toContain("normalizeDirectConnectPhone(target.phone)");
+    expect(route).not.toContain("normalizeDirectConnectPhone(target.phone)");
     expect(route).toContain('contactCheck: "phone_required"');
     expect(panel).toContain('type="tel"');
     expect(panel).toContain('autoComplete="tel"');
@@ -142,7 +151,10 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("onboardingCompleted: false");
     expect(route).toContain("passwordResetService.createToken");
     expect(route).toContain("emailVerificationService.createToken");
-    expect(route).toContain("existing_account_match_unverified");
+    expect(route).toContain('code: "SESSION_USER_NOT_FOUND"');
+    expect(route).toContain('code: "AUTHENTICATED_EMAIL_MISMATCH"');
+    expect(route).toContain('code: "EXISTING_ACCOUNT_SIGN_IN_REQUIRED"');
+    expect(route).not.toContain("existing_account_match_unverified");
     expect(panel).not.toContain("Keep this connection organized.");
     expect(panel).not.toContain("Manage this in TradeScout");
     expect(panel).not.toContain("Finish setup and manage this request");

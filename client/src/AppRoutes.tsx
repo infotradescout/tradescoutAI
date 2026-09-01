@@ -1536,7 +1536,16 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={ProjectTracker} />
               </Route>
               <Route path="/ad-creator">
-                <LazyPage Component={AdCreator} />
+                <ProtectedRoute
+                  requiredRoles={[
+                    "business_owner",
+                    "business_employee",
+                    "marketing_specialist",
+                    "content_seo",
+                  ]}
+                >
+                  <LazyPage Component={AdCreator} />
+                </ProtectedRoute>
               </Route>
               <Route path="/promotions">
                 <LazyPage Component={Promotions} />
@@ -1683,7 +1692,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={TrainingCenter} />
               </Route>
               <Route path="/application-tracker">
-                <LazyPage Component={ApplicationTracker} />
+                <ProtectedRoute requiredRoles={["business_owner", "business_employee"]}>
+                  <LazyPage Component={ApplicationTracker} />
+                </ProtectedRoute>
               </Route>
               <Route path="/administrative-dashboard">
                 <ProtectedRoute adminOnly>
@@ -1707,39 +1718,59 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Car Sales Features */}
               <Route path="/car-sales-new-listing">
-                <LazyPage Component={CarSalesNewListing} />
+                <ProtectedRoute requiredRoles={["car_dealer"]}>
+                  <LazyPage Component={CarSalesNewListing} />
+                </ProtectedRoute>
               </Route>
               <Route path="/car-sales-customers">
-                <LazyPage Component={CarSalesCustomers} />
+                <ProtectedRoute requiredRoles={["car_dealer"]}>
+                  <LazyPage Component={CarSalesCustomers} />
+                </ProtectedRoute>
               </Route>
               <Route path="/car-sales-financing">
-                <LazyPage Component={CarSalesFinancing} />
+                <ProtectedRoute requiredRoles={["car_dealer"]}>
+                  <LazyPage Component={CarSalesFinancing} />
+                </ProtectedRoute>
               </Route>
               <Route path="/car-sales-trade-in">
-                <LazyPage Component={CarSalesTradeIn} />
+                <ProtectedRoute requiredRoles={["car_dealer"]}>
+                  <LazyPage Component={CarSalesTradeIn} />
+                </ProtectedRoute>
               </Route>
               <Route path="/car-sales-payment-calculator">
                 <LazyPage Component={CarSalesPaymentCalculator} />
               </Route>
               <Route path="/car-sales-vin-lookup">
-                <LazyPage Component={CarSalesVinLookup} />
+                <ProtectedRoute requiredRoles={["car_dealer"]}>
+                  <LazyPage Component={CarSalesVinLookup} />
+                </ProtectedRoute>
               </Route>
               <Route path="/car-sales-appointments">
-                <LazyPage Component={CarSalesAppointments} />
+                <ProtectedRoute requiredRoles={["car_dealer"]}>
+                  <LazyPage Component={CarSalesAppointments} />
+                </ProtectedRoute>
               </Route>
               <Route path="/car-sales-follow-up">
-                <LazyPage Component={CarSalesFollowUp} />
+                <ProtectedRoute requiredRoles={["car_dealer"]}>
+                  <LazyPage Component={CarSalesFollowUp} />
+                </ProtectedRoute>
               </Route>
 
               {/* Realtor Features */}
               <Route path="/realtor-clients">
-                <LazyPage Component={RealtorClients} />
+                <ProtectedRoute requiredRoles={["realtor"]}>
+                  <LazyPage Component={RealtorClients} />
+                </ProtectedRoute>
               </Route>
               <Route path="/realtor-market-analysis">
-                <LazyPage Component={RealtorMarketAnalysis} />
+                <ProtectedRoute requiredRoles={["realtor"]}>
+                  <LazyPage Component={RealtorMarketAnalysis} />
+                </ProtectedRoute>
               </Route>
               <Route path="/realtor-connections">
-                <LazyPage Component={RealtorConnections} />
+                <ProtectedRoute requiredRoles={["realtor"]}>
+                  <LazyPage Component={RealtorConnections} />
+                </ProtectedRoute>
               </Route>
               <Route path="/connections">
                 <ProtectedRoute>
@@ -1750,13 +1781,19 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={RealtorCalculator} />
               </Route>
               <Route path="/realtor-cma">
-                <LazyPage Component={RealtorCMA} />
+                <ProtectedRoute requiredRoles={["realtor"]}>
+                  <LazyPage Component={RealtorCMA} />
+                </ProtectedRoute>
               </Route>
               <Route path="/realtor-appointments">
-                <LazyPage Component={RealtorAppointments} />
+                <ProtectedRoute requiredRoles={["realtor"]}>
+                  <LazyPage Component={RealtorAppointments} />
+                </ProtectedRoute>
               </Route>
               <Route path="/realtor-contacts">
-                <LazyPage Component={RealtorContacts} />
+                <ProtectedRoute requiredRoles={["realtor"]}>
+                  <LazyPage Component={RealtorContacts} />
+                </ProtectedRoute>
               </Route>
 
               {/* Verification & Compliance */}
@@ -1789,16 +1826,52 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Social & Integration */}
               <Route path="/social-integration">
-                <LazyPage Component={SocialIntegration} />
+                <ProtectedRoute
+                  requiredRoles={[
+                    "business_owner",
+                    "business_employee",
+                    "marketing_specialist",
+                    "content_seo",
+                  ]}
+                >
+                  <LazyPage Component={SocialIntegration} />
+                </ProtectedRoute>
               </Route>
               <Route path="/referral-dashboard">
-                <LazyPage Component={ReferralDashboard} />
+                <ProtectedRoute
+                  requiredRoles={[
+                    "business_owner",
+                    "business_employee",
+                    "marketing_specialist",
+                    "content_seo",
+                  ]}
+                >
+                  <LazyPage Component={ReferralDashboard} />
+                </ProtectedRoute>
               </Route>
               <Route path="/event-management">
-                <LazyPage Component={EventManagement} />
+                <ProtectedRoute
+                  requiredRoles={[
+                    "business_owner",
+                    "business_employee",
+                    "marketing_specialist",
+                    "content_seo",
+                  ]}
+                >
+                  <LazyPage Component={EventManagement} />
+                </ProtectedRoute>
               </Route>
               <Route path="/api-integrations">
-                <LazyPage Component={APIIntegrations} />
+                <ProtectedRoute
+                  requiredRoles={[
+                    "business_owner",
+                    "business_employee",
+                    "marketing_specialist",
+                    "content_seo",
+                  ]}
+                >
+                  <LazyPage Component={APIIntegrations} />
+                </ProtectedRoute>
               </Route>
 
               {/* Interactive Pages */}
@@ -1856,7 +1929,9 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Notes */}
               <Route path="/notes">
-                <LazyPage Component={NotesPage} />
+                <ProtectedRoute>
+                  <LazyPage Component={NotesPage} />
+                </ProtectedRoute>
               </Route>
 
               {/* Legal pages */}
@@ -1950,7 +2025,16 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Story Generator */}
               <Route path="/story-generator">
-                <LazyPage Component={StoryGeneratorPage} />
+                <ProtectedRoute
+                  requiredRoles={[
+                    "business_owner",
+                    "business_employee",
+                    "marketing_specialist",
+                    "content_seo",
+                  ]}
+                >
+                  <LazyPage Component={StoryGeneratorPage} />
+                </ProtectedRoute>
               </Route>
 
               {/* Hard redirects remain explicit because they leave the client router. */}

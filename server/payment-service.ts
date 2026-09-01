@@ -44,8 +44,14 @@ export class PaymentService {
     const bookingRequestId = metadata.bookingRequestId;
     const ownerUserId = metadata.ownerUserId;
     const buyerUserId = metadata.buyerUserId;
+    const lineageKind = metadata.lineageKind;
 
-    if (!bookingRequestId || !ownerUserId || !buyerUserId) {
+    if (
+      !bookingRequestId ||
+      !ownerUserId ||
+      !buyerUserId ||
+      !new Set(["legacy_owner", "legacy_business_profile", "exact_profile"]).has(lineageKind)
+    ) {
       return null;
     }
 
@@ -57,7 +63,11 @@ export class PaymentService {
     if (
       bookingRequest.paymentIntentId !== paymentIntent.id ||
       bookingRequest.ownerUserId !== ownerUserId ||
-      bookingRequest.requesterUserId !== buyerUserId
+      bookingRequest.requesterUserId !== buyerUserId ||
+      bookingRequest.lineageKind !== lineageKind ||
+      (lineageKind === "exact_profile"
+        ? !bookingRequest.profileId || metadata.profileId !== bookingRequest.profileId
+        : Boolean(bookingRequest.profileId) || Boolean(String(metadata.profileId || "").trim()))
     ) {
       return null;
     }
@@ -575,9 +585,12 @@ export class PaymentService {
             break;
           }
 
-          await storage.updateProfileBookingRequest(bookingRequest.id, {
-            paymentStatus: "paid",
-          } as any);
+          await storage.transitionProfileBookingPaymentStatus({
+            id: bookingRequest.id,
+            paymentIntentId: paymentIntent.id,
+            from: ["requires_payment", "processing", "failed"],
+            to: "paid",
+          });
           const refreshedBooking = await storage.getProfileBookingRequestById(bookingRequest.id);
           if (
             refreshedBooking &&
@@ -620,9 +633,12 @@ export class PaymentService {
             break;
           }
 
-          await storage.updateProfileBookingRequest(bookingRequest.id, {
-            paymentStatus: "failed",
-          } as any);
+          await storage.transitionProfileBookingPaymentStatus({
+            id: bookingRequest.id,
+            paymentIntentId: failedIntent.id,
+            from: ["requires_payment", "processing"],
+            to: "failed",
+          });
         }
         break;
     }

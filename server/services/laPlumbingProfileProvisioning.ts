@@ -117,8 +117,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       existingOwner?.preferences && typeof existingOwner.preferences === "object"
         ? (existingOwner.preferences as Record<string, any>)
         : {};
-    const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(new Set([...existingRoles, "specialty_tradesperson", "contractor"]));
+    const roles = ["specialty_tradesperson", "contractor"];
     const existingBadges = Array.isArray(existingOwner?.badges) ? existingOwner.badges : [];
     // Community Builder is earned through its own program events. Preserve an
     // existing award, but never manufacture the role or badge during profile
@@ -181,7 +180,18 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
     const [owner] = existingOwner
       ? await tx
           .update(users)
-          .set(ownerValues as any)
+          .set({
+            ...ownerValues,
+            // Merge on the locked UPDATE row, not the earlier provisioning snapshot.
+            roles: sql`(
+              select array_agg(distinct role_value)
+              from unnest(
+                coalesce(${users.roles}, array[]::text[])
+                || array['specialty_tradesperson', 'contractor']::text[]
+              ) as role_value
+              where role_value <> ''
+            )`,
+          } as any)
           .where(eq(users.id, existingOwner.id))
           .returning()
       : await tx

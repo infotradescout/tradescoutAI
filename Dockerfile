@@ -71,9 +71,9 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10m --retries=3 \
   CMD wget --no-verbose --tries=1 --spider "http://127.0.0.1:${PORT:-5000}/api/health" || exit 1
 
-# Render normally verifies public media in pre-deploy. The runtime gate requires an
-# exact-release marker in the selected existing object store and performs the same
-# idempotent migration if Blueprint sync ever lags, so a container cannot become
-# healthy with missing public inventory. The release launcher also upgrades every
-# remote PostgreSQL URL to explicit verify-full certificate validation.
-CMD ["sh", "-c", "node runtime/run-release.mjs ensure-public-media-ready scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]
+# Render normally migrates and verifies schema before public media in pre-deploy.
+# Startup independently verifies required schema before the side-effecting media
+# readiness fallback, so a skipped or stale provider hook cannot reverse that order.
+# The release launcher also upgrades every remote PostgreSQL URL to explicit
+# verify-full certificate validation.
+CMD ["sh", "-c", "node runtime/run-release.mjs check-required-production-schema scripts/check-required-production-schema.mjs && node runtime/run-release.mjs ensure-public-media-ready scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]

@@ -6,6 +6,9 @@ import { randomBytes } from "crypto";
 import {
   type WorkRequest,
   affiliateShareLinks,
+  contactPermissionEvents,
+  contactPermissions,
+  decisionCards,
   directConnectGiveawayEntries,
   workRequests,
   workRequestEvents,
@@ -568,8 +571,7 @@ async function proposeAccountingAutomationFromDirectConnect(
       "Draft accounting work only. User review is required before posting, sending invoices, marking paid, or moving money.",
   };
 
-  try {
-    await tx.execute(sql`
+  await tx.execute(sql`
       INSERT INTO accounting_automation_events (
         profile_id,
         created_by,
@@ -614,19 +616,6 @@ async function proposeAccountingAutomationFromDirectConnect(
         metadata = EXCLUDED.metadata,
         updated_at = now()
     `);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || "");
-    if (
-      message.includes("accounting_automation_events") ||
-      message.includes("accounting_profiles")
-    ) {
-      console.warn(
-        "[direct-connect] accounting automation proposal skipped; books foundation migration missing"
-      );
-      return;
-    }
-    throw error;
-  }
 }
 
 function resolveDirectConnectVerificationBypass(
@@ -874,6 +863,564 @@ const assignmentResponseSchema = z
       path: ["availabilityWindow"],
     }
   );
+
+export class ExpressDirectConnectAuthorityTransitionError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = "ExpressDirectConnectAuthorityTransitionError";
+  }
+}
+
+type ExpressDirectConnectAuthorityTransition = {
+  sourceDecisionCardId: string;
+  contactPermissionId: string;
+  contactPreference: "platform_message" | "call";
+  fromContactGateState: string;
+  contactGateState: "accepted" | "provider_declined";
+  contactReleased: boolean;
+};
+
+function authorityRecord(value: unknown): Record<string, any> | null {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, any>)
+    : null;
+}
+
+export async function transitionExpressDirectConnectAuthority(
+  tx: any,
+  params: {
+    requestRow: any;
+    providerUserId: string;
+    decision: "accept" | "decline";
+    declineReason?: string | null;
+    now: Date;
+  }
+): Promise<ExpressDirectConnectAuthorityTransition | null> {
+  const workRequestId = String(params.requestRow?.id || "");
+  const requesterUserId = String(
+    params.requestRow?.createdByUserId ?? params.requestRow?.created_by_user_id ?? ""
+  );
+  const requestProfileId = String(
+    params.requestRow?.sourceRefId ?? params.requestRow?.source_ref_id ?? ""
+  );
+  const requestSource = String(params.requestRow?.source || "");
+  const eventResult = await tx.execute(sql`
+    SELECT metadata
+    FROM work_request_events
+    WHERE work_request_id = ${workRequestId}
+      AND type = 'created'
+    ORDER BY created_at ASC, id ASC
+    LIMIT 1
+  `);
+  const metadata = authorityRecord(eventResult.rows?.[0]?.metadata);
+  if (metadata?.source !== "tradepartner_profile" || metadata?.connectionMode !== "express") {
+    return null;
+  }
+
+  const sourceDecisionCardId = String(metadata.sourceDecisionCardId || "");
+  const contactPermissionId = String(metadata.contactPermissionId || "");
+  const decisionScope = String(metadata.decisionScope || "");
+  const intent = String(metadata.intent || "");
+  const contactPreference = String(metadata.contactPreference || "");
+  const permissionDisposition = String(metadata.permissionDisposition || "");
+  const scope = authorityRecord(decisionScope);
+  if (
+    metadata.authorityGate !== "decision_card" ||
+    !sourceDecisionCardId ||
+    !contactPermissionId ||
+    intent !== "hire" ||
+    (contactPreference !== "call" && contactPreference !== "platform_message") ||
+    !scope
+  ) {
+    throw new ExpressDirectConnectAuthorityTransitionError(
+      409,
+      "EXPRESS_AUTHORITY_LINK_MISSING",
+      "This Express request is missing its durable contact authority."
+    );
+  }
+
+  const expectedProfileSlug = String(metadata.businessSlug || metadata.profileSlug || "");
+  const scopeMatchesRequest =
+    requestSource === "direct_connect" &&
+    scope.kind === "tradepartner_profile_express" &&
+    String(scope.workRequestId || "") === workRequestId &&
+    String(scope.requesterUserId || "") === requesterUserId &&
+    String(scope.providerUserId || "") === params.providerUserId &&
+    String(scope.profileId || "") === requestProfileId &&
+    requestProfileId === String(metadata.profileId || "") &&
+    String(scope.profileSlug || "") === expectedProfileSlug &&
+    String(scope.businessId || "") === String(metadata.businessId || "") &&
+    String(scope.contactPreference || "") === contactPreference;
+  if (!scopeMatchesRequest) {
+    throw new ExpressDirectConnectAuthorityTransitionError(
+      409,
+      "EXPRESS_AUTHORITY_SCOPE_MISMATCH",
+      "The Express contact authority does not match this request and provider."
+    );
+  }
+
+  const authorityResult = await tx.execute(sql`
+    SELECT
+      dc.id AS decision_card_id,
+      dc.user_id AS decision_card_user_id,
+      dc.status AS decision_card_status,
+      dc.intent AS decision_card_intent,
+      dc.decision_scope AS decision_card_scope,
+      cp.id AS contact_permission_id,
+      cp.requester_id AS permission_requester_id,
+      cp.target_user_id AS permission_target_user_id,
+      cp.status AS permission_status,
+      cp.authority_gate AS permission_authority_gate,
+      cp.source_decision_card_id AS permission_decision_card_id,
+      cp.intent AS permission_intent,
+      cp.decision_scope AS permission_decision_scope,
+      cp.cooldown_until AS permission_cooldown_until
+    FROM decision_cards dc
+    JOIN contact_permissions cp ON cp.id = ${contactPermissionId}
+    WHERE dc.id = ${sourceDecisionCardId}
+    FOR UPDATE OF dc, cp
+  `);
+  const authorityRow = (authorityResult.rows?.[0] as any) || null;
+  if (!authorityRow) {
+    throw new ExpressDirectConnectAuthorityTransitionError(
+      409,
+      "EXPRESS_AUTHORITY_ROWS_MISSING",
+      "The Express Decision Card or contact permission no longer exists."
+    );
+  }
+
+  const permissionStatus = String(authorityRow.permission_status || "");
+  const cooldownUntil = authorityRow.permission_cooldown_until
+    ? new Date(authorityRow.permission_cooldown_until)
+    : null;
+  if (cooldownUntil && Number.isFinite(cooldownUntil.getTime()) && cooldownUntil > params.now) {
+    throw new ExpressDirectConnectAuthorityTransitionError(
+      409,
+      "EXPRESS_AUTHORITY_COOLDOWN_ACTIVE",
+      "The linked contact permission is currently in cooldown."
+    );
+  }
+  if (
+    String(authorityRow.decision_card_user_id || "") !== requesterUserId ||
+    String(authorityRow.decision_card_status || "") !== "active" ||
+    String(authorityRow.decision_card_intent || "") !== intent ||
+    String(authorityRow.decision_card_scope || "") !== decisionScope ||
+    String(authorityRow.contact_permission_id || "") !== contactPermissionId ||
+    String(authorityRow.permission_requester_id || "") !== requesterUserId ||
+    String(authorityRow.permission_target_user_id || "") !== params.providerUserId
+  ) {
+    throw new ExpressDirectConnectAuthorityTransitionError(
+      409,
+      "EXPRESS_AUTHORITY_ROW_MISMATCH",
+      "The linked contact authority does not belong to this request and provider."
+    );
+  }
+
+  const pendingAuthorityIsExact =
+    permissionDisposition === "created_pending" &&
+    permissionStatus === "pending" &&
+    String(authorityRow.permission_authority_gate || "") === "decision_card" &&
+    String(authorityRow.permission_decision_card_id || "") === sourceDecisionCardId &&
+    String(authorityRow.permission_intent || "") === intent &&
+    String(authorityRow.permission_decision_scope || "") === decisionScope;
+  const acceptedAuthorityIsReused =
+    permissionDisposition === "accepted_reused" && permissionStatus === "accepted";
+  if (!pendingAuthorityIsExact && !acceptedAuthorityIsReused) {
+    throw new ExpressDirectConnectAuthorityTransitionError(
+      409,
+      "EXPRESS_AUTHORITY_STATE_CONFLICT",
+      "The linked contact permission changed before the provider response."
+    );
+  }
+
+  const isAccept = params.decision === "accept";
+  const fromContactGateState = String(
+    metadata.contactGateState ||
+      (acceptedAuthorityIsReused ? "accepted_existing_relationship" : "pending_provider_response")
+  );
+  const contactGateState = isAccept ? "accepted" : "provider_declined";
+  const responseReason = isAccept
+    ? "express_assignment_accepted"
+    : params.declineReason || "express_assignment_declined";
+
+  if (pendingAuthorityIsExact) {
+    const nextPermissionStatus = isAccept ? "accepted" : "declined";
+    const [updatedPermission] = await tx
+      .update(contactPermissions)
+      .set({
+        status: nextPermissionStatus,
+        respondedAt: params.now,
+        respondedBy: params.providerUserId,
+        responseReason,
+        updatedAt: params.now,
+      })
+      .where(
+        and(
+          eq(contactPermissions.id, contactPermissionId),
+          eq(contactPermissions.status, "pending")
+        )
+      )
+      .returning({ id: contactPermissions.id });
+    if (!updatedPermission?.id) {
+      throw new ExpressDirectConnectAuthorityTransitionError(
+        409,
+        "EXPRESS_AUTHORITY_UPDATE_CONFLICT",
+        "The linked contact permission could not be transitioned safely."
+      );
+    }
+  }
+
+  await tx.insert(contactPermissionEvents).values({
+    contactPermissionId,
+    requesterId: requesterUserId,
+    targetUserId: params.providerUserId,
+    actorId: params.providerUserId,
+    eventType: pendingAuthorityIsExact
+      ? isAccept
+        ? "accepted"
+        : "declined"
+      : isAccept
+        ? "express_authority_confirmed"
+        : "express_scope_declined_existing_relationship",
+    fromStatus: pendingAuthorityIsExact ? "pending" : "accepted",
+    toStatus: pendingAuthorityIsExact ? (isAccept ? "accepted" : "declined") : "accepted",
+    reasonCode: responseReason,
+    metadata: {
+      workRequestId,
+      decision: params.decision,
+      fromContactGateState,
+      contactGateState,
+      contactReleased: isAccept,
+      permissionDisposition,
+      contactPreference,
+    },
+    authorityGate: "decision_card",
+    sourceDecisionCardId,
+    sourceScoutRecommendationId: null,
+    intent,
+    decisionScope,
+  });
+
+  const [updatedDecisionCard] = await tx
+    .update(decisionCards)
+    .set({
+      status: isAccept ? "completed" : "archived",
+      decidedAt: params.now,
+      updatedAt: params.now,
+    })
+    .where(
+      and(
+        eq(decisionCards.id, sourceDecisionCardId),
+        eq(decisionCards.userId, requesterUserId),
+        eq(decisionCards.status, "active")
+      )
+    )
+    .returning({ id: decisionCards.id });
+  if (!updatedDecisionCard?.id) {
+    throw new ExpressDirectConnectAuthorityTransitionError(
+      409,
+      "EXPRESS_DECISION_CARD_UPDATE_CONFLICT",
+      "The Express Decision Card could not be completed safely."
+    );
+  }
+
+  await tx.insert(workRequestEvents).values({
+    workRequestId,
+    type: "updated",
+    actorUserId: params.providerUserId,
+    metadata: {
+      kind: "contact_authority_transition",
+      authorityGate: "decision_card",
+      sourceDecisionCardId,
+      contactPermissionId,
+      intent,
+      decisionScope,
+      providerUserId: params.providerUserId,
+      decision: params.decision,
+      fromContactGateState,
+      contactGateState,
+      contactReleased: isAccept,
+      contactPreference,
+    },
+  });
+
+  return {
+    sourceDecisionCardId,
+    contactPermissionId,
+    contactPreference: contactPreference as "platform_message" | "call",
+    fromContactGateState,
+    contactGateState,
+    contactReleased: isAccept,
+  };
+}
+
+export class ExpressDirectConnectContactReleaseError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = "ExpressDirectConnectContactReleaseError";
+  }
+}
+
+type ExpressDirectConnectReleasedContact = {
+  assignmentId: string;
+  workRequestId: string;
+  requesterUserId: string;
+  contactPreference: "platform_message" | "call";
+  contactGateState: "accepted";
+  phone: string | null;
+};
+
+export async function loadExpressDirectConnectReleasedContact(
+  tx: any,
+  params: {
+    assignmentRow: any;
+    requestRow: any;
+    providerUserId: string;
+  }
+): Promise<ExpressDirectConnectReleasedContact> {
+  const assignmentId = String(params.assignmentRow?.id || "");
+  const assignmentStatus = String(params.assignmentRow?.status || "");
+  const assignedProviderUserId = String(
+    params.assignmentRow?.responderUserId ?? params.assignmentRow?.responder_user_id ?? ""
+  );
+  const assignmentWorkRequestId = String(
+    params.assignmentRow?.workRequestId ?? params.assignmentRow?.work_request_id ?? ""
+  );
+  if (
+    !assignmentId ||
+    !assignedProviderUserId ||
+    assignedProviderUserId !== params.providerUserId
+  ) {
+    throw new ExpressDirectConnectContactReleaseError(
+      404,
+      "EXPRESS_ASSIGNMENT_NOT_FOUND",
+      "Assignment not found."
+    );
+  }
+  if (assignmentStatus !== "accepted") {
+    throw new ExpressDirectConnectContactReleaseError(
+      409,
+      "EXPRESS_CONTACT_NOT_RELEASED",
+      "Contact remains gated until this assignment is accepted."
+    );
+  }
+
+  const workRequestId = String(params.requestRow?.id || "");
+  const requesterUserId = String(
+    params.requestRow?.createdByUserId ?? params.requestRow?.created_by_user_id ?? ""
+  );
+  const requestProfileId = String(
+    params.requestRow?.sourceRefId ?? params.requestRow?.source_ref_id ?? ""
+  );
+  if (
+    !workRequestId ||
+    assignmentWorkRequestId !== workRequestId ||
+    String(params.requestRow?.source || "") !== "direct_connect" ||
+    !requesterUserId ||
+    !requestProfileId
+  ) {
+    throw new ExpressDirectConnectContactReleaseError(
+      404,
+      "EXPRESS_ASSIGNMENT_NOT_FOUND",
+      "Assignment not found."
+    );
+  }
+
+  const createdEventResult = await tx.execute(sql`
+    SELECT metadata
+    FROM work_request_events
+    WHERE work_request_id = ${workRequestId}
+      AND type = 'created'
+    ORDER BY created_at ASC, id ASC
+    LIMIT 1
+  `);
+  const metadata = authorityRecord(createdEventResult.rows?.[0]?.metadata);
+  const sourceDecisionCardId = String(metadata?.sourceDecisionCardId || "");
+  const contactPermissionId = String(metadata?.contactPermissionId || "");
+  const decisionScope = String(metadata?.decisionScope || "");
+  const permissionDisposition = String(metadata?.permissionDisposition || "");
+  const contactPreference = String(metadata?.contactPreference || "");
+  const scope = authorityRecord(decisionScope);
+  const scopeMatchesRequest =
+    metadata?.source === "tradepartner_profile" &&
+    metadata?.connectionMode === "express" &&
+    metadata?.authorityGate === "decision_card" &&
+    String(metadata?.intent || "") === "hire" &&
+    sourceDecisionCardId.length > 0 &&
+    contactPermissionId.length > 0 &&
+    (contactPreference === "call" || contactPreference === "platform_message") &&
+    scope?.kind === "tradepartner_profile_express" &&
+    String(scope.workRequestId || "") === workRequestId &&
+    String(scope.requesterUserId || "") === requesterUserId &&
+    String(scope.providerUserId || "") === params.providerUserId &&
+    String(scope.profileId || "") === requestProfileId &&
+    requestProfileId === String(metadata?.profileId || "") &&
+    String(scope.profileSlug || "") ===
+      String(metadata?.businessSlug || metadata?.profileSlug || "") &&
+    String(scope.businessId || "") === String(metadata?.businessId || "") &&
+    String(scope.contactPreference || "") === contactPreference;
+  if (!scopeMatchesRequest) {
+    throw new ExpressDirectConnectContactReleaseError(
+      409,
+      "EXPRESS_CONTACT_AUTHORITY_INVALID",
+      "The accepted assignment does not have matching contact authority."
+    );
+  }
+
+  const authorityResult = await tx.execute(sql`
+    SELECT
+      dc.user_id AS decision_card_user_id,
+      dc.status AS decision_card_status,
+      dc.intent AS decision_card_intent,
+      dc.decision_scope AS decision_card_scope,
+      dc.decided_at AS decision_card_decided_at,
+      cp.requester_id AS permission_requester_id,
+      cp.target_user_id AS permission_target_user_id,
+      cp.status AS permission_status,
+      cp.authority_gate AS permission_authority_gate,
+      cp.source_decision_card_id AS permission_decision_card_id,
+      cp.intent AS permission_intent,
+      cp.decision_scope AS permission_decision_scope,
+      cp.responded_at AS permission_responded_at,
+      cp.responded_by AS permission_responded_by
+    FROM decision_cards dc
+    JOIN contact_permissions cp ON cp.id = ${contactPermissionId}
+    WHERE dc.id = ${sourceDecisionCardId}
+    FOR SHARE OF dc, cp
+  `);
+  const authorityRow = (authorityResult.rows?.[0] as any) || null;
+  const pairAndCardMatch =
+    authorityRow &&
+    String(authorityRow.decision_card_user_id || "") === requesterUserId &&
+    String(authorityRow.decision_card_status || "") === "completed" &&
+    String(authorityRow.decision_card_intent || "") === "hire" &&
+    String(authorityRow.decision_card_scope || "") === decisionScope &&
+    Boolean(authorityRow.decision_card_decided_at) &&
+    String(authorityRow.permission_requester_id || "") === requesterUserId &&
+    String(authorityRow.permission_target_user_id || "") === params.providerUserId &&
+    String(authorityRow.permission_status || "") === "accepted";
+  const exactCreatedPermission =
+    permissionDisposition === "created_pending" &&
+    pairAndCardMatch &&
+    String(authorityRow.permission_authority_gate || "") === "decision_card" &&
+    String(authorityRow.permission_decision_card_id || "") === sourceDecisionCardId &&
+    String(authorityRow.permission_intent || "") === "hire" &&
+    String(authorityRow.permission_decision_scope || "") === decisionScope &&
+    String(authorityRow.permission_responded_by || "") === params.providerUserId &&
+    Boolean(authorityRow.permission_responded_at);
+  const acceptedPairWasReused = permissionDisposition === "accepted_reused" && pairAndCardMatch;
+  if (!exactCreatedPermission && !acceptedPairWasReused) {
+    throw new ExpressDirectConnectContactReleaseError(
+      409,
+      "EXPRESS_CONTACT_AUTHORITY_INVALID",
+      "The accepted assignment does not have matching contact authority."
+    );
+  }
+
+  const gateEventResult = await tx.execute(sql`
+    SELECT metadata
+    FROM work_request_events
+    WHERE work_request_id = ${workRequestId}
+      AND type = 'updated'
+      AND actor_user_id = ${params.providerUserId}
+      AND metadata->>'kind' = 'contact_authority_transition'
+      AND metadata->>'sourceDecisionCardId' = ${sourceDecisionCardId}
+      AND metadata->>'contactPermissionId' = ${contactPermissionId}
+      AND metadata->>'contactGateState' = 'accepted'
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `);
+  const gateMetadata = authorityRecord(gateEventResult.rows?.[0]?.metadata);
+  if (
+    gateMetadata?.contactReleased !== true ||
+    String(gateMetadata?.decisionScope || "") !== decisionScope ||
+    String(gateMetadata?.decision || "") !== "accept" ||
+    String(gateMetadata?.contactPreference || "") !== contactPreference
+  ) {
+    throw new ExpressDirectConnectContactReleaseError(
+      409,
+      "EXPRESS_CONTACT_AUTHORITY_INVALID",
+      "The accepted assignment has no completed contact release event."
+    );
+  }
+
+  if (acceptedPairWasReused) {
+    const reuseEventResult = await tx.execute(sql`
+      SELECT id
+      FROM contact_permission_events
+      WHERE contact_permission_id = ${contactPermissionId}
+        AND requester_id = ${requesterUserId}
+        AND target_user_id = ${params.providerUserId}
+        AND actor_id = ${params.providerUserId}
+        AND event_type = 'express_authority_confirmed'
+        AND source_decision_card_id = ${sourceDecisionCardId}
+        AND decision_scope = ${decisionScope}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `);
+    if (!reuseEventResult.rows?.[0]?.id) {
+      throw new ExpressDirectConnectContactReleaseError(
+        409,
+        "EXPRESS_CONTACT_AUTHORITY_INVALID",
+        "The reused contact authority was not confirmed for this request."
+      );
+    }
+  }
+
+  // Platform-message consent authorizes only the governed conversation. It
+  // never authorizes a raw phone or email read, even after provider acceptance.
+  if (contactPreference === "platform_message") {
+    return {
+      assignmentId,
+      workRequestId,
+      requesterUserId,
+      contactPreference,
+      contactGateState: "accepted",
+      phone: null,
+    };
+  }
+
+  const requesterContactResult = await tx.execute(sql`
+    SELECT phone
+    FROM users
+    WHERE id = ${requesterUserId}
+    LIMIT 1
+  `);
+  const requesterContact = (requesterContactResult.rows?.[0] as any) || null;
+  const phone = String(requesterContact?.phone || "").trim();
+  if (!phone) {
+    throw new ExpressDirectConnectContactReleaseError(
+      409,
+      "EXPRESS_CONTACT_DETAILS_UNAVAILABLE",
+      "Requester contact details are unavailable."
+    );
+  }
+
+  return {
+    assignmentId,
+    workRequestId,
+    requesterUserId,
+    contactPreference: contactPreference as "platform_message" | "call",
+    contactGateState: "accepted",
+    phone,
+  };
+}
 
 const directConnectRouteRequestSchema = z.object({
   autoRoute: z.boolean().optional(),
@@ -7883,10 +8430,12 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Beta super-admin oversight: view the specific Direct Connect request that
+  // Beta staff oversight: view the specific Direct Connect request that
   // triggered a "Review request" notification (see directConnectBetaOversight.ts).
   // Read-only -- deliberately does not replicate the full homeowner/business
-  // Direct Connect workspace (estimates, payments, schedules, etc.).
+  // Direct Connect workspace (estimates, payments, schedules, etc.). Raw
+  // contact is never oversight metadata; only the assigned provider's exact
+  // accepted authority may use the separate contact-release endpoint.
   app.get(
     "/api/admin/direct-connect/requests/:id",
     isAuthenticated,
@@ -7981,7 +8530,7 @@ export function registerDirectConnectRoutes(app: Express) {
           request: {
             id: request.id,
             title: request.title,
-            description: request.description,
+            description: redactContactDetails(String(request.description || "")),
             category: request.category,
             status: request.status,
             source: request.source,
@@ -7992,8 +8541,7 @@ export function registerDirectConnectRoutes(app: Express) {
             ? {
                 id: requester.id,
                 name: [requester.firstName, requester.lastName].filter(Boolean).join(" ") || null,
-                email: requester.email || null,
-                phone: (requester as any).phone || null,
+                contactVisibility: "withheld",
               }
             : null,
           originatingProfile,
@@ -8006,8 +8554,7 @@ export function registerDirectConnectRoutes(app: Express) {
               status: a.status,
               responderUserId: a.responderUserId,
               responderName: responder
-                ? [responder.firstName, responder.lastName].filter(Boolean).join(" ") ||
-                  responder.email
+                ? [responder.firstName, responder.lastName].filter(Boolean).join(" ") || null
                 : null,
               createdAt: a.createdAt,
             };
@@ -8015,7 +8562,6 @@ export function registerDirectConnectRoutes(app: Express) {
           events: events.map((e) => ({
             id: e.id,
             type: e.type,
-            metadata: e.metadata,
             createdAt: e.createdAt,
           })),
           conversationId,
@@ -8041,6 +8587,44 @@ export function registerDirectConnectRoutes(app: Express) {
         const inboxItems: any[] = [];
         const contractor = await storage.getContractorByUserId(String(userId));
 
+        const loadExpressContactPreferenceByRequest = async (workRequestIds: string[]) => {
+          const preferences = new Map<string, "platform_message" | "call">();
+          if (!workRequestIds.length) return preferences;
+          const createdEvents = await db
+            .select({
+              id: workRequestEvents.id,
+              workRequestId: workRequestEvents.workRequestId,
+              metadata: workRequestEvents.metadata,
+            })
+            .from(workRequestEvents)
+            .where(
+              and(
+                inArray(workRequestEvents.workRequestId, workRequestIds),
+                eq(workRequestEvents.type, "created")
+              )
+            )
+            .orderBy(asc(workRequestEvents.createdAt), asc(workRequestEvents.id));
+          for (const event of createdEvents as any[]) {
+            const requestId = String(event.workRequestId || "");
+            if (!requestId || preferences.has(requestId)) continue;
+            const metadata = authorityRecord(event.metadata);
+            const preference = String(metadata?.contactPreference || "");
+            const scope = authorityRecord(metadata?.decisionScope);
+            if (
+              metadata?.source !== "tradepartner_profile" ||
+              metadata?.connectionMode !== "express" ||
+              metadata?.authorityGate !== "decision_card" ||
+              (preference !== "call" && preference !== "platform_message") ||
+              String(scope?.workRequestId || "") !== requestId ||
+              String(scope?.contactPreference || "") !== preference
+            ) {
+              continue;
+            }
+            preferences.set(requestId, preference);
+          }
+          return preferences;
+        };
+
         // Helper to build provider inbox items from a set of assignments
         const buildProviderInboxItems = async (
           assignments: any[],
@@ -8053,6 +8637,9 @@ export function registerDirectConnectRoutes(app: Express) {
             .from(workRequests)
             .where(inArray(workRequests.id, workRequestIds));
           const requestById = new Map(requests.map((r: any) => [r.id, r]));
+          const contactPreferenceByRequest = await loadExpressContactPreferenceByRequest(
+            workRequestIds.map(String)
+          );
           // Resolve conversation threads for accepted assignments.
           // Business/worker providers are stored in conversations using userId as contractorId.
           const conversationByHomeowner = new Map<string, string>();
@@ -8096,7 +8683,10 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           }
           return assignments.map((a: any) => ({
-            assignment: a,
+            assignment: {
+              ...a,
+              contactPreference: contactPreferenceByRequest.get(String(a.workRequestId)) || null,
+            },
             request: (() => {
               const requestRow = requestById.get(a.workRequestId) as any;
               if (!requestRow) return null;
@@ -8135,6 +8725,9 @@ export function registerDirectConnectRoutes(app: Express) {
               .where(inArray(workRequests.id, workRequestIds));
 
             const requestById = new Map(requests.map((r: any) => [r.id, r]));
+            const contactPreferenceByRequest = await loadExpressContactPreferenceByRequest(
+              workRequestIds.map(String)
+            );
 
             const homeownerIds = Array.from(
               new Set(
@@ -8166,7 +8759,10 @@ export function registerDirectConnectRoutes(app: Express) {
             }
 
             const providerItems = assignments.map((a: any) => ({
-              assignment: a,
+              assignment: {
+                ...a,
+                contactPreference: contactPreferenceByRequest.get(String(a.workRequestId)) || null,
+              },
               request: (() => {
                 const requestRow = requestById.get(a.workRequestId) as any;
                 if (!requestRow) return null;
@@ -9667,6 +10263,82 @@ export function registerDirectConnectRoutes(app: Express) {
     receiptCreateSchema,
   });
 
+  // Provider-facing: exact contact release for an accepted Express assignment.
+  // This is deliberately separate from inbox/list payloads so knowing a
+  // requester or request id never reveals contact details.
+  app.get(
+    "/api/direct-connect/assignments/:id/contact",
+    isAuthenticated,
+    directConnectProviderResponseLimiter,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const providerUserId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!providerUserId) return res.status(401).json({ message: "Unauthorized" });
+
+        const released = await db.transaction(async (tx) => {
+          const assignmentResult = await tx.execute(sql`
+            SELECT *
+            FROM work_request_assignments
+            WHERE id = ${req.params.id}
+            FOR SHARE
+          `);
+          const assignmentRow = (assignmentResult.rows?.[0] as any) || null;
+          const assignedProviderUserId = String(
+            assignmentRow?.responderUserId ?? assignmentRow?.responder_user_id ?? ""
+          );
+          if (!assignmentRow || assignedProviderUserId !== providerUserId) {
+            throw new ExpressDirectConnectContactReleaseError(
+              404,
+              "EXPRESS_ASSIGNMENT_NOT_FOUND",
+              "Assignment not found."
+            );
+          }
+
+          const assignmentWorkRequestId = String(
+            assignmentRow.workRequestId ?? assignmentRow.work_request_id ?? ""
+          );
+          const requestResult = await tx.execute(sql`
+            SELECT *
+            FROM work_requests
+            WHERE id = ${assignmentWorkRequestId}
+            FOR SHARE
+          `);
+          const requestRow = (requestResult.rows?.[0] as any) || null;
+          if (!requestRow) {
+            throw new ExpressDirectConnectContactReleaseError(
+              404,
+              "EXPRESS_ASSIGNMENT_NOT_FOUND",
+              "Assignment not found."
+            );
+          }
+
+          return loadExpressDirectConnectReleasedContact(tx, {
+            assignmentRow,
+            requestRow,
+            providerUserId,
+          });
+        });
+
+        return res.status(200).json({
+          assignmentId: released.assignmentId,
+          requestId: released.workRequestId,
+          contactPreference: released.contactPreference,
+          contactGateState: released.contactGateState,
+          requesterContact:
+            released.contactPreference === "call" && released.phone
+              ? { phone: released.phone }
+              : null,
+        });
+      } catch (error) {
+        if (error instanceof ExpressDirectConnectContactReleaseError) {
+          return res.status(error.status).json({ code: error.code, message: error.message });
+        }
+        console.error("Error releasing Express assignment contact:", error);
+        return res.status(500).json({ message: "Failed to load requester contact" });
+      }
+    }
+  );
+
   // Provider-facing: accept/decline an assignment, and create a conversation on accept
   app.post(
     "/api/direct-connect/assignments/:id/respond",
@@ -9759,6 +10431,15 @@ export function registerDirectConnectRoutes(app: Express) {
           if (!requestRow) {
             return { status: 404 as const, body: { message: "Work request not found" } };
           }
+          const requestCreatedByUserId = String(
+            requestRow.createdByUserId ?? requestRow.created_by_user_id ?? ""
+          );
+          if (!requestCreatedByUserId) {
+            return {
+              status: 409 as const,
+              body: { message: "Work request requester lineage is missing." },
+            };
+          }
 
           const canRespond = assignmentStatus === "suggested" || assignmentStatus === "invited";
           if (!canRespond) {
@@ -9791,6 +10472,7 @@ export function registerDirectConnectRoutes(app: Express) {
           let updatedAssignment: any;
 
           let conversationId: string | null = null;
+          let authorityTransition: ExpressDirectConnectAuthorityTransition | null = null;
 
           if (decision === "accept") {
             await tx
@@ -9817,76 +10499,95 @@ export function registerDirectConnectRoutes(app: Express) {
               .where(eq(workRequestAssignments.id, assignment.id))
               .returning();
 
-            try {
-              // Ensure there is exactly one conversation between requester and provider for this engagement.
-              // For contractor-profile providers, use contractor.id;
-              // for business/worker providers, use userId as the contractorId key.
-              const homeownerId = String(requestRow.createdByUserId);
-              const providerContractorId = isContractorAssignment ? contractor!.id : String(userId);
+            // Authority, conversation, request state, audit event, and the
+            // accounting proposal are one acceptance transaction. Any failure
+            // throws and rolls the assignment response back for a safe retry.
+            authorityTransition = await transitionExpressDirectConnectAuthority(tx, {
+              requestRow,
+              providerUserId: String(userId),
+              decision: "accept",
+              now,
+            });
 
-              const existing = await tx
-                .select()
-                .from(conversations)
-                .where(
-                  and(
-                    eq(conversations.homeownerId, homeownerId),
-                    eq(conversations.contractorId, providerContractorId)
-                  )
+            // Ensure there is exactly one conversation between requester and provider for this engagement.
+            // For contractor-profile providers, use contractor.id;
+            // for business/worker providers, use userId as the contractorId key.
+            const homeownerId = requestCreatedByUserId;
+            const providerContractorId = isContractorAssignment ? contractor!.id : String(userId);
+
+            const existing = await tx
+              .select()
+              .from(conversations)
+              .where(
+                and(
+                  eq(conversations.homeownerId, homeownerId),
+                  eq(conversations.contractorId, providerContractorId)
                 )
-                .orderBy(asc(conversations.createdAt))
-                .limit(1);
+              )
+              .orderBy(asc(conversations.createdAt))
+              .limit(1);
 
-              let convo = existing[0];
-              if (!convo) {
-                const [createdConversation] = await tx
-                  .insert(conversations)
-                  .values({
-                    homeownerId,
-                    contractorId: providerContractorId,
-                    leadId: null,
-                  } as any)
-                  .returning();
-                convo = createdConversation;
-              }
+            let convo = existing[0];
+            if (!convo) {
+              const [createdConversation] = await tx
+                .insert(conversations)
+                .values({
+                  homeownerId,
+                  contractorId: providerContractorId,
+                  leadId: null,
+                } as any)
+                .returning();
+              convo = createdConversation;
+            }
+            if (!convo?.id) {
+              throw new Error("Direct Connect acceptance did not create a conversation");
+            }
 
-              conversationId = String(convo.id);
+            conversationId = String(convo.id);
 
-              // Promote the work request to in_progress once at least one provider accepts
-              await tx
-                .update(workRequests)
-                .set({ status: "in_progress", updatedAt: now })
-                .where(eq(workRequests.id, requestRow.id));
+            // Promote the work request to in_progress once at least one provider accepts.
+            const [updatedRequest] = await tx
+              .update(workRequests)
+              .set({ status: "in_progress", updatedAt: now })
+              .where(eq(workRequests.id, requestRow.id))
+              .returning({ id: workRequests.id });
+            if (!updatedRequest?.id) {
+              throw new Error("Direct Connect acceptance did not update the work request");
+            }
 
-              await tx.insert(workRequestEvents).values({
-                workRequestId: requestRow.id,
-                type: "provider_accepted",
-                actorUserId: String(userId),
-                metadata: {
-                  contractorId: isContractorAssignment ? contractor!.id : null,
-                  responderUserId: isBusinessAssignment ? String(userId) : null,
-                  conversationId,
-                  responseSummary,
-                },
-              });
-
-              await proposeAccountingAutomationFromDirectConnect(tx, {
-                workRequestId: String(requestRow.id),
-                assignmentId: String(updatedAssignment.id),
-                requesterUserId: String(requestRow.createdByUserId),
-                providerUserId: String(userId),
-                actorUserId: String(userId),
-                conversationId,
-                requestTitle: String(requestRow.title || "Direct Connect request"),
-                responseSummary,
+            await tx.insert(workRequestEvents).values({
+              workRequestId: requestRow.id,
+              type: "provider_accepted",
+              actorUserId: String(userId),
+              metadata: {
                 contractorId: isContractorAssignment ? contractor!.id : null,
                 responderUserId: isBusinessAssignment ? String(userId) : null,
-              });
-            } catch (e) {
-              console.error(
-                "[direct-connect] Failed to create or link conversation for assignment",
-                e
-              );
-            }
+                conversationId,
+                responseSummary,
+                ...(authorityTransition
+                  ? {
+                      sourceDecisionCardId: authorityTransition.sourceDecisionCardId,
+                      contactPermissionId: authorityTransition.contactPermissionId,
+                      contactPreference: authorityTransition.contactPreference,
+                      contactGateState: authorityTransition.contactGateState,
+                      contactReleased: authorityTransition.contactReleased,
+                    }
+                  : {}),
+              },
+            });
+
+            await proposeAccountingAutomationFromDirectConnect(tx, {
+              workRequestId: String(requestRow.id),
+              assignmentId: String(updatedAssignment.id),
+              requesterUserId: requestCreatedByUserId,
+              providerUserId: String(userId),
+              actorUserId: String(userId),
+              conversationId,
+              requestTitle: String(requestRow.title || "Direct Connect request"),
+              responseSummary,
+              contractorId: isContractorAssignment ? contractor!.id : null,
+              responderUserId: isBusinessAssignment ? String(userId) : null,
+            });
           } else {
             [updatedAssignment] = await tx
               .update(workRequestAssignments)
@@ -9897,25 +10598,49 @@ export function registerDirectConnectRoutes(app: Express) {
               .where(eq(workRequestAssignments.id, assignment.id))
               .returning();
 
-            try {
-              await tx.insert(workRequestEvents).values({
-                workRequestId: requestRow.id,
-                type: "provider_declined",
-                actorUserId: String(userId),
-                metadata: {
-                  contractorId: isContractorAssignment ? contractor!.id : null,
-                  responderUserId: isBusinessAssignment ? String(userId) : null,
-                  reason: declineReason || "Unavailable",
-                },
-              });
-            } catch (e) {
-              console.error("[direct-connect] Failed to log decline event", e);
-            }
+            authorityTransition = await transitionExpressDirectConnectAuthority(tx, {
+              requestRow,
+              providerUserId: String(userId),
+              decision: "decline",
+              declineReason,
+              now,
+            });
+
+            await tx.insert(workRequestEvents).values({
+              workRequestId: requestRow.id,
+              type: "provider_declined",
+              actorUserId: String(userId),
+              metadata: {
+                contractorId: isContractorAssignment ? contractor!.id : null,
+                responderUserId: isBusinessAssignment ? String(userId) : null,
+                reason: declineReason || "Unavailable",
+                ...(authorityTransition
+                  ? {
+                      sourceDecisionCardId: authorityTransition.sourceDecisionCardId,
+                      contactPermissionId: authorityTransition.contactPermissionId,
+                      contactPreference: authorityTransition.contactPreference,
+                      contactGateState: authorityTransition.contactGateState,
+                      contactReleased: authorityTransition.contactReleased,
+                    }
+                  : {}),
+              },
+            });
           }
 
           return {
             status: 200 as const,
-            body: { assignment: updatedAssignment, conversationId, responseSummary },
+            body: {
+              assignment: updatedAssignment,
+              conversationId,
+              responseSummary,
+              ...(authorityTransition
+                ? {
+                    contactGateState: authorityTransition.contactGateState,
+                    contactReleased: authorityTransition.contactReleased,
+                    contactPreference: authorityTransition.contactPreference,
+                  }
+                : {}),
+            },
           };
         });
 
@@ -10031,6 +10756,9 @@ export function registerDirectConnectRoutes(app: Express) {
         }
         res.json(result.body);
       } catch (error: any) {
+        if (error instanceof ExpressDirectConnectAuthorityTransitionError) {
+          return res.status(error.status).json({ code: error.code, message: error.message });
+        }
         console.error("Error responding to direct connect assignment:", error);
         res.status(500).json({
           message: "Failed to respond to assignment",

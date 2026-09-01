@@ -45,6 +45,15 @@ import {
 } from "./utils/contactRequests";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 
+export type ConversationContactGate = "accepted" | "pending" | "denied" | "request_required";
+
+export function resolveConversationContactGate(status: unknown): ConversationContactGate {
+  if (status === "accepted") return "accepted";
+  if (status === "pending") return "pending";
+  if (status === "declined" || status === "blocked") return "denied";
+  return "request_required";
+}
+
 export function registerSocialFeatures(app: Express) {
   const isProductionEnv = process.env.NODE_ENV === "production";
   const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
@@ -713,6 +722,26 @@ export function registerSocialFeatures(app: Express) {
           });
         }
 
+        // Durable contact state takes precedence over thread existence. An old
+        // thread never resurrects a pending, declined, or blocked relationship.
+        const permission = await getContactPermission(userId, targetUserId);
+        const permissionGate = resolveConversationContactGate(permission?.status);
+        if (permissionGate === "pending") {
+          return res.status(202).json({
+            created: false,
+            pending: true,
+            requestId: permission?.lastRequestNotificationId || null,
+            message: "Contact request already pending recipient approval.",
+          });
+        }
+        if (permissionGate === "denied") {
+          return res.status(403).json({
+            created: false,
+            message: "Recipient has declined first contact.",
+            reasonCode: "CONTACT_DECLINED",
+          });
+        }
+
         // ========================================
         // CHECK: Conversation already exists?
         // ========================================
@@ -733,18 +762,7 @@ export function registerSocialFeatures(app: Express) {
           )
           .limit(1);
 
-        if (existing) {
-          try {
-            await updateContactPermissionStatus({
-              requesterId: userId,
-              targetUserId,
-              status: "accepted",
-              respondedBy: userId,
-              responseReason: "auto_accepted_existing_conversation",
-            });
-          } catch (e) {
-            console.warn("[contact-permissions] Failed to backfill accepted status", e);
-          }
+        if (existing && permissionGate === "accepted") {
           // Conversation already exists - return it without re-creating
           // Metadata (intent, authority, etc.) is preserved from original creation
           return res.json({
@@ -756,21 +774,7 @@ export function registerSocialFeatures(app: Express) {
           });
         }
 
-        const permission = await getContactPermission(userId, targetUserId);
-        if (permission?.status === "pending") {
-          return res.status(202).json({
-            created: false,
-            pending: true,
-            requestId: permission.lastRequestNotificationId || null,
-            message: "Contact request already pending recipient approval.",
-          });
-        } else if (permission?.status === "declined" || permission?.status === "blocked") {
-          return res.status(403).json({
-            created: false,
-            message: "Recipient has declined first contact.",
-            reasonCode: "CONTACT_DECLINED",
-          });
-        } else {
+        if (permissionGate !== "accepted") {
           const requestPreviewRaw =
             typeof req.body?.contactPreview === "string" ? req.body.contactPreview.trim() : "";
           const ensure = await ensureContactRequest({
@@ -801,6 +805,23 @@ export function registerSocialFeatures(app: Express) {
               message: "Contact request sent. Recipient must accept before chat opens.",
             });
           }
+          if (ensure.status !== "accepted") {
+            return res.status(403).json({
+              created: false,
+              message: "Recipient has not authorized contact.",
+              reasonCode: "CONTACT_NOT_AUTHORIZED",
+            });
+          }
+        }
+
+        if (existing) {
+          return res.json({
+            threadId: existing.id,
+            created: false,
+            intent: existing.intent,
+            authorityGate: existing.authorityGate,
+            message: "Existing conversation retrieved",
+          });
         }
 
         const [createdConversation] = await db
@@ -820,14 +841,6 @@ export function registerSocialFeatures(app: Express) {
             decisionScope: decisionScope || "Direct contact approved",
           })
           .returning();
-
-        await updateContactPermissionStatus({
-          requesterId: userId,
-          targetUserId,
-          status: "accepted",
-          respondedBy: userId,
-          responseReason: "conversation_started",
-        });
 
         res.status(200).json({
           threadId: createdConversation.id,

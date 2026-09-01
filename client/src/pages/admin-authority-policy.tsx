@@ -54,8 +54,9 @@ export default function AdminAuthorityPolicyPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-[color:var(--text-secondary)]">
           <p>
-            This policy governs privileged verification bypass, admin tier role recognition, and
-            demo mode handling for Direct Connect.
+            This policy governs role- and flag-backed verification bypass, admin tier role
+            recognition, and demo mode handling for Direct Connect. Configured recovery addresses
+            are reserved identifiers only and never grant authority.
           </p>
           <p>
             All contact must remain gated by TradeScout law: discovery does not grant contact, and
@@ -116,10 +117,15 @@ export default function AdminAuthorityPolicyPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
-                  Privileged alias emails
+                  Reserved recovery identifiers
                 </p>
                 <p className="text-[color:var(--text-primary)]">
-                  {data.privilegedAliasEmails.join(", ")}
+                  {data.privilegedAliasEmails.length > 0
+                    ? data.privilegedAliasEmails.join(", ")
+                    : "None configured"}
+                </p>
+                <p className="text-xs text-[color:var(--text-secondary)]">
+                  Reserved from public signup; these addresses do not grant roles or bypasses.
                 </p>
               </div>
               <div className="space-y-1">

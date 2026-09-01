@@ -4,6 +4,8 @@ import {
   businessVerifications,
   counties,
   profiles,
+  realtorProfiles,
+  carSalesmanProfiles,
   users,
   workers,
   type Business,
@@ -19,6 +21,10 @@ import {
   publicBusinessDetailExposureSqlPredicate,
   publicBusinessTradeSqlPredicate,
 } from "../publicationBusiness";
+import {
+  approvedProfessionalRolesFromProfiles,
+  reconcileUserRolePatchWithApprovedProfessionalRoles,
+} from "../services/professionalRoleAuthority";
 
 export type PublicBusinessRecord = {
   id: string;
@@ -735,6 +741,36 @@ export class BusinessRepository {
     userId: string
   ): Promise<ClaimedBusinessWithProfile> {
     return await db.transaction(async (tx) => {
+      const [realtorProfile] = await tx
+        .select({
+          verificationStatus: realtorProfiles.verificationStatus,
+          isActive: realtorProfiles.isActive,
+        })
+        .from(realtorProfiles)
+        .where(eq(realtorProfiles.userId, userId))
+        .limit(1)
+        .for("update");
+      const [carSalesmanProfile] = await tx
+        .select({
+          verificationStatus: carSalesmanProfiles.verificationStatus,
+          isActive: carSalesmanProfiles.isActive,
+        })
+        .from(carSalesmanProfiles)
+        .where(eq(carSalesmanProfiles.userId, userId))
+        .limit(1)
+        .for("update");
+      const approvedProfessionalRoles = approvedProfessionalRolesFromProfiles(
+        realtorProfile,
+        carSalesmanProfile
+      );
+      const [claimingUser] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
+        .for("update");
+      if (!claimingUser) throw new Error("Claiming user not found");
+
       const rows = await tx
         .update(businesses)
         .set({ ownerUserId: userId, claimStatus: "claimed", updatedAt: new Date() } as any)
@@ -915,28 +951,30 @@ export class BusinessRepository {
         canonicalProfile = createdProfile as Profile;
       }
 
-      const [claimingUser] = await tx
-        .select({ roles: users.roles })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      if (!claimingUser) throw new Error("Claiming user not found");
-
-      const [updatedUser] = await tx
-        .update(users)
-        .set({
+      const reconciledUserPatch = reconcileUserRolePatchWithApprovedProfessionalRoles({
+        currentUser: {
+          ...claimingUser,
+          roles: [
+            ...(Array.isArray(claimingUser.roles) ? claimingUser.roles : []),
+            "business_owner",
+          ],
+        },
+        patch: {
           activeBusinessId: business.id,
           activeProfileId: canonicalProfile.id,
           role: "business_owner",
           activeRole: "business_owner",
-          roles: Array.from(
-            new Set([
-              ...(Array.isArray(claimingUser.roles) ? claimingUser.roles : []),
-              "business_owner",
-            ])
-          ),
           updatedAt: new Date(),
-        } as any)
+        },
+        approvedProfessionalRoles,
+      });
+      if (reconciledUserPatch.outcome !== "allowed") {
+        throw new Error("Claiming user professional authority could not be reconciled");
+      }
+
+      const [updatedUser] = await tx
+        .update(users)
+        .set(reconciledUserPatch.patch as any)
         .where(eq(users.id, userId))
         .returning({ id: users.id });
       if (!updatedUser) throw new Error("Failed to activate claimed business profile");

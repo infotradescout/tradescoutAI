@@ -18,6 +18,7 @@ import {
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 import { getPublicationRules } from "../publicationRules";
 import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
+import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
 
 export type ProfileSitemapEligibilityCandidate = Omit<
   PublishedProfileExposureCandidate,
@@ -41,7 +42,11 @@ export class SitemapRepository {
     const rows = await db
       .select({
         profileId: profiles.id,
+        profilePubliclyReleased: profiles.publiclyReleased,
         slug: profiles.slug,
+        profileRoleContext: profiles.roleContext,
+        profileHeadline: profiles.headline,
+        profileContentBlocks: profiles.contentBlocks,
         updatedAt: profiles.updatedAt,
         businessId: profiles.businessId,
         profileOwnerUserId: profiles.ownerUserId,
@@ -56,6 +61,7 @@ export class SitemapRepository {
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         businessSources: businesses.sources,
         businessClaimStatus: businesses.claimStatus,
+        professionalRoleApproved: durableProfessionalProfileApprovalSql,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))

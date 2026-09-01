@@ -1923,7 +1923,12 @@ function appendFinanceConfidenceLine(message: string): string {
   return trimResponseToScreenFit(`${message}\n\n${confidenceLine}`);
 }
 
-async function getStandaloneAccountingSnapshotForUser(userId: string): Promise<{
+type ScoutFinanceQueryable = { query: typeof pool.query };
+
+export async function getStandaloneAccountingSnapshotForUser(
+  userId: string,
+  queryable: ScoutFinanceQueryable = pool
+): Promise<{
   totalInvoiced: number;
   totalPaid: number;
   totalUnpaid: number;
@@ -1931,13 +1936,17 @@ async function getStandaloneAccountingSnapshotForUser(userId: string): Promise<{
   largestOpenClient?: { name: string; amount: number } | null;
 }> {
   // Reuse the same document model as the standalone Finances workspace.
-  const { rows } = await pool.query(
+  const { rows } = await queryable.query(
     `SELECT
         COALESCE(payload->>'clientName', '(no client)') AS client_name,
         status,
         COALESCE((payload->>'total')::numeric, 0) AS total
       FROM documents
-      WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+      WHERE type = 'INVOICE'
+        AND created_by = $1
+        AND job_id IS NULL
+        AND left(payload->>'accountingGroupId', 5) = 'acct_'
+        AND permissions->>'lineageKind' = 'standalone_accounting'`,
     [userId]
   );
 
@@ -1982,17 +1991,24 @@ async function getStandaloneAccountingSnapshotForUser(userId: string): Promise<{
   };
 }
 
-async function getStandaloneVendorSnapshotForUser(userId: string): Promise<{
+export async function getStandaloneVendorSnapshotForUser(
+  userId: string,
+  queryable: ScoutFinanceQueryable = pool
+): Promise<{
   totalExpenses: number;
   vendorCount: number;
   topVendor?: { name: string; amount: number } | null;
 }> {
-  const { rows } = await pool.query(
+  const { rows } = await queryable.query(
     `SELECT
         COALESCE(payload->>'vendorName', '(no vendor)') AS vendor_name,
         COALESCE((payload->>'total')::numeric, 0) AS total
       FROM documents
-      WHERE type = 'EXPENSE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+      WHERE type = 'EXPENSE'
+        AND created_by = $1
+        AND job_id IS NULL
+        AND left(payload->>'accountingGroupId', 5) = 'acct_'
+        AND permissions->>'lineageKind' = 'standalone_accounting'`,
     [userId]
   );
 

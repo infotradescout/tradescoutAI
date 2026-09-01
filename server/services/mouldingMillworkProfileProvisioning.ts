@@ -50,8 +50,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       existingOwner?.preferences && typeof existingOwner.preferences === "object"
         ? (existingOwner.preferences as Record<string, any>)
         : {};
-    const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(new Set([...existingRoles, "business_owner", "contractor"]));
+    const roles = ["business_owner", "contractor"];
 
     const ownerValues = {
       firstName: existingOwner?.firstName || "Brian",
@@ -77,7 +76,18 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
     const [owner] = existingOwner
       ? await tx
           .update(users)
-          .set(ownerValues as any)
+          .set({
+            ...ownerValues,
+            // Merge on the locked UPDATE row, not the earlier provisioning snapshot.
+            roles: sql`(
+              select array_agg(distinct role_value)
+              from unnest(
+                coalesce(${users.roles}, array[]::text[])
+                || array['business_owner', 'contractor']::text[]
+              ) as role_value
+              where role_value <> ''
+            )`,
+          } as any)
           .where(eq(users.id, existingOwner.id))
           .returning()
       : await tx

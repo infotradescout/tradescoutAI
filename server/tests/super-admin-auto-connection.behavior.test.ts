@@ -29,7 +29,7 @@ describe("super-admin auto-connection behavior", () => {
     vi.clearAllMocks();
   });
 
-  it("writes mutual follows and accepted platform support contact permission", async () => {
+  it("writes mutual discovery follows without writing contact permission", async () => {
     selectResultMock.mockResolvedValue([{ id: "super-1" }]);
     executeMock.mockResolvedValue({});
 
@@ -39,7 +39,7 @@ describe("super-admin auto-connection behavior", () => {
       ensured: true,
       superAdminUserId: "super-1",
     });
-    expect(executeMock).toHaveBeenCalledTimes(3);
+    expect(executeMock).toHaveBeenCalledTimes(2);
     expect(insertMock).not.toHaveBeenCalled();
   });
 
@@ -64,7 +64,7 @@ describe("super-admin auto-connection behavior", () => {
       reason: "self_super_admin_full_sweep",
       superAdminUserId: "super-1",
     });
-    expect(executeMock).toHaveBeenCalledTimes(4);
+    expect(executeMock).toHaveBeenCalledTimes(2);
     expect(insertMock).not.toHaveBeenCalled();
   });
 });

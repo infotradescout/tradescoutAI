@@ -29,9 +29,34 @@ describe("roleChecks admin UI access", () => {
     expect(hasAdminUiAccess({ roles: ["member", "homeowner"] })).toBe(false);
   });
 
-  it("honors both support inbox aliases for admin UI access", () => {
-    expect(hasAdminUiAccess({ email: "contact@thetradescout.com" })).toBe(true);
-    expect(hasAdminUiAccess({ email: "info.tradescout@gmail.com" })).toBe(true);
+  it("does not infer admin UI access from substrings or untrusted claims", () => {
+    for (const role of ["hoa_admin", "assistant_admin", "organization_admin"]) {
+      expect(hasAdminUiAccess({ role })).toBe(false);
+      expect(hasAdminUiAccess({ roles: [role] })).toBe(false);
+    }
+    expect(
+      hasAdminUiAccess({
+        role: "homeowner",
+        claims: {
+          role: "super_admin",
+          roles: ["ops_admin"],
+          isAdmin: true,
+          isSuperAdmin: true,
+        },
+      })
+    ).toBe(false);
+    expect(hasAdminUiAccess({ role: "moderator" })).toBe(true);
+  });
+
+  it("never derives admin UI access from direct or claims email aliases", () => {
+    expect(hasAdminUiAccess({ email: "contact@thetradescout.com" })).toBe(false);
+    expect(hasAdminUiAccess({ email: "info.tradescout@gmail.com" })).toBe(false);
+    expect(
+      hasAdminUiAccess({
+        email: "ordinary@example.com",
+        claims: { email: "contact@thetradescout.com" },
+      })
+    ).toBe(false);
   });
 });
 

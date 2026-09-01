@@ -22,21 +22,15 @@ describe("super-admin auto-connection contracts", () => {
     expect(routesSource).toContain("await ensureSuperAdminConnectionForUser(String(userId));");
   });
 
-  it("writes both social follow edges and accepted contact permission", () => {
+  it("writes only social discovery edges and never grants contact authority", () => {
     const helperSource = read("server/utils/superAdminConnection.ts");
 
     expect(helperSource).toContain("insert into user_follows");
-    expect(helperSource).toContain("'accepted'");
-    expect(helperSource).toContain("system_super_admin_auto");
-    expect(helperSource).toContain("'platform_support'");
-  });
-
-  it("keeps super-admin authority gate within contact_permissions varchar(30)", () => {
-    const helperSource = read("server/utils/superAdminConnection.ts");
-    const match = helperSource.match(/SUPER_ADMIN_AUTHORITY_GATE\s*=\s*"([^"]+)"/);
-
-    expect(match?.[1]).toBeTruthy();
-    expect((match?.[1] ?? "").length).toBeLessThanOrEqual(30);
+    expect(helperSource).not.toContain("contact_permissions");
+    expect(helperSource).not.toContain("system_super_admin_auto");
+    expect(helperSource).not.toContain("do update set");
+    expect(helperSource).toContain("must never create");
+    expect(helperSource).toContain("or rewrite contact authority");
   });
 
   it("keeps synthetic integration users out of production relationship provisioning", () => {

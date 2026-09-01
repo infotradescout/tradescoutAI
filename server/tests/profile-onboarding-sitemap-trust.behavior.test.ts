@@ -13,7 +13,11 @@ import { isPublishedProfileSitemapTargetPublic } from "../routes/profiles";
 
 const baseCandidate: ProfileSitemapEligibilityCandidate = {
   profileId: "profile-1",
+  profilePubliclyReleased: true,
   slug: "onboarded-business",
+  profileRoleContext: "homeowner",
+  profileHeadline: "A meaningful public profile",
+  profileContentBlocks: [],
   businessId: "business-1",
   profileOwnerUserId: "owner-1",
   ownerVerifiedBadge: false,
@@ -46,6 +50,7 @@ describe("onboarding profile sitemap trust boundary", () => {
       shouldIncludePublicProfileInSitemap({
         ...baseCandidate,
         ownerVerificationStatus: "approved",
+        publicDiscoveryEnabled: true,
         ownerPreferences: { publicProfileIds: ["profile-1"] },
       })
     ).toBe(true);
@@ -53,7 +58,9 @@ describe("onboarding profile sitemap trust boundary", () => {
       shouldIncludePublicProfileInSitemap({
         ...baseCandidate,
         profileId: "profile-2",
+        profilePubliclyReleased: false,
         ownerVerificationStatus: "approved",
+        publicDiscoveryEnabled: true,
         ownerPreferences: { publicProfileIds: ["profile-1"] },
       })
     ).toBe(false);
@@ -81,6 +88,7 @@ describe("onboarding profile sitemap trust boundary", () => {
       shouldIncludePublicProfileInSitemap({
         ...baseCandidate,
         ownerVerificationStatus: " APPROVED ",
+        publicDiscoveryEnabled: true,
       })
     ).toBe(true);
     expect(
@@ -88,6 +96,7 @@ describe("onboarding profile sitemap trust boundary", () => {
         ...baseCandidate,
         ownerVerifiedBadge: true,
         ownerVerificationStatus: "pending",
+        publicDiscoveryEnabled: true,
       })
     ).toBe(true);
   });
@@ -133,7 +142,12 @@ describe("onboarding profile sitemap trust boundary", () => {
   it("gates the concrete route-level sitemap target used by every profile sitemap", () => {
     const rawTarget = {
       profile_id: "profile-1",
+      profile_publicly_released: true,
       profile_slug: "onboarded-business",
+      profile_role_context: "homeowner",
+      profile_headline: "A meaningful public profile",
+      content_blocks: [],
+      professional_role_approved: true,
       business_id: "business-1",
       profile_owner_user_id: "owner-1",
       owner_verified_badge: false,
@@ -172,6 +186,7 @@ describe("onboarding profile sitemap trust boundary", () => {
       isPublishedProfileSitemapTargetPublic({
         ...rawTarget,
         owner_preferences: { publicProfileIds: ["another-profile"] },
+        profile_publicly_released: false,
         owner_verification_status: "approved",
       })
     ).toBe(false);

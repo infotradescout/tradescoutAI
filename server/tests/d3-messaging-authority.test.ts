@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { db } from "../../src/db/drizzle-mock";
 import { users, marketplaceConversations, decisionCards, contactPermissions } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 
 // Test utilities
@@ -238,6 +238,61 @@ describeIntegration("D3: Messaging Authority Enforcement", () => {
 
       expect(conv.confidenceScore).toBe("0.85"); // Original preserved
     });
+
+    it.each([
+      ["pending", 202],
+      ["declined", 403],
+      ["blocked", 403],
+    ] as const)(
+      "does not resurrect a %s permission when an old thread exists",
+      async (permissionStatus, expectedStatus) => {
+        const initiator = await createTestUser({ addressVerified: true });
+        const recipient = await createTestUser({ addressVerified: true, role: "contractor" });
+        const decision = await createDecisionCard(initiator.id);
+        const payload = {
+          targetUserId: recipient.id,
+          intent: "hire",
+          authorityGate: "decision_card",
+          sourceDecisionCardId: decision.id,
+        };
+        await grantAcceptedPermission(initiator.id, recipient.id);
+        expect((await startConversation("test_token", payload)).status).toBe(200);
+
+        const responseAt = new Date();
+        await db
+          .update(contactPermissions)
+          .set({
+            status: permissionStatus,
+            lastRequestType: permissionStatus === "pending" ? "message" : null,
+            lastRequestNotificationId: permissionStatus === "pending" ? "test-request" : null,
+            respondedAt: permissionStatus === "pending" ? null : responseAt,
+            respondedBy: permissionStatus === "pending" ? null : recipient.id,
+            responseReason: permissionStatus === "pending" ? null : `test_${permissionStatus}`,
+            updatedAt: responseAt,
+          } as any)
+          .where(
+            and(
+              eq(contactPermissions.requesterId, initiator.id),
+              eq(contactPermissions.targetUserId, recipient.id)
+            )
+          );
+
+        const response = await startConversation("test_token", payload);
+        expect(response.status).toBe(expectedStatus);
+        expect(response.data.threadId).toBeUndefined();
+        const [permission] = await db
+          .select()
+          .from(contactPermissions)
+          .where(
+            and(
+              eq(contactPermissions.requesterId, initiator.id),
+              eq(contactPermissions.targetUserId, recipient.id)
+            )
+          );
+        expect(permission.status).toBe(permissionStatus);
+        expect(permission.respondedBy).not.toBe(initiator.id);
+      }
+    );
   });
 
   // ========================================

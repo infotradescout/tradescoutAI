@@ -130,7 +130,7 @@ const states = [
 ];
 
 export default function RealtorApplication() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
@@ -155,15 +155,19 @@ export default function RealtorApplication() {
 
   const submitApplicationMutation = useMutation({
     mutationFn: async (data: RealtorApplicationForm) => {
+      const {
+        serviceCounties: submittedCounties,
+        serviceCities = [],
+        serviceZipCodes = [],
+        ...application
+      } = data;
       return apiRequest("POST", "/api/realtor/application", {
-        ...data,
-        userId: user?.id,
+        ...application,
         serviceAreas: {
-          counties: serviceCounties,
-          cities: data.serviceCities || [],
-          zipCodes: data.serviceZipCodes || [],
+          counties: submittedCounties,
+          cities: serviceCities,
+          zipCodes: serviceZipCodes,
         },
-        specializations: selectedSpecializations,
       });
     },
     onSuccess: () => {
@@ -174,6 +178,8 @@ export default function RealtorApplication() {
           "Your realtor application has been submitted for review. You'll be notified once verified.",
       });
       form.reset();
+      setSelectedSpecializations([]);
+      setServiceCounties([]);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -200,11 +206,13 @@ export default function RealtorApplication() {
   };
 
   const handleSpecializationToggle = (specialization: string) => {
-    setSelectedSpecializations((prev) =>
-      prev.includes(specialization)
+    setSelectedSpecializations((prev) => {
+      const next = prev.includes(specialization)
         ? prev.filter((s) => s !== specialization)
-        : [...prev, specialization]
-    );
+        : [...prev, specialization];
+      form.setValue("specializations", next, { shouldDirty: true, shouldValidate: true });
+      return next;
+    });
   };
 
   if (!isAuthenticated) {
@@ -458,9 +466,13 @@ export default function RealtorApplication() {
                           <Input
                             placeholder="e.g., Los Angeles County, Orange County"
                             value={serviceCounties.join(", ")}
-                            onChange={(e) =>
-                              setServiceCounties(e.target.value.split(",").map((s) => s.trim()))
-                            }
+                            onChange={(e) => {
+                              const counties = e.target.value
+                                .split(",")
+                                .map((value) => value.trim());
+                              setServiceCounties(counties);
+                              field.onChange(counties.filter(Boolean));
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

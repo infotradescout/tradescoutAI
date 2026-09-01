@@ -355,6 +355,9 @@ describe("direct-connect gate regressions", () => {
       '"/api/direct-connect/requests/:id/contact-gate",\n    isAuthenticated,\n    directConnectWorkflowLimiter'
     );
     expect(routeFile).toContain(
+      '"/api/direct-connect/assignments/:id/contact",\n    isAuthenticated,\n    directConnectProviderResponseLimiter'
+    );
+    expect(routeFile).toContain(
       '"/api/direct-connect/assignments/:id/respond",\n    isAuthenticated,\n    directConnectProviderResponseLimiter'
     );
     expect(routeFile).toContain(
@@ -372,12 +375,12 @@ describe("direct-connect gate regressions", () => {
     expect(routeFile).toContain("const hasAccess = await canResponderUserAccessRequest");
   });
 
-  it("keeps the explicit super-admin platform-support auto-link path", () => {
+  it("keeps support discovery separate from governed contact authority", () => {
     const helperFile = readRepoFile("server/utils/superAdminConnection.ts");
 
     expect(helperFile).toContain("insert into user_follows");
-    expect(helperFile).toContain("contact_permissions");
-    expect(helperFile).toContain("system_super_admin_auto");
-    expect(helperFile).toContain("platform_support");
+    expect(helperFile).not.toContain("contact_permissions");
+    expect(helperFile).not.toContain("system_super_admin_auto");
+    expect(helperFile).not.toContain("platform_support");
   });
 });

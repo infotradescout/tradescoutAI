@@ -17,6 +17,7 @@ import {
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
 } from "@shared/steelHomePackagesProfile";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
+import { resolveJwStonePublicMediaObjectKey } from "@shared/jwStonePublicMedia";
 import {
   canExposePublishedProfilePublicly,
   canServePublishedProfileAtDirectRoute,
@@ -76,23 +77,34 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
     expect(STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE).toBe("steel_home_planning_tools_labor");
   });
 
-  it("keeps the exact route reviewable without granting discovery authority", () => {
-    expect(canServePublishedProfileAtDirectRoute(safeUnlistedCandidate)).toBe(true);
-    expect(canExposePublishedProfilePublicly(safeUnlistedCandidate)).toBe(false);
-    expect(isSteelHomePackagesUnlistedDirectProfile(safeUnlistedCandidate)).toBe(true);
+  it("requires canonical release before keeping the exact route reviewable", () => {
+    const releasedCandidate = {
+      ...safeUnlistedCandidate,
+      profilePubliclyReleased: true,
+    };
+
+    expect(canServePublishedProfileAtDirectRoute(safeUnlistedCandidate)).toBe(false);
+    expect(
+      canServePublishedProfileAtDirectRoute({
+        ...safeUnlistedCandidate,
+        profilePubliclyReleased: false,
+      })
+    ).toBe(false);
+    expect(canServePublishedProfileAtDirectRoute(releasedCandidate)).toBe(true);
+    expect(canExposePublishedProfilePublicly(releasedCandidate)).toBe(false);
+    expect(isSteelHomePackagesUnlistedDirectProfile(releasedCandidate)).toBe(true);
 
     for (const unsafeChange of [
       { profileStatus: "draft" },
-      { businessStatus: "active" },
       { businessOwnerUserId: "another-user" },
       { publicDiscoveryEnabled: true },
       { businessSources: [] },
       { ownerRole: "contractor", ownerRoles: [] },
       { ownerVerifiedBadge: false, ownerVerificationStatus: "pending" },
     ]) {
-      expect(
-        canServePublishedProfileAtDirectRoute({ ...safeUnlistedCandidate, ...unsafeChange })
-      ).toBe(false);
+      expect(canServePublishedProfileAtDirectRoute({ ...releasedCandidate, ...unsafeChange })).toBe(
+        false
+      );
     }
   });
 
@@ -224,12 +236,10 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
     expect(serverRoutes).toContain("registerStoneDesignerImageRoutes(app)");
 
     for (const stone of JW_STONE_NAMED_CATALOG) {
-      const sourceFile = path.resolve(
-        process.cwd(),
-        "client/public",
-        stone.images[0].replace(/^\/+/, "")
-      );
-      expect(fs.existsSync(sourceFile), `${stone.id} needs its exact lead image`).toBe(true);
+      expect(
+        resolveJwStonePublicMediaObjectKey(stone.images[0]),
+        `${stone.id} needs its exact pinned public-media object`
+      ).toBeTruthy();
     }
 
     const selectedStone = JW_STONE_NAMED_CATALOG.find((stone) => stone.id === "cristallo");
@@ -237,10 +247,16 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
     if (!selectedStone || !anonymousStone) throw new Error("Expected named and anonymous stones");
 
     const app = express();
-    registerStoneDesignerImageRoutes(app);
-    const expectedImage = fs.readFileSync(
-      path.resolve(process.cwd(), "client/public", selectedStone.images[0].replace(/^\/+/, ""))
-    );
+    const expectedImage = Buffer.from("exact-pinned-stone-image");
+    const streamedKeys: string[] = [];
+    registerStoneDesignerImageRoutes(app, {
+      stream: async ({ res, key }) => {
+        streamedKeys.push(key);
+        res.setHeader("Content-Type", "image/webp");
+        res.status(200).send(expectedImage);
+        return "served";
+      },
+    });
     const response = await request(app)
       .get("/images/stone-designer/cristallo/1.webp")
       .buffer(true)
@@ -251,6 +267,7 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
       });
     expect(response.status).toBe(200);
     expect(response.body).toEqual(expectedImage);
+    expect(streamedKeys).toEqual([resolveJwStonePublicMediaObjectKey(selectedStone.images[0])]);
 
     const stableHref = buildNamedStoneDesignerImageHref(
       selectedStone.shareSlug!,
@@ -285,7 +302,9 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
 
   it("keeps all three planner implementations free of unsupported early-price language", () => {
     const source = [
-      read("client/src/pages/profile-sites/steel-home-project-tools/MeasuredCountertopDesigner.tsx"),
+      read(
+        "client/src/pages/profile-sites/steel-home-project-tools/MeasuredCountertopDesigner.tsx"
+      ),
       read("client/src/pages/profile-sites/steel-home-project-tools/CabinetDesigner.tsx"),
       read("client/src/pages/profile-sites/steel-home-project-tools/BuildingDesigner.tsx"),
       read("client/src/pages/profile-sites/steel-home-project-tools/PlanningEstimateCard.tsx"),

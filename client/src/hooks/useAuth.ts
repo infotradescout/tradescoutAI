@@ -8,14 +8,20 @@ export interface VerificationBypassMetadata {
   reason?:
     | "none"
     | "role"
-    | "email_alias"
     | "admin_flag"
     | "direct_connect_demo_mode"
     | "manual_direct_connect_override";
   matchedRoles?: string[];
-  matchedEmail?: string | null;
   directConnectDemoMode?: boolean;
 }
+
+const VERIFICATION_BYPASS_REASONS = new Set<VerificationBypassMetadata["reason"]>([
+  "none",
+  "role",
+  "admin_flag",
+  "direct_connect_demo_mode",
+  "manual_direct_connect_override",
+]);
 
 export interface User {
   [key: string]: any;
@@ -68,6 +74,18 @@ export interface User {
   verificationBypass?: VerificationBypassMetadata;
 }
 
+export function sanitizeAuthUserAuthority(user: User): User {
+  const bypass = user?.verificationBypass;
+  if (!bypass || VERIFICATION_BYPASS_REASONS.has(bypass.reason)) {
+    return user;
+  }
+
+  // Ignore obsolete or unknown authority reasons from stale cached responses.
+  // The current server contract never grants authority from an email value.
+  const { verificationBypass: _ignored, ...safeUser } = user;
+  return safeUser as User;
+}
+
 export function useAuth() {
   const authQuery = useCallback(async () => {
     try {
@@ -107,14 +125,14 @@ export function useAuth() {
       // Fail-soft shape (preferred): { authenticated: boolean, user?: User }
       if (payload && typeof payload === "object" && "authenticated" in payload) {
         if (payload.authenticated === true && payload.user) {
-          return payload.user as User;
+          return sanitizeAuthUserAuthority(payload.user as User);
         }
         return null;
       }
 
       // Legacy shape: user object or null
       if (!payload) return null;
-      return payload as User;
+      return sanitizeAuthUserAuthority(payload as User);
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === "AbortError") {

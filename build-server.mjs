@@ -125,6 +125,7 @@ const require = createRequire(import.meta.url);
 
 const releaseResult = await esbuild.build({
   entryPoints: {
+    'run-production-predeploy': 'scripts/run-production-predeploy.mjs',
     'ensure-public-media-ready': 'scripts/ensure-public-media-ready.mjs',
     'migrate-jw-stone-public-media': 'scripts/migrate-jw-stone-public-media.mjs',
     'migrate-red-graniti-public-media': 'scripts/migrate-red-graniti-public-media.mjs',

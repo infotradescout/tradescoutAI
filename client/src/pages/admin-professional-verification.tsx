@@ -25,21 +25,73 @@ import {
   CreditCard,
 } from "lucide-react";
 
+type ProfessionalServiceAreas =
+  | string[]
+  | {
+      counties?: string[];
+      cities?: string[];
+      zipCodes?: string[];
+    }
+  | null;
+
+type ProfessionalVerificationDocuments =
+  | Record<string, string | string[] | null | undefined>
+  | string[]
+  | null;
+
+function stringValues(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function serviceAreaLabels(value: ProfessionalServiceAreas): string[] {
+  if (Array.isArray(value)) return stringValues(value);
+  if (!value || typeof value !== "object") return [];
+  return [
+    ...stringValues(value.counties).map((item) => `County: ${item}`),
+    ...stringValues(value.cities).map((item) => `City: ${item}`),
+    ...stringValues(value.zipCodes).map((item) => `ZIP: ${item}`),
+  ];
+}
+
+function documentLabels(value: ProfessionalVerificationDocuments): string[] {
+  if (Array.isArray(value)) return stringValues(value).map((_, index) => `Document ${index + 1}`);
+  if (!value || typeof value !== "object") return [];
+
+  return Object.entries(value).flatMap(([key, item]) => {
+    const values = typeof item === "string" ? [item.trim()].filter(Boolean) : stringValues(item);
+    const label = key
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/[_-]+/g, " ")
+      .replace(/^./, (character) => character.toUpperCase());
+    return values.map((_, index) => (values.length > 1 ? `${label} ${index + 1}` : label));
+  });
+}
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return "Not provided";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "Not provided" : parsed.toLocaleDateString();
+}
+
 interface RealtorProfile {
   id: string;
   userId: string;
   licenseNumber: string;
   brokerageName: string;
-  mlsId: string;
-  specializations: string[];
-  yearsExperience: number;
-  transactionsCompleted: number;
-  averageTransactionValue: number;
-  serviceAreas: string[];
+  mlsId: string | null;
+  specializations: string[] | null;
+  yearsExperience: number | null;
+  transactionsCompleted: number | null;
+  averageTransactionValue: number | string | null;
+  serviceAreas: ProfessionalServiceAreas;
   licenseState: string;
-  licenseExpiration: string;
+  licenseExpiration: string | null;
   verificationStatus: string;
-  verificationDocuments: string[];
+  verificationDocuments: ProfessionalVerificationDocuments;
   isActive: boolean;
   createdAt: string;
   user: {
@@ -58,17 +110,17 @@ interface CarSalesmanProfile {
   userId: string;
   dealershipName: string;
   dealerLicense: string;
-  salesmanLicense: string;
-  specializations: string[];
-  yearsExperience: number;
-  vehiclesSold: number;
-  averageVehicleValue: number;
-  brandsSpecialty: string[];
-  serviceAreas: string[];
+  salesmanLicense: string | null;
+  specializations: string[] | null;
+  yearsExperience: number | null;
+  vehiclesSold: number | null;
+  averageVehicleValue: number | string | null;
+  brandsSpecialty: string[] | null;
+  serviceAreas: ProfessionalServiceAreas;
   licenseState: string;
-  licenseExpiration: string;
+  licenseExpiration: string | null;
   verificationStatus: string;
-  verificationDocuments: string[];
+  verificationDocuments: ProfessionalVerificationDocuments;
   isActive: boolean;
   createdAt: string;
   user: {
@@ -169,13 +221,16 @@ export default function AdminProfessionalVerification() {
     carSalesmanVerificationMutation.mutate({ profileId, approved, notes });
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | string | null) => {
+    if (amount == null || amount === "") return "Not provided";
+    const normalizedAmount = Number(amount);
+    if (!Number.isFinite(normalizedAmount)) return "Not provided";
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(normalizedAmount);
   };
 
   if (isLoading) {
@@ -347,9 +402,7 @@ export default function AdminProfessionalVerification() {
                             </div>
                             <div>
                               <span className="font-medium">Expiration:</span>
-                              <span className="ml-2">
-                                {new Date(realtor.licenseExpiration).toLocaleDateString()}
-                              </span>
+                              <span className="ml-2">{formatDate(realtor.licenseExpiration)}</span>
                             </div>
                             <div>
                               <span className="font-medium">Brokerage:</span>
@@ -367,7 +420,7 @@ export default function AdminProfessionalVerification() {
                           <div>
                             <h4 className="font-semibold text-ts-orange mb-2">Specializations</h4>
                             <div className="flex flex-wrap gap-2">
-                              {realtor.specializations.map((spec, index) => (
+                              {stringValues(realtor.specializations).map((spec, index) => (
                                 <Badge key={index} variant="secondary">
                                   {spec}
                                 </Badge>
@@ -377,7 +430,7 @@ export default function AdminProfessionalVerification() {
                           <div>
                             <h4 className="font-semibold text-ts-orange mb-2">Service Areas</h4>
                             <div className="flex flex-wrap gap-2">
-                              {realtor.serviceAreas.map((area, index) => (
+                              {serviceAreaLabels(realtor.serviceAreas).map((area, index) => (
                                 <Badge
                                   key={index}
                                   variant="outline"
@@ -392,26 +445,25 @@ export default function AdminProfessionalVerification() {
                         </div>
 
                         {/* Verification Documents */}
-                        {realtor.verificationDocuments &&
-                          realtor.verificationDocuments.length > 0 && (
-                            <div className="lg:col-span-2">
-                              <h4 className="font-semibold text-ts-orange mb-2">
-                                Verification Documents
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {realtor.verificationDocuments.map((doc, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="flex items-center gap-1"
-                                  >
-                                    <FileText className="h-3 w-3" />
-                                    Document {index + 1}
-                                  </Badge>
-                                ))}
-                              </div>
+                        {documentLabels(realtor.verificationDocuments).length > 0 && (
+                          <div className="lg:col-span-2">
+                            <h4 className="font-semibold text-ts-orange mb-2">
+                              Verification Documents
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {documentLabels(realtor.verificationDocuments).map((doc, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="flex items-center gap-1"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  {doc}
+                                </Badge>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
 
                         {/* Verification Notes */}
                         <div className="lg:col-span-2">
@@ -541,9 +593,7 @@ export default function AdminProfessionalVerification() {
                             </div>
                             <div>
                               <span className="font-medium">Expiration:</span>
-                              <span className="ml-2">
-                                {new Date(salesman.licenseExpiration).toLocaleDateString()}
-                              </span>
+                              <span className="ml-2">{formatDate(salesman.licenseExpiration)}</span>
                             </div>
                             <div>
                               <span className="font-medium">Dealership:</span>
@@ -557,7 +607,7 @@ export default function AdminProfessionalVerification() {
                           <div>
                             <h4 className="font-semibold text-ts-orange mb-2">Specializations</h4>
                             <div className="flex flex-wrap gap-2">
-                              {salesman.specializations.map((spec, index) => (
+                              {stringValues(salesman.specializations).map((spec, index) => (
                                 <Badge key={index} variant="secondary">
                                   {spec}
                                 </Badge>
@@ -567,7 +617,7 @@ export default function AdminProfessionalVerification() {
                           <div>
                             <h4 className="font-semibold text-ts-orange mb-2">Brand Specialties</h4>
                             <div className="flex flex-wrap gap-2">
-                              {salesman.brandsSpecialty.map((brand, index) => (
+                              {stringValues(salesman.brandsSpecialty).map((brand, index) => (
                                 <Badge key={index} variant="outline">
                                   {brand}
                                 </Badge>
@@ -577,7 +627,7 @@ export default function AdminProfessionalVerification() {
                           <div>
                             <h4 className="font-semibold text-ts-orange mb-2">Service Areas</h4>
                             <div className="flex flex-wrap gap-2">
-                              {salesman.serviceAreas.map((area, index) => (
+                              {serviceAreaLabels(salesman.serviceAreas).map((area, index) => (
                                 <Badge
                                   key={index}
                                   variant="outline"
@@ -592,26 +642,25 @@ export default function AdminProfessionalVerification() {
                         </div>
 
                         {/* Verification Documents */}
-                        {salesman.verificationDocuments &&
-                          salesman.verificationDocuments.length > 0 && (
-                            <div className="lg:col-span-2">
-                              <h4 className="font-semibold text-ts-orange mb-2">
-                                Verification Documents
-                              </h4>
-                              <div className="flex flex-wrap gap-2">
-                                {salesman.verificationDocuments.map((doc, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="flex items-center gap-1"
-                                  >
-                                    <FileText className="h-3 w-3" />
-                                    Document {index + 1}
-                                  </Badge>
-                                ))}
-                              </div>
+                        {documentLabels(salesman.verificationDocuments).length > 0 && (
+                          <div className="lg:col-span-2">
+                            <h4 className="font-semibold text-ts-orange mb-2">
+                              Verification Documents
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {documentLabels(salesman.verificationDocuments).map((doc, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="flex items-center gap-1"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  {doc}
+                                </Badge>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
 
                         {/* Verification Notes */}
                         <div className="lg:col-span-2">

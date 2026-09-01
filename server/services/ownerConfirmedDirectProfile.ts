@@ -2,7 +2,6 @@ import {
   PRECISION_AERIAL_PROFILE_SLUG,
   PRECISION_AERIAL_STEWARD_PROVIDER,
 } from "@shared/precisionAerialProfile";
-import { isProfileVisibilityPublic as isSharedProfileVisibilityPublic } from "@shared/profileVisibility";
 import {
   ADMIN_MANAGED_PROFILE_SOURCE,
   getDirectProfileAuthority,
@@ -16,6 +15,7 @@ import {
   isSteelHomePackagesProfileSlug,
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
+import { isProfessionalProfileRoleContext } from "./profileTargetAuthority";
 
 export {
   ADMIN_MANAGED_PROFILE_SOURCE,
@@ -72,6 +72,7 @@ export type OwnerConfirmedDirectProfileCandidate = {
   ownerVerificationStatus?: unknown;
   ownerProvider?: unknown;
   ownerPreferences?: unknown;
+  professionalRoleApproved?: unknown;
 };
 
 export type LinkedBusinessProfileExposureCandidate = OwnerConfirmedDirectProfileCandidate & {
@@ -82,15 +83,18 @@ export type LinkedBusinessProfileExposureCandidate = OwnerConfirmedDirectProfile
 
 export type PublishedProfileExposureCandidate = LinkedBusinessProfileExposureCandidate & {
   profileId: unknown;
+  profilePubliclyReleased: unknown;
 };
 
 export type PublicProfileExposureMode = "private" | "direct_only" | "unlisted_review" | "public";
 export type PublicProfileExposureReason =
   | "business_trust_missing"
+  | "business_ownership_mismatch"
   | "direct_only"
   | "empty_profile"
   | "internal_role"
   | "personal_profile_not_explicitly_released"
+  | "professional_approval_missing"
   | "private"
   | "public"
   | "unlisted_review"
@@ -147,7 +151,9 @@ export function hasMeaningfulPublicProfileContent(
     const type = String(source.type || "")
       .trim()
       .toLowerCase();
-    return Boolean(type) && !NON_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data);
+    return (
+      Boolean(type) && !NON_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data)
+    );
   });
 }
 
@@ -280,13 +286,9 @@ export function canExposeLinkedBusinessProfilePublicly(
 }
 
 export function isProfileVisibilityPublic(candidate: {
-  profileId: unknown;
-  ownerPreferences?: unknown;
+  profilePubliclyReleased?: unknown;
 }): boolean {
-  return isSharedProfileVisibilityPublic({
-    profileId: candidate.profileId,
-    preferences: candidate.ownerPreferences,
-  });
+  return candidate.profilePubliclyReleased === true;
 }
 
 /** Canonical exposure decision for every anonymous public-profile surface. */
@@ -301,14 +303,6 @@ export function derivePublishedProfileExposure(
     return { mode: "private", reason: "unpublished" };
   }
 
-  if (isSteelHomePackagesUnlistedDirectProfile(candidate)) {
-    return { mode: "unlisted_review", reason: "unlisted_review" };
-  }
-
-  if (hasInternalProfileIdentity(candidate)) {
-    return { mode: "private", reason: "internal_role" };
-  }
-
   const businessId = String(candidate.businessId || "").trim();
   if (!isProfileVisibilityPublic(candidate)) {
     return {
@@ -317,7 +311,25 @@ export function derivePublishedProfileExposure(
     };
   }
 
+  if (isSteelHomePackagesUnlistedDirectProfile(candidate)) {
+    return { mode: "unlisted_review", reason: "unlisted_review" };
+  }
+
+  if (hasInternalProfileIdentity(candidate)) {
+    return { mode: "private", reason: "internal_role" };
+  }
+
+  const professionalRole = isProfessionalProfileRoleContext(candidate.profileRoleContext);
+  if (professionalRole && candidate.professionalRoleApproved !== true) {
+    return { mode: "private", reason: "professional_approval_missing" };
+  }
+
   if (businessId) {
+    const profileOwnerUserId = String(candidate.profileOwnerUserId || "").trim();
+    const businessOwnerUserId = String(candidate.businessOwnerUserId || "").trim();
+    if (!profileOwnerUserId || profileOwnerUserId !== businessOwnerUserId) {
+      return { mode: "private", reason: "business_ownership_mismatch" };
+    }
     if (
       String(candidate.businessStatus || "")
         .trim()
@@ -340,6 +352,12 @@ export function derivePublishedProfileExposure(
     return { mode: "private", reason: "business_trust_missing" };
   }
 
+  if (professionalRole) {
+    return hasMeaningfulPublicProfileContent(candidate)
+      ? { mode: "public", reason: "public" }
+      : { mode: "private", reason: "empty_profile" };
+  }
+
   if (!PUBLIC_PERSONAL_PROFILE_ROLES.has(normalizeRole(candidate.profileRoleContext))) {
     return { mode: "private", reason: "private" };
   }
@@ -358,7 +376,10 @@ export function canExposePublishedProfilePublicly(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
   const decision = derivePublishedProfileExposure(candidate);
-  return decision.mode === "public" || (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate));
+  return (
+    decision.mode === "public" ||
+    (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate))
+  );
 }
 
 export function canDiscoverPublishedProfilePublicly(
@@ -376,5 +397,7 @@ export function canServePublishedProfileAtDirectRoute(
 export function canExposeProviderProfileOnPublicMap(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
-  return canDiscoverPublishedProfilePublicly(candidate) && isPubliclyVerifiedProfileOwner(candidate);
+  return (
+    canDiscoverPublishedProfilePublicly(candidate) && isPubliclyVerifiedProfileOwner(candidate)
+  );
 }
