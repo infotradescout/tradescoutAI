@@ -3,6 +3,7 @@ export type ExchangeCategorySlug =
   | "real-estate"
   | "vehicles"
   | "construction"
+  | "building-materials"
   | "tools"
   | "furniture"
   | "farm"
@@ -39,6 +40,7 @@ export const EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME: Record<ExchangeCategorySlug,
   "real-estate": "Real Estate",
   vehicles: "Vehicles",
   construction: "Construction Equipment",
+  "building-materials": "Building Materials & Surfaces",
   tools: "Tools & Hardware",
   furniture: "Furniture & Home Goods",
   farm: "Farm Equipment",
@@ -108,6 +110,20 @@ export const SELL_CATEGORY_FLOWS: Record<ExchangeCategorySlug, SellCategoryFlow>
     descriptionPrompt:
       "Describe hours, attachments, service records, wear areas, and what a buyer can test onsite.",
     defaultCondition: "good",
+  },
+  "building-materials": {
+    bestPlace: "Business profile catalog spotlight",
+    method: "One profile-linked catalog entry with a managed request path",
+    why: "Best for materials that need availability, project fit, and quote review without duplicating a maintained business catalog or inventing a public price.",
+    checklist: [
+      "Publish one spotlight per business rather than one listing per material.",
+      "Keep unknown price, stock, and availability out of public claims.",
+      "Route the buyer into the exact business catalog and protected TradeScout request flow.",
+    ],
+    sampleTitle: "Natural stone catalog — availability and quote by request",
+    descriptionPrompt:
+      "Describe supported material families and direct buyers to the maintained business profile for current availability and a managed quote.",
+    defaultCondition: "new",
   },
   tools: {
     bestPlace: "Exchange listing",
@@ -263,7 +279,7 @@ export const SELL_CATEGORY_FLOWS: Record<ExchangeCategorySlug, SellCategoryFlow>
 };
 
 export const SELL_CATEGORY_FIELDS: Record<
-  Exclude<ExchangeCategorySlug, "real-estate" | "metals">,
+  Exclude<ExchangeCategorySlug, "real-estate" | "metals" | "building-materials">,
   SellField[]
 > = {
   business: [

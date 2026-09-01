@@ -135,6 +135,7 @@
     "backfill:decision-cards": "node scripts/backfill-decision-cards.mjs",
     "backfill:trust-snapshots": "node scripts/backfill-trust-snapshots.mjs",
     "guard:forbidden": "node scripts/forbidden-patterns.mjs",
+    "guard:about-action-links": "node scripts/guard-about-action-links.mjs",
     "guard:architecture-hygiene": "node scripts/guard-architecture-hygiene.mjs",
     "guard:production-readiness-registry": "node scripts/guard-production-readiness-registry.mjs",
     "test:production-readiness-registry": "node --test scripts/production-readiness-registry.test.mjs",
