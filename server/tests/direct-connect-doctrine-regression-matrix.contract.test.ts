@@ -50,7 +50,8 @@ describe("direct connect doctrine regression matrix", () => {
   it("locks staff oversight boundary with role-gated audited mutation path", () => {
     const routes = read("server/routes/direct-connect.ts");
     expect(routes).toContain('"/api/admin/direct-connect/requests"');
-    expect(routes).toContain("isStaff,");
+    expect(routes).toContain('requireRole(["ops_admin", "super_admin"])');
+    expect(routes).toContain("isDirectConnectOperator,");
     expect(routes).toContain('action: "admin_direct_connect_target_resolved"');
     expect(routes).toContain('operation: "admin_create"');
   });

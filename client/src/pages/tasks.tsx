@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import { apiRequest } from "@/lib/queryClient";
+import { createClientOperationId } from "@/lib/clientOperationId";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { recordActivity } from "@/agent/activity";
 import type { WorkRequest, TaskCategory } from "@shared/schema";
@@ -107,6 +108,10 @@ export default function TasksHub({
   const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const pendingCreateOperationRef = useRef<{
+    fingerprint: string;
+    operationId: string;
+  } | null>(null);
   const [location, navigate] = useLocation();
   const MAX_DIRECT_PROS = 3;
   const normalizedRole = String((user as any)?.role || "").toLowerCase();
@@ -364,7 +369,7 @@ export default function TasksHub({
         throw new Error("Fix the highlighted fields.");
       }
 
-      return apiRequest("POST", "/api/direct-connect/requests", {
+      const requestPayload = {
         title: taskTitle.trim(),
         description: taskDescription.trim(),
         category: taskCategoryId || undefined,
@@ -374,9 +379,21 @@ export default function TasksHub({
         countyFips: selectedCountyFips,
         targetContractorIds:
           !isJobListing && selectedProviderIds.length ? selectedProviderIds : undefined,
+      };
+      const fingerprint = JSON.stringify(requestPayload);
+      const operationId =
+        pendingCreateOperationRef.current?.fingerprint === fingerprint
+          ? pendingCreateOperationRef.current.operationId
+          : createClientOperationId("dc-task");
+      pendingCreateOperationRef.current = { fingerprint, operationId };
+
+      return apiRequest("POST", "/api/direct-connect/requests", {
+        ...requestPayload,
+        operationId,
       });
     },
     onSuccess: (data: any) => {
+      pendingCreateOperationRef.current = null;
       if (data?.verificationRequired) {
         toast({
           title: "Address verification required",

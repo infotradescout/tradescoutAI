@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 // Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
 import { useAuth } from "../hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { createClientOperationId } from "@/lib/clientOperationId";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useScoutController } from "./useScoutController";
 import ScoutThread from "./ScoutThread";
@@ -1664,6 +1665,10 @@ export default function ScoutOS() {
     budgetMax?: number;
   }>(null);
   const [dcBusy, setDcBusy] = useState(false);
+  const dcCreateOperationRef = useRef<{
+    fingerprint: string;
+    operationId: string;
+  } | null>(null);
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
@@ -5597,7 +5602,10 @@ export default function ScoutOS() {
         onOpenChange={(open) => {
           if (dcBusy) return;
           setDcConfirmOpen(open);
-          if (!open) setDcDraft(null);
+          if (!open) {
+            setDcDraft(null);
+            dcCreateOperationRef.current = null;
+          }
         }}
       >
         <AlertDialogContent>
@@ -5639,6 +5647,13 @@ export default function ScoutOS() {
                     ...(dcDraft.countyFips ? { countyFips: dcDraft.countyFips } : {}),
                     ...(dcDraft.stateCode ? { stateCode: dcDraft.stateCode } : {}),
                   };
+                  const fingerprint = JSON.stringify(payload);
+                  const operationId =
+                    dcCreateOperationRef.current?.fingerprint === fingerprint
+                      ? dcCreateOperationRef.current.operationId
+                      : createClientOperationId("dc-scout");
+                  dcCreateOperationRef.current = { fingerprint, operationId };
+                  payload.operationId = operationId;
 
                   const res: any = await apiRequest(
                     "POST",
@@ -5678,6 +5693,7 @@ export default function ScoutOS() {
                       msg,
                       Array.isArray((res as any).actions) ? (res as any).actions : []
                     );
+                    setDcConfirmOpen(false);
                     return;
                   }
 
@@ -5715,6 +5731,9 @@ export default function ScoutOS() {
                     path: location,
                     meta: { workRequestId: createdId || undefined },
                   } as any);
+                  dcCreateOperationRef.current = null;
+                  setDcConfirmOpen(false);
+                  setDcDraft(null);
                 } catch (err: any) {
                   const message = formatUserFacingErrorMessage(
                     err,
@@ -5723,8 +5742,6 @@ export default function ScoutOS() {
                   setError(message);
                 } finally {
                   setDcBusy(false);
-                  setDcConfirmOpen(false);
-                  setDcDraft(null);
                 }
               }}
             >
