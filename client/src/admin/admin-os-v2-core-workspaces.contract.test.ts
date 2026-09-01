@@ -73,8 +73,11 @@ describe("Admin OS v2 core workspaces", () => {
     expect(page).toContain('apiRequest("GET",');
     expect(page).toContain('/api/admin/profile-verifications?status=${encodeURIComponent(statusFilter)}');
     expect(page).toContain('apiRequest("PUT", `/api/admin/profile-verifications/${profileId}`');
-    expect(page).toContain('decision: "approved"');
-    expect(page).toContain('decision: "rejected"');
+    expect(page).toContain('decision: "approved" | "rejected"');
+    expect(page).toContain('submitBusinessDecision(id, field.key, "approved")');
+    expect(page).toContain('submitBusinessDecision(id, field.key, "rejected")');
+    expect(page).toContain('key: "business_registration"');
+    expect(page).toContain('key: "tax_id"');
     expect(page).not.toContain("<Table");
     expect(page).not.toContain("<Card");
   });

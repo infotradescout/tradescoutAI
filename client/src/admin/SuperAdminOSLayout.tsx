@@ -97,7 +97,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
   }, [focusToolSearch]);
 
   return (
-    <div className="ts-admin-shell min-h-full bg-[#08090a] text-zinc-100">
+    <div className="ts-admin-shell min-h-full bg-tsBg text-zinc-100">
       <div
         className={`grid min-h-[var(--app-height)] transition-[grid-template-columns] duration-200 ${
           railCollapsed
@@ -105,7 +105,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
             : "lg:grid-cols-[16.5rem_minmax(0,1fr)]"
         }`}
       >
-        <div className="hidden border-r border-white/10 bg-[#0b0c0d] lg:block">
+        <div className="hidden border-r border-white/10 bg-tsBg lg:block">
           <div className="sticky top-0 h-[var(--app-height)]">
             <SuperAdminLeftNav
               sections={navSections}
@@ -124,7 +124,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
               aria-label="Close admin navigation"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative h-full w-[min(21rem,88vw)] border-r border-white/10 bg-[#0b0c0d] shadow-2xl">
+            <div className="relative h-full w-[min(21rem,88vw)] border-r border-white/10 bg-tsBg shadow-2xl">
               <SuperAdminLeftNav
                 sections={navSections}
                 onNavigate={() => setMobileNavOpen(false)}

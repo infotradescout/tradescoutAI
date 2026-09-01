@@ -26,9 +26,13 @@ describe("public profile service discovery journey", () => {
     expect(html).toContain('discoveryAttributionToken: token');
     expect(html).toContain('"X-Anonymous-Session-Id": sessionId');
     expect(html).toContain('type: "public_profile_direct_connect_opened"');
-    expect(html).toContain('surface: "profile_service_page_cta"');
+    expect(html).toContain('surface: source === "profile_service_area_page"');
+    expect(html).toContain('"profile_service_page_cta"');
+    expect(html).toContain('"profile_service_area_page_cta"');
     expect(html).toContain('linkageVersion: 1');
-    expect(html).toContain('destination.searchParams.get("source") !== "profile_service_page"');
+    expect(html).toContain(
+      '(source !== "profile_service_page" && source !== "profile_service_area_page")'
+    );
   });
 
   it("emits browser-parseable JavaScript", () => {

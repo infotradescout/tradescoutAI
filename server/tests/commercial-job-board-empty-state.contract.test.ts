@@ -11,7 +11,7 @@ describe("commercial job board empty state", () => {
       "utf8"
     );
 
-    expect(source).toContain('label: "Commercial Jobs"');
+    expect(source).toContain('label: "Browse commercial work"');
     expect(source).toContain('href: "/commercial-directory"');
   });
 

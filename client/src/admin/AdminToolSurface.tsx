@@ -15,6 +15,7 @@ export const NATIVE_ADMIN_V2_TOOL_IDS = [
   "errors",
   "panel",
   "controls",
+  "production-acceptance",
   "live-stream",
   "business-onboarding-telemetry",
   "discovery-observatory",

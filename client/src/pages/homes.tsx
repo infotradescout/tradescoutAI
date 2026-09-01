@@ -20,7 +20,7 @@ export default function Homes() {
   const selectedHomeId = requestedHomeId || firstHomeId;
 
   if (!requestedHomeId && homesQuery.isLoading) {
-    return <div className="min-h-screen bg-background" aria-label="Loading HomeID" />;
+    return <div className="min-h-[50vh] bg-background" aria-label="Loading HomeID" />;
   }
 
   return selectedHomeId === PROPERTY_BLESSINGS_HOME_ID && mode !== "passport" ? (

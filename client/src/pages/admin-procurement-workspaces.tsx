@@ -459,7 +459,7 @@ function CreateWorkspaceDialog({
   const canSubmit = draft.slug.trim().length > 0 && draft.name.trim().length > 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-w-[95vw] border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create procurement workspace</DialogTitle>
           <DialogDescription className="text-white/48">

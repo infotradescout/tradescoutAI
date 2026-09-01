@@ -24,7 +24,7 @@ export function AdminWorkspaceSubnav({
   return (
     <div
       className={cn(
-        "sticky top-[4.5rem] z-20 -mx-4 border-b border-white/10 bg-[#090a0b]/95 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8",
+        "sticky top-[4.5rem] z-20 -mx-4 border-b border-white/10 bg-tsBg/95 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8",
         className
       )}
       {...props}

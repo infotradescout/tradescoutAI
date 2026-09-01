@@ -210,8 +210,8 @@ describe("Admin OS v2 foundation", () => {
     expect(evidence).toContain("Unknown `/admin/...` paths no longer silently resolve to Admin Home");
 
     expect(architecture).toContain("one operating system for platform work");
-    expect(architecture).toContain("All 21 primary tools are represented");
-    expect(architecture).toContain("Individual tools migrate concurrently");
+    expect(architecture).toContain("All 22 primary tools are represented");
+    expect(architecture).toContain("continued concurrently");
     expect(architecture).toContain("Unknown admin routes must never silently render Admin Home");
   });
 });

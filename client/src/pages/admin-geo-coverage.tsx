@@ -1196,7 +1196,7 @@ function TerritoryManagerDialog({
 }) {
   return (
     <Dialog open={Boolean(county)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md border-white/10 bg-[#090a0b] text-white">
+      <DialogContent className="max-w-md border-white/10 bg-tsBg text-white">
         <DialogHeader>
           <DialogTitle>Assign territory manager</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1280,7 +1280,7 @@ function AffiliateDialog({
 }) {
   return (
     <Dialog open={Boolean(county)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md border-white/10 bg-[#090a0b] text-white">
+      <DialogContent className="max-w-md border-white/10 bg-tsBg text-white">
         <DialogHeader>
           <DialogTitle>Assign affiliate or partner</DialogTitle>
           <DialogDescription className="text-white/48">

@@ -76,15 +76,20 @@ describe("Admin OS v2 System Status", () => {
     const page = read("client/src/pages/admin-live-stream.tsx");
 
     expect(page).toContain('/api/admin/observability/live-stream?${liveQueryString}');
-    expect(page).toContain('apiRequest("POST", "/api/admin/observability/live-stream/refresh", {})');
+    expect(page).toMatch(
+      /apiRequest\(\s*"POST",\s*"\/api\/admin\/observability\/live-stream\/refresh",\s*\{/
+    );
+    expect(page).toContain('source: source === "all" ? "" : source');
+    expect(page).toContain('stateCode: stateCode === "all" ? "" : stateCode');
+    expect(page).toContain('county: county === "all" ? "" : county');
     expect(page).toContain('/api/admin/observability/live-stream/export.csv?${liveQueryString}');
     expect(page).toContain('/api/admin/observability/live-stream/history?${historyQueryString}');
     expect(page).toContain("All sources");
     expect(page).toContain("All truth states");
     expect(page).toContain("All states");
     expect(page).toContain("All counties");
-    expect(page).toContain("20 signals");
-    expect(page).toContain("250 signals");
+    expect(page).toContain("[20, 50, 100, 250]");
+    expect(page).toContain("{value} signals");
     expect(page).toContain("Server-produced entries only");
     expect(page).toContain("Degraded sources");
   });
@@ -129,7 +134,7 @@ describe("Admin OS v2 System Status", () => {
 
     expect(evidence).toContain("System observability cannot remain a massive live-stream presentation");
     expect(evidence).toContain("Unavailable feeds display an em dash");
-    expect(evidence).toContain("Resolved work is not reopened");
+    expect(evidence).toContain("Reopen resolved actions automatically");
     expect(evidence).toContain("Removed presentation clutter");
     expect(evidence).toContain("does not");
     expect(evidence).toContain("Authenticated desktop and mobile screenshots");

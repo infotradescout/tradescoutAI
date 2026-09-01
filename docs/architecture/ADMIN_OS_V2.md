@@ -54,6 +54,7 @@ Admin OS v2 adds a presentation taxonomy that reorganizes role-visible tools by 
 
 ### Platform
 
+- Production Acceptance
 - System Status
 - Scout Resilience
 - Error Reports
@@ -64,11 +65,11 @@ Admin OS v2 adds a presentation taxonomy that reorganizes role-visible tools by 
 
 - Finance
 
-All 21 primary tools are represented. A `More` section is reserved only for a future role-visible tool that has not yet been assigned to an outcome workspace.
+All 22 primary tools are represented. A `More` section is reserved only for a future role-visible tool that has not yet been assigned to an outcome workspace.
 
 ## Primary workspace completion
 
-The primary Admin OS migration is structurally complete as of August 19, 2026.
+The primary Admin OS migration is structurally complete. The original 21 workspaces completed on August 19, 2026; Production Acceptance joined the primary navigation and native-surface authority on August 20, 2026.
 
 Every primary role-visible navigation tool is registered as a native v2 surface:
 
@@ -89,6 +90,7 @@ Every primary role-visible navigation tool is registered as a native v2 surface:
 | Coverage & Intelligence | `geo-map` | County Coverage |
 | Coverage & Intelligence | `business-onboarding-telemetry` | Onboarding Health |
 | Coverage & Intelligence | `discovery-observatory` | Discovery |
+| Platform | `production-acceptance` | Production Acceptance |
 | Platform | `live-stream` | System Status |
 | Platform | `scout-resilience` | Scout Resilience |
 | Platform | `errors` | Error Reports |
@@ -96,7 +98,7 @@ Every primary role-visible navigation tool is registered as a native v2 surface:
 | Platform | `controls` | Platform Controls |
 | Finance | `finance` | Finance |
 
-The runtime registry is exported from `AdminToolSurface.tsx` as `NATIVE_ADMIN_V2_TOOL_IDS`. A completion contract verifies that it exactly matches the 21 IDs declared by the primary navigation taxonomy.
+The runtime registry is exported from `AdminToolSurface.tsx` as `NATIVE_ADMIN_V2_TOOL_IDS`. A completion contract verifies that it exactly matches the 22 IDs declared by the primary navigation taxonomy.
 
 ## Tool surfaces
 
@@ -185,6 +187,7 @@ The primary workspace sequence completed in this order:
 18. Procurement
 19. Sales Pipeline
 20. Finance
+21. Production Acceptance
 
 The first native detail-route continuation then migrated the procurement order and procurement workspace routes without adding new navigation entries.
 
@@ -210,7 +213,7 @@ Admin redesign must not:
 
 Primary completion means:
 
-- The 21 outcome-based navigation tools are native v2 surfaces.
+- The 22 outcome-based navigation tools are native v2 surfaces.
 - Their canonical routes and permissions remain authoritative.
 - Their page-specific operating work no longer depends on the temporary adapted-v1 presentation layer.
 - The procurement order and workspace detail routes also remain inside the native Admin OS grammar.

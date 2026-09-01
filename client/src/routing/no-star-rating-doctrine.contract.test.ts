@@ -81,7 +81,7 @@ describe("TradeScout trust presentation doctrine", () => {
     const source = read("client/src/components/layout/AppShellCore.tsx");
     expect(source).toContain('label: "Businesses"');
     expect(source).toContain('href: ROUTES.CONTRACTORS ?? "/contractors"');
-    expect(source).toContain('label: "Commercial Jobs"');
+    expect(source).toContain('label: "Browse commercial work"');
     expect(source).not.toContain('label: "Commercial"');
   });
 });
