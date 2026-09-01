@@ -72,7 +72,7 @@ describe("profile template manage surface contracts", () => {
     expect(manageChrome).toContain('className="relative z-[80]');
     expect(manageChrome).not.toContain('className="fixed inset-x-0 top-0');
     expect(profileView).not.toContain("manageChromeSpacer");
-    expect(profileView.match(/\{manageChrome\}/g)).toHaveLength(8);
+    expect(profileView.match(/\{manageChrome\}/g)).toHaveLength(9);
   });
 
   it("offers the v1 template gallery in the profile editor", () => {

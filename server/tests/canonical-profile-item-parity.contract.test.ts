@@ -45,14 +45,17 @@ describe("canonical profile item parity", () => {
     const proFab = read("client/src/pages/profile-sites/ProFabProfileTheme.tsx");
     const videographer = read("client/src/pages/profile-sites/VideographerProfileTheme.tsx");
     const precisionAerial = read("client/src/pages/profile-sites/PrecisionAerialProfile.tsx");
+    const financialProfessional = read(
+      "client/src/pages/profile-sites/FinancialProfessionalProfileTheme.tsx"
+    );
     const defaultProfile = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
 
     expect(profileView).toContain("const profileItems = data.profileItems || {};");
-    expect(profileView.match(/<PublicProfileItems/g)?.length).toBe(7);
+    expect(profileView.match(/<PublicProfileItems/g)?.length).toBe(8);
     expect(
       profileView.match(/<PublicProfileItems[^>]*platformBaseHref=\{platformBaseHref\}[^>]*\/>/g)
         ?.length
-    ).toBe(7);
+    ).toBe(8);
     expect(profileView).toContain("profileItems={");
     for (const theme of [
       wholesaler,
@@ -61,6 +64,7 @@ describe("canonical profile item parity", () => {
       proFab,
       videographer,
       precisionAerial,
+      financialProfessional,
       defaultProfile,
     ]) {
       expect(theme).toContain("profileItems?: ReactNode");

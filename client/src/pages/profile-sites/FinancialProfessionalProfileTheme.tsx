@@ -241,7 +241,7 @@ export default function FinancialProfessionalProfileTheme({
 
   return (
     <div
-      className="min-h-screen overflow-hidden bg-[#f3efe5] text-[#16332d]"
+      className="min-h-full overflow-hidden bg-[#f3efe5] text-[#16332d]"
       data-testid="financial-professional-profile"
       style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif' }}
     >

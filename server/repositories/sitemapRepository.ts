@@ -15,7 +15,10 @@ import {
   canExposePublishedProfilePublicly,
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
-import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import {
+  publicBusinessDetailExposureSqlPredicate,
+  publicBusinessSitemapCrawlabilitySqlPredicate,
+} from "../publicationBusiness";
 import { getPublicationRules } from "../publicationRules";
 import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
 import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
@@ -109,16 +112,22 @@ export class SitemapRepository {
   }
 
   async countActiveDirectoryBusinessesForSitemap(): Promise<number> {
+    const rules = await getPublicationRules();
+    const crawlabilityPredicate = publicBusinessSitemapCrawlabilitySqlPredicate({
+      rules,
+      now: new Date(),
+    });
     const rows = await db
       .select({ count: sql<number>`count(DISTINCT ${businesses.id})` })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
       .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
           eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
+          crawlabilityPredicate
         )
       );
     const count = Number((rows[0] as any)?.count ?? 0);
@@ -133,6 +142,11 @@ export class SitemapRepository {
     const limit = Math.max(1, Math.min(50_000, limitRequested));
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
+    const rules = await getPublicationRules();
+    const crawlabilityPredicate = publicBusinessSitemapCrawlabilitySqlPredicate({
+      rules,
+      now: new Date(),
+    });
 
     const rows = await db
       .select({
@@ -141,12 +155,13 @@ export class SitemapRepository {
       })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
       .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
           eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
+          crawlabilityPredicate
         )
       )
       .orderBy(asc(businesses.slug))
