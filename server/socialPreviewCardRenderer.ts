@@ -74,6 +74,12 @@ export type RenderedSocialPreviewCard = {
   sourceImageLoaded: boolean;
 };
 
+export type ProfileAppIconContext = {
+  brandName: string;
+  logoUrl?: string | null;
+  accentColor?: string | null;
+};
+
 let sharpPromise: Promise<typeof import("sharp").default> | null = null;
 let activeRenderCount = 0;
 const pendingRenderQueue: Array<() => void> = [];
@@ -533,6 +539,110 @@ function fallbackImageSvg(accentColor: string, width = IMAGE_PANEL_WIDTH): Buffe
   </svg>`);
 }
 
+function profileInitials(value: unknown): string {
+  const words = cleanText(value, 100)
+    .split(/\s+/)
+    .map((word) => word.replace(/[^a-z0-9]/gi, ""))
+    .filter(Boolean);
+  if (words.length === 0) return "P";
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+function profileAppIconBaseSvg(args: {
+  size: number;
+  accentColor: string;
+  brandName: string;
+  hasLogo: boolean;
+}): Buffer {
+  const safeSize = Math.max(64, Math.min(1024, Math.round(args.size)));
+  const panelInset = Math.round(safeSize * 0.18);
+  const panelSize = safeSize - panelInset * 2;
+  const panelRadius = Math.round(safeSize * 0.14);
+  const initials = args.hasLogo ? "" : profileInitials(args.brandName);
+  const initialsMarkup = initials
+    ? `<text x="${safeSize / 2}" y="${safeSize * 0.61}" text-anchor="middle" fill="#ffffff" font-family="DejaVu Sans, Arial, sans-serif" font-size="${Math.round(
+        safeSize * (initials.length > 1 ? 0.25 : 0.3)
+      )}" font-weight="750">${escapeXml(initials)}</text>`
+    : "";
+
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${safeSize}" height="${safeSize}" viewBox="0 0 ${safeSize} ${safeSize}">
+    <defs>
+      <radialGradient id="profile-app-bg" cx="30%" cy="24%" r="90%">
+        <stop offset="0%" stop-color="${args.accentColor}" stop-opacity=".94" />
+        <stop offset="62%" stop-color="#17231e" />
+        <stop offset="100%" stop-color="#07100c" />
+      </radialGradient>
+    </defs>
+    <rect width="${safeSize}" height="${safeSize}" fill="url(#profile-app-bg)" />
+    <circle cx="${safeSize * 0.2}" cy="${safeSize * 0.18}" r="${safeSize * 0.31}" fill="#ffffff" fill-opacity=".06" />
+    <rect x="${panelInset}" y="${panelInset}" width="${panelSize}" height="${panelSize}" rx="${panelRadius}" fill="#f8f7f2" fill-opacity="${args.hasLogo ? ".97" : ".10"}" stroke="#ffffff" stroke-opacity=".18" />
+    ${initialsMarkup}
+  </svg>`);
+}
+
+async function renderProfileAppIconWithinSlot(
+  context: ProfileAppIconContext,
+  size: number,
+  options: RenderSocialPreviewOptions = {}
+): Promise<Buffer> {
+  const sharp = await getSharp();
+  const safeSize = Math.max(64, Math.min(1024, Math.round(size)));
+  const publicRoots = options.publicRoots || defaultPublicRoots();
+  const accent = normalizeAccentColor(context.accentColor);
+  const localLogoAsset = await readLocalPublicAsset(
+    context.logoUrl,
+    publicRoots,
+    true,
+    MAX_LOGO_ASSET_BYTES
+  );
+  const logoAsset =
+    localLogoAsset || (await readRemotePublicAsset(context.logoUrl, MAX_LOGO_ASSET_BYTES));
+
+  let preparedLogo: Buffer | null = null;
+  if (logoAsset) {
+    try {
+      preparedLogo = await sharp(logoAsset, {
+        failOn: "warning",
+        limitInputPixels: MAX_LOGO_INPUT_PIXELS,
+      })
+        .rotate()
+        .resize(Math.round(safeSize * 0.54), Math.round(safeSize * 0.54), {
+          fit: "contain",
+          background: { r: 248, g: 247, b: 242, alpha: 0 },
+        })
+        .png()
+        .toBuffer();
+    } catch {
+      preparedLogo = null;
+    }
+  }
+
+  const base = profileAppIconBaseSvg({
+    size: safeSize,
+    accentColor: accent,
+    brandName: context.brandName,
+    hasLogo: Boolean(preparedLogo),
+  });
+  const image = sharp(base);
+  if (preparedLogo) {
+    const metadata = await sharp(preparedLogo).metadata();
+    const width = metadata.width || Math.round(safeSize * 0.54);
+    const height = metadata.height || Math.round(safeSize * 0.54);
+    image.composite([
+      {
+        input: preparedLogo,
+        left: Math.round((safeSize - width) / 2),
+        top: Math.round((safeSize - height) / 2),
+      },
+    ]);
+  }
+  return image.png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
+}
+
 async function renderSocialPreviewCardWithinSlot(
   context: SocialPreviewCardContext,
   options: RenderSocialPreviewOptions = {}
@@ -667,4 +777,17 @@ export async function renderSocialPreviewCardPng(
   options: RenderSocialPreviewOptions = {}
 ): Promise<Buffer> {
   return (await renderSocialPreviewCard(context, options)).png;
+}
+
+export async function renderProfileAppIconPng(
+  context: ProfileAppIconContext,
+  size: number,
+  options: RenderSocialPreviewOptions = {}
+): Promise<Buffer> {
+  const releaseRenderSlot = await acquireRenderSlot();
+  try {
+    return await renderProfileAppIconWithinSlot(context, size, options);
+  } finally {
+    releaseRenderSlot();
+  }
 }

@@ -91,6 +91,10 @@ import {
   seedBlocksForTemplate,
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
+import {
+  buildPublicProfileAppIconPath,
+  buildPublicProfileAppManifestPath,
+} from "@shared/publicProfileApp";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
 import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
@@ -916,6 +920,100 @@ export default function ProfileSiteView() {
 
     run();
   }, [slug, matchP, matchPItem, navigate, paramsPItem, reloadKey]);
+
+  // Full profile loads receive the profile manifest from server-rendered HTML.
+  // Keep client-side transitions correct too so installing from an in-app
+  // profile visit never falls back to the generic TradeScout app identity.
+  useEffect(() => {
+    if (!data?.profile?.slug || typeof document === "undefined") return;
+    const manifestPath = buildPublicProfileAppManifestPath(data.profile.slug);
+    const appIconPath = buildPublicProfileAppIconPath(data.profile.slug, 192);
+    if (!manifestPath || !appIconPath) return;
+    const appTitle = sanitizePublicDiscoveryText(
+      data.business?.name || data.profile.displayName,
+      30
+    ) || "Public profile";
+    const configuredAccent =
+      data.business?.brandColors?.accent || data.business?.brandColors?.primary || "";
+    const appThemeColor = /^#[0-9a-f]{6}$/i.test(configuredAccent)
+      ? configuredAccent
+      : "#f97316";
+
+    let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const created = !manifestLink;
+    if (!manifestLink) {
+      manifestLink = document.createElement("link");
+      manifestLink.rel = "manifest";
+      document.head.appendChild(manifestLink);
+    }
+    const previousHref = manifestLink.getAttribute("href");
+    const previousPlatformHref = manifestLink.getAttribute("data-platform-manifest-href");
+    const platformManifestHref =
+      previousPlatformHref ||
+      (previousHref && previousHref !== manifestPath ? previousHref : "/manifest.json");
+    manifestLink.setAttribute("data-platform-manifest-href", platformManifestHref);
+    manifestLink.setAttribute("href", manifestPath);
+
+    let appleTouchIcon = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+    const createdAppleTouchIcon = !appleTouchIcon;
+    if (!appleTouchIcon) {
+      appleTouchIcon = document.createElement("link");
+      appleTouchIcon.rel = "apple-touch-icon";
+      document.head.appendChild(appleTouchIcon);
+    }
+    const previousAppleTouchIconHref = appleTouchIcon.getAttribute("href");
+    appleTouchIcon.setAttribute("href", appIconPath);
+
+    const managedMeta = [
+      ["apple-mobile-web-app-title", appTitle],
+      ["theme-color", appThemeColor],
+    ].map(([name, value]) => {
+      let meta = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+      const created = !meta;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = name;
+        document.head.appendChild(meta);
+      }
+      const previousContent = meta.getAttribute("content");
+      meta.setAttribute("content", value);
+      return { meta, value, previousContent, created };
+    });
+
+    return () => {
+      if (manifestLink?.getAttribute("href") === manifestPath) {
+        if (created) manifestLink.remove();
+        else {
+          manifestLink.setAttribute("href", platformManifestHref);
+          if (previousPlatformHref) {
+            manifestLink.setAttribute("data-platform-manifest-href", previousPlatformHref);
+          } else {
+            manifestLink.removeAttribute("data-platform-manifest-href");
+          }
+        }
+      }
+      if (appleTouchIcon?.getAttribute("href") === appIconPath) {
+        if (createdAppleTouchIcon) appleTouchIcon.remove();
+        else if (previousAppleTouchIconHref) {
+          appleTouchIcon.setAttribute("href", previousAppleTouchIconHref);
+        } else {
+          appleTouchIcon.removeAttribute("href");
+        }
+      }
+      for (const { meta, value, previousContent, created: createdMeta } of managedMeta) {
+        if (meta.getAttribute("content") !== value) continue;
+        if (createdMeta) meta.remove();
+        else if (previousContent !== null) meta.setAttribute("content", previousContent);
+        else meta.removeAttribute("content");
+      }
+    };
+  }, [
+    data?.business?.brandColors?.accent,
+    data?.business?.brandColors?.primary,
+    data?.business?.name,
+    data?.profile?.displayName,
+    data?.profile?.slug,
+  ]);
 
   useEffect(() => {
     if (!data || data.viewerCanManage || typeof window === "undefined") return;
