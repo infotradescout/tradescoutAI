@@ -4,6 +4,10 @@ import {
   JW_STONE_PUBLIC_DISCOVERY_BLOCK,
 } from "@/data/jwStoneProfilePresentation";
 import { JW_STONE_YOUTUBE_URL } from "@shared/jwStonePresentation";
+import {
+  DEAN_DAMASKOS_PROFILE_BLOCKS,
+  DEAN_DAMASKOS_PROFILE_SLUG,
+} from "@shared/deanDamaskosProfile";
 import { RED_GRANITI_PROFILE_SLUG } from "@shared/redGranitiProfile";
 import {
   applyInventoryLeadImageOverrides,
@@ -124,6 +128,16 @@ const redGranitiContentAdapter: ProfileSiteContentAdapter = (blocks) => {
   );
 };
 
+const deanDamaskosContentAdapter: ProfileSiteContentAdapter = (blocks) => {
+  const existingTypes = new Set(blocks.map((block) => block?.type).filter(Boolean));
+  const defaults = DEAN_DAMASKOS_PROFILE_BLOCKS.map((block) => ({
+    type: block.type,
+    data: { ...block.data },
+  })) as ProfileContentBlock[];
+
+  return [...blocks, ...defaults.filter((block) => !existingTypes.has(block.type))];
+};
+
 /**
  * Source-data wiring belongs here, outside shared profile renderers.
  * Unknown profiles pass through byte-for-byte; registered profiles may hydrate
@@ -131,6 +145,7 @@ const redGranitiContentAdapter: ProfileSiteContentAdapter = (blocks) => {
  */
 const PROFILE_SITE_CONTENT_ADAPTERS: Record<string, ProfileSiteContentAdapter> = {
   "jw-stone": jwStoneContentAdapter,
+  [DEAN_DAMASKOS_PROFILE_SLUG]: deanDamaskosContentAdapter,
   [RED_GRANITI_PROFILE_SLUG]: redGranitiContentAdapter,
 };
 

@@ -121,6 +121,9 @@ const JrsAutoGlassProfileTheme = lazy(
 const VideographerProfileTheme = lazy(
   () => import("@/pages/profile-sites/VideographerProfileTheme")
 );
+const FinancialProfessionalProfileTheme = lazy(
+  () => import("@/pages/profile-sites/FinancialProfessionalProfileTheme")
+);
 const LocalServiceProfileTheme = lazy(
   () => import("@/pages/profile-sites/LocalServiceProfileTheme")
 );
@@ -244,6 +247,31 @@ function VideographerProfileBoundary({ children }: { children: ReactNode }) {
               Portfolio
             </p>
             <p className="mt-3 text-2xl font-semibold">Loading the videography profile…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function FinancialProfessionalProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-[#0d2e29] px-6 text-center text-white"
+          data-testid="financial-professional-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d8bd7d]">
+              Financial professional profile
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading profile details…</p>
           </div>
         </div>
       }
@@ -2243,6 +2271,85 @@ export default function ProfileSiteView() {
           initialStoneName={expressInventoryContext?.itemName}
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
+        />
+      </>
+    );
+  }
+
+  if (siteTemplate === "financial-professional") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          socialTitle={socialTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={pageOgType}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+          noIndex={categoryNoIndex}
+        />
+        {manageChrome}
+        {templateIndependentInventoryContext}
+        <FinancialProfessionalProfileBoundary>
+          <FinancialProfessionalProfileTheme
+            profileSlug={profile.slug}
+            platformBaseHref={platformBaseHref}
+            businessName={displayName}
+            headline={publicHeadline}
+            contentBlocks={contentBlocks}
+            services={serviceTags}
+            serviceAreas={serviceAreas}
+            aboutText={aboutText}
+            profileShareDestination={profileShareDestination}
+            onDirectConnect={openServiceDirectConnect}
+            trustActions={renderProfileTrustActions("light")}
+            booking={
+              bookingEnabled
+                ? {
+                    profileId: profile.id,
+                    profileName: displayName,
+                    timezone,
+                    pricingRows,
+                    paidBookings,
+                    bookingPriceUsd,
+                    bookingCategory,
+                    bookingStateCode: business?.stateCode || "",
+                    hasViewerSession,
+                    viewerCanManage,
+                    signInHref: bookingSignInHref,
+                    platformBaseHref,
+                    calendarVisibility,
+                    slots,
+                    pricingTableEnabled: booking.pricingTableEnabled === true,
+                  }
+                : undefined
+            }
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </FinancialProfessionalProfileBoundary>
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          businessAddress={publicBusinessAddress}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
+          initialServiceName={expressServiceContext}
+          initialRequestType={expressServiceContext ? "request_service" : null}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
         />
       </>
     );
