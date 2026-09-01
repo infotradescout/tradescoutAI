@@ -19,6 +19,7 @@ export const NATIVE_ADMIN_V2_TOOL_IDS = [
   "live-stream",
   "business-onboarding-telemetry",
   "discovery-observatory",
+  "ecosystem-truth",
   "scout-resilience",
   "geo-map",
   "commercial-directory",

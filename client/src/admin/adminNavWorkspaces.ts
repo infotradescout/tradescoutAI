@@ -101,6 +101,11 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
     section: "Platform",
     tools: [
       {
+        id: "ecosystem-truth",
+        label: "Ecosystem Truth",
+        description: "See current owners, decision evidence, commercial conflicts, and outcome links.",
+      },
+      {
         id: "production-acceptance",
         label: "Production Acceptance",
         description: "Review current production truth across every operating lane.",
