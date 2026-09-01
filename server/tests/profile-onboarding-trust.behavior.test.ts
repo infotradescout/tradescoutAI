@@ -33,7 +33,7 @@ describe("onboarding-created profile trust boundary", () => {
     expect(canAuthenticatedViewerPreviewProfile({}, "owner-1")).toBe(false);
   });
 
-  it("keeps verification and the narrow owner-confirmed exception as public authority", () => {
+  it("keeps verification and narrow confirmed exceptions as public authority", () => {
     const pendingOwner = { verifiedBadge: false, verificationStatus: "pending" };
 
     expect(
@@ -54,6 +54,14 @@ describe("onboarding-created profile trust boundary", () => {
       canServeLinkedBusinessProfileToViewer({
         ownerUser: pendingOwner,
         ownerConfirmedDirectProfile: true,
+        authenticatedViewerCanManage: false,
+      })
+    ).toBe(true);
+    expect(
+      canServeLinkedBusinessProfileToViewer({
+        ownerUser: pendingOwner,
+        ownerConfirmedDirectProfile: false,
+        operatorConfirmedTradePartnerProfile: true,
         authenticatedViewerCanManage: false,
       })
     ).toBe(true);
@@ -104,6 +112,9 @@ describe("onboarding-created profile trust boundary", () => {
     expect(searchPredicate).toContain("${users.verificationStatus}::text");
     expect(searchPredicate).toContain("'approved'");
     expect(searchPredicate).toContain("durableProfessionalProfileApprovalSql");
+    expect(searchPredicate).toContain("MOULDING_MILLWORK_PROFILE_SLUG");
+    expect(searchPredicate).toContain("MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE");
+    expect(searchPredicate).toContain("MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE");
     expect(publicSearchRoute).not.toContain("await db");
     expect(publicSearchRoute).not.toContain("ownerUserId");
     expect(publicSearchRoute).not.toContain("businessId");

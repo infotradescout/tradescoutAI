@@ -453,6 +453,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       profileData: businesses.profileData,
       ownerProvider: users.provider,
+      ownerEmailVerified: users.emailVerified,
       ownerPreferences: users.preferences,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
@@ -478,7 +479,9 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     publicDiscoveryEnabled: row?.publicDiscoveryEnabled,
     businessSources: row?.businessSources,
     businessClaimStatus: row?.businessClaimStatus,
+    businessProfileData: row?.profileData,
     ownerProvider: row?.ownerProvider,
+    ownerEmailVerified: row?.ownerEmailVerified,
     ownerPreferences: row?.ownerPreferences,
     professionalRoleApproved: row?.professionalRoleApproved,
   };

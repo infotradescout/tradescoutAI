@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { db } from "../db";
 import { ADMIN_MANAGED_PROFILE_SOURCE, PRO_FAB_PROFILE_SLUG } from "./ownerConfirmedDirectProfile";
+import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
 export const PRO_FAB_PROFILE_PROVISIONING_SOURCE = ADMIN_MANAGED_PROFILE_SOURCE;
 
@@ -33,6 +34,18 @@ export async function provisionProFabProfile(): Promise<void> {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalizedEmail}`)
       .limit(1);
+    if (
+      existingOwner &&
+      !isProvisionedProfileAccountControlConfirmed({
+        emailVerified: existingOwner.emailVerified,
+        provider: existingOwner.provider,
+        verificationStatus: existingOwner.verificationStatus,
+      })
+    ) {
+      throw new Error(
+        "Pro Fab owner provisioning refused an unconfirmed pre-existing account"
+      );
+    }
 
     const existingPreferences: Record<string, any> =
       existingOwner?.preferences && typeof existingOwner.preferences === "object"

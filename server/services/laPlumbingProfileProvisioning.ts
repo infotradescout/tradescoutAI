@@ -17,6 +17,7 @@ import {
 import { db } from "../db";
 import { runTrustSnapshotForUser, TRUST_SNAPSHOTS_VERSION } from "./trustSnapshotsJob";
 import { CVS_BOOST_POLICIES, ensureCvsPolicyBoost } from "./cvsBoostPolicy";
+import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
 const LA_PLUMBING_OWNER_EMAIL = Buffer.from(
   "dHJhY3lAbGFwbHVtYmluZ3NvbHV0aW9ucy5jb20=",
@@ -112,6 +113,18 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalizedEmail}`)
       .limit(1);
+    if (
+      existingOwner &&
+      !isProvisionedProfileAccountControlConfirmed({
+        emailVerified: existingOwner.emailVerified,
+        provider: existingOwner.provider,
+        verificationStatus: existingOwner.verificationStatus,
+      })
+    ) {
+      throw new Error(
+        "LA Plumbing owner provisioning refused an unconfirmed pre-existing account"
+      );
+    }
 
     const existingPreferences: Record<string, any> =
       existingOwner?.preferences && typeof existingOwner.preferences === "object"

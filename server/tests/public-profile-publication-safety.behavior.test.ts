@@ -16,6 +16,11 @@ import {
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
+import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+  MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+  MOULDING_MILLWORK_PROFILE_SLUG,
+} from "@shared/mouldingMillworkProfile";
 
 function businessCandidate(overrides: Record<string, unknown> = {}) {
   const profileId = String(overrides.profileId || "profile-1");
@@ -33,6 +38,7 @@ function businessCandidate(overrides: Record<string, unknown> = {}) {
     ownerRoles: ["business_owner"],
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "approved",
+    ownerEmailVerified: false,
     ownerProvider: "local",
     ownerPreferences: { profileVisibility: "private", publicProfileIds: [profileId] },
     businessStatus: "active",
@@ -40,6 +46,7 @@ function businessCandidate(overrides: Record<string, unknown> = {}) {
     publicDiscoveryEnabled: true,
     businessSources: [],
     businessClaimStatus: "claimed",
+    businessProfileData: {},
     ...overrides,
   };
 }
@@ -180,14 +187,38 @@ describe("public profile publication safety", () => {
     ).toEqual({ mode: "private", reason: "business_trust_missing" });
   });
 
-  it("keeps Moulding & Millwork blocked while custody trust is missing", () => {
+  it("publishes Moulding & Millwork only with exact operator authority and account custody", () => {
     const candidate = businessCandidate({
-      profileSlug: "moulding-millwork-supply",
+      profileSlug: MOULDING_MILLWORK_PROFILE_SLUG,
       ownerVerificationStatus: "pending",
       ownerVerifiedBadge: false,
-      businessSources: ["operator_confirmed_selective_inheritance"],
+      ownerProvider: "admin_provisioned",
+      businessSources: [MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE],
+      businessProfileData: { tradePartner: true },
     });
-    expect(derivePublishedProfileExposure(candidate)).toEqual({
+
+    expect(derivePublishedProfileExposure(candidate)).toEqual({ mode: "public", reason: "public" });
+    expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(true);
+    expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(true);
+
+    expect(
+      derivePublishedProfileExposure({
+        ...candidate,
+        businessSources: [
+          MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+          MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+        ],
+      })
+    ).toEqual({
+      mode: "private",
+      reason: "business_trust_missing",
+    });
+    expect(
+      derivePublishedProfileExposure({
+        ...candidate,
+        businessProfileData: { tradePartner: false },
+      })
+    ).toEqual({
       mode: "private",
       reason: "business_trust_missing",
     });

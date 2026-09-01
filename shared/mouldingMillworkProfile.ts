@@ -1,4 +1,8 @@
 export const MOULDING_MILLWORK_PROFILE_SLUG = "moulding-millwork-supply";
+export const MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE =
+  "operator_confirmed_selective_inheritance";
+export const MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE =
+  "operator_confirmed_selective_inheritance_revoked";
 
 export const MOULDING_MILLWORK_PUBLIC_SOURCES = [
   "https://mouldingmillworksupply.com/",

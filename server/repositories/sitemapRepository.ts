@@ -52,6 +52,7 @@ export class SitemapRepository {
         profileOwnerUserId: profiles.ownerUserId,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
+        ownerEmailVerified: users.emailVerified,
         ownerRole: users.role,
         ownerRoles: users.roles,
         ownerProvider: users.provider,
@@ -62,6 +63,7 @@ export class SitemapRepository {
         businessSources: businesses.sources,
         businessClaimStatus: businesses.claimStatus,
         professionalRoleApproved: durableProfessionalProfileApprovalSql,
+        businessProfileData: businesses.profileData,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
