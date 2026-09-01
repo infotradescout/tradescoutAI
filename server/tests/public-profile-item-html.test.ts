@@ -7,6 +7,10 @@ import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
 import { ISSA_BUILD_PROFILE_CONTENT_BLOCKS } from "@shared/issaBuildProfile";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
 import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
+import {
+  isProfileGalleryItemPubliclyAddressable,
+  isProfileInventoryItemPubliclyAddressable,
+} from "../profileSitemapDiscovery";
 
 const jwSocialPresentationBlock = {
   type: "profilePresentation",
@@ -590,20 +594,9 @@ describe("public profile item HTML", () => {
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
     expect(html).toContain('data-seo-profile-item="gallery"');
-    expect(html).toContain('"@type":"ImageObject"');
-    expect(html).toContain(`"contentUrl":"${sourceImageUrl}"`);
     expect(html).toContain(`<img src="${sourceImageUrl}"`);
-    expect(html).toContain('"@type":"Person"');
-    expect(html).toContain(
-      '"creator":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass#identity"}'
-    );
-    expect(html).toContain(
-      '"@type":"Organization","@id":"https://www.thetradescout.com/#organization","name":"TradeScout"'
-    );
-    expect(html).toContain(
-      `"mainEntity":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass/gallery/${beforeItem.slug}#image"}`
-    );
-    expect(html).toContain('"publisher":{"@id":"https://www.thetradescout.com/#organization"}');
+    expect(html).not.toContain('type="application/ld+json"');
+    expect(html).toContain('meta name="robots" content="noindex, follow"');
   });
 
   it("builds profile-specific LLM guidance without direct contact or exact-address text", async () => {
@@ -674,8 +667,12 @@ describe("public profile item HTML", () => {
 
       expect(html).not.toBeNull();
       expect(html).toContain(`property="og:title" content="${category.name} | JW Stone Logistics"`);
+      const metaDescription =
+        category.summary.length <= 160
+          ? category.summary
+          : `${category.summary.slice(0, 159).trimEnd()}…`;
       expect(html).toContain(
-        `property="og:description" content="${category.summary.replace(/'/g, "&#39;")}"`
+        `property="og:description" content="${metaDescription.replace(/'/g, "&#39;")}"`
       );
       expect(html).toContain(`property="og:url" content="${canonical}"`);
       expect(html).toContain(`link rel="canonical" href="${canonical}"`);
@@ -705,7 +702,7 @@ describe("public profile item HTML", () => {
     }
   });
 
-  it("builds the exact host-local sitemap set for 158 stones, seven materials, and gallery", async () => {
+  it("builds the exact host-local sitemap set for named stones, seven materials, and gallery", async () => {
     profileRecord.contentBlocks = [
       jwPublicDiscoveryBlock,
       {
@@ -717,6 +714,7 @@ describe("public profile item HTML", () => {
             {
               url: "/uploads/profiles/patio.jpg",
               title: "Finished Patio",
+              caption: "A finished local patio installation with published project context.",
             },
           ],
         },
@@ -728,6 +726,9 @@ describe("public profile item HTML", () => {
       profileRecord.contentBlocks
     );
     const inventoryItems = listProfileInventoryItems(inventoryCategories);
+    const publicInventoryItems = inventoryItems.filter((item) =>
+      isProfileInventoryItemPubliclyAddressable(profileRecord.contentBlocks, item)
+    );
     const materialCategories = listProfileInventoryCategories(
       inventoryCategories,
       profileRecord.contentBlocks
@@ -746,14 +747,18 @@ describe("public profile item HTML", () => {
       ...materialCategories.map(
         (category) => `https://jwstonelogistics.com/materials/${category.slug}`
       ),
-      ...inventoryItems.map((item) => `https://jwstonelogistics.com/stones/${item.slug}`),
+      ...publicInventoryItems.map((item) => `https://jwstonelogistics.com/stones/${item.slug}`),
       `https://jwstonelogistics.com/gallery/${galleryItem.slug}`,
     ];
 
     expect(inventoryItems).toHaveLength(158);
+    expect(publicInventoryItems).toHaveLength(120);
     expect(materialCategories).toHaveLength(7);
+    expect(isProfileGalleryItemPubliclyAddressable(profileRecord.contentBlocks, galleryItem)).toBe(
+      true
+    );
     expect(locations).toEqual(expectedLocations);
-    expect(locations).toHaveLength(1 + 158 + 7 + 1);
+    expect(locations).toHaveLength(1 + 120 + 7 + 1);
     expect(new Set(locations).size).toBe(locations.length);
     expect(sitemap).not.toContain("https://www.thetradescout.com/");
     expect(sitemap).not.toContain("?stone=");

@@ -6,6 +6,7 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 const profileWrapper = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+const profileRenderer = read("client/src/pages/profile-sites/JwStoneMarketplaceProfile.tsx");
 const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
 const profileSeo = read("client/src/features/jw-stone/JwStoneProfileSeo.tsx");
 const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
@@ -18,12 +19,15 @@ const expressRoute = read("server/routes/tradepartner-express.ts");
 
 describe("JW Stone profile contact and account contract", () => {
   it("keeps the full JW Stone marketplace as its profile experience", () => {
-    expect(profileWrapper).toContain(
+    expect(profileRenderer).toContain(
       'import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace"'
     );
-    expect(profileWrapper).toContain("const normalizedSlug = props.profileSlug.trim().toLowerCase()");
+    expect(profileWrapper).toContain(
+      "const normalizedSlug = props.profileSlug.trim().toLowerCase()"
+    );
     expect(profileWrapper).toContain("normalizedSlug === JW_STONE_PROFILE_SLUG");
-    expect(profileWrapper).toContain("<JWStoneMarketplace />");
+    expect(profileWrapper).toContain("<JwStoneMarketplaceProfile");
+    expect(profileRenderer).toContain("<JWStoneMarketplace />");
     expect(marketplace).toContain("<MarketplaceIntroduction />");
     expect(marketplace).toContain("<StoneCollection");
     expect(marketplace).toContain("<JwStoneCompanySection />");
@@ -53,7 +57,7 @@ describe("JW Stone profile contact and account contract", () => {
     expect(marketplace).toContain("<ExpressDirectConnectPanel");
     expect(marketplace).toContain('profileSlug="jw-stone"');
     expect(marketplace).toContain("allowCall");
-    expect(marketplace).toContain('initialView="choice"');
+    expect(marketplace).toContain('initialView="request"');
     expect(expressPanel).toContain("/express-contact/reveal");
     expect(expressPanel).toContain('decision: "call"');
     expect(expressRoute).toContain('authorityGate: z.literal("profile_direct_connect")');
@@ -71,8 +75,10 @@ describe("JW Stone profile contact and account contract", () => {
   });
 
   it("keeps YouTube with the company social identity and out of the header", () => {
-    expect(company).toContain('data-testid="jw-social-youtube"');
-    expect(company).toContain('aria-label="Watch JW Stone on YouTube"');
+    expect(company).toContain("data-testid={`jw-social-${social.id}`}");
+    expect(identity).toContain('id: "youtube"');
+    expect(company).toContain("aria-label={`Open JW Stone on ${social.label}`}");
+    expect(identity).toContain('label: "YouTube"');
     expect(header).not.toContain("JW_STONE_YOUTUBE_URL");
     expect(header).not.toContain("Watch JW Stone on YouTube");
   });

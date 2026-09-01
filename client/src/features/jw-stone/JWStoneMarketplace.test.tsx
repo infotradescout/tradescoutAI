@@ -254,11 +254,11 @@ describe("JW Stone marketplace luxury layout", () => {
       colorToggle?.querySelectorAll('[data-testid="jw-color-collage"] img') || []
     ).map((img) => img.getAttribute("src") || "");
     expect(collageSrcs).toHaveLength(8);
-    expect(collageSrcs.every((src) => src.includes("/color-collage/"))).toBe(true);
-    expect(collageSrcs.every((src) => src.includes("v=face-truth-1"))).toBe(true);
-    expect(collageSrcs.some((src) => src.includes("04-black.webp"))).toBe(true);
-    expect(collageSrcs.some((src) => src.includes("07-blue.webp"))).toBe(true);
-    expect(collageSrcs.some((src) => src.includes("09-gold.webp"))).toBe(true);
+    expect(collageSrcs.every((src) => src.includes("/color-slivers/"))).toBe(true);
+    expect(collageSrcs.every((src) => src.includes("v=slab-core-spectrum-3"))).toBe(true);
+    expect(collageSrcs.some((src) => src.includes("titanium-black-leathered.webp"))).toBe(true);
+    expect(collageSrcs.some((src) => src.includes("blue-dream.webp"))).toBe(true);
+    expect(collageSrcs.some((src) => src.includes("gold-macaubas.webp"))).toBe(true);
     expect(collageSrcs.some((src) => src.includes("/black-pearl/"))).toBe(false);
 
     expect(materialToggle?.querySelector('[data-testid="jw-material-collage"]')).not.toBeNull();
@@ -289,13 +289,16 @@ describe("JW Stone marketplace luxury layout", () => {
     const inventorySrcs = Array.from(
       inventoryToggle?.querySelectorAll('[data-testid="jw-inventory-collage"] img') || []
     ).map((img) => img.getAttribute("src") || "");
-    expect(inventorySrcs).toHaveLength(1);
-    expect(inventorySrcs[0]).toContain("/story/full-inventory-yard.webp");
-    expect(inventorySrcs[0]).not.toContain("taj-living-room");
-    expect(inventorySrcs[0]).not.toBe(materialSrcs[0]);
-    expect(inventorySrcs[0]).not.toContain("/material-covers/");
-    expect(inventorySrcs[0]).not.toContain("/color-collage/");
-    expect(inventorySrcs[0]).not.toContain("/inventory-source/");
+    expect(inventorySrcs).toHaveLength(2);
+    expect(new Set(inventorySrcs).size).toBe(1);
+    for (const inventorySrc of inventorySrcs) {
+      expect(inventorySrc).toContain("/story/full-inventory-yard.webp");
+      expect(inventorySrc).not.toContain("taj-living-room");
+      expect(inventorySrc).not.toBe(materialSrcs[0]);
+      expect(inventorySrc).not.toContain("/material-covers/");
+      expect(inventorySrc).not.toContain("/color-collage/");
+      expect(inventorySrc).not.toContain("/inventory-source/");
+    }
 
     const story = container.querySelector('[data-testid="jw-marketplace-story"]');
     expect(story?.getAttribute("id")).toBe("jw-story");
@@ -334,9 +337,9 @@ describe("JW Stone marketplace luxury layout", () => {
         Boolean(story.compareDocumentPosition(footerEl) & Node.DOCUMENT_POSITION_FOLLOWING)
     ).toBe(true);
 
-    expect(colorToggle?.className).toMatch(/min-h-\[25svh\]/);
-    expect(materialToggle?.className).toMatch(/min-h-\[25svh\]/);
-    expect(inventoryToggle?.className).toMatch(/min-h-\[25svh\]/);
+    expect(colorToggle?.className).toMatch(/min-h-\[8\.5rem\]/);
+    expect(materialToggle?.className).toMatch(/min-h-\[8\.5rem\]/);
+    expect(inventoryToggle?.className).toMatch(/min-h-\[8\.5rem\]/);
 
     const request = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-request"]');
     expect(request?.className).toMatch(/fixed/);
@@ -849,15 +852,10 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(inventory.className).toMatch(/scroll-mt-/);
 
     const rail = firstCut.querySelector('[data-testid="jw-first-cut-rail"]');
-    expect(rail?.className).toMatch(/jw-first-cut__premiere/);
-    expect(rail?.className).toMatch(/grid-cols-1/);
-    expect(rail?.className).not.toMatch(/snap-x|overflow-x-auto|grid-cols-3|lg:grid-cols-/);
+    expect(rail?.className).toMatch(/jw-first-cut__rail/);
+    expect(rail?.className).toMatch(/overflow-x-auto/);
+    expect(rail?.className).not.toMatch(/grid-cols-/);
     expect(firstCut.className).toMatch(/jw-first-cut/);
-    expect(firstCut.querySelector(".jw-first-cut__lead")).not.toBeNull();
-    const supportRow = firstCut.querySelector(".jw-first-cut__support");
-    expect(supportRow).not.toBeNull();
-    expect(supportRow?.className).toMatch(/grid-cols-2/);
-    expect(supportRow?.className).not.toMatch(/lg:grid-cols-1|min-h-\[56svh\]|lg:min-h-/);
     const photoSlots = firstCut.querySelectorAll('[data-first-cut-photo="true"]');
     expect(photoSlots.length).toBe(3);
     expect(firstCut.querySelectorAll('[data-first-cut-lead="true"]')).toHaveLength(1);
@@ -866,8 +864,8 @@ describe("JW Stone marketplace luxury layout", () => {
       const img = slot.querySelector("img");
       expect(img).not.toBeNull();
       expect(img?.getAttribute("src")).toMatch(/\/first-cut\/0[125]\.jpg/);
-      expect(slot.className).not.toMatch(/w-\[88vw\]|w-\[86vw\]|shrink-0/);
-      expect(slot.className).not.toMatch(/--jw-dark|jw-dark/);
+      expect(slot.className).toMatch(/min-w-|shrink-0/);
+      expect(slot.className).toMatch(/--jw-dark|jw-dark/);
       expect(img?.className).not.toMatch(/max-h-|absolute|inset-0/);
       expect(img?.getAttribute("alt")).toBe("");
       expect(img?.getAttribute("title")).toBeNull();
@@ -889,7 +887,7 @@ describe("JW Stone marketplace luxury layout", () => {
     const supportFrames = Array.from(supportTiles).map((tile) => tile.querySelector("span"));
     expect(supportFrames).toHaveLength(2);
     for (const frame of supportFrames) {
-      expect(frame?.className).toMatch(/aspect-\[4\/3\]/);
+      expect(frame?.className).toMatch(/aspect-\[3\/2\]/);
       expect(frame?.className).not.toMatch(/svh|min-h-\[/);
     }
     // Equal grid cells: both support frames share the same aspect utility (identical box size).
@@ -992,7 +990,7 @@ describe("JW Stone marketplace luxury layout", () => {
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
     ).toBe("false");
     expect(container.querySelector('[data-testid="jw-inventory-grid"]')).toBeNull();
-    expect(inventoryToggle?.className).toMatch(/min-h-\[25svh\]/);
+    expect(inventoryToggle?.className).toMatch(/min-h-\[8\.5rem\]/);
     expect(inventoryToggle?.className).not.toMatch(/\bsticky\b/);
   });
 });
