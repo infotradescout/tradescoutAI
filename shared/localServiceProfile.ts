@@ -199,7 +199,7 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
       ],
     },
   ],
-  aboutTitle: "Family-owned and built around coordinated work.",
+  aboutTitle: "Family-owned, with every job coordinated.",
   aboutBody:
     "LA Plumbing Solutions is a local company founded by two brothers who learned the trade from their father. Master plumbers, journeymen, apprentices, and office staff work as one team so scheduling, communication, installation, and follow-up stay connected.",
   aboutEyebrow: "About LA Plumbing",

@@ -16,8 +16,8 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
     expect(source).toContain("contactState={contactPanelState}");
     expect(source).toContain('viewerRole="requester"');
     expect(source).toContain("safeSummary={getDirectConnectContactGateSummary(r)}");
-    expect(source).toContain(
-      "releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}"
+    expect(source).toMatch(
+      /releasedContact=\{getDirectConnectReleasedContactForPanel\(\s*r,\s*contactPanelState\s*\)\}/
     );
     expect(source).not.toContain("r.releasedContact?.phone");
     expect(source).not.toContain("r.releasedContact?.email");
@@ -52,8 +52,8 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
 
     expect(source).toContain("<DecisionContactGatePanel");
     expect(source).toContain("safeSummary={getDirectConnectContactGateSummary(r)}");
-    expect(source).toContain(
-      "releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}"
+    expect(source).toMatch(
+      /releasedContact=\{getDirectConnectReleasedContactForPanel\(\s*r,\s*contactPanelState\s*\)\}/
     );
     expect(source).not.toContain("Released contact");
     expect(source).not.toContain("Phone: {r.releasedContact");

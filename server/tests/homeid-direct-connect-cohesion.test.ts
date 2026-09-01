@@ -6,7 +6,7 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 const shellSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-const homesSource = read("client/src/pages/homes.tsx");
+const homesSource = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
 const routesSource = read("server/routes/direct-connect.ts");
 const notificationSafetySource = read(
   "server/tests/direct-connect-notification-delivery-safety.contract.test.ts"
@@ -27,7 +27,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
 
   it("keeps HomeID helpful, optional, and non-blocking during Direct Connect submit", () => {
     expect(shellSource).toContain("const [homeContextIntent, setHomeContextIntent] = useState<");
-    expect(shellSource).toContain('>("skip_for_now")');
+    expect(shellSource).toContain('prefillHomeContextIntent || "skip_for_now"');
     expect(shellSource).toContain(
       "Save it with your property or project so the next step starts with the right"
     );
@@ -70,15 +70,15 @@ describe("HomeID and Direct Connect cohesion contract", () => {
 
   it("keeps HomeID page copy aligned as durable memory feeding request action", () => {
     expect(homesSource).toContain(
-      "HomeID remembers useful property history. Direct Connect starts the job when you"
+      "One private source of truth for the property, build, systems, documents, service"
     );
     expect(homesSource).toContain(
-      "This creates a draft request only. HomeID context can help prepare it"
+      "Choose the HomeID facts that matter, save the packet, then carry that context into Direct Connect."
     );
-    expect(homesSource).toMatch(
-      /Direct Connect starts the job\s+only\s+when you submit; HomeID remains the property memory\./
-    );
-    expect(homesSource).toContain("future requests start with better property history.");
+    expect(homesSource).toContain('homeContextIntent: "update_from_request"');
+    expect(homesSource).toContain('params.set("homePacketId", packetId)');
+    expect(shellSource).toContain('data-testid="direct-connect-homeid-handoff"');
+    expect(shellSource).toContain("Review them before anything is shared.");
   });
 
   it("allows completed Direct Connect work to project into HomeID history", () => {

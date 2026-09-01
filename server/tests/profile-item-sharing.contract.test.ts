@@ -47,7 +47,7 @@ describe("profile item sharing contract", () => {
   });
 
   it("shares and reopens the exact selected inventory photo", () => {
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
 
     expect(theme).toContain("buildProfilePublicItemPath({");
     expect(theme).toContain("profileInventoryShareIndexForDisplay(");
@@ -61,7 +61,7 @@ describe("profile item sharing contract", () => {
     const profileHtml = read("server/publicProfileHtml.ts");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const defaultTheme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const autoGlassTheme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const videographerTheme = read("client/src/pages/profile-sites/VideographerProfileTheme.tsx");
 

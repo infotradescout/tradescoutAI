@@ -30,7 +30,7 @@ describe("direct connect doctrine regression matrix", () => {
   it("locks Home Record optionality across create/review/submit/routing path", () => {
     const shell = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const routes = read("server/routes/direct-connect.ts");
-    expect(shell).toContain('>("skip_for_now")');
+    expect(shell).toContain('prefillHomeContextIntent || "skip_for_now"');
     expect(shell).toContain("handleSkipAndAutoRoute");
     expect(shell).toContain("autoRoute: true");
     expect(routes).toContain("if (created && shouldAutoRoute) {");

@@ -791,27 +791,43 @@ export default function LocalServiceProfileTheme({
                     {scoreHistoryStart || "when enough governed history is available"}.
                   </p>
                   {typeof communityVerification?.scoreChange30d === "number" ? (
-                    <p>
-                      30-day change:{" "}
-                      {communityVerification.scoreChange30d > 0 ? "+" : ""}
-                      {Math.round(communityVerification.scoreChange30d)}
-                      {score30dComparedAt ? ` compared with ${score30dComparedAt}` : ""}.
-                    </p>
+                    <>
+                      {typeof communityVerification.lifetimeScoreChange === "number" ? (
+                        <p>
+                          Lifetime score change:{" "}
+                          {communityVerification.lifetimeScoreChange > 0 ? "+" : ""}
+                          {Math.round(communityVerification.lifetimeScoreChange)}.
+                        </p>
+                      ) : null}
+                      <p>
+                        30-day change:{" "}
+                        {communityVerification.scoreChange30d > 0 ? "+" : ""}
+                        {Math.round(communityVerification.scoreChange30d)}
+                        {score30dComparedAt ? ` compared with ${score30dComparedAt}` : ""}.
+                      </p>
+                    </>
                   ) : (
-                    <p>30-day comparison is not available yet.</p>
+                    <p>30-day history unavailable.</p>
                   )}
                 </div>
               </details>
             ) : null}
           </article>
 
-          <div className="rounded-3xl bg-[var(--service-surface)] p-4 text-white shadow-sm">
+          <div
+            className="rounded-3xl bg-[var(--service-surface)] p-4 text-white shadow-sm"
+            aria-label="Trust and profile actions"
+            data-testid="profile-trust-section"
+          >
             {trustActions}
           </div>
         </aside>
       </div>
 
-      <footer className="border-t border-slate-200 bg-white px-4 py-6">
+      <footer
+        className="border-t border-slate-200 bg-white px-4 py-6"
+        data-testid="local-service-brand-footer"
+      >
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
           <a
             href={qualifyPublicProfileItemDestination("/", platformBaseHref)}

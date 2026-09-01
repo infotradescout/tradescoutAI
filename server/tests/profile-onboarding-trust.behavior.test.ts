@@ -97,13 +97,13 @@ describe("onboarding-created profile trust boundary", () => {
     expect(searchSelection.indexOf(".orderBy(")).toBeLessThan(
       searchSelection.indexOf(".limit(limit)")
     );
-    expect(searchPredicate).toContain("${profiles.businessId} IS NULL");
+    expect(searchPredicate).toContain("${profiles.businessId} IS NOT NULL");
+    expect(searchPredicate).toContain("${profiles.ownerUserId} = ${businesses.ownerUserId}");
+    expect(searchPredicate).toContain("${businesses.publicDiscoveryEnabled} = true");
     expect(searchPredicate).toContain("${users.verifiedBadge} = true");
     expect(searchPredicate).toContain("${users.verificationStatus}::text");
     expect(searchPredicate).toContain("'approved'");
-    expect(searchPredicate).toContain("JRS_PROFILE_SLUG");
-    expect(searchPredicate).toContain("PRO_FAB_PROFILE_SLUG");
-    expect(searchPredicate).toContain("PRECISION_AERIAL_PROFILE_SLUG");
+    expect(searchPredicate).toContain("durableProfessionalProfileApprovalSql");
     expect(publicSearchRoute).not.toContain("await db");
     expect(publicSearchRoute).not.toContain("ownerUserId");
     expect(publicSearchRoute).not.toContain("businessId");
@@ -120,7 +120,9 @@ describe("onboarding-created profile trust boundary", () => {
     expect(publicRead).toContain("if (profile.businessId)");
     expect(publicRead).toContain("canAuthenticatedViewerPreviewProfile(req, ownerUserId)");
     expect(publicRead).toContain("canServeLinkedBusinessProfileToViewer({");
-    expect(publicRead).toContain("ownerConfirmedDirectProfile,");
+    expect(publicRead).toContain(
+      "ownerConfirmedDirectProfile: ownerConfirmedDirectProfile || unlistedSteelHomeDirectProfile,"
+    );
     expect(
       publicRead.match(/res\.setHeader\("Cache-Control", "private, no-store"\)/g)?.length
     ).toBeGreaterThanOrEqual(3);

@@ -40,7 +40,7 @@ describe("public profile TradeScout footer", () => {
 
     for (const [relativePath, footerTestId] of [
       [
-        "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+        "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
         'data-testid="wholesaler-brand-footer"',
       ],
       [

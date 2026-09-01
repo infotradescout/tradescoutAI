@@ -39,7 +39,7 @@ describe("canonical profile item parity", () => {
 
   it("renders the same shareable items on standard and premium canonical profiles", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
-    const wholesaler = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const wholesaler = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const autoGlass = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const localService = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
     const proFab = read("client/src/pages/profile-sites/ProFabProfileTheme.tsx");

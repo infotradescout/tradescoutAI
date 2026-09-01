@@ -146,7 +146,7 @@ describe("canonical public-profile trust actions", () => {
     const app = read("client/src/App.tsx");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const themes = [
-      "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+      "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/ProFabProfileTheme.tsx",

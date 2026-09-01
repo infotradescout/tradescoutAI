@@ -44,6 +44,12 @@ import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "@/lib/homeidPersistence";
+import { resolveHomeIdFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
+import {
+  trackFirstUseGuidanceViewed,
+  trackFirstUseTaskPromptClicked,
+  trackFirstUseTaskPromptViewed,
+} from "@/lib/firstUseAnalytics";
 
 type Tab =
   | "overview"
@@ -419,6 +425,15 @@ export default function HomeIdWorkspace() {
 
   const known = facts.filter((item) => item.status === "known");
   const review = facts.filter((item) => item.status === "needs_review");
+  const homeIdFirstTaskPrompt = useMemo(
+    () =>
+      resolveHomeIdFirstUseTaskPrompt({
+        hasSelectedHome: Boolean(homeId),
+        knownDetailsCount: known.length,
+        hasComponentLikeDetail: known.length > 0,
+      }),
+    [homeId, known.length]
+  );
   const missing = Array.from(
     new Set([
       ...list<string>(projectMeta.requiredNextInputs),
@@ -433,6 +448,17 @@ export default function HomeIdWorkspace() {
   const propertyLocation = location(selectedHome);
   const propertyAssigned = Boolean(propertyLocation);
   const currentStage = propertyAssigned ? "Design and property screening" : "Preconstruction";
+
+  useEffect(() => {
+    if (!homeId) return;
+    trackFirstUseGuidanceViewed("homes", "authenticated");
+    trackFirstUseTaskPromptViewed({
+      surface: "homes",
+      promptMessage: homeIdFirstTaskPrompt.message,
+      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+      userState: "authenticated",
+    });
+  }, [homeId, homeIdFirstTaskPrompt.ctaLabel, homeIdFirstTaskPrompt.message]);
 
   const refresh = async () => {
     if (!homeId) return;
@@ -601,6 +627,24 @@ export default function HomeIdWorkspace() {
     navigate(`/direct-connect?${params.toString()}`);
   };
 
+  const openFirstTask = () => {
+    const targetTab: Tab =
+      homeIdFirstTaskPrompt.ctaLabel === "Create request details" ? "requests" : "property";
+    const targetRoute = `/homes?homeId=${encodeURIComponent(String(homeId || ""))}&tab=${targetTab}`;
+    trackFirstUseTaskPromptClicked({
+      surface: "homes",
+      promptMessage: homeIdFirstTaskPrompt.message,
+      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+      targetRoute,
+      userState: "authenticated",
+    });
+    if (targetTab === "requests") {
+      setTab("requests");
+      return;
+    }
+    openProperty();
+  };
+
   if (!homeId && !homesQuery.isLoading && homes.length === 0) {
     return (
       <div
@@ -764,6 +808,17 @@ export default function HomeIdWorkspace() {
                 <p className="mt-1 text-xs leading-5 text-white/[0.40]">{note}</p>
               </button>
             ))}
+          </div>
+          <div
+            className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-400/[0.18] bg-orange-400/[0.055] px-4 py-3"
+            data-testid="homeid-first-task-prompt"
+          >
+            <p className="text-sm font-semibold text-white/[0.72]">
+              {homeIdFirstTaskPrompt.message}
+            </p>
+            <Button variant="outline" className={SECONDARY} onClick={openFirstTask}>
+              {homeIdFirstTaskPrompt.ctaLabel}
+            </Button>
           </div>
         </div>
       </section>
