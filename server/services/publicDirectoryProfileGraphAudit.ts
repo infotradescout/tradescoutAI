@@ -460,6 +460,7 @@ async function loadCurrentTargets(queryable: Queryable = pool): Promise<Director
               b.profile_data,
               b.updated_at as business_updated_at,
               p.id as profile_id,
+              p.publicly_released as profile_publicly_released,
               p.slug as profile_slug,
               p.display_name as profile_display_name,
               p.role_context as profile_role_context,
@@ -474,6 +475,21 @@ async function loadCurrentTargets(queryable: Queryable = pool): Promise<Director
               u.verification_status as owner_verification_status,
               u.provider as owner_provider,
               u.preferences as owner_preferences,
+              case
+                when p.role_context = 'realtor' then exists (
+                  select 1 from realtor_profiles rp
+                   where rp.user_id = p.owner_user_id
+                     and rp.verification_status = 'approved'
+                     and rp.is_active = true
+                )
+                when p.role_context = 'car_dealer' then exists (
+                  select 1 from car_salesman_profiles cp
+                   where cp.user_id = p.owner_user_id
+                     and cp.verification_status = 'approved'
+                     and cp.is_active = true
+                )
+                else true
+              end as professional_role_approved,
               c.name as county_name,
               c.state_code
          from profiles p

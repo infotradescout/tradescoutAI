@@ -17,6 +17,7 @@ const publicProfileRow = (overrides: Record<string, unknown> = {}) => ({
   business_sources: [],
   business_claim_status: "claimed",
   profile_id: "profile-1",
+  profile_publicly_released: true,
   profile_slug: "la-plumbing-solutions",
   profile_display_name: "LA Plumbing Solutions",
   profile_role_context: "specialty_tradesperson",
@@ -51,6 +52,7 @@ const publicProfileRow = (overrides: Record<string, unknown> = {}) => ({
   owner_verification_status: "approved",
   owner_provider: "email",
   owner_preferences: { publicProfileIds: ["profile-1"] },
+  professional_role_approved: true,
   ...overrides,
 });
 

@@ -23,6 +23,7 @@ const profileRow = {
     stateCode: "LA",
   },
   profile_id: "profile-1",
+  profile_publicly_released: true,
   profile_slug: "la-plumbing-solutions",
   profile_display_name: "LA Plumbing Solutions",
   profile_role_context: "specialty_tradesperson",
@@ -57,6 +58,7 @@ const profileRow = {
   owner_verification_status: "approved",
   owner_provider: "email",
   owner_preferences: { publicProfileIds: ["profile-1"] },
+  professional_role_approved: true,
   county_name: "Tangipahoa Parish",
   state_code: "LA",
 };
