@@ -75,6 +75,7 @@ describe("stone inventory truth and freshness", () => {
     const presentation = read("client/src/data/jwStoneProfilePresentation.ts");
     const collection = read("client/src/features/jw-stone/StoneCollection.tsx");
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+    const profileSeo = read("client/src/features/jw-stone/JwStoneProfileSeo.tsx");
     const crawlerHtml = read("server/publicJwStoneMarketplaceHtml.ts");
 
     expect(presentation).toContain('inventoryTitle: "Material Library"');
@@ -83,8 +84,10 @@ describe("stone inventory truth and freshness", () => {
     expect(collection).toContain('title="Material Library"');
     expect(collection).toContain('id="material-library"');
     expect(collection).not.toContain('title="Full inventory"');
+    expect(profileSeo).toContain('name: "JW Stone Material Library"');
+    expect(profileSeo).not.toContain("JW Stone full inventory");
     expect(marketplace).toContain("<CurrentInventorySection");
-    expect(crawlerHtml).toContain("<h2>Material Library</h2>");
+    expect(crawlerHtml).toContain("<h2>Material Library:");
     expect(crawlerHtml).not.toContain("Browse current selections by photo");
   });
 

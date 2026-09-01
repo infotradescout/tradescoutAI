@@ -26,14 +26,19 @@ const jwContentBlocks = [
 ];
 
 describe("public Profile item request routing", () => {
-  it("resolves every JW inventory item on the JW-owned route", () => {
+  it("resolves every named JW inventory item on the JW-owned route", () => {
     const items = listProfileInventoryItems(
       inventoryCategoriesForProfile("jw-stone", jwContentBlocks)
     );
-    expect(items).toHaveLength(119);
+    const namedItems = items.filter((item) => item.hasPublicName);
+    const anonymousItems = items.filter((item) => !item.hasPublicName);
+
+    expect(items).toHaveLength(158);
+    expect(namedItems).toHaveLength(120);
+    expect(anonymousItems).toHaveLength(38);
 
     const canonicalPaths = new Set<string>();
-    for (const item of items) {
+    for (const item of namedItems) {
       const resolved = resolvePublicProfileItemRequest({
         profile: { slug: "jw-stone", contentBlocks: jwContentBlocks },
         pathname: `/stones/${item.slug}`,
@@ -49,14 +54,24 @@ describe("public Profile item request routing", () => {
       if (resolved.kind === "item") canonicalPaths.add(resolved.canonicalPath);
     }
 
-    expect(canonicalPaths.size).toBe(119);
+    expect(canonicalPaths.size).toBe(namedItems.length);
     expect([...canonicalPaths].some((path) => path.startsWith("/u/"))).toBe(false);
+
+    for (const item of anonymousItems) {
+      expect(
+        resolvePublicProfileItemRequest({
+          profile: { slug: "jw-stone", contentBlocks: jwContentBlocks },
+          pathname: `/stones/${item.slug}`,
+          profileBasePath: "/",
+        })
+      ).toEqual({ kind: "invalid-item-route" });
+    }
   });
 
-  it("canonicalizes every legacy JW selector to the same owner-domain path", () => {
+  it("canonicalizes every named legacy JW selector to the same owner-domain path", () => {
     const items = listProfileInventoryItems(
       inventoryCategoriesForProfile("jw-stone", jwContentBlocks)
-    );
+    ).filter((item) => item.hasPublicName);
     for (const item of items) {
       expect(
         resolvePublicProfileItemRequest({

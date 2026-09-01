@@ -83,6 +83,7 @@ describe("JW Stone profile contact and account contract", () => {
 
   it("keeps YouTube with the company social identity and out of the header", () => {
     expect(identity).toContain('id: "youtube"');
+    expect(identity).toContain('label: "YouTube"');
     expect(identity).toContain("JW_STONE_YOUTUBE_URL");
     expect(company).toContain("data-testid={`jw-social-${social.id}`}");
     expect(company).toContain("aria-label={`Open JW Stone on ${social.label}`}");
