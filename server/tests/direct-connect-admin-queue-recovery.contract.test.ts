@@ -20,10 +20,11 @@ describe("Direct Connect admin queue recovery", () => {
 
   it("provides a searchable, paginated queue through the canonical admin surface", () => {
     const routes = read("server/routes/direct-connect.ts");
+    const operations = read("server/routes/direct-connect/operations.ts");
     const page = read("client/src/pages/admin-direct-connect-requests.tsx");
     const queue = read("client/src/components/admin/AdminDirectConnectQueue.tsx");
 
-    expect(routes).toContain("const directConnectAdminQueueSchema = z.object({");
+    expect(operations).toContain("export const directConnectAdminQueueSchema = z.object({");
     expect(routes).toContain('COUNT(DISTINCT wra.id)::int AS "assignmentCount"');
     expect(routes).toContain("nextOffset: hasMore ? offset + requests.length : null");
     expect(page).toContain("<AdminDirectConnectQueue />");

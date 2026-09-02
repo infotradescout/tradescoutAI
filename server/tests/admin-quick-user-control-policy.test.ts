@@ -5,7 +5,7 @@ import { evaluateAdminQuickUserControl } from "../services/adminQuickUserControl
 import { reconcileUserRolePatchWithApprovedProfessionalRoles } from "../services/professionalRoleAuthority";
 
 const routes = fs
-  .readFileSync(path.resolve(process.cwd(), "server/routes.ts"), "utf8")
+  .readFileSync(path.resolve(process.cwd(), "server/routes/admin-user-controls.ts"), "utf8")
   .replace(/\r\n/g, "\n");
 
 describe("admin quick user-control authority", () => {

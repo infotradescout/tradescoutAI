@@ -481,10 +481,12 @@ describe("Express Direct Connect provider authority transition", () => {
   });
 
   it("keeps the full acceptance lifecycle outside best-effort response catches", () => {
-    const source = fs.readFileSync(
-      path.resolve(process.cwd(), "server/routes/direct-connect.ts"),
-      "utf8"
-    );
+    const source =
+      fs.readFileSync(path.resolve(process.cwd(), "server/routes/direct-connect.ts"), "utf8") +
+      fs.readFileSync(
+        path.resolve(process.cwd(), "server/routes/direct-connect/authority.ts"),
+        "utf8"
+      );
     const routeStart = source.indexOf('"/api/direct-connect/assignments/:id/respond"');
     const routeEnd = source.indexOf(
       '"/api/direct-connect/requests/:id/express-interest"',

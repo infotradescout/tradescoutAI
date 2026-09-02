@@ -349,6 +349,7 @@ describe("professional self-assignment authority", () => {
 
   it("preserves approved professional projections in legacy onboarding and import writers", () => {
     const routes = read("server/routes.ts");
+    const projection = read("server/services/adminBusinessOwnerImportProjection.ts");
     const authCompletion = section(
       routes,
       'app.post(\n    "/api/auth/complete-onboarding"',
@@ -359,11 +360,7 @@ describe("professional self-assignment authority", () => {
       'app.post(\n    "/api/user/complete-onboarding"',
       "// PHASE 3d-A: AI inference for Scout claim suggestion"
     );
-    const existingImportWriter = section(
-      routes,
-      "const createImportedOwnerProjectionAtomically",
-      "for (let idx = 0; idx < records.length; idx++)"
-    );
+    const existingImportWriter = projection;
 
     for (const writer of [authCompletion, userCompletion]) {
       expect(writer).toContain("updateUserPreservingApprovedProfessionalRoles({");
@@ -395,15 +392,16 @@ describe("professional self-assignment authority", () => {
 
   it("rejects professional grants in both generic root admin role writers", () => {
     const routes = read("server/routes.ts");
+    const quickControls = read("server/routes/admin-user-controls.ts");
     const adminRole = section(
       routes,
       'app.put("/api/admin/users/:userId/role"',
       'app.delete("/api/admin/users/:userId"'
     );
     const quickRole = section(
-      routes,
+      quickControls,
       'app.post("/api/admin/user-controls/role/:userId"',
-      "registerQuoteCalculatorRoutes(app, { storage });"
+      "\n}"
     );
 
     for (const writer of [adminRole, quickRole]) {
@@ -443,7 +441,7 @@ describe("professional self-assignment authority", () => {
 
   it("keeps role grants behind the authenticated admin approval decision", () => {
     const professionalRoutes = read("server/routes/professional-network.ts");
-    const storage = read("server/storage.ts");
+    const storage = read("server/storage/repositories/professional-applications.ts");
     const realtorApproval = section(
       professionalRoutes,
       '"/api/admin/realtor/verify/:profileId"',
@@ -456,7 +454,7 @@ describe("professional self-assignment authority", () => {
     const decisionPersistence = section(
       storage,
       "async function decide<TProfile extends ProfessionalProfile>",
-      "\n  return {\n    submitRealtorApplication"
+      "\n  const realtorConfig"
     );
 
     expect(realtorApproval).toContain("isAuthenticated");

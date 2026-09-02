@@ -215,7 +215,9 @@ describe("direct-connect gate regressions", () => {
   });
 
   it("requires structured fields when accepting a direct-connect reply", () => {
-    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+    const routeFile =
+      readRepoFile("server/routes/direct-connect.ts") +
+      readRepoFile("server/routes/direct-connect/operations.ts");
 
     expect(routeFile).toContain("availabilityWindow: z.string().min(3).max(160).optional()");
     expect(routeFile).toContain(

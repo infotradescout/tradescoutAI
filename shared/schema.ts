@@ -64,6 +64,7 @@ import {
 } from "./schema/core";
 import { createNotificationSchema } from "./schema/notifications";
 import { createProcurementSchema } from "./schema/procurement";
+import { createProfessionalSchema } from "./schema/professional";
 
 export * from "./schema/core";
 export type {
@@ -279,6 +280,24 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+const {
+  realtorProfiles,
+  carSalesmanProfiles,
+  realtorProfilesRelations,
+  carSalesmanProfilesRelations,
+  insertRealtorProfileSchema,
+  insertCarSalesmanProfileSchema,
+} = createProfessionalSchema(users);
+
+export {
+  realtorProfiles,
+  carSalesmanProfiles,
+  realtorProfilesRelations,
+  carSalesmanProfilesRelations,
+  insertRealtorProfileSchema,
+  insertCarSalesmanProfileSchema,
+};
 
 // User Profiles (multi-profile support: person, service provider, seller)
 // Each user can have multiple profiles with independent verification state
@@ -1066,47 +1085,6 @@ export const affiliateReferrals = pgTable(
   ]
 );
 
-// Realtor profiles
-export const realtorProfiles = pgTable(
-  "realtor_profiles",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id),
-    licenseNumber: varchar("license_number").notNull(),
-    brokerageName: varchar("brokerage_name").notNull(),
-    mlsId: varchar("mls_id"),
-    specializations: jsonb("specializations").$type<string[]>(), // residential, commercial, luxury, etc.
-    yearsExperience: integer("years_experience"),
-    transactionsCompleted: integer("transactions_completed").default(0),
-    averageTransactionValue: decimal("average_transaction_value"),
-    serviceAreas: jsonb("service_areas").$type<{
-      counties: string[];
-      cities: string[];
-      zipCodes: string[];
-    }>(),
-    licenseState: varchar("license_state").notNull(),
-    licenseExpiration: timestamp("license_expiration"),
-    verificationStatus: verificationStatusEnum("verification_status").notNull().default("pending"),
-    verificationDocuments: jsonb("verification_documents").$type<{
-      licenseDocument?: string;
-      brokerageAffiliation?: string;
-      mlsCertificate?: string;
-      additionalCertifications?: string[];
-    }>(),
-    reviewedBy: varchar("reviewed_by").references(() => users.id, { onDelete: "set null" }),
-    reviewedAt: timestamp("reviewed_at"),
-    reviewNotes: text("review_notes"),
-    isActive: boolean("is_active").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [uniqueIndex("uq_realtor_profiles_user_id").on(table.userId)]
-);
-
 // Profiles (public-facing website pages; may link to a Business)
 export const profiles = pgTable(
   "profiles",
@@ -1215,48 +1193,6 @@ export const profileViewEvents = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [index("profile_view_events_profile_created_idx").on(table.profileId, table.createdAt)]
-);
-
-// Car salesman profiles
-export const carSalesmanProfiles = pgTable(
-  "car_salesman_profiles",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id),
-    dealershipName: varchar("dealership_name").notNull(),
-    dealerLicense: varchar("dealer_license").notNull(),
-    salesmanLicense: varchar("salesman_license"),
-    specializations: jsonb("specializations").$type<string[]>(), // new, used, luxury, commercial, etc.
-    yearsExperience: integer("years_experience"),
-    vehiclesSold: integer("vehicles_sold").default(0),
-    averageVehicleValue: decimal("average_vehicle_value"),
-    brandsSpecialty: jsonb("brands_specialty").$type<string[]>(), // Ford, Toyota, BMW, etc.
-    serviceAreas: jsonb("service_areas").$type<{
-      counties: string[];
-      cities: string[];
-      zipCodes: string[];
-    }>(),
-    licenseState: varchar("license_state").notNull(),
-    licenseExpiration: timestamp("license_expiration"),
-    verificationStatus: verificationStatusEnum("verification_status").notNull().default("pending"),
-    verificationDocuments: jsonb("verification_documents").$type<{
-      dealerLicense?: string;
-      salesmanLicense?: string;
-      dealershipAffiliation?: string;
-      additionalCertifications?: string[];
-    }>(),
-    reviewedBy: varchar("reviewed_by").references(() => users.id, { onDelete: "set null" }),
-    reviewedAt: timestamp("reviewed_at"),
-    reviewNotes: text("review_notes"),
-    isActive: boolean("is_active").notNull().default(false),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [uniqueIndex("uq_car_salesman_profiles_user_id").on(table.userId)]
 );
 
 // States table
@@ -7757,20 +7693,6 @@ export const marketplaceReportsRelations = relations(marketplaceReports, ({ one 
 }));
 
 // Realtor and car salesman relations
-export const realtorProfilesRelations = relations(realtorProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [realtorProfiles.userId],
-    references: [users.id],
-  }),
-}));
-
-export const carSalesmanProfilesRelations = relations(carSalesmanProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [carSalesmanProfiles.userId],
-    references: [users.id],
-  }),
-}));
-
 // Marketplace schemas for validation
 export const insertMarketplaceCategorySchema = createInsertSchema(marketplaceCategories).omit({
   id: true,
@@ -7826,89 +7748,6 @@ export type InsertMarketplaceFavorite = z.infer<typeof insertMarketplaceFavorite
 
 export type MarketplaceReport = typeof marketplaceReports.$inferSelect;
 export type InsertMarketplaceReport = z.infer<typeof insertMarketplaceReportSchema>;
-
-// Professional profile schemas
-const professionalCredentialSchema = z.string().trim().min(1).max(200);
-const professionalDocumentReferenceSchema = z.string().trim().min(1).max(2_048);
-const professionalLabelSchema = z.string().trim().min(1).max(120);
-const professionalLabelArraySchema = z.array(professionalLabelSchema).min(1).max(32);
-const optionalProfessionalReferenceSchema = z
-  .string()
-  .trim()
-  .max(200)
-  .optional()
-  .transform((value) => value || undefined);
-const professionalServiceAreasSchema = z
-  .object({
-    counties: z.array(professionalLabelSchema).min(1).max(64),
-    cities: z.array(professionalLabelSchema).max(128).default([]),
-    zipCodes: z
-      .array(
-        z
-          .string()
-          .trim()
-          .regex(/^\d{5}(?:-\d{4})?$/)
-          .max(10)
-      )
-      .max(128)
-      .default([]),
-  })
-  .strict();
-
-const realtorVerificationDocumentsSchema = z
-  .object({
-    licenseDocument: professionalDocumentReferenceSchema.optional(),
-    brokerageAffiliation: professionalDocumentReferenceSchema.optional(),
-    mlsCertificate: professionalDocumentReferenceSchema.optional(),
-    additionalCertifications: z.array(professionalDocumentReferenceSchema).max(16).optional(),
-  })
-  .strict();
-
-const carSalesmanVerificationDocumentsSchema = z
-  .object({
-    dealerLicense: professionalDocumentReferenceSchema.optional(),
-    salesmanLicense: professionalDocumentReferenceSchema.optional(),
-    dealershipAffiliation: professionalDocumentReferenceSchema.optional(),
-    additionalCertifications: z.array(professionalDocumentReferenceSchema).max(16).optional(),
-  })
-  .strict();
-
-export const insertRealtorProfileSchema = z
-  .object({
-    licenseNumber: professionalCredentialSchema,
-    brokerageName: professionalCredentialSchema,
-    mlsId: optionalProfessionalReferenceSchema,
-    specializations: professionalLabelArraySchema,
-    yearsExperience: z.number().int().min(0).max(100),
-    serviceAreas: professionalServiceAreasSchema,
-    licenseState: z
-      .string()
-      .trim()
-      .regex(/^[A-Za-z]{2}$/)
-      .transform((value) => value.toUpperCase()),
-    licenseExpiration: z.date(),
-    verificationDocuments: realtorVerificationDocumentsSchema.optional(),
-  })
-  .strict();
-
-export const insertCarSalesmanProfileSchema = z
-  .object({
-    dealershipName: professionalCredentialSchema,
-    dealerLicense: professionalCredentialSchema,
-    salesmanLicense: optionalProfessionalReferenceSchema,
-    specializations: professionalLabelArraySchema,
-    brandsSpecialty: professionalLabelArraySchema,
-    yearsExperience: z.number().int().min(0).max(100),
-    serviceAreas: professionalServiceAreasSchema,
-    licenseState: z
-      .string()
-      .trim()
-      .regex(/^[A-Za-z]{2}$/)
-      .transform((value) => value.toUpperCase()),
-    licenseExpiration: z.date(),
-    verificationDocuments: carSalesmanVerificationDocumentsSchema.optional(),
-  })
-  .strict();
 
 // Professional profile types
 export type RealtorProfile = typeof realtorProfiles.$inferSelect;
