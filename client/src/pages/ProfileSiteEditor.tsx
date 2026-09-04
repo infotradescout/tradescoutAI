@@ -50,6 +50,7 @@ type ProfileDetail = OwnedProfile & {
   contentBlocks: any;
   ctaConfig: any;
   seoMeta: any;
+  publiclyReleased?: boolean;
 };
 
 type BusinessProfileLocation = {
@@ -824,9 +825,14 @@ export default function ProfileSiteEditor() {
         `/api/profiles/${profile.id}/publish`
       )) as ProfileDetail;
       setProfile(updated);
+      if (typeof updated.publiclyReleased === "boolean") {
+        setProfileVisibility(updated.publiclyReleased ? "public" : "private");
+      }
       toast({
-        title: "Published",
-        description: "Your profile is now public (if your visibility is public).",
+        title: "Profile published",
+        description: updated.publiclyReleased
+          ? "This exact profile is published and its public link is available."
+          : "The profile is published, but its public link remains private.",
       });
     } catch (error: any) {
       toast({
@@ -856,11 +862,14 @@ export default function ProfileSiteEditor() {
   };
 
   const setVisibility = async (next: "public" | "private") => {
+    if (!profile) return;
     try {
       const firstPayload =
         ((await apiRequest("PATCH", "/api/users/profile-visibility", {
+          profileId: profile.id,
           profileVisibility: next,
         })) as any) ?? {};
+      let finalPayload = firstPayload;
 
       if (firstPayload?.allowProceedUnverified && next === "public") {
         const proceed = window.confirm(
@@ -871,10 +880,20 @@ export default function ProfileSiteEditor() {
           return;
         }
 
-        await apiRequest("PATCH", "/api/users/profile-visibility", {
-          profileVisibility: next,
-          proceedUnverified: true,
-        });
+        finalPayload =
+          ((await apiRequest("PATCH", "/api/users/profile-visibility", {
+            profileId: profile.id,
+            profileVisibility: next,
+            proceedUnverified: true,
+          })) as any) ?? {};
+      }
+
+      if (typeof finalPayload?.profileStatus === "string") {
+        setProfile((current) =>
+          current && current.id === profile.id
+            ? ({ ...current, status: finalPayload.profileStatus } as ProfileDetail)
+            : current
+        );
       }
 
       toast({ title: "Updated", description: `Profile visibility set to ${next}.` });

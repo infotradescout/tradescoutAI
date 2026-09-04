@@ -64,7 +64,11 @@ function buildMeta(args: {
   };
 }
 
-function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
+function applyMeta(
+  templateHtml: string,
+  meta: ReturnType<typeof buildMeta>,
+  indexable: boolean
+) {
   let html = templateHtml;
   html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
   html = upsertTag(
@@ -80,7 +84,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    indexable
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex,follow" />`
   );
   html = upsertTag(
     html,
@@ -284,7 +290,7 @@ export async function buildPublicCountyRecentHtml(opts: CountyRecentOpts): Promi
     url: meta.canonical,
   };
 
-  let html = applyMeta(opts.templateHtml, meta);
+  let html = applyMeta(opts.templateHtml, meta, items.length > 0);
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
@@ -346,7 +352,7 @@ export async function buildPublicCityRecentHtml(opts: CityRecentOpts): Promise<s
     url: meta.canonical,
   };
 
-  let html = applyMeta(opts.templateHtml, meta);
+  let html = applyMeta(opts.templateHtml, meta, items.length > 0);
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
@@ -422,7 +428,7 @@ export async function buildPublicTradeCountyRecentHtml(
     url: meta.canonical,
   };
 
-  let html = applyMeta(opts.templateHtml, meta);
+  let html = applyMeta(opts.templateHtml, meta, items.length > 0);
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
@@ -495,7 +501,7 @@ export async function buildPublicTradeCityRecentHtml(
     url: meta.canonical,
   };
 
-  let html = applyMeta(opts.templateHtml, meta);
+  let html = applyMeta(opts.templateHtml, meta, items.length > 0);
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;

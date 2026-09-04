@@ -580,7 +580,7 @@ export default function AdminManagedPartnerIntakesPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Operating request recipient" htmlFor="partner-request-recipient">
+              <Field label="Operating request recipient slug" htmlFor="partner-request-recipient">
                 <Input
                   id="partner-request-recipient"
                   value={form.requestRecipientSlug}

@@ -8,11 +8,14 @@ import {
   users,
 } from "@shared/schema";
 import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
   MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS,
+  MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
   MOULDING_MILLWORK_PROFILE_SLUG,
   MOULDING_MILLWORK_PUBLIC_SOURCES,
 } from "@shared/mouldingMillworkProfile";
 import { db } from "../db";
+import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
 const MOULDING_MILLWORK_OWNER_EMAIL = Buffer.from(
   "bW91bGRpbmdtaWxsd29ya3N1cHBseUB5YWhvby5jb20=",
@@ -21,8 +24,6 @@ const MOULDING_MILLWORK_OWNER_EMAIL = Buffer.from(
 const MOULDING_MILLWORK_ROUTING_PHONE = Buffer.from("KDUwNCkgMjA4LTk1NzY=", "base64").toString(
   "utf8"
 );
-
-const PROFILE_SOURCE = "operator_confirmed_selective_inheritance";
 
 /**
  * Publishes Moulding & Millwork Supply as a claimed, published TradePartner
@@ -45,13 +46,24 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalizedEmail}`)
       .limit(1);
+    if (
+      existingOwner &&
+      !isProvisionedProfileAccountControlConfirmed({
+        emailVerified: existingOwner.emailVerified,
+        provider: existingOwner.provider,
+        verificationStatus: existingOwner.verificationStatus,
+      })
+    ) {
+      throw new Error(
+        "Moulding & Millwork owner provisioning refused an unconfirmed pre-existing account"
+      );
+    }
 
     const existingPreferences: Record<string, any> =
       existingOwner?.preferences && typeof existingOwner.preferences === "object"
         ? (existingOwner.preferences as Record<string, any>)
         : {};
-    const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(new Set([...existingRoles, "business_owner", "contractor"]));
+    const roles = ["business_owner", "contractor"];
 
     const ownerValues = {
       firstName: existingOwner?.firstName || "Brian",
@@ -66,10 +78,10 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       phone: existingOwner?.phone || MOULDING_MILLWORK_ROUTING_PHONE,
       provider: existingOwner?.provider || "admin_provisioned",
       onboardingCompleted: true,
-      profileVisibility: "discoverable" as const,
+      profileVisibility: existingOwner?.profileVisibility || ("discoverable" as const),
       preferences: {
         ...existingPreferences,
-        profileVisibility: "public",
+        profileVisibility: existingPreferences.profileVisibility || "public",
       },
       updatedAt: now,
     };
@@ -77,7 +89,18 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
     const [owner] = existingOwner
       ? await tx
           .update(users)
-          .set(ownerValues as any)
+          .set({
+            ...ownerValues,
+            // Merge on the locked UPDATE row, not the earlier provisioning snapshot.
+            roles: sql`(
+              select array_agg(distinct role_value)
+              from unnest(
+                coalesce(${users.roles}, array[]::text[])
+                || array['business_owner', 'contractor']::text[]
+              ) as role_value
+              where role_value <> ''
+            )`,
+          } as any)
           .where(eq(users.id, existingOwner.id))
           .returning()
       : await tx
@@ -102,6 +125,21 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       existingBusiness?.profileData && typeof existingBusiness.profileData === "object"
         ? (existingBusiness.profileData as Record<string, any>)
         : {};
+    const existingBusinessSources = Array.isArray(existingBusiness?.sources)
+      ? existingBusiness.sources.filter((source): source is string => typeof source === "string")
+      : [];
+    const operatorProfileAuthorityRevoked = existingBusinessSources.includes(
+      MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE
+    );
+    const businessSources = new Set([
+      ...existingBusinessSources,
+      ...MOULDING_MILLWORK_PUBLIC_SOURCES,
+    ]);
+    if (operatorProfileAuthorityRevoked) {
+      businessSources.delete(MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE);
+    } else {
+      businessSources.add(MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE);
+    }
 
     const businessValues = {
       name: "Moulding & Millwork Supply",
@@ -151,10 +189,12 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
           surface: "#f7f2e8",
         },
       },
-      claimStatus: "claimed",
-      publicDiscoveryEnabled: true,
-      sources: Array.from(new Set([...MOULDING_MILLWORK_PUBLIC_SOURCES, PROFILE_SOURCE])),
-      status: "active" as const,
+      claimStatus: existingBusiness?.claimStatus || "claimed",
+      publicDiscoveryEnabled: existingBusiness
+        ? existingBusiness.publicDiscoveryEnabled
+        : true,
+      sources: Array.from(businessSources),
+      status: existingBusiness?.status || ("active" as const),
       updatedAt: now,
     };
 
@@ -238,6 +278,10 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
     if (existingProfile && String(existingProfile.ownerUserId) !== String(owner.id)) {
       throw new Error("Moulding & Millwork profile slug is owned by a different account");
     }
+    const shouldReleaseNewProfile =
+      business.status === "active" &&
+      business.publicDiscoveryEnabled === true &&
+      !operatorProfileAuthorityRevoked;
 
     const profileValues = {
       ownerUserId: owner.id,
@@ -259,7 +303,11 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
         description:
           "Request moulding, doors, windows, plan review, and millwork supply from Moulding & Millwork Supply in Harahan, Louisiana.",
       },
-      status: "published" as const,
+      status: existingProfile?.status || ("published" as const),
+      // The canonical release column owns anonymous visibility. Seed it only
+      // for a new, operator-confirmed record; an existing owner's false value
+      // is an explicit decision and must survive every boot.
+      publiclyReleased: existingProfile?.publiclyReleased ?? shouldReleaseNewProfile,
       updatedAt: now,
     };
 
@@ -277,12 +325,41 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
           .returning();
     if (!profile) throw new Error("Moulding & Millwork profile provisioning failed");
 
+    const hasExplicitPublicProfileIds = Object.prototype.hasOwnProperty.call(
+      existingPreferences,
+      "publicProfileIds"
+    );
+    const existingPublicProfileIds = Array.isArray(existingPreferences.publicProfileIds)
+      ? existingPreferences.publicProfileIds.map(String)
+      : [];
+    const legacyProfileWasPublic = existingPreferences.profileVisibility === "public";
+    const profileCanBeReleased =
+      profile.status === "published" &&
+      profile.publiclyReleased === true &&
+      business.status === "active" &&
+      business.publicDiscoveryEnabled === true &&
+      !operatorProfileAuthorityRevoked;
+    const shouldSeedExactProfileRelease =
+      !hasExplicitPublicProfileIds &&
+      profileCanBeReleased &&
+      (!existingOwner || !existingProfile || legacyProfileWasPublic);
+    const nextOwnerPreferences = shouldSeedExactProfileRelease
+      ? {
+          ...existingPreferences,
+          profileVisibility: existingPreferences.profileVisibility || "public",
+          publicProfileIds: Array.from(
+            new Set([...existingPublicProfileIds, String(profile.id)])
+          ),
+        }
+      : undefined;
+
     await tx
       .update(users)
       .set({
         activeBusinessId: business.id,
         activeProfileId: profile.id,
         businessSlug: MOULDING_MILLWORK_PROFILE_SLUG,
+        ...(nextOwnerPreferences ? { preferences: nextOwnerPreferences } : {}),
         updatedAt: now,
       } as any)
       .where(eq(users.id, owner.id));

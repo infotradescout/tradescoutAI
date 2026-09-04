@@ -20,6 +20,16 @@ const ALIAS_TO_CANONICAL: Record<string, string> = {
   roofer: "roofing",
 };
 
+/** Exact normalized values accepted by getTradeSeoMatch. */
+export const PUBLIC_TRADE_INPUT_SLUGS: readonly string[] = Object.freeze(
+  Array.from(
+    new Set([
+      ...COMPREHENSIVE_TRADES.map((trade) => trade.slug),
+      ...Object.keys(ALIAS_TO_CANONICAL),
+    ])
+  )
+);
+
 export const PRIMARY_TRADE_SLUGS: string[] = Array.from(
   new Set(COMPREHENSIVE_TRADES.filter((t) => !t.parentId).map((t) => t.slug))
 );

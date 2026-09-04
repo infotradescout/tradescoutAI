@@ -150,8 +150,8 @@ describe("managed partner intake queue", () => {
     expect(queue).toContain("Contact handling");
     expect(queue).toContain("Operating request recipient slug");
     expect(queue).toContain("Verified relationship");
-    expect(queue).toContain("What is known and what must be preserved");
-    expect(queue).toContain("Add the blocker before saving");
+    expect(queue).toContain("Record what is known now");
+    expect(queue).toContain("Name the blocker before saving");
     expect(queue).toContain("Moving an intake to");
     expect(queue).toContain("Open live profile");
     expect(queue).toContain('queryKey: ["/api/admin/managed-partner-intakes"]');

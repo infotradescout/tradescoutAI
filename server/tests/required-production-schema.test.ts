@@ -4,9 +4,13 @@ import { describe, expect, it } from "vitest";
 import {
   ADMIN_LIVE_STREAM_MIGRATION_HASHES,
   buildLineEndingCompatibleMigrationHashes,
+  DOCUMENT_STANDALONE_LINEAGE_MIGRATION_HASHES,
   MANAGED_PARTNER_INTAKES_MIGRATION_HASHES,
+  PROFESSIONAL_APPLICATION_INTEGRITY_MIGRATION_HASHES,
   evaluateRequiredProductionSchema,
   PROFILE_ACCOUNT_MIGRATION_HASHES,
+  PROFILE_BOOKING_LINEAGE_FUNCTION_BODY,
+  PROFILE_BOOKING_LINEAGE_MIGRATION_HASHES,
   REQUIRED_MIGRATION_HASHES,
 } from "../../scripts/check-required-production-schema.mjs";
 
@@ -16,6 +20,10 @@ const completeSchemaCheck = {
   profileAccountMigrationRecorded: true,
   adminLiveStreamMigrationRecorded: true,
   managedPartnerIntakesMigrationRecorded: true,
+  profileBookingLineageMigrationRecorded: true,
+  professionalApplicationIntegrityMigrationRecorded: true,
+  documentStandaloneLineageMigrationRecorded: true,
+  documentAccountingJobIdInvariantContract: true,
   publicationRules: true,
   seoPruneLog: true,
   publicActivity: true,
@@ -32,6 +40,14 @@ const completeSchemaCheck = {
   adminLiveStreamSnapshotHistoryContract: true,
   managedPartnerIntakes: true,
   managedPartnerIntakesContract: true,
+  profileBookingRequests: true,
+  profileBookingRequestsLineageContract: true,
+  profileBookingRequestsLineageImmutabilityTrigger: true,
+  profilePublicationAuthorityContract: true,
+  realtorProfiles: true,
+  realtorProfilesIntegrityContract: true,
+  carSalesmanProfiles: true,
+  carSalesmanProfilesIntegrityContract: true,
 };
 
 describe("required production schema guard", () => {
@@ -48,10 +64,7 @@ describe("required production schema guard", () => {
     expect(PROFILE_ACCOUNT_MIGRATION_HASHES).toHaveLength(2);
     expect(PROFILE_ACCOUNT_MIGRATION_HASHES).toEqual(
       buildLineEndingCompatibleMigrationHashes(
-        fs.readFileSync(
-          path.resolve(process.cwd(), "migrations/0115_profile_accounts.sql"),
-          "utf8"
-        )
+        fs.readFileSync(path.resolve(process.cwd(), "migrations/0115_profile_accounts.sql"), "utf8")
       )
     );
     expect(ADMIN_LIVE_STREAM_MIGRATION_HASHES).toEqual(
@@ -66,6 +79,41 @@ describe("required production schema guard", () => {
       buildLineEndingCompatibleMigrationHashes(
         fs.readFileSync(
           path.resolve(process.cwd(), "migrations/0117_managed_partner_intakes.sql"),
+          "utf8"
+        )
+      )
+    );
+    expect(PROFILE_BOOKING_LINEAGE_MIGRATION_HASHES).toEqual(
+      buildLineEndingCompatibleMigrationHashes(
+        fs.readFileSync(
+          path.resolve(
+            process.cwd(),
+            "migrations/0128_profile_booking_request_profile_lineage.sql"
+          ),
+          "utf8"
+        )
+      )
+    );
+    expect(PROFILE_BOOKING_LINEAGE_FUNCTION_BODY).toContain(
+      "NEW.profile_id IS DISTINCT FROM OLD.profile_id"
+    );
+    expect(PROFILE_BOOKING_LINEAGE_FUNCTION_BODY).toContain(
+      "NEW.requester_user_id IS DISTINCT FROM OLD.requester_user_id"
+    );
+    expect(PROFILE_BOOKING_LINEAGE_FUNCTION_BODY).toContain("NEW.lineage_kind = 'exact_profile'");
+    expect(PROFILE_BOOKING_LINEAGE_FUNCTION_BODY).toContain("owner_user_id = NEW.owner_user_id");
+    expect(PROFESSIONAL_APPLICATION_INTEGRITY_MIGRATION_HASHES).toEqual(
+      buildLineEndingCompatibleMigrationHashes(
+        fs.readFileSync(
+          path.resolve(process.cwd(), "migrations/0129_professional_application_integrity.sql"),
+          "utf8"
+        )
+      )
+    );
+    expect(DOCUMENT_STANDALONE_LINEAGE_MIGRATION_HASHES).toEqual(
+      buildLineEndingCompatibleMigrationHashes(
+        fs.readFileSync(
+          path.resolve(process.cwd(), "migrations/0130_document_standalone_lineage_backfill.sql"),
           "utf8"
         )
       )
@@ -94,6 +142,24 @@ describe("required production schema guard", () => {
     expect(guard).toContain("PROFILE_ACCOUNT_IDENTITY_FUNCTION_BODY");
     expect(guard).toContain("tradescout-schema:0115:v1");
     expect(guard).toContain("admin_live_stream_snapshots_contract");
+    expect(guard).toContain("profile_booking_requests_lineage_contract");
+    expect(guard).toContain("profile_booking_requests_profile_id_fk");
+    expect(guard).toContain("tradescout-schema:0128:v4");
+    expect(guard).toContain("profile_booking_requests_lineage_immutability_trigger");
+    expect(guard).toContain("enforce_profile_booking_request_lineage_immutability");
+    expect(guard).toContain("PROFILE_BOOKING_LINEAGE_FUNCTION_BODY");
+    expect(guard).toContain(
+      "array['lineage_kind', 'owner_user_id', 'profile_id', 'requester_user_id']"
+    );
+    expect(guard).toContain("realtor_profiles_integrity_contract");
+    expect(guard).toContain("car_salesman_profiles_integrity_contract");
+    expect(guard).toContain("tradescout-schema:0129:v2");
+    expect(guard).toContain("documents_job_id_no_synthetic_accounting_check");
+    expect(guard).toContain("document_accounting_job_id_invariant_contract");
+    expect(guard).toContain("tradescout-schema:0130:v1");
+    expect(guard).toContain("position('left('");
+    expect(guard).toContain("position('''acct_'''");
+    expect(guard).not.toContain("like '%!~~%''acct_%''%'");
   });
 
   it("rebuilds and marks legacy-era constraints and indexes before trusting them", () => {
@@ -113,12 +179,8 @@ describe("required production schema guard", () => {
     expect(profileMigration).toContain(
       "DROP CONSTRAINT IF EXISTS profile_accounts_owner_target_unique"
     );
-    expect(profileMigration).toContain(
-      "ADD CONSTRAINT profile_accounts_owner_target_unique"
-    );
-    expect(profileMigration).toContain(
-      "COMMENT ON TRIGGER profile_accounts_identity_trigger"
-    );
+    expect(profileMigration).toContain("ADD CONSTRAINT profile_accounts_owner_target_unique");
+    expect(profileMigration).toContain("COMMENT ON TRIGGER profile_accounts_identity_trigger");
     expect(liveStreamMigration).toContain(
       "DROP INDEX IF EXISTS idx_admin_live_stream_snapshots_unique"
     );
@@ -186,6 +248,42 @@ describe("required production schema guard", () => {
     ).toEqual(["drizzle.__drizzle_migrations[0117 canonical hash]"]);
   });
 
+  it("blocks release when the exact booking-lineage migration is absent from the ledger", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        profileBookingLineageMigrationRecorded: false,
+      })
+    ).toEqual(["drizzle.__drizzle_migrations[0128 canonical hash]"]);
+  });
+
+  it("blocks release when the professional-application migration is absent from the ledger", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        professionalApplicationIntegrityMigrationRecorded: false,
+      })
+    ).toEqual(["drizzle.__drizzle_migrations[0129 canonical hash]"]);
+  });
+
+  it("blocks release when the document-lineage backfill is absent from the ledger", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        documentStandaloneLineageMigrationRecorded: false,
+      })
+    ).toEqual(["drizzle.__drizzle_migrations[0130 canonical hash]"]);
+  });
+
+  it("blocks release when the validated synthetic accounting job-id invariant drifts", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        documentAccountingJobIdInvariantContract: false,
+      })
+    ).toEqual(["documents[no synthetic accounting job_id invariant]"]);
+  });
+
   it("names every missing profile-account schema object", () => {
     expect(
       evaluateRequiredProductionSchema({
@@ -223,10 +321,7 @@ describe("required production schema guard", () => {
         adminLiveStreamSnapshots: false,
         adminLiveStreamSnapshotHistory: false,
       })
-    ).toEqual([
-      "admin_live_stream_snapshots",
-      "admin_live_stream_snapshot_history",
-    ]);
+    ).toEqual(["admin_live_stream_snapshots", "admin_live_stream_snapshot_history"]);
   });
 
   it("blocks drifted Admin live-stream tables with missing columns or keys", () => {
@@ -258,5 +353,48 @@ describe("required production schema guard", () => {
         managedPartnerIntakesContract: false,
       })
     ).toEqual(["managed_partner_intakes[canonical columns/constraints/indexes]"]);
+  });
+
+  it("requires explicit booking lineage and per-Profile release authority", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        profileBookingRequests: false,
+      })
+    ).toEqual(["profile_booking_requests"]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        profileBookingRequestsLineageContract: false,
+      })
+    ).toEqual(["profile_booking_requests[explicit lineage columns/constraints/index]"]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        profilePublicationAuthorityContract: false,
+      })
+    ).toEqual(["profiles[publicly_released canonical authority column]"]);
+  });
+
+  it("requires the exact database booking-lineage immutability trigger", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        profileBookingRequestsLineageImmutabilityTrigger: false,
+      })
+    ).toEqual(["profile_booking_requests_lineage_immutability_trigger"]);
+  });
+
+  it("requires both professional-application integrity table contracts", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        realtorProfilesIntegrityContract: false,
+        carSalesmanProfilesIntegrityContract: false,
+      })
+    ).toEqual([
+      "realtor_profiles[professional application integrity contract]",
+      "car_salesman_profiles[professional application integrity contract]",
+    ]);
   });
 });

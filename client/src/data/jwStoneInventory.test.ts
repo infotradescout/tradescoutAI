@@ -7,6 +7,15 @@ import { JW_STONE_INVENTORY_CATEGORIES, JW_STONE_INVENTORY_SUMMARY } from "./jwS
 const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
   category.stones.map((stone) => ({ ...stone, categorySlug: category.categorySlug }))
 );
+const publicMediaManifest = JSON.parse(
+  fs.readFileSync(
+    path.resolve(process.cwd(), "scripts/data/jw-stone-public-media-manifest.json"),
+    "utf8"
+  )
+) as { assets: Array<{ relativePath: string }> };
+const publicMediaPaths = new Set(
+  publicMediaManifest.assets.map((asset) => `/images/businesses/jw-stone/${asset.relativePath}`)
+);
 
 describe("JW Stone reconciled inventory", () => {
   it("publishes the full reconciled inventory set for profile and marketplace", () => {
@@ -17,10 +26,7 @@ describe("JW Stone reconciled inventory", () => {
 
     for (const stone of stones) {
       for (const image of stone.images) {
-        expect(
-          fs.existsSync(path.resolve(process.cwd(), "client/public", image.replace(/^\//, ""))),
-          image
-        ).toBe(true);
+        expect(publicMediaPaths.has(image), image).toBe(true);
       }
     }
   });

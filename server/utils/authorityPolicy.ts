@@ -1,10 +1,10 @@
 import type { Request } from "express";
+import { LEGACY_SUPPORT_EMAIL, PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
 import { getAuthorityConfig, parseTruthyToggle } from "./authorityConfig";
 
 export type PrivilegedBypassReason =
   | "none"
   | "role"
-  | "email_alias"
   | "admin_flag"
   | "direct_connect_demo_mode"
   | "manual_direct_connect_override";
@@ -15,6 +15,24 @@ export interface PrivilegedBypassResolution {
   matchedRoles: string[];
   matchedEmail: string | null;
 }
+
+const EXPLICIT_PERSISTED_PRIVILEGED_ROLES = new Set([
+  "admin",
+  "moderator",
+  "ops_admin",
+  "super_admin",
+  "support_agent",
+  "content_moderator",
+  "territory_manager",
+  "contractor_success",
+  "content_seo",
+  "analytics_specialist",
+  "marketing_specialist",
+  "community_moderator",
+  "community_leader",
+  "hoa_board",
+  "hoa_manager",
+]);
 
 export function isTruthyToggle(value: unknown): boolean {
   return parseTruthyToggle(value);
@@ -49,20 +67,37 @@ export function isAdminTierRole(role: unknown): boolean {
   return new Set(config.adminTierRoles).has(normalizeAuthorityRole(role));
 }
 
-export function getPrivilegedAliasEmails(): Set<string> {
+export function getReservedAuthorityEmails(): Set<string> {
   const config = getAuthorityConfig();
   return new Set(config.privilegedAliasEmails);
 }
 
-export function isPrivilegedAliasEmail(email: unknown): boolean {
+export function isReservedAuthorityEmail(email: unknown): boolean {
   const normalized = typeof email === "string" ? email.trim().toLowerCase() : "";
   if (!normalized) return false;
-  return getPrivilegedAliasEmails().has(normalized);
+  return getReservedAuthorityEmails().has(normalized);
 }
 
-function isLegacyAdminLikeRole(role: string): boolean {
-  if (!role) return false;
-  return role === "moderator" || role.includes("admin");
+export function isReservedSignupIdentityEmail(email: unknown): boolean {
+  const normalized = typeof email === "string" ? email.trim().toLowerCase() : "";
+  if (!normalized) return false;
+  return (
+    normalized === PRIMARY_SUPPORT_EMAIL ||
+    normalized === LEGACY_SUPPORT_EMAIL ||
+    isReservedAuthorityEmail(normalized)
+  );
+}
+
+export function isPrivilegedOrAdminRoleToken(role: unknown): boolean {
+  const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+  if (!raw) return false;
+  const normalized = normalizeAuthorityRole(raw);
+  return (
+    raw.includes("admin") ||
+    raw === "superadmin" ||
+    EXPLICIT_PERSISTED_PRIVILEGED_ROLES.has(normalized) ||
+    getVerificationBypassRoles().has(normalized)
+  );
 }
 
 export function resolvePrivilegedVerificationBypass(user: any): PrivilegedBypassResolution {
@@ -87,24 +122,12 @@ export function resolvePrivilegedVerificationBypass(user: any): PrivilegedBypass
     };
   }
 
-  const emailCandidates = [user?.email, user?.claims?.email];
-  for (const email of emailCandidates) {
-    if (isPrivilegedAliasEmail(email)) {
-      return {
-        active: true,
-        reason: "email_alias",
-        matchedRoles: roles,
-        matchedEmail: String(email).trim().toLowerCase(),
-      };
-    }
-  }
-
-  const legacyAdminLikeRoles = roles.filter((role) => isLegacyAdminLikeRole(role));
-  if (legacyAdminLikeRoles.length > 0) {
+  const explicitLegacyAdminRoles = roles.filter((role) => role === "admin");
+  if (explicitLegacyAdminRoles.length > 0) {
     return {
       active: true,
       reason: "admin_flag",
-      matchedRoles: legacyAdminLikeRoles,
+      matchedRoles: explicitLegacyAdminRoles,
       matchedEmail: null,
     };
   }

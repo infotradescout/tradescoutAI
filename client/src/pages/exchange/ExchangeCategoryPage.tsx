@@ -54,7 +54,8 @@ type ExchangeItem = {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | null;
+  pricingMode?: "fixed" | "request_quote";
   category: string;
   condition: string;
   images: string[];
@@ -99,6 +100,8 @@ export type CategoryConfig = {
   priceRanges?: Array<{ value: string; label: string }>;
   /** Whether condition filter applies */
   showCondition?: boolean;
+  /** Read-only profile catalog category; public sellers cannot add ordinary listings here. */
+  catalogOnly?: boolean;
   /**
    * Config-driven spec badges shown on each item card.
    * `specKey` looks up item.specifications[specKey] first, then item[specKey] for top-level fields.
@@ -122,7 +125,8 @@ export type CategoryConfig = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatPrice(price: number): string {
+function formatPrice(price: number | null): string {
+  if (price == null || !Number.isFinite(price) || price < 0) return "Request quote";
   if (price >= 1_000_000) return `$${(price / 1_000_000).toFixed(1)}M`;
   if (price >= 1_000) return `$${(price / 1_000).toFixed(0)}K`;
   return `$${price.toLocaleString()}`;
@@ -318,30 +322,34 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
       </div>
 
       {/* Scope */}
-      <Select value={searchScope} onValueChange={(v) => setSearchScope(v as SearchScope)}>
-        <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
-          <SelectValue placeholder="Search scope" />
-        </SelectTrigger>
-        <SelectContent className="bg-tsCard border-white/10">
-          <SelectItem value="local">My County</SelectItem>
-          <SelectItem value="state">My State</SelectItem>
-          <SelectItem value="nationwide">Nationwide</SelectItem>
-        </SelectContent>
-      </Select>
+      {!config.catalogOnly && (
+        <Select value={searchScope} onValueChange={(v) => setSearchScope(v as SearchScope)}>
+          <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
+            <SelectValue placeholder="Search scope" />
+          </SelectTrigger>
+          <SelectContent className="bg-tsCard border-white/10">
+            <SelectItem value="local">My County</SelectItem>
+            <SelectItem value="state">My State</SelectItem>
+            <SelectItem value="nationwide">Nationwide</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Price */}
-      <Select value={priceRange} onValueChange={setPriceRange}>
-        <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
-          <SelectValue placeholder="Price Range" />
-        </SelectTrigger>
-        <SelectContent className="bg-tsCard border-white/10">
-          {priceRanges.map((r) => (
-            <SelectItem key={r.value} value={r.value}>
-              {r.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {!config.catalogOnly && (
+        <Select value={priceRange} onValueChange={setPriceRange}>
+          <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
+            <SelectValue placeholder="Price Range" />
+          </SelectTrigger>
+          <SelectContent className="bg-tsCard border-white/10">
+            {priceRanges.map((r) => (
+              <SelectItem key={r.value} value={r.value}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Condition */}
       {config.showCondition !== false && (
@@ -381,17 +389,19 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
       ))}
 
       {/* Sort */}
-      <Select value={sortBy} onValueChange={setSortBy}>
-        <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
-          <SelectValue placeholder="Sort" />
-        </SelectTrigger>
-        <SelectContent className="bg-tsCard border-white/10">
-          <SelectItem value="date_desc">Newest First</SelectItem>
-          <SelectItem value="date_asc">Oldest First</SelectItem>
-          <SelectItem value="price_asc">Price: Low to High</SelectItem>
-          <SelectItem value="price_desc">Price: High to Low</SelectItem>
-        </SelectContent>
-      </Select>
+      {!config.catalogOnly && (
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent className="bg-tsCard border-white/10">
+            <SelectItem value="date_desc">Newest First</SelectItem>
+            <SelectItem value="date_asc">Oldest First</SelectItem>
+            <SelectItem value="price_asc">Price: Low to High</SelectItem>
+            <SelectItem value="price_desc">Price: High to Low</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Reset */}
       {(searchQuery ||
@@ -460,14 +470,16 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
               >
                 <Share2 className="h-4 w-4" />
               </Button>
-              <Button
-                size="sm"
-                className="h-8 px-3 bg-ts-orange hover:bg-ts-orange-dark text-xs font-medium"
-                onClick={() => navigate(`/exchange?tab=sell&category=${config.slug}`)}
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Sell
-              </Button>
+              {!config.catalogOnly && (
+                <Button
+                  size="sm"
+                  className="h-8 px-3 bg-ts-orange hover:bg-ts-orange-dark text-xs font-medium"
+                  onClick={() => navigate(`/exchange?tab=sell&category=${config.slug}`)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Sell
+                </Button>
+              )}
             </div>
           </div>
 
@@ -515,7 +527,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   className="w-full mt-4 bg-ts-orange hover:bg-ts-orange-dark"
                   onClick={() => setFiltersOpen(false)}
                 >
-                  Show {filteredItems.length} listing{filteredItems.length !== 1 ? "s" : ""}
+                  Show {filteredItems.length}{" "}
+                  {config.catalogOnly
+                    ? `catalog spotlight${filteredItems.length !== 1 ? "s" : ""}`
+                    : `listing${filteredItems.length !== 1 ? "s" : ""}`}
                 </Button>
               </SheetContent>
             </Sheet>
@@ -546,26 +561,30 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   "Loading…"
                 ) : (
                   <>
-                    <span className="text-white font-medium">{filteredItems.length}</span> listing
-                    {filteredItems.length !== 1 ? "s" : ""}
+                    <span className="text-white font-medium">{filteredItems.length}</span>{" "}
+                    {config.catalogOnly
+                      ? `catalog spotlight${filteredItems.length !== 1 ? "s" : ""}`
+                      : `listing${filteredItems.length !== 1 ? "s" : ""}`}
                   </>
                 )}
               </p>
-              <div className="flex gap-1.5">
-                {(["local", "state", "nationwide"] as SearchScope[]).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSearchScope(s)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                      searchScope === s
-                        ? "bg-ts-orange text-white"
-                        : "bg-white/5 text-white/60 hover:bg-white/10"
-                    }`}
-                  >
-                    {s === "local" ? "Local" : s === "state" ? "State" : "All"}
-                  </button>
-                ))}
-              </div>
+              {!config.catalogOnly && (
+                <div className="flex gap-1.5">
+                  {(["local", "state", "nationwide"] as SearchScope[]).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSearchScope(s)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+                        searchScope === s
+                          ? "bg-ts-orange text-white"
+                          : "bg-white/5 text-white/60 hover:bg-white/10"
+                      }`}
+                    >
+                      {s === "local" ? "Local" : s === "state" ? "State" : "All"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {isLoading ? (
@@ -585,15 +604,25 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
               <EmptyState
                 icon={<Search />}
                 title={`No ${config.name.toLowerCase()} found`}
-                description="Try broader filters, a different scope, or be the first to list."
-                actionLabel="List something"
-                onAction={() => navigate(`/exchange?tab=sell&category=${config.slug}`)}
+                description={
+                  config.catalogOnly
+                    ? "Try a broader search. Catalog spotlights are added only from maintained TradeScout business profiles."
+                    : "Try broader filters, a different scope, or be the first to list."
+                }
+                actionLabel={config.catalogOnly ? undefined : "List something"}
+                onAction={
+                  config.catalogOnly
+                    ? undefined
+                    : () => navigate(`/exchange?tab=sell&category=${config.slug}`)
+                }
               />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filteredItems.map((item) => {
                   const isFaved = favoriteSet.has(item.id);
                   const isProfileOffer = item.sourceType === "profile_offer";
+                  const isProfileCatalog = item.sourceType === "profile_catalog";
+                  const isProfileLinked = isProfileOffer || isProfileCatalog;
                   const detailPath = `/exchange/${config.slug}/${item.id}`;
                   return (
                     <Card
@@ -622,11 +651,15 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
 
                       <CardContent className="p-3">
                         {/* Featured badge */}
-                        {item.featured && (
+                        {isProfileCatalog ? (
+                          <Badge className="mb-1.5 bg-sky-500/15 text-sky-200 border-sky-400/30 text-[10px]">
+                            Profile catalog
+                          </Badge>
+                        ) : item.featured ? (
                           <Badge className="mb-1.5 bg-ts-orange/20 text-ts-orange border-ts-orange/30 text-[10px]">
                             Featured
                           </Badge>
-                        )}
+                        ) : null}
 
                         {/* Title + price */}
                         <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -647,7 +680,9 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             <MapPin className="h-3 w-3 shrink-0" />
                             <span className="truncate">{item.location}</span>
                           </span>
-                          <span className="shrink-0 ml-2">{formatListedTime(item.createdAt)}</span>
+                          <span className="shrink-0 ml-2">
+                            {isProfileCatalog ? "Managed request" : formatListedTime(item.createdAt)}
+                          </span>
                         </div>
 
                         {/* Config-driven category-specific spec badges */}
@@ -725,23 +760,25 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         )}
 
                         {/* Shipping badge */}
-                        <div className="mb-2">
-                          {item.isLocalPickupOnly ? (
-                            <Badge
-                              variant="outline"
-                              className="border-white/10 text-[10px] text-white/50"
-                            >
-                              Local pickup
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="border-emerald-500/30 text-[10px] text-emerald-300"
-                            >
-                              Shipping available
-                            </Badge>
-                          )}
-                        </div>
+                        {!isProfileCatalog && (
+                          <div className="mb-2">
+                            {item.isLocalPickupOnly ? (
+                              <Badge
+                                variant="outline"
+                                className="border-white/10 text-[10px] text-white/50"
+                              >
+                                Local pickup
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="border-emerald-500/30 text-[10px] text-emerald-300"
+                              >
+                                Shipping available
+                              </Badge>
+                            )}
+                          </div>
+                        )}
 
                         {/* Seller row */}
                         <div className="flex items-center justify-between gap-2">
@@ -757,7 +794,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                                 {item.seller.verified ? (
                                   <span className="text-emerald-400">Verified seller</span>
                                 ) : (
-                                  <span>Seller profile</span>
+                                  <span>{isProfileCatalog ? "Business profile" : "Seller profile"}</span>
                                 )}
                               </div>
                             </div>
@@ -765,7 +802,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
 
                           {/* Action buttons */}
                           <div className="flex items-center gap-1 shrink-0">
-                            {!isProfileOffer && (
+                            {!isProfileLinked && (
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -798,22 +835,24 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                               onClick={() => navigate(detailPath)}
                             >
                               <MessageSquare className="h-3 w-3 mr-1" />
-                              {isProfileOffer ? "Buy" : "View"}
+                              {isProfileOffer ? "Buy" : isProfileCatalog ? "View catalog" : "View"}
                             </Button>
                           </div>
                         </div>
 
                         {/* Stats */}
-                        <div className="mt-2 flex items-center gap-3 text-[10px] text-white/40">
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            {item.views}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            {item.favorites}
-                          </span>
-                        </div>
+                        {!isProfileCatalog && (
+                          <div className="mt-2 flex items-center gap-3 text-[10px] text-white/40">
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              {item.views}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Heart className="h-3 w-3" />
+                              {item.favorites}
+                            </span>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );

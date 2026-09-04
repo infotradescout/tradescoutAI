@@ -10,17 +10,39 @@ const read = (relativePath: string) => {
 };
 
 describe("landing SEO contracts", () => {
-  it("self-canonicalizes stable landing variants and noindexes only aliases/query variants", () => {
+  it("uses one shared allowlist for landing canonical and indexability decisions", () => {
     const source = read("client/src/pages/landing.tsx");
 
-    expect(source).toContain('pathOnly.startsWith("/lp/")');
-    expect(source).toContain('pathOnly.startsWith("/landing/")');
-    expect(source).toContain('const hasQueryParams = rawLocation.includes("?")');
-    expect(source).toContain(
-      "const shouldIndexLandingPage = !isAliasLandingPath && !hasQueryParams"
-    );
+    expect(source).toContain("resolvePublicLandingIndexability");
+    expect(source).toContain("landingIndexability.canonicalPath");
+    expect(source).toContain("landingIndexability.indexable");
     expect(source).toContain("canonical={canonicalLandingUrl}");
     expect(source).toContain("noIndex={!shouldIndexLandingPage}");
+  });
+
+  it("server-renders stable variants as indexable and campaign duplicates as noindex", async () => {
+    const templateHtml = `<!doctype html><html><head><title>TradeScout</title></head><body><div id="root"></div></body></html>`;
+    const stableHtml = await buildPublicLandingHtml({
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      requestPath: "/landing/realtor",
+      variant: "realtor",
+    });
+    const campaignHtml = await buildPublicLandingHtml({
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      requestPath: "/landing/realtor-austin-video-1",
+      variant: "realtor-austin-video-1",
+    });
+
+    expect(stableHtml).toContain('content="index, follow, max-snippet:-1');
+    expect(stableHtml).toContain(
+      '<link rel="canonical" href="https://www.thetradescout.com/landing/realtor" />'
+    );
+    expect(campaignHtml).toContain('content="noindex,follow"');
+    expect(campaignHtml).toContain(
+      '<link rel="canonical" href="https://www.thetradescout.com/" />'
+    );
   });
 
   it("keeps the server-rendered public landing fallback aligned with hybrid copy", () => {

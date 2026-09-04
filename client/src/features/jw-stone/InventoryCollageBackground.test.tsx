@@ -9,7 +9,7 @@ import { INVENTORY_SECTION_BACKGROUND } from "./storyBackgrounds";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
-describe("JW Stone Browse Full Inventory image treatment", () => {
+describe("JW Stone Material Library image treatment", () => {
   let container: HTMLDivElement;
   let root: Root;
 

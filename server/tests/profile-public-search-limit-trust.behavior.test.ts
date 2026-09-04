@@ -62,7 +62,9 @@ describe("public profile search trust limit", () => {
       search.indexOf(".orderBy(")
     );
     expect(search.indexOf(".orderBy(")).toBeLessThan(search.indexOf(".limit(limit)"));
-    expect(predicate).toContain("publicProfileIds");
+    expect(predicate).toContain("eq(profiles.publiclyReleased, true)");
+    expect(predicate).toContain("durableProfessionalProfileApprovalSql");
+    expect(predicate).toContain("${profiles.ownerUserId} = ${businesses.ownerUserId}");
     expect(predicate).toContain("${profiles.businessId} IS NOT NULL");
     expect(predicate).toContain("${businesses.status} = 'active'");
     expect(predicate).toContain("${businesses.publicDiscoveryEnabled} = true");

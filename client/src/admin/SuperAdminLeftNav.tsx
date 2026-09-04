@@ -125,7 +125,7 @@ export function SuperAdminLeftNav({
   };
 
   return (
-    <aside className="flex h-full flex-col bg-[#0b0c0d]" aria-label="Admin workspaces">
+    <aside className="flex h-full flex-col bg-tsBg" aria-label="Admin workspaces">
       <div className="flex h-[4.5rem] items-center gap-3 border-b border-white/10 px-3">
         <button
           type="button"

@@ -11,40 +11,59 @@
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { hasCompleteReleaseEvidence } from "./run-minimum-release-contract.mjs";
 
 const CONTEXT = "tradescout/minimum-release-contract";
 const DEFAULT_REPO = "infotradescout/tradescoutAI";
+const currentFile = fileURLToPath(import.meta.url);
+
+export function validateAttestationEvidence(evidence) {
+  const failures = [];
+  if (!/^[0-9a-f]{7,40}$/i.test(String(evidence?.commit || "").trim())) {
+    failures.push("evidence.commit missing or invalid");
+  }
+  if (evidence?.dirtyTree) failures.push("working tree is dirty");
+  if (evidence?.contract !== "tradescout-minimum-release-v2") {
+    failures.push("evidence contract is not the fail-closed v2 contract");
+  }
+  if (evidence?.mode !== "release") failures.push("evidence mode is not release");
+  if (evidence?.result !== "pass") failures.push("evidence result is not pass");
+  if (evidence?.attestable !== true) failures.push("evidence is marked non-attestable");
+  if (evidence?.steps?.some((step) => step.status === "skipped")) {
+    failures.push("evidence contains skipped steps");
+  }
+  if (!hasCompleteReleaseEvidence(evidence?.steps)) {
+    failures.push("required release evidence steps are incomplete");
+  }
+  return failures;
+}
 
 function main() {
   const evidencePath = process.argv[2];
   if (!evidencePath || !fs.existsSync(evidencePath)) {
-    console.error("[attest] Usage: node scripts/attest-minimum-release-contract.mjs <evidence.json>");
+    console.error(
+      "[attest] Usage: node scripts/attest-minimum-release-contract.mjs <evidence.json>"
+    );
     process.exit(2);
   }
 
   const evidence = JSON.parse(fs.readFileSync(evidencePath, "utf8"));
   const sha = String(evidence.commit || "").trim();
-  if (!/^[0-9a-f]{7,40}$/i.test(sha)) {
-    console.error("[attest] evidence.commit missing or invalid");
+  const evidenceFailures = validateAttestationEvidence(evidence);
+  if (evidenceFailures.length > 0) {
+    console.error(`[attest] refusing non-attestable evidence: ${evidenceFailures.join("; ")}`);
     process.exit(2);
-  }
-  if (evidence.dirtyTree) {
-    console.error("[attest] refusing to attest a dirty working tree evidence file");
-    process.exit(2);
-  }
-  if (evidence.result !== "pass") {
-    console.error(`[attest] evidence result is ${evidence.result}; posting failure status`);
   }
 
-  const state = evidence.result === "pass" ? "success" : "failure";
+  const state = "success";
   const description = `Minimum release contract ${evidence.result} @ ${sha.slice(0, 12)}`.slice(
     0,
     140
   );
   const repo = process.env.GITHUB_REPOSITORY || DEFAULT_REPO;
   const targetUrl =
-    process.env.RELEASE_CONTRACT_TARGET_URL ||
-    `https://github.com/${repo}/commit/${sha}`;
+    process.env.RELEASE_CONTRACT_TARGET_URL || `https://github.com/${repo}/commit/${sha}`;
 
   const body = {
     state,
@@ -101,13 +120,13 @@ function main() {
   );
   if (gh.status !== 0) {
     console.error(gh.stderr || gh.stdout);
-    console.error(
-      "[attest] Failed. Authenticate with `gh auth login` or set GITHUB_TOKEN."
-    );
+    console.error("[attest] Failed. Authenticate with `gh auth login` or set GITHUB_TOKEN.");
     process.exit(gh.status ?? 1);
   }
   console.log("[attest] Posted via gh:", gh.stdout);
   console.log(`[attest] context=${CONTEXT} state=${state} sha=${sha}`);
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === currentFile) {
+  main();
+}

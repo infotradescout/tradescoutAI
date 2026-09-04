@@ -115,9 +115,11 @@ describe("profile booking route contracts", () => {
   it("records profile booking payment state updates on Stripe webhook handling", () => {
     const paymentService = read("server/payment-service.ts");
     expect(paymentService).toContain('metadata.type === "profile_booking"');
-    expect(paymentService).toContain("updateProfileBookingRequest");
-    expect(paymentService).toContain('paymentStatus: "paid"');
-    expect(paymentService).toContain('paymentStatus: "failed"');
+    expect(paymentService).toContain("transitionProfileBookingPaymentStatus");
+    expect(paymentService).toContain('to: "paid"');
+    expect(paymentService).toContain('to: "failed"');
+    expect(paymentService).toContain('from: ["requires_payment", "processing", "failed"]');
+    expect(paymentService).toContain('from: ["requires_payment", "processing"]');
     expect(paymentService).toContain(
       'new Set(["declined", "cancelled", "completed"]).has(bookingStatus)'
     );

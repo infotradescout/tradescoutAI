@@ -10,15 +10,6 @@ export const DIRECT_CONNECT_FRICTION_EVENTS = [
   "direct_connect_permission_or_role_blocked",
 ] as const;
 
-export const DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS = [
-  "direct_connect_funnel_step_stalled",
-] as const;
-
-export const ALL_DIRECT_CONNECT_FRICTION_EVENTS = [
-  ...DIRECT_CONNECT_FRICTION_EVENTS,
-  ...DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS,
-] as const;
-
 export type DirectConnectFrictionEvent = (typeof DIRECT_CONNECT_FRICTION_EVENTS)[number];
 
 const DIRECT_CONNECT_FRICTION_EVENT_SET = new Set<string>(DIRECT_CONNECT_FRICTION_EVENTS);

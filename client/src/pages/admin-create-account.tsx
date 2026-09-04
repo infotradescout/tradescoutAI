@@ -19,6 +19,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 
 const createAdminSchema = z
   .object({
@@ -26,12 +27,13 @@ const createAdminSchema = z
     lastName: z.string().min(1, "Last name is required"),
     email: z.string().email("Valid email is required"),
     username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z.string().min(12, "Password must be at least 12 characters"),
     confirmPassword: z.string(),
     role: z.enum(["moderator", "ops_admin", "super_admin"], {
       required_error: "Please select a role",
     }),
     address: z.string().min(1, "Address is required"),
+    reason: z.string().trim().min(12, "Audit reason must be at least 12 characters").max(500),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -57,6 +59,7 @@ export default function AdminCreateAccount() {
       confirmPassword: "",
       role: "moderator",
       address: "",
+      reason: "",
     },
   });
 
@@ -87,7 +90,11 @@ export default function AdminCreateAccount() {
   };
 
   // Check if user has permission to create admin accounts
-  const canCreateAdmins = user?.role === "ops_admin" || user?.role === "super_admin";
+  const canCreateAdmins =
+    user?.isSuperAdmin === true ||
+    [user?.role, user?.activeRole, ...(Array.isArray(user?.roles) ? user.roles : [])].some((role) =>
+      isSuperAdminLike(typeof role === "string" ? role : undefined)
+    );
 
   if (!canCreateAdmins) {
     return (
@@ -235,7 +242,7 @@ export default function AdminCreateAccount() {
                   <SelectItem value="ops_admin" className="text-white">
                     Operations Admin - Platform operations and configuration
                   </SelectItem>
-                  {user?.role === "super_admin" && (
+                  {canCreateAdmins && (
                     <SelectItem value="super_admin" className="text-white">
                       Super Admin - Full platform control
                     </SelectItem>
@@ -308,6 +315,22 @@ export default function AdminCreateAccount() {
                   </p>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reason" className="text-white/70">
+                Audit reason
+              </Label>
+              <Input
+                id="reason"
+                type="text"
+                placeholder="Explain why this admin account is required"
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white placeholder:text-white/60"
+                {...form.register("reason")}
+              />
+              {form.formState.errors.reason && (
+                <p className="text-destructive text-sm">{form.formState.errors.reason.message}</p>
+              )}
             </div>
 
             <Button

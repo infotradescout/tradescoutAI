@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { storage } from "../storage";
 import { createAuthedAgent } from "./helpers/testAuth";
 
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
@@ -47,6 +48,56 @@ describeWithDb("auth user bypass metadata", () => {
         delete process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
       } else {
         process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = previous;
+      }
+    }
+  });
+
+  it("does not promote or persist authority for an unverified configured alias", async () => {
+    const alias = `reserved+${crypto.randomUUID()}@tradescout.test`;
+    const envKeys = [
+      "PRIVILEGED_ALIAS_EMAILS",
+      "DIRECT_CONNECT_ALLOW_UNVERIFIED",
+      "DIRECT_CONNECT_DEMO_MODE",
+      "TRADE_SCOUT_DEMO_MODE",
+    ] as const;
+    const previous = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+
+    process.env.PRIVILEGED_ALIAS_EMAILS = alias;
+    process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "false";
+    process.env.DIRECT_CONNECT_DEMO_MODE = "false";
+    process.env.TRADE_SCOUT_DEMO_MODE = "false";
+
+    try {
+      const { agent, user } = await createAuthedAgent({
+        email: alias,
+        role: "homeowner",
+        emailVerified: false,
+        onboardingCompleted: true,
+      });
+
+      const res = await agent.get("/api/auth/user");
+      expect(res.status).toBe(200);
+      expect(res.body?.authenticated).toBe(true);
+      expect(res.body?.user?.role).toBe("homeowner");
+      expect(res.body?.user?.roles || []).not.toContain("super_admin");
+      expect(res.body?.user?.isAdmin).toBe(false);
+      expect(res.body?.user?.isSuperAdmin).toBe(false);
+      expect(res.body?.user?.verificationBypass?.privileged).toBe(false);
+      expect(res.body?.user?.verificationBypass?.matchedEmail).toBeNull();
+
+      const persisted = await storage.getUser(user.id);
+      expect(persisted?.role).toBe("homeowner");
+      expect((persisted as any)?.roles || []).not.toContain("super_admin");
+      expect((persisted as any)?.isAdmin).not.toBe(true);
+      expect((persisted as any)?.isSuperAdmin).not.toBe(true);
+    } finally {
+      for (const key of envKeys) {
+        const value = previous[key];
+        if (typeof value === "undefined") {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
       }
     }
   });

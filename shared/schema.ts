@@ -64,6 +64,7 @@ import {
 } from "./schema/core";
 import { createNotificationSchema } from "./schema/notifications";
 import { createProcurementSchema } from "./schema/procurement";
+import { createProfessionalSchema } from "./schema/professional";
 
 export * from "./schema/core";
 export type {
@@ -279,6 +280,24 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+const {
+  realtorProfiles,
+  carSalesmanProfiles,
+  realtorProfilesRelations,
+  carSalesmanProfilesRelations,
+  insertRealtorProfileSchema,
+  insertCarSalesmanProfileSchema,
+} = createProfessionalSchema(users);
+
+export {
+  realtorProfiles,
+  carSalesmanProfiles,
+  realtorProfilesRelations,
+  carSalesmanProfilesRelations,
+  insertRealtorProfileSchema,
+  insertCarSalesmanProfileSchema,
+};
 
 // User Profiles (multi-profile support: person, service provider, seller)
 // Each user can have multiple profiles with independent verification state
@@ -1066,40 +1085,6 @@ export const affiliateReferrals = pgTable(
   ]
 );
 
-// Realtor profiles
-export const realtorProfiles = pgTable("realtor_profiles", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  userId: varchar("user_id")
-    .notNull()
-    .references(() => users.id),
-  licenseNumber: varchar("license_number").notNull(),
-  brokerageName: varchar("brokerage_name").notNull(),
-  mlsId: varchar("mls_id"),
-  specializations: jsonb("specializations").$type<string[]>(), // residential, commercial, luxury, etc.
-  yearsExperience: integer("years_experience"),
-  transactionsCompleted: integer("transactions_completed").default(0),
-  averageTransactionValue: decimal("average_transaction_value"),
-  serviceAreas: jsonb("service_areas").$type<{
-    counties: string[];
-    cities: string[];
-    zipCodes: string[];
-  }>(),
-  licenseState: varchar("license_state").notNull(),
-  licenseExpiration: timestamp("license_expiration"),
-  verificationStatus: verificationStatusEnum("verification_status").default("pending"),
-  verificationDocuments: jsonb("verification_documents").$type<{
-    licenseDocument?: string;
-    brokerageAffiliation?: string;
-    mlsCertificate?: string;
-    additionalCertifications?: string[];
-  }>(),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 // Profiles (public-facing website pages; may link to a Business)
 export const profiles = pgTable(
   "profiles",
@@ -1144,6 +1129,7 @@ export const profiles = pgTable(
       }>()
       .default(sql`'{}'::jsonb`),
     status: profileStatusEnum("status").notNull().default("draft"),
+    publiclyReleased: boolean("publicly_released").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
   },
@@ -1208,41 +1194,6 @@ export const profileViewEvents = pgTable(
   },
   (table) => [index("profile_view_events_profile_created_idx").on(table.profileId, table.createdAt)]
 );
-
-// Car salesman profiles
-export const carSalesmanProfiles = pgTable("car_salesman_profiles", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  userId: varchar("user_id")
-    .notNull()
-    .references(() => users.id),
-  dealershipName: varchar("dealership_name").notNull(),
-  dealerLicense: varchar("dealer_license").notNull(),
-  salesmanLicense: varchar("salesman_license"),
-  specializations: jsonb("specializations").$type<string[]>(), // new, used, luxury, commercial, etc.
-  yearsExperience: integer("years_experience"),
-  vehiclesSold: integer("vehicles_sold").default(0),
-  averageVehicleValue: decimal("average_vehicle_value"),
-  brandsSpecialty: jsonb("brands_specialty").$type<string[]>(), // Ford, Toyota, BMW, etc.
-  serviceAreas: jsonb("service_areas").$type<{
-    counties: string[];
-    cities: string[];
-    zipCodes: string[];
-  }>(),
-  licenseState: varchar("license_state").notNull(),
-  licenseExpiration: timestamp("license_expiration"),
-  verificationStatus: verificationStatusEnum("verification_status").default("pending"),
-  verificationDocuments: jsonb("verification_documents").$type<{
-    dealerLicense?: string;
-    salesmanLicense?: string;
-    dealershipAffiliation?: string;
-    additionalCertifications?: string[];
-  }>(),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
 // States table
 export const states = pgTable("states", {
@@ -4547,6 +4498,12 @@ export const profileBookingRequests = pgTable(
     id: varchar("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    profileId: varchar("profile_id").references(() => profiles.id, { onDelete: "restrict" }),
+    lineageKind: varchar("lineage_kind", {
+      enum: ["legacy_owner", "legacy_business_profile", "exact_profile"],
+    })
+      .notNull()
+      .default("legacy_owner"),
     ownerUserId: varchar("owner_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -4598,6 +4555,17 @@ export const profileBookingRequests = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
+    check(
+      "profile_booking_requests_lineage_consistency_check",
+      sql`(
+        (${table.lineageKind} = 'exact_profile' AND ${table.profileId} IS NOT NULL)
+        OR
+        (${table.lineageKind} IN ('legacy_owner', 'legacy_business_profile') AND ${table.profileId} IS NULL)
+      )`
+    ),
+    index("idx_profile_booking_requests_profile")
+      .on(table.profileId)
+      .where(sql`${table.profileId} IS NOT NULL`),
     index("idx_profile_booking_requests_owner").on(table.ownerUserId),
     index("idx_profile_booking_requests_requester").on(table.requesterUserId),
     index("idx_profile_booking_requests_status").on(table.status),
@@ -7725,20 +7693,6 @@ export const marketplaceReportsRelations = relations(marketplaceReports, ({ one 
 }));
 
 // Realtor and car salesman relations
-export const realtorProfilesRelations = relations(realtorProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [realtorProfiles.userId],
-    references: [users.id],
-  }),
-}));
-
-export const carSalesmanProfilesRelations = relations(carSalesmanProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [carSalesmanProfiles.userId],
-    references: [users.id],
-  }),
-}));
-
 // Marketplace schemas for validation
 export const insertMarketplaceCategorySchema = createInsertSchema(marketplaceCategories).omit({
   id: true,
@@ -7795,29 +7749,14 @@ export type InsertMarketplaceFavorite = z.infer<typeof insertMarketplaceFavorite
 export type MarketplaceReport = typeof marketplaceReports.$inferSelect;
 export type InsertMarketplaceReport = z.infer<typeof insertMarketplaceReportSchema>;
 
-// Professional profile schemas
-export const insertRealtorProfileSchema = createInsertSchema(realtorProfiles).omit({
-  id: true,
-  verificationStatus: true,
-  transactionsCompleted: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertCarSalesmanProfileSchema = createInsertSchema(carSalesmanProfiles).omit({
-  id: true,
-  verificationStatus: true,
-  vehiclesSold: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 // Professional profile types
 export type RealtorProfile = typeof realtorProfiles.$inferSelect;
-export type InsertRealtorProfile = z.infer<typeof insertRealtorProfileSchema>;
+export type RealtorProfileApplication = z.infer<typeof insertRealtorProfileSchema>;
+export type InsertRealtorProfile = RealtorProfileApplication & { userId: string };
 
 export type CarSalesmanProfile = typeof carSalesmanProfiles.$inferSelect;
-export type InsertCarSalesmanProfile = z.infer<typeof insertCarSalesmanProfileSchema>;
+export type CarSalesmanProfileApplication = z.infer<typeof insertCarSalesmanProfileSchema>;
+export type InsertCarSalesmanProfile = CarSalesmanProfileApplication & { userId: string };
 
 // Verification schemas
 export const insertVendorVerificationSchema = createInsertSchema(vendorVerifications).omit({

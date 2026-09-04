@@ -108,8 +108,10 @@ describe("Gap 4 – Inbox accept navigates to conversation thread", () => {
   const src = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
   const routeSrc = read("server/routes/direct-connect.ts");
 
-  it("navigates to conversation after accept when conversationId is returned", () => {
-    expect(src).toContain('variables?.decision === "accept" && data?.conversationId');
+  it("navigates platform-message accepts when a conversationId is returned", () => {
+    expect(src).toContain('variables?.decision === "accept"');
+    expect(src).toContain("data?.conversationId");
+    expect(src).toContain('data?.contactPreference !== "call"');
     expect(src).toContain("`/messages?thread=${encodeURIComponent(String(data.conversationId))}`");
   });
 

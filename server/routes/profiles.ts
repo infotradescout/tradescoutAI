@@ -39,6 +39,7 @@ import {
   isPubliclyVerifiedProfileOwner,
   isSteelHomePackagesUnlistedDirectProfile,
 } from "../services/ownerConfirmedDirectProfile";
+import { isOperatorConfirmedTradePartnerProfile } from "../services/operatorConfirmedTradePartnerProfile";
 import {
   isExactPublicProfileContractorBindingCandidate,
   JW_STONE_RECOMMENDATION_COMPATIBILITY,
@@ -89,6 +90,8 @@ import {
 } from "../services/indexNowPublicationEvents";
 import { shouldIndexPublicProfileSlug } from "../../shared/publicProfileIndexing";
 import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
+import { validateProfileTargetAuthority } from "../services/profileTargetAuthority";
+import { mutateExactProfileVisibilityAtomically } from "../services/profileVisibilityMutation";
 
 const router = Router();
 
@@ -220,12 +223,17 @@ function databaseBoolean(value: unknown): boolean {
 export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>): boolean {
   return canExposePublishedProfilePublicly({
     profileId: row.profile_id,
+    profilePubliclyReleased: databaseBoolean(row.profile_publicly_released),
     businessId: row.business_id,
     profileSlug: row.profile_slug,
     profileStatus: "published",
+    profileRoleContext: row.profile_role_context,
+    profileHeadline: row.profile_headline,
+    profileContentBlocks: row.content_blocks,
     profileOwnerUserId: row.profile_owner_user_id,
     ownerVerifiedBadge: databaseBoolean(row.owner_verified_badge),
     ownerVerificationStatus: row.owner_verification_status,
+    ownerEmailVerified: databaseBoolean(row.owner_email_verified),
     ownerProvider: row.owner_provider,
     ownerPreferences: row.owner_preferences,
     businessStatus: row.business_status,
@@ -233,6 +241,8 @@ export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>):
     publicDiscoveryEnabled: databaseBoolean(row.public_discovery_enabled),
     businessSources: row.business_sources,
     businessClaimStatus: row.business_claim_status,
+    professionalRoleApproved: databaseBoolean(row.professional_role_approved),
+    businessProfileData: row.business_profile_data,
   });
 }
 
@@ -327,13 +337,17 @@ async function listPublishedProfileSitemapTargets(
   const result = await pool.query(
     `SELECT p.slug AS profile_slug,
             p.id AS profile_id,
+            p.publicly_released AS profile_publicly_released,
             p.business_id,
             p.owner_user_id AS profile_owner_user_id,
+            p.role_context AS profile_role_context,
+            p.headline AS profile_headline,
             b.slug AS business_slug,
             NULLIF(lower(trim(p.seo_meta->>'customDomain')), '') AS custom_domain,
             p.content_blocks,
             u.verified_badge AS owner_verified_badge,
             u.verification_status AS owner_verification_status,
+            u.email_verified AS owner_email_verified,
             u.provider AS owner_provider,
             u.preferences AS owner_preferences,
             b.status AS business_status,
@@ -341,6 +355,22 @@ async function listPublishedProfileSitemapTargets(
             b.public_discovery_enabled,
             b.sources AS business_sources,
             b.claim_status AS business_claim_status,
+            CASE
+              WHEN p.role_context = 'realtor' THEN EXISTS (
+                SELECT 1 FROM realtor_profiles rp
+                 WHERE rp.user_id = p.owner_user_id
+                   AND rp.verification_status = 'approved'
+                   AND rp.is_active = true
+              )
+              WHEN p.role_context = 'car_dealer' THEN EXISTS (
+                SELECT 1 FROM car_salesman_profiles cp
+                 WHERE cp.user_id = p.owner_user_id
+                   AND cp.verification_status = 'approved'
+                   AND cp.is_active = true
+              )
+              ELSE true
+            END AS professional_role_approved,
+            b.profile_data AS business_profile_data,
             p.updated_at
        FROM profiles p
        INNER JOIN users u ON u.id = p.owner_user_id
@@ -485,11 +515,13 @@ export function canAuthenticatedViewerPreviewProfile(req: any, ownerUserId: stri
 export function canServeLinkedBusinessProfileToViewer(args: {
   ownerUser: any;
   ownerConfirmedDirectProfile: boolean;
+  operatorConfirmedTradePartnerProfile?: boolean;
   authenticatedViewerCanManage: boolean;
 }): boolean {
   return (
     isBusinessDiscoverable(args.ownerUser) ||
     args.ownerConfirmedDirectProfile ||
+    args.operatorConfirmedTradePartnerProfile === true ||
     args.authenticatedViewerCanManage
   );
 }
@@ -834,6 +866,18 @@ router.post("/api/profiles", isAuthenticated, async (req, res) => {
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     const data = createProfileSchema.parse(req.body);
+    const targetAuthority = await validateProfileTargetAuthority({
+      storage,
+      ownerUserId: userId,
+      businessId: data.businessId,
+      roleContext: data.roleContext,
+    });
+    if (!targetAuthority.ok) {
+      return res.status(targetAuthority.status).json({
+        code: targetAuthority.code,
+        message: targetAuthority.message,
+      });
+    }
 
     const created = await storage.createProfileForOwner(userId, {
       ownerUserId: userId as any,
@@ -1217,6 +1261,18 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
       ? await storage.getProfileById(profileId)
       : await storage.getProfileByIdForOwner(userId, profileId);
     if (!existing) return res.status(404).json({ message: "Profile not found" });
+    const targetAuthority = await validateProfileTargetAuthority({
+      storage,
+      ownerUserId: String(existing.ownerUserId || ""),
+      businessId: updates.businessId === undefined ? existing.businessId : updates.businessId,
+      roleContext: updates.roleContext === undefined ? existing.roleContext : updates.roleContext,
+    });
+    if (!targetAuthority.ok) {
+      return res.status(targetAuthority.status).json({
+        code: targetAuthority.code,
+        message: targetAuthority.message,
+      });
+    }
     const beforeUrls = await collectEligibleProfileIndexNowUrls(existing);
 
     // A custom domain is an ownership-bearing routing value, not ordinary SEO
@@ -1269,7 +1325,7 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
   }
 });
 
-// Explicit publish (draft -> published)
+// Publish and anonymously release exactly this owner-scoped Profile.
 router.put("/api/profiles/:id/publish", isAuthenticated, async (req, res) => {
   try {
     const userId = getAuthedUserId(req);
@@ -1280,9 +1336,18 @@ router.put("/api/profiles/:id/publish", isAuthenticated, async (req, res) => {
     if (!existing) return res.status(404).json({ message: "Profile not found" });
     const beforeUrls = await collectEligibleProfileIndexNowUrls(existing);
 
-    const updated = await storage.updateProfileForOwner(userId, profileId, {
-      status: "published" as any,
-    } as any);
+    const mutation = await mutateExactProfileVisibilityAtomically({
+      ownerUserId: userId,
+      requestedProfileId: profileId,
+      allowLegacyActiveProfileFallback: false,
+      profileVisibility: "public",
+      proceedUnverified: req.body?.proceedUnverified === true,
+    });
+    if (!mutation.ok) {
+      return res.status(mutation.status).json({ code: mutation.code, message: mutation.message });
+    }
+    const updated = await storage.getProfileByIdForOwner(userId, profileId);
+    if (!updated) return res.status(404).json({ message: "Profile not found" });
     const afterUrls = await collectEligibleProfileIndexNowUrls(updated);
     notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
     res.json(updated);
@@ -1303,9 +1368,17 @@ router.put("/api/profiles/:id/unpublish", isAuthenticated, async (req, res) => {
     if (!existing) return res.status(404).json({ message: "Profile not found" });
     const beforeUrls = await collectEligibleProfileIndexNowUrls(existing);
 
-    const updated = await storage.updateProfileForOwner(userId, profileId, {
-      status: "draft" as any,
-    } as any);
+    const mutation = await mutateExactProfileVisibilityAtomically({
+      ownerUserId: userId,
+      requestedProfileId: profileId,
+      allowLegacyActiveProfileFallback: false,
+      profileVisibility: "private",
+    });
+    if (!mutation.ok) {
+      return res.status(mutation.status).json({ code: mutation.code, message: mutation.message });
+    }
+    const updated = await storage.getProfileByIdForOwner(userId, profileId);
+    if (!updated) return res.status(404).json({ message: "Profile not found" });
     notifyIndexNow(beforeUrls);
     res.json(updated);
   } catch (error: any) {
@@ -1799,6 +1872,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
+  let operatorConfirmedTradePartnerProfile = false;
   let unlistedSteelHomeDirectProfile = false;
   let directConnectDeliveryCustody: "business" | "tradescout_pending_owner" = "business";
   let hasGatedDirectConnectPhone = false;
@@ -1825,14 +1899,18 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
       businessSources: linkedBusiness?.sources,
       businessClaimStatus: linkedBusiness?.claimStatus,
+      businessProfileData: linkedBusiness?.profileData,
       ownerRole: ownerUser.role,
       ownerRoles: ownerUser.roles,
       ownerVerifiedBadge: ownerUser.verifiedBadge,
       ownerVerificationStatus: ownerUser.verificationStatus,
+      ownerEmailVerified: ownerUser.emailVerified,
       ownerProvider: ownerUser.provider,
       ownerPreferences: ownerUser.preferences,
     };
     ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile(directProfileCandidate);
+    operatorConfirmedTradePartnerProfile =
+      isOperatorConfirmedTradePartnerProfile(directProfileCandidate);
     unlistedSteelHomeDirectProfile =
       isSteelHomePackagesUnlistedDirectProfile(directProfileCandidate);
     directConnectDeliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
@@ -1842,6 +1920,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       !canServeLinkedBusinessProfileToViewer({
         ownerUser,
         ownerConfirmedDirectProfile: ownerConfirmedDirectProfile || unlistedSteelHomeDirectProfile,
+        operatorConfirmedTradePartnerProfile,
         authenticatedViewerCanManage,
       })
     ) {
@@ -2331,6 +2410,7 @@ export async function getPublicProfileTrustContext(
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         status: businesses.status,
         claimStatus: businesses.claimStatus,
+        profileData: businesses.profileData,
       })
       .from(businesses)
       .where(eq(businesses.id, profile.businessId))
@@ -2344,10 +2424,31 @@ export async function getPublicProfileTrustContext(
       publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
       businessSources: linkedBusiness?.sources,
       businessClaimStatus: linkedBusiness?.claimStatus,
+      businessProfileData: linkedBusiness?.profileData,
       ownerProvider: ownerUser.provider,
+      ownerEmailVerified: ownerUser.emailVerified,
       ownerPreferences: ownerUser.preferences,
     });
-    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) return null;
+    const operatorConfirmedTradePartnerProfile = isOperatorConfirmedTradePartnerProfile({
+      profileSlug: profile.slug,
+      profileStatus: "published",
+      profileOwnerUserId: ownerUserId,
+      businessStatus: linkedBusiness?.status,
+      businessOwnerUserId: linkedBusiness?.ownerUserId,
+      publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
+      businessSources: linkedBusiness?.sources,
+      businessProfileData: linkedBusiness?.profileData,
+      ownerVerificationStatus: ownerUser.verificationStatus,
+      ownerEmailVerified: ownerUser.emailVerified,
+      ownerProvider: ownerUser.provider,
+    });
+    if (
+      !isBusinessDiscoverable(ownerUser) &&
+      !ownerConfirmedDirectProfile &&
+      !operatorConfirmedTradePartnerProfile
+    ) {
+      return null;
+    }
   }
 
   const contractor = await getPublicProfileContractorBinding(

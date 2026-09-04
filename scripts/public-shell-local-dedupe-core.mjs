@@ -32,7 +32,7 @@ export function gitBlobSha(buffer) {
 }
 
 export function validatePublicShellDedupeManifest(manifest) {
-  if (manifest?.version !== 2 || manifest?.contractId !== "public-shell-local-dedupe-v2") {
+  if (manifest?.version !== 3 || manifest?.contractId !== "public-shell-local-dedupe-v3") {
     throw new Error("Unexpected public shell dedupe contract");
   }
   if (
@@ -83,7 +83,7 @@ export function validatePublicShellDedupeManifest(manifest) {
     manifest.expected?.aliases !== 6 ||
     manifest.expected?.deadPinned !== 4 ||
     manifest.expected?.clientPublicFiles !== 200 ||
-    manifest.expected?.clientPublicBytes !== 2_804_076 ||
+    manifest.expected?.clientPublicBytes !== 2_803_920 ||
     manifest.expected?.entryDigestSha256 !== digest ||
     manifest.entries.length !== 10 ||
     bytes !== 1_433_218 ||

@@ -9,6 +9,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 test("production release entries are bundled with evidence and an external guard", () => {
   const source = read("build-server.mjs");
   for (const entry of [
+    "run-production-predeploy",
     "ensure-public-media-ready",
     "migrate-jw-stone-public-media",
     "migrate-red-graniti-public-media",

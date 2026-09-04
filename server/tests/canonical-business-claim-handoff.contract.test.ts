@@ -26,8 +26,37 @@ describe("canonical business claim handoff", () => {
     expect(method).toContain("activeBusinessId: business.id");
     expect(method).toContain("activeProfileId: canonicalProfile.id");
     expect(method).toContain('role: "business_owner"');
+    expect(method).toContain("approvedProfessionalRolesFromProfiles(");
+    expect(method).toContain("reconcileUserRolePatchWithApprovedProfessionalRoles({");
+    expect(method.match(/\.for\("update"\)/g)).toHaveLength(3);
+    expect(method.indexOf(".from(realtorProfiles)")).toBeLessThan(
+      method.indexOf(".from(carSalesmanProfiles)")
+    );
+    expect(method.indexOf(".from(carSalesmanProfiles)")).toBeLessThan(
+      method.indexOf(".from(users)")
+    );
+    expect(method.indexOf(".update(businesses)")).toBeLessThan(method.indexOf(".update(users)"));
     expect(method).toContain("return { ...(business as Business), canonicalProfile }");
     expect(method).not.toContain("storage.");
+  });
+
+  it("keeps the repository transaction as the only signup-claim authority writer", () => {
+    const routes = read("server/routes.ts");
+    const registration = routes.slice(
+      routes.indexOf("const handleRegister = async"),
+      routes.indexOf("// Backward compatibility: allow both /auth/register")
+    );
+    const claimStart = registration.indexOf(
+      "await storage.claimUnclaimedBusinessForUser(biz.id, user.id)"
+    );
+    const claimSection = registration.slice(
+      claimStart,
+      registration.indexOf("claim =", claimStart)
+    );
+
+    expect(claimStart).toBeGreaterThan(-1);
+    expect(claimSection).toContain("await storage.getUser(user.id)");
+    expect(claimSection).not.toContain("storage.updateUser");
   });
 
   it("returns and consumes the canonical profile edit destination", () => {

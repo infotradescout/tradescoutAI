@@ -9,6 +9,7 @@ import {
 } from "@shared/directConnectRoutingSpine";
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
+import AcceptedExpressCallAction from "./AcceptedExpressCallAction";
 import { CreateEstimatePanel, ReviewEstimatePanel } from "./EstimatePanel";
 import {
   ReviewSchedulePanel,
@@ -25,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { createClientOperationId } from "@/lib/clientOperationId";
 import { interpretWorkRequestStateForScout } from "@/utils/interpretWorkRequestState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -128,10 +130,12 @@ import {
 import {
   getDirectConnectContextLabel,
   getDirectConnectIntent,
+  parseDirectConnectHomeIdHandoffContext,
   type DirectConnectEntryContextType,
   type DirectConnectIntent,
 } from "./directConnectEntryContext";
 import { resolveDirectConnectEntryContext } from "./stagedDirectConnectEntryContext";
+import { resolveHomeIdDirectConnectHandoff } from "./homeIdDirectConnectHandoff";
 import { resolveDirectConnectDispatchSelection } from "./directConnectDispatchSelection";
 import { getStoredDiscoveryLandingAttribution } from "@/lib/discoveryLanding";
 import {
@@ -1023,6 +1027,7 @@ type DirectConnectInboxItem = {
     contractorId?: string | null;
     responderUserId?: string | null;
     workerId?: string | null;
+    contactPreference?: "platform_message" | "call" | null;
   };
   request: {
     id: string;
@@ -1435,6 +1440,9 @@ function DirectConnectRequestComposer({
   entryLocation,
   defaultCountyFips,
   defaultStateCode,
+  prefillHomeId,
+  prefillHomePacketId,
+  prefillHomeContextIntent,
   prefillTargetUserId,
   prefillTargetProviderId,
   prefillTargetName,
@@ -1454,6 +1462,13 @@ function DirectConnectRequestComposer({
   entryLocation?: string;
   defaultCountyFips?: string;
   defaultStateCode?: string;
+  prefillHomeId?: string;
+  prefillHomePacketId?: string;
+  prefillHomeContextIntent?:
+    | "link_existing"
+    | "create_from_request"
+    | "update_from_request"
+    | "skip_for_now";
   prefillTargetUserId?: string;
   prefillTargetProviderId?: string;
   prefillTargetName?: string;
@@ -1526,7 +1541,9 @@ function DirectConnectRequestComposer({
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>(() =>
     prefillTargetProviderId ? [prefillTargetProviderId] : []
   );
-  const [selectedHomeId, setSelectedHomeId] = useState<string>("");
+  const [selectedHomeId, setSelectedHomeId] = useState<string>(
+    () => prefillHomeId?.trim() || ""
+  );
   const [assetComponentType, setAssetComponentType] = useState<
     | "roof"
     | "hvac"
@@ -1543,7 +1560,7 @@ function DirectConnectRequestComposer({
   const [assetComponentId, setAssetComponentId] = useState("");
   const [homeContextIntent, setHomeContextIntent] = useState<
     "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now"
-  >("skip_for_now");
+  >(() => prefillHomeContextIntent || "skip_for_now");
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
@@ -1563,6 +1580,12 @@ function DirectConnectRequestComposer({
   const latestAuthenticatedDraftSaveRef = useRef<() => void>(() => undefined);
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
+  const homePacketAppliedRef = useRef<string | null>(null);
+  const pendingCreateOperationRef = useRef<{
+    fingerprint: string;
+    operationId: string;
+    payload?: Record<string, unknown>;
+  } | null>(null);
 
   const homesQuery = useQuery({
     queryKey: ["/api/homes"],
@@ -1572,6 +1595,24 @@ function DirectConnectRequestComposer({
     ? (homesQuery.data as any).homes
     : [];
   const hasExistingHomes = homes.length > 0;
+  const homePacketPersistenceQuery = useQuery({
+    queryKey: ["direct-connect-homeid-handoff", prefillHomeId, prefillHomePacketId],
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/homeid/${encodeURIComponent(String(prefillHomeId || ""))}/persistence`
+      ),
+    enabled: Boolean(isAuthenticated && prefillHomeId && prefillHomePacketId),
+    staleTime: 30_000,
+  });
+  const homePacketHandoff = useMemo(
+    () =>
+      resolveHomeIdDirectConnectHandoff(
+        (homePacketPersistenceQuery.data as any)?.persistence,
+        prefillHomePacketId
+      ),
+    [homePacketPersistenceQuery.data, prefillHomePacketId]
+  );
 
   const currentReturnPath = () =>
     resolveDirectConnectComposerReturnPath(entryLocation, location || "/direct-connect");
@@ -1593,6 +1634,9 @@ function DirectConnectRequestComposer({
       location: String(prefillLocation || "").trim(),
       timing: String(prefillTiming || "").trim(),
       tradeId: String(prefillTradeId || "").trim(),
+      homeId: String(prefillHomeId || "").trim(),
+      homePacketId: String(prefillHomePacketId || "").trim(),
+      homeContextIntent: String(prefillHomeContextIntent || "").trim(),
     };
     return Object.values(entryIdentity).some(Boolean) ? JSON.stringify(entryIdentity) : "";
   };
@@ -2152,6 +2196,25 @@ function DirectConnectRequestComposer({
   }, []);
 
   useEffect(() => {
+    if (!homePacketHandoff || !prefillHomeId) return;
+    const signature = `${prefillHomeId}:${homePacketHandoff.packetId}`;
+    if (homePacketAppliedRef.current === signature) return;
+    homePacketAppliedRef.current = signature;
+
+    setSelectedHomeId(prefillHomeId);
+    setHomeContextIntent(prefillHomeContextIntent || "update_from_request");
+    setShowHomeRecordDetails(true);
+    setRequestType(homePacketHandoff.requestType);
+    setTitle((current) => current.trim() || homePacketHandoff.title);
+    setDescription((current) => current.trim() || homePacketHandoff.description);
+    setDetailAnswers((current) => ({
+      ...current,
+      what: current.what.trim() || homePacketHandoff.title,
+      details: current.details.trim() || homePacketHandoff.description,
+    }));
+  }, [homePacketHandoff, prefillHomeContextIntent, prefillHomeId]);
+
+  useEffect(() => {
     if (!draftInitializedRef.current || !user?.id) return;
     const timeoutId = window.setTimeout(
       () => latestAuthenticatedDraftSaveRef.current(),
@@ -2207,6 +2270,39 @@ function DirectConnectRequestComposer({
 
   const createMutation = useMutation<any, any, DirectConnectCreateDispatch | undefined>({
     mutationFn: async (dispatch?: DirectConnectCreateDispatch) => {
+      const operationFingerprint = JSON.stringify({
+        title: title.trim(),
+        description: description.trim(),
+        category: activeRequestMeta.category,
+        budgetMin,
+        budgetMax,
+        prefillTradeId,
+        prefillContextType,
+        prefillContextId,
+        attachments: attachmentsRef.current.map((attachment) => ({
+          name: attachment.file.name,
+          size: attachment.file.size,
+          type: attachment.file.type,
+          lastModified: attachment.file.lastModified,
+        })),
+        dispatch: dispatch || null,
+      });
+      if (
+        pendingCreateOperationRef.current?.fingerprint === operationFingerprint &&
+        pendingCreateOperationRef.current.payload
+      ) {
+        return apiRequest(
+          "POST",
+          "/api/direct-connect/requests",
+          pendingCreateOperationRef.current.payload
+        );
+      }
+      const operationId =
+        pendingCreateOperationRef.current?.fingerprint === operationFingerprint
+          ? pendingCreateOperationRef.current.operationId
+          : createClientOperationId("dc-request");
+      pendingCreateOperationRef.current = { fingerprint: operationFingerprint, operationId };
+
       const uploadedAttachmentKeys = new Set<string>(draftAttachmentKeys);
       for (const attachment of attachmentsRef.current) {
         const { objectKey } = await uploadPrivateObject(attachment.file);
@@ -2218,6 +2314,7 @@ function DirectConnectRequestComposer({
       setDraftAttachmentKeys(Array.from(new Set(nextDraftAttachmentKeys)).slice(0, 8));
 
       const payload: Record<string, unknown> = {
+        operationId,
         title: title.trim(),
         description: description.trim(),
         category: activeRequestMeta.category,
@@ -2261,14 +2358,33 @@ function DirectConnectRequestComposer({
         payload.homeContextIntent = dispatch.homeContextIntent;
       }
       if (dispatch?.homeId?.trim()) payload.homeId = dispatch.homeId.trim();
+      const hasActiveHomePacketHandoff = Boolean(
+        homePacketHandoff &&
+          prefillHomeId &&
+          selectedHomeId.trim() === prefillHomeId &&
+          homeContextIntent !== "skip_for_now"
+      );
+      if (hasActiveHomePacketHandoff && homePacketHandoff) {
+        payload.homePacketId = homePacketHandoff.packetId;
+        payload.homePacketSelectedDetailIds = homePacketHandoff.selectedDetailIds;
+        if (homePacketHandoff.readinessState) {
+          payload.homePacketReadinessState = homePacketHandoff.readinessState;
+        }
+      }
       if (dispatch?.assetComponentType) payload.assetComponentType = dispatch.assetComponentType;
       if (dispatch?.assetComponentId?.trim())
         payload.assetComponentId = dispatch.assetComponentId.trim();
       if (dispatch?.assetLabel?.trim()) payload.assetLabel = dispatch.assetLabel.trim();
 
+      pendingCreateOperationRef.current = {
+        fingerprint: operationFingerprint,
+        operationId,
+        payload,
+      };
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
     onSuccess: (data, variables) => {
+      pendingCreateOperationRef.current = null;
       const attachmentCount = attachmentsRef.current.length;
       const selectedCount = Array.isArray(variables?.targetProviderIds)
         ? variables.targetProviderIds.length
@@ -2740,6 +2856,21 @@ function DirectConnectRequestComposer({
             : "Check the details, add anything useful, and choose who receives it. Nothing is sent until you confirm."}
         </p>
       </header>
+
+      {prefillHomePacketId ? (
+        <div
+          className="rounded-2xl border border-orange-400/20 bg-orange-400/[0.06] px-4 py-3 text-sm text-[color:var(--text-secondary)]"
+          data-testid="direct-connect-homeid-handoff"
+        >
+          {!isAuthenticated
+            ? "Sign in to load the saved HomeID request details."
+            : homePacketPersistenceQuery.isLoading
+              ? "Loading saved HomeID request details…"
+              : homePacketHandoff
+                ? `${homePacketHandoff.selectedDetailCount} HomeID detail${homePacketHandoff.selectedDetailCount === 1 ? "" : "s"} loaded. Review them before anything is shared.`
+                : "The saved HomeID request details couldn’t load. You can still complete this request."}
+        </div>
+      ) : null}
 
       <div
         className="rounded-2xl border border-white/10 bg-black/25 px-2 py-2 backdrop-blur-sm"
@@ -3935,7 +4066,11 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/inbox"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       // Accept opens the real Messages thread between the requester and provider.
-      if (variables?.decision === "accept" && data?.conversationId) {
+      if (
+        variables?.decision === "accept" &&
+        data?.conversationId &&
+        data?.contactPreference !== "call"
+      ) {
         window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
       }
     },
@@ -4464,6 +4599,12 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
                             {inboxNextStepCopy.actionHint}
                           </Button>
                         )}
+
+                        <AcceptedExpressCallAction
+                          assignmentId={assignment.id}
+                          assignmentStatus={status}
+                          contactPreference={assignment.contactPreference}
+                        />
 
                         <Button
                           size="sm"
@@ -6055,6 +6196,10 @@ export default function DirectConnectShell() {
     () => resolveDirectConnectEntryContext(directConnectLocation),
     [directConnectLocation]
   );
+  const homeIdHandoffPrefill = useMemo(
+    () => parseDirectConnectHomeIdHandoffContext(directConnectLocation),
+    [directConnectLocation]
+  );
   const defaultCountyFips = requestPrefill?.countyFips;
   const defaultStateCode = requestPrefill?.stateCode;
 
@@ -6375,6 +6520,9 @@ export default function DirectConnectShell() {
           entryLocation={composerEntryLocation}
           defaultCountyFips={defaultCountyFips}
           defaultStateCode={defaultStateCode}
+          prefillHomeId={homeIdHandoffPrefill.homeId}
+          prefillHomePacketId={homeIdHandoffPrefill.homePacketId}
+          prefillHomeContextIntent={homeIdHandoffPrefill.homeContextIntent}
           prefillTargetUserId={requestPrefill?.targetUserId}
           prefillTargetProviderId={requestPrefill?.targetProviderId}
           prefillTargetName={requestPrefill?.targetName}

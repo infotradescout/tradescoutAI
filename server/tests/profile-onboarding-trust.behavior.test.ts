@@ -33,7 +33,7 @@ describe("onboarding-created profile trust boundary", () => {
     expect(canAuthenticatedViewerPreviewProfile({}, "owner-1")).toBe(false);
   });
 
-  it("keeps verification and the narrow owner-confirmed exception as public authority", () => {
+  it("keeps verification and narrow confirmed exceptions as public authority", () => {
     const pendingOwner = { verifiedBadge: false, verificationStatus: "pending" };
 
     expect(
@@ -54,6 +54,14 @@ describe("onboarding-created profile trust boundary", () => {
       canServeLinkedBusinessProfileToViewer({
         ownerUser: pendingOwner,
         ownerConfirmedDirectProfile: true,
+        authenticatedViewerCanManage: false,
+      })
+    ).toBe(true);
+    expect(
+      canServeLinkedBusinessProfileToViewer({
+        ownerUser: pendingOwner,
+        ownerConfirmedDirectProfile: false,
+        operatorConfirmedTradePartnerProfile: true,
         authenticatedViewerCanManage: false,
       })
     ).toBe(true);
@@ -97,13 +105,16 @@ describe("onboarding-created profile trust boundary", () => {
     expect(searchSelection.indexOf(".orderBy(")).toBeLessThan(
       searchSelection.indexOf(".limit(limit)")
     );
-    expect(searchPredicate).toContain("${profiles.businessId} IS NULL");
+    expect(searchPredicate).toContain("${profiles.businessId} IS NOT NULL");
+    expect(searchPredicate).toContain("${profiles.ownerUserId} = ${businesses.ownerUserId}");
+    expect(searchPredicate).toContain("${businesses.publicDiscoveryEnabled} = true");
     expect(searchPredicate).toContain("${users.verifiedBadge} = true");
     expect(searchPredicate).toContain("${users.verificationStatus}::text");
     expect(searchPredicate).toContain("'approved'");
-    expect(searchPredicate).toContain("JRS_PROFILE_SLUG");
-    expect(searchPredicate).toContain("PRO_FAB_PROFILE_SLUG");
-    expect(searchPredicate).toContain("PRECISION_AERIAL_PROFILE_SLUG");
+    expect(searchPredicate).toContain("durableProfessionalProfileApprovalSql");
+    expect(searchPredicate).toContain("MOULDING_MILLWORK_PROFILE_SLUG");
+    expect(searchPredicate).toContain("MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE");
+    expect(searchPredicate).toContain("MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE");
     expect(publicSearchRoute).not.toContain("await db");
     expect(publicSearchRoute).not.toContain("ownerUserId");
     expect(publicSearchRoute).not.toContain("businessId");
@@ -120,7 +131,9 @@ describe("onboarding-created profile trust boundary", () => {
     expect(publicRead).toContain("if (profile.businessId)");
     expect(publicRead).toContain("canAuthenticatedViewerPreviewProfile(req, ownerUserId)");
     expect(publicRead).toContain("canServeLinkedBusinessProfileToViewer({");
-    expect(publicRead).toContain("ownerConfirmedDirectProfile,");
+    expect(publicRead).toContain(
+      "ownerConfirmedDirectProfile: ownerConfirmedDirectProfile || unlistedSteelHomeDirectProfile,"
+    );
     expect(
       publicRead.match(/res\.setHeader\("Cache-Control", "private, no-store"\)/g)?.length
     ).toBeGreaterThanOrEqual(3);

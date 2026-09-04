@@ -20,6 +20,14 @@ const DC_SHELL = readFileSync(
   "utf-8"
 );
 
+function providerInboxHelperSource(): string {
+  const start = DC_ROUTES.indexOf("const buildProviderInboxItems");
+  const end = DC_ROUTES.indexOf("\n        if (contractor)", start);
+  expect(start).toBeGreaterThan(-1);
+  expect(end).toBeGreaterThan(start);
+  return DC_ROUTES.slice(start, end);
+}
+
 // ─── 1. requests list validStatuses ──────────────────────────────────────────
 describe("DC requests list — validStatuses includes pending_outcome", () => {
   it("includes pending_outcome in the validStatuses Set", () => {
@@ -45,8 +53,7 @@ describe("buildProviderInboxItems — resolves conversationThreadId for business
   });
 
   it("resolves conversations using providerUserId as contractorId key", () => {
-    const idx = DC_ROUTES.indexOf("const buildProviderInboxItems");
-    const window = DC_ROUTES.slice(idx, idx + 3500);
+    const window = providerInboxHelperSource();
     // providerUserId is used as the contractorId key in the conversations query
     expect(window).toContain("providerUserId");
     expect(window).toContain("conversationByHomeowner");
@@ -54,8 +61,7 @@ describe("buildProviderInboxItems — resolves conversationThreadId for business
   });
 
   it("returns conversationThreadId from the resolved map", () => {
-    const idx = DC_ROUTES.indexOf("const buildProviderInboxItems");
-    const window = DC_ROUTES.slice(idx, idx + 3600);
+    const window = providerInboxHelperSource();
     expect(window).toContain("conversationByHomeowner.get(String(reqRow.createdByUserId))");
   });
 

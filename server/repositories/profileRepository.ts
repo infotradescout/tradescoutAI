@@ -21,6 +21,12 @@ import {
   isSteelHomePackagesProfilePubliclyReleased,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
 } from "@shared/steelHomePackagesProfile";
+import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
+import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+  MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+  MOULDING_MILLWORK_PROFILE_SLUG,
+} from "@shared/mouldingMillworkProfile";
 
 export type PublicProfileRecord = {
   id: string;
@@ -32,6 +38,7 @@ export type PublicProfileRecord = {
   ctaConfig: any;
   seoMeta: any;
   businessId: string | null;
+  publiclyReleased: boolean;
   updatedAt: Date | null;
   profileSections: any | null;
   profileBooking: any | null;
@@ -64,12 +71,14 @@ export async function loadCanonicalPublicMapProfileUrls(
       ownerUserId: profiles.ownerUserId,
       slug: profiles.slug,
       profileStatus: profiles.status,
+      profilePubliclyReleased: profiles.publiclyReleased,
       profileRoleContext: profiles.roleContext,
       profileHeadline: profiles.headline,
       profileContentBlocks: profiles.contentBlocks,
       businessId: profiles.businessId,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
+      ownerEmailVerified: users.emailVerified,
       ownerRole: users.role,
       ownerRoles: users.roles,
       ownerProvider: users.provider,
@@ -79,6 +88,8 @@ export async function loadCanonicalPublicMapProfileUrls(
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       businessSources: businesses.sources,
       businessClaimStatus: businesses.claimStatus,
+      professionalRoleApproved: durableProfessionalProfileApprovalSql,
+      businessProfileData: businesses.profileData,
     })
     .from(profiles)
     .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -118,20 +129,37 @@ function slugify(input: string): string {
 function publicProfileSearchExposurePredicate() {
   return sql`(
     ${profiles.businessId} IS NOT NULL
+    AND ${profiles.ownerUserId} = ${businesses.ownerUserId}
     AND ${businesses.status} = 'active'
     AND ${businesses.publicDiscoveryEnabled} = true
     AND (
       ${users.verifiedBadge} = true
       OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
+      OR (
+        ${profiles.slug} = ${MOULDING_MILLWORK_PROFILE_SLUG}
+        AND ${businesses.ownerUserId} = ${profiles.ownerUserId}
+        AND lower(COALESCE(${businesses.profileData} ->> 'tradePartner', '')) = 'true'
+        AND ${businesses.sources} @> ${JSON.stringify([
+          MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+        ])}::jsonb
+        AND NOT (${businesses.sources} @> ${JSON.stringify([
+          MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+        ])}::jsonb)
+        AND lower(COALESCE(${users.verificationStatus}::text, ''))
+          NOT IN ('rejected', 'expired', 'suspended')
+        AND (
+          ${users.emailVerified} = true
+          OR lower(COALESCE(${users.provider}::text, '')) = 'admin_provisioned'
+          OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
+        )
+      )
     )
+    AND ${durableProfessionalProfileApprovalSql}
   )`;
 }
 
 function publicProfileVisibilityPredicate() {
-  return sql`(
-    COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
-      @> jsonb_build_array(CAST(${profiles.id} AS text))
-  )`;
+  return eq(profiles.publiclyReleased, true);
 }
 
 function publicProfileReleaseExposurePredicate() {
@@ -194,6 +222,7 @@ export class ProfileRepository {
         ctaConfig: profiles.ctaConfig,
         seoMeta: profiles.seoMeta,
         businessId: profiles.businessId,
+        publiclyReleased: profiles.publiclyReleased,
         updatedAt: profiles.updatedAt,
         profileSections: sql`(${users.preferences} -> 'profileSections')`,
         legacyProfileBooking: sql`(${users.preferences} -> 'profileBooking')`,
@@ -208,6 +237,7 @@ export class ProfileRepository {
         profileOwnerUserId: profiles.ownerUserId,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
+        ownerEmailVerified: users.emailVerified,
         ownerProvider: users.provider,
         ownerPreferences: users.preferences,
         businessStatus: businesses.status,
@@ -215,6 +245,8 @@ export class ProfileRepository {
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         businessSources: businesses.sources,
         businessClaimStatus: businesses.claimStatus,
+        professionalRoleApproved: durableProfessionalProfileApprovalSql,
+        businessProfileData: businesses.profileData,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -234,6 +266,7 @@ export class ProfileRepository {
       profileOwnerUserId: _profileOwnerUserId,
       ownerVerifiedBadge: _ownerVerifiedBadge,
       ownerVerificationStatus: _ownerVerificationStatus,
+      ownerEmailVerified: _ownerEmailVerified,
       ownerRole: _ownerRole,
       ownerProvider: _ownerProvider,
       ownerPreferences: _ownerPreferences,
@@ -242,6 +275,8 @@ export class ProfileRepository {
       publicDiscoveryEnabled: _publicDiscoveryEnabled,
       businessSources: _businessSources,
       businessClaimStatus: _businessClaimStatus,
+      professionalRoleApproved: _professionalRoleApproved,
+      businessProfileData: _businessProfileData,
       ...publicProfile
     } = row;
     return {
@@ -276,6 +311,7 @@ export class ProfileRepository {
         businessId: row.businessId,
         profileSlug: row.slug,
         profileStatus: "published",
+        profilePubliclyReleased: row.publiclyReleased,
         profileRoleContext: row.roleContext,
         profileHeadline: row.headline,
         profileServicesDescription: row.servicesDescription,
@@ -283,6 +319,7 @@ export class ProfileRepository {
         profileOwnerUserId: row.profileOwnerUserId,
         ownerVerifiedBadge: row.ownerVerifiedBadge,
         ownerVerificationStatus: row.ownerVerificationStatus,
+        ownerEmailVerified: row.ownerEmailVerified,
         ownerRole: row.ownerRole,
         ownerRoles: row.ownerRoles,
         ownerProvider: row.ownerProvider,
@@ -292,6 +329,8 @@ export class ProfileRepository {
         publicDiscoveryEnabled: row.publicDiscoveryEnabled,
         businessSources: row.businessSources,
         businessClaimStatus: row.businessClaimStatus,
+        professionalRoleApproved: row.professionalRoleApproved,
+        businessProfileData: row.businessProfileData,
       })
     ) {
       return undefined;

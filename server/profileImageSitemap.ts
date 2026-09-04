@@ -314,7 +314,7 @@ async function loadPublicProfileCandidates(): Promise<ProfileImageCandidate[]> {
         : null;
     })
   );
-  return candidates.filter((candidate): candidate is ProfileImageCandidate => Boolean(candidate));
+  return candidates.filter((candidate) => candidate !== null);
 }
 
 async function buildPlatformImageSitemap(): Promise<ImageSitemapBuild> {

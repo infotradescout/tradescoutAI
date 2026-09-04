@@ -13,6 +13,7 @@ import {
   searchScoutHybridCutover,
   searchScoutHybridShadow,
 } from "../services/scoutHybridShadowService";
+import { runtimePaths } from "../runtimePaths";
 
 const originalEnvironment = {
   enabled: process.env.SCOUT_HYBRID_SHADOW_ENABLED,
@@ -20,6 +21,7 @@ const originalEnvironment = {
   indexPath: process.env.SCOUT_HYBRID_INDEX_PATH,
 };
 const temporaryDirectories: string[] = [];
+const originalRuntimeIndexPath = runtimePaths.scoutHybridIndex;
 
 function restoreEnvironment(
   key: "SCOUT_HYBRID_SHADOW_ENABLED" | "SCOUT_HYBRID_CUTOVER_ENABLED" | "SCOUT_HYBRID_INDEX_PATH",
@@ -33,6 +35,7 @@ afterEach(() => {
   restoreEnvironment("SCOUT_HYBRID_SHADOW_ENABLED", originalEnvironment.enabled);
   restoreEnvironment("SCOUT_HYBRID_CUTOVER_ENABLED", originalEnvironment.cutover);
   restoreEnvironment("SCOUT_HYBRID_INDEX_PATH", originalEnvironment.indexPath);
+  runtimePaths.scoutHybridIndex = originalRuntimeIndexPath;
   resetScoutHybridShadowForTests();
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { recursive: true, force: true });
@@ -62,6 +65,7 @@ describe.sequential("Scout hybrid shadow runtime", () => {
     fs.writeFileSync(indexPath, JSON.stringify(artifact));
     process.env.SCOUT_HYBRID_SHADOW_ENABLED = "true";
     process.env.SCOUT_HYBRID_INDEX_PATH = indexPath;
+    runtimePaths.scoutHybridIndex = indexPath;
     resetScoutHybridShadowForTests();
 
     const query = {
@@ -110,6 +114,7 @@ describe.sequential("Scout hybrid shadow runtime", () => {
     process.env.SCOUT_HYBRID_SHADOW_ENABLED = "true";
     process.env.SCOUT_HYBRID_CUTOVER_ENABLED = "true";
     process.env.SCOUT_HYBRID_INDEX_PATH = indexPath;
+    runtimePaths.scoutHybridIndex = indexPath;
     resetScoutHybridShadowForTests();
 
     await expect(

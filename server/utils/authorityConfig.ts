@@ -3,6 +3,8 @@ export interface AuthorityConfig {
   fingerprint: string;
   adminTierRoles: string[];
   verificationBypassRoles: string[];
+  // Legacy response key retained for compatibility. These configured addresses
+  // are reserved recovery candidates only and must never confer authority.
   privilegedAliasEmails: string[];
   directConnectUnverifiedBypassEnabled: boolean;
   env: {
@@ -29,8 +31,6 @@ const DEFAULT_VERIFICATION_BYPASS_ROLES = [
   "ops_admin",
   "super_admin",
 ];
-const DEFAULT_PRIVILEGED_ALIAS_EMAILS = ["contact@thetradescout.com", "info.tradescout@gmail.com"];
-
 const AUTHORITY_ENV_KEYS = [
   "MASTER_ADMIN_EMAIL",
   "SUPER_ADMIN_EMAIL_ALIASES",
@@ -85,7 +85,6 @@ function buildAuthorityConfigFromEnv(): AuthorityConfig {
     ...(masterAdminEmail ? [masterAdminEmail] : []),
     ...configuredSuperAdminAliases,
     ...configuredPrivilegedAliases,
-    ...DEFAULT_PRIVILEGED_ALIAS_EMAILS,
   ]);
 
   const verificationBypassRoles =

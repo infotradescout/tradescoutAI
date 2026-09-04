@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { db } from "../db";
 import { ADMIN_MANAGED_PROFILE_SOURCE, PRO_FAB_PROFILE_SLUG } from "./ownerConfirmedDirectProfile";
+import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
 export const PRO_FAB_PROFILE_PROVISIONING_SOURCE = ADMIN_MANAGED_PROFILE_SOURCE;
 
@@ -33,14 +34,23 @@ export async function provisionProFabProfile(): Promise<void> {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalizedEmail}`)
       .limit(1);
+    if (
+      existingOwner &&
+      !isProvisionedProfileAccountControlConfirmed({
+        emailVerified: existingOwner.emailVerified,
+        provider: existingOwner.provider,
+        verificationStatus: existingOwner.verificationStatus,
+      })
+    ) {
+      throw new Error(
+        "Pro Fab owner provisioning refused an unconfirmed pre-existing account"
+      );
+    }
 
     const existingPreferences: Record<string, any> =
       existingOwner?.preferences && typeof existingOwner.preferences === "object"
         ? (existingOwner.preferences as Record<string, any>)
         : {};
-    const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(new Set([...existingRoles, "contractor"]));
-
     const existingOwnerPreferences = {
       ...existingPreferences,
       profileVisibility: "public",
@@ -65,7 +75,15 @@ export async function provisionProFabProfile(): Promise<void> {
           .set({
             firstName: existingOwner.firstName || "Brody",
             lastName: existingOwner.lastName || "Joiner",
-            roles,
+            // Evaluate against the row version PostgreSQL locks for this UPDATE so a
+            // concurrent professional approval projection cannot be stale-overwritten.
+            roles: sql`(
+              select array_agg(distinct role_value)
+              from unnest(
+                coalesce(${users.roles}, array[]::text[]) || array['contractor']::text[]
+              ) as role_value
+              where role_value <> ''
+            )`,
             preferences: existingOwnerPreferences,
             updatedAt: new Date(),
           } as any)

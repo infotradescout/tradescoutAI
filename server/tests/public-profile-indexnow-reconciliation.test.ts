@@ -79,14 +79,17 @@ describe("public profile IndexNow reconciliation", () => {
       },
     ]);
 
-    expect(urls).toEqual([
-      "https://www.thetradescout.com/u/source-backed-profile",
-      "https://www.thetradescout.com/u/source-backed-profile/categories/stone",
-      `https://www.thetradescout.com/u/source-backed-profile/gallery/${completedProject.slug}`,
-      "https://www.thetradescout.com/u/source-backed-profile/inventory/named-stone",
-    ]);
+    expect(urls).toEqual(
+      [
+        "https://www.thetradescout.com/u/source-backed-profile",
+        "https://www.thetradescout.com/u/source-backed-profile/categories/stone",
+        `https://www.thetradescout.com/u/source-backed-profile/gallery/${genericPhoto.slug}`,
+        `https://www.thetradescout.com/u/source-backed-profile/gallery/${completedProject.slug}`,
+        "https://www.thetradescout.com/u/source-backed-profile/inventory/named-stone",
+      ].sort()
+    );
     expect(urls.join("\n")).not.toContain("trending-selection-04");
-    expect(urls.join("\n")).not.toContain(genericPhoto.slug);
+    expect(urls.join("\n")).toContain(genericPhoto.slug);
     expect(urls.join("\n")).not.toContain("custom-domain-profile");
     expect(urls.join("\n")).not.toContain("jrs-auto-glass");
     expect(urls.join("\n")).not.toContain("draft-profile");
@@ -128,8 +131,8 @@ describe("public profile IndexNow reconciliation", () => {
 
     expect(result.status).toBe("submitted");
     expect(result.profileCount).toBe(1);
-    expect(result.urlCount).toBe(4);
-    expect(result.submittedUrlCount).toBe(4);
+    expect(result.urlCount).toBe(5);
+    expect(result.submittedUrlCount).toBe(5);
     expect(result.batchCount).toBe(1);
     expect(submit).toHaveBeenCalledTimes(1);
     expect(writes).toHaveLength(1);
@@ -137,8 +140,8 @@ describe("public profile IndexNow reconciliation", () => {
     expect(eventData).toMatchObject({
       status: "submitted",
       profileCount: 1,
-      urlCount: 4,
-      submittedUrlCount: 4,
+      urlCount: 5,
+      submittedUrlCount: 5,
       batchCount: 1,
       occurredAt: "2026-08-25T02:00:00.000Z",
     });
@@ -158,7 +161,7 @@ describe("public profile IndexNow reconciliation", () => {
     });
 
     expect(result.status).toBe("skipped");
-    expect(result.urlCount).toBe(4);
+    expect(result.urlCount).toBe(5);
     expect(result.submittedUrlCount).toBe(0);
     expect(submit).not.toHaveBeenCalled();
     expect(queryable.query).toHaveBeenCalledTimes(1);

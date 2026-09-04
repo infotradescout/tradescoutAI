@@ -60,6 +60,7 @@ export default function AdminProvisionUser() {
   const [stateCode, setStateCode] = useState("");
   const [countyFips, setCountyFips] = useState("");
   const [password, setPassword] = useState("");
+  const [provisionReason, setProvisionReason] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
   const [createBusinessProfile, setCreateBusinessProfile] = useState(false);
   const [profileDisplayName, setProfileDisplayName] = useState("");
@@ -163,6 +164,7 @@ export default function AdminProvisionUser() {
         tradeTags: normalizedTradeTags.length > 0 ? normalizedTradeTags : undefined,
         businessTags: normalizedBusinessTags.length > 0 ? normalizedBusinessTags : undefined,
         password: password || undefined,
+        adminSafety: { reason: provisionReason.trim() },
         sendEmail,
         profileVisibility: provisionProfileVisibility,
         servicesDescription: provisionServicesDescription.trim() || undefined,
@@ -344,6 +346,7 @@ export default function AdminProvisionUser() {
             onSubmit={(e) => {
               e.preventDefault();
               if (!email.trim() || provision.isPending) return;
+              if (provisionReason.trim().length < 12) return;
               provision.mutate();
             }}
           >
@@ -370,6 +373,18 @@ export default function AdminProvisionUser() {
                   className="bg-black/30 border-[color:var(--border-subtle)] text-white"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-white/60">Provisioning reason (required)</label>
+              <Textarea
+                value={provisionReason}
+                onChange={(e) => setProvisionReason(e.target.value)}
+                placeholder="Explain why this account is being provisioned"
+                maxLength={500}
+                rows={2}
+                className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -638,7 +653,7 @@ export default function AdminProvisionUser() {
 
             <Button
               type="submit"
-              disabled={provision.isPending || !email.trim()}
+              disabled={provision.isPending || !email.trim() || provisionReason.trim().length < 12}
               className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark"
             >
               {provision.isPending ? "Provisioning..." : "Provision user"}

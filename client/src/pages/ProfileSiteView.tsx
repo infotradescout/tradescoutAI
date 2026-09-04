@@ -91,6 +91,10 @@ import {
   seedBlocksForTemplate,
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
+import {
+  buildPublicProfileAppIconPath,
+  buildPublicProfileAppManifestPath,
+} from "@shared/publicProfileApp";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
 import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
@@ -116,6 +120,9 @@ const JrsAutoGlassProfileTheme = lazy(
 );
 const VideographerProfileTheme = lazy(
   () => import("@/pages/profile-sites/VideographerProfileTheme")
+);
+const FinancialProfessionalProfileTheme = lazy(
+  () => import("@/pages/profile-sites/FinancialProfessionalProfileTheme")
 );
 const LocalServiceProfileTheme = lazy(
   () => import("@/pages/profile-sites/LocalServiceProfileTheme")
@@ -240,6 +247,31 @@ function VideographerProfileBoundary({ children }: { children: ReactNode }) {
               Portfolio
             </p>
             <p className="mt-3 text-2xl font-semibold">Loading the videography profile…</p>
+          </div>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+function FinancialProfessionalProfileBoundary({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="grid min-h-[45vh] place-items-center bg-[#0d2e29] px-6 text-center text-white"
+          data-testid="financial-professional-profile-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#d8bd7d]">
+              Financial professional profile
+            </p>
+            <p className="mt-3 text-2xl font-semibold">Loading profile details…</p>
           </div>
         </div>
       }
@@ -916,6 +948,100 @@ export default function ProfileSiteView() {
 
     run();
   }, [slug, matchP, matchPItem, navigate, paramsPItem, reloadKey]);
+
+  // Full profile loads receive the profile manifest from server-rendered HTML.
+  // Keep client-side transitions correct too so installing from an in-app
+  // profile visit never falls back to the generic TradeScout app identity.
+  useEffect(() => {
+    if (!data?.profile?.slug || typeof document === "undefined") return;
+    const manifestPath = buildPublicProfileAppManifestPath(data.profile.slug);
+    const appIconPath = buildPublicProfileAppIconPath(data.profile.slug, 192);
+    if (!manifestPath || !appIconPath) return;
+    const appTitle = sanitizePublicDiscoveryText(
+      data.business?.name || data.profile.displayName,
+      30
+    ) || "Public profile";
+    const configuredAccent =
+      data.business?.brandColors?.accent || data.business?.brandColors?.primary || "";
+    const appThemeColor = /^#[0-9a-f]{6}$/i.test(configuredAccent)
+      ? configuredAccent
+      : "#f97316";
+
+    let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const created = !manifestLink;
+    if (!manifestLink) {
+      manifestLink = document.createElement("link");
+      manifestLink.rel = "manifest";
+      document.head.appendChild(manifestLink);
+    }
+    const previousHref = manifestLink.getAttribute("href");
+    const previousPlatformHref = manifestLink.getAttribute("data-platform-manifest-href");
+    const platformManifestHref =
+      previousPlatformHref ||
+      (previousHref && previousHref !== manifestPath ? previousHref : "/manifest.json");
+    manifestLink.setAttribute("data-platform-manifest-href", platformManifestHref);
+    manifestLink.setAttribute("href", manifestPath);
+
+    let appleTouchIcon = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+    const createdAppleTouchIcon = !appleTouchIcon;
+    if (!appleTouchIcon) {
+      appleTouchIcon = document.createElement("link");
+      appleTouchIcon.rel = "apple-touch-icon";
+      document.head.appendChild(appleTouchIcon);
+    }
+    const previousAppleTouchIconHref = appleTouchIcon.getAttribute("href");
+    appleTouchIcon.setAttribute("href", appIconPath);
+
+    const managedMeta = [
+      ["apple-mobile-web-app-title", appTitle],
+      ["theme-color", appThemeColor],
+    ].map(([name, value]) => {
+      let meta = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+      const created = !meta;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = name;
+        document.head.appendChild(meta);
+      }
+      const previousContent = meta.getAttribute("content");
+      meta.setAttribute("content", value);
+      return { meta, value, previousContent, created };
+    });
+
+    return () => {
+      if (manifestLink?.getAttribute("href") === manifestPath) {
+        if (created) manifestLink.remove();
+        else {
+          manifestLink.setAttribute("href", platformManifestHref);
+          if (previousPlatformHref) {
+            manifestLink.setAttribute("data-platform-manifest-href", previousPlatformHref);
+          } else {
+            manifestLink.removeAttribute("data-platform-manifest-href");
+          }
+        }
+      }
+      if (appleTouchIcon?.getAttribute("href") === appIconPath) {
+        if (createdAppleTouchIcon) appleTouchIcon.remove();
+        else if (previousAppleTouchIconHref) {
+          appleTouchIcon.setAttribute("href", previousAppleTouchIconHref);
+        } else {
+          appleTouchIcon.removeAttribute("href");
+        }
+      }
+      for (const { meta, value, previousContent, created: createdMeta } of managedMeta) {
+        if (meta.getAttribute("content") !== value) continue;
+        if (createdMeta) meta.remove();
+        else if (previousContent !== null) meta.setAttribute("content", previousContent);
+        else meta.removeAttribute("content");
+      }
+    };
+  }, [
+    data?.business?.brandColors?.accent,
+    data?.business?.brandColors?.primary,
+    data?.business?.name,
+    data?.profile?.displayName,
+    data?.profile?.slug,
+  ]);
 
   useEffect(() => {
     if (!data || data.viewerCanManage || typeof window === "undefined") return;
@@ -2145,6 +2271,85 @@ export default function ProfileSiteView() {
           initialStoneName={expressInventoryContext?.itemName}
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
+        />
+      </>
+    );
+  }
+
+  if (siteTemplate === "financial-professional") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          socialTitle={socialTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={pageOgType}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+          noIndex={categoryNoIndex}
+        />
+        {manageChrome}
+        {templateIndependentInventoryContext}
+        <FinancialProfessionalProfileBoundary>
+          <FinancialProfessionalProfileTheme
+            profileSlug={profile.slug}
+            platformBaseHref={platformBaseHref}
+            businessName={displayName}
+            headline={publicHeadline}
+            contentBlocks={contentBlocks}
+            services={serviceTags}
+            serviceAreas={serviceAreas}
+            aboutText={aboutText}
+            profileShareDestination={profileShareDestination}
+            onDirectConnect={openServiceDirectConnect}
+            trustActions={renderProfileTrustActions("light")}
+            booking={
+              bookingEnabled
+                ? {
+                    profileId: profile.id,
+                    profileName: displayName,
+                    timezone,
+                    pricingRows,
+                    paidBookings,
+                    bookingPriceUsd,
+                    bookingCategory,
+                    bookingStateCode: business?.stateCode || "",
+                    hasViewerSession,
+                    viewerCanManage,
+                    signInHref: bookingSignInHref,
+                    platformBaseHref,
+                    calendarVisibility,
+                    slots,
+                    pricingTableEnabled: booking.pricingTableEnabled === true,
+                  }
+                : undefined
+            }
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </FinancialProfessionalProfileBoundary>
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          businessAddress={publicBusinessAddress}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
+          initialServiceName={expressServiceContext}
+          initialRequestType={expressServiceContext ? "request_service" : null}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
         />
       </>
     );

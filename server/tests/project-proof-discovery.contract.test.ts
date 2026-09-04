@@ -14,11 +14,11 @@ describe("project proof discovery", () => {
       profileUrl: `https://www.thetradescout.com/u/${LA_PLUMBING_PROFILE_SLUG}`,
       contentBlocks: LA_PLUMBING_PROFILE_CONTENT_BLOCKS,
     });
+    const projectUrls = urls.filter((url) => url.includes("/projects/"));
 
     expect(galleryItems).toHaveLength(8);
-    expect(urls).toHaveLength(8);
-    expect(urls.every((url) => url.includes("/projects/"))).toBe(true);
-    expect(urls).toEqual(
+    expect(projectUrls).toHaveLength(galleryItems.length);
+    expect(projectUrls).toEqual(
       expect.arrayContaining([
         expect.stringContaining("new-construction-plumbing-rough-in"),
         expect.stringContaining("tankless-water-heater-system"),

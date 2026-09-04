@@ -4,6 +4,15 @@ function preferenceRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function normalizedPublicProfileIds(preferences: unknown): string[] {
+  const source = preferenceRecord(preferences).publicProfileIds;
+  if (!Array.isArray(source)) return [];
+
+  return Array.from(
+    new Set(source.map((value) => String(value || "").trim()).filter((value) => value.length > 0))
+  );
+}
+
 /**
  * Exact per-profile release authority. Account-wide profile visibility is not
  * anonymous publication authority because one account can own personal,
@@ -29,4 +38,28 @@ export function isProfileVisibilityPublic(args: {
   preferences: unknown;
 }): boolean {
   return isProfileExplicitlyPublic(args);
+}
+
+/**
+ * Applies one profile's release decision without widening or clearing release
+ * authority for sibling profiles owned by the same account.
+ */
+export function withProfileExplicitVisibility(args: {
+  profileId: unknown;
+  preferences: unknown;
+  isPublic: boolean;
+}): Record<string, unknown> {
+  const preferences = preferenceRecord(args.preferences);
+  const profileId = String(args.profileId || "").trim();
+  if (!profileId) return { ...preferences };
+
+  const publicProfileIds = normalizedPublicProfileIds(preferences);
+  const nextPublicProfileIds = args.isPublic
+    ? Array.from(new Set([...publicProfileIds, profileId]))
+    : publicProfileIds.filter((value) => value !== profileId);
+
+  return {
+    ...preferences,
+    publicProfileIds: nextPublicProfileIds,
+  };
 }

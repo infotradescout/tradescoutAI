@@ -139,15 +139,18 @@ async function getDb(): Promise<any> {
  * Accepts both `type`/`action` and `adminId`/`actorId` aliases for
  * backward compatibility with all existing callers.
  */
-export async function logAdminAction(event: {
-  type?: string;
-  action?: string;
-  adminId?: string;
-  actorId?: string;
-  targetUserId?: string;
-  targetId?: string;
-  [key: string]: any;
-}): Promise<void> {
+export async function logAdminAction(
+  event: {
+    type?: string;
+    action?: string;
+    adminId?: string;
+    actorId?: string;
+    targetUserId?: string;
+    targetId?: string;
+    [key: string]: any;
+  },
+  options: { database?: any } = {}
+): Promise<void> {
   // Resolve canonical field names from aliases
   const resolvedType = event.type || event.action || "unknown";
   const resolvedAdminId = event.adminId || event.actorId || null;
@@ -168,7 +171,7 @@ export async function logAdminAction(event: {
     timestamp: new Date().toISOString(),
   };
 
-  const db = await getDb();
+  const db = options.database ?? (await getDb());
   if (db) {
     try {
       await db.insert(adminAuditLog).values({
@@ -182,6 +185,10 @@ export async function logAdminAction(event: {
       }
       return;
     } catch (error) {
+      // A caller-provided transaction is an atomicity boundary. Never fall back
+      // outside that transaction or report a successful privileged mutation
+      // without its durable audit record.
+      if (options.database) throw error;
       console.error("[AdminAuditLog] DB insert failed, falling back to memory:", error);
     }
   }

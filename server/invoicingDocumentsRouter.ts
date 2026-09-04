@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { isAuthenticated } from "./auth";
 import { storage } from "./storage";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
@@ -38,9 +38,10 @@ function requireAuth(req: AuthedRequest): asserts req is AuthedRequest & { user:
 }
 
 function ipFromReq(req: Request): string {
-  const xf = req.headers["x-forwarded-for"];
-  if (typeof xf === "string" && xf.length) return xf.split(",")[0].trim();
-  return req.socket.remoteAddress || "unknown";
+  // Express resolves req.ip using the application's configured trust-proxy
+  // policy. Reading X-Forwarded-For directly would let an untrusted caller
+  // forge signature evidence.
+  return req.ip || req.socket.remoteAddress || "unknown";
 }
 
 function token32(): string {
@@ -68,6 +69,120 @@ function preferPayloadText(payload: any, keys: string[]): string | null {
 function normalizeClientKey(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.trim().toLowerCase();
+}
+
+type Queryable = {
+  query: Pool["query"];
+};
+
+type DocumentLineageKind = "job_document" | "standalone_accounting" | "profile_offer_purchase";
+
+const JOB_DOCUMENT_LINEAGE: DocumentLineageKind = "job_document";
+const STANDALONE_ACCOUNTING_LINEAGE: DocumentLineageKind = "standalone_accounting";
+const PROFILE_OFFER_PURCHASE_LINEAGE: DocumentLineageKind = "profile_offer_purchase";
+const DOCUMENT_SHARE_LEASE_VERSION = 1;
+const DOCUMENT_SHARE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function documentLineagePermissions(
+  lineageKind: DocumentLineageKind,
+  permissions: unknown = {}
+): Record<string, unknown> {
+  const source =
+    permissions && typeof permissions === "object" && !Array.isArray(permissions)
+      ? (permissions as Record<string, unknown>)
+      : {};
+  return { ...source, lineageKind };
+}
+
+function documentLineageKind(document: any): DocumentLineageKind | null {
+  const value = document?.permissions?.lineageKind;
+  return value === JOB_DOCUMENT_LINEAGE ||
+    value === STANDALONE_ACCOUNTING_LINEAGE ||
+    value === PROFILE_OFFER_PURCHASE_LINEAGE
+    ? value
+    : null;
+}
+
+function isExplicitStandaloneDocument(document: any): boolean {
+  const lineageKind = documentLineageKind(document);
+  return (
+    document?.job_id == null &&
+    (lineageKind === STANDALONE_ACCOUNTING_LINEAGE ||
+      lineageKind === PROFILE_OFFER_PURCHASE_LINEAGE)
+  );
+}
+
+function nextDocumentShareLease(now = new Date()) {
+  return {
+    version: DOCUMENT_SHARE_LEASE_VERSION,
+    issuedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + DOCUMENT_SHARE_TTL_MS).toISOString(),
+    revokedAt: null,
+  };
+}
+
+function activeDocumentShareLease(document: any, now = Date.now()): boolean {
+  const lease = document?.permissions?.shareLease;
+  if (!lease || lease.version !== DOCUMENT_SHARE_LEASE_VERSION || lease.revokedAt != null) {
+    return false;
+  }
+  const issuedAt = Date.parse(String(lease.issuedAt || ""));
+  const expiresAt = Date.parse(String(lease.expiresAt || ""));
+  return (
+    Number.isFinite(issuedAt) &&
+    Number.isFinite(expiresAt) &&
+    issuedAt <= now &&
+    expiresAt > now &&
+    expiresAt - issuedAt <= DOCUMENT_SHARE_TTL_MS
+  );
+}
+
+async function withSerializableTransaction<T>(
+  pool: Pool,
+  work: (client: PoolClient) => Promise<T>
+) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE");
+    const result = await work(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error: any) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    if (error?.code === "40001" || error?.code === "40P01") {
+      throw new HttpError("CONCURRENT_DOCUMENT_CHANGE", 409);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function resolveStandaloneAccountingGroupId(
+  pool: Queryable,
+  userId: string,
+  requestedJobId: unknown
+): Promise<string> {
+  if (typeof requestedJobId !== "string" || !requestedJobId.trim()) {
+    return `acct_${token32()}`;
+  }
+
+  const accountingGroupId = requestedJobId.trim();
+  if (!accountingGroupId.startsWith("acct_")) {
+    throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
+  }
+  const existingRes = await pool.query(
+    `SELECT 1
+     FROM documents
+     WHERE created_by = $1
+       AND job_id IS NULL
+       AND payload->>'accountingGroupId' = $2
+       AND permissions->>'lineageKind' = 'standalone_accounting'
+     LIMIT 1`,
+    [userId, accountingGroupId]
+  );
+  if (!existingRes.rows.length) throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
+  return accountingGroupId;
 }
 
 function isMissingAccountingBooksFoundation(error: unknown): boolean {
@@ -156,7 +271,7 @@ const DEFAULT_ACCOUNTING_ACCOUNTS = [
   ["6000", "Operating Expense", "expense", "operations", "debit", "operating_expense"],
 ] as const;
 
-async function ensureAccountingProfile(pool: Pool, userId: string) {
+async function ensureAccountingProfile(pool: Queryable, userId: string) {
   const profileRes = await pool.query(
     `INSERT INTO accounting_profiles (created_by)
      VALUES ($1)
@@ -466,10 +581,211 @@ const STANDALONE_RECORD_DEFINITIONS: Record<
   },
 };
 
-function assertRole(role: string) {
-  if (role !== "homeowner" && role !== "contractor") {
-    throw new HttpError("INVALID_ROLE", 400);
+type DocumentPartyRole = "homeowner" | "contractor";
+type DocumentAuthorityRequirement = "read" | "creator" | "homeowner" | "contractor" | "signer";
+
+export type DocumentJobAuthority = {
+  document: any | null;
+  jobId: string | null;
+  homeownerUserId: string | null;
+  contractorUserIds: string[];
+  contractorHasAcceptedAssignment: boolean;
+  isCreator: boolean;
+  isHomeowner: boolean;
+  isContractor: boolean;
+  partyRole: DocumentPartyRole | null;
+};
+
+/**
+ * Resolve document/job authority from durable server-side relationships only.
+ * Unauthorized callers receive the same not-found response as unknown ids so
+ * document and job identifiers cannot be enumerated.
+ */
+export async function resolveDocumentJobAuthority(
+  pool: Queryable,
+  input: {
+    userId: string;
+    requirement: DocumentAuthorityRequirement;
+    documentId?: string;
+    jobId?: string;
+    lock?: boolean;
   }
+): Promise<DocumentJobAuthority> {
+  const userId = String(input.userId || "");
+  let document: any | null = null;
+  let jobId = input.jobId ? String(input.jobId) : null;
+
+  if (input.documentId) {
+    const docRes = await pool.query(
+      `SELECT * FROM documents WHERE id = $1${input.lock ? " FOR UPDATE" : ""}`,
+      [String(input.documentId)]
+    );
+    document = docRes.rows[0] || null;
+    if (!document) throw new HttpError("RESOURCE_NOT_FOUND", 404);
+    jobId = document.job_id ? String(document.job_id) : null;
+  }
+
+  const isCreator = Boolean(document && String(document.created_by) === userId);
+  if (!jobId) {
+    if (
+      !document ||
+      !isCreator ||
+      !isExplicitStandaloneDocument(document) ||
+      !["read", "creator"].includes(input.requirement)
+    ) {
+      throw new HttpError("RESOURCE_NOT_FOUND", 404);
+    }
+    return {
+      document,
+      jobId: null,
+      homeownerUserId: null,
+      contractorUserIds: [],
+      contractorHasAcceptedAssignment: false,
+      isCreator,
+      isHomeowner: false,
+      isContractor: false,
+      partyRole: null,
+    };
+  }
+
+  const relationshipRes = await pool.query(
+    `SELECT
+       l.id AS authority_job_id,
+       l.user_id AS homeowner_user_id,
+       direct_contractor.user_id AS direct_contractor_user_id
+     FROM leads l
+     LEFT JOIN contractors direct_contractor
+       ON direct_contractor.id = l.contractor_id
+     WHERE l.id = $1
+     ${input.lock ? "FOR UPDATE OF l" : ""}`,
+    [jobId]
+  );
+  if (!relationshipRes.rows.length) throw new HttpError("RESOURCE_NOT_FOUND", 404);
+
+  const acceptedRelationshipRes = await pool.query(
+    `SELECT accepted_contractor.user_id AS accepted_contractor_user_id
+     FROM lead_assignments accepted_assignment
+     JOIN contractors accepted_contractor
+       ON accepted_contractor.id = accepted_assignment.contractor_id
+     WHERE accepted_assignment.lead_id = $1
+       AND accepted_assignment.status = 'accepted'
+     ${input.lock ? "FOR UPDATE OF accepted_assignment" : ""}`,
+    [jobId]
+  );
+
+  const homeownerUserId = relationshipRes.rows[0]?.homeowner_user_id
+    ? String(relationshipRes.rows[0].homeowner_user_id)
+    : null;
+  const directContractorUserId = relationshipRes.rows[0]?.direct_contractor_user_id
+    ? String(relationshipRes.rows[0].direct_contractor_user_id)
+    : null;
+  const acceptedContractorUserIds = Array.from(
+    new Set(
+      acceptedRelationshipRes.rows.flatMap((row: any) =>
+        [row.accepted_contractor_user_id].filter(Boolean).map(String)
+      )
+    )
+  );
+  let canonicalContractorUserId: string | null = null;
+  let contractorHasAcceptedAssignment = false;
+  if (directContractorUserId) {
+    const acceptedMatchesDirect =
+      acceptedContractorUserIds.length === 1 &&
+      acceptedContractorUserIds[0] === directContractorUserId;
+    if (
+      acceptedContractorUserIds.length > 1 ||
+      (acceptedContractorUserIds.length === 1 && !acceptedMatchesDirect)
+    ) {
+      throw new HttpError("RESOURCE_NOT_FOUND", 404);
+    }
+    canonicalContractorUserId = directContractorUserId;
+    contractorHasAcceptedAssignment = acceptedMatchesDirect;
+  } else if (acceptedContractorUserIds.length === 1) {
+    canonicalContractorUserId = acceptedContractorUserIds[0];
+    contractorHasAcceptedAssignment = true;
+  } else if (acceptedContractorUserIds.length > 1) {
+    throw new HttpError("RESOURCE_NOT_FOUND", 404);
+  }
+
+  const contractorUserIds = canonicalContractorUserId ? [canonicalContractorUserId] : [];
+  const isHomeowner = homeownerUserId === userId;
+  const isContractor = contractorUserIds.includes(userId);
+  const isParty = isHomeowner || isContractor;
+  const partyRole: DocumentPartyRole | null =
+    isHomeowner === isContractor
+      ? null
+      : isHomeowner
+        ? "homeowner"
+        : isContractor
+          ? "contractor"
+          : null;
+
+  const authorized =
+    input.requirement === "read"
+      ? isParty
+      : input.requirement === "creator"
+        ? isParty && isCreator
+        : input.requirement === "homeowner"
+          ? isHomeowner && !isContractor
+          : input.requirement === "contractor"
+            ? isContractor && !isHomeowner
+            : partyRole !== null;
+  if (!authorized) throw new HttpError("RESOURCE_NOT_FOUND", 404);
+
+  return {
+    document,
+    jobId,
+    homeownerUserId,
+    contractorUserIds,
+    contractorHasAcceptedAssignment,
+    isCreator,
+    isHomeowner,
+    isContractor,
+    partyRole,
+  };
+}
+
+function decisionScopeMatchesJob(rawScope: unknown, jobId: string): boolean {
+  if (typeof rawScope !== "string" || !rawScope.trim()) return false;
+  try {
+    const parsed = JSON.parse(rawScope) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+    return [parsed.jobId, parsed.leadId, parsed.requestId, parsed.workRequestId].some(
+      (candidate) => typeof candidate === "string" && candidate === jobId
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function hasExactAcceptedContactAuthority(
+  pool: Queryable,
+  authority: DocumentJobAuthority
+): Promise<boolean> {
+  const jobId = authority.jobId;
+  const homeownerUserId = authority.homeownerUserId;
+  const contractorUserId = authority.contractorUserIds[0] || null;
+  if (!jobId || !homeownerUserId || !contractorUserId) return false;
+
+  const permissionRes = await pool.query(
+    `SELECT cp.decision_scope
+     FROM contact_permissions cp
+     JOIN decision_cards dc ON dc.id = cp.source_decision_card_id
+     WHERE cp.status = 'accepted'
+       AND cp.authority_gate = 'decision_card'
+       AND cp.source_decision_card_id IS NOT NULL
+       AND nullif(trim(cp.decision_scope), '') IS NOT NULL
+       AND (
+         (cp.requester_id = $1 AND cp.target_user_id = $2)
+         OR (cp.requester_id = $2 AND cp.target_user_id = $1)
+       )
+       AND dc.user_id = cp.requester_id
+       AND dc.status IN ('active', 'completed')
+       AND dc.intent = cp.intent
+       AND dc.decision_scope = cp.decision_scope`,
+    [homeownerUserId, contractorUserId]
+  );
+  return permissionRes.rows.some((row: any) => decisionScopeMatchesJob(row.decision_scope, jobId));
 }
 
 // Homeowner can only edit whitelisted material fields
@@ -590,7 +906,7 @@ function renderPdfFromDocument(docRow: any, signatures: any[]) {
 export function createInvoicingDocumentsRouter(pool: Pool) {
   const r = express.Router();
 
-  async function buildCorrespondenceMetadata(doc: any, req: AuthedRequest) {
+  async function buildCorrespondenceMetadata(req: AuthedRequest, authority: DocumentJobAuthority) {
     const senderUserId = String(req.user!.id);
 
     const senderUserRes = await pool.query(
@@ -633,41 +949,20 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     }
 
     let recipientUserRow: any = null;
-    const rawJobId = doc.job_id as string | null;
-    if (rawJobId && typeof rawJobId === "string" && !rawJobId.startsWith("acct_")) {
+    const contactReleased = await hasExactAcceptedContactAuthority(pool, authority);
+    const recipientUserId =
+      authority.partyRole === "homeowner"
+        ? authority.contractorUserIds[0] || null
+        : authority.partyRole === "contractor"
+          ? authority.homeownerUserId
+          : null;
+    if (recipientUserId && contactReleased) {
       try {
-        const leadRes = await pool.query(
-          "SELECT id, user_id, contractor_id FROM leads WHERE id = $1",
-          [rawJobId]
+        const recipientRes = await pool.query(
+          "SELECT id, email, first_name, last_name, phone FROM users WHERE id = $1",
+          [recipientUserId]
         );
-        const leadRow = leadRes.rows[0] || null;
-        if (leadRow) {
-          const homeownerId = leadRow.user_id ? String(leadRow.user_id) : null;
-          const contractorId = leadRow.contractor_id ? String(leadRow.contractor_id) : null;
-
-          if (homeownerId || contractorId) {
-            const currentUserId = senderUserId;
-
-            // If the sender is the homeowner, aim at the contractor (if any).
-            if (homeownerId && currentUserId === homeownerId && contractorId) {
-              const contractor = await storage.getContractor(contractorId);
-              if (contractor?.userId) {
-                const rec = await pool.query(
-                  "SELECT id, email, first_name, last_name, phone FROM users WHERE id = $1",
-                  [String(contractor.userId)]
-                );
-                recipientUserRow = rec.rows[0] || null;
-              }
-            } else if (homeownerId && currentUserId !== homeownerId) {
-              // Otherwise assume sender is the contractor (or staff) and aim at homeowner.
-              const rec = await pool.query(
-                "SELECT id, email, first_name, last_name, phone FROM users WHERE id = $1",
-                [homeownerId]
-              );
-              recipientUserRow = rec.rows[0] || null;
-            }
-          }
-        }
+        recipientUserRow = recipientRes.rows[0] || null;
       } catch (e) {
         console.error("[DOC_CORRESPONDENCE] recipient lookup failed", e);
       }
@@ -675,6 +970,12 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
     return {
       channel: "email" as const,
+      contactGate: {
+        state: contactReleased ? ("released" as const) : ("gated" as const),
+        reason: contactReleased
+          ? "accepted_decision_scoped_permission"
+          : "accepted_decision_scoped_permission_required",
+      },
       sender: senderUserRow
         ? {
             user: {
@@ -751,6 +1052,204 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         next(e);
       }
     };
+
+  async function prepareAutomationDocument(input: {
+    userId: string;
+    eventId: string;
+    kind: "invoice" | "expense";
+    body: any;
+  }) {
+    return withSerializableTransaction(pool, async (client) => {
+      const eventRes = await client.query(
+        `SELECT *
+         FROM accounting_automation_events
+         WHERE id = $1
+           AND requester_user_id = $2
+         FOR UPDATE`,
+        [input.eventId, input.userId]
+      );
+      const event = eventRes.rows[0];
+      if (!event) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
+
+      if (event.proposed_document_id) {
+        const existingDocumentRes = await client.query(
+          `SELECT *
+           FROM documents
+           WHERE id = $1 AND created_by = $2
+           FOR SHARE`,
+          [event.proposed_document_id, input.userId]
+        );
+        const existingDocument = existingDocumentRes.rows[0] || null;
+        const expectedType = input.kind === "invoice" ? "INVOICE" : "EXPENSE";
+        if (
+          event.automation_state === "reviewed" &&
+          existingDocument?.type === expectedType &&
+          isExplicitStandaloneDocument(existingDocument)
+        ) {
+          return { event, document: existingDocument, created: false };
+        }
+        throw new HttpError("AUTOMATION_EVENT_STATE_CONFLICT", 409);
+      }
+
+      const priorState = String(event.automation_state || "");
+      if (!new Set(["proposed", "reviewed", "error"]).has(priorState)) {
+        throw new HttpError("AUTOMATION_EVENT_STATE_CONFLICT", 409);
+      }
+
+      const metadata = event.metadata || {};
+      const requestedTotal = okNumber(input.body?.total);
+      if (!Number.isFinite(requestedTotal) || requestedTotal <= 0) {
+        throw new HttpError(
+          input.kind === "invoice" ? "INVALID_TOTAL" : "INVALID_EXPENSE_TOTAL",
+          400
+        );
+      }
+
+      const accountingGroupId =
+        input.kind === "invoice" && event.work_request_id && String(event.work_request_id).trim()
+          ? `acct_dc_${String(event.work_request_id)
+              .replace(/[^a-zA-Z0-9_-]/g, "")
+              .slice(0, 48)}`
+          : input.kind === "expense" && metadata.jobId && String(metadata.jobId).trim()
+            ? `acct_source_${String(metadata.jobId)
+                .replace(/[^a-zA-Z0-9_-]/g, "")
+                .slice(0, 48)}`
+            : `acct_auto_${String(event.id)
+                .replace(/[^a-zA-Z0-9_-]/g, "")
+                .slice(0, 48)}`;
+
+      let payload: Record<string, unknown>;
+      if (input.kind === "invoice") {
+        const responseSummary = metadata.responseSummary || {};
+        const title =
+          typeof input.body?.projectTitle === "string" && input.body.projectTitle.trim()
+            ? input.body.projectTitle.trim()
+            : typeof metadata.title === "string" && metadata.title.trim()
+              ? metadata.title.trim()
+              : "Direct Connect job";
+        const notes = [
+          "Prepared from connected TradeScout activity.",
+          event.reason ? String(event.reason) : "",
+          responseSummary.scopeNote ? `Scope note: ${responseSummary.scopeNote}` : "",
+          responseSummary.availabilityWindow
+            ? `Availability: ${responseSummary.availabilityWindow}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+        payload = {
+          projectTitle: title,
+          clientName:
+            typeof input.body?.clientName === "string" ? input.body.clientName.trim() : "",
+          total: requestedTotal,
+          currency: "USD",
+          notes,
+          sourceSurface: event.source_surface,
+          sourceType: event.source_type,
+          sourceId: event.source_id,
+          workRequestId: event.work_request_id,
+          assignmentId: event.assignment_id,
+          reviewRequired: true,
+          accountingGroupId,
+        };
+      } else {
+        const title =
+          typeof input.body?.projectTitle === "string" && input.body.projectTitle.trim()
+            ? input.body.projectTitle.trim()
+            : typeof metadata.title === "string" && metadata.title.trim()
+              ? metadata.title.trim()
+              : "Connected expense";
+        payload = {
+          projectTitle: title,
+          vendorName:
+            typeof input.body?.vendorName === "string" && input.body.vendorName.trim()
+              ? input.body.vendorName.trim()
+              : "Connected source",
+          category:
+            typeof input.body?.category === "string" && input.body.category.trim()
+              ? input.body.category.trim()
+              : event.source_type === "material_list_created"
+                ? "Materials"
+                : "Job cost",
+          notes: "Prepared from connected TradeScout activity. Review before posting books.",
+          total: requestedTotal,
+          currency: "USD",
+          sourceSurface: event.source_surface,
+          sourceType: event.source_type,
+          sourceId: event.source_id,
+          reviewRequired: true,
+          accountingGroupId,
+        };
+      }
+
+      const documentType = input.kind === "invoice" ? "INVOICE" : "EXPENSE";
+      const documentStatus = input.kind === "invoice" ? "draft" : "recorded";
+      const created = await client.query(
+        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+         VALUES (NULL, $1, $2, 1, $3::jsonb, $4::jsonb, $5)
+         RETURNING *`,
+        [
+          documentType,
+          documentStatus,
+          JSON.stringify(payload),
+          JSON.stringify(
+            documentLineagePermissions(STANDALONE_ACCOUNTING_LINEAGE, {
+              reviewRequired: true,
+              source: "accounting_automation",
+            })
+          ),
+          input.userId,
+        ]
+      );
+      const document = created.rows[0];
+
+      const updated = await client.query(
+        `UPDATE accounting_automation_events
+         SET automation_state = 'reviewed',
+             proposed_document_id = $3,
+             reason = $4,
+             updated_at = now()
+         WHERE id = $1
+           AND requester_user_id = $2
+           AND automation_state = $5
+           AND proposed_document_id IS NULL
+         RETURNING *`,
+        [
+          input.eventId,
+          input.userId,
+          document.id,
+          input.kind === "invoice"
+            ? "Prepared draft invoice for review."
+            : "Prepared expense record for review.",
+          priorState,
+        ]
+      );
+      if (!updated.rows.length) throw new HttpError("AUTOMATION_EVENT_STATE_CONFLICT", 409);
+
+      await client.query(
+        `INSERT INTO accounting_audit_events
+           (profile_id, actor_user_id, action, entity_type, entity_id, source_surface, source_id, after_state, metadata)
+         VALUES (
+           (SELECT id FROM accounting_profiles WHERE created_by = $1 LIMIT 1),
+           $1, $2, 'document', $3, $4, $5, $6::jsonb, $7::jsonb
+         )`,
+        [
+          input.userId,
+          input.kind === "invoice" ? "automation_prepared_invoice" : "automation_prepared_expense",
+          document.id,
+          event.source_surface,
+          event.source_id,
+          JSON.stringify(document),
+          JSON.stringify({
+            automationEventId: input.eventId,
+            workRequestId: event.work_request_id,
+          }),
+        ]
+      );
+
+      return { event: updated.rows[0], document, created: true };
+    });
+  }
 
   const mapProfileOffer = (row: any) => ({
     id: String(row.id),
@@ -1265,12 +1764,17 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         const updated = updatedRes.rows[0];
 
         if (updated?.receipt_document_id) {
-          await client.query(
+          const receiptUpdate = await client.query(
             `UPDATE documents
              SET payload = COALESCE(payload, '{}'::jsonb) || $1::jsonb,
                  updated_at = now()
              WHERE id = $2
-               AND created_by = $3`,
+               AND created_by = $3
+               AND job_id IS NULL
+               AND type = 'RECEIPT'
+               AND permissions->>'lineageKind' = 'profile_offer_purchase'
+               AND permissions->>'source' = 'profile_offer_purchase'
+               AND payload->>'profileOfferPurchaseId' = $4`,
             [
               JSON.stringify({
                 profileOfferPurchaseId: purchaseId,
@@ -1284,8 +1788,12 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
               }),
               updated.receipt_document_id,
               sellerUserId,
+              purchaseId,
             ]
           );
+          if (!receiptUpdate.rowCount) {
+            throw new HttpError("PROFILE_OFFER_RECEIPT_NOT_FOUND", 409);
+          }
         }
 
         await client.query("COMMIT");
@@ -1654,20 +2162,22 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
             shippingAddress: shippingAddress || {},
             paymentStatus: "not_charged",
             reviewRequired: true,
+            accountingGroupId: `acct_profile_order_${safePurchaseId}`,
           };
 
           const receiptRes = await client.query(
             `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-             VALUES ($1, 'RECEIPT', 'issued', 1, $2::jsonb, $3::jsonb, $4)
+             VALUES (NULL, 'RECEIPT', 'issued', 1, $1::jsonb, $2::jsonb, $3)
              RETURNING *`,
             [
-              `acct_profile_order_${safePurchaseId}`,
               JSON.stringify(receiptPayload),
-              JSON.stringify({
-                reviewRequired: true,
-                source: "profile_offer_purchase",
-                contactGated: true,
-              }),
+              JSON.stringify(
+                documentLineagePermissions(PROFILE_OFFER_PURCHASE_LINEAGE, {
+                  reviewRequired: true,
+                  source: "profile_offer_purchase",
+                  contactGated: true,
+                })
+              ),
               sellerUserId,
             ]
           );
@@ -1794,7 +2304,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
 					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
 				FROM documents
-				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+					WHERE type = 'INVOICE' AND created_by = $1
+            AND job_id IS NULL AND left(payload->>'accountingGroupId', 5) = 'acct_'
+            AND permissions->>'lineageKind' = 'standalone_accounting'`,
         [userId]
       );
       const overall = overallRes.rows[0] || {
@@ -1810,7 +2322,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         `SELECT
 					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_expenses
 				FROM documents
-				WHERE type = 'EXPENSE' AND created_by = $1 AND job_id LIKE 'acct_%'`,
+					WHERE type = 'EXPENSE' AND created_by = $1
+            AND job_id IS NULL AND left(payload->>'accountingGroupId', 5) = 'acct_'
+            AND permissions->>'lineageKind' = 'standalone_accounting'`,
         [userId]
       );
       const totalExpenses: number = Number(expensesRes.rows[0]?.total_expenses) || 0;
@@ -1821,7 +2335,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 					COALESCE(SUM((payload->>'total')::numeric), 0) AS total_amount,
 					COALESCE(SUM(CASE WHEN status = 'paid' THEN (payload->>'total')::numeric ELSE 0 END), 0) AS paid_amount
 				FROM documents
-				WHERE type = 'INVOICE' AND created_by = $1 AND job_id LIKE 'acct_%'
+					WHERE type = 'INVOICE' AND created_by = $1
+							AND job_id IS NULL AND left(payload->>'accountingGroupId', 5) = 'acct_'
+							AND permissions->>'lineageKind' = 'standalone_accounting'
 				GROUP BY 1
 				ORDER BY 1 DESC
 				LIMIT 24`,
@@ -2137,44 +2653,61 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError("JOURNAL_ENTRY_NOT_BALANCED", 400);
       }
 
-      const profile = await ensureAccountingProfile(pool, userId);
       const entryStatus = req.body?.post === true ? "posted" : "draft";
-      const entry = await pool.query(
-        `INSERT INTO accounting_journal_entries
-           (profile_id, status, source_surface, source_type, description, created_by, posted_by, posted_at, metadata)
-         VALUES ($1, $2, 'manual', 'manual_journal_entry', $3, $4, $5, CASE WHEN $2 = 'posted' THEN now() ELSE NULL END, $6::jsonb)
-         RETURNING *`,
-        [
-          profile.id,
-          entryStatus,
-          description,
-          userId,
-          entryStatus === "posted" ? userId : null,
-          JSON.stringify({ debitTotal, creditTotal, reviewBoundary: "manual_user_submitted" }),
-        ]
-      );
-      const entryId = entry.rows[0].id;
-      for (const line of normalizedLines) {
-        await pool.query(
-          `INSERT INTO accounting_journal_lines
-             (journal_entry_id, account_id, description, debit, credit)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [entryId, line.accountId, line.description || description, line.debit, line.credit]
+      const entry = await withSerializableTransaction(pool, async (client) => {
+        const profile = await ensureAccountingProfile(client, userId);
+        const accountIds = Array.from(new Set(normalizedLines.map((line) => line.accountId)));
+        const ownedAccounts = await client.query(
+          `SELECT id
+           FROM accounting_accounts
+           WHERE profile_id = $1
+             AND id = ANY($2::varchar[])
+             AND is_active = true
+           FOR SHARE`,
+          [profile.id, accountIds]
         );
-      }
-      await pool.query(
-        `INSERT INTO accounting_audit_events
-           (profile_id, actor_user_id, action, entity_type, entity_id, source_surface, after_state, metadata)
-         VALUES ($1, $2, 'manual_journal_entry_created', 'journal_entry', $3, 'manual', $4::jsonb, $5::jsonb)`,
-        [
-          profile.id,
-          userId,
-          entryId,
-          JSON.stringify(entry.rows[0]),
-          JSON.stringify({ debitTotal, creditTotal, lineCount: normalizedLines.length }),
-        ]
-      );
-      res.status(201).json({ entry: entry.rows[0], debitTotal, creditTotal });
+        if (ownedAccounts.rows.length !== accountIds.length) {
+          throw new HttpError("ACCOUNT_NOT_FOUND", 404);
+        }
+
+        const createdEntry = await client.query(
+          `INSERT INTO accounting_journal_entries
+             (profile_id, status, source_surface, source_type, description, created_by, posted_by, posted_at, metadata)
+           VALUES ($1, $2, 'manual', 'manual_journal_entry', $3, $4, $5, CASE WHEN $2 = 'posted' THEN now() ELSE NULL END, $6::jsonb)
+           RETURNING *`,
+          [
+            profile.id,
+            entryStatus,
+            description,
+            userId,
+            entryStatus === "posted" ? userId : null,
+            JSON.stringify({ debitTotal, creditTotal, reviewBoundary: "manual_user_submitted" }),
+          ]
+        );
+        const entryId = createdEntry.rows[0].id;
+        for (const line of normalizedLines) {
+          await client.query(
+            `INSERT INTO accounting_journal_lines
+               (journal_entry_id, account_id, description, debit, credit)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [entryId, line.accountId, line.description || description, line.debit, line.credit]
+          );
+        }
+        await client.query(
+          `INSERT INTO accounting_audit_events
+             (profile_id, actor_user_id, action, entity_type, entity_id, source_surface, after_state, metadata)
+           VALUES ($1, $2, 'manual_journal_entry_created', 'journal_entry', $3, 'manual', $4::jsonb, $5::jsonb)`,
+          [
+            profile.id,
+            userId,
+            entryId,
+            JSON.stringify(createdEntry.rows[0]),
+            JSON.stringify({ debitTotal, creditTotal, lineCount: normalizedLines.length }),
+          ]
+        );
+        return createdEntry.rows[0];
+      });
+      res.status(201).json({ entry, debitTotal, creditTotal });
     })
   );
 
@@ -2264,20 +2797,41 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       const userId = String(req.user!.id);
       const id = String(req.params.id);
 
-      const updated = await pool.query(
-        `UPDATE accounting_automation_events
-         SET automation_state = 'skipped',
-             reason = COALESCE($3, reason),
-             updated_at = now()
-         WHERE id = $1
-           AND requester_user_id = $2
-           AND automation_state IN ('proposed', 'reviewed', 'error')
-         RETURNING *`,
-        [id, userId, typeof req.body?.reason === "string" ? req.body.reason : null]
-      );
+      const event = await withSerializableTransaction(pool, async (client) => {
+        const currentRes = await client.query(
+          `SELECT *
+           FROM accounting_automation_events
+           WHERE id = $1 AND requester_user_id = $2
+           FOR UPDATE`,
+          [id, userId]
+        );
+        const current = currentRes.rows[0];
+        if (!current) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
+        if (current.automation_state === "skipped") return current;
+        if (!new Set(["proposed", "reviewed", "error"]).has(String(current.automation_state))) {
+          throw new HttpError("AUTOMATION_EVENT_STATE_CONFLICT", 409);
+        }
 
-      if (!updated.rows.length) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
-      res.json({ event: updated.rows[0] });
+        const updated = await client.query(
+          `UPDATE accounting_automation_events
+           SET automation_state = 'skipped',
+               reason = COALESCE($3, reason),
+               updated_at = now()
+           WHERE id = $1
+             AND requester_user_id = $2
+             AND automation_state = $4
+           RETURNING *`,
+          [
+            id,
+            userId,
+            typeof req.body?.reason === "string" ? req.body.reason : null,
+            current.automation_state,
+          ]
+        );
+        if (!updated.rows.length) throw new HttpError("AUTOMATION_EVENT_STATE_CONFLICT", 409);
+        return updated.rows[0];
+      });
+      res.json({ event });
     })
   );
 
@@ -2289,119 +2843,16 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const userId = String(req.user!.id);
       const id = String(req.params.id);
-
-      const eventRes = await pool.query(
-        `SELECT *
-         FROM accounting_automation_events
-         WHERE id = $1
-           AND requester_user_id = $2
-           AND automation_state IN ('proposed', 'reviewed', 'error')
-         LIMIT 1`,
-        [id, userId]
-      );
-      const event = eventRes.rows[0];
-      if (!event) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
-
-      const metadata = event.metadata || {};
-      const responseSummary = metadata.responseSummary || {};
-      const requestedTotal = okNumber(req.body?.total);
-      const title =
-        typeof req.body?.projectTitle === "string" && req.body.projectTitle.trim()
-          ? req.body.projectTitle.trim()
-          : typeof metadata.title === "string" && metadata.title.trim()
-            ? metadata.title.trim()
-            : "Direct Connect job";
-      const notes = [
-        "Prepared from connected TradeScout activity.",
-        event.reason ? String(event.reason) : "",
-        responseSummary.scopeNote ? `Scope note: ${responseSummary.scopeNote}` : "",
-        responseSummary.availabilityWindow
-          ? `Availability: ${responseSummary.availabilityWindow}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-      const payload = {
-        projectTitle: title,
-        clientName: typeof req.body?.clientName === "string" ? req.body.clientName.trim() : "",
-        total: requestedTotal,
-        currency: "USD",
-        notes,
-        sourceSurface: event.source_surface,
-        sourceType: event.source_type,
-        sourceId: event.source_id,
-        workRequestId: event.work_request_id,
-        assignmentId: event.assignment_id,
-        reviewRequired: true,
-      };
-
-      const jobId =
-        event.work_request_id && String(event.work_request_id).trim()
-          ? `acct_dc_${String(event.work_request_id)
-              .replace(/[^a-zA-Z0-9_-]/g, "")
-              .slice(0, 48)}`
-          : `acct_auto_${String(event.id)
-              .replace(/[^a-zA-Z0-9_-]/g, "")
-              .slice(0, 48)}`;
-
-      const created = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-         VALUES ($1, 'INVOICE', 'draft', 1, $2::jsonb, $3::jsonb, $4)
-         RETURNING *`,
-        [
-          jobId,
-          JSON.stringify(payload),
-          JSON.stringify({
-            reviewRequired: true,
-            source: "accounting_automation",
-          }),
-          userId,
-        ]
-      );
-      const document = created.rows[0];
-
-      const updated = await pool.query(
-        `UPDATE accounting_automation_events
-         SET automation_state = 'reviewed',
-             proposed_document_id = $3,
-             reason = 'Prepared draft invoice for review.',
-             updated_at = now()
-         WHERE id = $1
-           AND requester_user_id = $2
-         RETURNING *`,
-        [id, userId, document.id]
-      );
-
-      try {
-        await pool.query(
-          `INSERT INTO accounting_audit_events
-             (profile_id, actor_user_id, action, entity_type, entity_id, source_surface, source_id, after_state, metadata)
-           VALUES (
-             (SELECT id FROM accounting_profiles WHERE created_by = $1 LIMIT 1),
-             $1,
-             'automation_prepared_invoice',
-             'document',
-             $2,
-             $3,
-             $4,
-             $5::jsonb,
-             $6::jsonb
-           )`,
-          [
-            userId,
-            document.id,
-            event.source_surface,
-            event.source_id,
-            JSON.stringify(document),
-            JSON.stringify({ automationEventId: id, workRequestId: event.work_request_id }),
-          ]
-        );
-      } catch (auditError) {
-        console.warn("[accounting] Failed to write automation audit event", auditError);
-      }
-
-      res.status(201).json({ event: updated.rows[0], document });
+      const result = await prepareAutomationDocument({
+        userId,
+        eventId: id,
+        kind: "invoice",
+        body: req.body,
+      });
+      res.status(result.created ? 201 : 200).json({
+        event: result.event,
+        document: result.document,
+      });
     })
   );
 
@@ -2413,88 +2864,16 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const userId = String(req.user!.id);
       const id = String(req.params.id);
-
-      const eventRes = await pool.query(
-        `SELECT *
-         FROM accounting_automation_events
-         WHERE id = $1
-           AND requester_user_id = $2
-           AND automation_state IN ('proposed', 'reviewed', 'error')
-         LIMIT 1`,
-        [id, userId]
-      );
-      const event = eventRes.rows[0];
-      if (!event) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
-
-      const metadata = event.metadata || {};
-      const requestedTotal = okNumber(req.body?.total);
-      if (!Number.isFinite(requestedTotal) || requestedTotal <= 0) {
-        throw new HttpError("INVALID_EXPENSE_TOTAL", 400);
-      }
-
-      const title =
-        typeof req.body?.projectTitle === "string" && req.body.projectTitle.trim()
-          ? req.body.projectTitle.trim()
-          : typeof metadata.title === "string" && metadata.title.trim()
-            ? metadata.title.trim()
-            : "Connected expense";
-      const vendorName =
-        typeof req.body?.vendorName === "string" && req.body.vendorName.trim()
-          ? req.body.vendorName.trim()
-          : "Connected source";
-      const category =
-        typeof req.body?.category === "string" && req.body.category.trim()
-          ? req.body.category.trim()
-          : event.source_type === "material_list_created"
-            ? "Materials"
-            : "Job cost";
-
-      const jobId =
-        metadata.jobId && String(metadata.jobId).trim()
-          ? String(metadata.jobId)
-          : `acct_auto_${String(event.id)
-              .replace(/[^a-zA-Z0-9_-]/g, "")
-              .slice(0, 48)}`;
-
-      const payload = {
-        projectTitle: title,
-        vendorName,
-        category,
-        notes: "Prepared from connected TradeScout activity. Review before posting books.",
-        total: requestedTotal,
-        currency: "USD",
-        sourceSurface: event.source_surface,
-        sourceType: event.source_type,
-        sourceId: event.source_id,
-        reviewRequired: true,
-      };
-
-      const created = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-         VALUES ($1, 'EXPENSE', 'recorded', 1, $2::jsonb, $3::jsonb, $4)
-         RETURNING *`,
-        [
-          jobId,
-          JSON.stringify(payload),
-          JSON.stringify({ reviewRequired: true, source: "accounting_automation" }),
-          userId,
-        ]
-      );
-      const document = created.rows[0];
-
-      const updated = await pool.query(
-        `UPDATE accounting_automation_events
-         SET automation_state = 'reviewed',
-             proposed_document_id = $3,
-             reason = 'Prepared expense record for review.',
-             updated_at = now()
-         WHERE id = $1
-           AND requester_user_id = $2
-         RETURNING *`,
-        [id, userId, document.id]
-      );
-
-      res.status(201).json({ event: updated.rows[0], document });
+      const result = await prepareAutomationDocument({
+        userId,
+        eventId: id,
+        kind: "expense",
+        body: req.body,
+      });
+      res.status(result.created ? 201 : 200).json({
+        event: result.event,
+        document: result.document,
+      });
     })
   );
 
@@ -2509,10 +2888,12 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       const userId = String(req.user.id);
 
       const { rows } = await pool.query(
-        `SELECT id, job_id, type, status, payload, created_at, updated_at
+        `SELECT id, payload->>'accountingGroupId' AS job_id, type, status, payload, created_at, updated_at
          FROM documents
          WHERE created_by = $1
-           AND job_id LIKE 'acct_%'
+           AND job_id IS NULL
+           AND left(payload->>'accountingGroupId', 5) = 'acct_'
+           AND permissions->>'lineageKind' = 'standalone_accounting'
            AND type IN ('ESTIMATE', 'CONTRACT', 'INVOICE', 'RECEIPT', 'EXPENSE', 'BILL', 'PURCHASE_ORDER', 'CREDIT_NOTE', 'PAYMENT', 'JOURNAL_ENTRY')
          ORDER BY updated_at DESC NULLS LAST, created_at DESC`,
         [userId]
@@ -2643,7 +3024,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
       const { jobId } = req.params;
-      const userId = req.user.id;
+      await resolveDocumentJobAuthority(pool, {
+        userId: String(req.user.id),
+        jobId,
+        requirement: "read",
+      });
       const { rows } = await pool.query(
         "SELECT * FROM documents WHERE job_id = $1 ORDER BY created_at ASC, version ASC",
         [jobId]
@@ -2660,8 +3045,6 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
       const { jobId } = req.params;
-
-      // Minimal payload shape; you can pass items, notes, etc.
       const payload = req.body?.payload ?? {};
       const permissions = req.body?.permissions ?? {
         homeownerEditable: [
@@ -2673,14 +3056,26 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         ],
       };
 
-      const { rows } = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-				 VALUES ($1, 'MATERIAL_LIST', 'draft', 1, $2::jsonb, $3::jsonb, $4)
-				 RETURNING *`,
-        [jobId, JSON.stringify(payload), JSON.stringify(permissions), req.user.id]
-      );
-
-      const document = rows[0];
+      const document = await withSerializableTransaction(pool, async (client) => {
+        await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          jobId,
+          requirement: "contractor",
+          lock: true,
+        });
+        const created = await client.query(
+          `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+           VALUES ($1, 'MATERIAL_LIST', 'draft', 1, $2::jsonb, $3::jsonb, $4)
+           RETURNING *`,
+          [
+            jobId,
+            JSON.stringify(payload),
+            JSON.stringify(documentLineagePermissions(JOB_DOCUMENT_LINEAGE, permissions)),
+            req.user.id,
+          ]
+        );
+        return created.rows[0];
+      });
       await proposeAccountingAutomationFromDocument(pool, {
         userId: String(req.user.id),
         document,
@@ -2711,63 +3106,57 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { id } = req.params;
 
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
-      }
-      const doc = docRes.rows[0];
+      const document = await withSerializableTransaction(pool, async (client) => {
+        const authority = await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          documentId: id,
+          requirement: "read",
+          lock: true,
+        });
+        const doc = authority.document;
 
-      // You can harden this later with real job membership/role checks.
-      const isOwner = String(doc.created_by) === String(req.user.id);
-
-      if (doc.type === "MATERIAL_LIST" && !isOwner) {
-        // homeowner patch
-        validateHomeownerMaterialListPatch(req.body?.payload);
-        // Merge allowed changes into payload.items by id
-        const current = doc.payload || {};
-        const items = Array.isArray(current.items) ? current.items : [];
-        const patchItems = req.body.payload.items;
-
-        const itemMap = new Map<string, any>(items.map((it: any) => [String(it.id), { ...it }]));
-        for (const p of patchItems) {
-          const target = itemMap.get(String(p.id));
-          if (!target) continue;
-          for (const k of Object.keys(p)) {
-            if (k === "id") continue;
-            target[k] = p[k];
-          }
+        if (documentLineageKind(doc) === PROFILE_OFFER_PURCHASE_LINEAGE) {
+          throw new HttpError("PROFILE_OFFER_RECEIPT_IMMUTABLE", 409);
         }
 
-        const nextPayload = { ...current, items: Array.from(itemMap.values()) };
-        const updated = await pool.query(
+        if (doc.type === "MATERIAL_LIST" && authority.isHomeowner && !authority.isContractor) {
+          validateHomeownerMaterialListPatch(req.body?.payload);
+          const current = doc.payload || {};
+          const items = Array.isArray(current.items) ? current.items : [];
+          const patchItems = req.body.payload.items;
+          const itemMap = new Map<string, any>(items.map((it: any) => [String(it.id), { ...it }]));
+          for (const patchItem of patchItems) {
+            const target = itemMap.get(String(patchItem.id));
+            if (!target) continue;
+            for (const key of Object.keys(patchItem)) {
+              if (key !== "id") target[key] = patchItem[key];
+            }
+          }
+          const nextPayload = { ...current, items: Array.from(itemMap.values()) };
+          const updated = await client.query(
+            "UPDATE documents SET payload = $2::jsonb WHERE id = $1 RETURNING *",
+            [id, JSON.stringify(nextPayload)]
+          );
+          return updated.rows[0];
+        }
+
+        if (!authority.isCreator) throw new HttpError("NO_EDIT_PERMISSION", 403);
+        if (doc.type === "ESTIMATE" && doc.status !== "draft") {
+          throw new HttpError("ESTIMATE_LOCKED", 409);
+        }
+        if (doc.type === "CONTRACT" && doc.status !== "draft") {
+          throw new HttpError("CONTRACT_LOCKED", 409);
+        }
+        if (doc.type === "INVOICE" && doc.status !== "draft") {
+          throw new HttpError("INVOICE_LOCKED", 409);
+        }
+        const updated = await client.query(
           "UPDATE documents SET payload = $2::jsonb WHERE id = $1 RETURNING *",
-          [id, JSON.stringify(nextPayload)]
+          [id, JSON.stringify(req.body?.payload ?? doc.payload)]
         );
-        return res.json({ document: updated.rows[0] });
-      }
-
-      // Default: full update allowed only for creator until locked statuses per type
-      const payload = req.body?.payload;
-      if (!isOwner) {
-        throw new HttpError("NO_EDIT_PERMISSION", 403);
-      }
-
-      // lock rules
-      if (doc.type === "ESTIMATE" && doc.status !== "draft") {
-        throw new HttpError("ESTIMATE_LOCKED", 409);
-      }
-      if (doc.type === "CONTRACT" && doc.status !== "draft") {
-        throw new HttpError("CONTRACT_LOCKED", 409);
-      }
-      if (doc.type === "INVOICE" && doc.status !== "draft") {
-        throw new HttpError("INVOICE_LOCKED", 409);
-      }
-
-      const updated = await pool.query(
-        "UPDATE documents SET payload = $2::jsonb WHERE id = $1 RETURNING *",
-        [id, JSON.stringify(payload ?? doc.payload)]
-      );
-      res.json({ document: updated.rows[0] });
+        return updated.rows[0];
+      });
+      res.json({ document });
     })
   );
 
@@ -2781,33 +3170,38 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { id } = req.params;
 
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
-      }
-      const doc = docRes.rows[0];
+      const transition = await withSerializableTransaction(pool, async (client) => {
+        const authority = await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          documentId: id,
+          requirement: "creator",
+          lock: true,
+        });
+        const doc = authority.document;
+        const nextStatus =
+          doc.type === "MATERIAL_LIST"
+            ? "pending_homeowner"
+            : ["ESTIMATE", "CONTRACT", "INVOICE"].includes(String(doc.type))
+              ? "sent"
+              : null;
+        if (!nextStatus) throw new HttpError("SEND_NOT_SUPPORTED", 400);
+        if (doc.status === nextStatus) return { document: doc, fromStatus: doc.status };
+        if (doc.status !== "draft") throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
 
-      if (String(doc.created_by) !== String(req.user.id)) {
-        throw new HttpError("ONLY_CREATOR_CAN_SEND", 403);
-      }
-
-      let nextStatus = doc.status as string;
-      if (doc.type === "ESTIMATE") nextStatus = "sent";
-      else if (doc.type === "CONTRACT") nextStatus = "sent";
-      else if (doc.type === "INVOICE") nextStatus = "sent";
-      else if (doc.type === "MATERIAL_LIST") nextStatus = "pending_homeowner";
-      else {
-        throw new HttpError("SEND_NOT_SUPPORTED", 400);
-      }
-
-      const updated = await pool.query(
-        "UPDATE documents SET status = $2 WHERE id = $1 RETURNING *",
-        [id, nextStatus]
-      );
-      const updatedDoc = updated.rows[0];
+        const updated = await client.query(
+          `UPDATE documents
+           SET status = $2
+           WHERE id = $1 AND status = 'draft'
+           RETURNING *`,
+          [id, nextStatus]
+        );
+        if (!updated.rows.length) throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
+        return { document: updated.rows[0], fromStatus: doc.status };
+      });
+      const updatedDoc = transition.document;
       console.info("[DOC_TRANSITION]", {
         docId: updatedDoc.id,
-        from: doc.status,
+        from: transition.fromStatus,
         to: updatedDoc.status,
         userId: req.user.id,
         type: updatedDoc.type,
@@ -2830,12 +3224,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { id } = req.params;
 
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
-      }
-      const doc = docRes.rows[0];
-      const metadata = await buildCorrespondenceMetadata(doc, req);
+      const authority = await resolveDocumentJobAuthority(pool, {
+        userId: String(req.user.id),
+        documentId: id,
+        requirement: "read",
+      });
+      const doc = authority.document;
+      const metadata = await buildCorrespondenceMetadata(req, authority);
       res.json({
         documentId: doc.id,
         jobId: doc.job_id ?? null,
@@ -2854,70 +3249,97 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { id } = req.params;
 
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
-      }
-      const doc = docRes.rows[0];
+      const approval = await withSerializableTransaction(pool, async (client) => {
+        const authority = await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          documentId: id,
+          requirement: "homeowner",
+          lock: true,
+        });
+        const doc = authority.document;
+        if (doc.type !== "ESTIMATE") throw new HttpError("NOT_AN_ESTIMATE", 400);
+        if (authority.isCreator) throw new HttpError("CREATOR_CANNOT_APPROVE", 403);
+        if (doc.status !== "sent" && doc.status !== "approved") {
+          throw new HttpError("ESTIMATE_NOT_SENT", 409);
+        }
 
-      if (doc.type !== "ESTIMATE") {
-        throw new HttpError("NOT_AN_ESTIMATE", 400);
-      }
-      if (doc.status !== "sent") {
-        throw new HttpError("ESTIMATE_NOT_SENT", 409);
-      }
+        const existingContract = await client.query(
+          `SELECT *
+           FROM documents
+           WHERE job_id = $1
+             AND type = 'CONTRACT'
+             AND payload->>'derivedFromEstimateId' = $2
+           ORDER BY created_at ASC
+           LIMIT 1
+           FOR UPDATE`,
+          [doc.job_id, doc.id]
+        );
+        if (doc.status === "approved" && existingContract.rows[0]) {
+          return { estimate: doc, contract: existingContract.rows[0], created: false };
+        }
 
-      // For now: allow approval by any non-creator (prevents contractor approving own estimate).
-      if (String(doc.created_by) === String(req.user.id)) {
-        throw new HttpError("CREATOR_CANNOT_APPROVE", 403);
-      }
+        let approved = doc;
+        if (doc.status === "sent") {
+          const updated = await client.query(
+            `UPDATE documents
+             SET status = 'approved'
+             WHERE id = $1 AND status = 'sent'
+             RETURNING *`,
+            [id]
+          );
+          if (!updated.rows.length) throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
+          approved = updated.rows[0];
+        }
 
-      const updated = await pool.query(
-        "UPDATE documents SET status='approved' WHERE id = $1 RETURNING *",
-        [id]
-      );
-      const approved = updated.rows[0];
+        const payload = doc.payload || {};
+        const contractPayload = {
+          body: (payload.contractTemplateBody ?? "").toString(),
+          derivedFromEstimateId: doc.id,
+          totals: payload.total ?? null,
+        };
+        const contract = await client.query(
+          `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+           VALUES ($1, 'CONTRACT', 'draft', 1, $2::jsonb, $3::jsonb, $4)
+           RETURNING *`,
+          [
+            doc.job_id,
+            JSON.stringify(contractPayload),
+            JSON.stringify(documentLineagePermissions(JOB_DOCUMENT_LINEAGE)),
+            doc.created_by,
+          ]
+        );
+        return { estimate: approved, contract: contract.rows[0], created: true };
+      });
+      const approved = approval.estimate;
+      const contractDoc = approval.contract;
       console.info("[DOC_TRANSITION]", {
         docId: approved.id,
-        from: doc.status,
+        from: approved.status === "approved" ? "sent" : approved.status,
         to: approved.status,
         userId: req.user.id,
         type: approved.type,
         action: "approve_estimate",
       });
 
-      const payload = doc.payload || {};
-      const contractPayload = {
-        body: (payload.contractTemplateBody ?? "").toString(),
-        derivedFromEstimateId: doc.id,
-        totals: payload.total ?? null,
-      };
-
-      const contract = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-				 VALUES ($1, 'CONTRACT', 'draft', 1, $2::jsonb, $3::jsonb, $4)
-				 RETURNING *`,
-        [doc.job_id, JSON.stringify(contractPayload), JSON.stringify({}), doc.created_by]
-      );
-
-      const contractDoc = contract.rows[0];
-      try {
-        await storage.logEvent("finance.document_created", {
+      if (approval.created) {
+        try {
+          await storage.logEvent("finance.document_created", {
+            userId: req.user.id,
+            documentType: contractDoc.type,
+            jobId: contractDoc.job_id ?? null,
+          });
+        } catch (err) {
+          console.error("finance.document_created logging failed", err);
+        }
+        console.info("[DOC_TRANSITION]", {
+          docId: contractDoc.id,
+          from: null,
+          to: contractDoc.status,
           userId: req.user.id,
-          documentType: contractDoc.type,
-          jobId: contractDoc.job_id ?? null,
+          type: contractDoc.type,
+          action: "create_contract_from_estimate",
         });
-      } catch (err) {
-        console.error("finance.document_created logging failed", err);
       }
-      console.info("[DOC_TRANSITION]", {
-        docId: contractDoc.id,
-        from: null,
-        to: contractDoc.status,
-        userId: req.user.id,
-        type: contractDoc.type,
-        action: "create_contract_from_estimate",
-      });
       res.json({ estimate: approved, contract: contractDoc });
     })
   );
@@ -2930,8 +3352,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
       const { id } = req.params;
-      const { role, signatureType, name, drawingData } = (req.body ?? {}) as any;
-      assertRole(role);
+      const { role: requestedRole, signatureType, name, drawingData } = (req.body ?? {}) as any;
       if (signatureType !== "typed" && signatureType !== "drawn") {
         throw new HttpError("INVALID_SIGNATURE_TYPE", 400);
       }
@@ -2941,76 +3362,106 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       if (signatureType === "drawn" && (!drawingData || typeof drawingData !== "string")) {
         throw new HttpError("DRAWING_DATA_REQUIRED", 400);
       }
+      const signature = await withSerializableTransaction(pool, async (client) => {
+        const authority = await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          documentId: id,
+          requirement: "signer",
+          lock: true,
+        });
+        const doc = authority.document;
+        const role = authority.partyRole!;
+        if (requestedRole !== undefined && requestedRole !== role) {
+          throw new HttpError("SIGNATURE_ROLE_MISMATCH", 403);
+        }
+        if (doc.type !== "CONTRACT") throw new HttpError("SIGN_ONLY_CONTRACT", 400);
+        if (!["sent", "partially_signed", "signed"].includes(String(doc.status))) {
+          throw new HttpError("CONTRACT_NOT_READY_FOR_SIGN", 409);
+        }
 
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
-      }
-      const doc = docRes.rows[0];
+        const existingSignature = await client.query(
+          `SELECT role, user_id
+           FROM document_signatures
+           WHERE document_id = $1 AND role = $2
+           LIMIT 1
+           FOR SHARE`,
+          [id, role]
+        );
+        if (existingSignature.rows[0]) {
+          if (String(existingSignature.rows[0].user_id) !== String(req.user.id)) {
+            throw new HttpError("ROLE_ALREADY_SIGNED", 409);
+          }
+        } else {
+          if (doc.status === "signed") throw new HttpError("CONTRACT_NOT_READY_FOR_SIGN", 409);
+          const inserted = await client.query(
+            `INSERT INTO document_signatures
+               (document_id, role, user_id, ip, signature_type, typed_name, drawing_data)
+             VALUES ($1,$2,$3,$4,$5,$6,$7)
+             ON CONFLICT (document_id, role) DO NOTHING
+             RETURNING role, user_id`,
+            [
+              id,
+              role,
+              req.user.id,
+              ipFromReq(req),
+              signatureType,
+              signatureType === "typed" ? name.trim().slice(0, 200) : null,
+              signatureType === "drawn" ? drawingData.slice(0, 1_000_000) : null,
+            ]
+          );
+          if (!inserted.rows.length) {
+            const winner = await client.query(
+              `SELECT user_id
+               FROM document_signatures
+               WHERE document_id = $1 AND role = $2
+               LIMIT 1
+               FOR SHARE`,
+              [id, role]
+            );
+            if (String(winner.rows[0]?.user_id || "") !== String(req.user.id)) {
+              throw new HttpError("ROLE_ALREADY_SIGNED", 409);
+            }
+          }
+        }
 
-      if (doc.type !== "CONTRACT") {
-        throw new HttpError("SIGN_ONLY_CONTRACT", 400);
-      }
-      if (doc.status !== "sent" && doc.status !== "partially_signed") {
-        throw new HttpError("CONTRACT_NOT_READY_FOR_SIGN", 409);
-      }
-
-      // Prevent duplicate signing by the same role; surface a clear 409.
-      const existingSig = await pool.query(
-        "SELECT 1 FROM document_signatures WHERE document_id = $1 AND role = $2 LIMIT 1",
-        [id, role]
-      );
-      if (existingSig.rows.length) {
-        throw new HttpError("ROLE_ALREADY_SIGNED", 409);
-      }
-
-      const ip = ipFromReq(req);
-
-      await pool.query(
-        `INSERT INTO document_signatures (document_id, role, user_id, ip, signature_type, typed_name, drawing_data)
-				 VALUES ($1,$2,$3,$4,$5,$6,$7)
-				 ON CONFLICT (document_id, role) DO UPDATE SET
-				   user_id=excluded.user_id,
-				   signed_at=now(),
-				   ip=excluded.ip,
-				   signature_type=excluded.signature_type,
-				   typed_name=excluded.typed_name,
-				   drawing_data=excluded.drawing_data`,
-        [
-          id,
-          role,
-          req.user.id,
-          ip,
-          signatureType,
-          signatureType === "typed" ? name : null,
-          signatureType === "drawn" ? drawingData : null,
-        ]
-      );
-
-      const sigs = await pool.query("SELECT role FROM document_signatures WHERE document_id = $1", [
-        id,
-      ]);
-      const roles = new Set<string>(sigs.rows.map((r) => String(r.role)));
-      const fullySigned = roles.has("homeowner") && roles.has("contractor");
-
-      const nextStatus = fullySigned ? "signed" : "partially_signed";
-      const updated = await pool.query(
-        "UPDATE documents SET status=$2, signed_at=CASE WHEN $2='signed' THEN now() ELSE signed_at END WHERE id=$1 RETURNING *",
-        [id, nextStatus]
-      );
-      const updatedDoc = updated.rows[0];
+        const sigs = await client.query(
+          "SELECT role FROM document_signatures WHERE document_id = $1 FOR SHARE",
+          [id]
+        );
+        const roles = new Set<string>(sigs.rows.map((row) => String(row.role)));
+        const fullySigned = roles.has("homeowner") && roles.has("contractor");
+        const updated = await client.query(
+          `UPDATE documents
+           SET status = CASE
+                 WHEN $2::boolean THEN 'signed'
+                 WHEN status = 'sent' THEN 'partially_signed'
+                 ELSE status
+               END,
+               signed_at = CASE
+                 WHEN $2::boolean THEN COALESCE(signed_at, now())
+                 ELSE signed_at
+               END
+           WHERE id = $1
+             AND status IN ('sent', 'partially_signed', 'signed')
+           RETURNING *`,
+          [id, fullySigned]
+        );
+        if (!updated.rows.length) throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
+        return { document: updated.rows[0], fullySigned, role, fromStatus: doc.status };
+      });
+      const updatedDoc = signature.document;
       console.info("[DOC_TRANSITION]", {
         docId: updatedDoc.id,
-        from: doc.status,
+        from: signature.fromStatus,
         to: updatedDoc.status,
         userId: req.user.id,
         type: updatedDoc.type,
         action: "sign_contract",
-        role,
-        fullySigned,
+        role: signature.role,
+        fullySigned: signature.fullySigned,
       });
 
-      res.json({ document: updatedDoc, fullySigned });
+      res.json({ document: updatedDoc, fullySigned: signature.fullySigned });
     })
   );
 
@@ -3027,28 +3478,42 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { jobId } = req.params;
       const allowSkipContract = !!(req.body && (req.body as any).allowSkipContract);
-
-      if (!allowSkipContract) {
-        const contractRes = await pool.query(
-          "SELECT * FROM documents WHERE job_id=$1 AND type='CONTRACT' ORDER BY created_at DESC LIMIT 1",
-          [jobId]
-        );
-        if (!contractRes.rows.length) {
-          throw new HttpError("CONTRACT_REQUIRED", 409);
-        }
-        if (contractRes.rows[0].status !== "signed") {
-          throw new HttpError("CONTRACT_NOT_SIGNED", 409);
-        }
-      }
-
       const payload = (req.body && (req.body as any).payload) || req.body?.payload || {};
-      const created = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-					 VALUES ($1,'INVOICE','draft',1,$2::jsonb,$3::jsonb,$4)
-					 RETURNING *`,
-        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
-      );
-      const invoice = created.rows[0];
+      const invoice = await withSerializableTransaction(pool, async (client) => {
+        await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          jobId,
+          requirement: "contractor",
+          lock: true,
+        });
+        if (!allowSkipContract) {
+          const contractRes = await client.query(
+            `SELECT *
+             FROM documents
+             WHERE job_id = $1 AND type = 'CONTRACT'
+             ORDER BY created_at DESC
+             LIMIT 1
+             FOR SHARE`,
+            [jobId]
+          );
+          if (!contractRes.rows.length) throw new HttpError("CONTRACT_REQUIRED", 409);
+          if (contractRes.rows[0].status !== "signed") {
+            throw new HttpError("CONTRACT_NOT_SIGNED", 409);
+          }
+        }
+        const created = await client.query(
+          `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+           VALUES ($1,'INVOICE','draft',1,$2::jsonb,$3::jsonb,$4)
+           RETURNING *`,
+          [
+            jobId,
+            JSON.stringify(payload),
+            JSON.stringify(documentLineagePermissions(JOB_DOCUMENT_LINEAGE)),
+            req.user.id,
+          ]
+        );
+        return created.rows[0];
+      });
       await proposeAccountingAutomationFromDocument(pool, {
         userId: String(req.user.id),
         document: invoice,
@@ -3086,94 +3551,159 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { jobId } = req.params;
       const userId = req.user.id;
-
-      const invoiceRes = await pool.query(
-        "SELECT * FROM documents WHERE job_id=$1 AND type='INVOICE' ORDER BY created_at DESC LIMIT 1",
-        [jobId]
-      );
-      if (!invoiceRes.rows.length) {
-        throw new HttpError("INVOICE_REQUIRED", 409);
-      }
-
       const markPaid = !!req.body?.markPaid;
+      const result = await withSerializableTransaction(pool, async (client) => {
+        await resolveDocumentJobAuthority(client, {
+          userId: String(userId),
+          jobId,
+          requirement: "contractor",
+          lock: true,
+        });
 
-      // C2-3: Verification gate - check contractor tax/identity verification (ACCEPT_CONTRACTOR_PAYMENT action)
-      if (markPaid) {
-        const user = await storage.getUser(userId);
-        const hasTaxId = (user as any)?.taxIdVerified;
-        const hasBankAccount = (user as any)?.bankAccountVerified;
-        const hasIdentity = (user as any)?.identityVerified;
+        const invoiceRes = await client.query(
+          `SELECT *
+           FROM documents
+           WHERE job_id = $1 AND type = 'INVOICE'
+           ORDER BY created_at DESC
+           LIMIT 1
+           FOR UPDATE`,
+          [jobId]
+        );
+        if (!invoiceRes.rows.length) throw new HttpError("INVOICE_REQUIRED", 409);
 
-        const missingRequirements: string[] = [];
-        if (!hasTaxId) missingRequirements.push("tax_id");
-        if (!hasBankAccount) missingRequirements.push("bank_account");
-        if (!hasIdentity) missingRequirements.push("identity");
+        const invoiceAuthority = await resolveDocumentJobAuthority(client, {
+          userId: String(userId),
+          documentId: String(invoiceRes.rows[0].id),
+          requirement: "creator",
+          lock: true,
+        });
+        let invoice = invoiceAuthority.document;
 
-        if (!hasPrivilegedVerificationBypass(user) && missingRequirements.length > 0) {
-          const { buildVerificationGateResponse } =
-            await import("./utils/explainAndOfferVerification");
+        // C2-3: Verification gate - check contractor tax/identity verification
+        // before accepting an external/manual payment state transition.
+        if (markPaid) {
+          const user = await storage.getUser(userId);
+          const missingRequirements: string[] = [];
+          if (!(user as any)?.taxIdVerified) missingRequirements.push("tax_id");
+          if (!(user as any)?.bankAccountVerified) missingRequirements.push("bank_account");
+          if (!(user as any)?.identityVerified) missingRequirements.push("identity");
 
-          const gateResponse = buildVerificationGateResponse({
-            action: "ACCEPT_CONTRACTOR_PAYMENT",
-            missingRequirements: missingRequirements as any,
-            userRole: "contractor",
-            targetUserId: undefined,
-            targetRole: undefined,
-            context: { jobId, intent: "mark_invoice_paid" },
-          });
-
-          return res.status(200).json({
-            ...gateResponse,
-            verificationRequired: {
-              action: "ACCEPT_CONTRACTOR_PAYMENT",
-              retryPath: `/api/jobs/${jobId}/receipt`,
-              context: { jobId, markPaid: true },
-            },
-          });
+          if (!hasPrivilegedVerificationBypass(user) && missingRequirements.length > 0) {
+            const { buildVerificationGateResponse } =
+              await import("./utils/explainAndOfferVerification");
+            return {
+              verificationGate: buildVerificationGateResponse({
+                action: "ACCEPT_CONTRACTOR_PAYMENT",
+                missingRequirements: missingRequirements as any,
+                userRole: "contractor",
+                targetUserId: undefined,
+                targetRole: undefined,
+                context: { jobId, intent: "mark_invoice_paid" },
+              }),
+              receipt: null,
+              invoice,
+              created: false,
+            };
+          }
         }
 
-        await pool.query("UPDATE documents SET status='paid' WHERE id=$1", [invoiceRes.rows[0].id]);
-      }
+        const originalInvoiceStatus = String(invoice.status || "");
+        if (markPaid) {
+          if (!["sent", "approved", "paid"].includes(originalInvoiceStatus)) {
+            throw new HttpError("INVOICE_NOT_READY_FOR_PAYMENT", 409);
+          }
+          if (originalInvoiceStatus !== "paid") {
+            const paidRes = await client.query(
+              `UPDATE documents
+               SET status = 'paid'
+               WHERE id = $1 AND status = $2
+               RETURNING *`,
+              [invoice.id, originalInvoiceStatus]
+            );
+            if (!paidRes.rows.length) throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
+            invoice = paidRes.rows[0];
+          }
+        } else if (originalInvoiceStatus !== "paid") {
+          throw new HttpError("INVOICE_NOT_PAID", 409);
+        }
 
-      const invRes = await pool.query("SELECT * FROM documents WHERE id=$1", [
-        invoiceRes.rows[0].id,
-      ]);
-      const inv = invRes.rows[0];
-      if (inv.status !== "paid") {
-        throw new HttpError("INVOICE_NOT_PAID", 409);
-      }
+        const existingReceiptRes = await client.query(
+          `SELECT *
+           FROM documents
+           WHERE job_id = $1
+             AND type = 'RECEIPT'
+             AND created_by = $2
+             AND payload->>'derivedFromInvoiceId' = $3
+           ORDER BY created_at ASC
+           LIMIT 1
+           FOR UPDATE`,
+          [jobId, userId, String(invoice.id)]
+        );
+        if (existingReceiptRes.rows.length) {
+          return {
+            verificationGate: null,
+            receipt: existingReceiptRes.rows[0],
+            invoice,
+            created: false,
+          };
+        }
 
-      const receiptPayload = {
-        derivedFromInvoiceId: inv.id,
-        amount: inv.payload?.total ?? null,
-        currency: inv.payload?.currency ?? "USD",
-      };
-      const created = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-					 VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
-					 RETURNING *`,
-        [jobId, JSON.stringify(receiptPayload), JSON.stringify({}), userId]
-      );
-      const receipt = created.rows[0];
-      try {
-        await storage.logEvent("finance.document_created", {
-          userId: req.user.id,
-          documentType: receipt.type,
-          jobId: receipt.job_id ?? null,
-        });
-      } catch (err) {
-        console.error("finance.document_created logging failed", err);
-      }
-      console.info("[DOC_TRANSITION]", {
-        docId: receipt.id,
-        from: null,
-        to: receipt.status,
-        userId: req.user.id,
-        type: receipt.type,
-        action: "issue_receipt",
-        invoiceId: inv.id,
+        const receiptPayload = {
+          derivedFromInvoiceId: invoice.id,
+          amount: invoice.payload?.total ?? null,
+          currency: invoice.payload?.currency ?? "USD",
+        };
+        const createdRes = await client.query(
+          `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+           VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
+           RETURNING *`,
+          [
+            jobId,
+            JSON.stringify(receiptPayload),
+            JSON.stringify(documentLineagePermissions(JOB_DOCUMENT_LINEAGE)),
+            userId,
+          ]
+        );
+        return {
+          verificationGate: null,
+          receipt: createdRes.rows[0],
+          invoice,
+          created: true,
+        };
       });
-      res.status(201).json({ document: receipt });
+
+      if (result.verificationGate) {
+        return res.status(200).json({
+          ...result.verificationGate,
+          verificationRequired: {
+            action: "ACCEPT_CONTRACTOR_PAYMENT",
+            retryPath: `/api/jobs/${jobId}/receipt`,
+            context: { jobId, markPaid: true },
+          },
+        });
+      }
+
+      if (result.created) {
+        try {
+          await storage.logEvent("finance.document_created", {
+            userId: req.user.id,
+            documentType: result.receipt.type,
+            jobId: result.receipt.job_id ?? null,
+          });
+        } catch (err) {
+          console.error("finance.document_created logging failed", err);
+        }
+        console.info("[DOC_TRANSITION]", {
+          docId: result.receipt.id,
+          from: null,
+          to: result.receipt.status,
+          userId: req.user.id,
+          type: result.receipt.type,
+          action: "issue_receipt",
+          invoiceId: result.invoice.id,
+        });
+      }
+      res.status(result.created ? 201 : 200).json({ document: result.receipt });
     })
   );
 
@@ -3200,25 +3730,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError("INVALID_TOTAL", 400);
       }
 
-      let jobId = `acct_${token32()}`;
-      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
-        const normalizedJobId = requestedJobId.trim();
-        if (!normalizedJobId.startsWith("acct_")) {
-          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
-        }
-
-        const existingRes = await pool.query(
-          `SELECT 1
-           FROM documents
-           WHERE created_by = $1 AND job_id = $2
-           LIMIT 1`,
-          [req.user.id, normalizedJobId]
-        );
-        if (!existingRes.rows.length) {
-          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
-        }
-        jobId = normalizedJobId;
-      }
+      const jobId = await resolveStandaloneAccountingGroupId(
+        pool,
+        String(req.user.id),
+        requestedJobId
+      );
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
       const title =
@@ -3237,13 +3753,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         total: amount,
         currency: safeCurrency,
         lines: [],
+        accountingGroupId: jobId,
       };
 
       const created = await pool.query(
         `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-					 VALUES ($1,'INVOICE','draft',1,$2::jsonb,$3::jsonb,$4)
+					 VALUES (NULL,'INVOICE','draft',1,$1::jsonb,$2::jsonb,$3)
 					 RETURNING *`,
-        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
+        [
+          JSON.stringify(payload),
+          JSON.stringify(documentLineagePermissions(STANDALONE_ACCOUNTING_LINEAGE)),
+          req.user.id,
+        ]
       );
       const invoice = created.rows[0];
       try {
@@ -3290,25 +3811,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError("INVALID_ESTIMATE_TOTAL", 400);
       }
 
-      let jobId = `acct_${token32()}`;
-      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
-        const normalizedJobId = requestedJobId.trim();
-        if (!normalizedJobId.startsWith("acct_")) {
-          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
-        }
-
-        const existingRes = await pool.query(
-          `SELECT 1
-           FROM documents
-           WHERE created_by = $1 AND job_id = $2
-           LIMIT 1`,
-          [req.user.id, normalizedJobId]
-        );
-        if (!existingRes.rows.length) {
-          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
-        }
-        jobId = normalizedJobId;
-      }
+      const jobId = await resolveStandaloneAccountingGroupId(
+        pool,
+        String(req.user.id),
+        requestedJobId
+      );
 
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
@@ -3329,13 +3836,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         total: amount,
         currency: safeCurrency,
         lines: [],
+        accountingGroupId: jobId,
       };
 
       const created = await pool.query(
         `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-         VALUES ($1,'ESTIMATE','draft',1,$2::jsonb,$3::jsonb,$4)
+         VALUES (NULL,'ESTIMATE','draft',1,$1::jsonb,$2::jsonb,$3)
          RETURNING *`,
-        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
+        [
+          JSON.stringify(payload),
+          JSON.stringify(documentLineagePermissions(STANDALONE_ACCOUNTING_LINEAGE)),
+          req.user.id,
+        ]
       );
       const estimate = created.rows[0];
       await proposeAccountingAutomationFromDocument(pool, {
@@ -3390,25 +3902,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError("INVALID_CONTRACT_TOTAL", 400);
       }
 
-      let jobId = `acct_${token32()}`;
-      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
-        const normalizedJobId = requestedJobId.trim();
-        if (!normalizedJobId.startsWith("acct_")) {
-          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
-        }
-
-        const existingRes = await pool.query(
-          `SELECT 1
-           FROM documents
-           WHERE created_by = $1 AND job_id = $2
-           LIMIT 1`,
-          [req.user.id, normalizedJobId]
-        );
-        if (!existingRes.rows.length) {
-          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
-        }
-        jobId = normalizedJobId;
-      }
+      const jobId = await resolveStandaloneAccountingGroupId(
+        pool,
+        String(req.user.id),
+        requestedJobId
+      );
 
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
@@ -3432,13 +3930,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         totals: amount,
         total: amount,
         currency: safeCurrency,
+        accountingGroupId: jobId,
       };
 
       const created = await pool.query(
         `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-         VALUES ($1,'CONTRACT','draft',1,$2::jsonb,$3::jsonb,$4)
+         VALUES (NULL,'CONTRACT','draft',1,$1::jsonb,$2::jsonb,$3)
          RETURNING *`,
-        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
+        [
+          JSON.stringify(payload),
+          JSON.stringify(documentLineagePermissions(STANDALONE_ACCOUNTING_LINEAGE)),
+          req.user.id,
+        ]
       );
       const contract = created.rows[0];
       await proposeAccountingAutomationFromDocument(pool, {
@@ -3489,15 +3992,19 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       const totalRes = await pool.query(
         `SELECT COUNT(*)::int AS count
 					FROM documents
-					WHERE type='INVOICE' AND created_by=$1 AND job_id LIKE 'acct_%'`,
+						WHERE type='INVOICE' AND created_by=$1
+              AND job_id IS NULL AND left(payload->>'accountingGroupId', 5) = 'acct_'
+              AND permissions->>'lineageKind' = 'standalone_accounting'`,
         [req.user.id]
       );
       const totalCount: number = totalRes.rows[0]?.count ?? 0;
 
       const { rows } = await pool.query(
-        `SELECT id, job_id, type, status, payload, created_at, updated_at
-					FROM documents
-					WHERE type='INVOICE' AND created_by=$1 AND job_id LIKE 'acct_%'
+        `SELECT id, payload->>'accountingGroupId' AS job_id, type, status, payload, created_at, updated_at
+						FROM documents
+						WHERE type='INVOICE' AND created_by=$1
+								AND job_id IS NULL AND left(payload->>'accountingGroupId', 5) = 'acct_'
+								AND permissions->>'lineageKind' = 'standalone_accounting'
 					ORDER BY updated_at DESC NULLS LAST, created_at DESC
 					LIMIT $2 OFFSET $3`,
         [req.user.id, pageSize, offset]
@@ -3603,7 +4110,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
          FROM documents
          WHERE created_by = $1
            AND type = 'INVOICE'
-           AND job_id LIKE 'acct_%'
+           AND job_id IS NULL
+           AND left(payload->>'accountingGroupId', 5) = 'acct_'
+           AND permissions->>'lineageKind' = 'standalone_accounting'
            AND nullif(trim(payload->>'clientName'), '') IS NOT NULL
          GROUP BY lower(trim(payload->>'clientName'))
          ORDER BY max(updated_at) DESC NULLS LAST, max(created_at) DESC`,
@@ -3794,7 +4303,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         `SELECT id, payload
          FROM documents
          WHERE created_by = $1
-           AND job_id LIKE 'acct_%'
+           AND job_id IS NULL
+           AND left(payload->>'accountingGroupId', 5) = 'acct_'
+           AND permissions->>'lineageKind' = 'standalone_accounting'
            AND nullif(trim(payload->>'clientName'), '') IS NOT NULL`,
         [req.user.id]
       );
@@ -3851,25 +4362,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError("INVALID_EXPENSE_TOTAL", 400);
       }
 
-      let jobId = `acct_${token32()}`;
-      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
-        const normalizedJobId = requestedJobId.trim();
-        if (!normalizedJobId.startsWith("acct_")) {
-          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
-        }
-
-        const existingRes = await pool.query(
-          `SELECT 1
-           FROM documents
-           WHERE created_by = $1 AND job_id = $2
-           LIMIT 1`,
-          [req.user.id, normalizedJobId]
-        );
-        if (!existingRes.rows.length) {
-          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
-        }
-        jobId = normalizedJobId;
-      }
+      const jobId = await resolveStandaloneAccountingGroupId(
+        pool,
+        String(req.user.id),
+        requestedJobId
+      );
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
       const title =
@@ -3886,13 +4383,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         notes: memo,
         total: amount,
         currency: safeCurrency,
+        accountingGroupId: jobId,
       };
 
       const created = await pool.query(
         `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-					 VALUES ($1,'EXPENSE','recorded',1,$2::jsonb,$3::jsonb,$4)
+					 VALUES (NULL,'EXPENSE','recorded',1,$1::jsonb,$2::jsonb,$3)
 					 RETURNING *`,
-        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
+        [
+          JSON.stringify(payload),
+          JSON.stringify(documentLineagePermissions(STANDALONE_ACCOUNTING_LINEAGE)),
+          req.user.id,
+        ]
       );
       const expense = created.rows[0];
       await proposeAccountingAutomationFromDocument(pool, {
@@ -3947,44 +4449,6 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError("INVALID_RECEIPT_TOTAL", 400);
       }
 
-      let jobId = `acct_${token32()}`;
-      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
-        const normalizedJobId = requestedJobId.trim();
-        if (!normalizedJobId.startsWith("acct_")) {
-          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
-        }
-
-        const existingRes = await pool.query(
-          `SELECT 1
-           FROM documents
-           WHERE created_by = $1 AND job_id = $2
-           LIMIT 1`,
-          [req.user.id, normalizedJobId]
-        );
-        if (!existingRes.rows.length) {
-          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
-        }
-        jobId = normalizedJobId;
-      }
-
-      let derivedFromInvoiceId: string | null = null;
-      if (typeof invoiceId === "string" && invoiceId.trim()) {
-        const invRes = await pool.query(
-          `SELECT id, job_id
-           FROM documents
-           WHERE id = $1 AND created_by = $2 AND type = 'INVOICE'
-           LIMIT 1`,
-          [invoiceId.trim(), req.user.id]
-        );
-        if (!invRes.rows.length) {
-          throw new HttpError("INVOICE_NOT_FOUND", 404);
-        }
-        derivedFromInvoiceId = String(invRes.rows[0].id);
-        if (!requestedJobId && invRes.rows[0].job_id) {
-          jobId = String(invRes.rows[0].job_id);
-        }
-      }
-
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
       const title =
@@ -3994,44 +4458,133 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       const client = typeof clientName === "string" && clientName.trim() ? clientName.trim() : null;
       const memo = typeof notes === "string" && notes.trim() ? notes.trim() : null;
 
-      const payload = {
-        projectTitle: title,
-        clientName: client,
-        notes: memo,
-        amount,
-        total: amount,
-        currency: safeCurrency,
-        derivedFromInvoiceId,
-      };
+      const result = await withSerializableTransaction(pool, async (client) => {
+        const requestedGroupId =
+          typeof requestedJobId === "string" && requestedJobId.trim()
+            ? await resolveStandaloneAccountingGroupId(client, String(req.user.id), requestedJobId)
+            : null;
+        let accountingGroupId = requestedGroupId;
+        let derivedFromInvoiceId: string | null = null;
+        let sourceJobId: string | null = null;
 
-      const created = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-         VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
-         RETURNING *`,
-        [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
-      );
-      const receipt = created.rows[0];
-      try {
-        await storage.logEvent("finance.document_created", {
-          userId: req.user.id,
-          documentType: receipt.type,
-          jobId: receipt.job_id ?? null,
-        });
-      } catch (err) {
-        console.error("finance.document_created logging failed", err);
-      }
-      console.info("[DOC_TRANSITION]", {
-        docId: receipt.id,
-        from: null,
-        to: receipt.status,
-        userId: req.user.id,
-        type: receipt.type,
-        action: "create_standalone_receipt",
-        jobId,
-        invoiceId: derivedFromInvoiceId,
+        if (typeof invoiceId === "string" && invoiceId.trim()) {
+          const invoiceAuthority = await resolveDocumentJobAuthority(client, {
+            userId: String(req.user.id),
+            documentId: invoiceId.trim(),
+            requirement: "creator",
+            lock: true,
+          });
+          const invoice = invoiceAuthority.document;
+          if (invoice?.type !== "INVOICE") throw new HttpError("INVOICE_NOT_FOUND", 404);
+
+          derivedFromInvoiceId = String(invoice.id);
+          sourceJobId = invoice.job_id ? String(invoice.job_id) : null;
+          const invoiceAccountingGroupId = invoice.payload?.accountingGroupId;
+          if (invoice.job_id == null) {
+            if (documentLineageKind(invoice) !== STANDALONE_ACCOUNTING_LINEAGE) {
+              throw new HttpError("INVOICE_NOT_FOUND", 404);
+            }
+            if (
+              typeof invoiceAccountingGroupId !== "string" ||
+              !invoiceAccountingGroupId.startsWith("acct_")
+            ) {
+              throw new HttpError("ACCOUNTING_GROUP_REQUIRED", 409);
+            }
+            if (accountingGroupId && accountingGroupId !== invoiceAccountingGroupId) {
+              throw new HttpError("ACCOUNTING_GROUP_MISMATCH", 409);
+            }
+            accountingGroupId = invoiceAccountingGroupId;
+          }
+
+          const existingReceiptRes = await client.query(
+            `SELECT *
+             FROM documents
+             WHERE created_by = $1
+               AND job_id IS NULL
+               AND type = 'RECEIPT'
+               AND permissions->>'lineageKind' = 'standalone_accounting'
+               AND payload->>'derivedFromInvoiceId' = $2
+             ORDER BY created_at ASC
+             LIMIT 1
+             FOR UPDATE`,
+            [req.user.id, derivedFromInvoiceId]
+          );
+          if (existingReceiptRes.rows.length) {
+            const existing = existingReceiptRes.rows[0];
+            const existingAccountingGroupId = existing.payload?.accountingGroupId;
+            if (
+              typeof existingAccountingGroupId !== "string" ||
+              !existingAccountingGroupId.startsWith("acct_") ||
+              (accountingGroupId && existingAccountingGroupId !== accountingGroupId)
+            ) {
+              throw new HttpError("ACCOUNTING_GROUP_MISMATCH", 409);
+            }
+            return {
+              receipt: existing,
+              jobId: existingAccountingGroupId,
+              invoiceId: derivedFromInvoiceId,
+              created: false,
+            };
+          }
+        }
+
+        accountingGroupId = accountingGroupId || `acct_${token32()}`;
+        const payload = {
+          projectTitle: title,
+          clientName: client,
+          notes: memo,
+          amount,
+          total: amount,
+          currency: safeCurrency,
+          derivedFromInvoiceId,
+          sourceJobId,
+          accountingGroupId,
+        };
+
+        const createdRes = await client.query(
+          `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+           VALUES (NULL,'RECEIPT','issued',1,$1::jsonb,$2::jsonb,$3)
+           RETURNING *`,
+          [
+            JSON.stringify(payload),
+            JSON.stringify(documentLineagePermissions(STANDALONE_ACCOUNTING_LINEAGE)),
+            req.user.id,
+          ]
+        );
+        return {
+          receipt: createdRes.rows[0],
+          jobId: accountingGroupId,
+          invoiceId: derivedFromInvoiceId,
+          created: true,
+        };
       });
 
-      res.status(201).json({ document: receipt, jobId });
+      if (result.created) {
+        try {
+          await storage.logEvent("finance.document_created", {
+            userId: req.user.id,
+            documentType: result.receipt.type,
+            jobId: result.receipt.job_id ?? null,
+          });
+        } catch (err) {
+          console.error("finance.document_created logging failed", err);
+        }
+        console.info("[DOC_TRANSITION]", {
+          docId: result.receipt.id,
+          from: null,
+          to: result.receipt.status,
+          userId: req.user.id,
+          type: result.receipt.type,
+          action: "create_standalone_receipt",
+          jobId: result.jobId,
+          invoiceId: result.invoiceId,
+        });
+      }
+
+      res.status(result.created ? 201 : 200).json({
+        document: result.receipt,
+        jobId: result.jobId,
+      });
     })
   );
 
@@ -4065,25 +4618,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         throw new HttpError(recordDef.errorCode, 400);
       }
 
-      let jobId = `acct_${token32()}`;
-      if (typeof requestedJobId === "string" && requestedJobId.trim()) {
-        const normalizedJobId = requestedJobId.trim();
-        if (!normalizedJobId.startsWith("acct_")) {
-          throw new HttpError("INVALID_ACCOUNTING_JOB_ID", 400);
-        }
-
-        const existingRes = await pool.query(
-          `SELECT 1
-           FROM documents
-           WHERE created_by = $1 AND job_id = $2
-           LIMIT 1`,
-          [req.user.id, normalizedJobId]
-        );
-        if (!existingRes.rows.length) {
-          throw new HttpError("ACCOUNTING_JOB_NOT_FOUND", 404);
-        }
-        jobId = normalizedJobId;
-      }
+      const jobId = await resolveStandaloneAccountingGroupId(
+        pool,
+        String(req.user.id),
+        requestedJobId
+      );
 
       const safeCurrency =
         typeof currency === "string" && currency.trim() ? currency.trim().toUpperCase() : "USD";
@@ -4105,18 +4644,18 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         reference: ref,
         total: amount,
         currency: safeCurrency,
+        accountingGroupId: jobId,
       };
 
       const created = await pool.query(
         `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-         VALUES ($1,$2,$3,1,$4::jsonb,$5::jsonb,$6)
+         VALUES (NULL,$1,$2,1,$3::jsonb,$4::jsonb,$5)
          RETURNING *`,
         [
-          jobId,
           normalizedType,
           recordDef.status,
           JSON.stringify(payload),
-          JSON.stringify({}),
+          JSON.stringify(documentLineagePermissions(STANDALONE_ACCOUNTING_LINEAGE)),
           req.user.id,
         ]
       );
@@ -4171,17 +4710,21 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         `SELECT COUNT(*)::int AS count
          FROM documents
          WHERE created_by = $1
-           AND job_id LIKE 'acct_%'
+           AND job_id IS NULL
+           AND left(payload->>'accountingGroupId', 5) = 'acct_'
+           AND permissions->>'lineageKind' = 'standalone_accounting'
            AND ${whereType}`,
         [req.user.id, bindType]
       );
       const totalCount: number = totalRes.rows[0]?.count ?? 0;
 
       const { rows } = await pool.query(
-        `SELECT id, job_id, type, status, payload, created_at, updated_at
+        `SELECT id, payload->>'accountingGroupId' AS job_id, type, status, payload, created_at, updated_at
          FROM documents
          WHERE created_by = $1
-           AND job_id LIKE 'acct_%'
+           AND job_id IS NULL
+           AND left(payload->>'accountingGroupId', 5) = 'acct_'
+           AND permissions->>'lineageKind' = 'standalone_accounting'
            AND ${whereType}
          ORDER BY updated_at DESC NULLS LAST, created_at DESC
          LIMIT $3 OFFSET $4`,
@@ -4218,15 +4761,19 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       const totalRes = await pool.query(
         `SELECT COUNT(*)::int AS count
 					FROM documents
-					WHERE type='EXPENSE' AND created_by=$1 AND job_id LIKE 'acct_%'`,
+						WHERE type='EXPENSE' AND created_by=$1
+              AND job_id IS NULL AND left(payload->>'accountingGroupId', 5) = 'acct_'
+              AND permissions->>'lineageKind' = 'standalone_accounting'`,
         [req.user.id]
       );
       const totalCount: number = totalRes.rows[0]?.count ?? 0;
 
       const { rows } = await pool.query(
-        `SELECT id, job_id, type, status, payload, created_at, updated_at
-					FROM documents
-					WHERE type='EXPENSE' AND created_by=$1 AND job_id LIKE 'acct_%'
+        `SELECT id, payload->>'accountingGroupId' AS job_id, type, status, payload, created_at, updated_at
+						FROM documents
+						WHERE type='EXPENSE' AND created_by=$1
+								AND job_id IS NULL AND left(payload->>'accountingGroupId', 5) = 'acct_'
+								AND permissions->>'lineageKind' = 'standalone_accounting'
 					ORDER BY updated_at DESC NULLS LAST, created_at DESC
 					LIMIT $2 OFFSET $3`,
         [req.user.id, pageSize, offset]
@@ -4253,88 +4800,152 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { id } = req.params;
       const { method, reference, receivedAt } = (req.body ?? {}) as any;
-
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
-      }
-      const invoiceDoc = docRes.rows[0];
-
-      if (invoiceDoc.type !== "INVOICE") {
-        throw new HttpError("NOT_AN_INVOICE", 400);
-      }
-
-      if (invoiceDoc.status !== "sent" && invoiceDoc.status !== "approved") {
-        throw new HttpError("INVOICE_NOT_READY_FOR_PAYMENT", 409);
-      }
-
-      const payment = {
+      const requestedPayment = {
         method: typeof method === "string" ? method : "other",
         reference: typeof reference === "string" ? reference : undefined,
         receivedAt: typeof receivedAt === "string" ? receivedAt : new Date().toISOString(),
         recordedBy: req.user.id,
       };
-
-      const existingPayload = invoiceDoc.payload || {};
-      const nextPayload = {
-        ...existingPayload,
-        payment,
-      };
-
-      const updated = await pool.query(
-        "UPDATE documents SET status='paid', payload=$2::jsonb WHERE id=$1 RETURNING *",
-        [id, JSON.stringify(nextPayload)]
-      );
-      const paidInvoice = updated.rows[0];
-      console.info("[DOC_TRANSITION]", {
-        docId: paidInvoice.id,
-        from: invoiceDoc.status,
-        to: paidInvoice.status,
-        userId: req.user.id,
-        type: paidInvoice.type,
-        action: "mark_invoice_paid",
-        paymentMethod: payment.method,
-      });
-
-      const receiptPayload = {
-        derivedFromInvoiceId: paidInvoice.id,
-        amount: paidInvoice.payload?.total ?? null,
-        currency: paidInvoice.payload?.currency ?? "USD",
-        payment,
-      };
-
-      const created = await pool.query(
-        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
-					 VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
-					 RETURNING *`,
-        [
-          paidInvoice.job_id ?? null,
-          JSON.stringify(receiptPayload),
-          JSON.stringify({}),
-          req.user.id,
-        ]
-      );
-      const receipt = created.rows[0];
-      try {
-        await storage.logEvent("finance.document_created", {
-          userId: req.user.id,
-          documentType: receipt.type,
-          jobId: receipt.job_id ?? null,
+      const result = await withSerializableTransaction(pool, async (client) => {
+        const authority = await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          documentId: id,
+          requirement: "creator",
+          lock: true,
         });
-      } catch (err) {
-        console.error("finance.document_created logging failed", err);
-      }
-      console.info("[DOC_TRANSITION]", {
-        docId: receipt.id,
-        from: null,
-        to: receipt.status,
-        userId: req.user.id,
-        type: receipt.type,
-        action: "auto_issue_receipt_on_paid",
-        invoiceId: paidInvoice.id,
+        const invoiceDoc = authority.document;
+        if (invoiceDoc.type !== "INVOICE") throw new HttpError("NOT_AN_INVOICE", 400);
+
+        const originalStatus = String(invoiceDoc.status || "");
+        if (!["sent", "approved", "paid"].includes(originalStatus)) {
+          throw new HttpError("INVOICE_NOT_READY_FOR_PAYMENT", 409);
+        }
+
+        const lineageKind = invoiceDoc.job_id
+          ? JOB_DOCUMENT_LINEAGE
+          : documentLineageKind(invoiceDoc);
+        if (!lineageKind) throw new HttpError("RESOURCE_NOT_FOUND", 404);
+        if (invoiceDoc.job_id == null && lineageKind !== STANDALONE_ACCOUNTING_LINEAGE) {
+          throw new HttpError("RESOURCE_NOT_FOUND", 404);
+        }
+
+        const accountingGroupId = invoiceDoc.job_id ? null : invoiceDoc.payload?.accountingGroupId;
+        if (
+          invoiceDoc.job_id == null &&
+          (typeof accountingGroupId !== "string" || !accountingGroupId.startsWith("acct_"))
+        ) {
+          throw new HttpError("ACCOUNTING_GROUP_REQUIRED", 409);
+        }
+
+        const payment =
+          originalStatus === "paid" && invoiceDoc.payload?.payment
+            ? invoiceDoc.payload.payment
+            : requestedPayment;
+        let paidInvoice = invoiceDoc;
+        if (originalStatus !== "paid") {
+          const updated = await client.query(
+            `UPDATE documents
+             SET status = 'paid', payload = $3::jsonb
+             WHERE id = $1 AND status = $2
+             RETURNING *`,
+            [id, originalStatus, JSON.stringify({ ...(invoiceDoc.payload || {}), payment })]
+          );
+          if (!updated.rows.length) throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
+          paidInvoice = updated.rows[0];
+        }
+
+        const existingReceiptRes = await client.query(
+          `SELECT *
+           FROM documents
+           WHERE job_id IS NOT DISTINCT FROM $1
+             AND type = 'RECEIPT'
+             AND created_by = $2
+             AND (job_id IS NOT NULL OR permissions->>'lineageKind' = 'standalone_accounting')
+             AND payload->>'derivedFromInvoiceId' = $3
+           ORDER BY created_at ASC
+           LIMIT 1
+           FOR UPDATE`,
+          [paidInvoice.job_id ?? null, req.user.id, String(paidInvoice.id)]
+        );
+        if (existingReceiptRes.rows.length) {
+          const existingReceipt = existingReceiptRes.rows[0];
+          if (
+            accountingGroupId &&
+            existingReceipt.payload?.accountingGroupId !== accountingGroupId
+          ) {
+            throw new HttpError("ACCOUNTING_GROUP_MISMATCH", 409);
+          }
+          return {
+            paidInvoice,
+            receipt: existingReceipt,
+            receiptCreated: false,
+            invoiceTransitioned: originalStatus !== "paid",
+            originalStatus,
+            payment,
+          };
+        }
+
+        const receiptPayload = {
+          derivedFromInvoiceId: paidInvoice.id,
+          amount: paidInvoice.payload?.total ?? null,
+          currency: paidInvoice.payload?.currency ?? "USD",
+          payment,
+          ...(accountingGroupId ? { accountingGroupId } : {}),
+        };
+        const created = await client.query(
+          `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+           VALUES ($1,'RECEIPT','issued',1,$2::jsonb,$3::jsonb,$4)
+           RETURNING *`,
+          [
+            paidInvoice.job_id ?? null,
+            JSON.stringify(receiptPayload),
+            JSON.stringify(documentLineagePermissions(lineageKind)),
+            req.user.id,
+          ]
+        );
+        return {
+          paidInvoice,
+          receipt: created.rows[0],
+          receiptCreated: true,
+          invoiceTransitioned: originalStatus !== "paid",
+          originalStatus,
+          payment,
+        };
       });
 
-      res.status(200).json({ document: paidInvoice, receipt });
+      if (result.invoiceTransitioned) {
+        console.info("[DOC_TRANSITION]", {
+          docId: result.paidInvoice.id,
+          from: result.originalStatus,
+          to: result.paidInvoice.status,
+          userId: req.user.id,
+          type: result.paidInvoice.type,
+          action: "mark_invoice_paid",
+          paymentMethod: result.payment.method,
+        });
+      }
+      if (result.receiptCreated) {
+        try {
+          await storage.logEvent("finance.document_created", {
+            userId: req.user.id,
+            documentType: result.receipt.type,
+            jobId: result.receipt.job_id ?? null,
+          });
+        } catch (err) {
+          console.error("finance.document_created logging failed", err);
+        }
+        console.info("[DOC_TRANSITION]", {
+          docId: result.receipt.id,
+          from: null,
+          to: result.receipt.status,
+          userId: req.user.id,
+          type: result.receipt.type,
+          action: "auto_issue_receipt_on_paid",
+          invoiceId: result.paidInvoice.id,
+        });
+      }
+
+      res.status(200).json({ document: result.paidInvoice, receipt: result.receipt });
     })
   );
 
@@ -4342,27 +4953,73 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
   r.post(
     "/api/documents/:id/share",
     isAuthenticated,
+    express.json(),
     wrap(async (req: AuthedRequest, res: Response) => {
       requireAuth(req);
       const { id } = req.params;
-
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
+      const action = String(req.body?.action || "create")
+        .trim()
+        .toLowerCase();
+      if (!["create", "rotate", "revoke"].includes(action)) {
+        throw new HttpError("INVALID_SHARE_ACTION", 400);
       }
-      const doc = docRes.rows[0];
+      const share = await withSerializableTransaction(pool, async (client) => {
+        const authority = await resolveDocumentJobAuthority(client, {
+          userId: String(req.user.id),
+          documentId: id,
+          requirement: "creator",
+          lock: true,
+        });
+        const doc = authority.document;
+        const currentPermissions =
+          doc.permissions && typeof doc.permissions === "object" && !Array.isArray(doc.permissions)
+            ? doc.permissions
+            : {};
 
-      if (String(doc.created_by) !== String(req.user.id)) {
-        throw new HttpError("ONLY_CREATOR_CAN_SHARE", 403);
-      }
+        if (action === "revoke") {
+          const revokedPermissions = {
+            ...currentPermissions,
+            shareLease: {
+              ...(currentPermissions.shareLease || {}),
+              version: DOCUMENT_SHARE_LEASE_VERSION,
+              revokedAt: new Date().toISOString(),
+            },
+          };
+          const revoked = await client.query(
+            `UPDATE documents
+             SET share_token = NULL, permissions = $2::jsonb
+             WHERE id = $1
+             RETURNING id`,
+            [id, JSON.stringify(revokedPermissions)]
+          );
+          if (!revoked.rows.length) throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
+          return { shareToken: null, revoked: true };
+        }
 
-      const shareToken = doc.share_token || token32();
-      const updated = await pool.query(
-        "UPDATE documents SET share_token=$2 WHERE id=$1 RETURNING *",
-        [id, shareToken]
-      );
+        if (action === "create" && doc.share_token && activeDocumentShareLease(doc)) {
+          return { shareToken: String(doc.share_token), revoked: false };
+        }
 
-      res.json({ shareUrl: `/d/${updated.rows[0].share_token}` });
+        const generated = token32();
+        const permissions = {
+          ...currentPermissions,
+          shareLease: nextDocumentShareLease(),
+        };
+        const updated = await client.query(
+          `UPDATE documents
+           SET share_token = $2, permissions = $3::jsonb
+           WHERE id = $1
+           RETURNING share_token`,
+          [id, generated, JSON.stringify(permissions)]
+        );
+        if (!updated.rows.length) throw new HttpError("DOCUMENT_STATE_CONFLICT", 409);
+        return { shareToken: String(updated.rows[0].share_token), revoked: false };
+      });
+
+      res.json({
+        shareUrl: share.shareToken ? `/d/${share.shareToken}` : null,
+        revoked: share.revoked,
+      });
     })
   );
 
@@ -4379,10 +5036,20 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       }
 
       const doc = docRes.rows[0];
+      if (!activeDocumentShareLease(doc)) {
+        return res.status(404).send("Not found");
+      }
       const sigs = await pool.query(
-        "SELECT role,user_id,signed_at,ip,signature_type,typed_name FROM document_signatures WHERE document_id=$1 ORDER BY signed_at ASC",
+        `SELECT role, signed_at, signature_type, typed_name
+         FROM document_signatures
+         WHERE document_id = $1
+         ORDER BY signed_at ASC`,
         [doc.id]
       );
+      // Document shares intentionally have no signature-evidence identity or
+      // network metadata. Share leases live in the existing permissions JSONB
+      // and every response stays uncacheable so rotation/revocation is immediate.
+      res.setHeader("Cache-Control", "private, no-store");
       const acceptsHtml = String(req.headers.accept || "")
         .toLowerCase()
         .includes("text/html");
@@ -4451,7 +5118,6 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
     <script>window.location.replace(${JSON.stringify(shareUrl)});</script>
   </body>
 </html>`;
-      res.setHeader("Cache-Control", "public, max-age=180, stale-while-revalidate=3600");
       return res.status(200).send(html);
     })
   );
@@ -4464,16 +5130,12 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       requireAuth(req);
       const { id } = req.params;
 
-      const docRes = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-      if (!docRes.rows.length) {
-        throw new HttpError("DOC_NOT_FOUND", 404);
-      }
-      const doc = docRes.rows[0];
-
-      // Tight read permission: creator can download; you can widen later (job members)
-      if (String(doc.created_by) !== String(req.user.id)) {
-        throw new HttpError("NO_DOWNLOAD_PERMISSION", 403);
-      }
+      const authority = await resolveDocumentJobAuthority(pool, {
+        userId: String(req.user.id),
+        documentId: id,
+        requirement: "read",
+      });
+      const doc = authority.document;
 
       const sigs = await pool.query(
         "SELECT role,user_id,signed_at,ip,signature_type,typed_name FROM document_signatures WHERE document_id=$1 ORDER BY signed_at ASC",

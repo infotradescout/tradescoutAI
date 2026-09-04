@@ -28,7 +28,9 @@ describe("Admin OS v2 commercial work", () => {
     const source = read("client/src/pages/admin-commercial-directory.tsx");
 
     expect(source).toContain('"GET", "/api/admin/commercial-directory/projects"');
-    expect(source).toContain('"GET", "/api/admin/commercial-directory/verification/pending"');
+    expect(source).toMatch(
+      /apiRequest\(\s*"GET",\s*"\/api\/admin\/commercial-directory\/verification\/pending"\s*\)/
+    );
     expect(source).toContain("/api/commercial-directory/projects/${selectedProjectId}");
     expect(source).toContain("/api/admin/commercial-directory/projects/${selectedProjectId}/bids");
   });

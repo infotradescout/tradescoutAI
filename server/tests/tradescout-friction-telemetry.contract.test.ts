@@ -30,7 +30,7 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sanitizes sensitive keys and nested sensitive fields before persistence", () => {
+  it("sanitizes sensitive keys and discards nested fields before persistence", () => {
     const sanitized = sanitizeFrictionPayload({
       type: "direct_connect_api_request_failed",
       source: "/direct-connect",
@@ -60,7 +60,7 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
     expect(JSON.stringify(sanitized)).not.toContain("private note");
     expect(JSON.stringify(sanitized)).not.toContain("file contents");
     expect(JSON.stringify(sanitized)).not.toContain("4111111111111111");
-    expect(sanitized.nested).toMatchObject({ safe: "kept" });
+    expect(sanitized).not.toHaveProperty("nested");
   });
 
   it("dispatches non-blocking telemetry and strips sensitive mock values", () => {
@@ -81,10 +81,11 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
 
     const payload = latestPayload(fetchMock);
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/analytics/shell",
+      "/api/events",
       expect.objectContaining({ method: "POST", credentials: "include" })
     );
-    expect(payload.type).toBe("direct_connect_draft_restore_failed");
+    expect(payload.eventType).toBe("direct_connect_draft_restore_failed");
+    expect(payload.data).toMatchObject({ section: "auth_handoff", reason: "parse_failed" });
     expect(JSON.stringify(payload)).not.toContain("SMOKE PRIVATE REQUEST TEXT");
     expect(JSON.stringify(payload)).not.toContain("SMOKE PRIVATE MESSAGE");
     expect(JSON.stringify(payload)).not.toContain("555-1212");
@@ -107,8 +108,8 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(latestPayload(fetchMock)).toMatchObject({
-      type: "direct_connect_repeated_submit_attempt",
-      dispatchCount: 3,
+      eventType: "direct_connect_repeated_submit_attempt",
+      data: expect.objectContaining({ attemptCount: 3 }),
     });
   });
 
@@ -128,8 +129,8 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(latestPayload(fetchMock)).toMatchObject({
-      type: "direct_connect_repeated_cta_click",
-      dispatchCount: 4,
+      eventType: "direct_connect_repeated_cta_click",
+      data: expect.objectContaining({ clickCount: 4 }),
     });
   });
 
@@ -170,8 +171,8 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(latestPayload(fetchMock)).toMatchObject({
-      type: "direct_connect_auth_handoff_stalled",
-      section: "auth_handoff",
+      eventType: "direct_connect_auth_handoff_stalled",
+      data: expect.objectContaining({ section: "auth_handoff" }),
     });
   });
 
@@ -225,7 +226,7 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
     ]) {
       expect(`${shell}\n${telemetry}`).toContain(event);
     }
-    expect(telemetry).toContain('fetch("/api/analytics/shell"');
+    expect(telemetry).toContain('fetch("/api/events"');
     expect(telemetry).not.toContain("session replay");
     expect(telemetry).not.toContain("stripe");
   });

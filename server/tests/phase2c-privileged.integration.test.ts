@@ -369,6 +369,7 @@ describeDb("Phase 2C privileged path hardening", () => {
         roles: ["contractor", "homeowner"],
         activeRole: "contractor",
         reason: "Align user claims to verified capability assignment policy.",
+        confirmPhrase: "I UNDERSTAND THIS EDIT IS AUDITED",
       });
       expect(completed.status).toBe(200);
 

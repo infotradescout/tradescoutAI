@@ -1061,7 +1061,7 @@ function ContactDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add contact</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1180,7 +1180,7 @@ function DealDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add deal</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1309,7 +1309,7 @@ function ActivityDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Log activity</DialogTitle>
           <DialogDescription className="text-white/48">

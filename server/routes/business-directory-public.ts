@@ -729,18 +729,6 @@ router.post("/api/businesses/:id/claim/verify", isAuthenticated, async (req, res
     }
 
     const claimed = await storage.claimUnclaimedBusinessForUser(biz.id, String(userId));
-    await storage.updateUser(String(userId), {
-      activeBusinessId: biz.id,
-      role: "business_owner" as any,
-      activeRole: "business_owner",
-      roles: Array.from(
-        new Set([
-          ...(Array.isArray((user as any).roles) ? (user as any).roles : []),
-          "business_owner",
-        ])
-      ),
-      updatedAt: new Date(),
-    } as any);
 
     res.json({ status: "claimed", businessId: claimed.id, slug: claimed.slug });
   } catch (error: any) {

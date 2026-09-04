@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  ALL_DIRECT_CONNECT_FRICTION_EVENTS,
   DIRECT_CONNECT_FRICTION_EVENTS,
-  DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS,
   installDirectConnectRuntimeErrorCapture,
   resetFrictionTelemetryForTests,
   sanitizeFrictionPayload,
@@ -36,7 +34,7 @@ afterEach(() => {
 });
 
 describe("Direct Connect friction registry", () => {
-  it("keeps nine browser-observed signals and one server-derived stall", () => {
+  it("keeps only the nine browser-observed signals in the client registry", () => {
     expect(DIRECT_CONNECT_FRICTION_EVENTS).toEqual([
       "direct_connect_client_runtime_error",
       "direct_connect_api_request_failed",
@@ -48,10 +46,9 @@ describe("Direct Connect friction registry", () => {
       "direct_connect_empty_state_seen",
       "direct_connect_permission_or_role_blocked",
     ]);
-    expect(DIRECT_CONNECT_SERVER_DERIVED_FRICTION_EVENTS).toEqual([
-      "direct_connect_funnel_step_stalled",
-    ]);
-    expect(ALL_DIRECT_CONNECT_FRICTION_EVENTS).toHaveLength(10);
+    expect(DIRECT_CONNECT_FRICTION_EVENTS).not.toContain(
+      "direct_connect_funnel_step_stalled" as any
+    );
   });
 
   it("removes query strings and replaces identifying route segments", () => {

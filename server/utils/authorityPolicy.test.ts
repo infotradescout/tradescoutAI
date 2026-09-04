@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   collectAuthorityRoles,
-  getPrivilegedAliasEmails,
+  getReservedAuthorityEmails,
   getVerificationBypassRoles,
   hasManualDirectConnectBypassRequest,
   isDirectConnectUnverifiedBypassEnabled,
-  isPrivilegedAliasEmail,
+  isPrivilegedOrAdminRoleToken,
+  isReservedAuthorityEmail,
+  isReservedSignupIdentityEmail,
   isTruthyToggle,
   normalizeAuthorityRole,
   resolvePrivilegedVerificationBypass,
@@ -69,7 +71,7 @@ describe("authorityPolicy", () => {
       expect(roles.has("support_agent")).toBe(false);
     }));
 
-  it("includes default alias emails and configured aliases", () =>
+  it("treats only explicitly configured authority emails as reserved identifiers", () =>
     withEnv(
       {
         MASTER_ADMIN_EMAIL: "master@example.com",
@@ -77,15 +79,57 @@ describe("authorityPolicy", () => {
         PRIVILEGED_ALIAS_EMAILS: "staff@example.com",
       },
       () => {
-        const aliases = getPrivilegedAliasEmails();
+        const aliases = getReservedAuthorityEmails();
         expect(aliases.has("master@example.com")).toBe(true);
         expect(aliases.has("ops@example.com")).toBe(true);
         expect(aliases.has("root@example.com")).toBe(true);
         expect(aliases.has("staff@example.com")).toBe(true);
-        expect(aliases.has("contact@thetradescout.com")).toBe(true);
-        expect(aliases.has("info.tradescout@gmail.com")).toBe(true);
+        expect(aliases.has("contact@thetradescout.com")).toBe(false);
+        expect(aliases.has("info.tradescout@gmail.com")).toBe(false);
       }
     ));
+
+  it("reserves support inboxes for signup without treating them as authority emails", () =>
+    withEnv(
+      {
+        MASTER_ADMIN_EMAIL: undefined,
+        SUPER_ADMIN_EMAIL_ALIASES: undefined,
+        PRIVILEGED_ALIAS_EMAILS: undefined,
+      },
+      () => {
+        for (const email of ["contact@thetradescout.com", "info.tradescout@gmail.com"]) {
+          expect(isReservedSignupIdentityEmail(email)).toBe(true);
+          expect(isReservedAuthorityEmail(email)).toBe(false);
+          expect(
+            resolvePrivilegedVerificationBypass({
+              email,
+              role: "homeowner",
+              isAdmin: false,
+              isSuperAdmin: false,
+            }).active
+          ).toBe(false);
+        }
+      }
+    ));
+
+  it("fails closed for privileged and admin-bearing assignment tokens", () => {
+    for (const role of [
+      "admin",
+      "hoa_admin",
+      "tradescout_admin",
+      "moderator",
+      "ops_admin",
+      "super_admin",
+      "support_agent",
+      "content_moderator",
+      "hoa_board",
+      "hoa_manager",
+    ]) {
+      expect(isPrivilegedOrAdminRoleToken(role)).toBe(true);
+    }
+    expect(isPrivilegedOrAdminRoleToken("homeowner")).toBe(false);
+    expect(isPrivilegedOrAdminRoleToken("business_owner")).toBe(false);
+  });
 
   it("resolves privileged bypass from role", () =>
     withEnv({ PRIVILEGED_VERIFICATION_BYPASS_ROLES: "support_agent" }, () => {
@@ -98,7 +142,7 @@ describe("authorityPolicy", () => {
       expect(resolution.matchedRoles).toContain("support_agent");
     }));
 
-  it("resolves privileged bypass from configured alias email", () =>
+  it("never resolves privileged bypass from a configured reserved email or claims alias", () =>
     withEnv(
       {
         MASTER_ADMIN_EMAIL: "master@example.com",
@@ -109,10 +153,11 @@ describe("authorityPolicy", () => {
         const resolution = resolvePrivilegedVerificationBypass({
           role: "homeowner",
           email: "Staff@Example.com",
+          claims: { email: "master@example.com" },
         });
-        expect(resolution.active).toBe(true);
-        expect(resolution.reason).toBe("email_alias");
-        expect(resolution.matchedEmail).toBe("staff@example.com");
+        expect(resolution.active).toBe(false);
+        expect(resolution.reason).toBe("none");
+        expect(resolution.matchedEmail).toBeNull();
       }
     ));
 
@@ -125,7 +170,7 @@ describe("authorityPolicy", () => {
     expect(resolution.reason).toBe("admin_flag");
   });
 
-  it("resolves privileged bypass from legacy admin-like role tokens", () => {
+  it("resolves privileged bypass from the explicit persisted generic admin role", () => {
     const resolution = resolvePrivilegedVerificationBypass({
       role: "admin",
       email: "user@example.com",
@@ -136,6 +181,19 @@ describe("authorityPolicy", () => {
     expect(resolution.reason).toBe("admin_flag");
     expect(resolution.matchedRoles).toContain("admin");
   });
+
+  it("does not infer privileged bypass from admin substrings or HOA personas", () =>
+    withEnv({ PRIVILEGED_VERIFICATION_BYPASS_ROLES: undefined }, () => {
+      for (const role of ["hoa_admin", "assistant_admin", "organization_admin"]) {
+        const resolution = resolvePrivilegedVerificationBypass({
+          role,
+          isAdmin: false,
+          isSuperAdmin: false,
+        });
+        expect(resolution.active).toBe(false);
+        expect(resolution.reason).toBe("none");
+      }
+    }));
 
   it("returns inactive bypass when no privileged signal is present", () =>
     withEnv(
@@ -211,9 +269,9 @@ describe("authorityPolicy", () => {
     ).toBe(false);
   });
 
-  it("checks alias email membership case-insensitively", () =>
+  it("checks reserved authority email membership case-insensitively", () =>
     withEnv({ PRIVILEGED_ALIAS_EMAILS: "Alias@Test.Example" }, () => {
-      expect(isPrivilegedAliasEmail("alias@test.example")).toBe(true);
-      expect(isPrivilegedAliasEmail("nobody@test.example")).toBe(false);
+      expect(isReservedAuthorityEmail("alias@test.example")).toBe(true);
+      expect(isReservedAuthorityEmail("nobody@test.example")).toBe(false);
     }));
 });

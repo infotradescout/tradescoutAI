@@ -106,6 +106,7 @@ function canonicalProfileUrl(args: {
 function exposureCandidate(row: DirectoryProfileRow): Record<string, unknown> {
   return {
     profileId: row.profile_id,
+    profilePubliclyReleased: databaseBoolean(row.profile_publicly_released),
     slug: row.profile_slug,
     profileRoleContext: row.profile_role_context,
     profileHeadline: row.profile_headline,
@@ -123,6 +124,7 @@ function exposureCandidate(row: DirectoryProfileRow): Record<string, unknown> {
     publicDiscoveryEnabled: databaseBoolean(row.public_discovery_enabled),
     businessSources: row.business_sources,
     businessClaimStatus: row.business_claim_status,
+    professionalRoleApproved: databaseBoolean(row.professional_role_approved),
   };
 }
 
@@ -229,6 +231,7 @@ async function loadPublicDirectoryProfileDiscoveries(
             b.sources as business_sources,
             b.claim_status as business_claim_status,
             p.id as profile_id,
+            p.publicly_released as profile_publicly_released,
             p.slug as profile_slug,
             p.display_name as profile_display_name,
             p.role_context as profile_role_context,
@@ -242,7 +245,22 @@ async function loadPublicDirectoryProfileDiscoveries(
             u.verified_badge as owner_verified_badge,
             u.verification_status as owner_verification_status,
             u.provider as owner_provider,
-            u.preferences as owner_preferences
+            u.preferences as owner_preferences,
+            case
+              when p.role_context = 'realtor' then exists (
+                select 1 from realtor_profiles rp
+                 where rp.user_id = p.owner_user_id
+                   and rp.verification_status = 'approved'
+                   and rp.is_active = true
+              )
+              when p.role_context = 'car_dealer' then exists (
+                select 1 from car_salesman_profiles cp
+                 where cp.user_id = p.owner_user_id
+                   and cp.verification_status = 'approved'
+                   and cp.is_active = true
+              )
+              else true
+            end as professional_role_approved
        from profiles p
        inner join businesses b on b.id = p.business_id
        inner join users u on u.id = p.owner_user_id

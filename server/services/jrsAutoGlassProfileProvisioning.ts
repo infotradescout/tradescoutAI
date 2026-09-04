@@ -3,6 +3,7 @@ import { businesses, contractors, profiles, users } from "@shared/schema";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import { db } from "../db";
 import { JRS_PROFILE_SLUG, OWNER_CONFIRMED_PROFILE_SOURCE } from "./ownerConfirmedDirectProfile";
+import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
 const JRS_OWNER_EMAIL = Buffer.from("c3J0NGxpZmUyMDA0QGdtYWlsLmNvbQ==", "base64").toString("utf8");
 export const JRS_PROFILE_PROVISIONING_SOURCE = OWNER_CONFIRMED_PROFILE_SOURCE;
@@ -23,21 +24,38 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalizedEmail}`)
       .limit(1);
+    if (
+      existingOwner &&
+      !isProvisionedProfileAccountControlConfirmed({
+        emailVerified: existingOwner.emailVerified,
+        provider: existingOwner.provider,
+        verificationStatus: existingOwner.verificationStatus,
+      })
+    ) {
+      throw new Error(
+        "JR's Auto Glass owner provisioning refused an unconfirmed pre-existing account"
+      );
+    }
 
     const existingPreferences: Record<string, any> =
       existingOwner?.preferences && typeof existingOwner.preferences === "object"
         ? (existingOwner.preferences as Record<string, any>)
         : {};
-    const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(new Set([...existingRoles, "auto_service"]));
-
     const [owner] = existingOwner
       ? await tx
           .update(users)
           .set({
             firstName: existingOwner.firstName || "Ryan",
             lastName: existingOwner.lastName || "Bourg",
-            roles,
+            // Evaluate against the row version PostgreSQL locks for this UPDATE so a
+            // concurrent professional approval projection cannot be stale-overwritten.
+            roles: sql`(
+              select array_agg(distinct role_value)
+              from unnest(
+                coalesce(${users.roles}, array[]::text[]) || array['auto_service']::text[]
+              ) as role_value
+              where role_value <> ''
+            )`,
             preferences: {
               ...existingPreferences,
               profileVisibility: "public",

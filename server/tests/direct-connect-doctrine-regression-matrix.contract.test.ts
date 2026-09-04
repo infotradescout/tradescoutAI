@@ -30,7 +30,7 @@ describe("direct connect doctrine regression matrix", () => {
   it("locks Home Record optionality across create/review/submit/routing path", () => {
     const shell = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const routes = read("server/routes/direct-connect.ts");
-    expect(shell).toContain('>("skip_for_now")');
+    expect(shell).toContain('prefillHomeContextIntent || "skip_for_now"');
     expect(shell).toContain("handleSkipAndAutoRoute");
     expect(shell).toContain("autoRoute: true");
     expect(routes).toContain("if (created && shouldAutoRoute) {");
@@ -50,7 +50,8 @@ describe("direct connect doctrine regression matrix", () => {
   it("locks staff oversight boundary with role-gated audited mutation path", () => {
     const routes = read("server/routes/direct-connect.ts");
     expect(routes).toContain('"/api/admin/direct-connect/requests"');
-    expect(routes).toContain("isStaff,");
+    expect(routes).toContain('requireRole(["ops_admin", "super_admin"])');
+    expect(routes).toContain("isDirectConnectOperator,");
     expect(routes).toContain('action: "admin_direct_connect_target_resolved"');
     expect(routes).toContain('operation: "admin_create"');
   });

@@ -7,6 +7,10 @@
  * V1 selectable gallery (anyone can pick and run):
  *   wholesaler | auto-glass | plumbing-company | electrician-solo | videographer
  *
+ * Profile-specific templates may also exist without appearing in the public
+ * gallery. Those stay bound to a reconciled profile until their taxonomy and
+ * regulated-language requirements are ready for general use.
+ *
  * `default` is the canonical launch profile used by onboarding and by profiles
  * that have not purchased or selected a specialized theme. It stays out of the
  * theme picker because it is the baseline product, not an upgrade.
@@ -35,6 +39,7 @@ export const PROFILE_SITE_TEMPLATE_IDS = [
   "plumbing-company",
   "electrician-solo",
   "videographer",
+  "financial-professional",
   "default",
 ] as const;
 
@@ -57,7 +62,14 @@ export type ProfileSiteTemplateMeta = {
   description: string;
   bestFor: string;
   /** Family used to group the future ~200 business-specific templates. */
-  family: "inventory" | "vehicle" | "mechanical-trades" | "electrical" | "creative" | "generic";
+  family:
+    | "inventory"
+    | "vehicle"
+    | "mechanical-trades"
+    | "electrical"
+    | "creative"
+    | "professional-services"
+    | "generic";
   selectable: boolean;
 };
 
@@ -102,6 +114,15 @@ export const PROFILE_SITE_TEMPLATES: ProfileSiteTemplateMeta[] = [
     bestFor: "Videographers, photographers, drone creators, and production professionals",
     family: "creative",
     selectable: true,
+  },
+  {
+    id: "financial-professional",
+    label: "Financial professional",
+    description:
+      "Profile-specific presentation for protection, benefits, retirement, and wealth-strategy conversations.",
+    bestFor: "Reconciled financial-professional profiles with bounded public claims",
+    family: "professional-services",
+    selectable: false,
   },
   {
     id: "default",
@@ -184,6 +205,7 @@ export function resolveSiteTemplateId(input: ResolveSiteTemplateInput): ProfileS
   if (slug === "jw-stone" || slug === "issa-build" || slug === "honey-onyx") return "wholesaler";
   if (slug === "jrs-auto-glass") return "auto-glass";
   if (slug === "la-plumbing-solutions") return "plumbing-company";
+  if (slug === "dean-damaskos") return "financial-professional";
   if (input.hasLocalServicePresentation) return "plumbing-company";
   if (input.tradePartner === true) return "wholesaler";
   return "default";

@@ -19,6 +19,14 @@ type ImportResponse = {
     delimiter: string;
   } | null;
   warnings?: string[];
+  postCommit?: {
+    claimWriteWarnings: number;
+    batchAuditWarning?: {
+      code: string;
+      message: string;
+      retryRequired: true;
+    } | null;
+  };
   totals: {
     rows: number;
     createdUsers: number;
@@ -30,6 +38,7 @@ type ImportResponse = {
     createdPublicProfiles?: number;
     activationPrepared: number;
     activationEmailed: number;
+    postCommitClaimWarnings?: number;
   };
   activationLinkExport?: { requested: boolean; allowed: boolean; reason?: string | null };
   results: Array<{
@@ -44,6 +53,12 @@ type ImportResponse = {
     profileSlug?: string | null;
     publicProfileSlug?: string | null;
     activationLink?: string;
+    activationEmailWarning?: string;
+    claimWarning?: {
+      code: string;
+      message: string;
+      retryRequired: true;
+    } | null;
   }>;
 };
 
@@ -169,6 +184,7 @@ export default function AdminBusinessImport() {
   const [dryRun, setDryRun] = useState(false);
   const [createOwnerAccounts, setCreateOwnerAccounts] = useState(false);
   const [confirmCreateUsers, setConfirmCreateUsers] = useState("");
+  const [realAccountImportReason, setRealAccountImportReason] = useState("");
   const [sendActivationEmails, setSendActivationEmails] = useState(false);
   const [includeActivationLinks, setIncludeActivationLinks] = useState(false);
   const [createPublicProfiles, setCreatePublicProfiles] = useState(false);
@@ -221,7 +237,9 @@ export default function AdminBusinessImport() {
   });
   const cleanupUsers = cleanupUsersData?.users || [];
   const [bulkArchiveConfirm, setBulkArchiveConfirm] = useState("");
+  const [archiveReason, setArchiveReason] = useState("");
   const bulkConfirmOk = bulkArchiveConfirm.trim() === "ARCHIVE_ALL";
+  const archiveReasonOk = archiveReason.trim().length >= 12 && archiveReason.trim().length <= 500;
   const [bulkArchiving, setBulkArchiving] = useState<{
     running: boolean;
     done: number;
@@ -235,9 +253,16 @@ export default function AdminBusinessImport() {
 
   const archiveCleanupUserMutation = useMutation({
     mutationFn: async (userId: string) => {
+      if (!archiveReasonOk) {
+        throw new Error("Archiving requires a 12-500 character audit reason.");
+      }
       return apiRequest(
         "POST",
-        `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`
+        `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`,
+        {
+          reason: archiveReason.trim(),
+          confirm: "ARCHIVE_IMPORTED_DIRECTORY_USER",
+        }
       );
     },
     onMutate: (userId: string) => {
@@ -286,6 +311,14 @@ export default function AdminBusinessImport() {
       });
       return;
     }
+    if (!archiveReasonOk) {
+      toast({
+        title: "Audit reason required",
+        description: "Enter a 12-500 character reason before archiving.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setBulkArchiving({ running: true, done: 0, total: ids.length });
     let done = 0;
@@ -293,7 +326,11 @@ export default function AdminBusinessImport() {
       for (const userId of ids) {
         await apiRequest(
           "POST",
-          `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`
+          `/api/admin/imported-directory-users/${encodeURIComponent(userId)}/archive-to-directory`,
+          {
+            reason: archiveReason.trim(),
+            confirm: "ARCHIVE_IMPORTED_DIRECTORY_USER",
+          }
         );
         setOptimisticallyArchivedCleanupUsers((prev) => ({ ...prev, [userId]: true }));
         done += 1;
@@ -322,8 +359,12 @@ export default function AdminBusinessImport() {
       if (bulkArchiveConfirm.trim() !== "ARCHIVE_ALL") {
         throw new Error('Type "ARCHIVE_ALL" to bulk-archive imported users.');
       }
+      if (!archiveReasonOk) {
+        throw new Error("Archiving requires a 12-500 character audit reason.");
+      }
       return apiRequest("POST", "/api/admin/imported-directory-users/archive-all", {
         confirm: bulkArchiveConfirm.trim(),
+        reason: archiveReason.trim(),
         limit: 5000,
       });
     },
@@ -380,12 +421,19 @@ export default function AdminBusinessImport() {
       if (createOwnerAccounts && confirmCreateUsers.trim() !== "CREATE_USERS") {
         throw new Error("To create real user accounts, type CREATE_USERS in the confirmation box.");
       }
+      if (
+        createOwnerAccounts &&
+        (realAccountImportReason.trim().length < 12 || realAccountImportReason.trim().length > 500)
+      ) {
+        throw new Error("Real account creation requires a 12-500 character audit reason.");
+      }
 
       const params = new URLSearchParams();
       params.set("source", source.trim() || "csv_manual");
       if (dryRun) params.set("dryRun", "true");
       if (createOwnerAccounts) params.set("createOwnerAccounts", "true");
       if (createOwnerAccounts) params.set("confirmCreateUsers", confirmCreateUsers.trim());
+      if (createOwnerAccounts) params.set("reason", realAccountImportReason.trim());
       if (sendActivationEmails) params.set("sendActivationEmails", "true");
       if (includeActivationLinks) params.set("includeActivationLinks", "true");
       if (createPublicProfiles) params.set("createPublicProfiles", "true");
@@ -419,6 +467,11 @@ export default function AdminBusinessImport() {
       const combined: ImportResponse = {
         dryRun,
         delimiter: "comma",
+        warnings: [],
+        postCommit: {
+          claimWriteWarnings: 0,
+          batchAuditWarning: null,
+        },
         totals: {
           rows: 0,
           createdUsers: 0,
@@ -430,6 +483,7 @@ export default function AdminBusinessImport() {
           createdPublicProfiles: 0,
           activationPrepared: 0,
           activationEmailed: 0,
+          postCommitClaimWarnings: 0,
         },
         results: [],
       };
@@ -459,6 +513,14 @@ export default function AdminBusinessImport() {
 
         combined.delimiter = res.delimiter;
         combined.activationLinkExport = res.activationLinkExport;
+        combined.warnings = Array.from(
+          new Set([...(combined.warnings || []), ...(res.warnings || [])])
+        );
+        if (combined.postCommit) {
+          combined.postCommit.claimWriteWarnings += res.postCommit?.claimWriteWarnings || 0;
+          combined.postCommit.batchAuditWarning =
+            res.postCommit?.batchAuditWarning || combined.postCommit.batchAuditWarning || null;
+        }
         combined.totals.rows += res.totals.rows;
         combined.totals.createdUsers += res.totals.createdUsers;
         combined.totals.updatedUsers += res.totals.updatedUsers;
@@ -474,6 +536,9 @@ export default function AdminBusinessImport() {
           (combined.totals.createdPublicProfiles || 0) + (res.totals.createdPublicProfiles || 0);
         combined.totals.activationPrepared += res.totals.activationPrepared;
         combined.totals.activationEmailed += res.totals.activationEmailed;
+        combined.totals.postCommitClaimWarnings =
+          (combined.totals.postCommitClaimWarnings || 0) +
+          (res.totals.postCommitClaimWarnings || 0);
 
         combined.results.push(
           ...(res.results || []).map((r) => ({
@@ -833,6 +898,7 @@ export default function AdminBusinessImport() {
                   const next = v === true;
                   setCreateOwnerAccounts(next);
                   if (!next) setConfirmCreateUsers("");
+                  if (!next) setRealAccountImportReason("");
                   if (!next) {
                     setSendActivationEmails(false);
                     setIncludeActivationLinks(false);
@@ -881,6 +947,12 @@ export default function AdminBusinessImport() {
                   value={confirmCreateUsers}
                   onChange={(e) => setConfirmCreateUsers(e.target.value)}
                   placeholder="CREATE_USERS"
+                  className="bg-black/30 border-red-500/30"
+                />
+                <Input
+                  value={realAccountImportReason}
+                  onChange={(e) => setRealAccountImportReason(e.target.value)}
+                  placeholder="Audit reason (12-500 characters)"
                   className="bg-black/30 border-red-500/30"
                 />
               </div>
@@ -987,6 +1059,16 @@ export default function AdminBusinessImport() {
                   Bulk archive confirmation (type <span className="font-mono">ARCHIVE_ALL</span>)
                 </label>
                 <Input
+                  value={archiveReason}
+                  onChange={(e) => setArchiveReason(e.target.value)}
+                  placeholder="Audit reason (12-500 characters)"
+                  className={
+                    archiveReasonOk
+                      ? "mb-2 bg-black/30 border-emerald-500/40"
+                      : "mb-2 bg-black/30 border-red-500/30"
+                  }
+                />
+                <Input
                   value={bulkArchiveConfirm}
                   onChange={(e) => setBulkArchiveConfirm(e.target.value)}
                   placeholder="ARCHIVE_ALL"
@@ -1014,6 +1096,7 @@ export default function AdminBusinessImport() {
                   className="bg-red-500 hover:bg-red-600 text-white"
                   disabled={
                     !bulkConfirmOk ||
+                    !archiveReasonOk ||
                     cleanupUsersLoading ||
                     bulkArchiving.running ||
                     bulkArchiveAllMutation.isPending
@@ -1036,6 +1119,7 @@ export default function AdminBusinessImport() {
                   className="bg-red-700 hover:bg-red-800 text-white"
                   disabled={
                     !bulkConfirmOk ||
+                    !archiveReasonOk ||
                     cleanupUsersLoading ||
                     bulkArchiving.running ||
                     bulkArchiveAllMutation.isPending
@@ -1085,7 +1169,7 @@ export default function AdminBusinessImport() {
                         <Button
                           type="button"
                           className="bg-ts-orange hover:bg-ts-orange-dark text-white"
-                          disabled={isRowPending}
+                          disabled={isRowPending || !archiveReasonOk}
                           onClick={() => archiveCleanupUserMutation.mutate(u.id)}
                         >
                           {isRowPending ? "Archiving..." : "Archive to directory"}

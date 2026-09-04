@@ -23,15 +23,16 @@ If production once recorded a later tag (for example `0113_...`) while earlier t
 Repo `render.yaml` declares:
 
 ```text
-preDeployCommand: npm run db:migrate && npm run db:verify:required
+preDeployCommand: node runtime/run-release.mjs run-production-predeploy scripts/run-production-predeploy.mjs
 runtime: docker
 healthCheckPath: /api/health
 ```
 
 The paid production Docker service runs that command in the newly built image
-before traffic moves. The image must retain `scripts/`, `drizzle.config.ts`,
-`shared/`, `migrations/`, and production `drizzle-kit` so both commands exist
-after development dependencies are pruned.
+before traffic moves. The compiled worker performs normal migrate and required
+schema verification before any public-media migration. The image must retain
+the compiled release workers, runtime launcher/config, `migrations/`, and the
+independently locked production `drizzle-kit` dependency.
 
 See `docs/DEPLOYMENT_TARGET.md` and `RELEASE_CONTROL.md` for the dashboard and
 proof contract. Do not remove pre-deploy or weaken verification to recover a

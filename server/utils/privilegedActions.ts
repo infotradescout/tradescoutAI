@@ -42,11 +42,15 @@ export function actorHasPrivilegedCapability(user: any, allowedRoles: string[]):
   return allowedRoles.some((role) => roleSet.has(normalizePrivilegedRoleToken(role)));
 }
 
-export function normalizePrivilegedReason(reason: unknown, minLength = 12): string | null {
+export function normalizePrivilegedReason(
+  reason: unknown,
+  minLength = 12,
+  maxLength = 500
+): string | null {
   const normalized = String(reason || "")
     .replace(/\s+/g, " ")
     .trim();
-  return normalized.length >= minLength ? normalized : null;
+  return normalized.length >= minLength && normalized.length <= maxLength ? normalized : null;
 }
 
 export function normalizeImmutableTargetId(value: unknown): string | null {
@@ -84,17 +88,52 @@ export async function auditPrivilegedAction(event: {
   outcome: "denied" | "completed" | "started" | "stopped";
   lookupInput?: Record<string, unknown>;
   details?: Record<string, unknown>;
+  database?: any;
 }) {
-  await logAdminAction({
-    ...event,
-    actorId: event.actorId ?? undefined,
-    actorRole: event.actorRole || null,
-    actorRoles: Array.isArray(event.actorRoles) ? event.actorRoles : [],
-    targetType: event.targetType || null,
-    targetId: event.targetId ?? undefined,
-    resolutionSource: event.resolutionSource || null,
-    reason: event.reason || null,
-    lookupInput: event.lookupInput || null,
-    details: event.details || null,
-  });
+  const { database, ...auditEvent } = event;
+  await logAdminAction(
+    {
+      ...auditEvent,
+      actorId: event.actorId ?? undefined,
+      actorRole: event.actorRole || null,
+      actorRoles: Array.isArray(event.actorRoles) ? event.actorRoles : [],
+      targetType: event.targetType || null,
+      targetId: event.targetId ?? undefined,
+      resolutionSource: event.resolutionSource || null,
+      reason: event.reason || null,
+      lookupInput: event.lookupInput || null,
+      details: event.details || null,
+    },
+    { database }
+  );
+}
+
+export type BestEffortPrivilegedAuditWarning = {
+  code: string;
+  message: string;
+  retryRequired: true;
+};
+
+/**
+ * Summary audits happen after independently committed row transactions. A
+ * summary failure must remain visible without misreporting durable row work as
+ * rolled back.
+ */
+export async function runBestEffortPrivilegedSummaryAudit(input: {
+  write: () => Promise<void>;
+  warningCode: string;
+  warningMessage: string;
+  onError?: (error: unknown) => void;
+}): Promise<BestEffortPrivilegedAuditWarning | null> {
+  try {
+    await input.write();
+    return null;
+  } catch (error) {
+    input.onError?.(error);
+    return {
+      code: input.warningCode,
+      message: input.warningMessage,
+      retryRequired: true,
+    };
+  }
 }

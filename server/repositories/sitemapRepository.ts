@@ -15,9 +15,13 @@ import {
   canExposePublishedProfilePublicly,
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
-import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import {
+  publicBusinessDetailExposureSqlPredicate,
+  publicBusinessSitemapCrawlabilitySqlPredicate,
+} from "../publicationBusiness";
 import { getPublicationRules } from "../publicationRules";
 import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
+import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
 
 export type ProfileSitemapEligibilityCandidate = Omit<
   PublishedProfileExposureCandidate,
@@ -41,12 +45,17 @@ export class SitemapRepository {
     const rows = await db
       .select({
         profileId: profiles.id,
+        profilePubliclyReleased: profiles.publiclyReleased,
         slug: profiles.slug,
+        profileRoleContext: profiles.roleContext,
+        profileHeadline: profiles.headline,
+        profileContentBlocks: profiles.contentBlocks,
         updatedAt: profiles.updatedAt,
         businessId: profiles.businessId,
         profileOwnerUserId: profiles.ownerUserId,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
+        ownerEmailVerified: users.emailVerified,
         ownerRole: users.role,
         ownerRoles: users.roles,
         ownerProvider: users.provider,
@@ -56,6 +65,8 @@ export class SitemapRepository {
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         businessSources: businesses.sources,
         businessClaimStatus: businesses.claimStatus,
+        professionalRoleApproved: durableProfessionalProfileApprovalSql,
+        businessProfileData: businesses.profileData,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -101,16 +112,22 @@ export class SitemapRepository {
   }
 
   async countActiveDirectoryBusinessesForSitemap(): Promise<number> {
+    const rules = await getPublicationRules();
+    const crawlabilityPredicate = publicBusinessSitemapCrawlabilitySqlPredicate({
+      rules,
+      now: new Date(),
+    });
     const rows = await db
       .select({ count: sql<number>`count(DISTINCT ${businesses.id})` })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
       .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
           eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
+          crawlabilityPredicate
         )
       );
     const count = Number((rows[0] as any)?.count ?? 0);
@@ -125,6 +142,11 @@ export class SitemapRepository {
     const limit = Math.max(1, Math.min(50_000, limitRequested));
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
+    const rules = await getPublicationRules();
+    const crawlabilityPredicate = publicBusinessSitemapCrawlabilitySqlPredicate({
+      rules,
+      now: new Date(),
+    });
 
     const rows = await db
       .select({
@@ -133,12 +155,13 @@ export class SitemapRepository {
       })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
       .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
           eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
+          crawlabilityPredicate
         )
       )
       .orderBy(asc(businesses.slug))

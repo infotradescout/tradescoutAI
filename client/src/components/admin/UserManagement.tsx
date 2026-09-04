@@ -30,7 +30,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { isSuperAdminLike } from "@/lib/roleChecks";
 import {
   Search,
   UserPlus,
@@ -41,7 +43,6 @@ import {
   Eye,
   Building,
   Wrench,
-  Car,
   Home,
   User,
   MoreHorizontal,
@@ -110,9 +111,7 @@ interface AdminDailyActivityResponse {
 
 const AVAILABLE_ROLES = [
   { value: "homeowner", label: "Homeowner", icon: Home, color: "bg-blue-500" },
-  { value: "contractor_user", label: "Contractor", icon: Wrench, color: "bg-ts-orange" },
-  { value: "realtor", label: "Realtor", icon: Building, color: "bg-green-500" },
-  { value: "car_salesman", label: "Car Salesman", icon: Car, color: "bg-purple-500" },
+  { value: "contractor", label: "Contractor", icon: Wrench, color: "bg-ts-orange" },
   { value: "business_owner", label: "Business Owner", icon: Building, color: "bg-amber-500" },
   {
     value: "restaurant_owner",
@@ -122,23 +121,34 @@ const AVAILABLE_ROLES = [
   },
   { value: "food_truck_owner", label: "Food Truck Owner", icon: Truck, color: "bg-ts-orange" },
   { value: "bar_owner", label: "Bar / Lounge Owner", icon: Wine, color: "bg-purple-600" },
-  { value: "helper", label: "Helper", icon: Users, color: "bg-cyan-500" },
-  { value: "moderator", label: "Staff", icon: Shield, color: "bg-yellow-500" },
-  { value: "ops_admin", label: "Admin", icon: Eye, color: "bg-red-500" },
+  { value: "handyman", label: "Helper", icon: Users, color: "bg-cyan-500" },
+  {
+    value: "moderator",
+    label: "Staff",
+    icon: Shield,
+    color: "bg-yellow-500",
+    protected: true,
+  },
+  {
+    value: "ops_admin",
+    label: "Admin",
+    icon: Eye,
+    color: "bg-red-500",
+    protected: true,
+  },
   {
     value: "super_admin",
     label: "Super Admin",
     icon: Crown,
     color: "bg-gradient-to-r from-yellow-400 to-red-500",
+    protected: true,
   },
 ];
 
 const ROLE_HIERARCHY = {
   homeowner: 1,
-  helper: 2,
-  contractor_user: 3,
-  realtor: 4,
-  car_salesman: 4,
+  handyman: 2,
+  contractor: 3,
   business_owner: 4,
   restaurant_owner: 4,
   food_truck_owner: 4,
@@ -147,6 +157,14 @@ const ROLE_HIERARCHY = {
   ops_admin: 6,
   super_admin: 7,
 };
+
+const ROLE_MUTATION_CONFIRMATION = "I UNDERSTAND THIS EDIT IS AUDITED";
+const PROFESSIONAL_DECISION_ROLE_VALUES = new Set([
+  "realtor",
+  "car_dealer",
+  "car_salesman",
+  "vehicle_dealer",
+]);
 
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -160,15 +178,23 @@ export default function UserManagement() {
     email: "",
     role: "homeowner",
     password: "",
+    reason: "",
     sendEmail: true,
   });
   const { toast } = useToast();
+  const { user: actor } = useAuth();
+  const actorIsSuperAdmin =
+    actor?.isSuperAdmin === true ||
+    [actor?.role, actor?.activeRole, ...(Array.isArray(actor?.roles) ? actor.roles : [])].some(
+      (role) => isSuperAdminLike(typeof role === "string" ? role : undefined)
+    );
+  const availableRolesForActor = AVAILABLE_ROLES.filter(
+    (role) => actorIsSuperAdmin || role.protected !== true
+  );
 
   const CREATE_USER_ROLES = [
     { value: "homeowner", label: "Homeowner" },
     { value: "contractor", label: "Contractor" },
-    { value: "realtor", label: "Realtor" },
-    { value: "car_dealer", label: "Car Dealer" },
     { value: "business_owner", label: "Business Owner" },
     { value: "restaurant_owner", label: "Restaurant Owner" },
     { value: "food_truck_owner", label: "Food Truck Owner" },
@@ -195,14 +221,18 @@ export default function UserManagement() {
       userId,
       roles,
       activeRole,
+      reason,
+      confirmPhrase,
     }: {
       userId: string;
       roles: string[];
       activeRole: string;
+      reason: string;
+      confirmPhrase: string;
     }) => {
       return apiRequest(`/api/admin/users/${userId}/roles`, {
         method: "PATCH",
-        body: { roles, activeRole },
+        body: { roles, activeRole, reason, confirmPhrase },
       });
     },
     onSuccess: (data, variables) => {
@@ -258,6 +288,7 @@ export default function UserManagement() {
       email: string;
       role: string;
       password?: string;
+      adminSafety: { reason: string };
       sendEmail: boolean;
     }) => {
       return apiRequest("/api/admin/users/provision", {
@@ -278,6 +309,7 @@ export default function UserManagement() {
         email: "",
         role: "homeowner",
         password: "",
+        reason: "",
         sendEmail: true,
       });
     },
@@ -337,19 +369,55 @@ export default function UserManagement() {
 
   const handleSaveRoles = () => {
     if (selectedUser && editingRoles.length > 0) {
+      const reason = window
+        .prompt("Enter the audited role-change reason (12-500 characters):")
+        ?.trim();
+      if (!reason || reason.length < 12 || reason.length > 500) {
+        toast({
+          title: "Reason Required",
+          description: "Role changes require an audit reason between 12 and 500 characters.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const confirmPhrase = window.prompt(
+        `Type "${ROLE_MUTATION_CONFIRMATION}" to confirm this role change:`
+      );
+      if (confirmPhrase?.trim() !== ROLE_MUTATION_CONFIRMATION) {
+        toast({
+          title: "Confirmation Required",
+          description: "The role change confirmation phrase did not match.",
+          variant: "destructive",
+        });
+        return;
+      }
       const activeRole = newActiveRole || editingRoles[0];
       updateUserRoles.mutate({
         userId: selectedUser.id,
         roles: editingRoles,
         activeRole,
+        reason,
+        confirmPhrase: confirmPhrase.trim(),
       });
     }
   };
 
   const openEditDialog = (user: User) => {
+    const editableRoles = (user.roles || [user.role]).filter(
+      (role) =>
+        !PROFESSIONAL_DECISION_ROLE_VALUES.has(
+          String(role || "")
+            .trim()
+            .toLowerCase()
+        )
+    );
+    const roles = editableRoles.length > 0 ? editableRoles : ["homeowner"];
+    const requestedActiveRole = String(user.activeRole || user.role || "")
+      .trim()
+      .toLowerCase();
     setSelectedUser(user);
-    setEditingRoles(user.roles || [user.role]);
-    setNewActiveRole(user.activeRole || user.role);
+    setEditingRoles(roles);
+    setNewActiveRole(roles.includes(requestedActiveRole) ? requestedActiveRole : roles[0]);
   };
 
   const handleCreateUser = (event: React.FormEvent<HTMLFormElement>) => {
@@ -363,6 +431,14 @@ export default function UserManagement() {
       });
       return;
     }
+    if (createUserForm.reason.trim().length < 12) {
+      toast({
+        title: "Reason Required",
+        description: "Enter a provisioning reason of at least 12 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const payload = {
       email,
@@ -370,6 +446,7 @@ export default function UserManagement() {
       firstName: createUserForm.firstName.trim(),
       lastName: createUserForm.lastName.trim(),
       sendEmail: createUserForm.sendEmail,
+      adminSafety: { reason: createUserForm.reason.trim() },
       ...(createUserForm.password.trim() ? { password: createUserForm.password.trim() } : {}),
     };
 
@@ -483,6 +560,16 @@ export default function UserManagement() {
                     data-testid="input-create-user-password"
                   />
 
+                  <Input
+                    value={createUserForm.reason}
+                    onChange={(event) =>
+                      setCreateUserForm((prev) => ({ ...prev, reason: event.target.value }))
+                    }
+                    placeholder="Provisioning reason (required)"
+                    maxLength={500}
+                    data-testid="input-create-user-reason"
+                  />
+
                   <label className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={createUserForm.sendEmail}
@@ -502,7 +589,10 @@ export default function UserManagement() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={createUser.isPending}>
+                    <Button
+                      type="submit"
+                      disabled={createUser.isPending || createUserForm.reason.trim().length < 12}
+                    >
                       {createUser.isPending ? "Creating..." : "Create User"}
                     </Button>
                   </div>
@@ -794,7 +884,7 @@ export default function UserManagement() {
                   <div>
                     <h4 className="font-medium mb-3">Available Roles</h4>
                     <div className="grid grid-cols-2 gap-3">
-                      {AVAILABLE_ROLES.map((role) => {
+                      {availableRolesForActor.map((role) => {
                         const Icon = role.icon;
                         const isSelected = editingRoles.includes(role.value);
                         return (

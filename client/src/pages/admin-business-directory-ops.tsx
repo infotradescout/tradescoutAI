@@ -274,7 +274,7 @@ export default function AdminBusinessDirectoryOpsPage() {
         <TabsContent value="seeding" className="mt-0 space-y-7">
           <AdminSection
             title="Pensacola and Escambia supply"
-            description="Aggregated county supply health only. This view does not expose contact lists or sell leads."
+            description="Aggregated counts only for county FIPS 12033 (Escambia). This view does not expose contact lists or sell leads."
             className="pt-0"
             actions={
               <Button

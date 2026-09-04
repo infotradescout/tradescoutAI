@@ -24,6 +24,7 @@ export default function AdminProvisioning() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [reason, setReason] = useState("");
 
   const [sendActivationEmail, setSendActivationEmail] = useState(true);
   const [sendVerificationEmail, setSendVerificationEmail] = useState(true);
@@ -53,6 +54,7 @@ export default function AdminProvisioning() {
         sendEmail: sendActivationEmail || sendVerificationEmail,
         sendActivationEmail,
         sendVerificationEmail,
+        adminSafety: { reason: reason.trim() },
       };
       if (createBusiness) {
         payload.profile = {
@@ -144,6 +146,17 @@ export default function AdminProvisioning() {
             </div>
           </div>
 
+          <div>
+            <label className="text-xs text-white/60">Provisioning reason (required)</label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Explain why this account is being provisioned"
+              maxLength={500}
+              className="bg-black/30 border-[color:var(--border-subtle)] text-white"
+            />
+          </div>
+
           <Separator className="bg-white/5" />
 
           <div className="flex flex-col gap-2">
@@ -227,7 +240,7 @@ export default function AdminProvisioning() {
 
           <Button
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !email.trim()}
+            disabled={mutation.isPending || !email.trim() || reason.trim().length < 12}
             className="bg-ts-orange hover:bg-ts-orange-dark"
           >
             {mutation.isPending ? "Creating..." : "Create user"}

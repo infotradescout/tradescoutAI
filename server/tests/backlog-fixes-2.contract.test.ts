@@ -166,9 +166,11 @@ describe("adminAuditLogService: persists to DB table", () => {
     expect(content).toContain("adminAuditLog");
   });
 
-  it("logAdminAction wraps DB write in try/catch (never throws)", () => {
+  it("keeps default logging best-effort but preserves caller transaction failures", () => {
     expect(content).toContain("try {");
     expect(content).toContain("catch");
+    expect(content).toContain("options.database ?? (await getDb())");
+    expect(content).toContain("if (options.database) throw error");
   });
 
   it("adminAuditLog table exists in schema", () => {

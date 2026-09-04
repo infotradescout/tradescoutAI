@@ -82,6 +82,10 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
+import {
+  applyPrivateShellNoindex,
+  isPrivateAppShellPath,
+} from "./privateShellIndexability";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
   buildJwStoneMarketplaceLlmsText,
@@ -121,8 +125,10 @@ import {
   resolveCurrentEntryStylesheet,
 } from "./staticAssetRecovery";
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
+import { registerPublicProfileAppRoutes } from "./routes/public-profile-app";
 import { resolveCanonicalBusinessProfileRoute } from "./services/canonicalBusinessProfileRoute";
 import { canExposePublishedProfilePublicly } from "./services/ownerConfirmedDirectProfile";
+import { durableProfessionalProfileApprovalSql } from "./services/profileTargetAuthority";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import {
   buildPublicProfileCanonicalRedirectTarget,
@@ -459,9 +465,17 @@ function isCustomDomainMechanicsPath(requestPath: string): boolean {
   }
 
   if (
-    ["/assets/", "/uploads/", "/images/", "/fonts/", "/icons/", "/landing/", "/scoutfitters/"].some(
-      (prefix) => requestPath.startsWith(prefix)
-    )
+    [
+      "/assets/",
+      "/uploads/",
+      "/images/",
+      "/fonts/",
+      "/icons/",
+      "/landing/",
+      "/profile-app-icons/",
+      "/profile-manifests/",
+      "/scoutfitters/",
+    ].some((prefix) => requestPath.startsWith(prefix))
   ) {
     return true;
   }
@@ -811,11 +825,7 @@ app.use(async (req, res, next) => {
       .where(
         and(
           eq(profiles.status, "published" as any),
-          sql`(
-            lower(COALESCE((${users.preferences} ->> 'profileVisibility'), 'private')) = 'public'
-            OR COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
-               @> jsonb_build_array(CAST(${profiles.id} AS text))
-          )`,
+          eq(profiles.publiclyReleased, true),
           sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${host}`
         )
       )
@@ -839,11 +849,7 @@ app.use(async (req, res, next) => {
             .where(
               and(
                 eq(profiles.status, "published" as any),
-                sql`(
-                  lower(COALESCE((${users.preferences} ->> 'profileVisibility'), 'private')) = 'public'
-                  OR COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
-                     @> jsonb_build_array(CAST(${profiles.id} AS text))
-                )`,
+                eq(profiles.publiclyReleased, true),
                 sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${alternateHost}`
               )
             )
@@ -1236,6 +1242,7 @@ app.use(landingContractHeaders);
     // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
     // If 'routes' is not implicitly available, it needs to be imported.
     // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
+    registerPublicProfileAppRoutes(app);
     const server = await registerRoutes(app);
 
     // Attach job documents + invoicing/contract APIs after auth/session are configured
@@ -1875,13 +1882,17 @@ app.use(landingContractHeaders);
                   const candidates = await db
                     .select({
                       profileId: profiles.id,
+                      profilePubliclyReleased: profiles.publiclyReleased,
                       slug: profiles.slug,
+                      profileRoleContext: profiles.roleContext,
+                      profileHeadline: profiles.headline,
                       seoMeta: profiles.seoMeta,
                       contentBlocks: profiles.contentBlocks,
                       businessId: profiles.businessId,
                       profileOwnerUserId: profiles.ownerUserId,
                       ownerVerifiedBadge: users.verifiedBadge,
                       ownerVerificationStatus: users.verificationStatus,
+                      ownerEmailVerified: users.emailVerified,
                       ownerProvider: users.provider,
                       ownerPreferences: users.preferences,
                       businessStatus: businesses.status,
@@ -1889,6 +1900,8 @@ app.use(landingContractHeaders);
                       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
                       businessSources: businesses.sources,
                       businessClaimStatus: businesses.claimStatus,
+                      professionalRoleApproved: durableProfessionalProfileApprovalSql,
+                      businessProfileData: businesses.profileData,
                     })
                     .from(profiles)
                     .innerJoin(users, eq(profiles.ownerUserId, users.id))
@@ -1909,12 +1922,17 @@ app.use(landingContractHeaders);
                     .filter((profileRecord) =>
                       canExposePublishedProfilePublicly({
                         profileId: profileRecord.profileId,
+                        profilePubliclyReleased: profileRecord.profilePubliclyReleased,
                         businessId: profileRecord.businessId,
                         profileSlug: profileRecord.slug,
                         profileStatus: "published",
+                        profileRoleContext: profileRecord.profileRoleContext,
+                        profileHeadline: profileRecord.profileHeadline,
+                        profileContentBlocks: profileRecord.contentBlocks,
                         profileOwnerUserId: profileRecord.profileOwnerUserId,
                         ownerVerifiedBadge: profileRecord.ownerVerifiedBadge,
                         ownerVerificationStatus: profileRecord.ownerVerificationStatus,
+                        ownerEmailVerified: profileRecord.ownerEmailVerified,
                         ownerProvider: profileRecord.ownerProvider,
                         ownerPreferences: profileRecord.ownerPreferences,
                         businessStatus: profileRecord.businessStatus,
@@ -1922,6 +1940,8 @@ app.use(landingContractHeaders);
                         publicDiscoveryEnabled: profileRecord.publicDiscoveryEnabled,
                         businessSources: profileRecord.businessSources,
                         businessClaimStatus: profileRecord.businessClaimStatus,
+                        professionalRoleApproved: profileRecord.professionalRoleApproved,
+                        businessProfileData: profileRecord.businessProfileData,
                       })
                     )
                     .map((profileRecord) => ({
@@ -3020,6 +3040,14 @@ app.use(landingContractHeaders);
                 // Check if file exists before trying to serve
                 if (fs.existsSync(indexPath)) {
                   res.setHeader("Cache-Control", "no-store");
+                  if (isPrivateAppShellPath(reqPath)) {
+                    const templateHtml = getCachedTemplate(indexPath);
+                    if (!templateHtml) {
+                      return res.status(404).send("Application files not found");
+                    }
+                    res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+                    return res.type("text/html").send(applyPrivateShellNoindex(templateHtml));
+                  }
                   res.sendFile(indexPath, (err) => {
                     if (err) {
                       console.error("Error serving index.html:", err);

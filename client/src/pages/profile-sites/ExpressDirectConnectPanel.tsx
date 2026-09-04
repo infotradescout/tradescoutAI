@@ -70,7 +70,8 @@ type ExpressDirectConnectPanelProps = {
   deliveryCustody?: ExpressDirectConnectDeliveryCustody;
 };
 
-type PanelView = "choice" | "request" | "call_started" | "success";
+type ExpressContactPreference = "platform_message" | "call";
+type PanelView = "choice" | "request" | "success";
 
 const REQUEST_MODE_CONFIG: Record<
   ExpressDirectConnectMode,
@@ -174,8 +175,8 @@ export default function ExpressDirectConnectPanel({
   const [view, setView] = useState<PanelView>(initialView);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [callPhone, setCallPhone] = useState("");
-  const [callTel, setCallTel] = useState("");
+  const [requestedContactPreference, setRequestedContactPreference] =
+    useState<ExpressContactPreference>("platform_message");
   const [requestId, setRequestId] = useState("");
   const [requestWorkspacePath, setRequestWorkspacePath] = useState("");
   const [requestDeliveryCustody, setRequestDeliveryCustody] =
@@ -226,8 +227,7 @@ export default function ExpressDirectConnectPanel({
     setView(initialView);
     setBusy(false);
     setError("");
-    setCallPhone("");
-    setCallTel("");
+    setRequestedContactPreference("platform_message");
     setRequestId("");
     setRequestWorkspacePath("");
     setRequestDeliveryCustody(deliveryCustody);
@@ -288,39 +288,10 @@ export default function ExpressDirectConnectPanel({
     if (!busy) onClose();
   };
 
-  const startCall = async () => {
-    setBusy(true);
+  const stageCallRequest = () => {
     setError("");
-    try {
-      const response = await fetch(
-        `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-contact/reveal`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            authorityGate: "profile_direct_connect",
-            decision: "call",
-          }),
-        }
-      );
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok || typeof json?.tel !== "string") {
-        throw new Error(
-          response.status === 404
-            ? "Calling is on the way. You can still send a request."
-            : "Calling is unavailable right now. You can still send a request."
-        );
-      }
-      setCallPhone(String(json.phone || ""));
-      setCallTel(json.tel);
-      setView("call_started");
-      window.location.href = json.tel;
-    } catch (cause: any) {
-      setError(cause?.message || "Calling is unavailable right now. You can still send a request.");
-    } finally {
-      setBusy(false);
-    }
+    setRequestedContactPreference("call");
+    setView("request");
   };
 
   const submitRequest = async (event: FormEvent) => {
@@ -375,6 +346,7 @@ export default function ExpressDirectConnectPanel({
             email: form.email,
             phone,
             requestType: form.requestType,
+            contactPreference: requestedContactPreference,
             message: messageWithRole,
             website: form.website,
             updatesOptIn: form.updatesOptIn === true,
@@ -463,8 +435,8 @@ export default function ExpressDirectConnectPanel({
             <div>
               <p className="mb-6 text-stone-700">
                 {hasSeparateOperator
-                  ? `Call ${operatorName}${operatorRole ? `, the ${operatorRole} for ${businessName},` : ""} or send the product details.`
-                  : `Call now or send ${businessName} the details.`}
+                  ? `Request a call from ${operatorName}${operatorRole ? `, the ${operatorRole} for ${businessName},` : ""} or send the product details.`
+                  : `Request a call from ${businessName} or send the details.`}
               </p>
               {businessAddress ? (
                 <address className="mb-5 flex items-start gap-2 rounded-xl border border-black/10 bg-white px-4 py-3 text-sm not-italic leading-relaxed text-stone-700">
@@ -475,7 +447,7 @@ export default function ExpressDirectConnectPanel({
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={startCall}
+                  onClick={stageCallRequest}
                   disabled={busy || !allowCall}
                   className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-ts-orange p-5 text-left text-white transition-transform hover:-translate-y-0.5 hover:bg-ts-orange-dark disabled:opacity-60"
                 >
@@ -485,20 +457,19 @@ export default function ExpressDirectConnectPanel({
                     <Phone className="h-6 w-6" />
                   )}
                   <span>
-                    <strong className="block text-lg">
-                      {hasSeparateOperator && operatorRole ? `Call ${operatorRole}` : "Call"}
-                    </strong>
+                    <strong className="block text-lg">Request a call</strong>
                     {!allowCall ? (
-                      <span className="text-sm text-white/80">Calling is coming soon</span>
-                    ) : hasSeparateOperator ? (
-                      <span className="text-sm text-white/80">Connect with {operatorName}</span>
-                    ) : null}
+                      <span className="text-sm text-white/80">Call requests unavailable</span>
+                    ) : (
+                      <span className="text-sm text-white/80">They can call after accepting</span>
+                    )}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setError("");
+                    setRequestedContactPreference("platform_message");
                     setView("request");
                   }}
                   className="flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-ts-orange/25 bg-white p-5 text-left text-neutral-900 transition-transform hover:-translate-y-0.5 hover:border-ts-orange/60"
@@ -521,16 +492,24 @@ export default function ExpressDirectConnectPanel({
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900">
-                  {selectedServiceName
-                    ? `Ask about ${selectedServiceName}`
-                    : multiStoneSelections.length
-                      ? `Ask about ${multiStoneSelections.length} saved stones`
-                      : displayStoneName
-                        ? `Ask about ${displayStoneName}`
-                        : stableItemId
-                          ? "Ask about this stone selection"
-                          : config.heading}
+                  {requestedContactPreference === "call"
+                    ? `Request a call from ${operatorName}`
+                    : selectedServiceName
+                      ? `Ask about ${selectedServiceName}`
+                      : multiStoneSelections.length
+                        ? `Ask about ${multiStoneSelections.length} saved stones`
+                        : displayStoneName
+                          ? `Ask about ${displayStoneName}`
+                          : stableItemId
+                            ? "Ask about this stone selection"
+                            : config.heading}
                 </h3>
+                {requestedContactPreference === "call" ? (
+                  <p className="mt-2 text-sm leading-6 text-stone-600">
+                    Send a protected call request. Your contact details stay gated until the
+                    business responds in Direct Connect.
+                  </p>
+                ) : null}
                 {multiStoneSelections.length ? (
                   <ul
                     className="mt-3 grid gap-1 text-sm text-stone-600 sm:grid-cols-2"
@@ -675,38 +654,14 @@ export default function ExpressDirectConnectPanel({
               >
                 {busy ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
+                ) : requestedContactPreference === "call" ? (
+                  <Phone className="h-5 w-5" />
                 ) : (
                   <MessageCircle className="h-5 w-5" />
                 )}
-                Make A Request
+                {requestedContactPreference === "call" ? "Send call request" : "Make A Request"}
               </button>
             </form>
-          ) : null}
-
-          {view === "call_started" ? (
-            <div className="text-center">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-ts-orange/10 text-ts-orange">
-                <Phone className="h-7 w-7" />
-              </div>
-              <h3 className="text-2xl font-bold text-neutral-900">Calling {operatorName}</h3>
-              {callTel ? (
-                <a
-                  href={callTel}
-                  className="mt-3 inline-block text-lg font-bold text-neutral-900 underline underline-offset-4"
-                >
-                  {callPhone || "Call again"}
-                </a>
-              ) : null}
-              {stayInProfile ? (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="mt-7 w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900"
-                >
-                  Back to {businessName}
-                </button>
-              ) : null}
-            </div>
           ) : null}
 
           {view === "success" ? (
@@ -714,14 +669,24 @@ export default function ExpressDirectConnectPanel({
               <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
               <h3 className="text-2xl font-bold text-neutral-900">
                 {requestDeliveryCustody === "tradescout_pending_owner"
-                  ? "Request saved"
-                  : "Request sent"}
+                  ? requestedContactPreference === "call"
+                    ? "Call request saved"
+                    : "Request saved"
+                  : requestedContactPreference === "call"
+                    ? "Call request sent"
+                    : "Request sent"}
               </h3>
               {requestDeliveryCustody !== "tradescout_pending_owner" ? (
                 <p className="mx-auto mt-2 max-w-md text-stone-600">
-                  {hasSeparateOperator
-                    ? `Your ${businessName} request was sent to ${operatorName}.`
-                    : `${businessName} received your project details.`}
+                  {requestedContactPreference === "call"
+                    ? `${operatorName} received your protected call request. They can call after accepting it in Direct Connect.`
+                    : hasSeparateOperator
+                      ? `Your ${businessName} request was sent to ${operatorName}.`
+                      : `${businessName} received your project details.`}
+                </p>
+              ) : requestedContactPreference === "call" ? (
+                <p className="mx-auto mt-2 max-w-md text-stone-600">
+                  TradeScout will hold the protected call request until {businessName} connects.
                 </p>
               ) : null}
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
 import { createApp } from "../app";
+import { storage } from "../storage";
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const authFlowTimeoutMs = 45_000;
@@ -179,5 +180,94 @@ if (!hasTestDb) {
       expect(Array.isArray(duplicateRes.body?.availableAuthMethods)).toBe(true);
       expect(duplicateRes.body?.availableAuthMethods).toContain("password");
     });
+
+    it("rejects unverified reserved aliases without creating a user or session", async () => {
+      const previous = process.env.PRIVILEGED_ALIAS_EMAILS;
+
+      try {
+        for (const endpoint of ["/api/auth/register", "/api/auth/register-multi"] as const) {
+          const email = `reserved+${crypto.randomUUID()}@tradescout.test`;
+          process.env.PRIVILEGED_ALIAS_EMAILS = email;
+          const agent = request.agent(app);
+          const basePayload = {
+            email,
+            password: `P@ssw0rd-${crypto.randomUUID()}`,
+            firstName: "Reserved",
+            lastName: "Candidate",
+            phone: "(555) 000-3000",
+            acceptTerms: true,
+          };
+
+          const registerRes = await agent
+            .post(endpoint)
+            .set("Content-Type", "application/json")
+            .send(
+              endpoint.endsWith("register-multi")
+                ? { ...basePayload, profiles: [{ userIntent: "person" }] }
+                : { ...basePayload, userTypes: ["homeowner"] }
+            );
+
+          expect(registerRes.status).toBe(409);
+          expect(registerRes.body?.code).toBe("AUTH_ACCOUNT_EXISTS");
+          expect(await storage.getUserByEmail(email)).toBeFalsy();
+
+          const authRes = await agent.get("/api/auth/user");
+          expect(authRes.status).toBe(200);
+          expect(authRes.body?.authenticated).toBe(false);
+        }
+      } finally {
+        if (typeof previous === "undefined") {
+          delete process.env.PRIVILEGED_ALIAS_EMAILS;
+        } else {
+          process.env.PRIVILEGED_ALIAS_EMAILS = previous;
+        }
+      }
+    });
+
+    it.each(["contact@thetradescout.com", "info.tradescout@gmail.com"])(
+      "rejects reserved service identity %s with empty authority alias configuration",
+      async (email) => {
+        const envKeys = [
+          "MASTER_ADMIN_EMAIL",
+          "SUPER_ADMIN_EMAIL_ALIASES",
+          "PRIVILEGED_ALIAS_EMAILS",
+        ] as const;
+        const previous = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+        for (const key of envKeys) delete process.env[key];
+
+        try {
+          for (const endpoint of ["/api/auth/register", "/api/auth/register-multi"] as const) {
+            const agent = request.agent(app);
+            const basePayload = {
+              email,
+              password: `P@ssw0rd-${crypto.randomUUID()}`,
+              firstName: "Service",
+              lastName: "Identity",
+              phone: "(555) 000-3001",
+              acceptTerms: true,
+            };
+            const response = await agent
+              .post(endpoint)
+              .set("Content-Type", "application/json")
+              .send(
+                endpoint.endsWith("register-multi")
+                  ? { ...basePayload, profiles: [{ userIntent: "person" }] }
+                  : { ...basePayload, userTypes: ["homeowner"] }
+              );
+
+            expect(response.status).toBe(409);
+            expect(response.body?.code).toBe("AUTH_ACCOUNT_EXISTS");
+            const authResponse = await agent.get("/api/auth/user");
+            expect(authResponse.body?.authenticated).toBe(false);
+          }
+        } finally {
+          for (const key of envKeys) {
+            const value = previous[key];
+            if (typeof value === "undefined") delete process.env[key];
+            else process.env[key] = value;
+          }
+        }
+      }
+    );
   });
 }

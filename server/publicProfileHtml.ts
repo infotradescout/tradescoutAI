@@ -35,6 +35,10 @@ import {
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
 import {
+  buildPublicProfileAppIconPath,
+  buildPublicProfileAppManifestPath,
+} from "@shared/publicProfileApp";
+import {
   buildProfileSitemapUrls,
   isProfileGalleryItemPubliclyAddressable,
   isProfileInventoryCategoryPubliclyAddressable,
@@ -358,6 +362,51 @@ function injectFaviconOverride(html: string, imageUrl: string): string {
     .replace(/<link rel="apple-touch-icon"[^>]*>\s*/gi, "");
   const tag = `<link rel="icon" href="${escapeHtml(imageUrl)}" />\n    <link rel="apple-touch-icon" href="${escapeHtml(imageUrl)}" />`;
   return withoutIcons.replace("</head>", `${tag}\n</head>`);
+}
+
+function injectProfileAppManifest(html: string, slug: string): string {
+  const manifestPath = buildPublicProfileAppManifestPath(slug);
+  if (!manifestPath) return html;
+  const manifestTagPattern = /<link\b(?=[^>]*\brel\s*=\s*(["'])manifest\1)[^>]*>\s*/i;
+  const currentManifestTag = html.match(manifestTagPattern)?.[0] || "";
+  const platformManifestHref =
+    currentManifestTag.match(/\bhref\s*=\s*(["'])(.*?)\1/i)?.[2] || "/manifest.json";
+  return upsertTag(
+    html,
+    manifestTagPattern,
+    `<link rel="manifest" href="${escapeHtml(
+      manifestPath
+    )}" data-platform-manifest-href="${escapeHtml(platformManifestHref)}" />`
+  );
+}
+
+function injectProfileAppInstallMetadata(args: {
+  html: string;
+  slug: string;
+  displayName: string;
+  accentColor?: string | null;
+}): string {
+  const iconPath = buildPublicProfileAppIconPath(args.slug, 192);
+  if (!iconPath) return args.html;
+  const appTitle = cleanPublicProfileText(args.displayName, 30) || "Public profile";
+  const accentColor = /^#[0-9a-f]{6}$/i.test(String(args.accentColor || ""))
+    ? String(args.accentColor)
+    : "#f97316";
+  let html = upsertTag(
+    args.html,
+    /<meta name="apple-mobile-web-app-title"[^>]*>/i,
+    `<meta name="apple-mobile-web-app-title" content="${escapeHtml(appTitle)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta name="theme-color"[^>]*>/i,
+    `<meta name="theme-color" content="${escapeHtml(accentColor)}" />`
+  );
+  return upsertTag(
+    html,
+    /<link rel="apple-touch-icon"[^>]*>\s*/i,
+    `<link rel="apple-touch-icon" href="${escapeHtml(iconPath)}" />\n`
+  );
 }
 
 // The client-side router only recognizes profile pages by URL path
@@ -1166,6 +1215,7 @@ export async function buildPublicProfileHtml({
     /<link rel="canonical"[^>]*>/i,
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
+  html = injectProfileAppManifest(html, profileRecord.slug);
   const selectiveIntelligenceManifestUrl = `https://www.thetradescout.com/api/u/${encodeURIComponent(profileRecord.slug)}/selective-intelligence`;
   html = upsertTag(
     html,
@@ -1185,6 +1235,12 @@ export async function buildPublicProfileHtml({
   if (meta.faviconUrl) {
     html = injectFaviconOverride(html, meta.faviconUrl);
   }
+  html = injectProfileAppInstallMetadata({
+    html,
+    slug: profileRecord.slug,
+    displayName,
+    accentColor: data.business?.brandColors?.accent || data.business?.brandColors?.primary,
+  });
 
   const requestHost = (() => {
     try {

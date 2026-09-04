@@ -65,6 +65,7 @@ import {
 } from "@/lib/demandEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { trackFirstUseGuidanceViewed } from "@/lib/firstUseAnalytics";
+import { resolvePublicLandingIndexability } from "@shared/publicLandingIndexability";
 
 function useLandingVariant() {
   const [location] = useLocation();
@@ -1053,18 +1054,10 @@ export default function Home() {
   const firstUseUserState = user ? "authenticated" : "anonymous";
   const [location] = useLocation();
   const rawLocation = String(location || "");
-  const pathOnly = rawLocation.split("?")[0].replace(/\/+$/, "") || "/";
-  const hasQueryParams = rawLocation.includes("?");
-  const canonicalLandingPath = pathOnly.startsWith("/lp/")
-    ? pathOnly.replace(/^\/lp\//, "/landing/")
-    : pathOnly === "/lp"
-      ? "/landing"
-      : pathOnly.startsWith("/landing/")
-        ? pathOnly
-        : "/landing";
+  const landingIndexability = resolvePublicLandingIndexability({ requestPath: rawLocation });
+  const canonicalLandingPath = landingIndexability.canonicalPath;
   const canonicalLandingUrl = `https://www.thetradescout.com${canonicalLandingPath}`;
-  const isAliasLandingPath = pathOnly === "/lp" || pathOnly.startsWith("/lp/");
-  const shouldIndexLandingPage = !isAliasLandingPath && !hasQueryParams;
+  const shouldIndexLandingPage = landingIndexability.indexable;
 
   const variant = useLandingVariant();
   const trackedVariant = useMemo(
@@ -1113,7 +1106,7 @@ export default function Home() {
         title={
           variant.key === "local-operating-system"
             ? "TradeScout | The Local Operating System for Community Interaction"
-            : canonicalLandingPath === "/landing"
+            : canonicalLandingPath === "/"
               ? "TradeScout | Find Any Local Business Near You"
               : `${variant.displayName} | TradeScout`
         }

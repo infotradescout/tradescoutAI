@@ -10,7 +10,9 @@ describe("storage contract extraction", () => {
     const storageSource = read("server/storage.ts");
     const contractSource = read("server/storage/contracts.ts");
 
-    expect(storageSource).toContain('import type { IStorage } from "./storage/contracts";');
+    expect(storageSource).toMatch(
+      /import type\s*\{[^}]*\bIStorage\b[^}]*\}\s*from "\.\/storage\/contracts";/
+    );
     expect(storageSource).toContain('export type { IStorage } from "./storage/contracts";');
     expect(storageSource).not.toContain("export interface IStorage {");
     expect(contractSource).toContain("export interface IStorage {");
