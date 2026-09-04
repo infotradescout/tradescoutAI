@@ -25,13 +25,18 @@ describe("Release 2 identity authority spine", () => {
       "export const requireRole",
       "export const requirePermission",
       "export const isBusinessProvider",
-      "export const requireAuth",
-      "export const requireAdmin",
     ]) {
       const start = auth.indexOf(boundary);
       expect(start).toBeGreaterThanOrEqual(0);
       expect(auth.slice(start, start + 1400)).toContain("bindRequestAuthority(req, res)");
     }
+
+    expect(auth).toContain("export const requireAuth: RequestHandler = isAuthenticated");
+    expect(auth).toContain("export const requireAdmin: RequestHandler = isAdmin");
+    expect(auth).toContain("export const isModerator: RequestHandler = isAdmin");
+    expect(auth).toContain("export const isHeadAdmin: RequestHandler = isSuperAdmin");
+    expect(auth).not.toContain("export const requireAuth = async");
+    expect(auth).not.toContain("export const requireAdmin = async");
   });
 
   it("keeps privileged routes and admin-only gates unavailable while impersonating", () => {
@@ -71,17 +76,22 @@ describe("Release 2 identity authority spine", () => {
     expect(authUserRoute).not.toContain("role: sessionAny.impersonatingRole");
   });
 
-  it("blocks standalone privileged middleware during impersonation", () => {
+  it("keeps extracted privileged routers on the canonical authority guards", () => {
     const sharedMiddleware = read("server/middleware/requireSuperAdmin.ts");
     const promptAdmin = read("server/routes/promptAdmin.ts");
     const adminControl = read("server/routes/admin-control.ts");
+    const routes = read("server/routes.ts");
 
-    for (const source of [sharedMiddleware, promptAdmin, adminControl]) {
-      expect(source).toContain("resolveRequestEffectiveUser(req)");
-      expect(source).toContain("identityContext.isImpersonating");
+    expect(sharedMiddleware).toContain(
+      'export { isSuperAdmin as requireSuperAdmin } from "../auth"'
+    );
+    for (const source of [promptAdmin, adminControl]) {
+      expect(source).toContain('import { isAuthenticated, isSuperAdmin } from "../auth"');
+      expect(source).toContain("router.use(isAuthenticated, isSuperAdmin)");
+      expect(source).not.toContain("function requireSuperAdmin");
+      expect(source).not.toContain("function isSuperAdmin");
     }
-    for (const source of [sharedMiddleware, promptAdmin]) {
-      expect(source).toContain('code: "IMPERSONATION_PRIVILEGE_BOUNDARY"');
-    }
+    expect(routes).toContain("requireAdmin,");
+    expect(routes).not.toContain("const requireAdmin =");
   });
 });

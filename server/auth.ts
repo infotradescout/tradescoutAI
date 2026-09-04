@@ -12,7 +12,6 @@ import { users, type User } from "@shared/schema";
 import {
   getRolePermissions,
   getRoleHierarchyLevel,
-  canUserPerformAction,
   userHasBusinessProviderTools,
 } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
@@ -514,9 +513,8 @@ async function bindRequestAuthority(req: Request, res: any): Promise<boolean> {
   if (authorityRequest.requestAuthorityContext?.ok) return true;
 
   try {
-    const context = await resolveRequestAuthorityContext(
-      authorityRequest,
-      async (userId) => storage.getUser(userId)
+    const context = await resolveRequestAuthorityContext(authorityRequest, async (userId) =>
+      storage.getUser(userId)
     );
     if (!context.ok) {
       res.status(403).json({
@@ -634,6 +632,7 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       activeRole?: unknown;
       roles?: unknown;
       isAdmin?: unknown;
+      isSuperAdmin?: unknown;
     };
 
     const primaryRole = normalizeLegacyRole((user as any).role);
@@ -646,6 +645,7 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       .filter(Boolean) as UserRole[];
 
     const isAdminFlag = (user as any).isAdmin === true;
+    const isSuperAdminFlag = (user as any).isSuperAdmin === true;
     const isAliasSuperAdmin =
       isPrivilegedAliasEmail((user as any)?.email) ||
       isPrivilegedAliasEmail((user as any)?.claims?.email);
@@ -654,9 +654,11 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
     if (primaryRole) candidateRoles.add(primaryRole);
     if (activeRole) candidateRoles.add(activeRole);
     roleList.forEach((role) => candidateRoles.add(role));
-    // Legacy / computed flags should still grant access through role gates when present.
-    if (isAdminFlag) candidateRoles.add("super_admin");
-    if (isAliasSuperAdmin) candidateRoles.add("super_admin");
+    // A generic admin flag represents the lowest admin tier. It must never be
+    // promoted into super-admin authority. Only the explicit super-admin flag
+    // or a configured recovery alias can supply that role.
+    if (isAdminFlag) candidateRoles.add("moderator");
+    if (isSuperAdminFlag || isAliasSuperAdmin) candidateRoles.add("super_admin");
 
     if (candidateRoles.size === 0) {
       return res.status(403).json({ message: "No role assigned" });
@@ -709,10 +711,11 @@ export const requirePermission = (
 
 // Specific role middleware with hierarchy
 export const isAdmin: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
-// Backward-compat: some legacy routes imported `isHeadAdmin`; it now matches `super_admin`.
-export const isHeadAdmin: RequestHandler = requireRole(["super_admin"]);
 export const isSuperAdmin: RequestHandler = requireRole(["super_admin"]);
-export const isModerator: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
+// Compatibility names remain consumers of the canonical guards; they do not
+// carry independent authentication or authorization behavior.
+export const isHeadAdmin: RequestHandler = isSuperAdmin;
+export const isModerator: RequestHandler = isAdmin;
 export const isStaff: RequestHandler = requireRole([
   "support_agent",
   "content_moderator",
@@ -776,48 +779,10 @@ export async function validatePassword(password: string, hash: string): Promise<
   return bcrypt.compare(password, hash);
 }
 
-// Master admin setup function
-// Middleware to require authentication
-export const requireAuth = async (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-  if (!(await bindRequestAuthority(req, res))) return;
-  next();
-};
-
-// Middleware to require admin role
-export const requireAdmin = async (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  if (!(await bindRequestAuthority(req, res))) return;
-  if (blockImpersonatedPrivilege(req, res, true)) return;
-
-  const user = req.user || {};
-  const activeRole = typeof user.activeRole === "string" ? user.activeRole : "";
-  const primaryRole = typeof user.role === "string" ? user.role : "";
-  const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
-  const isAdminFlag = user.isAdmin === true;
-  const isAliasSuperAdmin =
-    isPrivilegedAliasEmail(user?.email) || isPrivilegedAliasEmail(user?.claims?.email);
-
-  const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
-  const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;
-  const normalizedActiveRole = normalizeLegacyRole(activeRole) || activeRole;
-  const normalizedRoles = roles.map((role: string) => normalizeLegacyRole(role) || role);
-  const hasAdminRole =
-    adminRoles.has(normalizedActiveRole) ||
-    adminRoles.has(normalizedPrimaryRole) ||
-    normalizedRoles.some((role: string) => adminRoles.has(role));
-
-  if (isAdminFlag || hasAdminRole || isAliasSuperAdmin) {
-    return next();
-  }
-
-  return res.status(403).json({ error: "Admin access required" });
-};
+// Backward-compatible names remain aliases so every protected route receives
+// identical fresh-account, impersonation, and audit boundaries.
+export const requireAuth: RequestHandler = isAuthenticated;
+export const requireAdmin: RequestHandler = isAdmin;
 
 export async function createMasterAdmin(
   email: string,
