@@ -121,6 +121,7 @@ import {
   resolveCurrentEntryStylesheet,
 } from "./staticAssetRecovery";
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
+import { registerPublicProfileAppRoutes } from "./routes/public-profile-app";
 import { resolveCanonicalBusinessProfileRoute } from "./services/canonicalBusinessProfileRoute";
 import { canExposePublishedProfilePublicly } from "./services/ownerConfirmedDirectProfile";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
@@ -459,9 +460,17 @@ function isCustomDomainMechanicsPath(requestPath: string): boolean {
   }
 
   if (
-    ["/assets/", "/uploads/", "/images/", "/fonts/", "/icons/", "/landing/", "/scoutfitters/"].some(
-      (prefix) => requestPath.startsWith(prefix)
-    )
+    [
+      "/assets/",
+      "/uploads/",
+      "/images/",
+      "/fonts/",
+      "/icons/",
+      "/landing/",
+      "/profile-app-icons/",
+      "/profile-manifests/",
+      "/scoutfitters/",
+    ].some((prefix) => requestPath.startsWith(prefix))
   ) {
     return true;
   }
@@ -1236,6 +1245,7 @@ app.use(landingContractHeaders);
     // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
     // If 'routes' is not implicitly available, it needs to be imported.
     // For this example, assuming 'routes' is handled within 'registerRoutes' or imported elsewhere.
+    registerPublicProfileAppRoutes(app);
     const server = await registerRoutes(app);
 
     // Attach job documents + invoicing/contract APIs after auth/session are configured
