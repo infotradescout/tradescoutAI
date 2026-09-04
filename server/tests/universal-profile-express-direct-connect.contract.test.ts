@@ -97,7 +97,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(panelSource).toContain('view === "choice"');
     expect(panelSource).toContain("disabled={busy || !allowCall}");
     expect(panelSource).toContain("Call requests unavailable");
-    expect(panelSource).toContain("They can call after accepting");
+    expect(panelSource).toContain("They receive your name and phone");
     expect(panelSource).not.toContain("Call now");
     expect(panelSource).toContain("Requests are saved until {businessName} connects.");
     expect(panelSource).not.toContain("TradeScout is receiving requests for");

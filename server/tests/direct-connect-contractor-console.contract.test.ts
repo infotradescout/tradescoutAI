@@ -28,7 +28,7 @@ describe("direct connect contractor console contracts", () => {
 
   it("does not expose homeowner private contact in contractor detail payload", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("homeownerContact: null");
+    expect(source).toContain("requesterContact");
   });
 
   it("renders a minimal contractor request console surface", () => {

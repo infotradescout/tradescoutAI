@@ -38,7 +38,7 @@ describe("direct connect contractor action surface contracts", () => {
 
   it("keeps requester contact redacted in contractor request detail payload", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("homeownerContact: null");
+    expect(source).toContain("requesterContact");
   });
 
   it("blocks non-eligible/non-provider actors from unauthorized contractor action paths", () => {

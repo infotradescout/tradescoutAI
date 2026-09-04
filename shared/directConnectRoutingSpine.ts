@@ -13,7 +13,7 @@ export type DirectConnectRoutingReadiness =
 
 export type DirectConnectVisibilityState = "private_draft" | "review_ready" | "shared_local";
 
-export type DirectConnectContactGateState = "locked" | "review_required" | "request_shared";
+export type DirectConnectContactGateState = "locked" | "review_required" | "request_shared" | "released";
 
 export type CanonicalDirectConnectRequest = {
   requestId: string;

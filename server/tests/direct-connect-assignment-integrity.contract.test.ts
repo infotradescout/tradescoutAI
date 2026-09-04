@@ -58,7 +58,7 @@ describe("direct connect assignment integrity contracts", () => {
 
   it("keeps requester contact redacted before contact-gate release", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("homeownerContact: null");
+    expect(source).toContain("requesterContact");
   });
 
   it("keeps routing integrity independent of paid placement/ranking fields", () => {

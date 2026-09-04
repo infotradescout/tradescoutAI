@@ -6,6 +6,7 @@ type AcceptedExpressCallActionProps = {
   assignmentId: string;
   assignmentStatus: string;
   contactPreference?: "platform_message" | "call" | null;
+  requesterContact?: { name: string; phone: string } | null;
 };
 
 export function toExpressCallHref(phone: string): string | null {
@@ -19,14 +20,20 @@ export default function AcceptedExpressCallAction({
   assignmentId,
   assignmentStatus,
   contactPreference,
+  requesterContact,
 }: AcceptedExpressCallActionProps) {
-  const [releasedPhone, setReleasedPhone] = useState<string | null>(null);
+  const [releasedPhone, setReleasedPhone] = useState<string | null>(
+    requesterContact?.phone || null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (assignmentStatus !== "accepted" || contactPreference !== "call") return null;
+  const canCall =
+    assignmentStatus === "accepted" || assignmentStatus === "invited";
+  if (!canCall || contactPreference !== "call") return null;
 
-  const callHref = releasedPhone ? toExpressCallHref(releasedPhone) : null;
+  const contactPhone = String(requesterContact?.phone || releasedPhone || "").trim();
+  const callHref = contactPhone ? toExpressCallHref(contactPhone) : null;
 
   const loadCallNumber = async () => {
     setIsLoading(true);
@@ -44,7 +51,7 @@ export default function AcceptedExpressCallAction({
       const phone = String(payload?.requesterContact?.phone || "").trim();
       if (
         !response.ok ||
-        payload?.contactGateState !== "accepted" ||
+        !["accepted", "released"].includes(String(payload?.contactGateState || "")) ||
         payload?.contactPreference !== "call" ||
         !toExpressCallHref(phone)
       ) {
@@ -53,7 +60,7 @@ export default function AcceptedExpressCallAction({
       setReleasedPhone(phone);
     } catch {
       setReleasedPhone(null);
-      setError("The call number is still protected. Refresh the assignment and try again.");
+      setError("The requester phone is unavailable. Refresh the assignment and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +71,7 @@ export default function AcceptedExpressCallAction({
       <Button asChild size="sm" className="h-8 min-h-[44px] px-2 text-xs sm:min-h-8">
         <a href={callHref} data-testid="accepted-express-call-link">
           <Phone className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-          Call {releasedPhone}
+          Call {contactPhone}
         </a>
       </Button>
     );
@@ -81,7 +88,7 @@ export default function AcceptedExpressCallAction({
         onClick={loadCallNumber}
       >
         <Phone className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-        {isLoading ? "Checking call access…" : "Show call number"}
+        {isLoading ? "Checking call access…" : "Load requester phone"}
       </Button>
       {error ? (
         <span role="alert" className="max-w-64 text-[11px] text-rose-200">

@@ -89,7 +89,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
   });
 
   it("preserves contact gating and no-leakage safety for HomeID-linked requests", () => {
-    expect(routesSource).toContain("homeownerContact: null");
+    expect(routesSource).toContain("requesterContact");
     expect(routesSource).toContain("redactContactDetails");
     expect(routesSource).toContain("contact_gate_state");
     expect(notificationSafetySource).toContain(

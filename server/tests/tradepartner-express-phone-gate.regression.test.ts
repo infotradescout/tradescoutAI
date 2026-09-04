@@ -33,7 +33,7 @@ describe("public Express Direct Connect phone gate", () => {
       contactPreference: "call",
       nextAction: "submit_express_request",
       message:
-        "Request a call through Direct Connect. Contact stays gated until the business responds.",
+        "Contact is only shared through a submitted Direct Connect request to the exact business.",
     });
     expect(response.body).not.toHaveProperty("phone");
     expect(response.body).not.toHaveProperty("tel");
@@ -50,7 +50,7 @@ describe("public Express Direct Connect phone gate", () => {
     expect(route).not.toContain("target.phone");
   });
 
-  it("persists call as gated intent pending the assigned provider response", () => {
+  it("persists call with requester contact consent before the assigned provider response", () => {
     const route = read("server/routes/tradepartner-express.ts");
     const responseStart = route.indexOf("return res.status(201).json({");
     const responseEnd = route.indexOf("});", responseStart);
@@ -74,7 +74,7 @@ describe("public Express Direct Connect phone gate", () => {
 
     expect(panel).toContain('setRequestedContactPreference("call")');
     expect(panel).toContain("contactPreference: requestedContactPreference");
-    expect(panel).toContain("They can call after accepting");
+    expect(panel).toContain("They receive your name and phone");
     expect(panel).not.toContain("/express-contact/reveal");
     expect(panel).not.toContain("json?.tel");
     expect(panel).not.toContain("window.location.href");

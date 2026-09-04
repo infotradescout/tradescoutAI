@@ -22,7 +22,7 @@ export type ExpressDirectConnectAuthorityTransition = {
   contactPermissionId: string;
   contactPreference: "platform_message" | "call";
   fromContactGateState: string;
-  contactGateState: "accepted" | "provider_declined";
+  contactGateState: "accepted" | "provider_declined" | "released";
   contactReleased: boolean;
 };
 
@@ -77,6 +77,9 @@ export async function transitionExpressDirectConnectAuthority(
   const intent = String(metadata.intent || "");
   const contactPreference = String(metadata.contactPreference || "");
   const permissionDisposition = String(metadata.permissionDisposition || "");
+  const requesterSubmissionConsent =
+    metadata.contactConsent === "request_submission" &&
+    (metadata.contactGateState === "released" || metadata.contactReleaseState === "released");
   const scope = authorityRecord(decisionScope);
   if (
     metadata.authorityGate !== "decision_card" ||
@@ -128,7 +131,9 @@ export async function transitionExpressDirectConnectAuthority(
       cp.source_decision_card_id AS permission_decision_card_id,
       cp.intent AS permission_intent,
       cp.decision_scope AS permission_decision_scope,
-      cp.cooldown_until AS permission_cooldown_until
+      cp.cooldown_until AS permission_cooldown_until,
+      cp.responded_at AS permission_responded_at,
+      cp.responded_by AS permission_responded_by
     FROM decision_cards dc
     JOIN contact_permissions cp ON cp.id = ${contactPermissionId}
     WHERE dc.id = ${sourceDecisionCardId}
@@ -179,7 +184,18 @@ export async function transitionExpressDirectConnectAuthority(
     String(authorityRow.permission_decision_scope || "") === decisionScope;
   const acceptedAuthorityIsReused =
     permissionDisposition === "accepted_reused" && permissionStatus === "accepted";
-  if (!pendingAuthorityIsExact && !acceptedAuthorityIsReused) {
+  const automaticallyReleasedAuthority =
+    requesterSubmissionConsent &&
+    permissionStatus === "accepted" &&
+    (permissionDisposition === "created_released" || acceptedAuthorityIsReused) &&
+    (permissionDisposition === "accepted_reused" ||
+      (String(authorityRow.permission_authority_gate || "") === "decision_card" &&
+        String(authorityRow.permission_decision_card_id || "") === sourceDecisionCardId &&
+        String(authorityRow.permission_intent || "") === intent &&
+        String(authorityRow.permission_decision_scope || "") === decisionScope &&
+        String(authorityRow.permission_responded_by || "") === requesterUserId &&
+        Boolean(authorityRow.permission_responded_at)));
+  if (!pendingAuthorityIsExact && !acceptedAuthorityIsReused && !automaticallyReleasedAuthority) {
     throw new ExpressDirectConnectAuthorityTransitionError(
       409,
       "EXPRESS_AUTHORITY_STATE_CONFLICT",
@@ -196,6 +212,7 @@ export async function transitionExpressDirectConnectAuthority(
   const responseReason = isAccept
     ? "express_assignment_accepted"
     : params.declineReason || "express_assignment_declined";
+  const contactReleasedForTransition = automaticallyReleasedAuthority || isAccept;
 
   if (pendingAuthorityIsExact) {
     const nextPermissionStatus = isAccept ? "accepted" : "declined";
@@ -229,13 +246,17 @@ export async function transitionExpressDirectConnectAuthority(
     requesterId: requesterUserId,
     targetUserId: params.providerUserId,
     actorId: params.providerUserId,
-    eventType: pendingAuthorityIsExact
+    eventType: automaticallyReleasedAuthority
       ? isAccept
-        ? "accepted"
-        : "declined"
-      : isAccept
-        ? "express_authority_confirmed"
-        : "express_scope_declined_existing_relationship",
+        ? "provider_accepted_after_requester_consent"
+        : "provider_declined_after_requester_consent"
+      : pendingAuthorityIsExact
+        ? isAccept
+          ? "accepted"
+          : "declined"
+        : isAccept
+          ? "express_authority_confirmed"
+          : "express_scope_declined_existing_relationship",
     fromStatus: pendingAuthorityIsExact ? "pending" : "accepted",
     toStatus: pendingAuthorityIsExact ? (isAccept ? "accepted" : "declined") : "accepted",
     reasonCode: responseReason,
@@ -244,7 +265,8 @@ export async function transitionExpressDirectConnectAuthority(
       decision: params.decision,
       fromContactGateState,
       contactGateState,
-      contactReleased: isAccept,
+      contactReleased: contactReleasedForTransition,
+      contactConsent: automaticallyReleasedAuthority ? "request_submission" : undefined,
       permissionDisposition,
       contactPreference,
     },
@@ -293,7 +315,7 @@ export async function transitionExpressDirectConnectAuthority(
       decision: params.decision,
       fromContactGateState,
       contactGateState,
-      contactReleased: isAccept,
+      contactReleased: contactReleasedForTransition,
       contactPreference,
     },
   });
@@ -304,7 +326,7 @@ export async function transitionExpressDirectConnectAuthority(
     contactPreference: contactPreference as "platform_message" | "call",
     fromContactGateState,
     contactGateState,
-    contactReleased: isAccept,
+    contactReleased: contactReleasedForTransition,
   };
 }
 
@@ -324,8 +346,9 @@ export type ExpressDirectConnectReleasedContact = {
   workRequestId: string;
   requesterUserId: string;
   contactPreference: "platform_message" | "call";
-  contactGateState: "accepted";
-  phone: string | null;
+  contactGateState: "accepted" | "released";
+  name: string;
+  phone: string;
 };
 
 export async function loadExpressDirectConnectReleasedContact(
@@ -355,7 +378,7 @@ export async function loadExpressDirectConnectReleasedContact(
       "Assignment not found."
     );
   }
-  if (assignmentStatus !== "accepted") {
+  if (assignmentStatus !== "accepted" && assignmentStatus !== "invited") {
     throw new ExpressDirectConnectContactReleaseError(
       409,
       "EXPRESS_CONTACT_NOT_RELEASED",
@@ -397,6 +420,10 @@ export async function loadExpressDirectConnectReleasedContact(
   const contactPermissionId = String(metadata?.contactPermissionId || "");
   const decisionScope = String(metadata?.decisionScope || "");
   const permissionDisposition = String(metadata?.permissionDisposition || "");
+  const requesterSubmissionConsent =
+    metadata?.contactConsent === "request_submission" &&
+    (metadata?.contactGateState === "released" ||
+      metadata?.contactReleaseState === "released");
   const contactPreference = String(metadata?.contactPreference || "");
   const scope = authorityRecord(decisionScope);
   const scopeMatchesRequest =
@@ -422,6 +449,13 @@ export async function loadExpressDirectConnectReleasedContact(
       409,
       "EXPRESS_CONTACT_AUTHORITY_INVALID",
       "The accepted assignment does not have matching contact authority."
+    );
+  }
+  if (assignmentStatus !== "accepted" && !requesterSubmissionConsent) {
+    throw new ExpressDirectConnectContactReleaseError(
+      409,
+      "EXPRESS_CONTACT_NOT_RELEASED",
+      "Contact remains gated until this assignment is accepted."
     );
   }
 
@@ -450,10 +484,12 @@ export async function loadExpressDirectConnectReleasedContact(
   const pairAndCardMatch =
     authorityRow &&
     String(authorityRow.decision_card_user_id || "") === requesterUserId &&
-    String(authorityRow.decision_card_status || "") === "completed" &&
+    (String(authorityRow.decision_card_status || "") === "completed" ||
+      (requesterSubmissionConsent &&
+        String(authorityRow.decision_card_status || "") === "active")) &&
     String(authorityRow.decision_card_intent || "") === "hire" &&
     String(authorityRow.decision_card_scope || "") === decisionScope &&
-    Boolean(authorityRow.decision_card_decided_at) &&
+    (Boolean(authorityRow.decision_card_decided_at) || requesterSubmissionConsent) &&
     String(authorityRow.permission_requester_id || "") === requesterUserId &&
     String(authorityRow.permission_target_user_id || "") === params.providerUserId &&
     String(authorityRow.permission_status || "") === "accepted";
@@ -466,8 +502,23 @@ export async function loadExpressDirectConnectReleasedContact(
     String(authorityRow.permission_decision_scope || "") === decisionScope &&
     String(authorityRow.permission_responded_by || "") === params.providerUserId &&
     Boolean(authorityRow.permission_responded_at);
-  const acceptedPairWasReused = permissionDisposition === "accepted_reused" && pairAndCardMatch;
-  if (!exactCreatedPermission && !acceptedPairWasReused) {
+  const automaticallyReleasedPermission =
+    requesterSubmissionConsent &&
+    (permissionDisposition === "created_released" || permissionDisposition === "accepted_reused") &&
+    pairAndCardMatch &&
+    String(authorityRow.permission_status || "") === "accepted" &&
+    (permissionDisposition === "accepted_reused" ||
+      (String(authorityRow.permission_authority_gate || "") === "decision_card" &&
+        String(authorityRow.permission_decision_card_id || "") === sourceDecisionCardId &&
+        String(authorityRow.permission_intent || "") === "hire" &&
+        String(authorityRow.permission_decision_scope || "") === decisionScope &&
+        String(authorityRow.permission_responded_by || "") === requesterUserId &&
+        Boolean(authorityRow.permission_responded_at)));
+  const acceptedPairWasReused =
+    permissionDisposition === "accepted_reused" &&
+    pairAndCardMatch &&
+    !automaticallyReleasedPermission;
+  if (!exactCreatedPermission && !automaticallyReleasedPermission && !acceptedPairWasReused) {
     throw new ExpressDirectConnectContactReleaseError(
       409,
       "EXPRESS_CONTACT_AUTHORITY_INVALID",
@@ -475,6 +526,7 @@ export async function loadExpressDirectConnectReleasedContact(
     );
   }
 
+  if (!automaticallyReleasedPermission) {
   const gateEventResult = await tx.execute(sql`
     SELECT metadata
     FROM work_request_events
@@ -502,6 +554,28 @@ export async function loadExpressDirectConnectReleasedContact(
     );
   }
 
+  } else {
+    const consentEventResult = await tx.execute(sql`
+      SELECT id
+      FROM contact_permission_events
+      WHERE contact_permission_id = ${contactPermissionId}
+        AND requester_id = ${requesterUserId}
+        AND target_user_id = ${params.providerUserId}
+        AND actor_id = ${requesterUserId}
+        AND source_decision_card_id = ${sourceDecisionCardId}
+        AND decision_scope = ${decisionScope}
+        AND metadata->>'contactConsent' = 'request_submission'
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `);
+    if (!consentEventResult.rows?.[0]?.id) {
+      throw new ExpressDirectConnectContactReleaseError(
+        409,
+        "EXPRESS_CONTACT_AUTHORITY_INVALID",
+        "The request has no recorded requester contact consent."
+      );
+    }
+  }
   if (acceptedPairWasReused) {
     const reuseEventResult = await tx.execute(sql`
       SELECT id
@@ -525,32 +599,25 @@ export async function loadExpressDirectConnectReleasedContact(
     }
   }
 
-  // Platform-message consent authorizes only the governed conversation. It
-  // never authorizes a raw phone or email read, even after provider acceptance.
-  if (contactPreference === "platform_message") {
-    return {
-      assignmentId,
-      workRequestId,
-      requesterUserId,
-      contactPreference,
-      contactGateState: "accepted",
-      phone: null,
-    };
-  }
-
   const requesterContactResult = await tx.execute(sql`
-    SELECT phone
+    SELECT first_name, last_name, phone
     FROM users
     WHERE id = ${requesterUserId}
     LIMIT 1
   `);
   const requesterContact = (requesterContactResult.rows?.[0] as any) || null;
+  const name = [
+    String(requesterContact?.first_name || "").trim(),
+    String(requesterContact?.last_name || "").trim(),
+  ]
+    .filter(Boolean)
+    .join(" ");
   const phone = String(requesterContact?.phone || "").trim();
-  if (!phone) {
+  if (name.length < 2 || phone.replace(/\D+/g, "").length < 10) {
     throw new ExpressDirectConnectContactReleaseError(
       409,
       "EXPRESS_CONTACT_DETAILS_UNAVAILABLE",
-      "Requester contact details are unavailable."
+      "Requester name and phone are unavailable."
     );
   }
 
@@ -559,7 +626,8 @@ export async function loadExpressDirectConnectReleasedContact(
     workRequestId,
     requesterUserId,
     contactPreference: contactPreference as "platform_message" | "call",
-    contactGateState: "accepted",
+    contactGateState: automaticallyReleasedPermission ? "released" : "accepted",
+    name,
     phone,
   };
 }

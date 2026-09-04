@@ -148,7 +148,7 @@ describe("requestCardPresentation", () => {
     };
 
     expect(getDirectConnectContactGateSummary(request)).toBe(
-      "Private contact stays locked for this request until the approved release step."
+      "Your name and phone are shared with the exact assigned recipients when you send the request. Email and address stay private."
     );
     expect(getDirectConnectContactGateSummary(request)).not.toContain("555-123-9876");
     expect(getDirectConnectContactGateSummary(request)).not.toContain("owner@example.test");

@@ -170,7 +170,7 @@ const featureGroups = [
       {
         action: "Send it only to businesses you choose",
         name: "Direct Connect",
-        copy: "Selected businesses review the request; contact opens only after acceptance.",
+        copy: "Selected businesses receive the requester’s name and phone with the request; acceptance opens the conversation.",
         href: routes.directConnect,
       },
       {
@@ -392,7 +392,7 @@ const featureGroups = [
       {
         action: "Review work that fits before accepting it",
         name: "Business request board",
-        copy: "See eligible Direct Connect requests, review the supplied context, and accept or decline before private contact is released.",
+        copy: "See eligible Direct Connect requests with the requester’s name and phone, then accept or decline to open the conversation.",
         href: routes.businessRequests,
       },
       {
@@ -921,7 +921,7 @@ export function AboutExplainerContent() {
               <details className="content-section">
                 <summary>
                   <strong>Preview before contact</strong>
-                  <small>Each side sees the useful context before private contact opens.</small>
+                  <small>The exact recipient receives the requester’s name and phone with the request; acceptance opens the conversation.</small>
                 </summary>
                 <div className="connection-stage">
                   <div className="connection-stage-label">

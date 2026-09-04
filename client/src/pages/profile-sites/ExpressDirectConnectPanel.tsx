@@ -461,7 +461,7 @@ export default function ExpressDirectConnectPanel({
                     {!allowCall ? (
                       <span className="text-sm text-white/80">Call requests unavailable</span>
                     ) : (
-                      <span className="text-sm text-white/80">They can call after accepting</span>
+                      <span className="text-sm text-white/80">They receive your name and phone</span>
                     )}
                   </span>
                 </button>
@@ -506,8 +506,8 @@ export default function ExpressDirectConnectPanel({
                 </h3>
                 {requestedContactPreference === "call" ? (
                   <p className="mt-2 text-sm leading-6 text-stone-600">
-                    Send a protected call request. Your contact details stay gated until the
-                    business responds in Direct Connect.
+                    Sending this request gives this business your name and phone number so they
+                    can contact you directly. Conversation and next steps stay in Direct Connect.
                   </p>
                 ) : null}
                 {multiStoneSelections.length ? (
@@ -679,7 +679,7 @@ export default function ExpressDirectConnectPanel({
               {requestDeliveryCustody !== "tradescout_pending_owner" ? (
                 <p className="mx-auto mt-2 max-w-md text-stone-600">
                   {requestedContactPreference === "call"
-                    ? `${operatorName} received your protected call request. They can call after accepting it in Direct Connect.`
+                    ? `${operatorName} received your name and phone number with the request and can contact you directly. Conversation stays in Direct Connect.`
                     : hasSeparateOperator
                       ? `Your ${businessName} request was sent to ${operatorName}.`
                       : `${businessName} received your project details.`}

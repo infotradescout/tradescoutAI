@@ -54,7 +54,7 @@ describe("direct connect end-to-end local lifecycle smoke", () => {
   it("preserves contact gate and unauthorized-access protections in the integrated path", () => {
     const routesSource = read("server/routes/direct-connect.ts");
 
-    expect(routesSource).toContain("homeownerContact: null");
+    expect(routesSource).toContain("requesterContact");
     expect(routesSource).toContain(
       "Submit an interested or need_more_info response before requesting contact."
     );

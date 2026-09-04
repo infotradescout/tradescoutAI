@@ -1039,6 +1039,7 @@ type DirectConnectInboxItem = {
     stateCode?: string | null;
     createdAt?: string | null;
     attachmentCount?: number | null;
+    requesterContact?: { name: string; phone: string } | null;
   } | null;
   conversationThreadId?: string | null;
 };
@@ -2677,7 +2678,7 @@ function DirectConnectRequestComposer({
       );
       toast({
         title: "Create your free account to share this request",
-        description: "Your contact information stays private until you approve a contact request.",
+        description: "When you send the request, your name and phone go only to the exact assigned recipients. Email and address stay private.",
       });
       const next = encodeURIComponent(currentReturnPath());
       navigate(`/pre-scout-setup?mode=signin&next=${next}`);
@@ -3159,7 +3160,7 @@ function DirectConnectRequestComposer({
                 Review request
               </Button>
               <p className="text-center text-[11px] text-white/62">
-                Your contact details stay private until you choose the next step.
+                Your name and phone are shared with the exact recipients when you send this request. Email and address stay private.
               </p>
               {!hasEntryContext && (
                 <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
@@ -4483,6 +4484,28 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
                         />
                       ) : null}
 
+                      {request?.requesterContact ? (
+                        <div
+                          className="space-y-1 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-xs text-[color:var(--text-primary)]"
+                          data-testid="direct-connect-requester-contact"
+                        >
+                          <p className="font-semibold">Requester contact</p>
+                          <p className="text-[color:var(--text-secondary)]">
+                            The requester authorized sharing these callback details by sending this request.
+                          </p>
+                          <p>
+                            <span className="font-medium">{request.requesterContact.name}</span>
+                            {" · "}
+                            <a
+                              className="underline underline-offset-2"
+                              href={"tel:" + request.requesterContact.phone}
+                            >
+                              {request.requesterContact.phone}
+                            </a>
+                          </p>
+                        </div>
+                      ) : null}
+
                       {actionableAssignment && isStructuredReplyOpen && (
                         <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
                           <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
@@ -4600,10 +4623,11 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
                           </Button>
                         )}
 
-                        <AcceptedExpressCallAction
+                                        <AcceptedExpressCallAction
                           assignmentId={assignment.id}
                           assignmentStatus={status}
                           contactPreference={assignment.contactPreference}
+                          requesterContact={request?.requesterContact}
                         />
 
                         <Button

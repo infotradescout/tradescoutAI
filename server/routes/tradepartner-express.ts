@@ -183,8 +183,8 @@ type ExpressContactAuthorityResult = {
   contactRequestNotificationId: string;
   intent: typeof EXPRESS_AUTHORITY_INTENT;
   decisionScope: string;
-  contactGateState: "pending_provider_response";
-  permissionDisposition: "created_pending" | "accepted_reused";
+  contactGateState: "released";
+  permissionDisposition: "created_released" | "accepted_reused";
 };
 
 export async function createExpressDirectConnectAuthority(
@@ -304,12 +304,10 @@ export async function createExpressDirectConnectAuthority(
       priority: "normal",
       title:
         params.contactPreference === "call"
-          ? "New protected call request"
+          ? "New Direct Connect call request"
           : "New Direct Connect request",
       message:
-        params.contactPreference === "call"
-          ? "A requester asked you to call after you accept their Direct Connect request."
-          : "A requester is waiting for your response in Direct Connect.",
+        "A requester sent a Direct Connect request. Their name and phone number are included for follow-up.",
       actionUrl: "/direct-connect/inbox",
       actionText: "Open request",
       iconName: "briefcase",
@@ -327,7 +325,10 @@ export async function createExpressDirectConnectAuthority(
         intent: EXPRESS_AUTHORITY_INTENT,
         decisionScope,
         contactPreference: params.contactPreference,
-        contactGateState: "pending_provider_response",
+        contactConsent: "request_submission",
+        minimumContactFields: ["name", "phone"],
+        recipientScope: "exact_assigned_recipient_only",
+        contactGateState: "released",
       },
       createdAt: params.now,
       updatedAt: params.now,
@@ -346,10 +347,10 @@ export async function createExpressDirectConnectAuthority(
     existingPermission?.id ?? existingPermission?.contactPermissionId ?? ""
   );
   const permissionDisposition =
-    existingStatus === "accepted" ? "accepted_reused" : "created_pending";
-  // The pair-level relationship may already be accepted, but this new scoped
-  // request remains pending until its assigned provider responds.
-  const contactGateState = "pending_provider_response" as const;
+    existingStatus === "accepted" ? "accepted_reused" : "created_released";
+  // Sending a Direct Connect request is the requester's consent to share the
+  // minimum callback fields with this exact assigned provider.
+  const contactGateState = "released" as const;
 
   if (!existingPermission) {
     const [permission] = await tx
@@ -357,7 +358,7 @@ export async function createExpressDirectConnectAuthority(
       .values({
         requesterId: params.requesterUserId,
         targetUserId: params.providerUserId,
-        status: "pending",
+        status: "accepted",
         lastRequestType: params.contactPreference === "call" ? "call" : "message",
         lastRequestPreview: params.description.slice(0, 280) || null,
         lastRequestNotificationId: contactRequestNotificationId,
@@ -366,9 +367,9 @@ export async function createExpressDirectConnectAuthority(
         sourceScoutRecommendationId: null,
         intent: EXPRESS_AUTHORITY_INTENT,
         decisionScope,
-        respondedAt: null,
-        respondedBy: null,
-        responseReason: null,
+        respondedAt: params.now,
+        respondedBy: params.requesterUserId,
+        responseReason: "direct_connect_submission_consent",
         cooldownUntil: null,
         createdAt: params.now,
         updatedAt: params.now,
@@ -392,11 +393,13 @@ export async function createExpressDirectConnectAuthority(
     eventType:
       permissionDisposition === "accepted_reused"
         ? "express_authority_reused"
-        : "express_authority_created",
+        : "requester_consent_granted",
     fromStatus: permissionDisposition === "accepted_reused" ? "accepted" : null,
-    toStatus: permissionDisposition === "accepted_reused" ? "accepted" : "pending",
+    toStatus: "accepted",
     reasonCode:
-      permissionDisposition === "accepted_reused" ? "existing_accepted_relationship" : null,
+      permissionDisposition === "accepted_reused"
+        ? "existing_accepted_relationship"
+        : "direct_connect_submission_consent",
     metadata: {
       workRequestId: params.workRequestId,
       profileId: params.profileId,
@@ -405,7 +408,12 @@ export async function createExpressDirectConnectAuthority(
       providerUserId: params.providerUserId,
       contactPreference: params.contactPreference,
       contactRequestNotificationId,
+      contactConsent: "request_submission",
       contactGateState,
+      contactReleaseState: contactGateState,
+      contactReleased: true,
+      minimumContactFields: ["name", "phone"],
+      recipientScope: "exact_assigned_recipient_only",
       permissionDisposition,
     },
     authorityGate: EXPRESS_AUTHORITY_GATE,
@@ -587,7 +595,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         contactPreference: "call",
         nextAction: "submit_express_request",
         message:
-          "Request a call through Direct Connect. Contact stays gated until the business responds.",
+          "Request a call through Direct Connect. Contact is shared only through a submitted Direct Connect request to the exact business.",
       });
     }
   );
@@ -856,8 +864,12 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 contactRequestNotificationId: authority.contactRequestNotificationId,
                 intent: authority.intent,
                 decisionScope: authority.decisionScope,
+                contactConsent: "request_submission",
                 contactGateState: authority.contactGateState,
                 contactReleaseState: authority.contactGateState,
+                contactReleased: true,
+                minimumContactFields: ["name", "phone"],
+                recipientScope: "exact_assigned_recipient_only",
                 permissionDisposition: authority.permissionDisposition,
                 stoneName: publicStoneName,
                 ...(publicStoneSelections.length ? { stoneSelections: publicStoneSelections } : {}),
@@ -896,8 +908,12 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 contactRequestNotificationId: authority.contactRequestNotificationId,
                 intent: authority.intent,
                 decisionScope: authority.decisionScope,
+                contactConsent: "request_submission",
                 contactGateState: authority.contactGateState,
                 contactReleaseState: authority.contactGateState,
+                contactReleased: true,
+                minimumContactFields: ["name", "phone"],
+                recipientScope: "exact_assigned_recipient_only",
                 permissionDisposition: authority.permissionDisposition,
               },
             },
@@ -1071,7 +1087,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
                   : "",
                 `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
-                `<p>Your public profile phone number was not exposed. Open Direct Connect to review and respond before contact continues.</p>`,
+                `<p>Requester contact: ${escapeHtml(body.name)} · ${escapeHtml(body.phone)}. The requester gave permission to share this name and phone number by sending the Direct Connect request. Open Direct Connect to respond.</p>`,
                 `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
               ]
                 .filter(Boolean)
@@ -1087,7 +1103,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   : null,
                 body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
-                "Your public profile phone number was not exposed. Review and respond before contact continues.",
+                `Requester contact: ${body.name} · ${body.phone}. The requester gave permission to share this name and phone number by sending the Direct Connect request. Review and respond in Direct Connect.`,
                 `Open Direct Connect inbox: ${inboxUrl}`,
               ]
                 .filter(Boolean)
@@ -1217,8 +1233,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 target.deliveryCustody === "tradescout_pending_owner"
                   ? `<p>TradeScout received your request for ${escapeHtml(target.businessName)}. The owner has not connected this profile yet, so TradeScout is holding the request for owner handoff.</p>`
                   : body.contactPreference === "call"
-                    ? `<p>Your protected call request was sent to ${escapeHtml(target.businessName)}. They can call using the contact information you provided after accepting the request in Direct Connect.</p>`
-                    : `<p>Your request was sent directly to ${escapeHtml(target.businessName)}. They can continue contact after responding in Direct Connect.</p>`,
+                    ? `<p>Your request was sent to ${escapeHtml(target.businessName)} with your name and phone number so they can contact you directly. Their response and next steps remain in Direct Connect.</p>`
+                    : `<p>Your request was sent directly to ${escapeHtml(target.businessName)} with your name and phone number. Their response and next steps remain in Direct Connect.</p>`,
                 "<hr />",
                 requesterWasCreated
                   ? target.deliveryCustody === "tradescout_pending_owner"
@@ -1234,8 +1250,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 target.deliveryCustody === "tradescout_pending_owner"
                   ? `TradeScout received your request for ${target.businessName}. The owner has not connected this profile yet, so TradeScout is holding the request for owner handoff.`
                   : body.contactPreference === "call"
-                    ? `Your protected call request was sent to ${target.businessName}. They can call using the contact information you provided after accepting the request in Direct Connect.`
-                    : `Your request was sent directly to ${target.businessName}. They can continue contact after responding in Direct Connect.`,
+                    ? `Your request was sent to ${target.businessName} with your name and phone number so they can contact you directly. Their response and next steps remain in Direct Connect.`
+                    : `Your request was sent directly to ${target.businessName} with your name and phone number. Their response and next steps remain in Direct Connect.`,
                 requesterWasCreated
                   ? target.deliveryCustody === "tradescout_pending_owner"
                     ? "We also set up a free TradeScout account so you can track the request and any owner handoff in one place."
@@ -1296,7 +1312,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           }
         }
 
-        console.info("[tradepartner-express] contact-gated request created", {
+        console.info("[tradepartner-express] request created with requester contact consent", {
           requestId: created.id,
           correlationId: httpRequestId,
           profileId: target.profileId,

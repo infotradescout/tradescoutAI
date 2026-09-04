@@ -63,7 +63,7 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       actionHint: "Prepare response",
       contactUnlocked: false,
     });
-    expect(copy.summary).toContain("Contact opens only after acceptance");
+    expect(copy.summary).toContain("The requester’s name and phone arrived with the request; acceptance opens conversation");
   });
 
   it("changes the primary action once the structured response form is open", () => {

@@ -69,6 +69,27 @@ describe("accepted Express call action", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+
+  it("uses submission-authorized requester contact immediately for an invited call assignment", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      root.render(
+        <AcceptedExpressCallAction
+          assignmentId="assignment-1"
+          assignmentStatus="invited"
+          contactPreference="call"
+          requesterContact={{ name: "Alex Smith", phone: "+1 (404) 555-0100" }}
+        />
+      );
+    });
+
+    expect(container.querySelector('a[href="tel:+14045550100"]')).not.toBeNull();
+    expect(container.textContent).toContain("Call +1 (404) 555-0100");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("loads the exact gated endpoint before rendering the accepted call link", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -139,7 +160,7 @@ describe("accepted Express call action", () => {
     });
 
     expect(container.querySelector('a[href^="tel:"]')).toBeNull();
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain("still protected");
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("requester phone is unavailable");
   });
 
   it("is wired into the shipped provider inbox with server-derived preference", () => {
@@ -148,6 +169,6 @@ describe("accepted Express call action", () => {
     expect(shell).toContain('import AcceptedExpressCallAction from "./AcceptedExpressCallAction"');
     expect(shell).toContain("<AcceptedExpressCallAction");
     expect(shell).toContain("contactPreference={assignment.contactPreference}");
-    expect(shell).not.toContain("requesterContact={assignment");
+    expect(shell).toContain("requesterContact={request?.requesterContact}");
   });
 });

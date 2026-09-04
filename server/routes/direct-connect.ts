@@ -104,6 +104,11 @@ import {
 } from "./direct-connect/authority";
 import type { ExpressDirectConnectAuthorityTransition } from "./direct-connect/authority";
 import {
+  loadDirectConnectContactReleasedRequestIds,
+  loadDirectConnectRequesterContactByRequest,
+  loadDirectConnectRequesterContactByRequestIds,
+} from "./direct-connect/requester-contact";
+import {
   appendHomeIdCompletedWorkEnrichmentFromDirectConnect,
   appendHomeIdRequestContextRecord,
   appendHomeIdTimelineEventFromDirectConnect,
@@ -171,12 +176,6 @@ function resolveDirectConnectGiveawayEligibility(params: {
 
 function createId(prefix: string) {
   return `${prefix}_${randomBytes(12).toString("hex")}`;
-}
-
-function toNumber(value: unknown) {
-  if (value === null || value === undefined || value === "") return 0;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
 }
 
 type TimelinePhase =
@@ -6015,6 +6014,10 @@ export function registerDirectConnectRoutes(app: Express) {
             actorUserId: ownerUserId,
             metadata: {
               source: "direct_connect",
+              contactConsent: "request_submission",
+              contactGateState: "released",
+              contactReleaseState: "released",
+              minimumContactFields: ["name", "phone"],
               ...(body.operationId
                 ? {
                     operation: "requester_create_request",
@@ -6095,7 +6098,7 @@ export function registerDirectConnectRoutes(app: Express) {
             completenessState,
             routingReadiness,
             visibilityState: "review_ready",
-            contactGateState: "locked",
+            contactGateState: "released",
             createdAt: new Date().toISOString(),
             sourceSurface: "direct_connect",
           };
@@ -6131,6 +6134,18 @@ export function registerDirectConnectRoutes(app: Express) {
               actorId: String(ownerUserId),
               eventType: "request_shared",
               metadata: { source: "direct_connect_create" },
+            });
+            await appendDispatchEvent({
+              requestId: createdRequestId,
+              actorType: "requester",
+              actorId: String(ownerUserId),
+              eventType: "contact_released",
+              metadata: {
+                source: "requester_submission",
+                consent: "request_submission",
+                minimumContactFields: ["name", "phone"],
+                recipientScope: "exact_assigned_recipients_only",
+              },
             });
           } catch (error) {
             if (isSchemaMismatchError(error)) {
@@ -7600,6 +7615,13 @@ export function registerDirectConnectRoutes(app: Express) {
           const contactPreferenceByRequest = await loadExpressContactPreferenceByRequest(
             workRequestIds.map(String)
           );
+          const contactReleasedRequestIds = await loadDirectConnectContactReleasedRequestIds(
+            workRequestIds.map(String)
+          );
+          const requesterContactByRequest = await loadDirectConnectRequesterContactByRequest(
+            requests,
+            contactReleasedRequestIds
+          );
           // Resolve conversation threads for accepted assignments.
           // Business/worker providers are stored in conversations using userId as contractorId.
           const conversationByHomeowner = new Map<string, string>();
@@ -7661,6 +7683,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 attachmentCount: getAttachmentCount(requestRow),
               };
             })(),
+            requesterContact: requesterContactByRequest.get(String(a.workRequestId)) || null,
             conversationThreadId: (() => {
               if (!providerUserId) return null;
               const reqRow = requestById.get(a.workRequestId) as any;
@@ -7687,6 +7710,13 @@ export function registerDirectConnectRoutes(app: Express) {
             const requestById = new Map(requests.map((r: any) => [r.id, r]));
             const contactPreferenceByRequest = await loadExpressContactPreferenceByRequest(
               workRequestIds.map(String)
+            );
+            const contactReleasedRequestIds = await loadDirectConnectContactReleasedRequestIds(
+              workRequestIds.map(String)
+            );
+            const requesterContactByRequest = await loadDirectConnectRequesterContactByRequest(
+              requests,
+              contactReleasedRequestIds
             );
 
             const homeownerIds = Array.from(
@@ -7737,6 +7767,7 @@ export function registerDirectConnectRoutes(app: Express) {
                   attachmentCount: getAttachmentCount(requestRow),
                 };
               })(),
+              requesterContact: requesterContactByRequest.get(String(a.workRequestId)) || null,
               conversationThreadId: (() => {
                 const reqRow = requestById.get(a.workRequestId) as any;
                 if (!reqRow?.createdByUserId) return null;
@@ -8032,6 +8063,17 @@ export function registerDirectConnectRoutes(app: Express) {
         const requestIds = Array.from(
           new Set((candidateRows as any[]).map((row: any) => String(row.request_id || "")))
         ).filter(Boolean);
+        const contactReleasedRequestIds = new Set(
+          (candidateRows as any[])
+            .filter((row: any) => String(row.contact_gate_state || "").toLowerCase() === "released")
+            .map((row: any) => String(row.request_id || ""))
+            .filter(Boolean)
+        );
+        const requesterContactByRequest =
+          await loadDirectConnectRequesterContactByRequestIds(
+            requestIds,
+            contactReleasedRequestIds
+          );
         const workspaceByRequestId = new Map<string, any>();
         if (requestIds.length) {
           const workspaceRows = await safeSelectRows("workspaces", () =>
@@ -8299,6 +8341,7 @@ export function registerDirectConnectRoutes(app: Express) {
           const invoiceMeta = invoiceSummaryByRequestId.get(requestId) || null;
           const receiptMeta = receiptSummaryByRequestId.get(requestId) || null;
           const workspace = workspaceByRequestId.get(requestId) || null;
+          const requesterContact = requesterContactByRequest.get(requestId) || null;
           const allowedLifecycleActions = workspace
             ? getAllowedLifecycleActions({
                 stage: String(workspace.active_stage || "contact") as any,
@@ -8320,6 +8363,7 @@ export function registerDirectConnectRoutes(app: Express) {
               ? row.eligibility_reasons
               : [],
             contactGateState: String(row.contact_gate_state || "locked"),
+            requesterContact,
             createdAt: row.created_at || null,
             responseState: latestResponse ? String(latestResponse.response_type || "") : null,
             lifecycleStatus: lifecycleMeta?.lifecycleStatus ?? null,
@@ -8499,6 +8543,15 @@ export function registerDirectConnectRoutes(app: Express) {
         if (!candidate) {
           return res.status(403).json({ message: "Request not available for this contractor" });
         }
+
+        const requesterContactByRequest =
+          await loadDirectConnectRequesterContactByRequestIds(
+            [requestId],
+            String(candidate.contact_gate_state || "").toLowerCase() === "released"
+              ? new Set([requestId])
+              : new Set()
+          );
+        const requesterContact = requesterContactByRequest.get(requestId) || null;
 
         await appendDispatchEvent({
           requestId,
@@ -8944,7 +8997,7 @@ export function registerDirectConnectRoutes(app: Express) {
             : null,
           createdAt: candidate.created_at || null,
           updatedAt: candidate.updated_at || null,
-          homeownerContact: null,
+          requesterContact,
           timeline: timelineItems,
         });
       } catch (error) {
@@ -9285,8 +9338,8 @@ export function registerDirectConnectRoutes(app: Express) {
           contactPreference: released.contactPreference,
           contactGateState: released.contactGateState,
           requesterContact:
-            released.contactPreference === "call" && released.phone
-              ? { phone: released.phone }
+            released.name && released.phone
+              ? { name: released.name, phone: released.phone }
               : null,
         });
       } catch (error) {

@@ -63,8 +63,9 @@ function updateHarness(returningRows: any[][]) {
 }
 
 function authorityMetadata(
-  permissionDisposition: "created_pending" | "accepted_reused",
-  contactPreference: "platform_message" | "call" = "call"
+  permissionDisposition: "created_pending" | "created_released" | "accepted_reused",
+  contactPreference: "platform_message" | "call" = "call",
+  submissionConsent = false
 ) {
   const decisionScope = JSON.stringify({
     kind: "tradepartner_profile_express",
@@ -88,7 +89,13 @@ function authorityMetadata(
     intent: "hire",
     decisionScope,
     contactPreference,
-    contactGateState: "pending_provider_response",
+    ...(submissionConsent
+      ? {
+          contactConsent: "request_submission",
+          contactReleaseState: "released",
+          contactGateState: "released",
+        }
+      : { contactGateState: "pending_provider_response" }),
     permissionDisposition,
   };
 }
@@ -116,7 +123,7 @@ function authorityRow(
 }
 
 function transitionTx(args?: {
-  disposition?: "created_pending" | "accepted_reused";
+  disposition?: "created_pending" | "created_released" | "accepted_reused";
   permissionStatus?: "pending" | "accepted";
   updateRows?: any[][];
 }) {
@@ -142,7 +149,7 @@ function transitionTx(args?: {
 }
 
 describe("Express Direct Connect formal authority creation", () => {
-  it("creates requester-owned Decision Card, pending permission, and linked audit event", async () => {
+  it("creates requester-owned Decision Card, accepted permission, and linked audit event", async () => {
     const execute = vi.fn().mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
     const inserts = insertHarness([
       [{ id: "decision-card-1" }],
@@ -160,8 +167,8 @@ describe("Express Direct Connect formal authority creation", () => {
       contactPermissionId: "permission-1",
       contactRequestNotificationId: "notification-1",
       intent: "hire",
-      contactGateState: "pending_provider_response",
-      permissionDisposition: "created_pending",
+      contactGateState: "released",
+      permissionDisposition: "created_released",
     });
     expect(JSON.parse(result.decisionScope)).toEqual({
       kind: "tradepartner_profile_express",
@@ -191,7 +198,7 @@ describe("Express Direct Connect formal authority creation", () => {
     expect(inserts.valuesCalls[2]).toMatchObject({
       requesterId: "requester-1",
       targetUserId: "provider-1",
-      status: "pending",
+      status: "accepted",
       lastRequestType: "call",
       lastRequestNotificationId: "notification-1",
       authorityGate: "decision_card",
@@ -200,9 +207,9 @@ describe("Express Direct Connect formal authority creation", () => {
     });
     expect(inserts.valuesCalls[3]).toMatchObject({
       contactPermissionId: "permission-1",
-      eventType: "express_authority_created",
+      eventType: "requester_consent_granted",
       fromStatus: null,
-      toStatus: "pending",
+      toStatus: "accepted",
       sourceDecisionCardId: "decision-card-1",
     });
   });
@@ -224,7 +231,7 @@ describe("Express Direct Connect formal authority creation", () => {
 
     expect(result).toMatchObject({
       contactPermissionId: "accepted-permission",
-      contactGateState: "pending_provider_response",
+      contactGateState: "released",
       permissionDisposition: "accepted_reused",
     });
     expect(inserts.valuesCalls).toHaveLength(3);
@@ -321,6 +328,50 @@ describe("Express Direct Connect provider authority transition", () => {
       }),
     });
     expect(JSON.stringify(result)).not.toMatch(/phone|email|tel:/i);
+  });
+
+
+  it("keeps requester-consented contact released while the provider responds", async () => {
+    const metadata = authorityMetadata("created_released", "call", true);
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ metadata }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            ...authorityRow(metadata, "accepted"),
+            decision_card_status: "active",
+            decision_card_decided_at: null,
+            permission_responded_at: now,
+            permission_responded_by: "requester-1",
+          },
+        ],
+      });
+    const inserts = insertHarness([]);
+    const updates = updateHarness([[{ id: "decision-card-1" }]]);
+
+    const result = await transitionExpressDirectConnectAuthority(
+      { execute, insert: inserts.insert, update: updates.update },
+      {
+        requestRow: transitionRequestRow,
+        providerUserId: "provider-1",
+        decision: "accept",
+        now,
+      }
+    );
+
+    expect(result).toMatchObject({
+      fromContactGateState: "released",
+      contactGateState: "accepted",
+      contactReleased: true,
+    });
+    expect(updates.setCalls).toHaveLength(1);
+    expect(updates.setCalls[0]).toMatchObject({ status: "completed" });
+    expect(inserts.valuesCalls[0]).toMatchObject({
+      eventType: "provider_accepted_after_requester_consent",
+      fromStatus: "accepted",
+      toStatus: "accepted",
+    });
   });
 
   it("declines without releasing contact, archives the card, and records the closed gate", async () => {
@@ -616,7 +667,50 @@ describe("Express Direct Connect accepted-provider contact release", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it("releases the requested contact only after exact accepted authority is complete", async () => {
+
+  it("releases name and phone for a requester-consented invited assignment", async () => {
+    const metadata = authorityMetadata("created_released", "call", true);
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ metadata }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            ...authorityRow(metadata, "accepted"),
+            decision_card_status: "active",
+            decision_card_decided_at: null,
+            permission_responded_at: now,
+            permission_responded_by: "requester-1",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: "consent-event-1" }] })
+      .mockResolvedValueOnce({
+        rows: [{ first_name: "Alex", last_name: "Requester", phone: "404-555-0100" }],
+      });
+
+    const result = await loadExpressDirectConnectReleasedContact(
+      { execute },
+      {
+        assignmentRow: { ...acceptedAssignment, status: "invited" },
+        requestRow: transitionRequestRow,
+        providerUserId: "provider-1",
+      }
+    );
+
+    expect(result).toEqual({
+      assignmentId: "assignment-1",
+      workRequestId: "request-1",
+      requesterUserId: "requester-1",
+      contactPreference: "call",
+      contactGateState: "released",
+      name: "Alex Requester",
+      phone: "404-555-0100",
+    });
+    expect(execute).toHaveBeenCalledTimes(4);
+  });
+
+  it("releases the requested contact for an exact accepted legacy authority", async () => {
     const metadata = authorityMetadata("created_pending");
     const execute = vi
       .fn()
@@ -645,7 +739,7 @@ describe("Express Direct Connect accepted-provider contact release", () => {
         ],
       })
       .mockResolvedValueOnce({
-        rows: [{ phone: "404-555-0100" }],
+        rows: [{ first_name: "Alex", last_name: "Requester", phone: "404-555-0100" }],
       });
 
     const result = await loadExpressDirectConnectReleasedContact(
@@ -663,12 +757,13 @@ describe("Express Direct Connect accepted-provider contact release", () => {
       requesterUserId: "requester-1",
       contactPreference: "call",
       contactGateState: "accepted",
+      name: "Alex Requester",
       phone: "404-555-0100",
     });
     expect(execute).toHaveBeenCalledTimes(4);
   });
 
-  it("authorizes only the governed conversation for platform-message requests", async () => {
+  it("returns the minimum contact for platform-message requests", async () => {
     const metadata = authorityMetadata("created_pending", "platform_message");
     const execute = vi
       .fn()
@@ -695,6 +790,9 @@ describe("Express Direct Connect accepted-provider contact release", () => {
             },
           },
         ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ first_name: "Alex", last_name: "Requester", phone: "404-555-0100" }],
       });
 
     const result = await loadExpressDirectConnectReleasedContact(
@@ -712,10 +810,11 @@ describe("Express Direct Connect accepted-provider contact release", () => {
       requesterUserId: "requester-1",
       contactPreference: "platform_message",
       contactGateState: "accepted",
-      phone: null,
+      name: "Alex Requester",
+      phone: "404-555-0100",
     });
-    expect(execute).toHaveBeenCalledTimes(3);
-    expect(JSON.stringify(result)).not.toMatch(/email|@|tel:|404-555/i);
+    expect(execute).toHaveBeenCalledTimes(4);
+    expect(JSON.stringify(result)).not.toMatch(/email|@|tel:/i);
   });
 
   it("never reads raw contact when the linked permission is not accepted", async () => {

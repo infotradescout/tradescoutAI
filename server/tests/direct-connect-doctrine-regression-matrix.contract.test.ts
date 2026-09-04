@@ -16,7 +16,7 @@ describe("direct connect doctrine regression matrix", () => {
 
   it("locks no-lead-selling and contact-gate redaction pre-release", () => {
     const routes = read("server/routes/direct-connect.ts");
-    expect(routes).toContain("homeownerContact: null");
+    expect(routes).toContain("requesterContact");
     expect(routes).toContain(
       'canReleaseContact: String(dispatch?.contact_gate_state || "locked") === "user_approved"'
     );

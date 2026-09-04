@@ -108,7 +108,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             },
             business: {
               title: "A recommendation is not permission to interrupt.",
-              body: "Being shown by Scout does not expose private contact information or create a blind call. A selected business reviews a submitted request before direct contact opens.",
+              body: "Being shown by Scout does not expose private contact information or create a blind call. A submitted Direct Connect request shares the requester’s name and phone only with the exact recipient; acceptance opens the conversation.",
             },
           },
           {
@@ -279,7 +279,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             title: "Accept or decline",
             requester: {
               title: "Receive a decision instead of losing control of the request.",
-              body: "If a business declines or does not fit, the requester can keep the request, revise it, or choose another recipient. A decline does not release private contact information.",
+              body: "If a business declines or does not fit, the requester can keep the request, revise it, or choose another recipient. A decline does not send the requester’s contact to another provider or broaden the original recipient scope.",
             },
             business: {
               title: "Accept suitable work or decline it without buying the lead.",
@@ -1050,7 +1050,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             action: "Send it only to businesses you choose",
             name: "Direct Connect",
             description:
-              "Selected businesses review the request; contact opens only after acceptance.",
+              "Selected businesses receive the requester’s name and phone with the request; acceptance opens the conversation.",
           },
           {
             number: "02.03",
@@ -1306,7 +1306,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             action: "Review work that fits before accepting it",
             name: "Business request board",
             description:
-              "See eligible Direct Connect requests, review the supplied context, and accept or decline before private contact is released.",
+              "See eligible Direct Connect requests with the requester’s name and phone, then accept or decline to open the conversation.",
           },
           {
             number: "04.11",

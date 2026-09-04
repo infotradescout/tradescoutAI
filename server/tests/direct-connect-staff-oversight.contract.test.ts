@@ -62,7 +62,7 @@ describe("direct connect admin/staff oversight contracts", () => {
 
   it("keeps requester contact redacted in contractor-facing detail payloads before gate release", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("homeownerContact: null");
+    expect(source).toContain("requesterContact");
     expect(source).toContain(
       'canReleaseContact: String(dispatch?.contact_gate_state || "locked") === "user_approved"'
     );

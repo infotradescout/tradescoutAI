@@ -182,7 +182,7 @@ export function normalizeDirectConnectContactState(
 }
 
 export function getDirectConnectContactGateSummary(_request: DirectConnectRequestCardLike): string {
-  return "Private contact stays locked for this request until the approved release step.";
+  return "Your name and phone are shared with the exact assigned recipients when you send the request. Email and address stay private.";
 }
 
 export function getDirectConnectReleasedContactForPanel(
