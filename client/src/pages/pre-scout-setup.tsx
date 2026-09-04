@@ -31,6 +31,19 @@ import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
 
+function oauthFailureMessage(code: string): string | null {
+  if (code === "AUTH_ACCOUNT_LINK_REQUIRED") {
+    return "That email already belongs to an account. Sign in with its existing method; no accounts were linked or changed.";
+  }
+  if (code === "AUTH_IDENTITY_COLLISION") {
+    return "We found conflicting account records. Sign in with your existing method or use account recovery; no accounts were linked or changed.";
+  }
+  if (code === "AUTH_OAUTH_FAILED") {
+    return "Social sign-in could not be completed. Try again or use your existing sign-in method.";
+  }
+  return null;
+}
+
 export default function PreScoutSetup() {
   const { user, isAuthenticated, refetch } = useAuth();
   const queryClient = useQueryClient();
@@ -83,6 +96,8 @@ export default function PreScoutSetup() {
     parseAuthMode(windowSearchParams.get("mode")) ||
     parseAuthMode(locationSearchParams.get("mode")) ||
     "create";
+  const oauthErrorCode = (searchParams.get("oauthError") || "").trim();
+  const oauthError = oauthFailureMessage(oauthErrorCode);
 
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
   const existingDraft: ProfileDraft | undefined = provisional?.profileDraft;
@@ -376,6 +391,13 @@ export default function PreScoutSetup() {
     setSignInErrorCode(null);
     setCreateError(null);
   }, [requestedAuthMode]);
+
+  useEffect(() => {
+    if (!oauthError) return;
+    setAuthMode("signin");
+    setSignInError(oauthError);
+    setSignInErrorCode(oauthErrorCode);
+  }, [oauthError, oauthErrorCode]);
 
   useEffect(() => {
     if (isAuthenticated) return;

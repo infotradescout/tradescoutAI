@@ -880,7 +880,34 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   }
 
   async getUserByFacebookId(facebookId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.facebookId, facebookId));
+    const normalizedId = String(facebookId || "").trim();
+    if (!normalizedId) return undefined;
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.facebookId, normalizedId),
+          and(eq(users.provider, "facebook"), eq(users.providerId, normalizedId))
+        )
+      )
+      .limit(1);
+    return this.normalizeLegacyAdminUser(user);
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const normalizedId = String(googleId || "").trim();
+    if (!normalizedId) return undefined;
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.googleId, normalizedId),
+          and(eq(users.provider, "google"), eq(users.providerId, normalizedId))
+        )
+      )
+      .limit(1);
     return this.normalizeLegacyAdminUser(user);
   }
 
