@@ -1,3 +1,4 @@
+import { stageDirectConnectHomePacketHandoff } from "@/lib/directConnectHomePacketHandoff";
 import {
   parseDirectConnectEntryContext,
   type DirectConnectEntryContext,
@@ -284,7 +285,35 @@ export function stageDirectConnectEntryContext(
   }
 
   const separator = destination.fallbackHref.includes("?") ? "&" : "?";
-  return `${destination.fallbackHref}${separator}staged=${token}`;
+  const stagedPath = `${destination.fallbackHref}${separator}staged=${token}`;
+  const carriesHomeContext = Boolean(
+    context.homeId &&
+      (context.homeContextIntent === "link_existing" ||
+        context.homeContextIntent === "update_from_request")
+  );
+  if (carriesHomeContext) {
+    const packetMetadataPresent = Boolean(
+      context.homePacketId ||
+        context.homePacketReadinessState ||
+        context.homePacketSelectedDetailIds?.length
+    );
+    const homeHandoff = stageDirectConnectHomePacketHandoff({
+      token,
+      returnPath: stagedPath,
+      context,
+      storage,
+      now: createdAt,
+    });
+    if (
+      !homeHandoff.composerDraftStaged ||
+      (packetMetadataPresent && !homeHandoff.packetStaged)
+    ) {
+      removeStoredContext(storage, token);
+      return destination.fallbackHref;
+    }
+  }
+
+  return stagedPath;
 }
 
 /** Reads a valid staged context without copying any context fields into the URL. */
