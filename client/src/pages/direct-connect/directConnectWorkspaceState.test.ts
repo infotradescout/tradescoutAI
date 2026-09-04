@@ -75,6 +75,20 @@ describe("Direct Connect work-desk state", () => {
       )
     );
     expect(
+      getDirectConnectComposerDraftSessionKey(
+        "user-1",
+        `/direct-connect?staged=${"a".repeat(64)}`,
+        '{"source":"homeid_request_packet"}'
+      )
+    ).toBeNull();
+    expect(
+      getDirectConnectComposerDraftSessionKey(
+        "user-1",
+        "/direct-connect?staged=not-an-opaque-token",
+        '{"source":"homeid_request_packet"}'
+      )
+    ).not.toBeNull();
+    expect(
       getDirectConnectComposerDraftSessionKey("user-1", DIRECT_CONNECT_INCOMING_PATH, "")
     ).toBeNull();
     expect(getDirectConnectComposerDraftSessionKey(null, "/direct-connect", "")).toBeNull();
