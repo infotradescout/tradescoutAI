@@ -470,6 +470,7 @@ import {
   isAdmin,
   isStaff,
   isSuperAdmin,
+  requireAdmin,
   hashPassword,
   validatePassword,
   requireRole,
@@ -4500,9 +4501,8 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      const identityContext = await resolveRequestAuthorityContext(
-        req,
-        async (targetUserId) => storage.getUser(targetUserId)
+      const identityContext = await resolveRequestAuthorityContext(req, async (targetUserId) =>
+        storage.getUser(targetUserId)
       );
       if (!identityContext.ok) {
         res.status(403).json({
@@ -14389,29 +14389,6 @@ export async function registerRoutes(app: any) {
       }
     }
   );
-
-  // Admin panel routes (require admin access)
-  const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.user) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-
-    const activeRole = normalizeAuthorityRole(req.user.activeRole);
-    const primaryRole = normalizeAuthorityRole(req.user.role);
-    const roles = Array.isArray(req.user.roles)
-      ? req.user.roles.map((r: any) => normalizeAuthorityRole(r)).filter(Boolean)
-      : [];
-    const hasAdmin =
-      req.user.isAdmin === true ||
-      isAdminTierRole(activeRole) ||
-      isAdminTierRole(primaryRole) ||
-      roles.some((role: string) => isAdminTierRole(role));
-
-    if (!hasAdmin) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    next();
-  };
 
   // Emergency admin access route - allows Facebook login to become master admin
   app.post("/api/auth/emergency-admin-access", async (req: any, res: any) => {

@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-04T17:44:54Z",
+  "generated_at": "2026-09-04T18:36:59Z",
   "source": {
     "kind": "git",
-    "revision": "f9837e71c22883b986ed3d4c266b0b93673d6d0e",
+    "revision": "53edb56b522a244b487361de2a2e8f591b3ca685",
     "dirty": true,
-    "inventory_sha256": "9bea14f5e751aba4cbbb6190cfac692a19326bdbc1b42d49dd54ad942971e4d2"
+    "inventory_sha256": "b0afc912bc114bc5c7f3120073be0e42bcd03afc1440f811e3cfef60d69dfed7"
   },
   "inventory": {
     "directories": [
@@ -444,7 +444,7 @@
       },
       {
         "path": "server/tests",
-        "source_file_count": 557
+        "source_file_count": 558
       },
       {
         "path": "server/tests/helpers",
@@ -476,6 +476,10 @@
       },
       {
         "path": "src/db",
+        "source_file_count": 1
+      },
+      {
+        "path": "test-results/assets",
         "source_file_count": 1
       },
       {
@@ -8657,8 +8661,8 @@
       {
         "path": "server/auth.ts",
         "language": "ts",
-        "sha256": "a14e360a1eeb832c78d44f7ff5aa1b32b1918bf46d85394f3c7386b305d0ac28",
-        "bytes": 29389
+        "sha256": "fc5605b93a8848a1c9c655d6bf2ee4c83d2c71d606205daa0468c6751114bbbd",
+        "bytes": 28129
       },
       {
         "path": "server/badges/badgeEngine.ts",
@@ -8963,8 +8967,8 @@
       {
         "path": "server/middleware/requireSuperAdmin.ts",
         "language": "ts",
-        "sha256": "28f4cc06101bc52c7ef037c2085c1365b53d29aef2a3902da078a869564a1cd4",
-        "bytes": 927
+        "sha256": "d624a3dcee3a40c6ae33cfeaae6f4a6f6da3a46c4d64c57d2c0a719588aabbd2",
+        "bytes": 187
       },
       {
         "path": "server/moderation.ts",
@@ -9389,8 +9393,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "debf6500c7bcc09ede8a20c106131d48cb0ad708bda9a5bf5d82c40089dd31ca",
-        "bytes": 1000650
+        "sha256": "4d7fcd10c7ecc4a2b7361d3db3750cd6cbcbbedbb02a77eab5b4fe63b76eaa94",
+        "bytes": 999867
       },
       {
         "path": "server/routes/admin-business-county-enrichment.ts",
@@ -9407,8 +9411,8 @@
       {
         "path": "server/routes/admin-control.ts",
         "language": "ts",
-        "sha256": "611e582c2fc067f0d87c113ac526904dd8502b129accab1e271e577ebacb0ee8",
-        "bytes": 6614
+        "sha256": "6dce812c56b16f551e9f3ecef38cdbbf8eb81b7df9eb16b546eca3d143069625",
+        "bytes": 5617
       },
       {
         "path": "server/routes/admin-device-security.ts",
@@ -9827,8 +9831,8 @@
       {
         "path": "server/routes/promptAdmin.ts",
         "language": "ts",
-        "sha256": "180393353972d29dae1c754089bf2eb0ec4d7611488c1a2b8912dcc97279bdb9",
-        "bytes": 5203
+        "sha256": "cc37a78863828653967e3097adad6c5d00cb8a0491a7878784e825501fcb5efe",
+        "bytes": 3787
       },
       {
         "path": "server/routes/property-programs.ts",
@@ -11973,6 +11977,12 @@
         "bytes": 6478
       },
       {
+        "path": "server/tests/canonical-authority-guards.test.ts",
+        "language": "ts",
+        "sha256": "1e7d28dbe6a8cfbd6d16aab18c101eff34ec3a4b7a52d459ea494a4e3acc9836",
+        "bytes": 2763
+      },
+      {
         "path": "server/tests/canonical-business-claim-handoff.contract.test.ts",
         "language": "ts",
         "sha256": "6053d0c401c7362136de53caa5ba2df70e04dbd65aace9f5003160e887d8a2db",
@@ -12749,8 +12759,8 @@
       {
         "path": "server/tests/identity-authority-spine.contract.test.ts",
         "language": "ts",
-        "sha256": "89191ad1142ad6c435e7117043c10eb05de8fbf2883a6bf0f1d59d10d168fdfc",
-        "bytes": 4130
+        "sha256": "720346af9552cde53b37165b726495bda234d6ff2e483f330bb5290e9d1d46a6",
+        "bytes": 4814
       },
       {
         "path": "server/tests/index-now-publication-events.test.ts",
@@ -15937,6 +15947,12 @@
         "language": "ts",
         "sha256": "d8a37b8db2dfb7904820add5e3ec28d8ed857e8a6f8009ca2a6f2a6e4d55fdb6",
         "bytes": 7240
+      },
+      {
+        "path": "test-results/assets/index-DaKof6xz.js",
+        "language": "js",
+        "sha256": "76a72613f69c2c658c63570f4ae708526a0f3acf0dcc5722f236ed10fa8463d5",
+        "bytes": 777636
       },
       {
         "path": "test-runner.js",
@@ -63412,35 +63428,21 @@
         "name": "hashPassword",
         "kind": "function",
         "path": "server/auth.ts",
-        "line": 765,
+        "line": 769,
         "exported": true
       },
       {
         "name": "validatePassword",
         "kind": "function",
         "path": "server/auth.ts",
-        "line": 774,
-        "exported": true
-      },
-      {
-        "name": "requireAuth",
-        "kind": "function",
-        "path": "server/auth.ts",
-        "line": 781,
-        "exported": true
-      },
-      {
-        "name": "requireAdmin",
-        "kind": "function",
-        "path": "server/auth.ts",
-        "line": 791,
+        "line": 778,
         "exported": true
       },
       {
         "name": "createMasterAdmin",
         "kind": "function",
         "path": "server/auth.ts",
-        "line": 821,
+        "line": 787,
         "exported": true
       },
       {
@@ -64918,13 +64920,6 @@
         "kind": "function",
         "path": "server/middleware/landingContractHeaders.ts",
         "line": 49,
-        "exported": true
-      },
-      {
-        "name": "requireSuperAdmin",
-        "kind": "function",
-        "path": "server/middleware/requireSuperAdmin.ts",
-        "line": 3,
         "exported": true
       },
       {
@@ -69950,392 +69945,392 @@
         "name": "MarketSignalsWindow",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 500,
+        "line": 501,
         "exported": false
       },
       {
         "name": "parseMarketSignalsWindow",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 502,
+        "line": 503,
         "exported": false
       },
       {
         "name": "marketSignalsInterval",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 508,
+        "line": 509,
         "exported": false
       },
       {
         "name": "isValidCountyFips",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 521,
+        "line": 522,
         "exported": false
       },
       {
         "name": "isValidStateCode",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 525,
+        "line": 526,
         "exported": false
       },
       {
         "name": "safeText",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 533,
+        "line": 534,
         "exported": false
       },
       {
         "name": "safeScoutConversationId",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 540,
+        "line": 541,
         "exported": false
       },
       {
         "name": "compactScoutConversationMessages",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 547,
+        "line": 548,
         "exported": false
       },
       {
         "name": "scoutConversationPayload",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 574,
+        "line": 575,
         "exported": false
       },
       {
         "name": "ScoutConversationRelatedKind",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 591,
+        "line": 592,
         "exported": false
       },
       {
         "name": "scoutConversationRelatedTo",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 593,
+        "line": 594,
         "exported": false
       },
       {
         "name": "homeSavedConversationLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 621,
+        "line": 622,
         "exported": false
       },
       {
         "name": "vehicleSavedConversationLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 632,
+        "line": 633,
         "exported": false
       },
       {
         "name": "homeProjectSavedConversationLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 643,
+        "line": 644,
         "exported": false
       },
       {
         "name": "loadScoutConversationRelatedLabels",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 651,
+        "line": 652,
         "exported": false
       },
       {
         "name": "refreshScoutConversationRelatedLabels",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 769,
+        "line": 770,
         "exported": false
       },
       {
         "name": "ScoutConversationSurfaceFilter",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 816,
+        "line": 817,
         "exported": false
       },
       {
         "name": "scoutConversationSurfaceFilter",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 824,
+        "line": 825,
         "exported": false
       },
       {
         "name": "scoutConversationSurfaceWhere",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 839,
+        "line": 840,
         "exported": false
       },
       {
         "name": "AuthedRequest",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 884,
+        "line": 885,
         "exported": false
       },
       {
         "name": "ExpressHandler",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 892,
+        "line": 893,
         "exported": false
       },
       {
         "name": "StaffShareableTemplate",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 933,
+        "line": 934,
         "exported": false
       },
       {
         "name": "Contractor",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 1259,
+        "line": 1260,
         "exported": false
       },
       {
         "name": "ScoredContractor",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 1270,
+        "line": 1271,
         "exported": false
       },
       {
         "name": "routeLeadToTopContractors",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1274,
+        "line": 1275,
         "exported": false
       },
       {
         "name": "registerRoutes",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1449,
+        "line": 1450,
         "exported": true
       },
       {
         "name": "marketSignalsAccess",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1488,
+        "line": 1489,
         "exported": false
       },
       {
         "name": "limiterStore",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1886,
+        "line": 1887,
         "exported": false
       },
       {
         "name": "rateLimitKey",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1938,
+        "line": 1939,
         "exported": false
       },
       {
         "name": "pickMarketplaceWritableFields",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2113,
+        "line": 2114,
         "exported": false
       },
       {
         "name": "normalizeMarketplaceWritableFields",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2155,
+        "line": 2156,
         "exported": false
       },
       {
         "name": "normalizeMarketplaceGuidanceInput",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2208,
+        "line": 2209,
         "exported": false
       },
       {
         "name": "buildListingValueGuidance",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2241,
+        "line": 2242,
         "exported": false
       },
       {
         "name": "getBetaWindow",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2349,
+        "line": 2350,
         "exported": false
       },
       {
         "name": "isFounderBadgeLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2374,
+        "line": 2375,
         "exported": false
       },
       {
         "name": "formatFounderRoleLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2376,
+        "line": 2377,
         "exported": false
       },
       {
         "name": "sanitizeUserForResponse",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2446,
+        "line": 2447,
         "exported": false
       },
       {
         "name": "getCompletedSetupBackfillPatch",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2561,
+        "line": 2562,
         "exported": false
       },
       {
         "name": "UserRoleEnumValue",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2578,
+        "line": 2579,
         "exported": false
       },
       {
         "name": "dedupeStrings",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2617,
+        "line": 2618,
         "exported": false
       },
       {
         "name": "AuthMethod",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2620,
+        "line": 2621,
         "exported": false
       },
       {
         "name": "sendAccountExistsConflict",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2647,
+        "line": 2648,
         "exported": false
       },
       {
         "name": "handleLocalLogin",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2688,
+        "line": 2689,
         "exported": false
       },
       {
         "name": "handleRegisterMultiProfile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2742,
+        "line": 2743,
         "exported": false
       },
       {
         "name": "ProfileRole",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2789,
+        "line": 2790,
         "exported": false
       },
       {
         "name": "UserIntent",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2791,
+        "line": 2792,
         "exported": false
       },
       {
         "name": "BusinessType",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2792,
+        "line": 2793,
         "exported": false
       },
       {
         "name": "SellerType",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2793,
+        "line": 2794,
         "exported": false
       },
       {
         "name": "NormalizedProfile",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2794,
+        "line": 2795,
         "exported": false
       },
       {
         "name": "OwnedVerificationProfileRow",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 3031,
+        "line": 3032,
         "exported": false
       },
       {
         "name": "verificationStatusForProfile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3051,
+        "line": 3052,
         "exported": false
       },
       {
         "name": "handleRegister",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3218,
+        "line": 3219,
         "exported": false
       },
       {
         "name": "normalizeRole",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3263,
+        "line": 3264,
         "exported": false
       },
       {
         "name": "formatRoleLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3385,
+        "line": 3386,
         "exported": false
       },
       {
         "name": "normalizePhone",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3496,
+        "line": 3497,
         "exported": false
       },
       {
         "name": "performLogout",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4175,
+        "line": 4176,
         "exported": false
       },
       {
@@ -70514,248 +70509,241 @@
         "exported": false
       },
       {
-        "name": "requireAdmin",
-        "kind": "function",
-        "path": "server/routes.ts",
-        "line": 14394,
-        "exported": false
-      },
-      {
         "name": "completeDecisionCard",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14551,
+        "line": 14528,
         "exported": false
       },
       {
         "name": "businessImportMaybeUploadFile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14814,
+        "line": 14791,
         "exported": false
       },
       {
         "name": "pushField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14997,
+        "line": 14974,
         "exported": false
       },
       {
         "name": "pushRow",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15002,
+        "line": 14979,
         "exported": false
       },
       {
         "name": "looksLikeHeader",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15054,
+        "line": 15031,
         "exported": false
       },
       {
         "name": "peek",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15058,
+        "line": 15035,
         "exported": false
       },
       {
         "name": "isEmailValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15062,
+        "line": 15039,
         "exported": false
       },
       {
         "name": "isFipsValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15064,
+        "line": 15041,
         "exported": false
       },
       {
         "name": "isPhoneValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15065,
+        "line": 15042,
         "exported": false
       },
       {
         "name": "normalizeEmail",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15200,
+        "line": 15177,
         "exported": false
       },
       {
         "name": "ensureUniqueBusinessProfileSlug",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15331,
+        "line": 15308,
         "exported": false
       },
       {
         "name": "inferredBusinessType",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15557,
+        "line": 15534,
         "exported": false
       },
       {
         "name": "inferredRoleContext",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15588,
+        "line": 15565,
         "exported": false
       },
       {
         "name": "archiveImportedDirectoryUserToDirectory",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 16242,
+        "line": 16219,
         "exported": false
       },
       {
         "name": "getMarketplaceCategoryIdByName",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17116,
+        "line": 17093,
         "exported": false
       },
       {
         "name": "getMarketplaceCategoryNameById",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17139,
+        "line": 17116,
         "exported": false
       },
       {
         "name": "match",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17145,
+        "line": 17122,
         "exported": false
       },
       {
         "name": "looksLikeUuid",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17337,
+        "line": 17314,
         "exported": false
       },
       {
         "name": "normalized",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 18637,
+        "line": 18614,
         "exported": false
       },
       {
         "name": "deriveCommunityTagsFromContent",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19830,
+        "line": 19807,
         "exported": false
       },
       {
         "name": "createAutomaticCommunityWelcomeForUser",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19911,
+        "line": 19888,
         "exported": false
       },
       {
         "name": "roleContext",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19946,
+        "line": 19923,
         "exported": false
       },
       {
         "name": "requireCommunityPrincipalIdentity",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19987,
+        "line": 19964,
         "exported": false
       },
       {
         "name": "buildAuthorizedPublicHandmadeProducts",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 20830,
+        "line": 20807,
         "exported": false
       },
       {
         "name": "HomeScoutListingAccess",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 22263,
+        "line": 22240,
         "exported": false
       },
       {
         "name": "HomeScoutDecisionAuthorityError",
         "kind": "class",
         "path": "server/routes.ts",
-        "line": 22320,
+        "line": 22297,
         "exported": false
       },
       {
         "name": "extractInspectionPhrases",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22621,
+        "line": 22598,
         "exported": false
       },
       {
         "name": "scoreKeywordHits",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22634,
+        "line": 22611,
         "exported": false
       },
       {
         "name": "buildInspectionInsights",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22644,
+        "line": 22621,
         "exported": false
       },
       {
         "name": "clearDownloadTimeout",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22999,
+        "line": 22976,
         "exported": false
       },
       {
         "name": "sourcePath",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23022,
+        "line": 22999,
         "exported": false
       },
       {
         "name": "intField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23809,
+        "line": 23786,
         "exported": false
       },
       {
         "name": "numField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23816,
+        "line": 23793,
         "exported": false
       },
       {
         "name": "transactions",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 24026,
+        "line": 24003,
         "exported": false
       },
       {
@@ -70780,31 +70768,24 @@
         "exported": true
       },
       {
-        "name": "isSuperAdmin",
-        "kind": "function",
-        "path": "server/routes/admin-control.ts",
-        "line": 18,
-        "exported": false
-      },
-      {
         "name": "getAuthorityMode",
         "kind": "function",
         "path": "server/routes/admin-control.ts",
-        "line": 193,
+        "line": 162,
         "exported": true
       },
       {
         "name": "getConfidenceDampener",
         "kind": "function",
         "path": "server/routes/admin-control.ts",
-        "line": 196,
+        "line": 165,
         "exported": true
       },
       {
         "name": "isOutcomeLearningEnabled",
         "kind": "function",
         "path": "server/routes/admin-control.ts",
-        "line": 200,
+        "line": 169,
         "exported": true
       },
       {
@@ -74502,13 +74483,6 @@
         "path": "server/routes/promotions.ts",
         "line": 196,
         "exported": true
-      },
-      {
-        "name": "requireSuperAdmin",
-        "kind": "function",
-        "path": "server/routes/promptAdmin.ts",
-        "line": 18,
-        "exported": false
       },
       {
         "name": "getUserId",
@@ -98140,6 +98114,20 @@
         "kind": "function",
         "path": "server/tests/business-tool-route-ownership.contract.test.ts",
         "line": 4,
+        "exported": false
+      },
+      {
+        "name": "requestFor",
+        "kind": "function",
+        "path": "server/tests/canonical-authority-guards.test.ts",
+        "line": 12,
+        "exported": false
+      },
+      {
+        "name": "responseRecorder",
+        "kind": "function",
+        "path": "server/tests/canonical-authority-guards.test.ts",
+        "line": 30,
         "exported": false
       },
       {
@@ -135420,11 +135408,11 @@
     }
   ],
   "summary": {
-    "directories": 125,
-    "source_files": 2619,
-    "symbols": 13934,
+    "directories": 126,
+    "source_files": 2621,
+    "symbols": 13930,
     "components": 920,
-    "functions_and_hooks": 8451,
+    "functions_and_hooks": 8447,
     "raw_ui_elements": 4052,
     "errors": 0,
     "warnings": 5

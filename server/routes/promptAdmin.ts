@@ -6,57 +6,18 @@ import path from "path";
 import { reloadSystemPrompt, getPromptStatus } from "../services/promptService";
 import type { AuthenticatedUser } from "../types";
 import { runtimePaths } from "../runtimePaths";
-import { resolveRequestEffectiveUser } from "../utils/requestEffectiveUser";
+import { isAuthenticated, isSuperAdmin } from "../auth";
 
 const router = express.Router();
 
 const PROMPT_PATH = path.join(runtimePaths.scoutManualCache, "system_prompt.md");
 
-/**
- * Middleware to check if user is super admin
- */
-function requireSuperAdmin(req: Request, res: Response, next: () => void) {
-  const identityContext = resolveRequestEffectiveUser(req);
-  if (!identityContext.ok || identityContext.isImpersonating) {
-    return res.status(403).json({
-      error: "Super admin tools are unavailable while acting as another user.",
-      code: "IMPERSONATION_PRIVILEGE_BOUNDARY",
-    });
-  }
-  const user = (req as any).user as AuthenticatedUser | undefined;
-
-  if (!user) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-
-  const normalizeRole = (role: unknown): string => {
-    const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
-    if (!raw) return "";
-    return raw === "owner" || raw === "head_admin" ? "super_admin" : raw;
-  };
-
-  const allowed = new Set(["super_admin"]);
-  const primaryRole = normalizeRole((user as any).role);
-  const activeRole = normalizeRole((user as any).activeRole);
-  const roles = Array.isArray((user as any).roles)
-    ? (user as any).roles.map((r: any) => normalizeRole(r)).filter(Boolean)
-    : [];
-  const hasAccess =
-    allowed.has(primaryRole) ||
-    allowed.has(activeRole) ||
-    roles.some((r: string) => allowed.has(r));
-
-  if (!hasAccess) {
-    return res.status(403).json({ error: "Super admin access required" });
-  }
-
-  next();
-}
+router.use(isAuthenticated, isSuperAdmin);
 
 /**
  * GET /api/prompt-admin - Retrieve current system prompt
  */
-router.get("/", requireSuperAdmin, (req: Request, res: Response) => {
+router.get("/", (req: Request, res: Response) => {
   try {
     if (!fs.existsSync(PROMPT_PATH)) {
       const status = getPromptStatus();
@@ -88,7 +49,7 @@ router.get("/", requireSuperAdmin, (req: Request, res: Response) => {
 /**
  * POST /api/prompt-admin - Update system prompt (hot reload)
  */
-router.post("/", requireSuperAdmin, (req: Request, res: Response) => {
+router.post("/", (req: Request, res: Response) => {
   try {
     const { content } = (req.body ?? {}) as any;
     const user = (req as any).user as AuthenticatedUser;
@@ -130,7 +91,7 @@ router.post("/", requireSuperAdmin, (req: Request, res: Response) => {
 /**
  * GET /api/prompt-admin/status - Get prompt loading status
  */
-router.get("/status", requireSuperAdmin, (req: Request, res: Response) => {
+router.get("/status", (req: Request, res: Response) => {
   try {
     const status = getPromptStatus();
     res.json({ status });
@@ -143,7 +104,7 @@ router.get("/status", requireSuperAdmin, (req: Request, res: Response) => {
 /**
  * POST /api/prompt-admin/reload - Force reload prompt from disk
  */
-router.post("/reload", requireSuperAdmin, (req: Request, res: Response) => {
+router.post("/reload", (req: Request, res: Response) => {
   try {
     const user = (req as any).user as AuthenticatedUser;
 
