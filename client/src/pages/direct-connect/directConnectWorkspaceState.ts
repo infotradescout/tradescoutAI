@@ -8,6 +8,7 @@ const DIRECT_CONNECT_COMPOSER_DRAFT_STORAGE_PREFIX = "tradescout:direct-connect-
 const DIRECT_CONNECT_LAST_TASK_STORAGE_PREFIX = "tradescout:direct-connect-last-task:v1:";
 const MAX_STORED_WORKSPACE_LENGTH = 2_048;
 const MAX_CLOSED_REQUEST_AGE_MS = 120 * 24 * 60 * 60 * 1000;
+const OPAQUE_STAGED_ENTRY_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 
 export type DirectConnectWorkspaceTask = "start" | "incoming" | "requests";
 export type DirectConnectWorkspaceFilter =
@@ -80,6 +81,12 @@ function cleanFilter(
 ): DirectConnectWorkspaceFilter {
   const candidate = cleanSingleLine(value, 32).toLowerCase() as DirectConnectWorkspaceFilter;
   return FILTERS_BY_TASK[task].includes(candidate) ? candidate : "all";
+}
+
+function hasOpaqueStagedComposerEntry(pathname: string): boolean {
+  const query = pathname.includes("?") ? pathname.split("?", 2)[1].split("#", 1)[0] : "";
+  const token = new URLSearchParams(query).get("staged")?.trim() || "";
+  return OPAQUE_STAGED_ENTRY_TOKEN_PATTERN.test(token);
 }
 
 export function getDirectConnectWorkspaceTask(pathname: string): DirectConnectWorkspaceTask | null {
@@ -249,7 +256,13 @@ export function getDirectConnectComposerDraftSessionKey(
   entrySignature: string | null | undefined
 ): string | null {
   const userId = cleanSingleLine(authenticatedUserId, 160);
-  if (!userId || getDirectConnectWorkspaceTask(pathname) !== "start") return null;
+  if (
+    !userId ||
+    getDirectConnectWorkspaceTask(pathname) !== "start" ||
+    hasOpaqueStagedComposerEntry(pathname)
+  ) {
+    return null;
+  }
   const signature = cleanSingleLine(entrySignature, 512) || "default";
   return `${DIRECT_CONNECT_COMPOSER_DRAFT_STORAGE_PREFIX}${encodeURIComponent(
     userId
