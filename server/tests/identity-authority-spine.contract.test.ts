@@ -52,7 +52,7 @@ describe("Release 2 identity authority spine", () => {
 
   it("mounts the identity spine before feature and standalone admin routers", () => {
     const routes = read("server/routes.ts");
-    const setup = routes.indexOf("await setupAuth(app)");
+    const setup = routes.indexOf("await setupAuth(app");
     const binder = routes.indexOf("app.use(bindAuthenticatedRequestAuthority)");
     const admin = routes.indexOf("mountAdminRoutes(app)");
 

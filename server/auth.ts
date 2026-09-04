@@ -2,6 +2,8 @@ import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import type { Profile as GoogleProfile, VerifyCallback } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express, Request, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
@@ -22,6 +24,11 @@ import {
   resolveRequestAuthorityContext,
   type RequestAuthorityContext,
 } from "./utils/requestEffectiveUser";
+import {
+  decideOAuthIdentity,
+  oauthIdentityFailure,
+  type OAuthProvider,
+} from "./utils/oauthIdentityPolicy";
 
 function normalizeLegacyRole(role: unknown): UserRole | null {
   if (typeof role !== "string" || role.trim().length === 0) return null;
@@ -135,7 +142,145 @@ export function applyRequestSessionCookieScope(req: Request): void {
   }
 }
 
-export async function setupAuth(app: Express) {
+export interface AuthProviderAvailability {
+  google: boolean;
+  facebook: boolean;
+  diagnostics: {
+    facebook: {
+      disabledByEnv: boolean;
+      hasId: boolean;
+      hasSecret: boolean;
+      idSource: "FACEBOOK_APP_ID" | "FACEBOOK_CLIENT_ID" | null;
+      secretSource: "FACEBOOK_APP_SECRET" | "FACEBOOK_CLIENT_SECRET" | null;
+    };
+    google: {
+      hasId: boolean;
+      hasSecret: boolean;
+      hasCallback: boolean;
+    };
+  };
+}
+
+export interface SetupAuthOptions {
+  onNewSocialUser?: (user: User, provider: OAuthProvider) => void | Promise<void>;
+}
+
+export function getAuthProviderAvailability(): AuthProviderAvailability {
+  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
+  const facebookIdSource = process.env.FACEBOOK_APP_ID
+    ? "FACEBOOK_APP_ID"
+    : process.env.FACEBOOK_CLIENT_ID
+      ? "FACEBOOK_CLIENT_ID"
+      : null;
+  const facebookSecretSource = process.env.FACEBOOK_APP_SECRET
+    ? "FACEBOOK_APP_SECRET"
+    : process.env.FACEBOOK_CLIENT_SECRET
+      ? "FACEBOOK_CLIENT_SECRET"
+      : null;
+  const googleHasId = Boolean(process.env.GOOGLE_CLIENT_ID);
+  const googleHasSecret = Boolean(process.env.GOOGLE_CLIENT_SECRET);
+
+  return {
+    google: googleHasId && googleHasSecret,
+    facebook: !facebookDisabled && Boolean(facebookIdSource && facebookSecretSource),
+    diagnostics: {
+      facebook: {
+        disabledByEnv: facebookDisabled,
+        hasId: Boolean(facebookIdSource),
+        hasSecret: Boolean(facebookSecretSource),
+        idSource: facebookIdSource,
+        secretSource: facebookSecretSource,
+      },
+      google: {
+        hasId: googleHasId,
+        hasSecret: googleHasSecret,
+        hasCallback: Boolean(process.env.GOOGLE_CALLBACK_URL),
+      },
+    },
+  };
+}
+
+function configuredOAuthCallbackUrl(provider: OAuthProvider): string {
+  const canonicalWebOrigin = String(
+    process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
+  ).replace(/\/+$/, "");
+  const configured = String(
+    (provider === "google" ? process.env.GOOGLE_CALLBACK_URL : process.env.FACEBOOK_CALLBACK_URL) ||
+      ""
+  ).trim();
+  const defaultCallback = `${canonicalWebOrigin}/api/auth/${provider}/callback`;
+
+  return process.env.NODE_ENV === "production" &&
+    /onrender\.com/i.test(configured) &&
+    canonicalWebOrigin.startsWith("https://")
+    ? defaultCallback
+    : configured || defaultCallback;
+}
+
+function normalizedProviderEmail(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+type OAuthUserResolution =
+  | { user: User; isNewUser: boolean; failure?: never }
+  | { failure: { code: string; message: string }; user?: never; isNewUser?: never };
+
+async function resolveOAuthUser(input: {
+  provider: OAuthProvider;
+  providerSubject: string;
+  providerEmail: string;
+  createUserData: Record<string, unknown>;
+}): Promise<OAuthUserResolution> {
+  const providerUser =
+    input.provider === "google"
+      ? await storage.getUserByGoogleId(input.providerSubject)
+      : await storage.getUserByFacebookId(input.providerSubject);
+  const emailUser = input.providerEmail
+    ? await storage.getUserByEmail(input.providerEmail)
+    : undefined;
+  const decision = decideOAuthIdentity({
+    providerUserId: providerUser?.id,
+    emailUserId: emailUser?.id,
+  });
+  const failure = oauthIdentityFailure(input.provider, decision);
+  if (failure) return { failure };
+
+  if (decision.kind === "existing") {
+    if (!providerUser || providerUser.id !== decision.userId) {
+      return {
+        failure: {
+          code: "AUTH_IDENTITY_CONTEXT_INVALID",
+          message: "Unable to confirm the social account identity.",
+        },
+      };
+    }
+    return { user: providerUser, isNewUser: false };
+  }
+
+  const user = await storage.createUser(input.createUserData as any);
+  return { user, isNewUser: true };
+}
+
+function notifyNewSocialUser(options: SetupAuthOptions, user: User, provider: OAuthProvider): void {
+  if (!options.onNewSocialUser) return;
+  try {
+    void Promise.resolve(options.onNewSocialUser(user, provider)).catch((error) => {
+      console.error("[AUTH] New social-user hook failed", {
+        provider,
+        userId: user.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  } catch (error) {
+    console.error("[AUTH] New social-user hook failed", {
+      provider,
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+export async function setupAuth(app: Express, options: SetupAuthOptions = {}) {
   app.set("trust proxy", 1);
   app.use(getSession());
   // A business's custom domain (e.g. jwstonelogistics.com) is a different
@@ -341,8 +486,7 @@ export async function setupAuth(app: Express) {
     })
   );
 
-  // Facebook strategy for social authentication
-  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
+  const providerAvailability = getAuthProviderAvailability();
   const facebookAppId = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID;
   const facebookAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
 
@@ -353,22 +497,12 @@ export async function setupAuth(app: Express) {
     disable: process.env.DISABLE_FACEBOOK_AUTH,
   });
 
-  if (facebookDisabled || !facebookAppId || !facebookAppSecret) {
+  if (!providerAvailability.facebook || !facebookAppId || !facebookAppSecret) {
     console.log(
       "Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET or FACEBOOK_CLIENT_ID/CLIENT_SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)"
     );
   } else {
-    const canonicalWebOrigin = String(
-      process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
-    ).replace(/\/+$/, "");
-    const defaultFacebookCallbackURL = `${canonicalWebOrigin}/api/auth/facebook/callback`;
-    const configuredFacebookCallback = String(process.env.FACEBOOK_CALLBACK_URL || "").trim();
-    const facebookCallbackURL =
-      process.env.NODE_ENV === "production" &&
-      /onrender\.com/i.test(configuredFacebookCallback) &&
-      canonicalWebOrigin.startsWith("https://")
-        ? defaultFacebookCallbackURL
-        : configuredFacebookCallback || defaultFacebookCallbackURL;
+    const facebookCallbackURL = configuredOAuthCallbackUrl("facebook");
 
     console.log("[AUTH] Using Facebook callback URL:", facebookCallbackURL);
     console.log(
@@ -385,42 +519,38 @@ export async function setupAuth(app: Express) {
             callbackURL: facebookCallbackURL,
             profileFields: ["id", "displayName", "photos", "email", "first_name", "last_name"],
           },
-          async (accessToken, refreshToken, profile, done) => {
+          async (_accessToken, _refreshToken, profile, done) => {
             try {
-              let user = await storage.getUserByFacebookId(profile.id);
-
-              if (user) {
-                return done(null, user);
-              }
-
-              const email = profile.emails?.[0]?.value;
-              if (email) {
-                user = await storage.getUserByEmail(email);
-                if (user) {
-                  await storage.updateUser(user.id, {
-                    facebookId: profile.id,
-                    profileImageUrl: profile.photos?.[0]?.value,
-                  });
-                  return done(null, user);
-                }
-              }
-
-              const newUser = await storage.createUser({
-                email: email || `${profile.id}@facebook.local`,
-                firstName: profile.name?.givenName || profile.displayName,
-                lastName: profile.name?.familyName || "",
-                profileImageUrl: profile.photos?.[0]?.value,
-                facebookId: profile.id,
-                role: null,
-                // Email verification must be completed via the in-product workflow,
-                // regardless of signup method (local or OAuth).
-                emailVerified: false,
-                onboardingCompleted: false,
-                createdAt: new Date(),
-                updatedAt: new Date(),
+              const providerEmail = normalizedProviderEmail(profile.emails?.[0]?.value);
+              const resolution = await resolveOAuthUser({
+                provider: "facebook",
+                providerSubject: profile.id,
+                providerEmail,
+                createUserData: {
+                  email: providerEmail || `${profile.id}@facebook.local`,
+                  firstName: profile.name?.givenName || profile.displayName,
+                  lastName: profile.name?.familyName || "",
+                  profileImageUrl: profile.photos?.[0]?.value,
+                  facebookId: profile.id,
+                  provider: "facebook",
+                  providerId: profile.id,
+                  role: null,
+                  // Email verification must be completed via the in-product workflow,
+                  // regardless of signup method (local or OAuth).
+                  emailVerified: false,
+                  onboardingCompleted: false,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                },
               });
-
-              return done(null, newUser);
+              if (resolution.failure) {
+                return done(null, false, resolution.failure as any);
+              }
+              (resolution.user as any)._wasNewSocialUser = resolution.isNewUser;
+              if (resolution.isNewUser) {
+                notifyNewSocialUser(options, resolution.user, "facebook");
+              }
+              return done(null, resolution.user);
             } catch (error) {
               return done(error);
             }
@@ -431,6 +561,70 @@ export async function setupAuth(app: Express) {
     } catch (error) {
       console.error("Error registering Facebook strategy:", error);
     }
+  }
+
+  if (providerAvailability.google) {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!googleClientId || !googleClientSecret) {
+      throw new Error(
+        "[AUTH] Google OAuth enabled but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET missing"
+      );
+    }
+
+    const googleCallbackURL = configuredOAuthCallbackUrl("google");
+    console.log("[AUTH] Using Google callback URL:", googleCallbackURL);
+
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: googleClientId,
+          clientSecret: googleClientSecret,
+          callbackURL: googleCallbackURL,
+        },
+        async (
+          _accessToken: string,
+          _refreshToken: string,
+          profile: GoogleProfile,
+          done: VerifyCallback
+        ) => {
+          try {
+            const providerEmail = normalizedProviderEmail(profile.emails?.[0]?.value);
+            const resolution = await resolveOAuthUser({
+              provider: "google",
+              providerSubject: profile.id,
+              providerEmail,
+              createUserData: {
+                email: providerEmail || `${profile.id}@google.local`,
+                firstName: profile.name?.givenName || profile.displayName || "",
+                lastName: profile.name?.familyName || "",
+                googleId: profile.id,
+                provider: "google",
+                providerId: profile.id,
+                role: null,
+                emailVerified: false,
+                onboardingCompleted: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              },
+            });
+            if (resolution.failure) {
+              return done(null, false, resolution.failure as any);
+            }
+            (resolution.user as any)._wasNewSocialUser = resolution.isNewUser;
+            if (resolution.isNewUser) {
+              notifyNewSocialUser(options, resolution.user, "google");
+            }
+            return done(null, resolution.user);
+          } catch (error) {
+            console.error("[AUTH] Google login failed", {
+              code: "AUTH_PROVIDER_LOOKUP_FAILED",
+            });
+            return done(error as Error);
+          }
+        }
+      )
+    );
   }
 
   // Serialize/deserialize user for session

@@ -34,11 +34,12 @@ same impersonation privilege boundary.
 
 This change does not declare the whole identity system aligned:
 
-- Local and Facebook Passport strategies live in `server/auth.ts`, while the
-  Google strategy still lives in `server/routes.ts`.
-- Google and Facebook provider callbacks can associate an existing account by
-  matching email. That is not sufficient proof of identity and requires an
-  explicit link/collision contract.
+- Local, Facebook, and Google Passport strategies now live in `server/auth.ts`.
+  Product routes still own their HTTP entry, callback, attribution, and
+  post-login behavior.
+- Provider subject identifiers now govern social login. Email coincidence no
+  longer writes a provider onto an existing account, but the authenticated
+  link and unlink experience has not yet been built.
 - Legacy admin flags and configured alias emails still participate in authority
   decisions. Their removal or retention requires account-by-account evidence
   and recovery proof.
@@ -49,14 +50,13 @@ This change does not declare the whole identity system aligned:
 
 ## Next proof gates
 
-1. Move all Passport provider strategies behind one product-local owner.
-2. Replace email coincidence with an explicit, authenticated provider-link
-   flow and collision handling.
-3. Inventory every privileged mutation and record its required product role,
+1. Build explicit authenticated provider linking, unlinking, collision review,
+   and recovery on top of the new fail-closed identity policy.
+2. Inventory every privileged mutation and record its required product role,
    business membership, permission, and denial behavior.
-4. Reconcile legacy alias and boolean authority with explicit grants before
+3. Reconcile legacy alias and boolean authority with explicit grants before
    deleting any recovery path.
-5. Keep the Infinity-wide human identity owner unassigned until cross-product
+4. Keep the Infinity-wide human identity owner unassigned until cross-product
    linking, unlinking, deletion, consent, and audit behavior are proved.
 
 This document describes a draft branch. It does not claim a merge, deployment,
