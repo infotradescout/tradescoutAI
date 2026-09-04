@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-04T18:53:32Z",
+  "generated_at": "2026-09-04T19:32:48Z",
   "source": {
     "kind": "git",
-    "revision": "c6c2f3729839d7d6935ce0b135dcdbff05feec2a",
+    "revision": "42b16b9ada32c529386325ed79237b793de9bcd1",
     "dirty": true,
-    "inventory_sha256": "123cb4e3733e09c9b2467c8ca83a60f8a091515db6667292550c8c0ec0952d07"
+    "inventory_sha256": "f1c3f8f4383f25c18bc5ffcb429e7bcec6db49da08d1357dfb49f47c86064d24"
   },
   "inventory": {
     "directories": [
@@ -1401,8 +1401,8 @@
       {
         "path": "client/src/components/auth/RoleProtectedRoute.tsx",
         "language": "tsx",
-        "sha256": "f8326915e1ffe50a7dd50268dc5ee330f3d4a899aa6e68ec7238706b7b23f9b4",
-        "bytes": 1734
+        "sha256": "fd8703f83e518fa6083ff3e71b160410d67645a3141f91d8ecd20cd9d7c72afd",
+        "bytes": 1589
       },
       {
         "path": "client/src/components/auth/RoleSelection.tsx",
@@ -8661,8 +8661,8 @@
       {
         "path": "server/auth.ts",
         "language": "ts",
-        "sha256": "7a98f06b89e1450bede400aa54d913706cef99571d9492a3ca580c8321845de3",
-        "bytes": 34703
+        "sha256": "98e76d30a255754b80e7258f34af5a9276f8b4dfa169cfe3e89d8092e9085c09",
+        "bytes": 34544
       },
       {
         "path": "server/badges/badgeEngine.ts",
@@ -11979,8 +11979,8 @@
       {
         "path": "server/tests/canonical-authority-guards.test.ts",
         "language": "ts",
-        "sha256": "1e7d28dbe6a8cfbd6d16aab18c101eff34ec3a4b7a52d459ea494a4e3acc9836",
-        "bytes": 2763
+        "sha256": "438f0effbd1d313d52fa2344bdf995c9b983623ad7eeda8021adfdea06f72fe4",
+        "bytes": 4076
       },
       {
         "path": "server/tests/canonical-business-claim-handoff.contract.test.ts",
@@ -12759,8 +12759,8 @@
       {
         "path": "server/tests/identity-authority-spine.contract.test.ts",
         "language": "ts",
-        "sha256": "ec6e460ffd252fe6c663407a6a3c209fab920e61dff9e6b5cde2030e172a74a1",
-        "bytes": 4813
+        "sha256": "d23e855f26688ec651df48dc365b252b74bf737a967378ca5dd8eeb038921fcb",
+        "bytes": 4948
       },
       {
         "path": "server/tests/index-now-publication-events.test.ts",
@@ -15795,8 +15795,8 @@
       {
         "path": "shared/roles.ts",
         "language": "ts",
-        "sha256": "db610f5b74705b353e2d59f8c5cc45b9445ac695b9e20e625a74ca63bc1e1bc9",
-        "bytes": 29773
+        "sha256": "0a108a7c29784d4ab8ed83b0a9ae66ff057c61608546b8208a047aaa0b604c08",
+        "bytes": 30343
       },
       {
         "path": "shared/schema.ts",
@@ -20963,14 +20963,14 @@
         "name": "PermissionProtectedProps",
         "kind": "type",
         "path": "client/src/components/auth/RoleProtectedRoute.tsx",
-        "line": 45,
+        "line": 40,
         "exported": false
       },
       {
         "name": "PermissionProtected",
         "kind": "component",
         "path": "client/src/components/auth/RoleProtectedRoute.tsx",
-        "line": 51,
+        "line": 46,
         "exported": true
       },
       {
@@ -63516,21 +63516,21 @@
         "name": "hashPassword",
         "kind": "function",
         "path": "server/auth.ts",
-        "line": 962,
+        "line": 958,
         "exported": true
       },
       {
         "name": "validatePassword",
         "kind": "function",
         "path": "server/auth.ts",
-        "line": 971,
+        "line": 967,
         "exported": true
       },
       {
         "name": "createMasterAdmin",
         "kind": "function",
         "path": "server/auth.ts",
-        "line": 980,
+        "line": 976,
         "exported": true
       },
       {
@@ -98208,14 +98208,14 @@
         "name": "requestFor",
         "kind": "function",
         "path": "server/tests/canonical-authority-guards.test.ts",
-        "line": 12,
+        "line": 13,
         "exported": false
       },
       {
         "name": "responseRecorder",
         "kind": "function",
         "path": "server/tests/canonical-authority-guards.test.ts",
-        "line": 30,
+        "line": 31,
         "exported": false
       },
       {
@@ -108561,70 +108561,77 @@
         "name": "getRoleHierarchyLevel",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 799,
+        "line": 802,
         "exported": true
       },
       {
         "name": "getRolePermissions",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 802,
+        "line": 805,
+        "exported": true
+      },
+      {
+        "name": "hasExplicitRoleGrant",
+        "kind": "function",
+        "path": "shared/roles.ts",
+        "line": 815,
         "exported": true
       },
       {
         "name": "canUserPerformAction",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 806,
+        "line": 821,
         "exported": true
       },
       {
         "name": "getRoleDisplayName",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 819,
+        "line": 834,
         "exported": true
       },
       {
         "name": "getTradeDisplayName",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 861,
+        "line": 876,
         "exported": true
       },
       {
         "name": "BusinessProviderRoleAlias",
         "kind": "type",
         "path": "shared/roles.ts",
-        "line": 990,
+        "line": 1005,
         "exported": true
       },
       {
         "name": "normalizeRoleToken",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 992,
+        "line": 1007,
         "exported": true
       },
       {
         "name": "isBusinessProviderRole",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 1002,
+        "line": 1017,
         "exported": true
       },
       {
         "name": "getUserRoleTokens",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 1007,
+        "line": 1022,
         "exported": true
       },
       {
         "name": "userHasBusinessProviderTools",
         "kind": "function",
         "path": "shared/roles.ts",
-        "line": 1030,
+        "line": 1045,
         "exported": true
       },
       {
@@ -135547,9 +135554,9 @@
   "summary": {
     "directories": 126,
     "source_files": 2624,
-    "symbols": 13947,
+    "symbols": 13948,
     "components": 920,
-    "functions_and_hooks": 8457,
+    "functions_and_hooks": 8458,
     "raw_ui_elements": 4052,
     "errors": 0,
     "warnings": 5

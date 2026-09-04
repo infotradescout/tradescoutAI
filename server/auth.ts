@@ -13,7 +13,7 @@ import { storage } from "./storage";
 import { users, type User } from "@shared/schema";
 import {
   getRolePermissions,
-  getRoleHierarchyLevel,
+  hasExplicitRoleGrant,
   userHasBusinessProviderTools,
 } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
@@ -858,13 +858,9 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       return res.status(403).json({ message: "No role assigned" });
     }
 
-    const userLevel = Math.max(
-      ...Array.from(candidateRoles).map((role) => getRoleHierarchyLevel(role))
+    const hasPermission = Array.from(candidateRoles).some((role) =>
+      hasExplicitRoleGrant(role, allowedRoles)
     );
-    const hasPermission = allowedRoles.some((role) => {
-      const requiredLevel = getRoleHierarchyLevel(role);
-      return userLevel >= requiredLevel;
-    });
 
     if (!hasPermission) {
       return res.status(403).json({ message: "Insufficient permissions" });

@@ -9,6 +9,7 @@ import {
   requireAuth,
   requireRole,
 } from "../auth";
+import { hasExplicitRoleGrant } from "@shared/roles";
 
 function requestFor(user: Record<string, unknown>, isImpersonating = false) {
   return {
@@ -45,6 +46,15 @@ function responseRecorder() {
 }
 
 describe("canonical authority guards", () => {
+  it("treats role allowlists as explicit grants", () => {
+    expect(
+      hasExplicitRoleGrant("community_leader", ["community_moderator", "community_leader"])
+    ).toBe(true);
+    expect(hasExplicitRoleGrant("support_agent", ["community_moderator", "community_leader"])).toBe(
+      false
+    );
+  });
+
   it("keeps compatibility exports as the same guard instances", () => {
     expect(requireAuth).toBe(isAuthenticated);
     expect(requireAdmin).toBe(isAdmin);
@@ -96,5 +106,34 @@ describe("canonical authority guards", () => {
       message: "Administrative authority is unavailable while acting as another user.",
       code: "IMPERSONATION_PRIVILEGE_BOUNDARY",
     });
+  });
+
+  it("does not turn numeric role rank into cross-scope authority", async () => {
+    const guard = requireRole(["community_moderator"]);
+    const response = responseRecorder();
+    const next = vi.fn();
+
+    await guard(requestFor({ id: "support-1", role: "support_agent" }), response as any, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(403);
+    expect(response.body).toEqual({ message: "Insufficient permissions" });
+  });
+
+  it("accepts roles that the boundary names explicitly", async () => {
+    const guard = requireRole([
+      "community_moderator",
+      "community_leader",
+      "moderator",
+      "ops_admin",
+      "super_admin",
+    ]);
+    const response = responseRecorder();
+    const next = vi.fn();
+
+    await guard(requestFor({ id: "leader-1", role: "community_leader" }), response as any, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(response.statusCode).toBe(200);
   });
 });

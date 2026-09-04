@@ -48,6 +48,8 @@ describe("Release 2 identity authority spine", () => {
     expect(auth).toContain("allowedRoles.every((role) => ADMIN_AUTHORITY_ROLES.has(role))");
     expect(auth).toContain("ADMIN_ONLY_PERMISSIONS.has(permission)");
     expect(auth).toContain("blockImpersonatedPrivilege(req, res, true)");
+    expect(auth).toContain("hasExplicitRoleGrant(role, allowedRoles)");
+    expect(auth).not.toContain("getRoleHierarchyLevel(role)");
   });
 
   it("mounts the identity spine before feature and standalone admin routers", () => {

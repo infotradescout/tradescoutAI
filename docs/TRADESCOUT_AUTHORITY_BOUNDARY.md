@@ -12,6 +12,8 @@ TradeScout has one product-local request-authority spine:
   authentication, role, permission, admin, and super-admin route guards.
 - `server/utils/requestEffectiveUser.ts` resolves principal and effective users
   during impersonation.
+- `shared/roles.ts` supplies explicit role-grant and named-permission data;
+  numeric role ordering is not request authority.
 - Extracted routers consume those guards. They do not reinterpret roles or
   recreate authentication checks.
 
@@ -26,6 +28,8 @@ aliases to a canonical guard rather than separate implementations.
 - The local `requireAdmin` implementation in `server/routes.ts` is retired.
 - Prompt administration, Admin Control, and extracted super-admin routers use
   the central guards.
+- Role gates require an explicitly listed role. They no longer infer
+  cross-scope access from the numeric legacy role hierarchy.
 
 All of these consumers now share fresh effective-account resolution and the
 same impersonation privilege boundary.
@@ -44,7 +48,9 @@ This change does not declare the whole identity system aligned:
   decisions. Their removal or retention requires account-by-account evidence
   and recovery proof.
 - Product role, active presentation role, assigned roles, business membership,
-  and permission remain overlapping concepts.
+  and permission remain overlapping concepts. Their numeric ordering no longer
+  creates an authority grant, but their stored sources still require
+  reconciliation.
 - Additional route-local predicates perform record ownership and specialized
   operational checks; each must be classified before it is reused or retired.
 

@@ -153,7 +153,10 @@ export interface RolePermissions {
   canManageAdmins: boolean;
 }
 
-// Role hierarchy levels (higher number = more authority)
+// Administrative ordering for role-assignment and display workflows only.
+// These values are not access grants: product, community, provider, staff, and
+// administrative roles describe different scopes and cannot inherit authority
+// from one another merely because one number is higher.
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   // Customer & business roles (0-9)
   homeowner: 0,
@@ -802,6 +805,18 @@ export function getRoleHierarchyLevel(role: UserRole): number {
 
 export function getRolePermissions(role: UserRole): RolePermissions {
   return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.homeowner;
+}
+
+/**
+ * Route role gates are explicit grants. Callers must name every role that may
+ * enter a boundary; ROLE_HIERARCHY must never turn an unrelated role into an
+ * implied grant.
+ */
+export function hasExplicitRoleGrant(
+  userRole: UserRole,
+  allowedRoles: readonly UserRole[]
+): boolean {
+  return allowedRoles.includes(userRole);
 }
 
 export function canUserPerformAction(
