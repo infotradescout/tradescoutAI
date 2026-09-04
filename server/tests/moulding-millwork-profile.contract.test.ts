@@ -3,7 +3,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { userRoleEnum } from "@shared/schema";
 import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
   MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS,
+  MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
   MOULDING_MILLWORK_PROFILE_SLUG,
   MOULDING_MILLWORK_PUBLIC_SOURCES,
 } from "@shared/mouldingMillworkProfile";
@@ -18,10 +20,10 @@ describe("Moulding & Millwork Supply public profile contract", () => {
 
     expect(MOULDING_MILLWORK_PROFILE_SLUG).toBe("moulding-millwork-supply");
     expect(provisioner).toContain("slug: MOULDING_MILLWORK_PROFILE_SLUG");
-    expect(provisioner).toContain('claimStatus: "claimed"');
-    expect(provisioner).toContain('status: "active"');
-    expect(provisioner).toContain('status: "published"');
-    expect(provisioner).toContain("publicDiscoveryEnabled: true");
+    expect(provisioner).toContain('claimStatus: existingBusiness?.claimStatus || "claimed"');
+    expect(provisioner).toContain('status: existingBusiness?.status || ("active" as const)');
+    expect(provisioner).toContain('status: existingProfile?.status || ("published" as const)');
+    expect(provisioner).toContain("existingBusiness.publicDiscoveryEnabled");
     expect(provisioner).toContain("tradePartner: true");
     expect(provisioner).toContain('eq(counties.fips, "22051")');
     expect(provisioner).toContain(".insert(businessCounties)");
@@ -61,7 +63,7 @@ describe("Moulding & Millwork Supply public profile contract", () => {
     // (which had confirmed license/insurance evidence and operator
     // attestation) or a CVS-boosted launch.
     expect(provisioner).not.toContain("verifiedBadge");
-    expect(provisioner).not.toContain("verificationStatus");
+    expect(provisioner).not.toMatch(/verificationStatus:\s*["']/);
     expect(provisioner).not.toContain("verificationRequirements");
     expect(provisioner).not.toContain("verifiedLicensed: true");
     expect(provisioner).not.toContain("verifiedInsured: true");
@@ -123,5 +125,28 @@ describe("Moulding & Millwork Supply public profile contract", () => {
     for (const source of MOULDING_MILLWORK_PUBLIC_SOURCES) {
       expect(source).toMatch(/^https:\/\/(www\.)?(mouldingmillworksupply\.com|loewen\.com)\//);
     }
+  });
+
+  it("preserves revocation and owner-controlled publication state across boot", () => {
+    const provisioner = read("server/services/mouldingMillworkProfileProvisioning.ts");
+
+    expect(MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE).toBe(
+      "operator_confirmed_selective_inheritance"
+    );
+    expect(MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE).toBe(
+      "operator_confirmed_selective_inheritance_revoked"
+    );
+    expect(provisioner).toContain("operatorProfileAuthorityRevoked");
+    expect(provisioner).toContain(
+      "businessSources.delete(MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE)"
+    );
+    expect(provisioner).toContain("hasExplicitPublicProfileIds");
+    expect(provisioner).toContain("shouldSeedExactProfileRelease");
+    expect(provisioner).toContain("!hasExplicitPublicProfileIds");
+    expect(provisioner).toContain("!operatorProfileAuthorityRevoked");
+    expect(provisioner).toContain("publicProfileIds: Array.from(");
+    expect(provisioner).toContain(
+      "Moulding & Millwork owner provisioning refused an unconfirmed pre-existing account"
+    );
   });
 });

@@ -5,6 +5,11 @@ import {
   JRS_PROFILE_SLUG,
   OWNER_CONFIRMED_PROFILE_SOURCE,
 } from "../services/ownerConfirmedDirectProfile";
+import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+  MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+  MOULDING_MILLWORK_PROFILE_SLUG,
+} from "@shared/mouldingMillworkProfile";
 
 const mocks = vi.hoisted(() => ({
   rows: [] as any[],
@@ -64,13 +69,18 @@ function linkedRow(overrides: Record<string, unknown> = {}) {
     profileOwnerUserId: "owner-1",
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "pending",
+    ownerEmailVerified: false,
     ownerProvider: "local",
-    ownerPreferences: { profileVisibility: "public" },
+    ownerPreferences: {
+      profileVisibility: "public",
+      publicProfileIds: ["profile-onboarding-1"],
+    },
     businessStatus: "active",
     businessOwnerUserId: "owner-1",
     publicDiscoveryEnabled: true,
     businessSources: ["selective_intelligence_onboarding"],
     businessClaimStatus: "claimed",
+    businessProfileData: {},
     ...overrides,
   };
 }
@@ -134,6 +144,34 @@ describe("anonymous public-profile HTML trust boundary", () => {
       }),
     ];
     await expect(repository.getProfileBySlugPublic("lookalike")).resolves.toBeUndefined();
+  });
+
+  it("serves the exact operator-confirmed TradePartner and honors revocation", async () => {
+    const repository = new ProfileRepository();
+    const exactTradePartner = linkedRow({
+      slug: MOULDING_MILLWORK_PROFILE_SLUG,
+      ownerProvider: "admin_provisioned",
+      businessSources: [MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE],
+      businessProfileData: { tradePartner: true },
+    });
+
+    mocks.rows = [exactTradePartner];
+    await expect(
+      repository.getProfileBySlugPublic(MOULDING_MILLWORK_PROFILE_SLUG)
+    ).resolves.toMatchObject({ slug: MOULDING_MILLWORK_PROFILE_SLUG });
+
+    mocks.rows = [
+      linkedRow({
+        ...exactTradePartner,
+        businessSources: [
+          MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+          MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
+        ],
+      }),
+    ];
+    await expect(
+      repository.getProfileBySlugPublic(MOULDING_MILLWORK_PROFILE_SLUG)
+    ).resolves.toBeUndefined();
   });
 
   it("returns no SSR HTML, host-local llms guidance, or host-local sitemap for pending evidence", async () => {

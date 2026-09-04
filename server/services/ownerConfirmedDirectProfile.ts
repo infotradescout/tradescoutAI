@@ -16,6 +16,7 @@ import {
   isSteelHomePackagesProfileSlug,
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
+import { isOperatorConfirmedTradePartnerProfile } from "./operatorConfirmedTradePartnerProfile";
 
 export {
   ADMIN_MANAGED_PROFILE_SOURCE,
@@ -62,6 +63,7 @@ export type OwnerConfirmedDirectProfileCandidate = {
   publicDiscoveryEnabled: unknown;
   businessSources: unknown;
   businessClaimStatus?: unknown;
+  businessProfileData?: unknown;
   profileRoleContext?: unknown;
   profileHeadline?: unknown;
   profileServicesDescription?: unknown;
@@ -71,6 +73,7 @@ export type OwnerConfirmedDirectProfileCandidate = {
   ownerVerifiedBadge?: unknown;
   ownerVerificationStatus?: unknown;
   ownerProvider?: unknown;
+  ownerEmailVerified?: unknown;
   ownerPreferences?: unknown;
 };
 
@@ -324,6 +327,9 @@ export function derivePublishedProfileExposure(
         .toLowerCase() !== "active"
     ) {
       return { mode: "private", reason: "business_trust_missing" };
+    }
+    if (isOperatorConfirmedTradePartnerProfile(candidate)) {
+      return { mode: "public", reason: "public" };
     }
     if (isOwnerConfirmedDirectProfile(candidate)) {
       return { mode: "direct_only", reason: "direct_only" };
