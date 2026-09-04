@@ -1,9 +1,10 @@
 import { COMPREHENSIVE_TRADES } from "@shared/trades-data";
-import { getTradeSeoMatch } from "@shared/tradeSeo";
+import { getTradeSeoMatch, PUBLIC_TRADE_INPUT_SLUGS } from "@shared/tradeSeo";
 import { businesses, users } from "@shared/schema";
 import { and, eq, or, sql } from "drizzle-orm";
 import type {
   BusinessPublicationTier,
+  PublicationRules,
   PublicationCheck,
   PublicBusinessSignals,
 } from "@shared/publication";
@@ -44,6 +45,54 @@ export function publicBusinessDetailExposureSqlPredicate() {
       sql`lower(COALESCE(CAST(${users.verificationStatus} AS text), '')) = 'approved'`,
       eq(users.addressVerified, true)
     )
+  );
+}
+
+/** SQL equivalent of the public business renderer's crawlability policy. */
+export function publicBusinessSitemapCrawlabilitySqlPredicate(args: {
+  rules: PublicationRules;
+  now: Date;
+}) {
+  const unclaimedCutoff = new Date(
+    args.now.getTime() - args.rules.listingStaleDaysUnclaimed * 24 * 60 * 60 * 1000
+  );
+  const verifiedCutoff = new Date(
+    args.now.getTime() - args.rules.listingStaleDaysVerified * 24 * 60 * 60 * 1000
+  );
+  const tradeInputs = sql.join(
+    PUBLIC_TRADE_INPUT_SLUGS.map((tradeInput) => sql`${tradeInput}`),
+    sql`, `
+  );
+  const unclaimedBusiness = or(
+    sql`${businesses.ownerUserId} IS NULL`,
+    sql`lower(COALESCE(${businesses.claimStatus}, '')) = 'unclaimed'`
+  );
+  const verifiedBusiness = and(
+    sql`${businesses.ownerUserId} IS NOT NULL`,
+    sql`lower(COALESCE(${businesses.claimStatus}, '')) <> 'unclaimed'`,
+    sql`lower(COALESCE(CAST(${users.verificationStatus} AS text), '')) = 'approved'`,
+    eq(users.addressVerified, true)
+  );
+  const hasCanonicalTrade = sql`EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements_text(
+      jsonb_build_array(COALESCE(${businesses.profileData} ->> 'category', '')) ||
+      CASE
+        WHEN jsonb_typeof(${businesses.profileData} -> 'services') = 'array'
+          THEN ${businesses.profileData} -> 'services'
+        ELSE '[]'::jsonb
+      END
+    ) AS sitemap_trade_candidate(value)
+    WHERE lower(btrim(sitemap_trade_candidate.value)) IN (${tradeInputs})
+  )`;
+
+  return and(
+    publicBusinessDetailExposureSqlPredicate(),
+    or(
+      and(unclaimedBusiness, sql`${businesses.updatedAt} >= ${unclaimedCutoff}`),
+      and(verifiedBusiness, sql`${businesses.updatedAt} >= ${verifiedCutoff}`)
+    ),
+    hasCanonicalTrade
   );
 }
 

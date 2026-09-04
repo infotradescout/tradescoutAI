@@ -1,4 +1,5 @@
 import { formatTradeScoutTitle } from "@shared/brand";
+import { resolvePublicLandingIndexability } from "@shared/publicLandingIndexability";
 import {
   explainerChapters,
   type ExplainerCard,
@@ -171,7 +172,11 @@ function renderFullExplainer() {
 }
 
 export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Promise<string> {
-  const meta = buildMeta(opts);
+  const landingIndexability = resolvePublicLandingIndexability({
+    requestPath: opts.requestPath,
+    variant: opts.variant,
+  });
+  const meta = buildMeta({ ...opts, requestPath: landingIndexability.canonicalPath });
 
   const summary = `
 <main data-seo-landing="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
@@ -246,7 +251,9 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    '<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />'
+    landingIndexability.indexable
+      ? '<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />'
+      : '<meta name="robots" content="noindex,follow" />'
   );
   html = upsertTag(
     html,

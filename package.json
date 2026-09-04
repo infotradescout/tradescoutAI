@@ -119,6 +119,7 @@
     "audit:secrets-history:ps": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/audit-secrets-history.ps1",
     "audit:doc-links:entry": "node scripts/audit-doc-links.mjs README.md README_START_HERE.md PRODUCTION.md PRODUCTION_CHECKLIST.md docs/CONFIG_AND_DEPLOYMENT.md docs/release-gate-metrics.md SECURITY.md",
     "guard:sitemap-integrity": "node scripts/guard-sitemap-integrity.mjs",
+    "guard:indexability-recovery": "node scripts/guard-indexability-recovery.mjs",
     "guard:brand-scope": "node scripts/guard-brand-scope.mjs",
     "guard:admin-route-aliases": "node scripts/guard-admin-route-aliases.mjs",
     "audit:affiliate-integrity": "node scripts/check-node-spawn.mjs && node --import tsx scripts/affiliate-spotcheck.mts",

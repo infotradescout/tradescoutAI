@@ -1,4 +1,5 @@
 import { COMPREHENSIVE_TRADES, type Trade } from "@shared/trades-data";
+import type { StablePublicLandingBaseVariant } from "@shared/publicLandingIndexability";
 
 export type LandingVariant = {
   key: string;
@@ -85,7 +86,8 @@ const DEFAULT_VARIANT: LandingVariant = {
   },
 };
 
-const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
+const BASE_VARIANTS: Record<string, Partial<LandingVariant>> &
+  Record<StablePublicLandingBaseVariant, Partial<LandingVariant>> = {
   contractor: {
     displayName: "Business Providers",
     badgeText: "Trusted Work Pipeline",
