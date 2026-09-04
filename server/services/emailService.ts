@@ -40,6 +40,9 @@ export type EmailSendResult = {
 const BREVO_MAX_ATTEMPTS = 3;
 const BREVO_TIMEOUT_MS = 15_000;
 const BREVO_RETRY_BASE_MS = 500;
+const DIRECT_CONNECT_BUSINESS_NOTIFICATION_PURPOSE = "tradepartner_request_notification";
+const WITHHELD_DIRECT_CONNECT_CONTACT_COPY =
+  "<p>Contact details stay inside TradeScout until you respond -- open Direct Connect to view the full message and reply.</p>";
 
 /** Mask local-part for logs: `j***@domain.com` (keeps domain for ops triage). */
 export function maskEmailForLog(email: string): string {
@@ -65,6 +68,116 @@ function correlationFields(params: Pick<SendEmailParams, "requestId" | "correlat
   return {
     ...(params.requestId ? { requestId: String(params.requestId) } : {}),
     ...(params.correlationId ? { correlationId: String(params.correlationId) } : {}),
+  };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function extractSubmittedRequesterName(params: SendEmailParams): string | null {
+  const textMatch = String(params.text || "").match(/^(.+?) sent a request through /i);
+  if (textMatch?.[1]?.trim()) return textMatch[1].trim();
+
+  const htmlMatch = String(params.html || "").match(/<p>(.+?) sent a request through /i);
+  if (!htmlMatch?.[1]) return null;
+  return htmlMatch[1]
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
+async function attachConsentedDirectConnectContact(
+  params: SendEmailParams,
+  purpose: string
+): Promise<SendEmailParams> {
+  if (purpose !== DIRECT_CONNECT_BUSINESS_NOTIFICATION_PURPOSE || !params.requestId) {
+    return params;
+  }
+  if (String(params.html || "").includes('data-direct-connect-requester-contact="true"')) {
+    return params;
+  }
+
+  const [{ db }, { sql }] = await Promise.all([import("../db"), import("drizzle-orm")]);
+  const result = await db.execute(sql`
+    SELECT
+      owner.first_name,
+      owner.last_name,
+      owner.email,
+      owner.phone
+    FROM work_requests request
+    INNER JOIN users owner ON owner.id = request.created_by_user_id
+    WHERE request.id = ${String(params.requestId)}
+      AND request.source = 'direct_connect'
+    LIMIT 1
+  `);
+  const row = ((result.rows || []) as any[])[0] || null;
+  const submittedName = extractSubmittedRequesterName(params);
+  const accountName = [row?.first_name, row?.last_name]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const requesterName = submittedName || accountName;
+  const requesterPhone = String(row?.phone || "").trim();
+  const requesterEmail = String(row?.email || "")
+    .trim()
+    .toLowerCase();
+
+  if (!requesterName || !requesterPhone) {
+    console.error("[email] Direct Connect business notification blocked: requester contact unavailable", {
+      requestId: String(params.requestId),
+      hasName: Boolean(requesterName),
+      hasPhone: Boolean(requesterPhone),
+    });
+    throw new Error(
+      "Direct Connect business notification requires the requester's name and phone number"
+    );
+  }
+
+  const telValue = requesterPhone.replace(/[^+\d]/g, "");
+  const contactHtml = [
+    '<div data-direct-connect-requester-contact="true">',
+    "<p><strong>Requester contact</strong></p>",
+    `<p><strong>Name:</strong> ${escapeHtml(requesterName)}</p>`,
+    `<p><strong>Phone:</strong> <a href="tel:${escapeHtml(telValue)}">${escapeHtml(requesterPhone)}</a></p>`,
+    requesterEmail
+      ? `<p><strong>Email:</strong> <a href="mailto:${escapeHtml(requesterEmail)}">${escapeHtml(requesterEmail)}</a></p>`
+      : "",
+    "<p>The requester authorized TradeScout to share these details with this business by sending the Direct Connect request.</p>",
+    "</div>",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const contactText = [
+    "Requester contact",
+    `Name: ${requesterName}`,
+    `Phone: ${requesterPhone}`,
+    requesterEmail ? `Email: ${requesterEmail}` : null,
+    "The requester authorized TradeScout to share these details with this business by sending the Direct Connect request.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const existingHtml = String(params.html || "");
+  const html = existingHtml.includes(WITHHELD_DIRECT_CONNECT_CONTACT_COPY)
+    ? existingHtml.replace(WITHHELD_DIRECT_CONNECT_CONTACT_COPY, contactHtml)
+    : `${existingHtml}${existingHtml ? "\n" : ""}${contactHtml}`;
+  const existingText = String(params.text || "");
+  const text = `${existingText}${existingText ? "\n" : ""}${contactText}`;
+
+  return {
+    ...params,
+    html,
+    text,
+    replyTo: params.replyTo || requesterEmail || undefined,
   };
 }
 
@@ -188,6 +301,8 @@ class EmailService {
         };
       }
     }
+
+    params = await attachConsentedDirectConnectContact(params, purpose);
 
     if (!params.html && !params.text) {
       throw new Error("Email requires html or text content");
