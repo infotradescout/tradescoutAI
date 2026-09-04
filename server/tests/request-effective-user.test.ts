@@ -42,6 +42,26 @@ describe("resolveRequestEffectiveUser", () => {
     });
   });
 
+  it("preserves the original principal after middleware binds the effective target", () => {
+    expect(
+      resolveRequestEffectiveUser({
+        principalUser: { id: "admin-user" },
+        user: { id: "target-user" },
+        session: {
+          originalUser: { id: "admin-user", role: "super_admin" },
+          isImpersonating: true,
+          impersonatedUserId: "target-user",
+          impersonatingRole: "contractor",
+        },
+      })
+    ).toEqual({
+      ok: true,
+      principalUserId: "admin-user",
+      effectiveUserId: "target-user",
+      isImpersonating: true,
+    });
+  });
+
   it("fails closed instead of falling back for incomplete or contradictory markers", () => {
     const ambiguousRequests = [
       {

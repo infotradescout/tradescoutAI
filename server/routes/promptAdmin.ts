@@ -6,6 +6,7 @@ import path from "path";
 import { reloadSystemPrompt, getPromptStatus } from "../services/promptService";
 import type { AuthenticatedUser } from "../types";
 import { runtimePaths } from "../runtimePaths";
+import { resolveRequestEffectiveUser } from "../utils/requestEffectiveUser";
 
 const router = express.Router();
 
@@ -15,6 +16,13 @@ const PROMPT_PATH = path.join(runtimePaths.scoutManualCache, "system_prompt.md")
  * Middleware to check if user is super admin
  */
 function requireSuperAdmin(req: Request, res: Response, next: () => void) {
+  const identityContext = resolveRequestEffectiveUser(req);
+  if (!identityContext.ok || identityContext.isImpersonating) {
+    return res.status(403).json({
+      error: "Super admin tools are unavailable while acting as another user.",
+      code: "IMPERSONATION_PRIVILEGE_BOUNDARY",
+    });
+  }
   const user = (req as any).user as AuthenticatedUser | undefined;
 
   if (!user) {
