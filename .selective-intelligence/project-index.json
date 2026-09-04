@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-04T16:53:29Z",
+  "generated_at": "2026-09-04T17:44:54Z",
   "source": {
     "kind": "git",
-    "revision": "b2eb1958aff047f6be61167350ddea9209ba7b82",
+    "revision": "f9837e71c22883b986ed3d4c266b0b93673d6d0e",
     "dirty": true,
-    "inventory_sha256": "1c477a93b532212f24429d5ddde20d5d365b439e31090f7a5e417e52393ab19a"
+    "inventory_sha256": "9bea14f5e751aba4cbbb6190cfac692a19326bdbc1b42d49dd54ad942971e4d2"
   },
   "inventory": {
     "directories": [
@@ -52,7 +52,7 @@
       },
       {
         "path": "client/src/components",
-        "source_file_count": 86
+        "source_file_count": 82
       },
       {
         "path": "client/src/components/admin",
@@ -60,7 +60,7 @@
       },
       {
         "path": "client/src/components/auth",
-        "source_file_count": 6
+        "source_file_count": 5
       },
       {
         "path": "client/src/components/business",
@@ -108,7 +108,7 @@
       },
       {
         "path": "client/src/components/layout",
-        "source_file_count": 11
+        "source_file_count": 10
       },
       {
         "path": "client/src/components/messages",
@@ -164,7 +164,7 @@
       },
       {
         "path": "client/src/components/ui",
-        "source_file_count": 63
+        "source_file_count": 61
       },
       {
         "path": "client/src/components/verification",
@@ -196,11 +196,11 @@
       },
       {
         "path": "client/src/features/jw-stone",
-        "source_file_count": 88
+        "source_file_count": 87
       },
       {
         "path": "client/src/hooks",
-        "source_file_count": 26
+        "source_file_count": 25
       },
       {
         "path": "client/src/lib",
@@ -208,7 +208,7 @@
       },
       {
         "path": "client/src/pages",
-        "source_file_count": 296
+        "source_file_count": 294
       },
       {
         "path": "client/src/pages/admin",
@@ -320,7 +320,7 @@
       },
       {
         "path": "scripts",
-        "source_file_count": 203
+        "source_file_count": 202
       },
       {
         "path": "scripts/codemods",
@@ -575,8 +575,8 @@
       {
         "path": "client/postcss.config.js",
         "language": "js",
-        "sha256": "190c877db466995bf1482f4a16abd06e04a89ede3119341e2a86ff96e1737b27",
-        "bytes": 80
+        "sha256": "e381bf2b6dc4b8f4c6b214f20c9c9242ecb43226a27b5326add628eb555b1f8b",
+        "bytes": 127
       },
       {
         "path": "client/public/firebase-messaging-sw.js",
@@ -945,12 +945,6 @@
         "bytes": 7546
       },
       {
-        "path": "client/src/components/EmptyState.tsx",
-        "language": "tsx",
-        "sha256": "b957f6b4a4d8d6aae95a1e813e1778b7c2e12efb7951babb7e85063f065e1515",
-        "bytes": 1042
-      },
-      {
         "path": "client/src/components/EnhancedAdSystem.tsx",
         "language": "tsx",
         "sha256": "33ca3fadc3fe1221dbbce28c2b2e3663470c5901b9c9fc45ae323a02055f811b",
@@ -1023,12 +1017,6 @@
         "bytes": 907
       },
       {
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "language": "tsx",
-        "sha256": "42b1ccdc10b7d623a7346f9df4b684d67ceaccee9871112bfa7a277b7da6ab08",
-        "bytes": 2113
-      },
-      {
         "path": "client/src/components/LoadingSpinner.tsx",
         "language": "tsx",
         "sha256": "599a94fddeb85b2dbc4914a8e1fdd9a57948bb642a964ce6ef045d995324ddc3",
@@ -1039,12 +1027,6 @@
         "language": "tsx",
         "sha256": "8bdc851a5fac5defec7cccb5e5f9361aeb54baae4aab5edc84abe333a528fcdc",
         "bytes": 7129
-      },
-      {
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "language": "tsx",
-        "sha256": "84a6a1b9b9e662d26a898a40c47c9f0d8d3bb74e4c5b6000e726ea4f00d8168d",
-        "bytes": 9943
       },
       {
         "path": "client/src/components/MaterialListBuilder.tsx",
@@ -1407,12 +1389,6 @@
         "bytes": 7384
       },
       {
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "language": "tsx",
-        "sha256": "05cd3a0b7a5a0018ddac31eb5a7a4c9f6c79d5d9a36f2e1cb0fbf8694f69dd45",
-        "bytes": 8894
-      },
-      {
         "path": "client/src/components/auth/OnboardingFlow.tsx",
         "language": "tsx",
         "sha256": "c51668f9d69e1084be92977dd5a15b8a135adc03f5bdbbb8465ed2eeb7fcd56d",
@@ -1495,12 +1471,6 @@
         "language": "ts",
         "sha256": "b65dfa05272d5a51ba2038e5a65e3319f8b40083efdac4b95cf103dab1628e78",
         "bytes": 585
-      },
-      {
-        "path": "client/src/components/contractor-card-skeleton.tsx",
-        "language": "tsx",
-        "sha256": "9671db1d7c9492da0bc3a5be59c478225d4edd493aa0bdcee46a54f141fa9ee9",
-        "bytes": 2070
       },
       {
         "path": "client/src/components/contractor-card.test.tsx",
@@ -1631,14 +1601,14 @@
       {
         "path": "client/src/components/layout/AppShell.tsx",
         "language": "tsx",
-        "sha256": "cf5ca5a35393ccc20a313983a4bd3408d43eba1877346be1c382e7a5833027eb",
-        "bytes": 5952
+        "sha256": "e125e87904713d8773e8c96ed9b76a030565751acb2e7c3dca3c01d4f118dd52",
+        "bytes": 5951
       },
       {
         "path": "client/src/components/layout/AppShellCore.tsx",
         "language": "tsx",
-        "sha256": "955ffc2726095651c99134e3139303b898a1aeaf5618ec6330f80fa9e1036300",
-        "bytes": 59960
+        "sha256": "9b50eac4a9594998f70cbfa699b5dc9a646ff56448297ec9ea66db71af0753fe",
+        "bytes": 59967
       },
       {
         "path": "client/src/components/layout/AuthenticatedSocialFrame.tsx",
@@ -1687,12 +1657,6 @@
         "language": "ts",
         "sha256": "3f9ec88694cf05460a4db4b1bc81d78f422873ccdebc86db7b3155f6633b7c11",
         "bytes": 5413
-      },
-      {
-        "path": "client/src/components/layout/navigation.tsx",
-        "language": "tsx",
-        "sha256": "0e3241e274da24939539a6193bcdf39a8e2981bb29a18234306f13d56ff7f496",
-        "bytes": 28624
       },
       {
         "path": "client/src/components/messages/MessagesPanel.direct-connect.contract.test.ts",
@@ -2253,12 +2217,6 @@
         "bytes": 5191
       },
       {
-        "path": "client/src/components/ui/navigation.tsx",
-        "language": "tsx",
-        "sha256": "8d3e31d44ee4ef127d534c40109093208f4433cea1da84e4fd5d712d2788dd3b",
-        "bytes": 8087
-      },
-      {
         "path": "client/src/components/ui/notification-center.tsx",
         "language": "tsx",
         "sha256": "12043111c315367e42e2eb082330ed1755961eb6b1c7f417e42ff62959bbe851",
@@ -2269,12 +2227,6 @@
         "language": "tsx",
         "sha256": "47612fe06b873cd739f5d948bcff3fa07a0a2f511e4285cb1f6510d15208fbfb",
         "bytes": 21055
-      },
-      {
-        "path": "client/src/components/ui/page-header.tsx",
-        "language": "tsx",
-        "sha256": "435dd3214f38469af0c6617f1c7f55006bf90ebb4503094d6d0bd9713b4bdfa4",
-        "bytes": 886
       },
       {
         "path": "client/src/components/ui/pagination.tsx",
@@ -2369,8 +2321,8 @@
       {
         "path": "client/src/components/ui/states.tsx",
         "language": "tsx",
-        "sha256": "b999669caffea0e63b3cef4a32f9c10fec4aa4ac97393899106458316f735aae",
-        "bytes": 2409
+        "sha256": "20fb89665822332b20536decd30dedacc6412fbc734fbcf3a59ef967cd2768cb",
+        "bytes": 3626
       },
       {
         "path": "client/src/components/ui/switch.tsx",
@@ -2513,8 +2465,8 @@
       {
         "path": "client/src/experiments/scout-landing-lite.tsx",
         "language": "tsx",
-        "sha256": "534d36afad4bf1002c9f851c8a7c25167b4342a886d84efeab190cba22a27287",
-        "bytes": 11454
+        "sha256": "5a797c3f8a5bae89b06f4e3590b756a30521b53b874595cc1ee541272ee5eeb3",
+        "bytes": 11453
       },
       {
         "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
@@ -2595,12 +2547,6 @@
         "bytes": 17336
       },
       {
-        "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-        "language": "tsx",
-        "sha256": "777310fd0ede260c8f5c280c23a4558d4c37ec1c4660f3df511399f64f445a31",
-        "bytes": 6752
-      },
-      {
         "path": "client/src/features/jw-stone/FirstCutSection.test.tsx",
         "language": "tsx",
         "sha256": "584f84f7a191f2298a47beb4b477a7a6a5e21dcc082389b15ebb623f28177205",
@@ -2633,8 +2579,8 @@
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
         "language": "tsx",
-        "sha256": "bc439aea637f77558315c9ea7cd957525ab5f57f1b95ca633bbca0bcf2c3fef2",
-        "bytes": 15614
+        "sha256": "e1cea90cebe2c1b31b01df1db034211be3e790e23d9a7b2f525c2c0a3f613f7e",
+        "bytes": 15531
       },
       {
         "path": "client/src/features/jw-stone/JWStoneRequestedVisualScope.test.tsx",
@@ -2759,8 +2705,8 @@
       {
         "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
         "language": "tsx",
-        "sha256": "e263d9c6399e25e46cb47a0606145b61d1fc1ac147b5d7797dd43828f123b1f0",
-        "bytes": 3292
+        "sha256": "a0efdd94138b0dab8be533291af860e58fdc53bb1b412adf179e7ac35dc80ef4",
+        "bytes": 6576
       },
       {
         "path": "client/src/features/jw-stone/StoneCard.test.tsx",
@@ -3169,12 +3115,6 @@
         "language": "ts",
         "sha256": "0fa05613ca0a502050555e874c903f510cca35d5bc55675b9f6d33f5f745375b",
         "bytes": 1510
-      },
-      {
-        "path": "client/src/hooks/useIsMobile.ts",
-        "language": "ts",
-        "sha256": "16f0582d2d3889a925baca3c5452412bc5942fcbc7e99bf1c610fd8ae21f0cc0",
-        "bytes": 461
       },
       {
         "path": "client/src/hooks/useIsStandalone.ts",
@@ -3833,8 +3773,8 @@
       {
         "path": "client/src/pages/CommunityModerationDemo.tsx",
         "language": "tsx",
-        "sha256": "aa0fd2b17dd20b41168840b57dbf642d6b9952217d7ae3ee15f6a5749013f8de",
-        "bytes": 191
+        "sha256": "689a843c207fdd8dff02fd5034a862f0819d436992c5b5de217adf96571ace83",
+        "bytes": 222
       },
       {
         "path": "client/src/pages/CommunityProfile.tsx",
@@ -4433,14 +4373,14 @@
       {
         "path": "client/src/pages/car-sales-trade-in.tsx",
         "language": "tsx",
-        "sha256": "97d6850f18efd99f25e08f520621f2cc44257721c69e2144e62148fe43125c42",
-        "bytes": 182
+        "sha256": "405e3ca04670b2cf773f4d3049db45867219851f8613f1120ade411654babaf3",
+        "bytes": 213
       },
       {
         "path": "client/src/pages/car-sales-vin-lookup.tsx",
         "language": "tsx",
-        "sha256": "a7b4b38143df5bc6c23d24f155056456ba2305b6d6a9c0145617996ae5408e3b",
-        "bytes": 175
+        "sha256": "7776d1106d8348119aabb526b1fe6d6815989a3461639939ec8f7c6948bd1f52",
+        "bytes": 196
       },
       {
         "path": "client/src/pages/car-salesman-application.tsx",
@@ -4451,8 +4391,8 @@
       {
         "path": "client/src/pages/car-salesman-dashboard.tsx",
         "language": "tsx",
-        "sha256": "b8eadcf80a2571213eb9eb89a75361be7ae63804ff8f25e78003ae9e8280d0e0",
-        "bytes": 188
+        "sha256": "c36c456bbfe466d77f584a8cd8dddd66ffedecb6aa0359adf329220193f8b6b0",
+        "bytes": 219
       },
       {
         "path": "client/src/pages/chat.tsx",
@@ -5309,8 +5249,8 @@
       {
         "path": "client/src/pages/help-demo.tsx",
         "language": "tsx",
-        "sha256": "ac9c32d06d27f70d2b1fc96c3387709763873c6e0a16d53f92f997891be223b5",
-        "bytes": 186
+        "sha256": "c0def6b7c16b9e8c8fdc62c94d01527671e4b1ba089900efe85bc7b98b414960",
+        "bytes": 206
       },
       {
         "path": "client/src/pages/help.tsx",
@@ -5363,8 +5303,8 @@
       {
         "path": "client/src/pages/home.tsx",
         "language": "tsx",
-        "sha256": "f79fffb4f19eb0fe442872273e4d8e36865489871edcceb95c38881927a3be3d",
-        "bytes": 10494
+        "sha256": "8e641bda128a24e6788a41b50aefd3feb0bd523ec28584808ad9b9deece9eaef",
+        "bytes": 10504
       },
       {
         "path": "client/src/pages/homeid/HomeIdWorkspace.tsx",
@@ -5381,8 +5321,8 @@
       {
         "path": "client/src/pages/homeowner-dashboard.tsx",
         "language": "tsx",
-        "sha256": "50ddf3979c0c533a85e5cff5ea069d2f34f2dca12633a515f1e3cf4c356d9a29",
-        "bytes": 664
+        "sha256": "f96fc1c77c50fef8e1a1930cee2036bc1bb9404550b73eca3f83749386362d00",
+        "bytes": 690
       },
       {
         "path": "client/src/pages/homes.tsx",
@@ -5441,8 +5381,8 @@
       {
         "path": "client/src/pages/landing.tsx",
         "language": "tsx",
-        "sha256": "1454339e8f4ee2c29a162dd38e511f77072de00974b5d0f035e12cf0b804dd8f",
-        "bytes": 44051
+        "sha256": "8675f436a9eb5005b7f4ab16806340597d82a8b62c9db7d1ffe1c9cfd76366e8",
+        "bytes": 44066
       },
       {
         "path": "client/src/pages/landingVariants.ts",
@@ -5583,18 +5523,6 @@
         "bytes": 65202
       },
       {
-        "path": "client/src/pages/onboarding-intent.tsx",
-        "language": "tsx",
-        "sha256": "5deabaa99349374d003248667b8cbfa214133b5628df87aaa16d506360bb2664",
-        "bytes": 120
-      },
-      {
-        "path": "client/src/pages/onboarding-profile.tsx",
-        "language": "tsx",
-        "sha256": "5deabaa99349374d003248667b8cbfa214133b5628df87aaa16d506360bb2664",
-        "bytes": 120
-      },
-      {
         "path": "client/src/pages/onboarding-routing.integration.test.tsx",
         "language": "tsx",
         "sha256": "1e5be917d6bb7a5eed6fb81a2cc14226c965d293af844845433df9dd63f9bac1",
@@ -5675,8 +5603,8 @@
       {
         "path": "client/src/pages/procurement/ProcurementPages.tsx",
         "language": "tsx",
-        "sha256": "26e863147ff3e43b1179f9951a5ae3cae4b37dd824226cd8d53cc33ad4d4a787",
-        "bytes": 68862
+        "sha256": "5773e3b04ef825ab108a0011a941152ab8a32b5c7704b5c0ee6c0c7aca250de9",
+        "bytes": 48497
       },
       {
         "path": "client/src/pages/profile-app-identity.contract.test.ts",
@@ -5885,8 +5813,8 @@
       {
         "path": "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
         "language": "tsx",
-        "sha256": "05461292791896b8381f6106ffe885b3d1613d5d82fd4f283a50564e27c23125",
-        "bytes": 154140
+        "sha256": "e621a1ed691ecd10d9db230637cd124d86883109dc8c502585aa967d155368bc",
+        "bytes": 154146
       },
       {
         "path": "client/src/pages/profile-sites/directConnectMaterial.ts",
@@ -6227,8 +6155,8 @@
       {
         "path": "client/src/pages/realtor-cma.tsx",
         "language": "tsx",
-        "sha256": "953190198ed4cf851721207a9a87cb352a8cff53f19d16d581c3a034c5ea58f5",
-        "bytes": 172
+        "sha256": "27ce13218f2e8b89f922156240a0a8776db513f2424e396ecdf611201696f8eb",
+        "bytes": 192
       },
       {
         "path": "client/src/pages/realtor-connections.tsx",
@@ -6245,14 +6173,14 @@
       {
         "path": "client/src/pages/realtor-dashboard.tsx",
         "language": "tsx",
-        "sha256": "ccef29923daae5e9dbc23def0ef67b36674c7929ffbd5c1c3b9705d6fe600fdc",
-        "bytes": 177
+        "sha256": "15e55352a68277a34309b56fea45ab92cbe0ec05a83c705357b1ae51a0fbeff5",
+        "bytes": 198
       },
       {
         "path": "client/src/pages/realtor-market-analysis.tsx",
         "language": "tsx",
-        "sha256": "5e1f9b80f76f717615081c0f354b993fb5df501e9e3537154760a37e414a2f7f",
-        "bytes": 183
+        "sha256": "0721f58394160a823ff3a56bdd71d4ac5dab6928cdff353d6786731e21d7f113",
+        "bytes": 203
       },
       {
         "path": "client/src/pages/recent/CityRecentPage.tsx",
@@ -6731,8 +6659,8 @@
       {
         "path": "client/src/scout/ScoutOS.tsx",
         "language": "tsx",
-        "sha256": "ea2a426c2d659c1aaf98b488a842f9078dc322174c8a2d52850d43f15fd36759",
-        "bytes": 220819
+        "sha256": "385b11d8d5d7049be4546ae3e9e63aaae1338cb016cac5eb54a7bf47e90b4df8",
+        "bytes": 220818
       },
       {
         "path": "client/src/scout/ScoutSearchDock.tsx",
@@ -7375,12 +7303,6 @@
         "language": "mjs",
         "sha256": "d04b1e1f56a3e03aa92163e24b19efc1a399b93210d4baf8680f644965359c0a",
         "bytes": 3524
-      },
-      {
-        "path": "scripts/apply-stone-inventory-truth.py",
-        "language": "py",
-        "sha256": "f23eb2220b0a9b2e68e1ad78b6631008ccc41e605deb7a3bdd058923fa352844",
-        "bytes": 32260
       },
       {
         "path": "scripts/attest-minimum-release-contract.mjs",
@@ -11957,8 +11879,8 @@
       {
         "path": "server/tests/bidrock-marketplace-recovery.contract.test.ts",
         "language": "ts",
-        "sha256": "51e706b67a9fa454ef0023b60bf546cb6a3cabbe2322e706319bb4735a8d9a9a",
-        "bytes": 9454
+        "sha256": "257fc54dba737725b982c8755827a73a7b7920acfae0b25757ade9e767592658",
+        "bytes": 9455
       },
       {
         "path": "server/tests/bidrock-postgres.integration.test.ts",
@@ -11999,8 +11921,8 @@
       {
         "path": "server/tests/business-genericization.contract.test.ts",
         "language": "ts",
-        "sha256": "44f806b620522fcb801ce1949ce134230d88612aa0dd49569467b256fa9f96d2",
-        "bytes": 20849
+        "sha256": "504178584517bc6eebbf61bc7814b8b3f18688c124d61aa397a548d17750d1d3",
+        "bytes": 21065
       },
       {
         "path": "server/tests/business-onboarding-discoverability.contract.test.ts",
@@ -13223,8 +13145,8 @@
       {
         "path": "server/tests/onboarding-flow-contracts.test.ts",
         "language": "ts",
-        "sha256": "74f367e32fbca0f70b14e28bbcab8363805674e4257a24b078bd30a9cd8df44b",
-        "bytes": 8251
+        "sha256": "eb748c34326e2e319c52661f4a73683eae6c7146038f03bbd1921b7d7836460b",
+        "bytes": 8498
       },
       {
         "path": "server/tests/operator-confirmed-tradepartner-profile.test.ts",
@@ -13397,8 +13319,8 @@
       {
         "path": "server/tests/procurement-engine.contract.test.ts",
         "language": "ts",
-        "sha256": "ec1a7c9c0f9e91874972c63f88dab109a8da282bd1e6156b498d2319e466e945",
-        "bytes": 9265
+        "sha256": "1ffeebd83329eb188b274ea3560ad9bcd000879acd091a4fe109c5796670decd",
+        "bytes": 9536
       },
       {
         "path": "server/tests/product-kpi-audit-route.contract.test.ts",
@@ -14699,8 +14621,8 @@
       {
         "path": "server/tests/stone-inventory-truth.contract.test.ts",
         "language": "ts",
-        "sha256": "9c37711f39bdbafbce82238f0ec7537ca763532152c121178e69fa6ed1421d36",
-        "bytes": 6716
+        "sha256": "d0f1c62bae274f447a291f7f21b876ad7da5ba158716058e7c239e87842524de",
+        "bytes": 6735
       },
       {
         "path": "server/tests/storage-contract-extraction.contract.test.ts",
@@ -18337,20 +18259,6 @@
         "exported": false
       },
       {
-        "name": "EmptyStateProps",
-        "kind": "type",
-        "path": "client/src/components/EmptyState.tsx",
-        "line": 4,
-        "exported": false
-      },
-      {
-        "name": "EmptyState",
-        "kind": "component",
-        "path": "client/src/components/EmptyState.tsx",
-        "line": 10,
-        "exported": true
-      },
-      {
         "name": "AdContent",
         "kind": "type",
         "path": "client/src/components/EnhancedAdSystem.tsx",
@@ -18855,34 +18763,6 @@
         "exported": true
       },
       {
-        "name": "LoadingSkeletonProps",
-        "kind": "type",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 2,
-        "exported": false
-      },
-      {
-        "name": "LoadingSkeleton",
-        "kind": "component",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 8,
-        "exported": true
-      },
-      {
-        "name": "ContractorCardSkeleton",
-        "kind": "component",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 46,
-        "exported": true
-      },
-      {
-        "name": "DashboardCardSkeleton",
-        "kind": "component",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 65,
-        "exported": true
-      },
-      {
         "name": "LoadingSpinnerProps",
         "kind": "type",
         "path": "client/src/components/LoadingSpinner.tsx",
@@ -18915,34 +18795,6 @@
         "kind": "function",
         "path": "client/src/components/LoginForm.tsx",
         "line": 88,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminFormData",
-        "kind": "type",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 42,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminSetupProps",
-        "kind": "type",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 44,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminSetup",
-        "kind": "component",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 48,
-        "exported": true
-      },
-      {
-        "name": "onSubmit",
-        "kind": "function",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 102,
         "exported": false
       },
       {
@@ -21025,27 +20877,6 @@
         "exported": false
       },
       {
-        "name": "MasterAdminFormData",
-        "kind": "type",
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "line": 28,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminSetup",
-        "kind": "component",
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "line": 30,
-        "exported": true
-      },
-      {
-        "name": "onSubmit",
-        "kind": "function",
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "line": 70,
-        "exported": false
-      },
-      {
         "name": "OnboardingFlowProps",
         "kind": "type",
         "path": "client/src/components/auth/OnboardingFlow.tsx",
@@ -21520,13 +21351,6 @@
         "path": "client/src/components/contractor-card-placeholders.contract.test.ts",
         "line": 4,
         "exported": false
-      },
-      {
-        "name": "ContractorCardSkeleton",
-        "kind": "component",
-        "path": "client/src/components/contractor-card-skeleton.tsx",
-        "line": 2,
-        "exported": true
       },
       {
         "name": "renderCard",
@@ -22222,7 +22046,7 @@
         "exported": true
       },
       {
-        "name": "AppShell",
+        "name": "AppShellCore",
         "kind": "component",
         "path": "client/src/components/layout/AppShellCore.tsx",
         "line": 412,
@@ -22492,27 +22316,6 @@
         "kind": "function",
         "path": "client/src/components/layout/appShellMobileTaskbar.contract.test.ts",
         "line": 4,
-        "exported": false
-      },
-      {
-        "name": "Navigation",
-        "kind": "component",
-        "path": "client/src/components/layout/navigation.tsx",
-        "line": 39,
-        "exported": true
-      },
-      {
-        "name": "handleScroll",
-        "kind": "function",
-        "path": "client/src/components/layout/navigation.tsx",
-        "line": 47,
-        "exported": false
-      },
-      {
-        "name": "closeMobileMenu",
-        "kind": "function",
-        "path": "client/src/components/layout/navigation.tsx",
-        "line": 172,
         "exported": false
       },
       {
@@ -25407,13 +25210,6 @@
         "exported": false
       },
       {
-        "name": "Navigation",
-        "kind": "component",
-        "path": "client/src/components/ui/navigation.tsx",
-        "line": 21,
-        "exported": true
-      },
-      {
         "name": "LucideIcon",
         "kind": "type",
         "path": "client/src/components/ui/notification-center.tsx",
@@ -25496,20 +25292,6 @@
         "path": "client/src/components/ui/notification-preferences.tsx",
         "line": 171,
         "exported": false
-      },
-      {
-        "name": "PageHeaderProps",
-        "kind": "type",
-        "path": "client/src/components/ui/page-header.tsx",
-        "line": 3,
-        "exported": false
-      },
-      {
-        "name": "PageHeader",
-        "kind": "component",
-        "path": "client/src/components/ui/page-header.tsx",
-        "line": 8,
-        "exported": true
       },
       {
         "name": "Pagination",
@@ -25627,63 +25409,63 @@
         "name": "EmptyStateProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 3,
+        "line": 5,
         "exported": false
       },
       {
         "name": "EmptyState",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 11,
+        "line": 15,
         "exported": true
       },
       {
         "name": "ErrorStateProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 29,
+        "line": 66,
         "exported": false
       },
       {
         "name": "ErrorState",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 37,
+        "line": 74,
         "exported": true
       },
       {
         "name": "SkeletonBlockProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 61,
+        "line": 98,
         "exported": false
       },
       {
         "name": "SkeletonBlock",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 65,
+        "line": 102,
         "exported": true
       },
       {
         "name": "SkeletonTable",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 69,
+        "line": 106,
         "exported": true
       },
       {
         "name": "LoadingGateProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 79,
+        "line": 116,
         "exported": false
       },
       {
         "name": "LoadingGate",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 85,
+        "line": 122,
         "exported": true
       },
       {
@@ -26919,34 +26701,6 @@
         "exported": true
       },
       {
-        "name": "formatDimensions",
-        "kind": "function",
-        "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-        "line": 10,
-        "exported": false
-      },
-      {
-        "name": "formatConfirmedDate",
-        "kind": "function",
-        "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-        "line": 18,
-        "exported": false
-      },
-      {
-        "name": "Props",
-        "kind": "type",
-        "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-        "line": 28,
-        "exported": false
-      },
-      {
-        "name": "NewArrivalsSection",
-        "kind": "component",
-        "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-        "line": 39,
-        "exported": true
-      },
-      {
         "name": "click",
         "kind": "function",
         "path": "client/src/features/jw-stone/FirstCutSection.test.tsx",
@@ -27083,84 +26837,84 @@
         "name": "JWStoneMarketplace",
         "kind": "component",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 119,
+        "line": 118,
         "exported": true
       },
       {
         "name": "closeStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 188,
+        "line": 187,
         "exported": false
       },
       {
         "name": "openStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 193,
+        "line": 192,
         "exported": false
       },
       {
         "name": "openSavedStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 203,
+        "line": 202,
         "exported": false
       },
       {
         "name": "startRequest",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 209,
+        "line": 208,
         "exported": false
       },
       {
         "name": "askAboutStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 215,
+        "line": 214,
         "exported": false
       },
       {
         "name": "askAboutCurrentStock",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 219,
+        "line": 218,
         "exported": false
       },
       {
         "name": "openAccount",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 224,
+        "line": 223,
         "exported": false
       },
       {
         "name": "changeAccountOpen",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 229,
+        "line": 228,
         "exported": false
       },
       {
         "name": "selectPalette",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 234,
+        "line": 233,
         "exported": false
       },
       {
         "name": "selectMaterial",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 251,
+        "line": 250,
         "exported": false
       },
       {
         "name": "enterFullInventory",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 267,
+        "line": 266,
         "exported": false
       },
       {
@@ -27500,17 +27254,31 @@
         "exported": true
       },
       {
-        "name": "NewArrivalsSectionProps",
+        "name": "formatDimensions",
+        "kind": "function",
+        "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
+        "line": 10,
+        "exported": false
+      },
+      {
+        "name": "formatConfirmedDate",
+        "kind": "function",
+        "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
+        "line": 18,
+        "exported": false
+      },
+      {
+        "name": "Props",
         "kind": "type",
         "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
-        "line": 5,
+        "line": 28,
         "exported": false
       },
       {
         "name": "NewArrivalsSection",
         "kind": "component",
         "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
-        "line": 16,
+        "line": 38,
         "exported": true
       },
       {
@@ -29282,20 +29050,6 @@
         "kind": "function",
         "path": "client/src/hooks/useInstallPrompt.ts",
         "line": 23,
-        "exported": false
-      },
-      {
-        "name": "useIsMobile",
-        "kind": "hook",
-        "path": "client/src/hooks/useIsMobile.ts",
-        "line": 2,
-        "exported": true
-      },
-      {
-        "name": "handle",
-        "kind": "function",
-        "path": "client/src/hooks/useIsMobile.ts",
-        "line": 9,
         "exported": false
       },
       {
@@ -44181,7 +43935,7 @@
         "exported": false
       },
       {
-        "name": "Home",
+        "name": "HomeActionPage",
         "kind": "component",
         "path": "client/src/pages/home.tsx",
         "line": 49,
@@ -44993,7 +44747,7 @@
         "exported": false
       },
       {
-        "name": "Home",
+        "name": "CampaignLandingPage",
         "kind": "component",
         "path": "client/src/pages/landing.tsx",
         "line": 1052,
@@ -46652,53 +46406,11 @@
         "exported": true
       },
       {
-        "name": "AdminProcurementPage",
+        "name": "GruntAdminOrdersPage",
         "kind": "component",
         "path": "client/src/pages/procurement/ProcurementPages.tsx",
         "line": 1292,
         "exported": true
-      },
-      {
-        "name": "AdminProcurementDetailPage",
-        "kind": "component",
-        "path": "client/src/pages/procurement/ProcurementPages.tsx",
-        "line": 1365,
-        "exported": true
-      },
-      {
-        "name": "GruntAdminOrdersPage",
-        "kind": "component",
-        "path": "client/src/pages/procurement/ProcurementPages.tsx",
-        "line": 1589,
-        "exported": true
-      },
-      {
-        "name": "ProcurementWorkspacesPage",
-        "kind": "component",
-        "path": "client/src/pages/procurement/ProcurementPages.tsx",
-        "line": 1618,
-        "exported": true
-      },
-      {
-        "name": "ProcurementWorkspaceDetailPage",
-        "kind": "component",
-        "path": "client/src/pages/procurement/ProcurementPages.tsx",
-        "line": 1749,
-        "exported": true
-      },
-      {
-        "name": "workspace",
-        "kind": "function",
-        "path": "client/src/pages/procurement/ProcurementPages.tsx",
-        "line": 1757,
-        "exported": false
-      },
-      {
-        "name": "update",
-        "kind": "function",
-        "path": "client/src/pages/procurement/ProcurementPages.tsx",
-        "line": 1796,
-        "exported": false
       },
       {
         "name": "read",
@@ -48024,7 +47736,7 @@
         "exported": false
       },
       {
-        "name": "WholesalerProfileTheme",
+        "name": "LegacyWholesalerProfileTheme",
         "kind": "component",
         "path": "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
         "line": 487,
@@ -57108,20 +56820,6 @@
         "path": "scripts/apply-sql-migration.mjs",
         "line": 35,
         "exported": false
-      },
-      {
-        "name": "replace_once",
-        "kind": "function",
-        "path": "scripts/apply-stone-inventory-truth.py",
-        "line": 4,
-        "exported": true
-      },
-      {
-        "name": "replace_all",
-        "kind": "function",
-        "path": "scripts/apply-stone-inventory-truth.py",
-        "line": 13,
-        "exported": true
       },
       {
         "name": "main",
@@ -114222,11 +113920,6 @@
           "line": 32
         },
         {
-          "name": "Navigation",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 21
-        },
-        {
           "name": "NotificationCenter",
           "path": "client/src/components/ui/notification-center.tsx",
           "line": 87
@@ -114235,11 +113928,6 @@
           "name": "NotificationPreferences",
           "path": "client/src/components/ui/notification-preferences.tsx",
           "line": 113
-        },
-        {
-          "name": "PageHeader",
-          "path": "client/src/components/ui/page-header.tsx",
-          "line": 8
         },
         {
           "name": "Pagination",
@@ -114269,27 +113957,27 @@
         {
           "name": "EmptyState",
           "path": "client/src/components/ui/states.tsx",
-          "line": 11
+          "line": 15
         },
         {
           "name": "ErrorState",
           "path": "client/src/components/ui/states.tsx",
-          "line": 37
+          "line": 74
         },
         {
           "name": "SkeletonBlock",
           "path": "client/src/components/ui/states.tsx",
-          "line": 65
+          "line": 102
         },
         {
           "name": "SkeletonTable",
           "path": "client/src/components/ui/states.tsx",
-          "line": 69
+          "line": 106
         },
         {
           "name": "LoadingGate",
           "path": "client/src/components/ui/states.tsx",
-          "line": 85
+          "line": 122
         },
         {
           "name": "Toaster",
@@ -114792,61 +114480,6 @@
           "tag": "button",
           "path": "client/src/components/LoginForm.tsx",
           "line": 198
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 128
-        },
-        {
-          "tag": "form",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 156
-        },
-        {
-          "tag": "form",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 157
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 166
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 180
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 195
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 210
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 215
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 243
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 248
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 268
         },
         {
           "tag": "button",
@@ -116124,51 +115757,6 @@
           "line": 97
         },
         {
-          "tag": "form",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 97
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 104
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 119
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 138
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 158
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 165
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 187
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 194
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 213
-        },
-        {
           "tag": "input",
           "path": "client/src/components/auth/OnboardingFlow.tsx",
           "line": 101
@@ -117007,86 +116595,6 @@
           "tag": "button",
           "path": "client/src/components/layout/SimpleNavigation.tsx",
           "line": 240
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 276
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 290
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 301
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 312
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 330
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 343
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 356
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 476
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 493
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 511
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 529
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 613
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 624
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 635
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 653
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 664
         },
         {
           "tag": "button",
@@ -118145,51 +117653,6 @@
         },
         {
           "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 71
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 101
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 113
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 121
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 134
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 154
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 185
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 197
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 206
-        },
-        {
-          "tag": "button",
           "path": "client/src/components/ui/notification-center.tsx",
           "line": 184
         },
@@ -118351,12 +117814,17 @@
         {
           "tag": "button",
           "path": "client/src/components/ui/states.tsx",
-          "line": 22
+          "line": 35
         },
         {
           "tag": "button",
           "path": "client/src/components/ui/states.tsx",
-          "line": 54
+          "line": 56
+        },
+        {
+          "tag": "button",
+          "path": "client/src/components/ui/states.tsx",
+          "line": 91
         },
         {
           "tag": "textarea",
@@ -118825,11 +118293,6 @@
         },
         {
           "tag": "button",
-          "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-          "line": 148
-        },
-        {
-          "tag": "button",
           "path": "client/src/features/jw-stone/FirstCutSection.tsx",
           "line": 61
         },
@@ -118906,7 +118369,7 @@
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
-          "line": 50
+          "line": 147
         },
         {
           "tag": "button",
@@ -129116,7 +128579,7 @@
         {
           "tag": "button",
           "path": "client/src/pages/homeowner-dashboard.tsx",
-          "line": 14
+          "line": 15
         },
         {
           "tag": "button",
@@ -130732,146 +130195,6 @@
           "tag": "button",
           "path": "client/src/pages/procurement/ProcurementPages.tsx",
           "line": 1280
-        },
-        {
-          "tag": "select",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1324
-        },
-        {
-          "tag": "select",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1336
-        },
-        {
-          "tag": "select",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1345
-        },
-        {
-          "tag": "textarea",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1438
-        },
-        {
-          "tag": "textarea",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1446
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1453
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1465
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1481
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1487
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1499
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1508
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1517
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1526
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1535
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1671
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1678
-        },
-        {
-          "tag": "select",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1685
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1699
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1709
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1719
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1815
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1822
-        },
-        {
-          "tag": "select",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1829
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1841
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1848
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1855
-        },
-        {
-          "tag": "textarea",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1863
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/procurement/ProcurementPages.tsx",
-          "line": 1872
         },
         {
           "tag": "button",
@@ -134971,368 +134294,159 @@
       ]
     },
     "duplicates": {
-      "exact_files": [
-        {
-          "sha256": "190c877db466995bf1482f4a16abd06e04a89ede3119341e2a86ff96e1737b27",
-          "paths": [
-            "client/postcss.config.js",
-            "postcss.config.js"
-          ]
-        },
-        {
-          "sha256": "5deabaa99349374d003248667b8cbfa214133b5628df87aaa16d506360bb2664",
-          "paths": [
-            "client/src/pages/onboarding-intent.tsx",
-            "client/src/pages/onboarding-profile.tsx"
-          ]
-        }
-      ],
+      "exact_files": [],
       "justified_generated_projections": [],
-      "exported_symbol_collisions": [
-        {
-          "name": "AdminProcurementDetailPage",
-          "owners": [
-            {
-              "path": "client/src/pages/admin-procurement-detail.tsx",
-              "line": 205,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/pages/procurement/ProcurementPages.tsx",
-              "line": 1365,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "AdminProcurementPage",
-          "owners": [
-            {
-              "path": "client/src/pages/admin-procurement.tsx",
-              "line": 177,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/pages/procurement/ProcurementPages.tsx",
-              "line": 1292,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "AppShell",
-          "owners": [
-            {
-              "path": "client/src/components/layout/AppShell.tsx",
-              "line": 89,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/layout/AppShellCore.tsx",
-              "line": 412,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "ContractorCardSkeleton",
-          "owners": [
-            {
-              "path": "client/src/components/LoadingSkeleton.tsx",
-              "line": 46,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/contractor-card-skeleton.tsx",
-              "line": 2,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "EmptyState",
-          "owners": [
-            {
-              "path": "client/src/components/EmptyState.tsx",
-              "line": 10,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/ui/states.tsx",
-              "line": 11,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "Home",
-          "owners": [
-            {
-              "path": "client/src/pages/home.tsx",
-              "line": 49,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/pages/landing.tsx",
-              "line": 1052,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "MasterAdminSetup",
-          "owners": [
-            {
-              "path": "client/src/components/MasterAdminSetup.tsx",
-              "line": 48,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/auth/MasterAdminSetup.tsx",
-              "line": 30,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "Navigation",
-          "owners": [
-            {
-              "path": "client/src/components/layout/navigation.tsx",
-              "line": 39,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/ui/navigation.tsx",
-              "line": 21,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "NewArrivalsSection",
-          "owners": [
-            {
-              "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-              "line": 39,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
-              "line": 16,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "ProcurementWorkspaceDetailPage",
-          "owners": [
-            {
-              "path": "client/src/pages/admin-procurement-workspace-detail.tsx",
-              "line": 148,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/pages/procurement/ProcurementPages.tsx",
-              "line": 1749,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "ProcurementWorkspacesPage",
-          "owners": [
-            {
-              "path": "client/src/pages/admin-procurement-workspaces.tsx",
-              "line": 140,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/pages/procurement/ProcurementPages.tsx",
-              "line": 1618,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "WholesalerProfileTheme",
-          "owners": [
-            {
-              "path": "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
-              "line": 22,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
-              "line": 487,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "useIsMobile",
-          "owners": [
-            {
-              "path": "client/src/hooks/use-mobile.tsx",
-              "line": 4,
-              "kind": "hook"
-            },
-            {
-              "path": "client/src/hooks/useIsMobile.ts",
-              "line": 2,
-              "kind": "hook"
-            }
-          ]
-        }
-      ]
+      "exported_symbol_collisions": []
     }
   },
   "canonical": {
-    "directories": [],
-    "ui_primitives": [],
-    "shared_symbols": []
+    "directories": [
+      {
+        "path": "client/src/components/ui",
+        "responsibility": "Reusable TradeScout interface primitives and shared interaction states"
+      }
+    ],
+    "ui_primitives": [
+      {
+        "name": "Button",
+        "path": "client/src/components/ui/button.tsx",
+        "responsibility": "Canonical TradeScout button semantics, states, sizes, and product styling"
+      },
+      {
+        "name": "EmptyState",
+        "path": "client/src/components/ui/states.tsx",
+        "responsibility": "Canonical empty-state behavior for section and page contexts"
+      },
+      {
+        "name": "Skeleton",
+        "path": "client/src/components/ui/skeleton.tsx",
+        "responsibility": "Canonical loading skeleton primitive"
+      }
+    ],
+    "shared_symbols": [
+      {
+        "name": "AppShell",
+        "path": "client/src/components/layout/AppShell.tsx",
+        "responsibility": "Public application-shell owner; AppShellCore is its internal implementation"
+      },
+      {
+        "name": "useIsMobile",
+        "path": "client/src/hooks/use-mobile.tsx",
+        "responsibility": "Single responsive mobile-breakpoint hook"
+      },
+      {
+        "name": "Onboarding",
+        "path": "client/src/pages/onboarding.tsx",
+        "responsibility": "Universal onboarding experience for every compatibility URL"
+      },
+      {
+        "name": "NewArrivalsSection",
+        "path": "client/src/features/jw-stone/NewArrivalsSection.tsx",
+        "responsibility": "Live JW Stone new-arrivals inventory surface"
+      },
+      {
+        "name": "AdminProcurementPages",
+        "path": "client/src/pages/admin-procurement.tsx",
+        "responsibility": "Dedicated admin procurement page family routed by adminTools.tsx"
+      },
+      {
+        "name": "WholesalerProfileTheme",
+        "path": "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+        "responsibility": "Public wholesaler theme adapter and selection boundary"
+      }
+    ]
   },
-  "reuse_decisions": [],
+  "reuse_decisions": [
+    {
+      "disposition": "reuse",
+      "subject": "TradeScout buttons",
+      "canonical_owner": "client/src/components/ui/button.tsx",
+      "reason": "New button behavior must reuse or improve the established primitive instead of adding screen-local variants."
+    },
+    {
+      "disposition": "consolidate",
+      "subject": "client/postcss.config.js",
+      "canonical_owner": "postcss.config.js",
+      "reason": "The client-root configuration is now a compatibility adapter to the repository owner instead of an exact copy."
+    },
+    {
+      "disposition": "remove",
+      "subject": "onboarding-profile.tsx and onboarding-intent.tsx",
+      "canonical_owner": "client/src/pages/onboarding.tsx",
+      "reason": "AppRoutes already sends all four onboarding compatibility URLs directly to the universal owner."
+    },
+    {
+      "disposition": "consolidate",
+      "subject": "client/src/hooks/useIsMobile.ts",
+      "canonical_owner": "client/src/hooks/use-mobile.tsx",
+      "reason": "All consumers use the same breakpoint and now share one matchMedia-based hook."
+    },
+    {
+      "disposition": "remove",
+      "subject": "two unreachable MasterAdminSetup components",
+      "canonical_owner": "client/src/pages/onboarding.tsx",
+      "reason": "Neither UI had a caller; the valid backend setup endpoint remains available while account setup stays in universal onboarding."
+    },
+    {
+      "disposition": "remove",
+      "subject": "LoadingSkeleton.tsx and contractor-card-skeleton.tsx",
+      "canonical_owner": "client/src/components/ui/skeleton.tsx",
+      "reason": "Both component files were unreferenced; future loading states use the UI primitive or the governed state family."
+    },
+    {
+      "disposition": "consolidate",
+      "subject": "client/src/components/EmptyState.tsx",
+      "canonical_owner": "client/src/components/ui/states.tsx",
+      "reason": "Page and section contexts are meaningful modes of one component family, and every former consumer now uses that owner."
+    },
+    {
+      "disposition": "remove",
+      "subject": "layout/navigation.tsx, ui/navigation.tsx, and ui/page-header.tsx",
+      "canonical_owner": "client/src/components/layout/AppShell.tsx",
+      "reason": "The old navigation trees and their only unconsumed wrapper had no runtime caller; application navigation is owned by AppShell."
+    },
+    {
+      "disposition": "consolidate",
+      "subject": "CurrentInventorySection.tsx and the unused NewArrivalsSection.tsx",
+      "canonical_owner": "client/src/features/jw-stone/NewArrivalsSection.tsx",
+      "reason": "The live queried inventory surface now has the truthful New Arrivals name and one consumer-facing owner."
+    },
+    {
+      "disposition": "remove",
+      "subject": "duplicate admin procurement exports in ProcurementPages.tsx",
+      "canonical_owner": "client/src/pages/admin-procurement*.tsx",
+      "reason": "The admin router loads the dedicated, contract-tested pages; the shared module retains only its active Supply Run, Grunt, detail, and supplier flows."
+    },
+    {
+      "disposition": "consolidate",
+      "subject": "AppShell and wholesaler theme implementation names",
+      "canonical_owner": "public wrappers named for their routed responsibility",
+      "reason": "Internal implementation symbols now state their core or legacy role and no longer compete with public owners."
+    },
+    {
+      "disposition": "remove",
+      "subject": "scripts/apply-stone-inventory-truth.py",
+      "canonical_owner": "docs/architecture/STONE_CORE.md and the live JW Stone components",
+      "reason": "The one-time codemod was no longer callable and would reintroduce retired paths and older presentation choices if run."
+    },
+    {
+      "disposition": "reuse",
+      "subject": "JW Stone inventory vocabulary",
+      "canonical_owner": "docs/architecture/STONE_CORE.md",
+      "reason": "Browse Full Inventory is the current brand-facing catalog label; New Arrivals is the only surface allowed to imply fresh, verified physical stock."
+    },
+    {
+      "disposition": "retain",
+      "subject": "unrouted home.tsx and landing.tsx evidence",
+      "canonical_owner": "client/src/pages/TradeScoutLandingPage.tsx",
+      "reason": "The active public router uses TradeScoutLandingPage; the unconsumed files are preserved as migration evidence with truthful, non-competing component names pending a journey-level review."
+    }
+  ],
   "findings": [
-    {
-      "severity": "error",
-      "code": "PI001",
-      "message": "Exact duplicate source files require consolidation or an explicit exception.",
-      "paths": [
-        "client/postcss.config.js",
-        "postcss.config.js"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI001",
-      "message": "Exact duplicate source files require consolidation or an explicit exception.",
-      "paths": [
-        "client/src/pages/onboarding-intent.tsx",
-        "client/src/pages/onboarding-profile.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol AdminProcurementDetailPage has multiple candidate owners.",
-      "paths": [
-        "client/src/pages/admin-procurement-detail.tsx",
-        "client/src/pages/procurement/ProcurementPages.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol AdminProcurementPage has multiple candidate owners.",
-      "paths": [
-        "client/src/pages/admin-procurement.tsx",
-        "client/src/pages/procurement/ProcurementPages.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol AppShell has multiple candidate owners.",
-      "paths": [
-        "client/src/components/layout/AppShell.tsx",
-        "client/src/components/layout/AppShellCore.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol ContractorCardSkeleton has multiple candidate owners.",
-      "paths": [
-        "client/src/components/LoadingSkeleton.tsx",
-        "client/src/components/contractor-card-skeleton.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol EmptyState has multiple candidate owners.",
-      "paths": [
-        "client/src/components/EmptyState.tsx",
-        "client/src/components/ui/states.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol Home has multiple candidate owners.",
-      "paths": [
-        "client/src/pages/home.tsx",
-        "client/src/pages/landing.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol MasterAdminSetup has multiple candidate owners.",
-      "paths": [
-        "client/src/components/MasterAdminSetup.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol Navigation has multiple candidate owners.",
-      "paths": [
-        "client/src/components/layout/navigation.tsx",
-        "client/src/components/ui/navigation.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol NewArrivalsSection has multiple candidate owners.",
-      "paths": [
-        "client/src/features/jw-stone/CurrentInventorySection.tsx",
-        "client/src/features/jw-stone/NewArrivalsSection.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol ProcurementWorkspaceDetailPage has multiple candidate owners.",
-      "paths": [
-        "client/src/pages/admin-procurement-workspace-detail.tsx",
-        "client/src/pages/procurement/ProcurementPages.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol ProcurementWorkspacesPage has multiple candidate owners.",
-      "paths": [
-        "client/src/pages/admin-procurement-workspaces.tsx",
-        "client/src/pages/procurement/ProcurementPages.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol WholesalerProfileTheme has multiple candidate owners.",
-      "paths": [
-        "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
-        "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol useIsMobile has multiple candidate owners.",
-      "paths": [
-        "client/src/hooks/use-mobile.tsx",
-        "client/src/hooks/useIsMobile.ts"
-      ]
-    },
     {
       "severity": "warning",
       "code": "PI003",
-      "message": "Raw <button> markup is spread across 447 files; reuse or establish one canonical primitive before adding another variant.",
+      "message": "Raw <button> markup is spread across 442 files; reuse or establish one canonical primitive before adding another variant.",
       "paths": [
         "client/src/AppRoutes.tsx",
         "client/src/admin/AdminHeader.tsx",
@@ -135357,7 +134471,6 @@
         "client/src/components/InteractiveCountyMap.tsx",
         "client/src/components/KeyboardNavigationHint.tsx",
         "client/src/components/LoginForm.tsx",
-        "client/src/components/MasterAdminSetup.tsx",
         "client/src/components/MaterialListBuilder.tsx",
         "client/src/components/MessagingPanel.tsx",
         "client/src/components/MobileAppBar.tsx",
@@ -135398,7 +134511,6 @@
         "client/src/components/auth-buttons.tsx",
         "client/src/components/auth-modal.tsx",
         "client/src/components/auth/FacebookSignup.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx",
         "client/src/components/auth/OnboardingFlow.tsx",
         "client/src/components/auth/RoleSelection.tsx",
         "client/src/components/business/ScoutCopyAssistModal.tsx",
@@ -135427,7 +134539,6 @@
         "client/src/components/layout/NextGenNavigation.tsx",
         "client/src/components/layout/RightToolsPanel.tsx",
         "client/src/components/layout/SimpleNavigation.tsx",
-        "client/src/components/layout/navigation.tsx",
         "client/src/components/messages/MessagesPanel.tsx",
         "client/src/components/mobile-cta.tsx",
         "client/src/components/moderation/ModerationButtons.tsx",
@@ -135466,7 +134577,6 @@
         "client/src/components/ui/contextual-tooltip.tsx",
         "client/src/components/ui/error-boundary.tsx",
         "client/src/components/ui/help-bubble.tsx",
-        "client/src/components/ui/navigation.tsx",
         "client/src/components/ui/notification-center.tsx",
         "client/src/components/ui/notification-preferences.tsx",
         "client/src/components/ui/personal-events-manager.tsx",
@@ -135480,7 +134590,6 @@
         "client/src/features/bidrock/BidRockOrderSheet.tsx",
         "client/src/features/bidrock/BidRockWorkspace.tsx",
         "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "client/src/features/jw-stone/CurrentInventorySection.tsx",
         "client/src/features/jw-stone/FirstCutSection.tsx",
         "client/src/features/jw-stone/JwCollapsibleSection.tsx",
         "client/src/features/jw-stone/JwStoneRequestBand.tsx",
@@ -135786,19 +134895,17 @@
     {
       "severity": "warning",
       "code": "PI003",
-      "message": "Raw <form> markup is spread across 54 files; reuse or establish one canonical primitive before adding another variant.",
+      "message": "Raw <form> markup is spread across 52 files; reuse or establish one canonical primitive before adding another variant.",
       "paths": [
         "client/src/components/EmailPasswordAuth.tsx",
         "client/src/components/ErrorReportButton.tsx",
         "client/src/components/LoginForm.tsx",
-        "client/src/components/MasterAdminSetup.tsx",
         "client/src/components/RecommendationForm.tsx",
         "client/src/components/RecommendationGenerator.tsx",
         "client/src/components/RegisterForm.tsx",
         "client/src/components/ReportContentModal.tsx",
         "client/src/components/TestingErrorReportButton.tsx",
         "client/src/components/admin/UserManagement.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx",
         "client/src/components/conversation-starter.tsx",
         "client/src/components/forms/ContactForm.tsx",
         "client/src/components/profile/ProfileBookingRequestDialog.tsx",
@@ -135847,7 +134954,7 @@
     {
       "severity": "warning",
       "code": "PI003",
-      "message": "Raw <input> markup is spread across 195 files; reuse or establish one canonical primitive before adding another variant.",
+      "message": "Raw <input> markup is spread across 193 files; reuse or establish one canonical primitive before adding another variant.",
       "paths": [
         "client/src/admin/SuperAdminLeftNav.tsx",
         "client/src/components/BugReportButton.tsx",
@@ -135857,7 +134964,6 @@
         "client/src/components/GooglePlacesBusinessInput.tsx",
         "client/src/components/GooglePlacesLocationInput.tsx",
         "client/src/components/LoginForm.tsx",
-        "client/src/components/MasterAdminSetup.tsx",
         "client/src/components/MaterialListBuilder.tsx",
         "client/src/components/MessagingPanel.tsx",
         "client/src/components/RecommendationForm.tsx",
@@ -135871,7 +134977,6 @@
         "client/src/components/admin/FeatureTogglePanel.tsx",
         "client/src/components/admin/FinanceLedgerPanel.tsx",
         "client/src/components/admin/UserManagement.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx",
         "client/src/components/auth/OnboardingFlow.tsx",
         "client/src/components/community/ContactOutcomeModal.tsx",
         "client/src/components/floating-help-button.tsx",
@@ -136316,12 +135421,12 @@
   ],
   "summary": {
     "directories": 125,
-    "source_files": 2632,
-    "symbols": 13966,
-    "components": 935,
-    "functions_and_hooks": 8461,
-    "raw_ui_elements": 4125,
-    "errors": 15,
+    "source_files": 2619,
+    "symbols": 13934,
+    "components": 920,
+    "functions_and_hooks": 8451,
+    "raw_ui_elements": 4052,
+    "errors": 0,
     "warnings": 5
   }
 }

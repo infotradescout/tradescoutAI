@@ -10,11 +10,17 @@ const read = (relativePath: string) => {
 describe("onboarding flow contracts", () => {
   it("uses one universal outcome owner at every onboarding compatibility URL", () => {
     const onboardingSource = read("client/src/pages/onboarding.tsx");
-    const profileSource = read("client/src/pages/onboarding-profile.tsx");
-    const intentSource = read("client/src/pages/onboarding-intent.tsx");
+    const appRoutesSource = read("client/src/AppRoutes.tsx");
 
-    expect(profileSource).toContain('export { default } from "./onboarding"');
-    expect(intentSource).toContain('export { default } from "./onboarding"');
+    expect(
+      fs.existsSync(path.resolve(process.cwd(), "client/src/pages/onboarding-profile.tsx"))
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.resolve(process.cwd(), "client/src/pages/onboarding-intent.tsx"))
+    ).toBe(false);
+    expect(appRoutesSource).toContain('<Route path="/onboarding/profile">');
+    expect(appRoutesSource).toContain('<Route path="/onboarding/intent">');
+    expect(appRoutesSource.match(/<LazyPage Component={Onboarding} \/>/g)).toHaveLength(4);
     expect(onboardingSource).toContain('apiRequest("/api/onboarding/complete", {');
     expect(onboardingSource).toContain('method: "POST"');
     expect(onboardingSource).toContain('data-testid="onboarding-goal"');

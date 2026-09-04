@@ -1,5 +1,5 @@
-import EmptyState from "@/components/EmptyState";
+import { EmptyState } from "@/components/ui/states";
 
 export default function CarSalesVinLookup() {
-  return <EmptyState title="VIN Lookup" message="No data available yet." />;
+  return <EmptyState title="VIN Lookup" description="No data available yet." scope="page" />;
 }
