@@ -213,7 +213,7 @@ describeWithDb("Community post county authority integration", () => {
     expect(userCountyNotes).toEqual([]);
   });
 
-  it("fails an acted-as create closed before the principal-location client refetch", async () => {
+  it("shows the effective workspace but fails an acted-as Community write closed", async () => {
     const { agent: adminAgent, user: adminUser } = await createAuthedAgent({
       role: "super_admin",
       stateCode: ADMIN_STATE_CODE,
@@ -237,9 +237,9 @@ describeWithDb("Community post county authority integration", () => {
     expect(authContext.body).toMatchObject({
       authenticated: true,
       user: {
-        id: adminUser.id,
-        stateCode: ADMIN_STATE_CODE,
-        countyFips: ADMIN_COUNTY_FIPS,
+        id: targetUser.id,
+        stateCode: TARGET_STATE_CODE,
+        countyFips: TARGET_COUNTY_FIPS,
         isImpersonating: true,
       },
     });
