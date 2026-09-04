@@ -77,17 +77,20 @@ describe("profile catalog Exchange contract", () => {
     }
   });
 
-  it("uses canonical public-profile authority and non-merchant SSR", () => {
+  it("uses canonical public-profile authority and a public read-only route owner", () => {
     const adapter = read("server/profileCatalogExchange.ts");
     const html = read("server/publicExchangeListingHtml.ts");
-    const routes = read("server/routes.ts");
+    const routes = read("server/routes/public-profile-app.ts");
 
     expect(adapter).toContain("storage.getProfileBySlugPublic(item.sellerId)");
     expect(adapter).toContain("hasExposureAuthority(ownerUserId)");
     expect(html).toContain('listing.sourceType === "profile_catalog"');
     expect(html).toContain('? "website" : "product"');
     expect(routes).toContain("listPublicProfileCatalogExchangeItems({");
-    expect(routes).toContain("getPublicProfileCatalogExchangeItem(id)");
+    expect(routes).toContain("getPublicProfileCatalogExchangeItem(req.params.id)");
+    expect(routes).toContain('app.get("/api/exchange/items"');
+    expect(routes).toContain('app.get("/api/marketplace/listings/:id"');
+    expect(routes).not.toMatch(/app\.(?:post|put|patch|delete)\("\/api\/(?:exchange|marketplace)/);
   });
 
   it("keeps the old-site lane additive-only and leaves current inventory untouched", () => {
