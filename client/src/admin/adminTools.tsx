@@ -23,6 +23,7 @@ import {
   Camera,
   ShoppingCart,
   ClipboardCheck,
+  Network,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
@@ -240,6 +241,7 @@ const AdminLiveStream = React.lazy(() => import("@/pages/admin-live-stream"));
 const AdminProductionAcceptance = React.lazy(
   () => import("@/pages/admin-production-acceptance")
 );
+const AdminEcosystemTruth = React.lazy(() => import("@/pages/admin-ecosystem-truth"));
 const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-coverage"));
 const AdminProfessionalVerification = React.lazy(
   () => import("@/pages/admin-professional-verification")
@@ -976,6 +978,16 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         keywords: ["acceptance", "production", "readiness", "operations"],
         visibleIf: { superOnly: true },
         render: () => <AdminProductionAcceptance />,
+      }),
+      tool({
+        id: "ecosystem-truth",
+        label: "Ecosystem Truth",
+        path: "/admin/ecosystem-truth",
+        icon: Network,
+        description: "Read-only ownership, decision, commercial-term, and outcome evidence.",
+        keywords: ["ecosystem", "truth", "owners", "decisions", "terms", "outcomes"],
+        visibleIf: { superOnly: true },
+        render: () => <AdminEcosystemTruth />,
       }),
       tool({
         id: "legacy-production-acceptance",
