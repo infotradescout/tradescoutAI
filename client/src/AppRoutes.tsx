@@ -308,6 +308,9 @@ const ExchangeCategoryVehicles = React.lazy(() => import("./pages/exchange/Excha
 const ExchangeCategoryConstruction = React.lazy(
   () => import("./pages/exchange/ExchangeConstructionPage")
 );
+const ExchangeCategoryBuildingMaterials = React.lazy(
+  () => import("./pages/exchange/ExchangeBuildingMaterialsPage")
+);
 const ExchangeCategoryTools = React.lazy(() => import("./pages/exchange/ExchangeToolsPage"));
 const ExchangeCategoryFurniture = React.lazy(
   () => import("./pages/exchange/ExchangeFurniturePage")
@@ -1156,6 +1159,11 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/exchange/construction">
                 <ProgressiveFeatureGate featureId="exchange">
                   <LazyPage Component={ExchangeCategoryConstruction} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/building-materials">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryBuildingMaterials} />
                 </ProgressiveFeatureGate>
               </Route>
               <Route path="/exchange/tools">

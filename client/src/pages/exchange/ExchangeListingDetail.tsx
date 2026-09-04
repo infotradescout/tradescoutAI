@@ -64,7 +64,8 @@ type ListingDetail = {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | null;
+  pricingMode?: "fixed" | "request_quote";
   category: string;
   condition: string;
   images: string[];
@@ -172,8 +173,6 @@ export default function ExchangeListingDetail() {
   const [inquiryMessage, setInquiryMessage] = useState("");
   const [inquiryOffer, setInquiryOffer] = useState("");
 
-  const categoryConfig = CATEGORY_CONFIGS[category ?? ""] ?? null;
-
   // ── Fetch listing ──────────────────────────────────────────────────────────
   const {
     data: listing,
@@ -190,7 +189,8 @@ export default function ExchangeListingDetail() {
         id: String(raw.id),
         title: raw.title ?? "",
         description: raw.description ?? "",
-        price: Number(raw.price ?? 0),
+        price: raw.price == null ? null : Number(raw.price),
+        pricingMode: raw.pricingMode ?? (raw.price == null ? "request_quote" : "fixed"),
         category: raw.category ?? category ?? "",
         condition: raw.condition ?? "",
         images: Array.isArray(raw.images) ? raw.images : [],
@@ -238,6 +238,8 @@ export default function ExchangeListingDetail() {
       return (data || []).map((f: any) => String(f?.listingId || f?.id || ""));
     },
   });
+  const resolvedCategory = listing?.category || category || "";
+  const categoryConfig = CATEGORY_CONFIGS[resolvedCategory] ?? null;
   const isFaved = listing ? favoriteIds.includes(listing.id) : false;
 
   const toggleFavoriteMutation = useMutation({
@@ -300,7 +302,7 @@ export default function ExchangeListingDetail() {
   // ── Spec rows (config-driven for all 13 categories) ──────────────────────
   function buildSpecRows(l: ListingDetail): Array<{ label: string; value: string }> {
     const rows: Array<{ label: string; value: string }> = [];
-    const slug = category as string;
+    const slug = resolvedCategory;
 
     // Top-level fields that map to dedicated DB columns
     if (l.year) rows.push({ label: "Year", value: String(l.year) });
@@ -365,7 +367,7 @@ export default function ExchangeListingDetail() {
         </p>
         <Button
           variant="ghost"
-          onClick={() => navigate(category ? `/exchange/${category}` : "/exchange")}
+          onClick={() => navigate(resolvedCategory ? `/exchange/${resolvedCategory}` : "/exchange")}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to {categoryConfig?.name ?? "Exchange"}
@@ -375,15 +377,17 @@ export default function ExchangeListingDetail() {
   }
 
   const specRows = buildSpecRows(listing);
-  const backPath = category ? `/exchange/${category}` : "/exchange";
+  const backPath = resolvedCategory ? `/exchange/${resolvedCategory}` : "/exchange";
   const isProfileOffer = listing.sourceType === "profile_offer";
+  const isProfileCatalog = listing.sourceType === "profile_catalog";
+  const isProfileLinked = isProfileOffer || isProfileCatalog;
 
   return (
     <>
       <SEOHelmet
         title={`${listing.title} — TradeScout Exchange`}
         description={listing.description.slice(0, 160)}
-        canonical={`/exchange/${category}/${listing.id}`}
+        canonical={`/exchange/${resolvedCategory}/${listing.id}`}
         ogImage={photos[0]}
         keywords={[categoryConfig?.name ?? "", listing.brand ?? "", listing.condition]
           .filter(Boolean)
@@ -408,9 +412,9 @@ export default function ExchangeListingDetail() {
               size="sm"
               variant="ghost"
               className={`h-8 w-8 p-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
-              disabled={isProfileOffer}
+              disabled={isProfileLinked}
               onClick={() => {
-                if (isProfileOffer) return;
+                if (isProfileLinked) return;
                 if (!isAuthenticated) {
                   navigate("/pre-scout-setup?mode=signin");
                   return;
@@ -427,8 +431,10 @@ export default function ExchangeListingDetail() {
               onClick={() =>
                 share({
                   title: listing.title,
-                  text: `${listing.title} — ${formatPrice(listing.price)}`,
-                  url: `${window.location.origin}/exchange/${category}/${listing.id}`,
+                  text: isProfileCatalog
+                    ? `${listing.title} — catalog inquiry through TradeScout`
+                    : `${listing.title} — ${formatPrice(listing.price as number)}`,
+                  url: `${window.location.origin}/exchange/${resolvedCategory}/${listing.id}`,
                 })
               }
             >
@@ -510,17 +516,30 @@ export default function ExchangeListingDetail() {
               )}
               <h1 className="text-xl font-bold text-white leading-snug">{listing.title}</h1>
               <div className="flex items-center gap-2 mt-1 text-[12px] text-white/50">
-                <MapPin className="h-3 w-3 shrink-0" />
-                <span>{listing.location}</span>
-                <span>·</span>
-                <Eye className="h-3 w-3 shrink-0" />
-                <span>{listing.views} views</span>
-                <span>·</span>
-                <span>Listed {formatListedDate(listing.createdAt)}</span>
+                {isProfileCatalog ? (
+                  <>
+                    <Package className="h-3 w-3 shrink-0" />
+                    <span>Profile catalog</span>
+                    <span>·</span>
+                    <span>Managed TradeScout request</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span>{listing.location}</span>
+                    <span>·</span>
+                    <Eye className="h-3 w-3 shrink-0" />
+                    <span>{listing.views} views</span>
+                    <span>·</span>
+                    <span>Listed {formatListedDate(listing.createdAt)}</span>
+                  </>
+                )}
               </div>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-2xl font-bold text-ts-orange">{formatPrice(listing.price)}</p>
+              <p className="text-2xl font-bold text-ts-orange">
+                {isProfileCatalog ? "Request quote" : formatPrice(listing.price as number)}
+              </p>
               {isSetListing && (
                 <p className="text-[11px] text-white/50 mt-0.5">
                   {listingType === "collection" ? "Collection" : "Set"} · {setItems.length} items
@@ -572,23 +591,25 @@ export default function ExchangeListingDetail() {
           )}
 
           {/* ── Shipping / pickup ── */}
-          <div className="flex items-center gap-2 text-sm">
-            {listing.isLocalPickupOnly ? (
-              <span className="flex items-center gap-1.5 text-white/50">
-                <MapPin className="h-4 w-4" />
-                Local pickup only
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-emerald-300">
-                <Truck className="h-4 w-4" />
-                Shipping available
-                {listing.shippingCost != null && listing.shippingCost > 0 && (
-                  <span className="text-white/50">· {formatPrice(listing.shippingCost)}</span>
-                )}
-                {listing.shippingCost === 0 && <span className="text-emerald-300">· Free</span>}
-              </span>
-            )}
-          </div>
+          {!isProfileCatalog && (
+            <div className="flex items-center gap-2 text-sm">
+              {listing.isLocalPickupOnly ? (
+                <span className="flex items-center gap-1.5 text-white/50">
+                  <MapPin className="h-4 w-4" />
+                  Local pickup only
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-emerald-300">
+                  <Truck className="h-4 w-4" />
+                  Shipping available
+                  {listing.shippingCost != null && listing.shippingCost > 0 && (
+                    <span className="text-white/50">· {formatPrice(listing.shippingCost)}</span>
+                  )}
+                  {listing.shippingCost === 0 && <span className="text-emerald-300">· Free</span>}
+                </span>
+              )}
+            </div>
+          )}
 
           <Separator className="bg-white/10" />
 
@@ -733,7 +754,9 @@ export default function ExchangeListingDetail() {
                     Verified
                   </span>
                 )}
-                {!listing.seller.verified && <span>Seller profile</span>}
+                {!listing.seller.verified && (
+                  <span>{isProfileCatalog ? "Business profile" : "Seller profile"}</span>
+                )}
               </div>
             </div>
           </div>
@@ -743,7 +766,7 @@ export default function ExchangeListingDetail() {
             <Button
               className="w-full bg-ts-orange hover:bg-ts-orange/90 text-white font-semibold h-12 text-base"
               onClick={() => {
-                if (isProfileOffer) {
+                if (isProfileLinked) {
                   navigate(listing.publicProfilePath || `/profile/${listing.seller.id}`);
                   return;
                 }
@@ -756,12 +779,21 @@ export default function ExchangeListingDetail() {
               }}
             >
               <ShieldCheck className="h-5 w-5 mr-2" />
-              {isProfileOffer ? "Review Purchase on Profile" : "Review Protected Connection"}
+              {isProfileOffer
+                ? "Review Purchase on Profile"
+                : isProfileCatalog
+                  ? "Open Catalog & Request"
+                  : "Review Protected Connection"}
             </Button>
             {isProfileOffer ? (
               <p className="mt-2 text-center text-[11px] text-white/50">
                 Purchase, receipt, shipping, and accounting steps stay in review before anything is
                 posted or fulfilled.
+              </p>
+            ) : isProfileCatalog ? (
+              <p className="mt-2 text-center text-[11px] text-white/50">
+                The maintained profile owns the material detail. Availability, project fit, and
+                pricing are confirmed through TradeScout before contact opens.
               </p>
             ) : (
               <p className="mt-2 text-center text-[11px] text-white/50">
