@@ -52,7 +52,21 @@ describe("profile site templates", () => {
     expect(resolveSiteTemplateId({ slug: "jw-stone" })).toBe("wholesaler");
     expect(resolveSiteTemplateId({ slug: "jrs-auto-glass" })).toBe("auto-glass");
     expect(resolveSiteTemplateId({ slug: "la-plumbing-solutions" })).toBe("plumbing-company");
+    expect(resolveSiteTemplateId({ slug: "dean-damaskos" })).toBe("financial-professional");
     expect(resolveSiteTemplateId({ slug: "unknown-shop" })).toBe("default");
+  });
+
+  it("keeps the reconciled financial-professional theme profile-specific", () => {
+    expect(getProfileSiteTemplateMeta("financial-professional")).toMatchObject({
+      label: "Financial professional",
+      family: "professional-services",
+      selectable: false,
+    });
+    expect(
+      listSelectableProfileSiteTemplates().some(
+        (entry) => (entry.id as string) === "financial-professional"
+      )
+    ).toBe(false);
   });
 
   it("persists featured stone slugs on inventoryCatalog", () => {
