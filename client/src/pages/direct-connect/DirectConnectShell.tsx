@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { createClientOperationId } from "@/lib/clientOperationId";
 import { interpretWorkRequestStateForScout } from "@/utils/interpretWorkRequestState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1563,6 +1564,11 @@ function DirectConnectRequestComposer({
   const latestAuthenticatedDraftSaveRef = useRef<() => void>(() => undefined);
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
+  const pendingCreateOperationRef = useRef<{
+    fingerprint: string;
+    operationId: string;
+    payload?: Record<string, unknown>;
+  } | null>(null);
 
   const homesQuery = useQuery({
     queryKey: ["/api/homes"],
@@ -2207,6 +2213,39 @@ function DirectConnectRequestComposer({
 
   const createMutation = useMutation<any, any, DirectConnectCreateDispatch | undefined>({
     mutationFn: async (dispatch?: DirectConnectCreateDispatch) => {
+      const operationFingerprint = JSON.stringify({
+        title: title.trim(),
+        description: description.trim(),
+        category: activeRequestMeta.category,
+        budgetMin,
+        budgetMax,
+        prefillTradeId,
+        prefillContextType,
+        prefillContextId,
+        attachments: attachmentsRef.current.map((attachment) => ({
+          name: attachment.file.name,
+          size: attachment.file.size,
+          type: attachment.file.type,
+          lastModified: attachment.file.lastModified,
+        })),
+        dispatch: dispatch || null,
+      });
+      if (
+        pendingCreateOperationRef.current?.fingerprint === operationFingerprint &&
+        pendingCreateOperationRef.current.payload
+      ) {
+        return apiRequest(
+          "POST",
+          "/api/direct-connect/requests",
+          pendingCreateOperationRef.current.payload
+        );
+      }
+      const operationId =
+        pendingCreateOperationRef.current?.fingerprint === operationFingerprint
+          ? pendingCreateOperationRef.current.operationId
+          : createClientOperationId("dc-request");
+      pendingCreateOperationRef.current = { fingerprint: operationFingerprint, operationId };
+
       const uploadedAttachmentKeys = new Set<string>(draftAttachmentKeys);
       for (const attachment of attachmentsRef.current) {
         const { objectKey } = await uploadPrivateObject(attachment.file);
@@ -2218,6 +2257,7 @@ function DirectConnectRequestComposer({
       setDraftAttachmentKeys(Array.from(new Set(nextDraftAttachmentKeys)).slice(0, 8));
 
       const payload: Record<string, unknown> = {
+        operationId,
         title: title.trim(),
         description: description.trim(),
         category: activeRequestMeta.category,
@@ -2266,9 +2306,15 @@ function DirectConnectRequestComposer({
         payload.assetComponentId = dispatch.assetComponentId.trim();
       if (dispatch?.assetLabel?.trim()) payload.assetLabel = dispatch.assetLabel.trim();
 
+      pendingCreateOperationRef.current = {
+        fingerprint: operationFingerprint,
+        operationId,
+        payload,
+      };
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
     onSuccess: (data, variables) => {
+      pendingCreateOperationRef.current = null;
       const attachmentCount = attachmentsRef.current.length;
       const selectedCount = Array.isArray(variables?.targetProviderIds)
         ? variables.targetProviderIds.length
