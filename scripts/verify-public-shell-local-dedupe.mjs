@@ -94,7 +94,9 @@ if (
   clientPublic.files !== manifest.expected.clientPublicFiles ||
   clientPublic.bytes !== manifest.expected.clientPublicBytes
 ) {
-  throw new Error("Release B client/public totals changed without review");
+  throw new Error(
+    `Release B client/public totals changed without review: expected ${manifest.expected.clientPublicFiles} files and ${manifest.expected.clientPublicBytes} bytes; found ${clientPublic.files} files and ${clientPublic.bytes} bytes`
+  );
 }
 console.log(
   `[public-shell-dedupe] Release B verified ${summary.files} removed paths (${summary.bytes} bytes), ${summary.aliases} compatibility aliases, and ${summary.deadPinned} dead pinned paths`
