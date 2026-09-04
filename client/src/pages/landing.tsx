@@ -1049,7 +1049,7 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 }
 
 // ---- Main Page ----
-export default function Home() {
+export default function CampaignLandingPage() {
   const { user } = useAuth();
   const firstUseUserState = user ? "authenticated" : "anonymous";
   const [location] = useLocation();

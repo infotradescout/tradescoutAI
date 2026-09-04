@@ -158,13 +158,13 @@ describe("BidRock marketplace recovery contract", () => {
   it("keeps JW photo records in a material library separate from published stock", () => {
     const jwSurface = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const collection = read("client/src/features/jw-stone/StoneCollection.tsx");
-    const current = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
-    const normalizedCurrent = current.replace(/\s+/g, " ");
+    const arrivals = read("client/src/features/jw-stone/NewArrivalsSection.tsx");
+    const normalizedArrivals = arrivals.replace(/\s+/g, " ");
 
-    expect(jwSurface).toContain("CurrentInventorySection");
-    expect(collection).toContain('title="Material Library"');
-    expect(current).toContain("Only physical lots explicitly marked sale-ready");
-    expect(normalizedCurrent).toContain("does not claim that a physical item is on hand");
-    expect(current).not.toContain("sourceAssetRef");
+    expect(jwSurface).toContain("NewArrivalsSection");
+    expect(collection).toContain('title="Browse Full Inventory"');
+    expect(arrivals).toContain("Only physical lots explicitly marked sale-ready");
+    expect(normalizedArrivals).toContain("does not claim that a physical item is on hand");
+    expect(arrivals).not.toContain("sourceAssetRef");
   });
 });

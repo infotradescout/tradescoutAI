@@ -164,7 +164,15 @@ describe("procurement engine contract", () => {
     expect(shared).toContain('assigned_to_fulfillment: "Sent to Grunt"');
     expect(shared).toContain('proof_uploaded: "Proof Received"');
 
-    const page = read("client/src/pages/procurement/ProcurementPages.tsx");
+    const page = [
+      "client/src/pages/procurement/ProcurementPages.tsx",
+      "client/src/pages/admin-procurement.tsx",
+      "client/src/pages/admin-procurement-detail.tsx",
+      "client/src/pages/admin-procurement-workspaces.tsx",
+      "client/src/pages/admin-procurement-workspace-detail.tsx",
+    ]
+      .map(read)
+      .join("\n");
     expect(page).toContain("Start Supply Run");
     expect(page).toContain('case "tradescout_supply_run":');
     expect(page).toContain('"Supply Run"');
@@ -177,7 +185,7 @@ describe("procurement engine contract", () => {
     expect(page).toContain("Upload Delivery Proof");
     expect(page).toContain("Pay Quote");
     expect(page).toContain("SupplierQuoteResponsePage");
-    expect(page).toContain("Request Supplier Quote");
+    expect(page).toContain("Request supplier quote");
     expect(page).toContain("supplierQuotes");
     expect(page).toContain("checkout-session");
     expect(page).toContain("verify-checkout");

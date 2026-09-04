@@ -47,7 +47,7 @@ const SERVICE_SHORTCUTS = [
   },
 ] as const;
 
-export default function Home() {
+export default function HomeActionPage() {
   const { user } = useAuth();
   const firstUseUserState = user ? "authenticated" : "anonymous";
 

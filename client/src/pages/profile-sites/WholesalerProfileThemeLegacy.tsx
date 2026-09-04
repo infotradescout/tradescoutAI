@@ -485,7 +485,7 @@ function configuredRequestType(
     : fallback;
 }
 
-export default function WholesalerProfileTheme({
+export default function LegacyWholesalerProfileTheme({
   profileSlug,
   displayName,
   businessAddress,

@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ROUTES } from "@/lib/routes";
 import { NotificationCenter } from "@/components/ui/notification-center";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
@@ -410,7 +410,7 @@ export function buildMobileAppTaskbarNav(items: NavItem[]): NavItem[] {
   return [...stablePrimary, ...secondaryApps];
 }
 
-export function AppShell({ children, footer }: AppShellProps) {
+export function AppShellCore({ children, footer }: AppShellProps) {
   const { user, isAuthenticated } = useAuth();
   const isLoggedIn = !!user;
   // Impersonation banner logic
@@ -1545,4 +1545,4 @@ export function AppShell({ children, footer }: AppShellProps) {
   );
 }
 
-export default AppShell;
+export default AppShellCore;

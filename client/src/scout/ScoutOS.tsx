@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { createClientOperationId } from "@/lib/clientOperationId";
-import { useIsMobile } from "../hooks/useIsMobile";
+import { useIsMobile } from "../hooks/use-mobile";
 import { useScoutController } from "./useScoutController";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";

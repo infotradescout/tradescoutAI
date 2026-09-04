@@ -8,6 +8,8 @@ A company profile is not an inventory database. A supplier relationship is not o
 
 JW Stone's photo catalog is a **Material Library**, not a statement of physically confirmed stock. R.E.D. Graniti source materials never become JW Stone inventory unless a physical asset is received, verified, passported, and assigned to a current inventory position.
 
+The JW Stone storefront currently presents that catalog as **Browse Full Inventory**. That is a brand-facing browse label, not a physical-stock assertion. Only the separately governed **New Arrivals** surface may show real stock, and only after the freshness, publication, verification, and explicit-selection rules below pass.
+
 ## Separate records
 
 ### 1. Company profile

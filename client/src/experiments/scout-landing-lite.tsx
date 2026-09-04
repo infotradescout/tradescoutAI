@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useLocation, Link } from "wouter";
 import AppDrawer from "../components/AppDrawer";
-import { useIsMobile } from "../hooks/useIsMobile";
+import { useIsMobile } from "../hooks/use-mobile";
 import { Home, Send } from "lucide-react";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
 

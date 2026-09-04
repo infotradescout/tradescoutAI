@@ -11,7 +11,7 @@ import type { PublicStoneInventoryItem } from "@shared/stoneInventory";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
 import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
-import { CurrentInventorySection } from "./CurrentInventorySection";
+import { NewArrivalsSection } from "./NewArrivalsSection";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
@@ -88,8 +88,7 @@ function trackJwStoneRequestIntent(selectionCount: number): void {
     type: "public_profile_action_selected",
     profileSlug: "jw-stone",
     action: "request",
-    surface:
-      selectionCount > 0 ? "jw_selected_material_request" : "jw_general_material_request",
+    surface: selectionCount > 0 ? "jw_selected_material_request" : "jw_general_material_request",
     detail: selectionCount > 0 ? `${selectionCount} selected material request` : undefined,
     deviceType: window.innerWidth < 768 ? "mobile" : "desktop",
     ts: new Date().toISOString(),
@@ -338,10 +337,7 @@ export default function JWStoneMarketplace() {
 
       <MarketplaceIntroduction />
       <FirstCutSection onOpen={openStone} />
-      <CurrentInventorySection
-        onAsk={askAboutCurrentStock}
-        onStartRequest={() => startRequest([])}
-      />
+      <NewArrivalsSection onAsk={askAboutCurrentStock} />
       <StoneCollection
         state={state}
         isSaved={wishlist.isSaved}
