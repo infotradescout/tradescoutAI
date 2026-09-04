@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { getRoleHierarchyLevel, getRolePermissions } from "@shared/roles";
+import { getRolePermissions, hasExplicitRoleGrant } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import { ReactNode } from "react";
 
@@ -9,10 +9,10 @@ interface RoleProtectedRouteProps {
   fallback?: ReactNode;
 }
 
-export function RoleProtectedRoute({ 
-  children, 
-  allowedRoles, 
-  fallback = <div className="text-center py-8 text-muted-foreground">Access denied</div>
+export function RoleProtectedRoute({
+  children,
+  allowedRoles,
+  fallback = <div className="text-center py-8 text-muted-foreground">Access denied</div>,
 }: RoleProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
 
@@ -29,12 +29,7 @@ export function RoleProtectedRoute({
   }
 
   const userRole = user.role as UserRole;
-  const userLevel = getRoleHierarchyLevel(userRole);
-  
-  const hasPermission = allowedRoles.some(role => {
-    const requiredLevel = getRoleHierarchyLevel(role);
-    return userLevel >= requiredLevel;
-  });
+  const hasPermission = hasExplicitRoleGrant(userRole, allowedRoles);
 
   if (!hasPermission) {
     return fallback;
@@ -49,10 +44,10 @@ interface PermissionProtectedProps {
   fallback?: ReactNode;
 }
 
-export function PermissionProtected({ 
-  children, 
-  permission, 
-  fallback = null 
+export function PermissionProtected({
+  children,
+  permission,
+  fallback = null,
 }: PermissionProtectedProps) {
   const { user, isAuthenticated } = useAuth();
 
@@ -62,7 +57,7 @@ export function PermissionProtected({
 
   const userRole = user.role as UserRole;
   const permissions = getRolePermissions(userRole);
-  
+
   if (!permissions[permission]) {
     return fallback;
   }
