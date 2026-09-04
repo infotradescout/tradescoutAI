@@ -1089,9 +1089,9 @@ export const explainerChapters: readonly ExplainerChapter[] = [
           {
             number: "02.08",
             action: "Complete extra screening when the role requires it",
-            name: "Background screening and Screen Pass",
+            name: "Background screening",
             description:
-              "A background-check intake exists as an additional verification path. Screen Pass is the portable direction: show that the required screen was completed without exposing the private report. Broader partner completion is still expanding.",
+              "A background-check intake exists as an additional verification path when a role requires it. Partner coverage and end-to-end completion are still expanding.",
           },
           {
             number: "02.09",

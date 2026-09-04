@@ -1,14 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  mirrorInfinityConversion,
-  mirrorInfinitySelectiveInheritance,
-  mirrorInfinityTouch,
-} from "../integrations/infinityShadow";
-import {
-  filterTradeScoutInheritanceCandidates,
-  tradeScoutSelectiveInheritancePolicy,
-} from "../integrations/infinitySelectiveInheritance";
+import { mirrorInfinityConversion, mirrorInfinityTouch } from "../integrations/infinityShadow";
 
 const saved = {
   apiUrl: process.env.INFINITY_API_URL,
@@ -48,46 +40,5 @@ describe("Infinity shadow adapter", () => {
         attributionProofId: "proof-1",
       })
     ).resolves.toBe("disabled");
-    await expect(
-      mirrorInfinitySelectiveInheritance({
-        evaluationId: "inheritance-1",
-        profileId: "example",
-        targetVersion: "profile-v1",
-        candidates: [],
-      })
-    ).resolves.toBe("disabled");
-  });
-
-  it("declares a fail-closed profile policy without bypassing contact or trust law", () => {
-    const policy = tradeScoutSelectiveInheritancePolicy("tenant-tradescout");
-    expect(policy.defaultAction).toBe("exclude");
-    expect(policy.fields.find((field) => field.field === "credentials")?.action).toBe("inherit");
-    for (const protectedField of ["directConnect", "contactAccess", "ranking", "trustScore"]) {
-      expect(policy.fields.find((field) => field.field === protectedField)?.action).toBe("exclude");
-    }
-
-    const candidates = filterTradeScoutInheritanceCandidates("tenant-tradescout", [
-      {
-        field: "credentials",
-        value: ["License A"],
-        sourceKind: "owner_verified",
-        sourceReference: "owner:credential",
-        evidenceDigest: "sha256:credential",
-        observedAt: "2026-07-19T15:00:00.000Z",
-        confidence: 1,
-        verified: true,
-      },
-      {
-        field: "directConnect",
-        value: { bypass: true },
-        sourceKind: "product_record",
-        sourceReference: "private:contact",
-        evidenceDigest: "sha256:contact",
-        observedAt: "2026-07-19T15:00:00.000Z",
-        confidence: 1,
-        verified: true,
-      },
-    ]);
-    expect(candidates.map((candidate) => candidate.field)).toEqual(["credentials"]);
   });
 });

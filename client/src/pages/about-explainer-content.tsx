@@ -205,8 +205,8 @@ const featureGroups = [
       },
       {
         action: "Complete extra screening when the role requires it",
-        name: "Background screening and Screen Pass",
-        copy: "A background-check intake exists as an additional verification path. Screen Pass is the planned portable result: show that the required screen was completed without exposing the private report. The portable pass and end-to-end partner completion are not finished yet.",
+        name: "Background screening",
+        copy: "A background-check intake exists as an additional verification path when a role requires it. Partner coverage and end-to-end completion are still expanding.",
         href: routes.backgroundCheck,
       },
       {
