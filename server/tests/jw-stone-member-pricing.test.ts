@@ -8,6 +8,7 @@ import {
 } from "@shared/jwStoneMemberPricing";
 import {
   JW_STONE_PRICING_HEADERS,
+  getJwStoneDriveIdentityEmail,
   getJwStonePricingSnapshot,
   parseJwStonePricingWorkbook,
   resetJwStoneDrivePricingCacheForTests,
@@ -223,6 +224,36 @@ describe("JW Stone private member pricing", () => {
     }
   });
 
+  it("identifies the configured Drive service account without exposing its key", async () => {
+    const priorEnv = {
+      serviceAccount: process.env.JW_STONE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64,
+      applicationCredentials: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      refreshToken: process.env.JW_STONE_DRIVE_REFRESH_TOKEN,
+    };
+    process.env.JW_STONE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64 = Buffer.from(
+      JSON.stringify({
+        client_email: "jw-stone-pricing@example.iam.gserviceaccount.com",
+        private_key: "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+      })
+    ).toString("base64");
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    delete process.env.JW_STONE_DRIVE_REFRESH_TOKEN;
+
+    try {
+      await expect(getJwStoneDriveIdentityEmail()).resolves.toBe(
+        "jw-stone-pricing@example.iam.gserviceaccount.com"
+      );
+    } finally {
+      const restore = (key: string, value: string | undefined) => {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      };
+      restore("JW_STONE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64", priorEnv.serviceAccount);
+      restore("GOOGLE_APPLICATION_CREDENTIALS", priorEnv.applicationCredentials);
+      restore("JW_STONE_DRIVE_REFRESH_TOKEN", priorEnv.refreshToken);
+      resetJwStoneDrivePricingCacheForTests();
+    }
+  });
   it("never projects landed cost to a business member", () => {
     const snapshot = {
       sourceUpdatedAt: "2026-09-05T02:50:50.000Z",
