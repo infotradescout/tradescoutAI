@@ -1450,7 +1450,6 @@ const DEFAULT_FIRST_INTRO_APPENDIX =
 
 export async function registerRoutes(app: any) {
   registerJwStonePublicMediaRoutes(app);
-  registerJwStoneMemberPricingRoutes(app);
   registerRedGranitiPublicMediaRoutes(app);
   registerStoneDesignerImageRoutes(app);
   const buildRevision = resolveBuildRevision();
@@ -1461,6 +1460,7 @@ export async function registerRoutes(app: any) {
   // Bind every authenticated request to one server-resolved effective account
   // before any feature or standalone admin router can evaluate req.user.
   app.use(bindAuthenticatedRequestAuthority);
+  registerJwStoneMemberPricingRoutes(app);
 
   // Emit build identity on every response so production log/debug can confirm
   // which revision is currently serving traffic.

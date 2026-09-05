@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   JW_STONE_PRICING_DRIVE_FILE_ID,
@@ -50,6 +51,16 @@ async function withOwnerSpreadsheetNamespace(buffer: Buffer): Promise<Buffer> {
 }
 
 describe("JW Stone private member pricing", () => {
+  it("mounts private pricing only after authentication and authority binding", () => {
+    const routesSource = readFileSync("server/routes.ts", "utf8");
+    const setupAuthIndex = routesSource.indexOf("await setupAuth(app);");
+    const authorityIndex = routesSource.indexOf("app.use(bindAuthenticatedRequestAuthority);");
+    const pricingIndex = routesSource.indexOf("registerJwStoneMemberPricingRoutes(app);");
+
+    expect(setupAuthIndex).toBeGreaterThan(-1);
+    expect(authorityIndex).toBeGreaterThan(setupAuthIndex);
+    expect(pricingIndex).toBeGreaterThan(authorityIndex);
+  });
   it("parses the exact Drive workbook contract into integer cents", async () => {
     const snapshot = await parseJwStonePricingWorkbook(
       await pricingWorkbook([
