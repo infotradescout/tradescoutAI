@@ -13,6 +13,12 @@ import {
 const routes = fs
   .readFileSync(path.resolve(process.cwd(), "server/routes.ts"), "utf8")
   .replace(/\r\n/g, "\n");
+const projection = fs
+  .readFileSync(
+    path.resolve(process.cwd(), "server/services/adminBusinessOwnerImportProjection.ts"),
+    "utf8"
+  )
+  .replace(/\r\n/g, "\n");
 const adminImportClient = fs
   .readFileSync(path.resolve(process.cwd(), "client/src/pages/admin-business-import.tsx"), "utf8")
   .replace(/\r\n/g, "\n");
@@ -123,12 +129,17 @@ describe("admin business real-account import policy", () => {
     expect(route).toContain("evaluateAdminBusinessImportRequest({");
     expect(route).toContain("evaluateAdminBusinessImportTarget({");
     expect(route).toContain("createImportedOwnerProjectionAtomically");
-    expect(route).toContain("executeImportedOwnerProjectionAtomically({");
-    expect(route).toContain("project: async (tx)");
-    expect(route).toContain("database: tx");
-    expect(route).toContain("insert into public.auth_action_tokens");
-    expect(route.indexOf("insert into public.auth_action_tokens")).toBeLessThan(
-      route.indexOf('action: "admin_business_owner_account_import_target"')
+    expect(routes).toContain(
+      'import { createImportedOwnerProjectionAtomically } from "./services/adminBusinessOwnerImportProjection"'
+    );
+    expect(route).toContain("database: db");
+    expect(route).toContain("actorId,");
+    expect(projection).toContain("executeImportedOwnerProjectionAtomically({");
+    expect(projection).toContain("project: async (tx)");
+    expect(projection).toContain("database: tx");
+    expect(projection).toContain("insert into public.auth_action_tokens");
+    expect(projection.indexOf("insert into public.auth_action_tokens")).toBeLessThan(
+      projection.indexOf('action: "admin_business_owner_account_import_target"')
     );
     expect(route).toContain("activation email failed");
     expect(route).toContain("claim write failed");
@@ -146,9 +157,6 @@ describe("admin business real-account import policy", () => {
   });
 
   it("revalidates locked email and application authority without reversing professional lock order", () => {
-    const start = routes.indexOf("const createImportedOwnerProjectionAtomically");
-    const end = routes.indexOf("for (let idx = 0;", start);
-    const projection = routes.slice(start, end);
     const realtorLock = projection.indexOf(".from(realtorProfiles)");
     const carLock = projection.indexOf(".from(carSalesmanProfiles)");
     const userLock = projection.indexOf("const lockedUsers");

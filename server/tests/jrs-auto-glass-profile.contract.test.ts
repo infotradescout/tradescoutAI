@@ -161,7 +161,10 @@ describe("JR's Auto Glass public profile contract", () => {
     const publicRoute = read("server/routes/profiles.ts");
     const expressRoute = read("server/routes/tradepartner-express.ts");
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    const route = read("server/routes/direct-connect.ts");
+    const route = [
+      read("server/routes/direct-connect.ts"),
+      read("server/routes/direct-connect/operations.ts"),
+    ].join("\n");
 
     expect(profileView).toContain(
       "const jrsDirectConnectTarget = business?.directConnectOwnerUserId"

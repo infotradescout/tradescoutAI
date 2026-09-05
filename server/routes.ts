@@ -1307,6 +1307,8 @@ export async function registerRoutes(app: any) {
   // Setup authentication
   await setupAuth(app);
 
+  app.use(checkTrustedDevice);
+
   // Bind every authenticated request to one server-resolved effective account
   // before any feature or standalone admin router can evaluate req.user.
   app.use(bindAuthenticatedRequestAuthority);
@@ -5147,9 +5149,6 @@ export async function registerRoutes(app: any) {
 
   // Locality tracking middleware - track all interactions with geographic context
   app.use(localityTrackingMiddleware());
-
-  // Device auth middleware - check for trusted devices
-  app.use(checkTrustedDevice);
 
   // OAuth routes (canonical): only register when the strategy is configured.
   // This prevents runtime crashes like: "Unknown authentication strategy 'google'".

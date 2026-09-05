@@ -240,6 +240,9 @@ export class DeviceAuthService {
 }
 
 export const checkTrustedDevice = async (req: Request, _res: Response, next: NextFunction) => {
+  // A device token is an alternate sign-in path, never an account switch for
+  // an existing authenticated or impersonated request.
+  if (req.user || (req as any).requestAuthorityContext) return next();
   const sessionToken = req.cookies?.trusted_session || req.headers["x-trusted-session"];
   if (!sessionToken || typeof sessionToken !== "string") return next();
 

@@ -6,11 +6,11 @@ import { isBusinessProvider, requireAdmin, requireOnboardingComplete, requireRol
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
-const withReservedEmail = (email: string, run: () => void) => {
+const withReservedEmail = async (email: string, run: () => Promise<void>) => {
   const previous = process.env.PRIVILEGED_ALIAS_EMAILS;
   process.env.PRIVILEGED_ALIAS_EMAILS = email;
   try {
-    run();
+    await run();
   } finally {
     if (typeof previous === "undefined") {
       delete process.env.PRIVILEGED_ALIAS_EMAILS;
@@ -20,7 +20,7 @@ const withReservedEmail = (email: string, run: () => void) => {
   }
 };
 
-const invoke = (middleware: any, user: Record<string, unknown>) => {
+const invoke = async (middleware: any, user: Record<string, unknown>) => {
   const next = vi.fn();
   const res: any = {
     status: vi.fn(),
@@ -29,7 +29,7 @@ const invoke = (middleware: any, user: Record<string, unknown>) => {
   res.status.mockReturnValue(res);
   res.json.mockReturnValue(res);
 
-  middleware(
+  await middleware(
     {
       user,
       isAuthenticated: () => true,
@@ -51,10 +51,11 @@ describe("reserved authority email regression", () => {
       label: "claims email",
       user: { email: "ordinary@example.com", claims: { email: "candidate@example.com" } },
     },
-  ])("does not grant middleware authority from a $label alias", ({ user }) => {
-    withReservedEmail("candidate@example.com", () => {
+  ])("does not grant middleware authority from a $label alias", async ({ user }) => {
+    await withReservedEmail("candidate@example.com", async () => {
       const ordinaryUser = {
         ...user,
+        id: "ordinary-user",
         role: "homeowner",
         activeRole: "homeowner",
         roles: ["homeowner"],
@@ -69,15 +70,16 @@ describe("reserved authority email regression", () => {
         isBusinessProvider,
         requireAdmin,
       ]) {
-        const { next, res } = invoke(middleware, ordinaryUser);
+        const { next, res } = await invoke(middleware, ordinaryUser);
         expect(next).not.toHaveBeenCalled();
         expect(res.status).toHaveBeenCalledWith(403);
       }
     });
   });
 
-  it("continues to honor persisted admin flags", () => {
+  it("continues to honor persisted admin flags", async () => {
     const persistedAdmin = {
+      id: "persisted-admin",
       email: "ordinary@example.com",
       role: "homeowner",
       roles: ["homeowner"],
@@ -91,7 +93,7 @@ describe("reserved authority email regression", () => {
       isBusinessProvider,
       requireAdmin,
     ]) {
-      const { next } = invoke(middleware, persistedAdmin);
+      const { next } = await invoke(middleware, persistedAdmin);
       expect(next).toHaveBeenCalledOnce();
     }
   });

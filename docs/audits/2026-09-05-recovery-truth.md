@@ -18,13 +18,54 @@ Authority: Thomas's request to trace the system from its creation and recover a 
 3. **Live request navigation fails.** From the live finder, “Start a Tangipahoa request” opens the Businesses directory. Clicking “Start request” changes the address to `/direct-connect` but leaves that directory visible. Draft PR #574 already owns the query-navigation repair; its existence does not make the live journey repaired.
 4. **Public entry demands extensive reading.** At a 1,363 × 936 desktop viewport, the homepage had 6,876 whitespace-delimited words, 221 heading elements, and 40,574 CSS pixels of document height. These are measurements, not a mobile usability verdict. The primary labels also vary between “Make A Request” and “Start request.”
 5. **Shared intent record is scoped to one partner feature.** The repository-root Selective Intelligence intent contract identifies “JW Stone 2.0” and an August 15 planner release. That file cannot govern whole-TradeScout recovery or supersede Thomas's later pricing/source/contact decisions.
-6. **Permission integration has additional interactions.** Independent execution of the real middleware with synthetic users reproduced trusted-device replacement of the effective target, an admin router intercepting impersonation exits, and a profile-account bypass using a stale session role. These require behavioral regression proof.
+6. **Permission integration has additional interactions.** Independent execution of the real middleware with synthetic users reproduced trusted-device replacement of the effective target, an admin router intercepting impersonation exits, and a profile-account bypass using a stale session role. The repaired middleware now has executable regression coverage. Independent re-review reached the actual exit handlers and confirmed all three reproduced paths are closed with synthetic providers; database persistence and browser behavior remain separate proof.
 
 ## Recovery of the corrupted source
 
 The surviving route prefix was compared with the exact pre-corruption parent. Its intentional changes import three extracted owners and remove the local lead-routing helper. The unreadable suffix is recovered from that same parent, with the existing extracted Admin controls and business-owner projection retained as their sole implementations. The Admin-control body is compared exactly before replacing it with its registration. The local import projection is replaced with its existing extracted service, passing the previously captured context explicitly.
 
 This is reconstruction of damaged source against the actual extraction artifacts. The older Release 2 route file is not copied over Release 0. Direct Connect, professional application storage, schema, lead routing, and Admin owner extractions remain in place. No feature is discarded to make the routing file appear smaller. Further route decomposition remains separate work.
+
+## Historical scale and how the debt compounded
+
+These are snapshots from commits reachable from the inspected main, selected with `git log -1 --before=<cutoff> origin/main`. Counts describe tracked files, not delivered features or product quality. Test-file counts are names containing `.test.` or `.spec.`; they do not assert execution or coverage.
+
+| Snapshot | Commit | Tracked files | TS/TSX files | Test filenames | Main route lines | Storage lines |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 2025-08-31 | `d204018e2372` | 560 | 395 | 0 | 8,044 | 6,219 |
+| 2025-12-31 | `4b21bf784800` | 1,667 | 787 | 32 | 13,280 | 10,125 |
+| 2026-03-31 | `6bbabf8583b7` | 2,421 | 1,276 | 160 | 27,895 | 14,085 |
+| 2026-06-30 | `244a11dde5d1` | 4,369 | 2,858 | 474 | 27,128 | 13,554 |
+| 2026-08-31 | `0a72863b7285` | 3,855 | 2,398 | 805 | 26,688 | 9,075 |
+| 2026-09-05 | `1db99fb635d0` | 3,902 | 2,438 | 823 | 26,690 | 9,075 |
+
+The August 2025 snapshot already has a large shared route and storage surface. By March 2026, the main route file exceeds 27,000 lines. Later extraction reduces storage and file counts, while the route surface remains large. This is evidence of concentrated ownership and later cleanup, not evidence that every extraction was correct or every feature was used.
+
+The verification exception history is concrete: February 21 commit `a066a274` adds automatic staff/admin verification; March 8 commits `8c505ac4` and `0ed0f8a9` extend alias handling; August 22 commit `ff0674ac` attempts to scope impersonation bypass but continues trusting a saved session role. The independent September 5 reproduction shows why that last correction was incomplete: the target's current persisted authority and the session's older role can disagree. Recovery binds one effective account per request and makes administrative verification exceptions unavailable during impersonation.
+
+The first complete non-database run on the reconstructed working tree collected 5,413 tests across 799 files: 5,247 passed, 24 failed, and 142 were skipped. Of the 24 failed assertions, 20 searched moved implementations or old import/response/guard text; four called asynchronous identity middleware without awaiting it or supplied an identity with no ID. Existing contracts were updated to the actual extracted owners, and middleware fixtures now use complete account identities and await the result. No failing product behavior was made acceptable by changing its expected permission decision.
+
+The 513 remote branches and 21 open pull requests observed include overlapping recovery, comparison, diagnostic, partner, and dependency work. They are not 513 independent defects. Current repairs remain in the existing recovery owner, while discovery-entry repair remains owned by draft PR #574. A draft or merged commit is not live-behavior evidence.
+
+## Repairs and remaining product work
+
+| Area | Evidence and decision | Completion standard |
+| --- | --- | --- |
+| Source integrity | Reconstruct the corrupted recovery route suffix from its exact valid parent; retain extracted owners. | TypeScript and production build pass on the saved source tree. |
+| Account authority | Bind the effective target before feature routers; trusted-device sign-in cannot replace an authenticated account; repeated guards restore the binding. | Actual middleware denies stale/missing targets and preserves principal/effective separation. |
+| Session escape | Limit the discovery router's guard to its own eight endpoints so it cannot intercept unrelated admin exits. | All canonical exits work for valid, deleted, and inactive targets; every tool endpoint remains guarded. |
+| Verification exceptions | Remove stale impersonation-role fallback; preserve normal persisted administrator behavior. | Current target authority governs account flows; impersonation grants no administrative exception. |
+| Test ownership | Follow moved HomeID, Direct Connect operation, and imported-owner projection implementations; correct asynchronous fixtures. | Full suite is reported with failures and skips; source-string checks are never represented as browser or database proof. |
+| Public request entry | Live finder/request navigation fails; existing PR #574 owns the query parsing and query-only navigation fix. | A person can go from county/service discovery to the request composer and recover their draft after sign-in. |
+| Public UI | Homepage measurement shows excessive depth and competing entry wording; no mobile verdict is claimed. | One obvious primary action, concise explanation, consistent request labels, usable keyboard/focus/error states, and verified narrow-screen flows. |
+| Product intent | Root SI contract is a partner-specific snapshot, not whole-product authority. | A current product-level contract governs shared rules; partner-specific variations stay within their owners. |
+| Database and live readiness | No disposable test database was supplied. Native PostgreSQL 18.4 runs its version probe, but this runtime rejects both changing scratch-data ownership and starting an unprivileged subprocess (`EINVAL`). | Use an authorized disposable native PostgreSQL environment for transaction, concurrent lock, migration, session persistence, and authenticated application proof. Do not replace it with a source-string pass or production data. |
+
+Recovery order is shared authority and persisted data, then county-to-request-to-response journeys, then UI consistency and remaining feature owners. This preserves existing capabilities while repairing the decisions they share. Release 3, merging main, and deployment remain held until the required earlier proof is complete.
+
+## Standards used for acceptance
+
+Use [WCAG 2.2](https://www.w3.org/TR/WCAG22/) for accessible interaction and [consistent navigation](https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation.html), and [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/) for authentication, authorization, session, and data-protection acceptance. These are criteria for verification, not a claim of certification or a completed accessibility/security audit.
 
 ## Release boundary
 

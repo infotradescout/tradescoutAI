@@ -9,7 +9,10 @@ const read = (relativePath: string) => {
 
 describe("admin direct-connect provisioning contract", () => {
   it("provisions target users by email and triggers setup email flow", () => {
-    const source = read("server/routes/direct-connect.ts");
+    const source = [
+      read("server/routes/direct-connect.ts"),
+      read("server/routes/direct-connect/operations.ts"),
+    ].join("\n");
 
     expect(source).toContain("/api/admin/direct-connect/requests");
     expect(source).toContain("targetUserProvisioned");

@@ -526,7 +526,10 @@ function blockImpersonatedPrivilege(req: Request, res: any, force = false): bool
 
 async function bindRequestAuthority(req: Request, res: any): Promise<boolean> {
   const authorityRequest = req as AuthorityBoundRequest;
-  if (authorityRequest.requestAuthorityContext?.ok) return true;
+  if (authorityRequest.requestAuthorityContext?.ok) {
+    authorityRequest.user = authorityRequest.requestAuthorityContext.effectiveUser;
+    return true;
+  }
 
   try {
     const context = await resolveRequestAuthorityContext(authorityRequest, async (userId) =>

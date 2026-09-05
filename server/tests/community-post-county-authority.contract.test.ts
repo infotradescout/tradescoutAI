@@ -33,8 +33,8 @@ describe("Community post county authority contract", () => {
     const identityBoundary = communityPostCreateIdentityBoundary();
 
     expect(routes).toContain('import { resolveUserCountyWriteContext } from "./locationContext";');
-    expect(routes).toContain(
-      'import { resolveRequestEffectiveUser } from "./utils/requestEffectiveUser";'
+    expect(routes).toMatch(
+      /import\s*\{[^}]*\bresolveRequestEffectiveUser\b[^}]*\}\s*from "\.\/utils\/requestEffectiveUser"/
     );
     expect(identityBoundary).toContain("const identityContext = resolveRequestEffectiveUser(req);");
     expect(identityBoundary).toContain('code: "COMMUNITY_IDENTITY_CONTEXT_INVALID"');

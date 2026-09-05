@@ -4,6 +4,7 @@ import {
   normalizeAuthorityRole,
   resolvePrivilegedVerificationBypass,
 } from "./authorityPolicy";
+import { resolveRequestEffectiveUser, type RequestAuthorityContext } from "./requestEffectiveUser";
 
 export function hasPrivilegedVerificationBypass(user: any): boolean {
   return resolvePrivilegedVerificationBypass(user).active;
@@ -11,47 +12,28 @@ export function hasPrivilegedVerificationBypass(user: any): boolean {
 
 type PrivilegedVerificationRequestLike = {
   user?: any;
+  principalUser?: any;
   session?: unknown;
+  requestAuthorityContext?: RequestAuthorityContext;
 };
 
 export function hasRequestPrivilegedVerificationBypass(
   req: PrivilegedVerificationRequestLike
 ): boolean {
-  const session =
-    req?.session !== null && typeof req?.session === "object"
-      ? (req.session as Record<string, unknown>)
-      : null;
-  const impersonationFields = [
-    "isImpersonating",
-    "impersonatedUserId",
-    "impersonatingRole",
-  ] as const;
-  const hasImpersonationMarker =
-    !!session &&
-    impersonationFields.some((field) => Object.prototype.hasOwnProperty.call(session, field));
+  const identity = resolveRequestEffectiveUser(req);
+  // Administrative verification exceptions are unavailable while viewing
+  // another account, including an account that used to hold an admin role.
+  if (!identity.ok || identity.isImpersonating) return false;
 
-  if (!hasImpersonationMarker) {
-    return hasPrivilegedVerificationBypass(req?.user);
-  }
-
-  const impersonatedUserId = session?.impersonatedUserId;
-  const impersonatingRole = session?.impersonatingRole;
+  const context = req.requestAuthorityContext;
   if (
-    session?.isImpersonating !== true ||
-    typeof impersonatedUserId !== "string" ||
-    impersonatedUserId.trim().length === 0 ||
-    typeof impersonatingRole !== "string" ||
-    impersonatingRole.trim().length === 0
+    context &&
+    (!context.ok || context.isImpersonating || context.effectiveUserId !== identity.effectiveUserId)
   ) {
     return false;
   }
 
-  const effectiveRole = impersonatingRole.trim();
-  return hasPrivilegedVerificationBypass({
-    role: effectiveRole,
-    activeRole: effectiveRole,
-    roles: [effectiveRole],
-  });
+  return hasPrivilegedVerificationBypass(context?.ok ? context.effectiveUser : req?.user);
 }
 
 export function applyPrivilegedVerificationBypass<T extends Record<string, any> | undefined>(
