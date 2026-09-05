@@ -69,12 +69,16 @@ const authUser = routes.slice(authUserStart, authUserEnd);
 for (const needle of [
   "resolveRequestAuthorityContext(",
   "const userId = identityContext.effectiveUserId",
-  "if (identityContext.isImpersonating) return baseUser",
+  "req.requestAuthorityContext ??",
+  "let user = identityContext.effectiveUser",
+  "resolvePersistedClientAuthority(baseUser, approvedProfessionalRolesForAuth)",
   "isImpersonating: true",
 ]) {
   requireText(authUser, needle, "/api/auth/user");
 }
 forbidText(authUser, "role: sessionAny.impersonatingRole", "/api/auth/user");
+forbidText(authUser, "mergeSessionAuthority", "/api/auth/user");
+forbidText(authUser, "getPrivilegedAliasEmails", "/api/auth/user");
 
 for (const needle of [
   "principalUser?: any",

@@ -19,6 +19,10 @@ import type { UserRole } from "@shared/roles";
 import { desc, sql } from "drizzle-orm";
 import { isReservedSignupIdentityEmail } from "./utils/authorityPolicy";
 import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
+import {
+  resolveRequestAuthorityContext,
+  type RequestAuthorityContext,
+} from "./utils/requestEffectiveUser";
 
 function normalizeLegacyRole(role: unknown): UserRole | null {
   if (typeof role !== "string" || role.trim().length === 0) return null;
@@ -455,38 +459,163 @@ export async function setupAuth(app: Express) {
   });
 }
 
-// Authentication middleware
-export const isAuthenticated: RequestHandler = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    try {
-      const user = req.user as User | undefined;
-      const userId = user?.id;
-      const anySession = req.session as any;
-      const todayKey = new Date().toISOString().slice(0, 10);
+type AuthorityBoundRequest = Request & {
+  principalUser?: any;
+  requestAuthorityContext?: RequestAuthorityContext;
+};
 
-      if (userId) {
-        if (
-          !anySession?.lastSessionStartedDayKey ||
-          anySession.lastSessionStartedDayKey !== todayKey
-        ) {
-          anySession.lastSessionStartedDayKey = todayKey;
-          storage.logEvent("user.session_started", { userId }).catch((err: any) => {
-            console.error("Failed to log user.session_started", err);
-          });
-        }
-      }
-    } catch (err) {
-      console.error("Error handling user.session_started logging", err);
+const AUTHORITY_ESCAPE_ROUTES = new Set([
+  "/auth/logout",
+  "/api/auth/logout",
+  "/api/admin/stop-impersonation",
+  "/api/admin/impersonate/stop",
+  "/api/admin/impersonate/exit",
+]);
+
+const IMPERSONATION_PRIVILEGED_PREFIXES = [
+  "/api/admin",
+  "/api/admin-control",
+  "/api/prompt-admin",
+] as const;
+
+const ADMIN_AUTHORITY_ROLES = new Set<UserRole>(["moderator", "ops_admin", "super_admin"]);
+
+const ADMIN_ONLY_PERMISSIONS = new Set<keyof ReturnType<typeof getRolePermissions>>([
+  "canDeleteUsers",
+  "canBanUsers",
+  "canAccessAdminPanel",
+  "canManageSettings",
+  "canManagePayments",
+  "canManageReports",
+  "canManageModeration",
+  "canPromoteUsers",
+  "canManageRoles",
+  "canAccessSuperAdmin",
+  "canManageAdmins",
+]);
+
+function isAuthorityEscapeRequest(req: Request): boolean {
+  const path = String(req.originalUrl || req.path || "")
+    .split("?")[0]
+    .toLowerCase()
+    .replace(/\/+$/, "");
+  if (!AUTHORITY_ESCAPE_ROUTES.has(path)) return false;
+  if (path.endsWith("/logout")) return req.method === "GET" || req.method === "POST";
+  return req.method === "POST";
+}
+
+function isImpersonationPrivilegedRequest(req: Request): boolean {
+  const path = String(req.originalUrl || req.path || "")
+    .split("?")[0]
+    .toLowerCase();
+  return IMPERSONATION_PRIVILEGED_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`)
+  );
+}
+
+function blockImpersonatedPrivilege(req: Request, res: any, force = false): boolean {
+  const context = (req as AuthorityBoundRequest).requestAuthorityContext;
+  if (!context?.ok || !context.isImpersonating) return false;
+  if (!force && !isImpersonationPrivilegedRequest(req)) return false;
+  res.status(403).json({
+    message: "Administrative authority is unavailable while acting as another user.",
+    code: "IMPERSONATION_PRIVILEGE_BOUNDARY",
+  });
+  return true;
+}
+
+async function bindRequestAuthority(req: Request, res: any): Promise<boolean> {
+  const authorityRequest = req as AuthorityBoundRequest;
+  if (authorityRequest.requestAuthorityContext?.ok) return true;
+
+  try {
+    const context = await resolveRequestAuthorityContext(authorityRequest, async (userId) =>
+      storage.getUser(userId)
+    );
+    if (!context.ok) {
+      res.status(403).json({
+        message: "Unable to confirm the effective account authority.",
+        code: "AUTH_IDENTITY_CONTEXT_INVALID",
+        reason: context.reason,
+      });
+      return false;
     }
 
-    return next();
+    authorityRequest.principalUser = context.principalUser;
+    authorityRequest.requestAuthorityContext = context;
+    authorityRequest.user = context.effectiveUser;
+    return true;
+  } catch (error) {
+    console.error("Failed to resolve request authority context", error);
+    res.status(503).json({
+      message: "Account authority is temporarily unavailable.",
+      code: "AUTH_IDENTITY_CONTEXT_UNAVAILABLE",
+    });
+    return false;
+  }
+}
+
+/**
+ * One application-bound identity spine. Passport retains the authenticated
+ * principal for audit/exit, while every downstream route sees only the fresh
+ * effective account. Exact destructive-session escape routes stay reachable
+ * so an invalid or deactivated target cannot trap the administrator.
+ */
+export const bindAuthenticatedRequestAuthority: RequestHandler = async (req, res, next) => {
+  if (!req.isAuthenticated() || isAuthorityEscapeRequest(req)) {
+    next();
+    return;
+  }
+  if (!(await bindRequestAuthority(req, res))) return;
+  if (blockImpersonatedPrivilege(req, res)) return;
+  next();
+};
+
+// Authentication middleware
+export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
   }
 
-  res.status(401).json({ message: "Authentication required" });
+  // Session exits must remain reachable even when the target was removed.
+  // Bind authority before logging so invalid contexts produce no user event.
+  if (isAuthorityEscapeRequest(req)) {
+    next();
+    return;
+  }
+  if (!(await bindRequestAuthority(req, res))) return;
+  if (blockImpersonatedPrivilege(req, res)) return;
+
+  try {
+    const user = req.user as User | undefined;
+    const userId = user?.id;
+    const anySession = req.session as any;
+    const todayKey = new Date().toISOString().slice(0, 10);
+
+    if (
+      userId &&
+      (!anySession?.lastSessionStartedDayKey || anySession.lastSessionStartedDayKey !== todayKey)
+    ) {
+      anySession.lastSessionStartedDayKey = todayKey;
+      storage.logEvent("user.session_started", { userId }).catch((err: any) => {
+        console.error("Failed to log user.session_started", err);
+      });
+    }
+  } catch (err) {
+    console.error("Error handling user.session_started logging", err);
+  }
+
+  next();
 };
 
 // Onboarding completion guard: one explicit outcome-completion authority.
-export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
+export const requireOnboardingComplete: RequestHandler = async (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+  if (!(await bindRequestAuthority(req, res))) return;
   const user = req.user as User | undefined;
 
   const anyUser: any = user || {};
@@ -513,9 +642,13 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
 
 // Enhanced role-based authorization middleware with hierarchy support
 export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Authentication required" });
+    }
+    if (!(await bindRequestAuthority(req, res))) return;
+    if (allowedRoles.every((role) => ADMIN_AUTHORITY_ROLES.has(role))) {
+      if (blockImpersonatedPrivilege(req, res, true)) return;
     }
 
     const user = (req.user || {}) as any as User & {
@@ -566,9 +699,13 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
 export const requirePermission = (
   permission: keyof ReturnType<typeof getRolePermissions>
 ): RequestHandler => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Authentication required" });
+    }
+    if (!(await bindRequestAuthority(req, res))) return;
+    if (ADMIN_ONLY_PERMISSIONS.has(permission) && blockImpersonatedPrivilege(req, res, true)) {
+      return;
     }
 
     const user = req.user as User;
@@ -605,10 +742,11 @@ export const isStaff: RequestHandler = requireRole([
   "ops_admin",
   "super_admin",
 ]);
-export const isBusinessProvider: RequestHandler = (req, res, next) => {
+export const isBusinessProvider: RequestHandler = async (req, res, next) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "Authentication required" });
   }
+  if (!(await bindRequestAuthority(req, res))) return;
 
   const user = (req.user || {}) as any;
   const isAdminFlag = user.isAdmin === true || user.isSuperAdmin === true;
@@ -655,18 +793,22 @@ export async function validatePassword(password: string, hash: string): Promise<
 
 // Master admin setup function
 // Middleware to require authentication
-export const requireAuth = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated()) {
-    return next();
+export const requireAuth = async (req: any, res: any, next: any) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
   }
-  res.status(401).json({ error: "Authentication required" });
+  if (!(await bindRequestAuthority(req, res))) return;
+  next();
 };
 
 // Middleware to require admin role
-export const requireAdmin = (req: any, res: any, next: any) => {
+export const requireAdmin = async (req: any, res: any, next: any) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: "Authentication required" });
   }
+  if (!(await bindRequestAuthority(req, res))) return;
+  if (blockImpersonatedPrivilege(req, res, true)) return;
 
   const user = req.user || {};
   const activeRole = typeof user.activeRole === "string" ? user.activeRole : "";
