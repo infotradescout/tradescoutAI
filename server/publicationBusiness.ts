@@ -82,8 +82,9 @@ export function publicBusinessSitemapCrawlabilitySqlPredicate(args: {
           THEN ${businesses.profileData} -> 'services'
         ELSE '[]'::jsonb
       END
-    ) AS sitemap_trade_candidate(value)
-    WHERE lower(btrim(sitemap_trade_candidate.value)) IN (${tradeInputs})
+    ) WITH ORDINALITY AS sitemap_trade_candidate(value, position)
+    WHERE sitemap_trade_candidate.position <= 8
+      AND lower(btrim(sitemap_trade_candidate.value)) IN (${tradeInputs})
   )`;
 
   return and(

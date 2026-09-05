@@ -16,15 +16,25 @@ const ALIAS_TO_CANONICAL: Record<string, string> = {
   concrete: "concrete-contractor",
   hvac: "hvac",
   "hvac-contractors": "hvac",
+  "air conditioning contractor": "hvac",
+  "air conditioning repair service": "air-conditioning",
+  "heating contractor": "hvac",
   roofers: "roofing",
   roofer: "roofing",
 };
+
+// Imported business categories use human-readable trade names. Resolve exact
+// names through the same vocabulary as routes, detail pages, and sitemaps.
+const TRADE_NAME_TO_CANONICAL = new Map(
+  COMPREHENSIVE_TRADES.map((trade) => [trade.name.trim().toLowerCase(), trade.slug])
+);
 
 /** Exact normalized values accepted by getTradeSeoMatch. */
 export const PUBLIC_TRADE_INPUT_SLUGS: readonly string[] = Object.freeze(
   Array.from(
     new Set([
       ...COMPREHENSIVE_TRADES.map((trade) => trade.slug),
+      ...TRADE_NAME_TO_CANONICAL.keys(),
       ...Object.keys(ALIAS_TO_CANONICAL),
     ])
   )
@@ -40,6 +50,7 @@ export function normalizeTradeSlug(raw: unknown): string {
     .toLowerCase();
   if (!value) return "";
   if (ALIAS_TO_CANONICAL[value]) return ALIAS_TO_CANONICAL[value];
+  if (TRADE_NAME_TO_CANONICAL.has(value)) return TRADE_NAME_TO_CANONICAL.get(value)!;
   return value;
 }
 

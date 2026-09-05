@@ -456,11 +456,17 @@ export async function buildPublicTradeCountyHtml(
   };
 
   const tradeClause = buildTradeWhereClause(canonicalSlug);
+  const rules = await getPublicationRules();
+  const now = new Date();
+  const recencyCutoff = new Date(
+    now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
+  );
   const whereClauses: any[] = [
     eq(counties.fips, String((county as any).fipsCode || "")),
     eq(businesses.status, "active" as any),
     eq(businesses.publicDiscoveryEnabled, true as any),
     publicBusinessDetailExposureSqlPredicate(),
+    sql`${businesses.updatedAt} >= ${recencyCutoff}`,
   ];
   if (tradeClause) whereClauses.push(tradeClause);
 
@@ -483,12 +489,6 @@ export async function buildPublicTradeCountyHtml(
     .where(and(...whereClauses))
     .orderBy(asc(businesses.name))
     .limit(200);
-
-  const rules = await getPublicationRules();
-  const now = new Date();
-  const recencyCutoff = new Date(
-    now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
-  );
 
   const items = rows
     .map((r) => {
