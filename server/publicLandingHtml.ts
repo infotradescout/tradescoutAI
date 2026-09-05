@@ -1,5 +1,6 @@
 import { formatTradeScoutTitle } from "@shared/brand";
 import { resolvePublicLandingIndexability } from "@shared/publicLandingIndexability";
+import { LOCAL_BUSINESS_DISCOVERY } from "../client/src/lib/popularSearchQueries";
 import {
   explainerChapters,
   type ExplainerCard,
@@ -41,6 +42,63 @@ function injectJsonLd(html: string, jsonLd: object) {
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   const script = `<script type="application/ld+json">${json}</script>`;
   return html.replace("</head>", `${script}\n</head>`);
+}
+
+export function buildPublicFindLocalBusinessesHtml(
+  opts: Pick<PublicLandingHtmlOptions, "origin" | "templateHtml">
+): string {
+  const content = LOCAL_BUSINESS_DISCOVERY;
+  const canonical = `${opts.origin}/find-local-businesses`;
+  let html = upsertTag(
+    opts.templateHtml,
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>${escapeHtml(content.title)}</title>`
+  );
+  for (const [name, value, attribute] of [
+    ["description", content.description, "name"],
+    [
+      "robots",
+      "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+      "name",
+    ],
+    ["og:title", content.title, "property"],
+    ["og:description", content.description, "property"],
+    ["og:url", canonical, "property"],
+    ["og:type", "website", "property"],
+    ["twitter:title", content.title, "name"],
+    ["twitter:description", content.description, "name"],
+  ]) {
+    html = upsertTag(
+      html,
+      new RegExp(`<meta ${attribute}="${name}"[^>]*>`, "i"),
+      `<meta ${attribute}="${name}" content="${escapeHtml(value)}" />`
+    );
+  }
+  html = upsertTag(
+    html,
+    /<link rel="canonical"[^>]*>/i,
+    `<link rel="canonical" href="${escapeHtml(canonical)}" />`
+  );
+  const links = content.browseLinks
+    .map((item) => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`)
+    .join("\n");
+  html = injectSummary(
+    html,
+    `<main data-seo-find-local-businesses="true">
+    <h1>${escapeHtml(content.heading)}</h1>
+    <p>${escapeHtml(content.introduction)}</p>
+    <nav aria-label="Browse local businesses"><ul>${links}</ul></nav>
+    <p><a href="${escapeHtml(content.tangipahoaRequestHref)}">Start a Request</a></p>
+    <p><a href="${escapeHtml(content.tangipahoaRecentHref)}">View Tangipahoa activity</a></p>
+  </main>`
+  );
+  return injectJsonLd(html, {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: content.title,
+    description: content.description,
+    url: canonical,
+  });
 }
 
 function titleCaseSlug(value: string) {

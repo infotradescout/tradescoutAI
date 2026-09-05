@@ -81,7 +81,7 @@ import {
   buildPublicDatasetsLandingHtml,
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
-import { buildPublicLandingHtml } from "./publicLandingHtml";
+import { buildPublicLandingHtml, buildPublicFindLocalBusinessesHtml } from "./publicLandingHtml";
 import {
   applyPrivateShellNoindex,
   isPrivateAppShellPath,
@@ -239,6 +239,9 @@ app.use((req, res, next) => {
         body,
         String(req.headers["user-agent"] || "")
       );
+      // Browser responses retain application modules; crawler responses do not.
+      // Shared caches must not serve one response variant to the other client.
+      res.vary("User-Agent");
       const socialMetadataCacheControl = publicSocialMetadataCacheControl(prepared);
       const existingCacheControl = String(res.getHeader("Cache-Control") || "");
       if (
@@ -1702,6 +1705,19 @@ app.use(landingContractHeaders);
                   }
                 }
               );
+
+              app.get("/find-local-businesses", (req, res) => {
+                const templateHtml = getCachedTemplate(path.join(publicDistPath, "index.html"));
+                if (!templateHtml) {
+                  return sendPublicPageRenderFailure(res, "Application files not found");
+                }
+                const html = buildPublicFindLocalBusinessesHtml({
+                  origin: resolvePublicOrigin(req),
+                  templateHtml,
+                });
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              });
 
               // 2) Serve other static files (index.html, icons, etc.)
               app.use(

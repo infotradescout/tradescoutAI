@@ -6,9 +6,12 @@ import {
   preparePublicSeoHtmlForResponse,
   preparePublicSeoHtmlForUserAgent,
   publicSocialMetadataCacheControl,
+  isFactBearingPublicDiscoveryHtml,
   stripPublicSeoBootPlaceholders,
   suppressJwStoneSeoSummaryPaint,
 } from "../publicSeoHtml";
+import { buildPublicFindLocalBusinessesHtml } from "../publicLandingHtml";
+import { LOCAL_BUSINESS_DISCOVERY } from "../../client/src/lib/popularSearchQueries";
 
 const templateHtml = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
 const landingTemplateHtml = fs.readFileSync(
@@ -28,6 +31,7 @@ describe("public SEO response HTML", () => {
     expect(serverSource).toContain("existingCacheControl");
     expect(serverSource).toContain("!\/\\b(?:no-store|private)\\b\/i.test(existingCacheControl)");
     expect(serverSource).toContain('String(req.headers["user-agent"] || "")');
+    expect(serverSource).toContain('res.vary("User-Agent")');
   });
 
   it("removes boot failure placeholders while retaining crawlable SSR content", () => {
@@ -89,6 +93,75 @@ describe("public SEO response HTML", () => {
     expect(html).toContain("clip:rect(0,0,0,0)");
     expect(html).toContain('type="module"');
     expect(html).toContain("TradeScout encountered a startup issue");
+    expect(html).toMatch(/id="ts-boot-fallback"[^>]*\bdata-nosnippet\b/);
+    expect(html).toMatch(/id="ts-boot-fallback-noscript"[^>]*\bdata-nosnippet\b/);
+  });
+
+  it.each(["trade", "county", "city", "trade-city", "best", "recent"])(
+    "keeps approved %s facts and links in every initial response without changing indexability",
+    (marker) => {
+      const raw = templateHtml
+        .replace(
+          '<div id="root"></div>',
+          `<div id="root"><main data-seo-${marker}="true"><h1>Local businesses</h1><a href="/u/example">Published business</a></main></div>`
+        )
+        .replace('content="index, follow"', 'content="noindex, follow"');
+      for (const userAgent of [
+        "Mozilla/5.0 Chrome/126.0",
+        "UnlistedReader/1.0",
+        "",
+        "Googlebot/2.1",
+        "OAI-SearchBot/1.0",
+      ]) {
+        const html = preparePublicSeoHtmlForUserAgent(raw, userAgent);
+        expect(html).toContain("<h1>Local businesses</h1>");
+        expect(html).toContain('href="/u/example"');
+        expect(html).toContain('content="noindex, follow"');
+        expect(isFactBearingPublicDiscoveryHtml(html)).toBe(false);
+        expect(html).not.toContain('name="tradescout-discovery-attribution"');
+      }
+      expect(preparePublicSeoHtmlForUserAgent(raw, "Mozilla/5.0 Chrome/126.0")).toContain(
+        'type="module"'
+      );
+      expect(preparePublicSeoHtmlForUserAgent(raw, "OAI-SearchBot/1.0")).not.toContain(
+        'type="module"'
+      );
+    }
+  );
+
+  it("serves the business finder with its real identity and local paths before JavaScript", () => {
+    const raw = buildPublicFindLocalBusinessesHtml({
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+    for (const userAgent of [
+      "Mozilla/5.0 Chrome/126.0",
+      "UnlistedReader/1.0",
+      "Googlebot/2.1",
+      "OAI-SearchBot/1.0",
+    ]) {
+      const html = preparePublicSeoHtmlForUserAgent(raw, userAgent);
+      expect(html).toContain(`<h1>${LOCAL_BUSINESS_DISCOVERY.heading}</h1>`);
+      expect(html).toContain(LOCAL_BUSINESS_DISCOVERY.introduction);
+      expect(html).toContain(
+        '<link rel="canonical" href="https://www.thetradescout.com/find-local-businesses"'
+      );
+      expect(html).toContain(`<title>${LOCAL_BUSINESS_DISCOVERY.title}</title>`);
+      for (const item of LOCAL_BUSINESS_DISCOVERY.browseLinks) {
+        expect(html).toContain(`href="${item.href}">${item.label}</a>`);
+      }
+      expect(html).toContain('href="/county/la/tangipahoa-parish/recent"');
+      expect(html).not.toContain('href="/county/la/tangipahoa/recent"');
+      expect(html).toContain(
+        'href="/direct-connect?county=22105&amp;source=tangipahoa-launch&amp;intent=local_search">Start a Request</a>'
+      );
+      expect(html).not.toMatch(/href="(?:tel:|mailto:)/);
+    }
+    const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
+    expect(source.indexOf('app.get("/find-local-businesses"')).toBeGreaterThan(0);
+    expect(source.indexOf('app.get("/find-local-businesses"')).toBeLessThan(
+      source.indexOf("express.static(publicDistPath")
+    );
   });
 
   it("retains JW Stone public discovery facts for a generic browser user agent", () => {

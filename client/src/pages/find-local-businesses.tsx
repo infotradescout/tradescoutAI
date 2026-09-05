@@ -6,7 +6,7 @@ import {
 } from "@/components/SEOHelmet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HOMEOWNER_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
+import { HOMEOWNER_POPULAR_QUERIES, LOCAL_BUSINESS_DISCOVERY } from "@/lib/popularSearchQueries";
 
 const faqItems = [
   {
@@ -32,9 +32,8 @@ const faqItems = [
 ];
 
 export default function FindLocalBusinessesPage() {
-  const tangipahoaHref =
-    "/direct-connect?county=22105&source=tangipahoa-launch&intent=local_search";
-  const tangipahoaCountyHref = "/county/la/tangipahoa/recent";
+  const tangipahoaHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref;
+  const tangipahoaCountyHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRecentHref;
   const topQueries = HOMEOWNER_POPULAR_QUERIES.slice(0, 18);
 
   const structuredData = {
@@ -58,8 +57,8 @@ export default function FindLocalBusinessesPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <SEOHelmet
-        title="Find Local Businesses, Services, and Contractors | TradeScout"
-        description="Find local businesses, services, and contractors by trade and county. Compare trustworthy options and connect through TradeScout Direct Connect."
+        title={LOCAL_BUSINESS_DISCOVERY.title}
+        description={LOCAL_BUSINESS_DISCOVERY.description}
         keywords="find local businesses, contractor search, local businesses near me, county contractors, local services, trusted local businesses and contractors, direct connect"
         canonical="https://www.thetradescout.com/find-local-businesses"
         structuredData={structuredData}
@@ -67,16 +66,13 @@ export default function FindLocalBusinessesPage() {
 
       <section className="space-y-3">
         <h1 className="text-3xl md:text-4xl font-bold text-white">
-          Find local businesses without the noise
+          {LOCAL_BUSINESS_DISCOVERY.heading}
         </h1>
-        <p className="text-white/70 max-w-3xl">
-          TradeScout helps you find local businesses, services, and professionals who serve your
-          area. Start with trade and county context, then connect through a trust-first flow.
-        </p>
+        <p className="text-white/70 max-w-3xl">{LOCAL_BUSINESS_DISCOVERY.introduction}</p>
         <div className="flex flex-wrap gap-3">
           <Link href={tangipahoaHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Get my Tangipahoa shortlist
+              Start a Request
             </Button>
           </Link>
           <Link href="/trade">
@@ -85,6 +81,17 @@ export default function FindLocalBusinessesPage() {
             </Button>
           </Link>
         </div>
+        <nav aria-label="Browse local businesses" className="flex flex-wrap gap-x-5 gap-y-3 pt-2">
+          {LOCAL_BUSINESS_DISCOVERY.browseLinks.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-sm text-ts-orange underline underline-offset-4"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </section>
 
       <section className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 p-5 md:p-6 space-y-3">

@@ -3,6 +3,25 @@ export type PopularQuery = {
   href: string;
 };
 
+// Shared by the interactive entry page and its initial public HTML.
+export const LOCAL_BUSINESS_DISCOVERY = {
+  title: "Find Local Businesses, Services, and Contractors | TradeScout",
+  description:
+    "Find local businesses, services, and contractors by trade and county. Compare trustworthy options and connect through TradeScout Direct Connect.",
+  heading: "Find local businesses without the noise",
+  introduction:
+    "TradeScout helps you find local businesses, services, and professionals who serve your area. Start with trade and county context, then connect through a trust-first flow.",
+  tangipahoaRequestHref:
+    "/direct-connect?county=22105&source=tangipahoa-launch&intent=local_search",
+  tangipahoaRecentHref: "/county/la/tangipahoa-parish/recent",
+  browseLinks: [
+    { label: "Tangipahoa Parish businesses", href: "/county/la/tangipahoa-parish" },
+    { label: "Pensacola area businesses", href: "/county/fl/escambia" },
+    { label: "Browse by county", href: "/county-directory" },
+    { label: "Browse by trade", href: "/trade" },
+  ],
+} as const;
+
 export const HOMEOWNER_POPULAR_QUERIES: PopularQuery[] = [
   { query: "contractors in tangipahoa parish", href: "/tangipahoa" },
   { query: "hammond la hvac repair", href: "/trade/hvac/la" },

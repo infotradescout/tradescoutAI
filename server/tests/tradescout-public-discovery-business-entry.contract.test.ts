@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { LOCAL_BUSINESS_DISCOVERY } from "../../client/src/lib/popularSearchQueries";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -10,10 +11,14 @@ describe("TradeScout public discovery and business entry surfaces", () => {
   const forBusinesses = read("client/src/pages/for-businesses.tsx");
 
   it("frames find-local-businesses as a broad local business entry surface", () => {
-    expect(findLocalBusinesses).toContain("Find local businesses without the noise");
-    expect(findLocalBusinesses).toContain("local businesses, services, and professionals");
+    expect(LOCAL_BUSINESS_DISCOVERY.heading).toBe("Find local businesses without the noise");
+    expect(LOCAL_BUSINESS_DISCOVERY.introduction).toContain(
+      "local businesses, services, and professionals"
+    );
+    expect(findLocalBusinesses).toContain("LOCAL_BUSINESS_DISCOVERY.heading");
+    expect(findLocalBusinesses).toContain("LOCAL_BUSINESS_DISCOVERY.introduction");
     expect(findLocalBusinesses).toContain("TradeScout Direct Connect");
-    expect(findLocalBusinesses).toContain("trade and county context");
+    expect(LOCAL_BUSINESS_DISCOVERY.introduction).toContain("trade and county context");
     expect(findLocalBusinesses).toContain("trusted local businesses and contractors");
     expect(findLocalBusinesses).toContain(
       'canonical="https://www.thetradescout.com/find-local-businesses"'
