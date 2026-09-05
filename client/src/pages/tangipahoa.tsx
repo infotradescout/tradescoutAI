@@ -6,7 +6,11 @@ import {
 } from "@/components/SEOHelmet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BUSINESS_POPULAR_QUERIES, HOMEOWNER_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
+import {
+  BUSINESS_POPULAR_QUERIES,
+  HOMEOWNER_POPULAR_QUERIES,
+  LOCAL_BUSINESS_DISCOVERY,
+} from "@/lib/popularSearchQueries";
 
 const TANGIPAHOA_COUNTY_CODE = "22105";
 
@@ -86,7 +90,7 @@ export default function TangipahoaPage() {
           get local business owners in front of real local demand without lead resale noise.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href={localSearchHref}>
+          <Link href={LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
               Start a Tangipahoa request
             </Button>

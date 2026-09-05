@@ -12,14 +12,19 @@ describe("TradeScout public discovery and business entry surfaces", () => {
   const findLocalBusinesses = read("client/src/pages/find-local-businesses.tsx");
   const forBusinesses = read("client/src/pages/for-businesses.tsx");
 
-  it("opens the request composer with the advertised county and source", () => {
-    const href = LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref;
-    expect(getDirectConnectSection(href)).toBe("post");
-    expect(parseDirectConnectEntryContext(href)).toMatchObject({
-      countyFips: "22105",
-      source: "tangipahoa-launch",
-    });
-  });
+  it.each([
+    [LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref, "22105", "tangipahoa-launch"],
+    [LOCAL_BUSINESS_DISCOVERY.pensacolaRequestHref, "12033", "pensacola-launch"],
+  ])(
+    "opens the request composer with the advertised county and source: %s",
+    (href, countyFips, source) => {
+      expect(getDirectConnectSection(href)).toBe("post");
+      expect(parseDirectConnectEntryContext(href)).toMatchObject({
+        countyFips,
+        source,
+      });
+    }
+  );
 
   it("frames find-local-businesses as a broad local business entry surface", () => {
     expect(LOCAL_BUSINESS_DISCOVERY.heading).toBe("Find local businesses without the noise");

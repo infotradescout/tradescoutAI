@@ -6,7 +6,11 @@ import {
 } from "@/components/SEOHelmet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { BUSINESS_POPULAR_QUERIES, HOMEOWNER_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
+import {
+  BUSINESS_POPULAR_QUERIES,
+  HOMEOWNER_POPULAR_QUERIES,
+  LOCAL_BUSINESS_DISCOVERY,
+} from "@/lib/popularSearchQueries";
 import { PENSACOLA_CLUSTERS, PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 
 const faqItems = [
@@ -74,7 +78,7 @@ export default function PensacolaPage() {
           prove a better model for local discovery and action without lead reselling or pay-to-play.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link href={localSearchHref}>
+          <Link href={LOCAL_BUSINESS_DISCOVERY.pensacolaRequestHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
               Start a Pensacola request
             </Button>

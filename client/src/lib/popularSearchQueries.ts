@@ -12,6 +12,7 @@ export const LOCAL_BUSINESS_DISCOVERY = {
   introduction:
     "TradeScout helps you find local businesses, services, and professionals who serve your area. Start with trade and county context, then connect through a trust-first flow.",
   tangipahoaRequestHref: "/direct-connect?county=22105&source=tangipahoa-launch",
+  pensacolaRequestHref: "/direct-connect?county=12033&source=pensacola-launch",
   tangipahoaRecentHref: "/county/la/tangipahoa-parish/recent",
   browseLinks: [
     { label: "Tangipahoa Parish businesses", href: "/county/la/tangipahoa-parish" },
