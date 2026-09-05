@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-05T13:45:04Z",
+  "generated_at": "2026-09-05T14:10:43Z",
   "source": {
     "kind": "git",
-    "revision": "79eb608f980915606a5311925113f8b27f9d1f5d",
+    "revision": "3380d7905c35f8cdeb6509e55b6a31b2291126fe",
     "dirty": true,
-    "inventory_sha256": "02916cc3f0a76832f3594dd3626f9fa7c0fe90d1fe8ee2e411045087d7c95028"
+    "inventory_sha256": "c6d1922ec520445f524edb8b71e74158bd51ef60c1546f437e70bcbb626e1d5a"
   },
   "inventory": {
     "directories": [
@@ -444,7 +444,7 @@
       },
       {
         "path": "server/tests",
-        "source_file_count": 559
+        "source_file_count": 561
       },
       {
         "path": "server/tests/helpers",
@@ -508,7 +508,7 @@
       },
       {
         "path": "tmp",
-        "source_file_count": 15
+        "source_file_count": 16
       },
       {
         "path": "tmp/louisiana-preview",
@@ -2609,8 +2609,8 @@
       {
         "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
         "language": "tsx",
-        "sha256": "0d7486bcdbf5b1a2edb7b76358404bf7b891a101ffa489d8790106b00c44b07d",
-        "bytes": 7207
+        "sha256": "372e25c5bba5be6288aad440327c79cbec5b794fc327c457e8198384db7c1a0d",
+        "bytes": 7034
       },
       {
         "path": "client/src/features/jw-stone/FirstCutSection.test.tsx",
@@ -2645,8 +2645,8 @@
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
         "language": "tsx",
-        "sha256": "76778a6629d2df8e4ab51f038f4a887343d96c297d86ef2c2f47ab1b33a9e1e3",
-        "bytes": 16520
+        "sha256": "ee54814548e3267b8ae5dc8c3d25119eb4ac1b7df3a0cffd5105b5f65a655fd6",
+        "bytes": 16078
       },
       {
         "path": "client/src/features/jw-stone/JWStoneRequestedVisualScope.test.tsx",
@@ -2675,14 +2675,14 @@
       {
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.test.tsx",
         "language": "tsx",
-        "sha256": "5b1e2467eefa166452a06a8cf1d481df1ecc9f196e4057c3d5f3963b94155275",
-        "bytes": 5419
+        "sha256": "ef14aa2c13ff0ec1400d0c6e16a6dd0de2826f5275fd5afd10112bc4e1edba1b",
+        "bytes": 5255
       },
       {
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
         "language": "tsx",
-        "sha256": "a54e6bc9edd4e23965cad7f4639c48d60a22d687e1d86b09c52e3b84814152b4",
-        "bytes": 11092
+        "sha256": "f4aca03fd882a28f946aea199f49b03af47b2e9562108396223677a6b51a2402",
+        "bytes": 10803
       },
       {
         "path": "client/src/features/jw-stone/JwStoneProfileContext.tsx",
@@ -2795,8 +2795,8 @@
       {
         "path": "client/src/features/jw-stone/StoneCard.tsx",
         "language": "tsx",
-        "sha256": "915bce8fbbd24fd7a6703cc43caec062e763cb05b431e6c789439c2234c2e3d3",
-        "bytes": 12751
+        "sha256": "c45d8f67695b5a942165729a2081c4293693c0a9eb051bf7e0f337a2efe81cac",
+        "bytes": 12448
       },
       {
         "path": "client/src/features/jw-stone/StoneCollection.origin.test.tsx",
@@ -2825,8 +2825,8 @@
       {
         "path": "client/src/features/jw-stone/StoneDetailDialog.tsx",
         "language": "tsx",
-        "sha256": "293abe687c1fd9bd824975ed0d2ec9dd34a3831affdcffec7da35684b07ed653",
-        "bytes": 13911
+        "sha256": "205ae8ae874cf758c981f3c3b7210a4f3fead28c128e7f20c4c647215a8a9cab",
+        "bytes": 13616
       },
       {
         "path": "client/src/features/jw-stone/TrendingSection.test.tsx",
@@ -8945,8 +8945,8 @@
       {
         "path": "server/index.ts",
         "language": "ts",
-        "sha256": "cf8f6fe3942a11c449f4e0f96b79f6855033e6c6d61a2f85429fb0918e68a599",
-        "bytes": 135501
+        "sha256": "5b4efe103cb95f82964237fdadbff6e5cca454951d05b28d90b4b8a56ae936c1",
+        "bytes": 132343
       },
       {
         "path": "server/ingestion/adapters/fileObservationUtils.ts",
@@ -9479,8 +9479,8 @@
       {
         "path": "server/repositories/profileRepository.ts",
         "language": "ts",
-        "sha256": "030df76780928d7a87118d81c91de455285bf05df939e827f2b51b9f44cfa9cc",
-        "bytes": 16887
+        "sha256": "351900c7b75aa18c92d75367ef6cc6b19c7f75fc061ee461d00daaae97422d89",
+        "bytes": 16724
       },
       {
         "path": "server/repositories/sitemapRepository.ts",
@@ -9509,8 +9509,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "b9203e51bca0f1885eba625f0d0fd6fd796cafede3f6bface0209861f3df8823",
-        "bytes": 1027470
+        "sha256": "acc75a65af62f29907371fde7a4dbf88d8f84ad2edab128676537a4b4ca5e0ec",
+        "bytes": 1000771
       },
       {
         "path": "server/routes/admin-business-county-enrichment.ts",
@@ -9815,8 +9815,8 @@
       {
         "path": "server/routes/jw-stone-member-pricing.ts",
         "language": "ts",
-        "sha256": "27a3a57577aff8caad881eb419669fca0c37d5f402799041a4aff645f8be3290",
-        "bytes": 3568
+        "sha256": "22bc103d1cafa9b5c3b7fbdc99d2813e01e08b38b20c062ed8716c8e73c29e81",
+        "bytes": 3463
       },
       {
         "path": "server/routes/jw-stone-public-media.ts",
@@ -9929,8 +9929,8 @@
       {
         "path": "server/routes/profile-accounts.ts",
         "language": "ts",
-        "sha256": "eba6b6f3cd18987636b60f0317f2bbe1d518e9fcaaa07a3cd3ad271c949227d2",
-        "bytes": 19443
+        "sha256": "78d609d6b2a2a439b99e15b2279ff46dd1ab3999890da5b47df2fe4ba1ad43a1",
+        "bytes": 18927
       },
       {
         "path": "server/routes/profile-public-media.ts",
@@ -9941,8 +9941,8 @@
       {
         "path": "server/routes/profiles.ts",
         "language": "ts",
-        "sha256": "2e46d7047ddbfb1b4ea5904c582591c622c0be5fb2fc304551bc4b492d3717a0",
-        "bytes": 155278
+        "sha256": "7b210d1875632a2edefd9bac953d64f37a995aea7447bcffe4aea6dd48d99f11",
+        "bytes": 151227
       },
       {
         "path": "server/routes/promotions.ts",
@@ -10775,8 +10775,8 @@
       {
         "path": "server/services/jwStoneDrivePricing.ts",
         "language": "ts",
-        "sha256": "e44b0044b99ae82722c898e396dbe0d67d98030acd4299f7b8bb55fa7274a8a4",
-        "bytes": 20878
+        "sha256": "e660a84175694c21bd55451455e2f8d6fafe31a34ce92fda62450f2fe50ec735",
+        "bytes": 20305
       },
       {
         "path": "server/services/jwStoneManagedContactProvisioning.ts",
@@ -10787,8 +10787,8 @@
       {
         "path": "server/services/jwStonePricingAccess.ts",
         "language": "ts",
-        "sha256": "43885ea29f3cda39bfc96c3ab7b166d4e479c248ca5fbc755bd196008a332d4f",
-        "bytes": 2868
+        "sha256": "ddac69db45c30882a241639455c38c67f757766b82bb8d02350fcc788e6d6f53",
+        "bytes": 2789
       },
       {
         "path": "server/services/jwStoneSavedStonesEmail.ts",
@@ -10931,8 +10931,8 @@
       {
         "path": "server/services/ownerConfirmedDirectProfile.ts",
         "language": "ts",
-        "sha256": "7f7ed0cdd0d3ac06f32c9827befeebad9d9e994e8b9994adcabc4e33b027cfb2",
-        "bytes": 13093
+        "sha256": "c22cf47a385ed82aa7390c38ba34ee508445af321b34634a26d3a4c0af7f764e",
+        "bytes": 14196
       },
       {
         "path": "server/services/partnerCountyObservationSnapshotService.ts",
@@ -13013,8 +13013,8 @@
       {
         "path": "server/tests/jw-stone-member-pricing.test.ts",
         "language": "ts",
-        "sha256": "903d579e4cd9e3b1bdf693f5f50047a4836db77aa4e1f3293e3322513a3b53ce",
-        "bytes": 12718
+        "sha256": "d7bb14d4664b6306eb07c0c84a189f5c3231002d56df8bf359100a8868dc699c",
+        "bytes": 12399
       },
       {
         "path": "server/tests/jw-stone-offer-publication-migration.contract.test.ts",
@@ -13159,6 +13159,12 @@
         "language": "ts",
         "sha256": "fabf2a78a1e61b8cc8bab69b9ddea74c7f343c6b421e8639646173ae37254a80",
         "bytes": 4164
+      },
+      {
+        "path": "server/tests/louisiana-stone-profile-exposure.test.ts",
+        "language": "ts",
+        "sha256": "ef098167ead7f3b3053a2a5afccb5f7173410be6b57979fefba2ccaf666820be",
+        "bytes": 10437
       },
       {
         "path": "server/tests/managed-partner-business-contact.behavior.test.ts",
@@ -13717,6 +13723,12 @@
         "language": "ts",
         "sha256": "4991917cd5b751025c6b8392f5ef4729e474fd1c916506e6b739818c5e3c9197",
         "bytes": 4163
+      },
+      {
+        "path": "server/tests/profile-public-search-direct-authority.behavior.test.ts",
+        "language": "ts",
+        "sha256": "64c05bdcc05b7b0174e3c9d9f559f88c928fb43484bb8c1785af689c5c272172",
+        "bytes": 4494
       },
       {
         "path": "server/tests/profile-public-search-limit-trust.behavior.test.ts",
@@ -15635,8 +15647,8 @@
       {
         "path": "shared/jwStoneMemberPricing.ts",
         "language": "ts",
-        "sha256": "a21739e686144c42e5bfe438f0087a79ba5c9fb32a10f6062adf5af4c2d6dae5",
-        "bytes": 2039
+        "sha256": "472f835b58f121c05b6adc5de6e78ec0ad077874a1dadbf44b7caf40723d8247",
+        "bytes": 1976
       },
       {
         "path": "shared/jwStonePresentation.ts",
@@ -15893,8 +15905,8 @@
       {
         "path": "shared/publicProfileExposureRegistry.ts",
         "language": "ts",
-        "sha256": "c4780637c78201382059896e6a964193c17a501eda120d8ac1b5b8e2688b3b79",
-        "bytes": 1609
+        "sha256": "026896625c3786ed591221ddffa56a17ff61ec64be6d88f68a01b9e0982de873",
+        "bytes": 1735
       },
       {
         "path": "shared/publicProfileIndexing.ts",
@@ -16385,8 +16397,8 @@
       {
         "path": "tmp/louisiana-final-recipient-proof.mjs",
         "language": "mjs",
-        "sha256": "adef54972791980c99271af3159d05b94c0f26f3bf0e93c4c967e3f17d111db3",
-        "bytes": 1785
+        "sha256": "26469b329cdd8a8718d672568c9d6ff85cff16a3a1915bcaae753ca0ba3c6bb4",
+        "bytes": 1834
       },
       {
         "path": "tmp/louisiana-preview/main.tsx",
@@ -16415,8 +16427,8 @@
       {
         "path": "tmp/lss-release-postgres-proof.mjs",
         "language": "mjs",
-        "sha256": "82ff17ca5580c0a2d7b39af1fbeb82497fcc1bb731e90570723eb1b8ba916610",
-        "bytes": 19484
+        "sha256": "5b611aefcca58b636a31a297f0f09423ee51d4e65a7493ff4f06b27235b316d8",
+        "bytes": 22495
       },
       {
         "path": "tmp/normalize-louisiana-checkout.mjs",
@@ -16441,6 +16453,12 @@
         "language": "mjs",
         "sha256": "4dcab0e4ec814870ada03d1ea265d216daafaf69758b12de4811e2ae2a870647",
         "bytes": 807
+      },
+      {
+        "path": "tmp/run-lss-final-gate.mjs",
+        "language": "mjs",
+        "sha256": "6b5a0a5fcfc2856062d1bf1477f3dad710a6f78ae5f971af5bf1932cd8f12ef8",
+        "bytes": 1083
       },
       {
         "path": "tmp/serve-louisiana-preview.mjs",
@@ -27269,84 +27287,84 @@
         "name": "JWStoneMarketplace",
         "kind": "component",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 120,
+        "line": 119,
         "exported": true
       },
       {
         "name": "closeStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 190,
+        "line": 189,
         "exported": false
       },
       {
         "name": "openStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 195,
+        "line": 194,
         "exported": false
       },
       {
         "name": "openSavedStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 205,
+        "line": 204,
         "exported": false
       },
       {
         "name": "startRequest",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 211,
+        "line": 210,
         "exported": false
       },
       {
         "name": "askAboutStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 217,
+        "line": 216,
         "exported": false
       },
       {
         "name": "askAboutCurrentStock",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 221,
+        "line": 220,
         "exported": false
       },
       {
         "name": "openAccount",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 226,
+        "line": 225,
         "exported": false
       },
       {
         "name": "changeAccountOpen",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 231,
+        "line": 230,
         "exported": false
       },
       {
         "name": "selectPalette",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 236,
+        "line": 235,
         "exported": false
       },
       {
         "name": "selectMaterial",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 253,
+        "line": 252,
         "exported": false
       },
       {
         "name": "enterFullInventory",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 269,
+        "line": 268,
         "exported": false
       },
       {
@@ -27521,42 +27539,42 @@
         "name": "JwStoneSlabCostEstimate",
         "kind": "type",
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-        "line": 174,
+        "line": 170,
         "exported": true
       },
       {
         "name": "isValidSlabDimension",
         "kind": "function",
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-        "line": 179,
+        "line": 175,
         "exported": false
       },
       {
         "name": "slabDimensionsInInches",
         "kind": "function",
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-        "line": 190,
+        "line": 186,
         "exported": false
       },
       {
         "name": "estimateJwStoneSlabCost",
         "kind": "function",
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-        "line": 231,
+        "line": 227,
         "exported": true
       },
       {
         "name": "formatEstimatedSlabTotal",
         "kind": "function",
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-        "line": 248,
+        "line": 244,
         "exported": false
       },
       {
         "name": "JwStoneMemberPriceDisplay",
         "kind": "component",
         "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-        "line": 255,
+        "line": 251,
         "exported": true
       },
       {
@@ -64670,203 +64688,203 @@
         "name": "ResolvedPublicProfileCategoryRequest",
         "kind": "type",
         "path": "server/index.ts",
-        "line": 140,
+        "line": 137,
         "exported": false
       },
       {
         "name": "ResolvedPublicProfileItemRequest",
         "kind": "type",
         "path": "server/index.ts",
-        "line": 141,
+        "line": 138,
         "exported": false
       },
       {
         "name": "getForwardedProto",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 149,
+        "line": 146,
         "exported": false
       },
       {
         "name": "getCachedTemplate",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 155,
+        "line": 152,
         "exported": false
       },
       {
         "name": "log",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 166,
+        "line": 163,
         "exported": false
       },
       {
         "name": "shutdown",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 181,
+        "line": 178,
         "exported": false
       },
       {
         "name": "markMappedProfileDomainRequest",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 357,
+        "line": 354,
         "exported": false
       },
       {
         "name": "isMappedProfileDomainSameOrigin",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 362,
+        "line": 359,
         "exported": false
       },
       {
         "name": "requestSearchSuffix",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 375,
+        "line": 372,
         "exported": false
       },
       {
         "name": "customDomainCanonicalRedirectTarget",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 381,
+        "line": 378,
         "exported": false
       },
       {
         "name": "profileItemPathSuffix",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 398,
+        "line": 395,
         "exported": false
       },
       {
         "name": "profileCategoryPathSuffix",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 408,
+        "line": 405,
         "exported": false
       },
       {
         "name": "alternateCustomDomainHost",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 418,
+        "line": 415,
         "exported": false
       },
       {
         "name": "isCustomDomainAuthorityRequest",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 422,
+        "line": 419,
         "exported": false
       },
       {
         "name": "redirectToCanonicalCustomDomain",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 439,
+        "line": 436,
         "exported": false
       },
       {
         "name": "isCustomDomainMechanicsPath",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 447,
+        "line": 444,
         "exported": false
       },
       {
         "name": "isSameProfileCompatibilityPath",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 501,
+        "line": 498,
         "exported": false
       },
       {
         "name": "isCustomDomainProfileRootCompatibilityPath",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 511,
+        "line": 508,
         "exported": false
       },
       {
         "name": "redirectPublicRequestToPlatform",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 519,
+        "line": 516,
         "exported": false
       },
       {
         "name": "redirectUnhandledCustomProfilePath",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 532,
+        "line": 529,
         "exported": false
       },
       {
         "name": "renderProfileOnCustomDomain",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 558,
+        "line": 555,
         "exported": false
       },
       {
         "name": "serveCustomDomainProfilePath",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 634,
+        "line": 628,
         "exported": false
       },
       {
         "name": "attributeProfileVisit",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 676,
+        "line": 670,
         "exported": false
       },
       {
         "name": "corsOptionsForRequest",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 991,
+        "line": 985,
         "exported": false
       },
       {
         "name": "ensureMasterAdmin",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1192,
+        "line": 1186,
         "exported": false
       },
       {
         "name": "provisionProfile",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1232,
+        "line": 1226,
         "exported": false
       },
       {
         "name": "warnOnAuthOriginMismatch",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1373,
+        "line": 1367,
         "exported": false
       },
       {
         "name": "startHttpServer",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1423,
+        "line": 1417,
         "exported": false
       },
       {
         "name": "log",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1555,
+        "line": 1549,
         "exported": false
       },
       {
@@ -70599,63 +70617,63 @@
         "name": "PublicProfileRecord",
         "kind": "type",
         "path": "server/repositories/profileRepository.ts",
-        "line": 29,
+        "line": 30,
         "exported": true
       },
       {
         "name": "PublicProfileSearchRecord",
         "kind": "type",
         "path": "server/repositories/profileRepository.ts",
-        "line": 51,
+        "line": 52,
         "exported": true
       },
       {
         "name": "loadCanonicalPublicMapProfileUrls",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 59,
+        "line": 60,
         "exported": true
       },
       {
         "name": "ProfileMutation",
         "kind": "type",
         "path": "server/repositories/profileRepository.ts",
-        "line": 108,
+        "line": 109,
         "exported": false
       },
       {
         "name": "slugify",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 110,
+        "line": 111,
         "exported": false
       },
       {
         "name": "publicProfileSearchExposurePredicate",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 125,
+        "line": 126,
         "exported": false
       },
       {
         "name": "publicProfileVisibilityPredicate",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 154,
+        "line": 155,
         "exported": false
       },
       {
         "name": "publicProfileReleaseExposurePredicate",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 161,
+        "line": 162,
         "exported": false
       },
       {
         "name": "ProfileRepository",
         "kind": "class",
         "path": "server/repositories/profileRepository.ts",
-        "line": 166,
+        "line": 174,
         "exported": true
       },
       {
@@ -71110,420 +71128,420 @@
         "name": "mergeSessionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4610,
+        "line": 4609,
         "exported": false
       },
       {
         "name": "applyImpersonation",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4711,
+        "line": 4710,
         "exported": false
       },
       {
         "name": "buildAuthUserPayload",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4724,
+        "line": 4723,
         "exported": false
       },
       {
         "name": "isLocalRequest",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4831,
+        "line": 4830,
         "exported": false
       },
       {
         "name": "redirectWithSession",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 5416,
+        "line": 5415,
         "exported": false
       },
       {
         "name": "redirectWithSession",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 5523,
+        "line": 5522,
         "exported": false
       },
       {
         "name": "BusinessOnboardingModuleId",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 5827,
+        "line": 5826,
         "exported": false
       },
       {
         "name": "BusinessOnboardingModuleStatus",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 5834,
+        "line": 5833,
         "exported": false
       },
       {
         "name": "BusinessOnboardingState",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 5836,
+        "line": 5835,
         "exported": false
       },
       {
         "name": "normalizeRole",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 6871,
+        "line": 6870,
         "exported": false
       },
       {
         "name": "hasRole",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 7536,
+        "line": 7535,
         "exported": false
       },
       {
         "name": "ensurePublishedActiveProfile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 7935,
+        "line": 7934,
         "exported": false
       },
       {
         "name": "BroadcastSegment",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 9899,
+        "line": 9898,
         "exported": false
       },
       {
         "name": "wants",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 10381,
+        "line": 10380,
         "exported": false
       },
       {
         "name": "points",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12076,
+        "line": 12075,
         "exported": false
       },
       {
         "name": "toProfileOfferExchangeId",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12714,
+        "line": 12713,
         "exported": false
       },
       {
         "name": "fromProfileOfferExchangeId",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12716,
+        "line": 12715,
         "exported": false
       },
       {
         "name": "buildProfileOfferExchangeItem",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12723,
+        "line": 12722,
         "exported": false
       },
       {
         "name": "listProfileOfferExchangeItems",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12802,
+        "line": 12801,
         "exported": false
       },
       {
         "name": "addParam",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12815,
+        "line": 12814,
         "exported": false
       },
       {
         "name": "looksLikeUuid",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12905,
+        "line": 12904,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 13779,
+        "line": 13778,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 13933,
+        "line": 13932,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14041,
+        "line": 14040,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14158,
+        "line": 14157,
         "exported": false
       },
       {
         "name": "requireAdmin",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14396,
+        "line": 14395,
         "exported": false
       },
       {
         "name": "completeDecisionCard",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14553,
+        "line": 14552,
         "exported": false
       },
       {
         "name": "businessImportMaybeUploadFile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14816,
+        "line": 14815,
         "exported": false
       },
       {
         "name": "pushField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14999,
+        "line": 14998,
         "exported": false
       },
       {
         "name": "pushRow",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15004,
+        "line": 15003,
         "exported": false
       },
       {
         "name": "looksLikeHeader",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15056,
+        "line": 15055,
         "exported": false
       },
       {
         "name": "peek",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15060,
+        "line": 15059,
         "exported": false
       },
       {
         "name": "isEmailValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15064,
+        "line": 15063,
         "exported": false
       },
       {
         "name": "isFipsValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15066,
+        "line": 15065,
         "exported": false
       },
       {
         "name": "isPhoneValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15067,
+        "line": 15066,
         "exported": false
       },
       {
         "name": "normalizeEmail",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15202,
+        "line": 15201,
         "exported": false
       },
       {
         "name": "ensureUniqueBusinessProfileSlug",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15333,
+        "line": 15332,
         "exported": false
       },
       {
         "name": "inferredBusinessType",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15559,
+        "line": 15558,
         "exported": false
       },
       {
         "name": "inferredRoleContext",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15590,
+        "line": 15589,
         "exported": false
       },
       {
         "name": "archiveImportedDirectoryUserToDirectory",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 16244,
+        "line": 16243,
         "exported": false
       },
       {
         "name": "getMarketplaceCategoryIdByName",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17118,
+        "line": 17117,
         "exported": false
       },
       {
         "name": "getMarketplaceCategoryNameById",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17141,
+        "line": 17140,
         "exported": false
       },
       {
         "name": "match",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17147,
+        "line": 17146,
         "exported": false
       },
       {
         "name": "looksLikeUuid",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 17339,
+        "line": 17338,
         "exported": false
       },
       {
         "name": "normalized",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 18639,
+        "line": 18638,
         "exported": false
       },
       {
         "name": "deriveCommunityTagsFromContent",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19832,
+        "line": 19831,
         "exported": false
       },
       {
         "name": "createAutomaticCommunityWelcomeForUser",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19913,
+        "line": 19912,
         "exported": false
       },
       {
         "name": "roleContext",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19948,
+        "line": 19947,
         "exported": false
       },
       {
         "name": "requireCommunityPrincipalIdentity",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19989,
+        "line": 19988,
         "exported": false
       },
       {
         "name": "buildAuthorizedPublicHandmadeProducts",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 20832,
+        "line": 20831,
         "exported": false
       },
       {
         "name": "HomeScoutListingAccess",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 22265,
+        "line": 22264,
         "exported": false
       },
       {
         "name": "HomeScoutDecisionAuthorityError",
         "kind": "class",
         "path": "server/routes.ts",
-        "line": 22322,
+        "line": 22321,
         "exported": false
       },
       {
         "name": "extractInspectionPhrases",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22623,
+        "line": 22622,
         "exported": false
       },
       {
         "name": "scoreKeywordHits",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22636,
+        "line": 22635,
         "exported": false
       },
       {
         "name": "buildInspectionInsights",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22646,
+        "line": 22645,
         "exported": false
       },
       {
         "name": "clearDownloadTimeout",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23001,
+        "line": 23000,
         "exported": false
       },
       {
         "name": "sourcePath",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23024,
+        "line": 23023,
         "exported": false
       },
       {
         "name": "intField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23811,
+        "line": 23810,
         "exported": false
       },
       {
         "name": "numField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23818,
+        "line": 23817,
         "exported": false
       },
       {
         "name": "transactions",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 24028,
+        "line": 24027,
         "exported": false
       },
       {
@@ -75212,49 +75230,49 @@
         "name": "readPublicProfileTrustActions",
         "kind": "function",
         "path": "server/routes/profiles.ts",
-        "line": 2407,
+        "line": 2408,
         "exported": false
       },
       {
         "name": "buildRobotsGroup",
         "kind": "function",
         "path": "server/routes/profiles.ts",
-        "line": 2735,
+        "line": 2736,
         "exported": false
       },
       {
         "name": "getIndexNowKey",
         "kind": "function",
         "path": "server/routes/profiles.ts",
-        "line": 2743,
+        "line": 2744,
         "exported": false
       },
       {
         "name": "invalidateDirectorySitemapCaches",
         "kind": "function",
         "path": "server/routes/profiles.ts",
-        "line": 3161,
+        "line": 3162,
         "exported": true
       },
       {
         "name": "getDirectoryCountiesForSitemapCached",
         "kind": "function",
         "path": "server/routes/profiles.ts",
-        "line": 3166,
+        "line": 3167,
         "exported": false
       },
       {
         "name": "getDirectoryCitiesForSitemapCached",
         "kind": "function",
         "path": "server/routes/profiles.ts",
-        "line": 3182,
+        "line": 3183,
         "exported": false
       },
       {
         "name": "ExchangeSitemapItem",
         "kind": "type",
         "path": "server/routes/profiles.ts",
-        "line": 4027,
+        "line": 4028,
         "exported": false
       },
       {
@@ -87007,182 +87025,196 @@
         "name": "OwnerConfirmedDirectProfileCandidate",
         "kind": "type",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 56,
+        "line": 57,
         "exported": true
       },
       {
         "name": "LinkedBusinessProfileExposureCandidate",
         "kind": "type",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 79,
+        "line": 80,
         "exported": true
       },
       {
         "name": "PublishedProfileExposureCandidate",
         "kind": "type",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 85,
+        "line": 86,
         "exported": true
       },
       {
         "name": "PublicProfileExposureMode",
         "kind": "type",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 89,
+        "line": 90,
         "exported": true
       },
       {
         "name": "PublicProfileExposureReason",
         "kind": "type",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 91,
+        "line": 92,
         "exported": true
       },
       {
         "name": "PublicProfileExposureDecision",
         "kind": "type",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 101,
+        "line": 102,
         "exported": true
       },
       {
         "name": "recordValue",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 105,
+        "line": 106,
         "exported": false
       },
       {
         "name": "normalizeRole",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 111,
+        "line": 112,
         "exported": false
       },
       {
         "name": "ownerRoles",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 117,
+        "line": 118,
         "exported": false
       },
       {
         "name": "hasMeaningfulValue",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 124,
+        "line": 125,
         "exported": false
       },
       {
         "name": "hasMeaningfulPublicProfileContent",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 136,
+        "line": 137,
         "exported": true
       },
       {
         "name": "hasInternalProfileIdentity",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 156,
+        "line": 159,
         "exported": false
       },
       {
         "name": "hasVerifiedTradeScoutAdminCustody",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 165,
+        "line": 168,
         "exported": true
       },
       {
         "name": "hasExactPrecisionStewardAuthority",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 177,
+        "line": 180,
         "exported": false
       },
       {
         "name": "hasBaseDirectProfileAuthority",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 191,
+        "line": 194,
+        "exported": false
+      },
+      {
+        "name": "isLouisianaStoneSolutionsProfile",
+        "kind": "function",
+        "path": "server/services/ownerConfirmedDirectProfile.ts",
+        "line": 215,
+        "exported": false
+      },
+      {
+        "name": "hasLouisianaStoneSolutionsAccountControl",
+        "kind": "function",
+        "path": "server/services/ownerConfirmedDirectProfile.ts",
+        "line": 223,
         "exported": false
       },
       {
         "name": "hasTradeScoutPendingOwnerCustody",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 212,
+        "line": 233,
         "exported": true
       },
       {
         "name": "isSteelHomePackagesUnlistedDirectProfile",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 225,
+        "line": 246,
         "exported": true
       },
       {
         "name": "isOwnerConfirmedDirectProfile",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 248,
+        "line": 269,
         "exported": true
       },
       {
         "name": "isPubliclyVerifiedProfileOwner",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 262,
+        "line": 289,
         "exported": true
       },
       {
         "name": "canExposeLinkedBusinessProfilePublicly",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 276,
+        "line": 303,
         "exported": true
       },
       {
         "name": "isProfileVisibilityPublic",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 284,
+        "line": 316,
         "exported": true
       },
       {
         "name": "derivePublishedProfileExposure",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 296,
+        "line": 328,
         "exported": true
       },
       {
         "name": "canExposePublishedProfilePublicly",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 363,
+        "line": 404,
         "exported": true
       },
       {
         "name": "canDiscoverPublishedProfilePublicly",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 369,
+        "line": 413,
         "exported": true
       },
       {
         "name": "canServePublishedProfileAtDirectRoute",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 375,
+        "line": 419,
         "exported": true
       },
       {
         "name": "canExposeProviderProfileOnPublicMap",
         "kind": "function",
         "path": "server/services/ownerConfirmedDirectProfile.ts",
-        "line": 381,
+        "line": 425,
         "exported": true
       },
       {
@@ -100654,6 +100686,20 @@
         "exported": false
       },
       {
+        "name": "PublishedProfileExposureCandidate",
+        "kind": "type",
+        "path": "server/tests/louisiana-stone-profile-exposure.test.ts",
+        "line": 19,
+        "exported": false
+      },
+      {
+        "name": "companyCandidate",
+        "kind": "function",
+        "path": "server/tests/louisiana-stone-profile-exposure.test.ts",
+        "line": 30,
+        "exported": false
+      },
+      {
         "name": "ManagedPartnerIntakeCreateInput",
         "kind": "type",
         "path": "server/tests/managed-partner-business-contact.behavior.test.ts",
@@ -101274,6 +101320,13 @@
         "kind": "function",
         "path": "server/tests/profile-public-category-order.test.ts",
         "line": 3,
+        "exported": false
+      },
+      {
+        "name": "readSearchBoundary",
+        "kind": "function",
+        "path": "server/tests/profile-public-search-direct-authority.behavior.test.ts",
+        "line": 16,
         "exported": false
       },
       {
@@ -109407,28 +109460,28 @@
         "name": "normalizeProfileSlug",
         "kind": "function",
         "path": "shared/publicProfileExposureRegistry.ts",
-        "line": 22,
+        "line": 24,
         "exported": false
       },
       {
         "name": "getDirectProfileAuthority",
         "kind": "function",
         "path": "shared/publicProfileExposureRegistry.ts",
-        "line": 28,
+        "line": 30,
         "exported": true
       },
       {
         "name": "isRegisteredDirectProfileSlug",
         "kind": "function",
         "path": "shared/publicProfileExposureRegistry.ts",
-        "line": 32,
+        "line": 34,
         "exported": true
       },
       {
         "name": "isInternalAdminProfileSlug",
         "kind": "function",
         "path": "shared/publicProfileExposureRegistry.ts",
-        "line": 36,
+        "line": 38,
         "exported": true
       },
       {
@@ -114654,17 +114707,24 @@
         "exported": false
       },
       {
-        "name": "finish",
+        "name": "partnerContactConstraintProof",
         "kind": "function",
         "path": "tmp/lss-release-postgres-proof.mjs",
         "line": 194,
         "exported": false
       },
       {
+        "name": "finish",
+        "kind": "function",
+        "path": "tmp/lss-release-postgres-proof.mjs",
+        "line": 227,
+        "exported": false
+      },
+      {
         "name": "main",
         "kind": "function",
         "path": "tmp/lss-release-postgres-proof.mjs",
-        "line": 216,
+        "line": 250,
         "exported": false
       },
       {
@@ -137272,10 +137332,10 @@
   ],
   "summary": {
     "directories": 128,
-    "source_files": 2661,
-    "symbols": 14076,
+    "source_files": 2664,
+    "symbols": 14082,
     "components": 938,
-    "functions_and_hooks": 8536,
+    "functions_and_hooks": 8541,
     "raw_ui_elements": 4125,
     "errors": 15,
     "warnings": 5

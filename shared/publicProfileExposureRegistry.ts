@@ -1,4 +1,5 @@
 import { PRECISION_AERIAL_PROFILE_SLUG } from "./precisionAerialProfile";
+import { LOUISIANA_STONE_SOLUTIONS_PROFILE_SLUG } from "./louisianaStoneSolutionsProfile";
 
 export const JRS_PROFILE_SLUG = "jrs-auto-glass";
 export const OWNER_CONFIRMED_PROFILE_SOURCE = "owner_confirmed_profile";
@@ -14,6 +15,7 @@ export const DIRECT_PROFILE_AUTHORITIES: Readonly<Record<string, string>> = Obje
   [JRS_PROFILE_SLUG]: OWNER_CONFIRMED_PROFILE_SOURCE,
   [PRO_FAB_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE,
   [PRECISION_AERIAL_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE,
+  [LOUISIANA_STONE_SOLUTIONS_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE,
 });
 
 export const INTERNAL_ADMIN_PROFILE_SLUGS = ["tradescout-admin", "super-admin"] as const;
