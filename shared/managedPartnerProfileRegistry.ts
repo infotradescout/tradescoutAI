@@ -11,7 +11,8 @@ export type ManagedPartnerControlMode =
   | "tradescout_admin_controlled"
   | "admin_stewarded_pending_owner_transfer"
   | "admin_stewarded_pending_claim"
-  | "owner_controlled_tradescout_managed_contact";
+  | "owner_controlled_tradescout_managed_contact"
+  | "owner_controlled";
 
 export type ManagedPartnerContactMode =
   | "tradescout_managed"

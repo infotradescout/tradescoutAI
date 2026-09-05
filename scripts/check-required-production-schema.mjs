@@ -260,8 +260,8 @@ export async function verifyRequiredProductionSchema(client) {
         ('managed_partner_intakes', 'managed_partner_intakes_stage_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_priority_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_archetype_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
-        ('managed_partner_intakes', 'managed_partner_intakes_control_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
-        ('managed_partner_intakes', 'managed_partner_intakes_contact_mode_check', 'c', null, null, null, null, 'tradescout-schema:0128:v1'),
+        ('managed_partner_intakes', 'managed_partner_intakes_control_mode_check', 'c', null, null, null, null, 'tradescout-schema:0130:v1'),
+        ('managed_partner_intakes', 'managed_partner_intakes_contact_mode_check', 'c', null, null, null, null, 'tradescout-schema:0130:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_exposure_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_request_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1')
     ),
@@ -565,7 +565,8 @@ export async function verifyRequiredProductionSchema(client) {
         "migrations/0072_seo_publication_rules_and_freshness.sql and",
         "migrations/0115_profile_accounts.sql and",
         "migrations/0116_admin_live_stream_snapshots.sql and",
-        "migrations/0117_managed_partner_intakes.sql before deployment.",
+        "migrations/0117_managed_partner_intakes.sql and",
+        "migrations/0130_business_managed_partner_contact.sql before deployment.",
       ].join(" ")
     );
   }

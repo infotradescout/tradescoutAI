@@ -85,6 +85,10 @@ The profile remains direct-only or limited while owner claim, contact, or releas
 
 The business and profile remain owner-controlled. TradeScout manages the approved public response destination without changing ownership.
 
+### Owner controlled
+
+`owner_controlled` records company account control independently of contact handling. Pair it with `business_managed` when the company handles its own requests. Selecting the label does not transfer business or profile ownership, establish a claim, verify the account, or remove readiness blockers; the scoped ownership handoff and company account acceptance remain separate actions.
+
 ## Current contact modes
 
 ### TradeScout managed
@@ -110,7 +114,7 @@ The business record uses `profileData.contactManagement = "business_managed"`; i
 
 Selecting this mode does not transfer ownership, establish verification, publish a profile, or grant contact access. The shared health check blocks business request readiness while claim or owner transfer is pending, the owner is a profile steward, the owner account is not confirmed by email, the expected business inbox is missing or mismatched, or the request path remains pending. An email alert links to the authenticated inbox; a staged mailbox alone does not establish that the business can open or reply to a request. Contact decisions and actual delivery still require the existing request workflow and its proof.
 
-Migration `0128_business_managed_partner_contact.sql` adds the contact-mode value to the existing intake CHECK without modifying records. The schema guard expects its constraint marker. Apply it through the normal migration process before storing this mode; no runtime fallback or startup contact normalization writes business-managed destinations.
+Migration `0130_business_managed_partner_contact.sql` adds `business_managed` and `owner_controlled` to the existing intake contact and control CHECKs while preserving every prior mode and leaving records unchanged. The schema guard expects the `0130:v1` marker on both constraints. Apply it through the normal migration process before storing these modes; no runtime fallback or startup contact normalization writes business-managed destinations.
 
 ## Request routing
 

@@ -3,6 +3,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MANAGED_PARTNER_CONTACT_MODES,
+  MANAGED_PARTNER_CONTROL_MODES,
   type ManagedPartnerIntakeCreateInput,
 } from "@shared/managedPartnerIntake";
 import type { ManagedPartnerProfileDefinition } from "@shared/managedPartnerProfileRegistry";
@@ -32,7 +33,7 @@ const definition: ManagedPartnerProfileDefinition = {
   slug,
   displayName: "Business Routing Fixture",
   archetype: "contractor",
-  controlMode: "owner_controlled_tradescout_managed_contact",
+  controlMode: "owner_controlled",
   contactMode: "business_managed",
   exposureMode: "direct_only",
   requestMode: "profile_request_flow",
@@ -107,6 +108,45 @@ beforeEach(() => {
 });
 
 describe("business-managed intake contact", () => {
+  it("saves neutral owner control independently of business contact handling", async () => {
+    expect(
+      await createAndReadContact({
+        controlMode: "owner_controlled",
+        expectedEmail: businessEmail,
+        expectedNotificationEmail: notificationEmail,
+      })
+    ).toEqual([null, businessEmail, notificationEmail]);
+    const insert = mocks.query.mock.calls.find(([sql]) =>
+      sql.includes("INSERT INTO managed_partner_intakes")
+    );
+    expect(insert?.[1].slice(4, 6)).toEqual(["owner_controlled", "business_managed"]);
+  });
+
+  it("updates the control label without changing contact, stage, or business ownership", async () => {
+    mocks.query
+      .mockResolvedValueOnce({
+        rows: [intakeRow({ control_mode: "admin_stewarded_pending_claim" })],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [intakeRow()] });
+    await updateManagedPartnerIntake({
+      id: intakeRow().id,
+      actorUserId: "admin-fixture",
+      input: { controlMode: "owner_controlled" },
+    });
+    const update = mocks.query.mock.calls.find(([sql]) =>
+      sql.includes("UPDATE managed_partner_intakes")
+    );
+    expect(update?.[1].slice(5, 7)).toEqual(["owner_controlled", "business_managed"]);
+    expect(update?.[1].slice(11, 14)).toEqual([null, businessEmail, notificationEmail]);
+    expect(update?.[1][16]).toBe("incoming");
+    expect(
+      mocks.query.mock.calls.some(([sql]) =>
+        /\bUPDATE\s+(?:businesses|profiles|users)\b/i.test(sql)
+      )
+    ).toBe(false);
+  });
+
   it("saves explicitly configured business inboxes without inventing a phone", async () => {
     expect(
       await createAndReadContact({
@@ -301,17 +341,34 @@ describe("business-managed contact health", () => {
 describe("business-managed contact migration contract", () => {
   it("keeps schema, shared options, journal, and readiness marker consistent", () => {
     const read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
-    const migration = read("migrations/0128_business_managed_partner_contact.sql");
-    const modes = [...migration.matchAll(/^\s*'([^']+)'[,]?$/gm)].map((match) => match[1]);
-    expect(modes).toEqual([...MANAGED_PARTNER_CONTACT_MODES]);
+    const migration = read("migrations/0130_business_managed_partner_contact.sql");
+    const checkModes = (source: string, column: string) => {
+      const expression = source.match(new RegExp(`${column} IN \\(([\\s\\S]*?)\\)`))?.[1] || "";
+      return [...expression.matchAll(/'([^']+)'/g)].map((match) => match[1]);
+    };
+    expect(checkModes(migration, "contact_mode")).toEqual([...MANAGED_PARTNER_CONTACT_MODES]);
+    expect(checkModes(migration, "control_mode")).toEqual([...MANAGED_PARTNER_CONTROL_MODES]);
+    const originalMigration = read("migrations/0117_managed_partner_intakes.sql");
+    expect(checkModes(migration, "control_mode")).toEqual([
+      ...checkModes(originalMigration, "control_mode"),
+      "owner_controlled",
+    ]);
     expect(JSON.parse(read("migrations/meta/_journal.json")).entries.at(-1).tag).toBe(
-      "0128_business_managed_partner_contact"
+      "0130_business_managed_partner_contact"
     );
-    expect(migration).toContain("tradescout-schema:0128:v1");
-    expect(read("scripts/check-required-production-schema.mjs")).toContain(
-      "'managed_partner_intakes_contact_mode_check', 'c', null, null, null, null, 'tradescout-schema:0128:v1'"
-    );
-    expect(read("migrations/0117_managed_partner_intakes.sql")).not.toContain("'business_managed'");
+    expect(migration).toContain("tradescout-schema:0130:v1");
+    for (const column of ["contact_mode", "control_mode"]) {
+      expect(migration).toMatch(
+        new RegExp(
+          `COMMENT ON CONSTRAINT managed_partner_intakes_${column}_check\\s+ON managed_partner_intakes IS 'tradescout-schema:0130:v1'`
+        )
+      );
+      expect(read("scripts/check-required-production-schema.mjs")).toContain(
+        `'managed_partner_intakes_${column}_check', 'c', null, null, null, null, 'tradescout-schema:0130:v1'`
+      );
+    }
+    expect(originalMigration).not.toContain("'business_managed'");
+    expect(originalMigration).not.toContain("'owner_controlled'");
     expect(migration).not.toMatch(/\b(?:UPDATE|INSERT|DELETE)\b/i);
   });
 });

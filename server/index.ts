@@ -29,6 +29,10 @@ import {
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
 import {
+  getJwStoneDriveIdentityEmail,
+  getJwStonePricingSnapshot,
+} from "./services/jwStoneDrivePricing";
+import {
   HistoricalMigrationReplayRefusedError,
   runRelease399MigrationLedgerRecovery,
   runRuntimeMigrations,
@@ -82,10 +86,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
-import {
-  applyPrivateShellNoindex,
-  isPrivateAppShellPath,
-} from "./privateShellIndexability";
+import { applyPrivateShellNoindex, isPrivateAppShellPath } from "./privateShellIndexability";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
   buildJwStoneMarketplaceLlmsText,
@@ -572,12 +573,9 @@ async function renderProfileOnCustomDomain(
           origin,
           collectionUrl: `${origin}/`,
           marketplaceDomainSurface: true,
-          stoneSlug:
-            itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
+          stoneSlug: itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
           photo:
-            itemRequest?.itemType === "inventory"
-              ? String(itemRequest.imageIndex + 1)
-              : undefined,
+            itemRequest?.itemType === "inventory" ? String(itemRequest.imageIndex + 1) : undefined,
           materialSlug:
             categoryRequest?.kind === "category" ? categoryRequest.categorySlug : undefined,
         })
@@ -1245,6 +1243,26 @@ app.use(landingContractHeaders);
       await runSchemaPreflight();
     } catch (err) {
       console.error("[SchemaPreflight] Failed during startup (non-fatal):", err);
+    }
+    if (isProductionEnv) {
+      try {
+        const snapshot = await getJwStonePricingSnapshot({ forceRefresh: true });
+        console.log("[JW Stone pricing] Canonical Drive source verified", {
+          priceRows: snapshot.prices.length,
+          sourceUpdatedAt: snapshot.sourceUpdatedAt,
+        });
+      } catch (err) {
+        let driveIdentity = "unresolved";
+        try {
+          driveIdentity = await getJwStoneDriveIdentityEmail();
+        } catch {
+          // The source error below remains the useful production signal.
+        }
+        console.error("[JW Stone pricing] Canonical Drive source unavailable", {
+          driveIdentity,
+          message: err instanceof Error ? err.message : "Unknown Drive pricing source error",
+        });
+      }
     }
     // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
     // If 'routes' is not implicitly available, it needs to be imported.

@@ -155,10 +155,9 @@ function generateSitemap() {
     return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority.toFixed(1)}</priority>\n  </url>`;
   }).join('\n');
 
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>`;
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>\n`;
 
-  // Keep the canonical public asset's final newline so generation preserves its byte budget.
-  writeFileSync(OUTPUT_PATH, `${sitemap}\n`, 'utf-8');
+  writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
   const indexTargets = SUBMITTED_SITEMAP_TARGETS.map(
     (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`
   ).join('\n');

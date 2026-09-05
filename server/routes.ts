@@ -47,6 +47,7 @@ import { registerStoneInventoryRoutes } from "./routes/stone-inventory";
 import { registerBidRockRoutes } from "./routes/bidrock";
 import { registerStoneDesignerImageRoutes } from "./routes/stone-designer-images";
 import { registerJwStonePublicMediaRoutes } from "./routes/jw-stone-public-media";
+import { registerJwStoneMemberPricingRoutes } from "./routes/jw-stone-member-pricing";
 import { registerRedGranitiPublicMediaRoutes } from "./routes/red-graniti-public-media";
 import { registerBusinessClaimRoutes } from "./routes/business-claim";
 import { registerWorkerTasksRoutes } from "./routes/worker-tasks";
@@ -1459,6 +1460,7 @@ export async function registerRoutes(app: any) {
   // Bind every authenticated request to one server-resolved effective account
   // before any feature or standalone admin router can evaluate req.user.
   app.use(bindAuthenticatedRequestAuthority);
+  registerJwStoneMemberPricingRoutes(app);
 
   // Emit build identity on every response so production log/debug can confirm
   // which revision is currently serving traffic.
@@ -4500,9 +4502,8 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      const identityContext = await resolveRequestAuthorityContext(
-        req,
-        async (targetUserId) => storage.getUser(targetUserId)
+      const identityContext = await resolveRequestAuthorityContext(req, async (targetUserId) =>
+        storage.getUser(targetUserId)
       );
       if (!identityContext.ok) {
         res.status(403).json({

@@ -36,6 +36,7 @@ export const MANAGED_PARTNER_CONTROL_MODES = [
   "admin_stewarded_pending_owner_transfer",
   "admin_stewarded_pending_claim",
   "owner_controlled_tradescout_managed_contact",
+  "owner_controlled",
 ] as const satisfies readonly ManagedPartnerControlMode[];
 
 export const MANAGED_PARTNER_CONTACT_MODES = [
