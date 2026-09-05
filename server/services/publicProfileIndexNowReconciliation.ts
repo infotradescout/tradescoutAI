@@ -131,7 +131,7 @@ async function loadCurrentCandidates(): Promise<PublicProfileIndexNowCandidate[]
         : null;
     })
   );
-  return profiles.filter((profile): profile is PublicProfileIndexNowCandidate => Boolean(profile));
+  return profiles.filter((profile) => profile !== null);
 }
 
 async function recordReconciliation(args: {
