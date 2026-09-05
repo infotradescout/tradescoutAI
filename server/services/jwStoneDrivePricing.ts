@@ -226,6 +226,24 @@ async function driveAccessToken(): Promise<string> {
   throw new Error("JW Stone Drive authorization is not configured");
 }
 
+export async function getJwStoneDriveIdentityEmail(): Promise<string> {
+  const serviceAccount = await configuredServiceAccount();
+  if (serviceAccount) return serviceAccount.client_email;
+
+  const config = drivePricingConfig();
+  const token = await driveAccessToken();
+  const about = await driveJson<{ user?: { emailAddress?: unknown } }>({
+    url: "https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)",
+    token,
+    timeoutMs: config.requestTimeoutMs,
+    resource: "identity",
+  });
+  const email = typeof about.user?.emailAddress === "string" ? about.user.emailAddress.trim() : "";
+  if (!email || !email.includes("@")) {
+    throw new Error("JW Stone Drive identity response is invalid");
+  }
+  return email;
+}
 async function authorizedDriveRequest<T>(args: {
   url: string;
   token: string;

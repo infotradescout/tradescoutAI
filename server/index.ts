@@ -28,7 +28,10 @@ import {
   ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
-import { getJwStonePricingSnapshot } from "./services/jwStoneDrivePricing";
+import {
+  getJwStoneDriveIdentityEmail,
+  getJwStonePricingSnapshot,
+} from "./services/jwStoneDrivePricing";
 import {
   HistoricalMigrationReplayRefusedError,
   runRelease399MigrationLedgerRecovery,
@@ -1255,7 +1258,14 @@ app.use(landingContractHeaders);
           sourceUpdatedAt: snapshot.sourceUpdatedAt,
         });
       } catch (err) {
+        let driveIdentity = "unresolved";
+        try {
+          driveIdentity = await getJwStoneDriveIdentityEmail();
+        } catch {
+          // The source error below remains the useful production signal.
+        }
         console.error("[JW Stone pricing] Canonical Drive source unavailable", {
+          driveIdentity,
           message: err instanceof Error ? err.message : "Unknown Drive pricing source error",
         });
       }
