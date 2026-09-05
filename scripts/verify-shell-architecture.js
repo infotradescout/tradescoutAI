@@ -1,5 +1,5 @@
 // Verify page shell architecture invariants:
-// - Only files under client/src/shells are allowed to export names ending in "Shell".
+// - Only files under client/src/shells may export page components ending in "Shell".
 // - No shell file may import from another shell file.
 // - No file may import the legacy CommunityShell.
 //
@@ -58,7 +58,8 @@ function addViolation(absPath, message) {
 }
 
 /**
- * Very small parser: checks for export names ending in `Shell`.
+ * Check PascalCase runtime exports ending in `Shell`.
+ * Types and lower-camel-case domain helpers describe data, not page components.
  * @param {string} absPath
  * @param {string} source
  */
@@ -74,9 +75,9 @@ function checkExports(absPath, source) {
   // Matches patterns like:
   //   export const FooShell = ...
   //   export function FooShell(...)
-  //   export type FooShell = ...
   //   export class FooShell { ... }
-  const exportNameRegex = /export\s+(?:const|function|class|type|interface)\s+([A-Za-z0-9_]+)/g;
+  const exportNameRegex =
+    /export\s+(?:default\s+)?(?:async\s+)?(?:const|function|class)\s+([A-Z][A-Za-z0-9_]*)/g;
   let match;
   while ((match = exportNameRegex.exec(source)) !== null) {
     const name = match[1];
@@ -88,7 +89,7 @@ function checkExports(absPath, source) {
       if (isLegacyCommunityShellFile && name === "CommunityShell") continue;
       addViolation(
         absPath,
-        `Exports name \`${name}\` ending in "Shell" outside client/src/shells. Move this component into client/src/shells and import it from there.`,
+        `Exports name \`${name}\` ending in "Shell" outside client/src/shells. Move this component into client/src/shells and import it from there.`
       );
     }
   }
@@ -112,7 +113,7 @@ function checkShellImports(absPath, source) {
     if (isShellFile(resolved)) {
       addViolation(
         absPath,
-        `Shell file imports another shell file via \"${spec}\". Shells must not depend on other shells; share primitives via regular components instead.`,
+        `Shell file imports another shell file via \"${spec}\". Shells must not depend on other shells; share primitives via regular components instead.`
       );
     }
   }
@@ -130,7 +131,7 @@ function checkCommunityShellImport(absPath, source) {
     const spec = match[1];
     addViolation(
       absPath,
-      `Imports CommunityShell from \"${spec}\". CommunityShell is legacy-only; routes must use their own *Shell in client/src/shells.`,
+      `Imports CommunityShell from \"${spec}\". CommunityShell is legacy-only; routes must use their own *Shell in client/src/shells.`
     );
   }
 }

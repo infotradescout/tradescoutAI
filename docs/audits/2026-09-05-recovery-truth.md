@@ -63,6 +63,29 @@ The 513 remote branches and 21 open pull requests observed include overlapping r
 
 Recovery order is shared authority and persisted data, then county-to-request-to-response journeys, then UI consistency and remaining feature owners. This preserves existing capabilities while repairing the decisions they share. Release 3, merging main, and deployment remain held until the required earlier proof is complete.
 
+## Current intent that must survive recovery
+
+Thomas's approved September 4 convergence standard makes historical implementation evidence, not permanent authority. This audit preserves historical, current, product, and future truth separately.
+
+- Direct Connect submission grants permission to send the sender's name and phone to the receiving business. Recovery must preserve that explicit request handoff and avoid premature unrelated disclosure.
+- Administrative manual profile onboarding retains its explicit administrative exception to normal verification requirements. It must not depend on promoting an email alias or borrowing a stale impersonation role.
+- JW Stone member prices belong to eligible member businesses, TradeScout administrators, and JW Stone owners. The designated Google Drive source governs future prices, images, and supplied information; old "remove all prices" notes are not current global policy.
+- Realtor and car-sales lanes remain active closed-beta work. No capability is declared abandoned merely because its older branch was closed.
+- No lead selling, pay-per-lead, or pay-to-play is introduced. SMS and postcards are not presented as operational while their setup remains incomplete.
+- Infinity is the ecosystem register. Dormant Screen Pass and AI-camera scope belong to Continuum; unrelated products are not absorbed into TradeScout during this repair.
+
+These are acceptance constraints for the remaining journeys, not claims that each has been newly implemented or proved in this pass.
+
+## Verification corrections and limits
+
+The saved account-authority checkpoint `9c1394e1d2b9a3397d3de1c3768bc116790dd08a` completed the serialized `verify:local` chain: 773 test files passed, 26 skipped; 5,278 tests passed, 142 skipped. TypeScript and the production client/server build also passed. The prior default parallel run failed before a complete report, with two timeout failures; using the repository's supported `VITEST_SERIAL=true` mode completed the same suite. Skipped tests remain unproved.
+
+Additional required audits found four raw error-message expressions across three Admin pages. Those now use the existing user-facing error formatter. The shell verifier also confused a physical-room data type and a lower-camel-case geometry predicate with React page components. Its component-export rule now targets PascalCase runtime values; regression fixtures still reject misplaced components, inter-shell imports, and the legacy Community shell. Domain geometry is not renamed merely to satisfy an unrelated layout heuristic.
+
+Guard labels have narrow meanings. `audit:trust-leaks` searches four unfinished-copy phrases; it is not a contact-data leakage proof. `audit:production-debt` checks one in-memory-storage comment marker; it is not a whole-product debt assessment. Build generation also refreshes the tracked sitemap index's date. That generated-only working-tree difference is recorded and restored before saving source; it is not silently included in a repair checkpoint.
+
+All four database-backed commands exited 2 without a disposable `TEST_DATABASE_URL`: `test:run:db:strict`, `test:run:no-skips`, `verify:db`, and `test:release-gates:local`. A native PostgreSQL installation was attempted only in scratch and could not initialize an unprivileged process in this runtime. No production database was substituted. Latest saved-head proof and any remaining gates are recorded in [draft PR #561](https://github.com/infotradescout/tradescoutAI/pull/561).
+
 ## Standards used for acceptance
 
 Use [WCAG 2.2](https://www.w3.org/TR/WCAG22/) for accessible interaction and [consistent navigation](https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation.html), and [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/) for authentication, authorization, session, and data-protection acceptance. These are criteria for verification, not a claim of certification or a completed accessibility/security audit.

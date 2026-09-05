@@ -50,6 +50,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type IntakeMutationResponse = {
   item: ManagedPartnerIntakeRecord;
@@ -126,14 +127,12 @@ function stageBadge(stage: ManagedPartnerIntakeStage) {
     return <Badge className="border-red-400/30 bg-red-400/10 text-red-200">Blocked</Badge>;
   }
   if (stage === "ready_to_publish") {
-    return (
-      <Badge className="border-sky-400/30 bg-sky-400/10 text-sky-100">
-        Ready to publish
-      </Badge>
-    );
+    return <Badge className="border-sky-400/30 bg-sky-400/10 text-sky-100">Ready to publish</Badge>;
   }
   if (stage === "incoming") {
-    return <Badge className="border-orange-400/30 bg-orange-400/10 text-orange-200">Incoming</Badge>;
+    return (
+      <Badge className="border-orange-400/30 bg-orange-400/10 text-orange-200">Incoming</Badge>
+    );
   }
   return <Badge className="border-white/15 bg-white/5 text-white/65">{stageLabel(stage)}</Badge>;
 }
@@ -252,8 +251,10 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Partner intake was not saved",
-        description:
-          error instanceof Error ? error.message : "Review the intake details and try again.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Review the intake details and try again."
+        ),
         variant: "destructive",
       });
     },
@@ -285,8 +286,7 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Queue update failed",
-        description:
-          error instanceof Error ? error.message : "Review the partner state and try again.",
+        description: formatUserFacingErrorMessage(error, "Review the partner state and try again."),
         variant: "destructive",
       });
     },
@@ -352,10 +352,7 @@ export default function AdminManagedPartnerIntakesPage() {
     }));
   };
 
-  const quickStageChange = (
-    item: ManagedPartnerIntakeRecord,
-    stage: ManagedPartnerIntakeStage
-  ) => {
+  const quickStageChange = (item: ManagedPartnerIntakeRecord, stage: ManagedPartnerIntakeStage) => {
     if (stage === "blocked") {
       beginEdit(item, "blocked");
       toast({
@@ -476,7 +473,8 @@ export default function AdminManagedPartnerIntakesPage() {
                 {editingId ? "Update partner intake" : "Add incoming partner"}
               </h2>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-white/50">
-                Record what is known now. Unknown owner contact stays pending instead of being invented.
+                Record what is known now. Unknown owner contact stays pending instead of being
+                invented.
               </p>
             </div>
             <Button
@@ -573,9 +571,7 @@ export default function AdminManagedPartnerIntakesPage() {
                 label="Priority"
                 value={form.priority}
                 options={MANAGED_PARTNER_INTAKE_PRIORITIES}
-                onChange={(value) =>
-                  updateForm("priority", value as ManagedPartnerIntakePriority)
-                }
+                onChange={(value) => updateForm("priority", value as ManagedPartnerIntakePriority)}
               />
             </div>
 
@@ -672,9 +668,7 @@ export default function AdminManagedPartnerIntakesPage() {
                   value={form.stage}
                   options={MANAGED_PARTNER_INTAKE_STAGES}
                   labelForOption={stageLabel}
-                  onChange={(value) =>
-                    updateForm("stage", value as ManagedPartnerIntakeStage)
-                  }
+                  onChange={(value) => updateForm("stage", value as ManagedPartnerIntakeStage)}
                 />
                 {form.stage === "blocked" ? (
                   <Field label="Blocker" htmlFor="partner-blocker">
@@ -909,7 +903,8 @@ export default function AdminManagedPartnerIntakesPage() {
         <p>
           Moving an intake to <strong className="text-white/70">Live</strong> requires an active
           business, a published profile, and matching ownership. Once live, it joins the profile
-          health audit automatically. Managed contact normalization never transfers company ownership.
+          health audit automatically. Managed contact normalization never transfers company
+          ownership.
         </p>
       </div>
     </div>
