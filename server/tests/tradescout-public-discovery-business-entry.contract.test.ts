@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { LOCAL_BUSINESS_DISCOVERY } from "../../client/src/lib/popularSearchQueries";
+import { getDirectConnectSection } from "../../client/src/pages/direct-connect/directConnectRoutes";
+import { parseDirectConnectEntryContext } from "../../client/src/pages/direct-connect/directConnectEntryContext";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -9,6 +11,15 @@ const read = (relativePath: string) =>
 describe("TradeScout public discovery and business entry surfaces", () => {
   const findLocalBusinesses = read("client/src/pages/find-local-businesses.tsx");
   const forBusinesses = read("client/src/pages/for-businesses.tsx");
+
+  it("opens the request composer with the advertised county and source", () => {
+    const href = LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref;
+    expect(getDirectConnectSection(href)).toBe("post");
+    expect(parseDirectConnectEntryContext(href)).toMatchObject({
+      countyFips: "22105",
+      source: "tangipahoa-launch",
+    });
+  });
 
   it("frames find-local-businesses as a broad local business entry surface", () => {
     expect(LOCAL_BUSINESS_DISCOVERY.heading).toBe("Find local businesses without the noise");
