@@ -2,6 +2,7 @@ import {
   PRECISION_AERIAL_PROFILE_SLUG,
   PRECISION_AERIAL_STEWARD_PROVIDER,
 } from "@shared/precisionAerialProfile";
+import { LOUISIANA_STONE_SOLUTIONS_PROFILE_SLUG } from "@shared/louisianaStoneSolutionsProfile";
 import { isProfileVisibilityPublic as isSharedProfileVisibilityPublic } from "@shared/profileVisibility";
 import {
   ADMIN_MANAGED_PROFILE_SOURCE,
@@ -150,7 +151,9 @@ export function hasMeaningfulPublicProfileContent(
     const type = String(source.type || "")
       .trim()
       .toLowerCase();
-    return Boolean(type) && !NON_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data);
+    return (
+      Boolean(type) && !NON_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data)
+    );
   });
 }
 
@@ -210,6 +213,24 @@ function hasBaseDirectProfileAuthority(
   );
 }
 
+function isLouisianaStoneSolutionsProfile(
+  candidate: OwnerConfirmedDirectProfileCandidate
+): boolean {
+  return normalizeRole(candidate.profileSlug) === LOUISIANA_STONE_SOLUTIONS_PROFILE_SLUG;
+}
+
+/** Administrator assignment is distinct from the company's confirmed mailbox control. */
+function hasLouisianaStoneSolutionsAccountControl(
+  candidate: OwnerConfirmedDirectProfileCandidate
+): boolean {
+  return (
+    normalizeRole(candidate.businessClaimStatus) === "claimed" &&
+    normalizeRole(candidate.ownerProvider) === "local" &&
+    candidate.ownerEmailVerified === true &&
+    ["pending", "approved"].includes(normalizeRole(candidate.ownerVerificationStatus))
+  );
+}
+
 export function hasTradeScoutPendingOwnerCustody(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
@@ -257,6 +278,12 @@ export function isOwnerConfirmedDirectProfile(
   if (slug === PRECISION_AERIAL_PROFILE_SLUG && !hasExactPrecisionStewardAuthority(candidate)) {
     return false;
   }
+  if (
+    isLouisianaStoneSolutionsProfile(candidate) &&
+    !hasLouisianaStoneSolutionsAccountControl(candidate)
+  ) {
+    return false;
+  }
   return hasBaseDirectProfileAuthority(candidate, requiredAuthority);
 }
 
@@ -276,6 +303,11 @@ export function isPubliclyVerifiedProfileOwner(candidate: {
 export function canExposeLinkedBusinessProfilePublicly(
   candidate: LinkedBusinessProfileExposureCandidate
 ): boolean {
+  if (isLouisianaStoneSolutionsProfile(candidate)) {
+    return (
+      Boolean(String(candidate.businessId || "").trim()) && isOwnerConfirmedDirectProfile(candidate)
+    );
+  }
   return (
     Boolean(String(candidate.businessId || "").trim()) &&
     (isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate))
@@ -318,6 +350,15 @@ export function derivePublishedProfileExposure(
       mode: "private",
       reason: businessId ? "private" : "personal_profile_not_explicitly_released",
     };
+  }
+
+  // This exact admin release stays linked to its company and closed until
+  // mailbox control is confirmed, including if an editable role/binding changes.
+  if (
+    isLouisianaStoneSolutionsProfile(candidate) &&
+    (!businessId || !isOwnerConfirmedDirectProfile(candidate))
+  ) {
+    return { mode: "private", reason: "business_trust_missing" };
   }
 
   if (businessId) {
@@ -364,7 +405,10 @@ export function canExposePublishedProfilePublicly(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
   const decision = derivePublishedProfileExposure(candidate);
-  return decision.mode === "public" || (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate));
+  return (
+    decision.mode === "public" ||
+    (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate))
+  );
 }
 
 export function canDiscoverPublishedProfilePublicly(
@@ -382,5 +426,7 @@ export function canServePublishedProfileAtDirectRoute(
 export function canExposeProviderProfileOnPublicMap(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
-  return canDiscoverPublishedProfilePublicly(candidate) && isPubliclyVerifiedProfileOwner(candidate);
+  return (
+    canDiscoverPublishedProfilePublicly(candidate) && isPubliclyVerifiedProfileOwner(candidate)
+  );
 }

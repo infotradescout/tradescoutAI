@@ -79,7 +79,9 @@ type NormalizedManagedPartnerIntake = {
 };
 
 function text(value: unknown, maxLength = 500): string {
-  return String(value || "").trim().slice(0, maxLength);
+  return String(value || "")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function nullableText(value: unknown, maxLength = 500): string | null {
@@ -255,12 +257,27 @@ function normalizeInput(
   if (contactMode === "tradescout_managed") {
     expectedPhone = expectedPhone || TRADESCOUT_MANAGED_CONTACT.phone;
     expectedEmail = expectedEmail || TRADESCOUT_MANAGED_CONTACT.email;
-    expectedNotificationEmail =
-      expectedNotificationEmail || TRADESCOUT_MANAGED_CONTACT.email;
+    expectedNotificationEmail = expectedNotificationEmail || TRADESCOUT_MANAGED_CONTACT.email;
   } else if (contactMode === "business_phone_tradescout_email") {
     expectedEmail = expectedEmail || TRADESCOUT_MANAGED_CONTACT.email;
-    expectedNotificationEmail =
-      expectedNotificationEmail || TRADESCOUT_MANAGED_CONTACT.email;
+    expectedNotificationEmail = expectedNotificationEmail || TRADESCOUT_MANAGED_CONTACT.email;
+  } else if (contactMode === "business_managed") {
+    // A mode change cannot turn a former TradeScout destination into business contact.
+    const businessContact = existing?.contactMode === "business_managed" ? existing : undefined;
+    expectedPhone = nullableText(
+      input.expectedPhone !== undefined ? input.expectedPhone : businessContact?.expectedPhone,
+      80
+    );
+    expectedEmail = nullableText(
+      input.expectedEmail !== undefined ? input.expectedEmail : businessContact?.expectedEmail,
+      200
+    );
+    expectedNotificationEmail = nullableText(
+      input.expectedNotificationEmail !== undefined
+        ? input.expectedNotificationEmail
+        : businessContact?.expectedNotificationEmail,
+      200
+    );
   } else {
     expectedPhone = null;
     expectedEmail = null;
@@ -286,10 +303,7 @@ function normalizeInput(
     expectedPhone,
     expectedEmail,
     expectedNotificationEmail,
-    relationshipLabel: nullableText(
-      input.relationshipLabel ?? existing?.relationshipLabel,
-      500
-    ),
+    relationshipLabel: nullableText(input.relationshipLabel ?? existing?.relationshipLabel, 500),
     notes: text(input.notes ?? existing?.notes, 5_000),
     stage,
     priority,
@@ -340,13 +354,19 @@ async function assertLiveProfileReady(slug: string): Promise<void> {
   );
   const row = result.rows[0];
   if (!row) {
-    throw new Error("The canonical business and profile must exist before the intake can be marked live");
+    throw new Error(
+      "The canonical business and profile must exist before the intake can be marked live"
+    );
   }
   if (row.business_status !== "active" || row.profile_status !== "published") {
-    throw new Error("The business must be active and the profile published before the intake can be marked live");
+    throw new Error(
+      "The business must be active and the profile published before the intake can be marked live"
+    );
   }
   if (!row.ownership_consistent) {
-    throw new Error("Business and profile ownership must agree before the intake can be marked live");
+    throw new Error(
+      "Business and profile ownership must agree before the intake can be marked live"
+    );
   }
 }
 
@@ -593,8 +613,7 @@ export async function getRuntimeManagedPartnerProfileDefinitions(): Promise<
       contactMode: intake.contactMode,
       exposureMode: intake.exposureMode,
       requestMode: intake.requestMode,
-      requestRecipientSlug:
-        slugifyManagedPartnerName(intake.requestRecipientSlug) || slug,
+      requestRecipientSlug: slugifyManagedPartnerName(intake.requestRecipientSlug) || slug,
       expectedPrimaryCta: intake.expectedPrimaryCta || undefined,
       expectedPhone: intake.expectedPhone || undefined,
       expectedEmail: intake.expectedEmail || undefined,

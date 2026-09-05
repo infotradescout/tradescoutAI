@@ -89,8 +89,7 @@ function trackJwStoneRequestIntent(selectionCount: number): void {
     type: "public_profile_action_selected",
     profileSlug: "jw-stone",
     action: "request",
-    surface:
-      selectionCount > 0 ? "jw_selected_material_request" : "jw_general_material_request",
+    surface: selectionCount > 0 ? "jw_selected_material_request" : "jw_general_material_request",
     detail: selectionCount > 0 ? `${selectionCount} selected material request` : undefined,
     deviceType: window.innerWidth < 768 ? "mobile" : "desktop",
     ts: new Date().toISOString(),

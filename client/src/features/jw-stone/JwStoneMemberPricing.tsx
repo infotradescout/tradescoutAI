@@ -166,11 +166,7 @@ function formatCents(cents: number): string {
   return USD_PER_SQUARE_FOOT.format(cents / 100);
 }
 
-export type JwStoneSlabDimensionsInput =
-  | string
-  | StoneInventoryDimensions
-  | null
-  | undefined;
+export type JwStoneSlabDimensionsInput = string | StoneInventoryDimensions | null | undefined;
 
 export type JwStoneSlabCostEstimate = Readonly<{
   minimumTotalCents: number;
@@ -300,7 +296,11 @@ export function JwStoneMemberPriceDisplay({
           </dd>
         </div>
         {slabEstimate ? (
-          <div className={compact ? "basis-full" : "border-t border-[var(--jw-border)] pt-2 sm:col-span-2"}>
+          <div
+            className={
+              compact ? "basis-full" : "border-t border-[var(--jw-border)] pt-2 sm:col-span-2"
+            }
+          >
             <dt className="inline text-[var(--jw-muted)]">Approx. slab total </dt>
             <dd
               className="inline font-semibold text-[var(--jw-ink)]"

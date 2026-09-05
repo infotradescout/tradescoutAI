@@ -8,7 +8,7 @@ import {
   type User,
 } from "@shared/schema";
 import { db } from "../db";
-import { and, desc, eq, inArray, like, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, notInArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
 import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig";
@@ -26,6 +26,7 @@ import {
   MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
   MOULDING_MILLWORK_PROFILE_SLUG,
 } from "@shared/mouldingMillworkProfile";
+import { DIRECT_PROFILE_AUTHORITIES } from "@shared/publicProfileExposureRegistry";
 
 export type PublicProfileRecord = {
   id: string;
@@ -160,8 +161,15 @@ function publicProfileVisibilityPredicate() {
 }
 
 function publicProfileReleaseExposurePredicate() {
-  if (isSteelHomePackagesProfilePubliclyReleased()) return sql`true`;
-  return sql`${profiles.slug} <> ${STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug}`;
+  const discoverableSlug = notInArray(
+    sql`lower(trim(${profiles.slug}))`,
+    Object.keys(DIRECT_PROFILE_AUTHORITIES).map((slug) => slug.trim().toLowerCase())
+  );
+  if (isSteelHomePackagesProfilePubliclyReleased()) return discoverableSlug;
+  return and(
+    discoverableSlug,
+    sql`${profiles.slug} <> ${STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug}`
+  );
 }
 
 export class ProfileRepository {

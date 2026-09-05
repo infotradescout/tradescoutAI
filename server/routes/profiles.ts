@@ -2361,6 +2361,7 @@ export async function getPublicProfileTrustContext(
       businessProfileData: linkedBusiness?.profileData,
       ownerProvider: ownerUser.provider,
       ownerEmailVerified: ownerUser.emailVerified,
+      ownerVerificationStatus: ownerUser.verificationStatus,
       ownerPreferences: ownerUser.preferences,
     });
     const operatorConfirmedTradePartnerProfile = isOperatorConfirmedTradePartnerProfile({

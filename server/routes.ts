@@ -4502,9 +4502,8 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      const identityContext = await resolveRequestAuthorityContext(
-        req,
-        async (targetUserId) => storage.getUser(targetUserId)
+      const identityContext = await resolveRequestAuthorityContext(req, async (targetUserId) =>
+        storage.getUser(targetUserId)
       );
       if (!identityContext.ok) {
         res.status(403).json({

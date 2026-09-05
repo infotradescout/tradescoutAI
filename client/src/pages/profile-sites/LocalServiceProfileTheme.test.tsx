@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 
-import { act } from "react";
+import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LA_PLUMBING_PROFILE_PRESENTATION } from "@shared/localServiceProfile";
+import { LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION } from "@shared/louisianaStoneSolutionsProfile";
 import type { ResolvedProfileGalleryItem } from "@shared/profileGalleryShare";
 import LocalServiceProfileTheme from "./LocalServiceProfileTheme";
 
@@ -82,9 +83,7 @@ describe("LocalServiceProfileTheme", () => {
     vi.unstubAllGlobals();
   });
 
-  function renderTheme(
-    overrides: { verificationStatus?: string | null; verifiedBadge?: boolean } = {}
-  ) {
+  function renderTheme(overrides: Partial<ComponentProps<typeof LocalServiceProfileTheme>> = {}) {
     act(() => {
       root.render(
         <LocalServiceProfileTheme
@@ -102,8 +101,8 @@ describe("LocalServiceProfileTheme", () => {
           recommendationsDirectory={recommendations}
           trustActions={<div data-testid="trust-actions">Trust actions</div>}
           profileItems={<div data-testid="profile-items">Profile items</div>}
-          verificationStatus={overrides.verificationStatus ?? "approved"}
-          verifiedBadge={overrides.verifiedBadge ?? true}
+          verificationStatus="approved"
+          verifiedBadge
           communityVerification={{
             score: 84,
             scoreHistoryStartsAt: "2026-01-02T00:00:00.000Z",
@@ -115,6 +114,7 @@ describe("LocalServiceProfileTheme", () => {
             badges: [],
             computedAt: "2026-07-01T00:00:00.000Z",
           }}
+          {...overrides}
         />
       );
     });
@@ -226,8 +226,142 @@ describe("LocalServiceProfileTheme", () => {
     expect(container.textContent).not.toContain("Verified business");
     expect(container.textContent).toContain("Credentials and trust");
     expect(container.textContent).toContain("Community Verification Score · 84");
+    expect(container.textContent).toContain("View credential numbers (5)");
+    expect(container.textContent).not.toContain("TradeScout verification confirms");
     expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
     expect(container.textContent).toContain("Powered by TradeScout");
+  });
+
+  it("uses the LSS section titles and gives the about copy full width without a photo", () => {
+    renderTheme({
+      profileSlug: "louisiana-stone-solutions",
+      businessName: "Louisiana Stone Solutions",
+      presentation: LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION,
+      verificationStatus: "pending",
+      verifiedBadge: false,
+      communityVerification: null,
+    });
+
+    expect(container.querySelector("#services h2")?.textContent).toBe(
+      LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION.servicesTitle
+    );
+    expect(container.querySelector("#work h2")?.textContent).toBe(
+      LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION.galleryTitle
+    );
+    const sectionNav = container.querySelector('[aria-label="Profile sections"]');
+    expect(sectionNav?.textContent).toContain("Photos");
+    expect(sectionNav?.textContent).not.toContain("Work");
+    const aboutSection = container.querySelector("#company");
+    expect(aboutSection?.querySelector("img")).toBeNull();
+    expect(aboutSection?.textContent).toContain(
+      LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION.aboutBody
+    );
+    expect(aboutSection?.firstElementChild?.className).not.toContain(
+      "grid-cols-[230px_minmax(0,1fr)]"
+    );
+    act(() =>
+      container.querySelector<HTMLButtonElement>('#work button[aria-label^="Open "]')?.click()
+    );
+    expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe(
+      "Louisiana Stone Solutions photo gallery"
+    );
+  });
+
+  it("omits empty trust details for unverified LSS while preserving trust actions", () => {
+    renderTheme({
+      profileSlug: "louisiana-stone-solutions",
+      businessName: "Louisiana Stone Solutions",
+      presentation: LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION,
+      verificationStatus: "pending",
+      verifiedBadge: false,
+      communityVerification: null,
+    });
+
+    expect(container.textContent).not.toContain("Verified business");
+    expect(container.textContent).not.toContain("Credentials and trust");
+    expect(container.textContent).not.toContain("TradeScout verification confirms");
+    expect(container.textContent).not.toContain("View credential numbers");
+    expect(container.textContent).not.toContain("Community Verification Score");
+    expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
+    const service = [...container.querySelectorAll<HTMLButtonElement>("#services button")].find(
+      (button) => button.textContent?.includes("Countertops")
+    );
+    expect(service).toBeDefined();
+    act(() => service?.click());
+    expect(onDirectConnect).toHaveBeenCalledTimes(1);
+    expect(container.innerHTML).not.toMatch(/href="(?:tel|mailto):/);
+  });
+
+  it("keeps a zero CVS visible without inventing verification or empty credential controls", () => {
+    renderTheme({
+      presentation: LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION,
+      verificationStatus: "pending",
+      verifiedBadge: false,
+      communityVerification: {
+        score: 0,
+        scoreHistoryStartsAt: null,
+        lifetimeScoreChange: null,
+        scoreChange30d: null,
+        scoreChange30dComparedAt: null,
+        activePolicyBoostPoints: 0,
+        activeBoosts: [],
+        badges: [],
+        computedAt: null,
+      },
+    });
+
+    expect(container.textContent).toContain("Community Verification Score · 0");
+    expect(container.textContent).not.toContain("View credential numbers");
+    expect(container.textContent).not.toContain("TradeScout verification confirms");
+    expect(container.textContent).not.toContain("Verified business");
+    expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
+  });
+
+  it("retains credential evidence without treating it as profile verification", () => {
+    renderTheme({
+      verificationStatus: "pending",
+      verifiedBadge: false,
+      communityVerification: null,
+    });
+
+    expect(container.textContent).toContain("View credential numbers (5)");
+    expect(container.textContent).toContain("CL 75460");
+    expect(container.textContent).toContain(LA_PLUMBING_PROFILE_PRESENTATION.credentialDisclosure);
+    expect(container.textContent).not.toContain("TradeScout verification confirms");
+    expect(container.textContent).not.toContain("Verified business");
+    expect(container.textContent).not.toContain("Community Verification Score");
+  });
+
+  it("retains verified identity details without credentials or CVS", () => {
+    renderTheme({
+      presentation: { ...LA_PLUMBING_PROFILE_PRESENTATION, credentials: [] },
+      communityVerification: null,
+    });
+
+    expect(container.textContent).toContain("Verified business");
+    expect(container.textContent).toContain(
+      LA_PLUMBING_PROFILE_PRESENTATION.verificationHistoryNote
+    );
+    expect(container.textContent).not.toContain("View credential numbers");
+    expect(container.textContent).not.toContain(
+      LA_PLUMBING_PROFILE_PRESENTATION.credentialDisclosure
+    );
+    expect(container.textContent).not.toContain("Community Verification Score");
+  });
+
+  it("retains the photo column and default section titles when no custom titles are supplied", () => {
+    renderTheme({
+      presentation: { ...LA_PLUMBING_PROFILE_PRESENTATION, servicesTitle: "", galleryTitle: "" },
+    });
+
+    expect(container.querySelector("#services h2")?.textContent).toBe("What do you need?");
+    expect(container.querySelector("#work h2")?.textContent).toBe("Recent work");
+    expect(container.querySelector("#company img")?.getAttribute("src")).toBe(
+      LA_PLUMBING_PROFILE_PRESENTATION.aboutImage
+    );
+    expect(container.querySelector("#company")?.firstElementChild?.className).toContain(
+      "grid-cols-[230px_minmax(0,1fr)]"
+    );
   });
 
   it("falls back to fetch when beacon declines and never blocks the protected action", () => {

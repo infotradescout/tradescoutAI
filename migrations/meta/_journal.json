@@ -932,6 +932,13 @@
       "when": 1788584264875,
       "tag": "0129_restore_profile_account_identity_contract",
       "breakpoints": false
+    },
+    {
+      "idx": 133,
+      "version": "7",
+      "when": 1788614512149,
+      "tag": "0130_business_managed_partner_contact",
+      "breakpoints": false
     }
   ]
 }

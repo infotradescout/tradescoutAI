@@ -28,7 +28,10 @@ import {
   ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
-import { getJwStonePricingSnapshot } from "./services/jwStoneDrivePricing";
+import {
+  getJwStoneDriveIdentityEmail,
+  getJwStonePricingSnapshot,
+} from "./services/jwStoneDrivePricing";
 import {
   HistoricalMigrationReplayRefusedError,
   runRelease399MigrationLedgerRecovery,
@@ -83,10 +86,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml, buildPublicFindLocalBusinessesHtml } from "./publicLandingHtml";
-import {
-  applyPrivateShellNoindex,
-  isPrivateAppShellPath,
-} from "./privateShellIndexability";
+import { applyPrivateShellNoindex, isPrivateAppShellPath } from "./privateShellIndexability";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
   buildJwStoneMarketplaceLlmsText,
@@ -576,12 +576,9 @@ async function renderProfileOnCustomDomain(
           origin,
           collectionUrl: `${origin}/`,
           marketplaceDomainSurface: true,
-          stoneSlug:
-            itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
+          stoneSlug: itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
           photo:
-            itemRequest?.itemType === "inventory"
-              ? String(itemRequest.imageIndex + 1)
-              : undefined,
+            itemRequest?.itemType === "inventory" ? String(itemRequest.imageIndex + 1) : undefined,
           materialSlug:
             categoryRequest?.kind === "category" ? categoryRequest.categorySlug : undefined,
         })
@@ -1258,7 +1255,14 @@ app.use(landingContractHeaders);
           sourceUpdatedAt: snapshot.sourceUpdatedAt,
         });
       } catch (err) {
+        let driveIdentity = "unresolved";
+        try {
+          driveIdentity = await getJwStoneDriveIdentityEmail();
+        } catch {
+          // The source error below remains the useful production signal.
+        }
         console.error("[JW Stone pricing] Canonical Drive source unavailable", {
+          driveIdentity,
           message: err instanceof Error ? err.message : "Unknown Drive pricing source error",
         });
       }
