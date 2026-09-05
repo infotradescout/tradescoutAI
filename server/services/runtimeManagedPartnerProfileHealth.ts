@@ -4,6 +4,7 @@ import {
 } from "@shared/managedPartnerProfileRegistry";
 import { pool } from "../db";
 import {
+  getBusinessManagedContactIssues,
   getManagedPartnerProfileHealth,
   type ManagedPartnerIssueSeverity,
   type ManagedPartnerProfileHealthItem,
@@ -34,6 +35,8 @@ type RuntimePartnerRow = {
   owner_roles: unknown;
   verified_badge: boolean | null;
   verification_status: string | null;
+  owner_provider: string | null;
+  owner_email_verified: boolean | null;
 };
 
 function recordValue(value: unknown): Record<string, unknown> {
@@ -95,7 +98,11 @@ function pushIssue(
 
 function equalContact(actual: string | null, expected: string | undefined): boolean {
   if (!expected) return true;
-  return String(actual || "").trim().toLowerCase() === expected.trim().toLowerCase();
+  return (
+    String(actual || "")
+      .trim()
+      .toLowerCase() === expected.trim().toLowerCase()
+  );
 }
 
 function resolveStatus(
@@ -118,26 +125,29 @@ function auditRuntimeDefinition(args: {
   const email = stringValue(profileData.email);
   const notificationEmail = stringValue(profileData.notificationEmail);
   const profileControl = stringValue(importExtras.profile_control);
-  const contactManagement = stringValue(importExtras.contact_management);
+  const contactManagement =
+    definition.contactMode === "business_managed"
+      ? stringValue(profileData.contactManagement)
+      : stringValue(importExtras.contact_management);
   const businessExists = Boolean(row?.business_id);
   const profileExists = Boolean(row?.profile_id);
   const ownershipConsistent = Boolean(
     row?.business_id &&
-      row.profile_id &&
-      row.profile_business_id === row.business_id &&
-      row.profile_owner_user_id === row.business_owner_user_id
+    row.profile_id &&
+    row.profile_business_id === row.business_id &&
+    row.profile_owner_user_id === row.business_owner_user_id
   );
   const ownerVerified = Boolean(
     row && (row.verified_badge === true || row.verification_status === "approved")
   );
   const ownerIsVerifiedAdmin = Boolean(
     row &&
-      hasVerifiedTradeScoutAdminCustody({
-        ownerRole: row.owner_role,
-        ownerRoles: stringList(row.owner_roles),
-        ownerVerifiedBadge: row.verified_badge,
-        ownerVerificationStatus: row.verification_status,
-      })
+    hasVerifiedTradeScoutAdminCustody({
+      ownerRole: row.owner_role,
+      ownerRoles: stringList(row.owner_roles),
+      ownerVerifiedBadge: row.verified_badge,
+      ownerVerificationStatus: row.verification_status,
+    })
   );
   const issues: ManagedPartnerProfileIssue[] = [];
 
@@ -145,7 +155,12 @@ function auditRuntimeDefinition(args: {
     pushIssue(issues, "blocker", "business_missing", "The canonical business record is missing.");
   }
   if (!profileExists) {
-    pushIssue(issues, "blocker", "profile_missing", "The canonical public profile record is missing.");
+    pushIssue(
+      issues,
+      "blocker",
+      "profile_missing",
+      "The canonical public profile record is missing."
+    );
   }
   if (businessExists && row?.business_status !== "active") {
     pushIssue(
@@ -180,10 +195,7 @@ function auditRuntimeDefinition(args: {
       "This partner is intended to be public, but public discovery is off."
     );
   }
-  if (
-    definition.exposureMode === "direct_only" &&
-    row?.public_discovery_enabled !== false
-  ) {
+  if (definition.exposureMode === "direct_only" && row?.public_discovery_enabled !== false) {
     pushIssue(
       issues,
       "attention",
@@ -289,7 +301,12 @@ function auditRuntimeDefinition(args: {
 
   if (definition.contactMode === "business_phone_tradescout_email") {
     if (!phone) {
-      pushIssue(issues, "blocker", "business_phone_missing", "The public business phone is missing.");
+      pushIssue(
+        issues,
+        "blocker",
+        "business_phone_missing",
+        "The public business phone is missing."
+      );
     }
     if (!equalContact(email, definition.expectedEmail)) {
       pushIssue(
@@ -320,11 +337,22 @@ function auditRuntimeDefinition(args: {
     );
   }
 
+  issues.push(
+    ...getBusinessManagedContactIssues({
+      definition,
+      phone,
+      email,
+      notificationEmail,
+      contactManagement,
+      claimStatus: stringValue(row?.claim_status),
+      ownerUserId: stringValue(row?.business_owner_user_id),
+      ownerProvider: stringValue(row?.owner_provider),
+      ownerEmailVerified: row?.owner_email_verified ?? null,
+    })
+  );
+
   const currentPrimaryCta = primaryCtaLabel(row?.cta_config);
-  if (
-    definition.expectedPrimaryCta &&
-    currentPrimaryCta !== definition.expectedPrimaryCta
-  ) {
+  if (definition.expectedPrimaryCta && currentPrimaryCta !== definition.expectedPrimaryCta) {
     pushIssue(
       issues,
       "attention",
@@ -389,9 +417,7 @@ function auditRuntimeDefinition(args: {
       profileStatus: stringValue(row?.profile_status),
       claimStatus: stringValue(row?.claim_status),
       publicDiscoveryEnabled:
-        typeof row?.public_discovery_enabled === "boolean"
-          ? row.public_discovery_enabled
-          : null,
+        typeof row?.public_discovery_enabled === "boolean" ? row.public_discovery_enabled : null,
       ownershipConsistent,
       ownerRole: stringValue(row?.owner_role),
       ownerVerified,
@@ -438,7 +464,9 @@ async function loadRuntimeRows(slugs: string[]): Promise<Map<string, RuntimePart
        u.role AS owner_role,
        u.roles AS owner_roles,
        u.verified_badge,
-       u.verification_status
+       u.verification_status,
+       u.provider AS owner_provider,
+       u.email_verified AS owner_email_verified
      FROM requested
      LEFT JOIN businesses b ON b.slug = requested.requested_slug
      LEFT JOIN profiles p ON p.slug = requested.requested_slug
@@ -469,10 +497,7 @@ export async function getRuntimeManagedPartnerProfileHealth(): Promise<ManagedPa
 
   const requestedSlugs = Array.from(
     new Set(
-      dynamicDefinitions.flatMap((definition) => [
-        definition.slug,
-        definition.requestRecipientSlug,
-      ])
+      dynamicDefinitions.flatMap((definition) => [definition.slug, definition.requestRecipientSlug])
     )
   );
   const rowBySlug = await loadRuntimeRows(requestedSlugs);

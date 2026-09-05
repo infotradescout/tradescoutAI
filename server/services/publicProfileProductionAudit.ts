@@ -191,9 +191,7 @@ export function fingerprintPublicProfileAuditTargets(
 }
 
 function readAttribute(tag: string, name: string): string | null {
-  const match = tag.match(
-    new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i")
-  );
+  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i"));
   return match ? String(match[1] ?? match[2] ?? "").trim() : null;
 }
 
@@ -279,18 +277,14 @@ export function evaluatePublicProfileProductionHtml(args: {
   const finalUrl = normalizeHttpUrl(args.finalUrl);
   const canonical = readCanonical(args.html, args.target.url);
   const robots = String(readMetaContent(args.html, "robots") || "").toLowerCase();
-  const profileIdentity = String(
-    readMetaContent(args.html, "tradescout-business-slug") || ""
-  )
+  const profileIdentity = String(readMetaContent(args.html, "tradescout-business-slug") || "")
     .trim()
     .toLowerCase();
 
   return {
     httpOk: args.httpStatus === 200,
     finalUrlMatches: Boolean(expectedUrl && finalUrl && expectedUrl === finalUrl),
-    htmlContentType: /(?:text\/html|application\/xhtml\+xml)/i.test(
-      String(args.contentType || "")
-    ),
+    htmlContentType: /(?:text\/html|application\/xhtml\+xml)/i.test(String(args.contentType || "")),
     canonicalMatches: Boolean(expectedUrl && canonical && expectedUrl === canonical),
     indexable: Boolean(robots) && !/\bnoindex\b/i.test(robots) && /\bindex\b/i.test(robots),
     titlePresent: readTitle(args.html).length >= 5,
@@ -409,7 +403,9 @@ async function loadCurrentCandidates(): Promise<PublicProfileAuditCandidate[]> {
         : null;
     })
   );
-  return candidates.filter((candidate): candidate is PublicProfileAuditCandidate => Boolean(candidate));
+  return candidates.filter((candidate): candidate is NonNullable<typeof candidate> =>
+    Boolean(candidate)
+  );
 }
 
 async function persistAudit(args: {
@@ -434,36 +430,37 @@ async function persistAudit(args: {
     );
   }
 
-  await args.queryable.query(
-    `insert into events (event_type, data) values ($1, $2::jsonb)`,
-    [
-      AUDIT_SUMMARY_EVENT_TYPE,
-      JSON.stringify({
-        ...args.summary,
-        fingerprint: args.fingerprint,
-        observedAt: args.observedAt,
-        failedUrls: args.results
-          .filter((result) => result.status !== "production_verified")
-          .slice(0, 50)
-          .map((result) => ({
-            url: result.url,
-            status: result.status,
-            failedChecks: result.failedChecks,
-            detail: result.detail,
-          })),
-        evidenceBoundary:
-          "Production verification proves the deployed HTTP and HTML contract only. It is not proof of indexing, ranking, traffic, requests, or outcomes.",
-      }),
-    ]
-  );
+  await args.queryable.query(`insert into events (event_type, data) values ($1, $2::jsonb)`, [
+    AUDIT_SUMMARY_EVENT_TYPE,
+    JSON.stringify({
+      ...args.summary,
+      fingerprint: args.fingerprint,
+      observedAt: args.observedAt,
+      failedUrls: args.results
+        .filter((result) => result.status !== "production_verified")
+        .slice(0, 50)
+        .map((result) => ({
+          url: result.url,
+          status: result.status,
+          failedChecks: result.failedChecks,
+          detail: result.detail,
+        })),
+      evidenceBoundary:
+        "Production verification proves the deployed HTTP and HTML contract only. It is not proof of indexing, ranking, traffic, requests, or outcomes.",
+    }),
+  ]);
 }
 
 export async function runPublicProfileProductionAudit(
   options: AuditOptions = {}
 ): Promise<PublicProfileProductionAuditResult> {
   const now = options.now || (() => new Date());
-  const candidates = options.candidates || (await (options.loadCandidates || loadCurrentCandidates)());
-  const targets = collectPublicProfileProductionAuditTargets(candidates).slice(0, MAX_AUDIT_TARGETS);
+  const candidates =
+    options.candidates || (await (options.loadCandidates || loadCurrentCandidates)());
+  const targets = collectPublicProfileProductionAuditTargets(candidates).slice(
+    0,
+    MAX_AUDIT_TARGETS
+  );
   const fingerprint = fingerprintPublicProfileAuditTargets(targets);
   const profileCount = new Set(targets.map((target) => target.profileSlug)).size;
 
@@ -494,9 +491,7 @@ export async function runPublicProfileProductionAudit(
         timeoutMs: options.timeoutMs || AUDIT_TIMEOUT_MS,
       })
   );
-  const verifiedCount = results.filter(
-    (result) => result.status === "production_verified"
-  ).length;
+  const verifiedCount = results.filter((result) => result.status === "production_verified").length;
   const failedCount = results.filter((result) => result.status === "production_failed").length;
   const unavailableCount = results.filter((result) => result.status === "unavailable").length;
   const summary = {

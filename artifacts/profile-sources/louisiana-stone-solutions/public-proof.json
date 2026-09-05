@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-05T03:19:26.330Z",
+  "authenticated": false,
+  "checks": [
+    {
+      "path": "/api/u/louisiana-stone-solutions",
+      "status": 404,
+      "bytes": 31,
+      "contentType": "application/json; charset=utf-8",
+      "cacheControl": "private, no-store",
+      "build": "be7330e3be4857cdc59139ac19ce535c31bb78ed"
+    },
+    {
+      "path": "/uploads/business-profiles/louisiana-stone-solutions/kitchen-a8af176a1642.jpg",
+      "status": 200,
+      "bytes": 121062,
+      "contentType": "image/jpeg",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "build": null,
+      "sha256": "a8af176a1642d48eb1470ba1017058a2522f08d3844f86a95b9ecd8ffdc0244c"
+    },
+    {
+      "path": "/uploads/business-profiles/louisiana-stone-solutions/logo-ba7034eb0e0d.jpg",
+      "status": 200,
+      "bytes": 5043,
+      "contentType": "image/jpeg",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "build": null,
+      "sha256": "ba7034eb0e0dffb9cf5ca3f58d0e559ec10705fb7be33bc8898f4e8e7e5d1e35"
+    }
+  ]
+}

@@ -190,13 +190,12 @@ export default function LocalServiceProfileTheme({
   const isVerified =
     verifiedBadge === true && String(verificationStatus || "").toLowerCase() === "approved";
   const verificationScore =
-    typeof communityVerification?.score === "number" &&
-    Number.isFinite(communityVerification.score)
+    typeof communityVerification?.score === "number" && Number.isFinite(communityVerification.score)
       ? Math.max(0, Math.round(communityVerification.score))
       : null;
-  const scoreHistoryStart = formatScoreHistoryDate(
-    communityVerification?.scoreHistoryStartsAt
-  );
+  const hasCredentials = presentation.credentials.length > 0;
+  const hasTrustDetails = isVerified || hasCredentials || verificationScore !== null;
+  const scoreHistoryStart = formatScoreHistoryDate(communityVerification?.scoreHistoryStartsAt);
   const score30dComparedAt = formatScoreHistoryDate(
     communityVerification?.scoreChange30dComparedAt
   );
@@ -293,9 +292,9 @@ export default function LocalServiceProfileTheme({
 
       <section className="relative z-10 -mt-12 px-3 sm:-mt-16 sm:px-5">
         <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.18)]">
-          <div className="grid gap-5 p-5 sm:p-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8">
-            <div className="flex items-start justify-between gap-3 lg:block">
-              <div className="flex h-24 w-44 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:h-28 lg:w-full">
+          <div className="grid grid-cols-1 gap-5 p-5 sm:p-7 lg:grid-cols-[190px_minmax(0,1fr)] lg:gap-8">
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-3 lg:block">
+              <div className="flex h-24 w-44 max-w-full items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:h-28 lg:w-full">
                 <img
                   src={presentation.logoImage}
                   alt={presentation.logoAlt}
@@ -308,7 +307,7 @@ export default function LocalServiceProfileTheme({
                 text={`${presentation.eyebrow} in ${presentation.locationLabel}`}
                 variant="outline"
                 label={`Share ${businessName}`}
-                className="h-11 rounded-full border-slate-200 bg-white text-slate-700 hover:bg-slate-50 lg:mt-4 lg:w-full"
+                className="h-auto min-h-11 min-w-0 max-w-full whitespace-normal rounded-full border-slate-200 bg-white py-2 text-slate-700 hover:bg-slate-50 lg:mt-4 lg:w-full"
               />
             </div>
 
@@ -407,7 +406,7 @@ export default function LocalServiceProfileTheme({
           >
             {[
               ["Services", "services"],
-              ["Work", "work"],
+              ["Photos", "work"],
               ["About", "company"],
               ["Details", "details"],
             ].map(([label, sectionId]) => (
@@ -438,7 +437,7 @@ export default function LocalServiceProfileTheme({
                   {presentation.servicesEyebrow}
                 </p>
                 <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-slate-950 sm:text-3xl">
-                  What do you need?
+                  {presentation.servicesTitle?.trim() || "What do you need?"}
                 </h2>
               </div>
               <p className="max-w-md text-sm leading-6 text-slate-500">
@@ -453,9 +452,7 @@ export default function LocalServiceProfileTheme({
                   <button
                     key={service.title}
                     type="button"
-                    onClick={() =>
-                      openProtectedContact("service", "service_grid", service.title)
-                    }
+                    onClick={() => openProtectedContact("service", "service_grid", service.title)}
                     className="group flex min-h-[132px] items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50/60 hover:shadow-md"
                   >
                     <span className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-sky-100 text-sky-700">
@@ -487,7 +484,7 @@ export default function LocalServiceProfileTheme({
                   {presentation.galleryEyebrow}
                 </p>
                 <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-slate-950 sm:text-3xl">
-                  Recent work
+                  {presentation.galleryTitle?.trim() || "Recent work"}
                 </h2>
               </div>
               <p className="max-w-md text-sm leading-6 text-slate-500">
@@ -531,9 +528,7 @@ export default function LocalServiceProfileTheme({
                         />
                         <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/5 to-transparent" />
                         <span className="absolute inset-x-0 bottom-0 p-4">
-                          <span className="block text-sm font-black text-white">
-                            {item.title}
-                          </span>
+                          <span className="block text-sm font-black text-white">{item.title}</span>
                           {item.description ? (
                             <span className="mt-1 line-clamp-2 block text-[11px] leading-4 text-white/70">
                               {item.description}
@@ -567,7 +562,9 @@ export default function LocalServiceProfileTheme({
             id="company"
             className="scroll-mt-24 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="grid md:grid-cols-[230px_minmax(0,1fr)]">
+            <div
+              className={presentation.aboutImage ? "grid md:grid-cols-[230px_minmax(0,1fr)]" : ""}
+            >
               {presentation.aboutImage ? (
                 <div className="relative min-h-[230px] overflow-hidden">
                   <img
@@ -585,9 +582,7 @@ export default function LocalServiceProfileTheme({
                 <h2 className="mt-2 text-2xl font-black tracking-[-0.035em] text-slate-950 sm:text-3xl">
                   {presentation.aboutTitle}
                 </h2>
-                <p className="mt-4 text-sm leading-7 text-slate-600">
-                  {presentation.aboutBody}
-                </p>
+                <p className="mt-4 text-sm leading-7 text-slate-600">{presentation.aboutBody}</p>
                 {presentation.commitments?.length ? (
                   <div className="mt-5 grid gap-2 sm:grid-cols-2">
                     {presentation.commitments.map((commitment) => (
@@ -613,9 +608,7 @@ export default function LocalServiceProfileTheme({
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {publicRecommendations.slice(0, 6).map((entry) => (
                   <article key={entry.id} className="rounded-2xl bg-slate-50 p-4">
-                    <p className="font-black text-slate-950">
-                      {entry.customerName || "Customer"}
-                    </p>
+                    <p className="font-black text-slate-950">{entry.customerName || "Customer"}</p>
                     {entry.projectType ? (
                       <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-sky-700">
                         {entry.projectType}
@@ -645,9 +638,7 @@ export default function LocalServiceProfileTheme({
                 <div>
                   <p className="font-black text-slate-900">{presentation.locationLabel}</p>
                   {presentation.addressLabel ? (
-                    <p className="mt-1 leading-5 text-slate-600">
-                      {presentation.addressLabel}
-                    </p>
+                    <p className="mt-1 leading-5 text-slate-600">{presentation.addressLabel}</p>
                   ) : null}
                 </div>
               </div>
@@ -713,97 +704,105 @@ export default function LocalServiceProfileTheme({
             </article>
           ) : null}
 
-          <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-6 w-6 text-emerald-600" />
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">
-                  Verification
-                </p>
-                <h2 className="text-lg font-black text-slate-950">Credentials and trust</h2>
+          {hasTrustDetails ? (
+            <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="h-6 w-6 text-emerald-600" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">
+                    {isVerified ? "Verification" : "Business details"}
+                  </p>
+                  <h2 className="text-lg font-black text-slate-950">Credentials and trust</h2>
+                </div>
               </div>
-            </div>
 
-            <p className="mt-3 text-xs leading-5 text-slate-600">
-              {presentation.verificationHistoryNote ||
-                "TradeScout verification confirms the business identity and onboarding record."}
-            </p>
-
-            <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <summary className="cursor-pointer list-none text-sm font-black text-slate-900">
-                View credential numbers ({presentation.credentials.length})
-              </summary>
-              <div className="mt-4 divide-y divide-slate-200">
-                {presentation.credentials.map((credential) => (
-                  <div key={`${credential.label}-${credential.value}`} className="py-4 first:pt-0 last:pb-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                          {credential.label}
-                        </p>
-                        <p className="mt-1 font-black text-slate-950">{credential.value}</p>
-                      </div>
-                      {credential.verificationUrl ? (
-                        <a
-                          href={credential.verificationUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex flex-none items-center gap-1 text-xs font-black text-sky-700 hover:underline"
-                        >
-                          Verify
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ) : null}
-                    </div>
-                    {credential.authority ? (
-                      <p className="mt-2 text-xs leading-5 text-slate-500">
-                        {credential.authority}
-                      </p>
-                    ) : null}
-                    {credential.statusLabel ? (
-                      <p className="mt-2 text-xs font-bold leading-5 text-amber-700">
-                        {credential.statusLabel}
-                      </p>
-                    ) : null}
-                    {credential.checkedAt ? (
-                      <p className="mt-2 text-[10px] uppercase tracking-[0.1em] text-slate-400">
-                        Source reviewed {credential.checkedAt}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-              {presentation.credentialDisclosure ? (
-                <p className="mt-4 border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-500">
-                  {presentation.credentialDisclosure}
+              {isVerified ? (
+                <p className="mt-3 text-xs leading-5 text-slate-600">
+                  {presentation.verificationHistoryNote ||
+                    "TradeScout verification confirms the business identity and onboarding record."}
                 </p>
               ) : null}
-            </details>
 
-            {verificationScore !== null ? (
-              <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <summary className="cursor-pointer list-none text-sm font-black text-slate-900">
-                  Community Verification Score · {verificationScore}
-                </summary>
-                <div className="mt-3 space-y-2 text-xs leading-5 text-slate-500">
-                  <p>
-                    Active policy boosts: +{activeBoostPoints}. Score history begins{" "}
-                    {scoreHistoryStart || "when enough governed history is available"}.
-                  </p>
-                  {typeof communityVerification?.scoreChange30d === "number" ? (
-                    <p>
-                      30-day change:{" "}
-                      {communityVerification.scoreChange30d > 0 ? "+" : ""}
-                      {Math.round(communityVerification.scoreChange30d)}
-                      {score30dComparedAt ? ` compared with ${score30dComparedAt}` : ""}.
+              {hasCredentials ? (
+                <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <summary className="cursor-pointer list-none text-sm font-black text-slate-900">
+                    View credential numbers ({presentation.credentials.length})
+                  </summary>
+                  <div className="mt-4 divide-y divide-slate-200">
+                    {presentation.credentials.map((credential) => (
+                      <div
+                        key={`${credential.label}-${credential.value}`}
+                        className="py-4 first:pt-0 last:pb-0"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                              {credential.label}
+                            </p>
+                            <p className="mt-1 font-black text-slate-950">{credential.value}</p>
+                          </div>
+                          {credential.verificationUrl ? (
+                            <a
+                              href={credential.verificationUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex flex-none items-center gap-1 text-xs font-black text-sky-700 hover:underline"
+                            >
+                              Verify
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          ) : null}
+                        </div>
+                        {credential.authority ? (
+                          <p className="mt-2 text-xs leading-5 text-slate-500">
+                            {credential.authority}
+                          </p>
+                        ) : null}
+                        {credential.statusLabel ? (
+                          <p className="mt-2 text-xs font-bold leading-5 text-amber-700">
+                            {credential.statusLabel}
+                          </p>
+                        ) : null}
+                        {credential.checkedAt ? (
+                          <p className="mt-2 text-[10px] uppercase tracking-[0.1em] text-slate-400">
+                            Source reviewed {credential.checkedAt}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                  {presentation.credentialDisclosure ? (
+                    <p className="mt-4 border-t border-slate-200 pt-4 text-[11px] leading-5 text-slate-500">
+                      {presentation.credentialDisclosure}
                     </p>
-                  ) : (
-                    <p>30-day comparison is not available yet.</p>
-                  )}
-                </div>
-              </details>
-            ) : null}
-          </article>
+                  ) : null}
+                </details>
+              ) : null}
+
+              {verificationScore !== null ? (
+                <details className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <summary className="cursor-pointer list-none text-sm font-black text-slate-900">
+                    Community Verification Score · {verificationScore}
+                  </summary>
+                  <div className="mt-3 space-y-2 text-xs leading-5 text-slate-500">
+                    <p>
+                      Active policy boosts: +{activeBoostPoints}. Score history begins{" "}
+                      {scoreHistoryStart || "when enough governed history is available"}.
+                    </p>
+                    {typeof communityVerification?.scoreChange30d === "number" ? (
+                      <p>
+                        30-day change: {communityVerification.scoreChange30d > 0 ? "+" : ""}
+                        {Math.round(communityVerification.scoreChange30d)}
+                        {score30dComparedAt ? ` compared with ${score30dComparedAt}` : ""}.
+                      </p>
+                    ) : (
+                      <p>30-day comparison is not available yet.</p>
+                    )}
+                  </div>
+                </details>
+              ) : null}
+            </article>
+          ) : null}
 
           <div className="rounded-3xl bg-[var(--service-surface)] p-4 text-white shadow-sm">
             {trustActions}
@@ -819,9 +818,7 @@ export default function LocalServiceProfileTheme({
           >
             Powered by TradeScout
           </a>
-          <p className="text-xs text-slate-400">
-            Connection Without Compromise
-          </p>
+          <p className="text-xs text-slate-400">Connection Without Compromise</p>
         </div>
       </footer>
 
@@ -849,7 +846,7 @@ export default function LocalServiceProfileTheme({
           className="fixed inset-0 z-[65] flex items-center justify-center bg-black/95 p-3 sm:p-6"
           role="dialog"
           aria-modal="true"
-          aria-label={`${businessName} completed work gallery`}
+          aria-label={`${businessName} photo gallery`}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setActiveGalleryIndex(null);
           }}
@@ -859,9 +856,7 @@ export default function LocalServiceProfileTheme({
               <div className="min-w-0">
                 <p className="truncate font-black text-white">{activeGalleryItem.title}</p>
                 {activeGalleryItem.description ? (
-                  <p className="truncate text-xs text-slate-400">
-                    {activeGalleryItem.description}
-                  </p>
+                  <p className="truncate text-xs text-slate-400">{activeGalleryItem.description}</p>
                 ) : null}
               </div>
               <button

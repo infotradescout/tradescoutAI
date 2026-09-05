@@ -86,10 +86,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
-import {
-  applyPrivateShellNoindex,
-  isPrivateAppShellPath,
-} from "./privateShellIndexability";
+import { applyPrivateShellNoindex, isPrivateAppShellPath } from "./privateShellIndexability";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
   buildJwStoneMarketplaceLlmsText,
@@ -576,12 +573,9 @@ async function renderProfileOnCustomDomain(
           origin,
           collectionUrl: `${origin}/`,
           marketplaceDomainSurface: true,
-          stoneSlug:
-            itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
+          stoneSlug: itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : undefined,
           photo:
-            itemRequest?.itemType === "inventory"
-              ? String(itemRequest.imageIndex + 1)
-              : undefined,
+            itemRequest?.itemType === "inventory" ? String(itemRequest.imageIndex + 1) : undefined,
           materialSlug:
             categoryRequest?.kind === "category" ? categoryRequest.categorySlug : undefined,
         })

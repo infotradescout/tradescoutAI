@@ -86,9 +86,7 @@ function booleanValue(value: unknown): boolean | null {
 
 function stringList(value: unknown): string[] {
   return Array.isArray(value)
-    ? value
-        .map((entry) => String(entry || "").trim())
-        .filter(Boolean)
+    ? value.map((entry) => String(entry || "").trim()).filter(Boolean)
     : [];
 }
 
@@ -108,7 +106,11 @@ function pushIssue(
 
 function equalContact(actual: string | null, expected: string | undefined): boolean {
   if (!expected) return true;
-  return String(actual || "").trim().toLowerCase() === expected.trim().toLowerCase();
+  return (
+    String(actual || "")
+      .trim()
+      .toLowerCase() === expected.trim().toLowerCase()
+  );
 }
 
 function resolveStatus(issues: ManagedPartnerProfileIssue[]): ManagedPartnerProfileHealthStatus {
@@ -117,10 +119,107 @@ function resolveStatus(issues: ManagedPartnerProfileIssue[]): ManagedPartnerProf
   return "ready";
 }
 
+/** Shared by the permanent and intake-promoted audits; this never changes routing or custody. */
+export function getBusinessManagedContactIssues(args: {
+  definition: ManagedPartnerProfileDefinition;
+  phone: string | null;
+  email: string | null;
+  notificationEmail: string | null;
+  contactManagement: string | null;
+  claimStatus: string | null;
+  ownerUserId: string | null;
+  ownerProvider: string | null;
+  ownerEmailVerified: boolean | null;
+}): ManagedPartnerProfileIssue[] {
+  const { definition } = args;
+  if (definition.contactMode !== "business_managed") return [];
+  const issues: ManagedPartnerProfileIssue[] = [];
+
+  if (!stringValue(definition.expectedEmail)) {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_email_unconfigured",
+      "The business email has not been confirmed in the intake."
+    );
+  } else if (!equalContact(args.email, definition.expectedEmail)) {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_email_mismatch",
+      "The stored business email does not match the configured business email."
+    );
+  }
+  if (!stringValue(definition.expectedNotificationEmail)) {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_notification_unconfigured",
+      "The business notification inbox has not been confirmed in the intake."
+    );
+  } else if (!equalContact(args.notificationEmail, definition.expectedNotificationEmail)) {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_notification_mismatch",
+      "The notification inbox does not match the configured business recipient."
+    );
+  }
+  if (definition.expectedPhone && !equalContact(args.phone, definition.expectedPhone)) {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_phone_mismatch",
+      "The stored phone does not match the configured business phone."
+    );
+  }
+  if (definition.requestRecipientSlug !== definition.slug) {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_request_recipient_mismatch",
+      "Business-managed requests must target this business's own profile."
+    );
+  }
+  if (definition.requestMode === "pending") {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_request_mode_pending",
+      "The business request path is still pending."
+    );
+  }
+  if (args.contactManagement !== "business_managed") {
+    pushIssue(
+      issues,
+      "attention",
+      "business_contact_marker_missing",
+      "The business-managed contact marker is missing from the business record."
+    );
+  }
+
+  const pendingStewardship =
+    definition.controlMode === "admin_stewarded_pending_claim" ||
+    definition.controlMode === "admin_stewarded_pending_owner_transfer" ||
+    /steward/i.test(args.ownerProvider || "");
+  if (
+    pendingStewardship ||
+    args.claimStatus !== "claimed" ||
+    !args.ownerUserId ||
+    args.ownerEmailVerified !== true
+  ) {
+    pushIssue(
+      issues,
+      "blocker",
+      "business_operator_pending",
+      "Business inbox access is not confirmed. A configured email alone does not let a pending steward open or reply to requests."
+    );
+  }
+  return issues;
+}
+
 export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerProfileHealthReport> {
-  const definitions: ManagedPartnerProfileDefinition[] = [
-    ...MANAGED_PARTNER_PROFILE_DEFINITIONS,
-  ];
+  const definitions: ManagedPartnerProfileDefinition[] = [...MANAGED_PARTNER_PROFILE_DEFINITIONS];
   const slugs: string[] = definitions.map((definition) => definition.slug);
 
   const [businessRows, profileRows] = await Promise.all([
@@ -168,6 +267,8 @@ export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerPr
           roles: users.roles,
           verifiedBadge: users.verifiedBadge,
           verificationStatus: users.verificationStatus,
+          provider: users.provider,
+          emailVerified: users.emailVerified,
         })
         .from(users)
         .where(inArray(users.id, ownerIds))
@@ -194,24 +295,27 @@ export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerPr
     const email = stringValue(profileData.email);
     const notificationEmail = stringValue(profileData.notificationEmail);
     const profileControl = stringValue(importExtras.profile_control);
-    const contactManagement = stringValue(importExtras.contact_management);
+    const contactManagement =
+      definition.contactMode === "business_managed"
+        ? stringValue(profileData.contactManagement)
+        : stringValue(importExtras.contact_management);
     const ownershipConsistent = Boolean(
       business &&
-        profile &&
-        String(profile.businessId || "") === String(business.id) &&
-        String(profile.ownerUserId || "") === String(business.ownerUserId || "")
+      profile &&
+      String(profile.businessId || "") === String(business.id) &&
+      String(profile.ownerUserId || "") === String(business.ownerUserId || "")
     );
     const ownerVerified = Boolean(
       owner && (owner.verifiedBadge === true || owner.verificationStatus === "approved")
     );
     const ownerIsVerifiedAdmin = Boolean(
       owner &&
-        hasVerifiedTradeScoutAdminCustody({
-          ownerRole: owner.role,
-          ownerRoles: owner.roles,
-          ownerVerifiedBadge: owner.verifiedBadge,
-          ownerVerificationStatus: owner.verificationStatus,
-        })
+      hasVerifiedTradeScoutAdminCustody({
+        ownerRole: owner.role,
+        ownerRoles: owner.roles,
+        ownerVerifiedBadge: owner.verifiedBadge,
+        ownerVerificationStatus: owner.verificationStatus,
+      })
     );
     const issues: ManagedPartnerProfileIssue[] = [];
 
@@ -219,7 +323,12 @@ export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerPr
       pushIssue(issues, "blocker", "business_missing", "The canonical business record is missing.");
     }
     if (!profile) {
-      pushIssue(issues, "blocker", "profile_missing", "The canonical public profile record is missing.");
+      pushIssue(
+        issues,
+        "blocker",
+        "profile_missing",
+        "The canonical public profile record is missing."
+      );
     }
     if (business && business.status !== "active") {
       pushIssue(
@@ -366,7 +475,12 @@ export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerPr
 
     if (definition.contactMode === "business_phone_tradescout_email") {
       if (!phone) {
-        pushIssue(issues, "blocker", "business_phone_missing", "The public business phone is missing.");
+        pushIssue(
+          issues,
+          "blocker",
+          "business_phone_missing",
+          "The public business phone is missing."
+        );
       }
       if (!equalContact(email, definition.expectedEmail)) {
         pushIssue(
@@ -397,11 +511,22 @@ export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerPr
       );
     }
 
+    issues.push(
+      ...getBusinessManagedContactIssues({
+        definition,
+        phone,
+        email,
+        notificationEmail,
+        contactManagement,
+        claimStatus: stringValue(business?.claimStatus),
+        ownerUserId: stringValue(owner?.id),
+        ownerProvider: stringValue(owner?.provider),
+        ownerEmailVerified: booleanValue(owner?.emailVerified),
+      })
+    );
+
     const currentPrimaryCta = primaryCtaLabel(profile?.ctaConfig);
-    if (
-      definition.expectedPrimaryCta &&
-      currentPrimaryCta !== definition.expectedPrimaryCta
-    ) {
+    if (definition.expectedPrimaryCta && currentPrimaryCta !== definition.expectedPrimaryCta) {
       pushIssue(
         issues,
         "attention",

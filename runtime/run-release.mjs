@@ -1,10 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import {
-  allowExplicitInsecureTestDatabase,
-  secureDatabaseEnvironment,
-} from "./database-url-security.mjs";
+const bundledSecurityUrl = new URL("./database-url-security.mjs", import.meta.url);
+const { allowExplicitInsecureTestDatabase, secureDatabaseEnvironment } = await import(
+  fs.existsSync(bundledSecurityUrl)
+    ? bundledSecurityUrl.href
+    : new URL("../shared/database-url-security.mjs", import.meta.url).href
+);
 
 const [builtName, sourcePath, ...args] = process.argv.slice(2);
 if (!builtName || !sourcePath || !/^[a-z0-9-]+$/i.test(builtName)) {
