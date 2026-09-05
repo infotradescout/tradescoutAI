@@ -75,16 +75,26 @@ export function publicBusinessSitemapCrawlabilitySqlPredicate(args: {
   );
   const hasCanonicalTrade = sql`EXISTS (
     SELECT 1
-    FROM jsonb_array_elements_text(
-      jsonb_build_array(COALESCE(${businesses.profileData} ->> 'category', '')) ||
-      CASE
-        WHEN jsonb_typeof(${businesses.profileData} -> 'services') = 'array'
-          THEN ${businesses.profileData} -> 'services'
-        ELSE '[]'::jsonb
-      END
-    ) WITH ORDINALITY AS sitemap_trade_candidate(value, position)
-    WHERE sitemap_trade_candidate.position <= 8
-      AND lower(btrim(sitemap_trade_candidate.value)) IN (${tradeInputs})
+    FROM (
+      SELECT btrim(candidate.value #>> '{}') AS value
+      FROM jsonb_array_elements(
+        CASE
+          WHEN jsonb_typeof(${businesses.profileData} -> 'category') = 'string'
+            THEN jsonb_build_array(${businesses.profileData} -> 'category')
+          ELSE '[]'::jsonb
+        END ||
+        CASE
+          WHEN jsonb_typeof(${businesses.profileData} -> 'services') = 'array'
+            THEN ${businesses.profileData} -> 'services'
+          ELSE '[]'::jsonb
+        END
+      ) WITH ORDINALITY AS candidate(value, position)
+      WHERE jsonb_typeof(candidate.value) = 'string'
+        AND btrim(candidate.value #>> '{}') <> ''
+      ORDER BY candidate.position
+      LIMIT 8
+    ) AS sitemap_trade_candidate
+    WHERE lower(sitemap_trade_candidate.value) IN (${tradeInputs})
   )`;
 
   return and(

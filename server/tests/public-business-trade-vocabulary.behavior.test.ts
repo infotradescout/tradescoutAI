@@ -62,4 +62,21 @@ describe("public business trade vocabulary", () => {
       deriveTradeSlugFromProfileData({ description: "An HVAC contractor", phone: "plumber" })
     ).toBeNull();
   });
+
+  it("counts meaningful category/service strings before applying the candidate bound", () => {
+    const unknown = Array.from({ length: 7 }, (_, index) => `Unknown ${index}`);
+    for (const profile of [
+      { services: [...unknown, "HVAC Contractor"] },
+      { category: " ", services: [...unknown, "HVAC Contractor"] },
+      { services: [null, "", " ", 12, {}, ...unknown, "HVAC Contractor"] },
+    ]) {
+      expect(deriveTradeSlugFromProfileData(profile)).toBe("hvac");
+    }
+    expect(
+      deriveTradeSlugFromProfileData({
+        category: "Another unknown",
+        services: [...unknown, "HVAC Contractor"],
+      })
+    ).toBeNull();
+  });
 });
