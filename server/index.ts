@@ -28,6 +28,7 @@ import {
   ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
+import { getJwStonePricingSnapshot } from "./services/jwStoneDrivePricing";
 import {
   HistoricalMigrationReplayRefusedError,
   runRelease399MigrationLedgerRecovery,
@@ -1245,6 +1246,19 @@ app.use(landingContractHeaders);
       await runSchemaPreflight();
     } catch (err) {
       console.error("[SchemaPreflight] Failed during startup (non-fatal):", err);
+    }
+    if (isProductionEnv) {
+      try {
+        const snapshot = await getJwStonePricingSnapshot({ forceRefresh: true });
+        console.log("[JW Stone pricing] Canonical Drive source verified", {
+          priceRows: snapshot.prices.length,
+          sourceUpdatedAt: snapshot.sourceUpdatedAt,
+        });
+      } catch (err) {
+        console.error("[JW Stone pricing] Canonical Drive source unavailable", {
+          message: err instanceof Error ? err.message : "Unknown Drive pricing source error",
+        });
+      }
     }
     // NOTE: Ensure 'routes' is imported or defined before this point if 'registerRoutes' uses it directly.
     // If 'routes' is not implicitly available, it needs to be imported.
