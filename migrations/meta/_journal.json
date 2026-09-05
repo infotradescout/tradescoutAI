@@ -925,6 +925,13 @@
       "when": 1788580025217,
       "tag": "0128_jw_stone_member_pricing",
       "breakpoints": false
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1788584264875,
+      "tag": "0129_restore_profile_account_identity_contract",
+      "breakpoints": false
     }
   ]
 }
