@@ -50,6 +50,24 @@ describe("page-shell architecture verifier", () => {
     ).toBe(0);
   });
 
+  it.each([
+    ["pages/admin.tsx", "AdminShell"],
+    ["pages/direct-connect/DirectConnectShell.tsx", "DirectConnectShell"],
+  ])("accepts the registered feature workspace at %s", (file, name) => {
+    expect(verify({ [file]: `export default function ${name}() { return null; }` }).status).toBe(0);
+  });
+
+  it.each([
+    ["pages/admin-copy.tsx", "AdminShell"],
+    ["pages/direct-connect-copy/DirectConnectShell.tsx", "DirectConnectShell"],
+    ["pages/admin.tsx", "UnregisteredShell"],
+    ["pages/direct-connect/DirectConnectShell.tsx", "UnregisteredShell"],
+  ])("rejects a workspace with the wrong owner or export at %s", (file, name) => {
+    const result = verify({ [file]: `export default function ${name}() { return null; }` });
+    expect(result.status).toBe(1);
+    expect(result.output).toContain(name);
+  });
+
   it("continues rejecting dependencies between page shells", () => {
     const result = verify({
       "shells/DashboardShell.tsx": 'import { OtherShell } from "./OtherShell";',

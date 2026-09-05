@@ -59,13 +59,15 @@ The 513 remote branches and 21 open pull requests observed include overlapping r
 | Public request entry | Live finder/request navigation fails; existing PR #574 owns the query parsing and query-only navigation fix. | A person can go from county/service discovery to the request composer and recover their draft after sign-in. |
 | Public UI | Homepage measurement shows excessive depth and competing entry wording; no mobile verdict is claimed. | One obvious primary action, concise explanation, consistent request labels, usable keyboard/focus/error states, and verified narrow-screen flows. |
 | Product intent | Root SI contract is a partner-specific snapshot, not whole-product authority. | A current product-level contract governs shared rules; partner-specific variations stay within their owners. |
-| Database and live readiness | No disposable test database was supplied. Native PostgreSQL 18.4 runs its version probe, but this runtime rejects both changing scratch-data ownership and starting an unprivileged subprocess (`EINVAL`). | Use an authorized disposable native PostgreSQL environment for transaction, concurrent lock, migration, session persistence, and authenticated application proof. Do not replace it with a source-string pass or production data. |
+| Database and live readiness | No disposable `TEST_DATABASE_URL` is available. Native PostgreSQL 18.4 runs its version probe, but this runtime rejects both changing scratch-data ownership and starting an unprivileged subprocess (`EINVAL`). A read-only connection probe to an existing Neon migration-proof database also fails DNS resolution (`EAI_AGAIN`). | Use an authorized, reachable disposable native PostgreSQL environment for transaction, concurrent lock, migration, session persistence, and authenticated application proof. Do not replace it with a source-string pass or production data. |
 
 Recovery order is shared authority and persisted data, then county-to-request-to-response journeys, then UI consistency and remaining feature owners. This preserves existing capabilities while repairing the decisions they share. Release 3, merging main, and deployment remain held until the required earlier proof is complete.
 
 ## Current intent that must survive recovery
 
 Thomas's approved September 4 convergence standard makes historical implementation evidence, not permanent authority. This audit preserves historical, current, product, and future truth separately.
+
+Law classification for the acceptance constraints below: **policy_target**. Their inclusion records current intent; it does not assert that every corresponding behavior has been verified.
 
 - Direct Connect submission grants permission to send the sender's name and phone to the receiving business. Recovery must preserve that explicit request handoff and avoid premature unrelated disclosure.
 - Administrative manual profile onboarding retains its explicit administrative exception to normal verification requirements. It must not depend on promoting an email alias or borrowing a stale impersonation role.
@@ -80,11 +82,30 @@ These are acceptance constraints for the remaining journeys, not claims that eac
 
 The saved account-authority checkpoint `9c1394e1d2b9a3397d3de1c3768bc116790dd08a` completed the serialized `verify:local` chain: 773 test files passed, 26 skipped; 5,278 tests passed, 142 skipped. TypeScript and the production client/server build also passed. The prior default parallel run failed before a complete report, with two timeout failures; using the repository's supported `VITEST_SERIAL=true` mode completed the same suite. Skipped tests remain unproved.
 
-Additional required audits found four raw error-message expressions across three Admin pages. Those now use the existing user-facing error formatter. The shell verifier also confused a physical-room data type and a lower-camel-case geometry predicate with React page components. Its component-export rule now targets PascalCase runtime values; regression fixtures still reject misplaced components, inter-shell imports, and the legacy Community shell. Domain geometry is not renamed merely to satisfy an unrelated layout heuristic.
+Additional required audits found four raw error-message expressions across three Admin pages. Those now use the existing user-facing error formatter. Checkpoint `bb6ee2d27accc8d589f6eedf45ada91928ebf79b` completed the serialized local suite with 774 files passed, 26 skipped; 5,286 tests passed, 142 skipped.
+
+The shell verifier confused a physical-room data type and a lower-camel-case geometry predicate with React page components. Its component-export rule now targets PascalCase runtime values, including default and async exports. That stronger detection also exposed two pre-existing feature workspace owners: `pages/admin.tsx` / `AdminShell` and `pages/direct-connect/DirectConnectShell.tsx` / `DirectConnectShell`. `AppRoutes.tsx` already mounts both inside the shared global `AppShell`. The verifier now recognizes those exact path/name pairs. Fourteen behavior fixtures preserve rejection of misplaced copies, wrong export names, inter-shell imports, and the legacy Community shell. No feature layout was moved or redesigned to satisfy a filename heuristic.
+
+## Bounded dependency correction
+
+The automatic approval review rejected `npm audit --omit=dev --json` because it would upload the dependency inventory to the npm registry. The alternative downloaded the public GitHub-reviewed advisory database and compared versions locally; it did not upload that inventory. The source snapshot is [`6d3aba94b45563b2202a6f7bfa7223bfa46bf3f9`](https://github.com/github/advisory-database/commit/6d3aba94b45563b2202a6f7bfa7223bfa46bf3f9). The comparison checks published npm version ranges, excludes withdrawn advisories and development-only entries, and verifies its version-boundary logic against a known vulnerable/fixed package pair.
+
+Five known advisory matches across four package families were corrected:
+
+| Package | Version correction | Advisory and observed use |
+| --- | --- | --- |
+| `postcss-selector-parser` | Two copies: 6.1.2 → 6.1.4 | [GHSA-w9m9-85wc-3x92](https://github.com/advisories/GHSA-w9m9-85wc-3x92): build-time Tailwind/PostCSS dependency. Typography's separate exact 6.0.10 pin is outside the affected range and remains unchanged. |
+| `fflate` | 0.8.2 → 0.8.3 | [GHSA-px8p-9vwx-vf98](https://github.com/advisories/GHSA-px8p-9vwx-vf98): malformed ZIP64 decompression. The inspected client jsPDF path uses compression, so the version match alone does not prove an exploitable application path. |
+| `@xmldom/xmldom` | 0.8.14 → 0.8.15; development copy 0.9.10 → 0.9.12 | [GHSA-6gmq-8vp8-gcm6](https://github.com/advisories/GHSA-6gmq-8vp8-gcm6): entity-reference serialization. Inspected server usage is Mammoth DOCX parsing; no application entity-reference serialization was found. Independent review identified the separate development copy as affected too, so it was also patched within its parent range. |
+| `qs` | 6.15.3 → 6.16.0 in root and runtime locks | [GHSA-4mjr-xmp4-gh2g](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g) and [GHSA-x5fp-wj9c-mxmx](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx): request parsing and Stripe form serialization. Express/body-parser's minor-range restriction requires matching explicit root/runtime overrides. The application's parser does not enable the advisory's `comma` option. |
+
+The patch updates fit their existing parent ranges. The `qs` minor update has six behavior checks using actual Express parsers and the public Stripe client with a synthetic transport: repeated/bracketed filters, encoded sender identity, nested/indexed fields, literal commas, prototype safety, and Stripe form encoding. These checks pass without contacting Stripe or creating a payment. Root and runtime locked installs, runtime smoke, and runtime-boundary contracts pass. This is a bounded known-advisory correction, not proof that the application has no security defects. Final saved-head comparison and verification results belong in PR #561.
+
+The dependency-manager contract also flagged two closed-PR explanations as commands. Those explanations now name the actual retired `pnpm-lock.yaml` file explicitly; their historical disposition and npm-only authority remain the same. The existing command guard is unchanged.
 
 Guard labels have narrow meanings. `audit:trust-leaks` searches four unfinished-copy phrases; it is not a contact-data leakage proof. `audit:production-debt` checks one in-memory-storage comment marker; it is not a whole-product debt assessment. Build generation also refreshes the tracked sitemap index's date. That generated-only working-tree difference is recorded and restored before saving source; it is not silently included in a repair checkpoint.
 
-All four database-backed commands exited 2 without a disposable `TEST_DATABASE_URL`: `test:run:db:strict`, `test:run:no-skips`, `verify:db`, and `test:release-gates:local`. A native PostgreSQL installation was attempted only in scratch and could not initialize an unprivileged process in this runtime. No production database was substituted. Latest saved-head proof and any remaining gates are recorded in [draft PR #561](https://github.com/infotradescout/tradescoutAI/pull/561).
+All four database-backed commands exited 2 without a disposable `TEST_DATABASE_URL`: `test:run:db:strict`, `test:run:no-skips`, `verify:db`, and `test:release-gates:local`. The local minimum gate also fails for missing authenticated browser proof. Native PostgreSQL initialization and the existing remote migration-proof endpoint were both investigated; neither provides a usable application database in this runtime. No database, hosting service, or production data was created or modified. Latest saved-head proof and any remaining gates are recorded in [draft PR #561](https://github.com/infotradescout/tradescoutAI/pull/561).
 
 ## Standards used for acceptance
 

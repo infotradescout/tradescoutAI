@@ -1,5 +1,5 @@
 // Verify page shell architecture invariants:
-// - Only files under client/src/shells may export page components ending in "Shell".
+// - Page components ending in "Shell" belong to client/src/shells or an explicit owner below.
 // - No shell file may import from another shell file.
 // - No file may import the legacy CommunityShell.
 //
@@ -11,6 +11,13 @@ import path from "path";
 const projectRoot = path.resolve(process.cwd());
 const clientSrcRoot = path.join(projectRoot, "client", "src");
 const shellsRoot = path.join(clientSrcRoot, "shells");
+
+// AppRoutes mounts these existing feature workspaces inside the shared AppShell.
+// Match both path and export name so this is not a general exemption for pages.
+const featureWorkspaceOwners = new Map([
+  ["client/src/pages/admin.tsx", "AdminShell"],
+  ["client/src/pages/direct-connect/DirectConnectShell.tsx", "DirectConnectShell"],
+]);
 
 /** @typedef {{ file: string; message: string }} Violation */
 
@@ -87,6 +94,7 @@ function checkExports(absPath, source) {
       // only as legacy code as long as nothing imports it.
       if (isGlobalAppShellFile && name === "AppShell") continue;
       if (isLegacyCommunityShellFile && name === "CommunityShell") continue;
+      if (featureWorkspaceOwners.get(rel) === name) continue;
       addViolation(
         absPath,
         `Exports name \`${name}\` ending in "Shell" outside client/src/shells. Move this component into client/src/shells and import it from there.`
