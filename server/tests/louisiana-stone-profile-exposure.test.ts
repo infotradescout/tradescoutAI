@@ -45,7 +45,7 @@ function companyCandidate(
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "pending",
     ownerProvider: "local",
-    ownerEmailVerified: true,
+    ownerEmailVerified: false,
     ownerPreferences: {
       profileVisibility: "private",
       publicProfileIds: ["synthetic-company-profile"],
@@ -60,9 +60,9 @@ function companyCandidate(
   };
 }
 
-describe("Louisiana Stone Solutions exact direct-profile release", () => {
-  it.each(["pending", "approved"])(
-    "permits the assigned, mailbox-confirmed company with %s business verification only at its direct URL",
+describe("Louisiana Stone Solutions manual admin release", () => {
+  it.each(["pending", "approved", "rejected", "expired", "suspended", undefined])(
+    "honors admin publication independently of self-signup verification (%s)",
     (ownerVerificationStatus) => {
       const candidate = companyCandidate({ ownerVerificationStatus });
       const before = structuredClone(candidate);
@@ -85,20 +85,6 @@ describe("Louisiana Stone Solutions exact direct-profile release", () => {
   );
 
   const deniedAuthority: Array<[string, Partial<PublishedProfileExposureCandidate>]> = [
-    ["mailbox verification revoked", { ownerEmailVerified: false }],
-    ["mailbox verification missing", { ownerEmailVerified: undefined }],
-    ["mailbox flag is a string", { ownerEmailVerified: "true" }],
-    ["unclaimed business", { businessClaimStatus: "unclaimed" }],
-    ["owner transfer still pending", { businessClaimStatus: "owner_confirmed_pending_transfer" }],
-    ["claim state missing", { businessClaimStatus: null }],
-    ["internal profile steward", { ownerProvider: "admin_provisioned_profile_steward" }],
-    ["admin-provisioned provider shortcut", { ownerProvider: "admin_provisioned" }],
-    ["unknown provider", { ownerProvider: undefined }],
-    ["rejected business verification", { ownerVerificationStatus: "rejected" }],
-    ["expired business verification", { ownerVerificationStatus: "expired" }],
-    ["suspended business verification", { ownerVerificationStatus: "suspended" }],
-    ["unknown business verification", { ownerVerificationStatus: "unknown" }],
-    ["missing business verification", { ownerVerificationStatus: undefined }],
     ["draft profile", { profileStatus: "draft" }],
     ["inactive business", { businessStatus: "suspended" }],
     ["mismatched business owner", { businessOwnerUserId: "synthetic-other-owner" }],
@@ -140,13 +126,9 @@ describe("Louisiana Stone Solutions exact direct-profile release", () => {
   );
 
   it.each([
-    { ownerEmailVerified: false },
-    { businessClaimStatus: "unclaimed" },
-    { ownerProvider: "admin_provisioned_profile_steward" },
     { businessOwnerUserId: "synthetic-other-owner" },
     { businessSources: [] },
     { publicDiscoveryEnabled: true },
-    { ownerVerificationStatus: "rejected" },
   ])(
     "does not recover revoked LSS authority through a badge or generic approved-owner fallback",
     (override) => {
@@ -161,6 +143,17 @@ describe("Louisiana Stone Solutions exact direct-profile release", () => {
       expect(canExposeProviderProfileOnPublicMap(candidate)).toBe(false);
     }
   );
+
+  it.each([
+    { ownerEmailVerified: undefined },
+    { businessClaimStatus: "unclaimed" },
+    { ownerProvider: "admin_provisioned_profile_steward" },
+  ])("keeps exact admin publication separate from self-signup state", (override) => {
+    const candidate = companyCandidate(override);
+    expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(true);
+    expect(candidate.ownerVerifiedBadge).toBe(false);
+    expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(false);
+  });
 
   it.each([null, undefined, "", "   "])(
     "rejects a detached LSS business even when reclassified as a meaningful public personal profile (%s)",

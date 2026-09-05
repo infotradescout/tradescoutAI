@@ -24,7 +24,7 @@ const selector = `if (
       resolvedLocalServicePresentation.template === "local-service")
   )`;
 const branchStart = source.indexOf(selector);
-const branchEnd = source.indexOf('if (siteTemplate === "videographer")', branchStart);
+const branchEnd = source.indexOf('if (siteTemplate === "financial-professional")', branchStart);
 assert.ok(branchStart >= 0 && branchEnd > branchStart, "LocalService selector precedence changed");
 const branch = source.slice(branchStart, branchEnd);
 const pipeline = `const storedLocalServicePresentation = contentBlocks.find(
@@ -78,14 +78,20 @@ for (const prop of [
   "platformBaseHref={platformBaseHref}",
   "businessName={displayName}",
   "presentation={resolvedLocalServicePresentation}",
-  "onDirectConnect={openGeneralDirectConnect}",
+  "onDirectConnect={openServiceDirectConnect}",
+  "canCall={canExpressCall}",
   "hasViewerSession={hasViewerSession}",
   "tradeScoutReturnHref={tradeScoutReturnHref}",
   "profileShareDestination={profileShareDestination}",
   "publicRouteContentBlocks={contentBlocks}",
   "galleryItems={galleryItems}",
   "sharedGallerySlug={sharedGallerySlug}",
-  "recommendationsDirectory={recommendationsDirectory}",
+  'recommendationDirectoryMode === "received"',
+  "profileSections.reviews !== false",
+  "initialServiceName={expressInventoryContext ? null : expressServiceContext}",
+  'initialView={canExpressCall ? "choice" : "request"}',
+  "deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}",
+  "stayInProfile",
   'trustActions={renderProfileTrustActions("dark")}',
   "verificationStatus={business?.verificationStatus}",
   "verifiedBadge={business?.verifiedBadge === true}",

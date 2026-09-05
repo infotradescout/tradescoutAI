@@ -2235,14 +2235,19 @@ export default function ProfileSiteView() {
             platformBaseHref={platformBaseHref}
             businessName={displayName}
             presentation={resolvedLocalServicePresentation}
-            onDirectConnect={openGeneralDirectConnect}
+            onDirectConnect={openServiceDirectConnect}
+            canCall={canExpressCall}
             hasViewerSession={hasViewerSession}
             tradeScoutReturnHref={tradeScoutReturnHref}
             profileShareDestination={profileShareDestination}
             publicRouteContentBlocks={contentBlocks}
             galleryItems={galleryItems}
             sharedGallerySlug={sharedGallerySlug}
-            recommendationsDirectory={recommendationsDirectory}
+            recommendationsDirectory={
+              profileSections.reviews !== false && recommendationDirectoryMode === "received"
+                ? recommendationsDirectory
+                : []
+            }
             trustActions={renderProfileTrustActions("dark")}
             verificationStatus={business?.verificationStatus}
             verifiedBadge={business?.verifiedBadge === true}
@@ -2270,7 +2275,10 @@ export default function ProfileSiteView() {
           requestMode={expressInventoryContext ? "materials" : "service"}
           initialStoneName={expressInventoryContext?.itemName}
           initialItemId={expressInventoryContext?.itemId}
-          initialRequestType={expressInventoryContext ? "request_material" : null}
+          initialServiceName={expressInventoryContext ? null : expressServiceContext}
+          initialView={canExpressCall ? "choice" : "request"}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+          stayInProfile
         />
       </>
     );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { lazy, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -57,12 +57,13 @@ export type PublicCommunityVerification = {
   computedAt: string | null;
 };
 
-type Props = {
+export type LocalServiceProfileProps = {
   profileSlug: string;
   platformBaseHref?: string;
   businessName: string;
   presentation: LocalServiceProfilePresentation;
-  onDirectConnect: () => void;
+  onDirectConnect: (serviceName?: string) => void;
+  canCall?: boolean;
   hasViewerSession: boolean;
   tradeScoutReturnHref: string;
   profileShareDestination: string;
@@ -107,7 +108,7 @@ function formatScoreHistoryDate(value: string | null | undefined): string | null
   }).format(parsed);
 }
 
-function trackProfileAction(args: {
+export function trackProfileAction(args: {
   profileSlug: string;
   action: ProfileAction;
   surface: string;
@@ -159,7 +160,7 @@ function externalActionProps(args: {
   } as const;
 }
 
-export default function LocalServiceProfileTheme({
+function CompactLocalServiceProfileTheme({
   profileSlug,
   platformBaseHref = "",
   businessName,
@@ -176,7 +177,7 @@ export default function LocalServiceProfileTheme({
   verificationStatus = null,
   verifiedBadge = false,
   communityVerification = null,
-}: Props) {
+}: LocalServiceProfileProps) {
   const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
   const publicRecommendations = useMemo(
     () =>
@@ -217,7 +218,7 @@ export default function LocalServiceProfileTheme({
     detail?: string
   ) => {
     trackProfileAction({ profileSlug, action, surface, detail });
-    onDirectConnect();
+    onDirectConnect(action === "service" ? detail : undefined);
   };
 
   useEffect(() => {
@@ -931,5 +932,15 @@ export default function LocalServiceProfileTheme({
         </div>
       ) : null}
     </main>
+  );
+}
+
+const ProjectServiceProfile = lazy(() => import("./ProjectServiceProfile"));
+
+export default function LocalServiceProfileTheme(props: LocalServiceProfileProps) {
+  return props.presentation.layout === "project-profile" ? (
+    <ProjectServiceProfile {...props} />
+  ) : (
+    <CompactLocalServiceProfileTheme {...props} />
   );
 }

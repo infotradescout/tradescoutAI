@@ -232,21 +232,21 @@ describe("LocalServiceProfileTheme", () => {
     expect(container.textContent).toContain("Powered by TradeScout");
   });
 
-  it("uses the LSS section titles and gives the about copy full width without a photo", () => {
+  it("uses configured section titles and gives the about copy full width without a photo", () => {
     renderTheme({
       profileSlug: "louisiana-stone-solutions",
       businessName: "Louisiana Stone Solutions",
-      presentation: LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION,
+      presentation: { ...LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION, layout: undefined, servicesTitle: "Services", galleryTitle: "Photos" },
       verificationStatus: "pending",
       verifiedBadge: false,
       communityVerification: null,
     });
 
     expect(container.querySelector("#services h2")?.textContent).toBe(
-      LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION.servicesTitle
+      "Services"
     );
     expect(container.querySelector("#work h2")?.textContent).toBe(
-      LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION.galleryTitle
+      "Photos"
     );
     const sectionNav = container.querySelector('[aria-label="Profile sections"]');
     expect(sectionNav?.textContent).toContain("Photos");
@@ -271,7 +271,7 @@ describe("LocalServiceProfileTheme", () => {
     renderTheme({
       profileSlug: "louisiana-stone-solutions",
       businessName: "Louisiana Stone Solutions",
-      presentation: LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION,
+      presentation: { ...LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION, layout: undefined },
       verificationStatus: "pending",
       verifiedBadge: false,
       communityVerification: null,
@@ -294,7 +294,7 @@ describe("LocalServiceProfileTheme", () => {
 
   it("keeps a zero CVS visible without inventing verification or empty credential controls", () => {
     renderTheme({
-      presentation: LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION,
+      presentation: { ...LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION, layout: undefined },
       verificationStatus: "pending",
       verifiedBadge: false,
       communityVerification: {

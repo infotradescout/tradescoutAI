@@ -219,18 +219,6 @@ function isLouisianaStoneSolutionsProfile(
   return normalizeRole(candidate.profileSlug) === LOUISIANA_STONE_SOLUTIONS_PROFILE_SLUG;
 }
 
-/** Administrator assignment is distinct from the company's confirmed mailbox control. */
-function hasLouisianaStoneSolutionsAccountControl(
-  candidate: OwnerConfirmedDirectProfileCandidate
-): boolean {
-  return (
-    normalizeRole(candidate.businessClaimStatus) === "claimed" &&
-    normalizeRole(candidate.ownerProvider) === "local" &&
-    candidate.ownerEmailVerified === true &&
-    ["pending", "approved"].includes(normalizeRole(candidate.ownerVerificationStatus))
-  );
-}
-
 export function hasTradeScoutPendingOwnerCustody(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
@@ -278,12 +266,8 @@ export function isOwnerConfirmedDirectProfile(
   if (slug === PRECISION_AERIAL_PROFILE_SLUG && !hasExactPrecisionStewardAuthority(candidate)) {
     return false;
   }
-  if (
-    isLouisianaStoneSolutionsProfile(candidate) &&
-    !hasLouisianaStoneSolutionsAccountControl(candidate)
-  ) {
-    return false;
-  }
+  // Manual admin onboarding uses the registered admin release authority.
+  // Self-signup email/provider/verification state must not undo that release.
   return hasBaseDirectProfileAuthority(candidate, requiredAuthority);
 }
 
@@ -352,8 +336,8 @@ export function derivePublishedProfileExposure(
     };
   }
 
-  // This exact admin release stays linked to its company and closed until
-  // mailbox control is confirmed, including if an editable role/binding changes.
+  // Manual admin release still requires the exact registered source and company
+  // binding. An editable role, badge, or detached profile cannot replace them.
   if (
     isLouisianaStoneSolutionsProfile(candidate) &&
     (!businessId || !isOwnerConfirmedDirectProfile(candidate))
