@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-05T03:53:29Z",
+  "generated_at": "2026-09-05T04:03:25Z",
   "source": {
     "kind": "git",
-    "revision": "b2eb1958aff047f6be61167350ddea9209ba7b82",
+    "revision": "2d4402e8db8e55735f81d8aa8597b9a91b56384c",
     "dirty": true,
-    "inventory_sha256": "1b2091b1393471d92ab0a44f67860209e30e282b337a6d69f5992bde14787f80"
+    "inventory_sha256": "bbea02a047569d0f9900d4eb5a23e476b58df6621485299271aab3897dbc92b0"
   },
   "inventory": {
     "directories": [
@@ -508,7 +508,7 @@
       },
       {
         "path": "tmp",
-        "source_file_count": 8
+        "source_file_count": 10
       },
       {
         "path": "tmp/louisiana-preview",
@@ -4169,8 +4169,8 @@
       {
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
         "language": "tsx",
-        "sha256": "02ddcd42a512a5fca7d98eafce2a5ed5f81eca12bc09f44568237f318acee358",
-        "bytes": 38383
+        "sha256": "ecac3e2e2bb5ed58c13007579e7fc1569aa0a2f95274585cd3770f932dc3fd76",
+        "bytes": 37341
       },
       {
         "path": "client/src/pages/admin-managed-partner-profiles.tsx",
@@ -5783,8 +5783,8 @@
       {
         "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
         "language": "tsx",
-        "sha256": "c8748857ca62a930bb3aba91dded6c6e0762220ba4c1cca7f91bbd7a7832ec5e",
-        "bytes": 41529
+        "sha256": "a01070cf91d4c269defd006aa49168dd1e990632713b002d300c1e723b7d8f49",
+        "bytes": 40394
       },
       {
         "path": "client/src/pages/profile-sites/LuxuryMaterialHouseShowcase.tsx",
@@ -7361,8 +7361,8 @@
       {
         "path": "runtime/run-release.mjs",
         "language": "mjs",
-        "sha256": "b42b30c91799cd225a687967af0f73856efbfa70b189d7553cbeca94e0c6ca2d",
-        "bytes": 1092
+        "sha256": "052f9f3d66e80503b5f28d5a2e1a466ae9682512825dd5b08fad902c3ace1e05",
+        "bytes": 1264
       },
       {
         "path": "runtime/smoke-runtime-dependencies.mjs",
@@ -8279,8 +8279,8 @@
       {
         "path": "scripts/runtime-release-bundle.contract.test.mjs",
         "language": "mjs",
-        "sha256": "6c55672f1a31a13130610f9fb04945e208bd2a095034a5024e5656f8e5645390",
-        "bytes": 3333
+        "sha256": "6cb42c7af0584630e2d03f5b955cd0ad48850d2acb1f8932e8742e14f93ce55e",
+        "bytes": 7944
       },
       {
         "path": "scripts/runtime-smoke-phase1-phase2a.ts",
@@ -9167,8 +9167,8 @@
       {
         "path": "server/profileImageSitemap.ts",
         "language": "ts",
-        "sha256": "a0ab004f4b34d0ea57618510285863a7fc387f0ee789dcbf832b780652cb2d13",
-        "bytes": 15474
+        "sha256": "2862121afabfc431bd3b55859dd89aa6905d2b2baffadd28ed45763e36e1f60a",
+        "bytes": 14878
       },
       {
         "path": "server/profileItemShareMetadata.ts",
@@ -10817,14 +10817,14 @@
       {
         "path": "server/services/managedPartnerIntake.ts",
         "language": "ts",
-        "sha256": "e7e86264203aceb92bbd31d4b186562ac7d3670d54046a8f5acd66281cfe749f",
-        "bytes": 21132
+        "sha256": "088c0e87323da018204392ff02df67bae4c8614307c308a16a477fe4089b3627",
+        "bytes": 20533
       },
       {
         "path": "server/services/managedPartnerProfileHealth.ts",
         "language": "ts",
-        "sha256": "b3ae8d98b0642ba6f7d4310c12c4d44414f17485a7e9a73363deb59e7510a3c7",
-        "bytes": 20375
+        "sha256": "fa5ee3d9641aee9fdc23a4803d10c9e45038ffb82dec8b6d90b81a64820ff480",
+        "bytes": 19936
       },
       {
         "path": "server/services/marketSignalsSnapshotJob.ts",
@@ -11099,14 +11099,14 @@
       {
         "path": "server/services/publicProfileIndexNowReconciliation.ts",
         "language": "ts",
-        "sha256": "343636d1b7caf5121bf5bf0393d118620e34e8ecd941616099303c12c5fee171",
-        "bytes": 8813
+        "sha256": "00dc81d6286d8a027f5cff96c06e2a0042b6fffd7f4ab14e119a46c47033ced6",
+        "bytes": 8548
       },
       {
         "path": "server/services/publicProfileProductionAudit.ts",
         "language": "ts",
-        "sha256": "8b748fea093d36a44e8b65430c5beb6bc6ffc3706f3e661287113b996e1fcd67",
-        "bytes": 16992
+        "sha256": "4185cff3ba4a8e5289bdac1b0afacede0a4afb3ff7ed4eb0e2970a0752a077db",
+        "bytes": 16401
       },
       {
         "path": "server/services/redGranitiProfileProvisioning.ts",
@@ -11141,8 +11141,8 @@
       {
         "path": "server/services/runtimeManagedPartnerProfileHealth.ts",
         "language": "ts",
-        "sha256": "89c952fa20c15dac9613e6b4efa8132c5f0d196e90f68e25b4506876cc26d7d1",
-        "bytes": 16828
+        "sha256": "225646c00a1856e60427ecf3cc616c0338d09de803738000ac785f10ee8fb327",
+        "bytes": 16343
       },
       {
         "path": "server/services/schedulerLeadership.ts",
@@ -13133,8 +13133,8 @@
       {
         "path": "server/tests/managed-partner-intake-queue.contract.test.ts",
         "language": "ts",
-        "sha256": "8ddf378aba152b878a36956f43bd1d855e6791f6a2d27d9dc55059fa10938dee",
-        "bytes": 9606
+        "sha256": "eea22c7f29d0b9bc1c0034df12328b1fbd00b61a2be80891867de9778704a602",
+        "bytes": 9363
       },
       {
         "path": "server/tests/managed-partner-profile-ops.contract.test.ts",
@@ -15377,8 +15377,8 @@
       {
         "path": "server/vite.ts",
         "language": "ts",
-        "sha256": "09730dca7d7ec3c60cdcd3b0f6b35455b94123ecf70ddd914b1aa6b808f35e98",
-        "bytes": 4309
+        "sha256": "59e0457c3419d0265027f48d1bcff24cd585081250a2cb22ead1738c3d02c6d3",
+        "bytes": 4182
       },
       {
         "path": "server/websocket.ts",
@@ -15641,14 +15641,14 @@
       {
         "path": "shared/managedPartnerIntake.ts",
         "language": "ts",
-        "sha256": "aba085935dd090e614e1b295f67ef18486d3dee129a6ec15a79d87f274500c73",
-        "bytes": 4600
+        "sha256": "f82e84de5db537285bd0c25227b789c2ef1dd574571d71cac4232baf876868b8",
+        "bytes": 4414
       },
       {
         "path": "shared/managedPartnerProfileRegistry.ts",
         "language": "ts",
-        "sha256": "12c3cb4565d4063000fb7d0af691ac327d34b5b2552b5d26721a80609877bb96",
-        "bytes": 6333
+        "sha256": "bd9c96e18c1d60c9d3ec16eb2106059568463bf143f71d9f433e5dc09aa982d1",
+        "bytes": 6187
       },
       {
         "path": "shared/marketSignals.ts",
@@ -16323,6 +16323,12 @@
         "bytes": 1496
       },
       {
+        "path": "tmp/louisiana-final-recipient-proof.mjs",
+        "language": "mjs",
+        "sha256": "adef54972791980c99271af3159d05b94c0f26f3bf0e93c4c967e3f17d111db3",
+        "bytes": 1785
+      },
+      {
         "path": "tmp/louisiana-preview/main.tsx",
         "language": "tsx",
         "sha256": "96ca1f54d1fa93e73e511e462f09354b75b23e9372c5b73ebd22677e8c63819c",
@@ -16351,6 +16357,12 @@
         "language": "mjs",
         "sha256": "830d67d7d68095e2aa6ef12b614881bccac89d6746c2b3b4c14d0fb0f67ce51a",
         "bytes": 574
+      },
+      {
+        "path": "tmp/normalize-louisiana-render-source.mjs",
+        "language": "mjs",
+        "sha256": "4ce685ade6468889ae3e3348039e69d9934a6bbb5c98019de1d19caf4dbea87d",
+        "bytes": 682
       },
       {
         "path": "tmp/run-louisiana-gate.mjs",
@@ -36292,70 +36304,77 @@
         "name": "priorityBadge",
         "kind": "function",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 140,
+        "line": 138,
         "exported": false
       },
       {
         "name": "recordToForm",
         "kind": "function",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 150,
+        "line": 148,
         "exported": false
       },
       {
         "name": "formPayload",
         "kind": "function",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 174,
+        "line": 172,
         "exported": false
       },
       {
         "name": "AdminManagedPartnerIntakesPage",
         "kind": "component",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 201,
+        "line": 199,
         "exported": true
       },
       {
         "name": "invalidateOperations",
         "kind": "function",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 218,
+        "line": 216,
         "exported": false
       },
       {
         "name": "closeEditor",
         "kind": "function",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 315,
+        "line": 313,
         "exported": false
       },
       {
         "name": "beginCreate",
         "kind": "function",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 322,
+        "line": 320,
         "exported": false
       },
       {
         "name": "updateDisplayName",
         "kind": "function",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 359,
+        "line": 357,
+        "exported": false
+      },
+      {
+        "name": "quickStageChange",
+        "kind": "function",
+        "path": "client/src/pages/admin-managed-partner-intakes.tsx",
+        "line": 365,
         "exported": false
       },
       {
         "name": "Field",
         "kind": "component",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 931,
+        "line": 924,
         "exported": false
       },
       {
         "name": "SelectField",
         "kind": "component",
         "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-        "line": 952,
+        "line": 945,
         "exported": false
       },
       {
@@ -47359,7 +47378,7 @@
         "name": "onKeyDown",
         "kind": "function",
         "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-        "line": 230,
+        "line": 227,
         "exported": false
       },
       {
@@ -61814,7 +61833,21 @@
         "name": "read",
         "kind": "function",
         "path": "scripts/runtime-release-bundle.contract.test.mjs",
-        "line": 7,
+        "line": 9,
+        "exported": false
+      },
+      {
+        "name": "releaseLauncherFixture",
+        "kind": "function",
+        "path": "scripts/runtime-release-bundle.contract.test.mjs",
+        "line": 10,
+        "exported": false
+      },
+      {
+        "name": "write",
+        "kind": "function",
+        "path": "scripts/runtime-release-bundle.contract.test.mjs",
+        "line": 19,
         "exported": false
       },
       {
@@ -66371,98 +66404,98 @@
         "name": "lastmodYmd",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 101,
+        "line": 99,
         "exported": false
       },
       {
         "name": "publicImageUrl",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 106,
+        "line": 104,
         "exported": false
       },
       {
         "name": "distinctImages",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 117,
+        "line": 115,
         "exported": false
       },
       {
         "name": "rootProfileImages",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 128,
+        "line": 126,
         "exported": false
       },
       {
         "name": "appendEntry",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 165,
+        "line": 157,
         "exported": false
       },
       {
         "name": "collectProfileImageSitemapEntries",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 189,
+        "line": 181,
         "exported": true
       },
       {
         "name": "buildProfileImageSitemapXml",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 282,
+        "line": 262,
         "exported": true
       },
       {
         "name": "loadPublicProfileCandidates",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 301,
+        "line": 279,
         "exported": false
       },
       {
         "name": "buildPlatformImageSitemap",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 321,
+        "line": 299,
         "exported": false
       },
       {
         "name": "buildMappedCustomDomainImageSitemap",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 341,
+        "line": 319,
         "exported": false
       },
       {
         "name": "sendImageSitemap",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 367,
+        "line": 345,
         "exported": false
       },
       {
         "name": "handlePublicProfileImageSitemapRequest",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 377,
+        "line": 355,
         "exported": true
       },
       {
         "name": "attachPublicProfileImageSitemapReferences",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 401,
+        "line": 379,
         "exported": true
       },
       {
         "name": "clearProfileImageSitemapCache",
         "kind": "function",
         "path": "server/profileImageSitemap.ts",
-        "line": 426,
+        "line": 401,
         "exported": true
       },
       {
@@ -85005,98 +85038,98 @@
         "name": "nullableText",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 84,
+        "line": 86,
         "exported": false
       },
       {
         "name": "normalizeSourceUrls",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 103,
+        "line": 105,
         "exported": false
       },
       {
         "name": "rowUrls",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 129,
+        "line": 131,
         "exported": false
       },
       {
         "name": "iso",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 146,
+        "line": 148,
         "exported": false
       },
       {
         "name": "mapRow",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 152,
+        "line": 154,
         "exported": false
       },
       {
         "name": "normalizeInput",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 182,
+        "line": 184,
         "exported": false
       },
       {
         "name": "duplicateSlugError",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 318,
+        "line": 315,
         "exported": false
       },
       {
         "name": "assertSlugAvailable",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 322,
+        "line": 319,
         "exported": false
       },
       {
         "name": "assertLiveProfileReady",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 341,
+        "line": 338,
         "exported": false
       },
       {
         "name": "getIntakeById",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 369,
+        "line": 372,
         "exported": false
       },
       {
         "name": "listManagedPartnerIntakes",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 377,
+        "line": 380,
         "exported": true
       },
       {
         "name": "createManagedPartnerIntake",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 422,
+        "line": 425,
         "exported": true
       },
       {
         "name": "updateManagedPartnerIntake",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 499,
+        "line": 502,
         "exported": true
       },
       {
         "name": "getRuntimeManagedPartnerProfileDefinitions",
         "kind": "function",
         "path": "server/services/managedPartnerIntake.ts",
-        "line": 582,
+        "line": 585,
         "exported": true
       },
       {
@@ -85173,42 +85206,42 @@
         "name": "primaryCtaLabel",
         "kind": "function",
         "path": "server/services/managedPartnerProfileHealth.ts",
-        "line": 94,
+        "line": 92,
         "exported": false
       },
       {
         "name": "pushIssue",
         "kind": "function",
         "path": "server/services/managedPartnerProfileHealth.ts",
-        "line": 99,
+        "line": 97,
         "exported": false
       },
       {
         "name": "equalContact",
         "kind": "function",
         "path": "server/services/managedPartnerProfileHealth.ts",
-        "line": 108,
+        "line": 106,
         "exported": false
       },
       {
         "name": "resolveStatus",
         "kind": "function",
         "path": "server/services/managedPartnerProfileHealth.ts",
-        "line": 113,
+        "line": 115,
         "exported": false
       },
       {
         "name": "getBusinessManagedContactIssues",
         "kind": "function",
         "path": "server/services/managedPartnerProfileHealth.ts",
-        "line": 121,
+        "line": 123,
         "exported": true
       },
       {
         "name": "getManagedPartnerProfileHealth",
         "kind": "function",
         "path": "server/services/managedPartnerProfileHealth.ts",
-        "line": 218,
+        "line": 220,
         "exported": true
       },
       {
@@ -89114,28 +89147,28 @@
         "name": "loadCurrentCandidates",
         "kind": "function",
         "path": "server/services/publicProfileIndexNowReconciliation.ts",
-        "line": 118,
+        "line": 119,
         "exported": false
       },
       {
         "name": "recordReconciliation",
         "kind": "function",
         "path": "server/services/publicProfileIndexNowReconciliation.ts",
-        "line": 136,
+        "line": 137,
         "exported": false
       },
       {
         "name": "reconcilePublicProfileIndexNow",
         "kind": "function",
         "path": "server/services/publicProfileIndexNowReconciliation.ts",
-        "line": 175,
+        "line": 176,
         "exported": true
       },
       {
         "name": "now",
         "kind": "function",
         "path": "server/services/publicProfileIndexNowReconciliation.ts",
-        "line": 253,
+        "line": 255,
         "exported": false
       },
       {
@@ -89247,91 +89280,91 @@
         "name": "readMetaContent",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 199,
+        "line": 197,
         "exported": false
       },
       {
         "name": "readCanonical",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 209,
+        "line": 207,
         "exported": false
       },
       {
         "name": "readTitle",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 227,
+        "line": 225,
         "exported": false
       },
       {
         "name": "readPrimaryHeading",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 234,
+        "line": 232,
         "exported": false
       },
       {
         "name": "initialTextLength",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 242,
+        "line": 240,
         "exported": false
       },
       {
         "name": "hasParentLink",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 253,
+        "line": 251,
         "exported": false
       },
       {
         "name": "evaluatePublicProfileProductionHtml",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 271,
+        "line": 269,
         "exported": true
       },
       {
         "name": "failedCheckNames",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 308,
+        "line": 302,
         "exported": false
       },
       {
         "name": "auditOneTarget",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 314,
+        "line": 308,
         "exported": false
       },
       {
         "name": "worker",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 381,
+        "line": 375,
         "exported": false
       },
       {
         "name": "loadCurrentCandidates",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 396,
+        "line": 390,
         "exported": false
       },
       {
         "name": "persistAudit",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 416,
+        "line": 410,
         "exported": false
       },
       {
         "name": "runPublicProfileProductionAudit",
         "kind": "function",
         "path": "server/services/publicProfileProductionAudit.ts",
-        "line": 462,
+        "line": 453,
         "exported": true
       },
       {
@@ -89583,28 +89616,28 @@
         "name": "resolveStatus",
         "kind": "function",
         "path": "server/services/runtimeManagedPartnerProfileHealth.ts",
-        "line": 103,
+        "line": 107,
         "exported": false
       },
       {
         "name": "auditRuntimeDefinition",
         "kind": "function",
         "path": "server/services/runtimeManagedPartnerProfileHealth.ts",
-        "line": 111,
+        "line": 115,
         "exported": false
       },
       {
         "name": "loadRuntimeRows",
         "kind": "function",
         "path": "server/services/runtimeManagedPartnerProfileHealth.ts",
-        "line": 434,
+        "line": 440,
         "exported": false
       },
       {
         "name": "getRuntimeManagedPartnerProfileHealth",
         "kind": "function",
         "path": "server/services/runtimeManagedPartnerProfileHealth.ts",
-        "line": 479,
+        "line": 485,
         "exported": true
       },
       {
@@ -106607,56 +106640,56 @@
         "name": "ManagedPartnerIntakePriority",
         "kind": "type",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 29,
+        "line": 23,
         "exported": true
       },
       {
         "name": "ManagedPartnerIntakeRecord",
         "kind": "type",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 65,
+        "line": 58,
         "exported": true
       },
       {
         "name": "ManagedPartnerIntakeCreateInput",
         "kind": "type",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 93,
+        "line": 86,
         "exported": true
       },
       {
         "name": "ManagedPartnerIntakeUpdateInput",
         "kind": "type",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 116,
+        "line": 109,
         "exported": true
       },
       {
         "name": "ManagedPartnerIntakeReport",
         "kind": "type",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 122,
+        "line": 115,
         "exported": true
       },
       {
         "name": "isManagedPartnerIntakeStage",
         "kind": "function",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 135,
+        "line": 128,
         "exported": true
       },
       {
         "name": "isManagedPartnerIntakePriority",
         "kind": "function",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 143,
+        "line": 132,
         "exported": true
       },
       {
         "name": "slugifyManagedPartnerName",
         "kind": "function",
         "path": "shared/managedPartnerIntake.ts",
-        "line": 151,
+        "line": 140,
         "exported": true
       },
       {
@@ -114577,7 +114610,7 @@
         {
           "name": "Field",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 931
+          "line": 924
         },
         {
           "name": "Field",
@@ -122174,87 +122207,92 @@
         {
           "tag": "button",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 393
+          "line": 388
         },
         {
           "tag": "button",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 405
+          "line": 400
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 447
+          "line": 442
         },
         {
           "tag": "select",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 454
+          "line": 449
         },
         {
           "tag": "button",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 495
+          "line": 491
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 509
+          "line": 505
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 518
+          "line": 514
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 534
+          "line": 530
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 597
+          "line": 591
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 611
+          "line": 605
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 624
+          "line": 618
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 640
+          "line": 634
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 648
+          "line": 642
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 656
+          "line": 650
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 674
+          "line": 668
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 694
+          "line": 686
         },
         {
           "tag": "input",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 704
+          "line": 696
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/admin-managed-partner-intakes.tsx",
+          "line": 708
         },
         {
           "tag": "button",
@@ -122264,22 +122302,17 @@
         {
           "tag": "button",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 724
+          "line": 870
         },
         {
           "tag": "button",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 878
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 908
+          "line": 900
         },
         {
           "tag": "select",
           "path": "client/src/pages/admin-managed-partner-intakes.tsx",
-          "line": 971
+          "line": 964
         },
         {
           "tag": "button",
@@ -131359,62 +131392,62 @@
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 274
+          "line": 271
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 345
+          "line": 342
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 353
+          "line": 350
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 416
+          "line": 413
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 455
+          "line": 452
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 514
+          "line": 509
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 709
+          "line": 696
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 841
+          "line": 826
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 849
+          "line": 834
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 879
+          "line": 862
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 897
+          "line": 880
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-          "line": 911
+          "line": 894
         },
         {
           "tag": "button",
@@ -136579,10 +136612,10 @@
   ],
   "summary": {
     "directories": 128,
-    "source_files": 2647,
-    "symbols": 13989,
+    "source_files": 2649,
+    "symbols": 13992,
     "components": 936,
-    "functions_and_hooks": 8476,
+    "functions_and_hooks": 8479,
     "raw_ui_elements": 4125,
     "errors": 15,
     "warnings": 5
