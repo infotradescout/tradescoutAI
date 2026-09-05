@@ -325,9 +325,9 @@ export function preparePublicSeoHtmlForUserAgent(html: string, userAgent?: strin
     : attachPublicProfileServiceJourneyScript(htmlWithDiscoveryAttribution);
   const upgradedHtml = upgradePublicSocialPreviewHtml(htmlWithJourney);
 
-  // Public facts must not depend on crawler UA retention. Bots keep crawlable
-  // visible SSR without client modules; browsers keep the same facts in the
-  // initial document while suppressing the SEO chrome until React mounts.
+  // Public facts must not depend on crawler UA retention. Directory content
+  // remains readable until React mounts, including when JavaScript is absent.
+  // Profile themes retain their existing paint treatment to avoid a theme flash.
   if (
     isFactBearingPublicDiscoveryHtml(htmlWithJourney) ||
     PUBLIC_DIRECTORY_DISCOVERY_MARKER.test(htmlWithJourney)
@@ -339,7 +339,7 @@ export function preparePublicSeoHtmlForUserAgent(html: string, userAgent?: strin
       return suppressJwStoneSeoSummaryPaint(upgradedHtml);
     }
     return PUBLIC_DIRECTORY_DISCOVERY_MARKER.test(htmlWithJourney)
-      ? suppressSeoSummaryPaint(upgradedHtml, PUBLIC_DIRECTORY_DISCOVERY_MARKER)
+      ? upgradedHtml.replace(NOSCRIPT_FALLBACK_PATTERN, "")
       : suppressPublicSeoSummaryPaint(upgradedHtml);
   }
 

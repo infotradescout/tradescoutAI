@@ -117,6 +117,8 @@ describe("public SEO response HTML", () => {
         expect(html).toContain("<h1>Local businesses</h1>");
         expect(html).toContain('href="/u/example"');
         expect(html).toContain('content="noindex, follow"');
+        expect(html).not.toContain("clip:rect(0,0,0,0)");
+        expect(html).not.toContain("JavaScript is required");
         expect(isFactBearingPublicDiscoveryHtml(html)).toBe(false);
         expect(html).not.toContain('name="tradescout-discovery-attribution"');
       }
@@ -143,6 +145,8 @@ describe("public SEO response HTML", () => {
       const html = preparePublicSeoHtmlForUserAgent(raw, userAgent);
       expect(html).toContain(`<h1>${LOCAL_BUSINESS_DISCOVERY.heading}</h1>`);
       expect(html).toContain(LOCAL_BUSINESS_DISCOVERY.introduction);
+      expect(html).not.toContain("clip:rect(0,0,0,0)");
+      expect(html).not.toContain("JavaScript is required");
       expect(html).toContain(
         '<link rel="canonical" href="https://www.thetradescout.com/find-local-businesses"'
       );

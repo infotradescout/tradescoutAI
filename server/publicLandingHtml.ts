@@ -84,7 +84,7 @@ export function buildPublicFindLocalBusinessesHtml(
     .join("\n");
   html = injectSummary(
     html,
-    `<main data-seo-find-local-businesses="true">
+    `<main data-seo-find-local-businesses="true" style="padding:1rem;max-width:1152px;margin:0 auto;line-height:1.5;">
     <h1>${escapeHtml(content.heading)}</h1>
     <p>${escapeHtml(content.introduction)}</p>
     <nav aria-label="Browse local businesses"><ul>${links}</ul></nav>
