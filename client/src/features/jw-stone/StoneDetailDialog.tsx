@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { isFirstCutDetailStone } from "./firstCut";
 import { JwStoneShareControl } from "./JwStoneShareControl";
+import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
 import { firstCutShareDestination, stoneShareDestination } from "./marketplaceRoutes";
 import {
   availabilityDetailLabel,
@@ -238,6 +239,8 @@ export function StoneDetailDialog({
                     : "Details pending — ask JW for material and availability."}
                 </p>
               )}
+
+              <JwStoneMemberPriceDisplay stoneName={stone.displayName} presentation="detail" />
             </div>
 
             <div

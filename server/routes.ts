@@ -47,6 +47,7 @@ import { registerStoneInventoryRoutes } from "./routes/stone-inventory";
 import { registerBidRockRoutes } from "./routes/bidrock";
 import { registerStoneDesignerImageRoutes } from "./routes/stone-designer-images";
 import { registerJwStonePublicMediaRoutes } from "./routes/jw-stone-public-media";
+import { registerJwStoneMemberPricingRoutes } from "./routes/jw-stone-member-pricing";
 import { registerRedGranitiPublicMediaRoutes } from "./routes/red-graniti-public-media";
 import { registerBusinessClaimRoutes } from "./routes/business-claim";
 import { registerWorkerTasksRoutes } from "./routes/worker-tasks";
@@ -1449,6 +1450,7 @@ const DEFAULT_FIRST_INTRO_APPENDIX =
 
 export async function registerRoutes(app: any) {
   registerJwStonePublicMediaRoutes(app);
+  registerJwStoneMemberPricingRoutes(app);
   registerRedGranitiPublicMediaRoutes(app);
   registerStoneDesignerImageRoutes(app);
   const buildRevision = resolveBuildRevision();
