@@ -133,6 +133,7 @@ import {
   type DirectConnectIntent,
 } from "./directConnectEntryContext";
 import { resolveDirectConnectEntryContext } from "./stagedDirectConnectEntryContext";
+import { useDirectConnectLocation } from "./useDirectConnectLocation";
 import { resolveDirectConnectDispatchSelection } from "./directConnectDispatchSelection";
 import { getStoredDiscoveryLandingAttribution } from "@/lib/discoveryLanding";
 import {
@@ -6052,15 +6053,12 @@ function MyDirectConnectRequests({ defaultCountyFips }: { defaultCountyFips?: st
 }
 
 export default function DirectConnectShell() {
-  const [location, navigate] = useLocation();
+  const [location, navigate] = useDirectConnectLocation();
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const homeIdOfferShownRef = useRef<string | null>(null);
   const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
-  const directConnectLocation =
-    typeof window === "undefined"
-      ? location
-      : `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const directConnectLocation = location;
   const pathOnly = useMemo(
     () => getDirectConnectPathOnly(directConnectLocation),
     [directConnectLocation]

@@ -56,6 +56,7 @@ const galleryItems = [
   {
     itemType: "gallery" as const,
     title: "Pensacola aerial reel",
+    hasPublicTitle: true,
     description: "Watch the original reel.",
     imageUrl: "/media/hero.jpg",
     imageAlt: "Pensacola aerial reel",

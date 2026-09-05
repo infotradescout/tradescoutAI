@@ -69,7 +69,7 @@ describe("Direct Connect shell hierarchy", () => {
     expect(source).toContain('data-testid="direct-connect-requests-workspace"');
     expect(source).toContain('data-testid="my-requests-list"');
     expect(source).toContain('data-testid="my-request-inspector"');
-    expect(source).toContain("selectedRequest ? [selectedRequest].map");
+    expect(source).toMatch(/selectedRequest\s*\?\s*\(?\s*\[selectedRequest\]\.map/);
     expect(source).toContain("shouldInvalidateDirectConnectWorkspaceSelection({");
     expect(source).toContain("queryFetchedAfterMount: isFetchedAfterMount");
     expect(source).toContain('id="direct-connect-request-back"');

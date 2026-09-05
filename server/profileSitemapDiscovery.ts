@@ -56,9 +56,7 @@ function readProfileSitemapPreferences(contentBlocks: unknown): ProfileSitemapPr
     ...(typeof sitemap?.categories === "boolean" ? { categories: sitemap.categories } : {}),
     ...(typeof sitemap?.gallery === "boolean" ? { gallery: sitemap.gallery } : {}),
     ...(typeof sitemap?.services === "boolean" ? { services: sitemap.services } : {}),
-    ...(typeof sitemap?.serviceAreas === "boolean"
-      ? { serviceAreas: sitemap.serviceAreas }
-      : {}),
+    ...(typeof sitemap?.serviceAreas === "boolean" ? { serviceAreas: sitemap.serviceAreas } : {}),
   };
 }
 
@@ -108,6 +106,7 @@ export function isProfileGalleryItemPubliclyAddressable(
   const preference = readProfileSitemapPreferences(contentBlocks).gallery;
   if (preference === true) return true;
   return (
+    item.hasPublicTitle &&
     !/^(?:gallery|project|work) photo \d+$/i.test(item.title.trim()) &&
     item.description.trim().length >= 20
   );

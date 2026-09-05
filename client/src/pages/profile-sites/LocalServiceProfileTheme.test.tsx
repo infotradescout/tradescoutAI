@@ -22,6 +22,7 @@ vi.mock("@/components/ShareButton", () => ({
 const galleryItems: ResolvedProfileGalleryItem[] = Array.from({ length: 3 }, (_, index) => ({
   itemType: "gallery",
   title: `Completed project ${index + 1}`,
+  hasPublicTitle: true,
   description: `Project description ${index + 1}`,
   imageUrl: `/project-${index + 1}.jpg`,
   imageAlt: `Project ${index + 1}`,

@@ -7,26 +7,15 @@ const read = (relativePath: string) => {
   return fs.readFileSync(fullPath, "utf-8");
 };
 
-describe("public trade SEO fallback contracts", () => {
-  it("trade county html serves fallback content when listing query fails", () => {
-    const source = read("server/publicTradeHtml.ts");
-    expect(source).toContain(
-      "Trade county listing query failed; serving fallback page without listings"
-    );
-    expect(source).toContain("rows = []");
-  });
-
+describe("public trade SEO rendering contracts", () => {
   it("recent html serves fallback content when activity query fails", () => {
     const source = read("server/publicRecentHtml.ts");
     expect(source).toContain("Recent activity query failed; serving fallback page without items");
     expect(source).toContain("rows = []");
   });
 
-  it("county and best county html avoid hard failure on discovery-column drift", () => {
-    const countySource = read("server/publicCountyHtml.ts");
+  it("best county html retains its compatibility fallback on discovery-column drift", () => {
     const bestSource = read("server/publicBestHtml.ts");
-    expect(countySource).toContain("County directory query failed; serving page without listings");
-    expect(countySource).toContain('isMissingColumnError(error, "public_discovery_enabled")');
     expect(bestSource).toContain("Best trade county query failed; serving page without listings");
     expect(bestSource).toContain('isMissingColumnError(error, "public_discovery_enabled")');
   });

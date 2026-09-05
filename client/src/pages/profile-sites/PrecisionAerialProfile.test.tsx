@@ -48,6 +48,7 @@ const galleryItems = [
   {
     itemType: "gallery" as const,
     title: "Property overview",
+    hasPublicTitle: true,
     description: "A wide property view captured from the air.",
     imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
     imageAlt: "Wide aerial property view",
@@ -58,6 +59,7 @@ const galleryItems = [
   {
     itemType: "gallery" as const,
     title: "Closer property view",
+    hasPublicTitle: true,
     description: "A closer aerial angle showing the property.",
     imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-02.jpg",
     imageAlt: "Closer aerial property view",

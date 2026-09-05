@@ -96,7 +96,7 @@ describe("JW Stone public discovery equivalence (Phase 3A)", () => {
     expect(facts.hasEmptyRootOnly).toBe(false);
     expect(facts.hasJsRequiredOnlyBody).toBe(false);
     expect(facts.jsonLdType).toBe("CollectionPage");
-    expect(facts.jsonLdName).toBe("JW Stone | Stone Discovery");
+    expect(facts.jsonLdName).toBe("Natural stone slabs in Pensacola, FL | JW Stone Logistics");
     expect(facts.jsonLdUrl).toBe("https://www.thetradescout.com/jw-stone");
     expect(facts.hasPrivateFields).toBe(false);
     expect(facts.hasBotOnlyClaimMarkers).toBe(false);

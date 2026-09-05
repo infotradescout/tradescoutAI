@@ -13,9 +13,14 @@ const CLIENT_MODULE_SCRIPT_PATTERN =
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
 const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
 const FACT_BEARING_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
+// Directory builders already enforce public visibility and indexability. Keep
+// their approved content regardless of UA without issuing business attribution.
+const PUBLIC_DIRECTORY_DISCOVERY_MARKER =
+  /\bdata-seo-(?:trade|county|city|trade-city|best|recent|find-local-businesses)\s*=/i;
 const PUBLIC_PROFILE_JOURNEY_PAGE_MARKER =
   /\bdata-public-profile-(?:service|service-area)-page\s*=\s*(["'])true\1/i;
-const PUBLIC_PROFILE_SERVICE_JOURNEY_MARKER = /\bdata-ts-profile-service-journey\s*=\s*(["'])true\1/i;
+const PUBLIC_PROFILE_SERVICE_JOURNEY_MARKER =
+  /\bdata-ts-profile-service-journey\s*=\s*(["'])true\1/i;
 const DISCOVERY_ATTRIBUTION_META_PATTERN =
   /<meta\b[^>]*\bname\s*=\s*(['"])tradescout-discovery-attribution\1[^>]*>/i;
 const HTML_META_CONTENT_PATTERN = (name: string) =>
@@ -320,15 +325,21 @@ export function preparePublicSeoHtmlForUserAgent(html: string, userAgent?: strin
     : attachPublicProfileServiceJourneyScript(htmlWithDiscoveryAttribution);
   const upgradedHtml = upgradePublicSocialPreviewHtml(htmlWithJourney);
 
-  // Public facts must not depend on crawler UA retention. Bots keep crawlable
-  // visible SSR without client modules; browsers keep the same facts in the
-  // initial document while suppressing the SEO chrome until React mounts.
-  if (isFactBearingPublicDiscoveryHtml(htmlWithJourney)) {
+  // Public facts must not depend on crawler UA retention. Directory content
+  // remains readable until React mounts, including when JavaScript is absent.
+  // Profile themes retain their existing paint treatment to avoid a theme flash.
+  if (
+    isFactBearingPublicDiscoveryHtml(htmlWithJourney) ||
+    PUBLIC_DIRECTORY_DISCOVERY_MARKER.test(htmlWithJourney)
+  ) {
     if (isBot) {
       return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
     }
-    return isJwStonePublicDiscoveryHtml(htmlWithJourney)
-      ? suppressJwStoneSeoSummaryPaint(upgradedHtml)
+    if (isJwStonePublicDiscoveryHtml(htmlWithJourney)) {
+      return suppressJwStoneSeoSummaryPaint(upgradedHtml);
+    }
+    return PUBLIC_DIRECTORY_DISCOVERY_MARKER.test(htmlWithJourney)
+      ? upgradedHtml.replace(NOSCRIPT_FALLBACK_PATTERN, "")
       : suppressPublicSeoSummaryPaint(upgradedHtml);
   }
 

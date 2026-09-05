@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   listActiveCountyTradeScopes: vi.fn(),
+  hasActiveTradeCountyScope: vi.fn(),
   getPublicationRules: vi.fn(),
   select: vi.fn(),
 }));
 
 vi.mock("../services/seoDirectoryNavigationService", () => ({
-  listActiveCountyTradeScopes: (...args: unknown[]) =>
-    mocks.listActiveCountyTradeScopes(...args),
+  listActiveCountyTradeScopes: (...args: unknown[]) => mocks.listActiveCountyTradeScopes(...args),
+  hasActiveTradeCountyScope: (...args: unknown[]) => mocks.hasActiveTradeCountyScope(...args),
 }));
 
 vi.mock("../publicationRules", () => ({
@@ -34,6 +35,7 @@ vi.mock("../publicationBusiness", () => ({
 }));
 
 import { buildPublicCountyHtml } from "../publicCountyHtml";
+import { buildPublicTradeCountyHtml } from "../publicTradeHtml";
 
 const templateHtml = `<!doctype html>
 <html>
@@ -72,6 +74,52 @@ describe("snapshot-backed public county pages", () => {
     vi.clearAllMocks();
     mocks.getPublicationRules.mockResolvedValue({ categoryPageRecencyWindowDays: 365 });
   });
+
+  it("rejects a trade-county URL before listing work when its snapshot scope is inactive", async () => {
+    mocks.hasActiveTradeCountyScope.mockResolvedValue(false);
+
+    await expect(
+      buildPublicTradeCountyHtml({
+        origin: "https://www.thetradescout.com",
+        templateHtml,
+        tradeSlug: "plumbing",
+        stateCode: "FL",
+        countySlug: "bay",
+      })
+    ).resolves.toBeNull();
+    expect(mocks.hasActiveTradeCountyScope).toHaveBeenCalledWith("plumbing", "FL", "bay");
+    expect(mocks.select).not.toHaveBeenCalled();
+    expect(mocks.getPublicationRules).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["county", buildPublicCountyHtml],
+    ["trade-county", buildPublicTradeCountyHtml],
+  ] as const)(
+    "propagates %s listing failures without publishing a false empty page",
+    async (_name, build) => {
+      mocks.listActiveCountyTradeScopes.mockResolvedValue([
+        { tradeSlug: "plumbing", businessCount: 1 },
+      ]);
+      mocks.hasActiveTradeCountyScope.mockResolvedValue(true);
+      const error = Object.assign(new Error('column "public_discovery_enabled" does not exist'), {
+        code: "42703",
+      });
+      const chain = mockCountyRows([]);
+      chain.limit.mockRejectedValue(error);
+
+      await expect(
+        build({
+          origin: "https://www.thetradescout.com",
+          templateHtml,
+          tradeSlug: "plumbing",
+          stateCode: "FL",
+          countySlug: "bay",
+        })
+      ).rejects.toBe(error);
+      expect(mocks.select).toHaveBeenCalledTimes(1);
+    }
+  );
 
   it("returns not found before publication or listing work when the county has no active scope", async () => {
     mocks.listActiveCountyTradeScopes.mockResolvedValue([]);

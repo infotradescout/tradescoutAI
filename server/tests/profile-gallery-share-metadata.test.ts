@@ -38,6 +38,7 @@ describe("profile gallery item sharing metadata", () => {
     expect(firstPass[0]).toMatchObject({
       itemType: "gallery",
       title: "Blue Stone Patio",
+      hasPublicTitle: true,
       description: "A finished patio installation with natural blue stone.",
       imageUrl: "/uploads/profiles/blue-stone-patio.jpg",
       imageAlt: "Finished blue stone patio",
@@ -46,6 +47,7 @@ describe("profile gallery item sharing metadata", () => {
     });
     expect(firstPass[0].slug).toMatch(/^blue-stone-patio-[a-z0-9]{7}$/);
     expect(firstPass[1].title).toBe("Recent Work photo 2");
+    expect(firstPass[1].hasPublicTitle).toBe(false);
     expect(resolveProfileGalleryItem(contentBlocks, firstPass[0].slug)).toEqual(firstPass[0]);
   });
 
