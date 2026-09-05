@@ -22,6 +22,7 @@ import {
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { hasRequestPrivilegedVerificationBypass } from "../utils/privilegedVerification";
 import { requireCriticalSchema } from "../schemaPreflight";
+import { JW_STONE_MEMBER_PRICING_PRODUCT_KEY } from "@shared/jwStoneMemberPricing";
 
 function isSafeInternalPath(value: string): boolean {
   if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return false;
@@ -154,15 +155,26 @@ async function entitlementsForAccount(args: {
   account: ProfileAccountRecord;
   includesBidRock: boolean;
 }): Promise<readonly ProfileAccountEntitlement[]> {
+  const pendingEntitlements: Promise<ProfileAccountEntitlement>[] = [];
   if (args.includesBidRock) {
-    return [
-      await ensureProfileAccountEntitlement({
+    pendingEntitlements.push(
+      ensureProfileAccountEntitlement({
         profileAccountId: args.account.id,
         productKey: "bidrock",
         verificationStatus: args.account.verificationStatus,
-      }),
-    ];
+      })
+    );
   }
+  if (args.account.profileSlug === "jw-stone") {
+    pendingEntitlements.push(
+      ensureProfileAccountEntitlement({
+        profileAccountId: args.account.id,
+        productKey: JW_STONE_MEMBER_PRICING_PRODUCT_KEY,
+        verificationStatus: args.account.verificationStatus,
+      })
+    );
+  }
+  await Promise.all(pendingEntitlements);
   return listProfileAccountEntitlements(args.account.id);
 }
 

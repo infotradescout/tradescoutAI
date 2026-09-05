@@ -7,6 +7,7 @@ import type {
 } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
 import { jw } from "./brand";
+import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
 
 function formatDimensions(dimensions: StoneInventoryDimensions | null): string | null {
   if (!dimensions) return null;
@@ -141,6 +142,11 @@ export function NewArrivalsSection({ onAsk }: Props) {
                       </div>
                     ) : null}
                   </dl>
+                  <JwStoneMemberPriceDisplay
+                    stoneName={item.materialName}
+                    slabDimensions={item.dimensions}
+                    presentation="inventory"
+                  />
                   <p className={`mt-4 inline-flex items-center gap-1.5 text-xs ${jw.muted}`}>
                     <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
                     {formatConfirmedDate(item.lastConfirmedAt)}

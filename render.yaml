@@ -78,6 +78,14 @@ services:
         sync: false
       - key: GOOGLE_CALLBACK_URL
         sync: false
+      - key: JW_STONE_DRIVE_FOLDER_ID
+        value: 1Q8z9mjKWilONhSYgeD1Q3CqQkROJAfWW
+      - key: JW_STONE_DRIVE_PRICING_FILE_ID
+        value: 1qqi8lgedSFecuIozNe3TapkqzHuiz4YJ
+      - key: JW_STONE_DRIVE_SERVICE_ACCOUNT_JSON_BASE64
+        sync: false
+      - key: JW_STONE_DRIVE_REFRESH_TOKEN
+        sync: false
       - key: FACEBOOK_APP_ID
         sync: false
       - key: FACEBOOK_APP_SECRET

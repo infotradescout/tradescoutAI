@@ -14,6 +14,7 @@ import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail"
 import { CurrentInventorySection } from "./CurrentInventorySection";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
+import { JwStoneMemberPricingProvider } from "./JwStoneMemberPricing";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
 import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
@@ -120,6 +121,7 @@ function trackJwStoneRequestIntent(selectionCount: number): void {
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
   const hasViewerAccount = isAuthenticated || Boolean((user as { id?: unknown } | null)?.id);
+  const viewerId = hasViewerAccount ? String(user?.id || "").trim() || null : null;
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [accountRequest] = useState(readProfileAccountRequest);
@@ -310,123 +312,125 @@ export default function JWStoneMarketplace() {
   };
 
   return (
-    <div
-      className={`min-h-screen max-w-full overflow-x-clip pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.25rem+env(safe-area-inset-bottom))] ${jw.page}`}
-      style={JW_STONE_BRAND_STYLE}
-      data-jw-brand="true"
-      data-jw-marketplace-base={marketplaceBasePath() || "/"}
-    >
-      <SEOHelmet
-        title={JW_STONE_TITLE}
-        socialTitle={JW_STONE_TITLE}
-        description={JW_STONE_DESCRIPTION}
-        canonical={canonicalUrl}
-        ogType="website"
-        ogImage={JW_STONE_SOCIAL_IMAGE_URL}
-        structuredData={collectionData}
-      />
-      <MarketplaceHeader
-        wishlistCount={wishlist.count}
-        hasAccount={hasViewerAccount}
-        onOpenWishlist={() => setWishlistOpen(true)}
-        onOpenAccount={openAccount}
-        onStartRequest={() => startRequest([])}
-      />
-      <p className="sr-only" aria-live="polite">
-        {wishlist.count} {wishlist.count === 1 ? "stone" : "stones"} saved
-      </p>
+    <JwStoneMemberPricingProvider viewerId={viewerId}>
+      <div
+        className={`min-h-screen max-w-full overflow-x-clip pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.25rem+env(safe-area-inset-bottom))] ${jw.page}`}
+        style={JW_STONE_BRAND_STYLE}
+        data-jw-brand="true"
+        data-jw-marketplace-base={marketplaceBasePath() || "/"}
+      >
+        <SEOHelmet
+          title={JW_STONE_TITLE}
+          socialTitle={JW_STONE_TITLE}
+          description={JW_STONE_DESCRIPTION}
+          canonical={canonicalUrl}
+          ogType="website"
+          ogImage={JW_STONE_SOCIAL_IMAGE_URL}
+          structuredData={collectionData}
+        />
+        <MarketplaceHeader
+          wishlistCount={wishlist.count}
+          hasAccount={hasViewerAccount}
+          onOpenWishlist={() => setWishlistOpen(true)}
+          onOpenAccount={openAccount}
+          onStartRequest={() => startRequest([])}
+        />
+        <p className="sr-only" aria-live="polite">
+          {wishlist.count} {wishlist.count === 1 ? "stone" : "stones"} saved
+        </p>
 
-      <MarketplaceIntroduction />
-      <FirstCutSection onOpen={openStone} />
-      <CurrentInventorySection
-        onAsk={askAboutCurrentStock}
-        onStartRequest={() => startRequest([])}
-      />
-      <StoneCollection
-        state={state}
-        isSaved={wishlist.isSaved}
-        onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
-        onEnterFullInventory={enterFullInventory}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-        onSourceRequest={() => startRequest([])}
-        catalog={JW_STONE_CATALOG}
-      />
-      <ColorPaletteRail
-        aesthetic={state.aesthetic}
-        color={state.color}
-        material={null}
-        origin={state.origin}
-        onSelect={selectPalette}
-        isSaved={wishlist.isSaved}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-      />
-      <MaterialCategoryRail
-        active={state.material}
-        aesthetic={state.aesthetic}
-        color={state.color}
-        onSelect={selectMaterial}
-        isSaved={wishlist.isSaved}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-        catalog={JW_STONE_CATALOG}
-      />
+        <MarketplaceIntroduction />
+        <FirstCutSection onOpen={openStone} />
+        <CurrentInventorySection
+          onAsk={askAboutCurrentStock}
+          onStartRequest={() => startRequest([])}
+        />
+        <StoneCollection
+          state={state}
+          isSaved={wishlist.isSaved}
+          onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
+          onEnterFullInventory={enterFullInventory}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onOpen={openStone}
+          onAsk={askAboutStone}
+          onSourceRequest={() => startRequest([])}
+          catalog={JW_STONE_CATALOG}
+        />
+        <ColorPaletteRail
+          aesthetic={state.aesthetic}
+          color={state.color}
+          material={null}
+          origin={state.origin}
+          onSelect={selectPalette}
+          isSaved={wishlist.isSaved}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onOpen={openStone}
+          onAsk={askAboutStone}
+        />
+        <MaterialCategoryRail
+          active={state.material}
+          aesthetic={state.aesthetic}
+          color={state.color}
+          onSelect={selectMaterial}
+          isSaved={wishlist.isSaved}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onOpen={openStone}
+          onAsk={askAboutStone}
+          catalog={JW_STONE_CATALOG}
+        />
 
-      <JwStoneStorySection />
-      <JwStoneCompanySection />
-      <MarketplaceFooter />
-      <JwStoneRequestBand onStartRequest={() => startRequest([])} />
+        <JwStoneStorySection />
+        <JwStoneCompanySection />
+        <MarketplaceFooter />
+        <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
-      <PublicProfileAccountDialog
-        open={accountOpen}
-        onOpenChange={changeAccountOpen}
-        profileSlug="jw-stone"
-        profileName="JW Stone"
-        tone="light"
-        initialMode={accountMode}
-      />
+        <PublicProfileAccountDialog
+          open={accountOpen}
+          onOpenChange={changeAccountOpen}
+          profileSlug="jw-stone"
+          profileName="JW Stone"
+          tone="light"
+          initialMode={accountMode}
+        />
 
-      <StoneDetailDialog
-        stone={requestContext === null ? activeStone : null}
-        saved={activeStone ? wishlist.isSaved(activeStone.id) : false}
-        onOpenChange={(open) => {
-          if (!open) closeStone();
-        }}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onAsk={askAboutStone}
-      />
+        <StoneDetailDialog
+          stone={requestContext === null ? activeStone : null}
+          saved={activeStone ? wishlist.isSaved(activeStone.id) : false}
+          onOpenChange={(open) => {
+            if (!open) closeStone();
+          }}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onAsk={askAboutStone}
+        />
 
-      <WishlistPanel
-        open={wishlistOpen}
-        items={wishlist.items}
-        restored={wishlist.restored}
-        persisted={wishlist.persisted}
-        knownEmail={typeof user?.email === "string" ? user.email : null}
-        onOpenChange={setWishlistOpen}
-        onRemove={wishlist.remove}
-        onClear={wishlist.clear}
-        onOpenStone={openSavedStone}
-        onAsk={startRequest}
-      />
+        <WishlistPanel
+          open={wishlistOpen}
+          items={wishlist.items}
+          restored={wishlist.restored}
+          persisted={wishlist.persisted}
+          knownEmail={typeof user?.email === "string" ? user.email : null}
+          onOpenChange={setWishlistOpen}
+          onRemove={wishlist.remove}
+          onClear={wishlist.clear}
+          onOpenStone={openSavedStone}
+          onAsk={startRequest}
+        />
 
-      <ExpressDirectConnectPanel
-        open={requestContext !== null}
-        onClose={() => setRequestContext(null)}
-        profileSlug="jw-stone"
-        businessName={JW_STONE_PUBLIC_IDENTITY.brandName}
-        businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}
-        hasViewerSession={hasViewerAccount}
-        allowCall
-        stayInProfile
-        requestMode="materials"
-        initialStoneSelections={requestTargets}
-        initialView="request"
-        initialRequestType="request_material"
-      />
-    </div>
+        <ExpressDirectConnectPanel
+          open={requestContext !== null}
+          onClose={() => setRequestContext(null)}
+          profileSlug="jw-stone"
+          businessName={JW_STONE_PUBLIC_IDENTITY.brandName}
+          businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}
+          hasViewerSession={hasViewerAccount}
+          allowCall
+          stayInProfile
+          requestMode="materials"
+          initialStoneSelections={requestTargets}
+          initialView="request"
+          initialRequestType="request_material"
+        />
+      </div>
+    </JwStoneMemberPricingProvider>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
 import { JwStoneShareControl } from "./JwStoneShareControl";
+import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
 import { JwStoneTopSellerBadge } from "./JwStoneTopSellerBadge";
 import { stoneShareDestination } from "./marketplaceRoutes";
 import { availabilityDimensionsLine, materialFinishLine } from "./stoneFacts";
@@ -256,6 +257,12 @@ export function StoneCard({
             {caption}
           </p>
         ) : null}
+
+        <JwStoneMemberPriceDisplay
+          stoneName={stone.displayName}
+          slabDimensions={stone.slabDimensions}
+          presentation="card"
+        />
 
         <div className="mt-3 flex flex-wrap items-center justify-center gap-3 sm:mt-3.5 sm:gap-4">
           <button

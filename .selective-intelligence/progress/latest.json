@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "si.progress-checkpoint.v1",
+  "checkpointId": "progress-20260905T040706Z-94f030df",
+  "createdAt": "2026-09-05T04:07:06.025474+00:00",
+  "outcome": "Verified approximate whole-slab totals for authorized JW Stone pricing viewers whenever valid dimensions are available.",
+  "scope": [
+    "JW Stone approximate slab totals only."
+  ],
+  "prohibitions": [
+    "Do not expose an estimate unless the viewer already has authorized private pricing.",
+    "Do not present the estimate as a final measured slab price, invoice, delivery charge, or fabrication total.",
+    "Do not merge or deploy without explicit approval."
+  ],
+  "progress": {
+    "completedVerified": [
+      "Calculates the listed slab face area and applies the private single-slab square-foot rate.",
+      "Shows one estimated total for one size and a total range for two recorded sizes.",
+      "Supports catalog inches and structured inch or millimeter new-arrival dimensions.",
+      "Keeps estimates absent for signed-out viewers, nonmembers, missing prices, and invalid or incomplete sizes."
+    ],
+    "changedUnverified": [],
+    "proof": [
+      "JW Stone pricing and account-control verification passed: 62 tests across 11 files.",
+      "Changed-file lint completed with zero errors; one unrelated pre-existing inline-style warning remains.",
+      "Client and server production builds passed.",
+      "Built public assets contain none of the known private workbook price values."
+    ],
+    "externalEffects": [
+      "Preserved only on jw-stone/member-pricing-drive-authority; no pull request, merge, migration, credential change, or deployment."
+    ],
+    "doNotRepeat": [
+      "Do not calculate from thickness, historical slab counts, bundle rates, or internal landed cost."
+    ],
+    "nextSafeAction": "Await explicit approval for the existing pricing branch to be merged, configured, migrated, and deployed."
+  },
+  "repository": {
+    "root": ".",
+    "rootKind": "repository_relative",
+    "branch": "jw-stone/member-pricing-drive-authority",
+    "headBefore": "f47cad203f958e66cef1cfc5cd5c780d613cc840",
+    "checkpointCommit": "containing_commit",
+    "pushRequested": false,
+    "pushRemote": null,
+    "protectedBranchAuthorized": false,
+    "selectedStatusBefore": [],
+    "unrelatedChangeCountExcluded": 0
+  },
+  "savedFiles": [
+    {
+      "path": ".selective-intelligence/progress/latest.json",
+      "sha256": "b49586bfd52f2455ea5ffec3fce3e149490360bac338a41a987c3e502257e5dd"
+    }
+  ],
+  "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
+}

@@ -31,9 +31,12 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 | --- | --- | --- |
 | Drive photo backlog cleanup → `jw_stone_reconciled_backlog.csv` | Clean filenames (`Category_Name_WxH.jpg`) pairing stone ↔ category ↔ dimensions ↔ Drive link | **Not in repo** (owner Sheet/Drive artifact). Closest in-repo evidence: `client/src/data/jwStoneSourceNames.generated.json`, `jwStoneInventoryReconciliation.json`, `docs/audits/JW_STONE_PROFILE_INVENTORY_RECONCILIATION_2026-07-13.md` |
 | Google Sheet Wish List + Apps Script | Buyer requests (e.g. 3cm Taj Mahal) matched to Inventory “Available”; Email/WhatsApp notify; duplicate-tag | **Not in repo** — Sheet workflow remains source of truth. No in-app WhatsApp spam engine. |
+| JW STONE Drive → `JW_Stone_Fabricator_Pricing_Draft_119 (1).xlsx` | Canonical slab, bundle, and internal landed-cost prices | **Values not in repo** — the server reads and validates the exact Drive file. Slab/bundle prices are private to active JW Stone business members plus authorized staff; landed cost is staff-only. |
 | Marketplace **Saved** | Browser-local saved stones on `/jw-stone` | In repo (`wishlist.ts`). Label stays **Saved** — not JW’s Sheet Wish List. |
 
 Marketplace cards may show slab size inches when Drive source filenames / reconciliation evidence include them. That is source meta, not a live availability claim.
+
+The member-pricing endpoint must fail closed when Drive authorization, file identity, workbook shape, or price validation fails. Never copy workbook values into catalog code, public HTML, structured data, logs, analytics, or browser storage.
 
 ## Owner rule
 
