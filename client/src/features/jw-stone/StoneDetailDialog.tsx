@@ -240,7 +240,11 @@ export function StoneDetailDialog({
                 </p>
               )}
 
-              <JwStoneMemberPriceDisplay stoneName={stone.displayName} presentation="detail" />
+              <JwStoneMemberPriceDisplay
+                stoneName={stone.displayName}
+                slabDimensions={stone.slabDimensions}
+                presentation="detail"
+              />
             </div>
 
             <div

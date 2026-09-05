@@ -8,7 +8,9 @@ import {
   type JwStonePricingAccess,
   type JwStonePricingResponse,
 } from "@shared/jwStoneMemberPricing";
+import type { StoneInventoryDimensions } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
+import { parseSlabDimension, type SlabDimension } from "./slabDimensions";
 
 type VisibleJwStonePrice = JwStoneMemberPrice &
   Readonly<{
@@ -164,17 +166,107 @@ function formatCents(cents: number): string {
   return USD_PER_SQUARE_FOOT.format(cents / 100);
 }
 
+export type JwStoneSlabDimensionsInput =
+  | string
+  | StoneInventoryDimensions
+  | null
+  | undefined;
+
+export type JwStoneSlabCostEstimate = Readonly<{
+  minimumTotalCents: number;
+  maximumTotalCents: number;
+}>;
+
+function isValidSlabDimension(dimension: SlabDimension): boolean {
+  return (
+    Number.isFinite(dimension.widthIn) &&
+    Number.isFinite(dimension.heightIn) &&
+    dimension.widthIn >= 20 &&
+    dimension.heightIn >= 20 &&
+    dimension.widthIn <= 220 &&
+    dimension.heightIn <= 220
+  );
+}
+
+function slabDimensionsInInches(input: JwStoneSlabDimensionsInput): readonly SlabDimension[] {
+  if (!input) return [];
+
+  if (typeof input === "string") {
+    const unique = new Map<string, SlabDimension>();
+    for (const label of input.split(/\s*·\s*/).slice(0, 4)) {
+      const dimension = parseSlabDimension(label);
+      if (!dimension || !isValidSlabDimension(dimension)) continue;
+      unique.set(`${dimension.widthIn}x${dimension.heightIn}`, dimension);
+    }
+    return [...unique.values()];
+  }
+
+  const length = input.length;
+  const height = input.height;
+  if (
+    typeof length !== "number" ||
+    typeof height !== "number" ||
+    !Number.isFinite(length) ||
+    !Number.isFinite(height) ||
+    length <= 0 ||
+    height <= 0
+  ) {
+    return [];
+  }
+
+  const unit = input.unit || "in";
+  if (unit !== "in" && unit !== "mm") return [];
+  const inchesPerUnit = unit === "mm" ? 1 / 25.4 : 1;
+  const dimension = {
+    widthIn: length * inchesPerUnit,
+    heightIn: height * inchesPerUnit,
+  };
+  return isValidSlabDimension(dimension) ? [dimension] : [];
+}
+
+/**
+ * Estimate the material total for one slab from its listed face dimensions.
+ * The result uses the single-slab rate, not the bundle or internal landed rate.
+ */
+export function estimateJwStoneSlabCost(
+  slabPriceCents: number,
+  dimensions: JwStoneSlabDimensionsInput
+): JwStoneSlabCostEstimate | null {
+  if (!isCents(slabPriceCents)) return null;
+
+  const totals = slabDimensionsInInches(dimensions)
+    .map(({ widthIn, heightIn }) => Math.round((widthIn * heightIn * slabPriceCents) / 144))
+    .filter((total) => Number.isSafeInteger(total) && total > 0)
+    .sort((a, b) => a - b);
+  if (!totals.length) return null;
+
+  return {
+    minimumTotalCents: totals[0],
+    maximumTotalCents: totals[totals.length - 1],
+  };
+}
+
+function formatEstimatedSlabTotal(estimate: JwStoneSlabCostEstimate): string {
+  const minimum = formatCents(estimate.minimumTotalCents);
+  return estimate.maximumTotalCents === estimate.minimumTotalCents
+    ? minimum
+    : `${minimum}–${formatCents(estimate.maximumTotalCents)}`;
+}
+
 export function JwStoneMemberPriceDisplay({
   stoneName,
+  slabDimensions,
   presentation = "card",
 }: {
   stoneName: string | null | undefined;
+  slabDimensions?: JwStoneSlabDimensionsInput;
   presentation?: "card" | "detail" | "inventory";
 }) {
   const price = useJwStoneMemberPrice(stoneName);
   if (!price) return null;
   const internal = price.access === "internal";
   const compact = presentation !== "detail";
+  const slabEstimate = estimateJwStoneSlabCost(price.slabPriceCents, slabDimensions);
 
   return (
     <div
@@ -207,6 +299,23 @@ export function JwStoneMemberPriceDisplay({
             {formatCents(price.bundlePriceCents)} / sq. ft.
           </dd>
         </div>
+        {slabEstimate ? (
+          <div className={compact ? "basis-full" : "border-t border-[var(--jw-border)] pt-2 sm:col-span-2"}>
+            <dt className="inline text-[var(--jw-muted)]">Approx. slab total </dt>
+            <dd
+              className="inline font-semibold text-[var(--jw-ink)]"
+              data-testid="jw-stone-estimated-slab-total"
+            >
+              {formatEstimatedSlabTotal(slabEstimate)}
+              {compact ? null : (
+                <span className="mt-1 block text-xs font-normal leading-5 text-[var(--jw-muted)]">
+                  Based on the listed dimensions and slab rate. Confirm the exact slab size and
+                  final price with JW Stone.
+                </span>
+              )}
+            </dd>
+          </div>
+        ) : null}
         {internal && price.landedCostCents != null ? (
           <div className={compact ? "basis-full" : "sm:col-span-2"}>
             <dt className="inline text-[var(--jw-muted)]">Internal landed cost </dt>

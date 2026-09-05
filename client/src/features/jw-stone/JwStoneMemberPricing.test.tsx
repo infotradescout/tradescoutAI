@@ -5,9 +5,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  estimateJwStoneSlabCost,
   JwStoneMemberPriceDisplay,
   JwStoneMemberPricingProvider,
   sanitizeJwStonePricingResponse,
+  type JwStoneSlabDimensionsInput,
 } from "./JwStoneMemberPricing";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -25,12 +27,19 @@ describe("JW Stone member pricing client boundary", () => {
   let root: Root;
   let queryClient: QueryClient;
 
-  async function render(viewerId: string | null) {
+  async function render(
+    viewerId: string | null,
+    slabDimensions: JwStoneSlabDimensionsInput = null
+  ) {
     await act(async () => {
       root.render(
         <QueryClientProvider client={queryClient}>
           <JwStoneMemberPricingProvider viewerId={viewerId}>
-            <JwStoneMemberPriceDisplay stoneName="Blue Dunes" presentation="detail" />
+            <JwStoneMemberPriceDisplay
+              stoneName="Blue Dunes"
+              slabDimensions={slabDimensions}
+              presentation="detail"
+            />
           </JwStoneMemberPricingProvider>
         </QueryClientProvider>
       );
@@ -81,11 +90,14 @@ describe("JW Stone member pricing client boundary", () => {
       ["jw-stone", "member-pricing", "member-1"],
       sanitizeJwStonePricingResponse(response, "member-1")
     );
-    await render("member-1");
+    await render("member-1", '133×78.5"');
 
     expect(container.textContent).toContain("Business member pricing");
     expect(container.textContent).toContain("$20.50");
     expect(container.textContent).toContain("$18.50");
+    expect(container.textContent).toContain("Approx. slab total");
+    expect(container.textContent).toContain("$1,486.32");
+    expect(container.textContent).toContain("Confirm the exact slab size");
     expect(container.textContent).not.toContain("landed");
     expect(container.textContent).not.toContain("$11.00");
   });
@@ -118,5 +130,35 @@ describe("JW Stone member pricing client boundary", () => {
 
     await render("different-viewer");
     expect(container.textContent).not.toContain("$11.00");
+  });
+});
+
+describe("JW Stone approximate slab cost", () => {
+  it("calculates a single slab total from catalog inches", () => {
+    expect(estimateJwStoneSlabCost(2050, '133×78.5"')).toEqual({
+      minimumTotalCents: 148632,
+      maximumTotalCents: 148632,
+    });
+  });
+
+  it("returns a range when two source-backed slab sizes are recorded", () => {
+    expect(estimateJwStoneSlabCost(2050, '126×78" · 127×77.5"')).toEqual({
+      minimumTotalCents: 139913,
+      maximumTotalCents: 140119,
+    });
+  });
+
+  it("supports structured millimeter dimensions and rejects incomplete dimensions", () => {
+    expect(
+      estimateJwStoneSlabCost(2050, {
+        length: 3378.2,
+        height: 1993.9,
+        unit: "mm",
+      })
+    ).toEqual({
+      minimumTotalCents: 148632,
+      maximumTotalCents: 148632,
+    });
+    expect(estimateJwStoneSlabCost(2050, { length: 133, unit: "in" })).toBeNull();
   });
 });

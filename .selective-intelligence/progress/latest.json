@@ -1,143 +1,54 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260905T035220Z-29acb26c",
-  "createdAt": "2026-09-05T03:52:20.245668+00:00",
-  "outcome": "Implemented private Google Drive-backed JW Stone member pricing with role-scoped projections and fail-closed source validation.",
+  "checkpointId": "progress-20260905T040706Z-94f030df",
+  "createdAt": "2026-09-05T04:07:06.025474+00:00",
+  "outcome": "Verified approximate whole-slab totals for authorized JW Stone pricing viewers whenever valid dimensions are available.",
   "scope": [
-    "JW Stone member pricing only."
+    "JW Stone approximate slab totals only."
   ],
   "prohibitions": [
-    "Do not expose landed cost to ordinary members or prices to unauthenticated/nonmember viewers.",
+    "Do not expose an estimate unless the viewer already has authorized private pricing.",
+    "Do not present the estimate as a final measured slab price, invoice, delivery charge, or fabrication total.",
     "Do not merge or deploy without explicit approval."
   ],
   "progress": {
     "completedVerified": [
-      "Verified the exact private Drive folder and workbook identifiers and made that workbook the canonical runtime price source.",
-      "Added member, TradeScout admin, JW Stone owner, and delegated staff authorization rules.",
-      "Added private API, UI displays, entitlement migration, configuration, documentation, and focused tests."
+      "Calculates the listed slab face area and applies the private single-slab square-foot rate.",
+      "Shows one estimated total for one size and a total range for two recorded sizes.",
+      "Supports catalog inches and structured inch or millimeter new-arrival dimensions.",
+      "Keeps estimates absent for signed-out viewers, nonmembers, missing prices, and invalid or incomplete sizes."
     ],
     "changedUnverified": [],
     "proof": [
-      "Focused suite: 59 tests passed across 11 files.",
-      "Client and server production builds passed; public artifact leak scan and repository guards passed.",
-      "Workbook validation parsed 119 rows and matched all 119 named catalog stones; Soapstone intentionally remains unpriced."
+      "JW Stone pricing and account-control verification passed: 62 tests across 11 files.",
+      "Changed-file lint completed with zero errors; one unrelated pre-existing inline-style warning remains.",
+      "Client and server production builds passed.",
+      "Built public assets contain none of the known private workbook price values."
     ],
     "externalEffects": [
-      "Pushed a non-protected task branch only; no merge, migration, secret change, or deployment."
+      "Preserved only on jw-stone/member-pricing-drive-authority; no pull request, merge, migration, credential change, or deployment."
     ],
     "doNotRepeat": [
-      "Do not hardcode or persist copied price values outside the canonical Drive workbook."
+      "Do not calculate from thickness, historical slab counts, bundle rates, or internal landed cost."
     ],
-    "nextSafeAction": "Configure a production Drive credential, apply migration 0128, then merge and deploy only after explicit approval."
+    "nextSafeAction": "Await explicit approval for the existing pricing branch to be merged, configured, migrated, and deployed."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "jw-stone/member-pricing-drive-authority",
-    "headBefore": "b2eb1958aff047f6be61167350ddea9209ba7b82",
+    "headBefore": "f47cad203f958e66cef1cfc5cd5c780d613cc840",
     "checkpointCommit": "containing_commit",
-    "pushRequested": true,
-    "pushRemote": "origin",
+    "pushRequested": false,
+    "pushRemote": null,
     "protectedBranchAuthorized": false,
-    "selectedStatusBefore": [
-      "M  .env.example",
-      "M  .selective-intelligence/project-index.json",
-      "M  client/src/features/jw-stone/CurrentInventorySection.tsx",
-      "M  client/src/features/jw-stone/JWStoneMarketplace.tsx",
-      "A  client/src/features/jw-stone/JwStoneMemberPricing.test.tsx",
-      "A  client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-      "M  client/src/features/jw-stone/StoneCard.tsx",
-      "M  client/src/features/jw-stone/StoneDetailDialog.tsx",
-      "M  docs/jw-stone/README.md",
-      "A  migrations/0128_jw_stone_member_pricing.sql",
-      "M  migrations/meta/_journal.json",
-      "M  render.yaml",
-      "M  server/routes.ts",
-      "A  server/routes/jw-stone-member-pricing.ts",
-      "M  server/routes/profile-accounts.ts",
-      "A  server/services/jwStoneDrivePricing.ts",
-      "A  server/services/jwStonePricingAccess.ts",
-      "A  server/tests/jw-stone-member-pricing.test.ts",
-      "A  shared/jwStoneMemberPricing.ts"
-    ],
-    "unrelatedChangeCountExcluded": 1
+    "selectedStatusBefore": [],
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": ".env.example",
-      "sha256": "119c3ff79eb2344949d07a67595eeb32b20d836d282afb92136b0aeedffab581"
-    },
-    {
-      "path": ".selective-intelligence/project-index.json",
-      "sha256": "25011bcad686d4c34547613ebd37a1aa85227e67374f6f94d1a0cd8fcfe1f95c"
-    },
-    {
-      "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
-      "sha256": "079a8a7621da32afe26e27d0e4175710b2d21c231586942e06bc339b24d161d1"
-    },
-    {
-      "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-      "sha256": "ec9a3b6b5f75e77cf8bfcf4bac8665776bc9fc6afef7c49a45918522e7718022"
-    },
-    {
-      "path": "client/src/features/jw-stone/StoneCard.tsx",
-      "sha256": "65e018ab8c3ab421554a8007c3c62e5ba4a9ab748c423c53ce344e674c10430a"
-    },
-    {
-      "path": "client/src/features/jw-stone/StoneDetailDialog.tsx",
-      "sha256": "8c6a3917b809029fb7808920f0bb2917f544ed15526634658893ffee5bcde921"
-    },
-    {
-      "path": "client/src/features/jw-stone/JwStoneMemberPricing.test.tsx",
-      "sha256": "9f09e1a153d5a33ce4e55a137532b35c8bc361e1db60d0c7fd6adbe0407302b8"
-    },
-    {
-      "path": "client/src/features/jw-stone/JwStoneMemberPricing.tsx",
-      "sha256": "5d304a457f3d2895409bf6cb32410c3cd2bcccc00ee940d364a6b4386c483e16"
-    },
-    {
-      "path": "docs/jw-stone/README.md",
-      "sha256": "b96d5faae9ddf60657fa585f5aff08bff65f4d35619b453c42c3aaaf1cfb3794"
-    },
-    {
-      "path": "migrations/0128_jw_stone_member_pricing.sql",
-      "sha256": "25302f2d92311bd1bbd344c22f9429dbdc885d4b2a9af636fb337ed34b5f2669"
-    },
-    {
-      "path": "migrations/meta/_journal.json",
-      "sha256": "85b245d12bcf7b77d6d92b574d8bafd89b008351c69870d9d5e3fe62681a5c72"
-    },
-    {
-      "path": "render.yaml",
-      "sha256": "473904342afbc2078a1c136095771e0c16eb901b384b163273af123135080adc"
-    },
-    {
-      "path": "server/routes.ts",
-      "sha256": "cd308f51b17487be5f717386955821a40012156a114110bb032ec2a57a64d492"
-    },
-    {
-      "path": "server/routes/profile-accounts.ts",
-      "sha256": "78d609d6b2a2a439b99e15b2279ff46dd1ab3999890da5b47df2fe4ba1ad43a1"
-    },
-    {
-      "path": "server/routes/jw-stone-member-pricing.ts",
-      "sha256": "22bc103d1cafa9b5c3b7fbdc99d2813e01e08b38b20c062ed8716c8e73c29e81"
-    },
-    {
-      "path": "server/services/jwStoneDrivePricing.ts",
-      "sha256": "22def3ed0ea7a41c6a4aa932d96768318a866effd05fb91604fa19f23aa1bf1c"
-    },
-    {
-      "path": "server/services/jwStonePricingAccess.ts",
-      "sha256": "ddac69db45c30882a241639455c38c67f757766b82bb8d02350fcc788e6d6f53"
-    },
-    {
-      "path": "server/tests/jw-stone-member-pricing.test.ts",
-      "sha256": "99e194b0b40e12261eb81004a831fee6186c1e867f36818174979f9a83491630"
-    },
-    {
-      "path": "shared/jwStoneMemberPricing.ts",
-      "sha256": "472f835b58f121c05b6adc5de6e78ec0ad077874a1dadbf44b7caf40723d8247"
+      "path": ".selective-intelligence/progress/latest.json",
+      "sha256": "b49586bfd52f2455ea5ffec3fce3e149490360bac338a41a987c3e502257e5dd"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
