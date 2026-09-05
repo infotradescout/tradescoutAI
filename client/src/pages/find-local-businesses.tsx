@@ -185,7 +185,7 @@ export default function FindLocalBusinessesPage() {
           explore local service clusters and get matched with verified local businesses.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/direct-connect?county=12033&source=pensacola-launch&intent=local_search`}>
+          <Link href={LOCAL_BUSINESS_DISCOVERY.pensacolaRequestHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
               Start a Pensacola request
             </Button>

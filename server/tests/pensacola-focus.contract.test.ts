@@ -22,7 +22,7 @@ describe("pensacola focus contracts", () => {
     const source = read("client/src/pages/find-local-businesses.tsx");
     expect(source).toContain("Ground Zero Market");
     expect(source).toContain("Pensacola, FL first");
-    expect(source).toContain("county=12033");
+    expect(source).toContain("LOCAL_BUSINESS_DISCOVERY.pensacolaRequestHref");
     expect(source).toContain("HOMEOWNER_POPULAR_QUERIES");
     expect(source).toContain("/pensacola");
     expect(source).toContain("/pensacola/hvac-repair");

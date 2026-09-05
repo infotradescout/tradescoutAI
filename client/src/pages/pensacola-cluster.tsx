@@ -2,6 +2,7 @@ import { Link, useRoute } from "wouter";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LOCAL_BUSINESS_DISCOVERY } from "@/lib/popularSearchQueries";
 import {
   PENSACOLA_COUNTY_CODE,
   PENSACOLA_CLUSTERS,
@@ -34,7 +35,7 @@ export default function PensacolaClusterPage() {
     );
   }
 
-  const localSearchHref = `/direct-connect?county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch&intent=local_search`;
+  const localRequestHref = LOCAL_BUSINESS_DISCOVERY.pensacolaRequestHref;
   const providerDemandHref = `/direct-connect?county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch&intent=provider_demand`;
   const applyHref = `/claim-my-business?stateCode=FL&countyFips=${PENSACOLA_COUNTY_CODE}&source=pensacola_cluster`;
   const createAccountHref = `/create-account?source=pensacola-launch&county=${PENSACOLA_COUNTY_CODE}`;
@@ -75,7 +76,7 @@ export default function PensacolaClusterPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-white">{cluster.title}</h1>
         <p className="text-white/70 max-w-4xl">{cluster.summary}</p>
         <div className="flex flex-wrap gap-3">
-          <Link href={localSearchHref}>
+          <Link href={localRequestHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
               Start local request
             </Button>
