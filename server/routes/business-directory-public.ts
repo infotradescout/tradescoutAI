@@ -25,6 +25,7 @@ import {
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
   publicBusinessDetailExposureSqlPredicate,
+  publicBusinessSitemapCrawlabilitySqlPredicate,
 } from "../publicationBusiness";
 import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
 import {
@@ -37,7 +38,8 @@ import {
 const router = Router();
 
 // Simple in-memory cache for public directory lookups
-const PUBLIC_CACHE = new Map();
+type PublicDirectoryResponse = { status: number; body: Record<string, unknown> };
+const PUBLIC_CACHE = new Map<string, { value: PublicDirectoryResponse; expiresAt: number }>();
 const PUBLIC_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function getCacheKey(path: string, params: Record<string, any>) {
@@ -49,8 +51,8 @@ function getCacheKey(path: string, params: Record<string, any>) {
 function getCachedOrCompute(
   path: string,
   params: Record<string, any>,
-  compute: () => Promise<any>
-) {
+  compute: () => Promise<PublicDirectoryResponse>
+): Promise<PublicDirectoryResponse> {
   const key = getCacheKey(path, params);
   const now = Date.now();
   const cached = PUBLIC_CACHE.get(key);
@@ -58,7 +60,10 @@ function getCachedOrCompute(
     return Promise.resolve(cached.value);
   }
   return compute().then((value) => {
-    PUBLIC_CACHE.set(key, { value, expiresAt: now + PUBLIC_CACHE_TTL_MS });
+    // Cache response data, never an Express response or a temporary failure.
+    if (value.status < 500 && !value.body.degraded) {
+      PUBLIC_CACHE.set(key, { value, expiresAt: now + PUBLIC_CACHE_TTL_MS });
+    }
     return value;
   });
 }
@@ -169,7 +174,7 @@ router.get("/api/businesses", async (req, res, next) => {
     offset: req.query.offset ?? 0,
   };
 
-  await getCachedOrCompute("/api/businesses", cacheParams, async () => {
+  const result = await getCachedOrCompute("/api/businesses", cacheParams, async () => {
     try {
       const countyFips = normalizeCountyFips(cacheParams.countyFips);
       const stateCode = normalizeStateCode(cacheParams.stateCode);
@@ -183,17 +188,21 @@ router.get("/api/businesses", async (req, res, next) => {
       const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.min(5_000, offsetRaw)) : 0;
 
       if (!countyFips && !stateCode) {
-        return res
-          .status(400)
-          .json({ message: "countyFips or stateCode is required for public business search" });
+        return {
+          status: 400,
+          body: { message: "countyFips or stateCode is required for public business search" },
+        };
       }
       if (stateCode && !/^[A-Z]{2}$/.test(stateCode)) {
-        return res.status(400).json({ message: "stateCode must be a 2-letter code (e.g., FL)" });
+        return { status: 400, body: { message: "stateCode must be a 2-letter code (e.g., FL)" } };
       }
 
+      const rules = await getPublicationRules();
+      const now = new Date();
       const whereClauses: any[] = [
         eq(businesses.status, "active" as any),
-        publicBusinessDetailExposureSqlPredicate(),
+        eq(businesses.publicDiscoveryEnabled, true),
+        publicBusinessSitemapCrawlabilitySqlPredicate({ rules, now }),
       ];
       if (countyFips) whereClauses.push(eq(counties.fips, countyFips));
       if (stateCode) whereClauses.push(eq(counties.stateCode, stateCode));
@@ -237,9 +246,6 @@ router.get("/api/businesses", async (req, res, next) => {
         .orderBy(businesses.name)
         .limit(limit)
         .offset(offset);
-
-      const rules = await getPublicationRules();
-      const now = new Date();
 
       const grouped = new Map<string, any>();
       for (const row of rows) {
@@ -293,22 +299,26 @@ router.get("/api/businesses", async (req, res, next) => {
       }
 
       const items = Array.from(grouped.values());
-      res.json({
-        items,
-        countyFips,
-        stateCode: stateCode || null,
-        claimed,
-        q,
-        trade: trade || null,
-        city: city || null,
-        limit,
-        offset,
-      });
+      return {
+        status: 200,
+        body: {
+          items,
+          countyFips,
+          stateCode: stateCode || null,
+          claimed,
+          q,
+          trade: trade || null,
+          city: city || null,
+          limit,
+          offset,
+        },
+      };
     } catch (error: any) {
       console.error("Error listing public businesses:", error);
-      res.status(500).json({ message: "Failed to list businesses" });
+      return { status: 500, body: { message: "Failed to list businesses" } };
     }
   });
+  return res.status(result.status).json(result.body);
 });
 
 // Public-safe directory detail by id (matches owner route path, but only handles unauth requests).
@@ -906,104 +916,112 @@ router.get("/api/public/seo/best/trade-county", async (req, res) => {
     countySlug: req.query.countySlug ?? req.query.county,
   };
 
-  await getCachedOrCompute("/api/public/seo/best/trade-county", cacheParams, async () => {
-    try {
-      const match = getTradeSeoMatch(cacheParams.tradeSlug);
-      if (!match) return res.status(400).json({ message: "Invalid tradeSlug" });
+  const result = await getCachedOrCompute(
+    "/api/public/seo/best/trade-county",
+    cacheParams,
+    async () => {
+      try {
+        const match = getTradeSeoMatch(cacheParams.tradeSlug);
+        if (!match) return { status: 400, body: { message: "Invalid tradeSlug" } };
 
-      const county = resolveCountyFipsBySlug(cacheParams.stateCode, cacheParams.countySlug);
-      if (!county) return res.status(400).json({ message: "Invalid stateCode/countySlug" });
+        const county = resolveCountyFipsBySlug(cacheParams.stateCode, cacheParams.countySlug);
+        if (!county) return { status: 400, body: { message: "Invalid stateCode/countySlug" } };
 
-      const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
-      const tradeClause = buildTradeWhereClause(canonicalTradeSlug);
+        const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
+        const tradeClause = buildTradeWhereClause(canonicalTradeSlug);
 
-      const rules = await getPublicationRules();
-      const now = new Date();
-      const recencyCutoff = new Date(
-        now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
-      );
+        const rules = await getPublicationRules();
+        const now = new Date();
+        const recencyCutoff = new Date(
+          now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
+        );
 
-      const whereClauses: any[] = [
-        eq(businesses.status, "active" as any),
-        eq(businesses.publicDiscoveryEnabled, true as any),
-        publicBusinessDetailExposureSqlPredicate(),
-        eq(counties.fips, county.fips),
-        sql`${businesses.updatedAt} >= ${recencyCutoff}`,
-      ];
-      if (tradeClause) whereClauses.push(tradeClause);
+        const whereClauses: any[] = [
+          eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true as any),
+          publicBusinessDetailExposureSqlPredicate(),
+          eq(counties.fips, county.fips),
+          sql`${businesses.updatedAt} >= ${recencyCutoff}`,
+        ];
+        if (tradeClause) whereClauses.push(tradeClause);
 
-      const rows = await db
-        .select({
-          id: businesses.id,
-          slug: businesses.slug,
-          name: businesses.name,
-          claimStatus: businesses.claimStatus,
-          ownerUserId: businesses.ownerUserId,
-          updatedAt: businesses.updatedAt,
-          publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-          ownerVerificationStatus: users.verificationStatus,
-          ownerAddressVerified: users.addressVerified,
-        })
-        .from(businesses)
-        .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-        .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-        .leftJoin(users, eq(users.id, businesses.ownerUserId))
-        .where(and(...whereClauses))
-        .orderBy(desc(businesses.updatedAt), asc(businesses.name))
-        .limit(250);
+        const rows = await db
+          .select({
+            id: businesses.id,
+            slug: businesses.slug,
+            name: businesses.name,
+            claimStatus: businesses.claimStatus,
+            ownerUserId: businesses.ownerUserId,
+            updatedAt: businesses.updatedAt,
+            publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+            ownerVerificationStatus: users.verificationStatus,
+            ownerAddressVerified: users.addressVerified,
+          })
+          .from(businesses)
+          .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+          .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+          .leftJoin(users, eq(users.id, businesses.ownerUserId))
+          .where(and(...whereClauses))
+          .orderBy(desc(businesses.updatedAt), asc(businesses.name))
+          .limit(250);
 
-      const items = rows
-        .map((r) => {
-          const updatedAt = (r as any).updatedAt instanceof Date ? (r as any).updatedAt : null;
-          if (!updatedAt) return null;
-          const tier = derivePublicationTier({
-            ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
-            claimStatus: String((r as any).claimStatus || ""),
-            ownerVerificationStatus: (r as any).ownerVerificationStatus
-              ? String((r as any).ownerVerificationStatus)
-              : null,
-            ownerAddressVerified:
-              typeof (r as any).ownerAddressVerified === "boolean"
-                ? (r as any).ownerAddressVerified
+        const items = rows
+          .map((r) => {
+            const updatedAt = (r as any).updatedAt instanceof Date ? (r as any).updatedAt : null;
+            if (!updatedAt) return null;
+            const tier = derivePublicationTier({
+              ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
+              claimStatus: String((r as any).claimStatus || ""),
+              ownerVerificationStatus: (r as any).ownerVerificationStatus
+                ? String((r as any).ownerVerificationStatus)
                 : null,
-          });
-          if (tier !== "verified") return null;
-          const pub = isPublicAndCrawlableBusiness(
-            buildPublicBusinessSignals({
-              id: String((r as any).id),
-              name: String((r as any).name || ""),
-              slug: String((r as any).slug || ""),
-              updatedAt,
-              publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
-              stateCode: county.stateCode,
-              countyName: county.countyName,
-              city: null,
-              tradeSlug: canonicalTradeSlug,
-              tier,
-            }),
-            rules,
-            now
-          );
-          if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
-          return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
-        })
-        .filter((x): x is { slug: string; name: string } => Boolean(x))
-        .slice(0, 200);
+              ownerAddressVerified:
+                typeof (r as any).ownerAddressVerified === "boolean"
+                  ? (r as any).ownerAddressVerified
+                  : null,
+            });
+            if (tier !== "verified") return null;
+            const pub = isPublicAndCrawlableBusiness(
+              buildPublicBusinessSignals({
+                id: String((r as any).id),
+                name: String((r as any).name || ""),
+                slug: String((r as any).slug || ""),
+                updatedAt,
+                publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
+                stateCode: county.stateCode,
+                countyName: county.countyName,
+                city: null,
+                tradeSlug: canonicalTradeSlug,
+                tier,
+              }),
+              rules,
+              now
+            );
+            if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
+            return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
+          })
+          .filter((x): x is { slug: string; name: string } => Boolean(x))
+          .slice(0, 200);
 
-      res.json({
-        scope: {
-          tradeSlug: canonicalTradeSlug,
-          stateCode: county.stateCode,
-          countySlug: county.countySlug,
-        },
-        definition: `Verified & active listings updated in the last ${rules.categoryPageRecencyWindowDays} days. Not ranked by payment.`,
-        items,
-      });
-    } catch (error: any) {
-      console.error("Error building best trade-county data:", error);
-      res.status(500).json({ message: "Failed to load best listings" });
+        return {
+          status: 200,
+          body: {
+            scope: {
+              tradeSlug: canonicalTradeSlug,
+              stateCode: county.stateCode,
+              countySlug: county.countySlug,
+            },
+            definition: `Verified & active listings updated in the last ${rules.categoryPageRecencyWindowDays} days. Not ranked by payment.`,
+            items,
+          },
+        };
+      } catch (error: any) {
+        console.error("Error building best trade-county data:", error);
+        return { status: 500, body: { message: "Failed to load best listings" } };
+      }
     }
-  });
+  );
+  return res.status(result.status).json(result.body);
 });
 
 router.get("/api/public/seo/best/trade-city", async (req, res) => {

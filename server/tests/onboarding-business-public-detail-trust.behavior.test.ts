@@ -51,7 +51,7 @@ function onboardingBusinessRow(overrides: Record<string, unknown> = {}) {
     status: "active",
     claimStatus: "claimed",
     profileData: {
-      category: "electrician",
+      category: "Electrical Contractor",
       services: ["Electrical repair"],
       city: "Austin",
       description: "PRIVATE ONBOARDING BUSINESS EVIDENCE",
@@ -131,6 +131,25 @@ describe("onboarding business public-detail trust boundary", () => {
     expect(response.text).not.toContain("512-555-0199");
     expect(response.text).not.toContain("private@example.com");
   });
+
+  it.each(["HVAC contractor", "Air conditioning contractor"])(
+    "serves an eligible imported %s detail through the public-safe projection",
+    async (category) => {
+      mocks.rows = [
+        onboardingBusinessRow({
+          ownerVerificationStatus: "approved",
+          ownerAddressVerified: true,
+          profileData: { category, services: [category], phone: "512-555-0199" },
+        }),
+      ];
+      const response = await request(buildApp()).get(
+        "/api/public/businesses/pending-onboarding-business"
+      );
+      expect(response.status).toBe(200);
+      expect(response.body.profile.category).toBe(category);
+      expect(response.text).not.toContain("512-555-0199");
+    }
+  );
 
   it("preserves public-record reads while verification-gating owned business evidence", () => {
     expect(
