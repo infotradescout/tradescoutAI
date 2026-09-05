@@ -19,6 +19,8 @@ export type LocalServiceCredential = {
 
 export type LocalServiceProfilePresentation = {
   template: "local-service";
+  /** Explicitly selected by admin after profile review. */
+  layout?: "project-profile";
   eyebrow: string;
   missionEyebrow?: string;
   missionStatement?: string;

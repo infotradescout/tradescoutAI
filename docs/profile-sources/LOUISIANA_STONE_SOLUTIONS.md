@@ -79,6 +79,33 @@ The initial minimum release run against commit `79eb608f980915606a5311925113f8b2
 
 On September 5, the operator authorized continuation. The native admin account form created a private company-mailbox account with no password and no duplicate business or public profile. Its result reports a setup email containing password and verification links. This is not evidence that the company has verified the mailbox, chosen a password, accepted control, or received a customer request. Those states must remain distinct from account creation and any subsequent administrator assignment.
 
-The existing exact direct-profile authority path supports this administrator-prepared page without a public verification badge. Louisiana Stone Solutions additionally requires a claimed, matching local company account with a genuinely verified email and a pending or approved verification state. The profile must be deliberately published and selected for public visibility, while business discovery remains disabled. Missing source authority, owner mismatch, unclaimed custody, unverified email, unknown or rejected verification state, or inactive business keeps the route private even if a stale badge is present. This direct-link release does not grant general search indexing, provider-map exposure, business credentials, or contact access. The company must complete its own setup; no setup tokens are consumed by the operator.
+Historical release policy, superseded by the September 5 manual-onboarding correction below: The existing exact direct-profile authority path supports this administrator-prepared page without a public verification badge. Louisiana Stone Solutions additionally requires a claimed, matching local company account with a genuinely verified email and a pending or approved verification state. The profile must be deliberately published and selected for public visibility, while business discovery remains disabled. Missing source authority, owner mismatch, unclaimed custody, unverified email, unknown or rejected verification state, or inactive business keeps the route private even if a stale badge is present. This direct-link release does not grant general search indexing, provider-map exposure, business credentials, or contact access. The company must complete its own setup; no setup tokens are consumed by the operator.
 
 Anonymous profile search also excludes every registered direct-profile slug in the SQL predicate before ordering and limiting. This prevents a stale badge or discovery toggle from putting an exact direct-link page into search. The new LSS exposure suite passed 43 cases, including detached-business revocation and actual page/image sitemap exclusion; the search query suite and existing search tests passed nine cases. Authority, trust-copy, and law-drift audits passed. The broader `npm run verify` stopped at an unchanged package-lock reachability mismatch; `package.json`, `package-lock.json`, and the dependency projection script match integrated main. Five additional unchanged legacy UI source-contract failures are recorded on PR #573; their declaration/markup expectations target older admin/wholesaler implementations.
+
+## Administrator publication decision
+
+
+On September 5, 2026, the operator clarified that this is manual administrator
+onboarding. The administrator's explicit publication decision authorizes public
+reading without owner signup/email verification or a visitor's admin session.
+The registered admin source, exact business/owner binding, published status,
+active business, and explicit profile visibility still govern that decision.
+Removing publication or its authority must make the profile unavailable.
+
+The existing direct-only exposure setting remains the stored publication mode.
+Publication does not fabricate verification or expose private contact details.
+Requests continue through the existing protected Direct Connect decision form.
+
+## Presentation and review
+
+This profile explicitly opts into the project-profile layout. It shows the
+company identity, one expandable kitchen photo, services that can be selected
+together, and one request action that preserves those selections. Other profiles
+retain their existing layout unless they explicitly select this one.
+
+The operator requires the visible result before a commit. The proposed profile
+and request-form preview was displayed in the conversation before this change
+was committed. Local browser navigation was blocked by the browser URL policy;
+an inline preview and component interaction checks are not a completed browser
+walkthrough. Production browser results belong in the release evidence.
