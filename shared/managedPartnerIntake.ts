@@ -17,18 +17,11 @@ export const MANAGED_PARTNER_INTAKE_STAGES = [
   "archived",
 ] as const;
 
-export type ManagedPartnerIntakeStage =
-  (typeof MANAGED_PARTNER_INTAKE_STAGES)[number];
+export type ManagedPartnerIntakeStage = (typeof MANAGED_PARTNER_INTAKE_STAGES)[number];
 
-export const MANAGED_PARTNER_INTAKE_PRIORITIES = [
-  "urgent",
-  "high",
-  "normal",
-  "low",
-] as const;
+export const MANAGED_PARTNER_INTAKE_PRIORITIES = ["urgent", "high", "normal", "low"] as const;
 
-export type ManagedPartnerIntakePriority =
-  (typeof MANAGED_PARTNER_INTAKE_PRIORITIES)[number];
+export type ManagedPartnerIntakePriority = (typeof MANAGED_PARTNER_INTAKE_PRIORITIES)[number];
 
 export const MANAGED_PARTNER_ARCHETYPES = [
   "contractor",
@@ -48,6 +41,7 @@ export const MANAGED_PARTNER_CONTROL_MODES = [
 export const MANAGED_PARTNER_CONTACT_MODES = [
   "tradescout_managed",
   "business_phone_tradescout_email",
+  "business_managed",
   "pending_owner_contact",
 ] as const satisfies readonly ManagedPartnerContactMode[];
 
@@ -132,12 +126,8 @@ export type ManagedPartnerIntakeReport = {
   items: ManagedPartnerIntakeRecord[];
 };
 
-export function isManagedPartnerIntakeStage(
-  value: unknown
-): value is ManagedPartnerIntakeStage {
-  return MANAGED_PARTNER_INTAKE_STAGES.includes(
-    String(value || "") as ManagedPartnerIntakeStage
-  );
+export function isManagedPartnerIntakeStage(value: unknown): value is ManagedPartnerIntakeStage {
+  return MANAGED_PARTNER_INTAKE_STAGES.includes(String(value || "") as ManagedPartnerIntakeStage);
 }
 
 export function isManagedPartnerIntakePriority(

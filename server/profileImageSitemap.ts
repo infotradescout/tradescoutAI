@@ -93,9 +93,7 @@ function canonicalProfileUrl(candidate: ProfileImageCandidate, slug: string): st
     .trim()
     .toLowerCase();
   return normalizeHttpUrl(
-    customDomain
-      ? `https://${customDomain}/`
-      : `${CANONICAL_ORIGIN}/u/${encodeURIComponent(slug)}`
+    customDomain ? `https://${customDomain}/` : `${CANONICAL_ORIGIN}/u/${encodeURIComponent(slug)}`
   );
 }
 
@@ -140,13 +138,7 @@ function rootProfileImages(candidate: ProfileImageCandidate, pageUrl: string): s
       if (type === "hero") {
         images.push(data.imageUrl, data.logoUrl, data.image, data.logo);
       } else if (type === "localserviceprofile") {
-        images.push(
-          data.heroImage,
-          data.logoImage,
-          data.aboutImage,
-          data.imageUrl,
-          data.logoUrl
-        );
+        images.push(data.heroImage, data.logoImage, data.aboutImage, data.imageUrl, data.logoUrl);
       } else if (type === "profilepresentation") {
         images.push(
           data.imageUrl,
@@ -225,13 +217,7 @@ export function collectProfileImageSitemapEntries(args: {
   }
 
   for (const category of listProfileInventoryCategories(inventoryCategories, contentBlocks)) {
-    if (
-      !isProfileInventoryCategoryPubliclyAddressable(
-        profileSlug,
-        contentBlocks,
-        category
-      )
-    ) {
+    if (!isProfileInventoryCategoryPubliclyAddressable(profileSlug, contentBlocks, category)) {
       continue;
     }
     const pageUrl = buildProfilePublicCategoryUrl({
@@ -263,19 +249,13 @@ export function collectProfileImageSitemapEntries(args: {
       serviceSlug: service.slug,
     });
     const normalizedPageUrl = normalizeHttpUrl(pageUrl);
-    if (
-      !service.imageUrl ||
-      !normalizedPageUrl ||
-      !governedUrls.has(normalizedPageUrl)
-    ) {
+    if (!service.imageUrl || !normalizedPageUrl || !governedUrls.has(normalizedPageUrl)) {
       continue;
     }
     appendEntry(entries, normalizedPageUrl, [service.imageUrl], lastmod);
   }
 
-  return [...entries.values()].sort((left, right) =>
-    left.pageUrl.localeCompare(right.pageUrl)
-  );
+  return [...entries.values()].sort((left, right) => left.pageUrl.localeCompare(right.pageUrl));
 }
 
 /** Current Google image sitemap shape: page loc plus image:image/image:loc. */
@@ -290,9 +270,7 @@ export function buildProfileImageSitemapXml(entries: ProfileImageSitemapEntry[])
             `    <image:image>\n      <image:loc>${escapeXml(imageUrl)}</image:loc>\n    </image:image>`
         )
         .join("\n");
-      const lastmod = entry.lastmod
-        ? `\n    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`
-        : "";
+      const lastmod = entry.lastmod ? `\n    <lastmod>${escapeXml(entry.lastmod)}</lastmod>` : "";
       return `  <url>\n    <loc>${escapeXml(entry.pageUrl)}</loc>${lastmod}\n${images}\n  </url>`;
     })
     .join("\n");
@@ -314,7 +292,9 @@ async function loadPublicProfileCandidates(): Promise<ProfileImageCandidate[]> {
         : null;
     })
   );
-  return candidates.filter((candidate): candidate is ProfileImageCandidate => Boolean(candidate));
+  return candidates.filter((candidate): candidate is NonNullable<typeof candidate> =>
+    Boolean(candidate)
+  );
 }
 
 async function buildPlatformImageSitemap(): Promise<ImageSitemapBuild> {
@@ -396,10 +376,7 @@ export async function handlePublicProfileImageSitemapRequest(
  * above; their canonical URLs remain in the unified feed for verified
  * cross-domain Search Console submission.
  */
-export function attachPublicProfileImageSitemapReferences(
-  req: Request,
-  res: Response
-): void {
+export function attachPublicProfileImageSitemapReferences(req: Request, res: Response): void {
   const path = String(req.path || "").replace(/\/+$/, "") || "/";
   if (path !== "/sitemap.xml" && path !== "/sitemap-index.xml" && path !== "/robots.txt") {
     return;

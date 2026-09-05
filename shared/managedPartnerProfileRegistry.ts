@@ -16,6 +16,7 @@ export type ManagedPartnerControlMode =
 export type ManagedPartnerContactMode =
   | "tradescout_managed"
   | "business_phone_tradescout_email"
+  | "business_managed"
   | "pending_owner_contact";
 
 export type ManagedPartnerExposureMode = "public" | "direct_only";

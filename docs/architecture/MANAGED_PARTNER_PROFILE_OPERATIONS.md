@@ -102,6 +102,16 @@ A verified public company phone remains the Call destination while messages and 
 
 No public contact is invented. The operations board marks the unresolved contact until the owner decision is available.
 
+### Business managed
+
+`business_managed` records that the business handles its own requests. The intake retains explicitly configured business email and notification inbox values. A phone is optional. Switching from another contact mode does not inherit its contact destinations, and this mode never supplies a TradeScout phone or inbox by default.
+
+The business record uses `profileData.contactManagement = "business_managed"`; its email and notification inbox must match the intake, and the operating recipient must be the same business profile. A configured phone is checked when supplied. The admin editor derives this option from the shared contact-mode list.
+
+Selecting this mode does not transfer ownership, establish verification, publish a profile, or grant contact access. The shared health check blocks business request readiness while claim or owner transfer is pending, the owner is a profile steward, the owner account is not confirmed by email, the expected business inbox is missing or mismatched, or the request path remains pending. An email alert links to the authenticated inbox; a staged mailbox alone does not establish that the business can open or reply to a request. Contact decisions and actual delivery still require the existing request workflow and its proof.
+
+Migration `0128_business_managed_partner_contact.sql` adds the contact-mode value to the existing intake CHECK without modifying records. The schema guard expects its constraint marker. Apply it through the normal migration process before storing this mode; no runtime fallback or startup contact normalization writes business-managed destinations.
+
 ## Request routing
 
 The public company identity and the operating request recipient are separate fields.

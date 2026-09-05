@@ -24,19 +24,12 @@ describe("managed partner intake queue", () => {
       "blocked",
       "archived",
     ]);
-    expect(MANAGED_PARTNER_INTAKE_PRIORITIES).toEqual([
-      "urgent",
-      "high",
-      "normal",
-      "low",
-    ]);
+    expect(MANAGED_PARTNER_INTAKE_PRIORITIES).toEqual(["urgent", "high", "normal", "low"]);
     expect(isManagedPartnerIntakeStage("routing_review")).toBe(true);
     expect(isManagedPartnerIntakeStage("waiting_for_architecture")).toBe(false);
     expect(isManagedPartnerIntakePriority("urgent")).toBe(true);
     expect(isManagedPartnerIntakePriority("someday")).toBe(false);
-    expect(slugifyManagedPartnerName("  R.E.D. & New Stone Co.  ")).toBe(
-      "r-e-d-and-new-stone-co"
-    );
+    expect(slugifyManagedPartnerName("  R.E.D. & New Stone Co.  ")).toBe("r-e-d-and-new-stone-co");
   });
 
   it("creates a durable queue without changing existing company tables", () => {
@@ -75,7 +68,7 @@ describe("managed partner intake queue", () => {
     expect(service).toContain("The canonical business and profile must exist");
     expect(service).toContain("The business must be active and the profile published");
     expect(service).toContain("Business and profile ownership must agree");
-    expect(service).toContain("stage === \"live\"");
+    expect(service).toContain('stage === "live"');
   });
 
   it("supports create, update, archive, prioritization, and live runtime promotion", () => {
@@ -148,10 +141,13 @@ describe("managed partner intake queue", () => {
     expect(queue).toContain("Existing website and source links");
     expect(queue).toContain("Profile control");
     expect(queue).toContain("Contact handling");
-    expect(queue).toContain("Operating request recipient slug");
+    expect(queue).toContain('label="Operating request recipient"');
+    expect(queue).toContain('htmlFor="partner-request-recipient"');
+    expect(queue).toContain("value={form.requestRecipientSlug}");
+    expect(queue).toContain("options={MANAGED_PARTNER_CONTACT_MODES}");
     expect(queue).toContain("Verified relationship");
-    expect(queue).toContain("What is known and what must be preserved");
-    expect(queue).toContain("Add the blocker before saving");
+    expect(queue).toContain('label="Known facts and boundaries"');
+    expect(queue).toContain("Name the blocker before saving");
     expect(queue).toContain("Moving an intake to");
     expect(queue).toContain("Open live profile");
     expect(queue).toContain('queryKey: ["/api/admin/managed-partner-intakes"]');
@@ -170,9 +166,7 @@ describe("managed partner intake queue", () => {
     const evidence = read(
       ".selective-intelligence/builds/managed-partner-intake-queue/evidence.md"
     );
-    const architecture = read(
-      "docs/architecture/MANAGED_PARTNER_PROFILE_OPERATIONS.md"
-    );
+    const architecture = read("docs/architecture/MANAGED_PARTNER_PROFILE_OPERATIONS.md");
 
     expect(evidence).toContain("No partner waits for architecture");
     expect(evidence).toContain("No architecture waits for a partner");

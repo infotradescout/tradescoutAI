@@ -261,7 +261,7 @@ export async function verifyRequiredProductionSchema(client) {
         ('managed_partner_intakes', 'managed_partner_intakes_priority_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_archetype_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_control_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
-        ('managed_partner_intakes', 'managed_partner_intakes_contact_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
+        ('managed_partner_intakes', 'managed_partner_intakes_contact_mode_check', 'c', null, null, null, null, 'tradescout-schema:0128:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_exposure_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_request_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1')
     ),

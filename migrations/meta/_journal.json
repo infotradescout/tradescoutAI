@@ -918,6 +918,13 @@
       "when": 1787802773000,
       "tag": "0127_public_media_objects",
       "breakpoints": false
+    },
+    {
+      "idx": 131,
+      "version": "7",
+      "when": 1788579474541,
+      "tag": "0128_business_managed_partner_contact",
+      "breakpoints": false
     }
   ]
 }

@@ -110,8 +110,9 @@ export function collectPublicProfileIndexNowReconciliationUrls(
 }
 
 export function fingerprintPublicProfileIndexNowUrls(urls: Iterable<string>): string | null {
-  const normalized = [...new Set([...urls].map((value) => String(value || "").trim()).filter(Boolean))]
-    .sort();
+  const normalized = [
+    ...new Set([...urls].map((value) => String(value || "").trim()).filter(Boolean)),
+  ].sort();
   if (normalized.length === 0) return null;
   return createHash("sha256").update(normalized.join("\n")).digest("hex");
 }
@@ -131,7 +132,7 @@ async function loadCurrentCandidates(): Promise<PublicProfileIndexNowCandidate[]
         : null;
     })
   );
-  return profiles.filter((profile): profile is PublicProfileIndexNowCandidate => Boolean(profile));
+  return profiles.filter((profile): profile is NonNullable<typeof profile> => Boolean(profile));
 }
 
 async function recordReconciliation(args: {
@@ -176,7 +177,8 @@ export async function reconcilePublicProfileIndexNow(
   options: ReconciliationOptions = {}
 ): Promise<PublicProfileIndexNowReconciliationResult> {
   const queryable = options.queryable || pool;
-  const candidates = options.candidates || (await (options.loadCandidates || loadCurrentCandidates)());
+  const candidates =
+    options.candidates || (await (options.loadCandidates || loadCurrentCandidates)());
   const urls = collectPublicProfileIndexNowReconciliationUrls(candidates);
   const fingerprint = fingerprintPublicProfileIndexNowUrls(urls);
   const profileCount = new Set(
