@@ -43,6 +43,7 @@ const recommendations = [
 const galleryItems: ResolvedProfileGalleryItem[] = Array.from({ length: 3 }, (_, index) => ({
   itemType: "gallery",
   title: `Gallery override ${index + 1}`,
+  hasPublicTitle: true,
   description: `Override description ${index + 1}`,
   imageUrl: `/override-${index + 1}.webp`,
   imageAlt: `Override image ${index + 1}`,
@@ -68,10 +69,12 @@ describe("JrsAutoGlassProfileTheme", () => {
     container.remove();
   });
 
-  function renderTheme(overrides: {
-    galleryItems?: ResolvedProfileGalleryItem[];
-    recommendationsDirectory?: typeof recommendations | [];
-  } = {}) {
+  function renderTheme(
+    overrides: {
+      galleryItems?: ResolvedProfileGalleryItem[];
+      recommendationsDirectory?: typeof recommendations | [];
+    } = {}
+  ) {
     act(() => {
       root.render(
         <JrsAutoGlassProfileTheme
@@ -122,7 +125,8 @@ describe("JrsAutoGlassProfileTheme", () => {
     renderTheme();
     const controls = [...container.querySelectorAll<HTMLButtonElement>("button")].filter(
       (button) =>
-        button.textContent?.includes("Direct Connect") || button.ariaLabel?.includes("Direct Connect")
+        button.textContent?.includes("Direct Connect") ||
+        button.ariaLabel?.includes("Direct Connect")
     );
     expect(controls).toHaveLength(3);
     for (const control of controls) act(() => control.click());

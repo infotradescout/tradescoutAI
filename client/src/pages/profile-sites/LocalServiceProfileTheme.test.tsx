@@ -21,6 +21,7 @@ vi.mock("@/components/ShareButton", () => ({
 const galleryItems: ResolvedProfileGalleryItem[] = Array.from({ length: 3 }, (_, index) => ({
   itemType: "gallery",
   title: `Completed project ${index + 1}`,
+  hasPublicTitle: true,
   description: `Project description ${index + 1}`,
   imageUrl: `/project-${index + 1}.jpg`,
   imageAlt: `Project ${index + 1}`,
@@ -81,7 +82,9 @@ describe("LocalServiceProfileTheme", () => {
     vi.unstubAllGlobals();
   });
 
-  function renderTheme(overrides: { verificationStatus?: string | null; verifiedBadge?: boolean } = {}) {
+  function renderTheme(
+    overrides: { verificationStatus?: string | null; verifiedBadge?: boolean } = {}
+  ) {
     act(() => {
       root.render(
         <LocalServiceProfileTheme
@@ -164,13 +167,15 @@ describe("LocalServiceProfileTheme", () => {
 
   it("opens, shares, advances, reverses, escapes, closes, and restores gallery body lock", () => {
     renderTheme();
-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Open Completed project 1"]')?.click());
+    act(() =>
+      container.querySelector<HTMLButtonElement>('[aria-label="Open Completed project 1"]')?.click()
+    );
     expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     expect(document.body.style.overflow).toBe("hidden");
     expect(container.textContent).toContain("1 of 3");
-    const dialogShare = [...container.querySelectorAll<HTMLElement>('[data-testid="share-action"]')].find(
-      (button) => button.dataset.destination?.includes("/gallery/project-1")
-    );
+    const dialogShare = [
+      ...container.querySelectorAll<HTMLElement>('[data-testid="share-action"]'),
+    ].find((button) => button.dataset.destination?.includes("/gallery/project-1"));
     expect(dialogShare).toBeDefined();
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Next photo"]')?.click());
     expect(container.textContent).toContain("2 of 3");
@@ -180,7 +185,9 @@ describe("LocalServiceProfileTheme", () => {
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(document.body.style.overflow).toBe("");
 
-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Open Completed project 2"]')?.click());
+    act(() =>
+      container.querySelector<HTMLButtonElement>('[aria-label="Open Completed project 2"]')?.click()
+    );
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Close gallery"]')?.click());
     expect(container.querySelector('[role="dialog"]')).toBeNull();
   });

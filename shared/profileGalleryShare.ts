@@ -29,6 +29,8 @@ type RawGalleryImage = {
 export type ResolvedProfileGalleryItem = {
   itemType: "gallery";
   title: string;
+  /** A supplied image title/caption, rather than a generated section-label fallback. */
+  hasPublicTitle: boolean;
   description: string;
   imageUrl: string;
   imageAlt: string;
@@ -180,6 +182,7 @@ export function listProfileGalleryItems(contentBlocks: unknown): ResolvedProfile
       items.push({
         itemType: "gallery",
         title,
+        hasPublicTitle: Boolean(image.title),
         description: image.description || blockDescription,
         imageUrl: image.imageUrl,
         imageAlt: firstString(

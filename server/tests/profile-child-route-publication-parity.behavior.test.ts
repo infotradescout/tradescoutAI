@@ -35,6 +35,8 @@ const defaultBlocks = [
   {
     type: "gallery",
     data: {
+      title: "Completed work",
+      description: "Work records published by the public profile owner.",
       images: [
         "/images/generic-gallery-photo.jpg",
         {
@@ -107,9 +109,7 @@ describe("public profile child route publication parity", () => {
     });
     expect(urls).toHaveLength(3);
     expect(urls).toContain("https://www.thetradescout.com/u/future-profile/categories/stone");
-    expect(urls).toContain(
-      "https://www.thetradescout.com/u/future-profile/inventory/named-stone"
-    );
+    expect(urls).toContain("https://www.thetradescout.com/u/future-profile/inventory/named-stone");
     expect(urls.some((url) => url.endsWith(`/gallery/${completedProject.slug}`))).toBe(true);
     expect(urls.join("\n")).not.toContain("trending-selection-04");
     expect(urls.join("\n")).not.toContain(genericGallery.slug);
