@@ -3,6 +3,7 @@ import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelme
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LOCAL_BUSINESS_DISCOVERY } from "@/lib/popularSearchQueries";
+import PensacolaPage from "./pensacola";
 import {
   PENSACOLA_COUNTY_CODE,
   PENSACOLA_CLUSTERS,
@@ -12,6 +13,8 @@ import {
 export default function PensacolaClusterPage() {
   const [, params] = useRoute("/pensacola/:clusterSlug");
   const cluster = findPensacolaCluster(params?.clusterSlug);
+
+  if (cluster?.slug === "kitchen-remodel") return <PensacolaPage />;
 
   if (!cluster) {
     return (

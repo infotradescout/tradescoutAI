@@ -1,6 +1,10 @@
 import { formatTradeScoutTitle } from "@shared/brand";
 import { resolvePublicLandingIndexability } from "@shared/publicLandingIndexability";
 import { LOCAL_BUSINESS_DISCOVERY } from "../client/src/lib/popularSearchQueries";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PENSACOLA_DISCOVERY } from "@shared/pensacolaDiscovery";
+import PensacolaContent from "../client/src/pages/pensacola-content";
 import {
   explainerChapters,
   type ExplainerCard,
@@ -42,6 +46,51 @@ function injectJsonLd(html: string, jsonLd: object) {
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   const script = `<script type="application/ld+json">${json}</script>`;
   return html.replace("</head>", `${script}\n</head>`);
+}
+
+export function buildPublicPensacolaHtml(
+  opts: Pick<PublicLandingHtmlOptions, "origin" | "templateHtml">
+): string {
+  const content = PENSACOLA_DISCOVERY;
+  const canonical = `${opts.origin}${content.path}`;
+  let html = upsertTag(
+    opts.templateHtml,
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>${escapeHtml(content.title)}</title>`
+  );
+  for (const [name, value, attribute] of [
+    ["description", content.description, "name"],
+    [
+      "robots",
+      "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+      "name",
+    ],
+    ["og:title", content.title, "property"],
+    ["og:description", content.description, "property"],
+    ["og:url", canonical, "property"],
+    ["og:type", "website", "property"],
+    ["twitter:title", content.title, "name"],
+    ["twitter:description", content.description, "name"],
+  ]) {
+    html = upsertTag(
+      html,
+      new RegExp(`<meta ${attribute}="${name}"[^>]*>`, "i"),
+      `<meta ${attribute}="${name}" content="${escapeHtml(value)}" />`
+    );
+  }
+  html = upsertTag(
+    html,
+    /<link rel="canonical"[^>]*>/i,
+    `<link rel="canonical" href="${escapeHtml(canonical)}" />`
+  );
+  html = injectSummary(html, renderToStaticMarkup(createElement(PensacolaContent)));
+  return injectJsonLd(html, {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: content.title,
+    description: content.description,
+    url: canonical,
+  });
 }
 
 export function buildPublicFindLocalBusinessesHtml(

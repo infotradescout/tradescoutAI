@@ -111,7 +111,7 @@ const jwName = owned(outerText, "JwStoneMarketplaceProfile-");
 // ownership limits.
 assert.ok(core.length <= 286_000 && gzipSync(core).length <= 75_000, "Profile core budget exceeded");
 assert.ok(outer.length <= 170_000 && gzipSync(outer).length <= 42_000, "Wholesaler outer budget exceeded");
-for (const identity of ["jw-marketplace-scroll", "Loading JW Stone inventory", "R.E.D. GRANITI IN THE WORLD", "Complete onyx projects."]) {
+for (const identity of ["jw-marketplace-scroll", "Loading JW Stone inventory", "R.E.D. GRANITI IN THE WORLD", "Kitchens, bathrooms and complete onyx projects."]) {
   assert.equal(coreText.includes(identity), false, `${identity} leaked into Profile core`);
   assert.equal(outerText.includes(identity), true, `${identity} missing from outer chunk`);
 }

@@ -85,7 +85,11 @@ import {
   buildPublicDatasetsLandingHtml,
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
-import { buildPublicLandingHtml, buildPublicFindLocalBusinessesHtml } from "./publicLandingHtml";
+import {
+  buildPublicLandingHtml,
+  buildPublicFindLocalBusinessesHtml,
+  buildPublicPensacolaHtml,
+} from "./publicLandingHtml";
 import { applyPrivateShellNoindex, isPrivateAppShellPath } from "./privateShellIndexability";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
@@ -1727,6 +1731,21 @@ app.use(landingContractHeaders);
                   }
                 }
               );
+
+              app.get("/pensacola/kitchen-remodel", (_req, res) => res.redirect(301, "/pensacola"));
+
+              app.get("/pensacola", (req, res) => {
+                const templateHtml = getCachedTemplate(path.join(publicDistPath, "index.html"));
+                if (!templateHtml) {
+                  return sendPublicPageRenderFailure(res, "Application files not found");
+                }
+                const html = buildPublicPensacolaHtml({
+                  origin: resolvePublicOrigin(req),
+                  templateHtml,
+                });
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                res.send(html);
+              });
 
               app.get("/find-local-businesses", (req, res) => {
                 const templateHtml = getCachedTemplate(path.join(publicDistPath, "index.html"));

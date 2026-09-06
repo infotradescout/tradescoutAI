@@ -1,6 +1,6 @@
 # ISSA Build profile source record (operator)
 
-Last reviewed: 2026-08-19
+Last reviewed: 2026-09-06
 
 Operator-controlled. Do not surface co-tenancy, unrelated businesses, owner-account contact, or imported private contact into public profile copy.
 
@@ -14,7 +14,15 @@ Operator-controlled. Do not surface co-tenancy, unrelated businesses, owner-acco
 - **Profile control:** The owner account is pending attachment. TradeScout admin stewardship supplies and manages the public profile record until that account is attached. This is only an account-control state; it is not an incomplete-verification state and does not reduce ISSA Build's verified status.
 - Verification of this business identity and operating scope does not manufacture unrelated license, insurance, or credential claims that have not been separately recorded.
 
-## Verified full-service scope
+## Pensacola kitchen and bathroom scope — owner confirmation, 2026-09-06
+
+The owner explicitly confirmed that all kitchen and bathroom work in Pensacola and surrounding areas goes to ISSA Build, including cabinets, stone countertops and fabrication. ISSA Build is the service destination; TradeScout continues to manage the inquiry. The Pensacola entry page and its kitchen-remodel alias must retain this destination and the selected work. Do not substitute JW Stone or a general contractor queue for these local project requests.
+
+Publish service descriptions and a Pensacola service-area page through the existing profile discovery graph. The surrounding-area claim does not assign every nearby job to Escambia County; capture the actual job city or ZIP. No new installation dates, prices, stock, insurance, license claims, reviews or rankings are implied by this correction.
+
+The established onyx collections, photos, verification record and managed contact remain available. The prior onyx-only search positioning is superseded by the confirmed kitchen and bathroom scope.
+
+## Verified full-service onyx scope
 
 ISSA Build handles the complete onyx project. TradeScout manages the inquiry funnel; ISSA Build performs the work and customer delivery for:
 

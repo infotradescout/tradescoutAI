@@ -28,7 +28,15 @@ vi.mock("@/utils/share", () => ({
 }));
 
 vi.mock("./ExpressDirectConnectPanel", () => ({
-  default: () => null,
+  default: (props: any) =>
+    props.open ? (
+      <div
+        data-testid="request-recipient"
+        data-profile={props.profileSlug}
+        data-service={props.initialServiceName}
+        data-mode={props.requestMode}
+      />
+    ) : null,
 }));
 
 const FORBIDDEN_INVENTORY_CHROME = [
@@ -123,6 +131,22 @@ describe("WholesalerProfileTheme lux fail-closed", () => {
       container.querySelector('[data-testid="luxury-material-house-showcase"]')
     ).not.toBeNull();
     expect(container.querySelector('[data-testid="luxury-material-house-unavailable"]')).toBeNull();
+    expect(container.querySelector("h1")?.textContent).toBe("Kitchens, bathrooms and stone.");
+    expect(container.textContent).toContain("Pensacola and surrounding areas");
+    expect(
+      container.querySelectorAll('nav[aria-label="ISSA Build Pensacola services"] a')
+    ).toHaveLength(5);
+    const generalRequest = Array.from(container.querySelectorAll("button")).find(
+      (button) =>
+        button.textContent?.trim() === "Start a Request" &&
+        !button.closest('[data-testid="issa-build-verification-band"]')
+    );
+    expect(generalRequest).toBeTruthy();
+    act(() => generalRequest?.click());
+    const recipient = container.querySelector('[data-testid="request-recipient"]');
+    expect(recipient?.getAttribute("data-profile")).toBe("issa-build");
+    expect(recipient?.getAttribute("data-service")).toBe("Kitchen and bathroom project");
+    expect(recipient?.getAttribute("data-mode")).toBe("service");
     const footer = container.querySelector('[data-testid="wholesaler-brand-footer"]');
     const poweredLink = footer?.querySelector<HTMLAnchorElement>("a");
     expect(footer?.querySelectorAll("a")).toHaveLength(1);
