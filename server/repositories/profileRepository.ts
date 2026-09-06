@@ -128,6 +128,7 @@ function publicProfileSearchExposurePredicate() {
     ${profiles.businessId} IS NOT NULL
     AND ${businesses.status} = 'active'
     AND ${businesses.publicDiscoveryEnabled} = true
+    AND lower(trim(COALESCE(${users.verificationStatus}::text, ''))) <> 'suspended'
     AND (
       ${users.verifiedBadge} = true
       OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'

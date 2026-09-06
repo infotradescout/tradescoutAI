@@ -24,6 +24,7 @@ import type {
 } from "../../shared/businessProfile";
 import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
 import { resolveCanonicalBusinessProfileRoute } from "../services/canonicalBusinessProfileRoute";
+import { isPubliclyVerifiedProfileOwner } from "../services/ownerConfirmedDirectProfile";
 import { notifyIndexNow } from "../services/indexNowService";
 import {
   collectBusinessIndexNowUrls,
@@ -378,10 +379,10 @@ async function ensureUniqueSlug(baseSlug: string, userId: string): Promise<strin
 export function registerBusinessProfileRoutes(app: Express) {
   const isBusinessDiscoverable = (user: any): boolean => {
     if (!user) return false;
-    const verificationStatus = String(user.verificationStatus || "")
-      .trim()
-      .toLowerCase();
-    return user.verifiedBadge === true || verificationStatus === "approved";
+    return isPubliclyVerifiedProfileOwner({
+      ownerVerifiedBadge: user.verifiedBadge,
+      ownerVerificationStatus: user.verificationStatus,
+    });
   };
 
   /**
