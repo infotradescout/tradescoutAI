@@ -134,6 +134,30 @@ describe("LocalServiceProfileTheme", () => {
     expect(sendBeacon).toHaveBeenCalledTimes(5);
   });
 
+  it("removes unavailable calls from the header and mobile bar while keeping request actions", () => {
+    renderTheme({ canCall: false });
+    const calls = () =>
+      [...container.querySelectorAll<HTMLButtonElement>("button")].filter((button) =>
+        button.textContent?.includes("Call LA Plumbing")
+      );
+    expect(calls()).toHaveLength(0);
+    const requests = [...container.querySelectorAll<HTMLButtonElement>("button")].filter((button) =>
+      button.textContent?.includes("Start a Request")
+    );
+    expect(requests).toHaveLength(3);
+    for (const request of requests) act(() => request.click());
+    expect(onDirectConnect).toHaveBeenCalledTimes(3);
+    const mobileBar = container.querySelector(".fixed.bottom-0");
+    expect(mobileBar?.classList.contains("grid-cols-1")).toBe(true);
+
+    renderTheme({ canCall: true });
+    expect(calls()).toHaveLength(2);
+    for (const call of calls()) act(() => call.click());
+    expect(onDirectConnect).toHaveBeenCalledTimes(5);
+    expect(mobileBar?.classList.contains("grid-cols-2")).toBe(true);
+    expect(container.innerHTML).not.toMatch(/href="(?:tel|mailto):/);
+  });
+
   it("renders services and financing and routes both through protected Direct Connect", () => {
     renderTheme();
     expect(container.textContent).toContain("Repairs, leaks & replacements");
@@ -236,18 +260,19 @@ describe("LocalServiceProfileTheme", () => {
     renderTheme({
       profileSlug: "louisiana-stone-solutions",
       businessName: "Louisiana Stone Solutions",
-      presentation: { ...LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION, layout: undefined, servicesTitle: "Services", galleryTitle: "Photos" },
+      presentation: {
+        ...LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION,
+        layout: undefined,
+        servicesTitle: "Services",
+        galleryTitle: "Photos",
+      },
       verificationStatus: "pending",
       verifiedBadge: false,
       communityVerification: null,
     });
 
-    expect(container.querySelector("#services h2")?.textContent).toBe(
-      "Services"
-    );
-    expect(container.querySelector("#work h2")?.textContent).toBe(
-      "Photos"
-    );
+    expect(container.querySelector("#services h2")?.textContent).toBe("Services");
+    expect(container.querySelector("#work h2")?.textContent).toBe("Photos");
     const sectionNav = container.querySelector('[aria-label="Profile sections"]');
     expect(sectionNav?.textContent).toContain("Photos");
     expect(sectionNav?.textContent).not.toContain("Work");

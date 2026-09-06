@@ -196,6 +196,8 @@ function hasBaseDirectProfileAuthority(
   candidate: OwnerConfirmedDirectProfileCandidate,
   requiredAuthority: string
 ): boolean {
+  // An explicit moderation suspension revokes release; pending signup state does not.
+  if (normalizeRole(candidate.ownerVerificationStatus) === "suspended") return false;
   const profileOwnerUserId = String(candidate.profileOwnerUserId || "").trim();
   const businessOwnerUserId = String(candidate.businessOwnerUserId || "").trim();
   return (
@@ -275,6 +277,7 @@ export function isPubliclyVerifiedProfileOwner(candidate: {
   ownerVerifiedBadge?: unknown;
   ownerVerificationStatus?: unknown;
 }): boolean {
+  if (normalizeRole(candidate.ownerVerificationStatus) === "suspended") return false;
   return (
     candidate.ownerVerifiedBadge === true ||
     String(candidate.ownerVerificationStatus || "")

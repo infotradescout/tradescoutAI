@@ -166,6 +166,7 @@ function CompactLocalServiceProfileTheme({
   businessName,
   presentation,
   onDirectConnect,
+  canCall = true,
   tradeScoutReturnHref,
   profileShareDestination,
   publicRouteContentBlocks,
@@ -348,15 +349,17 @@ function CompactLocalServiceProfileTheme({
                   <MessageCircle className="h-4 w-4" />
                   {presentation.primaryActionLabel || "Start a Request"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => openProtectedContact("call", "profile_header")}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-black text-sky-800 transition hover:bg-sky-100"
-                  aria-label={`${presentation.callActionLabel || "Call"} through protected contact options`}
-                >
-                  <Phone className="h-4 w-4" />
-                  {presentation.callActionLabel || "Call"}
-                </button>
+                {canCall ? (
+                  <button
+                    type="button"
+                    onClick={() => openProtectedContact("call", "profile_header")}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-black text-sky-800 transition hover:bg-sky-100"
+                    aria-label={`${presentation.callActionLabel || "Call"} through protected contact options`}
+                  >
+                    <Phone className="h-4 w-4" />
+                    {presentation.callActionLabel || "Call"}
+                  </button>
+                ) : null}
                 {presentation.directionsUrl ? (
                   <a
                     href={presentation.directionsUrl}
@@ -823,7 +826,9 @@ function CompactLocalServiceProfileTheme({
         </div>
       </footer>
 
-      <div className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-2 gap-2 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-10px_30px_rgba(15,23,42,0.14)] backdrop-blur-xl md:hidden">
+      <div
+        className={`fixed inset-x-0 bottom-0 z-50 grid ${canCall ? "grid-cols-2" : "grid-cols-1"} gap-2 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-10px_30px_rgba(15,23,42,0.14)] backdrop-blur-xl md:hidden`}
+      >
         <button
           type="button"
           onClick={() => openProtectedContact("request", "mobile_bar")}
@@ -832,14 +837,16 @@ function CompactLocalServiceProfileTheme({
           <MessageCircle className="h-4 w-4" />
           {presentation.primaryActionLabel || "Start a Request"}
         </button>
-        <button
-          type="button"
-          onClick={() => openProtectedContact("call", "mobile_bar")}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-black text-sky-800"
-        >
-          <Phone className="h-4 w-4" />
-          {presentation.callActionLabel || "Call"}
-        </button>
+        {canCall ? (
+          <button
+            type="button"
+            onClick={() => openProtectedContact("call", "mobile_bar")}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-black text-sky-800"
+          >
+            <Phone className="h-4 w-4" />
+            {presentation.callActionLabel || "Call"}
+          </button>
+        ) : null}
       </div>
 
       {activeGalleryItem && activeGalleryIndex !== null ? (
