@@ -150,4 +150,51 @@ describe("accepted Express call action", () => {
     expect(shell).toContain("contactPreference={assignment.contactPreference}");
     expect(shell).not.toContain("requesterContact={assignment");
   });
+
+  it("shows the submitted sender name and phone to an invited business using platform messages", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        assignmentId: "assignment-1",
+        contactGateState: "submission_consented",
+        contactPreference: "platform_message",
+        requesterContact: { name: "Jordan Example", phone: "+12255550100" },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    act(() =>
+      root.render(
+        <AcceptedExpressCallAction
+          assignmentId="assignment-1"
+          assignmentStatus="invited"
+          contactPreference="platform_message"
+          submissionContactAvailable
+        />
+      )
+    );
+    expect(container.textContent).toContain("View sender contact");
+    expect(container.textContent).not.toContain("Jordan Example");
+    await act(async () => {
+      click(container.querySelector("button"));
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("Jordan Example");
+    expect(container.querySelector('a[href="tel:+12255550100"]')).not.toBeNull();
+    act(() =>
+      root.render(
+        <AcceptedExpressCallAction
+          assignmentId="assignment-2"
+          assignmentStatus="invited"
+          contactPreference="platform_message"
+          submissionContactAvailable
+        />
+      )
+    );
+    expect(container.textContent).not.toContain("Jordan Example");
+    await act(async () => {
+      click(container.querySelector("button"));
+      await Promise.resolve();
+    });
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+  });
 });

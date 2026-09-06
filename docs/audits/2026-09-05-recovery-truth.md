@@ -130,3 +130,22 @@ Use [WCAG 2.2](https://www.w3.org/TR/WCAG22/) for accessible interaction and [co
 ## Release boundary
 
 Keep the existing recovery pull request draft. No merge to main, deployment, production data, new hosting service, or GitHub Actions gate. Compile, build, database, behavior, browser, and live proof are separate states; any incomplete state stays explicit.
+
+
+## September 6 continuation: request recovery and submission contact
+
+The test setup now accepts only a dedicated disposable test connection or dedicated test-server admin connection. It no longer borrows `DATABASE_URL`, prints the connection URL, or replaces unrelated `.env.test` settings. Test database creation requires a recognizable disposable database name and explicit remote creation opt-in. An independent review reproduced the PostgreSQL query-host override bypass; creation and full-sync checks now reject alternate query representations of the connection target. Twenty-four focused filesystem/driver-boundary checks passed; these are not native database proof.
+
+Request composer behavior now preserves user edits and deletions ahead of the original prefill, separates county/state/account contexts, retains selected recipients, and copies guest handoffs into authenticated storage before consuming them. Missing profile details open the actual profile settings with a saved return path. Those settings collect name, phone, state, and county. The profile update handler preserves omitted canonical location fields instead of clearing them. Verification navigation retains the request return path; an unknown HTTP 428 is no longer treated as address verification. Profile-business links use the supported profile recipient; legacy owner-only links require an explicit business selection.
+
+New ordinary and Express submissions capture a server-authored name/phone receipt in the created event and bind its availability to the actual assigned recipient. The guarded contact endpoint checks request identity, requester/event identity, immutable recipient binding, canonical contractor/worker ownership, receipt format, and active states. It returns the captured name and phone, without changing general conversation or public-profile contact gates. Existing requests without the new receipt keep their prior authority handling; malformed present receipts cannot fall back. Express business email uses the committed contact snapshot and the server-resolved notification address. No real email or customer request was sent during verification.
+
+A board volunteer does not gain sender contact merely by volunteering. Explicit selection by the requester now upgrades an eligible active existing assignment atomically, preserving its metadata and rejecting conflicting bindings. The owner check also runs before the routing endpoint's idempotent response.
+
+Independent source review found no receipt leakage in the inspected inbox, admin detail, dispatch timeline, HomeID, or ecosystem-summary projections. Tests execute the actual React forms, actual profile update handler, and server authority owner with controlled API/storage boundaries. Native transactions, concurrency, database persistence, real delivery, and authenticated browser operation remain distinct unexecuted proof. No schema migration is required; the new receipt/binding use the existing event metadata and assignment score snapshot.
+
+The local UI preview could not run: Vite failed in this runtime's network-interface discovery (`uv_interface_addresses`), and the browser rejected the local preview address (`ERR_BLOCKED_BY_CLIENT`). A DOM component test is not counted as visual browser proof. The remote disposable database remains unreachable through the supplied connection paths; no production data, hosting service, or database was modified.
+
+Further confirmed verification debt remains outside this saved request/contact repair: the legacy address page recommends postcards, and the postcard endpoint generates/logs a code and claims dispatch without a mailing integration. Document submission also needs a complete private upload/review path and server-owned validation fields. Those are unresolved product failures, not operational verification services or completed recovery proof.
+
+The code checkpoint and fresh executable results are recorded in draft PR #561. Release 0+2 stays held for the missing native database and browser proof; Release 3, main merge, and deployment remain held.

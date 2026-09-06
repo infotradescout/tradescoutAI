@@ -185,7 +185,7 @@ describe("Express Direct Connect anonymous inventory context", () => {
       "Request a call from Example TradePartner"
     );
     expect(container.textContent).toContain(
-      "Your contact details stay gated until the business responds in Direct Connect."
+      "Sending this request shares your name and phone with Example TradePartner so they can respond."
     );
 
     change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");

@@ -23,6 +23,8 @@ import { Palette, Home, LayoutTemplate, Calendar } from "lucide-react";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Page } from "@/components/layout/PagePrimitives";
+import { StateCountySelector } from "@/components/state-county-selector";
+import { getCurrentInternalPath, readSafeReturnPath } from "@/lib/postOnboardingRoute";
 
 interface UserPreferences {
   defaultHomePage?: string;
@@ -124,6 +126,7 @@ export default function ProfileSettings() {
   const { user, refetch } = useAuth();
   const { updateCustomColors } = useTheme();
   const [location, navigate] = useLocation();
+  const returnPath = readSafeReturnPath(getCurrentInternalPath(location));
   const profileUser = user as ProfileSettingsUser | null;
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("identity");
@@ -138,6 +141,10 @@ export default function ProfileSettings() {
     firstName: "",
     lastName: "",
     profileImageUrl: "",
+    phone: "",
+    stateCode: "",
+    countyFips: "",
+    countyName: "",
   });
 
   // Safety valve: if a network request hangs, do not leave the page locked forever.
@@ -288,8 +295,20 @@ export default function ProfileSettings() {
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       profileImageUrl: user?.profileImageUrl || "",
+      phone: user?.phone || "",
+      stateCode: user?.stateCode || "",
+      countyFips: user?.countyFips || "",
+      countyName: user?.countyName || "",
     });
-  }, [user?.firstName, user?.lastName, user?.profileImageUrl]);
+  }, [
+    user?.firstName,
+    user?.lastName,
+    user?.profileImageUrl,
+    user?.phone,
+    user?.stateCode,
+    user?.countyFips,
+    user?.countyName,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -518,6 +537,22 @@ export default function ProfileSettings() {
   };
 
   const saveProfileBasics = async () => {
+    if (
+      returnPath &&
+      (!profileBasics.firstName.trim() ||
+        !profileBasics.lastName.trim() ||
+        profileBasics.phone.replace(/\D/g, "").length < 10 ||
+        !profileBasics.stateCode ||
+        !profileBasics.countyFips)
+    ) {
+      toast({
+        title: "Complete your contact details",
+        description:
+          "Enter your name, phone number, state, and county before returning to your request.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch("/api/user/profile", {
@@ -528,6 +563,10 @@ export default function ProfileSettings() {
           firstName: profileBasics.firstName,
           lastName: profileBasics.lastName,
           profileImageUrl: profileBasics.profileImageUrl,
+          phone: profileBasics.phone.trim(),
+          stateCode: profileBasics.stateCode || undefined,
+          countyFips: profileBasics.countyFips || undefined,
+          countyName: profileBasics.countyName || undefined,
         }),
       });
 
@@ -535,8 +574,9 @@ export default function ProfileSettings() {
       await refetch();
       toast({
         title: "Profile updated",
-        description: "Your profile photo and name were saved.",
+        description: "Your profile and contact details were saved.",
       });
+      if (returnPath) navigate(returnPath);
     } catch (error) {
       toast({
         title: "Error",
@@ -1017,8 +1057,10 @@ export default function ProfileSettings() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <Label>First name</Label>
+                  <Label htmlFor="profile-basics-first-name">First name</Label>
                   <Input
+                    id="profile-basics-first-name"
+                    autoComplete="given-name"
                     data-testid="profile-settings-identity-first-name"
                     value={profileBasics.firstName}
                     onChange={(e) =>
@@ -1028,8 +1070,10 @@ export default function ProfileSettings() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Last name</Label>
+                  <Label htmlFor="profile-basics-last-name">Last name</Label>
                   <Input
+                    id="profile-basics-last-name"
+                    autoComplete="family-name"
                     data-testid="profile-settings-identity-last-name"
                     value={profileBasics.lastName}
                     onChange={(e) =>
@@ -1040,6 +1084,48 @@ export default function ProfileSettings() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="profile-basics-phone">Phone number</Label>
+                <Input
+                  id="profile-basics-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  data-testid="profile-settings-identity-phone"
+                  value={profileBasics.phone}
+                  disabled={loading}
+                  onChange={(e) => setProfileBasics((prev) => ({ ...prev, phone: e.target.value }))}
+                />
+                <p className="text-xs text-white/60">
+                  When you send a request, the receiving business gets your name and phone so they
+                  can respond.
+                </p>
+              </div>
+              <StateCountySelector
+                selectedState={profileBasics.stateCode}
+                selectedCounty={profileBasics.countyFips}
+                stateTestId="profile-settings-identity-state"
+                countyTestId="profile-settings-identity-county"
+                onStateChange={(stateCode) =>
+                  setProfileBasics((prev) => ({
+                    ...prev,
+                    stateCode,
+                    countyFips: "",
+                    countyName: "",
+                  }))
+                }
+                onCountyChange={(countyFips) =>
+                  setProfileBasics((prev) => ({ ...prev, countyFips }))
+                }
+                onCountySelected={(county) =>
+                  setProfileBasics((prev) => ({ ...prev, countyName: county?.name || "" }))
+                }
+                disabled={loading}
+              />
+              {returnPath && (
+                <p role="status" className="text-sm text-white/70">
+                  Your request draft is saved. Complete these details to return and send it.
+                </p>
+              )}
               <div className="flex justify-end">
                 <Button
                   type="button"
@@ -1047,7 +1133,11 @@ export default function ProfileSettings() {
                   onClick={saveProfileBasics}
                   disabled={loading}
                 >
-                  {loading ? "Saving..." : "Save profile basics"}
+                  {loading
+                    ? "Saving..."
+                    : returnPath
+                      ? "Save and return to request"
+                      : "Save profile basics"}
                 </Button>
               </div>
             </CardContent>

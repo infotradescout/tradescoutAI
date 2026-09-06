@@ -90,11 +90,11 @@ describe("direct-connect gate regressions", () => {
     expect(tasksFile).toContain("err?.status === 428");
     expect(tasksFile).toContain('navigate("/verification")');
 
+    expect(directConnectShellFile).toContain('recoveryCode === "VERIFICATION_REQUIRED"');
+    expect(directConnectShellFile).toContain('recoveryCode === "PROFILE_BASICS_REQUIRED"');
     expect(directConnectShellFile).toContain(
-      'String(error?.code || "").toUpperCase() === "VERIFICATION_REQUIRED"'
+      "navigate(`/verification?next=${encodeURIComponent(currentReturnPath())}`)"
     );
-    expect(directConnectShellFile).toContain("error?.status === 428");
-    expect(directConnectShellFile).toContain('navigate("/verification")');
   });
 
   it("enforces fail-closed compliance for automatic top-contractor routing", () => {

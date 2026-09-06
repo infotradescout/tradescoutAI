@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
+import { getCurrentInternalPath, readSafeReturnPath } from "@/lib/postOnboardingRoute";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -23,7 +24,8 @@ type DocType = "drivers_license" | "passport" | "state_id";
 
 export default function IdentityVerificationPage() {
   const { user, isAuthenticated } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const returnPath = readSafeReturnPath(getCurrentInternalPath(location));
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -161,8 +163,8 @@ export default function IdentityVerificationPage() {
             </div>
 
             <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => navigate("/verification")}>
-                Back
+              <Button variant="outline" onClick={() => navigate(returnPath || "/verification")}>
+                {returnPath ? "Return to saved request" : "Back"}
               </Button>
               <Button
                 disabled={submitMutation.isPending || !file}

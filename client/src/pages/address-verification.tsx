@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import { getCurrentInternalPath, readSafeReturnPath } from "@/lib/postOnboardingRoute";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,7 +58,8 @@ type PostcardVerificationData = z.infer<typeof postcardVerificationSchema>;
 export default function AddressVerification() {
   const [step, setStep] = useState<"form" | "postcard" | "complete">("form");
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const returnPath = readSafeReturnPath(getCurrentInternalPath(location));
   const queryClient = useQueryClient();
 
   // Get address verification status
@@ -87,7 +89,7 @@ export default function AddressVerification() {
   // Submit address verification
   const submitVerificationMutation = useMutation({
     mutationFn: async (data: AddressFormData) => {
-      return await apiRequest("/api/address-verification", "POST", data);
+      return await apiRequest("POST", "/api/address-verification", data);
     },
     onSuccess: () => {
       if (addressForm.getValues("verificationMethod") === "postcard") {
@@ -187,6 +189,9 @@ export default function AddressVerification() {
               <CardDescription>
                 Your address has been successfully verified. You have full access to the platform.
               </CardDescription>
+              {returnPath && (
+                <Button onClick={() => navigate(returnPath)}>Return to saved request</Button>
+              )}
             </CardHeader>
           </Card>
         </div>

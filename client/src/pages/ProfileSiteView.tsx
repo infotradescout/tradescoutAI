@@ -111,9 +111,7 @@ const PROFILE_HISTORY_BOUNDARY_KEY = "__tradeScoutProfileHistoryBoundary";
 const SteelHomePackagesProfile = lazy(
   () => import("@/pages/profile-sites/SteelHomePackagesProfile")
 );
-const PrecisionAerialProfile = lazy(
-  () => import("@/pages/profile-sites/PrecisionAerialProfile")
-);
+const PrecisionAerialProfile = lazy(() => import("@/pages/profile-sites/PrecisionAerialProfile"));
 const ProFabProfileTheme = lazy(() => import("@/pages/profile-sites/ProFabProfileTheme"));
 const JrsAutoGlassProfileTheme = lazy(
   () => import("@/pages/profile-sites/JrsAutoGlassProfileTheme")
@@ -127,9 +125,7 @@ const FinancialProfessionalProfileTheme = lazy(
 const LocalServiceProfileTheme = lazy(
   () => import("@/pages/profile-sites/LocalServiceProfileTheme")
 );
-const WholesalerProfileTheme = lazy(
-  () => import("@/pages/profile-sites/WholesalerProfileTheme")
-);
+const WholesalerProfileTheme = lazy(() => import("@/pages/profile-sites/WholesalerProfileTheme"));
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
   return (
@@ -957,15 +953,12 @@ export default function ProfileSiteView() {
     const manifestPath = buildPublicProfileAppManifestPath(data.profile.slug);
     const appIconPath = buildPublicProfileAppIconPath(data.profile.slug, 192);
     if (!manifestPath || !appIconPath) return;
-    const appTitle = sanitizePublicDiscoveryText(
-      data.business?.name || data.profile.displayName,
-      30
-    ) || "Public profile";
+    const appTitle =
+      sanitizePublicDiscoveryText(data.business?.name || data.profile.displayName, 30) ||
+      "Public profile";
     const configuredAccent =
       data.business?.brandColors?.accent || data.business?.brandColors?.primary || "";
-    const appThemeColor = /^#[0-9a-f]{6}$/i.test(configuredAccent)
-      ? configuredAccent
-      : "#f97316";
+    const appThemeColor = /^#[0-9a-f]{6}$/i.test(configuredAccent) ? configuredAccent : "#f97316";
 
     let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     const created = !manifestLink;
@@ -1561,21 +1554,15 @@ export default function ProfileSiteView() {
         .filter(Boolean)
         .join(", ")
     : null;
-  // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
-  // Connect targeted straight at their own account (via the target/targetName
-  // prefill params DirectConnectShell already reads), instead of the
-  // anonymous, business-agnostic request flow every other profile uses.
+  // The profile slug is the server-supported recipient identity. An owner user
+  // id alone does not identify which business should receive this request.
   const jrsRequestDescription =
     "Vehicle year, make, model, and VIN (if available):\nWhich glass is damaged:\nChip or crack size and location:\nCamera or sensors near the glass:\nInsurance claim or self-pay:\nVehicle location:\nPreferred timing:\nPhotos attached:";
-  const jrsDirectConnectTarget = business?.directConnectOwnerUserId
-    ? `target=${encodeURIComponent(business.directConnectOwnerUserId)}`
-    : `profile=${encodeURIComponent(profile.slug)}`;
+  const jrsDirectConnectTarget = `profile=${encodeURIComponent(profile.slug)}`;
   const directConnectPath =
     profile.slug === "jrs-auto-glass"
       ? `/direct-connect?${jrsDirectConnectTarget}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
-      : business?.directConnectOwnerUserId
-        ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`
-        : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
+      : `/direct-connect?profile=${encodeURIComponent(profile.slug)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`;
   const directConnectHref = qualifyPublicProfileItemDestination(
     directConnectPath,
     platformBaseHref
@@ -2441,46 +2428,46 @@ export default function ProfileSiteView() {
         >
           <WholesalerProfileBoundary>
             <WholesalerProfileTheme
-            profileSlug={profile.slug}
-            displayName={displayName}
-            businessAddress={publicBusinessAddress}
-            headline={publicHeadline}
-            contentBlocks={contentBlocks}
-            categories={publicCategories}
-            serviceAreas={publicServiceAreas}
-            brandColors={business?.brandColors}
-            contactReason={profile.contactPolicy?.reason}
-            hasViewerSession={hasViewerSession}
-            isSuperAdminViewer={isSuperAdminViewer}
-            useExpressDirectConnect={useExpressDirectConnect}
-            allowExpressCall={canExpressCall}
-            profileShareDestination={profileShareDestination}
-            currentPageShareDestination={currentPageShareDestination}
-            currentPageShareTitle={
-              currentPageShareTitle === displayName
-                ? displayName
-                : `${currentPageShareTitle} | ${displayName}`
-            }
-            sharedInventoryCategorySlug={categoryShareMeta?.categorySlug || null}
-            platformBaseHref={platformBaseHref}
-            sharedGallerySlug={sharedGallerySlug}
-            tradeScoutReturnHref={tradeScoutReturnHref}
-            directConnectHref={directConnectHref}
-            preScoutCreateHref={preScoutCreateHref}
-            preScoutSignInHref={preScoutSignInHref}
-            recommendationsDirectory={recommendationsDirectory}
-            recommendationDirectorySummary={recommendationDirectorySummary}
-            trustActions={renderProfileTrustActions("light")}
-            featuredStoneSlugs={featuredStoneSlugs}
-            profileItems={
-              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-                <PublicProfileItems
-                  items={profileItems}
-                  profileSections={profileSections}
-                  platformBaseHref={platformBaseHref}
-                />
-              ) : null
-            }
+              profileSlug={profile.slug}
+              displayName={displayName}
+              businessAddress={publicBusinessAddress}
+              headline={publicHeadline}
+              contentBlocks={contentBlocks}
+              categories={publicCategories}
+              serviceAreas={publicServiceAreas}
+              brandColors={business?.brandColors}
+              contactReason={profile.contactPolicy?.reason}
+              hasViewerSession={hasViewerSession}
+              isSuperAdminViewer={isSuperAdminViewer}
+              useExpressDirectConnect={useExpressDirectConnect}
+              allowExpressCall={canExpressCall}
+              profileShareDestination={profileShareDestination}
+              currentPageShareDestination={currentPageShareDestination}
+              currentPageShareTitle={
+                currentPageShareTitle === displayName
+                  ? displayName
+                  : `${currentPageShareTitle} | ${displayName}`
+              }
+              sharedInventoryCategorySlug={categoryShareMeta?.categorySlug || null}
+              platformBaseHref={platformBaseHref}
+              sharedGallerySlug={sharedGallerySlug}
+              tradeScoutReturnHref={tradeScoutReturnHref}
+              directConnectHref={directConnectHref}
+              preScoutCreateHref={preScoutCreateHref}
+              preScoutSignInHref={preScoutSignInHref}
+              recommendationsDirectory={recommendationsDirectory}
+              recommendationDirectorySummary={recommendationDirectorySummary}
+              trustActions={renderProfileTrustActions("light")}
+              featuredStoneSlugs={featuredStoneSlugs}
+              profileItems={
+                hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                  <PublicProfileItems
+                    items={profileItems}
+                    profileSections={profileSections}
+                    platformBaseHref={platformBaseHref}
+                  />
+                ) : null
+              }
             />
           </WholesalerProfileBoundary>
         </div>

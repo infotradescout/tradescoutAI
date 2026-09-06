@@ -136,7 +136,9 @@ describe("DC universal provider — inbox endpoint", () => {
   it("does not present failed provider assignment reads as an empty inbox", () => {
     const dc = readRepoFile("server/routes/direct-connect.ts");
     const inboxIndex = dc.indexOf("/api/direct-connect/inbox");
-    const inboxSection = dc.slice(inboxIndex, inboxIndex + 16000);
+    const inboxEnd = dc.indexOf('"/api/direct-connect/contractor/requests"', inboxIndex);
+    expect(inboxEnd).toBeGreaterThan(inboxIndex);
+    const inboxSection = dc.slice(inboxIndex, inboxEnd);
 
     expect(inboxSection).toContain("DIRECT_CONNECT_INBOX_SCHEMA_UNAVAILABLE");
     expect(inboxSection).toContain("DIRECT_CONNECT_INBOX_UNAVAILABLE");

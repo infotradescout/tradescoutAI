@@ -6156,10 +6156,10 @@ export async function registerRoutes(app: any) {
         county,
 
         // canonical machine + display fields used by useLocationContext and locality-aware APIs
-        stateCode: stateCode ?? state ?? null,
-        countyFips: trimmedCountyFips ?? null,
-        countyId: countyId ?? null,
-        countyName: countyName ?? county ?? null,
+        stateCode: stateCode !== undefined ? stateCode : state,
+        countyFips: trimmedCountyFips,
+        countyId,
+        countyName: countyName !== undefined ? countyName : county,
 
         // optional profile-level coordinates if provided (stored as strings for back-compat)
         latitude: typeof latitude === "number" ? String(latitude) : undefined,

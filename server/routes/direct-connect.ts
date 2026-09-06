@@ -99,6 +99,10 @@ import {
   ExpressDirectConnectAuthorityTransitionError,
   ExpressDirectConnectContactReleaseError,
   authorityRecord,
+  assertDirectConnectAssignmentRecipient,
+  buildDirectConnectSubmissionContact,
+  bindDirectConnectExplicitRecipient,
+  loadDirectConnectSubmittedContact,
   loadExpressDirectConnectReleasedContact,
   transitionExpressDirectConnectAuthority,
 } from "./direct-connect/authority";
@@ -2104,10 +2108,13 @@ export function registerDirectConnectRoutes(app: Express) {
         // For business providers, set responderUserId.
         // For worker/helper providers, set both workerId and responderUserId.
         contractorId: isBusinessProvider || isWorkerProvider ? null : candidate.id,
-        responderUserId: isBusinessProvider || isWorkerProvider ? (candidate.userId ?? null) : null,
+        responderUserId: candidate.userId ?? null,
         workerId: isWorkerProvider ? candidate.id : null,
         status: "suggested" as const,
-        scoreSnapshot,
+        scoreSnapshot: {
+          ...scoreSnapshot,
+          submissionContactRecipientUserId: candidate.userId ?? null,
+        },
         createdAt: now,
         updatedAt: now,
       });
@@ -2263,6 +2270,10 @@ export function registerDirectConnectRoutes(app: Express) {
             .json({ message: "Only Direct Connect requests can be routed here" });
         }
 
+        if (String(requestRow.createdByUserId) !== String(userId)) {
+          return res.status(403).json({ message: "You can only route your own requests" });
+        }
+
         // Idempotency guard: if this request has already been routed and the caller
         // is not explicitly expanding reach, return a benign 200 without creating
         // duplicate events or notifications.
@@ -2280,10 +2291,6 @@ export function registerDirectConnectRoutes(app: Express) {
         // already-routed state.
         if (requestRow.status !== "open" && !(requestRow.status === "routed" && expandReach)) {
           return res.status(400).json({ message: "Only open requests can be routed" });
-        }
-
-        if (String(requestRow.createdByUserId) !== String(userId)) {
-          return res.status(403).json({ message: "You can only route your own requests" });
         }
 
         await auditDirectConnectBypassUsage({
@@ -2338,6 +2345,32 @@ export function registerDirectConnectRoutes(app: Express) {
           );
           const eligibleBusinesses = businessEligibility.eligible;
 
+          const upgradedAssignments = await db.transaction(async (tx) => {
+            const upgraded: any[] = [];
+            for (const contractor of eligibleContractors) {
+              if (!contractor.userId) continue;
+              upgraded.push(
+                ...(await bindDirectConnectExplicitRecipient(tx, {
+                  workRequestId: requestId,
+                  requesterUserId: String(userId),
+                  providerUserId: String(contractor.userId),
+                  contractorId: String(contractor.id),
+                }))
+              );
+            }
+            for (const business of eligibleBusinesses) {
+              if (!business.ownerUserId) continue;
+              upgraded.push(
+                ...(await bindDirectConnectExplicitRecipient(tx, {
+                  workRequestId: requestId,
+                  requesterUserId: String(userId),
+                  providerUserId: String(business.ownerUserId),
+                }))
+              );
+            }
+            return upgraded;
+          });
+
           const existingContractorAssignments =
             eligibleContractors.length > 0
               ? await db
@@ -2386,8 +2419,8 @@ export function registerDirectConnectRoutes(app: Express) {
 
           if (!contractorsToAssign.length && !businessesToAssign.length) {
             return res.status(200).json({
-              assignments: [],
-              routed: false,
+              assignments: upgradedAssignments,
+              routed: upgradedAssignments.length > 0,
               excludedTargets: [
                 ...contractorEligibility.ineligible,
                 ...contractorEligibility.tradeEligibility.ineligible,
@@ -2401,6 +2434,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const contractorAssignmentsPayload = contractorsToAssign.map((contractor) => ({
             workRequestId: requestId,
             contractorId: contractor.id,
+            responderUserId: contractor.userId,
+            scoreSnapshot: { submissionContactRecipientUserId: contractor.userId },
             status: "invited" as const,
             createdAt: now,
             updatedAt: now,
@@ -2409,6 +2444,7 @@ export function registerDirectConnectRoutes(app: Express) {
             workRequestId: requestId,
             contractorId: null as any,
             responderUserId: biz.ownerUserId!,
+            scoreSnapshot: { submissionContactRecipientUserId: biz.ownerUserId! },
             status: "invited" as const,
             createdAt: now,
             updatedAt: now,
@@ -5812,7 +5848,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 location: !hasLocation,
                 contactInfo: !hasContactInfo,
               },
-              next: "/onboarding/profile",
+              next: "/profile-settings",
             });
           }
 
@@ -6015,6 +6051,18 @@ export function registerDirectConnectRoutes(app: Express) {
             actorUserId: ownerUserId,
             metadata: {
               source: "direct_connect",
+              ...(viewer
+                ? {
+                    submissionContact: buildDirectConnectSubmissionContact({
+                      workRequestId: String(insertedRequest.id),
+                      requesterUserId: String(ownerUserId),
+                      name:
+                        [viewer.firstName, viewer.lastName].filter(Boolean).join(" ") ||
+                        String((viewer as any).name || (viewer as any).displayName || ""),
+                      phone: String(viewer.phone || ""),
+                    }),
+                  }
+                : {}),
               ...(body.operationId
                 ? {
                     operation: "requester_create_request",
@@ -6377,6 +6425,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 scoreSnapshot: {
                   reasons: ["requester_selected_published_profile"],
                   routingMode: "profile_direct_connect",
+                  submissionContactRecipientUserId: targetProfileOwnerUserId,
                 },
                 createdAt: now,
                 updatedAt: now,
@@ -6528,6 +6577,8 @@ export function registerDirectConnectRoutes(app: Express) {
             const contractorAssignments = eligibleContractors.map((contractor) => ({
               workRequestId: created.id,
               contractorId: contractor.id,
+              responderUserId: contractor.userId,
+              scoreSnapshot: { submissionContactRecipientUserId: contractor.userId },
               status: "invited" as const,
               createdAt: now,
               updatedAt: now,
@@ -6538,6 +6589,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 workRequestId: created.id,
                 contractorId: null as any,
                 responderUserId: biz.ownerUserId!,
+                scoreSnapshot: { submissionContactRecipientUserId: biz.ownerUserId! },
                 status: "invited" as const,
                 createdAt: now,
                 updatedAt: now,
@@ -7548,7 +7600,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const contractor = await storage.getContractorByUserId(String(userId));
 
         const loadExpressContactPreferenceByRequest = async (workRequestIds: string[]) => {
-          const preferences = new Map<string, "platform_message" | "call">();
+          const preferences = new Map<
+            string,
+            { preference: "platform_message" | "call" | null; submissionContactAvailable: boolean }
+          >();
           if (!workRequestIds.length) return preferences;
           const createdEvents = await db
             .select({
@@ -7568,6 +7623,13 @@ export function registerDirectConnectRoutes(app: Express) {
             const requestId = String(event.workRequestId || "");
             if (!requestId || preferences.has(requestId)) continue;
             const metadata = authorityRecord(event.metadata);
+            if (metadata?.submissionContact?.version === 1) {
+              preferences.set(requestId, {
+                preference: metadata.contactPreference === "call" ? "call" : "platform_message",
+                submissionContactAvailable: true,
+              });
+              continue;
+            }
             const preference = String(metadata?.contactPreference || "");
             const scope = authorityRecord(metadata?.decisionScope);
             if (
@@ -7580,7 +7642,7 @@ export function registerDirectConnectRoutes(app: Express) {
             ) {
               continue;
             }
-            preferences.set(requestId, preference);
+            preferences.set(requestId, { preference, submissionContactAvailable: false });
           }
           return preferences;
         };
@@ -7645,7 +7707,13 @@ export function registerDirectConnectRoutes(app: Express) {
           return assignments.map((a: any) => ({
             assignment: {
               ...a,
-              contactPreference: contactPreferenceByRequest.get(String(a.workRequestId)) || null,
+              contactPreference:
+                contactPreferenceByRequest.get(String(a.workRequestId))?.preference || null,
+              submissionContactAvailable:
+                contactPreferenceByRequest.get(String(a.workRequestId))
+                  ?.submissionContactAvailable === true &&
+                authorityRecord(a.scoreSnapshot)?.submissionContactRecipientUserId ===
+                  String(userId),
             },
             request: (() => {
               const requestRow = requestById.get(a.workRequestId) as any;
@@ -7721,7 +7789,13 @@ export function registerDirectConnectRoutes(app: Express) {
             const providerItems = assignments.map((a: any) => ({
               assignment: {
                 ...a,
-                contactPreference: contactPreferenceByRequest.get(String(a.workRequestId)) || null,
+                contactPreference:
+                  contactPreferenceByRequest.get(String(a.workRequestId))?.preference || null,
+                submissionContactAvailable:
+                  contactPreferenceByRequest.get(String(a.workRequestId))
+                    ?.submissionContactAvailable === true &&
+                  authorityRecord(a.scoreSnapshot)?.submissionContactRecipientUserId ===
+                    String(userId),
               },
               request: (() => {
                 const requestRow = requestById.get(a.workRequestId) as any;
@@ -9223,7 +9297,7 @@ export function registerDirectConnectRoutes(app: Express) {
     receiptCreateSchema,
   });
 
-  // Provider-facing: exact contact release for an accepted Express assignment.
+  // Provider-facing: request-specific submission contact, with legacy Express fallback.
   // This is deliberately separate from inbox/list payloads so knowing a
   // requester or request id never reveals contact details.
   app.get(
@@ -9237,22 +9311,15 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const released = await db.transaction(async (tx) => {
           const assignmentResult = await tx.execute(sql`
-            SELECT *
-            FROM work_request_assignments
-            WHERE id = ${req.params.id}
-            FOR SHARE
+            SELECT a.*, c.user_id AS contractor_owner_id, w.user_id AS worker_owner_id
+            FROM work_request_assignments a
+            LEFT JOIN contractors c ON c.id = a.contractor_id
+            LEFT JOIN workers w ON w.id = a.worker_id
+            WHERE a.id = ${req.params.id}
+            FOR SHARE OF a
           `);
           const assignmentRow = (assignmentResult.rows?.[0] as any) || null;
-          const assignedProviderUserId = String(
-            assignmentRow?.responderUserId ?? assignmentRow?.responder_user_id ?? ""
-          );
-          if (!assignmentRow || assignedProviderUserId !== providerUserId) {
-            throw new ExpressDirectConnectContactReleaseError(
-              404,
-              "EXPRESS_ASSIGNMENT_NOT_FOUND",
-              "Assignment not found."
-            );
-          }
+          assertDirectConnectAssignmentRecipient(assignmentRow, providerUserId);
 
           const assignmentWorkRequestId = String(
             assignmentRow.workRequestId ?? assignmentRow.work_request_id ?? ""
@@ -9272,6 +9339,12 @@ export function registerDirectConnectRoutes(app: Express) {
             );
           }
 
+          const submitted = await loadDirectConnectSubmittedContact(tx, {
+            assignmentRow,
+            requestRow,
+            providerUserId,
+          });
+          if (submitted) return submitted;
           return loadExpressDirectConnectReleasedContact(tx, {
             assignmentRow,
             requestRow,
@@ -9279,15 +9352,15 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         });
 
+        res.setHeader("Cache-Control", "private, no-store");
         return res.status(200).json({
           assignmentId: released.assignmentId,
           requestId: released.workRequestId,
           contactPreference: released.contactPreference,
           contactGateState: released.contactGateState,
-          requesterContact:
-            released.contactPreference === "call" && released.phone
-              ? { phone: released.phone }
-              : null,
+          requesterContact: released.phone
+            ? { phone: released.phone, ...("name" in released ? { name: released.name } : {}) }
+            : null,
         });
       } catch (error) {
         if (error instanceof ExpressDirectConnectContactReleaseError) {

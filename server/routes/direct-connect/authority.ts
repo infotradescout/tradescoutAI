@@ -328,6 +328,190 @@ export type ExpressDirectConnectReleasedContact = {
   phone: string | null;
 };
 
+export function buildDirectConnectSubmissionContact(params: {
+  workRequestId: string;
+  requesterUserId: string;
+  name: string;
+  phone: string;
+}) {
+  const name = String(params.name || "").trim();
+  const rawPhone = String(params.phone || "").trim();
+  const digits = rawPhone.replace(/\D/g, "");
+  if (
+    !params.workRequestId ||
+    !params.requesterUserId ||
+    !name ||
+    name.length > 160 ||
+    digits.length < 10 ||
+    digits.length > 15
+  ) {
+    throw new ExpressDirectConnectContactReleaseError(
+      428,
+      "PROFILE_BASICS_REQUIRED",
+      "A name and complete phone number are required to send this request."
+    );
+  }
+  return {
+    version: 1,
+    source: "request_submission",
+    workRequestId: params.workRequestId,
+    requesterUserId: params.requesterUserId,
+    name,
+    phone: `${rawPhone.startsWith("+") ? "+" : ""}${digits}`,
+  };
+}
+
+export function assertDirectConnectAssignmentRecipient(assignment: any, providerUserId: string) {
+  const responder = String(assignment?.responderUserId ?? assignment?.responder_user_id ?? "");
+  const contractorId = assignment?.contractorId ?? assignment?.contractor_id;
+  const workerId = assignment?.workerId ?? assignment?.worker_id;
+  const contractorOwner = String(assignment?.contractor_owner_id || "");
+  const workerOwner = String(assignment?.worker_owner_id || "");
+  const recipient = responder || contractorOwner || workerOwner;
+  if (
+    !assignment?.id ||
+    !providerUserId ||
+    recipient !== providerUserId ||
+    (contractorId && contractorOwner !== providerUserId) ||
+    (workerId && workerOwner !== providerUserId)
+  ) {
+    throw new ExpressDirectConnectContactReleaseError(
+      404,
+      "EXPRESS_ASSIGNMENT_NOT_FOUND",
+      "Assignment not found."
+    );
+  }
+}
+
+export async function bindDirectConnectExplicitRecipient(
+  tx: any,
+  params: {
+    workRequestId: string;
+    requesterUserId: string;
+    providerUserId: string;
+    contractorId?: string;
+  }
+) {
+  const rows = await tx.execute(sql`
+    SELECT a.*, r.created_by_user_id AS requester_user_id
+    FROM work_request_assignments a JOIN work_requests r ON r.id = a.work_request_id
+    WHERE a.work_request_id = ${params.workRequestId}
+      AND ${params.contractorId ? sql`a.contractor_id = ${params.contractorId}` : sql`a.responder_user_id = ${params.providerUserId}`}
+    FOR UPDATE OF a
+  `);
+  const changed: any[] = [];
+  for (const assignment of rows.rows || []) {
+    if (String(assignment.requester_user_id) !== params.requesterUserId) {
+      throw new ExpressDirectConnectContactReleaseError(
+        403,
+        "REQUEST_CONTACT_NOT_OWNER",
+        "You can only select recipients for your own request."
+      );
+    }
+    const score = authorityRecord(assignment.score_snapshot) || {};
+    if (!["invited", "suggested", "accepted"].includes(String(assignment.status))) continue;
+    const responder = String(assignment.responder_user_id || "");
+    if (
+      (responder && responder !== params.providerUserId) ||
+      (Object.prototype.hasOwnProperty.call(score, "submissionContactRecipientUserId") &&
+        score.submissionContactRecipientUserId !== params.providerUserId)
+    ) {
+      throw new ExpressDirectConnectContactReleaseError(
+        409,
+        "REQUEST_CONTACT_CONSENT_INVALID",
+        "The existing assignment belongs to a different recipient."
+      );
+    }
+    if (score.submissionContactRecipientUserId === params.providerUserId) continue;
+    const updated = await tx.execute(sql`
+      UPDATE work_request_assignments
+      SET responder_user_id = ${params.providerUserId},
+          score_snapshot = ${JSON.stringify({ ...score, submissionContactRecipientUserId: params.providerUserId })}::jsonb,
+          updated_at = NOW()
+      WHERE id = ${assignment.id} AND work_request_id = ${params.workRequestId}
+      RETURNING *
+    `);
+    changed.push(...(updated.rows || []));
+  }
+  return changed;
+}
+
+// A submission receipt releases exactly the name/phone captured for this
+// request to the recipient fixed on its assignment. It grants no conversation,
+// public-profile, or broader contact permission.
+export async function loadDirectConnectSubmittedContact(
+  tx: any,
+  params: {
+    assignmentRow: any;
+    requestRow: any;
+    providerUserId: string;
+  }
+) {
+  const { assignmentRow: assignment, requestRow: request, providerUserId } = params;
+  assertDirectConnectAssignmentRecipient(assignment, providerUserId);
+  const workRequestId = String(request?.id || "");
+  const requesterUserId = String(request?.createdByUserId ?? request?.created_by_user_id ?? "");
+  const assignmentRequestId = String(assignment.workRequestId ?? assignment.work_request_id ?? "");
+  if (
+    !workRequestId ||
+    workRequestId !== assignmentRequestId ||
+    !requesterUserId ||
+    request.source !== "direct_connect"
+  ) {
+    throw new ExpressDirectConnectContactReleaseError(
+      404,
+      "EXPRESS_ASSIGNMENT_NOT_FOUND",
+      "Assignment not found."
+    );
+  }
+  const created = await tx.execute(sql`
+    SELECT actor_user_id, metadata FROM work_request_events
+    WHERE work_request_id = ${workRequestId} AND type = 'created'
+    ORDER BY created_at ASC, id ASC LIMIT 1
+  `);
+  const event = created.rows?.[0];
+  const metadata = authorityRecord(event?.metadata);
+  if (!metadata || !Object.prototype.hasOwnProperty.call(metadata, "submissionContact"))
+    return null;
+  const receipt = authorityRecord(metadata.submissionContact);
+  const binding = authorityRecord(assignment.scoreSnapshot ?? assignment.score_snapshot);
+  const invalid =
+    !receipt ||
+    receipt.version !== 1 ||
+    receipt.source !== "request_submission" ||
+    receipt.workRequestId !== workRequestId ||
+    receipt.requesterUserId !== requesterUserId ||
+    String(event.actor_user_id ?? event.actorUserId ?? "") !== requesterUserId ||
+    !["direct_connect", "tradepartner_profile"].includes(String(metadata.source || "")) ||
+    binding?.submissionContactRecipientUserId !== providerUserId ||
+    !["invited", "suggested", "accepted"].includes(String(assignment.status)) ||
+    !["open", "routed", "in_progress", "pending_outcome", "completed"].includes(
+      String(request.status)
+    ) ||
+    typeof receipt.name !== "string" ||
+    !receipt.name.trim() ||
+    receipt.name.length > 160 ||
+    typeof receipt.phone !== "string" ||
+    !/^\+?\d{10,15}$/.test(receipt.phone);
+  if (invalid) {
+    throw new ExpressDirectConnectContactReleaseError(
+      409,
+      "REQUEST_CONTACT_CONSENT_INVALID",
+      "Contact is unavailable for this assignment."
+    );
+  }
+  return {
+    assignmentId: String(assignment.id),
+    workRequestId,
+    requesterUserId,
+    contactPreference:
+      metadata.contactPreference === "call" ? ("call" as const) : ("platform_message" as const),
+    contactGateState: "submission_consented" as const,
+    name: receipt.name as string,
+    phone: receipt.phone as string,
+  };
+}
+
 export async function loadExpressDirectConnectReleasedContact(
   tx: any,
   params: {
