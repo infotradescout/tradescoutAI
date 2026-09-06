@@ -1,6 +1,19 @@
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const DISPOSABLE_DATABASE_PATTERN = /(?:^|[_-])(test|ci|disposable|ephemeral)(?:$|[_-])/i;
 const PRODUCTION_DATABASE_PATTERN = /(?:^|[_-])(prod|production)(?:$|[_-])/i;
+const CONNECTION_TARGET_OVERRIDES = new Set([
+  "host", "hostaddr", "port", "database", "dbname", "service", "servicefile",
+]);
+
+function assertUnambiguousConnectionTarget(parsed) {
+  // Drivers can prefer query parameters over the visible URL authority. Require
+  // one target representation so the safety check and the driver cannot disagree.
+  for (const key of parsed.searchParams.keys()) {
+    if (CONNECTION_TARGET_OVERRIDES.has(key.toLowerCase())) {
+      throw new Error("Refusing connection target overrides in a test database URL.");
+    }
+  }
+}
 
 export function assertDisposableDatabaseName(database) {
   if (
@@ -24,6 +37,7 @@ export function assertDisposableTestDatabaseUrl(rawUrl) {
   if (!["postgres:", "postgresql:"].includes(parsed.protocol) || !parsed.hostname) {
     throw new Error("The dedicated test connection must use PostgreSQL.");
   }
+  assertUnambiguousConnectionTarget(parsed);
   const database = assertDisposableDatabaseName(decodeURIComponent(parsed.pathname.slice(1)));
   return { database, hostname: parsed.hostname, loopback: LOOPBACK_HOSTS.has(parsed.hostname.toLowerCase()) };
 }
@@ -45,6 +59,7 @@ export function assertDisposableFullSyncTarget(rawUrl, env = process.env) {
   if (!["postgres:", "postgresql:"].includes(parsed.protocol)) {
     throw new Error("TEST_DATABASE_URL must use the postgres or postgresql protocol.");
   }
+  assertUnambiguousConnectionTarget(parsed);
 
   const database = decodeURIComponent(parsed.pathname.replace(/^\/+/, "")).trim();
   if (!database) throw new Error("TEST_DATABASE_URL must name a database.");

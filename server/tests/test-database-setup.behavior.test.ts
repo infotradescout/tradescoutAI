@@ -128,6 +128,23 @@ describe("isolated test database setup", () => {
     expect(connections).toHaveLength(0);
   });
 
+  it.each(["TEST_DATABASE_ADMIN_URL", "TEST_DATABASE_URL"])(
+    "rejects a remote host hidden behind a loopback URL in %s",
+    async (key) => {
+      const { Client, connections } = databaseDriver();
+      await expect(
+        ensureTestDatabase({
+          repoRoot: fixture(),
+          environment: {
+            [key]: "postgres://tester:synthetic@127.0.0.1/request_flow_test?host=remote.example",
+          },
+          Client,
+        })
+      ).rejects.toThrow("connection target overrides");
+      expect(connections).toHaveLength(0);
+    }
+  );
+
   it("creates only the named test database and preserves private test settings", async () => {
     const root = fixture();
     fs.writeFileSync(
