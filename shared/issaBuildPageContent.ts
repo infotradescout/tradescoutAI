@@ -19,6 +19,7 @@ const productBlock = (type: string) => productSource.find((block) => block.type 
 const LEGACY_PRODUCT_COPY = new Set([
   "Crafted for light.",
   "Onyx, brought to light.",
+  "ISSA Build | Luxury Translucent Onyx",
   "Honey Onyx and Multi Green Onyx for interiors designed to glow.",
   "Custom Honey Onyx and Multi Green Onyx installations for residential and commercial interiors.",
   "We craft translucent onyx for residential and commercial interiors — selection, customization, backlighting, installation, and private project consultation.",
@@ -30,42 +31,49 @@ export function issaBuildBusinessText(value: unknown, fallback = ""): string {
   return text && !LEGACY_PRODUCT_COPY.has(text) ? text : fallback;
 }
 
-/**
- * The existing luxury material presentation is a product page. Keep its copy,
- * photos and stone facts intact; broad company services belong to the profile.
- */
+/** Product text and photographs stay on the existing product presentation. */
 export function buildIssaBuildOnyxContentBlocks(): IssaBuildContentBlock[] {
   return clone(productSource.filter((block) => !["services", "serviceAreas"].includes(block.type)));
 }
 
-/**
- * Selectively repair the old product-as-profile record. This is idempotent and
- * never discards unrelated owner blocks, gallery records, or catalog identities.
- * The catalog stays available for existing item links and gated requests; it is
- * not the business page's visual presentation.
- */
+/** Repair known product-as-profile defaults without replacing owner-authored content. */
 export function buildIssaBuildBusinessContentBlocks(input: unknown): IssaBuildContentBlock[] {
   const source = Array.isArray(input)
     ? input.filter((block): block is IssaBuildContentBlock => Boolean(block && typeof block === "object" && typeof block.type === "string"))
     : [];
   const blocks = clone(source).filter((block) => {
-    if (block.type === "premiumProduct") return false;
-    if (block.type === "hero") {
+    if (block.type === "premiumProduct" || block.type === "siteTemplate") return false;
+    if (block.type === "cta") return JSON.stringify(block.data) !== JSON.stringify(productBlock("cta")?.data);
+    if (block.type === "hero" || block.type === "about") {
       const data = block.data || {};
-      return ![data.headerLabel, data.title, data.teaser, data.text].some((value) =>
-        typeof value === "string" && LEGACY_PRODUCT_COPY.has(value.trim())
-      );
+      for (const key of ["headerLabel", "title", "teaser", "text", "body", "description"]) {
+        if (typeof data[key] === "string" && LEGACY_PRODUCT_COPY.has(data[key].trim())) delete data[key];
+      }
+      if (block.type === "hero") {
+        if (data.eyebrow === "CUSTOM BACKLIT ONYX") delete data.eyebrow;
+        if (!data.title && !data.headerLabel) data.title = ISSA_BUILD_BUSINESS_NAME;
+        if (!data.text && !data.teaser) data.text = ISSA_BUILD_LOCAL_DISCOVERY.headline;
+        // Keep the stored photographs, logo, links and other hero settings.
+        block.data = data;
+      } else {
+        block.data = data;
+        if (![data.text, data.body, data.description].some((value) => typeof value === "string" && value.trim())) return false;
+      }
     }
-    if (block.type === "about") {
-      const data = block.data || {};
-      return ![data.text, data.body, data.description].some((value) =>
-        typeof value === "string" && LEGACY_PRODUCT_COPY.has(value.trim())
-      );
+    if (block.type === "services" && Array.isArray(block.data?.items)) {
+      block.data.items = block.data.items.map((item: unknown) => {
+        if (!item || typeof item !== "object") return item;
+        const value = item as Record<string, unknown>;
+        const legacy = ISSA_BUILD_LOCAL_DISCOVERY.services.find((service) => service.slug === value.slug);
+        if (!legacy || value.description !== legacy.description) return value;
+        const { description: _legacyInstruction, ...retained } = value;
+        return retained;
+      });
     }
-    if (block.type === "cta") {
-      return JSON.stringify(block.data) !== JSON.stringify(productBlock("cta")?.data);
+    if (block.type === "serviceAreas" && block.data?.description === productBlock("serviceAreas")?.data?.description) {
+      delete block.data?.description;
     }
-    return block.type !== "siteTemplate";
+    return true;
   });
   const types = new Set(blocks.map((block) => block.type));
   if (!types.has("hero")) {
