@@ -154,6 +154,7 @@ test("ISSA adapter: listing origin, thickness, photos and unrelated blocks survi
   const result = byType(tree, "LegacyWholesalerProfileTheme")[0].props.contentBlocks;
   assert.strictEqual(result[0], catalog);
   assert.strictEqual(result[1], gallery);
+  assert.strictEqual(result[2], blocks[2]);
   assert.doesNotMatch(result[2].data.text, /Iran|country of origin/i);
   assert.equal(JSON.stringify(blocks), original);
 });
@@ -242,19 +243,91 @@ test("ISSA verification stays in the existing trust area with caller actions int
   assert.equal(byId(tree, "issa-build-verification-status"), undefined);
 });
 
-test("ISSA services and admin-approved verification remain in their existing content blocks", () => {
+test("ISSA service facts remain without replacing existing trust copy or material data", () => {
   const chapter = { slug: "honey-onyx", countryOfOrigin: "Iran", thicknessCm: 2 };
+  const originalTrust = { type: "trust", data: { items: ["Existing trust copy"] } };
   const tree = profile([
-    { type: "trust", data: {} },
+    originalTrust,
     { type: "premiumProduct", data: { luxuryHouse: { materialChapters: [chapter] } } },
   ])();
   const blocks = byType(tree, "LegacyWholesalerProfileTheme")[0].props.contentBlocks;
-  assert.equal(blocks[0].data.items[0], "100% Verified by TradeScout");
+  assert.strictEqual(blocks[0], originalTrust);
   const house = blocks[1].data.luxuryHouse;
   assert.strictEqual(house.materialChapters[0], chapter);
   const services = Array.from(house.capabilities.items, (item) => item.title);
   for (const service of ["Kitchen remodeling", "Custom onyx fabrication", "Backlighting design and installation", "Project fulfillment"]) {
     assert.ok(services.includes(service), service);
   }
+  assert.ok(house.capabilities.items.every((item) => item.body === ""));
   assert.equal(byType(tree, "ul").length, 0);
+});
+
+test("ISSA presentation preserves existing headline, introduction, section and request wording", () => {
+  const input = [
+    { type: "hero", data: { eyebrow: "Existing eyebrow", headerLabel: "Existing headline", teaser: "Existing teaser" } },
+    { type: "about", data: { text: "Existing introduction" } },
+    { type: "cta", data: { heading: "Existing CTA heading", description: "Existing CTA copy" } },
+    { type: "premiumProduct", data: { luxuryHouse: {
+      designedWithLight: { title: "Existing light heading", body: "Existing light copy" },
+      capabilities: { title: "Existing service heading", body: "Existing service copy", items: [] },
+      consultation: { title: "Existing request heading", body: "Existing request copy" },
+    } } },
+  ];
+  const before = JSON.stringify(input);
+  const tree = profile(input)();
+  const output = byType(tree, "LegacyWholesalerProfileTheme")[0].props.contentBlocks;
+  for (const index of [0, 1, 2]) assert.strictEqual(output[index], input[index]);
+  const actual = output[3].data.luxuryHouse;
+  const original = input[3].data.luxuryHouse;
+  assert.strictEqual(actual.designedWithLight, original.designedWithLight);
+  assert.strictEqual(actual.consultation, original.consultation);
+  assert.equal(actual.capabilities.title, original.capabilities.title);
+  assert.equal(actual.capabilities.body, original.capabilities.body);
+  assert.equal(JSON.stringify(input), before);
+});
+
+test("ISSA setup preserves canonical wording instead of injecting a second copy layer", () => {
+  const chapter = { slug: "honey-onyx", countryOfOrigin: "Iran", thicknessCm: 2, images: ["/honey.jpg"] };
+  const input = [
+    { type: "hero", data: { eyebrow: "Existing eyebrow", headerLabel: "Existing headline", teaser: "Existing teaser" } },
+    { type: "about", data: { text: "Existing introduction" } },
+    { type: "cta", data: { heading: "Existing CTA heading", description: "Existing CTA copy" } },
+    { type: "trust", data: { items: ["Existing trust fact"] } },
+    { type: "premiumProduct", data: { luxuryHouse: {
+      designedWithLight: { title: "Existing light heading", body: "Existing light copy" },
+      capabilities: { title: "Existing service heading", body: "Existing service copy", items: [] },
+      consultation: { title: "Existing request heading", body: "Existing request copy" },
+      materialChapters: [chapter],
+    } } },
+    { type: "inventoryCatalog", data: { categories: [{ stones: [chapter] }] } },
+  ];
+  const before = JSON.stringify(input);
+  const { buildVerifiedIssaBuildContentBlocks } = load("server/services/issaBuildVerifiedProfileNormalization.ts", {
+    "drizzle-orm": { eq: noop },
+    "@shared/issaBuildProfile": {
+      ISSA_BUILD_PROFILE_CONTENT_BLOCKS: input,
+      ISSA_BUILD_PROFILE_SLUG: "issa-build",
+      ISSA_BUILD_BUSINESS_NAME: "ISSA Build",
+      ISSA_BUILD_LOCAL_DISCOVERY: {
+        description: "Existing search description",
+        services: [{ title: "Kitchen remodeling" }],
+      },
+    },
+    "@shared/businessDiscoveryAuthority": { LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE: "per_request" },
+    "@shared/schema": { businesses: {}, profiles: {} },
+    "../db": { db: { transaction: () => { throw new Error("Database must not be used by this isolated copy check"); } } },
+  });
+  const output = buildVerifiedIssaBuildContentBlocks();
+  for (const index of [0, 1, 2, 5]) assert.equal(JSON.stringify(output[index]), JSON.stringify(input[index]));
+  const actual = output[4].data.luxuryHouse;
+  const original = input[4].data.luxuryHouse;
+  for (const key of ["designedWithLight", "consultation", "materialChapters"]) {
+    assert.equal(JSON.stringify(actual[key]), JSON.stringify(original[key]));
+  }
+  assert.equal(actual.capabilities.title, original.capabilities.title);
+  assert.equal(actual.capabilities.body, original.capabilities.body);
+  assert.ok(actual.capabilities.items.some((item) => item.title === "Kitchen remodeling"));
+  assert.ok(output[3].data.items.includes("100% Verified by TradeScout"));
+  assert.ok(output[3].data.items.includes("Existing trust fact"));
+  assert.equal(JSON.stringify(input), before);
 });
