@@ -5,8 +5,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
-const root = process.cwd();
-const mode = process.env.PROFILE_PROOF_MODE || 'preview';
+const root = process.cwd(), mode = process.env.PROFILE_PROOF_MODE || 'preview';
 const production = 'https://www.thetradescout.com';
 const output = path.join(root, '.business-profile-proof');
 await fs.mkdir(output, { recursive: true });
@@ -56,14 +55,14 @@ if (mode === 'production') {
 }
 const viewportImagesLoaded = async (page) => page.waitForFunction(() => [...document.images].filter((image) => {
   const box = image.getBoundingClientRect(); return image.getClientRects().length && getComputedStyle(image).visibility !== 'hidden' && box.top < innerHeight && box.bottom > 0;
-}).every((image) => image.complete && image.naturalWidth > 0), { timeout: 25000 });
+}).every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 30000 });
 const thumbnail = async (context, buffer, label) => {
   const page = await context.newPage();
   const base64 = await page.evaluate(async (data) => {
     const image = new Image(); image.src = data; await image.decode();
-    const canvas = document.createElement('canvas'); canvas.width = Math.min(720, image.width); canvas.height = Math.round(image.height * canvas.width / image.width);
+    const canvas = document.createElement('canvas'); canvas.width = image.width > 1000 ? 480 : 220; canvas.height = Math.round(image.height * canvas.width / image.width);
     canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', .28).split(',')[1];
+    return canvas.toDataURL('image/jpeg', .13).split(',')[1];
   }, 'data:image/jpeg;base64,' + buffer.toString('base64'));
   await page.close();
   await fs.writeFile(path.join(output, label + '-small.jpg'), Buffer.from(base64, 'base64'));
@@ -85,7 +84,7 @@ try {
       assert.equal(await page.getByTestId('issa-build-onyx-page').count(), 0);
       assert.equal(await page.locator('.bp-identity').getByText(/Country of origin|Iran/).count(), 0);
       assert.equal(await page.getByTestId('business-profile-request').count(), 1);
-      record.overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2); assert.equal(record.overflow, false);
+      record.overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2); assert.equal(record.overflow, false, 'No horizontal page overflow');
       record.logoFit = await page.locator('.bp-logo img').evaluate((image) => getComputedStyle(image).objectFit); assert.equal(record.logoFit, 'contain');
       const viewportImage = await page.screenshot({ type: 'jpeg', quality: 85 }); await fs.writeFile(path.join(output, size + '.jpg'), viewportImage);
       if (size === 'mobile' || size === 'desktop') await thumbnail(context, viewportImage, size);
@@ -95,29 +94,38 @@ try {
       assert.notEqual(await page.locator('.bp-lightbox-image img').getAttribute('src'), first);
       await page.keyboard.press('ArrowLeft'); assert.equal(await page.locator('.bp-lightbox-image img').getAttribute('src'), first);
       await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'hidden' });
-      assert.equal(await page.locator('.bp-cover-main').evaluate((button) => document.activeElement === button), true); record.actions.push('photo viewer, next, previous, Escape and focus return');
+      // Radix restores focus after its close lifecycle; assert the eventual actual focus, not the preceding frame.
+      await page.waitForFunction(() => document.activeElement === document.querySelector('.bp-cover-main'), undefined, { timeout: 5000 });
+      record.actions.push('photo viewer, next, previous, Escape and focus return');
       const expand = page.locator('[aria-controls="business-profile-photos"]');
       if (await expand.count()) { await expand.click(); assert.equal(await expand.getAttribute('aria-expanded'), 'true'); record.actions.push('complete gallery expansion'); }
-      for (let step = 0; step < 25; step++) {
-        await viewportImagesLoaded(page);
-        const atBottom = await page.evaluate(() => { const atBottom = scrollY + innerHeight >= document.documentElement.scrollHeight - 2; window.scrollBy(0, innerHeight * .75); return atBottom; });
-        await page.waitForTimeout(180); if (atBottom) break;
+      // Scroll through the actual image elements in their real scroll container. Do not preload or alter loading attributes.
+      for (const photo of await page.locator('.bp-gallery article').all()) {
+        await photo.scrollIntoViewIfNeeded(); await viewportImagesLoaded(page);
+        await photo.locator('img').waitFor();
+        await photo.locator('img').evaluate((image) => image.complete && image.naturalWidth > 0 ? undefined : new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('Gallery image did not load while in view')), 30000);
+          image.addEventListener('load', () => { clearTimeout(timer); resolve(); }, { once: true });
+          image.addEventListener('error', () => { clearTimeout(timer); reject(new Error('Gallery image failed')); }, { once: true });
+        }));
       }
-      await viewportImagesLoaded(page);
+      for (const image of await page.locator('.bp-items img').all()) { await image.scrollIntoViewIfNeeded(); await viewportImagesLoaded(page); }
       record.images = await page.locator('img').evaluateAll((images) => images.filter((image) => image.getClientRects().length && getComputedStyle(image).visibility !== 'hidden').map((image) => ({ src: image.currentSrc || image.src, loaded: image.complete && image.naturalWidth > 0 })));
-      assert.ok(record.images.every((image) => image.loaded), 'Every visible business-profile image must load after normal scrolling');
+      assert.ok(record.images.every((image) => image.loaded), 'Every visible business-profile image must load after scrolling');
       assert.equal(await page.locator('.bp-photo-unavailable').count(), 0);
       await page.screenshot({ path: path.join(output, size + '-full.jpg'), fullPage: true, type: 'jpeg', quality: 82 });
       const onyxLink = page.locator('a[href="/issa-build/onyx"]').first(); assert.ok(await onyxLink.count()); record.actions.push('separate Onyx destination retained');
-      await page.getByTestId('business-profile-request').click();
-      await page.getByRole('dialog').waitFor({ timeout: 10000 });
+      await page.getByTestId('business-profile-request').click(); await page.getByRole('dialog').waitFor({ timeout: 10000 });
       record.requestDialogText = (await page.getByRole('dialog').innerText()).slice(0, 1600); record.actions.push('request panel opened without submission');
       await page.keyboard.press('Escape');
       record.canonical = await page.locator('link[rel="canonical"]').getAttribute('href'); assert.equal(new URL(record.canonical).pathname, '/issa-build');
       assert.equal(record.errors.length, 0); record.passed = true;
-    } catch (error) { record.failure = error.message; result.errors.push(size + ': ' + error.message); await page.screenshot({ path: path.join(output, size + '-failure.jpg'), fullPage: false, type: 'jpeg', quality: 70 }).catch(() => {}); }
-    console.log('PROFILE_BROWSER_CHECK ' + JSON.stringify(record));
-    await context.close();
+    } catch (error) {
+      record.failure = error.message; record.stack = error.stack; result.errors.push(size + ': ' + error.message);
+      record.geometry = await page.evaluate(() => ({ scrollY, height: innerHeight, documentHeight: document.documentElement.scrollHeight, focus: document.activeElement?.outerHTML?.slice(0, 400), dialog: document.querySelector('[role="dialog"]')?.getBoundingClientRect().toJSON() })).catch(() => null);
+      await page.screenshot({ path: path.join(output, size + '-failure.jpg'), fullPage: false, type: 'jpeg', quality: 70 }).catch(() => {});
+    }
+    console.log('PROFILE_BROWSER_CHECK ' + JSON.stringify(record)); await context.close();
   }
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent });
   await context.route('**/*', (route) => ['GET', 'HEAD', 'OPTIONS'].includes(route.request().method()) ? route.continue() : route.abort());
