@@ -1,81 +1,113 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import pg from "pg";
+import { securePostgresConnectionString } from "../shared/database-url-security.mjs";
+import { assertDisposableDatabaseName, assertDisposableTestDatabaseUrl } from "./lib/test-db-safety.mjs";
 
-const { Client } = pg;
+class TestDatabaseConfigurationError extends Error {}
 
-function loadEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) return;
-  const raw = fs.readFileSync(filePath, "utf8");
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    if (!process.env[key]) process.env[key] = val;
+export function testDatabaseSetupErrorMessage(error) {
+  return error instanceof TestDatabaseConfigurationError
+    ? error.message
+    : "Test database setup failed. Check the dedicated test server's availability and permissions.";
+}
+
+function readTestEnvironment(file, environment) {
+  if (!fs.existsSync(file)) return;
+  for (const [key, value] of Object.entries(dotenv.parse(fs.readFileSync(file, "utf8")))) {
+    if (!environment[key]) environment[key] = value;
   }
 }
 
-function normalizePgUrl(dbUrl, dbNameOverride) {
-  const u = new URL(dbUrl);
-  if (dbNameOverride) u.pathname = `/${dbNameOverride}`;
-  return u.toString();
+function persistTestConnection(file, connectionString) {
+  const original = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const newline = original.includes("\r\n") ? "\r\n" : "\n";
+  const lines = original.split(/\r?\n/).filter((line) => !/^\s*(?:export\s+)?TEST_DATABASE_URL\s*=/.test(line));
+  while (lines.at(-1) === "") lines.pop();
+  lines.push(`TEST_DATABASE_URL=${JSON.stringify(connectionString)}`, "");
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(temporary, lines.join(newline), { mode: 0o600, flag: "wx" });
+    fs.renameSync(temporary, file);
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+  }
 }
 
-async function ensureDatabaseExists(adminUrl, dbName) {
-  const client = new Client({ connectionString: adminUrl });
-  await client.connect();
+export async function ensureTestDatabase({
+  repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."),
+  environment = process.env,
+  Client = pg.Client,
+  log = console.log,
+} = {}) {
+  const envTestPath = path.join(repoRoot, ".env.test");
+  // Test setup never borrows the application's main connection or its env files.
+  readTestEnvironment(envTestPath, environment);
+  let testUrl;
+  let adminUrl;
+  let database;
   try {
-    const check = await client.query("SELECT 1 FROM pg_database WHERE datname = $1", [dbName]);
-    if (check.rowCount === 0) {
-      // CREATE DATABASE cannot run inside a transaction block; pg defaults are fine here.
-      await client.query(`CREATE DATABASE "${dbName}"`);
-      console.log(`✅ Created database: ${dbName}`);
-    } else {
-      console.log(`✅ Database exists: ${dbName}`);
+    if (environment.TEST_DATABASE_URL) {
+      testUrl = securePostgresConnectionString(environment.TEST_DATABASE_URL);
+      assertDisposableTestDatabaseUrl(testUrl);
+      environment.TEST_DATABASE_URL = testUrl;
+      log("Using the configured disposable test database.");
+      return testUrl;
+    }
+    if (!environment.TEST_DATABASE_ADMIN_URL) {
+      throw new Error("A dedicated TEST_DATABASE_URL or TEST_DATABASE_ADMIN_URL is required. The main DATABASE_URL is never used for test setup.");
+    }
+    database = assertDisposableDatabaseName(environment.TEST_DATABASE_NAME || "tradescout_test");
+    adminUrl = securePostgresConnectionString(environment.TEST_DATABASE_ADMIN_URL);
+    const target = new URL(adminUrl);
+    target.pathname = `/${database}`;
+    testUrl = target.toString();
+    const safety = assertDisposableTestDatabaseUrl(testUrl);
+    if (!safety.loopback && environment.ALLOW_REMOTE_TEST_DB_CREATE !== "true") {
+      throw new Error("Creating a remote test database requires ALLOW_REMOTE_TEST_DB_CREATE=true and a dedicated test-server connection.");
+    }
+  } catch (error) {
+    throw new TestDatabaseConfigurationError(error.message);
+  }
+
+  const admin = new Client({ connectionString: adminUrl, connectionTimeoutMillis: 10_000 });
+  try {
+    await admin.connect();
+    const exists = await admin.query("SELECT 1 FROM pg_database WHERE datname = $1", [database]);
+    if (!exists.rowCount) {
+      try {
+        await admin.query(`CREATE DATABASE "${database}"`);
+      } catch (error) {
+        if (error.code !== "42P04") throw error;
+      }
     }
   } finally {
-    await client.end();
-  }
-}
-
-async function main() {
-  const repoRoot = path.dirname(fileURLToPath(import.meta.url));
-  const root = path.resolve(repoRoot, "..");
-
-  // Load repo env files if present
-  loadEnvFile(path.join(root, ".env"));
-  loadEnvFile(path.join(root, ".env.local"));
-  loadEnvFile(path.join(root, ".env.test"));
-
-  const base = process.env.DATABASE_URL;
-  if (!base) {
-    console.error("❌ DATABASE_URL is not set. Add it to .env (repo root) and rerun.");
-    process.exit(1);
+    await admin.end();
   }
 
-  const testName = "tradescout_test";
+  const test = new Client({ connectionString: testUrl, connectionTimeoutMillis: 10_000 });
+  try {
+    await test.connect();
+    const identity = await test.query("SELECT current_database() AS database_name");
+    if (identity.rows[0]?.database_name !== database) {
+      throw new TestDatabaseConfigurationError("The connected database does not match the disposable target.");
+    }
+  } finally {
+    await test.end();
+  }
 
-  // Use the same server/user/pass/port as DATABASE_URL but connect to postgres admin DB
-  const adminUrl = normalizePgUrl(base, "postgres");
-  await ensureDatabaseExists(adminUrl, testName);
-
-  const testUrl = normalizePgUrl(base, testName);
-
-  // Write .env.test deterministically (safe to overwrite)
-  const envTestPath = path.join(root, ".env.test");
-  fs.writeFileSync(envTestPath, `TEST_DATABASE_URL=${testUrl}\n`, "utf8");
-  console.log(`✅ Wrote ${envTestPath}`);
-  console.log(`TEST_DATABASE_URL=${testUrl}`);
+  persistTestConnection(envTestPath, testUrl);
+  environment.TEST_DATABASE_URL = testUrl;
+  log("Disposable test database is ready. Existing test settings were preserved.");
+  return testUrl;
 }
 
-main().catch((err) => {
-  console.error("❌ ensure-test-db failed:", err);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  ensureTestDatabase().catch((error) => {
+    console.error(testDatabaseSetupErrorMessage(error));
+    process.exitCode = 1;
+  });
+}
