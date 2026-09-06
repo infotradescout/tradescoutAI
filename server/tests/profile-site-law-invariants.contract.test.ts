@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { PROFILE_SITE_LAW_INVARIANTS } from "@shared/profileSiteTemplates";
 
 const themeFiles = [
-  ["client/src/pages/profile-sites/WholesalerProfileTheme.tsx", "Powered by TradeScout"],
+  ["client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx", "Powered by TradeScout"],
   ["client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx", "TradeScoutProfileHandoff"],
   ["client/src/pages/profile-sites/LocalServiceProfileTheme.tsx", "Powered by TradeScout"],
   ["client/src/pages/profile-sites/ProFabProfileTheme.tsx", "TradeScoutProfileHandoff"],
@@ -24,11 +24,23 @@ describe("profile site law invariants", () => {
   it.each(themeFiles)("%s always ships trust + powered footer identity + Direct Connect entry", (relPath, footerMarker) => {
     const source = read(relPath);
     expect(source).toContain("trustActions");
-    expect(source).toContain('data-testid="profile-trust-section"');
+    if (relPath.endsWith("/LocalServiceProfileTheme.tsx")) {
+      // The compact renderer has an actual trust slot, not the old test-only section marker.
+      expect(source).toMatch(/<div[^>]*>\s*\{trustActions\}\s*<\/div>/);
+    } else {
+      expect(source).toContain('data-testid="profile-trust-section"');
+    }
     expect(source).toContain(footerMarker);
     expect(source).toMatch(/Direct Connect|startDirectConnect|onDirectConnect/);
     expect(source).not.toMatch(/href=["']tel:/);
     expect(source).not.toMatch(/href=["']mailto:/);
+  });
+  it("the wholesale selector still delegates its established presentation and carries JW trust actions", () => {
+    const source = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    expect(source).toContain('import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy"');
+    expect(source).toContain('<LegacyWholesalerProfileTheme {...props} />');
+    expect(source).toContain('profileActions={props.trustActions}');
+    expect(source).toContain('<IssaBuildProfileTruthFrame {...props} />');
   });
   it("the shared selector forwards unchanged props into the business or explicitly retained presentation", () => {
     const source = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
