@@ -372,8 +372,9 @@ export function PublicProfileAccountDialog({
               </p>
               {state?.account?.verificationStatus === "pending" ? (
                 <p className="mt-1 text-stone-600">
-                  Business verification is pending. Protected pricing and business-only features
-                  remain locked until approval.
+                  {profileSlug === "jw-stone"
+                    ? "Your JW Stone membership includes stone pricing. Business verification is pending for other business-only features."
+                    : "Business verification is pending. Protected pricing and business-only features remain locked until approval."}
                 </p>
               ) : null}
               {notice ? <p className="mt-2 font-semibold text-stone-600">{notice}</p> : null}
