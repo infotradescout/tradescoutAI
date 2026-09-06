@@ -47,12 +47,15 @@ assert.match(
   "presentation-first and seeded plumbing/electric fallback pipeline changed"
 );
 for (const earlierBranch of [
-  'if (isSteelHomePackagesProfileSlug(profile.slug))',
-  'if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG)',
+  "if (isSteelHomePackagesProfileSlug(profile.slug))",
+  "if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG)",
   'if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass")',
   'if (profile.slug === "pro-fab-specialty-services")',
 ]) {
-  assert.ok(source.indexOf(earlierBranch) < branchStart, `${earlierBranch} must precede LocalService`);
+  assert.ok(
+    source.indexOf(earlierBranch) < branchStart,
+    `${earlierBranch} must precede LocalService`
+  );
 }
 const owners = [
   "<SEOHelmet",
@@ -92,12 +95,18 @@ for (const prop of [
   'initialView={canExpressCall ? "choice" : "request"}',
   "deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}",
   "stayInProfile",
-  'trustActions={renderProfileTrustActions("dark")}',
+  "trustActions={renderProfileTrustActions(",
+  'resolvedLocalServicePresentation.layout === "project-profile" ? "light" : "dark"',
+  'resolvedLocalServicePresentation.layout === "project-profile" ? "compact" : "default"',
   "verificationStatus={business?.verificationStatus}",
   "verifiedBadge={business?.verifiedBadge === true}",
   "communityVerification={business?.communityVerification}",
-]) assert.ok(branch.includes(prop), `${prop} is missing from LocalService branch`);
-assert.match(branch, /profileItems=\{\s*hasVisiblePublicProfileItems\(profileItems, profileSections\)[\s\S]*?<PublicProfileItems[\s\S]*?\/>\s*\)\s*:\s*null\s*\}/);
+])
+  assert.ok(branch.includes(prop), `${prop} is missing from LocalService branch`);
+assert.match(
+  branch,
+  /profileItems=\{\s*hasVisiblePublicProfileItems\(profileItems, profileSections\)[\s\S]*?<PublicProfileItems[\s\S]*?\/>\s*\)\s*:\s*null\s*\}/
+);
 
 const themeSource = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
 for (const identity of [
@@ -109,7 +118,8 @@ for (const identity of [
   "setActiveGalleryIndex",
   "Community Verification Score",
   "Powered by TradeScout",
-]) assert.ok(themeSource.includes(identity), `${identity} left LocalService implementation`);
+])
+  assert.ok(themeSource.includes(identity), `${identity} left LocalService implementation`);
 assert.doesNotMatch(themeSource, /href=["'](?:tel|mailto):/);
 
 const assetsDir = path.join(root, "dist/public/assets");
@@ -122,7 +132,9 @@ const appName = html.match(/src="\/assets\/(app-[A-Za-z0-9_-]+\.js)"/)?.[1];
 assert.ok(appName);
 const appText = readFileSync(path.join(assetsDir, appName), "utf8");
 const owned = (text, prefix) => {
-  const names = [...text.matchAll(new RegExp(`(?:/assets/|\\./)(${prefix}[A-Za-z0-9_-]+\\.js)`, "g"))].map((match) => match[1]);
+  const names = [
+    ...text.matchAll(new RegExp(`(?:/assets/|\\./)(${prefix}[A-Za-z0-9_-]+\\.js)`, "g")),
+  ].map((match) => match[1]);
   assert.equal(new Set(names).size, 1, `expected one ${prefix} owner`);
   return names[0];
 };
@@ -138,7 +150,12 @@ assert.ok(core.length <= 435_000, `profile core exceeded 435000: ${core.length}`
 assert.ok(coreGzip <= 109_000, `profile core gzip exceeded 109000: ${coreGzip}`);
 assert.ok(theme.length <= 38_000, `LocalService exceeded 38000: ${theme.length}`);
 assert.ok(themeGzip <= 12_000, `LocalService gzip exceeded 12000: ${themeGzip}`);
-for (const identity of ["Ask about financing", "Community Verification Score", "View credential numbers", "Active policy boosts:"]) {
+for (const identity of [
+  "Ask about financing",
+  "Community Verification Score",
+  "View credential numbers",
+  "Active policy boosts:",
+]) {
   assert.equal(coreText.includes(identity), false, `${identity} leaked into profile core`);
   assert.equal(builtTheme.includes(identity), true, `${identity} missing from LocalService chunk`);
 }
@@ -147,7 +164,9 @@ function dependencyTable(text) {
   const helper = text.indexOf("const __vite__mapDeps=");
   const start = text.indexOf('["/assets/', helper);
   assert.ok(helper >= 0 && start >= 0, "Vite dependency table missing");
-  let string = false, escaped = false, depth = 0;
+  let string = false,
+    escaped = false,
+    depth = 0;
   for (let index = start; index < text.length; index += 1) {
     const char = text[index];
     if (string) {
@@ -165,12 +184,33 @@ function dependencyTable(text) {
   assert.fail("unterminated dependency table");
 }
 const table = dependencyTable(coreText);
-const dynamic = coreText.match(/import\("\.\/(LocalServiceProfileTheme-[A-Za-z0-9_-]+\.js)"\),__vite__mapDeps\(\[([^\]]*)\]\)/);
+const dynamic = coreText.match(
+  /import\("\.\/(LocalServiceProfileTheme-[A-Za-z0-9_-]+\.js)"\),__vite__mapDeps\(\[([^\]]*)\]\)/
+);
 assert.ok(dynamic, "LocalService dynamic graph missing");
-const graph = dynamic[2].split(",").filter(Boolean).map((index) => table[Number(index)]?.replace("/assets/", ""));
+const graph = dynamic[2]
+  .split(",")
+  .filter(Boolean)
+  .map((index) => table[Number(index)]?.replace("/assets/", ""));
 assert.ok(graph.includes(themeName));
-for (const prefix of ["PrecisionAerialProfile-", "ProFabProfileTheme-", "JrsAutoGlassProfileTheme-", "VideographerProfileTheme-", "SteelHomePackagesProfile-", "BuildingDesigner-", "CabinetDesigner-", "CountertopDesigner-", "three.module-", "JwStoneMarketplaceProfile-", "RedGranitiWebsiteProfile-"]) {
-  assert.equal(graph.some((name) => name?.startsWith(prefix)), false, `LocalService graph preloads ${prefix}`);
+for (const prefix of [
+  "PrecisionAerialProfile-",
+  "ProFabProfileTheme-",
+  "JrsAutoGlassProfileTheme-",
+  "VideographerProfileTheme-",
+  "SteelHomePackagesProfile-",
+  "BuildingDesigner-",
+  "CabinetDesigner-",
+  "CountertopDesigner-",
+  "three.module-",
+  "JwStoneMarketplaceProfile-",
+  "RedGranitiWebsiteProfile-",
+]) {
+  assert.equal(
+    graph.some((name) => name?.startsWith(prefix)),
+    false,
+    `LocalService graph preloads ${prefix}`
+  );
 }
 
 const appTable = dependencyTable(appText);
@@ -179,15 +219,27 @@ const baseDynamic = appText.match(
 );
 assert.ok(baseDynamic, "Profile base dependency graph missing");
 const profileBaseGraph = new Set(
-  baseDynamic[2].split(",").filter(Boolean).map((index) => appTable[Number(index)]?.replace("/assets/", ""))
+  baseDynamic[2]
+    .split(",")
+    .filter(Boolean)
+    .map((index) => appTable[Number(index)]?.replace("/assets/", ""))
 );
 for (const match of html.matchAll(/(?:src|href)="\/assets\/([A-Za-z0-9_.-]+\.(?:js|css))"/g)) {
   profileBaseGraph.add(match[1]);
 }
 profileBaseGraph.add(appName);
 const coldNames = [...new Set(graph)].filter((name) => name && !profileBaseGraph.has(name));
-for (const prefix of ["LocalServiceProfileTheme-", "badge-check-", "hard-hat-", "calendar-clock-", "wallet-cards-"]) {
-  assert.ok(coldNames.some((name) => name.startsWith(prefix)), `cold LocalService delta missing ${prefix}`);
+for (const prefix of [
+  "LocalServiceProfileTheme-",
+  "badge-check-",
+  "hard-hat-",
+  "calendar-clock-",
+  "wallet-cards-",
+]) {
+  assert.ok(
+    coldNames.some((name) => name.startsWith(prefix)),
+    `cold LocalService delta missing ${prefix}`
+  );
 }
 const coldAssets = coldNames.map((name) => readFileSync(path.join(assetsDir, name)));
 const coldRaw = coldAssets.reduce((total, asset) => total + asset.length, 0);
@@ -195,4 +247,6 @@ const coldGzip = coldAssets.reduce((total, asset) => total + gzipSync(asset).len
 assert.ok(coldRaw <= 35_000, `LocalService cold raw delta exceeded 35000: ${coldRaw}`);
 assert.ok(coldGzip <= 10_000, `LocalService cold gzip delta exceeded 10000: ${coldGzip}`);
 
-console.log(`[local-service-chunk] profile ${core.length}/${coreGzip}; theme ${theme.length}/${themeGzip}; cold delta ${coldRaw}/${coldGzip}`);
+console.log(
+  `[local-service-chunk] profile ${core.length}/${coreGzip}; theme ${theme.length}/${themeGzip}; cold delta ${coldRaw}/${coldGzip}`
+);

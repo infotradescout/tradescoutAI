@@ -165,7 +165,21 @@ describe("canonical public-profile trust actions", () => {
     expect(app).toContain('import { Toaster } from "./components/ui/toaster"');
     expect(app).toContain("<Toaster />");
     expect(profileView).toContain('renderProfileTrustActions("light")');
-    expect(profileView.match(/renderProfileTrustActions\(\s*"dark"/g)).toHaveLength(5);
+    expect(profileView.match(/renderProfileTrustActions\(\s*"dark"/g)).toHaveLength(4);
+    const localServiceTheme = profileView.slice(
+      profileView.indexOf("<LocalServiceProfileBoundary>"),
+      profileView.indexOf("</LocalServiceProfileBoundary>")
+    );
+    expect(localServiceTheme).toMatch(
+      /trustActions=\{renderProfileTrustActions\(\s*resolvedLocalServicePresentation\.layout === "project-profile" \? "light" : "dark",\s*resolvedLocalServicePresentation\.layout === "project-profile" \? "compact" : "default"\s*\)\}/
+    );
+    const trustRenderer = profileView.slice(
+      profileView.indexOf("const renderProfileTrustActions ="),
+      profileView.indexOf("const readProfileBlockText =")
+    );
+    expect(trustRenderer).toContain("<PublicProfileTrustActions");
+    expect(trustRenderer).toContain("tone={tone}");
+    expect(trustRenderer).toContain("density={density}");
     themes.forEach((theme) => {
       expect(theme).toContain("trustActions: ReactNode");
       expect(theme).toMatch(/\{(?:resolvedTrustActions|trustActions)\}/);
