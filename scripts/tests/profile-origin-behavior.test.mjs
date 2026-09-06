@@ -97,7 +97,7 @@ function detail(overrides = {}, handlers = {}) {
   }) };
 }
 
-function profile(blocks = []) {
+function profile(blocks = [], overrides = {}) {
   let requestOpen = false;
   const { default: Frame } = load("client/src/pages/profile-sites/IssaBuildProfileTruthFrame.tsx", {
     react: {
@@ -114,7 +114,7 @@ function profile(blocks = []) {
   });
   return () => Frame({
     contentBlocks: blocks, profileSlug: "issa-build", displayName: "ISSA Build",
-    platformBaseHref: "/", hasViewerSession: false, allowExpressCall: false,
+    platformBaseHref: "/", hasViewerSession: false, allowExpressCall: false, ...overrides,
   });
 }
 
@@ -131,12 +131,14 @@ test("JW hero: no banner, added CTA, origin copy or replaced media", () => {
   assert.equal(invoked, false);
 });
 
-test("ISSA wrapper: no added service-link navigation or origin banner", () => {
+test("ISSA wrapper: profile comes first without an added band, navigation or request button", () => {
   const tree = profile()();
   assert.equal(byType(tree, "nav").length, 0);
   assert.equal(byType(tree, "a").length, 0);
-  assert.equal(byType(tree, "section").length, 1);
-  assert.ok(byId(tree, "issa-build-verification-band"));
+  assert.equal(byType(tree, "section").length, 0);
+  assert.equal(byType(tree, "button").length, 0);
+  assert.equal(byId(tree, "issa-build-verification-band"), undefined);
+  assert.equal(tree.props.children[0].type, "LegacyWholesalerProfileTheme");
   assert.doesNotMatch(text(tree), /Iran|country of origin/i);
 });
 
@@ -170,7 +172,8 @@ test("ISSA request: opens only through an existing request control and closes ag
   assert.equal(panel().allowCall, false);
   panel().onClose();
   assert.equal(panel().open, false);
-  byType(render(), "button")[0].props.onClick();
+  assert.equal(byType(render(), "button").length, 0);
+  byType(render(), "LegacyWholesalerProfileTheme")[0].props.onProjectRequest();
   assert.equal(panel().open, true);
 });
 
@@ -224,4 +227,34 @@ test("Stone details still delegate prices to the existing member-price component
   assert.equal(pricing[0].props.stoneName, "Honey Onyx");
   assert.equal(pricing[0].props.presentation, "detail");
   assert.doesNotMatch(text(tree), /\$\s*\d/);
+});
+
+
+test("ISSA verification stays in the existing trust area with caller actions intact", () => {
+  const originalActions = element("ExistingTrustActions", { children: "Recommend / Favorite / Share" });
+  const tree = profile([], { trustActions: originalActions })();
+  const trust = byType(tree, "LegacyWholesalerProfileTheme")[0].props.trustActions;
+  const badge = byId(trust, "issa-build-verification-status");
+  assert.ok(badge);
+  assert.equal(text(badge), "100% Verified by TradeScout");
+  assert.strictEqual(byType(trust, "ExistingTrustActions")[0], originalActions);
+  assert.equal(byType(trust, "section").length + byType(trust, "button").length, 0);
+  assert.equal(byId(tree, "issa-build-verification-status"), undefined);
+});
+
+test("ISSA services and admin-approved verification remain in their existing content blocks", () => {
+  const chapter = { slug: "honey-onyx", countryOfOrigin: "Iran", thicknessCm: 2 };
+  const tree = profile([
+    { type: "trust", data: {} },
+    { type: "premiumProduct", data: { luxuryHouse: { materialChapters: [chapter] } } },
+  ])();
+  const blocks = byType(tree, "LegacyWholesalerProfileTheme")[0].props.contentBlocks;
+  assert.equal(blocks[0].data.items[0], "100% Verified by TradeScout");
+  const house = blocks[1].data.luxuryHouse;
+  assert.strictEqual(house.materialChapters[0], chapter);
+  const services = Array.from(house.capabilities.items, (item) => item.title);
+  for (const service of ["Kitchen remodeling", "Custom onyx fabrication", "Backlighting design and installation", "Project fulfillment"]) {
+    assert.ok(services.includes(service), service);
+  }
+  assert.equal(byType(tree, "ul").length, 0);
 });

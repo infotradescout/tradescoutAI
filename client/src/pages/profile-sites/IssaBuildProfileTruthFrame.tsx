@@ -1,5 +1,5 @@
 import { useMemo, useState, type ComponentProps } from "react";
-import { CheckCircle2, MessageCircle, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
 import { ISSA_BUILD_LOCAL_DISCOVERY } from "@shared/issaBuildProfile";
@@ -129,53 +129,21 @@ export default function IssaBuildProfileTruthFrame(props: Props) {
 
   return (
     <div data-testid="issa-build-verified-profile-frame">
-      <section
-        className="border-b border-amber-300/20 bg-stone-950 text-white"
-        aria-label="ISSA Build verification and service scope"
-        data-testid="issa-build-verification-band"
-      >
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1.5 text-xs font-black text-emerald-200">
-                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                  {ISSA_BUILD_VERIFICATION_LABEL}
-                </span>
-                <span className="text-xs font-semibold text-white/65">
-                  TradeScout manages every inquiry. ISSA Build handles the work.
-                </span>
-              </div>
-              <ul
-                className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                aria-label="Verified ISSA Build services"
-              >
-                {ISSA_BUILD_FULL_SERVICE_SCOPE.map((service) => (
-                  <li
-                    key={service}
-                    className="inline-flex min-h-9 flex-none snap-start items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-xs font-semibold text-white/85"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
-                    {service}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <button
-              type="button"
-              onClick={() => setRequestOpen(true)}
-              className="inline-flex min-h-12 flex-none items-center justify-center gap-2 rounded-full bg-ts-orange px-6 text-sm font-black text-white shadow-lg shadow-orange-950/30 transition hover:bg-ts-orange-dark"
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden="true" />
-              Start a Request
-            </button>
-          </div>
-        </div>
-      </section>
-
       <LegacyWholesalerProfileTheme
         {...props}
         contentBlocks={verifiedContentBlocks}
+        trustActions={
+          <>
+            <span
+              data-testid="issa-build-verification-status"
+              className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-emerald-200"
+            >
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              {ISSA_BUILD_VERIFICATION_LABEL}
+            </span>
+            {props.trustActions}
+          </>
+        }
         onProjectRequest={() => setRequestOpen(true)}
       />
 
