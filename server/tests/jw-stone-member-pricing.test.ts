@@ -112,6 +112,16 @@ describe("JW Stone private member pricing", () => {
     expect(authorityIndex).toBeGreaterThan(setupAuthIndex);
     expect(pricingIndex).toBeGreaterThan(authorityIndex);
   });
+  it("keeps JW pricing entitlement creation independent of business verification", () => {
+    const source = readFileSync("server/routes/profile-accounts.ts", "utf8");
+    const block = source.match(
+      /if \(args\.account\.profileSlug === "jw-stone"\) \{([\s\S]*?)\n  \}/
+    )?.[1];
+
+    expect(block).toContain("productKey: JW_STONE_MEMBER_PRICING_PRODUCT_KEY");
+    expect(block).toContain('verificationStatus: "not_required"');
+    expect(block).not.toContain('"rejected"');
+  });
   it("parses the exact Drive workbook contract into integer cents", async () => {
     const snapshot = await parseJwStonePricingWorkbook(
       await pricingWorkbook([

@@ -1,5 +1,7 @@
 import { pool } from "../db";
 
+type Queryable = Pick<typeof pool, "query">;
+
 export type ProfileAccountEntitlement = Readonly<{
   productKey: string;
   status: "pending_verification" | "active" | "suspended" | "revoked";
@@ -31,17 +33,20 @@ export function applyProfileAccountEntitlementVerificationBypass(
   return changed ? Object.freeze(projected) : entitlements;
 }
 
-export async function ensureProfileAccountEntitlement(args: {
-  profileAccountId: string;
-  productKey: string;
-  verificationStatus: "not_required" | "pending" | "approved" | "rejected";
-}): Promise<ProfileAccountEntitlement> {
+export async function ensureProfileAccountEntitlement(
+  args: {
+    profileAccountId: string;
+    productKey: string;
+    verificationStatus: "not_required" | "pending" | "approved" | "rejected";
+  },
+  queryable: Queryable = pool
+): Promise<ProfileAccountEntitlement> {
   const productKey = String(args.productKey || "")
     .trim()
     .toLowerCase();
   if (!/^[a-z0-9_]{2,80}$/.test(productKey)) throw new Error("Invalid product entitlement");
   const nextStatus = resolveProfileAccountEntitlementStatus(args.verificationStatus);
-  const result = await pool.query(
+  const result = await queryable.query(
     `INSERT INTO profile_account_entitlements (
        profile_account_id,
        product_key,
@@ -51,7 +56,12 @@ export async function ensureProfileAccountEntitlement(args: {
      ) VALUES ($1::uuid, $2, $3, NOW(), NOW())
      ON CONFLICT (profile_account_id, product_key) DO UPDATE SET
        status = CASE
-         WHEN profile_account_entitlements.status = 'suspended' THEN 'suspended'
+         WHEN profile_account_entitlements.status = 'suspended'
+           OR (
+             profile_account_entitlements.product_key = 'jw_stone_member_pricing'
+             AND profile_account_entitlements.status = 'revoked'
+           )
+           THEN profile_account_entitlements.status
          ELSE EXCLUDED.status
        END,
        updated_at = NOW()

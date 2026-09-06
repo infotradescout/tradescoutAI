@@ -1,49 +1,68 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260906T034229Z-fd27a3fe",
-  "createdAt": "2026-09-06T03:42:29.368923+00:00",
-  "outcome": "Activate matching private JW Stone prices after business membership approval.",
+  "checkpointId": "progress-20260906T044801Z-f84a9bfd",
+  "createdAt": "2026-09-06T04:48:01.937452+00:00",
+  "outcome": "Repair JW Stone active-membership pricing access defects and prove the live release",
   "scope": [
-    "JW Stone pricing only"
+    "JW Stone pricing entitlement lifecycle only."
   ],
   "prohibitions": [
-    "Do not expose price data in git or public responses; do not change Drive sharing."
+    "No customer Drive access; no public prices; no access for rejected, suspended, revoked, closed, or nonmember identities."
   ],
   "progress": {
     "completedVerified": [
-      "Pricing reads current member business approval and preserves suspension/revocation."
+      "Active JW memberships keep pricing through pending, under-review, approved, and expired verification states; rejected/suspended identities and closed/suspended memberships remain blocked; explicit entitlement suspension/revocation survives account retries and verification synchronization."
     ],
     "changedUnverified": [],
     "proof": [
-      "Two regressions reproduced before repair; 18 focused checks pass including real isolated SQL. All 119 workbook rows match catalog; generic Soapstone lacks a source price."
+      "49 focused access, database, migration-chain, and pricing tests pass; git diff validation passes."
     ],
-    "externalEffects": [],
-    "doNotRepeat": [],
-    "nextSafeAction": "Wire account completion to price refresh and verify catalog mapping."
+    "externalEffects": [
+      "None yet; no production or database mutation."
+    ],
+    "doNotRepeat": [
+      "Do not restore revoked pricing through ordinary account retry or general verification synchronization."
+    ],
+    "nextSafeAction": "Run typecheck, production build, minimum release contract, review, merge, migration, and post-deploy proof."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "jw-stone/membership-price-flow",
-    "headBefore": "c7aabf454c081560f31694431aa60001b8e63104",
+    "branch": "jw-stone/pricing-entitlement-state-hardening",
+    "headBefore": "b47dba08adc241dd41f180e936d78078e852788c",
     "checkpointCommit": "containing_commit",
-    "pushRequested": false,
-    "pushRemote": null,
+    "pushRequested": true,
+    "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
+      "A  migrations/0131_preserve_jw_stone_pricing_revocation.sql",
+      "M  migrations/meta/_journal.json",
       "M  server/services/jwStonePricingAccess.ts",
-      "A  server/tests/jw-stone-membership-activation.behavior.test.ts"
+      "M  server/services/profileAccountEntitlementService.ts",
+      "M  server/tests/jw-stone-membership-activation.behavior.test.ts"
     ],
     "unrelatedChangeCountExcluded": 1
   },
   "savedFiles": [
     {
+      "path": "server/services/profileAccountEntitlementService.ts",
+      "sha256": "5bd12a232deb1a604ece75bc05a104e24ec662bf810a29a2f964b95886ff22ec"
+    },
+    {
       "path": "server/services/jwStonePricingAccess.ts",
-      "sha256": "4b4454aff6f9faa7a0be6003457fa45389fa6cec8c25033fbe0a2839b26a9118"
+      "sha256": "d3fca47bdc8caaa3da84c155533728f6c541fb7acaec25ee771276a627c4c508"
     },
     {
       "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
-      "sha256": "9d9e1773b2c38695eece11790dc509d249dab9908c269a5dab662052ad6d3f9f"
+      "sha256": "21aaafa45f2a0c8a8808bd9b767171d7f45451035fd555ce9c68f810c1cb4b57"
+    },
+    {
+      "path": "migrations/0131_preserve_jw_stone_pricing_revocation.sql",
+      "sha256": "e1269cfeb98d0abfacd40f1d5848ba9296605a4a2046de83a8ee3b8dc6988490"
+    },
+    {
+      "path": "migrations/meta/_journal.json",
+      "sha256": "137544f3e476bacdce2f5921958b447dd60be5a408cbefa26f1b04e78465f906"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

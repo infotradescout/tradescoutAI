@@ -47,7 +47,8 @@ export async function hasActiveJwStoneBusinessMembership(
         AND account.status = 'active'
         AND member_business.user_id = account.owner_user_id
         AND member_business.user_intent::text = 'business'
-        AND member_business.verification_status::text IN ('pending', 'approved')
+        AND COALESCE(member_business.verification_status::text, 'pending')
+              NOT IN ('rejected', 'suspended')
         AND entitlement.product_key = $2
         AND (entitlement.status = 'active' OR entitlement.status = 'pending_verification')
       LIMIT 1`,
