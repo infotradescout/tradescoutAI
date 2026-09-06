@@ -39,6 +39,8 @@ describe("JW Stone hydrated origin metadata", () => {
         expect(meta("twitter:title")).toBe("Honey Onyx from Iran | JW Stone Logistics");
         expect(meta("description")).toContain("Country of origin: Iran.");
         expect(meta("description")).toContain("Thickness: 2 cm.");
+        expect(meta("description")).toContain("View Honey Onyx slab photos");
+        expect(meta("description")).not.toContain("Onyx Onyx");
         expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
           "Country of originIran"
         );
