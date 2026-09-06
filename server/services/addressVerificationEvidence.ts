@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { LocalStorageService, R2StorageService } from "../localStorage";
 import { createR2Client, requireR2Configuration } from "../r2Client";
 import { runtimePaths } from "../runtimePaths";
@@ -127,4 +127,23 @@ export async function getAddressVerificationEvidenceDownload(
   await assertAddressVerificationEvidence(key, userId, contentType);
   if (useR2()) return { url: await new R2StorageService().getDownloadURL(key, { filename }) };
   return { filePath: evidencePath(key, userId) };
+}
+
+/** Call only after the lifecycle owner proves this task's copy is unreferenced. */
+export async function discardAddressVerificationEvidence(key: string, userId: string): Promise<void> {
+  if (!isAddressVerificationEvidenceKey(key, userId))
+    throw new Error("Invalid verification evidence");
+  if (useR2()) {
+    const configuration = requireR2Configuration();
+    await createR2Client(configuration).send(
+      new DeleteObjectCommand({ Bucket: configuration.bucketName, Key: key }),
+      { abortSignal: AbortSignal.timeout(5000) }
+    );
+    return;
+  }
+  try {
+    await unlink(evidencePath(key, userId));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") throw error;
+  }
 }

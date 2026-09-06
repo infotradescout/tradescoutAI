@@ -14,8 +14,8 @@ import {
   assertAddressVerificationEvidence,
   getAddressVerificationEvidenceDownload,
   isAddressVerificationEvidenceKey,
-  snapshotAddressVerificationEvidence,
 } from "../services/addressVerificationEvidence";
+import { withAddressEvidenceTransaction } from "../services/addressVerificationEvidenceTransaction";
 
 export function registerAddressVerificationRoutes(app: Express) {
   // Address Verification Endpoints
@@ -42,7 +42,7 @@ export function registerAddressVerificationRoutes(app: Express) {
           .status(400)
           .json({ message: "Upload your document using the private upload form" });
       }
-      const result = await db.transaction(async (tx) => {
+      const result = await withAddressEvidenceTransaction(userId, async (tx, snapshotEvidence) => {
         // All submission/review writes lock the account before its verification.
         const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
         if (!user) return { status: 401, body: { message: "Account not found" } };
@@ -66,9 +66,8 @@ export function registerAddressVerificationRoutes(app: Express) {
         if (!Number.isFinite(deadline.getTime()))
           throw new Error("Account creation date unavailable");
         deadline.setUTCDate(deadline.getUTCDate() + 14);
-        const documentUrl = await snapshotAddressVerificationEvidence(
+        const documentUrl = await snapshotEvidence(
           parsedAddress.data.documentUrl,
-          userId,
           parsedAddress.data.documentType
         );
         const [verification] = await tx
@@ -186,7 +185,7 @@ export function registerAddressVerificationRoutes(app: Express) {
           .status(400)
           .json({ message: "Upload your document using the private upload form" });
       }
-      const result = await db.transaction(async (tx) => {
+      const result = await withAddressEvidenceTransaction(userId, async (tx, snapshotEvidence) => {
         const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
         if (!user) return { status: 401, body: { message: "Account not found" } };
         const [existing] = await tx
@@ -205,9 +204,8 @@ export function registerAddressVerificationRoutes(app: Express) {
             body: { message: "An approved verification cannot be replaced here" },
           };
         }
-        const documentUrl = await snapshotAddressVerificationEvidence(
+        const documentUrl = await snapshotEvidence(
           parsedAddress.data.documentUrl,
-          userId,
           parsedAddress.data.documentType
         );
         const [verification] = await tx
