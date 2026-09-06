@@ -1,5 +1,6 @@
 import type { MailDataRequired } from "@sendgrid/mail";
 import sgMail from "@sendgrid/mail";
+import { readExpressRequestSubmittedContact } from "../utils/workRequestShare";
 
 export type SendEmailParams = {
   to: string | string[];
@@ -80,21 +81,6 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function extractSubmittedRequesterName(params: SendEmailParams): string | null {
-  const textMatch = String(params.text || "").match(/^(.+?) sent a request through /i);
-  if (textMatch?.[1]?.trim()) return textMatch[1].trim();
-
-  const htmlMatch = String(params.html || "").match(/<p>(.+?) sent a request through /i);
-  if (!htmlMatch?.[1]) return null;
-  return htmlMatch[1]
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
-}
-
 async function attachConsentedDirectConnectContact(
   params: SendEmailParams,
   purpose: string
@@ -108,35 +94,34 @@ async function attachConsentedDirectConnectContact(
 
   const [{ db }, { sql }] = await Promise.all([import("../db"), import("drizzle-orm")]);
   const result = await db.execute(sql`
-    SELECT
-      owner.first_name,
-      owner.last_name,
-      owner.email,
-      owner.phone
+    SELECT event.metadata AS request_metadata
     FROM work_requests request
-    INNER JOIN users owner ON owner.id = request.created_by_user_id
+    INNER JOIN work_request_events event ON event.work_request_id = request.id
+      AND event.type = 'created'
+      AND event.actor_user_id = request.created_by_user_id
     WHERE request.id = ${String(params.requestId)}
       AND request.source = 'direct_connect'
+      AND event.metadata ->> 'source' = 'tradepartner_profile'
+      AND event.metadata ->> 'connectionMode' = 'express'
+      AND event.metadata ->> 'profileId' = request.source_ref_id
+    ORDER BY event.created_at ASC, event.id ASC
     LIMIT 1
   `);
   const row = ((result.rows || []) as any[])[0] || null;
-  const submittedName = extractSubmittedRequesterName(params);
-  const accountName = [row?.first_name, row?.last_name]
-    .map((part) => String(part || "").trim())
-    .filter(Boolean)
-    .join(" ");
-  const requesterName = submittedName || accountName;
-  const requesterPhone = String(row?.phone || "").trim();
-  const requesterEmail = String(row?.email || "")
-    .trim()
-    .toLowerCase();
+  const submittedContact = readExpressRequestSubmittedContact(row?.request_metadata);
+  const requesterName = submittedContact?.name || "";
+  const requesterPhone = submittedContact?.phone || "";
+  const requesterEmail = submittedContact?.email.toLowerCase() || "";
 
   if (!requesterName || !requesterPhone) {
-    console.error("[email] Direct Connect business notification blocked: requester contact unavailable", {
-      requestId: String(params.requestId),
-      hasName: Boolean(requesterName),
-      hasPhone: Boolean(requesterPhone),
-    });
+    console.error(
+      "[email] Direct Connect business notification blocked: requester contact unavailable",
+      {
+        requestId: String(params.requestId),
+        hasName: Boolean(requesterName),
+        hasPhone: Boolean(requesterPhone),
+      }
+    );
     throw new Error(
       "Direct Connect business notification requires the requester's name and phone number"
     );

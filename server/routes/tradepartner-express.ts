@@ -526,6 +526,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 itemId: body.itemId || null,
                 deliveryCustody: target.deliveryCustody,
                 contactCheck: "phone_required",
+                // Sending this request releases only the details entered for it.
+                // An email match never releases the matched account's saved contact.
+                requesterContact: {
+                  name: body.name,
+                  email,
+                  phone: body.phone,
+                  consent: "share_with_selected_business",
+                },
                 updatesOptIn,
                 ...(updatesOptIn
                   ? {

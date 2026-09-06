@@ -66,6 +66,7 @@ import {
 } from "../services/directConnectDispatchLedgerService";
 import {
   redactContactDetails,
+  readExpressRequestSubmittedContact,
   buildWorkRequestPreviewTitle,
   buildWorkRequestScopeSummary,
   formatBudgetRange,
@@ -6595,10 +6596,9 @@ export function registerDirectConnectRoutes(app: Express) {
         if (body.operationId && operationPayloadFingerprint) {
           operationLockKey = `direct-connect-requester-create:${ownerUserId}:${body.operationId}`;
           operationLockClient = await pool.connect();
-          await operationLockClient.query(
-            "SELECT pg_advisory_lock(hashtextextended($1, 0))",
-            [operationLockKey]
-          );
+          await operationLockClient.query("SELECT pg_advisory_lock(hashtextextended($1, 0))", [
+            operationLockKey,
+          ]);
 
           const operations = await loadDirectConnectCreateOperations({
             actorUserId: ownerUserId,
@@ -6636,8 +6636,7 @@ export function registerDirectConnectRoutes(app: Express) {
             );
             if (shareToken) {
               replayResponse.shareToken = shareToken;
-              replayResponse.dcMiniLandingUrl =
-                `${resolveOrigin(req)}/r/${encodeURIComponent(String(shareToken))}`;
+              replayResponse.dcMiniLandingUrl = `${resolveOrigin(req)}/r/${encodeURIComponent(String(shareToken))}`;
             }
             return res.status(200).json(replayResponse);
           }
@@ -7715,10 +7714,9 @@ export function registerDirectConnectRoutes(app: Express) {
         if (body.operationId && operationPayloadFingerprint) {
           operationLockKey = `direct-connect-admin-create:${actorUserId}:${body.operationId}`;
           operationLockClient = await pool.connect();
-          await operationLockClient.query(
-            "SELECT pg_advisory_lock(hashtextextended($1, 0))",
-            [operationLockKey]
-          );
+          await operationLockClient.query("SELECT pg_advisory_lock(hashtextextended($1, 0))", [
+            operationLockKey,
+          ]);
 
           const operations = await loadDirectConnectCreateOperations({
             actorUserId: String(actorUserId),
@@ -8155,9 +8153,7 @@ export function registerDirectConnectRoutes(app: Express) {
           verifyLinkIncluded,
           resolvedTradeId: resolvedTrade?.slug ?? null,
           createdTradeId: resolvedTrade?.created === true,
-          ...(body.operationId
-            ? { operationId: body.operationId, idempotentReplay: false }
-            : {}),
+          ...(body.operationId ? { operationId: body.operationId, idempotentReplay: false } : {}),
           ...(process.env.NODE_ENV !== "production" && activationLink ? { activationLink } : {}),
           ...(process.env.NODE_ENV !== "production" && verifyLink ? { verifyLink } : {}),
           createdByStaffUserId: String(actorUserId),
@@ -8215,9 +8211,13 @@ export function registerDirectConnectRoutes(app: Express) {
           filters.push(`(
             wr.title ILIKE $${params.length}
             OR wr.description ILIKE $${params.length}
-            OR requester.email ILIKE $${params.length}
-            OR COALESCE(requester.first_name, '') ILIKE $${params.length}
-            OR COALESCE(requester.last_name, '') ILIKE $${params.length}
+            OR (CASE WHEN contact_event.metadata IS NOT NULL
+                 THEN contact_event.metadata -> 'requesterContact' ->> 'email'
+                 ELSE requester.email END) ILIKE $${params.length}
+            OR (CASE WHEN contact_event.metadata IS NOT NULL
+                 THEN contact_event.metadata -> 'requesterContact' ->> 'name'
+                 ELSE NULLIF(TRIM(CONCAT_WS(' ', requester.first_name, requester.last_name)), '')
+               END) ILIKE $${params.length}
             OR COALESCE(b.name, '') ILIKE $${params.length}
           )`);
         }
@@ -8239,6 +8239,7 @@ export function registerDirectConnectRoutes(app: Express) {
              requester.id AS "requesterId",
              requester.email AS "requesterEmail",
              NULLIF(TRIM(CONCAT_WS(' ', requester.first_name, requester.last_name)), '') AS "requesterName",
+             contact_event.metadata AS "requestContactMetadata",
              p.slug AS "profileSlug",
              b.name AS "businessName",
              COUNT(DISTINCT wra.id)::int AS "assignmentCount",
@@ -8247,11 +8248,23 @@ export function registerDirectConnectRoutes(app: Express) {
              )::int AS "responseCount"
            FROM work_requests wr
            LEFT JOIN users requester ON requester.id = wr.created_by_user_id
+           LEFT JOIN LATERAL (
+             SELECT event.metadata
+             FROM work_request_events event
+             WHERE event.work_request_id = wr.id
+               AND event.type = 'created'
+               AND event.actor_user_id = wr.created_by_user_id
+               AND event.metadata ->> 'source' = 'tradepartner_profile'
+               AND event.metadata ->> 'connectionMode' = 'express'
+               AND event.metadata ->> 'profileId' = wr.source_ref_id
+             ORDER BY event.created_at ASC, event.id ASC
+             LIMIT 1
+           ) contact_event ON true
            LEFT JOIN profiles p ON p.id = wr.source_ref_id
            LEFT JOIN businesses b ON b.id = p.business_id
            LEFT JOIN work_request_assignments wra ON wra.work_request_id = wr.id
            WHERE ${filters.join(" AND ")}
-           GROUP BY wr.id, requester.id, p.id, b.id
+           GROUP BY wr.id, requester.id, p.id, b.id, contact_event.metadata
            ORDER BY wr.created_at DESC, wr.id DESC
            LIMIT $${limitParameter}
            OFFSET $${offsetParameter}`,
@@ -8259,7 +8272,16 @@ export function registerDirectConnectRoutes(app: Express) {
         );
 
         const hasMore = result.rows.length > limit;
-        const requests = result.rows.slice(0, limit);
+        const requests = result.rows.slice(0, limit).map((row) => {
+          const { requestContactMetadata, ...request } = row;
+          if (!requestContactMetadata) return request;
+          const contact = readExpressRequestSubmittedContact(requestContactMetadata);
+          return {
+            ...request,
+            requesterName: contact?.name || null,
+            requesterEmail: contact?.email || null,
+          };
+        });
         return res.status(200).json({
           requests,
           hasMore,
@@ -8350,6 +8372,20 @@ export function registerDirectConnectRoutes(app: Express) {
           .where(eq(workRequestEvents.workRequestId, requestId))
           .orderBy(asc(workRequestEvents.createdAt));
 
+        const submittedContactEvent = events.find(
+          (event) =>
+            request.source === "direct_connect" &&
+            event.type === "created" &&
+            event.actorUserId === request.createdByUserId &&
+            event.metadata?.profileId === request.sourceRefId
+        );
+        const submittedContact = readExpressRequestSubmittedContact(
+          submittedContactEvent?.metadata
+        );
+        const isExpressRequest =
+          submittedContactEvent?.metadata?.source === "tradepartner_profile" &&
+          submittedContactEvent?.metadata?.connectionMode === "express";
+
         const accepted = assignments.find((a) => a.status === "accepted");
         let conversationId: string | null = null;
         if (accepted?.responderUserId) {
@@ -8380,9 +8416,16 @@ export function registerDirectConnectRoutes(app: Express) {
           requester: requester
             ? {
                 id: requester.id,
-                name: [requester.firstName, requester.lastName].filter(Boolean).join(" ") || null,
-                email: requester.email || null,
-                phone: (requester as any).phone || null,
+                name:
+                  submittedContact?.name ||
+                  (isExpressRequest
+                    ? null
+                    : [requester.firstName, requester.lastName].filter(Boolean).join(" ") || null),
+                email:
+                  submittedContact?.email || (isExpressRequest ? null : requester.email || null),
+                phone:
+                  submittedContact?.phone ||
+                  (isExpressRequest ? null : (requester as any).phone || null),
               }
             : null,
           originatingProfile,
