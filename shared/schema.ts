@@ -7820,6 +7820,44 @@ export const insertAddressVerificationSchema = createInsertSchema(addressVerific
 
 export type AddressVerification = typeof addressVerifications.$inferSelect;
 export type InsertAddressVerification = z.infer<typeof insertAddressVerificationSchema>;
+
+// Member input is distinct from the server-owned verification record.
+export const addressVerificationSubmissionSchema = z
+  .object({
+    fullAddress: z.string().trim().min(5).max(500),
+    city: z.string().trim().min(2).max(120),
+    state: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z]{2}$/)
+      .transform((value) => value.toUpperCase()),
+    zipCode: z
+      .string()
+      .trim()
+      .regex(/^\d{5}(?:-\d{4})?$/),
+    verificationMethod: z.enum([
+      "utility_bill",
+      "bank_statement",
+      "lease_agreement",
+      "property_deed",
+    ]),
+    documentUrl: z.string().trim().min(1).max(300),
+    documentType: z.enum(["application/pdf", "image/jpeg", "image/png"]),
+  })
+  .strict();
+
+export const addressVerificationReviewSchema = z
+  .object({
+    status: z.enum(["pending", "approved", "rejected"]),
+    adminNotes: z.string().trim().max(2000).default(""),
+    rejectionReason: z.string().trim().max(1000).default(""),
+    expectedUpdatedAt: z.string().datetime({ offset: true }).nullable(),
+  })
+  .strict()
+  .refine((value) => value.status !== "rejected" || value.rejectionReason.length > 0, {
+    path: ["rejectionReason"],
+    message: "Explain what the member needs to correct.",
+  });
 export type IdentityVerification = typeof identityVerifications.$inferSelect;
 export type InsertIdentityVerification = typeof identityVerifications.$inferInsert;
 

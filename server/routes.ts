@@ -224,6 +224,12 @@ import {
   sanitizeVerificationSubmissions,
   selectOwnedVerificationProfile,
 } from "./services/businessVerificationWorkflow";
+import {
+  assertAddressVerificationEvidence,
+  getAddressVerificationEvidenceDownload,
+  isAddressVerificationEvidenceKey,
+  snapshotAddressVerificationEvidence,
+} from "./services/addressVerificationEvidence";
 import { notifyIndexNow } from "./services/indexNowService";
 import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
@@ -305,7 +311,8 @@ import {
   insertMarketplaceReportSchema,
   insertVendorVerificationSchema,
   insertBuyerVerificationSchema,
-  insertAddressVerificationSchema,
+  addressVerificationSubmissionSchema,
+  addressVerificationReviewSchema,
   insertModerationReportSchema,
   insertModerationVoteSchema,
   insertModerationAppealSchema,
@@ -18537,8 +18544,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // Address Verification Endpoints
   app.post("/api/address-verification", isAuthenticated, async (req: any, res: any) => {
     try {
-      const user = req.user as any;
-      const parsedAddress = insertAddressVerificationSchema.safeParse(req.body);
+      const userId = String(req.user?.id || "").trim();
+      if (!userId) return res.status(401).json({ message: "Sign in to submit verification" });
+      if (["postcard", "phone_verification"].includes(req.body?.verificationMethod)) {
+        return res.status(503).json({
+          code: "ADDRESS_VERIFICATION_METHOD_UNAVAILABLE",
+          message: "Postcard and phone verification are unavailable. Submit a document for review.",
+        });
+      }
+      const parsedAddress = addressVerificationSubmissionSchema.safeParse(req.body);
       if (!parsedAddress.success) {
         return res.status(400).json({
           message: "Invalid address verification payload",
@@ -18546,20 +18560,54 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         });
       }
 
-      const validatedData = parsedAddress.data;
-
-      // Calculate deadline (14 days from user creation)
-      const userCreatedAt = new Date(user.createdAt);
-      const deadline = new Date(userCreatedAt);
-      deadline.setDate(deadline.getDate() + 14);
-
-      const verification = await storage.createAddressVerification({
-        ...validatedData,
-        userId: user?.id,
-        deadline,
+      if (!isOwnedPrivateObjectKey(parsedAddress.data.documentUrl, userId)) {
+        return res
+          .status(400)
+          .json({ message: "Upload your document using the private upload form" });
+      }
+      const result = await db.transaction(async (tx) => {
+        // All submission/review writes lock the account before its verification.
+        const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
+        if (!user) return { status: 401, body: { message: "Account not found" } };
+        if (user.addressVerified) {
+          return { status: 409, body: { message: "Your address is already verified" } };
+        }
+        const [existing] = await tx
+          .select()
+          .from(addressVerifications)
+          .where(eq(addressVerifications.userId, userId))
+          .orderBy(desc(addressVerifications.createdAt))
+          .limit(1)
+          .for("update");
+        if (existing) {
+          return {
+            status: 409,
+            body: { message: "Refresh and update your existing verification" },
+          };
+        }
+        const deadline = new Date(user.createdAt!);
+        if (!Number.isFinite(deadline.getTime()))
+          throw new Error("Account creation date unavailable");
+        deadline.setUTCDate(deadline.getUTCDate() + 14);
+        const documentUrl = await snapshotAddressVerificationEvidence(
+          parsedAddress.data.documentUrl,
+          userId,
+          parsedAddress.data.documentType
+        );
+        const [verification] = await tx
+          .insert(addressVerifications)
+          .values({
+            ...parsedAddress.data,
+            documentUrl,
+            userId,
+            deadline,
+            status: "submitted",
+            submittedAt: new Date(),
+          })
+          .returning();
+        return { status: 201, body: { id: verification.id, status: verification.status } };
       });
-
-      res.status(201).json(verification);
+      res.status(result.status).json(result.body);
     } catch (error: any) {
       console.error("Error creating address verification:", error);
       res.status(400).json({ message: "Failed to create address verification" });
@@ -18568,13 +18616,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.get("/api/address-verification/status", isAuthenticated, async (req: any, res: any) => {
     try {
-      const user = req.user as any;
-      const verification = await storage.getAddressVerificationByUserId(user?.id);
+      const userId = String(req.user?.id || "").trim();
+      if (!userId) return res.status(401).json({ message: "Sign in to view verification" });
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(401).json({ message: "Account not found" });
+      const verification = await storage.getAddressVerificationByUserId(userId);
 
       // Calculate deadline if no verification exists
-      const userCreatedAt = new Date(user.createdAt);
-      const deadline = new Date(userCreatedAt);
-      deadline.setDate(deadline.getDate() + 14);
+      const deadline = new Date(verification?.deadline || user.createdAt!);
+      if (!verification) deadline.setUTCDate(deadline.getUTCDate() + 14);
+      if (!Number.isFinite(deadline.getTime()))
+        throw new Error("Verification deadline unavailable");
 
       const daysRemaining = Math.max(
         0,
@@ -18582,8 +18634,22 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       );
       const isExpired = daysRemaining === 0 && !user.addressVerified;
 
+      res.setHeader("Cache-Control", "private, no-store");
       res.json({
-        verification: verification || null,
+        verification: verification
+          ? {
+              id: verification.id,
+              fullAddress: verification.fullAddress,
+              city: verification.city,
+              state: verification.state,
+              zipCode: verification.zipCode,
+              verificationMethod: verification.verificationMethod,
+              status: verification.status,
+              hasDocument: isAddressVerificationEvidenceKey(verification.documentUrl, userId),
+              submittedAt: verification.submittedAt,
+              rejectionReason: verification.rejectionReason,
+            }
+          : null,
         isVerified: user.addressVerified || false,
         deadline: deadline.toISOString(),
         daysRemaining,
@@ -18600,26 +18666,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     "/api/address-verification/postcard/request",
     isAuthenticated,
     async (req: any, res: any) => {
-      try {
-        const user = req.user as any;
-
-        // Generate 6-digit verification code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-        await storage.sendAddressVerificationPostcard(user?.id, code);
-
-        // In a real implementation, you would send the postcard via USPS API
-        console.log(`Postcard verification code for ${user?.id}: ${code}`);
-
-        res.json({
-          message:
-            "Verification postcard has been sent to your address. It should arrive within 5-7 business days.",
-          estimatedDelivery: "5-7 business days",
-        });
-      } catch (error: any) {
-        console.error("Error requesting postcard verification:", error);
-        res.status(500).json({ message: "Failed to request postcard verification" });
-      }
+      return res.status(503).json({
+        code: "ADDRESS_VERIFICATION_METHOD_UNAVAILABLE",
+        message:
+          "Postcard verification is unavailable. No postcard was sent. Submit a document for review.",
+      });
     }
   );
 
@@ -18627,54 +18678,85 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     "/api/address-verification/postcard/verify",
     isAuthenticated,
     async (req: any, res: any) => {
-      try {
-        const user = req.user as any;
-        const { code } = req.body;
-
-        if (!code || code.length !== 6) {
-          return res.status(400).json({ message: "Valid 6-digit code is required" });
-        }
-
-        const success = await storage.verifyAddressWithPostcard(user?.id, code);
-
-        if (success) {
-          res.json({
-            message: "Address verified successfully! You now have full access to the platform.",
-            verified: true,
-          });
-        } else {
-          res.status(400).json({
-            message:
-              "Invalid verification code. Please check the code on your postcard and try again.",
-            verified: false,
-          });
-        }
-      } catch (error: any) {
-        console.error("Error verifying postcard code:", error);
-        res.status(500).json({ message: "Failed to verify postcard code" });
-      }
+      return res.status(503).json({
+        code: "ADDRESS_VERIFICATION_METHOD_UNAVAILABLE",
+        message: "Postcard verification is unavailable. Submit a document for review.",
+        verified: false,
+      });
     }
   );
 
   app.put("/api/address-verification/:id", isAuthenticated, async (req: any, res: any) => {
     try {
-      const user = req.user as any;
-      const { id } = req.params;
-      const updates = req.body;
-
-      // Verify the user owns this verification
-      const existingVerification = await storage.getAddressVerificationByUserId(user?.id);
-      if (!existingVerification || existingVerification.id !== id) {
-        return res.status(403).json({ message: "Not authorized to update this verification" });
+      const userId = String(req.user?.id || "").trim();
+      const id = String(req.params.id || "").trim();
+      if (!userId) return res.status(401).json({ message: "Sign in to submit verification" });
+      if (["postcard", "phone_verification"].includes(req.body?.verificationMethod)) {
+        return res.status(503).json({
+          code: "ADDRESS_VERIFICATION_METHOD_UNAVAILABLE",
+          message: "Postcard and phone verification are unavailable. Submit a document for review.",
+        });
       }
-
-      const verification = await storage.updateAddressVerification(id, {
-        ...updates,
-        submittedAt: new Date(),
-        status: "submitted",
+      const parsedAddress = addressVerificationSubmissionSchema.safeParse(req.body);
+      if (!parsedAddress.success) {
+        return res.status(400).json({
+          message: "Invalid address verification payload",
+          issues: parsedAddress.error.issues,
+        });
+      }
+      if (!isOwnedPrivateObjectKey(parsedAddress.data.documentUrl, userId)) {
+        return res
+          .status(400)
+          .json({ message: "Upload your document using the private upload form" });
+      }
+      const result = await db.transaction(async (tx) => {
+        const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
+        if (!user) return { status: 401, body: { message: "Account not found" } };
+        const [existing] = await tx
+          .select()
+          .from(addressVerifications)
+          .where(eq(addressVerifications.userId, userId))
+          .orderBy(desc(addressVerifications.createdAt))
+          .limit(1)
+          .for("update");
+        if (!existing || existing.id !== id) {
+          return { status: 403, body: { message: "Not authorized to update this verification" } };
+        }
+        if (user.addressVerified || existing.status === "approved") {
+          return {
+            status: 409,
+            body: { message: "An approved verification cannot be replaced here" },
+          };
+        }
+        const documentUrl = await snapshotAddressVerificationEvidence(
+          parsedAddress.data.documentUrl,
+          userId,
+          parsedAddress.data.documentType
+        );
+        const [verification] = await tx
+          .update(addressVerifications)
+          .set({
+            ...parsedAddress.data,
+            documentUrl,
+            submittedAt: new Date(),
+            updatedAt: new Date(),
+            status: "submitted",
+            reviewedBy: null,
+            reviewedAt: null,
+            approvedAt: null,
+            rejectionReason: null,
+            adminNotes: null,
+            postcardCode: null,
+            postcardSentAt: null,
+            postcardVerifiedAt: null,
+            phoneVerificationCode: null,
+            phoneVerifiedAt: null,
+          })
+          .where(and(eq(addressVerifications.id, id), eq(addressVerifications.userId, userId)))
+          .returning();
+        return { status: 200, body: { id: verification.id, status: verification.status } };
       });
-
-      res.json(verification);
+      res.status(result.status).json(result.body);
     } catch (error: any) {
       console.error("Error updating address verification:", error);
       res.status(400).json({ message: "Failed to update verification" });
@@ -18693,7 +18775,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         let query: any = db
           .select({
             verification: addressVerifications,
-            user: users,
+            user: {
+              id: users.id,
+              email: users.email,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              addressVerified: users.addressVerified,
+            },
           })
           .from(addressVerifications)
           .leftJoin(users, eq(addressVerifications.userId, users.id));
@@ -18715,7 +18803,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const results = await query.orderBy(desc(addressVerifications.createdAt));
 
-        res.json(results);
+        res.setHeader("Cache-Control", "private, no-store");
+        res.json(
+          results.map(({ verification, user }: any) => {
+            const { postcardCode, phoneVerificationCode, documentUrl, ...reviewRecord } =
+              verification;
+            return {
+              verification: {
+                ...reviewRecord,
+                hasDocument: isAddressVerificationEvidenceKey(documentUrl, verification.userId),
+              },
+              user,
+            };
+          })
+        );
       } catch (error: any) {
         console.error("Error fetching address verifications:", error);
         res.status(500).json({ message: "Failed to fetch verifications" });
@@ -18729,35 +18830,144 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAdmin,
     async (req: any, res: any) => {
       try {
-        const { id } = req.params;
-        const { status, adminNotes } = req.body;
-        const user = req.user as any;
-
-        const updates: any = {
-          status,
-          adminNotes,
-          reviewedBy: user?.id,
-          reviewedAt: new Date(),
-        };
-
-        if (status === "approved") {
-          updates.approvedAt = new Date();
-
-          // Get verification record to find the user
-          const [verification] = await db
+        const id = String(req.params.id || "").trim();
+        const parsedReview = addressVerificationReviewSchema.safeParse(req.body);
+        if (!parsedReview.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid review decision", issues: parsedReview.error.issues });
+        }
+        const [located] = await db
+          .select()
+          .from(addressVerifications)
+          .where(eq(addressVerifications.id, id))
+          .limit(1);
+        if (!located) return res.status(404).json({ message: "Verification not found" });
+        const result = await db.transaction(async (tx) => {
+          const [user] = await tx
+            .select()
+            .from(users)
+            .where(eq(users.id, located.userId))
+            .for("update");
+          if (!user) return { status: 404, body: { message: "Account not found" } };
+          const [verification] = await tx
             .select()
             .from(addressVerifications)
-            .where(eq(addressVerifications.id, id));
-          if (verification) {
-            await storage.updateUser(verification.userId, { addressVerified: true });
+            .where(eq(addressVerifications.userId, user.id))
+            .orderBy(desc(addressVerifications.createdAt))
+            .limit(1)
+            .for("update");
+          if (!verification || verification.id !== id || verification.userId !== user.id) {
+            return {
+              status: 409,
+              body: { message: "Verification changed. Refresh before reviewing." },
+            };
           }
-        }
-
-        const verification = await storage.updateAddressVerification(id, updates);
-        res.json(verification);
+          const expected = parsedReview.data.expectedUpdatedAt;
+          const current = verification.updatedAt?.toISOString() ?? null;
+          if ((expected ? new Date(expected).toISOString() : null) !== current) {
+            return {
+              status: 409,
+              body: {
+                message: "This submission changed. Refresh and review the current document.",
+              },
+            };
+          }
+          const { status, adminNotes, rejectionReason } = parsedReview.data;
+          if (status === "approved") {
+            const evidence = addressVerificationSubmissionSchema.safeParse({
+              fullAddress: verification.fullAddress,
+              city: verification.city,
+              state: verification.state,
+              zipCode: verification.zipCode,
+              verificationMethod: verification.verificationMethod,
+              documentUrl: verification.documentUrl,
+              documentType: verification.documentType,
+            });
+            if (
+              !evidence.success ||
+              !isAddressVerificationEvidenceKey(verification.documentUrl, user.id)
+            ) {
+              return {
+                status: 409,
+                body: { message: "A private address document is required before approval" },
+              };
+            }
+            await assertAddressVerificationEvidence(
+              verification.documentUrl,
+              user.id,
+              evidence.data.documentType
+            );
+          }
+          const now = new Date();
+          const [updated] = await tx
+            .update(addressVerifications)
+            .set({
+              status,
+              adminNotes,
+              rejectionReason: status === "rejected" ? rejectionReason : null,
+              reviewedBy: req.user.id,
+              reviewedAt: now,
+              approvedAt: status === "approved" ? now : null,
+              updatedAt: now,
+            })
+            .where(eq(addressVerifications.id, id))
+            .returning();
+          if (status === "approved" || verification.status === "approved") {
+            await tx
+              .update(users)
+              .set({ addressVerified: status === "approved", updatedAt: now })
+              .where(eq(users.id, user.id));
+          }
+          return { status: 200, body: { id: updated.id, status: updated.status } };
+        });
+        res.status(result.status).json(result.body);
       } catch (error: any) {
         console.error("Error updating address verification:", error);
         res.status(400).json({ message: "Failed to update verification" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/address-verifications/:id/document",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const id = String(req.params.id || "").trim();
+        const [verification] = await db
+          .select()
+          .from(addressVerifications)
+          .where(eq(addressVerifications.id, id))
+          .limit(1);
+        if (
+          !verification ||
+          !isAddressVerificationEvidenceKey(verification.documentUrl, verification.userId)
+        ) {
+          return res.status(404).json({ message: "Verification document not found" });
+        }
+        const extensions: Record<string, string> = {
+          "application/pdf": "pdf",
+          "image/jpeg": "jpg",
+          "image/png": "png",
+        };
+        const extension = extensions[verification.documentType || ""];
+        if (!extension) return res.status(404).json({ message: "Verification document not found" });
+        const filename = `address-verification-document.${extension}`;
+        res.setHeader("Cache-Control", "private, no-store");
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        const document = await getAddressVerificationEvidenceDownload(
+          verification.documentUrl,
+          verification.userId,
+          verification.documentType!,
+          filename
+        );
+        if ("url" in document) return res.redirect(302, document.url);
+        return res.download(document.filePath, filename);
+      } catch (error) {
+        console.error("Error downloading address verification document:", error);
+        return res.status(500).json({ message: "Failed to download verification document" });
       }
     }
   );

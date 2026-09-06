@@ -59,6 +59,9 @@ interface AddressVerification {
   approvedAt?: string;
   deadline: string;
   adminNotes?: string;
+  rejectionReason?: string;
+  hasDocument?: boolean;
+  updatedAt?: string | null;
   postcardSentAt?: string;
   postcardVerifiedAt?: string;
   createdAt: string;
@@ -79,13 +82,7 @@ interface VerificationWithUser {
 
 type ReviewStatus = "pending" | "approved" | "rejected";
 
-const FILTER_STATUSES = [
-  "pending",
-  "submitted",
-  "approved",
-  "rejected",
-  "expired",
-] as const;
+const FILTER_STATUSES = ["pending", "submitted", "approved", "rejected", "expired"] as const;
 
 function readable(value: string): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -144,10 +141,12 @@ function sortRank(status: AddressVerification["status"]): number {
 export default function AdminAddressVerifications() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const [selectedVerification, setSelectedVerification] =
-    useState<VerificationWithUser | null>(null);
+  const [selectedVerification, setSelectedVerification] = useState<VerificationWithUser | null>(
+    null
+  );
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus>("pending");
   const [adminNotes, setAdminNotes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -167,14 +166,20 @@ export default function AdminAddressVerifications() {
       id,
       status,
       notes,
+      reason,
+      expectedUpdatedAt,
     }: {
       id: string;
       status: ReviewStatus;
       notes: string;
+      reason: string;
+      expectedUpdatedAt: string | null;
     }) =>
       apiRequest("PUT", `/api/admin/address-verifications/${id}`, {
         status,
         adminNotes: notes,
+        rejectionReason: reason,
+        expectedUpdatedAt,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -187,13 +192,23 @@ export default function AdminAddressVerifications() {
       setSelectedVerification(null);
       setReviewStatus("pending");
       setAdminNotes("");
+      setRejectionReason("");
     },
-    onError: (error: unknown) => {
+    onError: async (error: unknown) => {
       toast({
         title: "Address verification was not updated",
         description: formatUserFacingErrorMessage(error, "Failed to save the review decision."),
         variant: "destructive",
       });
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        error.status === 409
+      ) {
+        setSelectedVerification(null);
+        await queryClient.invalidateQueries({ queryKey: ["/api/admin/address-verifications"] });
+      }
     },
   });
 
@@ -219,8 +234,7 @@ export default function AdminAddressVerifications() {
           .some((value) => String(value).toLowerCase().includes(normalizedSearch));
       })
       .sort((a, b) => {
-        const statusDifference =
-          sortRank(a.verification.status) - sortRank(b.verification.status);
+        const statusDifference = sortRank(a.verification.status) - sortRank(b.verification.status);
         if (statusDifference !== 0) return statusDifference;
         const aTime = a.verification.submittedAt
           ? new Date(a.verification.submittedAt).getTime()
@@ -254,6 +268,7 @@ export default function AdminAddressVerifications() {
         : "pending"
     );
     setAdminNotes(item.verification.adminNotes || "");
+    setRejectionReason(item.verification.rejectionReason || "");
   };
 
   const submitReview = () => {
@@ -262,6 +277,8 @@ export default function AdminAddressVerifications() {
       id: selectedVerification.verification.id,
       status: reviewStatus,
       notes: adminNotes,
+      reason: rejectionReason,
+      expectedUpdatedAt: selectedVerification.verification.updatedAt || null,
     });
   };
 
@@ -422,7 +439,11 @@ export default function AdminAddressVerifications() {
                     </div>
                     <p
                       className={`mt-2 flex items-center gap-1.5 text-xs ${
-                        overdue ? "text-red-200" : remaining !== null && remaining <= 3 ? "text-amber-200" : "text-white/38"
+                        overdue
+                          ? "text-red-200"
+                          : remaining !== null && remaining <= 3
+                            ? "text-amber-200"
+                            : "text-white/38"
                       }`}
                     >
                       <Calendar className="h-3.5 w-3.5" />
@@ -514,7 +535,9 @@ export default function AdminAddressVerifications() {
                     Method
                   </p>
                   <p className="mt-2 text-sm text-white/62">
-                    {readable(selectedVerification.verification.verificationMethod || "not recorded")}
+                    {readable(
+                      selectedVerification.verification.verificationMethod || "not recorded"
+                    )}
                   </p>
                 </section>
                 <section>
@@ -549,6 +572,23 @@ export default function AdminAddressVerifications() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  {selectedVerification.verification.hasDocument ? (
+                    <Button variant="outline" asChild>
+                      <a
+                        href={`/api/admin/address-verifications/${encodeURIComponent(selectedVerification.verification.id)}/document`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Download private address document
+                      </a>
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-white/60">
+                      No address document is attached. Request a document before approving.
+                    </p>
+                  )}
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="address-review-status" className="text-white/70">
                     Review decision
@@ -557,7 +597,10 @@ export default function AdminAddressVerifications() {
                     value={reviewStatus}
                     onValueChange={(value) => setReviewStatus(value as ReviewStatus)}
                   >
-                    <SelectTrigger id="address-review-status" className="border-white/10 bg-black/20 text-white">
+                    <SelectTrigger
+                      id="address-review-status"
+                      className="border-white/10 bg-black/20 text-white"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -567,6 +610,21 @@ export default function AdminAddressVerifications() {
                     </SelectContent>
                   </Select>
                 </div>
+                {reviewStatus === "rejected" && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="address-rejection-reason" className="text-white/70">
+                      Reason shown to the member
+                    </Label>
+                    <Textarea
+                      id="address-rejection-reason"
+                      value={rejectionReason}
+                      onChange={(event) => setRejectionReason(event.target.value)}
+                      maxLength={1000}
+                      placeholder="Explain what they need to correct or upload."
+                      className="min-h-24 border-white/10 bg-black/20 text-white"
+                    />
+                  </div>
+                )}
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="address-review-notes" className="text-white/70">
                     Admin notes
@@ -595,7 +653,12 @@ export default function AdminAddressVerifications() {
             <Button
               type="button"
               onClick={submitReview}
-              disabled={updateVerificationMutation.isPending || !selectedVerification}
+              disabled={
+                updateVerificationMutation.isPending ||
+                !selectedVerification ||
+                (reviewStatus === "rejected" && !rejectionReason.trim()) ||
+                (reviewStatus === "approved" && !selectedVerification.verification.hasDocument)
+              }
               className="bg-orange-500 text-black hover:bg-orange-400"
             >
               {updateVerificationMutation.isPending ? "Saving…" : "Save decision"}
