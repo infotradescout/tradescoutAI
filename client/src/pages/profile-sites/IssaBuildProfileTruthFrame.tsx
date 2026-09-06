@@ -26,97 +26,31 @@ function recordValue(value: unknown): UnknownRecord {
     : {};
 }
 
-/**
- * The profile provisioner already stores ISSA Build's verified operating truth.
- * This presentation adapter keeps that truth visible even though the luxury
- * profile uses its canonical design payload rather than the stored JSON blocks.
- */
+/** Retain service facts without rewriting the existing profile copy. */
 function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props["contentBlocks"] {
   return contentBlocks.map((block) => {
+    if (block.type !== "premiumProduct") return block;
     const data = recordValue(block.data);
-
-    if (block.type === "hero") {
-      return {
-        ...block,
-        data: {
-          ...data,
-          eyebrow: "PENSACOLA AND SURROUNDING AREAS",
-          headerLabel: "Kitchens, bathrooms and stone.",
-          teaser: ISSA_BUILD_LOCAL_DISCOVERY.description,
-        },
-      } as ContentBlock;
-    }
-
-    if (block.type === "about") {
-      return {
-        ...block,
-        data: {
-          ...data,
-          text: "ISSA Build handles Pensacola-area kitchens, bathrooms, cabinets, stone countertops and fabrication. TradeScout manages every inquiry. ISSA Build also handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
-        },
-      } as ContentBlock;
-    }
-
-    if (block.type === "trust") {
-      return {
-        ...block,
-        data: {
-          ...data,
-          items: [
-            ISSA_BUILD_VERIFICATION_LABEL,
-            "Verified full-service scope: sourcing, selection, fabrication, backlighting, installation, and fulfillment",
-          ],
-        },
-      } as ContentBlock;
-    }
-
-    if (block.type === "premiumProduct") {
-      const luxuryHouse = recordValue(data.luxuryHouse);
-      return {
-        ...block,
-        data: {
-          ...data,
-          luxuryHouse: {
-            ...luxuryHouse,
-            designedWithLight: {
-              ...recordValue(luxuryHouse.designedWithLight),
-              body: "ISSA Build takes the project from material sourcing, availability, and selection through custom onyx fabrication, backlighting design, installation, and final project fulfillment.",
-            },
-            capabilities: {
-              ...recordValue(luxuryHouse.capabilities),
-              title: "Kitchens, bathrooms and complete onyx projects.",
-              body: "ISSA Build handles kitchens, bathrooms, cabinets, countertops and fabrication in Pensacola and surrounding areas, alongside its full-service onyx work.",
-              items: [
-                ...ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => ({
-                  title: service.title,
-                  body: service.description,
-                })),
-                ...ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title, body: "" })),
-              ],
-            },
-            consultation: {
-              ...recordValue(luxuryHouse.consultation),
-              title: "Start a Request.",
-              body: "Tell TradeScout about your kitchen, bathroom, cabinets, countertops or fabrication. Include your actual city or ZIP, dimensions and timing. TradeScout manages the inquiry for ISSA Build.",
-            },
+    const luxuryHouse = recordValue(data.luxuryHouse);
+    return {
+      ...block,
+      data: {
+        ...data,
+        luxuryHouse: {
+          ...luxuryHouse,
+          capabilities: {
+            ...recordValue(luxuryHouse.capabilities),
+            items: [
+              ...ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => ({
+                title: service.title,
+                body: "",
+              })),
+              ...ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title, body: "" })),
+            ],
           },
         },
-      } as ContentBlock;
-    }
-
-    if (block.type === "cta") {
-      return {
-        ...block,
-        data: {
-          ...data,
-          heading: "Start a Request",
-          description:
-            "Tell TradeScout about your kitchen, bathroom, cabinets, countertops or fabrication, including your actual project city or ZIP. ISSA Build handles the work.",
-        },
-      } as ContentBlock;
-    }
-
-    return block;
+      },
+    } as ContentBlock;
   });
 }
 
