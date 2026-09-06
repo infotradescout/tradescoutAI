@@ -11,8 +11,8 @@ import { isAddressVerificationEvidenceKey } from "../services/addressVerificatio
 // Execute the registered handlers with a controlled database/storage boundary.
 // These assertions do not prove PostgreSQL locking or live object delivery.
 const source = ts.createSourceFile(
-  "routes.ts",
-  fs.readFileSync("server/routes.ts", "utf8"),
+  "address-verification.ts",
+  fs.readFileSync("server/routes/address-verification.ts", "utf8"),
   ts.ScriptTarget.Latest,
   true
 );
@@ -244,6 +244,14 @@ describe("address verification submission and review", () => {
     vi.restoreAllMocks();
   });
   it("registers every member route behind authentication and every admin route behind both guards", () => {
+    const bootstrap = fs.readFileSync("server/routes.ts", "utf8");
+    expect(bootstrap).toContain(
+      'import { registerAddressVerificationRoutes } from "./routes/address-verification"'
+    );
+    expect(bootstrap.match(/registerAddressVerificationRoutes\(app\)/g)).toHaveLength(1);
+    expect(bootstrap.indexOf("registerAddressVerificationRoutes(app)")).toBeGreaterThan(
+      bootstrap.indexOf("app.use(bindAuthenticatedRequestAuthority)")
+    );
     expect(registrations.size).toBe(8);
     for (const [route, registration] of registrations) {
       expect(registration.middleware).toEqual(

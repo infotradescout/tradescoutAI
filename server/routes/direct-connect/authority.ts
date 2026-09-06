@@ -1,3 +1,5 @@
+import type { Request, Response } from "express";
+import type { db as Database } from "../../db";
 import { and, eq, sql } from "drizzle-orm";
 import {
   contactPermissionEvents,
@@ -745,5 +747,76 @@ export async function loadExpressDirectConnectReleasedContact(
     contactPreference: contactPreference as "platform_message" | "call",
     contactGateState: "accepted",
     phone,
+  };
+}
+
+export function createDirectConnectAssignmentContactHandler(
+  database: Pick<typeof Database, "transaction">
+) {
+  return async (req: Request & { user?: any }, res: Response) => {
+    try {
+      const providerUserId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+      if (!providerUserId) return res.status(401).json({ message: "Unauthorized" });
+
+      const released = await database.transaction(async (tx) => {
+        const assignmentResult = await tx.execute(sql`
+            SELECT a.*, c.user_id AS contractor_owner_id, w.user_id AS worker_owner_id
+            FROM work_request_assignments a
+            LEFT JOIN contractors c ON c.id = a.contractor_id
+            LEFT JOIN workers w ON w.id = a.worker_id
+            WHERE a.id = ${req.params.id}
+            FOR SHARE OF a
+          `);
+        const assignmentRow = (assignmentResult.rows?.[0] as any) || null;
+        assertDirectConnectAssignmentRecipient(assignmentRow, providerUserId);
+
+        const assignmentWorkRequestId = String(
+          assignmentRow.workRequestId ?? assignmentRow.work_request_id ?? ""
+        );
+        const requestResult = await tx.execute(sql`
+            SELECT *
+            FROM work_requests
+            WHERE id = ${assignmentWorkRequestId}
+            FOR SHARE
+          `);
+        const requestRow = (requestResult.rows?.[0] as any) || null;
+        if (!requestRow) {
+          throw new ExpressDirectConnectContactReleaseError(
+            404,
+            "EXPRESS_ASSIGNMENT_NOT_FOUND",
+            "Assignment not found."
+          );
+        }
+
+        const submitted = await loadDirectConnectSubmittedContact(tx, {
+          assignmentRow,
+          requestRow,
+          providerUserId,
+        });
+        if (submitted) return submitted;
+        return loadExpressDirectConnectReleasedContact(tx, {
+          assignmentRow,
+          requestRow,
+          providerUserId,
+        });
+      });
+
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(200).json({
+        assignmentId: released.assignmentId,
+        requestId: released.workRequestId,
+        contactPreference: released.contactPreference,
+        contactGateState: released.contactGateState,
+        requesterContact: released.phone
+          ? { phone: released.phone, ...("name" in released ? { name: released.name } : {}) }
+          : null,
+      });
+    } catch (error) {
+      if (error instanceof ExpressDirectConnectContactReleaseError) {
+        return res.status(error.status).json({ code: error.code, message: error.message });
+      }
+      console.error("Error releasing Express assignment contact:", error);
+      return res.status(500).json({ message: "Failed to load requester contact" });
+    }
   };
 }

@@ -3,6 +3,7 @@ import {
   assertDirectConnectAssignmentRecipient,
   buildDirectConnectSubmissionContact,
   bindDirectConnectExplicitRecipient,
+  createDirectConnectAssignmentContactHandler,
   loadDirectConnectSubmittedContact,
 } from "../routes/direct-connect/authority";
 
@@ -39,6 +40,49 @@ function fixture() {
 }
 
 describe("request-specific submission contact", () => {
+  it("returns only the bound submission contact through the extracted HTTP handler", async () => {
+    const { params, event } = fixture();
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [params.assignmentRow] })
+      .mockResolvedValueOnce({ rows: [params.requestRow] })
+      .mockResolvedValueOnce({ rows: [event] });
+    const database = { transaction: vi.fn(async (callback) => callback({ execute })) };
+    const handler = createDirectConnectAssignmentContactHandler(database as any);
+    const res: any = { setHeader: vi.fn(), status: vi.fn().mockReturnThis(), json: vi.fn() };
+    await handler(
+      { user: { id: params.providerUserId }, params: { id: "assignment-1" } } as any,
+      res
+    );
+    expect(res.setHeader).toHaveBeenCalledWith("Cache-Control", "private, no-store");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      assignmentId: "assignment-1",
+      requestId: "request-1",
+      contactPreference: "platform_message",
+      contactGateState: "submission_consented",
+      requesterContact: { name: "Jordan Example", phone: "+12255550100" },
+    });
+    expect(execute).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(["", "unrelated-user"])(
+    "rejects unauthorized contact-handler access for %s before reading a receipt",
+    async (userId) => {
+      const { params } = fixture();
+      const execute = vi.fn(async () => ({ rows: [params.assignmentRow] }));
+      const database = { transaction: vi.fn(async (callback) => callback({ execute })) };
+      const res: any = { setHeader: vi.fn(), status: vi.fn().mockReturnThis(), json: vi.fn() };
+      await createDirectConnectAssignmentContactHandler(database as any)(
+        { user: { id: userId }, params: { id: "assignment-1" } } as any,
+        res
+      );
+      expect(res.status).toHaveBeenCalledWith(userId ? 404 : 401);
+      expect(execute).toHaveBeenCalledTimes(userId ? 1 : 0);
+      expect(res.json.mock.calls[0][0]).not.toHaveProperty("requesterContact");
+    }
+  );
+
   it.each(["platform_message", "call"])(
     "gives the invited business the submitted name and phone for %s without approving general contact",
     async (preference) => {
