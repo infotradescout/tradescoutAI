@@ -65,7 +65,10 @@ export default function ProjectServiceProfile({
 }: LocalServiceProfileProps) {
   const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [primaryActionVisible, setPrimaryActionVisible] = useState(false);
   const galleryDialogRef = useRef<HTMLDivElement>(null);
+  const requestActionRef = useRef<HTMLButtonElement>(null);
+  const mobileRequestRef = useRef<HTMLDivElement>(null);
   const galleryItems = useMemo(() => {
     if (
       !presentation.heroImage ||
@@ -120,6 +123,21 @@ export default function ProjectServiceProfile({
     "--service-surface": presentation.brand.surface,
     "--service-background": presentation.brand.background,
   } as CSSProperties;
+
+  useEffect(() => {
+    if (!requestActionRef.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && mobileRequestRef.current?.contains(document.activeElement)) {
+          requestActionRef.current?.focus({ preventScroll: true });
+        }
+        setPrimaryActionVisible(entry.isIntersecting);
+      },
+      { threshold: 0.2 }
+    );
+    observer.observe(requestActionRef.current);
+    return () => observer.disconnect();
+  }, [profileSlug]);
 
   const openProtectedContact = (
     action: "request" | "call" | "service" | "financing",
@@ -200,7 +218,11 @@ export default function ProjectServiceProfile({
         />
       </header>
 
-      <section className="service-profile-overview" aria-label={businessName}>
+      <section
+        className="service-profile-overview"
+        aria-label={businessName}
+        data-has-photo={Boolean(presentation.heroImage)}
+      >
         <div className="service-profile-identity">
           <div className="service-profile-name">
             {presentation.logoImage ? (
@@ -210,27 +232,28 @@ export default function ProjectServiceProfile({
                 className="service-profile-logo"
               />
             ) : null}
-            <h1>{businessName}</h1>
+            <div>
+              {presentation.eyebrow ? (
+                <p className="service-profile-category">{presentation.eyebrow}</p>
+              ) : null}
+              <h1>{businessName}</h1>
+            </div>
           </div>
-          {presentation.heroTitle ? (
-            <p className="service-profile-specialty">{presentation.heroTitle}</p>
-          ) : null}
-          <p className="service-profile-location">
-            <MapPin aria-hidden="true" />
-            {presentation.locationLabel}
-          </p>
-          {presentation.serviceAreas.length ? (
-            <p className="service-profile-coverage">
-              Serving{" "}
-              {new Intl.ListFormat("en-US", { style: "long", type: "conjunction" }).format(
-                presentation.serviceAreas
-              )}
-              .
+          <div className="service-profile-location-block">
+            <p className="service-profile-location">
+              <MapPin aria-hidden="true" />
+              {presentation.locationLabel}
             </p>
-          ) : null}
-          {presentation.heroDescription ? (
-            <p className="service-profile-intro">{presentation.heroDescription}</p>
-          ) : null}
+            {presentation.serviceAreas.length ? (
+              <p className="service-profile-coverage">
+                Serving{" "}
+                {new Intl.ListFormat("en-US", { style: "long", type: "conjunction" }).format(
+                  presentation.serviceAreas
+                )}
+                .
+              </p>
+            ) : null}
+          </div>
           {isVerified ? (
             <p className="service-profile-verified">
               <BadgeCheck aria-hidden="true" />
@@ -247,7 +270,10 @@ export default function ProjectServiceProfile({
           >
             <button
               type="button"
-              onClick={() => setActiveGalleryIndex(heroGalleryIndex)}
+              onClick={() => {
+                trackProfileAction({ profileSlug, action: "gallery", surface: "profile_photo" });
+                setActiveGalleryIndex(heroGalleryIndex);
+              }}
               aria-label="View full photo"
             >
               <img src={presentation.heroImage} alt={presentation.heroImageAlt} loading="eager" />
@@ -256,50 +282,83 @@ export default function ProjectServiceProfile({
                 View photo
               </span>
             </button>
+            <figcaption>
+              {presentation.galleryDescription || `Photo shared by ${businessName}.`}
+            </figcaption>
           </figure>
         ) : null}
 
         <div className="service-profile-project" id="services">
+          {presentation.heroTitle ? (
+            <h2 className="service-profile-specialty">{presentation.heroTitle}</h2>
+          ) : null}
+          {presentation.heroDescription ? (
+            <p className="service-profile-intro">{presentation.heroDescription}</p>
+          ) : null}
           {presentation.services.length ? (
-            <fieldset>
-              <legend>What do you need?</legend>
-              <p className="service-profile-selection-help">Choose any that apply.</p>
-              <div className="service-profile-choices">
+            <div className="service-profile-services">
+              <h3>Services</h3>
+              <ul>
                 {presentation.services.map((service) => (
-                  <label key={service.title} className="service-profile-choice">
-                    <input
-                      type="checkbox"
-                      checked={selectedServices.includes(service.title)}
-                      onChange={() =>
-                        setSelectedServices((current) =>
-                          current.includes(service.title)
-                            ? current.filter((title) => title !== service.title)
-                            : [...current, service.title]
-                        )
-                      }
-                    />
-                    <span>
-                      <span>{service.title}</span>
-                      {service.description ? <small>{service.description}</small> : null}
-                    </span>
-                  </label>
+                  <li key={service.title}>{service.title}</li>
                 ))}
-              </div>
-            </fieldset>
+              </ul>
+            </div>
           ) : null}
           <div className="service-profile-request">
-            <p aria-live="polite" className="service-profile-selection">
-              {selectedServices.length ? selectedServices.join(" · ") : ""}
-            </p>
             <button
               type="button"
+              ref={requestActionRef}
               className="service-profile-primary"
               onClick={() => openProtectedContact("request", "project")}
             >
-              Start a Request
+              {presentation.primaryActionLabel || "Start a Request"}
               <ArrowRight aria-hidden="true" />
             </button>
+            {presentation.requestDescription ? (
+              <p className="service-profile-request-note">{presentation.requestDescription}</p>
+            ) : null}
           </div>
+          {presentation.services.length ? (
+            <details className="service-profile-service-picker">
+              <summary>
+                <span>
+                  {selectedServices.length
+                    ? `${selectedServices.length} services selected`
+                    : "Choose services for your request"}
+                </span>
+                <ChevronRight aria-hidden="true" />
+              </summary>
+              <fieldset>
+                <legend className="sr-only">Services for your request</legend>
+                <p className="service-profile-selection-help">Optional. Choose any that apply.</p>
+                <div className="service-profile-choices">
+                  {presentation.services.map((service) => (
+                    <label key={service.title} className="service-profile-choice">
+                      <input
+                        type="checkbox"
+                        checked={selectedServices.includes(service.title)}
+                        onChange={() =>
+                          setSelectedServices((current) =>
+                            current.includes(service.title)
+                              ? current.filter((title) => title !== service.title)
+                              : [...current, service.title]
+                          )
+                        }
+                      />
+                      <span>
+                        <span>{service.title}</span>
+                        {service.description ? <small>{service.description}</small> : null}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </details>
+          ) : null}
+          <p aria-live="polite" className="service-profile-selection sr-only">
+            {selectedServices.length ? selectedServices.join(" · ") : ""}
+          </p>
           {canCall || presentation.websiteUrl || presentation.directionsUrl ? (
             <div className="service-profile-links">
               {canCall ? (
@@ -519,13 +578,17 @@ export default function ProjectServiceProfile({
         <span>Connection Without Compromise</span>
       </footer>
 
-      <div className="service-profile-mobile-request">
+      <div
+        ref={mobileRequestRef}
+        className="service-profile-mobile-request"
+        hidden={primaryActionVisible}
+      >
         <button
           type="button"
           className="service-profile-primary"
           onClick={() => openProtectedContact("request", "mobile_bar")}
         >
-          Start a Request
+          {presentation.primaryActionLabel || "Start a Request"}
           <ArrowRight aria-hidden="true" />
         </button>
       </div>

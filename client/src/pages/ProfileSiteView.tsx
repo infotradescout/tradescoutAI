@@ -2243,7 +2243,10 @@ export default function ProfileSiteView() {
                 ? recommendationsDirectory
                 : []
             }
-            trustActions={renderProfileTrustActions("dark")}
+            trustActions={renderProfileTrustActions(
+              resolvedLocalServicePresentation.layout === "project-profile" ? "light" : "dark",
+              resolvedLocalServicePresentation.layout === "project-profile" ? "compact" : "default"
+            )}
             verificationStatus={business?.verificationStatus}
             verifiedBadge={business?.verifiedBadge === true}
             communityVerification={business?.communityVerification}

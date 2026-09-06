@@ -28,7 +28,8 @@ export const LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION: LocalServiceProfile
   layout: "project-profile",
   eyebrow: "Countertops + remodeling",
   heroTitle: "Countertop specialists",
-  heroDescription: "",
+  heroDescription:
+    "Countertops are our specialty. We also handle tile, drywall, painting, cabinets, and full remodels.",
   heroImage: LOUISIANA_STONE_SOLUTIONS_MEDIA.kitchen,
   heroImageAlt: "Countertop kitchen featured by Louisiana Stone Solutions",
   logoImage: LOUISIANA_STONE_SOLUTIONS_MEDIA.logo,
@@ -87,13 +88,13 @@ export const LOUISIANA_STONE_SOLUTIONS_PROFILE_PRESENTATION: LocalServiceProfile
   credentialLabel: "",
   credentials: [],
   requestTitle: "Start a Request",
-  requestDescription: "Include the project location, work needed, timing, and any photos or plans.",
+  requestDescription: "Louisiana Stone Solutions handles your project request directly.",
   // Exact color values are a presentation choice from the supplied white/black/yellow identity.
   brand: {
     primary: "#e7bd32",
     primaryDark: "#8a6900",
     surface: "#151515",
-    background: "#ffffff",
+    background: "#f7f6f2",
   },
 };
 
