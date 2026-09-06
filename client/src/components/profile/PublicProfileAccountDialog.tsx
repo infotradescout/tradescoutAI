@@ -24,6 +24,7 @@ import {
 type PublicProfileAccountDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAccountChange?: (account: ProfileAccountResponse) => void;
   profileSlug: string;
   profileName: string;
   tone?: "light" | "dark";
@@ -73,6 +74,7 @@ async function signIn(email: string, password: string): Promise<void> {
 export function PublicProfileAccountDialog({
   open,
   onOpenChange,
+  onAccountChange,
   profileSlug,
   profileName,
   tone = "light",
@@ -98,6 +100,10 @@ export function PublicProfileAccountDialog({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const isDark = tone === "dark";
+
+  useEffect(() => {
+    if (open && state) onAccountChange?.(state);
+  }, [open, state, onAccountChange]);
 
   useEffect(() => {
     if (!open) return;

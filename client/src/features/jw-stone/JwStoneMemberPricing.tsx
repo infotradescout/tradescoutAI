@@ -118,12 +118,17 @@ export function JwStoneMemberPricingProvider({
     retry: false,
     staleTime: 4 * 60 * 1000,
     gcTime: 0,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: "always",
   });
 
   const value = useMemo<JwStoneMemberPricingContextValue>(() => {
     const response = pricingQuery.data;
-    if (!normalizedViewerId || !response || response.viewerId !== normalizedViewerId) {
+    if (
+      !normalizedViewerId ||
+      pricingQuery.isError ||
+      !response ||
+      response.viewerId !== normalizedViewerId
+    ) {
       return EMPTY_CONTEXT;
     }
     const priceMap = new Map<string, VisibleJwStonePrice>(
@@ -140,7 +145,7 @@ export function JwStoneMemberPricingProvider({
       priceFor: (stoneName: string | null | undefined) =>
         priceMap.get(jwStonePriceKey(stoneName)) || null,
     });
-  }, [normalizedViewerId, pricingQuery.data]);
+  }, [normalizedViewerId, pricingQuery.data, pricingQuery.isError]);
 
   return (
     <JwStoneMemberPricingContext.Provider value={value}>

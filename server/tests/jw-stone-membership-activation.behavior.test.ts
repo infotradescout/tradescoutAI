@@ -11,8 +11,7 @@ import { hasActiveJwStoneBusinessMembership } from "../services/jwStonePricingAc
 
 describe("JW Stone membership approval against actual SQL", () => {
   let database: PGlite;
-  const access = () =>
-    hasActiveJwStoneBusinessMembership("member", database as never);
+  const access = () => hasActiveJwStoneBusinessMembership("member", database as never);
 
   beforeEach(async () => {
     database = new PGlite();
@@ -50,11 +49,14 @@ describe("JW Stone membership approval against actual SQL", () => {
     expect(account.rows[0]).toEqual({ verification_status: "pending" });
   });
 
-  it.each(["suspended", "revoked"])("preserves an explicitly %s pricing entitlement", async (status) => {
-    await database.exec("UPDATE user_profiles SET verification_status = 'approved'");
-    await database.query("UPDATE profile_account_entitlements SET status = $1", [status]);
-    expect(await access()).toBe(false);
-  });
+  it.each(["suspended", "revoked"])(
+    "preserves an explicitly %s pricing entitlement",
+    async (status) => {
+      await database.exec("UPDATE user_profiles SET verification_status = 'approved'");
+      await database.query("UPDATE profile_account_entitlements SET status = $1", [status]);
+      expect(await access()).toBe(false);
+    }
+  );
 
   it.each(["suspended", "closed"])("blocks a %s JW Stone membership", async (status) => {
     await database.exec("UPDATE user_profiles SET verification_status = 'approved'");
