@@ -20,6 +20,7 @@ import { evaluateProgressiveExposure } from "./lib/progressiveExposure";
 import TradeScoutBackground from "./components/TradeScoutBackground";
 import { Toaster } from "./components/ui/toaster";
 import { ShareCardHost } from "./components/share/ShareCardHost";
+import { resolveIssaBuildPublicPage, resolveIssaBuildCanonicalRedirect } from "@shared/issaBuildRoutes";
 
 // Only load essential components eagerly
 import SimpleMobileGestures from "./components/SimpleMobileGestures";
@@ -35,6 +36,7 @@ const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
+const IssaBuildSiteView = React.lazy(() => import("./pages/profile-sites/IssaBuildSiteView"));
 const PreferredSourcePrompt = React.lazy(() =>
   import("./components/PreferredSourcePrompt").then((module) => ({
     default: module.PreferredSourcePrompt,
@@ -50,7 +52,7 @@ const HoldIntroTutorial = React.lazy(() =>
     default: module.HoldIntroTutorial,
   }))
 );
-const SimpleSubtleHints = React.lazy(() => import("./components/onboarding/SimpleSubtleHints"));
+const SimpleSubtleHints = React.lazy(() => import("./components/SimpleSubtleHints"));
 const ProfileCompletionBanner = React.lazy(
   () => import("./components/onboarding/ProfileCompletionBanner")
 );
@@ -98,11 +100,17 @@ const AppLayout = memo(function AppLayout() {
       : undefined;
   // JW's public profile lives at /jw-stone and should follow standard profile flow.
   const isJwStoneProfileRoute = pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/");
+  const isIssaBuildProfileRoute = !customDomainProfileSlug && Boolean(
+    resolveIssaBuildPublicPage(pathOnly) || resolveIssaBuildCanonicalRedirect(
+      typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : location
+    )
+  );
   const isBidRockRoute = pathOnly === "/bidrock" || pathOnly.startsWith("/bidrock/");
   const isCustomDomainPlatformRoute = pathOnly === "/business-verification";
   const isCustomDomainProfileRoute =
     Boolean(customDomainProfileSlug) && !isCustomDomainPlatformRoute;
   const isPublicProfileRoute =
+    isIssaBuildProfileRoute ||
     isJwStoneProfileRoute ||
     isBidRockRoute ||
     ((/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
@@ -146,7 +154,7 @@ const AppLayout = memo(function AppLayout() {
       currentPath.startsWith("/profile-settings") &&
       window.location.search.includes("onboarding=1")
     ) {
-      entryRoute = "oauth";
+      entryRoute = "register";
     }
 
     const roles: string[] = (() => {
@@ -185,6 +193,7 @@ const AppLayout = memo(function AppLayout() {
     let activeDialog: Element | null = null;
 
     const resolveProfileSlug = (): string => {
+      if (isIssaBuildProfileRoute) return "issa-build";
       const metaSlug =
         document
           .querySelector<HTMLMetaElement>('meta[name="tradescout-business-slug"]')
@@ -240,7 +249,7 @@ const AppLayout = memo(function AppLayout() {
     return () => {
       observer.disconnect();
     };
-  }, [customDomainProfileSlug, isCustomDomainProfileRoute, isPublicProfileRoute, pathOnly]);
+  }, [customDomainProfileSlug, isCustomDomainProfileRoute, isPublicProfileRoute, isIssaBuildProfileRoute, pathOnly]);
 
   // Shadow-mode progressive exposure evaluation. Observe readiness only.
   useEffect(() => {
@@ -263,8 +272,8 @@ const AppLayout = memo(function AppLayout() {
       reasons: snapshot.reasons,
       accountAgeDays: snapshot.signals.accountAgeDays,
       meaningfulActivityCount: snapshot.signals.meaningfulActivityCount,
-      hasCompletedSetup: snapshot.signals.hasCompletedSetup,
-      hasVerifiedContact: snapshot.signals.hasVerifiedContact,
+      hasCompletedSetup: snapshot.hasCompletedSetup,
+      hasVerifiedContact: snapshot.hasVerifiedContact,
       path: location || window.location.pathname,
       ts: new Date().toISOString(),
     });
@@ -314,7 +323,11 @@ const AppLayout = memo(function AppLayout() {
       <div className={`${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         <main className={mainClassName}>
           <ErrorBoundary fallback={<PageLoader />}>
-            <AppRoutes
+            {isIssaBuildProfileRoute ? (
+              <Suspense fallback={<PageLoadingSpinner message="Loading…" />}>
+                <IssaBuildSiteView />
+              </Suspense>
+            ) : <AppRoutes
               isLiteScoutRoute={isLiteScoutRoute}
               isLandingRoute={isLandingRoute}
               isPublicCampaignRoute={isPublicCampaignRoute}
@@ -323,7 +336,7 @@ const AppLayout = memo(function AppLayout() {
               isBidRockRoute={isBidRockRoute}
               isStandaloneProfileRoute={isStandaloneProfileRoute}
               isCustomDomainProfileRoute={isCustomDomainProfileRoute}
-            />
+            />}
           </ErrorBoundary>
         </main>
       </div>
