@@ -162,7 +162,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "onyx",
         title: "Onyx",
         summary:
-          "Browse onyx slabs and named onyx materials from JW Stone's Pensacola, Florida material library. Review published photos, then ask JW Stone to confirm current pricing or availability for your project.",
+          "Country of origin: Iran. Explore Honey Onyx slab photos from JW Stone in Pensacola, Florida, and ask about the material for your project.",
         leadItemSlug: "honey-onyx",
         indexable: true,
         collectionKind: "offerings",

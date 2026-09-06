@@ -111,9 +111,7 @@ const PROFILE_HISTORY_BOUNDARY_KEY = "__tradeScoutProfileHistoryBoundary";
 const SteelHomePackagesProfile = lazy(
   () => import("@/pages/profile-sites/SteelHomePackagesProfile")
 );
-const PrecisionAerialProfile = lazy(
-  () => import("@/pages/profile-sites/PrecisionAerialProfile")
-);
+const PrecisionAerialProfile = lazy(() => import("@/pages/profile-sites/PrecisionAerialProfile"));
 const ProFabProfileTheme = lazy(() => import("@/pages/profile-sites/ProFabProfileTheme"));
 const JrsAutoGlassProfileTheme = lazy(
   () => import("@/pages/profile-sites/JrsAutoGlassProfileTheme")
@@ -127,9 +125,7 @@ const FinancialProfessionalProfileTheme = lazy(
 const LocalServiceProfileTheme = lazy(
   () => import("@/pages/profile-sites/LocalServiceProfileTheme")
 );
-const WholesalerProfileTheme = lazy(
-  () => import("@/pages/profile-sites/WholesalerProfileTheme")
-);
+const WholesalerProfileTheme = lazy(() => import("@/pages/profile-sites/WholesalerProfileTheme"));
 
 function SteelHomeProfileBoundary({ children }: { children: ReactNode }) {
   return (
@@ -957,15 +953,12 @@ export default function ProfileSiteView() {
     const manifestPath = buildPublicProfileAppManifestPath(data.profile.slug);
     const appIconPath = buildPublicProfileAppIconPath(data.profile.slug, 192);
     if (!manifestPath || !appIconPath) return;
-    const appTitle = sanitizePublicDiscoveryText(
-      data.business?.name || data.profile.displayName,
-      30
-    ) || "Public profile";
+    const appTitle =
+      sanitizePublicDiscoveryText(data.business?.name || data.profile.displayName, 30) ||
+      "Public profile";
     const configuredAccent =
       data.business?.brandColors?.accent || data.business?.brandColors?.primary || "";
-    const appThemeColor = /^#[0-9a-f]{6}$/i.test(configuredAccent)
-      ? configuredAccent
-      : "#f97316";
+    const appThemeColor = /^#[0-9a-f]{6}$/i.test(configuredAccent) ? configuredAccent : "#f97316";
 
     let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     const created = !manifestLink;
@@ -1330,12 +1323,14 @@ export default function ProfileSiteView() {
     contentBlocks,
   });
   const publicSocialBrandName = itemSocialPresentation.brandName;
-  const socialTitle = buildProfileSocialTitle({
-    brandName: publicSocialBrandName,
-    itemType: itemShareMeta?.itemType || (categoryShareMeta ? "category" : null),
-    itemName: itemSocialName || categoryShareMeta?.categoryName,
-    category: inventoryItemShareMeta?.category,
-  });
+  const socialTitle = inventoryItemShareMeta?.countryOfOrigin
+    ? inventoryItemShareMeta.title
+    : buildProfileSocialTitle({
+        brandName: publicSocialBrandName,
+        itemType: itemShareMeta?.itemType || (categoryShareMeta ? "category" : null),
+        itemName: itemSocialName || categoryShareMeta?.categoryName,
+        category: inventoryItemShareMeta?.category,
+      });
   const seoTitle = sanitizePublicDiscoveryText(
     itemShareMeta?.title || categoryShareMeta?.title || profileSeoTitle,
     240
@@ -2492,46 +2487,46 @@ export default function ProfileSiteView() {
         >
           <WholesalerProfileBoundary>
             <WholesalerProfileTheme
-            profileSlug={profile.slug}
-            displayName={displayName}
-            businessAddress={publicBusinessAddress}
-            headline={publicHeadline}
-            contentBlocks={contentBlocks}
-            categories={publicCategories}
-            serviceAreas={publicServiceAreas}
-            brandColors={business?.brandColors}
-            contactReason={profile.contactPolicy?.reason}
-            hasViewerSession={hasViewerSession}
-            isSuperAdminViewer={isSuperAdminViewer}
-            useExpressDirectConnect={useExpressDirectConnect}
-            allowExpressCall={canExpressCall}
-            profileShareDestination={profileShareDestination}
-            currentPageShareDestination={currentPageShareDestination}
-            currentPageShareTitle={
-              currentPageShareTitle === displayName
-                ? displayName
-                : `${currentPageShareTitle} | ${displayName}`
-            }
-            sharedInventoryCategorySlug={categoryShareMeta?.categorySlug || null}
-            platformBaseHref={platformBaseHref}
-            sharedGallerySlug={sharedGallerySlug}
-            tradeScoutReturnHref={tradeScoutReturnHref}
-            directConnectHref={directConnectHref}
-            preScoutCreateHref={preScoutCreateHref}
-            preScoutSignInHref={preScoutSignInHref}
-            recommendationsDirectory={recommendationsDirectory}
-            recommendationDirectorySummary={recommendationDirectorySummary}
-            trustActions={renderProfileTrustActions("light")}
-            featuredStoneSlugs={featuredStoneSlugs}
-            profileItems={
-              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-                <PublicProfileItems
-                  items={profileItems}
-                  profileSections={profileSections}
-                  platformBaseHref={platformBaseHref}
-                />
-              ) : null
-            }
+              profileSlug={profile.slug}
+              displayName={displayName}
+              businessAddress={publicBusinessAddress}
+              headline={publicHeadline}
+              contentBlocks={contentBlocks}
+              categories={publicCategories}
+              serviceAreas={publicServiceAreas}
+              brandColors={business?.brandColors}
+              contactReason={profile.contactPolicy?.reason}
+              hasViewerSession={hasViewerSession}
+              isSuperAdminViewer={isSuperAdminViewer}
+              useExpressDirectConnect={useExpressDirectConnect}
+              allowExpressCall={canExpressCall}
+              profileShareDestination={profileShareDestination}
+              currentPageShareDestination={currentPageShareDestination}
+              currentPageShareTitle={
+                currentPageShareTitle === displayName
+                  ? displayName
+                  : `${currentPageShareTitle} | ${displayName}`
+              }
+              sharedInventoryCategorySlug={categoryShareMeta?.categorySlug || null}
+              platformBaseHref={platformBaseHref}
+              sharedGallerySlug={sharedGallerySlug}
+              tradeScoutReturnHref={tradeScoutReturnHref}
+              directConnectHref={directConnectHref}
+              preScoutCreateHref={preScoutCreateHref}
+              preScoutSignInHref={preScoutSignInHref}
+              recommendationsDirectory={recommendationsDirectory}
+              recommendationDirectorySummary={recommendationDirectorySummary}
+              trustActions={renderProfileTrustActions("light")}
+              featuredStoneSlugs={featuredStoneSlugs}
+              profileItems={
+                hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                  <PublicProfileItems
+                    items={profileItems}
+                    profileSections={profileSections}
+                    platformBaseHref={platformBaseHref}
+                  />
+                ) : null
+              }
             />
           </WholesalerProfileBoundary>
         </div>

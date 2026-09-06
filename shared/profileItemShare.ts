@@ -15,6 +15,7 @@ type RawInventoryStone = {
   shareImageOrder?: unknown;
   publicSummary?: unknown;
   publicKind?: unknown;
+  countryOfOrigin?: unknown;
 };
 
 type RawInventoryCategory = {
@@ -33,6 +34,7 @@ export type ResolvedProfileInventoryItem = {
   shareImageIndex: number;
   publicSummary?: string;
   publicKind?: "offering";
+  countryOfOrigin?: string;
 };
 
 export type ProfileInventoryItemShareMetadata = {
@@ -50,6 +52,7 @@ export type ProfileInventoryItemShareMetadata = {
   canonical: string;
   hasPublicSummary?: true;
   publicKind?: "offering";
+  countryOfOrigin?: string;
 };
 
 function firstQueryValue(value: unknown): string {
@@ -75,12 +78,15 @@ function normalizePublicSummary(value: unknown): string | null {
 function publicDiscoveryFields(rawStone: RawInventoryStone): {
   publicSummary?: string;
   publicKind?: "offering";
+  countryOfOrigin?: string;
 } {
   const publicSummary = normalizePublicSummary(rawStone.publicSummary);
   const publicKind = firstQueryValue(rawStone.publicKind).toLowerCase();
+  const country = firstQueryValue(rawStone.countryOfOrigin);
   return {
     ...(publicSummary ? { publicSummary } : {}),
     ...(publicKind === "offering" ? { publicKind: "offering" as const } : {}),
+    ...(/^[A-Za-z][A-Za-z .'-]{1,79}$/.test(country) ? { countryOfOrigin: country } : {}),
   };
 }
 
@@ -322,7 +328,11 @@ export function createProfileInventoryItemShareMetadata(args: {
       category: item.category,
       imageIndex: item.imageIndex,
       shareImageIndex: item.shareImageIndex,
-      title: itemIsProfile ? `${item.name} | TradeScout` : `${item.name} at ${profileName}`,
+      title: item.countryOfOrigin
+        ? `${item.name} from ${item.countryOfOrigin} | ${profileName}`
+        : itemIsProfile
+          ? `${item.name} | TradeScout`
+          : `${item.name} at ${profileName}`,
       description: capDescription(
         item.publicSummary ||
           (itemIsProfile
@@ -340,6 +350,7 @@ export function createProfileInventoryItemShareMetadata(args: {
       canonical,
       ...(item.publicSummary ? { hasPublicSummary: true as const } : {}),
       ...(item.publicKind === "offering" ? { publicKind: "offering" as const } : {}),
+      ...(item.countryOfOrigin ? { countryOfOrigin: item.countryOfOrigin } : {}),
     };
   } catch {
     return null;

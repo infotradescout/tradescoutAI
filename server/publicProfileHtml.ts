@@ -296,11 +296,7 @@ export async function buildPublicProfileLlmsText({
     lines.push("", "## Service areas", ...serviceAreas.map((value) => `- ${value}`));
   }
   if (publicChildPages.length > 0) {
-    lines.push(
-      "",
-      "## Published profile pages",
-      ...publicChildPages.map((value) => `- ${value}`)
-    );
+    lines.push("", "## Published profile pages", ...publicChildPages.map((value) => `- ${value}`));
   }
 
   return `${lines.join("\n")}\n`;
@@ -608,6 +604,9 @@ function withProfileItemJsonLd(
           description: cleanPublicProfileText(itemShare.description, 500),
           image: [itemShare.imageUrl],
           category: cleanPublicProfileText(itemShare.category, 120) || undefined,
+          ...(itemShare.countryOfOrigin
+            ? { countryOfOrigin: { "@type": "Country", name: itemShare.countryOfOrigin } }
+            : {}),
           url: itemShare.canonical,
           ...(isBusinessProfile
             ? {
@@ -878,12 +877,14 @@ function buildMeta(
   const publicBrandName = presentation.brandName;
   const socialTitle =
     cleanPublicProfileText(pageMetadata?.socialTitle, 240) ||
-    buildProfileSocialTitle({
-      brandName: publicBrandName,
-      itemType: itemShare?.itemType || (categoryShare ? "category" : null),
-      itemName: itemName || categoryShare?.categoryName,
-      category: itemShare?.itemType === "inventory" ? itemShare.category : null,
-    });
+    (itemShare?.itemType === "inventory" && itemShare.countryOfOrigin
+      ? itemShare.title
+      : buildProfileSocialTitle({
+          brandName: publicBrandName,
+          itemType: itemShare?.itemType || (categoryShare ? "category" : null),
+          itemName: itemName || categoryShare?.categoryName,
+          category: itemShare?.itemType === "inventory" ? itemShare.category : null,
+        }));
   const fallbackDescription = cleanPublicProfileText(
     itemShare?.description ||
       categoryShare?.description ||
@@ -1391,9 +1392,7 @@ export async function buildPublicProfileHtml({
         itemSlug: item.slug,
         contentBlocks: data.profile.contentBlocks,
       });
-      return url
-        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.title)}</a></li>`
-        : "";
+      return url ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.title)}</a></li>` : "";
     })
     .filter(Boolean)
     .join("");
@@ -1416,6 +1415,7 @@ export async function buildPublicProfileHtml({
       }
       <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(itemShare.imageAlt, 240))}" />
       <p>${escapeHtml(cleanPublicProfileText(itemShare.description, 500))}</p>
+      ${itemShare.itemType === "inventory" && itemShare.countryOfOrigin ? `<p>Country of origin: ${escapeHtml(itemShare.countryOfOrigin)}</p>` : ""}
     </section>`
     : "";
   const categorySummary = pageCategoryShare

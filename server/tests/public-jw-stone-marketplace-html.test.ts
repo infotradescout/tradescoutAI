@@ -30,6 +30,27 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("JW Stone marketplace public HTML", () => {
+  it.each([false, true])(
+    "shows Iranian origin in the onyx product and collection on custom domain=%s",
+    (marketplaceDomainSurface) => {
+      const options = {
+        templateHtml,
+        marketplaceDomainSurface,
+        origin: marketplaceDomainSurface
+          ? "https://jwstonelogistics.com"
+          : "https://www.thetradescout.com",
+      };
+      const product = buildPublicJwStoneMarketplaceHtml({ ...options, stoneSlug: "honey-onyx" });
+      expect(product).toContain("Country of origin: Iran");
+      expect(product).toContain("Honey Onyx from Iran");
+      expect(product).toContain('"countryOfOrigin":{"@type":"Country","name":"Iran"}');
+      const collection = buildPublicJwStoneMarketplaceHtml({ ...options, materialSlug: "onyx" });
+      expect(collection).toContain("Country of origin: Iran");
+      const unrelated = buildPublicJwStoneMarketplaceHtml({ ...options, stoneSlug: "black-dunes" });
+      expect(unrelated).not.toContain('"countryOfOrigin"');
+      expect(unrelated).not.toContain("Country of origin: Iran");
+    }
+  );
   it("uses one stable canonical URL and the real JW Stone share image", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 
@@ -59,7 +80,7 @@ describe("JW Stone marketplace public HTML", () => {
       "@type": "CollectionPage",
       name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
       description:
-        "Natural stone slabs in Pensacola, Florida: browse named granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt materials from JW Stone Logistics.",
+        "Explore Iranian onyx alongside granite, marble, quartzite and engineered quartz from JW Stone Logistics in Pensacola, Florida.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
       mainEntity: {
@@ -97,7 +118,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
     expect(html).toContain('data-seo-jw-stone-company="true"');
     expect(html).toContain("Material Library");
-    expect(html).toContain("Natural stone slabs in Pensacola, Florida");
+    expect(html).toContain("Explore Iranian onyx");
     expect(html).toContain("fabricators, builders, architects, designers, and homeowners");
     expect(html).toContain("not a claim of confirmed physical stock");
     expect(html).not.toContain("Browse current selections by photo");
@@ -200,7 +221,9 @@ describe("JW Stone marketplace public HTML", () => {
 
     expect(html).toContain("Ask JW Stone to confirm current pricing");
     expect(html).toContain('property="og:image:type" content="image/webp"');
-    expect(JSON.stringify(jsonLd)).not.toMatch(/price|priceRange|offers|availability|telephone|email/i);
+    expect(JSON.stringify(jsonLd)).not.toMatch(
+      /price|priceRange|offers|availability|telephone|email/i
+    );
   });
 
   it("links material collections to named stone pages with ItemList schema", () => {

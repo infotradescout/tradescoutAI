@@ -32,7 +32,7 @@ import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
 const JW_STONE_TITLE = "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
 const JW_STONE_DESCRIPTION =
-  "Browse quarry-direct granite, marble, quartzite, onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
+  "Browse granite, marble, quartzite, Iranian onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 const JW_STONE_KNOWS_ABOUT = [

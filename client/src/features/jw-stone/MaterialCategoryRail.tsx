@@ -215,6 +215,15 @@ export function MaterialCategoryRail({
                     <span className="mt-0.5 block text-sm text-white/85">
                       {item.count} {item.count === 1 ? "selection" : "selections"}
                     </span>
+                    {item.stones.length > 0 &&
+                    item.stones[0].origin &&
+                    item.stones.every(
+                      (stone) => stone.origin?.country === item.stones[0].origin?.country
+                    ) ? (
+                      <span className="mt-1 block text-xs text-white/90">
+                        Country of origin: {item.stones[0].origin.country}
+                      </span>
+                    ) : null}
                   </span>
                 </span>
               </button>

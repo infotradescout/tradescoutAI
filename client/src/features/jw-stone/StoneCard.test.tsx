@@ -40,6 +40,22 @@ describe("StoneCard", () => {
     container.remove();
   });
 
+  it("shows the confirmed country on the Honey Onyx card", () => {
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "honey-onyx")!;
+    act(() =>
+      root.render(
+        <StoneCard
+          stone={stone}
+          saved={false}
+          onToggleSaved={vi.fn()}
+          onOpen={vi.fn()}
+          onAsk={vi.fn()}
+        />
+      )
+    );
+    expect(container.textContent).toContain("Country of origin: Iran");
+  });
+
   it("keeps stone photography in a fixed presentation frame with premium card controls", () => {
     const stone =
       JW_STONE_CATALOG.find((entry) => entry.id === "blue-dunes") ||

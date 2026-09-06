@@ -258,6 +258,10 @@ export function StoneCard({
           </p>
         ) : null}
 
+        {stone.origin ? (
+          <p className={`mt-2 text-xs ${jw.muted}`}>Country of origin: {stone.origin.country}</p>
+        ) : null}
+
         <JwStoneMemberPriceDisplay
           stoneName={stone.displayName}
           slabDimensions={stone.slabDimensions}
