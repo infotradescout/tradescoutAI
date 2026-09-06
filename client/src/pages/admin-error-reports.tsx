@@ -23,12 +23,7 @@ import {
 } from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -38,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ErrorReport } from "@shared/schema";
 
 type ErrorReportPatch = {
@@ -87,7 +83,8 @@ function safePathname(rawUrl: unknown): string | null {
   const raw = String(rawUrl || "").trim();
   if (!raw) return null;
   try {
-    const base = typeof window !== "undefined" ? window.location.origin : "https://thetradescout.com";
+    const base =
+      typeof window !== "undefined" ? window.location.origin : "https://thetradescout.com";
     const url = new URL(raw, base);
     return `${url.pathname}${url.search}`;
   } catch {
@@ -127,7 +124,8 @@ function TypeIcon({ type }: { type: string }) {
 function screenshotFrom(attachments: unknown): ScreenshotAttachment | null {
   if (!Array.isArray(attachments)) return null;
   const screenshot = attachments.find(
-    (entry) => entry && typeof entry === "object" && (entry as ScreenshotAttachment).type === "screenshot"
+    (entry) =>
+      entry && typeof entry === "object" && (entry as ScreenshotAttachment).type === "screenshot"
   ) as ScreenshotAttachment | undefined;
   return screenshot?.data ? screenshot : null;
 }
@@ -179,7 +177,7 @@ export default function AdminErrorReports() {
     onError: (error: unknown) => {
       toast({
         title: "Error report was not updated",
-        description: error instanceof Error ? error.message : "Review the change and try again.",
+        description: formatUserFacingErrorMessage(error, "Review the change and try again."),
         variant: "destructive",
       });
     },
@@ -195,7 +193,8 @@ export default function AdminErrorReports() {
           return true;
         })
         .sort((a, b) => {
-          const statusDifference = statusRank(safeStatus(a.status)) - statusRank(safeStatus(b.status));
+          const statusDifference =
+            statusRank(safeStatus(a.status)) - statusRank(safeStatus(b.status));
           if (statusDifference !== 0) return statusDifference;
           const priorityDifference =
             priorityRank(safePriority(a.priority)) - priorityRank(safePriority(b.priority));
@@ -273,7 +272,9 @@ export default function AdminErrorReports() {
             disabled={reportsQuery.isFetching}
             className="border-white/12 bg-white/[0.025] text-white/65 hover:bg-white/[0.06] hover:text-white"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${reportsQuery.isFetching ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${reportsQuery.isFetching ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         }

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { resolveProfilePublicMediaObjectKey } from "@shared/profilePublicMedia";
 
@@ -161,17 +162,64 @@ describe("JR's Auto Glass public profile contract", () => {
     const publicRoute = read("server/routes/profiles.ts");
     const expressRoute = read("server/routes/tradepartner-express.ts");
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    const route = read("server/routes/direct-connect.ts");
+    const route = [
+      read("server/routes/direct-connect.ts"),
+      read("server/routes/direct-connect/operations.ts"),
+    ].join("\n");
 
-    expect(profileView).toContain(
-      "const jrsDirectConnectTarget = business?.directConnectOwnerUserId"
+    // Execute the existing URL construction. The composer resolves a business
+    // profile slug; a bare owner ID cannot identify which business receives it.
+    const syntax = ts.createSourceFile(
+      "ProfileSiteView.tsx",
+      profileView,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX
     );
-    expect(profileView).toContain(
-      "target=${encodeURIComponent(business.directConnectOwnerUserId)}"
+    const names = ["jrsRequestDescription", "jrsDirectConnectTarget", "directConnectPath"];
+    const declarations = new Map<string, string>();
+    function visit(node: ts.Node) {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        names.includes(node.name.text) &&
+        node.initializer
+      ) {
+        expect(declarations.has(node.name.text)).toBe(false);
+        declarations.set(
+          node.name.text,
+          `const ${node.name.text} = ${node.initializer.getText(syntax)};`
+        );
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(syntax);
+    expect(declarations.size).toBe(names.length);
+    const compiled = ts.transpileModule(names.map((name) => declarations.get(name)).join("\n"), {
+      compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const makePath = new Function(
+      "profile",
+      "displayName",
+      `${compiled}; return directConnectPath;`
     );
-    expect(profileView).toContain("Vehicle year, make, model, and VIN (if available)");
-    expect(profileView).toContain("Camera or sensors near the glass");
-    expect(profileView).toContain("Insurance claim or self-pay");
+    const destination = new URL(
+      makePath({ slug: "jrs-auto-glass" }, "JR's Auto Glass"),
+      "https://tradescout.test"
+    );
+    expect(destination.pathname).toBe("/direct-connect");
+    expect(destination.searchParams.get("profile")).toBe("jrs-auto-glass");
+    expect(destination.searchParams.has("target")).toBe(false);
+    expect(destination.searchParams.get("targetName")).toBe("JR's Auto Glass");
+    expect(destination.searchParams.get("title")).toBe("Auto glass request");
+    expect(destination.searchParams.get("intent")).toBe("vehicle_service");
+    for (const detail of [
+      "Vehicle year, make, model, and VIN (if available)",
+      "Camera or sensors near the glass",
+      "Insurance claim or self-pay",
+    ]) {
+      expect(destination.searchParams.get("description")).toContain(detail);
+    }
     expect(composer).toContain("const targetProfileSlug = prefillContextId.trim()");
     expect(composer).toContain("payload.targetProfileSlug = targetProfileSlug");
     expect(route).toContain("targetProfileSlug:");

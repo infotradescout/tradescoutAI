@@ -293,7 +293,10 @@ type DirectConnectDraftSnapshot = {
   returnPath: string;
   ownerUserId?: string;
   authHandoff?: boolean;
+  profileRecovery?: boolean;
   entrySignature?: string;
+  countyFips?: string;
+  stateCode?: string;
   title: string;
   description: string;
   budgetMin: string;
@@ -1028,6 +1031,7 @@ type DirectConnectInboxItem = {
     responderUserId?: string | null;
     workerId?: string | null;
     contactPreference?: "platform_message" | "call" | null;
+    submissionContactAvailable?: boolean;
   };
   request: {
     id: string;
@@ -1436,7 +1440,7 @@ function RequestAttachmentStrip({
   );
 }
 
-function DirectConnectRequestComposer({
+export function DirectConnectRequestComposer({
   entryLocation,
   defaultCountyFips,
   defaultStateCode,
@@ -1513,6 +1517,13 @@ function DirectConnectRequestComposer({
     prefillContextType ||
     prefillContextId
   );
+  const unresolvedOwnerTarget = Boolean(
+    prefillTargetUserId && !prefillTargetProviderId && prefillContextType !== "profile"
+  );
+  const draftCountyFips = String(defaultCountyFips || user?.countyFips || "").trim();
+  const draftStateCode = String(defaultStateCode || user?.stateCode || "")
+    .trim()
+    .toUpperCase();
   const [requestType, setRequestType] = useState<
     | "service_request"
     | "business_request"
@@ -1532,7 +1543,7 @@ function DirectConnectRequestComposer({
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
   const [showDispatchSheet, setShowDispatchSheet] = useState(false);
   const [dispatchMode, setDispatchMode] = useState<DispatchMode>(() =>
-    prefillTargetProviderId ? "direct_pick" : "top_count"
+    prefillTargetProviderId || unresolvedOwnerTarget ? "direct_pick" : "top_count"
   );
   const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(3);
   const [directorySearch, setDirectorySearch] = useState(
@@ -1541,9 +1552,7 @@ function DirectConnectRequestComposer({
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>(() =>
     prefillTargetProviderId ? [prefillTargetProviderId] : []
   );
-  const [selectedHomeId, setSelectedHomeId] = useState<string>(
-    () => prefillHomeId?.trim() || ""
-  );
+  const [selectedHomeId, setSelectedHomeId] = useState<string>(() => prefillHomeId?.trim() || "");
   const [assetComponentType, setAssetComponentType] = useState<
     | "roof"
     | "hvac"
@@ -1576,6 +1585,7 @@ function DirectConnectRequestComposer({
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
+  const draftRestoredRef = useRef(false);
   const draftSubmittedRef = useRef(false);
   const latestAuthenticatedDraftSaveRef = useRef<() => void>(() => undefined);
   const homeRecordPromptViewedRef = useRef(false);
@@ -1619,6 +1629,10 @@ function DirectConnectRequestComposer({
 
   const currentEntrySignature = () => {
     const entryIdentity = {
+      countyFips: String(defaultCountyFips || "").trim(),
+      stateCode: String(defaultStateCode || "")
+        .trim()
+        .toUpperCase(),
       intent: getDirectConnectIntent(entryLocation || location || "/direct-connect") || "",
       targetUserId: String(prefillTargetUserId || "").trim(),
       targetProviderId: String(prefillTargetProviderId || "").trim(),
@@ -1645,7 +1659,11 @@ function DirectConnectRequestComposer({
     getDirectConnectComposerDraftSessionKey(
       user?.id ? String(user.id) : null,
       entryLocation || location || "/direct-connect",
-      currentEntrySignature()
+      JSON.stringify({
+        countyFips: draftCountyFips,
+        stateCode: draftStateCode,
+        entry: currentEntrySignature(),
+      })
     );
 
   const clearDirectConnectDraft = () => {
@@ -1711,25 +1729,23 @@ function DirectConnectRequestComposer({
     if (!returnPathMatches) return;
     const authenticatedUserId = String(user?.id || "").trim();
     const draftOwnerUserId = String(parsed.ownerUserId || "").trim();
-    const accountMismatch = Boolean(
-      authenticatedUserId &&
-      ((draftOwnerUserId && draftOwnerUserId !== authenticatedUserId) ||
-        (!draftOwnerUserId && parsed.authHandoff !== true))
-    );
+    const accountMismatch = draftOwnerUserId
+      ? draftOwnerUserId !== authenticatedUserId
+      : Boolean(authenticatedUserId && parsed.authHandoff !== true);
     const entrySignature = currentEntrySignature();
-    const entryMismatch = Boolean(
-      entrySignature && String(parsed.entrySignature || "") !== entrySignature
-    );
-    if (accountMismatch || entryMismatch) {
-      clearDirectConnectDraft();
-      return;
-    }
+    const entryMismatch = String(parsed.entrySignature || "") !== entrySignature;
+    const countyMismatch =
+      Boolean(draftOwnerUserId) &&
+      parsed.profileRecovery !== true &&
+      (parsed.countyFips !== draftCountyFips || parsed.stateCode !== draftStateCode);
+    if (accountMismatch || entryMismatch || countyMismatch) return;
     if (Date.now() - parsed.savedAt > DIRECT_CONNECT_DRAFT_TTL_MS) {
       clearDirectConnectDraft();
       return;
     }
 
     const parsedRequestType = parsed.requestType || "service_request";
+    draftRestoredRef.current = true;
     const parsedAttachmentKeys = (parsed.attachmentKeys || []).filter(
       (item) => typeof item === "string" && item.trim().length > 0
     );
@@ -1754,9 +1770,9 @@ function DirectConnectRequestComposer({
     setShowOptional(
       Boolean(parsed.showOptional || prefillBudgetMin?.trim() || prefillBudgetMax?.trim())
     );
-    setSelectedContractorIds(
-      prefillTargetProviderId?.trim() ? [prefillTargetProviderId.trim()] : parsedProviderIds
-    );
+    setSelectedContractorIds(parsedProviderIds);
+    if (parsedProviderIds.length) setDispatchMode("direct_pick");
+    hasAppliedIntentDefaultsRef.current = true;
     if (typeof parsed.selectedHomeId === "string") setSelectedHomeId(parsed.selectedHomeId.trim());
     if (
       parsed.assetComponentType === "roof" ||
@@ -1798,12 +1814,44 @@ function DirectConnectRequestComposer({
         ),
       });
     }
-    if (shouldConsumeDirectConnectDraftAfterHydration(parsed.authHandoff)) {
-      clearDirectConnectDraft();
+    const authenticatedDraftKey = currentAuthenticatedDraftKey();
+    if (
+      (parsed.authHandoff || parsed.profileRecovery) &&
+      authenticatedDraftKey &&
+      authenticatedUserId
+    ) {
+      try {
+        // Claim the guest handoff before consuming it, preserving a recoverable
+        // copy even if the page closes before debounced autosave runs.
+        window.sessionStorage.setItem(
+          authenticatedDraftKey,
+          JSON.stringify({
+            ...parsed,
+            ownerUserId: authenticatedUserId,
+            authHandoff: false,
+            profileRecovery: false,
+            countyFips: draftCountyFips,
+            stateCode: draftStateCode,
+          })
+        );
+        if (
+          shouldConsumeDirectConnectDraftAfterHydration(
+            parsed.authHandoff || parsed.profileRecovery,
+            true
+          )
+        ) {
+          window.sessionStorage.removeItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY);
+          window.localStorage.removeItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY);
+        }
+      } catch {
+        // Keep the guest copy if the authenticated copy could not be saved.
+      }
     }
   };
 
-  const persistDirectConnectDraft = (payload: { selectedProviderIds?: string[] } = {}) => {
+  const persistDirectConnectDraft = (
+    payload: { selectedProviderIds?: string[]; profileRecovery?: boolean } = {}
+  ) => {
     if (typeof window === "undefined") return;
 
     const draft: DirectConnectDraftSnapshot = {
@@ -1811,7 +1859,10 @@ function DirectConnectRequestComposer({
       returnPath: currentReturnPath(),
       ownerUserId: user?.id ? String(user.id) : undefined,
       authHandoff: !user?.id,
+      profileRecovery: payload.profileRecovery === true,
       entrySignature: currentEntrySignature() || undefined,
+      countyFips: draftCountyFips,
+      stateCode: draftStateCode,
       requestType,
       title: title.trim(),
       description: description.trim(),
@@ -1850,6 +1901,11 @@ function DirectConnectRequestComposer({
     const authenticatedDraftKey = currentAuthenticatedDraftKey();
     if (authenticatedDraftKey) {
       window.sessionStorage.setItem(authenticatedDraftKey, serialized);
+      if (payload.profileRecovery) {
+        // The same account may fill a previously missing county during recovery.
+        // Keep the handoff reachable until its new county-scoped copy is saved.
+        window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
+      }
       return;
     }
     window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
@@ -2173,7 +2229,7 @@ function DirectConnectRequestComposer({
   );
   latestAuthenticatedDraftSaveRef.current = () => {
     if (!draftInitializedRef.current || !user?.id || draftSubmittedRef.current) return;
-    if (hasMeaningfulAuthenticatedDraft) {
+    if (hasMeaningfulAuthenticatedDraft || requestStartedRef.current || draftRestoredRef.current) {
       persistDirectConnectDraft();
     } else {
       clearDirectConnectDraft();
@@ -2182,12 +2238,14 @@ function DirectConnectRequestComposer({
 
   useEffect(() => {
     if (!showDispatchSheet) return;
-    setSelectedContractorIds(
-      resolveDirectConnectDispatchSelection({
-        dispatchMode,
-        topCountIds,
-        prefillTargetProviderId,
-      })
+    setSelectedContractorIds((current) =>
+      dispatchMode === "direct_pick"
+        ? current
+        : resolveDirectConnectDispatchSelection({
+            dispatchMode,
+            topCountIds,
+            prefillTargetProviderId,
+          })
     );
   }, [showDispatchSheet, dispatchMode, dispatchSelectionSeedKey]);
 
@@ -2360,9 +2418,9 @@ function DirectConnectRequestComposer({
       if (dispatch?.homeId?.trim()) payload.homeId = dispatch.homeId.trim();
       const hasActiveHomePacketHandoff = Boolean(
         homePacketHandoff &&
-          prefillHomeId &&
-          selectedHomeId.trim() === prefillHomeId &&
-          homeContextIntent !== "skip_for_now"
+        prefillHomeId &&
+        selectedHomeId.trim() === prefillHomeId &&
+        homeContextIntent !== "skip_for_now"
       );
       if (hasActiveHomePacketHandoff && homePacketHandoff) {
         payload.homePacketId = homePacketHandoff.packetId;
@@ -2527,10 +2585,25 @@ function DirectConnectRequestComposer({
         return;
       }
 
-      const isVerificationGate =
-        error?.status === 428 ||
-        String(error?.code || "").toUpperCase() === "VERIFICATION_REQUIRED";
+      const recoveryCode = String(error?.code || "").toUpperCase();
+      if (recoveryCode === "PROFILE_BASICS_REQUIRED") {
+        persistDirectConnectDraft({
+          selectedProviderIds: variables.targetProviderIds || selectedContractorIds,
+          profileRecovery: true,
+        });
+        toast({
+          title: "Complete your contact details",
+          description:
+            "Add your name, phone, and home county, then return to send your saved request.",
+        });
+        navigate(`/profile-settings?next=${encodeURIComponent(currentReturnPath())}`);
+        return;
+      }
+      const isVerificationGate = recoveryCode === "VERIFICATION_REQUIRED";
       if (isVerificationGate) {
+        persistDirectConnectDraft({
+          selectedProviderIds: variables.targetProviderIds || selectedContractorIds,
+        });
         trackFrictionEvent("direct_connect_permission_or_role_blocked", {
           source: currentReturnPath(),
           section: "submit",
@@ -2545,7 +2618,7 @@ function DirectConnectRequestComposer({
           ),
           variant: "destructive",
         });
-        navigate("/verification");
+        navigate(`/verification?next=${encodeURIComponent(currentReturnPath())}`);
         return;
       }
 
@@ -2677,7 +2750,8 @@ function DirectConnectRequestComposer({
       );
       toast({
         title: "Create your free account to share this request",
-        description: "Your contact information stays private until you approve a contact request.",
+        description:
+          "Your draft is saved. Sending it shares your name and phone with the receiving business.",
       });
       const next = encodeURIComponent(currentReturnPath());
       navigate(`/pre-scout-setup?mode=signin&next=${next}`);
@@ -2737,6 +2811,13 @@ function DirectConnectRequestComposer({
       },
     });
     const targetProviderIds = Array.from(new Set(selectedContractorIds));
+    if (targetProviderIds.length === 0) {
+      toast({
+        title: "Choose a business",
+        description: "Select who should receive your request before sending.",
+      });
+      return;
+    }
     const userState = user?.id ? "authenticated" : "anonymous";
     if (homeContextIntent === "link_existing" || homeContextIntent === "update_from_request") {
       trackDirectConnectHomeRecordLinkSelected({
@@ -2773,6 +2854,7 @@ function DirectConnectRequestComposer({
   };
 
   const handleSkipAndAutoRoute = () => {
+    if (unresolvedOwnerTarget) return;
     trackRepeatedFrictionSignal({
       key: "direct-connect-submit-auto-route",
       type: "direct_connect_repeated_submit_attempt",
@@ -2843,16 +2925,20 @@ function DirectConnectRequestComposer({
         </p>
         <h1 className="max-w-3xl text-[2rem] font-black leading-[1.04] tracking-[-0.03em] text-[color:var(--text-primary)] md:text-5xl">
           {describeStep === 0
-            ? hasEntryContext
-              ? `Direct Connect with ${prefillTargetLabel}`
-              : "What do you need?"
+            ? unresolvedOwnerTarget
+              ? "Choose a business for this request"
+              : hasEntryContext
+                ? `Direct Connect with ${prefillTargetLabel}`
+                : "What do you need?"
             : "Review before anything is shared"}
         </h1>
         <p className="max-w-2xl text-[0.95rem] leading-6 text-[color:var(--text-secondary)] md:text-base">
           {describeStep === 0
-            ? hasEntryContext
-              ? `${prefillTargetLabel} is already attached. Add what matters for this request, then choose the next step.`
-              : "Describe the result, product, service, opportunity, or support you are looking for. You decide who sees it."
+            ? unresolvedOwnerTarget
+              ? "This older link does not identify a business. Review your request, then choose who receives it."
+              : hasEntryContext
+                ? `${prefillTargetLabel} is already attached. Add what matters for this request, then choose the next step.`
+                : "Describe the result, product, service, opportunity, or support you are looking for. You decide who sees it."
             : "Check the details, add anything useful, and choose who receives it. Nothing is sent until you confirm."}
         </p>
       </header>
@@ -3596,6 +3682,15 @@ function DirectConnectRequestComposer({
             </SheetHeader>
 
             <div className="mt-4 space-y-4">
+              {unresolvedOwnerTarget && (
+                <p
+                  role="status"
+                  className="rounded-lg border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-100"
+                >
+                  This older link does not identify a business. Choose the business you want to
+                  receive this request.
+                </p>
+              )}
               <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
                 <p className="text-xs font-medium text-[color:var(--text-primary)]">
                   Request send mode
@@ -3689,8 +3784,7 @@ function DirectConnectRequestComposer({
 
                 {!isDirectoryLoading && rankedCandidates.length === 0 && (
                   <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                    No local companies found right now. You can still send this request with none
-                    selected.
+                    No businesses found. Try a company name or a different search.
                   </div>
                 )}
 
@@ -3762,7 +3856,7 @@ function DirectConnectRequestComposer({
                 <p className="text-xs text-[color:var(--text-secondary)]">
                   {selectedContractorCount > 0
                     ? `${selectedContractorCount} compan${selectedContractorCount === 1 ? "y" : "ies"} selected.`
-                    : "No companies selected yet. You can still continue, and direct contact stays locked until you approve."}
+                    : "Choose a business to receive your request, name, and phone."}
                 </p>
               </div>
 
@@ -3783,7 +3877,7 @@ function DirectConnectRequestComposer({
                     type="button"
                     variant="outline"
                     onClick={handleSkipAndAutoRoute}
-                    disabled={createMutation.isPending}
+                    disabled={createMutation.isPending || unresolvedOwnerTarget}
                     className="border-[color:var(--border-subtle)] text-xs"
                   >
                     {createMutation.isPending ? "Sending..." : "Continue without selection"}
@@ -3791,7 +3885,7 @@ function DirectConnectRequestComposer({
                   <Button
                     type="button"
                     onClick={handleSendWithSelection}
-                    disabled={createMutation.isPending}
+                    disabled={createMutation.isPending || selectedContractorCount === 0}
                     className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
                     {createMutation.isPending ? "Sending..." : "Send with my selection"}
@@ -3809,8 +3903,9 @@ function DirectConnectRequestComposer({
 function DirectConnectGiveawayDisclosure() {
   return (
     <p className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-[11px] leading-relaxed text-[color:var(--text-secondary)]">
-      By submitting this request, you acknowledge and agree to the TradeScout Direct Connect
-      Giveaway{" "}
+      Sending this request shares your name and phone with the businesses receiving it so they can
+      respond. By submitting this request, you acknowledge and agree to the TradeScout Direct
+      Connect Giveaway{" "}
       <Link href="/giveaway-rules" className="text-[color:var(--theme-accent-primary)] underline">
         Official Rules
       </Link>{" "}
@@ -4604,6 +4699,7 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
                           assignmentId={assignment.id}
                           assignmentStatus={status}
                           contactPreference={assignment.contactPreference}
+                          submissionContactAvailable={assignment.submissionContactAvailable}
                         />
 
                         <Button
@@ -6516,7 +6612,7 @@ export default function DirectConnectShell() {
     case "post":
       centerContent = (
         <DirectConnectRequestComposer
-          key={`direct-connect-composer:${user?.id || "guest"}:${composerEntryLocation}`}
+          key={`direct-connect-composer:${user?.id || "guest"}:${user?.countyFips || ""}:${user?.stateCode || ""}:${composerEntryLocation}`}
           entryLocation={composerEntryLocation}
           defaultCountyFips={defaultCountyFips}
           defaultStateCode={defaultStateCode}

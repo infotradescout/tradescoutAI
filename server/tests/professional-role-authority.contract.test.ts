@@ -213,7 +213,7 @@ describe("professional self-assignment authority", () => {
     expect(mergeAuthority).not.toContain("authClaims");
     expect(mergeAuthority).not.toContain("claimsRolesRaw");
     expect(authUser).not.toContain("role: sessionAny.impersonatingRole");
-    expect(authUser).toContain("originalRole: baseUser?.role");
+    expect(authUser).toContain("originalRole: identityContext.principalUser?.role");
   });
 
   it("ignores forged claim authority while filtering stale professional roles", () => {

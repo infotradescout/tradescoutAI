@@ -32,6 +32,7 @@ import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { isReservedSignupIdentityEmail } from "../utils/authorityPolicy";
 import { ensureSuperAdminConnectionForUser } from "../utils/superAdminConnection";
 import { redactContactDetails } from "../utils/workRequestShare";
+import { buildDirectConnectSubmissionContact } from "./direct-connect/authority";
 import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import { resolveJwStonePublicRequestName } from "@shared/jwStonePresentation";
@@ -749,6 +750,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           request: created,
           authority,
           requester: committedRequester,
+          submittedContact,
         } = await db.transaction(async (tx: any) => {
           let transactionRequester = authenticatedRequester as any;
           if (!transactionRequester) {
@@ -809,6 +811,12 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             })
             .returning();
 
+          const submittedContact = buildDirectConnectSubmissionContact({
+            workRequestId: String(request.id),
+            requesterUserId: requesterId,
+            name: body.name,
+            phone: body.phone,
+          });
           const authority = await createExpressDirectConnectAuthority(tx, {
             workRequestId: String(request.id),
             requesterUserId: requesterId,
@@ -829,6 +837,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             status: "invited",
             scoreSnapshot: {
               routingMode: "tradepartner_profile_express",
+              submissionContactRecipientUserId: target.ownerUserId,
               reasons: ["Visitor selected this business from its clean profile link."],
             },
             createdAt: now,
@@ -841,6 +850,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               actorUserId: requesterId,
               metadata: {
                 source: "tradepartner_profile",
+                submissionContact: submittedContact,
                 connectionMode: "express",
                 profileId: target.profileId,
                 businessId: target.businessId,
@@ -902,7 +912,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               },
             },
           ]);
-          return { request, authority, requester: transactionRequester };
+          return { request, authority, requester: transactionRequester, submittedContact };
         });
         requester = committedRequester;
         if (!requester?.id) {
@@ -1055,7 +1065,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               to: target.notificationEmail,
               subject: `New request for ${target.businessName}`,
               html: [
-                `<p>${escapeHtml(body.name)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
+                `<p>${escapeHtml(submittedContact.name)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
+                `<p><strong>Phone:</strong> ${escapeHtml(submittedContact.phone)}</p>`,
                 body.contactPreference === "call"
                   ? `<p><strong>Contact preference:</strong> Call requested</p>`
                   : "",
@@ -1071,13 +1082,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
                   : "",
                 `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
-                `<p>Your public profile phone number was not exposed. Open Direct Connect to review and respond before contact continues.</p>`,
+                `<p>The sender shared their name and phone with this request so you can respond.</p>`,
                 `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
               ]
                 .filter(Boolean)
                 .join("\n"),
               text: [
-                `${body.name} sent a request through your ${target.businessName} profile on TradeScout.`,
+                `${submittedContact.name} sent a request through your ${target.businessName} profile on TradeScout.`,
+                `Phone: ${submittedContact.phone}`,
                 body.contactPreference === "call" ? "Contact preference: Call requested" : null,
                 publicStoneName ? `Stone: ${publicStoneName}` : null,
                 publicStoneSelections.length
@@ -1087,7 +1099,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   : null,
                 body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
-                "Your public profile phone number was not exposed. Review and respond before contact continues.",
+                "The sender shared their name and phone with this request so you can respond.",
                 `Open Direct Connect inbox: ${inboxUrl}`,
               ]
                 .filter(Boolean)

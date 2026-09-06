@@ -42,8 +42,13 @@ describe("import-created directory account archive authority", () => {
   );
 
   it("requires exact import provenance and excludes identity, authority, profiles, and activity", () => {
-    expect(routes).toContain('kind: "admin_directory_owner_import"');
-    expect(routes).toContain("version: 1");
+    const projection = fs.readFileSync(
+      path.resolve(process.cwd(), "server/services/adminBusinessOwnerImportProjection.ts"),
+      "utf8"
+    );
+    expect(routes).toContain('from "./services/adminBusinessOwnerImportProjection"');
+    expect(projection).toContain('kind: "admin_directory_owner_import"');
+    expect(projection).toContain("version: 1");
     expect(predicate).toContain("IMPORTED_DIRECTORY_USER_PROVENANCE_KIND");
     expect(predicate).toContain("-> 'importProvenance' ->> 'version'");
     expect(predicate).toContain('eq(users.provider, "local")');

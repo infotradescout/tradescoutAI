@@ -761,7 +761,15 @@ describe("Express Direct Connect accepted-provider contact release", () => {
     expect(adminDetail).not.toContain("phone: (requester");
     expect(adminDetail).not.toContain("metadata: e.metadata");
     expect(releaseRoute).toContain("isAuthenticated,");
-    expect(releaseRoute).toContain("loadExpressDirectConnectReleasedContact(tx, {");
-    expect(releaseRoute).toContain("requesterContact:");
+    expect(releaseRoute).toContain("createDirectConnectAssignmentContactHandler(db)");
+    const authority = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes/direct-connect/authority.ts"),
+      "utf8"
+    );
+    const releaseHandler = authority.slice(
+      authority.indexOf("export function createDirectConnectAssignmentContactHandler")
+    );
+    expect(releaseHandler).toContain("loadExpressDirectConnectReleasedContact(tx, {");
+    expect(releaseHandler).toContain("requesterContact:");
   });
 });

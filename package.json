@@ -140,6 +140,7 @@
     "guard:architecture-hygiene": "node scripts/guard-architecture-hygiene.mjs",
     "guard:production-readiness-registry": "node scripts/guard-production-readiness-registry.mjs",
     "test:production-readiness-registry": "node --test scripts/production-readiness-registry.test.mjs",
+    "guard:identity-authority-spine": "node scripts/guard-identity-authority-spine.mjs",
     "guard:law-drift": "node scripts/guard-law-drift.mjs",
     "guard:prod-bypass": "node scripts/guard-prod-bypass.mjs",
     "guard:precommit-spaced-paths": "node scripts/guard-precommit-spaced-paths.mjs",
@@ -277,7 +278,8 @@
     },
     "fast-xml-parser": "5.10.1",
     "nanoid@^5.0.0": "5.1.16",
-    "uuid@<11.1.1": "11.1.1"
+    "uuid@<11.1.1": "11.1.1",
+    "qs": "6.16.0"
   },
   "devDependencies": {
     "@capacitor/android": "^7.4.3",

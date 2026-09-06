@@ -7,7 +7,11 @@ const read = (relativePath: string) =>
 
 const shellSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 const homesSource = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
-const routesSource = read("server/routes/direct-connect.ts");
+const routesSource = [
+  read("server/routes/direct-connect.ts"),
+  read("server/routes/direct-connect/operations.ts"),
+  read("server/routes/direct-connect/home-id.ts"),
+].join("\n");
 const notificationSafetySource = read(
   "server/tests/direct-connect-notification-delivery-safety.contract.test.ts"
 );

@@ -277,6 +277,12 @@ describe("tradepartner Express requester identity gate", () => {
   });
 
   it("preserves provisional onboarding for a genuinely new guest email", async () => {
+    mocks.emailService.isConfigured.mockReturnValue(true);
+    mocks.emailService.sendEmail.mockResolvedValue({
+      sent: true,
+      messageId: "test-email",
+      provider: "test",
+    });
     mocks.storage.getUserByEmail.mockResolvedValue(null);
     const createdGuest = {
       id: "new-guest-1",
@@ -327,6 +333,24 @@ describe("tradepartner Express requester identity gate", () => {
     expect(mocks.ensureSuperAdminConnection).toHaveBeenCalledWith("new-guest-1");
     expect(mocks.createPasswordResetToken).toHaveBeenCalledWith("new-guest-1");
     expect(mocks.createEmailVerificationToken).toHaveBeenCalledWith("new-guest-1");
+    const createdEvent = mocks.txValues.mock.calls
+      .flatMap(([value]) => (Array.isArray(value) ? value : [value]))
+      .find((value) => value.type === "created");
+    expect(createdEvent.metadata.submissionContact).toMatchObject({
+      version: 1,
+      name: validBody.name,
+      phone: "4045550100",
+      workRequestId: "request-1",
+      requesterUserId: "new-guest-1",
+    });
+    expect(mocks.emailService.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "provider@example.com",
+        purpose: "tradepartner_request_notification",
+        html: expect.stringContaining("4045550100"),
+        text: expect.stringContaining("Guest Requester"),
+      })
+    );
   });
 
   it("rolls guest provisioning back when durable authority creation fails", async () => {

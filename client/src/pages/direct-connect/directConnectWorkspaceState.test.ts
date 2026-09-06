@@ -152,10 +152,11 @@ describe("Direct Connect work-desk state", () => {
     ).toBe("/direct-connect?intent=hire&contractorId=provider-1");
   });
 
-  it("retains authenticated session drafts across remount hydration but consumes guest handoff", () => {
+  it("consumes a guest handoff only after the authenticated copy has been saved", () => {
     expect(shouldConsumeDirectConnectDraftAfterHydration(false)).toBe(false);
     expect(shouldConsumeDirectConnectDraftAfterHydration(undefined)).toBe(false);
-    expect(shouldConsumeDirectConnectDraftAfterHydration(true)).toBe(true);
+    expect(shouldConsumeDirectConnectDraftAfterHydration(true)).toBe(false);
+    expect(shouldConsumeDirectConnectDraftAfterHydration(true, true)).toBe(true);
   });
 
   it("keeps cleanup persistence bound to Start after global navigation changes", () => {
@@ -212,12 +213,23 @@ describe("Direct Connect work-desk state", () => {
     ).toBe(false);
   });
 
-  it("keeps explicit staged values ahead of stored draft values", () => {
+  it("keeps saved edits and deletions ahead of the same entry's original prefill", () => {
     expect(
       resolveDirectConnectComposerDraftText("Stored roof repair", "Explicit HVAC repair")
-    ).toBe("Explicit HVAC repair");
+    ).toBe("Stored roof repair");
     expect(resolveDirectConnectComposerDraftText("Stored roof repair", "  ")).toBe(
       "Stored roof repair"
+    );
+    expect(resolveDirectConnectComposerDraftText("", "Original text")).toBe("");
+    expect(resolveDirectConnectComposerDraftText(undefined, "Original text")).toBe("Original text");
+  });
+
+  it("does not collapse distinct draft identities after a long shared prefill", () => {
+    const prefix = "Long prefill ".repeat(100);
+    expect(
+      getDirectConnectComposerDraftSessionKey("user-1", "/direct-connect", `${prefix}22105`)
+    ).not.toBe(
+      getDirectConnectComposerDraftSessionKey("user-1", "/direct-connect", `${prefix}22063`)
     );
   });
 
