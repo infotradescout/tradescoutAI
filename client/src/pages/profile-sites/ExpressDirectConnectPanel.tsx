@@ -183,23 +183,24 @@ export default function ExpressDirectConnectPanel({
   const [requestWorkspacePath, setRequestWorkspacePath] = useState("");
   const [requestDeliveryCustody, setRequestDeliveryCustody] =
     useState<ExpressDirectConnectDeliveryCustody>(deliveryCustody);
+  const initialFormMessage =
+    initialMessage ||
+    (selectedServiceName
+      ? `I'm interested in ${selectedServiceName}.`
+      : displayStoneName
+        ? `I'm interested in ${displayStoneName}.`
+        : multiStoneSelections.length
+          ? `I'm interested in these ${multiStoneSelections.length} saved stone selections.`
+          : stableItemId
+            ? "I'm interested in this stone selection."
+            : "");
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     customerRole: "" as ExpressDirectConnectCustomerRole | "",
     requestType: defaultRequestType,
-    message:
-      initialMessage ||
-      (selectedServiceName
-        ? `I'm interested in ${selectedServiceName}.`
-        : displayStoneName
-          ? `I'm interested in ${displayStoneName}.`
-          : multiStoneSelections.length
-            ? `I'm interested in these ${multiStoneSelections.length} saved stone selections.`
-            : stableItemId
-              ? "I'm interested in this stone selection."
-              : ""),
+    message: initialFormMessage,
     // Compliance default: unchecked. Opt-in only when the visitor checks it.
     updatesOptIn: false,
     website: "",
@@ -241,24 +242,14 @@ export default function ExpressDirectConnectPanel({
       customerRole: "",
       updatesOptIn: false,
       requestType: defaultRequestType,
-      message:
-        initialMessage ||
-        (selectedServiceName
-          ? `I'm interested in ${selectedServiceName}.`
-          : displayStoneName
-            ? `I'm interested in ${displayStoneName}.`
-            : multiStoneSelections.length
-              ? `I'm interested in these ${multiStoneSelections.length} saved stone selections.`
-              : stableItemId
-                ? "I'm interested in this stone selection."
-                : ""),
+      message: initialFormMessage,
     }));
   }, [
     defaultRequestType,
     deliveryCustody,
     displayStoneName,
     initialRequestType,
-    initialMessage,
+    initialFormMessage,
     initialView,
     multiStoneSelections.length,
     open,
