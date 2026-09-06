@@ -4,7 +4,6 @@ import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
 import { ISSA_BUILD_LOCAL_DISCOVERY } from "@shared/issaBuildProfile";
 import { pensacolaProjectMessage } from "@shared/pensacolaDiscovery";
-import { IranianOnyxFeature } from "@/components/IranianOnyxFeature";
 
 type Props = ComponentProps<typeof LegacyWholesalerProfileTheme>;
 type ContentBlock = Props["contentBlocks"][number];
@@ -53,7 +52,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
         ...block,
         data: {
           ...data,
-          text: "ISSA Build handles Pensacola-area kitchens, bathrooms, cabinets, stone countertops and fabrication. Its Honey Onyx and Multi Green Onyx have country of origin: Iran. TradeScout manages every inquiry. ISSA Build also handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
+          text: "ISSA Build handles Pensacola-area kitchens, bathrooms, cabinets, stone countertops and fabrication. TradeScout manages every inquiry. ISSA Build also handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
         },
       } as ContentBlock;
     }
@@ -161,23 +160,6 @@ export default function IssaBuildProfileTruthFrame(props: Props) {
                   </li>
                 ))}
               </ul>
-              <nav
-                aria-label="ISSA Build Pensacola services"
-                className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-amber-200"
-              >
-                {ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => (
-                  <a
-                    key={service.slug}
-                    href={`/u/issa-build/services/${service.slug}`}
-                    className="underline underline-offset-4"
-                  >
-                    {service.title}
-                  </a>
-                ))}
-                <a href="/u/issa-build/service-areas" className="underline underline-offset-4">
-                  Pensacola and surrounding areas
-                </a>
-              </nav>
             </div>
             <button
               type="button"
@@ -191,7 +173,6 @@ export default function IssaBuildProfileTruthFrame(props: Props) {
         </div>
       </section>
 
-      <IranianOnyxFeature href="/u/issa-build/categories/onyx" />
       <LegacyWholesalerProfileTheme
         {...props}
         contentBlocks={verifiedContentBlocks}
