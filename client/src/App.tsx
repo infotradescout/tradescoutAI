@@ -52,7 +52,7 @@ const HoldIntroTutorial = React.lazy(() =>
     default: module.HoldIntroTutorial,
   }))
 );
-const SimpleSubtleHints = React.lazy(() => import("./components/SimpleSubtleHints"));
+const SimpleSubtleHints = React.lazy(() => import("./components/onboarding/SimpleSubtleHints"));
 const ProfileCompletionBanner = React.lazy(
   () => import("./components/onboarding/ProfileCompletionBanner")
 );
@@ -154,7 +154,7 @@ const AppLayout = memo(function AppLayout() {
       currentPath.startsWith("/profile-settings") &&
       window.location.search.includes("onboarding=1")
     ) {
-      entryRoute = "register";
+      entryRoute = "oauth";
     }
 
     const roles: string[] = (() => {
@@ -272,8 +272,8 @@ const AppLayout = memo(function AppLayout() {
       reasons: snapshot.reasons,
       accountAgeDays: snapshot.signals.accountAgeDays,
       meaningfulActivityCount: snapshot.signals.meaningfulActivityCount,
-      hasCompletedSetup: snapshot.hasCompletedSetup,
-      hasVerifiedContact: snapshot.hasVerifiedContact,
+      hasCompletedSetup: snapshot.signals.hasCompletedSetup,
+      hasVerifiedContact: snapshot.signals.hasVerifiedContact,
       path: location || window.location.pathname,
       ts: new Date().toISOString(),
     });
