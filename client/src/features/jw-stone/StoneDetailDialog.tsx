@@ -224,7 +224,7 @@ export function StoneDetailDialog({
                   ) : null}
                   {stone.origin ? (
                     <div>
-                      <dt className={jw.muted}>Origin</dt>
+                      <dt className={jw.muted}>Country of origin</dt>
                       <dd className="mt-0.5 font-medium">{stone.origin.country}</dd>
                     </div>
                   ) : null}

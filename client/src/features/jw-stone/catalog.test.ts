@@ -177,9 +177,14 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(groupNamedCatalogByMaterial(JW_STONE_ANONYMOUS_CATALOG)).toEqual([]);
   });
 
-  it("keeps current origin empty and accepts only explicit verified origin fixtures", () => {
-    expect(JW_STONE_CATALOG.every((stone) => stone.origin === null)).toBe(true);
-    expect(getOriginFilterOptions()).toEqual([]);
+  it("publishes the owner-confirmed Iranian onyx origin and leaves other origins unknown", () => {
+    expect(
+      JW_STONE_CATALOG.filter((stone) => stone.origin).map((stone) => [
+        stone.id,
+        stone.origin?.country,
+      ])
+    ).toEqual([["honey-onyx", "Iran"]]);
+    expect(getOriginFilterOptions().map((option) => option.value)).toEqual(["iran"]);
     expect(resolveVerifiedOrigin(null)).toBeNull();
     expect(
       resolveVerifiedOrigin({ country: "Brazil", verified: false, source: "supplier" })

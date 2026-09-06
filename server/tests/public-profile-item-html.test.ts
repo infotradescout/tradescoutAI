@@ -191,18 +191,29 @@ describe("public profile item HTML", () => {
       categorySlug: "onyx",
     });
 
-    expect(itemHtml).toContain('property="og:title" content="Honey Onyx | ISSA Build"');
+    expect(itemHtml).toContain('property="og:title" content="Honey Onyx from Iran | ISSA Build"');
     expect(itemHtml).toContain(
-      'property="og:description" content="Warm amber, translucent Honey Onyx from ISSA Build for custom backlit counters, walls, floors, stairs, and residential or commercial interiors."'
+      'property="og:description" content="Honey Onyx from ISSA Build. Country of origin: Iran. Warm amber translucence for custom backlit counters, walls, floors, stairs and interiors."'
     );
     expect(itemHtml).toContain('"@type":"Product"');
+    expect(itemHtml).toContain('"countryOfOrigin":{"@type":"Country","name":"Iran"}');
+    const greenHtml = await buildPublicProfileHtml({
+      slug: "issa-build",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      itemSlug: "multi-green-onyx",
+    });
+    expect(greenHtml).toContain("Multi Green Onyx from Iran");
+    expect(greenHtml).toContain('"countryOfOrigin":{"@type":"Country","name":"Iran"}');
     expect(itemHtml).toContain("Featured materials");
     expect(itemHtml).toContain("Explore materials");
     expect(itemHtml).not.toMatch(/Honey Onyx Onyx|current inventory|pricing or availability/i);
 
-    expect(categoryHtml).toContain('property="og:title" content="Translucent Onyx | ISSA Build"');
     expect(categoryHtml).toContain(
-      "Explore ISSA Build&#39;s Honey Onyx and Multi Green Onyx as distinct translucent materials"
+      'property="og:title" content="Iranian Translucent Onyx | ISSA Build"'
+    );
+    expect(categoryHtml).toContain(
+      "Country of origin: Iran. Explore ISSA Build&#39;s Honey Onyx and Multi Green Onyx"
     );
     expect(categoryHtml).toContain("2 published materials");
     expect(categoryHtml).not.toMatch(/current inventory|pricing or availability/i);

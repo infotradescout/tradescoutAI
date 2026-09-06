@@ -7,6 +7,7 @@ import {
   JW_STONE_INVENTORY_CATEGORIES,
   JW_STONE_INVENTORY_SUMMARY,
 } from "../client/src/data/jwStoneInventory";
+import { JW_STONE_ONYX_ORIGINS } from "@shared/onyxOrigins";
 
 type JwStoneShareStone = {
   categorySlug: string;
@@ -18,6 +19,7 @@ type JwStoneShareStone = {
   shareImageOrder?: number[];
   publicSummary?: string;
   publicKind?: "offering";
+  countryOfOrigin?: string;
 };
 
 function buildPublicStoneSummary(args: {
@@ -48,14 +50,24 @@ export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGO
         slug: stone.slug,
         images: [...stone.images],
         shareImageOrder: stone.shareImageOrder ? [...stone.shareImageOrder] : undefined,
+        ...(stone.slug in JW_STONE_ONYX_ORIGINS
+          ? {
+              countryOfOrigin:
+                JW_STONE_ONYX_ORIGINS[stone.slug as keyof typeof JW_STONE_ONYX_ORIGINS].country,
+            }
+          : {}),
         ...(stone.displayName
           ? {
-              publicSummary: buildPublicStoneSummary({
-                name: stone.displayName,
-                category: category.category,
-                photoCount: stone.images.length,
-                finishes: stone.finishStatus === "explicit" ? stone.finishes || [] : [],
-              }),
+              publicSummary:
+                (stone.slug in JW_STONE_ONYX_ORIGINS
+                  ? `Country of origin: ${JW_STONE_ONYX_ORIGINS[stone.slug as keyof typeof JW_STONE_ONYX_ORIGINS].country}. `
+                  : "") +
+                buildPublicStoneSummary({
+                  name: stone.displayName,
+                  category: category.category,
+                  photoCount: stone.images.length,
+                  finishes: stone.finishStatus === "explicit" ? stone.finishes || [] : [],
+                }),
               publicKind: "offering" as const,
             }
           : {}),

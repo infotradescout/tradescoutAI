@@ -24,9 +24,9 @@ export const ISSA_BUILD_FULL_SERVICE_SCOPE = [
 ] as const;
 
 const VERIFIED_HERO_COPY =
-  "Kitchens, bathrooms, cabinets, stone countertops and fabrication in Pensacola and surrounding areas. ISSA Build also brings Honey Onyx and Multi Green Onyx to life through custom fabrication, backlighting and installation.";
+  "Kitchens, bathrooms, cabinets, stone countertops and fabrication in Pensacola and surrounding areas. ISSA Build also brings Honey Onyx and Multi Green Onyx from Iran to life through custom fabrication, backlighting and installation.";
 const VERIFIED_ABOUT_COPY =
-  "ISSA Build handles kitchen and bathroom projects in Pensacola and surrounding areas, including cabinets, stone countertops and fabrication. ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation. ISSA Build also handles material sourcing and availability, project-location review, and fulfillment for residential and commercial projects.";
+  "ISSA Build handles kitchen and bathroom projects in Pensacola and surrounding areas, including cabinets, stone countertops and fabrication. Its Honey Onyx and Multi Green Onyx have country of origin: Iran. ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation. ISSA Build also handles material sourcing and availability, project-location review, and fulfillment for residential and commercial projects.";
 const VERIFIED_SEO_COPY = ISSA_BUILD_LOCAL_DISCOVERY.description;
 
 function recordValue(value: unknown): Record<string, any> {

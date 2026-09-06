@@ -52,7 +52,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
         ...block,
         data: {
           ...data,
-          text: "ISSA Build handles Pensacola-area kitchens, bathrooms, cabinets, stone countertops and fabrication. TradeScout manages every inquiry. ISSA Build also handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
+          text: "ISSA Build handles Pensacola-area kitchens, bathrooms, cabinets, stone countertops and fabrication. Its Honey Onyx and Multi Green Onyx have country of origin: Iran. TradeScout manages every inquiry. ISSA Build also handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
         },
       } as ContentBlock;
     }

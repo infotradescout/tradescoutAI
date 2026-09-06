@@ -48,6 +48,12 @@ An import does **not** refresh itself when the workbook changes. Refresh it from
 
 An active JW Stone business membership unlocks pricing immediately. General business verification remains separate and continues to govern BidRock and other protected features. Pricing accepts legacy pending-verification entitlements for active memberships; no second signup or unrelated verification step is required. Explicitly rejected business identities, revoked/suspended entitlements, and closed/suspended memberships remain blocked.
 
+## Onyx country of origin (2026-09-06)
+
+The owner confirmed **Iran** as the country of origin for JW Stone's Honey Onyx and ISSA Build's Honey Onyx and Multi Green Onyx. The exact public records are captured in `shared/onyxOrigins.ts`. Show the country on material cards, origin filters, product details, onyx collections and search/product metadata. Keep unspecified origins unknown; do not apply this fact to other materials or future unconfirmed inventory. Origin does not promise current stock or contractual exclusivity. Pensacola-area kitchen and bathroom project delivery remains ISSA Build's role.
+
+The shared profile item metadata and ISSA source records are included in this origin change because the owner requested the same country fact on both businesses' onyx surfaces.
+
 ## Owner rule
 
 Merge JW changes to `main` only with explicit GO and JW-scoped evidence. Merge to `main` deploys production.

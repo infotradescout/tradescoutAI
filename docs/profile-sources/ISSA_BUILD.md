@@ -45,7 +45,7 @@ A project address or service territory should be confirmed through the request. 
 - Website / marketing photography and the official logo come from the owner-supplied `Marketing Honey OnyxISSA Build (2).zip` pack.
 - Public URLs remain under `/images/businesses/issa-build/`, but their bytes are owned by `scripts/data/profile-public-media-manifest.json` and the existing server-side public-media storage path. They must not be restored to `client/public`.
 - The pack and its corroborating inventory source identify **Honey Onyx** and **Multi Green Onyx** as separate offerings. Public records, galleries, shared links, and Direct Connect source context must preserve that distinction.
-- Public facts: premium book-matched translucent onyx, sourced from the Middle East, hand-finished, and used for counters, walls, floors, stairs, and complete custom interiors.
+- Public facts: premium book-matched translucent onyx, sourced from Iran, hand-finished, and used for counters, walls, floors, stairs, and complete custom interiors.
 - The supplied stills are genuine ISSA Build project/material imagery. Do not add concept or design-visualization labels.
 - Public copy and assets exclude owner-account phones, personal email addresses, street addresses, lead lists, pricing, shipping documents, and changing inventory or damage counts.
 
@@ -69,3 +69,7 @@ A project address or service territory should be confirmed through the request. 
 
 - Profile share preview uses an ISSA Build installation photo.
 - Individual photo links use stone/photo query params and render that selected photo in social metadata.
+
+## Country of origin — owner confirmation, 2026-09-06
+
+The owner confirmed that ISSA Build’s Honey Onyx and Multi Green Onyx originate in Iran. Show “Country of origin: Iran” on both offerings, the onyx collection, relevant profile copy and public product structured data. This is a material-origin fact, not the business address. The request destination remains ISSA Build. Do not apply Iranian origin to unrelated stone materials or claim contractual exclusivity.

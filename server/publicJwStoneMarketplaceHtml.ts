@@ -18,14 +18,13 @@ export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_
 
 const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("Natural stone slabs in Pensacola, FL");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Natural stone slabs in Pensacola, Florida: browse named granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt materials from JW Stone Logistics.";
+  "Explore Iranian onyx alongside granite, marble, quartzite and engineered quartz from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
-const JW_STONE_CUSTOM_DOMAIN_TITLE =
-  "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
+const JW_STONE_CUSTOM_DOMAIN_TITLE = "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
 const JW_STONE_CUSTOM_DOMAIN_DESCRIPTION =
-  "Browse quarry-direct granite, marble, quartzite, onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
+  "Browse granite, marble, quartzite, Iranian onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_LEGACY_DOMAIN = "https://jwstonellc.com/";
 const JW_STONE_DISCOVERY_PRIORITY_SLUGS = [
   "black-dunes",
@@ -259,7 +258,7 @@ export function buildPublicJwStoneMarketplaceHtml(
       : true;
 
   const resolvedTitle = itemShare
-    ? opts.marketplaceDomainSurface && itemShare.hasPublicName
+    ? opts.marketplaceDomainSurface && itemShare.hasPublicName && !itemShare.countryOfOrigin
       ? customDomainItemTitle(itemShare.itemName, itemShare.category)
       : itemShare.title
     : categoryShare
@@ -270,11 +269,11 @@ export function buildPublicJwStoneMarketplaceHtml(
         ? JW_STONE_CUSTOM_DOMAIN_TITLE
         : JW_STONE_MARKETPLACE_TITLE;
   const resolvedDescription = itemShare
-    ? opts.marketplaceDomainSurface && itemShare.hasPublicName
+    ? opts.marketplaceDomainSurface && itemShare.hasPublicName && !itemShare.countryOfOrigin
       ? customDomainItemDescription(itemShare.itemName, itemShare.category)
       : itemShare.description
     : categoryShare
-      ? opts.marketplaceDomainSurface
+      ? opts.marketplaceDomainSurface && categoryShare.categorySlug !== "onyx"
         ? customDomainCategoryDescription(categoryShare.categoryName)
         : categoryShare.description
       : opts.marketplaceDomainSurface
@@ -297,16 +296,15 @@ export function buildPublicJwStoneMarketplaceHtml(
 
   const title = escapeHtml(resolvedTitle);
   const description = escapeHtml(resolvedDescription);
-  const canonicalValue = itemShare && !indexable
-    ? collectionUrl
-    : itemShare?.canonical || categoryShare?.canonical || collectionUrl;
+  const canonicalValue =
+    itemShare && !indexable
+      ? collectionUrl
+      : itemShare?.canonical || categoryShare?.canonical || collectionUrl;
   const canonical = escapeHtml(canonicalValue);
   const imageUrl = escapeHtml(
     itemShare?.imageUrl || categoryShare?.imageUrl || JW_STONE_MARKETPLACE_IMAGE_URL
   );
-  const imageAlt = escapeHtml(
-    itemShare?.imageAlt || resolvedTitle || "JW Stone Logistics logo"
-  );
+  const imageAlt = escapeHtml(itemShare?.imageAlt || resolvedTitle || "JW Stone Logistics logo");
 
   const companySummary = `
   <section data-seo-jw-stone-company="true" aria-labelledby="seo-jw-stone-about">
@@ -542,6 +540,9 @@ ${companySummary}
               description: structuredDescription,
               image: itemShare.imageUrl,
               category: itemShare.category || "Natural stone",
+              ...(itemShare.countryOfOrigin
+                ? { countryOfOrigin: { "@type": "Country", name: itemShare.countryOfOrigin } }
+                : {}),
               brand: { "@type": "Brand", name: JW_STONE_PUBLIC_IDENTITY.brandName },
             }
           : undefined,
@@ -632,7 +633,14 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "- Natural stone slabs in Pensacola: " + publicOrigin + "/",
     ...categories.map(
       (category) =>
-        "- " + category.name + " slabs: " + publicOrigin + "/materials/" + category.slug + " — " + category.summary
+        "- " +
+        category.name +
+        " slabs: " +
+        publicOrigin +
+        "/materials/" +
+        category.slug +
+        " — " +
+        category.summary
     ),
     "",
     "Individual named materials:",
