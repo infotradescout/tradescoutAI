@@ -10,8 +10,8 @@ type Photo = Props["galleryItems"][number];
 
 export function publicProfileUrl(value: string | undefined, relative = false): string | undefined {
   const candidate = String(value || "").trim();
-  if (!candidate || /[\u0000-\u0020\\]/.test(candidate)) return undefined;
-  if (relative && candidate.startsWith("/") && !candidate.startsWith("//")) return candidate;
+  if (!candidate || /[\u0000-\u001f\\]/.test(candidate)) return undefined;
+  if (relative && candidate.startsWith("/") && !candidate.startsWith("//")) return candidate.replaceAll(" ", "%20");
   try {
     const url = new URL(candidate);
     return url.protocol === "https:" || url.protocol === "http:" ? url.href : undefined;
@@ -34,6 +34,11 @@ function luminance(color: string) {
 function ink(background: string) { return luminance(background) > 0.179 ? "#111418" : "#ffffff"; }
 function alpha(color: string, opacity: number) {
   return `rgba(${[1, 3, 5].map((offset) => parseInt(color.slice(offset, offset + 2), 16)).join(",")},${opacity})`;
+}
+function ProfilePhoto({ onExhausted, ...props }: ComponentProps<typeof SafeProfileImg>) {
+  const [unavailable, setUnavailable] = useState(false);
+  useEffect(() => setUnavailable(false), [props.src]);
+  return unavailable ? <span className="bp-photo-unavailable">Photo unavailable</span> : <SafeProfileImg {...props} onExhausted={() => { setUnavailable(true); onExhausted?.(); }} />;
 }
 
 /** Presentation only: stored copy, contact authority, memberships and routes remain upstream. */
@@ -114,20 +119,21 @@ export default function BusinessProfileTheme(props: Props) {
     showRecommendations && visibleRecommendations.length ? ["profile-recommendations", "Recommendations"] : null,
   ].filter((entry): entry is string[] => Boolean(entry));
   const hasAside = (showServiceAreas && serviceAreas.length > 0) || bookingSection || trustActions || lightTrustActions;
+  const galleryShare = (photo: Photo) => safePhotos.some((item) => item.slug === photo.slug) ? renderGalleryShare?.(photo) : null;
 
   return <main className="business-profile" style={style} data-testid="default-profile-theme" data-presentation="business-editorial">
     <div className="bp-wrap">
       {coverVisible && heroPhoto ? <section className={`bp-cover ${photos.length > 2 ? "bp-cover--mosaic" : ""}`} aria-label="Business photographs" data-testid="business-profile-cover">
         <button type="button" className="bp-cover-main" onClick={(event) => openPhoto(0, event.currentTarget)} aria-label={`View ${heroPhoto.imageAlt}`}>
-          <SafeProfileImg src={heroPhoto.imageUrl} alt={heroPhoto.imageAlt} loading="eager" className="bp-cover-image" onExhausted={() => setFailedCover(true)} />
+          <ProfilePhoto src={heroPhoto.imageUrl} alt={heroPhoto.imageAlt} loading="eager" className="bp-cover-image" onExhausted={() => setFailedCover(true)} />
         </button>
         {photos.length > 2 ? <div className="bp-cover-side">{photos.slice(1, 3).map((photo, index) => <button key={photo.slug} type="button" onClick={(event) => openPhoto(index + 1, event.currentTarget)} aria-label={`View ${photo.imageAlt}`}>
-          <SafeProfileImg src={photo.imageUrl} alt={photo.imageAlt} loading="eager" className="bp-cover-image" />
+          <ProfilePhoto src={photo.imageUrl} alt={photo.imageAlt} loading="lazy" className="bp-cover-image" />
         </button>)}</div> : null}
         <button type="button" className="bp-photo-count" onClick={(event) => openPhoto(0, event.currentTarget)}><Images size={16} aria-hidden />{photos.length} {photos.length === 1 ? "photo" : "photos"}</button>
       </section> : null}
       <header className={`bp-identity ${coverVisible ? "bp-identity--cover" : ""}`} data-testid="default-profile-header">
-        <div className="bp-logo">{logo && !failedLogo ? <SafeProfileImg src={logo} alt={`${businessName} logo`} loading="eager" onExhausted={() => setFailedLogo(true)} /> : <span aria-hidden>{businessName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>}</div>
+        <div className="bp-logo" data-testid={!coverVisible ? "default-profile-brand-hero" : undefined}>{logo && !failedLogo ? <SafeProfileImg src={logo} alt={`${businessName} logo`} loading="eager" onExhausted={() => setFailedLogo(true)} /> : <span aria-hidden>{businessName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>}</div>
         <div className="bp-identity-copy">
           <h1>{businessName}</h1>
           <div className="bp-meta">{categoryLabel ? <span>{categoryLabel}</span> : null}{locationLabel ? <span><MapPin size={14} aria-hidden />{locationLabel}</span> : null}{operatorName ? <span>{operatorName}</span> : null}</div>
@@ -143,32 +149,32 @@ export default function BusinessProfileTheme(props: Props) {
           {showServices && services.length > 0 ? <section id="profile-services" className="bp-section"><h2>Services</h2><div className="bp-services">{services.map((service, index) => showContact ? <button key={`${service}-${index}`} type="button" onClick={() => onDirectConnect(service)} data-testid={`default-profile-service-${index}`}><span>{service}</span><ArrowUpRight size={18} aria-hidden /></button> : <div key={`${service}-${index}`} data-testid={`default-profile-service-${index}`}><span>{service}</span></div>)}</div></section> : null}
           {photos.length > 0 ? <section id="profile-gallery" className="bp-section"><div className="bp-section-heading"><h2>Gallery</h2>{photos.length > 4 ? <button className="bp-text-button" type="button" onClick={() => setExpandedGallery(!expandedGallery)} aria-expanded={expandedGallery} aria-controls="business-profile-photos">{expandedGallery ? "Show fewer photos" : `View all ${photos.length} photos`}<ArrowRight size={16} aria-hidden /></button> : null}</div>
             <div id="business-profile-photos" className="bp-gallery">{(expandedGallery ? photos : photos.slice(0, 4)).map((photo, index) => <article key={`${photo.slug}-${index}`} id={`profile-gallery-${photo.slug}`} className={sharedGallerySlug === photo.slug ? "bp-photo bp-photo--selected" : "bp-photo"}>
-              <button type="button" onClick={(event) => openPhoto(index, event.currentTarget)} aria-label={`View ${photo.imageAlt || photo.title}`}><SafeProfileImg src={photo.imageUrl} alt={photo.imageAlt} loading="lazy" className="bp-gallery-image" /></button>
-              {(photo.title && !sameText(photo.title, businessName)) || photo.description || renderGalleryShare ? <div className="bp-caption"><div>{photo.title && !sameText(photo.title, businessName) ? <h3>{photo.title}</h3> : null}{photo.description ? <p>{photo.description}</p> : null}</div>{renderGalleryShare ? renderGalleryShare(photo) : null}</div> : null}
+              <button type="button" onClick={(event) => openPhoto(index, event.currentTarget)} aria-label={`View ${photo.imageAlt || photo.title}`}><ProfilePhoto src={photo.imageUrl} alt={photo.imageAlt} loading="lazy" className="bp-gallery-image" /></button>
+              {(photo.title && !sameText(photo.title, businessName)) || photo.description || galleryShare(photo) ? <div className="bp-caption"><div>{photo.title && !sameText(photo.title, businessName) ? <h3>{photo.title}</h3> : null}{photo.description ? <p>{photo.description}</p> : null}</div>{galleryShare(photo)}</div> : null}
             </article>)}</div>
           </section> : null}
           {profileItems ? <section id="profile-items" className="bp-section bp-items" aria-label="Products and profile items">{profileItems}</section> : null}
           {customBlocks.map((block, index) => <section key={`${block.title}-${index}`} className="bp-section"><h2>{block.title}</h2><p className="bp-prose">{block.body}</p></section>)}
           {showRecommendations && visibleRecommendations.length ? <section id="profile-recommendations" className="bp-section"><h2>{recommendationMode === "authored" ? "Recommendations" : "Customer recommendations"}</h2><div className="bp-recommendations">{visibleRecommendations.map((entry) => {
             const href = publicProfileUrl(entry.subjectHref, true);
-            return <article key={entry.id}>{entry.comment ? <blockquote>{entry.comment}</blockquote> : null}<p>{recommendationMode === "authored" ? (href ? <a href={href}>{entry.subjectName}<ArrowUpRight size={14} aria-hidden /></a> : entry.subjectName) : entry.customerName}{entry.projectType ? <span> · {entry.projectType}</span> : null}</p></article>;
+            return <article key={entry.id}>{recommendationMode === "authored" ? <p>{entry.recommendationType === "negative" ? "Does not recommend" : "Recommends"}</p> : null}{entry.comment ? <blockquote>{entry.comment}</blockquote> : null}<p>{recommendationMode === "authored" ? (href ? <a href={href}>{entry.subjectName}<ArrowUpRight size={14} aria-hidden /></a> : entry.subjectName) : entry.customerName || "TradeScout member"}{entry.projectType ? <span> · {entry.projectType}</span> : null}</p></article>;
           })}</div></section> : null}
           {showStats && visibleStats.length ? <dl className="bp-facts">{visibleStats.map((stat, index) => <div key={`${stat.label}-${index}`}><dt>{stat.label}</dt><dd>{stat.value}</dd></div>)}</dl> : null}
           {showBadges && visibleBadges.length ? <div className="bp-badges">{visibleBadges.map((badge, index) => <span key={`${badge}-${index}`}>{badge}</span>)}</div> : null}
         </div>
-        {hasAside ? <aside className="bp-aside" aria-label="Business details" data-testid="default-profile-details">
+        {hasAside ? <aside className="bp-aside" aria-label="Business details" data-testid={(showServiceAreas && serviceAreas.length > 0) || (showAbout && aboutText) ? "default-profile-details" : undefined}>
           {showServiceAreas && serviceAreas.length ? <section className="bp-aside-section"><h2>Service area</h2><ul className="bp-areas">{serviceAreas.map((area, index) => <li key={`${area}-${index}`}><MapPin size={16} aria-hidden /><span>{area}</span></li>)}</ul></section> : null}
           {bookingSection ? <div className="bp-booking">{bookingSection}</div> : null}
-          {trustActions || lightTrustActions ? <section className="bp-aside-section bp-trust" aria-label="Verification and community support">{surfaceForeground === "#ffffff" ? trustActions : lightTrustActions || trustActions}</section> : null}
+          {trustActions || lightTrustActions ? <section className="bp-aside-section bp-trust" data-testid="profile-trust-section" aria-label="Verification and community support">{surfaceForeground === "#ffffff" ? trustActions : lightTrustActions || trustActions}</section> : null}
         </aside> : null}
       </div>
       {safeSocials.length || featuredWork ? <div className="bp-socials">{featuredWork ? <a href={featuredWork} target="_blank" rel="noreferrer"><Play size={16} aria-hidden />View featured work</a> : null}{safeSocials.map((social) => <a key={`${social.label}-${social.href}`} href={social.href} target="_blank" rel="noreferrer">{social.handle || social.label}<ArrowUpRight size={16} aria-hidden /></a>)}</div> : null}
-      <footer className="bp-footer">{tradeScoutHandoff ? <details className="bp-account"><summary>TradeScout account</summary><div>{tradeScoutHandoff}</div></details> : null}<a href="/">Powered by TradeScout</a></footer>
+      <div className="bp-footer">{tradeScoutHandoff}</div>
     </div>
     <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setActivePhoto(null); }}>
       <DialogContent className="bp-lightbox" onCloseAutoFocus={(event) => { if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus(); } }} onKeyDown={(event) => { if (event.key === "ArrowRight") { event.preventDefault(); movePhoto(1); } if (event.key === "ArrowLeft") { event.preventDefault(); movePhoto(-1); } }}>
         <DialogTitle className="sr-only">{selected?.title || `${businessName} gallery`}</DialogTitle><DialogDescription className="sr-only">{selected?.imageAlt || "Business photograph"}</DialogDescription>
-        {selected ? <><div className="bp-lightbox-image"><SafeProfileImg src={selected.imageUrl} alt={selected.imageAlt} loading="eager" /></div><div className="bp-lightbox-controls"><button type="button" onClick={() => movePhoto(-1)} disabled={photos.length < 2} aria-label="Previous photo"><ChevronLeft size={22} /></button><p aria-live="polite">{(activePhoto || 0) + 1} / {photos.length}</p><button type="button" onClick={() => movePhoto(1)} disabled={photos.length < 2} aria-label="Next photo"><ChevronRight size={22} /></button></div>{selected.description ? <p className="bp-lightbox-caption">{selected.description}</p> : null}{renderGalleryShare ? <div className="bp-lightbox-share">{renderGalleryShare(selected)}</div> : null}</> : null}
+        {selected ? <><div className="bp-lightbox-image"><ProfilePhoto src={selected.imageUrl} alt={selected.imageAlt} loading="eager" /></div><div className="bp-lightbox-controls"><button type="button" onClick={() => movePhoto(-1)} disabled={photos.length < 2} aria-label="Previous photo"><ChevronLeft size={22} /></button><p aria-live="polite">{(activePhoto || 0) + 1} / {photos.length}</p><button type="button" onClick={() => movePhoto(1)} disabled={photos.length < 2} aria-label="Next photo"><ChevronRight size={22} /></button></div>{selected.description ? <p className="bp-lightbox-caption">{selected.description}</p> : null}{galleryShare(selected) ? <div className="bp-lightbox-share">{galleryShare(selected)}</div> : null}</> : null}
       </DialogContent>
     </Dialog>
   </main>;
