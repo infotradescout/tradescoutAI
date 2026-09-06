@@ -22,7 +22,12 @@ import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceFooter } from "./MarketplaceFooter";
 import { MarketplaceHeader } from "./MarketplaceHeader";
 import { MaterialCategoryRail } from "./MaterialCategoryRail";
-import { isJwStoneMarketplaceDomainSurface, marketplaceBasePath } from "./marketplaceRoutes";
+import {
+  isJwStoneMarketplaceDomainSurface,
+  marketplaceBasePath,
+  toMarketplacePathHref,
+} from "./marketplaceRoutes";
+import { resolveMarketplaceSeo } from "./JwStoneProfileSeo";
 import { StoneCollection } from "./StoneCollection";
 import { StoneDetailDialog } from "./StoneDetailDialog";
 import { WishlistPanel } from "./WishlistPanel";
@@ -30,9 +35,6 @@ import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
-const JW_STONE_TITLE = "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
-const JW_STONE_DESCRIPTION =
-  "Browse granite, marble, quartzite, Iranian onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 const JW_STONE_KNOWS_ABOUT = [
@@ -290,11 +292,12 @@ export default function JWStoneMarketplace() {
   };
 
   const canonicalUrl = marketplaceCanonicalUrl();
+  const marketplaceSeo = resolveMarketplaceSeo(toMarketplacePathHref(state));
   const collectionData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: JW_STONE_TITLE,
-    description: JW_STONE_DESCRIPTION,
+    name: marketplaceSeo.title,
+    description: marketplaceSeo.structuredDescription,
     url: canonicalUrl,
     image: JW_STONE_SOCIAL_IMAGE_URL,
     mainEntity: {
@@ -327,9 +330,9 @@ export default function JWStoneMarketplace() {
         data-jw-marketplace-base={marketplaceBasePath() || "/"}
       >
         <SEOHelmet
-          title={JW_STONE_TITLE}
-          socialTitle={JW_STONE_TITLE}
-          description={JW_STONE_DESCRIPTION}
+          title={marketplaceSeo.title}
+          socialTitle={marketplaceSeo.socialTitle}
+          description={marketplaceSeo.description}
           canonical={canonicalUrl}
           ogType="website"
           ogImage={JW_STONE_SOCIAL_IMAGE_URL}
