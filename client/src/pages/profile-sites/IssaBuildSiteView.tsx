@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ComponentProps } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentProps, type CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,7 @@ import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBooking
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import { listProfileGalleryItems } from "@shared/profileGalleryShare";
+import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import { sanitizePublicProfileText } from "@shared/publicListingSafety";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import {
@@ -22,7 +23,7 @@ import {
   issaBuildBusinessText, ISSA_BUILD_ONYX_PAGE_DESCRIPTION, ISSA_BUILD_ONYX_PAGE_TITLE,
 } from "@shared/issaBuildPageContent";
 import {
-  ISSA_BUILD_PUBLIC_PATH, ISSA_BUILD_ONYX_PATH,
+  ISSA_BUILD_PUBLIC_PATH, ISSA_BUILD_ONYX_PATH, resolveIssaBuildOnyxItem,
   resolveIssaBuildPublicPage, resolveIssaBuildCanonicalRedirect,
 } from "@shared/issaBuildRoutes";
 import DefaultProfileTheme from "./DefaultProfileTheme";
@@ -34,6 +35,9 @@ type DefaultThemeProps = ComponentProps<typeof DefaultProfileTheme>;
 type ManageProps = ComponentProps<typeof ProfileSiteManageChrome>;
 type BookingProps = ComponentProps<typeof ProfileBookingRequestDialog>;
 type ProfileSections = NonNullable<ComponentProps<typeof PublicProfileItems>["profileSections"]>;
+type Recommendation = NonNullable<DefaultThemeProps["recommendations"]>[number] & {
+  contractor?: { companyName?: string; slug?: string; canonicalBusinessProfileUrl?: string | null };
+};
 type BookingData = {
   enabled?: boolean; paidBookings?: boolean; bookingPriceUsd?: number;
   calendarVisibility?: "public" | "private"; timezone?: string;
@@ -57,7 +61,7 @@ type ProfileResponse = {
   } | null;
   viewerCanManage?: boolean;
   profileItems?: CanonicalProfileItems;
-  recommendationsDirectory?: DefaultThemeProps["recommendations"];
+  recommendationsDirectory?: Recommendation[];
   recommendationDirectoryMode?: "received" | "authored";
   recommendationDirectorySummary?: { positive: number; negative: number; total: number };
 };
@@ -92,7 +96,7 @@ export default function IssaBuildSiteView() {
   useEffect(() => { setRequestOpen(false); setServiceName(null); }, [pathname]);
   useEffect(() => {
     if (!data?.profile) return;
-    trackDiscoveryLandingOnce({ entityType: "business_profile", entitySlug: ISSA_BUILD_PROFILE_SLUG });
+    void trackDiscoveryLandingOnce({ canonicalRoute: pathname, search: window.location.search });
   }, [data?.profile, pathname]);
 
   if (redirect || isLoading) return <div className="grid min-h-[60vh] place-items-center" role="status">Loading…</div>;
@@ -112,24 +116,41 @@ export default function IssaBuildSiteView() {
   const sections = profile.profileSections || {};
   const name = clean(business?.name || profile.displayName || ISSA_BUILD_BUSINESS_NAME, 200);
   const headline = clean(issaBuildBusinessText(profile.headline, ISSA_BUILD_LOCAL_DISCOVERY.headline));
-  const title = isOnyx ? ISSA_BUILD_ONYX_PAGE_TITLE : clean(issaBuildBusinessText(profile.seoMeta?.title, ISSA_BUILD_LOCAL_DISCOVERY.title), 240);
-  const description = isOnyx ? ISSA_BUILD_ONYX_PAGE_DESCRIPTION : clean(issaBuildBusinessText(profile.seoMeta?.description, ISSA_BUILD_LOCAL_DISCOVERY.description), 1000);
   const origin = getCanonicalAppOrigin();
   const profileUrl = `${origin}${ISSA_BUILD_PUBLIC_PATH}`;
-  const canonical = `${origin}${isOnyx ? ISSA_BUILD_ONYX_PATH : ISSA_BUILD_PUBLIC_PATH}`;
-  const destination = isOnyx ? ISSA_BUILD_ONYX_PATH : ISSA_BUILD_PUBLIC_PATH;
+  const query = new URLSearchParams(window.location.search);
+  const selectedStoneSlug = isOnyx ? resolveIssaBuildOnyxItem(pathname) || query.get("stone") : null;
+  const stoneShare = isOnyx ? createProfileInventoryItemShareMetadata({
+    profileName: name,
+    profileUrl: `${origin}${ISSA_BUILD_ONYX_PATH}`,
+    assetOrigin: origin,
+    categories: onyxBlocks.find((block) => block.type === "inventoryCatalog")?.data?.categories,
+    itemSlug: selectedStoneSlug,
+    photo: query.get("photo"),
+    publicRouteContentBlocks: onyxBlocks,
+  }) : null;
+  if (selectedStoneSlug && !stoneShare) return <main className="mx-auto max-w-xl px-6 py-16">
+    <SEOHelmet title="Stone not found" description="Stone not found" noIndex />
+    <h1 className="text-2xl font-semibold">Stone not found</h1>
+    <a className="mt-6 inline-block underline" href={ISSA_BUILD_ONYX_PATH}>Onyx</a>
+  </main>;
+  const title = stoneShare?.title || (isOnyx ? ISSA_BUILD_ONYX_PAGE_TITLE : clean(issaBuildBusinessText(profile.seoMeta?.title, ISSA_BUILD_LOCAL_DISCOVERY.title), 240));
+  const description = stoneShare?.description || (isOnyx ? ISSA_BUILD_ONYX_PAGE_DESCRIPTION : clean(issaBuildBusinessText(profile.seoMeta?.description, ISSA_BUILD_LOCAL_DISCOVERY.description), 1000));
+  const canonical = stoneShare?.canonical || `${origin}${isOnyx ? ISSA_BUILD_ONYX_PATH : ISSA_BUILD_PUBLIC_PATH}`;
+  const destination = stoneShare ? `${new URL(stoneShare.canonical).pathname}${new URL(stoneShare.canonical).search}` : isOnyx ? ISSA_BUILD_ONYX_PATH : ISSA_BUILD_PUBLIC_PATH;
   const hasSession = isAuthenticated || Boolean(user?.id);
   const signInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(destination)}`;
   const viewerCanManage = data.viewerCanManage === true;
   const booking = profile.profileBooking || {};
   const serviceItems = Array.isArray(blockData("services").items) ? blockData("services").items : [];
-  const services = serviceItems.map((item: unknown) => {
+  const services: string[] = serviceItems.map((item: unknown) => {
     if (typeof item === "string") return clean(item, 180);
     if (!item || typeof item !== "object") return "";
     const value = item as Record<string, unknown>;
     return clean(value.title || value.name || value.label, 180);
   }).filter(Boolean);
-  const serviceAreas = (business?.serviceAreas || blockData("serviceAreas").areas || []).map((value: unknown) => clean(value, 160)).filter(Boolean);
+  const storedAreas = blockData("serviceAreas").areas;
+  const serviceAreas: string[] = (business?.serviceAreas?.length ? business.serviceAreas : Array.isArray(storedAreas) ? storedAreas : []).map((value: unknown) => clean(value, 160)).filter(Boolean);
   const storedGallery = listProfileGalleryItems(blocks);
   const gallery = storedGallery.length ? storedGallery : ISSA_BUILD_PROFILE_IMAGES.map((imageUrl, index) => ({
     slug: `project-${index + 1}`, title: name, imageUrl, imageAlt: `${name} project`,
@@ -153,17 +174,25 @@ export default function IssaBuildSiteView() {
     description: clean(issaBuildBusinessText(profile.seoMeta?.description, ISSA_BUILD_LOCAL_DISCOVERY.description)),
     ...(serviceAreas.length ? { areaServed: serviceAreas } : {}),
   };
-  const mainEntityId = isOnyx ? `${canonical}#collection` : `${profileUrl}#identity`;
+  const mainEntityId = stoneShare ? `${canonical}#product` : isOnyx ? `${canonical}#collection` : `${profileUrl}#identity`;
+  const productEntity = stoneShare ? {
+    "@type": "Product", "@id": mainEntityId, name: stoneShare.itemName,
+    url: canonical, description: stoneShare.description, image: [stoneShare.imageUrl],
+    category: stoneShare.category,
+    brand: { "@id": `${profileUrl}#identity` },
+    ...(stoneShare.countryOfOrigin ? { countryOfOrigin: { "@type": "Country", name: stoneShare.countryOfOrigin } } : {}),
+    ...(stoneShare.thicknessCm ? { additionalProperty: [{ "@type": "PropertyValue", name: "Thickness", value: stoneShare.thicknessCm, unitText: "cm" }] } : {}),
+  } : null;
   const structuredData = withTradeScoutPublishingProvenance({
-    structuredData: { "@context": "https://schema.org", "@graph": [identity, ...(isOnyx ? [{
+    structuredData: { "@context": "https://schema.org", "@graph": [identity, ...(productEntity ? [productEntity] : isOnyx ? [{
       "@type": "CollectionPage", "@id": mainEntityId, name: "Onyx", url: canonical,
       description: ISSA_BUILD_ONYX_PAGE_DESCRIPTION, about: { "@id": `${profileUrl}#identity` },
     }] : [])] },
     pageUrl: canonical, mainEntityId, ownerIdentityId: `${profileUrl}#identity`,
     pageType: isOnyx ? "WebPage" : "ProfilePage",
   });
-  const gallerySlug = new URLSearchParams(window.location.search).get("gallery");
-  const shareImage = isOnyx ? ISSA_BUILD_HERO_POSTER : profile.seoMeta?.imageUrl || ISSA_BUILD_LOGO;
+  const gallerySlug = query.get("gallery");
+  const shareImage = stoneShare?.imageUrl || (isOnyx ? ISSA_BUILD_HERO_POSTER : profile.seoMeta?.imageUrl || ISSA_BUILD_LOGO);
   const socials: NonNullable<DefaultThemeProps["socials"]> = [];
   for (const kind of ["instagram", "tiktok"] as const) {
     const href = hero[`${kind}Url`];
@@ -175,10 +204,21 @@ export default function IssaBuildSiteView() {
   const customBlocks = blocks.filter((block) => !["hero", "about", "services", "serviceAreas", "cta", "gallery", "siteTemplate", "inventoryCatalog", "publicDiscovery", "trust"].includes(block.type))
     .map((block) => ({ title: clean(block.data?.title || block.title, 200), body: clean(block.data?.text || block.data?.body || block.body, 2000) }))
     .filter((block) => block.title && block.body);
+  const recommendations = (data.recommendationsDirectory || []).map((entry) => ({
+    ...entry,
+    subjectName: entry.contractor?.companyName || entry.subjectName,
+    subjectHref: entry.contractor?.canonicalBusinessProfileUrl || (entry.contractor?.slug ? `/contractors/${encodeURIComponent(entry.contractor.slug)}` : entry.subjectHref),
+  }));
+  const quickFacts = [
+    ...(services.length ? [{ label: "Services", value: String(services.length) }] : []),
+    ...(serviceAreas.length ? [{ label: "Serves", value: `${serviceAreas.length} area${serviceAreas.length === 1 ? "" : "s"}` }] : []),
+    ...(booking.enabled === true ? [{ label: "Appointments", value: "Available" }] : []),
+  ];
 
   return <>
     <SEOHelmet title={title} socialTitle={title} description={description} canonical={canonical}
-      ogType={isOnyx ? "website" : "profile"} ogImage={shareImage} structuredData={structuredData} />
+      ogType={stoneShare ? "product" : isOnyx ? "website" : "profile"} ogImage={shareImage}
+      preserveCanonicalQuery={Boolean(stoneShare)} structuredData={structuredData} />
     {!isOnyx && viewerCanManage ? <ProfileSiteManageChrome
       profileId={profile.id} profileSlug={ISSA_BUILD_PROFILE_SLUG} displayName={name} headline={headline}
       contentBlocks={blocks as ManageProps["contentBlocks"]} siteTemplate="default" editMode={editMode}
@@ -196,16 +236,16 @@ export default function IssaBuildSiteView() {
           headline={null} contentBlocks={onyxBlocks} categories={[]} serviceAreas={[]}
           businessAddress={publicAddress} brandColors={business?.brandColors}
           contactReason={profile.contactPolicy?.reason} hasViewerSession={hasSession}
-          isSuperAdminViewer={Boolean(user?.isSuperAdmin || user?.role === "super_admin")}
+          isSuperAdminViewer={Boolean((user as { isSuperAdmin?: boolean } | null)?.isSuperAdmin || user?.role === "super_admin")}
           useExpressDirectConnect allowExpressCall={allowCall}
-          profileShareDestination={ISSA_BUILD_ONYX_PATH} currentPageShareDestination={ISSA_BUILD_ONYX_PATH}
-          currentPageShareTitle={ISSA_BUILD_ONYX_PAGE_TITLE} platformBaseHref=""
+          profileShareDestination={ISSA_BUILD_ONYX_PATH} currentPageShareDestination={destination}
+          currentPageShareTitle={title} platformBaseHref=""
           tradeScoutReturnHref={ISSA_BUILD_PUBLIC_PATH} directConnectHref={directPath}
           preScoutCreateHref={`/pre-scout-setup?mode=create&next=${encodeURIComponent(directPath)}`}
           preScoutSignInHref={signInHref} trustActions={trust("light")}
           onProjectRequest={() => openRequest("Onyx")} />
       </Suspense>
-    </div> : <div data-testid="issa-build-business-profile" style={{ "--ts-profile-top-offset": viewerCanManage ? "3.5rem" : "0px" } as React.CSSProperties}>
+    </div> : <div data-testid="issa-build-business-profile" style={{ "--ts-profile-top-offset": viewerCanManage ? "3.5rem" : "0px" } as CSSProperties}>
       <DefaultProfileTheme businessName={name} operatorName={clean(hero.operatorName, 160) || undefined}
         presentationVariant={hero.presentationVariant === "first-deliverable" ? "first-deliverable" : "classic"}
         profileKind="business" categoryLabel={business?.categories?.[0] || ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory}
@@ -218,7 +258,7 @@ export default function IssaBuildSiteView() {
         services={services.length ? services : business?.services || []} serviceAreas={serviceAreas}
         aboutText={clean(about.text || about.body || about.description, 4000) || undefined}
         galleryItems={gallery} sharedGallerySlug={gallerySlug} socials={socials} customBlocks={customBlocks}
-        badges={business?.categories || []} recommendations={data.recommendationsDirectory || []}
+        badges={business?.categories || []} recommendations={recommendations} stats={quickFacts}
         recommendationMode={data.recommendationDirectoryMode || "authored"}
         showAbout={sections.about !== false} showBadges={sections.rolesAndBadges !== false}
         showStats={sections.stats !== false} showServices={sections.services !== false}
@@ -236,7 +276,7 @@ export default function IssaBuildSiteView() {
             bookingCategory={business?.categories?.[0] || profile.roleContext || "business_owner"}
             bookingStateCode={business?.stateCode || ""} hasViewerSession={hasSession} viewerCanManage={viewerCanManage}
             signInHref={`/pre-scout-setup?mode=create&next=${encodeURIComponent(`${ISSA_BUILD_PUBLIC_PATH}?book=1`)}`} platformBaseHref="" />
-          {booking.calendarVisibility !== "private" ? <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {booking.calendarVisibility === "public" ? <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {(booking.slots || []).filter((slot) => slot.active !== false).map((slot) => <div key={slot.id} className="flex justify-between gap-4">
               <span>{["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][slot.dayOfWeek]}</span>
               <span>{slot.startTime}–{slot.endTime}</span>
