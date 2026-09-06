@@ -4,6 +4,7 @@ import {
   ISSA_BUILD_BUSINESS_NAME,
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
   ISSA_BUILD_PROFILE_SLUG,
+  ISSA_BUILD_LOCAL_DISCOVERY,
 } from "@shared/issaBuildProfile";
 import { LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE } from "@shared/businessDiscoveryAuthority";
 import { businesses, profiles } from "@shared/schema";
@@ -23,11 +24,10 @@ export const ISSA_BUILD_FULL_SERVICE_SCOPE = [
 ] as const;
 
 const VERIFIED_HERO_COPY =
-  "100% verified full-service Honey Onyx and Multi Green Onyx—from material sourcing, availability, and selection through custom fabrication, backlighting, installation, and project fulfillment.";
+  "Kitchens, bathrooms, cabinets, stone countertops and fabrication in Pensacola and surrounding areas. ISSA Build also brings Honey Onyx and Multi Green Onyx to life through custom fabrication, backlighting and installation.";
 const VERIFIED_ABOUT_COPY =
-  "ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation. ISSA Build also handles material sourcing and availability, project-location review, and fulfillment for residential and commercial projects.";
-const VERIFIED_SEO_COPY =
-  "100% verified full-service Honey Onyx and Multi Green Onyx for residential and commercial projects, including sourcing, availability, material selection, custom fabrication, backlighting, installation, and fulfillment.";
+  "ISSA Build handles kitchen and bathroom projects in Pensacola and surrounding areas, including cabinets, stone countertops and fabrication. ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation. ISSA Build also handles material sourcing and availability, project-location review, and fulfillment for residential and commercial projects.";
+const VERIFIED_SEO_COPY = ISSA_BUILD_LOCAL_DISCOVERY.description;
 
 function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -35,7 +35,7 @@ function recordValue(value: unknown): Record<string, any> {
     : {};
 }
 
-function buildVerifiedIssaBuildContentBlocks(): any[] {
+export function buildVerifiedIssaBuildContentBlocks(): any[] {
   const blocks = JSON.parse(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)) as Array<
     Record<string, any>
   >;
@@ -48,6 +48,8 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
         ...block,
         data: {
           ...data,
+          eyebrow: "PENSACOLA AND SURROUNDING AREAS",
+          headerLabel: "Kitchens, bathrooms and stone.",
           teaser: VERIFIED_HERO_COPY,
         },
       };
@@ -90,13 +92,16 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
             },
             capabilities: {
               ...recordValue(luxuryHouse.capabilities),
-              body: "ISSA Build handles the complete project: material sourcing and availability, selection, custom fabrication, backlighting, installation, project-location review, and fulfillment for residential and commercial interiors.",
-              items: ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title })),
+              body: "ISSA Build handles the complete project: Pensacola-area kitchens and bathrooms, cabinets, stone countertops and fabrication. The full-service onyx offering includes sourcing, selection, backlighting, installation and fulfillment.",
+              items: [
+                ...ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => ({ title: service.title })),
+                ...ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title })),
+              ],
             },
             consultation: {
               ...recordValue(luxuryHouse.consultation),
               title: "Start a Request.",
-              body: "Tell TradeScout about the room, material, scale, location, and timing. TradeScout manages the inquiry and ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and fulfillment.",
+              body: "Tell TradeScout about your kitchen, bathroom, cabinet or countertop project, including fabrication. Include the actual city or ZIP, dimensions and timing. TradeScout manages the inquiry for ISSA Build.",
             },
           },
         },
@@ -110,7 +115,7 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
           ...data,
           heading: "Start a Request",
           description:
-            "Tell TradeScout about the space, material, scale, location, and timing. ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and fulfillment.",
+            "Tell TradeScout about your Pensacola-area kitchen or bathroom project, cabinets, countertops or fabrication. Include your actual city or ZIP, dimensions and timing for ISSA Build.",
         },
       };
     }
@@ -167,11 +172,14 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
         publicDiscoveryEnabled: true,
         profileData: {
           ...profileData,
-          tagline: "100% verified full-service onyx, crafted for light.",
-          description:
-            "ISSA Build handles complete Honey Onyx and Multi Green Onyx projects for residential and commercial interiors, including material sourcing and availability, selection, custom fabrication, backlighting design and installation, custom onyx installation, project-location review, and fulfillment.",
-          category: "Custom translucent onyx",
-          services: [...ISSA_BUILD_FULL_SERVICE_SCOPE],
+          tagline: ISSA_BUILD_LOCAL_DISCOVERY.headline,
+          description: VERIFIED_ABOUT_COPY,
+          category: ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory,
+          services: [
+            ...ISSA_BUILD_LOCAL_DISCOVERY.tradeServices,
+            ...ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => service.title),
+            ...ISSA_BUILD_FULL_SERVICE_SCOPE,
+          ],
           importExtras: {
             ...importExtras,
             business_verification: ISSA_BUILD_VERIFICATION_STATUS,
@@ -193,7 +201,7 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
     await tx
       .update(profiles)
       .set({
-        headline: "100% verified full-service onyx, crafted for light.",
+        headline: ISSA_BUILD_LOCAL_DISCOVERY.headline,
         contentBlocks: buildVerifiedIssaBuildContentBlocks(),
         ctaConfig: {
           primary: {
@@ -204,7 +212,7 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
         } as any,
         seoMeta: {
           ...recordValue(profile.seoMeta),
-          title: "ISSA Build | 100% Verified Full-Service Onyx",
+          title: ISSA_BUILD_LOCAL_DISCOVERY.title,
           description: VERIFIED_SEO_COPY,
         } as any,
         updatedAt: now,

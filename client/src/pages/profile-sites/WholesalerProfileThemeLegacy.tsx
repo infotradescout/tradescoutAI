@@ -237,6 +237,8 @@ type WholesalerProfileThemeProps = {
   profileItems?: ReactNode;
   /** When set, Featured stones uses these inventory slugs instead of random picks. */
   featuredStoneSlugs?: string[];
+  /** A dedicated business frame may own its general project request. Material selections stay here. */
+  onProjectRequest?: () => void;
 };
 
 const DEFAULT_BRAND_COLORS: Required<WholesalerBrandColors> = {
@@ -512,6 +514,7 @@ export default function WholesalerProfileTheme({
   trustActions,
   profileItems,
   featuredStoneSlugs = [],
+  onProjectRequest,
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isIssaBuild = isIssaBuildProfileSlug(profileSlug);
@@ -1079,6 +1082,10 @@ export default function WholesalerProfileTheme({
     requestType?: ExpressDirectConnectRequestType | null,
     itemId?: string | null
   ) => {
+    if (onProjectRequest && !stoneName && !itemId && !requestType) {
+      onProjectRequest();
+      return;
+    }
     if (useExpressDirectConnect) {
       setExpressStoneName(stoneName || null);
       setExpressItemId(itemId || null);
@@ -1818,7 +1825,7 @@ export default function WholesalerProfileTheme({
                     onClick={() => startDirectConnect()}
                     className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90"
                   >
-                    Start a consultation
+                    {isIssaBuild ? "Start a Request" : "Start a consultation"}
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <button

@@ -2,6 +2,8 @@ import { useMemo, useState, type ComponentProps } from "react";
 import { CheckCircle2, MessageCircle, ShieldCheck } from "lucide-react";
 import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
+import { ISSA_BUILD_LOCAL_DISCOVERY } from "@shared/issaBuildProfile";
+import { pensacolaProjectMessage } from "@shared/pensacolaDiscovery";
 
 type Props = ComponentProps<typeof LegacyWholesalerProfileTheme>;
 type ContentBlock = Props["contentBlocks"][number];
@@ -38,8 +40,9 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
         ...block,
         data: {
           ...data,
-          teaser:
-            "100% verified full-service Honey Onyx and Multi Green Onyx—from material sourcing and selection through custom fabrication, backlighting, installation, and project fulfillment.",
+          eyebrow: "PENSACOLA AND SURROUNDING AREAS",
+          headerLabel: "Kitchens, bathrooms and stone.",
+          teaser: ISSA_BUILD_LOCAL_DISCOVERY.description,
         },
       } as ContentBlock;
     }
@@ -49,7 +52,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
         ...block,
         data: {
           ...data,
-          text: "TradeScout manages every inquiry. ISSA Build handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
+          text: "ISSA Build handles Pensacola-area kitchens, bathrooms, cabinets, stone countertops and fabrication. TradeScout manages every inquiry. ISSA Build also handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
         },
       } as ContentBlock;
     }
@@ -81,14 +84,20 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
             },
             capabilities: {
               ...recordValue(luxuryHouse.capabilities),
-              title: "Complete onyx projects.",
-              body: "ISSA Build handles the complete project for residential and commercial interiors.",
-              items: ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title, body: "" })),
+              title: "Kitchens, bathrooms and complete onyx projects.",
+              body: "ISSA Build handles kitchens, bathrooms, cabinets, countertops and fabrication in Pensacola and surrounding areas, alongside its full-service onyx work.",
+              items: [
+                ...ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => ({
+                  title: service.title,
+                  body: service.description,
+                })),
+                ...ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title, body: "" })),
+              ],
             },
             consultation: {
               ...recordValue(luxuryHouse.consultation),
               title: "Start a Request.",
-              body: "Tell TradeScout about the room, material, scale, location, and timing. TradeScout manages the inquiry and ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and project fulfillment.",
+              body: "Tell TradeScout about your kitchen, bathroom, cabinets, countertops or fabrication. Include your actual city or ZIP, dimensions and timing. TradeScout manages the inquiry for ISSA Build.",
             },
           },
         },
@@ -102,7 +111,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
           ...data,
           heading: "Start a Request",
           description:
-            "Tell TradeScout about the space, material, scale, location, and timing. ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and project fulfillment.",
+            "Tell TradeScout about your kitchen, bathroom, cabinets, countertops or fabrication, including your actual project city or ZIP. ISSA Build handles the work.",
         },
       } as ContentBlock;
     }
@@ -151,6 +160,23 @@ export default function IssaBuildProfileTruthFrame(props: Props) {
                   </li>
                 ))}
               </ul>
+              <nav
+                aria-label="ISSA Build Pensacola services"
+                className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-amber-200"
+              >
+                {ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => (
+                  <a
+                    key={service.slug}
+                    href={`/u/issa-build/services/${service.slug}`}
+                    className="underline underline-offset-4"
+                  >
+                    {service.title}
+                  </a>
+                ))}
+                <a href="/u/issa-build/service-areas" className="underline underline-offset-4">
+                  Pensacola and surrounding areas
+                </a>
+              </nav>
             </div>
             <button
               type="button"
@@ -164,7 +190,11 @@ export default function IssaBuildProfileTruthFrame(props: Props) {
         </div>
       </section>
 
-      <LegacyWholesalerProfileTheme {...props} contentBlocks={verifiedContentBlocks} />
+      <LegacyWholesalerProfileTheme
+        {...props}
+        contentBlocks={verifiedContentBlocks}
+        onProjectRequest={() => setRequestOpen(true)}
+      />
 
       <ExpressDirectConnectPanel
         open={requestOpen}
@@ -176,6 +206,8 @@ export default function IssaBuildProfileTruthFrame(props: Props) {
         hasViewerSession={props.hasViewerSession}
         allowCall={props.allowExpressCall}
         requestMode="service"
+        initialServiceName="Kitchen and bathroom project"
+        initialMessage={pensacolaProjectMessage("project")}
         initialView="request"
         initialRequestType="request_quote"
         stayInProfile

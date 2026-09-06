@@ -134,6 +134,7 @@ const CONTRACTOR_VERIFICATION_ROLES = new Set([
 
 const CORE_STATIC_PATHS = [
   "/",
+  "/pensacola",
   "/landing",
   "/direct-connect",
   "/community",

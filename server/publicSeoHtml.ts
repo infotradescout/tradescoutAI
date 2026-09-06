@@ -16,7 +16,7 @@ const FACT_BEARING_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-(?:profile|business)\s*
 // Directory builders already enforce public visibility and indexability. Keep
 // their approved content regardless of UA without issuing business attribution.
 const PUBLIC_DIRECTORY_DISCOVERY_MARKER =
-  /\bdata-seo-(?:trade|county|city|trade-city|best|recent|find-local-businesses)\s*=/i;
+  /\bdata-seo-(?:trade|county|city|trade-city|best|recent|find-local-businesses|pensacola)\s*=/i;
 const PUBLIC_PROFILE_JOURNEY_PAGE_MARKER =
   /\bdata-public-profile-(?:service|service-area)-page\s*=\s*(["'])true\1/i;
 const PUBLIC_PROFILE_SERVICE_JOURNEY_MARKER =

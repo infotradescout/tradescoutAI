@@ -11,6 +11,42 @@ export const ISSA_BUILD_LEGACY_PROFILE_SLUG = "honey-onyx";
 
 export const ISSA_BUILD_BUSINESS_NAME = "ISSA Build";
 
+/** Owner-confirmed on 2026-09-06; local projects route to ISSA Build through TradeScout. */
+export const ISSA_BUILD_LOCAL_DISCOVERY = {
+  primaryCategory: "Kitchen Remodeling",
+  tradeServices: ["Kitchen Remodeling", "Bathroom Remodeling"],
+  title: "ISSA Build | Pensacola Kitchens, Bathrooms & Countertops",
+  description:
+    "Kitchen and bathroom projects in Pensacola and surrounding areas: cabinets, stone countertops, fabrication and installation with ISSA Build. Start a Request.",
+  headline: "Kitchens, bathrooms, cabinets and countertops in Pensacola and surrounding areas.",
+  services: [
+    {
+      slug: "kitchen-projects",
+      title: "Kitchen projects in Pensacola",
+      description:
+        "ISSA Build handles kitchen projects in Pensacola and surrounding areas. Share the room layout, cabinet and countertop needs, measurements and desired timing for a project review.",
+    },
+    {
+      slug: "bathroom-projects",
+      title: "Bathroom projects in Pensacola",
+      description:
+        "Bring your Pensacola-area bathroom project to ISSA Build, including vanity, cabinet and stone surface needs. Include the actual project location, dimensions and the work you want completed.",
+    },
+    {
+      slug: "cabinets",
+      title: "Cabinets in Pensacola",
+      description:
+        "Start a kitchen or bathroom cabinet request with ISSA Build for Pensacola and surrounding areas. Include room dimensions, door style, finish, storage needs and whether installation is part of your project.",
+    },
+    {
+      slug: "countertops-fabrication",
+      title: "Countertops and fabrication in Pensacola",
+      description:
+        "ISSA Build handles Pensacola-area stone countertop and fabrication requests. Discuss material selection, measurements, custom fabrication and installation together, with the scope and schedule confirmed for your job.",
+    },
+  ],
+} as const;
+
 export const ISSA_BUILD_LOGO = "/images/businesses/issa-build/logo/issa-build.png";
 
 /** Full-bleed hero loop for the ISSA Build profile. */
@@ -86,6 +122,18 @@ export function isIssaBuildProfileSlug(slug: string | null | undefined): boolean
  * inventoryCatalog remains for Direct Connect / material identity only.
  */
 export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
+  {
+    type: "services",
+    data: { items: ISSA_BUILD_LOCAL_DISCOVERY.services },
+  },
+  {
+    type: "serviceAreas",
+    data: {
+      areas: ["Pensacola, FL"],
+      description:
+        "ISSA Build serves Pensacola and surrounding areas for kitchen and bathroom projects, cabinets, countertops and fabrication. Include the actual project city or ZIP so the job location and scope can be confirmed.",
+    },
+  },
   {
     type: "hero",
     data: {

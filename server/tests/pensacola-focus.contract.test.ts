@@ -8,13 +8,14 @@ const read = (relativePath: string) => {
 };
 
 describe("pensacola focus contracts", () => {
-  it("pensacola launch hub page exists with escambia-first conversion CTAs", () => {
-    const source = read("client/src/pages/pensacola.tsx");
-    expect(source).toContain("Pensacola first. Built local.");
+  it("pensacola buyer page retains escambia requests, services and business onboarding", () => {
+    const source = read("client/src/pages/pensacola-content.tsx");
+    expect(source).toContain("content.heading");
     expect(source).toContain("PENSACOLA_CLUSTERS, PENSACOLA_COUNTY_CODE");
     expect(source).toContain("county=${PENSACOLA_COUNTY_CODE}");
     expect(source).toContain("/create-account?source=pensacola-launch");
-    expect(source).toContain("without lead reselling or pay-to-play");
+    expect(source).toContain("pensacolaProjectRequestHref(kind)");
+    expect(source).toContain("content.profileHref");
     expect(source).toContain("/pensacola/${cluster.slug}");
   });
 
