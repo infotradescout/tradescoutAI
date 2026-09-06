@@ -2,10 +2,10 @@
 import { eq } from "drizzle-orm";
 import {
   ISSA_BUILD_BUSINESS_NAME,
-  ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
   ISSA_BUILD_PROFILE_SLUG,
   ISSA_BUILD_LOCAL_DISCOVERY,
 } from "@shared/issaBuildProfile";
+import { buildIssaBuildBusinessContentBlocks, issaBuildBusinessText } from "@shared/issaBuildPageContent";
 import { LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE } from "@shared/businessDiscoveryAuthority";
 import { businesses, profiles } from "@shared/schema";
 import { db } from "../db";
@@ -29,53 +29,9 @@ function recordValue(value: unknown): Record<string, any> {
     : {};
 }
 
-// Business verification does not authorize replacement marketing copy.
-const CANONICAL_ABOUT_COPY = recordValue(
-  ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((block) => block.type === "about")?.data
-).text;
-const VERIFIED_SEO_COPY = ISSA_BUILD_LOCAL_DISCOVERY.description;
-
-export function buildVerifiedIssaBuildContentBlocks(): any[] {
-  const blocks = JSON.parse(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)) as Array<
-    Record<string, any>
-  >;
-
-  return blocks.map((block) => {
-    const data = recordValue(block.data);
-
-    if (block.type === "trust") {
-      const items = Array.isArray(data.items) ? data.items : [];
-      return {
-        ...block,
-        data: {
-          ...data,
-          items: Array.from(new Set(["100% Verified by TradeScout", ...items])),
-        },
-      };
-    }
-
-    if (block.type === "premiumProduct") {
-      const luxuryHouse = recordValue(data.luxuryHouse);
-      return {
-        ...block,
-        data: {
-          ...data,
-          luxuryHouse: {
-            ...luxuryHouse,
-            capabilities: {
-              ...recordValue(luxuryHouse.capabilities),
-              items: [
-                ...ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => ({ title: service.title })),
-                ...ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title })),
-              ],
-            },
-          },
-        },
-      };
-    }
-
-    return block;
-  });
+/** Verification decorates the business record; it does not replace it with a product page. */
+export function buildVerifiedIssaBuildContentBlocks(existingContentBlocks: unknown = []): any[] {
+  return buildIssaBuildBusinessContentBlocks(existingContentBlocks);
 }
 
 /**
@@ -116,6 +72,7 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
     const now = new Date();
     const profileData = recordValue(business.profileData);
     const importExtras = recordValue(profileData.importExtras);
+    const seoMeta = recordValue(profile.seoMeta);
     const sources = Array.isArray(business.sources)
       ? business.sources.filter((value): value is string => typeof value === "string")
       : [];
@@ -126,14 +83,16 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
         publicDiscoveryEnabled: true,
         profileData: {
           ...profileData,
-          tagline: ISSA_BUILD_LOCAL_DISCOVERY.headline,
-          description: CANONICAL_ABOUT_COPY,
-          category: ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory,
-          services: [
+          tagline: issaBuildBusinessText(profileData.tagline, ISSA_BUILD_LOCAL_DISCOVERY.headline),
+          description: issaBuildBusinessText(profileData.description, ISSA_BUILD_LOCAL_DISCOVERY.description),
+          category: profileData.category && profileData.category !== "Natural Onyx"
+            ? profileData.category : ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory,
+          services: Array.from(new Set([
+            ...(Array.isArray(profileData.services) ? profileData.services : []),
             ...ISSA_BUILD_LOCAL_DISCOVERY.tradeServices,
             ...ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => service.title),
             ...ISSA_BUILD_FULL_SERVICE_SCOPE,
-          ],
+          ])),
           importExtras: {
             ...importExtras,
             business_verification: ISSA_BUILD_VERIFICATION_STATUS,
@@ -155,8 +114,8 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
     await tx
       .update(profiles)
       .set({
-        headline: ISSA_BUILD_LOCAL_DISCOVERY.headline,
-        contentBlocks: buildVerifiedIssaBuildContentBlocks(),
+        headline: issaBuildBusinessText(profile.headline, ISSA_BUILD_LOCAL_DISCOVERY.headline),
+        contentBlocks: buildVerifiedIssaBuildContentBlocks(profile.contentBlocks),
         ctaConfig: {
           primary: {
             label: "Start a Request",
@@ -165,9 +124,9 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
           },
         } as any,
         seoMeta: {
-          ...recordValue(profile.seoMeta),
-          title: ISSA_BUILD_LOCAL_DISCOVERY.title,
-          description: VERIFIED_SEO_COPY,
+          ...seoMeta,
+          title: issaBuildBusinessText(seoMeta.title, ISSA_BUILD_LOCAL_DISCOVERY.title),
+          description: issaBuildBusinessText(seoMeta.description, ISSA_BUILD_LOCAL_DISCOVERY.description),
         } as any,
         updatedAt: now,
       })
