@@ -1729,11 +1729,9 @@ export function DirectConnectRequestComposer({
     if (!returnPathMatches) return;
     const authenticatedUserId = String(user?.id || "").trim();
     const draftOwnerUserId = String(parsed.ownerUserId || "").trim();
-    const accountMismatch = Boolean(
-      authenticatedUserId &&
-      ((draftOwnerUserId && draftOwnerUserId !== authenticatedUserId) ||
-        (!draftOwnerUserId && parsed.authHandoff !== true))
-    );
+    const accountMismatch = draftOwnerUserId
+      ? draftOwnerUserId !== authenticatedUserId
+      : Boolean(authenticatedUserId && parsed.authHandoff !== true);
     const entrySignature = currentEntrySignature();
     const entryMismatch = String(parsed.entrySignature || "") !== entrySignature;
     const countyMismatch =

@@ -240,7 +240,7 @@ describe("request composer recovery behavior", () => {
     expect(field("Original roof")).toBeTruthy();
   });
 
-  it("takes missing-profile errors to contact settings and recovers after filling a missing county", async () => {
+  it("keeps profile recovery private while signed out and restores it only for its owner after filling a missing county", async () => {
     state.user = { ...account, countyFips: "", stateCode: "" };
     const props = {
       ...initialProps,
@@ -260,6 +260,16 @@ describe("request composer recovery behavior", () => {
     const recovery = new URL(state.navigate.mock.calls.at(-1)![0], "https://test.local");
     expect(recovery.pathname).toBe("/profile-settings");
     expect(recovery.searchParams.get("next")).toBe(props.entryLocation);
+    await unmount();
+    state.user = null;
+    await mount(props);
+    expect(field("Original roof")).toBeTruthy();
+    expect(field("Keep this request")).toBeUndefined();
+    await unmount();
+    state.user = { ...account, id: "requester-2" };
+    await mount(props);
+    expect(field("Original roof")).toBeTruthy();
+    expect(field("Keep this request")).toBeUndefined();
     await unmount();
     state.user = account;
     await mount(props);
