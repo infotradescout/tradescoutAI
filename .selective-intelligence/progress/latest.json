@@ -1,54 +1,59 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260905T040706Z-94f030df",
-  "createdAt": "2026-09-05T04:07:06.025474+00:00",
-  "outcome": "Verified approximate whole-slab totals for authorized JW Stone pricing viewers whenever valid dimensions are available.",
+  "checkpointId": "progress-20260906T014705Z-bb1f8d5c",
+  "createdAt": "2026-09-06T01:47:05.302501+00:00",
+  "outcome": "Honor explicit profile suspension and call availability",
   "scope": [
-    "JW Stone approximate slab totals only."
+    "Four changed profile policy and component files only"
   ],
   "prohibitions": [
-    "Do not expose an estimate unless the viewer already has authorized private pricing.",
-    "Do not present the estimate as a final measured slab price, invoice, delivery charge, or fabrication total.",
-    "Do not merge or deploy without explicit approval."
+    "No live user suspension, real business request, release-3 recovery changes, or JW access workaround"
   ],
   "progress": {
     "completedVerified": [
-      "Calculates the listed slab face area and applies the private single-slab square-foot rate.",
-      "Shows one estimated total for one size and a total range for two recorded sizes.",
-      "Supports catalog inches and structured inch or millimeter new-arrival dimensions.",
-      "Keeps estimates absent for signed-out viewers, nonmembers, missing prices, and invalid or incomplete sizes."
+      "Preserved manual onboarding; revoked suspended-owner exposure including stale badge fallback; hid unavailable compact calls on desktop and mobile"
     ],
     "changedUnverified": [],
     "proof": [
-      "JW Stone pricing and account-control verification passed: 62 tests across 11 files.",
-      "Changed-file lint completed with zero errors; one unrelated pre-existing inline-style warning remains.",
-      "Client and server production builds passed.",
-      "Built public assets contain none of the known private workbook price values."
+      "Five new regressions fail before the repair; 80 focused publication and UI checks pass after the repair"
     ],
-    "externalEffects": [
-      "Preserved only on jw-stone/member-pricing-drive-authority; no pull request, merge, migration, credential change, or deployment."
-    ],
-    "doNotRepeat": [
-      "Do not calculate from thickness, historical slab counts, bundle rates, or internal landed cost."
-    ],
-    "nextSafeAction": "Await explicit approval for the existing pricing branch to be merged, configured, migrated, and deployed."
+    "externalEffects": [],
+    "doNotRepeat": [],
+    "nextSafeAction": "Run exact-commit minimum release gate and save reviewed PR evidence"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "jw-stone/member-pricing-drive-authority",
-    "headBefore": "f47cad203f958e66cef1cfc5cd5c780d613cc840",
+    "branch": "fix/profile-publication-controls-2026-09-06",
+    "headBefore": "97c749e528cdf1648695fee59f47e0293b3da464",
     "checkpointCommit": "containing_commit",
-    "pushRequested": false,
-    "pushRemote": null,
+    "pushRequested": true,
+    "pushRemote": "origin",
     "protectedBranchAuthorized": false,
-    "selectedStatusBefore": [],
-    "unrelatedChangeCountExcluded": 0
+    "selectedStatusBefore": [
+      "M  client/src/pages/profile-sites/LocalServiceProfileTheme.test.tsx",
+      "M  client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
+      "M  server/services/ownerConfirmedDirectProfile.ts",
+      "M  server/tests/louisiana-stone-profile-exposure.test.ts"
+    ],
+    "unrelatedChangeCountExcluded": 1
   },
   "savedFiles": [
     {
-      "path": ".selective-intelligence/progress/latest.json",
-      "sha256": "b49586bfd52f2455ea5ffec3fce3e149490360bac338a41a987c3e502257e5dd"
+      "path": "server/services/ownerConfirmedDirectProfile.ts",
+      "sha256": "72ecdb1ba74f1f9018e51f6c6c6bc3223b5152b369d620d3f5f0055957d5231b"
+    },
+    {
+      "path": "server/tests/louisiana-stone-profile-exposure.test.ts",
+      "sha256": "8f5af5e0f5107842e954005d44926fb5345183448685835461aa1c84413539b2"
+    },
+    {
+      "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
+      "sha256": "8a37f922d2c740feba336a215a8120ba03d8ef7630629591ffa5c2d441e89b12"
+    },
+    {
+      "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.test.tsx",
+      "sha256": "aafc62e7d678fe42176eb7ae052244725aa5b3b448fd652ab914c95241748fa1"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

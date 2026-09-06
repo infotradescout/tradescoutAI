@@ -61,7 +61,7 @@ function companyCandidate(
 }
 
 describe("Louisiana Stone Solutions manual admin release", () => {
-  it.each(["pending", "approved", "rejected", "expired", "suspended", undefined])(
+  it.each(["pending", "approved", "rejected", "expired", undefined])(
     "honors admin publication independently of self-signup verification (%s)",
     (ownerVerificationStatus) => {
       const candidate = companyCandidate({ ownerVerificationStatus });
@@ -87,6 +87,8 @@ describe("Louisiana Stone Solutions manual admin release", () => {
   const deniedAuthority: Array<[string, Partial<PublishedProfileExposureCandidate>]> = [
     ["draft profile", { profileStatus: "draft" }],
     ["inactive business", { businessStatus: "suspended" }],
+    ["suspended owner", { ownerVerificationStatus: "suspended" }],
+    ["normalized suspended owner", { ownerVerificationStatus: " Suspended " }],
     ["mismatched business owner", { businessOwnerUserId: "synthetic-other-owner" }],
     ["empty owner pair", { businessOwnerUserId: "", profileOwnerUserId: "" }],
     ["discovery enabled", { publicDiscoveryEnabled: true }],
@@ -129,6 +131,7 @@ describe("Louisiana Stone Solutions manual admin release", () => {
     { businessOwnerUserId: "synthetic-other-owner" },
     { businessSources: [] },
     { publicDiscoveryEnabled: true },
+    { ownerVerificationStatus: "suspended" },
   ])(
     "does not recover revoked LSS authority through a badge or generic approved-owner fallback",
     (override) => {
@@ -192,6 +195,20 @@ describe("Louisiana Stone Solutions manual admin release", () => {
       })
     ).toEqual([]);
     expect(loadPublicProfile).not.toHaveBeenCalled();
+  });
+
+  it("does not let a retained badge restore a suspended business owner through generic trust", () => {
+    const candidate = companyCandidate({
+      profileSlug: "synthetic-other-stone-company",
+      ownerVerificationStatus: "suspended",
+      ownerVerifiedBadge: true,
+      publicDiscoveryEnabled: true,
+      businessSources: [],
+    });
+    expect(canExposeLinkedBusinessProfilePublicly(candidate)).toBe(false);
+    expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(false);
+    expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(false);
+    expect(canExposeProviderProfileOnPublicMap(candidate)).toBe(false);
   });
 
   it("leaves unrelated verified business discovery unchanged", () => {
