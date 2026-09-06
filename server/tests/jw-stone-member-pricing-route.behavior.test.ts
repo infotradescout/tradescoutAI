@@ -47,7 +47,7 @@ describe("JW Stone private pricing HTTP path", () => {
       );
       CREATE TABLE profile_account_entitlements (profile_account_id text, product_key text, status text);
       INSERT INTO profiles VALUES ('jw-profile', 'jw-stone', 'jw-business');
-      INSERT INTO user_profiles VALUES ('member-business', 'member', 'business', 'approved');
+      INSERT INTO user_profiles VALUES ('member-business', 'member', 'business', 'pending');
       INSERT INTO profile_accounts VALUES ('membership', 'member', 'jw-profile', 'jw-business',
         'member-business', 'business', 'active', 'pending');
       INSERT INTO profile_account_entitlements VALUES ('membership', 'jw_stone_member_pricing', 'pending_verification');
@@ -92,7 +92,7 @@ describe("JW Stone private pricing HTTP path", () => {
     expect(response.status).toBe(403);
     expect(response.body.prices).toBeUndefined();
   });
-  it("delivers exact stone rates to an approved member and excludes internal cost and source IDs", async () => {
+  it("delivers exact stone rates on membership creation and excludes internal cost and source IDs", async () => {
     const response = await request(app)
       .get("/api/u/jw-stone/member-pricing")
       .set("x-fixture-viewer", "member");

@@ -9,7 +9,7 @@ vi.mock("../services/stoneInventoryService", () => ({
 
 import { hasActiveJwStoneBusinessMembership } from "../services/jwStonePricingAccess";
 
-describe("JW Stone membership approval against actual SQL", () => {
+describe("JW Stone membership activation against actual SQL", () => {
   let database: PGlite;
   const access = () => hasActiveJwStoneBusinessMembership("member", database as never);
 
@@ -41,8 +41,8 @@ describe("JW Stone membership approval against actual SQL", () => {
 
   afterEach(async () => database.close());
 
-  it("unlocks an existing membership when its business is approved, without joining again", async () => {
-    expect(await access()).toBe(false);
+  it("unlocks prices on business membership creation without another verification gate", async () => {
+    expect(await access()).toBe(true);
     await database.exec("UPDATE user_profiles SET verification_status = 'approved'");
     expect(await access()).toBe(true);
     const account = await database.query("SELECT verification_status FROM profile_accounts");
@@ -64,7 +64,7 @@ describe("JW Stone membership approval against actual SQL", () => {
     expect(await access()).toBe(false);
   });
 
-  it("removes pricing when the business loses approval", async () => {
+  it("removes pricing when the business identity is explicitly rejected", async () => {
     await database.exec(`
       UPDATE profile_accounts SET verification_status = 'approved';
       UPDATE profile_account_entitlements SET status = 'active';

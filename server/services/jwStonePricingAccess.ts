@@ -27,10 +27,10 @@ export async function hasActiveJwStoneBusinessMembership(
 ): Promise<boolean> {
   const normalizedUserId = String(userId || "").trim();
   if (!normalizedUserId) return false;
-  // Business verification is authoritative on user_profiles, as it is in the
-  // account screen. The account and entitlement retain their signup-time state.
-  // A pending verification entitlement becomes usable when that same business
-  // is approved; explicit suspensions and revocations always remain blocked.
+  // The active JW business membership unlocks pricing. General business
+  // verification is a separate product gate, not another pricing prerequisite.
+  // Honor legacy pending pricing entitlements, while explicit rejection,
+  // suspension and revocation remain blocked.
   const result = await queryable.query(
     `SELECT 1
        FROM profile_account_entitlements entitlement
@@ -47,7 +47,7 @@ export async function hasActiveJwStoneBusinessMembership(
         AND account.status = 'active'
         AND member_business.user_id = account.owner_user_id
         AND member_business.user_intent::text = 'business'
-        AND member_business.verification_status::text = 'approved'
+        AND member_business.verification_status::text IN ('pending', 'approved')
         AND entitlement.product_key = $2
         AND (entitlement.status = 'active' OR entitlement.status = 'pending_verification')
       LIMIT 1`,

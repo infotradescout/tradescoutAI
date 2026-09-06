@@ -46,7 +46,7 @@ The Drive workbook remains the master price list. `JW_STONE_PRICING_SOURCE=drive
 
 An import does **not** refresh itself when the workbook changes. Refresh it from the same authorized workbook and retain its source dates, or switch to direct Drive mode only after production proves the connection works. Never describe an import as automatic synchronization.
 
-Membership access reads the current approval of the member's own business. A signup-time pending verification entitlement becomes usable on approval without another signup. Explicit revoked/suspended entitlements and closed/suspended memberships remain blocked.
+An active JW Stone business membership unlocks pricing immediately. General business verification remains separate and continues to govern BidRock and other protected features. Pricing accepts legacy pending-verification entitlements for active memberships; no second signup or unrelated verification step is required. Explicitly rejected business identities, revoked/suspended entitlements, and closed/suspended memberships remain blocked.
 
 ## Owner rule
 
