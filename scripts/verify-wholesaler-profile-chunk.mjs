@@ -155,11 +155,11 @@ const jwCold = jwGraph.filter((name) => !outerBase.has(name));
 const [jwRaw, jwGzip] = sum(jwCold);
 assert.ok(jwCold.includes(jwName));
 assert.ok(jwCold.some((name) => name.startsWith("catalog-")), "nested JW delta missing catalog");
-// Baseline b47dba08 is 239452/71993 bytes. Sharing ISSA discovery and request
-// modules changes this graph's imports to 239544/72027 without changing JW
-// functionality. Allow 256 compressed bytes for this reviewed shared-graph
-// change; retain the 240 kB raw ceiling and all nested ownership boundaries.
-assert.ok(jwRaw <= 240_000 && jwGzip <= 72_256, `nested JW cold delta exceeded reviewed shared-graph budget: ${jwRaw}/${jwGzip}`);
+// Origin release 3d667bfe is 239989/72164 bytes. Sharing the route-specific
+// SEO resolver preserves Iranian onyx metadata after hydration and navigation:
+// measured 239981/72465. Allow a further 256 compressed bytes for this reviewed
+// behavior; retain the 240 kB raw ceiling and all nested ownership boundaries.
+assert.ok(jwRaw <= 240_000 && jwGzip <= 72_512, `nested JW cold delta exceeded reviewed origin-metadata budget: ${jwRaw}/${jwGzip}`);
 const siblingPrefixes = ["PrecisionAerialProfile-", "ProFabProfileTheme-", "JrsAutoGlassProfileTheme-", "VideographerProfileTheme-", "LocalServiceProfileTheme-", "SteelHomePackagesProfile-", "BuildingDesigner-", "CabinetDesigner-", "CountertopDesigner-", "three.module-"];
 for (const prefix of siblingPrefixes) {
   assert.equal(outerGraph.some((name) => name?.startsWith(prefix)), false, `Wholesaler preloads ${prefix}`);
