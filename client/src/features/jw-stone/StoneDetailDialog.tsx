@@ -48,6 +48,12 @@ export function StoneDetailDialog({
   const finishes = confirmedFinishes(stone);
   const availability = availabilityDetailLabel(stone);
   const dimensions = formatDimensionsForDisplay(stone.slabDimensions);
+  const thicknessCm =
+    typeof stone.thicknessCm === "number" &&
+    Number.isFinite(stone.thicknessCm) &&
+    stone.thicknessCm > 0
+      ? stone.thicknessCm
+      : null;
   const firstCut = isFirstCutDetailStone(stone);
   const askLabel = stone.displayName
     ? `Ask JW about ${stone.displayName}`
@@ -55,7 +61,7 @@ export function StoneDetailDialog({
       ? "Ask JW about this First Cut"
       : "Ask JW about this stone";
   const hasConfirmedFacts = Boolean(
-    stone.materialLabel || availability || finishes.length || dimensions || stone.origin
+    stone.materialLabel || availability || finishes.length || dimensions || stone.origin || thicknessCm
   );
   const shareDestination = stone.shareSlug
     ? stoneShareDestination(stone.shareSlug)
@@ -228,10 +234,10 @@ export function StoneDetailDialog({
                       <dd className="mt-0.5 font-medium">{stone.origin.country}</dd>
                     </div>
                   ) : null}
-                  {stone.thicknessCm ? (
+                  {thicknessCm ? (
                     <div>
                       <dt className={jw.muted}>Thickness</dt>
-                      <dd className="mt-0.5 font-medium">{stone.thicknessCm} cm</dd>
+                      <dd className="mt-0.5 font-medium">{thicknessCm} cm</dd>
                     </div>
                   ) : null}
                 </dl>
