@@ -34,7 +34,7 @@ export function resolveMarketplaceSeo(location: string): MarketplaceSeo {
     const name = stone?.displayName || titleCaseSlug(parsed.stone);
     const material = stone?.materialLabel || "Natural Stone";
     const country = stone?.origin?.country;
-    const description = `${country ? `Country of origin: ${country}. ` : ""}View ${name} ${material} slab photos from JW Stone Logistics in Pensacola, Florida.`;
+    const description = `${country ? `Country of origin: ${country}. ` : ""}${stone?.thicknessCm ? `Thickness: ${stone.thicknessCm} cm. ` : ""}View ${name} ${material} slab photos from JW Stone Logistics in Pensacola, Florida.`;
     return {
       title: country
         ? `${name} from ${country} | JW Stone Logistics`

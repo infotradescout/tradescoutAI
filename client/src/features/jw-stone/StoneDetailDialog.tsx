@@ -228,6 +228,12 @@ export function StoneDetailDialog({
                       <dd className="mt-0.5 font-medium">{stone.origin.country}</dd>
                     </div>
                   ) : null}
+                  {stone.thicknessCm ? (
+                    <div>
+                      <dt className={jw.muted}>Thickness</dt>
+                      <dd className="mt-0.5 font-medium">{stone.thicknessCm} cm</dd>
+                    </div>
+                  ) : null}
                 </dl>
               ) : (
                 <p

@@ -3,11 +3,7 @@ import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import { getColorDirectionForStone } from "./colorDirections";
 import { rankImagePathsForCover, reorderParallelByPermutation } from "./coverImages";
 import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
-import {
-  getColorsForStone,
-  getStoneColorLabel,
-  getSwatchesForStone,
-} from "./stoneColors";
+import { getColorsForStone, getStoneColorLabel, getSwatchesForStone } from "./stoneColors";
 import type {
   CatalogFilterOption,
   CatalogFilters,
@@ -17,6 +13,7 @@ import type {
 import { resolveJwStoneArrivedAt } from "./arrivalDates";
 import { resolveSlabDimensionsLabel } from "./slabDimensions";
 import { JW_STONE_VERIFIED_ORIGIN_BY_SLUG } from "./verifiedOrigins";
+import { IRANIAN_ONYX_STOCK, JW_STONE_ONYX_ORIGINS } from "@shared/onyxOrigins";
 
 /** Public label for unnamed inventory photographs. Never invent availability claims. */
 export const JW_STONE_ANONYMOUS_PUBLIC_LABEL = "New arrival";
@@ -36,6 +33,7 @@ const PUBLIC_LABEL_BY_CATEGORY: Readonly<Record<string, string>> = {
  * This changes ranking only: no badge, label, special section, or public reason.
  */
 const JW_STONE_BROWSE_PRIORITY_ALIASES = [
+  ["honey-onyx"],
   ["black-dunes"],
   ["avalanche"],
   ["cristalita-blue", "cristallita-blue"],
@@ -168,6 +166,7 @@ export function projectJwStoneCatalogItem(args: {
       : null,
     slabDimensions: resolveSlabDimensionsLabel({ slug: stone.slug, images }),
     origin: resolveVerifiedOrigin(args.verifiedOrigin),
+    ...(stone.slug in JW_STONE_ONYX_ORIGINS ? { thicknessCm: IRANIAN_ONYX_STOCK.thicknessCm } : {}),
     arrivedAt: resolveJwStoneArrivedAt(stone.slug),
   });
 }

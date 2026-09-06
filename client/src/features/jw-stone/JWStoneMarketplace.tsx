@@ -349,7 +349,12 @@ export default function JWStoneMarketplace() {
           {wishlist.count} {wishlist.count === 1 ? "stone" : "stones"} saved
         </p>
 
-        <MarketplaceIntroduction />
+        <MarketplaceIntroduction
+          onExploreOnyx={() => {
+            const stone = getNamedCatalogItemByShareSlug("honey-onyx");
+            if (stone) openStone(stone);
+          }}
+        />
         <FirstCutSection onOpen={openStone} />
         <CurrentInventorySection
           onAsk={askAboutCurrentStock}

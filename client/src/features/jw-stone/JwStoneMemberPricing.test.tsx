@@ -68,6 +68,44 @@ describe("JW Stone member pricing client boundary", () => {
     expect(container.textContent).not.toContain("$");
   });
 
+  it("shows exact quantity labels only when the authorized response supplies a valid minimum", async () => {
+    const response = {
+      profileSlug: "jw-stone",
+      viewerId: "member-1",
+      currency: "USD",
+      unit: "square_foot",
+      sourceUpdatedAt: "2026-09-06T03:00:00Z",
+      access: "member",
+      prices: [
+        {
+          stoneName: "Blue Dunes",
+          stoneKey: "blue dunes",
+          slabPriceCents: 300,
+          bundlePriceCents: 200,
+          bundleMinSlabs: 2,
+        },
+      ],
+    };
+    queryClient.setQueryData(
+      ["jw-stone", "member-pricing", "member-1"],
+      sanitizeJwStonePricingResponse(response, "member-1")
+    );
+    await render("member-1");
+    expect(container.textContent).toContain("1 slab $3.00");
+    expect(container.textContent).toContain("2+ slabs $2.00");
+    expect(container.textContent).not.toContain("Bundle");
+    for (const minimum of [null, 1, 2.5, 1000, "2"]) {
+      expect(
+        sanitizeJwStonePricingResponse(
+          { ...response, prices: [{ ...response.prices[0], bundleMinSlabs: minimum }] },
+          "member-1"
+        )
+      ).toBeNull();
+    }
+    await render(null);
+    expect(container.textContent).not.toContain("$");
+  });
+
   it("renders slab and bundle prices while discarding landed cost for a member", async () => {
     const response = {
       profileSlug: "jw-stone",

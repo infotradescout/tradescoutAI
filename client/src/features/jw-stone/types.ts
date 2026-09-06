@@ -68,6 +68,7 @@ export type JwStoneCatalogItem = Readonly<{
    */
   slabDimensions: string | null;
   origin: VerifiedOrigin | null;
+  thicknessCm?: number;
   /**
    * Best available arrival/added signal (ISO). Null when no evidence exists.
    * NEW ARRIVAL badge + New Arrivals rail use a 14-day window from this date.

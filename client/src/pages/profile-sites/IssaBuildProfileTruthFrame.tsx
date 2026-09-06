@@ -4,6 +4,7 @@ import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
 import { ISSA_BUILD_LOCAL_DISCOVERY } from "@shared/issaBuildProfile";
 import { pensacolaProjectMessage } from "@shared/pensacolaDiscovery";
+import { IranianOnyxFeature } from "@/components/IranianOnyxFeature";
 
 type Props = ComponentProps<typeof LegacyWholesalerProfileTheme>;
 type ContentBlock = Props["contentBlocks"][number];
@@ -190,6 +191,7 @@ export default function IssaBuildProfileTruthFrame(props: Props) {
         </div>
       </section>
 
+      <IranianOnyxFeature href="/u/issa-build/categories/onyx" />
       <LegacyWholesalerProfileTheme
         {...props}
         contentBlocks={verifiedContentBlocks}

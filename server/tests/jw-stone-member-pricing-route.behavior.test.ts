@@ -68,6 +68,7 @@ describe("JW Stone private pricing HTTP path", () => {
             landedCostCents: 100,
             slabPriceCents: 300,
             bundlePriceCents: 200,
+            bundleMinSlabs: 2,
           },
         ],
       })
@@ -104,6 +105,7 @@ describe("JW Stone private pricing HTTP path", () => {
         stoneKey: "test stone",
         slabPriceCents: 300,
         bundlePriceCents: 200,
+        bundleMinSlabs: 2,
       },
     ]);
     expect(JSON.stringify(response.body)).not.toMatch(/landed|fileId|folderId|sourceRetrievedAt/);

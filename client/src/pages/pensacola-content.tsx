@@ -82,7 +82,7 @@ export default function PensacolaContent({ onStartRequest }: Props = {}) {
             />
           </a>
           <figcaption className="px-5 py-3 text-sm text-white/75">
-            Explore ISSA Build’s onyx work. Country of origin: Iran.
+            Explore ISSA Build’s onyx work. Country of origin: Iran. Thickness: 2 cm.
           </figcaption>
         </figure>
       </div>

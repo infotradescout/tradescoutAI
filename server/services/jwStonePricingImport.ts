@@ -23,6 +23,7 @@ const importSchema = z
             landedCostCents: cents.nullable(),
             slabPriceCents: cents,
             bundlePriceCents: cents,
+            bundleMinSlabs: z.number().int().min(2).max(999).optional(),
           })
           .strict()
       )

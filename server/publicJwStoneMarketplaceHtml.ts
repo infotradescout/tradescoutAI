@@ -11,6 +11,7 @@ import {
 } from "@shared/profileItemShare";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../client/src/data/jwStoneProfilePresentation";
 import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "./jwStoneCanonicalInventory";
+import { IRANIAN_ONYX_STOCK } from "@shared/onyxOrigins";
 
 export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/jw-stone";
 /** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
@@ -27,6 +28,7 @@ const JW_STONE_CUSTOM_DOMAIN_DESCRIPTION =
   "Browse granite, marble, quartzite, Iranian onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_LEGACY_DOMAIN = "https://jwstonellc.com/";
 const JW_STONE_DISCOVERY_PRIORITY_SLUGS = [
+  "honey-onyx",
   "black-dunes",
   "avalanche",
   "cristalita-blue",
@@ -376,6 +378,11 @@ ${companySummary}
     <p>Browse granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt slab photos from JW Stone Logistics in Pensacola, Florida. Compare named materials and ask JW Stone what is currently available for your project.</p>`
         : ""
     }
+    <section aria-label="Featured Iranian onyx">
+      <h2>${escapeHtml(IRANIAN_ONYX_STOCK.headline)}</h2>
+      <p>${escapeHtml(IRANIAN_ONYX_STOCK.stockLabel)}. ${escapeHtml(IRANIAN_ONYX_STOCK.stockNote)}</p>
+      <a href="${escapeHtml(priorityItemShares.find((item) => item.itemSlug === "honey-onyx")?.canonical || collectionUrl)}">Explore Honey Onyx</a>
+    </section>
     <h2>Material Library: natural stone slabs in Pensacola, Florida</h2>
     <p>JW Stone Logistics helps fabricators, builders, architects, designers, and homeowners browse named material photos by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
     <p>Review named material photos, then ask JW Stone to confirm current pricing or availability for your project.</p>
@@ -542,6 +549,18 @@ ${companySummary}
               category: itemShare.category || "Natural stone",
               ...(itemShare.countryOfOrigin
                 ? { countryOfOrigin: { "@type": "Country", name: itemShare.countryOfOrigin } }
+                : {}),
+              ...(itemShare.thicknessCm
+                ? {
+                    additionalProperty: [
+                      {
+                        "@type": "PropertyValue",
+                        name: "Thickness",
+                        value: itemShare.thicknessCm,
+                        unitText: "cm",
+                      },
+                    ],
+                  }
                 : {}),
               brand: { "@type": "Brand", name: JW_STONE_PUBLIC_IDENTITY.brandName },
             }

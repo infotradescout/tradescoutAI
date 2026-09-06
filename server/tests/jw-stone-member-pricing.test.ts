@@ -8,6 +8,7 @@ import {
 } from "@shared/jwStoneMemberPricing";
 import {
   JW_STONE_PRICING_HEADERS,
+  JW_STONE_PRICING_QUANTITY_HEADER,
   getJwStoneDriveIdentityEmail,
   getJwStonePricingSnapshot,
   parseJwStonePricingWorkbook,
@@ -52,6 +53,55 @@ async function withOwnerSpreadsheetNamespace(buffer: Buffer): Promise<Buffer> {
 }
 
 describe("JW Stone private member pricing", () => {
+  it.each([undefined, null, 2, 3])(
+    "preserves legacy bundles or explicit slab minima: %s",
+    async (minimum) => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Fabricator Pricing");
+      sheet.addRow([...JW_STONE_PRICING_HEADERS, JW_STONE_PRICING_QUANTITY_HEADER]);
+      sheet.addRow(["Test Stone", null, 3, 2, minimum]);
+      const snapshot = await parseJwStonePricingWorkbook(
+        Buffer.from(await workbook.xlsx.writeBuffer()),
+        "2026-09-06T03:00:00Z"
+      );
+      expect(snapshot.prices[0].bundleMinSlabs).toBe(minimum == null ? undefined : minimum);
+      for (const access of ["member", "internal"] as const) {
+        expect(
+          projectJwStonePricingResponse({ snapshot, access, viewerId: "fixture" }).prices[0]
+            .bundleMinSlabs
+        ).toBe(minimum == null ? undefined : minimum);
+      }
+    }
+  );
+
+  it.each([1, 2.5, 1000, "2", { formula: "1+1", result: 2 }])(
+    "rejects invalid quantity minima: %s",
+    async (minimum) => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Fabricator Pricing");
+      sheet.addRow([...JW_STONE_PRICING_HEADERS, JW_STONE_PRICING_QUANTITY_HEADER]);
+      sheet.addRow(["Test Stone", null, 3, 2, minimum]);
+      await expect(
+        parseJwStonePricingWorkbook(
+          Buffer.from(await workbook.xlsx.writeBuffer()),
+          "2026-09-06T03:00:00Z"
+        )
+      ).rejects.toThrow(/bundle minimum/);
+    }
+  );
+
+  it("rejects a quantity without its exact workbook header", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Fabricator Pricing");
+    sheet.addRow([...JW_STONE_PRICING_HEADERS]);
+    sheet.addRow(["Test Stone", null, 3, 2, 2]);
+    await expect(
+      parseJwStonePricingWorkbook(
+        Buffer.from(await workbook.xlsx.writeBuffer()),
+        "2026-09-06T03:00:00Z"
+      )
+    ).rejects.toThrow(/bundle minimum/);
+  });
   it("mounts private pricing only after authentication and authority binding", () => {
     const routesSource = readFileSync("server/routes.ts", "utf8");
     const setupAuthIndex = routesSource.indexOf("await setupAuth(app);");

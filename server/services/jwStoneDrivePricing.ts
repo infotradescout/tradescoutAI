@@ -31,6 +31,7 @@ export const JW_STONE_PRICING_HEADERS = Object.freeze([
   "Slab Price $/Sq. Ft.",
   "Bundle Price $/Sq. Ft.",
 ] as const);
+export const JW_STONE_PRICING_QUANTITY_HEADER = "Bundle Minimum Slabs";
 
 export type JwStoneDrivePriceRow = Readonly<{
   stoneName: string;
@@ -38,6 +39,7 @@ export type JwStoneDrivePriceRow = Readonly<{
   landedCostCents: number | null;
   slabPriceCents: number;
   bundlePriceCents: number;
+  bundleMinSlabs?: number;
 }>;
 
 export type JwStonePricingSnapshot = Readonly<{
@@ -476,12 +478,16 @@ export async function parseJwStonePricingWorkbook(
       throw new Error(`JW Stone pricing header ${index + 1} does not match the contract`);
     }
   });
+  const quantityHeader = header.getCell(5).text.trim();
+  if (quantityHeader && quantityHeader !== JW_STONE_PRICING_QUANTITY_HEADER) {
+    throw new Error("JW Stone pricing quantity header does not match the contract");
+  }
 
   const seenKeys = new Set<string>();
   const prices: JwStoneDrivePriceRow[] = [];
   for (let rowNumber = 2; rowNumber <= sheet.rowCount; rowNumber += 1) {
     const row = sheet.getRow(rowNumber);
-    const values = [1, 2, 3, 4].map((column) => row.getCell(column).value);
+    const values = [1, 2, 3, 4, 5].map((column) => row.getCell(column).value);
     if (values.every((value) => value == null || String(value).trim() === "")) continue;
 
     const stoneName = row.getCell(1).text.trim().replace(/\s+/g, " ");
@@ -503,6 +509,18 @@ export async function parseJwStonePricingWorkbook(
       row.getCell(4),
       `Pricing row ${rowNumber} bundle price`
     );
+    const quantity = row.getCell(5).value;
+    const hasQuantity = quantity != null && String(quantity).trim() !== "";
+    if (
+      hasQuantity &&
+      (!quantityHeader ||
+        typeof quantity !== "number" ||
+        !Number.isInteger(quantity) ||
+        quantity < 2 ||
+        quantity > 999)
+    ) {
+      throw new Error(`Pricing row ${rowNumber} has an invalid bundle minimum`);
+    }
     seenKeys.add(stoneKey);
     prices.push(
       Object.freeze({
@@ -511,6 +529,7 @@ export async function parseJwStonePricingWorkbook(
         landedCostCents,
         slabPriceCents: slabPriceCents as number,
         bundlePriceCents: bundlePriceCents as number,
+        ...(hasQuantity ? { bundleMinSlabs: quantity as number } : {}),
       })
     );
   }

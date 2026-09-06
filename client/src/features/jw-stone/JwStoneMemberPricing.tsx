@@ -72,12 +72,22 @@ export function sanitizeJwStonePricingResponse(
     ) {
       return null;
     }
+    if (
+      price.bundleMinSlabs !== undefined &&
+      (!Number.isInteger(price.bundleMinSlabs) ||
+        Number(price.bundleMinSlabs) < 2 ||
+        Number(price.bundleMinSlabs) > 999)
+    )
+      return null;
     seen.add(stoneKey);
     const memberPrice = {
       stoneName,
       stoneKey,
       slabPriceCents: price.slabPriceCents,
       bundlePriceCents: price.bundlePriceCents,
+      ...(price.bundleMinSlabs === undefined
+        ? {}
+        : { bundleMinSlabs: price.bundleMinSlabs as number }),
     };
     if (access === "internal") {
       if (price.landedCostCents !== null && !isCents(price.landedCostCents)) return null;
@@ -289,13 +299,17 @@ export function JwStoneMemberPriceDisplay({
         }
       >
         <div>
-          <dt className="inline text-[var(--jw-muted)]">Slab </dt>
+          <dt className="inline text-[var(--jw-muted)]">
+            {price.bundleMinSlabs === 2 ? "1 slab " : "Slab "}
+          </dt>
           <dd className="inline font-semibold text-[var(--jw-ink)]">
             {formatCents(price.slabPriceCents)} / sq. ft.
           </dd>
         </div>
         <div>
-          <dt className="inline text-[var(--jw-muted)]">Bundle </dt>
+          <dt className="inline text-[var(--jw-muted)]">
+            {price.bundleMinSlabs ? `${price.bundleMinSlabs}+ slabs ` : "Bundle "}
+          </dt>
           <dd className="inline font-semibold text-[var(--jw-ink)]">
             {formatCents(price.bundlePriceCents)} / sq. ft.
           </dd>

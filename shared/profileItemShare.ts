@@ -16,6 +16,7 @@ type RawInventoryStone = {
   publicSummary?: unknown;
   publicKind?: unknown;
   countryOfOrigin?: unknown;
+  thicknessCm?: unknown;
 };
 
 type RawInventoryCategory = {
@@ -35,6 +36,7 @@ export type ResolvedProfileInventoryItem = {
   publicSummary?: string;
   publicKind?: "offering";
   countryOfOrigin?: string;
+  thicknessCm?: number;
 };
 
 export type ProfileInventoryItemShareMetadata = {
@@ -53,6 +55,7 @@ export type ProfileInventoryItemShareMetadata = {
   hasPublicSummary?: true;
   publicKind?: "offering";
   countryOfOrigin?: string;
+  thicknessCm?: number;
 };
 
 function firstQueryValue(value: unknown): string {
@@ -79,6 +82,7 @@ function publicDiscoveryFields(rawStone: RawInventoryStone): {
   publicSummary?: string;
   publicKind?: "offering";
   countryOfOrigin?: string;
+  thicknessCm?: number;
 } {
   const publicSummary = normalizePublicSummary(rawStone.publicSummary);
   const publicKind = firstQueryValue(rawStone.publicKind).toLowerCase();
@@ -87,6 +91,12 @@ function publicDiscoveryFields(rawStone: RawInventoryStone): {
     ...(publicSummary ? { publicSummary } : {}),
     ...(publicKind === "offering" ? { publicKind: "offering" as const } : {}),
     ...(/^[A-Za-z][A-Za-z .'-]{1,79}$/.test(country) ? { countryOfOrigin: country } : {}),
+    ...(typeof rawStone.thicknessCm === "number" &&
+    Number.isFinite(rawStone.thicknessCm) &&
+    rawStone.thicknessCm > 0 &&
+    rawStone.thicknessCm <= 100
+      ? { thicknessCm: rawStone.thicknessCm }
+      : {}),
   };
 }
 
@@ -351,6 +361,7 @@ export function createProfileInventoryItemShareMetadata(args: {
       ...(item.publicSummary ? { hasPublicSummary: true as const } : {}),
       ...(item.publicKind === "offering" ? { publicKind: "offering" as const } : {}),
       ...(item.countryOfOrigin ? { countryOfOrigin: item.countryOfOrigin } : {}),
+      ...(item.thicknessCm ? { thicknessCm: item.thicknessCm } : {}),
     };
   } catch {
     return null;

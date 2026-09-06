@@ -48,11 +48,15 @@ An import does **not** refresh itself when the workbook changes. Refresh it from
 
 An active JW Stone business membership unlocks pricing immediately. General business verification remains separate and continues to govern BidRock and other protected features. Pricing accepts legacy pending-verification entitlements for active memberships; no second signup or unrelated verification step is required. Explicitly rejected business identities, revoked/suspended entitlements, and closed/suspended memberships remain blocked.
 
+The optional fifth workbook column, `Bundle Minimum Slabs`, records an explicit quantity threshold. Blank values preserve legacy bundle wording. Numeric whole values from 2 through 999 are accepted; formulas, text quantities and values without the exact header are rejected. A minimum of two displays “1 slab” and “2+ slabs” only inside the authorized pricing view. Import rows preserve this as optional `bundleMinSlabs`; actual rates remain outside Git.
+
 ## Onyx country of origin (2026-09-06)
 
 The owner confirmed **Iran** as the country of origin for JW Stone's Honey Onyx and ISSA Build's Honey Onyx and Multi Green Onyx. The exact public records are captured in `shared/onyxOrigins.ts`. Show the country on material cards, origin filters, product details, onyx collections and search/product metadata. Keep unspecified origins unknown; do not apply this fact to other materials or future unconfirmed inventory. Origin does not promise current stock or contractual exclusivity. Pensacola-area kitchen and bathroom project delivery remains ISSA Build's role.
 
 The shared profile item metadata and ISSA source records are included in this origin change because the owner requested the same country fact on both businesses' onyx surfaces.
+
+The same owner confirmed 2 cm thickness and 10,000 sq ft of shared Iranian onyx stock. This is one combined total across Honey Onyx and Multi Green Onyx and both businesses, not an allocation per material or storefront. The public feature carries the September 6, 2026 confirmation date and asks buyers to confirm current slab selection. Exact material pages carry thickness, but no product-level stock count or public offer price. Honey Onyx receives editorial browse priority; this is not a popularity, exclusivity or search-ranking claim.
 
 ## Owner rule
 

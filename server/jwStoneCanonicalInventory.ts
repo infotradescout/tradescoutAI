@@ -7,7 +7,7 @@ import {
   JW_STONE_INVENTORY_CATEGORIES,
   JW_STONE_INVENTORY_SUMMARY,
 } from "../client/src/data/jwStoneInventory";
-import { JW_STONE_ONYX_ORIGINS } from "@shared/onyxOrigins";
+import { IRANIAN_ONYX_STOCK, JW_STONE_ONYX_ORIGINS } from "@shared/onyxOrigins";
 
 type JwStoneShareStone = {
   categorySlug: string;
@@ -20,6 +20,7 @@ type JwStoneShareStone = {
   publicSummary?: string;
   publicKind?: "offering";
   countryOfOrigin?: string;
+  thicknessCm?: number;
 };
 
 function buildPublicStoneSummary(args: {
@@ -54,13 +55,14 @@ export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGO
           ? {
               countryOfOrigin:
                 JW_STONE_ONYX_ORIGINS[stone.slug as keyof typeof JW_STONE_ONYX_ORIGINS].country,
+              thicknessCm: IRANIAN_ONYX_STOCK.thicknessCm,
             }
           : {}),
         ...(stone.displayName
           ? {
               publicSummary:
                 (stone.slug in JW_STONE_ONYX_ORIGINS
-                  ? `Country of origin: ${JW_STONE_ONYX_ORIGINS[stone.slug as keyof typeof JW_STONE_ONYX_ORIGINS].country}. `
+                  ? `${IRANIAN_ONYX_STOCK.specification} `
                   : "") +
                 buildPublicStoneSummary({
                   name: stone.displayName,
