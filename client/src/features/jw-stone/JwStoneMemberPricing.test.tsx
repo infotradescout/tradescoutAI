@@ -131,6 +131,63 @@ describe("JW Stone member pricing client boundary", () => {
     await render("different-viewer");
     expect(container.textContent).not.toContain("$11.00");
   });
+
+  it("loads prices for the same signed-in viewer after membership changes", async () => {
+    apiRequestMock.mockRejectedValueOnce(new Error("Membership required"));
+    await render("member-1");
+    expect(container.textContent).not.toContain("$");
+
+    apiRequestMock.mockResolvedValue({
+      profileSlug: "jw-stone",
+      viewerId: "member-1",
+      currency: "USD",
+      unit: "square_foot",
+      sourceUpdatedAt: "2026-09-05T02:50:50.000Z",
+      access: "member",
+      prices: [
+        {
+          stoneName: "Blue Dunes",
+          stoneKey: "blue dunes",
+          slabPriceCents: 2050,
+          bundlePriceCents: 1850,
+        },
+      ],
+    });
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["jw-stone", "member-pricing", "member-1"] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(container.textContent).toContain("$20.50");
+    expect(container.textContent).toContain("$18.50");
+    expect(apiRequestMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("removes previously displayed prices when refreshed access is denied", async () => {
+    queryClient.setQueryData(["jw-stone", "member-pricing", "member-1"], {
+      profileSlug: "jw-stone",
+      viewerId: "member-1",
+      currency: "USD",
+      unit: "square_foot",
+      sourceUpdatedAt: "2026-09-05T02:50:50.000Z",
+      access: "member",
+      prices: [
+        {
+          stoneName: "Blue Dunes",
+          stoneKey: "blue dunes",
+          slabPriceCents: 2050,
+          bundlePriceCents: 1850,
+        },
+      ],
+    });
+    await render("member-1");
+    expect(container.textContent).toContain("$20.50");
+    apiRequestMock.mockRejectedValue(new Error("Membership revoked"));
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["jw-stone", "member-pricing", "member-1"] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(container.textContent).not.toContain("$");
+  });
 });
 
 describe("JW Stone approximate slab cost", () => {

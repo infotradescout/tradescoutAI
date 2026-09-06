@@ -3,6 +3,10 @@ import JSZip from "jszip";
 import { createSign } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import {
+  getJwStonePricingSourceMode,
+  readApprovedJwStonePricingImport,
+} from "./jwStonePricingImport";
+import {
   JW_STONE_PRICING_DRIVE_FILE_ID,
   JW_STONE_PRICING_DRIVE_FOLDER_ID,
   JW_STONE_PRICING_WORKSHEET,
@@ -555,7 +559,11 @@ export async function getJwStonePricingSnapshot(options?: {
   }
   if (pendingSnapshot) return pendingSnapshot;
 
-  pendingSnapshot = fetchDrivePricingSnapshot()
+  pendingSnapshot = (
+    getJwStonePricingSourceMode() === "approved_import"
+      ? Promise.resolve(readApprovedJwStonePricingImport())
+      : fetchDrivePricingSnapshot()
+  )
     .then((value) => {
       cachedSnapshot = { expiresAt: Date.now() + drivePricingConfig().cacheMs, value };
       return value;

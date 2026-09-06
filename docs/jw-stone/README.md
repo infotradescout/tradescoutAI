@@ -36,7 +36,17 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 
 Marketplace cards may show slab size inches when Drive source filenames / reconciliation evidence include them. That is source meta, not a live availability claim.
 
-The member-pricing endpoint must fail closed when Drive authorization, file identity, workbook shape, or price validation fails. Never copy workbook values into catalog code, public HTML, structured data, logs, analytics, or browser storage.
+The member-pricing endpoint must fail closed when its selected source fails validation. Never copy workbook values into catalog code, public HTML, structured data, logs, analytics, or browser storage.
+
+### Private price delivery
+
+The Drive workbook remains the master price list. `JW_STONE_PRICING_SOURCE=drive` (default) reads it directly and fails closed on authorization or validation failure. There is no automatic fallback after a denied Drive read.
+
+`JW_STONE_PRICING_SOURCE=approved_import` deliberately selects a private import obtained through the owner's authorized connection. The server-only `JW_STONE_PRICING_APPROVED_IMPORT` configuration contains the exact file/folder identity, source modification and retrieval dates, and validated integer-cent rows. The same member/admin projections, exact stone-name matching, and access checks apply. Values never enter Git or the public catalog. This does not change Drive sharing.
+
+An import does **not** refresh itself when the workbook changes. Refresh it from the same authorized workbook and retain its source dates, or switch to direct Drive mode only after production proves the connection works. Never describe an import as automatic synchronization.
+
+An active JW Stone business membership unlocks pricing immediately. General business verification remains separate and continues to govern BidRock and other protected features. Pricing accepts legacy pending-verification entitlements for active memberships; no second signup or unrelated verification step is required. Explicitly rejected business identities, revoked/suspended entitlements, and closed/suspended memberships remain blocked.
 
 ## Owner rule
 

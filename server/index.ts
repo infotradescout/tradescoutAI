@@ -1250,18 +1250,22 @@ app.use(landingContractHeaders);
     if (isProductionEnv) {
       try {
         const snapshot = await getJwStonePricingSnapshot({ forceRefresh: true });
-        console.log("[JW Stone pricing] Canonical Drive source verified", {
+        console.log("[JW Stone pricing] Private pricing source verified", {
+          sourceMode: process.env.JW_STONE_PRICING_SOURCE || "drive",
           priceRows: snapshot.prices.length,
           sourceUpdatedAt: snapshot.sourceUpdatedAt,
         });
       } catch (err) {
         let driveIdentity = "unresolved";
-        try {
-          driveIdentity = await getJwStoneDriveIdentityEmail();
-        } catch {
-          // The source error below remains the useful production signal.
+        if ((process.env.JW_STONE_PRICING_SOURCE || "drive") === "drive") {
+          try {
+            driveIdentity = await getJwStoneDriveIdentityEmail();
+          } catch {
+            // The source error below remains the useful production signal.
+          }
         }
-        console.error("[JW Stone pricing] Canonical Drive source unavailable", {
+        console.error("[JW Stone pricing] Private pricing source unavailable", {
+          sourceMode: process.env.JW_STONE_PRICING_SOURCE || "drive",
           driveIdentity,
           message: err instanceof Error ? err.message : "Unknown Drive pricing source error",
         });

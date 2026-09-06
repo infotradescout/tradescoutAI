@@ -24,6 +24,7 @@ import {
 type PublicProfileAccountDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAccountChange?: (account: ProfileAccountResponse) => void;
   profileSlug: string;
   profileName: string;
   tone?: "light" | "dark";
@@ -73,6 +74,7 @@ async function signIn(email: string, password: string): Promise<void> {
 export function PublicProfileAccountDialog({
   open,
   onOpenChange,
+  onAccountChange,
   profileSlug,
   profileName,
   tone = "light",
@@ -98,6 +100,10 @@ export function PublicProfileAccountDialog({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const isDark = tone === "dark";
+
+  useEffect(() => {
+    if (open && state) onAccountChange?.(state);
+  }, [open, state, onAccountChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -366,8 +372,9 @@ export function PublicProfileAccountDialog({
               </p>
               {state?.account?.verificationStatus === "pending" ? (
                 <p className="mt-1 text-stone-600">
-                  Business verification is pending. Protected pricing and business-only features
-                  remain locked until approval.
+                  {profileSlug === "jw-stone"
+                    ? "Your JW Stone membership includes stone pricing. Business verification is pending for other business-only features."
+                    : "Business verification is pending. Protected pricing and business-only features remain locked until approval."}
                 </p>
               ) : null}
               {notice ? <p className="mt-2 font-semibold text-stone-600">{notice}</p> : null}

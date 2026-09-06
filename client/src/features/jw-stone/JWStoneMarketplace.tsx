@@ -1,4 +1,5 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
@@ -118,9 +119,16 @@ function trackJwStoneRequestIntent(selectionCount: number): void {
 }
 
 export default function JWStoneMarketplace() {
+  const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const hasViewerAccount = isAuthenticated || Boolean((user as { id?: unknown } | null)?.id);
   const viewerId = hasViewerAccount ? String(user?.id || "").trim() || null : null;
+  const refreshMemberPricing = useCallback(() => {
+    if (!viewerId) return;
+    void queryClient.invalidateQueries({
+      queryKey: ["jw-stone", "member-pricing", viewerId],
+    });
+  }, [queryClient, viewerId]);
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [accountRequest] = useState(readProfileAccountRequest);
@@ -384,6 +392,7 @@ export default function JWStoneMarketplace() {
         <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
         <PublicProfileAccountDialog
+          onAccountChange={refreshMemberPricing}
           open={accountOpen}
           onOpenChange={changeAccountOpen}
           profileSlug="jw-stone"

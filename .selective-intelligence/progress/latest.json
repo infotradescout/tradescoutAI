@@ -1,59 +1,49 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260906T014705Z-bb1f8d5c",
-  "createdAt": "2026-09-06T01:47:05.302501+00:00",
-  "outcome": "Honor explicit profile suspension and call availability",
+  "checkpointId": "progress-20260906T034229Z-fd27a3fe",
+  "createdAt": "2026-09-06T03:42:29.368923+00:00",
+  "outcome": "Activate matching private JW Stone prices after business membership approval.",
   "scope": [
-    "Four changed profile policy and component files only"
+    "JW Stone pricing only"
   ],
   "prohibitions": [
-    "No live user suspension, real business request, release-3 recovery changes, or JW access workaround"
+    "Do not expose price data in git or public responses; do not change Drive sharing."
   ],
   "progress": {
     "completedVerified": [
-      "Preserved manual onboarding; revoked suspended-owner exposure including stale badge fallback; hid unavailable compact calls on desktop and mobile"
+      "Pricing reads current member business approval and preserves suspension/revocation."
     ],
     "changedUnverified": [],
     "proof": [
-      "Five new regressions fail before the repair; 80 focused publication and UI checks pass after the repair"
+      "Two regressions reproduced before repair; 18 focused checks pass including real isolated SQL. All 119 workbook rows match catalog; generic Soapstone lacks a source price."
     ],
     "externalEffects": [],
     "doNotRepeat": [],
-    "nextSafeAction": "Run exact-commit minimum release gate and save reviewed PR evidence"
+    "nextSafeAction": "Wire account completion to price refresh and verify catalog mapping."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "fix/profile-publication-controls-2026-09-06",
-    "headBefore": "97c749e528cdf1648695fee59f47e0293b3da464",
+    "branch": "jw-stone/membership-price-flow",
+    "headBefore": "c7aabf454c081560f31694431aa60001b8e63104",
     "checkpointCommit": "containing_commit",
-    "pushRequested": true,
-    "pushRemote": "origin",
+    "pushRequested": false,
+    "pushRemote": null,
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "M  client/src/pages/profile-sites/LocalServiceProfileTheme.test.tsx",
-      "M  client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-      "M  server/services/ownerConfirmedDirectProfile.ts",
-      "M  server/tests/louisiana-stone-profile-exposure.test.ts"
+      "M  server/services/jwStonePricingAccess.ts",
+      "A  server/tests/jw-stone-membership-activation.behavior.test.ts"
     ],
     "unrelatedChangeCountExcluded": 1
   },
   "savedFiles": [
     {
-      "path": "server/services/ownerConfirmedDirectProfile.ts",
-      "sha256": "72ecdb1ba74f1f9018e51f6c6c6bc3223b5152b369d620d3f5f0055957d5231b"
+      "path": "server/services/jwStonePricingAccess.ts",
+      "sha256": "4b4454aff6f9faa7a0be6003457fa45389fa6cec8c25033fbe0a2839b26a9118"
     },
     {
-      "path": "server/tests/louisiana-stone-profile-exposure.test.ts",
-      "sha256": "8f5af5e0f5107842e954005d44926fb5345183448685835461aa1c84413539b2"
-    },
-    {
-      "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
-      "sha256": "8a37f922d2c740feba336a215a8120ba03d8ef7630629591ffa5c2d441e89b12"
-    },
-    {
-      "path": "client/src/pages/profile-sites/LocalServiceProfileTheme.test.tsx",
-      "sha256": "aafc62e7d678fe42176eb7ae052244725aa5b3b448fd652ab914c95241748fa1"
+      "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
+      "sha256": "9d9e1773b2c38695eece11790dc509d249dab9908c269a5dab662052ad6d3f9f"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
