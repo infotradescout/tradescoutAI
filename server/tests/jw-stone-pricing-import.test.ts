@@ -38,6 +38,21 @@ afterEach(() => {
 });
 
 describe("private JW Stone workbook import", () => {
+  it("keeps an explicit quantity threshold and rejects an invalid one", () => {
+    const value = source();
+    const row = { ...value.prices[0], bundleMinSlabs: 2 };
+    const imported = { ...value, prices: [row] };
+    expect(
+      readApprovedJwStonePricingImport(JSON.stringify(imported)).prices[0].bundleMinSlabs
+    ).toBe(2);
+    for (const minimum of [1, 2.5, 1000, "2", null]) {
+      expect(() =>
+        readApprovedJwStonePricingImport(
+          JSON.stringify({ ...value, prices: [{ ...row, bundleMinSlabs: minimum }] })
+        )
+      ).toThrow();
+    }
+  });
   it("uses the explicitly selected import without attempting a Drive access change", async () => {
     vi.stubEnv("JW_STONE_PRICING_SOURCE", "approved_import");
     vi.stubEnv("JW_STONE_PRICING_APPROVED_IMPORT", JSON.stringify(source()));

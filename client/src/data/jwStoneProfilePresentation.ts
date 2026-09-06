@@ -1,4 +1,5 @@
 import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
+import { IRANIAN_ONYX_STOCK } from "@shared/onyxOrigins";
 
 /**
  * JW Stone's profile-owned presentation data.
@@ -161,8 +162,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         sourceSlug: "onyx",
         publicSlug: "onyx",
         title: "Onyx",
-        summary:
-          "Country of origin: Iran. Explore Honey Onyx slab photos from JW Stone in Pensacola, Florida, and ask about the material for your project.",
+        summary: `${IRANIAN_ONYX_STOCK.specification} Explore Honey Onyx from JW Stone in Pensacola. ${IRANIAN_ONYX_STOCK.stockLabel}. ${IRANIAN_ONYX_STOCK.stockNote}`,
         leadItemSlug: "honey-onyx",
         indexable: true,
         collectionKind: "offerings",

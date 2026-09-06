@@ -1,4 +1,6 @@
 import "./JWStoneMarketplace.exact-surfaces.css";
+import { IranianOnyxFeature } from "@/components/IranianOnyxFeature";
+import { stoneShareDestination } from "./marketplaceRoutes";
 
 /** Canonical JW marketplace hero — highest-res source in repo (1920×1080). */
 const JW_STONE_HERO_VIDEO = "/images/businesses/jw-stone/video/hero.mp4";
@@ -7,7 +9,7 @@ const JW_STONE_HERO_WIDTH = 1920;
 const JW_STONE_HERO_HEIGHT = 1080;
 
 /** Hero film + the approved headline. Supporting subtext is not shown. */
-export function MarketplaceIntroduction() {
+export function MarketplaceIntroduction({ onExploreOnyx }: { onExploreOnyx?: () => void } = {}) {
   return (
     <section
       data-testid="jw-marketplace-hero"
@@ -48,6 +50,11 @@ export function MarketplaceIntroduction() {
           </h1>
         </div>
       </div>
+      <IranianOnyxFeature
+        href={stoneShareDestination("honey-onyx")}
+        onExplore={onExploreOnyx}
+        label="Explore Honey Onyx"
+      />
     </section>
   );
 }

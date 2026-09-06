@@ -3,7 +3,7 @@ import {
   type PremiumProductProfileData,
 } from "./premiumProductProfile";
 
-import { ISSA_BUILD_ONYX_ORIGINS } from "./onyxOrigins";
+import { IRANIAN_ONYX_STOCK, ISSA_BUILD_ONYX_ORIGINS } from "./onyxOrigins";
 
 /** Canonical public business profile for ISSA Build. */
 export const ISSA_BUILD_PROFILE_SLUG = "issa-build";
@@ -19,7 +19,7 @@ export const ISSA_BUILD_LOCAL_DISCOVERY = {
   tradeServices: ["Kitchen Remodeling", "Bathroom Remodeling"],
   title: "ISSA Build | Pensacola Kitchens, Bathrooms & Countertops",
   description:
-    "Pensacola-area kitchens, bathrooms, cabinets, countertops and fabrication. Explore Honey Onyx and Multi Green Onyx from Iran with ISSA Build. Start a Request.",
+    "Pensacola-area kitchens, bathrooms, cabinets, countertops and fabrication. Explore 2 cm Honey Onyx and Multi Green Onyx from Iran with ISSA Build. Start a Request.",
   headline: "Kitchens, bathrooms, cabinets and countertops in Pensacola and surrounding areas.",
   services: [
     {
@@ -170,7 +170,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       offerings: {
         eyebrow: "Materials",
         title: "Two translucent onyxes.",
-        body: "Honey Onyx and Multi Green Onyx from Iran — separate materials for residential and commercial interiors.",
+        body: `Honey Onyx and Multi Green Onyx from Iran. 2 cm slabs. ${IRANIAN_ONYX_STOCK.stockLabel}. ${IRANIAN_ONYX_STOCK.stockNote}`,
         items: [
           {
             slug: "honey-onyx",
@@ -201,7 +201,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             name: "Honey Onyx",
             eyebrow: "HONEY ONYX",
             title: "Warm, luminous, unmistakable.",
-            body: "Country of origin: Iran. Golden movement and soft translucency for baths, bars, kitchens, feature walls, and statement interiors.",
+            body: `${IRANIAN_ONYX_STOCK.specification} Golden movement and soft translucency for baths, bars, kitchens, feature walls, and statement interiors.`,
             applicationImage: ISSA_BUILD_APPLICATION_IMAGES[4],
             // Schema-retained for Direct Connect / deep-link identity; slabs render in materialSamples rail.
             detailImage: ISSA_BUILD_SLAB_IMAGES[0],
@@ -211,7 +211,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             name: "Multi Green Onyx",
             eyebrow: "MULTI GREEN ONYX",
             title: "A deeper architectural tone.",
-            body: "Country of origin: Iran. Layered green movement for bathrooms, feature walls, and custom interiors shaped around the stone.",
+            body: `${IRANIAN_ONYX_STOCK.specification} Layered green movement for bathrooms, feature walls, and custom interiors shaped around the stone.`,
             applicationImage: ISSA_BUILD_APPLICATION_IMAGES[0],
             detailImage: ISSA_BUILD_SLAB_IMAGES[2],
           },
@@ -351,8 +351,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           sourceSlug: "onyx",
           publicSlug: "onyx",
           title: "Iranian Translucent Onyx",
-          summary:
-            "Country of origin: Iran. Explore ISSA Build's Honey Onyx and Multi Green Onyx for custom backlit counters, baths, walls and interiors.",
+          summary: `${IRANIAN_ONYX_STOCK.specification} Honey Onyx and Multi Green Onyx for backlit counters, baths and interiors. ${IRANIAN_ONYX_STOCK.stockLabel}. ${IRANIAN_ONYX_STOCK.stockNote}`,
           leadItemSlug: "honey-onyx",
           indexable: true,
           collectionKind: "offerings",
@@ -365,7 +364,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "inventoryCatalog",
     data: {
       title: "ISSA Build",
-      description: "Honey Onyx and Multi Green Onyx. Country of origin: Iran.",
+      description: `Honey Onyx and Multi Green Onyx. ${IRANIAN_ONYX_STOCK.specification}`,
       categories: [
         {
           category: "Onyx",
@@ -376,9 +375,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
               slug: "honey-onyx",
               images: [...ISSA_BUILD_HONEY_ONYX_IMAGES],
               countryOfOrigin: ISSA_BUILD_ONYX_ORIGINS["honey-onyx"].country,
+              thicknessCm: IRANIAN_ONYX_STOCK.thicknessCm,
               publicKind: "offering",
-              publicSummary:
-                "Honey Onyx from ISSA Build. Country of origin: Iran. Warm amber translucence for custom backlit counters, walls, floors, stairs and interiors.",
+              publicSummary: `Honey Onyx from ISSA Build. ${IRANIAN_ONYX_STOCK.specification} Warm amber translucence for custom backlit counters, walls, floors, stairs and interiors.`,
               materialStatus: "user_confirmed",
               finishStatus: "unconfirmed",
               hideFinishDetails: true,
@@ -390,9 +389,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
               slug: "multi-green-onyx",
               images: [...ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES],
               countryOfOrigin: ISSA_BUILD_ONYX_ORIGINS["multi-green-onyx"].country,
+              thicknessCm: IRANIAN_ONYX_STOCK.thicknessCm,
               publicKind: "offering",
-              publicSummary:
-                "Multi Green Onyx from ISSA Build. Country of origin: Iran. Layered green translucence for backlit feature walls, baths, counters, floors and stairs.",
+              publicSummary: `Multi Green Onyx from ISSA Build. ${IRANIAN_ONYX_STOCK.specification} Layered green translucence for backlit feature walls, baths, counters, floors and stairs.`,
               materialStatus: "user_confirmed",
               finishStatus: "unconfirmed",
               hideFinishDetails: true,
@@ -410,8 +409,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       faqs: [
         {
           question: "Where does ISSA Build’s onyx come from?",
-          answer:
-            "Honey Onyx and Multi Green Onyx have country of origin: Iran. Ask ISSA Build about material selection, fabrication, backlighting and installation for your project.",
+          answer: `Honey Onyx and Multi Green Onyx have country of origin: Iran and a thickness of 2 cm. ${IRANIAN_ONYX_STOCK.stockLabel}. ${IRANIAN_ONYX_STOCK.stockNote} Ask ISSA Build about fabrication, backlighting and installation.`,
         },
       ],
     },

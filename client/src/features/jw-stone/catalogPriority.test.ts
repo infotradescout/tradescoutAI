@@ -13,6 +13,11 @@ function catalogItem(id: string, displayName: string): JwStoneCatalogItem {
 }
 
 describe("JW Stone browse priority", () => {
+  it("features Honey Onyx without changing facts or ordinary material order", () => {
+    const honey = catalogItem("honey-onyx", "Honey Onyx");
+    const other = catalogItem("black-dunes", "Black Dunes");
+    expect(rankJwStoneCatalogForBrowse([other, honey])).toEqual([honey, other]);
+  });
   it("puts priority inventory first without changing ordinary-item order", () => {
     const ordinaryA = catalogItem("ordinary-a", "Ordinary A");
     const blueBahia = catalogItem("blue-bahia", "Blue Bahia");

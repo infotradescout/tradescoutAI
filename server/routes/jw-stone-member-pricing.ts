@@ -42,6 +42,7 @@ export function projectJwStonePricingResponse(args: {
             stoneKey: price.stoneKey,
             slabPriceCents: price.slabPriceCents,
             bundlePriceCents: price.bundlePriceCents,
+            ...(price.bundleMinSlabs == null ? {} : { bundleMinSlabs: price.bundleMinSlabs }),
             landedCostCents: price.landedCostCents,
           })
         )
@@ -59,6 +60,7 @@ export function projectJwStonePricingResponse(args: {
           stoneKey: price.stoneKey,
           slabPriceCents: price.slabPriceCents,
           bundlePriceCents: price.bundlePriceCents,
+          ...(price.bundleMinSlabs == null ? {} : { bundleMinSlabs: price.bundleMinSlabs }),
         })
       )
     ),

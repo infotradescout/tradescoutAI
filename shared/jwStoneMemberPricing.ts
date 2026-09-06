@@ -14,6 +14,8 @@ export type JwStoneMemberPrice = Readonly<{
   stoneKey: string;
   slabPriceCents: number;
   bundlePriceCents: number;
+  /** Explicit slab-count threshold from the private workbook; absent for legacy bundles. */
+  bundleMinSlabs?: number;
 }>;
 
 export type JwStoneInternalPrice = Readonly<

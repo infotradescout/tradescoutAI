@@ -44,11 +44,23 @@ describe("JW Stone marketplace public HTML", () => {
       expect(product).toContain("Country of origin: Iran");
       expect(product).toContain("Honey Onyx from Iran");
       expect(product).toContain('"countryOfOrigin":{"@type":"Country","name":"Iran"}');
+      expect(product).toContain("Thickness: 2 cm");
+      expect(product).toContain('"name":"Thickness","value":2,"unitText":"cm"');
+      expect(product).not.toMatch(
+        /"offers"|"price"|"priceSpecification"|bundlePriceCents|slabPriceCents/
+      );
+      expect(product).not.toContain("10,000");
       const collection = buildPublicJwStoneMarketplaceHtml({ ...options, materialSlug: "onyx" });
       expect(collection).toContain("Country of origin: Iran");
+      expect(collection).toContain("across onyx colors");
+      const home = buildPublicJwStoneMarketplaceHtml(options);
+      expect(home).toContain("10,000 sq ft in shared stock");
+      expect(home).toContain("across onyx colors");
+      expect(home).toContain("Confirmed September 6, 2026");
       const unrelated = buildPublicJwStoneMarketplaceHtml({ ...options, stoneSlug: "black-dunes" });
       expect(unrelated).not.toContain('"countryOfOrigin"');
       expect(unrelated).not.toContain("Country of origin: Iran");
+      expect(unrelated).not.toContain('"name":"Thickness"');
     }
   );
   it("uses one stable canonical URL and the real JW Stone share image", () => {

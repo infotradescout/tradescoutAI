@@ -28,6 +28,7 @@ export function formatDimensionsForDisplay(slabDimensions: string | null): strin
 export function materialFinishLine(stone: JwStoneCatalogItem): string {
   const parts: string[] = [];
   if (stone.materialLabel) parts.push(stone.materialLabel);
+  if (stone.thicknessCm) parts.push(`${stone.thicknessCm} cm`);
   const finishes = confirmedFinishes(stone);
   if (finishes.length) parts.push(finishes.join(" / "));
   return parts.join(" · ");

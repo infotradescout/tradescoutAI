@@ -607,6 +607,18 @@ function withProfileItemJsonLd(
           ...(itemShare.countryOfOrigin
             ? { countryOfOrigin: { "@type": "Country", name: itemShare.countryOfOrigin } }
             : {}),
+          ...(itemShare.thicknessCm
+            ? {
+                additionalProperty: [
+                  {
+                    "@type": "PropertyValue",
+                    name: "Thickness",
+                    value: itemShare.thicknessCm,
+                    unitText: "cm",
+                  },
+                ],
+              }
+            : {}),
           url: itemShare.canonical,
           ...(isBusinessProfile
             ? {
@@ -1416,6 +1428,7 @@ export async function buildPublicProfileHtml({
       <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(itemShare.imageAlt, 240))}" />
       <p>${escapeHtml(cleanPublicProfileText(itemShare.description, 500))}</p>
       ${itemShare.itemType === "inventory" && itemShare.countryOfOrigin ? `<p>Country of origin: ${escapeHtml(itemShare.countryOfOrigin)}</p>` : ""}
+      ${itemShare.itemType === "inventory" && itemShare.thicknessCm ? `<p>Thickness: ${itemShare.thicknessCm} cm</p>` : ""}
     </section>`
     : "";
   const categorySummary = pageCategoryShare

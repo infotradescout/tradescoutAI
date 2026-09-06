@@ -193,10 +193,11 @@ describe("public profile item HTML", () => {
 
     expect(itemHtml).toContain('property="og:title" content="Honey Onyx from Iran | ISSA Build"');
     expect(itemHtml).toContain(
-      'property="og:description" content="Honey Onyx from ISSA Build. Country of origin: Iran. Warm amber translucence for custom backlit counters, walls, floors, stairs and interiors."'
+      'property="og:description" content="Honey Onyx from ISSA Build. Country of origin: Iran. Thickness: 2 cm. Warm amber translucence'
     );
     expect(itemHtml).toContain('"@type":"Product"');
     expect(itemHtml).toContain('"countryOfOrigin":{"@type":"Country","name":"Iran"}');
+    expect(itemHtml).toContain('"name":"Thickness","value":2,"unitText":"cm"');
     const greenHtml = await buildPublicProfileHtml({
       slug: "issa-build",
       origin: "https://www.thetradescout.com",
@@ -205,6 +206,7 @@ describe("public profile item HTML", () => {
     });
     expect(greenHtml).toContain("Multi Green Onyx from Iran");
     expect(greenHtml).toContain('"countryOfOrigin":{"@type":"Country","name":"Iran"}');
+    expect(greenHtml).toContain('"name":"Thickness","value":2,"unitText":"cm"');
     expect(itemHtml).toContain("Featured materials");
     expect(itemHtml).toContain("Explore materials");
     expect(itemHtml).not.toMatch(/Honey Onyx Onyx|current inventory|pricing or availability/i);
@@ -213,7 +215,12 @@ describe("public profile item HTML", () => {
       'property="og:title" content="Iranian Translucent Onyx | ISSA Build"'
     );
     expect(categoryHtml).toContain(
-      "Country of origin: Iran. Explore ISSA Build&#39;s Honey Onyx and Multi Green Onyx"
+      "Country of origin: Iran. Thickness: 2 cm. Honey Onyx and Multi Green Onyx"
+    );
+    expect(categoryHtml).toContain("10,000 sq ft in shared stock");
+    expect(categoryHtml).toContain("across onyx colors");
+    expect(`${itemHtml}\n${greenHtml}\n${categoryHtml}`).not.toMatch(
+      /"offers"|"price"|slabPriceCents|bundlePriceCents/
     );
     expect(categoryHtml).toContain("2 published materials");
     expect(categoryHtml).not.toMatch(/current inventory|pricing or availability/i);
