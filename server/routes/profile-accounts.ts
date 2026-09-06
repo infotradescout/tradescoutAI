@@ -170,10 +170,10 @@ async function entitlementsForAccount(args: {
       ensureProfileAccountEntitlement({
         profileAccountId: args.account.id,
         productKey: JW_STONE_MEMBER_PRICING_PRODUCT_KEY,
-        // Joining JW Stone unlocks member prices. BidRock and other verified
-        // business features retain their own verification requirements above.
-        verificationStatus:
-          args.account.verificationStatus === "rejected" ? "rejected" : "not_required",
+        // Membership and the private access query enforce JW pricing eligibility.
+        // Keeping this verification-independent reserves revoked for an explicit
+        // post-cutover pricing override.
+        verificationStatus: "not_required",
       })
     );
   }

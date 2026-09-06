@@ -353,8 +353,13 @@ describe("business-managed contact migration contract", () => {
       ...checkModes(originalMigration, "control_mode"),
       "owner_controlled",
     ]);
-    expect(JSON.parse(read("migrations/meta/_journal.json")).entries.at(-1).tag).toBe(
-      "0130_business_managed_partner_contact"
+    const journalEntries = JSON.parse(read("migrations/meta/_journal.json")).entries;
+    const migrationIndex = journalEntries.findIndex(
+      (entry: { tag?: string }) => entry.tag === "0130_business_managed_partner_contact"
+    );
+    expect(migrationIndex).toBeGreaterThan(0);
+    expect(journalEntries[migrationIndex - 1]?.tag).toBe(
+      "0129_restore_profile_account_identity_contract"
     );
     expect(migration).toContain("tradescout-schema:0130:v1");
     for (const column of ["contact_mode", "control_mode"]) {

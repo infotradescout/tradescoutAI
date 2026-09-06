@@ -939,6 +939,13 @@
       "when": 1788614512149,
       "tag": "0130_business_managed_partner_contact",
       "breakpoints": false
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1788669823182,
+      "tag": "0131_preserve_jw_stone_pricing_revocation",
+      "breakpoints": false
     }
   ]
 }
