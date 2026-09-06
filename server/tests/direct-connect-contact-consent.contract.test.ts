@@ -9,10 +9,10 @@ describe("Direct Connect submission contact consent", () => {
   it("requires the public-profile request to collect a name and complete phone number", () => {
     const route = read("server/routes/tradepartner-express.ts");
 
-    expect(route).toContain('name: z.string().trim().min(2).max(120)');
-    expect(route).toContain('refine((value) => hasDirectConnectPhone(value)');
+    expect(route).toContain("name: z.string().trim().min(2).max(120)");
+    expect(route).toContain("refine((value) => hasDirectConnectPhone(value)");
     expect(route).toContain('purpose: "tradepartner_request_notification"');
-    expect(route).toContain('requestId: String(created.id)');
+    expect(route).toContain("requestId: String(created.id)");
   });
 
   it("delivers the requester name and phone to the selected business when the request is sent", () => {
@@ -22,9 +22,13 @@ describe("Direct Connect submission contact consent", () => {
       'DIRECT_CONNECT_BUSINESS_NOTIFICATION_PURPOSE = "tradepartner_request_notification"'
     );
     expect(emailService).toContain("FROM work_requests request");
-    expect(emailService).toContain("INNER JOIN users owner ON owner.id = request.created_by_user_id");
-    expect(emailService).toContain("owner.first_name");
-    expect(emailService).toContain("owner.phone");
+    expect(emailService).toContain(
+      "INNER JOIN work_request_events event ON event.work_request_id = request.id"
+    );
+    expect(emailService).toContain("event.actor_user_id = request.created_by_user_id");
+    expect(emailService).toContain("event.metadata ->> 'profileId' = request.source_ref_id");
+    expect(emailService).toContain("readExpressRequestSubmittedContact(row?.request_metadata)");
+    expect(emailService).not.toContain("owner.phone");
     expect(emailService).toContain("<strong>Name:</strong>");
     expect(emailService).toContain("<strong>Phone:</strong>");
     expect(emailService).toContain("authorized TradeScout to share these details");

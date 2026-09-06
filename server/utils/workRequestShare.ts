@@ -1,4 +1,22 @@
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
+import { z } from "zod";
+
+const expressRequestSubmittedContactSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(320),
+  phone: z.string().trim().max(40).refine(isValidDirectConnectRequestPhone),
+  consent: z.literal("share_with_selected_business"),
+});
+
+/** Private request data. Never add this snapshot to public request cards or discovery events. */
+export function readExpressRequestSubmittedContact(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const event = metadata as Record<string, unknown>;
+  if (event.source !== "tradepartner_profile" || event.connectionMode !== "express") return null;
+  const parsed = expressRequestSubmittedContactSchema.safeParse(event.requesterContact);
+  return parsed.success ? parsed.data : null;
+}
 
 export function redactContactDetails(input: string): string {
   const text = String(input || "");
