@@ -794,12 +794,27 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           requestWorkspaceParams.set("selectionCount", String(publicStoneSelections.length));
         }
         const requestWorkspacePath = `/direct-connect/engagements?${requestWorkspaceParams.toString()}`;
-        const activation = requesterWasCreated
-          ? await passwordResetService.createToken(String(requester.id))
-          : null;
-        const verification = requesterWasCreated
-          ? await emailVerificationService.createToken(String(requester.id))
-          : null;
+        // The request is already saved and assigned. Account setup is a separate
+        // follow-up; its failure must not invite the visitor to submit twice.
+        let activation: Awaited<ReturnType<typeof passwordResetService.createToken>> | null = null;
+        let verification: Awaited<ReturnType<typeof emailVerificationService.createToken>> | null =
+          null;
+        let onboardingSetupFailed = false;
+        if (requesterWasCreated) {
+          try {
+            activation = await passwordResetService.createToken(String(requester.id));
+            verification = await emailVerificationService.createToken(String(requester.id));
+          } catch {
+            activation = null;
+            verification = null;
+            onboardingSetupFailed = true;
+            console.warn("[tradepartner-express] saved request account setup unavailable", {
+              requestId: created.id,
+              correlationId: httpRequestId,
+              reason: "account_setup_unavailable",
+            });
+          }
+        }
         const onboardingPath = activation
           ? `/reset-password?token=${encodeURIComponent(activation.token)}&next=${encodeURIComponent(requestWorkspacePath)}`
           : null;
@@ -818,7 +833,10 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           ? "account_creation"
           : "tradepartner_request_confirmation";
 
-        if (!emailConfigured) {
+        if (onboardingSetupFailed) {
+          onboardingEmailStatus = "failed";
+          onboardingEmailReason = "account_setup_unavailable";
+        } else if (!emailConfigured) {
           onboardingEmailStatus = "skipped";
           onboardingEmailReason = "email_provider_not_configured";
           console.warn("[tradepartner-express] requester confirmation email skipped", {

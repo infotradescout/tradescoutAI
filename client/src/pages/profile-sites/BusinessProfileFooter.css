@@ -1,0 +1,97 @@
+/* Only the lower business-profile area. The accepted opening, gallery, services and product presentation are unchanged. */
+.business-profile .bp-aside {
+  grid-template-columns: minmax(180px, .75fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 32px;
+  padding: 32px;
+}
+.business-profile .bp-aside > :only-child { grid-column: 1 / -1; }
+.business-profile .bp-aside:has(.bp-booking) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.business-profile .bp-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px 28px;
+}
+.business-profile .bp-trust > p { grid-column: 1 / -1; margin: 0; }
+.business-profile .bp-trust > [aria-label^="Trust actions"] {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  min-width: 0;
+}
+.business-profile .bp-trust > [aria-label^="Trust actions"] > p {
+  padding: 0 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--bp-surface-muted);
+}
+.business-profile .bp-trust [data-testid="button-public-profile-recommend"] {
+  min-height: 44px;
+  padding-block: 10px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.business-profile .bp-trust [role="group"][aria-label="Profile actions"] button { border-radius: 4px; font-weight: 500; }
+.business-profile .bp-trust > [data-testid="public-profile-account-card"] {
+  margin: 0;
+  padding: 0 0 0 28px;
+  border: 0;
+  border-left: 1px solid var(--bp-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--bp-surface-fg);
+  box-shadow: none;
+  min-width: 0;
+}
+.business-profile .bp-trust [data-testid="public-profile-account-card"] h3 {
+  margin-top: 6px;
+  font-family: inherit;
+  /* The global mobile .text-3xl rule is !important; override only this footer heading. */
+  font-size: 20px !important;
+  line-height: 1.3;
+  font-weight: 550;
+  letter-spacing: -.02em;
+}
+.business-profile .bp-trust [data-testid="public-profile-account-card"] > p { margin-top: 12px; }
+.business-profile .bp-trust [data-testid="public-profile-account-card"] button {
+  margin-top: 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: normal;
+}
+.business-profile .bp-footer { padding-block: 16px 24px; }
+.business-profile .bp-footer > footer { color: var(--bp-fg); }
+.business-profile .bp-footer [data-testid="profile-tradescout-powered-link"] {
+  color: var(--bp-muted);
+  font-weight: 500;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 1px;
+}
+.business-profile .bp-footer [data-testid="profile-tradescout-powered-link"]:hover { color: var(--bp-fg); }
+.business-profile .bp-footer [data-testid="profile-tradescout-powered-link"]:focus-visible {
+  color: var(--bp-fg);
+  outline: 2px solid var(--bp-fg);
+  outline-offset: 4px;
+  box-shadow: none;
+}
+@media (max-width: 1100px) {
+  .business-profile .bp-aside { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .business-profile .bp-aside { padding: 24px; gap: 24px; }
+  .business-profile .bp-trust { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .business-profile .bp-trust > [data-testid="public-profile-account-card"] {
+    padding: 20px 0 0;
+    margin-top: 4px;
+    border-left: 0;
+    border-top: 1px solid var(--bp-line);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .business-profile .bp-footer a { transition: none; }
+}

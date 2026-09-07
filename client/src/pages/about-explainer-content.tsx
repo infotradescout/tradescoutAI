@@ -170,7 +170,7 @@ const featureGroups = [
       {
         action: "Send it only to businesses you choose",
         name: "Direct Connect",
-        copy: "Selected businesses review the request; contact opens only after acceptance.",
+        copy: "Sending a request shares your name and phone number with the businesses you choose so they can respond.",
         href: routes.directConnect,
       },
       {
@@ -392,7 +392,7 @@ const featureGroups = [
       {
         action: "Review work that fits before accepting it",
         name: "Business request board",
-        copy: "See eligible Direct Connect requests, review the supplied context, and accept or decline before private contact is released.",
+        copy: "Review requests sent to your business with the contact details the requester authorized sharing, then choose whether to accept the work.",
         href: routes.businessRequests,
       },
       {
@@ -494,14 +494,14 @@ export function AboutExplainerContent() {
           <h1 id="hero-title">Connection Without Compromise.</h1>
           <p className="hero-principle">Local recommendations should lead somewhere.</p>
           <p className="hero-lede">
-            Recommendations drive TradeScout. Local experience helps a requester choose, send one
-            protected request, connect only after both sides agree, and record the outcome for the
+            Recommendations drive TradeScout. Local experience helps a requester choose a business,
+            send a request with their name and phone number, and record the outcome for the
             next requester—without selling the lead, ranking, trust, or contact information.
           </p>
           <div className="plain-promises" aria-label="TradeScout product rules">
             <span>Payment cannot buy recommendations</span>
             <span>The requester chooses who receives a request</span>
-            <span>Both sides choose before contact opens</span>
+            <span>Sending a request authorizes sharing your name and phone number</span>
           </div>
         </div>
       </section>
@@ -646,8 +646,8 @@ export function AboutExplainerContent() {
                         <h3>A recommendation is not permission to interrupt.</h3>
                         <p>
                           Being shown by Scout does not expose private contact information or create
-                          a blind call. A selected business reviews a submitted request before
-                          direct contact opens.
+                          a blind call. When a requester sends your business a request, it includes
+                          their name and phone number so you can respond.
                         </p>
                       </article>
                     </div>
@@ -848,12 +848,12 @@ export function AboutExplainerContent() {
               <div className="connect-heading">
                 <span className="section-kicker">Direct Connect</span>
                 <h2 id="connect-title">
-                  A request becomes contact only after both sides choose it.
+                  Send a request to the business you choose.
                 </h2>
                 <p>
-                  Direct Connect owns the request, preview, acceptance, contact, and outcome. It is
-                  not a lead list, an open contact form, or permission to interrupt someone because
-                  Scout mentioned a business.
+                  Review your request and choose who receives it. Sending it shares your name and
+                  phone number with the selected business so it can respond. Searching or viewing a
+                  profile does not share your contact information.
                 </p>
               </div>
               <details className="content-section" open>
@@ -920,8 +920,8 @@ export function AboutExplainerContent() {
               </details>
               <details className="content-section">
                 <summary>
-                  <strong>Preview before contact</strong>
-                  <small>Each side sees the useful context before private contact opens.</small>
+                  <strong>Review before sending</strong>
+                  <small>Review the recipient and the details you are authorizing to share.</small>
                 </summary>
                 <div className="connection-stage">
                   <div className="connection-stage-label">
@@ -932,18 +932,19 @@ export function AboutExplainerContent() {
                     <span>Requester</span>
                     <h3>See what will be shared before it leaves.</h3>
                     <p>
-                      The requester reviews the recipient and the information packet. Unrelated Home
-                      Vault records, private documents, and contact details stay out unless the
-                      requester deliberately includes or authorizes them.
+                      The requester reviews the recipient and the information packet. Sending the
+                      request authorizes sharing their name and phone number with that recipient.
+                      Unrelated Home Vault records and private documents stay private unless the
+                      requester chooses to include them.
                     </p>
                   </article>
                   <article>
                     <span>Business</span>
-                    <h3>Judge the opportunity before exposing direct contact.</h3>
+                    <h3>Receive the details needed to respond.</h3>
                     <p>
-                      The business can review the supplied scope, timing, location context,
-                      evidence, and constraints before accepting. This reduces blind calls, vague
-                      inquiries, poor-fit work, and time spent chasing a resold name.
+                      The business receives the submitted request, including the requester's name
+                      and phone number. It can review the scope, timing, location context, evidence,
+                      and constraints, then accept or decline the work.
                     </p>
                   </article>
                 </div>
@@ -952,7 +953,7 @@ export function AboutExplainerContent() {
                 <summary>
                   <strong>Accept or decline</strong>
                   <small>
-                    The business chooses whether the work fits before direct contact is released.
+                    The business reviews the submitted request and chooses whether to accept the work.
                   </small>
                 </summary>
                 <div className="connection-stage">
@@ -965,8 +966,8 @@ export function AboutExplainerContent() {
                     <h3>Receive a decision instead of losing control of the request.</h3>
                     <p>
                       If a business declines or does not fit, the requester can keep the request,
-                      revise it, or choose another recipient. A decline does not release private
-                      contact information.
+                      revise it, or choose another recipient. A decline does not send the request or
+                      contact details to another business.
                     </p>
                   </article>
                   <article>

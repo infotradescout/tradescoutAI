@@ -108,7 +108,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             },
             business: {
               title: "A recommendation is not permission to interrupt.",
-              body: "Being shown by Scout does not expose private contact information or create a blind call. A selected business reviews a submitted request before direct contact opens.",
+              body: "Being shown by Scout does not expose private contact information or create a blind call. When a requester sends your business a request, it includes their name and phone number so you can respond.",
             },
           },
           {
@@ -210,9 +210,9 @@ export const explainerChapters: readonly ExplainerChapter[] = [
     number: "02",
     navLabel: "Requests & contact",
     kicker: "Direct Connect",
-    title: "A request becomes contact only after both sides choose it.",
+    title: "Send a request to the business you choose.",
     description:
-      "Direct Connect owns the request, preview, acceptance, contact, and outcome. It is not a lead list, an open contact form, or permission to interrupt someone because Scout mentioned a business.",
+      "Review your request and choose who receives it. Sending it shares your name and phone number with the selected business so it can respond. Searching or viewing a profile does not share your contact information.",
     boundary:
       "Direct Connect does not create a contract, guarantee payment or performance, replace emergency services, or remove licensing, insurance, inspection, safety, disclosure, or legal responsibilities.",
     topics: [
@@ -254,18 +254,18 @@ export const explainerChapters: readonly ExplainerChapter[] = [
       },
       {
         id: "preview",
-        label: "Preview before contact",
+        label: "Review before sending",
         moments: [
           {
             number: "03",
-            title: "Preview before contact",
+            title: "Review before sending",
             requester: {
               title: "See what will be shared before it leaves.",
-              body: "The requester reviews the recipient and the information packet. Unrelated Home Vault records, private documents, and contact details stay out unless the requester deliberately includes or authorizes them.",
+              body: "The requester reviews the recipient and the information packet. Sending the request authorizes sharing their name and phone number with that recipient. Unrelated Home Vault records and private documents stay private unless the requester chooses to include them.",
             },
             business: {
-              title: "Judge the opportunity before exposing direct contact.",
-              body: "The business can review the supplied scope, timing, location context, evidence, and constraints before accepting. This reduces blind calls, vague inquiries, poor-fit work, and time spent chasing a resold name.",
+              title: "Receive the details needed to respond.",
+              body: "The business receives the submitted request, including the requester's name and phone number. It can review the scope, timing, location context, evidence, and constraints, then accept or decline the work.",
             },
           },
         ],
@@ -279,7 +279,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             title: "Accept or decline",
             requester: {
               title: "Receive a decision instead of losing control of the request.",
-              body: "If a business declines or does not fit, the requester can keep the request, revise it, or choose another recipient. A decline does not release private contact information.",
+              body: "If a business declines or does not fit, the requester can keep the request, revise it, or choose another recipient. A decline does not send the request or contact details to another business.",
             },
             business: {
               title: "Accept suitable work or decline it without buying the lead.",
@@ -1050,7 +1050,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             action: "Send it only to businesses you choose",
             name: "Direct Connect",
             description:
-              "Selected businesses review the request; contact opens only after acceptance.",
+              "Sending a request shares your name and phone number with the businesses you choose so they can respond.",
           },
           {
             number: "02.03",
@@ -1306,7 +1306,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             action: "Review work that fits before accepting it",
             name: "Business request board",
             description:
-              "See eligible Direct Connect requests, review the supplied context, and accept or decline before private contact is released.",
+              "Review requests sent to your business with the contact details the requester authorized sharing, then choose whether to accept the work.",
           },
           {
             number: "04.11",

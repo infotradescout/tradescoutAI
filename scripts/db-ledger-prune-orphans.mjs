@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 import pg from "pg";
+import { completedPublicationPredecessorHashes } from "./lib/completed-publication-identities.mjs";
 
 dotenv.config();
 
@@ -29,13 +30,17 @@ const journal = JSON.parse(
 const canonicalByTag = new Map();
 const hashToTag = new Map();
 for (const e of journal.entries) {
-  const raw = fs.readFileSync(path.join("migrations", `${e.tag}.sql`), "utf8");
+  const filename = `${e.tag}.sql`;
+  const raw = fs.readFileSync(path.join("migrations", filename), "utf8");
   const lf = raw.replace(/\r\n?/g, "\n");
   const crlf = lf.replace(/\n/g, "\r\n");
   const preferred = sha256(lf);
   canonicalByTag.set(e.tag, preferred);
   for (const variant of [raw, lf, crlf]) {
     hashToTag.set(sha256(variant), e.tag);
+  }
+  for (const hash of completedPublicationPredecessorHashes(filename)) {
+    hashToTag.set(hash, e.tag);
   }
 }
 

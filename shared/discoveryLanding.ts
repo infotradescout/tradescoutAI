@@ -2,6 +2,7 @@
  * Sanitized public discovery landing event (Phase 3A).
  * Observed attribution hints only — never mechanism claims.
  */
+import { ISSA_BUILD_PUBLIC_PATH, resolveIssaBuildPublicPage } from "./issaBuildRoutes";
 
 export const DISCOVERY_LANDING_EVENT = "discovery_landing" as const;
 
@@ -83,6 +84,7 @@ export function normalizeDiscoveryEntryRequestId(raw: unknown): string | undefin
 
 export function isPublicBusinessRoute(route: string): boolean {
   return (
+    resolveIssaBuildPublicPage(route) !== null ||
     route === "/" ||
     route === "/jw-stone" ||
     route.startsWith("/jw-stone/") ||
@@ -93,6 +95,9 @@ export function isPublicBusinessRoute(route: string): boolean {
 }
 
 export function businessSlugFromPublicRoute(route: string): string | undefined {
+  // Use the public router's existing identity; never infer a business from an
+  // arbitrary first path segment or treat a platform path as a custom domain.
+  if (resolveIssaBuildPublicPage(route) !== null) return ISSA_BUILD_PUBLIC_PATH.slice(1);
   if (
     route === "/" ||
     route === "/jw-stone" ||
@@ -130,7 +135,10 @@ export function normalizeDiscoveryRouteForBusiness(
   if (routeBusinessSlug === businessSlug) return canonicalRoute;
 
   // An explicit profile route for another business is never reinterpreted.
-  if (/^\/(?:business|u|contractors|helpers)\//i.test(canonicalRoute)) {
+  if (
+    resolveIssaBuildPublicPage(canonicalRoute) !== null ||
+    /^\/(?:business|u|contractors|helpers)\//i.test(canonicalRoute)
+  ) {
     return undefined;
   }
 

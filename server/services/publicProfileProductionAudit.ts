@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
+import { canonicalizeIssaBuildPublicUrl } from "@shared/issaBuildRoutes";
 import { buildProfileSitemapUrls } from "../profileSitemapDiscovery";
 import { SitemapRepository } from "../repositories/sitemapRepository";
 import { pool } from "../db";
@@ -137,7 +138,9 @@ export function collectPublicProfileProductionAuditTargets(
   for (const candidate of candidates) {
     const profileSlug = normalizeProfileSlug(candidate.slug);
     if (!profileSlug || !shouldIndexPublicProfileSlug(profileSlug)) continue;
-    const parentUrl = canonicalProfileUrl(candidate, profileSlug);
+    const profileUrl = canonicalProfileUrl(candidate, profileSlug);
+    if (!profileUrl) continue;
+    const parentUrl = normalizeHttpUrl(canonicalizeIssaBuildPublicUrl(profileUrl));
     if (!parentUrl) continue;
 
     let expectedHost = "";
@@ -155,12 +158,15 @@ export function collectPublicProfileProductionAuditTargets(
       expectedHost,
     });
 
+    // Build from the profile's source root, then resolve each approved public
+    // destination. Passing the shortened parent to legacy child builders would
+    // invent unsupported child paths instead of checking the actual routes.
     for (const childValue of buildProfileSitemapUrls({
       profileSlug,
-      profileUrl: parentUrl,
+      profileUrl,
       contentBlocks: candidate.contentBlocks,
     })) {
-      const childUrl = normalizeHttpUrl(childValue);
+      const childUrl = normalizeHttpUrl(canonicalizeIssaBuildPublicUrl(childValue));
       if (!childUrl) continue;
       try {
         if (new URL(childUrl).hostname.toLowerCase() !== expectedHost) continue;

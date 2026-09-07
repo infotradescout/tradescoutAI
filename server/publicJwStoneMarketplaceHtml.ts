@@ -11,7 +11,6 @@ import {
 } from "@shared/profileItemShare";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../client/src/data/jwStoneProfilePresentation";
 import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "./jwStoneCanonicalInventory";
-import { IRANIAN_ONYX_STOCK } from "@shared/onyxOrigins";
 
 export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/jw-stone";
 /** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
@@ -19,13 +18,13 @@ export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_
 
 const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("Natural stone slabs in Pensacola, FL");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Explore Iranian onyx alongside granite, marble, quartzite and engineered quartz from JW Stone Logistics in Pensacola, Florida.";
+  "Explore granite, marble, quartzite, onyx and engineered quartz from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
 const JW_STONE_CUSTOM_DOMAIN_TITLE = "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics";
 const JW_STONE_CUSTOM_DOMAIN_DESCRIPTION =
-  "Browse granite, marble, quartzite, Iranian onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
+  "Browse granite, marble, quartzite, onyx, soapstone and engineered quartz slabs from JW Stone Logistics in Pensacola, Florida.";
 const JW_STONE_LEGACY_DOMAIN = "https://jwstonellc.com/";
 const JW_STONE_DISCOVERY_PRIORITY_SLUGS = [
   "honey-onyx",
@@ -378,11 +377,6 @@ ${companySummary}
     <p>Browse granite, marble, quartzite, engineered quartz, onyx, soapstone and basalt slab photos from JW Stone Logistics in Pensacola, Florida. Compare named materials and ask JW Stone what is currently available for your project.</p>`
         : ""
     }
-    <section aria-label="Featured Iranian onyx">
-      <h2>${escapeHtml(IRANIAN_ONYX_STOCK.headline)}</h2>
-      <p>${escapeHtml(IRANIAN_ONYX_STOCK.stockLabel)}. ${escapeHtml(IRANIAN_ONYX_STOCK.stockNote)}</p>
-      <a href="${escapeHtml(priorityItemShares.find((item) => item.itemSlug === "honey-onyx")?.canonical || collectionUrl)}">Explore Honey Onyx</a>
-    </section>
     <h2>Material Library: natural stone slabs in Pensacola, Florida</h2>
     <p>JW Stone Logistics helps fabricators, builders, architects, designers, and homeowners browse named material photos by material, aesthetic, or color. These offerings are not a claim of confirmed physical stock.</p>
     <p>Review named material photos, then ask JW Stone to confirm current pricing or availability for your project.</p>

@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { PUBLIC_SHELL_ALIASES, resolvePublicShellAlias } from "@shared/publicShellAliases";
+import { registerIssaBuildPublicRoutes } from "./issaBuildPublicRoutes";
 
 function redirectPublicShellAlias(req: Request, res: Response): void {
   const target = resolvePublicShellAlias(req.path);
@@ -14,6 +15,7 @@ function redirectPublicShellAlias(req: Request, res: Response): void {
 }
 
 export function registerPublicShellAliasRoutes(app: Express): void {
+  registerIssaBuildPublicRoutes(app);
   const paths = PUBLIC_SHELL_ALIASES.map(([publicPath]) => publicPath);
   app.head(paths, redirectPublicShellAlias);
   app.get(paths, redirectPublicShellAlias);

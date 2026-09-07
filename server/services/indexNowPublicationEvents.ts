@@ -1,5 +1,6 @@
 import { buildProfileSitemapUrls } from "../profileSitemapDiscovery";
 import { buildProfileServiceOfferPath } from "../../shared/profileOfferShare";
+import { resolveIssaBuildCanonicalRedirect } from "../../shared/issaBuildRoutes";
 
 type ProfilePublicationRecord = {
   slug?: unknown;
@@ -63,7 +64,13 @@ export function collectProfileIndexNowUrls(
   }
 
   const profilePath = `/u/${encodeURIComponent(slug)}`;
-  return [...new Set([profilePath, ...profileChildPaths(slug, profile?.contentBlocks)])];
+  // Reuse the public router's existing destinations after eligibility and child
+  // opt-outs have been applied. Management status never grants publication.
+  return [...new Set(
+    [profilePath, ...profileChildPaths(slug, profile?.contentBlocks)].map(
+      (value) => resolveIssaBuildCanonicalRedirect(value) || value
+    )
+  )];
 }
 
 export function collectBusinessIndexNowUrls(

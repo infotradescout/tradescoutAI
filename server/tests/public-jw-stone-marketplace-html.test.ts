@@ -31,7 +31,7 @@ const read = (relativePath: string) =>
 
 describe("JW Stone marketplace public HTML", () => {
   it.each([false, true])(
-    "shows Iranian origin in the onyx product and collection on custom domain=%s",
+    "keeps origin on onyx listings without a homepage banner on custom domain=%s",
     (marketplaceDomainSurface) => {
       const options = {
         templateHtml,
@@ -54,9 +54,12 @@ describe("JW Stone marketplace public HTML", () => {
       expect(collection).toContain("Country of origin: Iran");
       expect(collection).toContain("across onyx colors");
       const home = buildPublicJwStoneMarketplaceHtml(options);
-      expect(home).toContain("10,000 sq ft in shared stock");
-      expect(home).toContain("across onyx colors");
-      expect(home).toContain("Confirmed September 6, 2026");
+      expect(home).not.toMatch(
+        /Featured Iranian onyx|Explore Honey Onyx|Iranian|Country of origin|10,000|across onyx colors/
+      );
+      expect(home).toContain("/stones/honey-onyx");
+      expect(home).toContain("/materials/onyx");
+      expect(home).toContain("request=collection");
       const unrelated = buildPublicJwStoneMarketplaceHtml({ ...options, stoneSlug: "black-dunes" });
       expect(unrelated).not.toContain('"countryOfOrigin"');
       expect(unrelated).not.toContain("Country of origin: Iran");
@@ -92,7 +95,7 @@ describe("JW Stone marketplace public HTML", () => {
       "@type": "CollectionPage",
       name: "Natural stone slabs in Pensacola, FL | JW Stone Logistics",
       description:
-        "Explore Iranian onyx alongside granite, marble, quartzite and engineered quartz from JW Stone Logistics in Pensacola, Florida.",
+        "Explore granite, marble, quartzite, onyx and engineered quartz from JW Stone Logistics in Pensacola, Florida.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
       mainEntity: {
@@ -130,7 +133,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
     expect(html).toContain('data-seo-jw-stone-company="true"');
     expect(html).toContain("Material Library");
-    expect(html).toContain("Explore Iranian onyx");
+    expect(html).toContain("Explore granite, marble, quartzite, onyx and engineered quartz");
     expect(html).toContain("fabricators, builders, architects, designers, and homeowners");
     expect(html).toContain("not a claim of confirmed physical stock");
     expect(html).not.toContain("Browse current selections by photo");

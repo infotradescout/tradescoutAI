@@ -4,6 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import dotenv from "dotenv";
 import pg from "pg";
+import { DATABASE_RECOVERY_GUIDANCE } from "./lib/verified-migration-runner.mjs";
 
 dotenv.config();
 
@@ -561,12 +562,7 @@ export async function verifyRequiredProductionSchema(client) {
     throw new Error(
       [
         `Required production schema is missing: ${missing.join(", ")}`,
-        "Recover by reconciling any reported drift to the committed schema shape, then applying and recording the applicable canonical migrations",
-        "migrations/0072_seo_publication_rules_and_freshness.sql and",
-        "migrations/0115_profile_accounts.sql and",
-        "migrations/0116_admin_live_stream_snapshots.sql and",
-        "migrations/0117_managed_partner_intakes.sql and",
-        "migrations/0130_business_managed_partner_contact.sql before deployment.",
+        DATABASE_RECOVERY_GUIDANCE,
       ].join(" ")
     );
   }

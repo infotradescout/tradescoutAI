@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
+import { businessSlugFromPublicRoute } from "@shared/discoveryLanding";
+import { resolveIssaBuildPublicPage } from "@shared/issaBuildRoutes";
 import { pool } from "../db";
-import { buildProfileSitemapUrls } from "../profileSitemapDiscovery";
+import { collectProfileIndexNowUrls } from "./indexNowPublicationEvents";
 import { SitemapRepository } from "../repositories/sitemapRepository";
 import { storage } from "../storage";
 import type { IndexNowSubmissionResult } from "./indexNowService";
@@ -38,21 +40,13 @@ type ReconciliationOptions = {
   now?: () => Date;
 };
 
-function profileSeoMeta(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function canonicalProfileUrl(slug: string): string {
-  return `${CANONICAL_ORIGIN}/u/${encodeURIComponent(slug)}`;
-}
-
 function normalizeGeneratedProfileUrl(value: unknown): string | null {
   try {
     const url = new URL(String(value || "").trim(), CANONICAL_ORIGIN);
     if (url.origin !== CANONICAL_ORIGIN) return null;
-    if (!url.pathname.startsWith("/u/")) return null;
+    if (!url.pathname.startsWith("/u/") && resolveIssaBuildPublicPage(url.pathname) === null) {
+      return null;
+    }
     url.hash = "";
     return url.toString();
   } catch {
@@ -62,10 +56,7 @@ function normalizeGeneratedProfileUrl(value: unknown): string | null {
 
 function profileSlugFromCanonicalUrl(value: string): string | null {
   try {
-    const url = new URL(value);
-    const match = url.pathname.match(/^\/u\/([^/]+)/);
-    if (!match?.[1]) return null;
-    return decodeURIComponent(match[1]).trim().toLowerCase() || null;
+    return businessSlugFromPublicRoute(new URL(value).pathname) || null;
   } catch {
     return null;
   }
@@ -89,19 +80,11 @@ export function collectPublicProfileIndexNowReconciliationUrls(
     if (!slug || !shouldIndexPublicProfileSlug(slug)) continue;
     if (candidate.status != null && String(candidate.status).trim() !== "published") continue;
 
-    const seoMeta = profileSeoMeta(candidate.seoMeta);
-    if (String(seoMeta.customDomain || "").trim()) continue;
-
-    const profileUrl = canonicalProfileUrl(slug);
-    const root = normalizeGeneratedProfileUrl(profileUrl);
-    if (root) urls.add(root);
-
-    for (const childUrl of buildProfileSitemapUrls({
-      profileSlug: slug,
-      profileUrl,
-      contentBlocks: candidate.contentBlocks,
-    })) {
-      const normalized = normalizeGeneratedProfileUrl(childUrl);
+    // Startup reconciliation and publication events must use the same approved
+    // destinations. Fingerprint the final addresses, not obsolete aliases, so
+    // a route correction is submitted once even when business data is unchanged.
+    for (const value of collectProfileIndexNowUrls({ ...candidate, slug, status: "published" }, true)) {
+      const normalized = normalizeGeneratedProfileUrl(value);
       if (normalized) urls.add(normalized);
     }
   }

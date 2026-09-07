@@ -19,7 +19,7 @@ export const ISSA_BUILD_LOCAL_DISCOVERY = {
   tradeServices: ["Kitchen Remodeling", "Bathroom Remodeling"],
   title: "ISSA Build | Pensacola Kitchens, Bathrooms & Countertops",
   description:
-    "Pensacola-area kitchens, bathrooms, cabinets, countertops and fabrication. Explore 2 cm Honey Onyx and Multi Green Onyx from Iran with ISSA Build. Start a Request.",
+    "Pensacola-area kitchens, bathrooms, cabinets, countertops and fabrication. Start a Request.",
   headline: "Kitchens, bathrooms, cabinets and countertops in Pensacola and surrounding areas.",
   services: [
     {
@@ -399,17 +399,6 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
                 "Owner-supplied ISSA Build photography shows Multi Green Onyx in installed rooms and close material views.",
             },
           ],
-        },
-      ],
-    },
-  },
-  {
-    type: "faq",
-    data: {
-      faqs: [
-        {
-          question: "Where does ISSA Build’s onyx come from?",
-          answer: `Honey Onyx and Multi Green Onyx have country of origin: Iran and a thickness of 2 cm. ${IRANIAN_ONYX_STOCK.stockLabel}. ${IRANIAN_ONYX_STOCK.stockNote} Ask ISSA Build about fabrication, backlighting and installation.`,
         },
       ],
     },
