@@ -3,9 +3,10 @@ import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Images, MapPin, Pl
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { SafeProfileImg } from "./safeProfileImage";
 import type PreservedDefaultProfileTheme from "./PreservedDefaultProfileTheme";
+import type { PublicProfileContact } from "@shared/publicProfileContact";
 import "./BusinessProfileTheme.css";
 
-type Props = ComponentProps<typeof PreservedDefaultProfileTheme>;
+type Props = ComponentProps<typeof PreservedDefaultProfileTheme> & { publicContact?: PublicProfileContact | null };
 type Photo = Props["galleryItems"][number];
 
 export function publicProfileUrl(value: string | undefined, relative = false): string | undefined {
@@ -51,6 +52,7 @@ export default function BusinessProfileTheme(props: Props) {
     showBadges = true, showStats = true, showServices = true, showServiceAreas = true,
     showRecommendations = true, showContact = true, onDirectConnect, shareAction,
     renderGalleryShare, bookingSection, profileItems, trustActions, lightTrustActions, tradeScoutHandoff,
+    publicContact,
   } = props;
   const background = hex(brandColors?.background, "#111315");
   const surface = hex(brandColors?.surface, "#1a1d20");
@@ -141,6 +143,13 @@ export default function BusinessProfileTheme(props: Props) {
           {descriptionText ? <p className="bp-summary">{descriptionText}</p> : null}
           {categoryLabel && !sameText(categoryLabel, leadText) ? <p className="bp-category">{categoryLabel}</p> : null}
           {showContact ? <div className="bp-primary-actions"><button type="button" className="bp-request" onClick={() => onDirectConnect()} data-testid="business-profile-request">Start a Request <ArrowRight size={18} aria-hidden /></button></div> : null}
+          {showContact && publicContact ? <address data-testid="public-profile-contact" style={{ fontStyle: "normal", marginTop: "1rem", maxWidth: "100%" }}>
+            <span style={{ fontSize: ".8rem", color: "var(--bp-muted)" }}>{publicContact.label}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: ".25rem 1rem" }}>
+              <a href={`tel:${publicContact.tel}`} style={{ display: "inline-flex", alignItems: "center", minHeight: 44, textDecoration: "underline", color: "inherit" }}>{publicContact.phone}</a>
+              {publicContact.email ? <a href={`mailto:${encodeURIComponent(publicContact.email)}`} style={{ display: "inline-flex", alignItems: "center", minHeight: 44, overflowWrap: "anywhere", textDecoration: "underline", color: "inherit" }}>{publicContact.email}</a> : null}
+            </div>
+          </address> : null}
         </header>
         {coverVisible && heroPhoto ? <section className="bp-cover" aria-label="Business photographs" data-testid="business-profile-cover">
           <button type="button" className="bp-cover-main" onClick={(event) => openPhoto(0, event.currentTarget)} aria-label={`View ${heroPhoto.imageAlt}`}>

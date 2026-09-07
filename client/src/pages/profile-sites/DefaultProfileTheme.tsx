@@ -4,7 +4,7 @@ import PreservedDefaultProfileTheme from "./PreservedDefaultProfileTheme";
 import "./BusinessProfileFooter.css";
 
 /** Business profiles share one layout. Explicit portfolio and community variants retain their presentation. */
-export default function DefaultProfileTheme(props: ComponentProps<typeof PreservedDefaultProfileTheme>) {
+export default function DefaultProfileTheme(props: ComponentProps<typeof BusinessProfileTheme>) {
   if (props.presentationVariant === "first-deliverable" || props.profileKind === "community") {
     return <PreservedDefaultProfileTheme {...props} />;
   }
