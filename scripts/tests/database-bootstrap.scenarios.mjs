@@ -126,9 +126,13 @@ try {
     return `postgresql://postgres:${password}@127.0.0.1:${port}/${name}?sslmode=disable`;
   };
   const emptyUrl = await newDb("db598_test_empty");
-  let client = await connect(emptyUrl);
-  result.nativePostgres = (await client.query("select version() as version, inet_server_addr()::text as host")).rows[0];
-  assert.equal(result.nativePostgres.host, "127.0.0.1"); await client.end();
+  const client = await connect(emptyUrl);
+  try {
+    result.nativePostgres = (await client.query("select version() as version, host(inet_server_addr()) as host")).rows[0];
+    assert.equal(result.nativePostgres.host, "127.0.0.1");
+  } finally {
+    await client.end();
+  }
 
   await scenario("original false success reproduced on unchanged release base", async () => {
     const url = await newDb("db598_test_control"); const old = await checkout("original-control", base);
