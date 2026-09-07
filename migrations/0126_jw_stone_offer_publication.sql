@@ -11,6 +11,24 @@ DECLARE
   jw_inventory_update_count INTEGER;
   jw_listing_update_count INTEGER;
 BEGIN
+  -- This is a business-data backfill, not a prerequisite for creating the
+  -- application schema. A database with no publication target has no stock
+  -- to publish. Partial identities or orphaned publication assets must still
+  -- reach the original fail-closed checks below; never invent customer data.
+  IF NOT EXISTS (SELECT 1 FROM profiles WHERE slug = 'jw-stone')
+     AND NOT EXISTS (
+       SELECT 1 FROM bidrock_listings WHERE source_profile_slug = 'jw-stone'
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM stone_asset_passports
+        WHERE condition_json ->> 'fixtureVersion' = jw_fixture_version
+           OR source_asset_ref LIKE jw_fixture_version || ':%'
+     ) THEN
+    RAISE NOTICE
+      '0126: no JW Stone publication target exists; schema setup continues without creating or publishing business data';
+    RETURN;
+  END IF;
+
   SELECT profile.business_id, business.owner_user_id
     INTO jw_business_id, jw_publisher_user_id
     FROM profiles AS profile

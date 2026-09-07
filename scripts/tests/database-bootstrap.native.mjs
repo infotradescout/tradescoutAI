@@ -31,6 +31,11 @@ async function main() {
   const temp = isolated ? await fs.mkdtemp(path.join(os.tmpdir(), "db598-clean-checkout-")) : null;
   const candidate = isolated ? path.join(temp, "candidate") : root;
   const base = "908d2d4e2c76141ffe2cdcfa52e756dfb52fae84";
+  const focusedContracts = [
+    "server/tests/clean-setup-publication-history.contract.test.ts",
+    "server/tests/jw-stone-offer-publication-migration.contract.test.ts",
+    "server/tests/runtime-migration-policy.test.ts",
+  ];
   let added = false, exitStatus = 1;
   const run = async (executable, args, cwd = root, env = process.env, capture = false) => {
     let output = "";
@@ -63,14 +68,15 @@ async function main() {
     const clean = await run("git", ["status", "--porcelain"], candidate, process.env, true);
     assert.equal(clean.output, "", "The candidate must remain exactly clean");
     assert.equal((await run(process.execPath, ["--test", "scripts/tests/database-bootstrap-report.test.mjs"], candidate)).code, 0);
+    assert.equal((await run("npm", ["run", "test:run", "--", ...focusedContracts], candidate)).code, 0,
+      "Every publication and startup identity regression must pass on the clean candidate");
     const startedAfter = Date.now();
-    // Keep the native dependency and its shutdown hooks in a child process.
-    // The parent independently validates the report, not only the exit code.
     const proof = await run(process.execPath, ["scripts/tests/database-bootstrap.scenarios.mjs"], candidate, { ...process.env, DB598_ISOLATE_CHECKOUT: "0" });
     const evidence = path.join(candidate, ".db-bootstrap-proof");
     const report = JSON.parse(await fs.readFile(path.join(evidence, "result.json"), "utf8"));
     assert.equal(proof.code, 0, "The native process must exit successfully");
     assertDatabaseProof(report, { source: head.output, fullRelease: process.env.DB598_FULL_RELEASE === "1", startedAfter });
+    report.focusedContracts = { files: focusedContracts, passed: true, source: head.output };
     if (process.env.DB598_FULL_RELEASE === "1") {
       const release = JSON.parse(await fs.readFile(path.join(evidence, "release-evidence.json"), "utf8"));
       assert.equal(release.commit, head.output);
@@ -80,8 +86,6 @@ async function main() {
     }
     if (isolated) {
       const publish = path.join(root, ".db-bootstrap-proof");
-      // Only sanitized passing results and public-page screenshots are served.
-      // Raw SQL/command output remains in authenticated build logs.
       await fs.rm(publish, { recursive: true, force: true });
       await fs.mkdir(publish, { recursive: true });
       report.commands = report.commands.map(({ log, ...item }) => ({ ...item, logLocation: "authenticated build record" }));
@@ -91,6 +95,8 @@ async function main() {
       }
       await fs.cp(path.join(evidence, "browser"), path.join(publish, "browser"), { recursive: true }).catch((error) => { if (error.code !== "ENOENT") throw error; });
       await fs.writeFile(path.join(publish, "runner-environment.json"), JSON.stringify({ source: head.output, initialBuilderChanges: initial.output, verifiedCheckout: "independent exact-commit worktree", cleanAfterNpmCi: true }, null, 2));
+    } else {
+      await fs.writeFile(path.join(evidence, "result.json"), JSON.stringify(report, null, 2));
     }
     exitStatus = 0;
     console.log("DB598_ACCEPTED " + JSON.stringify({ source: head.output, scenarioCount: report.scenarios.length, passed: true }));
