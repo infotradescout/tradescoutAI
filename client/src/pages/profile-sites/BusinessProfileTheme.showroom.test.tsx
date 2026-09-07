@@ -14,6 +14,8 @@ const defaults: Props = {
   services: ["Kitchen projects in Pensacola", "Bathroom projects in Pensacola"], serviceAreas: ["Pensacola, FL"],
   galleryItems: Array.from({ length: 6 }, (_, index) => ({ slug: `work-${index}`, title: `Original title ${index}`, imageAlt: `Original room ${index}`, imageUrl: `/original-work-${index}.jpg` })),
   onDirectConnect: request,
+  trustActions: null,
+  tradeScoutHandoff: null,
 };
 
 describe("project-led business website composition", () => {

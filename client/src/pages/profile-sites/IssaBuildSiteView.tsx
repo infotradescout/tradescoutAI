@@ -34,7 +34,15 @@ const OnyxPresentation = lazy(() => import("./WholesalerProfileThemeLegacy"));
 type DefaultThemeProps = ComponentProps<typeof DefaultProfileTheme>;
 type ManageProps = ComponentProps<typeof ProfileSiteManageChrome>;
 type BookingProps = ComponentProps<typeof ProfileBookingRequestDialog>;
-type ProfileSections = NonNullable<ComponentProps<typeof PublicProfileItems>["profileSections"]>;
+// The business profile consumes more visibility controls than its item list.
+// Keep those existing optional controls without changing rendering defaults.
+type ProfileSections = NonNullable<ComponentProps<typeof PublicProfileItems>["profileSections"]> & {
+  about?: boolean;
+  rolesAndBadges?: boolean;
+  stats?: boolean;
+  reviews?: boolean;
+  contactCard?: boolean;
+};
 type Recommendation = NonNullable<DefaultThemeProps["recommendations"]>[number] & {
   contractor?: { companyName?: string; slug?: string; canonicalBusinessProfileUrl?: string | null };
 };
@@ -107,7 +115,6 @@ export default function IssaBuildSiteView() {
       <a className="ml-6 underline" href="/">TradeScout</a>
     </main>
   );
-
   const { profile, business } = data;
   const blocks = buildIssaBuildBusinessContentBlocks(profile.contentBlocks);
   const onyxBlocks = buildIssaBuildOnyxContentBlocks();
