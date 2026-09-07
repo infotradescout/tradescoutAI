@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import pg from "pg";
+import { provePublicationSafety } from "./clean-setup-publication.native.mjs";
 
 const root = process.cwd();
 const base = "908d2d4e2c76141ffe2cdcfa52e756dfb52fae84";
@@ -16,7 +17,7 @@ await fs.mkdir(out, { recursive: true });
 const password = crypto.randomBytes(24).toString("hex");
 const scrub = (value) => String(value).replaceAll(password, "[disposable-password]").replace(/postgres(?:ql)?:\/\/[^\s"']+/gi, "[disposable-postgres-url]");
 const result = { source: null, base, startedAt: new Date().toISOString(), nativePostgres: null, scenarios: [], commands: [], passed: false,
-  scope: "Historical empty-database fail-closed proof; separate prepared-schema compatibility fixture; focused canonical recovery journal; no production database access." };
+  scope: "Actual full historical empty-database setup and repeat; business publication safety; separately prepared compatibility and recovery fixtures; no production database access." };
 let cluster, clusterStarted = false, commandIndex = 0;
 const worktrees = [];
 const envBase = { ...process.env, NODE_ENV: "test", ALLOW_INSECURE_TEST_DATABASE: "true", ALLOW_TEST_DB_FULL_SYNC: "true", VITEST_SERIAL: "true" };
@@ -107,6 +108,19 @@ async function assertCurrentVerificationFunction(client) {
   const normalize = (value) => value.trim().replace(/\s+/g, " ");
   assert.equal(normalize(row.prosrc), normalize(expected));
 }
+async function assertCompleteEmptySetup(db) {
+  const history = await ledger(db);
+  assert.equal(history.length, entries.length);
+  for (const entry of entries) {
+    const sql = await sqlFor(entry.tag);
+    const lf = sql.replace(/\r\n?/g, "\n");
+    assert.ok(history.some((row) => [sha(lf), sha(lf.replace(/\n/g, "\r\n"))].includes(row.hash) && Number(row.created_at) === Number(entry.when)), `Missing actually executed migration ${entry.tag}`);
+  }
+  const rows = (await db.query("select (select count(*)::int from users) as users, (select count(*)::int from profiles) as profiles, (select count(*)::int from businesses) as businesses, (select count(*)::int from bidrock_listings) as listings, (select count(*)::int from stone_inventory_positions) as inventory")).rows[0];
+  assert.deepEqual(rows, { users: 0, profiles: 0, businesses: 0, listings: 0, inventory: 0 });
+  await assertCurrentVerificationFunction(db);
+  return history;
+}
 
 try {
   assert.ok(process.env.EMBEDDED_POSTGRES_MODULE, "EMBEDDED_POSTGRES_MODULE is required; install the pinned native test dependency outside the repository");
@@ -131,9 +145,7 @@ try {
   try {
     result.nativePostgres = (await client.query("select version() as version, host(inet_server_addr()) as host")).rows[0];
     assert.equal(result.nativePostgres.host, "127.0.0.1");
-  } finally {
-    await client.end();
-  }
+  } finally { await client.end(); }
 
   await scenario("original false success reproduced on unchanged release base", async () => {
     const url = await newDb("db598_test_control"); const old = await checkout("original-control", base);
@@ -144,21 +156,24 @@ try {
     finally { await db.end(); }
     return "The unchanged baseline returned success while the independent native required-schema check failed.";
   });
-  await scenario("fresh historical chain fails clearly and repeat does not invent history", async () => {
-    await runScript("empty-migrate", "scripts/db-migrate-safe.mjs", emptyUrl, { expected: "failure" });
+  await scenario("fresh historical chain completes without business fixtures and repeat preserves actual history", async () => {
+    await runScript("empty-migrate", "scripts/db-migrate-safe.mjs", emptyUrl);
     const db = await connect(emptyUrl);
     try {
-      const first = await ledger(db); assert.ok(!first.some((row) => Number(row.created_at) >= Number(entries.at(-1).when)));
-      await runScript("empty-migrate-repeat", "scripts/db-migrate-safe.mjs", emptyUrl, { expected: "failure" });
+      const first = await assertCompleteEmptySetup(db);
+      await runScript("empty-required-schema", "scripts/check-required-production-schema.mjs", emptyUrl);
+      await runScript("empty-migrate-repeat", "scripts/db-migrate-safe.mjs", emptyUrl);
       assert.deepEqual(await ledger(db), first);
       await runScript("baseline-refuses", "scripts/db-baseline-drizzle.mjs", emptyUrl, { expected: "failure" });
       assert.deepEqual(await ledger(db), first);
     } finally { await db.end(); }
-    return "Both attempts reject the incomplete database; no fake newest-migration marker is created.";
+    result.publicationCases = await provePublicationSafety({ newDb, connect, sqlFor, gitText, focusedJournal, runScript, ledger, ensureLedger, entries });
+    assert.equal(result.publicationCases.length, 22);
+    assert.ok(result.publicationCases.every((item) => item.passed));
+    return `All ${entries.length} real journal migrations and the unchanged required-schema verifier passed from an empty database without business fixtures or schema push. Repeat preserves every actual migration identity. All 22 native publication and historical identity cases passed.`;
   });
   await scenario("gap preview makes no database objects or history", async () => {
-    const url = await newDb("db598_test_preview");
-    const db = await connect(url);
+    const url = await newDb("db598_test_preview"); const db = await connect(url);
     try {
       const before = (await db.query("select nspname from pg_namespace order by nspname")).rows;
       await runScript("empty-gap-preview", "scripts/db-migrate-fill-gaps.mjs", url, { args: ["--dry-run"] });
@@ -197,7 +212,7 @@ try {
     const pair = await command("source-render-predeploy-pair", "npm", renderPredeployArgs, { env: dbEnv(preparedUrl) });
     assert.match(pair.text, /Canonical migration and independent required-schema pair passed/);
     assert.ok((pair.text.match(/Required production schema is present/g) || []).length >= 2);
-    return "The guarded full fixture and eight actually executed canonical SQL files pass unchanged required-schema predicates. The exact Docker exec-style pre-deploy argument pair also executes both checks using source entrypoints. This is not full historical empty-chain proof.";
+    return "The guarded prepared fixture and eight actually executed canonical SQL files pass unchanged required-schema predicates. This existing-schema compatibility test is separate from the real empty-database success proved above.";
   });
   await scenario("later watermark cannot hide a required gap; reviewed canonical recovery succeeds", async () => {
     const cwd = await focusedJournal("required-journal", canonical); const db = await connect(preparedUrl);
@@ -240,7 +255,6 @@ try {
   await scenario("0115 path regression reproduced and full current successor sequence restored", async () => {
     const db = await connect(preparedUrl);
     try {
-      // This is an empty synthetic fixture, not a live recovery recipe or real entitlement mutation.
       await apply(db, "0115_profile_accounts");
       const failure = await runScript("0115-path-contract-rejected", "scripts/check-required-production-schema.mjs", preparedUrl, { expected: "failure" });
       assert.match(failure.text, /profile_accounts\[canonical columns\/constraints\/indexes\]/);
@@ -265,9 +279,6 @@ try {
     await scenario("exact-candidate built browser proof in a separate worktree", async () => {
       const browserDir = await checkout("browser-candidate", result.source);
       await command("install-chromium", process.execPath, [path.join(root, "node_modules/playwright/cli.js"), "install", "chromium"]);
-      // Let each existing child command select its normal mode: Vitest selects
-      // test, while Vite's build selects production. Never inherit DB test mode
-      // into the release asset build or relax its performance budgets.
       const browserEnv = { ...envBase, PROFILE_PROOF_MODE: "preview" };
       delete browserEnv.NODE_ENV;
       await command("candidate-browser", process.execPath, ["scripts/verify-business-profile-review.mjs"], { cwd: browserDir, env: browserEnv });
@@ -280,29 +291,36 @@ try {
     await scenario("complete minimum release contract with production assets and guarded test database", async () => {
       assert.equal(await gitText(["status", "--porcelain"]), "", "The release checkout must remain clean before the full gate");
       await command("minimum-release-contract", "npm", ["run", "gate:minimum-release"], {
-        env: { ...dbEnv(preparedUrl), BROWSER_PROOF_NOTE: `Exact candidate ${result.source}: four built-preview browser viewports passed in an independent worktree; report and captures preserved in database-bootstrap proof.` },
+        env: { ...dbEnv(emptyUrl), BROWSER_PROOF_NOTE: `Exact candidate ${result.source}: four built-preview browser viewports passed in an independent worktree; report and captures preserved in database-bootstrap proof. The gate database was created by the complete real migration chain, not schema push.` },
       });
       const evidencePath = path.join(root, "artifacts/release-contract", result.source.slice(0, 12), "evidence.json");
       const evidence = JSON.parse(await fs.readFile(evidencePath, "utf8"));
       assert.equal(evidence.commit, result.source); assert.equal(evidence.result, "pass");
       assert.equal(evidence.dirtyTree, false); assert.ok(evidence.steps.every((step) => step.status === "pass"));
       await fs.copyFile(evidencePath, path.join(out, "release-evidence.json"));
-      return "Exact clean source, fresh dependency installation, full typecheck/build, all required contract tests, native prepared-schema migration/verification, browser evidence and health contract passed without skips.";
+      return "Exact clean source, fresh dependency installation, full typecheck/build, all required contract tests, native full-chain database migration/verification, browser evidence and health contract passed without skips.";
     });
     await scenario("built production migration entrypoint also rejects the incomplete database", async () => {
-      await command("built-empty-migrate", "npm", ["run", "db:migrate"], { env: dbEnv(emptyUrl), expected: "failure" });
-      const rejectedPair = await command("built-render-predeploy-rejects-empty", "npm", renderPredeployArgs, { env: dbEnv(emptyUrl), expected: "failure" });
-      assert.match(rejectedPair.text, /Running canonical pre-deploy step: db-migrate-safe/);
-      assert.doesNotMatch(rejectedPair.text, /Running canonical pre-deploy step: check-required-production-schema/);
-      assert.doesNotMatch(rejectedPair.text, /Canonical migration and independent required-schema pair passed/);
-      const acceptedPair = await command("built-render-predeploy-verifies-prepared", "npm", renderPredeployArgs, { env: dbEnv(preparedUrl) });
-      assert.match(acceptedPair.text, /Running canonical pre-deploy step: check-required-production-schema/);
-      assert.match(acceptedPair.text, /Canonical migration and independent required-schema pair passed/);
-      assert.ok((acceptedPair.text.match(/Required production schema is present/g) || []).length >= 2);
-      const db = await connect(emptyUrl);
-      try { assert.ok(!(await ledger(db)).some((row) => Number(row.created_at) >= Number(entries.at(-1).when))); }
-      finally { await db.end(); }
-      return "The bundled migration entrypoint and exact Docker exec-style pair reject the incomplete database without continuing. The same built pair independently verifies the prepared compatible fixture before passing.";
+      const builtUrl = await newDb("db598_test_built_empty");
+      const builtPair = await command("built-render-predeploy-initializes-empty", "npm", renderPredeployArgs, { env: dbEnv(builtUrl) });
+      assert.match(builtPair.text, /Running canonical pre-deploy step: check-required-production-schema/);
+      assert.match(builtPair.text, /Canonical migration and independent required-schema pair passed/);
+      assert.ok((builtPair.text.match(/Required production schema is present/g) || []).length >= 2);
+      const db = await connect(builtUrl);
+      try {
+        const before = await assertCompleteEmptySetup(db);
+        await command("built-empty-repeat", "npm", ["run", "db:migrate"], { env: dbEnv(builtUrl) });
+        assert.deepEqual(await ledger(db), before);
+        // Corrupt only this disposable database after successful setup. A latest
+        // ledger marker must never hide genuinely missing required structure.
+        await db.query("ALTER TABLE profile_accounts DROP CONSTRAINT profile_accounts_source_path_check");
+        const rejectedPair = await command("built-render-predeploy-rejects-damaged-schema", "npm", renderPredeployArgs, { env: dbEnv(builtUrl), expected: "failure" });
+        assert.match(rejectedPair.text, /Running canonical pre-deploy step: db-migrate-safe/);
+        assert.doesNotMatch(rejectedPair.text, /Running canonical pre-deploy step: check-required-production-schema/);
+        assert.doesNotMatch(rejectedPair.text, /Canonical migration and independent required-schema pair passed/);
+        assert.deepEqual(await ledger(db), before);
+      } finally { await db.end(); }
+      return "The compiled Docker-style command pair creates a second empty database through all actual migrations and both verifiers. Repeating changes no history. Deliberately removing a required constraint then fails without continuing or fabricating a repair.";
     });
   }
   result.passed = result.scenarios.every((row) => row.passed);
@@ -319,8 +337,7 @@ try {
   const esc = (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   await fs.writeFile(path.join(out, "index.html"), `<!doctype html><html lang="en"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TradeScout database repair verification</title><main style="max-width:1000px;margin:auto;padding:24px;font:16px/1.6 system-ui"><h1>Database repair verification</h1><p>${result.passed ? "All recorded checks passed." : "Verification failed. This is not a production release."}</p><p>No production database or customer records were used.</p><a href="result.json">Detailed result</a>${result.scenarios.map((row) => `<section><h2>${esc(row.name)}</h2><p>${esc(row.passed ? row.detail : row.failure || "Not completed")}</p></section>`).join("")}</main></html>`);
   await fs.cp(out, path.join(root, ".db-bootstrap-proof"), { recursive: true });
-  console.log("DB598_FINAL " + JSON.stringify({ source: result.source, passed: result.passed, nativePostgres: result.nativePostgres, scenarios: result.scenarios, failure: result.failure, databaseCleanup: result.databaseCleanup, completedAt: result.completedAt }));
-  // The temporary directory was created by this harness; it never names an existing database.
+  console.log("DB598_FINAL " + JSON.stringify({ source: result.source, passed: result.passed, nativePostgres: result.nativePostgres, scenarios: result.scenarios, publicationCases: result.publicationCases, failure: result.failure, databaseCleanup: result.databaseCleanup, completedAt: result.completedAt }));
   await fs.rm(temp, { recursive: true, force: true }).catch(() => {});
 }
 process.exitCode = result.passed ? 0 : 1;
