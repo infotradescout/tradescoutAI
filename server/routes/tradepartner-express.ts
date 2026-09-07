@@ -1046,7 +1046,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         });
         return res.json({
           sent: !result.skipped,
-          skipped: result.skippedReason || null,
+          skipped: result.skipped,
+          skippedReason: result.skippedReason || null,
           messageId: result.messageId || null,
           provider: result.provider,
         });
