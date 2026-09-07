@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-07T19:28:27Z",
+  "generated_at": "2026-09-07T19:31:16Z",
   "source": {
     "kind": "git",
-    "revision": "7c60610fdc1e16f4c147bf8a5e7d61cd2861701c",
+    "revision": "331f5e3f0aab7bc356b9b4a85543bd475eb2a8cc",
     "dirty": true,
-    "inventory_sha256": "4ce01d83dc24b0282aa36444b02462e2f4de203d5e19430bd1b5e3cb6530816a"
+    "inventory_sha256": "9efbf86c2ce421e6315c9123939c6f1088dcb2eaa400eb940e7a2371746169f3"
   },
   "inventory": {
     "directories": [
@@ -392,7 +392,7 @@
       },
       {
         "path": "server/integrations",
-        "source_file_count": 2
+        "source_file_count": 1
       },
       {
         "path": "server/jobs",
@@ -1431,14 +1431,14 @@
       {
         "path": "client/src/components/auth/RoleProtectedRoute.test.tsx",
         "language": "tsx",
-        "sha256": "2a721011aaaf99b43ec1af7e55eed82a1becff192de6d3c7c8ef05c91cce2533",
-        "bytes": 2875
+        "sha256": "e21c5a3114c5d94cc72e6be6f8cde6dcc47e1bc5c21c41d3554eaf76e400af43",
+        "bytes": 2796
       },
       {
         "path": "client/src/components/auth/RoleProtectedRoute.tsx",
         "language": "tsx",
-        "sha256": "6178d5ccc667e7295616ff76640250056163e6e78b07cccdd7c813ddbf5ee49c",
-        "bytes": 1655
+        "sha256": "fd8703f83e518fa6083ff3e71b160410d67645a3141f91d8ecd20cd9d7c72afd",
+        "bytes": 1589
       },
       {
         "path": "client/src/components/auth/RoleSelection.tsx",
@@ -4017,8 +4017,8 @@
       {
         "path": "client/src/pages/about-explainer-content.tsx",
         "language": "tsx",
-        "sha256": "08f3cc754ae9acc2abd5cbc93b5c7dee33848d550c61bb69809edd28cf5b0607",
-        "bytes": 125521
+        "sha256": "5c394c64c9ce7616e57143bd1e64dcdb85ff6d7d4c957539082c7a7a89cd95e8",
+        "bytes": 125271
       },
       {
         "path": "client/src/pages/about.tsx",
@@ -6699,8 +6699,8 @@
       {
         "path": "client/src/pages/tradescoutExplainerData.ts",
         "language": "ts",
-        "sha256": "7c041575a068567e84d6540ad3563b8a416708dbe1c952218a911f73c7f6bc28",
-        "bytes": 69348
+        "sha256": "7131fe7707bab3f07083563a3b900f2d4d253af2096ff683e13057c057d22eb1",
+        "bytes": 69132
       },
       {
         "path": "client/src/pages/training-center.tsx",
@@ -9075,8 +9075,8 @@
       {
         "path": "server/auth.ts",
         "language": "ts",
-        "sha256": "ff498565b217a9bee1d66eb02983b0993aa750105c9599a7d16ef6d43180ad4d",
-        "bytes": 29105
+        "sha256": "ce8f6120bb604dbed106d62abe0445f22b2e69d02240e497ea5bf7df2cb09863",
+        "bytes": 28288
       },
       {
         "path": "server/badges/badgeEngine.ts",
@@ -9295,16 +9295,10 @@
         "bytes": 983
       },
       {
-        "path": "server/integrations/infinitySelectiveInheritance.ts",
-        "language": "ts",
-        "sha256": "f616ad0fe052fe21c7d2be40c68bd703311adf07906cb6548c9267be2da2c582",
-        "bytes": 3634
-      },
-      {
         "path": "server/integrations/infinityShadow.ts",
         "language": "ts",
-        "sha256": "5ebee6e3cd21268987a88ff1d72dc5745d9f5aea91a899ae13776d67599d0601",
-        "bytes": 4505
+        "sha256": "f2b20fa4e9ea8a1d0c97c9a556672c0ce41c8b7620949e1aea9528e3dbc8d567",
+        "bytes": 3411
       },
       {
         "path": "server/invoicingDocumentsRouter.ts",
@@ -9399,8 +9393,8 @@
       {
         "path": "server/middleware/requireSuperAdmin.ts",
         "language": "ts",
-        "sha256": "b574e56674ab1564db38ee7b17cd806e631bebf7ecdc16f598f84e0ea1e25472",
-        "bytes": 144
+        "sha256": "a2e009c89c94e543c03bee3eb797b2bd8475f10a1303fae254f3682348d701ff",
+        "bytes": 142
       },
       {
         "path": "server/moderation.ts",
@@ -9825,8 +9819,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "ee7b53ebc7d51c4ef6f590b8a5d25f3d418bbfc79f128e9d6031c47c906c6c58",
-        "bytes": 1017495
+        "sha256": "18a72b7cf38b2d83e921eaf508629b836297be5813763f0ea747ccb71af83f72",
+        "bytes": 991235
       },
       {
         "path": "server/routes/address-verification.ts",
@@ -9849,8 +9843,8 @@
       {
         "path": "server/routes/admin-control.ts",
         "language": "ts",
-        "sha256": "1db3a4e7c6978df53757203dd9736969c039d0e57969bd8d2f6be26ef3b55f68",
-        "bytes": 5791
+        "sha256": "6dce812c56b16f551e9f3ecef38cdbbf8eb81b7df9eb16b546eca3d143069625",
+        "bytes": 5617
       },
       {
         "path": "server/routes/admin-device-security.ts",
@@ -10299,8 +10293,8 @@
       {
         "path": "server/routes/promptAdmin.ts",
         "language": "ts",
-        "sha256": "0e996d0e2f00f55eb80b07a0f7b729a61963873510baeebfb831bcb00cd14b37",
-        "bytes": 3912
+        "sha256": "ec82183f630a061bfa354333ead8032e837c4f9efd8fbafb76bee34a694d8896",
+        "bytes": 3786
       },
       {
         "path": "server/routes/property-programs.ts",
@@ -12597,8 +12591,8 @@
       {
         "path": "server/tests/canonical-authority-guards.test.ts",
         "language": "ts",
-        "sha256": "9893ad8fe87f59fb339107b06cf5e2d329c056d951556f96fb65bb6a4a618b0c",
-        "bytes": 11686
+        "sha256": "12c273e7912972e40575ef51c48ae29885a744c2e3961c9263f3fef1fab16cfb",
+        "bytes": 11381
       },
       {
         "path": "server/tests/canonical-business-claim-handoff.contract.test.ts",
@@ -13419,8 +13413,8 @@
       {
         "path": "server/tests/identity-authority-spine.contract.test.ts",
         "language": "ts",
-        "sha256": "255986daafebe1b75627c65ffe2253e955f7d7a9ca72c80bf2c46f0c372b4b1e",
-        "bytes": 4773
+        "sha256": "717e627b96e5f8e8e094b2e1c15571786d3df382e98049cff4dadc023bfc6917",
+        "bytes": 4678
       },
       {
         "path": "server/tests/imported-directory-archive-authority.contract.test.ts",
@@ -13455,8 +13449,8 @@
       {
         "path": "server/tests/infinity-shadow-adapter.test.ts",
         "language": "ts",
-        "sha256": "cb38d279fe968a9b59ea7159ef55a58607a119f05e99f34d08e18cd1407ff807",
-        "bytes": 3215
+        "sha256": "f3d704fb5c6ba62cd21de4760858d70783bf61079d6529a5070e458984adfc9c",
+        "bytes": 3722
       },
       {
         "path": "server/tests/intent-parity-status.test.ts",
@@ -14013,8 +14007,8 @@
       {
         "path": "server/tests/phase2c-token-impersonation.router.test.ts",
         "language": "ts",
-        "sha256": "9eac99bfb59c886794aec0512c437c31f9bbdb0dcfc5d2bfea979b554d6261e3",
-        "bytes": 4231
+        "sha256": "8055fc116c1d7d999a1d76570349c6ee6adb0e0e4fcdbdb0a0f580bf7719a0d2",
+        "bytes": 4131
       },
       {
         "path": "server/tests/platform-gaps.contract.test.ts",
@@ -16719,8 +16713,8 @@
       {
         "path": "shared/roles.ts",
         "language": "ts",
-        "sha256": "18e2458e4d0febe9a43889d36492d49360f635cdc42d96f076e93cdf52306dfd",
-        "bytes": 31225
+        "sha256": "615bf4a8d5dc05cffbc872bce5d47938b9d0481a363b7cf0e83cf96ac97ec8b0",
+        "bytes": 30104
       },
       {
         "path": "shared/schema.ts",
@@ -67321,108 +67315,45 @@
         "exported": true
       },
       {
-        "name": "InfinityInheritanceSourceKind",
-        "kind": "type",
-        "path": "server/integrations/infinitySelectiveInheritance.ts",
-        "line": 1,
-        "exported": true
-      },
-      {
-        "name": "FieldRule",
-        "kind": "type",
-        "path": "server/integrations/infinitySelectiveInheritance.ts",
-        "line": 9,
-        "exported": false
-      },
-      {
-        "name": "tradeScoutSelectiveInheritancePolicy",
-        "kind": "function",
-        "path": "server/integrations/infinitySelectiveInheritance.ts",
-        "line": 40,
-        "exported": true
-      },
-      {
-        "name": "TradeScoutInheritanceCandidate",
-        "kind": "type",
-        "path": "server/integrations/infinitySelectiveInheritance.ts",
-        "line": 89,
-        "exported": true
-      },
-      {
-        "name": "TradeScoutInheritanceOverride",
-        "kind": "type",
-        "path": "server/integrations/infinitySelectiveInheritance.ts",
-        "line": 105,
-        "exported": true
-      },
-      {
-        "name": "filterTradeScoutInheritanceCandidates",
-        "kind": "function",
-        "path": "server/integrations/infinitySelectiveInheritance.ts",
-        "line": 114,
-        "exported": true
-      },
-      {
-        "name": "TradeScoutInheritanceCandidate",
-        "kind": "type",
-        "path": "server/integrations/infinityShadow.ts",
-        "line": 6,
-        "exported": false
-      },
-      {
-        "name": "TradeScoutInheritanceOverride",
-        "kind": "type",
-        "path": "server/integrations/infinityShadow.ts",
-        "line": 7,
-        "exported": false
-      },
-      {
         "name": "InfinityShadowResult",
         "kind": "type",
         "path": "server/integrations/infinityShadow.ts",
-        "line": 9,
+        "line": 2,
         "exported": false
       },
       {
         "name": "config",
         "kind": "function",
         "path": "server/integrations/infinityShadow.ts",
-        "line": 11,
+        "line": 4,
         "exported": false
       },
       {
         "name": "objectId",
         "kind": "function",
         "path": "server/integrations/infinityShadow.ts",
-        "line": 19,
+        "line": 12,
         "exported": false
       },
       {
         "name": "post",
         "kind": "function",
         "path": "server/integrations/infinityShadow.ts",
-        "line": 23,
+        "line": 16,
         "exported": false
       },
       {
         "name": "mirrorInfinityTouch",
         "kind": "function",
         "path": "server/integrations/infinityShadow.ts",
-        "line": 62,
+        "line": 55,
         "exported": true
       },
       {
         "name": "mirrorInfinityConversion",
         "kind": "function",
         "path": "server/integrations/infinityShadow.ts",
-        "line": 86,
-        "exported": true
-      },
-      {
-        "name": "mirrorInfinitySelectiveInheritance",
-        "kind": "function",
-        "path": "server/integrations/infinityShadow.ts",
-        "line": 111,
+        "line": 79,
         "exported": true
       },
       {
@@ -141600,10 +141531,10 @@
   ],
   "summary": {
     "directories": 126,
-    "source_files": 2778,
-    "symbols": 14579,
+    "source_files": 2777,
+    "symbols": 14570,
     "components": 951,
-    "functions_and_hooks": 8916,
+    "functions_and_hooks": 8913,
     "raw_ui_elements": 4142,
     "errors": 16,
     "warnings": 5
