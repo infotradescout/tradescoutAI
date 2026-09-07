@@ -17,14 +17,14 @@ export async function verifyProfileRelease() {
   assert.equal(browser.passed, true, 'The exact source must pass its browser checks first');
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'tradescout-profile-disposable-'));
   await fs.chmod(tmp, 0o755);
+  const releaseRoot = path.join(tmp, 'release');
   const record = { head, startedAt: new Date().toISOString(), commands: [], passed: false, databaseScope: 'Fresh loopback-only native PostgreSQL with the canonical full test fixture. Existing-schema compatibility; clean-bootstrap defect remains issue #598.', productionData: false };
-  let started = false;
-  let pgctl;
+  let started = false, worktreeCreated = false, workingDirectory = root, pgctl;
   const data = path.join(tmp, 'data');
   const command = (label, executable, args, options = {}) => {
     console.log('PROFILE_RELEASE_START ' + label);
     try {
-      const value = execFileSync(executable, args, { cwd: root, stdio: 'inherit', timeout: 900000, ...options });
+      const value = execFileSync(executable, args, { cwd: workingDirectory, stdio: 'inherit', timeout: 900000, ...options });
       record.commands.push({ label, status: 'pass' });
       console.log('PROFILE_RELEASE_COMMAND ' + JSON.stringify({ label, status: 'pass' }));
       return value;
@@ -34,12 +34,15 @@ export async function verifyProfileRelease() {
     }
   };
   try {
-    // The browser build generates this one tracked sitemap. Do not discard any other source edits.
-    const changed = execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
-    assert.ok(changed.every((file) => file === 'client/public/sitemap-index.xml'), 'Unexpected tracked edits after the browser build');
-    if (changed.length) command('restore build-generated sitemap to the exact reviewed source', 'git', ['restore', '--source=HEAD', '--', ...changed]);
-    record.restoredBuildGeneratedFiles = changed;
-    assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim(), '');
+    // Preserve the browser build and its generated files. Run the unchanged gate in a fresh exact-head worktree instead of discarding edits.
+    record.browserBuildChangedFiles = execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+    console.log('PROFILE_RELEASE_BROWSER_BUILD_FILES ' + JSON.stringify(record.browserBuildChangedFiles));
+    command('create clean exact-head release worktree', 'git', ['worktree', 'add', '--detach', releaseRoot, head]);
+    worktreeCreated = true;
+    workingDirectory = releaseRoot;
+    assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: releaseRoot, encoding: 'utf8' }).trim(), head);
+    assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: releaseRoot, encoding: 'utf8' }).trim(), '');
+    command('install dependencies in clean release worktree', 'npm', ['ci', '--include=dev']);
 
     const key = path.join(tmp, 'postgresql.asc');
     const response = await fetch('https://www.postgresql.org/media/keys/ACCC4CF8.asc', { signal: AbortSignal.timeout(30000) });
@@ -81,14 +84,14 @@ export async function verifyProfileRelease() {
     await client.connect();
     try {
       for (const tag of tags) {
-        await client.query(await fs.readFile(path.join(root, 'migrations', tag + '.sql'), 'utf8'));
+        await client.query(await fs.readFile(path.join(releaseRoot, 'migrations', tag + '.sql'), 'utf8'));
         record.commands.push({ label: 'execute canonical SQL ' + tag, status: 'pass' });
       }
     } finally { await client.end(); }
     command('required canonical schema verification', 'npm', ['run', 'db:verify:required'], { env });
-    const note = `Exact source ${head} passed the complete repository business-profile browser script in this run at ${browser.checkedAt}: all four viewports, actual image loading, unchanged copy, photo controls, separate Onyx and request-panel opening. No real request was sent. The generated sitemap was restored before this clean-head gate. This is not an authenticated membership or mailbox-delivery claim.`;
+    const note = `Exact source ${head} passed the complete repository business-profile browser script in this run at ${browser.checkedAt}: all four viewports, actual image loading, unchanged copy, photo controls, separate Onyx and request-panel opening. No real request was sent. This unchanged gate runs in a separate clean checkout of that same source. This is not an authenticated membership or mailbox-delivery claim.`;
     command('unchanged complete minimum release contract', 'npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=' + note], { env });
-    const evidencePath = path.join(root, 'artifacts/release-contract', head.slice(0, 12), 'evidence.json');
+    const evidencePath = path.join(releaseRoot, 'artifacts/release-contract', head.slice(0, 12), 'evidence.json');
     record.gate = JSON.parse(await fs.readFile(evidencePath, 'utf8'));
     assert.equal(record.gate.commit, head);
     assert.equal(record.gate.result, 'pass');
@@ -98,13 +101,18 @@ export async function verifyProfileRelease() {
     record.error = error.message;
     process.exitCode = 1;
   } finally {
+    let safeToRemove = true;
     if (started) {
       try { command('stop disposable native database', pgctl, ['-D', data, '-m', 'fast', '-w', 'stop']); }
-      catch (error) { record.passed = false; record.shutdownError = error.message; process.exitCode = 1; }
+      catch (error) { record.passed = false; record.shutdownError = error.message; process.exitCode = 1; safeToRemove = false; }
+    }
+    if (worktreeCreated && safeToRemove) {
+      try { command('remove only the disposable proof checkout', 'git', ['worktree', 'remove', '--force', releaseRoot], { cwd: root }); }
+      catch (error) { record.cleanupWarning = error.message; }
     }
     record.finishedAt = new Date().toISOString();
     await fs.writeFile(path.join(output, 'release-result.json'), JSON.stringify(record, null, 2));
     console.log('PROFILE_RELEASE_RESULT ' + JSON.stringify(record));
-    await fs.rm(tmp, { recursive: true, force: true });
+    if (safeToRemove) await fs.rm(tmp, { recursive: true, force: true });
   }
 }
