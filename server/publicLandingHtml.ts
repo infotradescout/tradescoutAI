@@ -29,8 +29,25 @@ function escapeHtml(value: string) {
 }
 
 function upsertTag(html: string, regex: RegExp, tag: string) {
-  if (regex.test(html)) return html.replace(regex, tag);
-  return html.replace("</head>", `${tag}\n</head>`);
+  const element = /^<(meta|link)\b/i.exec(tag)?.[1];
+  const identity = /\s(name|property|rel)=["']([^"']+)["']/i.exec(tag);
+  let matcher = new RegExp(regex.source, regex.flags.includes("g") ? regex.flags : `${regex.flags}g`);
+  if (element && identity) {
+    const key = identity[2].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Match the tag's identity across whitespace, quote and attribute-order
+    // variations. The production template contains multiline meta tags.
+    matcher = new RegExp(
+      `<${element}\\b[^>]*\\s${identity[1]}\\s*=\\s*(?:"${key}"|'${key}')[^>]*>`,
+      "gi"
+    );
+  }
+  let replaced = false;
+  const updated = html.replace(matcher, () => {
+    if (replaced) return "";
+    replaced = true;
+    return tag;
+  });
+  return replaced ? updated : html.replace(/<\/head>/i, `${tag}\n</head>`);
 }
 
 function injectSummary(html: string, summaryHtml: string) {
