@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { runVerifiedMigration, DATABASE_RECOVERY_GUIDANCE } from "../lib/verified-migration-runner.mjs";
+import "./release-runtime-chain.test.mjs";
 
 const run = (migrate, verify) => runVerifiedMigration({ migrate, verify, report: () => {} });
 test("a successful SQL command is not success when schema verification fails", async () => {
