@@ -17,6 +17,18 @@ export function publicProfileUrl(value: string | undefined, relative = false): s
     return url.protocol === "https:" || url.protocol === "http:" ? url.href : undefined;
   } catch { return undefined; }
 }
+
+/** Style an existing location clause separately without changing a single character of the copy. */
+export function splitProfileLead(text: string, locationLabel?: string): { main: string; location: string } {
+  const city = String(locationLabel || "").split(",")[0].trim();
+  if (!city || city.length < 2) return { main: text, location: "" };
+  const needle = ` in ${city}`;
+  const index = text.toLowerCase().lastIndexOf(needle.toLowerCase());
+  const next = index < 0 ? "" : text.charAt(index + needle.length);
+  if (index <= 0 || (next && !/[\s.,;:!?]/.test(next))) return { main: text, location: "" };
+  return { main: text.slice(0, index), location: text.slice(index) };
+}
+
 function sameText(first?: string, second?: string) {
   const normalize = (value?: string) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   return Boolean(normalize(first)) && normalize(first) === normalize(second);
@@ -82,6 +94,8 @@ export default function BusinessProfileTheme(props: Props) {
       }
     : safePhotos[0];
   const photos = heroPhoto ? [heroPhoto, ...safePhotos.filter((photo) => photo.imageUrl !== heroPhoto.imageUrl)] : safePhotos;
+  // Keep the cover in the complete collection, but do not immediately repeat it below itself.
+  const galleryPhotos = photos.length > 1 ? [...photos.slice(1), photos[0]] : photos;
   const [failedCover, setFailedCover] = useState(false);
   const [failedLogo, setFailedLogo] = useState(false);
   const [activePhoto, setActivePhoto] = useState<number | null>(null);
@@ -105,9 +119,10 @@ export default function BusinessProfileTheme(props: Props) {
   const supporting = heroText || (heroTitle ? headline : "") || "";
   const titleIsDistinct = storedTitle && !sameText(storedTitle, businessName) && !sameText(storedTitle, categoryLabel);
   const supportingIsDistinct = supporting && !sameText(supporting, storedTitle) && !sameText(supporting, businessName) && !sameText(supporting, categoryLabel);
-  // Prefer the supplied business scope over a generic category; never compose replacement copy.
   const leadText = titleIsDistinct ? storedTitle : supportingIsDistinct ? supporting : categoryLabel;
   const descriptionText = titleIsDistinct && supportingIsDistinct ? supporting : "";
+  const leadParts = splitProfileLead(leadText || "", locationLabel);
+  const categoryInServices = Boolean(leadParts.location && showServices && services.length && categoryLabel && !sameText(categoryLabel, leadText));
   const visibleRecommendations = recommendations.filter((entry) => recommendationMode === "received" ? entry.recommendationType === "positive" : Boolean(entry.subjectName));
   const visibleStats = stats.filter((stat) => !(
     (stat.label === "Services" && stat.value === String(services.length)) ||
@@ -136,10 +151,10 @@ export default function BusinessProfileTheme(props: Props) {
       </header>
       <div className={`bp-hero ${coverVisible ? "bp-hero--photograph" : "bp-hero--text"}`}>
         <header className="bp-identity" data-testid="default-profile-header">
-          <div className="bp-meta">{locationLabel ? <span><MapPin size={14} aria-hidden />{locationLabel}</span> : null}{operatorName ? <span>{operatorName}</span> : null}</div>
-          {leadText ? <p className="bp-headline">{leadText}</p> : null}
+          <div className="bp-meta">{locationLabel && !leadParts.location ? <span><MapPin size={14} aria-hidden />{locationLabel}</span> : null}{operatorName ? <span>{operatorName}</span> : null}</div>
+          {leadText ? <p className="bp-headline"><span className="bp-headline-main">{leadParts.main}</span>{leadParts.location ? <span className="bp-headline-location">{leadParts.location}</span> : null}</p> : null}
           {descriptionText ? <p className="bp-summary">{descriptionText}</p> : null}
-          {categoryLabel && !sameText(categoryLabel, leadText) ? <p className="bp-category">{categoryLabel}</p> : null}
+          {!categoryInServices && categoryLabel && !sameText(categoryLabel, leadText) ? <p className="bp-category">{categoryLabel}</p> : null}
           {showContact ? <div className="bp-primary-actions"><button type="button" className="bp-request" onClick={() => onDirectConnect()} data-testid="business-profile-request">Start a Request <ArrowRight size={18} aria-hidden /></button></div> : null}
         </header>
         {coverVisible && heroPhoto ? <section className="bp-cover" aria-label="Business photographs" data-testid="business-profile-cover">
@@ -152,13 +167,13 @@ export default function BusinessProfileTheme(props: Props) {
       <div className="bp-body">
         <div className="bp-content">
           {photos.length > 0 ? <section id="profile-gallery" className="bp-section bp-gallery-section"><div className="bp-section-heading"><h2>Gallery</h2>{photos.length > 4 ? <button className="bp-text-button" type="button" onClick={() => setExpandedGallery(!expandedGallery)} aria-expanded={expandedGallery} aria-controls="business-profile-photos">{expandedGallery ? "Show fewer photos" : `View all ${photos.length} photos`}<ArrowRight size={16} aria-hidden /></button> : null}</div>
-            <div id="business-profile-photos" className={`bp-gallery ${expandedGallery ? "bp-gallery--expanded" : ""}`}>{(expandedGallery ? photos : photos.slice(0, 4)).map((photo, index) => <article key={`${photo.slug}-${index}`} id={`profile-gallery-${photo.slug}`} className={sharedGallerySlug === photo.slug ? "bp-photo bp-photo--selected" : "bp-photo"}>
-              <button type="button" onClick={(event) => openPhoto(index, event.currentTarget)} aria-label={`View ${photo.imageAlt || photo.title}`}><ProfilePhoto src={photo.imageUrl} alt={photo.imageAlt} loading="lazy" className="bp-gallery-image" /></button>
+            <div id="business-profile-photos" className={`bp-gallery ${expandedGallery ? "bp-gallery--expanded" : ""}`}>{(expandedGallery ? galleryPhotos : galleryPhotos.slice(0, 4)).map((photo, index) => <article key={`${photo.slug}-${index}`} id={`profile-gallery-${photo.slug}`} className={sharedGallerySlug === photo.slug ? "bp-photo bp-photo--selected" : "bp-photo"}>
+              <button type="button" onClick={(event) => openPhoto(photos.indexOf(photo), event.currentTarget)} aria-label={`View ${photo.imageAlt || photo.title}`}><ProfilePhoto src={photo.imageUrl} alt={photo.imageAlt} loading="lazy" className="bp-gallery-image" /></button>
               {(photo.title && !sameText(photo.title, businessName)) || photo.description || galleryShare(photo) ? <div className="bp-caption"><div>{photo.title && !sameText(photo.title, businessName) ? <h3>{photo.title}</h3> : null}{photo.description ? <p>{photo.description}</p> : null}</div>{galleryShare(photo)}</div> : null}
             </article>)}</div>
           </section> : null}
-          {showServices && services.length > 0 ? <section id="profile-services" className="bp-section bp-services-section"><h2>Services</h2><div className="bp-services">{services.map((service, index) => showContact ? <button key={`${service}-${index}`} type="button" onClick={() => onDirectConnect(service)} data-testid={`default-profile-service-${index}`}><span>{service}</span><ArrowUpRight size={22} aria-hidden /></button> : <div key={`${service}-${index}`} data-testid={`default-profile-service-${index}`}><span>{service}</span></div>)}</div></section> : null}
-          {showAbout && aboutText ? <section id="profile-about" className="bp-section bp-about"><h2>About</h2><p className="bp-prosese bp-prose">{aboutText}</p></section> : null}
+          {showServices && services.length > 0 ? <section id="profile-services" className="bp-section bp-services-section"><div className="bp-section-heading"><h2>Services</h2>{categoryInServices ? <p className="bp-category">{categoryLabel}</p> : null}</div><div className="bp-services">{services.map((service, index) => showContact ? <button key={`${service}-${index}`} type="button" onClick={() => onDirectConnect(service)} data-testid={`default-profile-service-${index}`}><span>{service}</span><ArrowUpRight size={22} aria-hidden /></button> : <div key={`${service}-${index}`} data-testid={`default-profile-service-${index}`}><span>{service}</span></div>)}</div></section> : null}
+          {showAbout && aboutText ? <section id="profile-about" className="bp-section bp-about"><h2>About</h2><p className="bp-prose">{aboutText}</p></section> : null}
           {profileItems ? <section id="profile-items" className="bp-section bp-items" aria-label="Products and profile items">{profileItems}</section> : null}
           {customBlocks.map((block, index) => <section key={`${block.title}-${index}`} className="bp-section"><h2>{block.title}</h2><p className="bp-prose">{block.body}</p></section>)}
           {showRecommendations && visibleRecommendations.length ? <section id="profile-recommendations" className="bp-section"><h2>{recommendationMode === "authored" ? "Recommendations" : "Customer recommendations"}</h2><div className="bp-recommendations">{visibleRecommendations.map((entry) => {
