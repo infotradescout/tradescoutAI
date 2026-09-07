@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { canonicalizeIssaBuildPublicUrl } from "@shared/issaBuildRoutes";
 import { listProfileGalleryItems } from "@shared/profileGalleryShare";
 import { listProfileInventoryItems } from "@shared/profileItemShare";
 import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
@@ -161,9 +162,11 @@ function appendEntry(
   images: Iterable<unknown>,
   lastmod?: string
 ): void {
-  const pageUrl = normalizeHttpUrl(pageUrlValue);
-  if (!pageUrl || entries.size >= MAX_SITEMAP_URLS) return;
-  const imageUrls = distinctImages(images, pageUrl);
+  const sourcePageUrl = normalizeHttpUrl(pageUrlValue);
+  if (!sourcePageUrl || entries.size >= MAX_SITEMAP_URLS) return;
+  // Resolve source-relative image URLs before mapping only the governed page address.
+  const imageUrls = distinctImages(images, sourcePageUrl);
+  const pageUrl = canonicalizeIssaBuildPublicUrl(sourcePageUrl);
   if (imageUrls.length === 0) return;
   const existing = entries.get(pageUrl);
   if (!existing) {
