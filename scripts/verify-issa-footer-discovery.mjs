@@ -27,6 +27,7 @@ const configName = '.issa-footer.vitest.config.mjs';
 let browser, server, control;
 try {
   console.log('ISSA_RELEASE_SOURCE ' + JSON.stringify({ head, base, integratedBase, mode }));
+  run(process.execPath, ['--test', 'scripts/tests/issa-preview-response.test.mjs']);
   // Render supplies a detached checkout. Fetch exact public comparison objects without credentials.
   for (const reference of [base, integratedBase, ...(mode === 'preview' ? ['908d2d4e2c76141ffe2cdcfa52e756dfb52fae84'] : [])]) {
     if (spawnSync('git', ['cat-file', '-e', reference + '^{commit}']).status !== 0) run('git', ['fetch', '--no-tags', '--depth=1', 'https://github.com/infotradescout/tradescoutAI.git', reference]);
@@ -76,16 +77,26 @@ try {
       const pathname = new URL(req.url, 'http://localhost').pathname;
       if (/^\/(api|images|uploads|media)\//.test(pathname)) {
         const response = await fetch(origin + req.url, { headers: { 'user-agent': userAgent }, signal: AbortSignal.timeout(30000) });
+        // Read the body before committing headers. A cancelled browser or an
+        // upstream body failure must never cause a second writeHead call.
+        const body = Buffer.from(await response.arrayBuffer());
+        if (res.destroyed || res.writableEnded) return;
         res.writeHead(response.status, { 'content-type': response.headers.get('content-type') || 'application/octet-stream' });
-        res.end(Buffer.from(await response.arrayBuffer())); return;
+        res.end(body); return;
       }
       let target = path.resolve(publicDir, '.' + pathname);
       if (!target.startsWith(publicDir + path.sep)) target = path.join(publicDir, 'index.html');
       try { if (!(await fs.stat(target)).isFile()) throw new Error('not a file'); }
       catch { target = path.join(publicDir, 'index.html'); }
+      const body = await fs.readFile(target);
+      if (res.destroyed || res.writableEnded) return;
       res.writeHead(200, { 'content-type': mime[path.extname(target)] || 'application/octet-stream' });
-      res.end(await fs.readFile(target));
-    } catch { res.writeHead(502); res.end('Public resource unavailable'); }
+      res.end(body);
+    } catch {
+      if (res.destroyed || res.writableEnded) return;
+      if (res.headersSent) { res.destroy(); return; }
+      res.writeHead(502); res.end('Public resource unavailable');
+    }
   });
   await new Promise((resolve) => server.listen(4174, '127.0.0.1', resolve));
   const pageOrigin = mode === 'production' ? origin : 'http://127.0.0.1:4174';
