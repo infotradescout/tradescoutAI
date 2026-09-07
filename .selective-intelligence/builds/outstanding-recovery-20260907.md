@@ -45,7 +45,7 @@ This proves the local document-backed path and actual session/authorization boun
 
 ## Outstanding dependencies beyond this candidate
 
-- Separate profile design #592 and presentation #599; discovery #611.
+- Separate profile design #592 and presentation #599. Discovery #611 was merged as main `a5313237` and is included in this candidate.
 - Authority/component/OAuth realignment stack #568 through #572; reconcile only after current integration, preserving any overlapping recovery repairs.
 - Release 3 / HomeID golden-path stacks and historical diagnostic PR dispositions.
 - Primary County Map commit and runtime WIP; large membership, migration and crawl worktrees.
@@ -64,3 +64,9 @@ This proves the local document-backed path and actual session/authorization boun
 - Remaining native observation: the county suite reports an absent `feature_flags` table through an existing fallback. This proof does not establish all optional runtime tables or provider integrations.
 
 Exact final-commit release-gate results and full-suite results belong in generated `artifacts/release-contract/<sha>/` evidence and the pull request. These pre-freeze results do not substitute for that final gate.
+
+## Final verification follow-through
+
+The minimum release contract passed clean at `75f8ff8447231e0dc6df46049044456c3ed72a91`. A complete deterministic test run on that commit returned 5,805 passed, one stale intake source assertion failed, and 142 skipped integration tests. The assertion still expected the old county assignment; it now requires the resolved draft county and its explicit member-county fallback. That correction and the actual composer behavior suite pass together: 21 tests, zero skips. Subsequent changes are limited to this test, the generated source index and this evidence record; runtime source remains identical to the browser-verified `6ee9d11d` tree. The final exact gate and complete rerun are recorded separately rather than inferred from this intermediate result.
+
+The clean bloat guard remains failed: 4,054 tracked paths, 4,033 unique blobs, 3,225 Docker-context paths and 285,247 storage bytes exceed their fixed ceilings. Both input branches already exceeded the three count ceilings, and storage is unchanged from incoming recovery. All overall byte/public-asset budgets pass, and the prior main Direct Connect monolith excess is repaired. Budgets were not loosened. Independent authority, copy and professional-storage ownership fixes are being prepared in separate worktrees; they are not contained in this frozen checkpoint.

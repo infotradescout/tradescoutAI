@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-07T18:58:40Z",
+  "generated_at": "2026-09-07T19:24:46Z",
   "source": {
     "kind": "git",
-    "revision": "4f865ef6bd462585bb45a6223392d9a70799eec1",
-    "dirty": false,
-    "inventory_sha256": "aa5391df45ce700e4107f581ff09a8623ac9482f8235902279aa4c3551b27e62"
+    "revision": "37adf7615e3c2a878eefab4cc403764e8302e51c",
+    "dirty": true,
+    "inventory_sha256": "bc81be8acdccbcae13f3a42c074df67233ab5c5c677947b6f011517ffd4ff447"
   },
   "inventory": {
     "directories": [
@@ -8475,8 +8475,8 @@
       {
         "path": "scripts/runtime-boundary.contract.test.mjs",
         "language": "mjs",
-        "sha256": "2799b1b3f692312836298909e74e7337ce705c13b11c1ad9c3cd169ab607daed",
-        "bytes": 5728
+        "sha256": "20ab3591c4628827b79fb230bce8b703d895efb4eb61074c315ecb1d6bbcb324",
+        "bytes": 5750
       },
       {
         "path": "scripts/runtime-release-bundle.contract.test.mjs",
@@ -13035,8 +13035,8 @@
       {
         "path": "server/tests/direct-connect-intake.contract.test.ts",
         "language": "ts",
-        "sha256": "e5b9b30b40c0b19daee101cc8be4b13a3db2769646cae39caca94fc909b13a9f",
-        "bytes": 4674
+        "sha256": "01c937d7876b6cac7888e3127c5b97f6f46dc38d3a599794702ff999e6c45bcf",
+        "bytes": 4708
       },
       {
         "path": "server/tests/direct-connect-invoice-receipt.contract.test.ts",
