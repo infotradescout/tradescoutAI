@@ -11,8 +11,7 @@ import { storage } from "./storage";
 import { users, type User } from "@shared/schema";
 import {
   getRolePermissions,
-  getRoleHierarchyLevel,
-  canUserPerformAction,
+  hasExplicitRoleGrant,
   userHasBusinessProviderTools,
 } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
@@ -643,7 +642,7 @@ export const requireOnboardingComplete: RequestHandler = async (req, res, next) 
   });
 };
 
-// Enhanced role-based authorization middleware with hierarchy support
+// Role gates accept only roles explicitly named for this boundary.
 export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
   return async (req, res, next) => {
     if (!req.isAuthenticated()) {
@@ -658,6 +657,7 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       activeRole?: unknown;
       roles?: unknown;
       isAdmin?: unknown;
+      isSuperAdmin?: unknown;
     };
 
     const primaryRole = normalizeLegacyRole((user as any).role);
@@ -669,26 +669,25 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       .map((role) => normalizeLegacyRole(role))
       .filter(Boolean) as UserRole[];
 
-    const isAdminFlag = (user as any).isAdmin === true || (user as any).isSuperAdmin === true;
+    const isAdminFlag = user.isAdmin === true;
+    const isSuperAdminFlag = user.isSuperAdmin === true;
 
     const candidateRoles = new Set<UserRole>();
     if (primaryRole) candidateRoles.add(primaryRole);
     if (activeRole) candidateRoles.add(activeRole);
     roleList.forEach((role) => candidateRoles.add(role));
-    // Persisted flags still grant access through role gates when present.
-    if (isAdminFlag) candidateRoles.add("super_admin");
+    // The generic persisted flag represents the lowest admin tier. Super-admin
+    // authority requires its own persisted role or flag, never an email alias.
+    if (isAdminFlag) candidateRoles.add("moderator");
+    if (isSuperAdminFlag) candidateRoles.add("super_admin");
 
     if (candidateRoles.size === 0) {
       return res.status(403).json({ message: "No role assigned" });
     }
 
-    const userLevel = Math.max(
-      ...Array.from(candidateRoles).map((role) => getRoleHierarchyLevel(role))
+    const hasPermission = Array.from(candidateRoles).some((role) =>
+      hasExplicitRoleGrant(role, allowedRoles)
     );
-    const hasPermission = allowedRoles.some((role) => {
-      const requiredLevel = getRoleHierarchyLevel(role);
-      return userLevel >= requiredLevel;
-    });
 
     if (!hasPermission) {
       return res.status(403).json({ message: "Insufficient permissions" });
@@ -727,12 +726,11 @@ export const requirePermission = (
   };
 };
 
-// Specific role middleware with hierarchy
+// Each role boundary names its intended staff and administrative grants.
 export const isAdmin: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
-// Backward-compat: some legacy routes imported `isHeadAdmin`; it now matches `super_admin`.
-export const isHeadAdmin: RequestHandler = requireRole(["super_admin"]);
 export const isSuperAdmin: RequestHandler = requireRole(["super_admin"]);
-export const isModerator: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
+export const isHeadAdmin: RequestHandler = isSuperAdmin;
+export const isModerator: RequestHandler = isAdmin;
 export const isStaff: RequestHandler = requireRole([
   "support_agent",
   "content_moderator",
@@ -794,46 +792,9 @@ export async function validatePassword(password: string, hash: string): Promise<
   return bcrypt.compare(password, hash);
 }
 
-// Master admin setup function
-// Middleware to require authentication
-export const requireAuth = async (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-  if (!(await bindRequestAuthority(req, res))) return;
-  next();
-};
-
-// Middleware to require admin role
-export const requireAdmin = async (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  if (!(await bindRequestAuthority(req, res))) return;
-  if (blockImpersonatedPrivilege(req, res, true)) return;
-
-  const user = req.user || {};
-  const activeRole = typeof user.activeRole === "string" ? user.activeRole : "";
-  const primaryRole = typeof user.role === "string" ? user.role : "";
-  const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
-  const isAdminFlag = user.isAdmin === true || user.isSuperAdmin === true;
-
-  const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
-  const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;
-  const normalizedActiveRole = normalizeLegacyRole(activeRole) || activeRole;
-  const normalizedRoles = roles.map((role: string) => normalizeLegacyRole(role) || role);
-  const hasAdminRole =
-    adminRoles.has(normalizedActiveRole) ||
-    adminRoles.has(normalizedPrimaryRole) ||
-    normalizedRoles.some((role: string) => adminRoles.has(role));
-
-  if (isAdminFlag || hasAdminRole) {
-    return next();
-  }
-
-  return res.status(403).json({ error: "Admin access required" });
-};
+// Compatibility exports share the same fresh-account and impersonation owner.
+export const requireAuth: RequestHandler = isAuthenticated;
+export const requireAdmin: RequestHandler = isAdmin;
 
 export async function createMasterAdmin(
   email: string,
