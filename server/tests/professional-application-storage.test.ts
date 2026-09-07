@@ -249,6 +249,8 @@ describe("professional application transactional storage", () => {
     expect(Object.keys(persistence).sort()).toEqual([
       "decideCarSalesmanApplication",
       "decideRealtorApplication",
+      "getPendingCarSalesmanApplications",
+      "getPendingRealtorApplications",
       "submitCarSalesmanApplication",
       "submitRealtorApplication",
     ]);
