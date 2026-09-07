@@ -1,3 +1,5 @@
+import { canonicalizeIssaBuildPublicUrl } from "../shared/issaBuildRoutes";
+
 export const SITEMAP_URLSET_MAX_URLS = 50_000;
 
 export type SitemapUrlSetEntry = {
@@ -33,7 +35,7 @@ export function prepareSitemapUrlSetEntries<T extends SitemapUrlSetEntry>(
   const sortedEntries = entries
     .filter((entry): entry is T => Boolean(entry && String(entry.loc || "").trim()))
     .map((entry) => {
-      const loc = String(entry.loc).trim();
+      const loc = canonicalizeIssaBuildPublicUrl(String(entry.loc).trim());
       return (loc === entry.loc ? entry : { ...entry, loc }) as T;
     })
     .sort(compareSitemapEntries);

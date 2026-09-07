@@ -45,3 +45,18 @@ export function resolveIssaBuildCanonicalRedirect(rawUrl: string): string | null
   }
   return resolveIssaBuildPublicPage(path) && `${path}${suffix}` !== rawUrl ? `${path}${suffix}` : null;
 }
+
+/** Canonicalize existing public feed entries only; publication and access decisions stay with their callers. */
+export function canonicalizeIssaBuildPublicUrl(value: string): string {
+  if (/[\r\n\\]/.test(value)) return value;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return value;
+    if (url.username || url.password || url.port) return value;
+    if (url.hostname !== "www.thetradescout.com" && url.hostname !== "thetradescout.com") return value;
+    const destination = resolveIssaBuildCanonicalRedirect(`${url.pathname}${url.search}${url.hash}`);
+    return destination ? new URL(destination, url.origin).toString() : value;
+  } catch {
+    return value;
+  }
+}

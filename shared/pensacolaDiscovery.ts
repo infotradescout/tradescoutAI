@@ -1,4 +1,5 @@
 import { ISSA_BUILD_PROFILE_SLUG } from "./issaBuildProfile";
+import { ISSA_BUILD_PUBLIC_PATH } from "./issaBuildRoutes";
 
 /** Owner-confirmed: Pensacola-area kitchen and bathroom work belongs to ISSA Build. */
 export const PENSACOLA_PROJECTS = {
@@ -61,7 +62,7 @@ export const PENSACOLA_DISCOVERY = {
   introduction:
     "Cabinets, stone countertops, fabrication and more—with ISSA Build serving Pensacola and the surrounding areas.",
   profileSlug: ISSA_BUILD_PROFILE_SLUG,
-  profileHref: `/u/${ISSA_BUILD_PROFILE_SLUG}`,
+  profileHref: ISSA_BUILD_PUBLIC_PATH,
   projectKinds: ["kitchens", "bathrooms", "cabinets", "countertops"] as const,
   faqItems: [
     {
