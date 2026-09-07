@@ -212,10 +212,16 @@ describe("historical migration chain compatibility", () => {
     expect(migration).toContain("REFERENCES community_posts(id) ON DELETE CASCADE");
   });
 
-  it("retains the explicit no-repair proof path", () => {
+  it("retains --no-repair compatibility while refusing automatic history repair in every mode", () => {
     const runner = read("scripts/db-migrate-safe.mjs");
+    const verifiedRunner = read("scripts/lib/verified-migration-runner.mjs");
 
-    expect(runner).toContain('const autoRepair = !args.includes("--no-repair")');
-    expect(runner).toMatch(/if \(!autoRepair\) \{\s*process\.exit\(first\);\s*\}/);
+    expect(runner).toContain('arg !== "--no-repair"');
+    expect(runner).toContain("runVerifiedMigration({");
+    expect(runner).not.toContain("baselineEntrypoint");
+    expect(runner).not.toContain("db-baseline-drizzle");
+    expect(verifiedRunner).toMatch(/if \(migrationStatus !== 0\) \{[\s\S]*?return migrationStatus;/);
+    expect(verifiedRunner).toContain("No automatic baseline, ledger stamping or success retry was performed.");
+    expect(verifiedRunner).toContain("const verificationStatus = await verify()");
   });
 });
