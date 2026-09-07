@@ -5,6 +5,12 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
+if (process.env.PROFILE_PUBLIC_CONTACT_RELEASE === '1') {
+  const { verifyPublicContactRelease } = await import('./verify-public-contact-release.mjs');
+  await verifyPublicContactRelease();
+  process.exit(0);
+}
+
 const root = process.cwd(), mode = process.env.PROFILE_PROOF_MODE || 'preview';
 const production = 'https://www.thetradescout.com';
 const output = path.join(root, '.business-profile-proof');
@@ -85,6 +91,17 @@ try {
       assert.equal(await page.getByTestId('issa-build-onyx-page').count(), 0);
       assert.equal(await page.locator('.bp-identity').getByText(/Country of origin|Iran/).count(), 0);
       assert.equal(await page.getByTestId('business-profile-request').count(), 1);
+      if (process.env.PROFILE_EXPECT_PUBLIC_CONTACT === '1') {
+        const contact = page.getByTestId('public-profile-contact');
+        await contact.waitFor();
+        assert.ok(await contact.isVisible());
+        assert.ok(await contact.getByText('TradeScout managed contact', { exact: true }).isVisible());
+        const call = contact.locator('a[href="tel:+18505430748"]');
+        assert.ok(await call.isVisible()); assert.equal((await call.innerText()).trim(), '(850) 543-0748');
+        assert.equal(await contact.locator('a[href="mailto:contact%40thetradescout.com"]').count(), 1);
+        record.publicContact = { tel: '+18505430748', email: 'contact@thetradescout.com', nativeLinksPresent: true, actualCallsMade: 0 };
+        record.actions.push('approved public contact visible beside request control; native destinations inspected without calling');
+      }
       assert.equal(await page.locator('.bp-cover img').count(), 1, 'The opening uses one installed-room image, not a collage');
       assert.equal(await page.locator('.bp-cover-side,.bp-body--aside').count(), 0, 'No directory collage or narrow sidebar layout');
       const widths = await page.evaluate(() => ({ content: document.querySelector('.bp-content').getBoundingClientRect().width, body: document.querySelector('.bp-body').getBoundingClientRect().width }));
@@ -142,6 +159,10 @@ try {
   await page.waitForFunction(() => /Country of origin: Iran/.test(document.body.innerText) && /Thickness: 2 cm/.test(document.body.innerText), undefined, { timeout: 45000 });
   assert.equal(await page.getByTestId('issa-build-business-profile').count(), 0);
   const onyxText = await page.locator('body').innerText(); assert.match(onyxText, /Country of origin: Iran/); assert.match(onyxText, /Thickness: 2 cm/);
+  if (process.env.PROFILE_EXPECT_PUBLIC_CONTACT === '1') {
+    assert.ok(await page.locator('a[href="tel:+18505430748"]:visible').count() > 0, 'Onyx retains its approved native call destination');
+    result.onyxPublicContact = true;
+  }
   result.onyxSeparation = true; await context.close();
 } catch (error) { result.errors.push(error.message); }
 finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }
