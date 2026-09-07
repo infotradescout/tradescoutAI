@@ -261,14 +261,19 @@ try {
     await scenario("exact-candidate built browser proof in a separate worktree", async () => {
       const browserDir = await checkout("browser-candidate", result.source);
       await command("install-chromium", process.execPath, [path.join(root, "node_modules/playwright/cli.js"), "install", "chromium"]);
-      await command("candidate-browser", process.execPath, ["scripts/verify-business-profile-review.mjs"], { cwd: browserDir, env: { ...envBase, PROFILE_PROOF_MODE: "preview" } });
+      // Let each existing child command select its normal mode: Vitest selects
+      // test, while Vite's build selects production. Never inherit DB test mode
+      // into the release asset build or relax its performance budgets.
+      const browserEnv = { ...envBase, PROFILE_PROOF_MODE: "preview" };
+      delete browserEnv.NODE_ENV;
+      await command("candidate-browser", process.execPath, ["scripts/verify-business-profile-review.mjs"], { cwd: browserDir, env: browserEnv });
       const report = JSON.parse(await fs.readFile(path.join(browserDir, ".business-profile-proof/result.json"), "utf8"));
       assert.equal(report.source, result.source); assert.equal(report.passed, true);
       assert.equal(report.pages.length, 4); assert.ok(report.pages.every((page) => page.passed));
       await fs.cp(path.join(browserDir, ".business-profile-proof"), path.join(out, "browser"), { recursive: true });
       return "Four built-candidate viewport journeys passed, including gallery, request-panel opening and separate Onyx page; all live POSTs were blocked.";
     });
-    await scenario("unchanged complete minimum release contract", async () => {
+    await scenario("complete minimum release contract with production assets and guarded test database", async () => {
       assert.equal(await gitText(["status", "--porcelain"]), "", "The release checkout must remain clean before the full gate");
       await command("minimum-release-contract", "npm", ["run", "gate:minimum-release"], {
         env: { ...dbEnv(preparedUrl), BROWSER_PROOF_NOTE: `Exact candidate ${result.source}: four built-preview browser viewports passed in an independent worktree; report and captures preserved in database-bootstrap proof.` },
