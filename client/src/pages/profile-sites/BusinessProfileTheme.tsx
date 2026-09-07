@@ -41,7 +41,7 @@ function ProfilePhoto({ onExhausted, ...props }: ComponentProps<typeof SafeProfi
   return unavailable ? <span className="bp-photo-unavailable">Photo unavailable</span> : <SafeProfileImg {...props} onExhausted={() => { setUnavailable(true); onExhausted?.(); }} />;
 }
 
-/** Presentation only: stored copy, contact authority, memberships and routes remain upstream. */
+/** Shared presentation only. Business copy, contact authority and product routes remain upstream. */
 export default function BusinessProfileTheme(props: Props) {
   const {
     businessName, operatorName, categoryLabel, locationLabel, heroTitle, headline, heroText,
@@ -112,47 +112,50 @@ export default function BusinessProfileTheme(props: Props) {
   ));
   const visibleBadges = badges.filter((badge) => !sameText(badge, categoryLabel));
   const navigation = [
-    showAbout && aboutText ? ["profile-about", "About"] : null,
-    showServices && services.length ? ["profile-services", "Services"] : null,
     photos.length ? ["profile-gallery", "Gallery"] : null,
+    showServices && services.length ? ["profile-services", "Services"] : null,
+    showAbout && aboutText ? ["profile-about", "About"] : null,
     profileItems ? ["profile-items", "Products"] : null,
     showRecommendations && visibleRecommendations.length ? ["profile-recommendations", "Recommendations"] : null,
   ].filter((entry): entry is string[] => Boolean(entry));
-  const hasAside = (showServiceAreas && serviceAreas.length > 0) || bookingSection || trustActions || lightTrustActions;
+  const hasDetails = (showServiceAreas && serviceAreas.length > 0) || bookingSection || trustActions || lightTrustActions;
   const galleryShare = (photo: Photo) => safePhotos.some((item) => item.slug === photo.slug) ? renderGalleryShare?.(photo) : null;
 
-  return <main className="business-profile" style={style} data-testid="default-profile-theme" data-presentation="business-editorial">
+  return <main className="business-profile" style={style} data-testid="default-profile-theme" data-presentation="business-editorial" data-layout="project-led">
     <div className="bp-wrap">
-      {coverVisible && heroPhoto ? <section className={`bp-cover ${photos.length > 2 ? "bp-cover--mosaic" : ""}`} aria-label="Business photographs" data-testid="business-profile-cover">
-        <button type="button" className="bp-cover-main" onClick={(event) => openPhoto(0, event.currentTarget)} aria-label={`View ${heroPhoto.imageAlt}`}>
-          <ProfilePhoto src={heroPhoto.imageUrl} alt={heroPhoto.imageAlt} loading="eager" className="bp-cover-image" onExhausted={() => setFailedCover(true)} />
-        </button>
-        {photos.length > 2 ? <div className="bp-cover-side">{photos.slice(1, 3).map((photo, index) => <button key={photo.slug} type="button" onClick={(event) => openPhoto(index + 1, event.currentTarget)} aria-label={`View ${photo.imageAlt}`}>
-          <ProfilePhoto src={photo.imageUrl} alt={photo.imageAlt} loading="lazy" className="bp-cover-image" />
-        </button>)}</div> : null}
-        <button type="button" className="bp-photo-count" onClick={(event) => openPhoto(0, event.currentTarget)}><Images size={16} aria-hidden />{photos.length} {photos.length === 1 ? "photo" : "photos"}</button>
-      </section> : null}
-      <header className={`bp-identity ${coverVisible ? "bp-identity--cover" : ""}`} data-testid="default-profile-header">
-        <div className="bp-logo" data-testid={!coverVisible ? "default-profile-brand-hero" : undefined}>{logo && !failedLogo ? <SafeProfileImg src={logo} alt={`${businessName} logo`} loading="eager" onExhausted={() => setFailedLogo(true)} /> : <span aria-hidden>{businessName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>}</div>
-        <div className="bp-identity-copy">
+      <header className="bp-masthead">
+        <div className="bp-brand">
+          <div className="bp-logo" data-testid={!coverVisible ? "default-profile-brand-hero" : undefined}>{logo && !failedLogo ? <SafeProfileImg src={logo} alt={`${businessName} logo`} loading="eager" onExhausted={() => setFailedLogo(true)} /> : <span aria-hidden>{businessName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("")}</span>}</div>
           <h1>{businessName}</h1>
-          <div className="bp-meta">{categoryLabel ? <span>{categoryLabel}</span> : null}{locationLabel ? <span><MapPin size={14} aria-hidden />{locationLabel}</span> : null}{operatorName ? <span>{operatorName}</span> : null}</div>
-          {titleIsDistinct ? <p className="bp-headline">{storedTitle}</p> : null}
-          {supportingIsDistinct ? <p className="bp-summary">{supporting}</p> : null}
         </div>
-        <div className="bp-primary-actions">{showContact ? <button type="button" className="bp-request" onClick={() => onDirectConnect()} data-testid="business-profile-request">Start a Request <ArrowRight size={18} aria-hidden /></button> : null}{shareAction ? <div className="bp-share">{shareAction}</div> : null}</div>
+        {navigation.length > 1 ? <nav className="bp-nav" aria-label="Profile sections">{navigation.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}</nav> : null}
+        {shareAction ? <div className="bp-share">{shareAction}</div> : null}
       </header>
-      {navigation.length > 1 ? <nav className="bp-nav" aria-label="Profile sections">{navigation.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}</nav> : null}
-      <div className={`bp-body ${hasAside ? "bp-body--aside" : ""}`}>
+      <div className={`bp-hero ${coverVisible ? "bp-hero--photograph" : "bp-hero--text"}`}>
+        <header className="bp-identity" data-testid="default-profile-header">
+          <div className="bp-meta">{locationLabel ? <span><MapPin size={14} aria-hidden />{locationLabel}</span> : null}{operatorName ? <span>{operatorName}</span> : null}</div>
+          {titleIsDistinct ? <p className="bp-headline">{storedTitle}</p> : categoryLabel ? <p className="bp-headline">{categoryLabel}</p> : null}
+          {supportingIsDistinct ? <p className={titleIsDistinct || categoryLabel ? "bp-summary" : "bp-headline"}>{supporting}</p> : null}
+          {categoryLabel && titleIsDistinct ? <p className="bp-category">{categoryLabel}</p> : null}
+          {showContact ? <div className="bp-primary-actions"><button type="button" className="bp-request" onClick={() => onDirectConnect()} data-testid="business-profile-request">Start a Request <ArrowRight size={18} aria-hidden /></button></div> : null}
+        </header>
+        {coverVisible && heroPhoto ? <section className="bp-cover" aria-label="Business photographs" data-testid="business-profile-cover">
+          <button type="button" className="bp-cover-main" onClick={(event) => openPhoto(0, event.currentTarget)} aria-label={`View ${heroPhoto.imageAlt}`}>
+            <ProfilePhoto src={heroPhoto.imageUrl} alt={heroPhoto.imageAlt} loading="eager" className="bp-cover-image" onExhausted={() => setFailedCover(true)} />
+          </button>
+          <button type="button" className="bp-photo-count" onClick={(event) => openPhoto(0, event.currentTarget)}><Images size={16} aria-hidden />{photos.length} {photos.length === 1 ? "photo" : "photos"}</button>
+        </section> : null}
+      </div>
+      <div className="bp-body">
         <div className="bp-content">
-          {showAbout && aboutText ? <section id="profile-about" className="bp-section"><h2>About</h2><p className="bp-prose">{aboutText}</p></section> : null}
-          {showServices && services.length > 0 ? <section id="profile-services" className="bp-section"><h2>Services</h2><div className="bp-services">{services.map((service, index) => showContact ? <button key={`${service}-${index}`} type="button" onClick={() => onDirectConnect(service)} data-testid={`default-profile-service-${index}`}><span>{service}</span><ArrowUpRight size={18} aria-hidden /></button> : <div key={`${service}-${index}`} data-testid={`default-profile-service-${index}`}><span>{service}</span></div>)}</div></section> : null}
-          {photos.length > 0 ? <section id="profile-gallery" className="bp-section"><div className="bp-section-heading"><h2>Gallery</h2>{photos.length > 4 ? <button className="bp-text-button" type="button" onClick={() => setExpandedGallery(!expandedGallery)} aria-expanded={expandedGallery} aria-controls="business-profile-photos">{expandedGallery ? "Show fewer photos" : `View all ${photos.length} photos`}<ArrowRight size={16} aria-hidden /></button> : null}</div>
-            <div id="business-profile-photos" className="bp-gallery">{(expandedGallery ? photos : photos.slice(0, 4)).map((photo, index) => <article key={`${photo.slug}-${index}`} id={`profile-gallery-${photo.slug}`} className={sharedGallerySlug === photo.slug ? "bp-photo bp-photo--selected" : "bp-photo"}>
+          {photos.length > 0 ? <section id="profile-gallery" className="bp-section bp-gallery-section"><div className="bp-section-heading"><h2>Gallery</h2>{photos.length > 4 ? <button className="bp-text-button" type="button" onClick={() => setExpandedGallery(!expandedGallery)} aria-expanded={expandedGallery} aria-controls="business-profile-photos">{expandedGallery ? "Show fewer photos" : `View all ${photos.length} photos`}<ArrowRight size={16} aria-hidden /></button> : null}</div>
+            <div id="business-profile-photos" className={`bp-gallery ${expandedGallery ? "bp-gallery--expanded" : ""}`}>{(expandedGallery ? photos : photos.slice(0, 4)).map((photo, index) => <article key={`${photo.slug}-${index}`} id={`profile-gallery-${photo.slug}`} className={sharedGallerySlug === photo.slug ? "bp-photo bp-photo--selected" : "bp-photo"}>
               <button type="button" onClick={(event) => openPhoto(index, event.currentTarget)} aria-label={`View ${photo.imageAlt || photo.title}`}><ProfilePhoto src={photo.imageUrl} alt={photo.imageAlt} loading="lazy" className="bp-gallery-image" /></button>
               {(photo.title && !sameText(photo.title, businessName)) || photo.description || galleryShare(photo) ? <div className="bp-caption"><div>{photo.title && !sameText(photo.title, businessName) ? <h3>{photo.title}</h3> : null}{photo.description ? <p>{photo.description}</p> : null}</div>{galleryShare(photo)}</div> : null}
             </article>)}</div>
           </section> : null}
+          {showServices && services.length > 0 ? <section id="profile-services" className="bp-section bp-services-section"><h2>Services</h2><div className="bp-services">{services.map((service, index) => showContact ? <button key={`${service}-${index}`} type="button" onClick={() => onDirectConnect(service)} data-testid={`default-profile-service-${index}`}><span>{service}</span><ArrowUpRight size={22} aria-hidden /></button> : <div key={`${service}-${index}`} data-testid={`default-profile-service-${index}`}><span>{service}</span></div>)}</div></section> : null}
+          {showAbout && aboutText ? <section id="profile-about" className="bp-section bp-about"><h2>About</h2><p className="bp-prose">{aboutText}</p></section> : null}
           {profileItems ? <section id="profile-items" className="bp-section bp-items" aria-label="Products and profile items">{profileItems}</section> : null}
           {customBlocks.map((block, index) => <section key={`${block.title}-${index}`} className="bp-section"><h2>{block.title}</h2><p className="bp-prose">{block.body}</p></section>)}
           {showRecommendations && visibleRecommendations.length ? <section id="profile-recommendations" className="bp-section"><h2>{recommendationMode === "authored" ? "Recommendations" : "Customer recommendations"}</h2><div className="bp-recommendations">{visibleRecommendations.map((entry) => {
@@ -162,7 +165,7 @@ export default function BusinessProfileTheme(props: Props) {
           {showStats && visibleStats.length ? <dl className="bp-facts">{visibleStats.map((stat, index) => <div key={`${stat.label}-${index}`}><dt>{stat.label}</dt><dd>{stat.value}</dd></div>)}</dl> : null}
           {showBadges && visibleBadges.length ? <div className="bp-badges">{visibleBadges.map((badge, index) => <span key={`${badge}-${index}`}>{badge}</span>)}</div> : null}
         </div>
-        {hasAside ? <aside className="bp-aside" aria-label="Business details" data-testid={(showServiceAreas && serviceAreas.length > 0) || (showAbout && aboutText) ? "default-profile-details" : undefined}>
+        {hasDetails ? <aside className="bp-aside" aria-label="Business details" data-testid={(showServiceAreas && serviceAreas.length > 0) || (showAbout && aboutText) ? "default-profile-details" : undefined}>
           {showServiceAreas && serviceAreas.length ? <section className="bp-aside-section"><h2>Service area</h2><ul className="bp-areas">{serviceAreas.map((area, index) => <li key={`${area}-${index}`}><MapPin size={16} aria-hidden /><span>{area}</span></li>)}</ul></section> : null}
           {bookingSection ? <div className="bp-booking">{bookingSection}</div> : null}
           {trustActions || lightTrustActions ? <section className="bp-aside-section bp-trust" data-testid="profile-trust-section" aria-label="Verification and community support">{surfaceForeground === "#ffffff" ? trustActions : lightTrustActions || trustActions}</section> : null}
