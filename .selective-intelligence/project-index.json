@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-07T19:31:16Z",
+  "generated_at": "2026-09-07T19:32:17Z",
   "source": {
     "kind": "git",
-    "revision": "331f5e3f0aab7bc356b9b4a85543bd475eb2a8cc",
+    "revision": "4efa8287b19d003aba3646c41a9e70dc4f931a3d",
     "dirty": true,
-    "inventory_sha256": "9efbf86c2ce421e6315c9123939c6f1088dcb2eaa400eb940e7a2371746169f3"
+    "inventory_sha256": "1f739175a53f0e0a18c668ea71b2260a8039b1bdbd0293baf81d00351d7040e8"
   },
   "inventory": {
     "directories": [
@@ -4017,8 +4017,8 @@
       {
         "path": "client/src/pages/about-explainer-content.tsx",
         "language": "tsx",
-        "sha256": "5c394c64c9ce7616e57143bd1e64dcdb85ff6d7d4c957539082c7a7a89cd95e8",
-        "bytes": 125271
+        "sha256": "59e6bee3fd427f383e6c6ac7ae06b78e5643e0885d4a7d8611d233a1aaf55e7a",
+        "bytes": 122825
       },
       {
         "path": "client/src/pages/about.tsx",
@@ -6699,8 +6699,8 @@
       {
         "path": "client/src/pages/tradescoutExplainerData.ts",
         "language": "ts",
-        "sha256": "7131fe7707bab3f07083563a3b900f2d4d253af2096ff683e13057c057d22eb1",
-        "bytes": 69132
+        "sha256": "35d73bdc1f68bf6c6875fd99656959b0bfd6eacd464263cd19d6646874c59e3c",
+        "bytes": 67720
       },
       {
         "path": "client/src/pages/training-center.tsx",
@@ -8727,8 +8727,8 @@
       {
         "path": "scripts/tests/recovery-transactions.native.ts",
         "language": "ts",
-        "sha256": "8bd34c2f25e5bc6ff6717578a426d39996df15c195970b86b4bd4f89a8851ba7",
-        "bytes": 12969
+        "sha256": "0e12debf52530bfbfae613184323b1bc56c0c849e0eb773a95acdf6376d3f15f",
+        "bytes": 16531
       },
       {
         "path": "scripts/tests/release-runtime-chain.test.mjs",
@@ -9297,8 +9297,8 @@
       {
         "path": "server/integrations/infinityShadow.ts",
         "language": "ts",
-        "sha256": "f2b20fa4e9ea8a1d0c97c9a556672c0ce41c8b7620949e1aea9528e3dbc8d567",
-        "bytes": 3411
+        "sha256": "56df5fefc33adee89ba4f5c56b31c7100a0731e65b4cee29e73af6008231b93c",
+        "bytes": 3308
       },
       {
         "path": "server/invoicingDocumentsRouter.ts",
@@ -12057,8 +12057,8 @@
       {
         "path": "server/storage.ts",
         "language": "ts",
-        "sha256": "3fca38f5d51319245c5db1f6e03982d18b6a39cae15985a19682d077f571276b",
-        "bytes": 294344
+        "sha256": "c98efa3192831459836d4e545e68bf988be3502360a8fc6d84d76b0215916398",
+        "bytes": 291001
       },
       {
         "path": "server/storage/contracts.ts",
@@ -12087,8 +12087,8 @@
       {
         "path": "server/storage/repositories/professional-applications.ts",
         "language": "ts",
-        "sha256": "4c42b1b7640caff1f16223ee44709c7d829e83ad50c9b4e716a405d57148f861",
-        "bytes": 11439
+        "sha256": "9091d544dc43650f4f718c97e165c021129bd620e01ed52997d0cb96f75d376f",
+        "bytes": 15266
       },
       {
         "path": "server/storage/repositories/social-and-leaderboards.ts",
@@ -13449,8 +13449,8 @@
       {
         "path": "server/tests/infinity-shadow-adapter.test.ts",
         "language": "ts",
-        "sha256": "f3d704fb5c6ba62cd21de4760858d70783bf61079d6529a5070e458984adfc9c",
-        "bytes": 3722
+        "sha256": "448c47df4328bb0f08ca2220342fb48241ef80ec9f0f20a7c7fe0da3b820e2d0",
+        "bytes": 3621
       },
       {
         "path": "server/tests/intent-parity-status.test.ts",
@@ -14091,8 +14091,8 @@
       {
         "path": "server/tests/professional-application-storage.test.ts",
         "language": "ts",
-        "sha256": "fbc698cd511d40733e1de2ea477e96b5ddfa7cb66018b2827b1b0115dde251ee",
-        "bytes": 29548
+        "sha256": "1e80d13577bd26544a21791fcc8417c08ae9bb120d849ac291c2757e8f0b4d60",
+        "bytes": 29632
       },
       {
         "path": "server/tests/professional-role-authority.contract.test.ts",
@@ -64833,7 +64833,7 @@
         "name": "invoke",
         "kind": "function",
         "path": "scripts/tests/recovery-transactions.native.ts",
-        "line": 268,
+        "line": 377,
         "exported": false
       },
       {
@@ -99259,14 +99259,14 @@
         "name": "toParticipant",
         "kind": "function",
         "path": "server/storage.ts",
-        "line": 4745,
+        "line": 4666,
         "exported": false
       },
       {
         "name": "clamp",
         "kind": "function",
         "path": "server/storage.ts",
-        "line": 5775,
+        "line": 5696,
         "exported": false
       },
       {
@@ -101356,80 +101356,101 @@
         "exported": false
       },
       {
+        "name": "User",
+        "kind": "type",
+        "path": "server/storage/repositories/professional-applications.ts",
+        "line": 12,
+        "exported": false
+      },
+      {
         "name": "ProfessionalProfileTable",
         "kind": "type",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 20,
+        "line": 21,
         "exported": false
       },
       {
         "name": "ProfessionalProfile",
         "kind": "type",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 22,
+        "line": 23,
         "exported": false
       },
       {
         "name": "ProfessionalProfileInsert",
         "kind": "type",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 23,
+        "line": 24,
         "exported": false
       },
       {
         "name": "ProfessionalApplicationConfig",
         "kind": "type",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 24,
+        "line": 25,
         "exported": false
       },
       {
         "name": "postgresUniqueViolation",
         "kind": "function",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 32,
+        "line": 33,
         "exported": false
       },
       {
         "name": "canonicalProfessionalRole",
         "kind": "function",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 45,
+        "line": 46,
         "exported": false
       },
       {
         "name": "normalizedRoleValue",
         "kind": "function",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 62,
+        "line": 63,
         "exported": false
       },
       {
         "name": "normalizedRoleList",
         "kind": "function",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 69,
+        "line": 70,
         "exported": false
       },
       {
         "name": "editableProfessionalProfileData",
         "kind": "function",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 73,
+        "line": 74,
         "exported": true
       },
       {
         "name": "createProfessionalApplicationPersistence",
         "kind": "function",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 91,
+        "line": 92,
         "exported": true
+      },
+      {
+        "name": "getPendingRealtorApplications",
+        "kind": "function",
+        "path": "server/storage/repositories/professional-applications.ts",
+        "line": 94,
+        "exported": false
+      },
+      {
+        "name": "getPendingCarSalesmanApplications",
+        "kind": "function",
+        "path": "server/storage/repositories/professional-applications.ts",
+        "line": 136,
+        "exported": false
       },
       {
         "name": "findByUserId",
         "kind": "function",
         "path": "server/storage/repositories/professional-applications.ts",
-        "line": 93,
+        "line": 182,
         "exported": false
       },
       {
@@ -141532,9 +141553,9 @@
   "summary": {
     "directories": 126,
     "source_files": 2777,
-    "symbols": 14570,
+    "symbols": 14573,
     "components": 951,
-    "functions_and_hooks": 8913,
+    "functions_and_hooks": 8915,
     "raw_ui_elements": 4142,
     "errors": 16,
     "warnings": 5

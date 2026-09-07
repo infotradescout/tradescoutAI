@@ -137,6 +137,115 @@ function application(userId: string) {
   };
 }
 await probe(
+  "pending professional reads preserve credentials and bounded user projection through storage delegates",
+  async () => {
+    const id = await user(),
+      admin = await user();
+    const [account] = await db
+      .update(users)
+      .set({ firstName: "Pending", lastName: "Applicant", profileImageUrl: "/fixture.png" })
+      .where(eq(users.id, id))
+      .returning();
+    const serviceAreas = { counties: ["22005"], cities: ["Gonzales"], zipCodes: ["70737"] };
+    const realtor = await repository.submitRealtorApplication({
+      ...application(id),
+      mlsId: "NATIVE-MLS",
+      specializations: ["Residential"],
+      yearsExperience: 8,
+      transactionsCompleted: 19,
+      averageTransactionValue: "123456.78",
+      serviceAreas,
+      licenseExpiration: new Date("2030-12-31T00:00:00Z"),
+      verificationDocuments: { licenseDocument: "private/realtor-license.pdf" },
+    });
+    const dealer = await repository.submitCarSalesmanApplication({
+      userId: id,
+      dealershipName: "Native local dealer",
+      dealerLicense: "NATIVE-DEALER",
+      salesmanLicense: "NATIVE-SALESMAN",
+      specializations: ["Used"],
+      yearsExperience: 5,
+      vehiclesSold: 23,
+      averageVehicleValue: "34567.89",
+      brandsSpecialty: ["Ford"],
+      serviceAreas,
+      licenseState: "LA",
+      licenseExpiration: new Date("2031-12-31T00:00:00Z"),
+      verificationDocuments: { dealerLicense: "private/dealer-license.pdf" },
+    });
+    assert.equal(realtor.outcome, "created");
+    assert.equal(dealer.outcome, "created");
+    const projectedUser = {
+      id: account.id,
+      email: account.email,
+      firstName: account.firstName,
+      lastName: account.lastName,
+      profileImageUrl: account.profileImageUrl,
+      role: account.role,
+      createdAt: account.createdAt,
+    };
+    const { DatabaseStorage } = await import("../../server/storage");
+    const storage = new DatabaseStorage();
+    const pendingRealtors = await storage.getPendingRealtorApplications();
+    const pendingDealers = await storage.getPendingCarSalesmanApplications();
+    assert.deepEqual(
+      pendingRealtors.find((row) => row.id === realtor.profile.id),
+      {
+        ...realtor.profile,
+        user: projectedUser,
+      }
+    );
+    assert.deepEqual(
+      pendingDealers.find((row) => row.id === dealer.profile.id),
+      {
+        ...dealer.profile,
+        user: projectedUser,
+      }
+    );
+    const decision = {
+      reviewedBy: admin,
+      reviewedAt: new Date(),
+      reviewNotes: "Native pending queue decision",
+    };
+    assert.equal(
+      (
+        await storage.decideRealtorApplication({
+          ...decision,
+          profileId: realtor.profile.id,
+          approved: true,
+        })
+      ).outcome,
+      "decided"
+    );
+    assert.equal(
+      (await storage.getPendingRealtorApplications()).some((row) => row.id === realtor.profile.id),
+      false
+    );
+    assert.equal(
+      (await storage.getPendingCarSalesmanApplications()).some(
+        (row) => row.id === dealer.profile.id
+      ),
+      true
+    );
+    assert.equal(
+      (
+        await storage.decideCarSalesmanApplication({
+          ...decision,
+          profileId: dealer.profile.id,
+          approved: false,
+        })
+      ).outcome,
+      "decided"
+    );
+    assert.equal(
+      (await storage.getPendingCarSalesmanApplications()).some(
+        (row) => row.id === dealer.profile.id
+      ),
+      false
+    );
+  }
+);
+await probe(
   "professional concurrent duplicate submission returns one created and one duplicate",
   async () => {
     const id = await user();

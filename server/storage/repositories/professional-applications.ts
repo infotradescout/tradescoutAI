@@ -9,6 +9,7 @@ import {
   type InsertCarSalesmanProfile,
   type InsertRealtorProfile,
   type RealtorProfile,
+  type User,
 } from "@shared/schema";
 import { and, eq } from "drizzle-orm";
 import type {
@@ -90,6 +91,95 @@ export function editableProfessionalProfileData(profileData: Record<string, unkn
 }
 
 export function createProfessionalApplicationPersistence(database: any) {
+  async function getPendingRealtorApplications(): Promise<(RealtorProfile & { user: User })[]> {
+    const result = await database
+      .select({
+        id: realtorProfiles.id,
+        userId: realtorProfiles.userId,
+        licenseNumber: realtorProfiles.licenseNumber,
+        brokerageName: realtorProfiles.brokerageName,
+        mlsId: realtorProfiles.mlsId,
+        specializations: realtorProfiles.specializations,
+        yearsExperience: realtorProfiles.yearsExperience,
+        transactionsCompleted: realtorProfiles.transactionsCompleted,
+        averageTransactionValue: realtorProfiles.averageTransactionValue,
+        serviceAreas: realtorProfiles.serviceAreas,
+        licenseState: realtorProfiles.licenseState,
+        licenseExpiration: realtorProfiles.licenseExpiration,
+        verificationStatus: realtorProfiles.verificationStatus,
+        verificationDocuments: realtorProfiles.verificationDocuments,
+        reviewedBy: realtorProfiles.reviewedBy,
+        reviewedAt: realtorProfiles.reviewedAt,
+        reviewNotes: realtorProfiles.reviewNotes,
+        isActive: realtorProfiles.isActive,
+        createdAt: realtorProfiles.createdAt,
+        updatedAt: realtorProfiles.updatedAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt,
+        },
+      })
+      .from(realtorProfiles)
+      .innerJoin(users, eq(realtorProfiles.userId, users.id))
+      .where(eq(realtorProfiles.verificationStatus, "pending"));
+
+    return result.map((row: any) => ({
+      ...row,
+      user: row.user as User,
+    }));
+  }
+
+  async function getPendingCarSalesmanApplications(): Promise<
+    (CarSalesmanProfile & { user: User })[]
+  > {
+    const result = await database
+      .select({
+        id: carSalesmanProfiles.id,
+        userId: carSalesmanProfiles.userId,
+        dealershipName: carSalesmanProfiles.dealershipName,
+        dealerLicense: carSalesmanProfiles.dealerLicense,
+        salesmanLicense: carSalesmanProfiles.salesmanLicense,
+        specializations: carSalesmanProfiles.specializations,
+        yearsExperience: carSalesmanProfiles.yearsExperience,
+        vehiclesSold: carSalesmanProfiles.vehiclesSold,
+        averageVehicleValue: carSalesmanProfiles.averageVehicleValue,
+        brandsSpecialty: carSalesmanProfiles.brandsSpecialty,
+        serviceAreas: carSalesmanProfiles.serviceAreas,
+        licenseState: carSalesmanProfiles.licenseState,
+        licenseExpiration: carSalesmanProfiles.licenseExpiration,
+        verificationStatus: carSalesmanProfiles.verificationStatus,
+        verificationDocuments: carSalesmanProfiles.verificationDocuments,
+        reviewedBy: carSalesmanProfiles.reviewedBy,
+        reviewedAt: carSalesmanProfiles.reviewedAt,
+        reviewNotes: carSalesmanProfiles.reviewNotes,
+        isActive: carSalesmanProfiles.isActive,
+        createdAt: carSalesmanProfiles.createdAt,
+        updatedAt: carSalesmanProfiles.updatedAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          createdAt: users.createdAt,
+        },
+      })
+      .from(carSalesmanProfiles)
+      .innerJoin(users, eq(carSalesmanProfiles.userId, users.id))
+      .where(eq(carSalesmanProfiles.verificationStatus, "pending"));
+
+    return result.map((row: any) => ({
+      ...row,
+      user: row.user as User,
+    }));
+  }
+
   async function findByUserId(
     queryable: any,
     table: ProfessionalProfileTable,
@@ -294,6 +384,8 @@ export function createProfessionalApplicationPersistence(database: any) {
   };
 
   return {
+    getPendingRealtorApplications,
+    getPendingCarSalesmanApplications,
     submitRealtorApplication: (profile: InsertRealtorProfile) =>
       submit<RealtorProfile>(realtorConfig, profile),
     submitCarSalesmanApplication: (profile: InsertCarSalesmanProfile) =>
