@@ -16,6 +16,11 @@ const git = (args) => {
 };
 const source = git(['rev-parse', 'HEAD']);
 assert.match(source, /^[a-f0-9]{40}$/);
+// Render's disposable checkout may omit the origin remote. The repository is
+// public; add only its canonical read endpoint so genuine controls can be read.
+if (spawnSync('git', ['remote', 'get-url', 'origin'], { stdio: 'ignore' }).status !== 0) {
+  git(['remote', 'add', 'origin', 'https://github.com/infotradescout/tradescoutAI.git']);
+}
 const original = '38ffc9422faa20967aa7c9f982a434287a403b04';
 if (spawnSync('git', ['cat-file', '-e', original + '^{commit}'], { stdio: 'ignore' }).status !== 0) {
   git(['fetch', '--no-tags', '--depth=1', 'origin', original]);
