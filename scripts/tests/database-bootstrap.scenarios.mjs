@@ -70,6 +70,7 @@ const sha = (sql) => crypto.createHash("sha256").update(sql).digest("hex");
 const journal = JSON.parse(await fs.readFile(path.join(root, "migrations/meta/_journal.json"), "utf8"));
 const entries = journal.entries;
 const canonical = ["0072_seo_publication_rules_and_freshness", "0115_profile_accounts", "0116_admin_live_stream_snapshots", "0117_managed_partner_intakes", "0118_profile_account_public_routes", "0129_restore_profile_account_identity_contract", "0130_business_managed_partner_contact", "0131_preserve_jw_stone_pricing_revocation"];
+const renderPredeployArgs = ["run", "db:migrate", "&&", "npm", "run", "db:verify:required"];
 async function sqlFor(tag) { return fs.readFile(path.join(root, "migrations", tag + ".sql"), "utf8"); }
 async function connect(url) { const client = new pg.Client({ connectionString: url }); await client.connect(); return client; }
 async function ledger(client) {
@@ -193,7 +194,10 @@ try {
     finally { await db.end(); }
     await runScript("prepared-required-schema", "scripts/check-required-production-schema.mjs", preparedUrl);
     await runScript("prepared-normal-migrate", "scripts/db-migrate-safe.mjs", preparedUrl);
-    return "The guarded full test fixture and eight actually executed canonical SQL files pass the unchanged required-schema predicates. This is not full historical empty-chain proof.";
+    const pair = await command("source-render-predeploy-pair", "npm", renderPredeployArgs, { env: dbEnv(preparedUrl) });
+    assert.match(pair.text, /Canonical migration and independent required-schema pair passed/);
+    assert.ok((pair.text.match(/Required production schema is present/g) || []).length >= 2);
+    return "The guarded full fixture and eight actually executed canonical SQL files pass unchanged required-schema predicates. The exact Docker exec-style pre-deploy argument pair also executes both checks using source entrypoints. This is not full historical empty-chain proof.";
   });
   await scenario("later watermark cannot hide a required gap; reviewed canonical recovery succeeds", async () => {
     const cwd = await focusedJournal("required-journal", canonical); const db = await connect(preparedUrl);
@@ -287,10 +291,18 @@ try {
     });
     await scenario("built production migration entrypoint also rejects the incomplete database", async () => {
       await command("built-empty-migrate", "npm", ["run", "db:migrate"], { env: dbEnv(emptyUrl), expected: "failure" });
+      const rejectedPair = await command("built-render-predeploy-rejects-empty", "npm", renderPredeployArgs, { env: dbEnv(emptyUrl), expected: "failure" });
+      assert.match(rejectedPair.text, /Running canonical pre-deploy step: db-migrate-safe/);
+      assert.doesNotMatch(rejectedPair.text, /Running canonical pre-deploy step: check-required-production-schema/);
+      assert.doesNotMatch(rejectedPair.text, /Canonical migration and independent required-schema pair passed/);
+      const acceptedPair = await command("built-render-predeploy-verifies-prepared", "npm", renderPredeployArgs, { env: dbEnv(preparedUrl) });
+      assert.match(acceptedPair.text, /Running canonical pre-deploy step: check-required-production-schema/);
+      assert.match(acceptedPair.text, /Canonical migration and independent required-schema pair passed/);
+      assert.ok((acceptedPair.text.match(/Required production schema is present/g) || []).length >= 2);
       const db = await connect(emptyUrl);
       try { assert.ok(!(await ledger(db)).some((row) => Number(row.created_at) >= Number(entries.at(-1).when))); }
       finally { await db.end(); }
-      return "The bundled production entrypoint preserves the same fail-closed behavior as the source runner.";
+      return "The bundled migration entrypoint and exact Docker exec-style pair reject the incomplete database without continuing. The same built pair independently verifies the prepared compatible fixture before passing.";
     });
   }
   result.passed = result.scenarios.every((row) => row.passed);
