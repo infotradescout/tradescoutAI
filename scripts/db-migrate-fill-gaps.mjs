@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 import pg from "pg";
 import { verifyRequiredProductionSchema } from "./check-required-production-schema.mjs";
 import { DATABASE_RECOVERY_GUIDANCE } from "./lib/verified-migration-runner.mjs";
+import { completedPublicationPredecessorHashes } from "./lib/completed-publication-identities.mjs";
 import { allowExplicitInsecureTestDatabase, securePostgresConnectionString } from "../shared/database-url-security.mjs";
 
 dotenv.config();
@@ -41,8 +42,9 @@ async function main() {
   // Validate every file before changing any database object.
   const migrations = entries.map((entry) => {
     if (!/^[a-zA-Z0-9_-]+$/.test(entry.tag) || !Number.isFinite(Number(entry.when))) throw new Error("Invalid migration journal entry");
-    const sql = fs.readFileSync(path.join("migrations", `${entry.tag}.sql`), "utf8");
-    return { ...entry, sql, hashes: migrationHashes(sql) };
+    const filename = `${entry.tag}.sql`;
+    const sql = fs.readFileSync(path.join("migrations", filename), "utf8");
+    return { ...entry, sql, hashes: [...migrationHashes(sql), ...completedPublicationPredecessorHashes(filename)] };
   });
   const client = new pg.Client({ connectionString: dbUrl });
   await client.connect();
