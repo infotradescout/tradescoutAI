@@ -104,6 +104,8 @@ function lastmodYmd(value: unknown): string | undefined {
 }
 
 function publicImageUrl(value: unknown, pageUrl: string): string | null {
+  // An empty relative URL resolves to the HTML page, not an image. Missing media stays absent.
+  if (typeof value !== "string" || !value.trim()) return null;
   const imageUrl = normalizeHttpUrl(value, pageUrl);
   if (!imageUrl) return null;
   try {
