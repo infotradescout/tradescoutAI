@@ -138,6 +138,8 @@ try {
   await context.route('**/*', (route) => ['GET', 'HEAD', 'OPTIONS'].includes(route.request().method()) ? route.continue() : route.abort());
   const page = await context.newPage(); const origin = mode === 'production' ? production : 'http://127.0.0.1:4173';
   await page.goto(origin + '/issa-build/onyx', { waitUntil: 'domcontentloaded' }); await page.getByTestId('issa-build-onyx-page').waitFor({ timeout: 45000 });
+  // The product boundary can render while its content is still loading.
+  await page.waitForFunction(() => /Country of origin: Iran/.test(document.body.innerText) && /Thickness: 2 cm/.test(document.body.innerText), undefined, { timeout: 45000 });
   assert.equal(await page.getByTestId('issa-build-business-profile').count(), 0);
   const onyxText = await page.locator('body').innerText(); assert.match(onyxText, /Country of origin: Iran/); assert.match(onyxText, /Thickness: 2 cm/);
   result.onyxSeparation = true; await context.close();
