@@ -49,8 +49,13 @@ const canonical = {
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS: sourceBlocks,
 };
 const content = load("shared/issaBuildPageContent.ts", { "./issaBuildProfile": canonical });
+const approvedContact = load("shared/issaBuildManagedContact.ts", {
+  "./tradeScoutManagedContact": load("shared/tradeScoutManagedContact.ts"),
+});
 const server = load("server/issaBuildPublicRoutes.ts", {
   "@shared/issaBuildProfile": canonical, "@shared/issaBuildPageContent": content, "@shared/issaBuildRoutes": routes,
+  "@shared/issaBuildManagedContact": approvedContact,
+  "@shared/publicProfileContact": load("shared/publicProfileContact.ts"),
   "./utils/publicOrigin": { resolvePublicOrigin: () => "https://www.thetradescout.com" },
 });
 

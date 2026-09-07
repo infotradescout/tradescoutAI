@@ -14,6 +14,8 @@ import { listProfileGalleryItems } from "@shared/profileGalleryShare";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import { sanitizePublicProfileText } from "@shared/publicListingSafety";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
+import { ISSA_BUILD_MANAGED_CONTACT } from "@shared/issaBuildManagedContact";
+import { resolveApprovedPublicContact, publicProfileContactStructuredData } from "@shared/publicProfileContact";
 import {
   ISSA_BUILD_BUSINESS_NAME, ISSA_BUILD_LOCAL_DISCOVERY, ISSA_BUILD_LOGO,
   ISSA_BUILD_PROFILE_IMAGES, ISSA_BUILD_PROFILE_SLUG, ISSA_BUILD_HERO_POSTER,
@@ -121,6 +123,10 @@ export default function IssaBuildSiteView() {
   const blockData = (type: string) => blocks.find((block) => block.type === type)?.data || {};
   const hero = blockData("hero");
   const sections = profile.profileSections || {};
+  // Publication of this supplied pair was explicitly approved; management alone is not permission.
+  const publicContact = resolveApprovedPublicContact(ISSA_BUILD_MANAGED_CONTACT, {
+    publicationApproved: true, visible: sections.contactCard !== false,
+  });
   const name = clean(business?.name || profile.displayName || ISSA_BUILD_BUSINESS_NAME, 200);
   const headline = clean(issaBuildBusinessText(profile.headline, ISSA_BUILD_LOCAL_DISCOVERY.headline));
   const origin = getCanonicalAppOrigin();
@@ -180,6 +186,7 @@ export default function IssaBuildSiteView() {
   const identity = { "@type": "LocalBusiness", "@id": `${profileUrl}#identity`, name, url: profileUrl,
     description: clean(issaBuildBusinessText(profile.seoMeta?.description, ISSA_BUILD_LOCAL_DISCOVERY.description)),
     ...(serviceAreas.length ? { areaServed: serviceAreas } : {}),
+    ...publicProfileContactStructuredData(publicContact),
   };
   const mainEntityId = stoneShare ? `${canonical}#product` : isOnyx ? `${canonical}#collection` : `${profileUrl}#identity`;
   const productEntity = stoneShare ? {
@@ -271,6 +278,7 @@ export default function IssaBuildSiteView() {
         showStats={sections.stats !== false} showServices={sections.services !== false}
         showServiceAreas={sections.services !== false} showRecommendations={sections.reviews !== false}
         showContact={sections.contactCard !== false} deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+        publicContact={publicContact}
         onDirectConnect={openRequest}
         shareAction={<ShareButton destination={ISSA_BUILD_PUBLIC_PATH} title={name} imageUrl={shareImage} />}
         renderGalleryShare={(item) => <ShareButton destination={`${ISSA_BUILD_PUBLIC_PATH}?gallery=${encodeURIComponent(item.slug)}`}
