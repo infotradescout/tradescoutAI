@@ -180,8 +180,8 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
     displayVariant ? `${displayVariant} | TradeScout` : "TradeScout | Connection Without Compromise"
   );
   const description = displayVariant
-    ? `TradeScout for ${displayVariant}. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.`
-    : "Find what you need. Show what you offer. TradeScout connects people and local businesses without sold leads, paid ranking, or contact before acceptance.";
+    ? `TradeScout for ${displayVariant}. Find what you need or show what you offer without sold leads, paid ranking, or sharing your contact details before you send a request.`
+    : "Find what you need. Show what you offer. TradeScout connects people and local businesses without sold leads, paid ranking, or sharing your contact details before you send a request.";
 
   return {
     title,
@@ -296,11 +296,11 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     <h2>Find what you need. Show what you offer.</h2>
     <p>${escapeHtml(meta.description)}</p>
     <p>Use normal TradeScout pages or open Scout for guidance. Both paths keep the same businesses, requests, jobs, properties, and outcomes connected.</p>
-    <p>Recommendations drive TradeScout. Direct Connect sends one protected request only to businesses the requester chooses, and contact information opens after acceptance.</p>
+    <p>Recommendations drive TradeScout. Sending a Direct Connect request shares your name and phone number with the businesses you choose, so they can respond. Your details are not published or sent to unrelated businesses.</p>
     <h2>TradeScout, in plain language</h2>
     <ol>
       <li><a href="/#scout">Scout</a> helps people understand a need, compare reasonable paths, and prepare a next step.</li>
-      <li><a href="/#connect">Requests and contact</a> stay protected until the requester sends and the business accepts.</li>
+      <li><a href="/#connect">Requests and contact</a> share your name and phone number only when you send a request to a business you choose.</li>
       <li><a href="/#businesses">The business home</a> keeps offers, proof, availability, requests, work, and outcomes together.</li>
       <li><a href="/#property">Home and property</a> keep useful records and work history with the property.</li>
       <li><a href="/#money">Money</a> explains how TradeScout stays free without selling leads or trust.</li>
@@ -322,7 +322,7 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     <ul>
       <li>Claim or create a public business profile.</li>
       <li>Show products, services, availability, proof, and completed work.</li>
-      <li>Review chosen requests before contact opens.</li>
+      <li>Review the requests people send to your business, with their name and phone number attached.</li>
       <li>Never buy a resold lead.</li>
     </ul>
     <p><strong>Selective Inheritance</strong> lets a business carry forward useful, provable information from an outside source without importing unsupported claims.</p>
@@ -423,7 +423,7 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     url: opts.origin,
     logo: `${opts.origin}/tradescout-logo.jpg`,
     description:
-      "Connection Without Compromise. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.",
+      "Connection Without Compromise. Find what you need or show what you offer without sold leads, paid ranking, or sharing your contact details before you send a request.",
     sameAs: ["https://www.thetradescout.com"],
   });
   return html;
