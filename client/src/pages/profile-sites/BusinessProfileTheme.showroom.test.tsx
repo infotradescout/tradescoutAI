@@ -37,6 +37,14 @@ describe("project-led business website composition", () => {
     expect(host.querySelector(".bp-summary")?.textContent).toBe(defaults.heroText);
     expect(host.textContent).not.toMatch(/one.day install|lifetime warranty|award.winning|five.star|luxury homes|wealthy|Bath Fitter/i);
   });
+  it("promotes the supplied full-service scope instead of a category-only heading", () => {
+    const scope = "Kitchens, bathrooms, cabinets and countertops in Pensacola and surrounding areas.";
+    render({ heroTitle: "Owner Business", heroText: scope });
+    expect(host.querySelector(".bp-headline")?.textContent).toBe(scope);
+    expect(host.querySelector(".bp-summary")).toBeNull();
+    expect(host.querySelector(".bp-category")?.textContent).toBe("Kitchen Remodeling");
+    expect(host.querySelectorAll("h1")).toHaveLength(1);
+  });
   it("places work before services and keeps business details outside the content column", () => {
     render({ aboutText: "Original company history." });
     const sectionIds = [...host.querySelectorAll(".bp-content > section")].map((node) => node.id);
