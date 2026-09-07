@@ -1,73 +1,51 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
-import net from 'node:net';
-import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import pg from 'pg';
+import { spawn, spawnSync } from 'node:child_process';
 
-// Diagnostic only: no supplied database, customer data, or production connection.
+// The initial per-file diagnostic is preserved in the branch history and its
+// first two build records. Release acceptance now uses the real command chain,
+// independent parent validation, complete regression suite, and clean checkout.
 assert.ok(!process.env.DATABASE_URL && !process.env.TEST_DATABASE_URL, 'Supplied database targets are forbidden');
 const root = process.cwd();
-const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'ts-clean-diagnose-'));
-const output = path.join(root, '.clean-setup-diagnostic');
-const report = { kind: 'diagnostic-not-release-proof', source: spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim(), startedAt: new Date().toISOString(), attempts: [], cleanup: false };
-const password = crypto.randomBytes(24).toString('hex');
-const scrub = (text) => String(text).replaceAll(password, '[disposable-password]').replace(/postgres(?:ql)?:\/\/[^\s"']+/gi, '[disposable-url]');
-const requireNative = createRequire('/tmp/tradescout-clean-dependencies/package.json');
-const { default: EmbeddedPostgres } = await import(pathToFileURL(requireNative.resolve('embedded-postgres')).href);
-const socket = net.createServer();
-await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve));
-const port = socket.address().port;
-await new Promise((resolve) => socket.close(resolve));
-const cluster = new EmbeddedPostgres({ databaseDir: path.join(temp, 'pgdata'), user: 'postgres', password, port, persistent: false, postgresFlags: ['-c', 'listen_addresses=127.0.0.1'], onLog: () => {}, onError: (text) => console.error(scrub(text)) });
-let started = false;
-try {
-  await cluster.initialise(); await cluster.start(); started = true;
-  const entries = JSON.parse(await fs.readFile('migrations/meta/_journal.json', 'utf8')).entries;
-  await cluster.createDatabase('ts_clean_test_diagnostic');
-  const url = `postgresql://postgres:${password}@127.0.0.1:${port}/ts_clean_test_diagnostic?sslmode=disable`;
-  const client = new pg.Client({ connectionString: url });
-  await client.connect();
-  try {
-    report.postgres = (await client.query('select version() as version')).rows[0].version;
-    // Commit complete files separately to identify the exact failing file/statement.
-    for (const entry of entries) {
-      const sql = await fs.readFile(path.join('migrations', entry.tag + '.sql'), 'utf8');
-      const step = { tag: entry.tag, applied: false };
-      report.attempts.push(step);
-      await client.query('BEGIN');
-      try {
-        const statements = sql.split('--> statement-breakpoint');
-        for (let i = 0; i < statements.length; i++) {
-          step.statement = i + 1;
-          await client.query(statements[i]);
-        }
-        await client.query('COMMIT'); step.applied = true;
-        console.log('CLEAN_SETUP_APPLIED ' + entry.tag);
-      } catch (error) {
-        await client.query('ROLLBACK');
-        step.error = scrub(error.message); step.code = error.code; step.position = error.position;
-        console.error('CLEAN_SETUP_ROOT_FAILURE ' + JSON.stringify(step));
-        break;
-      }
-    }
-    report.tables = (await client.query("select count(*)::int as count from pg_tables where schemaname='public'")).rows[0].count;
-    report.allMigrationsExecuted = report.attempts.length === entries.length && report.attempts.every((step) => step.applied);
-  } finally { await client.end(); }
-} catch (error) {
-  report.infrastructureFailure = scrub(error.message);
-  console.error('CLEAN_SETUP_DIAGNOSTIC_ERROR ' + scrub(error.stack));
-  process.exitCode = 1;
-} finally {
-  try { if (started) await cluster.stop(); await fs.rm(temp, { recursive: true, force: true }); report.cleanup = true; }
-  catch (error) { report.cleanupError = scrub(error.message); process.exitCode = 1; }
-  report.completedAt = new Date().toISOString();
-  await fs.mkdir(output, { recursive: true });
-  await fs.writeFile(path.join(output, 'result.json'), JSON.stringify(report, null, 2));
-  await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><title>Clean setup diagnostic</title><h1>Diagnostic only — not release proof</h1><a href="result.json">Sanitized diagnostic result</a>');
-  console.log('CLEAN_SETUP_DIAGNOSTIC ' + JSON.stringify(report));
+const git = (args) => {
+  const result = spawnSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  assert.equal(result.status, 0, result.stderr || 'Git source identity check failed');
+  return result.stdout.trim();
+};
+const source = git(['rev-parse', 'HEAD']);
+assert.match(source, /^[a-f0-9]{40}$/);
+const original = '38ffc9422faa20967aa7c9f982a434287a403b04';
+if (spawnSync('git', ['cat-file', '-e', original + '^{commit}'], { stdio: 'ignore' }).status !== 0) {
+  git(['fetch', '--no-tags', '--depth=1', 'origin', original]);
 }
+const requireNative = createRequire('/tmp/tradescout-clean-dependencies/package.json');
+const status = await new Promise((resolve, reject) => {
+  const child = spawn(process.execPath, ['scripts/tests/database-bootstrap.native.mjs'], {
+    cwd: root,
+    stdio: 'inherit',
+    env: { ...process.env, EMBEDDED_POSTGRES_MODULE: requireNative.resolve('embedded-postgres'),
+      DB598_ISOLATE_CHECKOUT: '1', DB598_EXPECTED_HEAD: source, DB598_FULL_RELEASE: '1' },
+  });
+  child.once('error', reject);
+  child.once('close', (code) => resolve(code ?? 1));
+});
+assert.equal(status, 0, 'The independent database proof parent rejected this candidate');
+const evidence = path.join(root, '.db-bootstrap-proof');
+const report = JSON.parse(await fs.readFile(path.join(evidence, 'result.json'), 'utf8'));
+assert.equal(report.source, source);
+assert.equal(report.passed, true);
+assert.equal(report.databaseCleanup, 'stopped');
+assert.equal(report.publicationCases?.length, 22);
+assert.ok(report.publicationCases.every((item) => item.passed === true));
+assert.equal(report.scenarios?.length, 12);
+assert.ok(report.scenarios.every((item) => item.passed === true));
+const release = JSON.parse(await fs.readFile(path.join(evidence, 'release-evidence.json'), 'utf8'));
+assert.equal(release.commit, source);
+assert.equal(release.result, 'pass');
+assert.ok(release.steps.length > 0 && release.steps.every((item) => item.status === 'pass'));
+const publish = path.join(root, '.clean-setup-diagnostic');
+await fs.rm(publish, { recursive: true, force: true });
+await fs.cp(evidence, publish, { recursive: true });
+console.log('CLEAN_SETUP_RELEASE_ACCEPTED ' + JSON.stringify({ source, scenarios: report.scenarios.length, publicationCases: report.publicationCases.length, passed: true }));
