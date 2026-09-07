@@ -64,7 +64,13 @@ describe("Release 2 identity authority spine", () => {
 
     expect(authUserRoute).toContain("resolveRequestAuthorityContext(");
     expect(authUserRoute).toContain("const userId = identityContext.effectiveUserId");
-    expect(authUserRoute).toContain("if (identityContext.isImpersonating) return baseUser");
+    expect(authUserRoute).toContain("req.requestAuthorityContext ??");
+    expect(authUserRoute).toContain("let user = identityContext.effectiveUser");
+    expect(authUserRoute).toContain(
+      "resolvePersistedClientAuthority(baseUser, approvedProfessionalRolesForAuth)"
+    );
+    expect(authUserRoute).not.toContain("mergeSessionAuthority");
+    expect(authUserRoute).not.toContain("getPrivilegedAliasEmails");
     expect(authUserRoute).toContain("if (!identityContext.isImpersonating)");
     expect(authUserRoute).toContain("isImpersonating: true");
     expect(authUserRoute).toContain("impersonating: true");

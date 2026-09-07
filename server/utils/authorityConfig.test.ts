@@ -54,8 +54,7 @@ describe("authorityConfig", () => {
         const config = reloadAuthorityConfig();
         expect(config.adminTierRoles).toEqual(["moderator", "ops_admin", "super_admin"]);
         expect(config.verificationBypassRoles).toContain("support_agent");
-        expect(config.privilegedAliasEmails).toContain("contact@thetradescout.com");
-        expect(config.privilegedAliasEmails).toContain("info.tradescout@gmail.com");
+        expect(config.privilegedAliasEmails).toEqual([]);
         expect(config.directConnectUnverifiedBypassEnabled).toBe(false);
       }
     ));

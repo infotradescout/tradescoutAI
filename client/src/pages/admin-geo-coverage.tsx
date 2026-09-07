@@ -239,8 +239,7 @@ export default function AdminGeoCoverageConsole() {
   );
   const [affiliateSearch, setAffiliateSearch] = useState("");
   const [selectedAffiliateUserId, setSelectedAffiliateUserId] = useState("");
-  const [affiliateEntityType, setAffiliateEntityType] =
-    useState<AffiliateEntityType>("affiliate");
+  const [affiliateEntityType, setAffiliateEntityType] = useState<AffiliateEntityType>("affiliate");
 
   const [mapsReady, setMapsReady] = useState(false);
   const [mapsError, setMapsError] = useState("");
@@ -556,10 +555,7 @@ export default function AdminGeoCoverageConsole() {
     onError: (error: unknown) => {
       toast({
         title: "Assignment failed",
-        description: formatUserFacingErrorMessage(
-          error,
-          "Unable to assign affiliate or partner."
-        ),
+        description: formatUserFacingErrorMessage(error, "Unable to assign affiliate or partner."),
         variant: "destructive",
       });
     },
@@ -607,7 +603,7 @@ export default function AdminGeoCoverageConsole() {
             },
             {
               label: "Unassigned",
-              value: coverageQuery.isError ? "—" : data?.unassignedCounties ?? 0,
+              value: coverageQuery.isError ? "—" : (data?.unassignedCounties ?? 0),
               detail: "No active territory manager or affiliate",
               tone:
                 coverageQuery.isError || Number(data?.unassignedCounties || 0) > 0
@@ -616,7 +612,7 @@ export default function AdminGeoCoverageConsole() {
             },
             {
               label: "Partial coverage",
-              value: coverageQuery.isError ? "—" : data?.partiallyCoveredCounties ?? 0,
+              value: coverageQuery.isError ? "—" : (data?.partiallyCoveredCounties ?? 0),
               detail: "Only one required coverage side is present",
               tone:
                 coverageQuery.isError || Number(data?.partiallyCoveredCounties || 0) > 0
@@ -625,7 +621,7 @@ export default function AdminGeoCoverageConsole() {
             },
             {
               label: "Full coverage",
-              value: coverageQuery.isError ? "—" : data?.fullyCoveredCounties ?? 0,
+              value: coverageQuery.isError ? "—" : (data?.fullyCoveredCounties ?? 0),
               detail: `${data?.fullCoverageNewLast30 || 0} added in the last 30 days`,
               tone: coverageQuery.isError ? "warning" : "good",
             },
@@ -1054,9 +1050,7 @@ function CountyFolderPanel({
                   className="grid gap-2 px-3 py-3 text-sm sm:px-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
                 >
                   <div>
-                    <p className="font-semibold text-white">
-                      {entity.label || entity.id}
-                    </p>
+                    <p className="font-semibold text-white">{entity.label || entity.id}</p>
                     <p className="mt-1 text-xs text-white/35">
                       {readable(entity.entityType)} · updated {formatDate(entity.updatedAt)}
                     </p>
@@ -1196,7 +1190,7 @@ function TerritoryManagerDialog({
 }) {
   return (
     <Dialog open={Boolean(county)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md border-white/10 bg-[#090a0b] text-white">
+      <DialogContent className="max-w-md border-white/10 bg-tsBg text-white">
         <DialogHeader>
           <DialogTitle>Assign territory manager</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1280,7 +1274,7 @@ function AffiliateDialog({
 }) {
   return (
     <Dialog open={Boolean(county)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md border-white/10 bg-[#090a0b] text-white">
+      <DialogContent className="max-w-md border-white/10 bg-tsBg text-white">
         <DialogHeader>
           <DialogTitle>Assign affiliate or partner</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1360,9 +1354,7 @@ function AssignmentCounty({ county }: { county: CountyCoverageRow | null }) {
 function MetricCell({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">{label}</p>
       <p className="mt-2 text-lg font-semibold text-white/72">{value}</p>
     </div>
   );
@@ -1371,9 +1363,7 @@ function MetricCell({ label, value }: { label: string; value: number }) {
 function FolderMetric({ label, value }: { label: string; value: number }) {
   return (
     <div className="border-b border-white/10 px-4 py-4 last:border-b-0 sm:border-r sm:last:border-r-0 xl:border-b-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">{label}</p>
       <p className="mt-2 text-xl font-semibold text-white">{value}</p>
     </div>
   );
@@ -1398,13 +1388,7 @@ function FolderEmpty({ children }: { children: ReactNode }) {
   );
 }
 
-function NoteBadge({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "warning" | "danger" | "good";
-}) {
+function NoteBadge({ label, tone }: { label: string; tone: "warning" | "danger" | "good" }) {
   const classes =
     tone === "danger"
       ? "border-red-400/25 bg-red-400/10 text-red-100"
@@ -1416,22 +1400,12 @@ function NoteBadge({
 
 function CoverageBadge({ status }: { status: CountyCoverageStatus }) {
   if (status === "full") {
-    return (
-      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
-        Full
-      </Badge>
-    );
+    return <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">Full</Badge>;
   }
   if (status === "partial") {
-    return (
-      <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">
-        Partial
-      </Badge>
-    );
+    return <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">Partial</Badge>;
   }
-  return (
-    <Badge className="border-red-400/25 bg-red-400/10 text-red-100">Unassigned</Badge>
-  );
+  return <Badge className="border-red-400/25 bg-red-400/10 text-red-100">Unassigned</Badge>;
 }
 
 function QueueLoading({ label }: { label: string }) {

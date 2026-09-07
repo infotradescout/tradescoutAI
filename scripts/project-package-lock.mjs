@@ -118,7 +118,7 @@ const projectedLock = {
 const output = `${JSON.stringify(projectedLock, null, 2)}\n`;
 
 if (process.argv.includes("--check")) {
-  if (fs.readFileSync(lockPath, "utf8") !== output) {
+  if (fs.readFileSync(lockPath, "utf8").replace(/\r\n/g, "\n") !== output) {
     console.error("package-lock.json does not match package.json dependency reachability");
     process.exit(1);
   }

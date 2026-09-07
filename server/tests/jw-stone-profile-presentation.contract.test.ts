@@ -78,6 +78,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(presentation.inventory.pageSize).toBe(12);
     expect(presentation.inventory.pageStep).toBe(12);
     expect(presentation.inventory.stickyControls).toBe(true);
+    expect(presentation.copy.inventoryTitle).toBe("Material Library");
     expect(source).toContain("const openFullInventory = () =>");
     expect(source).toContain("useState(inventoryOpenByDefault)");
     expect(source).toContain("useState(inventoryPageSize)");

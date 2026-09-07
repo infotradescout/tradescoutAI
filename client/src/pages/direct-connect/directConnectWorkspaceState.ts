@@ -250,7 +250,10 @@ export function getDirectConnectComposerDraftSessionKey(
 ): string | null {
   const userId = cleanSingleLine(authenticatedUserId, 160);
   if (!userId || getDirectConnectWorkspaceTask(pathname) !== "start") return null;
-  const signature = cleanSingleLine(entrySignature, 512) || "default";
+  // Keep the complete identity: truncating long prefills makes unrelated drafts
+  // share a key and lets one visit overwrite another visit's saved work.
+  const signature =
+    typeof entrySignature === "string" && entrySignature ? entrySignature : "default";
   return `${DIRECT_CONNECT_COMPOSER_DRAFT_STORAGE_PREFIX}${encodeURIComponent(
     userId
   )}:${encodeURIComponent(DIRECT_CONNECT_START_PATH)}:${encodeURIComponent(signature)}`;
@@ -260,13 +263,17 @@ export function resolveDirectConnectComposerDraftText(
   storedValue: unknown,
   explicitValue: unknown
 ): string {
-  const explicit = typeof explicitValue === "string" ? explicitValue.trim() : "";
-  if (explicit) return explicit;
-  return typeof storedValue === "string" ? storedValue.trim() : "";
+  // Call only after the entry/account checks. An empty saved value is also an
+  // edit; the original link must not put deleted text back into the request.
+  if (typeof storedValue === "string") return storedValue;
+  return typeof explicitValue === "string" ? explicitValue.trim() : "";
 }
 
-export function shouldConsumeDirectConnectDraftAfterHydration(authHandoff: unknown): boolean {
-  return authHandoff === true;
+export function shouldConsumeDirectConnectDraftAfterHydration(
+  authHandoff: unknown,
+  authenticatedDraftSaved: boolean = false
+): boolean {
+  return authHandoff === true && authenticatedDraftSaved;
 }
 
 function readStoredDirectConnectWorkspaceState(

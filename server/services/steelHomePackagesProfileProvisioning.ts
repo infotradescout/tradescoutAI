@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Provisioning preserves schema-owned JSON and legacy row types. */
+import { profileReleaseSeedFields } from "@shared/profileVisibility";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
 import {
@@ -207,7 +208,7 @@ async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
         description: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body,
       },
       // Renderable database state only; the shared release config keeps this unlisted.
-      status: "published" as const,
+      ...profileReleaseSeedFields({ existingProfile, releaseNewProfile: true }),
       updatedAt: now,
     };
 

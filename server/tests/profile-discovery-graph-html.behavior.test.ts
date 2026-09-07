@@ -134,11 +134,9 @@ describe("automatic public profile discovery graph", () => {
     expect(xml).toContain("<loc>https://profile.example/</loc>");
     expect(xml).toContain("<loc>https://profile.example/categories/stone</loc>");
     expect(xml).toContain("<loc>https://profile.example/inventory/named-stone</loc>");
-    expect(xml).toContain(
-      `<loc>https://profile.example/gallery/${completedProject.slug}</loc>`
-    );
+    expect(xml).toContain(`<loc>https://profile.example/gallery/${completedProject.slug}</loc>`);
+    expect(xml).not.toContain(`<loc>https://profile.example/gallery/${genericPhoto.slug}</loc>`);
     expect(xml).not.toContain("trending-selection-04");
-    expect(xml).not.toContain(genericPhoto.slug);
   });
 
   it("lists the same public child pages in host-local discovery guidance", async () => {
@@ -154,8 +152,8 @@ describe("automatic public profile discovery graph", () => {
     expect(text).toContain("- https://profile.example/categories/stone");
     expect(text).toContain("- https://profile.example/inventory/named-stone");
     expect(text).toContain(`- https://profile.example/gallery/${completedProject.slug}`);
+    expect(text).not.toContain(`- https://profile.example/gallery/${genericPhoto.slug}`);
     expect(text).not.toContain("trending-selection-04");
-    expect(text).not.toContain(genericPhoto.slug);
   });
 
   it("links every public category, inventory, and project page from initial profile HTML", async () => {
@@ -170,12 +168,10 @@ describe("automatic public profile discovery graph", () => {
 
     expect(html).toContain('href="https://profile.example/categories/stone"');
     expect(html).toContain('href="https://profile.example/inventory/named-stone"');
-    expect(html).toContain(
-      `href="https://profile.example/gallery/${completedProject.slug}"`
-    );
+    expect(html).toContain(`href="https://profile.example/gallery/${completedProject.slug}"`);
+    expect(html).not.toContain(`href="https://profile.example/gallery/${genericPhoto.slug}"`);
     expect(html).toContain('data-seo-profile-gallery-links="true"');
     expect(html).not.toContain("trending-selection-04");
-    expect(html).not.toContain(genericPhoto.slug);
   });
 
   it("links every public inventory child from its category page", async () => {

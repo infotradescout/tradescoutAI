@@ -218,7 +218,9 @@ const ADMIN_SAFETY_CONFIRM_PHRASE = "I UNDERSTAND THIS EDIT IS AUDITED";
 
 function readable(value: unknown): string {
   const text = String(value || "").trim();
-  return text ? text.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "Not recorded";
+  return text
+    ? text.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+    : "Not recorded";
 }
 
 function formatDate(value: unknown): string {
@@ -228,7 +230,9 @@ function formatDate(value: unknown): string {
 }
 
 function isArchivedPlaceholderUser(email: string): boolean {
-  const normalized = String(email || "").trim().toLowerCase();
+  const normalized = String(email || "")
+    .trim()
+    .toLowerCase();
   return normalized.startsWith("archived+") && normalized.endsWith("@thetradescout.invalid");
 }
 
@@ -249,7 +253,8 @@ function displayName(targetUser: User): string {
     (targetUser.preferences as Record<string, unknown> | null)?.businessName || ""
   ).trim();
   if (businessName) return businessName;
-  const name = `${String(targetUser.firstName || "").trim()} ${String(targetUser.lastName || "").trim()}`.trim();
+  const name =
+    `${String(targetUser.firstName || "").trim()} ${String(targetUser.lastName || "").trim()}`.trim();
   return name || displayEmail(targetUser) || targetUser.id;
 }
 
@@ -284,9 +289,7 @@ function roleBucket(role: string): "contractor" | "homeowner" | "business" | "ot
   ) {
     return "contractor";
   }
-  if (
-    new Set(["homeowner", "renter", "landlord", "property_manager", "hoa_member"]).has(role)
-  ) {
+  if (new Set(["homeowner", "renter", "landlord", "property_manager", "hoa_member"]).has(role)) {
     return "homeowner";
   }
   if (
@@ -318,15 +321,25 @@ function roleInfo(role: string): RoleInfo {
 
 function verificationBadge(status: VerificationStatus | undefined) {
   if (status === "approved") {
-    return <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">Verified</Badge>;
+    return (
+      <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">Verified</Badge>
+    );
   }
   if (status === "suspended") {
     return <Badge className="border-red-400/30 bg-red-400/10 text-red-200">Suspended</Badge>;
   }
   if (status === "rejected" || status === "expired") {
-    return <Badge className="border-orange-400/30 bg-orange-400/10 text-orange-100">{readable(status)}</Badge>;
+    return (
+      <Badge className="border-orange-400/30 bg-orange-400/10 text-orange-100">
+        {readable(status)}
+      </Badge>
+    );
   }
-  return <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">{readable(status || "pending")}</Badge>;
+  return (
+    <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">
+      {readable(status || "pending")}
+    </Badge>
+  );
 }
 
 export default function AdminUsers() {
@@ -335,12 +348,18 @@ export default function AdminUsers() {
   const queryClient = useQueryClient();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "contractor" | "homeowner" | "business">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "verified" | "pending" | "suspended">("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | "contractor" | "homeowner" | "business">(
+    "all"
+  );
+  const [statusFilter, setStatusFilter] = useState<"all" | "verified" | "pending" | "suspended">(
+    "all"
+  );
   const [addressFilter, setAddressFilter] = useState<"all" | "verified" | "not_verified">("all");
   const [onboardingFilter, setOnboardingFilter] = useState<"all" | "complete" | "pending">("all");
   const [timeFilter, setTimeFilter] = useState<"all" | "24h" | "7d" | "30d">("all");
-  const [accountScope, setAccountScope] = useState<"all" | "active_only" | "archived_only">("active_only");
+  const [accountScope, setAccountScope] = useState<"all" | "active_only" | "archived_only">(
+    "active_only"
+  );
   const [manualVerifyEmail, setManualVerifyEmail] = useState("");
   const [adminSafetyKey, setAdminSafetyKey] = useState("");
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
@@ -352,7 +371,9 @@ export default function AdminUsers() {
   const [profileForm, setProfileForm] = useState<ProfileForm>({ ...EMPTY_PROFILE_FORM });
 
   const isSuperAdmin = isSuperAdminLike(user?.role);
-  const currentRole = String(user?.role || "").trim().toLowerCase();
+  const currentRole = String(user?.role || "")
+    .trim()
+    .toLowerCase();
   const isOpsAdmin = currentRole === "ops_admin";
   const currentUserLevel = isSuperAdmin
     ? ROLE_HIERARCHY.super_admin.level
@@ -416,17 +437,19 @@ export default function AdminUsers() {
       if (!profileUser) throw new Error("No user selected");
       const hasColor = Boolean(
         profileForm.colorSchemePreset ||
-          profileForm.colorPrimary ||
-          profileForm.colorSecondary ||
-          profileForm.colorBackground ||
-          profileForm.colorText
+        profileForm.colorPrimary ||
+        profileForm.colorSecondary ||
+        profileForm.colorBackground ||
+        profileForm.colorText
       );
       const colorScheme = hasColor
         ? {
             ...(profileForm.colorSchemePreset.trim()
               ? { preset: profileForm.colorSchemePreset.trim() }
               : {}),
-            ...(profileForm.colorPrimary.trim() ? { primary: profileForm.colorPrimary.trim() } : {}),
+            ...(profileForm.colorPrimary.trim()
+              ? { primary: profileForm.colorPrimary.trim() }
+              : {}),
             ...(profileForm.colorSecondary.trim()
               ? { secondary: profileForm.colorSecondary.trim() }
               : {}),
@@ -457,13 +480,18 @@ export default function AdminUsers() {
           profileSections: profileForm.profileSections,
           ...(colorScheme ? { colorScheme } : {}),
         },
-        adminSafety: buildAdminSafety(`Profile support edit requested by admin for user ${profileUser.id}`),
+        adminSafety: buildAdminSafety(
+          `Profile support edit requested by admin for user ${profileUser.id}`
+        ),
       });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       setProfileUser(null);
-      toast({ title: "Profile updated", description: "The public profile and account state were saved." });
+      toast({
+        title: "Profile updated",
+        description: "The public profile and account state were saved.",
+      });
     },
     onError: (error: unknown) => {
       toast({
@@ -556,9 +584,7 @@ export default function AdminUsers() {
   };
 
   const pinSavedView = (viewId: string) => {
-    setSavedViews((current) =>
-      current.map((entry) => ({ ...entry, pinned: entry.id === viewId }))
-    );
+    setSavedViews((current) => current.map((entry) => ({ ...entry, pinned: entry.id === viewId })));
     const view = savedViews.find((entry) => entry.id === viewId);
     if (view) {
       applySavedViewRecord(view);
@@ -595,7 +621,9 @@ export default function AdminUsers() {
         bio: typeof preferences.bio === "string" ? preferences.bio : "",
         profileVisibility: preferences.profileVisibility === "public" ? "public" : "private",
         servicesDescription:
-          typeof preferences.servicesDescription === "string" ? preferences.servicesDescription : "",
+          typeof preferences.servicesDescription === "string"
+            ? preferences.servicesDescription
+            : "",
         profileSections: PROFILE_SECTION_LABELS.reduce<Partial<Record<ProfileSectionKey, boolean>>>(
           (result, [key]) => ({ ...result, [key]: sections[key] }),
           {}
@@ -630,11 +658,18 @@ export default function AdminUsers() {
 
   const runUserControl = async (action: string, userId: string, newRole?: string) => {
     const key = action === "role" && newRole ? `${userId}:role:${newRole}` : `${userId}:${action}`;
-    const label = action === "revoke_verify" ? "revoke verification" : action === "role" ? "change role" : action;
-    const reason = window.prompt(
-      `Enter reason for ${label} (minimum 12 characters):`,
-      "Admin support action requested by user."
-    )?.trim();
+    const label =
+      action === "revoke_verify"
+        ? "revoke verification"
+        : action === "role"
+          ? "change role"
+          : action;
+    const reason = window
+      .prompt(
+        `Enter reason for ${label} (minimum 12 characters):`,
+        "Admin support action requested by user."
+      )
+      ?.trim();
     if (!reason || reason.length < 12) {
       toast({
         title: "Audit reason required",
@@ -644,33 +679,34 @@ export default function AdminUsers() {
       return;
     }
 
-    const routes: Record<string, { url: string; body: Record<string, unknown>; success: string }> = {
-      suspend: {
-        url: `/api/admin/user-controls/suspend/${userId}`,
-        body: { reason },
-        success: "Account suspended",
-      },
-      unsuspend: {
-        url: `/api/admin/user-controls/unsuspend/${userId}`,
-        body: { reason },
-        success: "Account unsuspended",
-      },
-      verify: {
-        url: `/api/admin/user-controls/verify/${userId}`,
-        body: { reason },
-        success: "Account verified",
-      },
-      revoke_verify: {
-        url: `/api/admin/user-controls/revoke-verify/${userId}`,
-        body: { reason },
-        success: "Verification revoked",
-      },
-      role: {
-        url: `/api/admin/user-controls/role/${userId}`,
-        body: { newRole, reason },
-        success: `Role changed to ${readable(newRole)}`,
-      },
-    };
+    const routes: Record<string, { url: string; body: Record<string, unknown>; success: string }> =
+      {
+        suspend: {
+          url: `/api/admin/user-controls/suspend/${userId}`,
+          body: { reason },
+          success: "Account suspended",
+        },
+        unsuspend: {
+          url: `/api/admin/user-controls/unsuspend/${userId}`,
+          body: { reason },
+          success: "Account unsuspended",
+        },
+        verify: {
+          url: `/api/admin/user-controls/verify/${userId}`,
+          body: { reason },
+          success: "Account verified",
+        },
+        revoke_verify: {
+          url: `/api/admin/user-controls/revoke-verify/${userId}`,
+          body: { reason },
+          success: "Verification revoked",
+        },
+        role: {
+          url: `/api/admin/user-controls/role/${userId}`,
+          body: { newRole, reason },
+          success: `Role changed to ${readable(newRole)}`,
+        },
+      };
     const route = routes[action];
     if (!route) return;
 
@@ -695,7 +731,9 @@ export default function AdminUsers() {
     setPendingAction((current) => ({ ...current, [key]: true }));
     try {
       const response = await apiRequest("POST", "/api/auth/request-email-verification", {
-        email: String(target.email || "").trim().toLowerCase(),
+        email: String(target.email || "")
+          .trim()
+          .toLowerCase(),
       });
       toast({
         title: "Verification email requested",
@@ -754,7 +792,11 @@ export default function AdminUsers() {
   const handleDeleteUser = (target: User) => {
     const targetRole = resolveUserRole(target);
     if (target.id === currentAdminId) {
-      toast({ title: "Account protected", description: "You cannot delete your own account.", variant: "destructive" });
+      toast({
+        title: "Account protected",
+        description: "You cannot delete your own account.",
+        variant: "destructive",
+      });
       return;
     }
     if (isSuperAdminLike(targetRole) && !isSuperAdmin) {
@@ -795,7 +837,13 @@ export default function AdminUsers() {
         const role = resolveUserRole(entry);
         const matchesSearch =
           !normalizedSearch ||
-          [entry.email, archivedOriginalEmail(entry), entry.firstName, entry.lastName, displayName(entry)]
+          [
+            entry.email,
+            archivedOriginalEmail(entry),
+            entry.firstName,
+            entry.lastName,
+            displayName(entry),
+          ]
             .filter(Boolean)
             .some((value) => String(value).toLowerCase().includes(normalizedSearch));
         const matchesStatus =
@@ -823,7 +871,14 @@ export default function AdminUsers() {
             matchesTime = Date.now() - createdAt <= days * 86_400_000;
           }
         }
-        return matchesSearch && matchesStatus && matchesAddress && matchesRole && matchesSetup && matchesTime;
+        return (
+          matchesSearch &&
+          matchesStatus &&
+          matchesAddress &&
+          matchesRole &&
+          matchesSetup &&
+          matchesTime
+        );
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [
@@ -841,7 +896,8 @@ export default function AdminUsers() {
       active: users.filter((entry) => !isArchivedPlaceholderUser(entry.email)).length,
       verified: users.filter((entry) => entry.verificationStatus === "approved").length,
       pending: users.filter(
-        (entry) => entry.verificationStatus !== "approved" && entry.verificationStatus !== "suspended"
+        (entry) =>
+          entry.verificationStatus !== "approved" && entry.verificationStatus !== "suspended"
       ).length,
       suspended: users.filter((entry) => entry.verificationStatus === "suspended").length,
     }),
@@ -850,7 +906,10 @@ export default function AdminUsers() {
 
   const exportCsv = () => {
     if (!filteredUsers.length) {
-      toast({ title: "Nothing to export", description: "Change the filters to include at least one account." });
+      toast({
+        title: "Nothing to export",
+        description: "Change the filters to include at least one account.",
+      });
       return;
     }
     const escapeCsv = (value: unknown) => {
@@ -898,7 +957,10 @@ export default function AdminUsers() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast({ title: "Export started", description: `${filteredUsers.length} accounts were included.` });
+    toast({
+      title: "Export started",
+      description: `${filteredUsers.length} accounts were included.`,
+    });
   };
 
   if (!user || currentUserLevel < 70) {
@@ -959,7 +1021,9 @@ export default function AdminUsers() {
               disabled={usersQuery.isFetching}
               className="border-white/12 bg-white/[0.025] text-white/65"
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${usersQuery.isFetching ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${usersQuery.isFetching ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
             <Button
@@ -977,7 +1041,11 @@ export default function AdminUsers() {
       >
         <AdminSummaryStrip
           items={[
-            { label: "Active accounts", value: counts.active, detail: "Non-archived login accounts" },
+            {
+              label: "Active accounts",
+              value: counts.active,
+              detail: "Non-archived login accounts",
+            },
             {
               label: "Verified",
               value: counts.verified,
@@ -1010,19 +1078,52 @@ export default function AdminUsers() {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <FilterSelect value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)} options={["all", "verified", "pending", "suspended"]} label="Status" />
-            <FilterSelect value={roleFilter} onValueChange={(value) => setRoleFilter(value as typeof roleFilter)} options={["all", "contractor", "homeowner", "business"]} label="Role" />
-            <FilterSelect value={addressFilter} onValueChange={(value) => setAddressFilter(value as typeof addressFilter)} options={["all", "verified", "not_verified"]} label="Address" />
-            <FilterSelect value={onboardingFilter} onValueChange={(value) => setOnboardingFilter(value as typeof onboardingFilter)} options={["all", "complete", "pending"]} label="Setup" />
-            <FilterSelect value={timeFilter} onValueChange={(value) => setTimeFilter(value as typeof timeFilter)} options={["all", "24h", "7d", "30d"]} label="Joined" />
+            <FilterSelect
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}
+              options={["all", "verified", "pending", "suspended"]}
+              label="Status"
+            />
+            <FilterSelect
+              value={roleFilter}
+              onValueChange={(value) => setRoleFilter(value as typeof roleFilter)}
+              options={["all", "contractor", "homeowner", "business"]}
+              label="Role"
+            />
+            <FilterSelect
+              value={addressFilter}
+              onValueChange={(value) => setAddressFilter(value as typeof addressFilter)}
+              options={["all", "verified", "not_verified"]}
+              label="Address"
+            />
+            <FilterSelect
+              value={onboardingFilter}
+              onValueChange={(value) => setOnboardingFilter(value as typeof onboardingFilter)}
+              options={["all", "complete", "pending"]}
+              label="Setup"
+            />
+            <FilterSelect
+              value={timeFilter}
+              onValueChange={(value) => setTimeFilter(value as typeof timeFilter)}
+              options={["all", "24h", "7d", "30d"]}
+              label="Joined"
+            />
             {archivedCount > 0 ? (
-              <FilterSelect value={accountScope} onValueChange={(value) => setAccountScope(value as typeof accountScope)} options={["active_only", "all", "archived_only"]} label="Accounts" />
+              <FilterSelect
+                value={accountScope}
+                onValueChange={(value) => setAccountScope(value as typeof accountScope)}
+                options={["active_only", "all", "archived_only"]}
+                label="Accounts"
+              />
             ) : null}
           </div>
         </AdminToolbar>
       </AdminSection>
 
-      <details className="group border-y border-white/10 bg-white/[0.014]" data-testid="admin-user-support-tools">
+      <details
+        className="group border-y border-white/10 bg-white/[0.014]"
+        data-testid="admin-user-support-tools"
+      >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-4 sm:px-4 [&::-webkit-details-marker]:hidden">
           <div className="flex min-w-0 items-center gap-3">
             <KeyRound className="h-4 w-4 shrink-0 text-orange-200" />
@@ -1039,7 +1140,9 @@ export default function AdminUsers() {
           <div className="space-y-3">
             <div>
               <p className="font-semibold text-white">Verification email</p>
-              <p className="mt-1 text-xs leading-5 text-white/35">Request a new verification link without exposing whether an account exists.</p>
+              <p className="mt-1 text-xs leading-5 text-white/35">
+                Request a new verification link without exposing whether an account exists.
+              </p>
             </div>
             <Input
               value={manualVerifyEmail}
@@ -1064,7 +1167,9 @@ export default function AdminUsers() {
           <div className="space-y-3">
             <div>
               <p className="font-semibold text-white">Admin write safety key</p>
-              <p className="mt-1 text-xs leading-5 text-white/35">Used only when strict privileged-write mode is enabled.</p>
+              <p className="mt-1 text-xs leading-5 text-white/35">
+                Used only when strict privileged-write mode is enabled.
+              </p>
             </div>
             <Input
               type="password"
@@ -1073,7 +1178,12 @@ export default function AdminUsers() {
               placeholder="Safety key"
               className="border-white/10 bg-black/20 text-white"
             />
-            <Button type="button" variant="outline" onClick={() => setAdminSafetyKey("")} className="border-white/12 bg-transparent text-white/60">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAdminSafetyKey("")}
+              className="border-white/12 bg-transparent text-white/60"
+            >
               Clear key
             </Button>
           </div>
@@ -1081,9 +1191,14 @@ export default function AdminUsers() {
           <div className="space-y-3">
             <div>
               <p className="font-semibold text-white">Saved views</p>
-              <p className="mt-1 text-xs leading-5 text-white/35">Store common search and status combinations for this admin session.</p>
+              <p className="mt-1 text-xs leading-5 text-white/35">
+                Store common search and status combinations for this admin session.
+              </p>
             </div>
-            <Select value={activeViewId || "none"} onValueChange={(value) => value !== "none" && applySavedView(value)}>
+            <Select
+              value={activeViewId || "none"}
+              onValueChange={(value) => value !== "none" && applySavedView(value)}
+            >
               <SelectTrigger className="border-white/10 bg-black/20 text-white">
                 <SelectValue placeholder="Choose saved view" />
               </SelectTrigger>
@@ -1091,17 +1206,42 @@ export default function AdminUsers() {
                 <SelectItem value="none">Choose saved view</SelectItem>
                 {savedViews.map((view) => (
                   <SelectItem key={view.id} value={view.id}>
-                    {view.name}{view.pinned ? " · default" : ""}
+                    {view.name}
+                    {view.pinned ? " · default" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={saveCurrentView} className="border-white/12 bg-transparent text-white/60">Save current</Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={saveCurrentView}
+                className="border-white/12 bg-transparent text-white/60"
+              >
+                Save current
+              </Button>
               {activeViewId ? (
                 <>
-                  <Button type="button" size="sm" variant="outline" onClick={() => pinSavedView(activeViewId)} className="border-white/12 bg-transparent text-white/60">Pin default</Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => deleteSavedView(activeViewId)} className="border-red-300/20 bg-transparent text-red-100">Delete view</Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => pinSavedView(activeViewId)}
+                    className="border-white/12 bg-transparent text-white/60"
+                  >
+                    Pin default
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => deleteSavedView(activeViewId)}
+                    className="border-red-300/20 bg-transparent text-red-100"
+                  >
+                    Delete view
+                  </Button>
                 </>
               ) : null}
             </div>
@@ -1121,10 +1261,16 @@ export default function AdminUsers() {
               const info = roleInfo(role);
               const RoleIcon = info.icon;
               const targetLevel = ROLE_HIERARCHY[role]?.level || 0;
-              const canManage = currentUserLevel > targetLevel || (isSuperAdmin && role === "super_admin");
-              const canRunSuperActions = isSuperAdmin && target.id !== currentAdminId && role !== "super_admin";
-              const canRunOpsActions = (isSuperAdmin || isOpsAdmin) && target.id !== currentAdminId && role !== "super_admin";
-              const canDelete = isSuperAdmin && target.id !== currentAdminId && role !== "super_admin";
+              const canManage =
+                currentUserLevel > targetLevel || (isSuperAdmin && role === "super_admin");
+              const canRunSuperActions =
+                isSuperAdmin && target.id !== currentAdminId && role !== "super_admin";
+              const canRunOpsActions =
+                (isSuperAdmin || isOpsAdmin) &&
+                target.id !== currentAdminId &&
+                role !== "super_admin";
+              const canDelete =
+                isSuperAdmin && target.id !== currentAdminId && role !== "super_admin";
               const setupComplete = hasCompletedSetup(target);
               const archived = isArchivedPlaceholderUser(target.email);
 
@@ -1144,10 +1290,22 @@ export default function AdminUsers() {
                     </Badge>
                     <div className="flex flex-wrap gap-2">
                       {verificationBadge(target.verificationStatus)}
-                      <Badge className={target.addressVerified ? "border-emerald-400/25 bg-emerald-400/8 text-emerald-100" : "border-white/12 bg-white/[0.035] text-white/45"}>
+                      <Badge
+                        className={
+                          target.addressVerified
+                            ? "border-emerald-400/25 bg-emerald-400/8 text-emerald-100"
+                            : "border-white/12 bg-white/[0.035] text-white/45"
+                        }
+                      >
                         {target.addressVerified ? "Address verified" : "Address pending"}
                       </Badge>
-                      <Badge className={target.emailVerified ? "border-sky-400/25 bg-sky-400/8 text-sky-100" : "border-white/12 bg-white/[0.035] text-white/45"}>
+                      <Badge
+                        className={
+                          target.emailVerified
+                            ? "border-sky-400/25 bg-sky-400/8 text-sky-100"
+                            : "border-white/12 bg-white/[0.035] text-white/45"
+                        }
+                      >
                         {target.emailVerified ? "Email verified" : "Email pending"}
                       </Badge>
                     </div>
@@ -1161,59 +1319,167 @@ export default function AdminUsers() {
                   <div className="border-t border-white/10 bg-white/[0.015] px-3 py-5 sm:px-4">
                     <div className="grid gap-5 xl:grid-cols-[minmax(0,0.75fr)_minmax(22rem,1.25fr)]">
                       <div className="space-y-3 text-sm leading-6 text-white/50">
-                        <p><span className="text-white/28">User ID:</span> <span className="font-mono text-white/58">{target.id}</span></p>
-                        <p><span className="text-white/28">Role source:</span> {readable(target.activeRole ? "active role" : Array.isArray(target.roles) && target.roles.length ? "roles array" : "legacy role")}</p>
-                        <p><span className="text-white/28">Profile:</span> {target.canonicalProfileUrl || `/profile/${target.id}`}</p>
-                        {archived ? <p className="text-amber-100/70">Archived import placeholder. Use Business Import for cleanup and directory ownership work.</p> : null}
+                        <p>
+                          <span className="text-white/28">User ID:</span>{" "}
+                          <span className="font-mono text-white/58">{target.id}</span>
+                        </p>
+                        <p>
+                          <span className="text-white/28">Role source:</span>{" "}
+                          {readable(
+                            target.activeRole
+                              ? "active role"
+                              : Array.isArray(target.roles) && target.roles.length
+                                ? "roles array"
+                                : "legacy role"
+                          )}
+                        </p>
+                        <p>
+                          <span className="text-white/28">Profile:</span>{" "}
+                          {target.canonicalProfileUrl || `/profile/${target.id}`}
+                        </p>
+                        {archived ? (
+                          <p className="text-amber-100/70">
+                            Archived import placeholder. Use Business Import for cleanup and
+                            directory ownership work.
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="flex flex-wrap items-start gap-2">
-                        <Button type="button" size="sm" variant="outline" onClick={() => window.location.assign(target.canonicalProfileUrl?.trim() || `/profile/${target.id}`)} className="border-white/12 bg-transparent text-white/60">
-                          <Eye className="mr-2 h-4 w-4" />View profile
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            window.location.assign(
+                              target.canonicalProfileUrl?.trim() || `/profile/${target.id}`
+                            )
+                          }
+                          className="border-white/12 bg-transparent text-white/60"
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View profile
                         </Button>
                         {canManage ? (
                           <>
-                            <Button type="button" size="sm" variant="outline" onClick={() => { setUserToEdit(target); setNewRole(role); }} className="border-white/12 bg-transparent text-white/60">
-                              <UserCog className="mr-2 h-4 w-4" />Edit role
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setUserToEdit(target);
+                                setNewRole(role);
+                              }}
+                              className="border-white/12 bg-transparent text-white/60"
+                            >
+                              <UserCog className="mr-2 h-4 w-4" />
+                              Edit role
                             </Button>
-                            <Button type="button" size="sm" variant="outline" onClick={() => openProfileEditor(target)} className="border-white/12 bg-transparent text-white/60">
-                              <UserRoundPen className="mr-2 h-4 w-4" />Edit profile
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openProfileEditor(target)}
+                              className="border-white/12 bg-transparent text-white/60"
+                            >
+                              <UserRoundPen className="mr-2 h-4 w-4" />
+                              Edit profile
                             </Button>
                           </>
                         ) : null}
-                        {!target.emailVerified && target.id !== currentAdminId && role !== "super_admin" ? (
-                          <Button type="button" size="sm" variant="outline" onClick={() => resendVerification(target)} disabled={pendingAction[`${target.id}:resend-verification`]} className="border-white/12 bg-transparent text-white/60">
-                            <Mail className="mr-2 h-4 w-4" />Resend verification
+                        {!target.emailVerified &&
+                        target.id !== currentAdminId &&
+                        role !== "super_admin" ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => resendVerification(target)}
+                            disabled={pendingAction[`${target.id}:resend-verification`]}
+                            className="border-white/12 bg-transparent text-white/60"
+                          >
+                            <Mail className="mr-2 h-4 w-4" />
+                            Resend verification
                           </Button>
                         ) : null}
 
-                        {(canRunSuperActions || canRunOpsActions) ? (
+                        {canRunSuperActions || canRunOpsActions ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button type="button" size="sm" variant="outline" className="border-white/12 bg-transparent text-white/60">
-                                Account actions<MoreHorizontal className="ml-2 h-4 w-4" />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-white/12 bg-transparent text-white/60"
+                              >
+                                Account actions
+                                <MoreHorizontal className="ml-2 h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-60">
                               {canRunSuperActions ? (
-                                <DropdownMenuItem onClick={() => impersonate(target)} disabled={pendingAction[`${target.id}:impersonate`]}>
+                                <DropdownMenuItem
+                                  onClick={() => impersonate(target)}
+                                  disabled={pendingAction[`${target.id}:impersonate`]}
+                                >
                                   Impersonate
                                 </DropdownMenuItem>
                               ) : null}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => runUserControl("suspend", target.id)} disabled={pendingAction[`${target.id}:suspend`] || target.verificationStatus === "suspended"} className="text-red-600">
+                              <DropdownMenuItem
+                                onClick={() => runUserControl("suspend", target.id)}
+                                disabled={
+                                  pendingAction[`${target.id}:suspend`] ||
+                                  target.verificationStatus === "suspended"
+                                }
+                                className="text-red-600"
+                              >
                                 Suspend
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => runUserControl("unsuspend", target.id)} disabled={pendingAction[`${target.id}:unsuspend`]}>Unsuspend</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => runUserControl("verify", target.id)} disabled={pendingAction[`${target.id}:verify`] || target.verificationStatus === "approved"}>Verify</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => runUserControl("revoke_verify", target.id)} disabled={pendingAction[`${target.id}:revoke_verify`]}>Revoke verify</DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => runUserControl("unsuspend", target.id)}
+                                disabled={pendingAction[`${target.id}:unsuspend`]}
+                              >
+                                Unsuspend
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => runUserControl("verify", target.id)}
+                                disabled={
+                                  pendingAction[`${target.id}:verify`] ||
+                                  target.verificationStatus === "approved"
+                                }
+                              >
+                                Verify
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => runUserControl("revoke_verify", target.id)}
+                                disabled={pendingAction[`${target.id}:revoke_verify`]}
+                              >
+                                Revoke verify
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => runUserControl("role", target.id, "contractor_user")} disabled={pendingAction[`${target.id}:role:contractor_user`]}>Set Contractor</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => runUserControl("role", target.id, "homeowner")} disabled={pendingAction[`${target.id}:role:homeowner`]}>Set Homeowner</DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => runUserControl("role", target.id, "contractor_user")}
+                                disabled={pendingAction[`${target.id}:role:contractor_user`]}
+                              >
+                                Set Contractor
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => runUserControl("role", target.id, "homeowner")}
+                                disabled={pendingAction[`${target.id}:role:homeowner`]}
+                              >
+                                Set Homeowner
+                              </DropdownMenuItem>
                               {canDelete ? (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => handleDeleteUser(target)} disabled={deleteUserMutation.isPending} className="text-red-600">Delete account</DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteUser(target)}
+                                    disabled={deleteUserMutation.isPending}
+                                    className="text-red-600"
+                                  >
+                                    Delete account
+                                  </DropdownMenuItem>
                                 </>
                               ) : null}
                             </DropdownMenuContent>
@@ -1227,7 +1493,10 @@ export default function AdminUsers() {
             })}
           </AdminList>
         ) : (
-          <AdminEmptyState title="No accounts match these filters" description="Change the search, account scope, or status filters to inspect another account set." />
+          <AdminEmptyState
+            title="No accounts match these filters"
+            description="Change the search, account scope, or status filters to inspect another account set."
+          />
         )}
       </AdminSection>
 
@@ -1241,7 +1510,11 @@ export default function AdminUsers() {
           if (!userToEdit || !newRole) return;
           const currentTargetRole = resolveUserRole(userToEdit);
           if ((newRole === "super_admin" || currentTargetRole === "super_admin") && !isSuperAdmin) {
-            toast({ title: "Role protected", description: "Only a Super Admin can change a Super Admin role.", variant: "destructive" });
+            toast({
+              title: "Role protected",
+              description: "Only a Super Admin can change a Super Admin role.",
+              variant: "destructive",
+            });
             return;
           }
           updateRoleMutation.mutate({ userId: userToEdit.id, role: newRole });
@@ -1280,7 +1553,16 @@ function FilterSelect({
       <SelectContent>
         {options.map((option) => (
           <SelectItem key={option} value={option}>
-            {label}: {option === "all" ? "All" : option === "24h" ? "Last 24 hours" : option === "7d" ? "Last 7 days" : option === "30d" ? "Last 30 days" : readable(option)}
+            {label}:{" "}
+            {option === "all"
+              ? "All"
+              : option === "24h"
+                ? "Last 24 hours"
+                : option === "7d"
+                  ? "Last 7 days"
+                  : option === "30d"
+                    ? "Last 30 days"
+                    : readable(option)}
           </SelectItem>
         ))}
       </SelectContent>
@@ -1307,7 +1589,7 @@ function RoleDialog({
 }) {
   return (
     <Dialog open={Boolean(user)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="border-white/12 bg-[#101112] text-white sm:max-w-lg">
+      <DialogContent className="border-white/12 bg-tsBg text-white sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-white">Edit account role</DialogTitle>
           <DialogDescription className="text-white/45">
@@ -1316,20 +1598,53 @@ function RoleDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">Current role</p>
-            <div className="mt-2"><Badge className={roleInfo(user ? resolveUserRole(user) : "").className}>{roleInfo(user ? resolveUserRole(user) : "").label}</Badge></div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+              Current role
+            </p>
+            <div className="mt-2">
+              <Badge className={roleInfo(user ? resolveUserRole(user) : "").className}>
+                {roleInfo(user ? resolveUserRole(user) : "").label}
+              </Badge>
+            </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="user-role-select" className="text-white/65">New role</Label>
+            <Label htmlFor="user-role-select" className="text-white/65">
+              New role
+            </Label>
             <Select value={role || undefined} onValueChange={onRoleChange}>
-              <SelectTrigger id="user-role-select" className="border-white/10 bg-black/20 text-white"><SelectValue placeholder="Select role" /></SelectTrigger>
-              <SelectContent>{availableRoles.map((option) => <SelectItem key={option} value={option}>{roleInfo(option).label}</SelectItem>)}</SelectContent>
+              <SelectTrigger
+                id="user-role-select"
+                className="border-white/10 bg-black/20 text-white"
+              >
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableRoles.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {roleInfo(option).label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} className="border-white/12 bg-transparent text-white/60">Cancel</Button>
-          <Button type="button" onClick={onSave} disabled={saving || !role} className="bg-orange-500 text-black hover:bg-orange-400">{saving ? "Saving…" : "Save role"}</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="border-white/12 bg-transparent text-white/60"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={onSave}
+            disabled={saving || !role}
+            className="bg-orange-500 text-black hover:bg-orange-400"
+          >
+            {saving ? "Saving…" : "Save role"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1356,7 +1671,7 @@ function ProfileDialog({
 
   return (
     <Dialog open={Boolean(user)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/12 bg-[#101112] text-white sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/12 bg-tsBg text-white sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-white">Edit public profile and account state</DialogTitle>
           <DialogDescription className="text-white/45">
@@ -1366,30 +1681,80 @@ function ProfileDialog({
 
         <div className="space-y-7">
           <FormSection title="Identity and location">
-            <TextField label="First name" value={form.firstName} onChange={(value) => patch("firstName", value)} />
-            <TextField label="Last name" value={form.lastName} onChange={(value) => patch("lastName", value)} />
-            <TextField label="Phone" value={form.phone} onChange={(value) => patch("phone", value)} />
+            <TextField
+              label="First name"
+              value={form.firstName}
+              onChange={(value) => patch("firstName", value)}
+            />
+            <TextField
+              label="Last name"
+              value={form.lastName}
+              onChange={(value) => patch("lastName", value)}
+            />
+            <TextField
+              label="Phone"
+              value={form.phone}
+              onChange={(value) => patch("phone", value)}
+            />
             <TextField label="City" value={form.city} onChange={(value) => patch("city", value)} />
-            <TextField label="State code" value={form.stateCode} onChange={(value) => patch("stateCode", value.toUpperCase().slice(0, 2))} />
-            <TextField label="County FIPS" value={form.countyFips} onChange={(value) => patch("countyFips", value.replace(/\D/g, "").slice(0, 5))} />
-            <div className="sm:col-span-2"><TextField label="County name" value={form.countyName} onChange={(value) => patch("countyName", value)} /></div>
-            <div className="sm:col-span-2"><TextField label="Profile image URL" value={form.profileImageUrl} onChange={(value) => patch("profileImageUrl", value)} /></div>
+            <TextField
+              label="State code"
+              value={form.stateCode}
+              onChange={(value) => patch("stateCode", value.toUpperCase().slice(0, 2))}
+            />
+            <TextField
+              label="County FIPS"
+              value={form.countyFips}
+              onChange={(value) => patch("countyFips", value.replace(/\D/g, "").slice(0, 5))}
+            />
+            <div className="sm:col-span-2">
+              <TextField
+                label="County name"
+                value={form.countyName}
+                onChange={(value) => patch("countyName", value)}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <TextField
+                label="Profile image URL"
+                value={form.profileImageUrl}
+                onChange={(value) => patch("profileImageUrl", value)}
+              />
+            </div>
           </FormSection>
 
           <FormSection title="Public profile">
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-white/65">Bio</Label>
-              <Textarea value={form.bio} onChange={(event) => patch("bio", event.target.value)} className="min-h-32 border-white/10 bg-black/20 text-white" />
+              <Textarea
+                value={form.bio}
+                onChange={(event) => patch("bio", event.target.value)}
+                className="min-h-32 border-white/10 bg-black/20 text-white"
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-white/65">Services description</Label>
-              <Textarea value={form.servicesDescription} onChange={(event) => patch("servicesDescription", event.target.value)} className="min-h-24 border-white/10 bg-black/20 text-white" />
+              <Textarea
+                value={form.servicesDescription}
+                onChange={(event) => patch("servicesDescription", event.target.value)}
+                className="min-h-24 border-white/10 bg-black/20 text-white"
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-white/65">Profile visibility</Label>
-              <Select value={form.profileVisibility} onValueChange={(value) => patch("profileVisibility", value === "private" ? "private" : "public")}>
-                <SelectTrigger className="border-white/10 bg-black/20 text-white"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="public">Public</SelectItem><SelectItem value="private">Private</SelectItem></SelectContent>
+              <Select
+                value={form.profileVisibility}
+                onValueChange={(value) =>
+                  patch("profileVisibility", value === "private" ? "private" : "public")
+                }
+              >
+                <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </FormSection>
@@ -1397,14 +1762,41 @@ function ProfileDialog({
           <FormSection title="Account state">
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-white/65">Verification status</Label>
-              <Select value={form.verificationStatus} onValueChange={(value) => patch("verificationStatus", value as VerificationStatus)}>
-                <SelectTrigger className="border-white/10 bg-black/20 text-white"><SelectValue /></SelectTrigger>
-                <SelectContent>{["pending", "under_review", "approved", "rejected", "expired", "suspended"].map((status) => <SelectItem key={status} value={status}>{readable(status)}</SelectItem>)}</SelectContent>
+              <Select
+                value={form.verificationStatus}
+                onValueChange={(value) => patch("verificationStatus", value as VerificationStatus)}
+              >
+                <SelectTrigger className="border-white/10 bg-black/20 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["pending", "under_review", "approved", "rejected", "expired", "suspended"].map(
+                    (status) => (
+                      <SelectItem key={status} value={status}>
+                        {readable(status)}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
               </Select>
             </div>
-            <ToggleField label="Email verified" checked={form.emailVerified} onChange={(checked) => patch("emailVerified", checked)} />
-            <ToggleField label="Address verified" checked={form.addressVerified} onChange={(checked) => patch("addressVerified", checked)} />
-            <div className="sm:col-span-2"><ToggleField label="Setup completed" checked={form.onboardingCompleted} onChange={(checked) => patch("onboardingCompleted", checked)} /></div>
+            <ToggleField
+              label="Email verified"
+              checked={form.emailVerified}
+              onChange={(checked) => patch("emailVerified", checked)}
+            />
+            <ToggleField
+              label="Address verified"
+              checked={form.addressVerified}
+              onChange={(checked) => patch("addressVerified", checked)}
+            />
+            <div className="sm:col-span-2">
+              <ToggleField
+                label="Setup completed"
+                checked={form.onboardingCompleted}
+                onChange={(checked) => patch("onboardingCompleted", checked)}
+              />
+            </div>
           </FormSection>
 
           <section>
@@ -1424,17 +1816,54 @@ function ProfileDialog({
           </section>
 
           <FormSection title="Profile colors">
-            <TextField label="Preset" value={form.colorSchemePreset} onChange={(value) => patch("colorSchemePreset", value)} placeholder="default, warm, cool, vibrant, minimal, custom" />
-            <TextField label="Primary" value={form.colorPrimary} onChange={(value) => patch("colorPrimary", value)} />
-            <TextField label="Secondary" value={form.colorSecondary} onChange={(value) => patch("colorSecondary", value)} />
-            <TextField label="Background" value={form.colorBackground} onChange={(value) => patch("colorBackground", value)} />
-            <div className="sm:col-span-2"><TextField label="Text" value={form.colorText} onChange={(value) => patch("colorText", value)} /></div>
+            <TextField
+              label="Preset"
+              value={form.colorSchemePreset}
+              onChange={(value) => patch("colorSchemePreset", value)}
+              placeholder="default, warm, cool, vibrant, minimal, custom"
+            />
+            <TextField
+              label="Primary"
+              value={form.colorPrimary}
+              onChange={(value) => patch("colorPrimary", value)}
+            />
+            <TextField
+              label="Secondary"
+              value={form.colorSecondary}
+              onChange={(value) => patch("colorSecondary", value)}
+            />
+            <TextField
+              label="Background"
+              value={form.colorBackground}
+              onChange={(value) => patch("colorBackground", value)}
+            />
+            <div className="sm:col-span-2">
+              <TextField
+                label="Text"
+                value={form.colorText}
+                onChange={(value) => patch("colorText", value)}
+              />
+            </div>
           </FormSection>
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} className="border-white/12 bg-transparent text-white/60">Cancel</Button>
-          <Button type="button" onClick={onSave} disabled={saving} className="bg-orange-500 text-black hover:bg-orange-400">{saving ? "Saving…" : "Save profile"}</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="border-white/12 bg-transparent text-white/60"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="bg-orange-500 text-black hover:bg-orange-400"
+          >
+            {saving ? "Saving…" : "Save profile"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1445,7 +1874,9 @@ function FormSection({ title, children }: { title: string; children: React.React
   return (
     <section>
       <h3 className="text-sm font-semibold text-white">{title}</h3>
-      <div className="mt-3 grid gap-4 border-y border-white/10 px-3 py-4 sm:grid-cols-2 sm:px-4">{children}</div>
+      <div className="mt-3 grid gap-4 border-y border-white/10 px-3 py-4 sm:grid-cols-2 sm:px-4">
+        {children}
+      </div>
     </section>
   );
 }
@@ -1464,7 +1895,12 @@ function TextField({
   return (
     <div className="space-y-2">
       <Label className="text-white/65">{label}</Label>
-      <Input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="border-white/10 bg-black/20 text-white" />
+      <Input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="border-white/10 bg-black/20 text-white"
+      />
     </div>
   );
 }
@@ -1480,7 +1916,12 @@ function ToggleField({
 }) {
   return (
     <label className="flex min-h-10 items-center gap-3 text-sm text-white/62">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-orange-500" />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="h-4 w-4 accent-orange-500"
+      />
       <span>{label}</span>
     </label>
   );

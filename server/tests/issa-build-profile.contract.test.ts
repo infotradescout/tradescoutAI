@@ -128,9 +128,7 @@ describe("ISSA Build public profile contract", () => {
     ]) {
       expect(normalizer).toContain(service);
     }
-    expect(normalizer).toContain(
-      "TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation"
-    );
+    expect(normalizer).toContain('request_routing: "tradescout_managed_inquiry_funnel"');
     expect(normalizer).toContain('label: "Start a Request"');
   });
 
@@ -177,7 +175,8 @@ describe("ISSA Build public profile contract", () => {
     expect(publicBlocks).not.toMatch(/850[\s().-]*543[\s.-]*0748/i);
 
     expect(normalizer).toContain("100% Verified by TradeScout");
-    expect(normalizer).toContain("ISSA Build handles the complete project");
+    expect(normalizer).toContain('service_delivery: "issa_build"');
+    expect(normalizer).toContain("...ISSA_BUILD_FULL_SERVICE_SCOPE");
     expect(normalizer).toContain('label: "Start a Request"');
     expect(normalizer).not.toContain(".update(users)");
     expect(normalizer).not.toContain(".update(contractors)");

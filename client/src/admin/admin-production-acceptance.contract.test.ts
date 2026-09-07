@@ -14,7 +14,7 @@ describe("Admin production acceptance workspace", () => {
 
     expect(tools.match(/id: "production-acceptance"/g)).toHaveLength(1);
     expect(tools).toContain('path: "/admin/production-acceptance"');
-    expect(tools).toContain('visibleIf: { superOnly: true }');
+    expect(tools).toContain("visibleIf: { superOnly: true }");
     expect(tools).toContain('id: "legacy-production-acceptance"');
     expect(tools).toContain('<RedirectTool to="/admin/production-acceptance" />');
     expect(navigation).toContain('id: "production-acceptance"');
@@ -42,8 +42,12 @@ describe("Admin production acceptance workspace", () => {
     expect(source).toContain("Blocked");
     expect(source).toContain("Controlled write canary");
     expect(source).toContain("Open workspace");
-    expect(source).toContain('value: reportReady ? report?.summary.working ?? 0 : "—"');
-    expect(source).toContain('detail: reportReady ? "Sources and operating rules passed" : "Checking sources"');
+    expect(source).toMatch(
+      /value:\s*reportReady\s*\?\s*\(?report\?\.summary\.working\s*\?\?\s*0\)?\s*:\s*"—"/
+    );
+    expect(source).toMatch(
+      /detail:\s*reportReady\s*\?\s*"Sources and operating rules passed"\s*:\s*"Checking sources"/
+    );
   });
 
   it("forces overall attention only after a write canary fails", () => {

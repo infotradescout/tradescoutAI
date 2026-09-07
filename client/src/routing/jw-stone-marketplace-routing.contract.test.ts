@@ -12,7 +12,9 @@ describe("JW Stone public profile routing contract", () => {
     expect(appSource).toContain("isJwStoneProfileRoute");
     expect(appSource).toContain('pathOnly === "/jw-stone"');
     expect(appSource).toContain('pathOnly.startsWith("/jw-stone/")');
-    expect(appSource).toMatch(/const isPublicProfileRoute\s*=\s*isJwStoneProfileRoute\s*\|\|/);
+    expect(appSource).toMatch(
+      /const isPublicProfileRoute\s*=\s*isIssaBuildProfileRoute\s*\|\|\s*isJwStoneProfileRoute\s*\|\|/
+    );
     expect(appSource).toContain("isPublicProfileRoute");
     expect(appSource).not.toContain("isJwStoneMarketplaceRoute");
     expect(appSource).not.toContain("__TS_JW_STONE_MARKETPLACE_SURFACE__");

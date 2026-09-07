@@ -17,7 +17,7 @@ import {
 } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import { desc, sql } from "drizzle-orm";
-import { isPrivilegedAliasEmail } from "./utils/authorityPolicy";
+import { isReservedSignupIdentityEmail } from "./utils/authorityPolicy";
 import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
 import {
   resolveRequestAuthorityContext,
@@ -404,6 +404,16 @@ export async function setupAuth(app: Express) {
                   });
                   return done(null, user);
                 }
+
+                // Configured authority addresses are recovery candidates, not
+                // public signup identifiers. Existing persisted users may use
+                // their configured provider; a new account may not claim one.
+                if (isReservedSignupIdentityEmail(email)) {
+                  return done(null, false, {
+                    message: "Unable to create an account with this sign-in method",
+                    code: "AUTH_ACCOUNT_EXISTS",
+                  } as any);
+                }
               }
 
               const newUser = await storage.createUser({
@@ -485,14 +495,19 @@ const ADMIN_ONLY_PERMISSIONS = new Set<keyof ReturnType<typeof getRolePermission
 ]);
 
 function isAuthorityEscapeRequest(req: Request): boolean {
-  const path = String(req.originalUrl || req.path || "").split("?")[0];
+  const path = String(req.originalUrl || req.path || "")
+    .split("?")[0]
+    .toLowerCase()
+    .replace(/\/+$/, "");
   if (!AUTHORITY_ESCAPE_ROUTES.has(path)) return false;
   if (path.endsWith("/logout")) return req.method === "GET" || req.method === "POST";
   return req.method === "POST";
 }
 
 function isImpersonationPrivilegedRequest(req: Request): boolean {
-  const path = String(req.originalUrl || req.path || "").split("?")[0];
+  const path = String(req.originalUrl || req.path || "")
+    .split("?")[0]
+    .toLowerCase();
   return IMPERSONATION_PRIVILEGED_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`)
   );
@@ -511,12 +526,14 @@ function blockImpersonatedPrivilege(req: Request, res: any, force = false): bool
 
 async function bindRequestAuthority(req: Request, res: any): Promise<boolean> {
   const authorityRequest = req as AuthorityBoundRequest;
-  if (authorityRequest.requestAuthorityContext?.ok) return true;
+  if (authorityRequest.requestAuthorityContext?.ok) {
+    authorityRequest.user = authorityRequest.requestAuthorityContext.effectiveUser;
+    return true;
+  }
 
   try {
-    const context = await resolveRequestAuthorityContext(
-      authorityRequest,
-      async (userId) => storage.getUser(userId)
+    const context = await resolveRequestAuthorityContext(authorityRequest, async (userId) =>
+      storage.getUser(userId)
     );
     if (!context.ok) {
       res.status(403).json({
@@ -564,6 +581,15 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return;
   }
 
+  // Session exits must remain reachable even when the target was removed.
+  // Bind authority before logging so invalid contexts produce no user event.
+  if (isAuthorityEscapeRequest(req)) {
+    next();
+    return;
+  }
+  if (!(await bindRequestAuthority(req, res))) return;
+  if (blockImpersonatedPrivilege(req, res)) return;
+
   try {
     const user = req.user as User | undefined;
     const userId = user?.id;
@@ -583,8 +609,6 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     console.error("Error handling user.session_started logging", err);
   }
 
-  if (!isAuthorityEscapeRequest(req) && !(await bindRequestAuthority(req, res))) return;
-  if (blockImpersonatedPrivilege(req, res)) return;
   next();
 };
 
@@ -599,12 +623,12 @@ export const requireOnboardingComplete: RequestHandler = async (req, res, next) 
 
   const anyUser: any = user || {};
 
-  // Super admins always bypass onboarding gates.
+  // Persisted admin roles/flags may bypass onboarding gates.
   const normalizedRole = normalizeLegacyRole(anyUser.role);
   if (
     normalizedRole === "super_admin" ||
-    isPrivilegedAliasEmail(anyUser?.email) ||
-    isPrivilegedAliasEmail(anyUser?.claims?.email)
+    anyUser.isAdmin === true ||
+    anyUser.isSuperAdmin === true
   ) {
     return next();
   }
@@ -645,18 +669,14 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       .map((role) => normalizeLegacyRole(role))
       .filter(Boolean) as UserRole[];
 
-    const isAdminFlag = (user as any).isAdmin === true;
-    const isAliasSuperAdmin =
-      isPrivilegedAliasEmail((user as any)?.email) ||
-      isPrivilegedAliasEmail((user as any)?.claims?.email);
+    const isAdminFlag = (user as any).isAdmin === true || (user as any).isSuperAdmin === true;
 
     const candidateRoles = new Set<UserRole>();
     if (primaryRole) candidateRoles.add(primaryRole);
     if (activeRole) candidateRoles.add(activeRole);
     roleList.forEach((role) => candidateRoles.add(role));
-    // Legacy / computed flags should still grant access through role gates when present.
+    // Persisted flags still grant access through role gates when present.
     if (isAdminFlag) candidateRoles.add("super_admin");
-    if (isAliasSuperAdmin) candidateRoles.add("super_admin");
 
     if (candidateRoles.size === 0) {
       return res.status(403).json({ message: "No role assigned" });
@@ -732,9 +752,7 @@ export const isBusinessProvider: RequestHandler = async (req, res, next) => {
   if (!(await bindRequestAuthority(req, res))) return;
 
   const user = (req.user || {}) as any;
-  const isAdminFlag = user.isAdmin === true;
-  const isAliasSuperAdmin =
-    isPrivilegedAliasEmail(user?.email) || isPrivilegedAliasEmail(user?.claims?.email);
+  const isAdminFlag = user.isAdmin === true || user.isSuperAdmin === true;
   const normalizedRoles = [
     normalizeLegacyRole(user.role),
     normalizeLegacyRole(user.activeRole),
@@ -746,7 +764,7 @@ export const isBusinessProvider: RequestHandler = async (req, res, next) => {
     ["moderator", "ops_admin", "super_admin"].includes(String(role))
   );
 
-  if (isAdminFlag || isAliasSuperAdmin || hasAdminRole || userHasBusinessProviderTools(user)) {
+  if (isAdminFlag || hasAdminRole || userHasBusinessProviderTools(user)) {
     return next();
   }
 
@@ -799,9 +817,7 @@ export const requireAdmin = async (req: any, res: any, next: any) => {
   const activeRole = typeof user.activeRole === "string" ? user.activeRole : "";
   const primaryRole = typeof user.role === "string" ? user.role : "";
   const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
-  const isAdminFlag = user.isAdmin === true;
-  const isAliasSuperAdmin =
-    isPrivilegedAliasEmail(user?.email) || isPrivilegedAliasEmail(user?.claims?.email);
+  const isAdminFlag = user.isAdmin === true || user.isSuperAdmin === true;
 
   const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
   const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;
@@ -812,7 +828,7 @@ export const requireAdmin = async (req: any, res: any, next: any) => {
     adminRoles.has(normalizedPrimaryRole) ||
     normalizedRoles.some((role: string) => adminRoles.has(role));
 
-  if (isAdminFlag || hasAdminRole || isAliasSuperAdmin) {
+  if (isAdminFlag || hasAdminRole) {
     return next();
   }
 

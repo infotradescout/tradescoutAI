@@ -25,6 +25,7 @@ export type DirectConnectInboxReadinessItem = {
   conversationThreadId?: string | null;
   actionableAssignment?: boolean;
   isStructuredReplyOpen?: boolean;
+  submissionContactAvailable?: boolean;
 };
 
 const DIRECT_CONNECT_READY_USER: LiveReadinessUser = {
@@ -134,8 +135,9 @@ export function getDirectConnectInboxNextStepCopy(
   ) {
     return {
       label: "Respond to request",
-      summary:
-        "Accept with your scope and availability, or archive it. Contact opens only after acceptance.",
+      summary: item.submissionContactAvailable
+        ? "View the name and phone the sender shared with this request. Accept with your scope and availability to open a conversation, or archive it."
+        : "Accept with your scope and availability, or archive it. Contact opens only after acceptance.",
       actionHint: item.isStructuredReplyOpen ? "Accept and open conversation" : "Prepare response",
       contactUnlocked: false,
     };

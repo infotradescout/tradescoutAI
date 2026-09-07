@@ -78,6 +78,21 @@ describe("getDirectConnectInboxNextStepCopy", () => {
     expect(copy.contactUnlocked).toBe(false);
   });
 
+  it("distinguishes a sender-consented submission from opening a conversation", () => {
+    const copy = getDirectConnectInboxNextStepCopy({
+      assignmentStatus: "invited",
+      requestStatus: "routed",
+      actionableAssignment: true,
+      submissionContactAvailable: true,
+    });
+    expect(copy.summary).toContain("name and phone the sender shared with this request");
+    expect(copy.summary).toContain(
+      "Accept with your scope and availability to open a conversation"
+    );
+    expect(copy.actionHint).toBe("Prepare response");
+    expect(copy.contactUnlocked).toBe(false);
+  });
+
   it("shows active coordination only after accepted responder status or conversation exists", () => {
     const copy = getDirectConnectInboxNextStepCopy({
       assignmentStatus: "accepted",

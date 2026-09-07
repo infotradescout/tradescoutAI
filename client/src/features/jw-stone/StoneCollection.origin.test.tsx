@@ -10,9 +10,9 @@ import { StoneCollection } from "./StoneCollection";
   true;
 
 describe("JW Stone verified-origin collection path", () => {
-  it("keeps filter controls in the Filter sheet (no permanent filter boxes)", () => {
-    const sourceStone = JW_STONE_NAMED_CATALOG[0];
-    if (!sourceStone.materialId) throw new Error("Expected fixture materialId");
+  it("keeps supported filter controls in the Filter sheet without exposing origin evidence", () => {
+    const sourceStone = JW_STONE_NAMED_CATALOG.find((stone) => stone.materialId);
+    if (!sourceStone?.materialId) throw new Error("Expected fixture materialId");
     const fixtureStone = {
       ...sourceStone,
       origin: {
@@ -89,7 +89,7 @@ describe("JW Stone verified-origin collection path", () => {
     expect(container.querySelector('select[aria-label="Color"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).not.toBeNull();
-    expect(container.querySelector('select[aria-label="Source evidence"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Source evidence"]')).toBeNull();
 
     act(() => root.unmount());
     container.remove();

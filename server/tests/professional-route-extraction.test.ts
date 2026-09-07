@@ -3,10 +3,12 @@ import path from "node:path";
 import express, { type Express, type RequestHandler } from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { insertCarSalesmanProfileSchema, insertRealtorProfileSchema } from "../../shared/schema";
 
 const mocks = vi.hoisted(() => ({
   isAuthenticated: vi.fn(),
   isAdmin: vi.fn(),
+  requireAdmin: vi.fn(),
   requireAddressVerification: vi.fn(),
   getPublicBaseUrlFromRequest: vi.fn(),
   sendEmail: vi.fn(),
@@ -26,22 +28,22 @@ const mocks = vi.hoisted(() => ({
     getReferralStats: vi.fn(),
     getTopReferrers: vi.fn(),
     expireOldInvitations: vi.fn(),
-    getRealtorProfile: vi.fn(),
-    createRealtorProfile: vi.fn(),
-    updateUserRole: vi.fn(),
+    getRealtorProfileByUserId: vi.fn(),
+    submitRealtorApplication: vi.fn(),
     logEvent: vi.fn(),
-    getCarSalesmanProfile: vi.fn(),
-    createCarSalesmanProfile: vi.fn(),
+    getCarSalesmanProfileByUserId: vi.fn(),
+    submitCarSalesmanApplication: vi.fn(),
     getPendingRealtorApplications: vi.fn(),
     getPendingCarSalesmanApplications: vi.fn(),
-    updateRealtorVerificationStatus: vi.fn(),
-    updateCarSalesmanVerificationStatus: vi.fn(),
+    decideRealtorApplication: vi.fn(),
+    decideCarSalesmanApplication: vi.fn(),
   },
 }));
 
 vi.mock("../auth", () => ({
   isAuthenticated: mocks.isAuthenticated,
   isAdmin: mocks.isAdmin,
+  requireAdmin: mocks.requireAdmin,
 }));
 
 vi.mock("../requireAddressVerification", () => ({
@@ -78,6 +80,7 @@ function configureMiddleware() {
     next();
   });
   mocks.isAdmin.mockImplementation((_req: any, _res: any, next: () => void) => next());
+  mocks.requireAdmin.mockImplementation((_req: any, _res: any, next: () => void) => next());
   mocks.requireAddressVerification.mockImplementation((_req: any, _res: any, next: () => void) =>
     next()
   );
@@ -95,7 +98,7 @@ function buildApp() {
 }
 
 type CapturedRoute = {
-  method: "get" | "post";
+  method: "get" | "post" | "patch";
   path: string;
   handlers: RequestHandler[];
 };
@@ -108,6 +111,9 @@ function captureRouteRegistrations(): CapturedRoute[] {
     },
     post: (routePath: string, ...handlers: RequestHandler[]) => {
       routes.push({ method: "post", path: routePath, handlers });
+    },
+    patch: (routePath: string, ...handlers: RequestHandler[]) => {
+      routes.push({ method: "patch", path: routePath, handlers });
     },
   } as unknown as Express;
 
@@ -123,10 +129,42 @@ function middlewareSignature(route: CapturedRoute): string[] {
   return route.handlers.slice(0, -1).map((handler) => {
     if (handler === mocks.isAuthenticated) return "authenticated";
     if (handler === mocks.isAdmin) return "admin";
+    if (handler === mocks.requireAdmin) return "admin";
     if (handler === mocks.requireAddressVerification) return "address";
     return "unknown";
   });
 }
+
+const ordinaryRealtorApplication = {
+  licenseNumber: "RE-12345",
+  brokerageName: "County Realty",
+  mlsId: "MLS-100",
+  specializations: ["Residential Sales"],
+  yearsExperience: "7",
+  licenseState: "FL",
+  licenseExpiration: "2030-12-31",
+  serviceAreas: {
+    counties: ["Escambia County"],
+    cities: ["Pensacola"],
+    zipCodes: ["32501"],
+  },
+};
+
+const ordinaryCarSalesmanApplication = {
+  dealershipName: "County Motors",
+  dealerLicense: "DL-12345",
+  salesmanLicense: "SL-12345",
+  specializations: ["Used Vehicle Sales"],
+  brandsSpecialty: ["Ford"],
+  yearsExperience: "5",
+  licenseState: "FL",
+  licenseExpiration: "2030-11-30",
+  serviceAreas: {
+    counties: ["Escambia County"],
+    cities: ["Pensacola"],
+    zipCodes: ["32501"],
+  },
+};
 
 describe("professional route extraction", () => {
   beforeEach(() => {
@@ -139,7 +177,7 @@ describe("professional route extraction", () => {
     configureMiddleware();
   });
 
-  it("keeps all 16 method/path/middleware signatures in their original order", () => {
+  it("keeps all method/path/middleware signatures in their original order", () => {
     const routes = captureRouteRegistrations();
 
     expect(routes.map((route) => [route.method, route.path, middlewareSignature(route)])).toEqual([
@@ -156,6 +194,10 @@ describe("professional route extraction", () => {
       ["get", "/api/admin/professional/pending", ["authenticated", "admin"]],
       ["post", "/api/admin/realtor/verify/:profileId", ["authenticated", "admin"]],
       ["post", "/api/admin/car-salesman/verify/:profileId", ["authenticated", "admin"]],
+      ["get", "/api/admin/managed-partners", ["authenticated", "admin"]],
+      ["get", "/api/admin/managed-partner-intakes", ["authenticated", "admin"]],
+      ["post", "/api/admin/managed-partner-intakes", ["authenticated", "admin"]],
+      ["patch", "/api/admin/managed-partner-intakes/:id", ["authenticated", "admin"]],
       ["post", "/api/partnerships/request", ["authenticated"]],
       ["get", "/api/partnerships/my", ["authenticated"]],
       ["get", "/api/partnerships/find/:role", ["authenticated"]],
@@ -262,15 +304,234 @@ describe("professional route extraction", () => {
   });
 
   it("preserves the address gate on professional applications", async () => {
-    mocks.storage.getRealtorProfile.mockResolvedValueOnce({ id: "realtor-1" });
-
     const response = await request(buildApp()).post("/api/realtor/application").send({});
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ message: "You already have a realtor profile" });
+    expect(response.body.message).toBe("Invalid realtor application payload");
     expect(mocks.isAuthenticated).toHaveBeenCalledOnce();
     expect(mocks.requireAddressVerification).toHaveBeenCalledOnce();
-    expect(mocks.storage.getRealtorProfile).toHaveBeenCalledWith("user-1");
+  });
+
+  it("omits every lifecycle-owned field from both public professional insert schemas", () => {
+    expect((insertRealtorProfileSchema as any).shape.userId).toBeUndefined();
+    expect((insertCarSalesmanProfileSchema as any).shape.userId).toBeUndefined();
+    for (const field of [
+      "verificationStatus",
+      "isActive",
+      "reviewedBy",
+      "reviewedAt",
+      "reviewNotes",
+    ]) {
+      expect((insertRealtorProfileSchema as any).shape[field]).toBeUndefined();
+      expect((insertCarSalesmanProfileSchema as any).shape[field]).toBeUndefined();
+    }
+  });
+
+  it("rejects a spoofed application owner before professional profile creation", async () => {
+    const realtorResponse = await request(buildApp())
+      .post("/api/realtor/application")
+      .send({ ...ordinaryRealtorApplication, userId: "spoofed-user" });
+    const carResponse = await request(buildApp())
+      .post("/api/car-salesman/application")
+      .send({ ...ordinaryCarSalesmanApplication, userId: "spoofed-user" });
+
+    expect(realtorResponse.status).toBe(400);
+    expect(realtorResponse.body).toEqual({ message: "Application userId is server-controlled" });
+    expect(carResponse.status).toBe(400);
+    expect(carResponse.body).toEqual({ message: "Application userId is server-controlled" });
+    expect(mocks.storage.submitRealtorApplication).not.toHaveBeenCalled();
+    expect(mocks.storage.submitCarSalesmanApplication).not.toHaveBeenCalled();
+  });
+
+  it("rejects lifecycle injection and malformed nested application data", async () => {
+    const invalidPayloads = [
+      { ...ordinaryRealtorApplication, isActive: true },
+      { ...ordinaryRealtorApplication, verificationStatus: "approved" },
+      { ...ordinaryRealtorApplication, reviewedBy: "self" },
+      { ...ordinaryRealtorApplication, specializations: "Residential Sales" },
+      { ...ordinaryRealtorApplication, serviceAreas: { counties: "Escambia County" } },
+      { ...ordinaryRealtorApplication, verificationDocuments: { unexpected: "document" } },
+      { ...ordinaryRealtorApplication, licenseNumber: "   " },
+    ];
+
+    for (const payload of invalidPayloads) {
+      const response = await request(buildApp()).post("/api/realtor/application").send(payload);
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe("Invalid realtor application payload");
+    }
+    expect(mocks.storage.submitRealtorApplication).not.toHaveBeenCalled();
+  });
+
+  it("accepts ordinary form strings as pending applications without granting roles", async () => {
+    mocks.storage.submitRealtorApplication.mockResolvedValueOnce({
+      outcome: "created",
+      profile: {
+        id: "realtor-1",
+        userId: "user-1",
+        verificationStatus: "pending",
+      },
+    });
+    mocks.storage.submitCarSalesmanApplication.mockResolvedValueOnce({
+      outcome: "created",
+      profile: {
+        id: "dealer-1",
+        userId: "user-1",
+        verificationStatus: "pending",
+      },
+    });
+
+    const realtorResponse = await request(buildApp())
+      .post("/api/realtor/application")
+      .send(ordinaryRealtorApplication);
+    const carResponse = await request(buildApp())
+      .post("/api/car-salesman/application")
+      .send(ordinaryCarSalesmanApplication);
+
+    expect(realtorResponse.status).toBe(200);
+    expect(carResponse.status).toBe(200);
+    expect(mocks.storage.submitRealtorApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        yearsExperience: 7,
+        licenseExpiration: expect.any(Date),
+      })
+    );
+    expect(mocks.storage.submitCarSalesmanApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        yearsExperience: 5,
+        licenseExpiration: expect.any(Date),
+      })
+    );
+  });
+
+  it("returns a deterministic conflict for an existing professional application", async () => {
+    mocks.storage.submitRealtorApplication.mockResolvedValueOnce({
+      outcome: "duplicate",
+      profile: { id: "realtor-existing", userId: "user-1" },
+    });
+
+    const response = await request(buildApp())
+      .post("/api/realtor/application")
+      .send(ordinaryRealtorApplication);
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      message: "You already have a realtor profile",
+      profileId: "realtor-existing",
+    });
+  });
+
+  it("grants each professional role only after an approved verification decision", async () => {
+    mocks.storage.decideRealtorApplication.mockResolvedValueOnce({
+      outcome: "decided",
+      profile: {
+        id: "realtor-1",
+        userId: "realtor-user",
+        verificationStatus: "approved",
+      },
+    });
+    mocks.storage.decideCarSalesmanApplication.mockResolvedValueOnce({
+      outcome: "decided",
+      profile: {
+        id: "dealer-1",
+        userId: "dealer-user",
+        verificationStatus: "approved",
+      },
+    });
+
+    const realtorResponse = await request(buildApp())
+      .post("/api/admin/realtor/verify/realtor-1")
+      .send({ approved: true, notes: "License confirmed" });
+    const carResponse = await request(buildApp())
+      .post("/api/admin/car-salesman/verify/dealer-1")
+      .send({ approved: true, notes: "Dealer license confirmed" });
+
+    expect(realtorResponse.status).toBe(200);
+    expect(carResponse.status).toBe(200);
+    expect(mocks.storage.decideRealtorApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profileId: "realtor-1",
+        approved: true,
+        reviewedBy: "user-1",
+        reviewedAt: expect.any(Date),
+        reviewNotes: "License confirmed",
+      })
+    );
+    expect(mocks.storage.decideCarSalesmanApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profileId: "dealer-1",
+        approved: true,
+        reviewedBy: "user-1",
+        reviewedAt: expect.any(Date),
+        reviewNotes: "Dealer license confirmed",
+      })
+    );
+    expect(mocks.storage.logEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-boolean approval values instead of treating strings as approval", async () => {
+    const response = await request(buildApp())
+      .post("/api/admin/realtor/verify/realtor-1")
+      .send({ approved: "false", notes: "Invalid client value" });
+
+    expect(response.status).toBe(400);
+    expect(mocks.storage.decideRealtorApplication).not.toHaveBeenCalled();
+  });
+
+  it("reconciles only a pending-application role on rejection and never grants one", async () => {
+    mocks.storage.decideRealtorApplication.mockResolvedValueOnce({
+      outcome: "decided",
+      profile: {
+        id: "realtor-1",
+        userId: "realtor-user",
+        verificationStatus: "rejected",
+      },
+    });
+    mocks.storage.decideCarSalesmanApplication.mockResolvedValueOnce({
+      outcome: "decided",
+      profile: {
+        id: "dealer-1",
+        userId: "dealer-user",
+        verificationStatus: "rejected",
+      },
+    });
+
+    const realtorResponse = await request(buildApp())
+      .post("/api/admin/realtor/verify/realtor-1")
+      .send({ approved: false, notes: "License could not be confirmed" });
+    const carResponse = await request(buildApp())
+      .post("/api/admin/car-salesman/verify/dealer-1")
+      .send({ approved: false, notes: "Dealer license could not be confirmed" });
+
+    expect(realtorResponse.status).toBe(200);
+    expect(carResponse.status).toBe(200);
+    expect(mocks.storage.decideRealtorApplication).toHaveBeenCalledWith(
+      expect.objectContaining({ approved: false, reviewNotes: "License could not be confirmed" })
+    );
+    expect(mocks.storage.decideCarSalesmanApplication).toHaveBeenCalledWith(
+      expect.objectContaining({
+        approved: false,
+        reviewNotes: "Dealer license could not be confirmed",
+      })
+    );
+  });
+
+  it("returns a deterministic conflict when an application was already decided", async () => {
+    mocks.storage.decideRealtorApplication.mockResolvedValueOnce({
+      outcome: "already_decided",
+      profile: { id: "realtor-1", verificationStatus: "approved" },
+    });
+
+    const response = await request(buildApp())
+      .post("/api/admin/realtor/verify/realtor-1")
+      .send({ approved: true, notes: "Retry" });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      message: "Realtor application has already been decided",
+      verificationStatus: "approved",
+    });
   });
 
   it("preserves admin aggregation of pending professional applications", async () => {

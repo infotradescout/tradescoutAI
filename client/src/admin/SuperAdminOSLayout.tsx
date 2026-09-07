@@ -1,13 +1,11 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { findActiveAdminTool, type AdminRole } from "./adminTools";
-import {
-  getAdminNavWorkspacesForRole,
-  getAdminToolPresentation,
-} from "./adminNavWorkspaces";
+import { getAdminNavWorkspacesForRole, getAdminToolPresentation } from "./adminNavWorkspaces";
 import { SuperAdminLeftNav } from "./SuperAdminLeftNav";
 import { AdminHeader } from "./AdminHeader";
 import { useAuth } from "@/hooks/useAuth";
+import "./admin-os-v2.css";
 
 interface SuperAdminOSLayoutProps {
   children: React.ReactNode;
@@ -97,7 +95,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
   }, [focusToolSearch]);
 
   return (
-    <div className="ts-admin-shell min-h-full bg-[#08090a] text-zinc-100">
+    <div className="ts-admin-shell min-h-full bg-tsBg text-zinc-100">
       <div
         className={`grid min-h-[var(--app-height)] transition-[grid-template-columns] duration-200 ${
           railCollapsed
@@ -105,7 +103,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
             : "lg:grid-cols-[16.5rem_minmax(0,1fr)]"
         }`}
       >
-        <div className="hidden border-r border-white/10 bg-[#0b0c0d] lg:block">
+        <div className="hidden border-r border-white/10 bg-tsBg lg:block">
           <div className="sticky top-0 h-[var(--app-height)]">
             <SuperAdminLeftNav
               sections={navSections}
@@ -120,11 +118,11 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
           <div className="fixed inset-0 z-[120] lg:hidden" role="dialog" aria-modal="true">
             <button
               type="button"
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              className="ts-admin-nav-backdrop absolute inset-0"
               aria-label="Close admin navigation"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative h-full w-[min(21rem,88vw)] border-r border-white/10 bg-[#0b0c0d] shadow-2xl">
+            <div className="relative h-full w-[min(21rem,88vw)] border-r border-white/10 bg-tsBg shadow-2xl">
               <SuperAdminLeftNav
                 sections={navSections}
                 onNavigate={() => setMobileNavOpen(false)}

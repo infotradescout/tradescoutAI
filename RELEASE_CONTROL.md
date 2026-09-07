@@ -33,10 +33,19 @@ From a clean checkout of the **exact** commit under review:
 export TEST_DATABASE_URL="postgres://...disposable..."
 npm run gate:minimum-release -- --browser-proof=manual --browser-note="desktop+mobile paths reviewed"
 # Optional GitHub status (no Actions):
-npm run gate:minimum-release -- --attest --skip-ci --browser-proof=manual --browser-note="..."
+npm run gate:minimum-release -- --attest --browser-proof=manual --browser-note="..."
 ```
 
 Gate covers: exact commit, `npm ci`, typecheck, build, focused contract tests, disposable DB migrate+verify, browser proof attestation. Public health shape (`/api/health` with `commit` + `migrations`) is asserted by contract tests.
+
+For iterative local-only checking:
+
+```bash
+npm run gate:minimum-release:local -- --browser-proof=manual --browser-note="local paths checked"
+```
+
+This mode may skip dependency reinstall and DB proof, but its evidence is
+explicitly `non-attestation` and cannot authorize merge.
 
 Optional informational status context: `tradescout/minimum-release-contract`. It is evidence only and must not be required by branch protection.
 
@@ -115,8 +124,8 @@ If production `migrations.compatibility` is not `compatible`, **do not** treat t
 1. Open production web service `tradescoutAI` (tradescoutai.onrender.com).
 2. **Settings → Build & Deploy → Auto-Deploy → On** (On Commit).
 3. Confirm platform health-check path is set to `/api/health` when changing Render settings (Docker `HEALTHCHECK` alone is not the Render probe).
-4. Keep Runtime=`Docker` and Pre-Deploy=`npm run db:migrate && npm run db:verify:required`. The production image must retain `scripts/`, `drizzle.config.ts`, `shared/`, `migrations/`, and production `drizzle-kit`; see `docs/DEPLOYMENT_TARGET.md`.
-5. Confirm the live service executes that pre-deploy command on the next deploy (deploy logs must show migrate + verify before instance start). CRLF verifier fix must be on the deployed commit **before** enabling predeploy with the old verifier.
+4. Keep Runtime=`Docker` and Pre-Deploy=`node runtime/run-release.mjs run-production-predeploy scripts/run-production-predeploy.mjs`. The production image must retain the compiled release workers, runtime launcher/config, migrations, and production `drizzle-kit`; see `docs/DEPLOYMENT_TARGET.md`.
+5. Confirm the live service executes that pre-deploy command on the next deploy. Logs must show database migrate and required-schema verification passing before any public-media migration starts. CRLF verifier fix must be on the deployed commit **before** enabling predeploy with the old verifier.
 6. Use Render Dashboard Manual Deploy only when a manual redeploy is needed.
 7. Verify production with the live build/commit marker and the post-deploy smoke block above.
 

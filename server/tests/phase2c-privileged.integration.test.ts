@@ -261,7 +261,7 @@ describeDb("Phase 2C privileged path hardening", () => {
       expect(auditEntry?.operationType).toBe("suspend_user");
       expect(auditEntry?.targetType).toBe("user");
       expect(String(auditEntry?.targetId || "")).toBe(String(targetUser.id));
-      expect(auditEntry?.resolutionSource).toBe("route_param:user_id");
+      expect(auditEntry?.resolutionSource).toBe("locked_route_param:user_id");
       expect(auditEntry?.outcome).toBe("completed");
       expect(typeof auditEntry?.reason).toBe("string");
       expect(Array.isArray(auditEntry?.actorRoles)).toBe(true);
@@ -369,6 +369,7 @@ describeDb("Phase 2C privileged path hardening", () => {
         roles: ["contractor", "homeowner"],
         activeRole: "contractor",
         reason: "Align user claims to verified capability assignment policy.",
+        confirmPhrase: "I UNDERSTAND THIS EDIT IS AUDITED",
       });
       expect(completed.status).toBe(200);
 

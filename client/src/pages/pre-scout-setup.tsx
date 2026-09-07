@@ -502,8 +502,9 @@ export default function PreScoutSetup() {
         });
       }
       void trackDemandEvent("signin_success", { mode: "signin" });
-      toast({ title: "Signed in", description: "Opening onboarding." });
-      navigate(isAdminDestination ? postSetupNext : authenticatedNextPath);
+      toast({ title: "Signed in", description: "Opening your next step." });
+      // The authenticated-user effect owns routing after the refreshed user is
+      // rendered. This handler still holds the pre-login onboarding state.
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
       const rawMessage = String(error?.message || "Please try again.");
@@ -627,8 +628,8 @@ export default function PreScoutSetup() {
 
       await ensureSessionEstablished();
       void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
-      toast({ title: "Account created", description: "Opening onboarding." });
-      navigate(isAdminDestination ? postSetupNext : authenticatedNextPath);
+      toast({ title: "Account created", description: "Opening your next step." });
+      // Let the authenticated-user effect choose from the refreshed account.
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
       const message = error?.message || "Unable to create account.";

@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   JW_STONE_CATALOG,
   filterJwStoneCatalog,
@@ -33,7 +27,7 @@ type StoneCollectionProps = {
   state: MarketplaceUrlState;
   isSaved: (id: string) => boolean;
   onUpdateFilters: (filters: CollectionFilters) => void;
-  /** Called when Full inventory opens — parent clears browse-rail URL tags. */
+  /** Called when the Material Library opens — parent clears browse-rail URL tags. */
   onEnterFullInventory?: () => void;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
@@ -57,13 +51,7 @@ type InventoryPagerProps = {
   onChange: (page: number) => void;
 };
 
-function InventoryPager({
-  page,
-  pageCount,
-  position,
-  statusRef,
-  onChange,
-}: InventoryPagerProps) {
+function InventoryPager({ page, pageCount, position, statusRef, onChange }: InventoryPagerProps) {
   if (pageCount <= 1) return null;
 
   return (
@@ -349,10 +337,10 @@ export function StoneCollection({
   return (
     <>
       <JwCollapsibleSection
-        id="current-inventory"
+        id="material-library"
         testId="jw-inventory"
         headingId="jw-inventory-heading"
-        title="Browse Full Inventory"
+        title="Material Library"
         onExpandedChange={(expanded) => {
           if (!expanded) return;
           // Local sheet-only refinements reset with URL tags so inventory starts clean.

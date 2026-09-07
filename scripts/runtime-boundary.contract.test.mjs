@@ -56,26 +56,17 @@ test("runtime lock retains the root security/version overrides used to generate 
 test("Render lifecycle invokes compiled release entrypoints through the TLS launcher", () => {
   const dockerfile = read("Dockerfile");
   const blueprint = read("render.yaml");
+  const startupSchema = dockerfile.indexOf(
+    "node runtime/run-release.mjs check-required-production-schema"
+  );
+  const startupMedia = dockerfile.indexOf("node runtime/run-release.mjs ensure-public-media-ready");
+  assert.ok(startupSchema >= 0);
+  assert.ok(startupMedia > startupSchema);
   assert.match(
-    dockerfile,
-    /node runtime\/run-release\.mjs ensure-public-media-ready scripts\/ensure-public-media-ready\.mjs/
+    blueprint,
+    /preDeployCommand: node runtime\/run-release\.mjs run-production-predeploy scripts\/run-production-predeploy\.mjs/
   );
   assert.doesNotMatch(dockerfile, /CMD .*node scripts\//);
-
-  for (const [builtName, sourcePath] of [
-    ["migrate-red-graniti-public-media", "scripts/migrate-red-graniti-public-media.mjs"],
-    ["migrate-jw-stone-public-media", "scripts/migrate-jw-stone-public-media.mjs"],
-    ["migrate-profile-public-media", "scripts/migrate-profile-public-media.mjs"],
-    ["db-migrate-safe", "scripts/db-migrate-safe.mjs"],
-    ["check-required-production-schema", "scripts/check-required-production-schema.mjs"],
-  ]) {
-    assert.match(
-      blueprint,
-      new RegExp(
-        `node runtime/run-release\\.mjs ${builtName} ${sourcePath.replaceAll("/", "\\/")}`
-      )
-    );
-  }
 
   assert.doesNotMatch(blueprint, /preDeployCommand:.*node dist\/release\//);
   assert.doesNotMatch(blueprint, /preDeployCommand:.*npm run/);

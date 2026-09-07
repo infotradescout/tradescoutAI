@@ -67,12 +67,13 @@ export async function createAuthedAgent(
     phone: string;
     stateCode: string;
     countyFips: string;
+    email: string;
   }> = {}
 ): Promise<TestLoginResult> {
   const app = await getTestApp();
   const agent = request.agent(app);
 
-  const email = `test+${crypto.randomUUID()}@tradescout.test`;
+  const email = overrides.email ?? `test+${crypto.randomUUID()}@tradescout.test`;
   const password = `P@ssw0rd-${crypto.randomUUID()}`;
 
   const passwordHash = await hashPassword(password);

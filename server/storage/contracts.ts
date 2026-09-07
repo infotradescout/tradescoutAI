@@ -230,6 +230,40 @@ import type {
   AtomicExpressOutcomeArgs,
 } from "../services/onboardingService";
 
+export type ProfessionalRole = "realtor" | "car_dealer";
+
+export type ProfessionalApplicationSubmissionResult<TProfile> =
+  | { outcome: "created"; profile: TProfile }
+  | { outcome: "duplicate"; profile: TProfile };
+
+export type ProfessionalApplicationDecision = {
+  profileId: string;
+  approved: boolean;
+  reviewedBy: string;
+  reviewedAt: Date;
+  reviewNotes: string;
+};
+
+export type ProfessionalApplicationDecisionResult<TProfile> =
+  | { outcome: "decided"; profile: TProfile }
+  | { outcome: "already_decided"; profile: TProfile }
+  | { outcome: "not_found" };
+
+export type ProfessionalProfileEditable<TProfile> = Partial<
+  Omit<
+    TProfile,
+    | "id"
+    | "userId"
+    | "verificationStatus"
+    | "isActive"
+    | "reviewedBy"
+    | "reviewedAt"
+    | "reviewNotes"
+    | "createdAt"
+    | "updatedAt"
+  >
+>;
+
 // Local aliases for affiliate insert types (not exported from schema)
 type InsertAffiliateAccount = typeof affiliateAccounts.$inferInsert;
 type InsertAffiliateReferral = typeof affiliateReferrals.$inferInsert;
@@ -473,8 +507,19 @@ export interface IStorage {
   listProfileBookingRequestsForRequester(requesterUserId: string): Promise<ProfileBookingRequest[]>;
   updateProfileBookingRequest(
     id: string,
-    patch: Partial<Omit<InsertProfileBookingRequest, "id" | "ownerUserId" | "requesterUserId">>
+    patch: Partial<
+      Omit<
+        InsertProfileBookingRequest,
+        "id" | "ownerUserId" | "requesterUserId" | "profileId" | "lineageKind"
+      >
+    >
   ): Promise<ProfileBookingRequest>;
+  transitionProfileBookingPaymentStatus(args: {
+    id: string;
+    paymentIntentId: string;
+    from: Array<"requires_payment" | "processing" | "failed">;
+    to: "failed" | "paid";
+  }): Promise<ProfileBookingRequest | undefined>;
 
   // County operations
   getCounties(stateCode?: string): Promise<County[]>;
@@ -961,10 +1006,11 @@ export interface IStorage {
   ): Promise<RecommendationCampaign>;
   getContractorCampaigns(contractorId: string): Promise<RecommendationCampaign[]>;
   updateRecommendationCampaign(
+    contractorId: string,
     campaignId: string,
     updates: Partial<RecommendationCampaign>
-  ): Promise<RecommendationCampaign>;
-  deleteRecommendationCampaign(campaignId: string): Promise<void>;
+  ): Promise<RecommendationCampaign | undefined>;
+  deleteRecommendationCampaign(contractorId: string, campaignId: string): Promise<boolean>;
   getActiveCampaigns(): Promise<RecommendationCampaign[]>;
 
   // Invitation system operations
@@ -991,40 +1037,35 @@ export interface IStorage {
   getTopReferrers(limit: number): Promise<(ReferralStats & { user: User })[]>;
 
   // Professional profile operations
-  createRealtorProfile(profile: InsertRealtorProfile): Promise<RealtorProfile>;
+  submitRealtorApplication(
+    profile: InsertRealtorProfile
+  ): Promise<ProfessionalApplicationSubmissionResult<RealtorProfile>>;
   getRealtorProfile(id: string): Promise<RealtorProfile | undefined>;
   getRealtorProfileByUserId(userId: string): Promise<RealtorProfile | undefined>;
-  updateRealtorProfile(id: string, profileData: Partial<RealtorProfile>): Promise<RealtorProfile>;
+  updateRealtorProfile(
+    id: string,
+    profileData: ProfessionalProfileEditable<RealtorProfile>
+  ): Promise<RealtorProfile>;
 
-  createCarSalesmanProfile(profile: InsertCarSalesmanProfile): Promise<CarSalesmanProfile>;
+  submitCarSalesmanApplication(
+    profile: InsertCarSalesmanProfile
+  ): Promise<ProfessionalApplicationSubmissionResult<CarSalesmanProfile>>;
   getCarSalesmanProfile(id: string): Promise<CarSalesmanProfile | undefined>;
   getCarSalesmanProfileByUserId(userId: string): Promise<CarSalesmanProfile | undefined>;
   updateCarSalesmanProfile(
     id: string,
-    profileData: Partial<CarSalesmanProfile>
+    profileData: ProfessionalProfileEditable<CarSalesmanProfile>
   ): Promise<CarSalesmanProfile>;
 
   // Professional verification methods
   getPendingRealtorApplications(): Promise<RealtorProfile[]>;
   getPendingCarSalesmanApplications(): Promise<CarSalesmanProfile[]>;
-  updateRealtorVerificationStatus(
-    profileId: string,
-    verificationData: {
-      approved: boolean;
-      notes: string;
-      reviewedBy: string;
-      reviewedAt: Date;
-    }
-  ): Promise<RealtorProfile>;
-  updateCarSalesmanVerificationStatus(
-    profileId: string,
-    verificationData: {
-      approved: boolean;
-      notes: string;
-      reviewedBy: string;
-      reviewedAt: Date;
-    }
-  ): Promise<CarSalesmanProfile>;
+  decideRealtorApplication(
+    decision: ProfessionalApplicationDecision
+  ): Promise<ProfessionalApplicationDecisionResult<RealtorProfile>>;
+  decideCarSalesmanApplication(
+    decision: ProfessionalApplicationDecision
+  ): Promise<ProfessionalApplicationDecisionResult<CarSalesmanProfile>>;
 
   // Advanced marketplace transaction operations
   createMarketplaceTransaction(

@@ -69,7 +69,7 @@ describe("Direct Connect shell hierarchy", () => {
     expect(source).toContain('data-testid="direct-connect-requests-workspace"');
     expect(source).toContain('data-testid="my-requests-list"');
     expect(source).toContain('data-testid="my-request-inspector"');
-    expect(source).toMatch(/selectedRequest\s*\?\s*\(?\s*\[selectedRequest\]\.map/);
+    expect(source).toMatch(/selectedRequest\s*\?\s*\(\s*\[selectedRequest\]\.map/);
     expect(source).toContain("shouldInvalidateDirectConnectWorkspaceSelection({");
     expect(source).toContain("queryFetchedAfterMount: isFetchedAfterMount");
     expect(source).toContain('id="direct-connect-request-back"');
@@ -99,7 +99,7 @@ describe("Direct Connect shell hierarchy", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
     expect(source).toContain(
-      'key={`direct-connect-composer:${user?.id || "guest"}:${composerEntryLocation}`}'
+      'key={`direct-connect-composer:${user?.id || "guest"}:${user?.countyFips || ""}:${user?.stateCode || ""}:${composerEntryLocation}`}'
     );
     expect(source).toContain("resolveDirectConnectComposerLocation(");
     expect(source).toContain(
@@ -131,9 +131,8 @@ describe("Direct Connect shell hierarchy", () => {
       "window.localStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized)"
     );
     expect(source).toContain("resolveDirectConnectComposerDraftText(parsed.title, prefillTitle)");
-    expect(source).toContain(
-      "if (shouldConsumeDirectConnectDraftAfterHydration(parsed.authHandoff))"
-    );
+    expect(source).toContain("shouldConsumeDirectConnectDraftAfterHydration(");
+    expect(source).toContain("parsed.authHandoff || parsed.profileRecovery,");
   });
 
   it("resumes the scoped work-desk task only from the global taskbar signal", () => {

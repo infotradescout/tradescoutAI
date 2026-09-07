@@ -104,7 +104,17 @@ function normalizeOrigin(origin: string | undefined): string {
 }
 
 function resolveCollectionUrl(opts: PublicJwStoneMarketplaceHtmlOptions): string {
-  if (opts.collectionUrl) return String(opts.collectionUrl).replace(/\/+$/, "") || "/";
+  if (opts.collectionUrl) {
+    const raw = String(opts.collectionUrl).trim();
+    if (!raw) return "/";
+    try {
+      const parsed = new URL(raw);
+      if (parsed.pathname === "/" && !parsed.search && !parsed.hash) return `${parsed.origin}/`;
+    } catch {
+      // Relative collection paths use the existing trailing-slash normalization.
+    }
+    return raw.replace(/\/+$/, "") || "/";
+  }
   const origin = normalizeOrigin(opts.origin);
   if (opts.marketplaceDomainSurface) return `${origin}/`;
   return JW_STONE_MARKETPLACE_PLATFORM_URL;

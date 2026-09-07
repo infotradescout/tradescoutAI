@@ -20,16 +20,20 @@ describe("JW Stone discovery and request conversion", () => {
   it("aligns visible and hydrated metadata with Pensacola buyer intent", () => {
     const hero = read("client/src/features/jw-stone/MarketplaceIntroduction.tsx");
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+    const normalizedHero = hero.replace(/\s+/g, " ");
 
-    expect(hero).toContain(
+    expect(normalizedHero).toContain(
       "Natural stone slabs for fabricators, builders, designers, architects, and homeowners"
     );
-    expect(hero).toContain("in Pensacola and across the Gulf Coast.");
-    expect(marketplace).toContain(
+    expect(normalizedHero).toContain("in Pensacola and across the Gulf Coast.");
+    expect(marketplace).toContain("title={marketplaceSeo.title}");
+    expect(read("client/src/features/jw-stone/JwStoneProfileSeo.tsx")).toContain(
       "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics"
     );
     expect(marketplace).toContain('"@type": "Store"');
-    expect(marketplace).toContain('areaServed: { "@type": "AdministrativeArea", name: "Gulf Coast" }');
+    expect(marketplace).toContain(
+      'areaServed: { "@type": "AdministrativeArea", name: "Gulf Coast" }'
+    );
     expect(marketplace).toContain("JW_STONE_KNOWS_ABOUT");
   });
 

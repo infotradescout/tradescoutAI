@@ -445,10 +445,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
   const mobileBrandHref = isSuperAdmin ? "/admin" : isLoggedIn ? DEFAULT_LANDING : "/";
   const hasAdminAccess = hasAdminUiAccess(user);
-  const verificationBypass = user?.verificationBypass;
-  const hasAdminAliasBypass =
-    verificationBypass?.active === true && verificationBypass?.reason === "email_alias";
-  const shouldShowAdminNav = hasAdminAccess || isSuperAdmin || hasAdminAliasBypass;
+  const shouldShowAdminNav = hasAdminAccess || isSuperAdmin;
   const unlockSnapshot = useMemo(
     () =>
       evaluateFeatureUnlocks({

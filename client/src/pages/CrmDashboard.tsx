@@ -36,13 +36,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type ContactStatus = "lead" | "prospect" | "customer" | "inactive";
-type DealStage =
-  | "lead"
-  | "qualified"
-  | "proposal"
-  | "negotiation"
-  | "closed_won"
-  | "closed_lost";
+type DealStage = "lead" | "qualified" | "proposal" | "negotiation" | "closed_won" | "closed_lost";
 type ActivityType = "call" | "email" | "meeting" | "note" | "task" | "internal_message";
 
 type CrmContact = {
@@ -212,9 +206,7 @@ function contactName(contact: CrmContact | CrmDeal["contact"] | CrmActivity["con
 function ContactStatusBadge({ status }: { status: ContactStatus | string }) {
   if (status === "customer") {
     return (
-      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
-        Customer
-      </Badge>
+      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">Customer</Badge>
     );
   }
   if (status === "prospect") {
@@ -223,29 +215,25 @@ function ContactStatusBadge({ status }: { status: ContactStatus | string }) {
   if (status === "lead") {
     return <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">Lead</Badge>;
   }
-  return (
-    <Badge className="border-white/15 bg-white/5 text-white/48">{readable(status)}</Badge>
-  );
+  return <Badge className="border-white/15 bg-white/5 text-white/48">{readable(status)}</Badge>;
 }
 
 function DealStageBadge({ stage }: { stage: DealStage | string }) {
   if (stage === "closed_won") {
     return (
-      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
-        Closed won
-      </Badge>
+      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">Closed won</Badge>
     );
   }
   if (stage === "closed_lost") {
     return <Badge className="border-red-400/25 bg-red-400/10 text-red-100">Closed lost</Badge>;
   }
   if (stage === "proposal" || stage === "negotiation") {
-    return <Badge className="border-sky-400/25 bg-sky-400/10 text-sky-200">{readable(stage)}</Badge>;
+    return (
+      <Badge className="border-sky-400/25 bg-sky-400/10 text-sky-200">{readable(stage)}</Badge>
+    );
   }
   return (
-    <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">
-      {readable(stage)}
-    </Badge>
+    <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">{readable(stage)}</Badge>
   );
 }
 
@@ -365,7 +353,10 @@ export default function CrmDashboard() {
     onError: (error: unknown) => {
       toast({
         title: "Activity not logged",
-        description: formatUserFacingErrorMessage(error, "Review the activity subject and details."),
+        description: formatUserFacingErrorMessage(
+          error,
+          "Review the activity subject and details."
+        ),
         variant: "destructive",
       });
     },
@@ -1061,7 +1052,7 @@ function ContactDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add contact</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1125,9 +1116,7 @@ function ContactDialog({
           <Field label="Assigned user ID">
             <Input
               value={draft.assignedToUserId}
-              onChange={(event) =>
-                setDraft({ ...draft, assignedToUserId: event.target.value })
-              }
+              onChange={(event) => setDraft({ ...draft, assignedToUserId: event.target.value })}
               placeholder="Optional"
               className="border-white/10 bg-black/20 text-white"
             />
@@ -1180,7 +1169,7 @@ function DealDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Add deal</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1243,18 +1232,14 @@ function DealDialog({
             <Input
               type="date"
               value={draft.expectedCloseDate}
-              onChange={(event) =>
-                setDraft({ ...draft, expectedCloseDate: event.target.value })
-              }
+              onChange={(event) => setDraft({ ...draft, expectedCloseDate: event.target.value })}
               className="border-white/10 bg-black/20 text-white"
             />
           </Field>
           <Field label="Assigned user ID">
             <Input
               value={draft.assignedToUserId}
-              onChange={(event) =>
-                setDraft({ ...draft, assignedToUserId: event.target.value })
-              }
+              onChange={(event) => setDraft({ ...draft, assignedToUserId: event.target.value })}
               placeholder="Optional"
               className="border-white/10 bg-black/20 text-white"
             />
@@ -1309,7 +1294,7 @@ function ActivityDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-[95vw] overflow-y-auto border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Log activity</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -1424,9 +1409,7 @@ function Field({
 function DetailBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">{label}</p>
       <p className="mt-2 break-words text-sm leading-6 text-white/58">{value}</p>
     </div>
   );

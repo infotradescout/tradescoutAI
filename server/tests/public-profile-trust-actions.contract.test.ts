@@ -146,12 +146,12 @@ describe("canonical public-profile trust actions", () => {
     const app = read("client/src/App.tsx");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const themes = [
-      "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+      "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
       "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
-      "client/src/pages/profile-sites/DefaultProfileTheme.tsx",
+      "client/src/pages/profile-sites/PreservedDefaultProfileTheme.tsx",
     ].map(read);
 
     expect(actions).toContain(">Like</span>");
@@ -170,6 +170,12 @@ describe("canonical public-profile trust actions", () => {
       expect(theme).toContain("trustActions: ReactNode");
       expect(theme).toMatch(/\{(?:resolvedTrustActions|trustActions)\}/);
     });
+    const businessTheme = read("client/src/pages/profile-sites/BusinessProfileTheme.tsx");
+    expect(businessTheme).toContain("ComponentProps<typeof PreservedDefaultProfileTheme>");
+    expect(businessTheme).toContain('data-testid="profile-trust-section"');
+    expect(businessTheme).toContain(
+      'surfaceForeground === "#ffffff" ? trustActions : lightTrustActions || trustActions'
+    );
   });
 
   it("credits Codex contributions in the repository README", () => {

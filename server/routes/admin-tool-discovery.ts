@@ -14,7 +14,11 @@ import { runAdminEcosystemTruthReport } from "../services/adminEcosystemTruth";
 
 const router = Router();
 
-router.use(isAuthenticated, isSuperAdmin);
+router.use(
+  ["/production-acceptance", "/ecosystem-truth", "/tool-blueprints"],
+  isAuthenticated,
+  isSuperAdmin
+);
 
 const getAdminUserId = (req: Request): string => {
   const userId = (req as any).user?.id || (req as any).user?.claims?.sub;
