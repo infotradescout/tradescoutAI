@@ -149,7 +149,12 @@ async function main() {
     process.exit(check.status);
   }
 
-  const build = run("npm", ["run", "build"], { label: "npm run build" });
+  // Build the actual release assets even when the caller uses NODE_ENV=test
+  // for its explicitly guarded disposable database. Do not relax size checks.
+  const build = run("npm", ["run", "build"], {
+    label: "npm run build (production assets)",
+    env: { ...process.env, NODE_ENV: "production" },
+  });
   record("3-build", build.ok ? "pass" : "fail", `exit ${build.status}`);
   if (!build.ok) {
     evidence.result = "fail";
