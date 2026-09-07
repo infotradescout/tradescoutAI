@@ -26,7 +26,13 @@ const configName = '.issa-footer.vitest.config.mjs';
 let browser, server, control;
 try {
   console.log('ISSA_RELEASE_SOURCE ' + JSON.stringify({ head, base, mode }));
-  if (spawnSync('git', ['cat-file', '-e', base + '^{commit}']).status !== 0) run('git', ['fetch', '--no-tags', '--depth=1', 'origin', base]);
+  // Render may provide a detached checkout with no origin remote. This repository is public;
+  // fetch exact comparison objects directly, without credentials or changing checkout remotes.
+  for (const reference of [base, ...(mode === 'preview' ? ['908d2d4e2c76141ffe2cdcfa52e756dfb52fae84'] : [])]) {
+    if (spawnSync('git', ['cat-file', '-e', reference + '^{commit}']).status !== 0) {
+      run('git', ['fetch', '--no-tags', '--depth=1', 'https://github.com/infotradescout/tradescoutAI.git', reference]);
+    }
+  }
   // The user's accepted main layout, wording, media and product content are exact-byte boundaries.
   run('git', ['diff', '--exit-code', base, head, '--',
     'client/src/pages/profile-sites/BusinessProfileTheme.tsx',
