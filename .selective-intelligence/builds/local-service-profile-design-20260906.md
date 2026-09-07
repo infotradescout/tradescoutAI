@@ -47,3 +47,11 @@ Validation:
 Local visual artifacts under `artifacts/profile-review/`: `desktop.png`, `mobile.png`, `mobile-services.png`, `mobile-service-picker.png`, `mobile-long-name.png`, `no-media.png`, and `request-form.png`. The desktop preview was shown inline in the conversation. The runnable preview is `http://127.0.0.1:5197/u/louisiana-stone-solutions`; its launcher and fixture documentation are in the ignored `tmp/preview/README.md`.
 
 The generated local index remains refreshed and retains the 15/5 baseline. Its local inventory includes the ignored preview harness and Vite cache, so it is kept outside this source change. No minimum-release gate, production mutation, production request, or deployment was run for this visual review checkpoint. No migrations are introduced. Merge and deployment remain pending the user's preview review.
+
+## Release continuation: 2026-09-07
+
+The user directed completion after rejecting the imposed review pause. The active outcome is now the release of this reviewed Louisiana Stone Solutions layout and supplied copy, followed by direct production verification. The preceding preview hold records that earlier checkpoint; it no longer pauses the authorized release.
+
+Current main `a531323772cebd57ea49694a29a5b9c0fbd83031` was merged into the branch without conflicts. The newer BusinessProfileTheme work on main is a different renderer; this change retains its existing dispatch and edits only the existing project-profile owner. Preserve the approved business data, native request custody, original images, and other profile templates.
+
+Run the full minimum-release gate on the exact clean candidate, including native disposable PostgreSQL migration and schema verification, and recheck the native profile at desktop and mobile sizes. Apply the three proposed content values through the native authorized profile update after re-reading its saved content. Merge PR 592 through the existing main-to-Render path and verify the build marker, health, live public route, and request dialog. No customer request or external message is needed for the production smoke. Record release evidence on the pull request; the rollback boundary begins at the currently live main SHA above.
