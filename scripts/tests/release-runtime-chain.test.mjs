@@ -10,8 +10,11 @@ const tail = ["&&", "npm", "run", "db:verify:required"];
 function fixture(options, check) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "release-chain-contract-"));
   const log = path.join(dir, "executed.jsonl");
-  const env = { ...process.env };
+  // These child scripts never connect to a database. They inspect the real
+  // production launcher environment, not the native harness's test exception.
+  const env = { ...process.env, NODE_ENV: "production" };
   delete env.DATABASE_URL; delete env.TEST_DATABASE_URL;
+  delete env.ALLOW_INSECURE_TEST_DATABASE; delete env.ALLOW_TEST_DB_FULL_SYNC;
   if (options.databaseUrl) env.DATABASE_URL = options.databaseUrl;
   const names = ["db-migrate-safe", "check-required-production-schema"];
   for (const [index, name] of names.entries()) {
