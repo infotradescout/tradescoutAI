@@ -51,7 +51,8 @@
 .business-profile .bp-trust [data-testid="public-profile-account-card"] h3 {
   margin-top: 6px;
   font-family: inherit;
-  font-size: 20px;
+  /* The global mobile .text-3xl rule is !important; override only this footer heading. */
+  font-size: 20px !important;
   line-height: 1.3;
   font-weight: 550;
   letter-spacing: -.02em;
