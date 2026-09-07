@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import http from 'node:http';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
@@ -58,17 +59,25 @@ const thumbnail = async (context, buffer, label) => {
     const image = new Image(); image.src = data; await image.decode();
     const canvas = document.createElement('canvas'); canvas.width = image.width > 1000 ? 600 : 320; canvas.height = Math.round(image.height * canvas.width / image.width);
     canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', .22).split(',')[1];
+    return canvas.toDataURL('image/webp', .18).split(',')[1];
   }, 'data:image/jpeg;base64,' + buffer.toString('base64'));
   await page.close();
-  await fs.writeFile(path.join(output, label + '-small.jpg'), Buffer.from(base64, 'base64'));
-  // Numbered chunks permit lossless retrieval when a connector caps a log message.
-  for (let start = 0, part = 0; start < base64.length; start += 6000, part++) console.log('PROFILE_VISUAL_' + label.toUpperCase().replaceAll('-', '_') + '_' + part + ' ' + base64.slice(start, start + 6000));
+  const image = Buffer.from(base64, 'base64');
+  await fs.writeFile(path.join(output, label + '-small.webp'), image);
+  console.log('PROFILE_WEBP_META ' + JSON.stringify({ label, length: base64.length, sha256: createHash('sha256').update(image).digest('hex') }));
+  for (let start = 0, part = 0; start < base64.length; start += 1400, part++) console.log('PROFILE_WEBP_' + label.toUpperCase().replaceAll('-', '_') + '_' + part + ' ' + base64.slice(start, start + 1400));
 };
 try {
   if (mode === 'production') {
     const version = await (await fetch(production + '/api/version')).json(); result.version = version.commit || version.buildRevision;
     assert.equal(result.version, process.env.PROFILE_EXPECTED_COMMIT, 'Production must serve the expected released commit');
+    const healthResponse = await fetch(production + '/api/health');
+    const health = await healthResponse.json();
+    result.health = { statusCode: healthResponse.status, build: healthResponse.headers.get('x-tradescout-build'), commit: health.commit, database: health.database, migrations: health.migrations };
+    assert.equal(healthResponse.status, 200);
+    assert.equal(health.commit, process.env.PROFILE_EXPECTED_COMMIT);
+    assert.equal(result.health.build, process.env.PROFILE_EXPECTED_COMMIT);
+    assert.equal(health.migrations?.compatibility, 'compatible');
   }
   for (const [size, width, height] of [['mobile', 390, 844], ['small-mobile', 320, 740], ['tablet', 768, 1024], ['desktop', 1440, 1000]]) {
     const context = await browser.newContext({ viewport: { width, height }, userAgent, serviceWorkers: 'block' });
@@ -85,25 +94,45 @@ try {
       assert.equal(await page.getByTestId('issa-build-onyx-page').count(), 0);
       assert.equal(await page.locator('.bp-identity').getByText(/Country of origin|Iran/).count(), 0);
       assert.equal(await page.getByTestId('business-profile-request').count(), 1);
-      assert.equal(await page.locator('.bp-cover img').count(), 1, 'The opening uses one installed-room image, not a collage');
+      assert.equal(await page.locator('.bp-cover img').count(), 1, 'The opening uses the supplied photograph, not a collage');
       assert.equal(await page.locator('.bp-cover-side,.bp-body--aside').count(), 0, 'No directory collage or narrow sidebar layout');
-      const widths = await page.evaluate(() => ({ content: document.querySelector('.bp-content').getBoundingClientRect().width, body: document.querySelector('.bp-body').getBoundingClientRect().width }));
-      assert.ok(Math.abs(widths.content - widths.body) < 3, 'Business content uses the full available width');
+      record.composition = await page.evaluate(() => {
+        const rect = (selector) => document.querySelector(selector).getBoundingClientRect().toJSON();
+        return { hero: rect('.bp-hero'), cover: rect('.bp-cover'), identity: rect('.bp-identity'), request: rect('.bp-request'), content: rect('.bp-content'), body: rect('.bp-body'), headline: document.querySelector('.bp-headline').textContent, mainText: document.querySelector('.bp-headline-main').textContent, locationText: document.querySelector('.bp-headline-location')?.textContent, viewport: { width: innerWidth, height: innerHeight } };
+      });
+      assert.ok(Math.abs(record.composition.content.width - record.composition.body.width) < 3, 'Business content uses the full available width');
+      assert.ok(Math.abs(record.composition.cover.width - width) < 3, 'The opening photo spans the viewport');
+      assert.ok(record.composition.cover.top < height * .35, 'The photo appears before a long introductory text panel');
+      assert.ok(record.composition.request.bottom <= height + 2, 'Primary request is visible in the initial viewport');
+      assert.equal(record.composition.headline, 'Kitchens, bathrooms, cabinets and countertops in Pensacola and surrounding areas.');
+      assert.equal(record.composition.mainText, 'Kitchens, bathrooms, cabinets and countertops');
+      assert.equal(record.composition.locationText, ' in Pensacola and surrounding areas.');
+      assert.equal(await page.locator('.bp-hero .bp-category').count(), 0);
       record.overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2); assert.equal(record.overflow, false, 'No horizontal page overflow');
       record.logoFit = await page.locator('.bp-logo img').evaluate((image) => getComputedStyle(image).objectFit); assert.equal(record.logoFit, 'contain');
       const viewportImage = await page.screenshot({ type: 'jpeg', quality: 85 }); await fs.writeFile(path.join(output, size + '.jpg'), viewportImage);
       if (size === 'mobile' || size === 'desktop') await thumbnail(context, viewportImage, size);
-      await page.locator('.bp-cover-main').click(); await page.getByRole('dialog').waitFor(); await viewportImagesLoaded(page);
+      const cover = page.locator('.bp-cover-main'); const coverBox = await cover.boundingBox();
+      // Click the photograph's exposed area, not the intentional text overlay or photo-count button.
+      await cover.click({ position: { x: coverBox.width * .75, y: coverBox.height * .3 } });
+      await page.getByRole('dialog').waitFor(); await viewportImagesLoaded(page);
       const first = await page.locator('.bp-lightbox-image img').getAttribute('src');
       await page.getByRole('button', { name: 'Next photo', exact: true }).click();
       assert.notEqual(await page.locator('.bp-lightbox-image img').getAttribute('src'), first);
       await page.keyboard.press('ArrowLeft'); assert.equal(await page.locator('.bp-lightbox-image img').getAttribute('src'), first);
       await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'hidden' });
       await page.waitForFunction(() => document.activeElement === document.querySelector('.bp-cover-main'), undefined, { timeout: 5000 });
-      record.actions.push('single-room hero, full-width content, photo viewer, next, previous, Escape and focus return');
+      record.actions.push('full-width photo, exact original sentence, initial request visibility, viewer next/previous/Escape/focus return');
       for (const anchor of await page.locator('.bp-nav a').all()) {
         const href = await anchor.getAttribute('href'); assert.equal(await page.locator(href).count(), 1);
       }
+      const firstGallery = page.locator('.bp-gallery article > button').first();
+      const gallerySrc = await firstGallery.locator('img').getAttribute('src');
+      assert.notEqual(gallerySrc, await page.locator('.bp-cover img').getAttribute('src'), 'Do not repeat the hero as the first gallery tile');
+      await firstGallery.click(); await page.getByRole('dialog').waitFor();
+      assert.equal(await page.locator('.bp-lightbox-image img').getAttribute('src'), gallerySrc, 'The clicked thumbnail opens its own image');
+      await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'hidden' });
+      record.actions.push('gallery thumbnail opens the matching photo');
       const expand = page.locator('[aria-controls="business-profile-photos"]');
       if (await expand.count()) { await expand.click(); assert.equal(await expand.getAttribute('aria-expanded'), 'true'); record.actions.push('complete gallery expansion'); }
       for (const photo of await page.locator('.bp-gallery article').all()) {
@@ -138,7 +167,6 @@ try {
   await context.route('**/*', (route) => ['GET', 'HEAD', 'OPTIONS'].includes(route.request().method()) ? route.continue() : route.abort());
   const page = await context.newPage(); const origin = mode === 'production' ? production : 'http://127.0.0.1:4173';
   await page.goto(origin + '/issa-build/onyx', { waitUntil: 'domcontentloaded' }); await page.getByTestId('issa-build-onyx-page').waitFor({ timeout: 45000 });
-  // The product boundary can render while its content is still loading.
   await page.waitForFunction(() => /Country of origin: Iran/.test(document.body.innerText) && /Thickness: 2 cm/.test(document.body.innerText), undefined, { timeout: 45000 });
   assert.equal(await page.getByTestId('issa-build-business-profile').count(), 0);
   const onyxText = await page.locator('body').innerText(); assert.match(onyxText, /Country of origin: Iran/); assert.match(onyxText, /Thickness: 2 cm/);
