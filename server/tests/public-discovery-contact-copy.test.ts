@@ -1,5 +1,8 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { buildPublicLandingHtml } from "../publicLandingHtml";
+import { AboutExplainerContent } from "../../client/src/pages/about-explainer-content";
 import { explainerChapters } from "../../client/src/pages/tradescoutExplainerData";
 
 const templateHtml = '<!doctype html><html><head><title>TradeScout</title></head><body><div id="root"></div></body></html>';
@@ -12,6 +15,8 @@ const forbiddenPromises = [
   /review chosen requests before contact opens/i,
   /a request becomes contact only after both sides choose it/i,
   /a decline does not release private contact information/i,
+  /both sides choose before contact opens/i,
+  /accept or decline before private contact is released/i,
 ];
 
 // A chosen recipient gets the submitted contact packet. This does not change
@@ -62,5 +67,26 @@ describe("public discovery explains the owner's request-contact rule", () => {
     ]);
     const content = JSON.stringify(explainerChapters);
     for (const pattern of forbiddenPromises) expect(content).not.toMatch(pattern);
+  });
+
+  it("renders the same contact rule in About without publishing private records", () => {
+    const html = renderToStaticMarkup(createElement(AboutExplainerContent));
+    const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    expect(text).toContain("Sending it shares your name and phone number with the selected business so it can respond.");
+    expect(text).toContain("Searching or viewing a profile does not share your contact information.");
+    expect(text).toContain("Unrelated Home Vault records and private documents stay private unless the requester chooses to include them.");
+    expect(text).toContain("A decline does not send the request or contact details to another business.");
+    for (const pattern of forbiddenPromises) expect(text).not.toMatch(pattern);
+  });
+
+  it("preserves the About request, messaging, business, and property action links", () => {
+    const html = renderToStaticMarkup(createElement(AboutExplainerContent));
+    for (const route of ["/direct-connect", "/messages", "/connections", "/claim-my-business", "/homeowner-dashboard"]) {
+      expect(html).toContain(`href="https://www.thetradescout.com${route}"`);
+    }
+    expect(html).toContain('data-about-action-link="02.02"');
+    expect(html).toContain('id="connect"');
+    expect(html).toContain('id="exchange"');
+    expect(html).toContain("Connection Without Compromise");
   });
 });
