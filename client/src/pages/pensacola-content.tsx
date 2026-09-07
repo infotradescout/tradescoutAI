@@ -8,6 +8,7 @@ import {
 import { PENSACOLA_CLUSTERS, PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import { LOCAL_BUSINESS_DISCOVERY } from "@/lib/popularSearchQueries";
 import { ISSA_BUILD_HERO_POSTER } from "@shared/issaBuildProfile";
+import { ISSA_BUILD_ONYX_PATH } from "@shared/issaBuildRoutes";
 
 const primaryLink =
   "inline-flex min-h-12 items-center justify-center rounded-xl bg-ts-orange px-5 py-3 text-base font-semibold text-white hover:bg-ts-orange-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-orange";
@@ -72,7 +73,7 @@ export default function PensacolaContent({ onStartRequest }: Props = {}) {
           </p>
         </section>
         <figure className="overflow-hidden rounded-2xl border border-white/15 bg-white/5">
-          <a href={content.profileHref} aria-label="Explore ISSA Build’s onyx work">
+          <a href={ISSA_BUILD_ONYX_PATH} aria-label="Explore ISSA Build’s onyx work">
             <img
               src={ISSA_BUILD_HERO_POSTER}
               alt="Onyx work from ISSA Build’s project portfolio"
@@ -82,7 +83,7 @@ export default function PensacolaContent({ onStartRequest }: Props = {}) {
             />
           </a>
           <figcaption className="px-5 py-3 text-sm text-white/75">
-            Explore ISSA Build’s onyx work. Country of origin: Iran. Thickness: 2 cm.
+            Explore ISSA Build’s onyx work.
           </figcaption>
         </figure>
       </div>
@@ -100,7 +101,7 @@ export default function PensacolaContent({ onStartRequest }: Props = {}) {
             >
               <h2 className="text-2xl font-bold">
                 <a
-                  href={`${content.profileHref}/services/${project.serviceSlug}`}
+                  href={`${content.profileHref}#profile-services`}
                   className="hover:text-ts-orange"
                 >
                   {project.title}
