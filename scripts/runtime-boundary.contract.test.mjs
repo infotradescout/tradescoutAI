@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 const root = path.resolve(import.meta.dirname, "..");
-const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+const read = (name) => fs.readFileSync(path.join(root, name), "utf8").replace(/\r\n/g, "\n");
 
 test("production runner uses a positive artifact and dependency allowlist", () => {
   const dockerfile = read("Dockerfile");
