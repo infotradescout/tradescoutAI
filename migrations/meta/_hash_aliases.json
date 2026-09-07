@@ -35,5 +35,9 @@
   ],
   "0108_post_comments_community_posts_fk.sql": [
     "8619cfc4303519387a52541aa4be70458cfa3cb3315b0b91089a43b06b3df79d"
+  ],
+  "0126_jw_stone_offer_publication.sql": [
+    "3c897157558522274755a3032dee2157f45cf64815b8f976a0649ac152650f00",
+    "23c7e6cb06e116450ec3b064ede08438ab4d63f3a174df95c7e0120777fc88ff"
   ]
 }
