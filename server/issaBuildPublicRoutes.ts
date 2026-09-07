@@ -5,6 +5,8 @@ import type { storage } from "./storage";
 import type { buildPublicProfileHtml } from "./publicProfileHtml";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
 import { ISSA_BUILD_LOCAL_DISCOVERY, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
+import { ISSA_BUILD_MANAGED_CONTACT } from "@shared/issaBuildManagedContact";
+import { resolveApprovedPublicContact, withPublicProfileContactHtml } from "@shared/publicProfileContact";
 import { ISSA_BUILD_ONYX_PAGE_TITLE, ISSA_BUILD_ONYX_PAGE_DESCRIPTION, issaBuildBusinessText } from "@shared/issaBuildPageContent";
 import {
   ISSA_BUILD_PUBLIC_PATH, ISSA_BUILD_ONYX_PATH,
@@ -92,8 +94,15 @@ export function registerIssaBuildPublicRoutes(app: Express, overrides: Partial<R
         res.setHeader("Cache-Control", "no-store");
         return res.status(404).send("Profile not available");
       }
+      // The approved public pair is configuration, not a permission inferred from management.
+      const publicContact = resolveApprovedPublicContact(ISSA_BUILD_MANAGED_CONTACT, {
+        publicationApproved: true, visible: profile.profileSections?.contactCard !== false,
+      });
+      const publicHtml = withPublicProfileContactHtml(canonicalizeIssaBuildDocumentUrls(html), publicContact, [
+        `${origin}${ISSA_BUILD_PUBLIC_PATH}`, `${origin}/u/${ISSA_BUILD_PROFILE_SLUG}`,
+      ]);
       res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
-      return res.type("html").send(canonicalizeIssaBuildDocumentUrls(html));
+      return res.type("html").send(publicHtml);
     } catch (error) {
       console.error("[issa-build] Public page rendering failed", error);
       res.setHeader("Cache-Control", "no-store");
