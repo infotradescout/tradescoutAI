@@ -12,7 +12,7 @@ await fs.mkdir(output, { recursive: true });
 const run = (command, args) => execFileSync(command, args, { cwd: root, stdio: 'inherit', env: process.env });
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 console.log('PROFILE_REVIEW_SOURCE ' + JSON.stringify({ mode, head }));
-await fs.writeFile('.business-profile.vitest.config.mjs', `import {defineConfig} from 'vitest/config';\nimport path from 'node:path';\nexport default defineConfig({resolve:{alias:{'@':path.resolve('client/src'),'@shared':path.resolve('shared')}},test:{environment:'node',pool:'forks',maxWorkers:1,minWorkers:1,setupFiles:[],include:['client/src/pages/profile-sites/DefaultProfileTheme.test.tsx','client/src/pages/profile-sites/BusinessProfileTheme.test.tsx','server/tests/profile-site-law-invariants.contract.test.ts','server/tests/default-profile-customization.contract.test.ts']}});\n`);
+await fs.writeFile('.business-profile.vitest.config.mjs', `import {defineConfig} from 'vitest/config';\nimport path from 'node:path';\nexport default defineConfig({resolve:{alias:{'@':path.resolve('client/src'),'@shared':path.resolve('shared')}},test:{environment:'node',pool:'forks',maxWorkers:1,minWorkers:1,setupFiles:[],include:['client/src/pages/profile-sites/DefaultProfileTheme.test.tsx','client/src/pages/profile-sites/BusinessProfileTheme*.test.tsx','server/tests/profile-site-law-invariants.contract.test.ts','server/tests/default-profile-customization.contract.test.ts']}});\n`);
 run('node', ['node_modules/vitest/vitest.mjs', 'run', '--config', '.business-profile.vitest.config.mjs']);
 run('node', ['--test', 'scripts/tests/issa-build-page-separation.test.mjs']);
 await fs.writeFile('.business-profile.tsconfig.json', JSON.stringify({ extends: './tsconfig.json', compilerOptions: { noEmit: true, incremental: false }, include: ['client/src/pages/profile-sites/BusinessProfileTheme.tsx', 'client/src/pages/profile-sites/DefaultProfileTheme.tsx', 'client/src/pages/profile-sites/PreservedDefaultProfileTheme.tsx'], exclude: ['node_modules', 'dist'] }));
@@ -49,26 +49,27 @@ const server = http.createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(4173, '127.0.0.1', resolve));
 const browser = await chromium.launch({ headless: true });
 const result = { mode, source: head, checkedAt: new Date().toISOString(), version: null, pages: [], errors: [] };
-if (mode === 'production') {
-  const version = await (await fetch(production + '/api/version')).json(); result.version = version.commit || version.buildRevision;
-  assert.equal(result.version, process.env.PROFILE_EXPECTED_COMMIT, 'Production must serve the expected released commit');
-}
 const viewportImagesLoaded = async (page) => page.waitForFunction(() => [...document.images].filter((image) => {
-  const box = image.getBoundingClientRect(); return image.getClientRects().length && getComputedStyle(image).visibility !== 'hidden' && box.top < innerHeight && box.bottom > 0;
+  const box = image.getBoundingClientRect(); return image.getClientRects().length && getComputedStyle(image).visibility !== 'hidden' && box.top < innerHeight && box.bottom > 0 && box.left < innerWidth && box.right > 0;
 }).every((image) => image.complete && image.naturalWidth > 0), undefined, { timeout: 30000 });
 const thumbnail = async (context, buffer, label) => {
   const page = await context.newPage();
   const base64 = await page.evaluate(async (data) => {
     const image = new Image(); image.src = data; await image.decode();
-    const canvas = document.createElement('canvas'); canvas.width = image.width > 1000 ? 480 : 220; canvas.height = Math.round(image.height * canvas.width / image.width);
+    const canvas = document.createElement('canvas'); canvas.width = image.width > 1000 ? 600 : 320; canvas.height = Math.round(image.height * canvas.width / image.width);
     canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', .13).split(',')[1];
+    return canvas.toDataURL('image/jpeg', .22).split(',')[1];
   }, 'data:image/jpeg;base64,' + buffer.toString('base64'));
   await page.close();
   await fs.writeFile(path.join(output, label + '-small.jpg'), Buffer.from(base64, 'base64'));
-  console.log('PROFILE_VISUAL_' + label.toUpperCase().replaceAll('-', '_') + ' ' + base64);
+  // Numbered chunks permit lossless retrieval when a connector caps a log message.
+  for (let start = 0, part = 0; start < base64.length; start += 6000, part++) console.log('PROFILE_VISUAL_' + label.toUpperCase().replaceAll('-', '_') + '_' + part + ' ' + base64.slice(start, start + 6000));
 };
 try {
+  if (mode === 'production') {
+    const version = await (await fetch(production + '/api/version')).json(); result.version = version.commit || version.buildRevision;
+    assert.equal(result.version, process.env.PROFILE_EXPECTED_COMMIT, 'Production must serve the expected released commit');
+  }
   for (const [size, width, height] of [['mobile', 390, 844], ['small-mobile', 320, 740], ['tablet', 768, 1024], ['desktop', 1440, 1000]]) {
     const context = await browser.newContext({ viewport: { width, height }, userAgent, serviceWorkers: 'block' });
     await context.route('**/*', (route) => ['GET', 'HEAD', 'OPTIONS'].includes(route.request().method()) ? route.continue() : route.abort());
@@ -78,12 +79,16 @@ try {
     try {
       const origin = mode === 'production' ? production : 'http://127.0.0.1:4173';
       const response = await page.goto(origin + '/issa-build', { waitUntil: 'domcontentloaded', timeout: 60000 });
-      assert.equal(response.status(), 200); await page.locator('[data-presentation="business-editorial"]').waitFor({ timeout: 45000 });
+      assert.equal(response.status(), 200); await page.locator('[data-layout="project-led"]').waitFor({ timeout: 45000 });
       await page.getByTestId('business-profile-cover').waitFor(); await viewportImagesLoaded(page);
       assert.equal(await page.locator('h1').count(), 1); assert.equal((await page.locator('h1').innerText()).trim(), 'ISSA Build');
       assert.equal(await page.getByTestId('issa-build-onyx-page').count(), 0);
       assert.equal(await page.locator('.bp-identity').getByText(/Country of origin|Iran/).count(), 0);
       assert.equal(await page.getByTestId('business-profile-request').count(), 1);
+      assert.equal(await page.locator('.bp-cover img').count(), 1, 'The opening uses one installed-room image, not a collage');
+      assert.equal(await page.locator('.bp-cover-side,.bp-body--aside').count(), 0, 'No directory collage or narrow sidebar layout');
+      const widths = await page.evaluate(() => ({ content: document.querySelector('.bp-content').getBoundingClientRect().width, body: document.querySelector('.bp-body').getBoundingClientRect().width }));
+      assert.ok(Math.abs(widths.content - widths.body) < 3, 'Business content uses the full available width');
       record.overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2); assert.equal(record.overflow, false, 'No horizontal page overflow');
       record.logoFit = await page.locator('.bp-logo img').evaluate((image) => getComputedStyle(image).objectFit); assert.equal(record.logoFit, 'contain');
       const viewportImage = await page.screenshot({ type: 'jpeg', quality: 85 }); await fs.writeFile(path.join(output, size + '.jpg'), viewportImage);
@@ -94,12 +99,13 @@ try {
       assert.notEqual(await page.locator('.bp-lightbox-image img').getAttribute('src'), first);
       await page.keyboard.press('ArrowLeft'); assert.equal(await page.locator('.bp-lightbox-image img').getAttribute('src'), first);
       await page.keyboard.press('Escape'); await page.getByRole('dialog').waitFor({ state: 'hidden' });
-      // Radix restores focus after its close lifecycle; assert the eventual actual focus, not the preceding frame.
       await page.waitForFunction(() => document.activeElement === document.querySelector('.bp-cover-main'), undefined, { timeout: 5000 });
-      record.actions.push('photo viewer, next, previous, Escape and focus return');
+      record.actions.push('single-room hero, full-width content, photo viewer, next, previous, Escape and focus return');
+      for (const anchor of await page.locator('.bp-nav a').all()) {
+        const href = await anchor.getAttribute('href'); assert.equal(await page.locator(href).count(), 1);
+      }
       const expand = page.locator('[aria-controls="business-profile-photos"]');
       if (await expand.count()) { await expand.click(); assert.equal(await expand.getAttribute('aria-expanded'), 'true'); record.actions.push('complete gallery expansion'); }
-      // Scroll through the actual image elements in their real scroll container. Do not preload or alter loading attributes.
       for (const photo of await page.locator('.bp-gallery article').all()) {
         await photo.scrollIntoViewIfNeeded(); await viewportImagesLoaded(page);
         await photo.locator('img').waitFor();
@@ -114,6 +120,7 @@ try {
       assert.ok(record.images.every((image) => image.loaded), 'Every visible business-profile image must load after scrolling');
       assert.equal(await page.locator('.bp-photo-unavailable').count(), 0);
       await page.screenshot({ path: path.join(output, size + '-full.jpg'), fullPage: true, type: 'jpeg', quality: 82 });
+      await page.locator('#profile-services').screenshot({ path: path.join(output, size + '-services.jpg'), type: 'jpeg', quality: 85 });
       const onyxLink = page.locator('a[href="/issa-build/onyx"]').first(); assert.ok(await onyxLink.count()); record.actions.push('separate Onyx destination retained');
       await page.getByTestId('business-profile-request').click(); await page.getByRole('dialog').waitFor({ timeout: 10000 });
       record.requestDialogText = (await page.getByRole('dialog').innerText()).slice(0, 1600); record.actions.push('request panel opened without submission');
@@ -131,6 +138,8 @@ try {
   await context.route('**/*', (route) => ['GET', 'HEAD', 'OPTIONS'].includes(route.request().method()) ? route.continue() : route.abort());
   const page = await context.newPage(); const origin = mode === 'production' ? production : 'http://127.0.0.1:4173';
   await page.goto(origin + '/issa-build/onyx', { waitUntil: 'domcontentloaded' }); await page.getByTestId('issa-build-onyx-page').waitFor({ timeout: 45000 });
+  // The product boundary can render while its content is still loading.
+  await page.waitForFunction(() => /Country of origin: Iran/.test(document.body.innerText) && /Thickness: 2 cm/.test(document.body.innerText), undefined, { timeout: 45000 });
   assert.equal(await page.getByTestId('issa-build-business-profile').count(), 0);
   const onyxText = await page.locator('body').innerText(); assert.match(onyxText, /Country of origin: Iran/); assert.match(onyxText, /Thickness: 2 cm/);
   result.onyxSeparation = true; await context.close();
@@ -139,6 +148,6 @@ finally { await browser.close(); await new Promise((resolve) => server.close(res
 result.passed = result.pages.length === 4 && result.pages.every((page) => page.passed) && result.errors.length === 0;
 await fs.writeFile(path.join(output, 'result.json'), JSON.stringify(result, null, 2));
 const esc = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-await fs.writeFile(path.join(output, 'index.html'), `<!doctype html><html lang="en"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TradeScout business profile review</title><style>body{background:#151719;color:#f4f4f4;font:16px/1.6 system-ui;margin:0}main{max-width:1440px;margin:auto;padding:24px}a{color:#fb923c}img{max-width:100%;height:auto;display:block}section{margin:36px 0}h1,h2{font-weight:550}</style><main><h1>Issa Build — ${esc(mode)} browser captures</h1><p>${result.passed ? 'All four viewport checks passed.' : 'Some checks failed; see the record.'} No requests or payments were submitted.</p><a href="result.json">Verification record</a>${result.pages.map((page) => `<section><h2>${esc(page.size)}</h2><a href="${page.size}-full.jpg">Full page</a><img src="${page.size}${page.passed ? '' : '-failure'}.jpg" alt="Actual ${esc(page.size)} browser capture"></section>`).join('')}</main></html>`);
+await fs.writeFile(path.join(output, 'index.html'), `<!doctype html><html lang="en"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ISSA Build website review</title><style>body{background:#151719;color:#f4f4f4;font:16px/1.6 system-ui;margin:0}main{max-width:1440px;margin:auto;padding:24px}a{color:#fb923c}img{max-width:100%;height:auto;display:block}section{margin:36px 0}h1,h2{font-weight:550}</style><main><h1>ISSA Build — ${esc(mode)} browser captures</h1><p>${result.passed ? 'All four viewport checks passed.' : 'Some checks failed; see the record.'} No requests or payments were submitted. Visual approval is separate from these technical checks.</p><a href="result.json">Verification record</a>${result.pages.map((page) => `<section><h2>${esc(page.size)}</h2><p><a href="${page.size}.jpg">Full-resolution opening</a> · <a href="${page.size}-services.jpg">Services</a> · <a href="${page.size}-full.jpg">Expanded page</a></p><img src="${page.size}${page.passed ? '' : '-failure'}.jpg" alt="Actual ${esc(page.size)} browser capture"></section>`).join('')}</main></html>`);
 console.log('PROFILE_REVIEW_RESULT ' + JSON.stringify(result));
 if (!result.passed) process.exitCode = 1;
