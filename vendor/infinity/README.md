@@ -8,14 +8,15 @@ truncate content.
 
 The dependency is an npm package archive pinned by its content hash and lockfile
 integrity. Docker receives the archive before dependency installation, and both
-generated workspaces copy it. The browser-safe `/text` export avoids the package
-root's Node crypto dependency. The production server bundles this module.
+generated workspaces copy it. The `/text` export imports only the portable text
+module. The production server bundles this module.
 
 `provenance.json` identifies the archive, source and compiled module hashes, and
-the pre-migration consumer revision. The archive was built from an uncommitted
-Infinity worktree; its recorded base revision alone does not reproduce that
-source. Preserve and promote that source checkpoint before release. This is a
-local adoption draft, with no registry publication or production rollout.
+the pre-migration consumer revision. The archive is built from clean Infinity
+commit `8898e5a94722be2bf55351dd9772af7bd2ca173d`, preserved in
+[Infinity PR #14](https://github.com/infotradescout/tradescout-infinity/pull/14).
+This is a reviewed-source adoption draft, with no registry publication, merge,
+or production rollout.
 
 To refresh the package, build `@tradescout-infinity/contracts` in its owning
 repository, run `npm pack` from `packages/contracts`, record the new archive and

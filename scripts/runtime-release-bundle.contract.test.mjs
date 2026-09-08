@@ -175,10 +175,19 @@ test("all bundled migration workers resolve copied manifests", () => {
   }
 });
 
-test("bundled database repair launches its colocated baseline helper", () => {
+test("bundled database migration uses its colocated independent schema verifier without baselining", () => {
   const source = read("scripts/db-migrate-safe.mjs");
-  assert.match(source, /path\.join\(scriptDirectory, "db-baseline-drizzle\.mjs"\)/);
-  assert.match(source, /node \$\{baselineEntrypoint\(\)\}/);
+  assert.match(source, /path\.join\(scriptDirectory, "check-required-production-schema\.mjs"\)/);
+  assert.match(source, /fs\.existsSync\(bundled\)/);
+  assert.match(source, /runVerifiedMigration\(/);
+  assert.match(
+    source,
+    /verify:\s*\(\) => runCommand\(process\.execPath, \[requiredSchemaEntrypoint\(\)\]/
+  );
+  assert.doesNotMatch(
+    source,
+    /baselineEntrypoint|db-baseline-drizzle|insert into drizzle|Attempting baseline/
+  );
 });
 
 test("runtime entrypoint resolver prefers a built production worker and preserves dev source", () => {

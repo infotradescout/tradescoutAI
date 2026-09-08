@@ -37,6 +37,9 @@ describe("Infinity text package distribution", () => {
       /@tradescout-infinity\/contracts\/dist\/src\/text\.js$/
     );
     expect(digest(readFileSync(installedModule))).toBe(provenance.source.compiledModuleSha256);
+    expect(digest(readFileSync(installedModule.replace(/\.js$/, ".d.ts")))).toBe(
+      provenance.source.declarationSha256
+    );
     expect(provenance.consumer.path).toBe("shared/communityPostShare.ts");
     expect(provenance.consumer.import).toBe(textImport);
   });
