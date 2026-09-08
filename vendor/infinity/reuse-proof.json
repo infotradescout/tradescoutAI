@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-08T21:56:27.056Z",
+  "state": "local_validation_complete_release_gates_open",
+  "consumerBaseline": "5e6b298c9ec4fb47447ca72d188996f3a11bb051",
+  "consumerBranch": "codex/infinity-clean-string-20260908",
+  "source": {
+    "repository": "https://github.com/infotradescout/tradescout-infinity",
+    "revision": "7fd9c3a972ece06a2ba746490f91180274322c3d",
+    "branch": "infinity/ecosystem-encyclopedia",
+    "dirty": true,
+    "module": "packages/contracts/src/text.ts",
+    "sourceSha256": "32734943cc1dc62ed3fd4dcf4d4f74cd061b4dc0bede287b716311898ae1fab7",
+    "compiledModuleSha256": "90d30e3f27ad07208f583c096c0f68c8fc236576f8e2c0dba71574f6165217f9",
+    "declarationSha256": "88e5892fcd92b2a833db1aea5b4ae64e93e8eb6a852aec1a64bf149ad18ffeb4"
+  },
+  "package": {
+    "name": "@tradescout-infinity/contracts",
+    "version": "0.1.0",
+    "archive": "tradescout-infinity-contracts-0.1.0-f98fd111846c.tgz",
+    "sha256": "f98fd111846cb99989719695b8d73cc4b0dec20c2084aff37b215e0627ed3c6c",
+    "integrity": "sha512-++jiXTTtILTAx97j3J7AjA4eQj1iuvpPWqg4/GzoCCjXOu8xVwl869P4Q8rSx6AyC5virX+aKPY797WZb1Vokw=="
+  },
+  "scope": {
+    "utility": "cleanString",
+    "migratedCallers": [
+      "shared/communityPostShare.ts"
+    ],
+    "observedExactDeclarationHash": "9be8385f6c77a1279d279660b555596856cfabff85dc763a6a13164c0b188676",
+    "historicalOccurrences": 21,
+    "historicalDistinctFiles": 11,
+    "otherSameNameImplementations": 7,
+    "historicalCountsAreNotLiveMigrationCounts": true
+  },
+  "checks": {
+    "originalCallerTests": {
+      "status": "pass",
+      "tests": 16
+    },
+    "migratedCallerAndDistributionTests": {
+      "status": "pass",
+      "tests": 19,
+      "command": "npx vitest run server/tests/community-post-share.test.ts server/tests/public-community-post-html.test.ts server/tests/public-community-post.test.ts server/tests/profile-community-post-sharing.contract.test.ts server/tests/infinity-text-package.contract.test.ts",
+      "logSha256": "b41cee63970e8741d980fdbcbd513d42ccca68db25b78ee1b2ac2ed6016bbafe"
+    },
+    "infinityContracts": {
+      "status": "pass",
+      "tests": 32,
+      "command": "node --test packages/contracts/dist/test/*.test.js"
+    },
+    "infinityTypecheck": {
+      "status": "pass",
+      "command": "corepack pnpm run typecheck"
+    },
+    "consumerTypecheck": {
+      "status": "pass",
+      "command": "npm run check",
+      "logSha256": "a4972ff6c54c2802d20e908bdc728b90ad7f9a7a27cfd16917cbb723426c0a61"
+    },
+    "productionBuild": {
+      "status": "pass",
+      "command": "npm run build",
+      "logSha256": "43f0b6bcd7893afd9ae0c4be8b20550b446149d2020076e69d96b7368187e4dc",
+      "serverBundleSha256": "edd6f8dde80343e9e73dd80616b1d5ce81edf8f0a04ac15052b92e3b469784df",
+      "runtimeExternalPackages": [
+        "@node-rs/xxhash",
+        "@opentelemetry/api",
+        "bcrypt",
+        "connect-pg-simple",
+        "cors",
+        "encoding",
+        "express",
+        "express-session",
+        "mime",
+        "node-cron",
+        "passport",
+        "passport-local",
+        "pg-native",
+        "sharp",
+        "utf-8-validate"
+      ],
+      "sharedTextBundled": true,
+      "separateInfinityRuntimeDependency": false
+    },
+    "outputParity": {
+      "checkedAt": "2026-09-08T21:45:29.444Z",
+      "status": "pass",
+      "baselineRevision": "5e6b298c9ec4fb47447ca72d188996f3a11bb051",
+      "baselineSourceSha256": "5ff12ffcaa08cdce5e1d3f92d9654015013f9f9ac382c886225a3c50b2a8dbcd",
+      "baselineBundleSha256": "6c92400c0c72d4eb4f96d0cfe49a349b53563b1f12d8fe791e2204520f5f2e34",
+      "migratedBundleSha256": "aeffab09ed819ca0f0188fa29d40082ab96b05c37e3c0fd3d371c8059eaf41c7",
+      "counts": {
+        "normalizeCommunityPostId": 136,
+        "buildCommunityPostPath": 136,
+        "listCommunityPostImageUrls": 69,
+        "createCommunityPostShareMetadata": 828
+      },
+      "totalComparisons": 1169,
+      "scope": "All four exported community share functions; nonstrings, no-coercion objects, boundary and internal whitespace, invalid IDs and origins, URL rejection, duplicates, length limits. Exact output or error equality against actual pre-migration compiled caller."
+    },
+    "portablePackage": {
+      "checkedAt": "2026-09-08T21:47:39.353Z",
+      "status": "pass",
+      "splits": [
+        {
+          "name": "frontend",
+          "archiveMatches": true,
+          "relativeDependencyResolves": true
+        },
+        {
+          "name": "backend",
+          "archiveMatches": true,
+          "relativeDependencyResolves": true
+        }
+      ],
+      "offlineCleanInstall": true,
+      "installedImportExecuted": true,
+      "canonicalCheckoutRequired": false,
+      "archiveSha256": "f98fd111846cb99989719695b8d73cc4b0dec20c2084aff37b215e0627ed3c6c"
+    },
+    "packageLockProjection": {
+      "status": "pass",
+      "records": 1496,
+      "command": "node scripts/project-package-lock.mjs --check"
+    },
+    "runtimeBoundary": {
+      "status": "pass",
+      "tests": 5,
+      "logSha256": "b2218fcad652dee5dbedbe69a62b5c9324871e4213d3ecefd3e16f2fda4d18db"
+    },
+    "independentReview": {
+      "status": "no_actionable_findings",
+      "checked": [
+        "canonical source, compiled module, declarations, installed module and archive hashes",
+        "exact caller replacement",
+        "browser crypto isolation",
+        "Docker and split archive distribution"
+      ]
+    }
+  },
+  "checkoutCorrection": {
+    "publicFilesRestoredToCommittedBytes": 187,
+    "publicAutocrlfAddedBytes": 8492,
+    "otherUnchangedFilesRestoredToCommittedBytes": [
+      "render.yaml",
+      "client/src/pages/ProfileSiteView.tsx"
+    ],
+    "contentOrBudgetChanges": false
+  },
+  "releaseGaps": [
+    {
+      "check": "runtime release bundle contract",
+      "status": "baseline_failure",
+      "passed": 11,
+      "failed": 1,
+      "failure": "Stale test still expects db-migrate-safe.mjs to launch automatic baseline repair, which the baseline source no longer does.",
+      "evidence": [
+        {
+          "file": "scripts/db-migrate-safe.mjs",
+          "unchangedFromConsumerBaseline": true,
+          "gitBlobSha256": "2f7789ebd65631d168d78ac3fecbba7de74e912833a8bcef76d8ce875ecaf616"
+        },
+        {
+          "file": "scripts/runtime-release-bundle.contract.test.mjs",
+          "unchangedFromConsumerBaseline": true,
+          "gitBlobSha256": "6cb42c7af0584630e2d03f5b955cd0ad48850d2acb1f8932e8742e14f93ce55e"
+        }
+      ],
+      "logSha256": "d392dd15bc92bc1a52ea1a5141ca2fbf1600c1621eb42fa351425658855061ba"
+    },
+    {
+      "check": "Docker execution",
+      "status": "unavailable",
+      "reason": "Docker Desktop Linux engine pipe is unavailable."
+    },
+    {
+      "check": "full minimum release gate",
+      "status": "not_run",
+      "reason": "This is a local adoption draft. Exact-commit full gate including database compatibility and browser release proof remains open."
+    },
+    {
+      "check": "Infinity source promotion",
+      "status": "uncommitted_worktree",
+      "reason": "Source and compiled hashes are pinned, but the recorded base revision alone does not reproduce the dirty source worktree."
+    },
+    {
+      "check": "merge, deployment and production verification",
+      "status": "not_performed"
+    }
+  ],
+  "validatedWorkingFileSha256": {
+    "Dockerfile": "09976a0f3d95864335dcc57ffdfce61c30fa42cc7569d25390da6be096c21b8a",
+    "package.json": "935380eafc1367b88c88fb1be2a1121013905759edd718a8e5c9de6ade19f7fc",
+    "package-lock.json": "fb425e8c198dca7142c1879966be0d69519752d0c024bafffc698019f315044c",
+    "scripts/split-workspaces.config.mjs": "dea6992a51a1224a32e12fae8758c3a8e245b6e071f3736144d94f524bb8fa74",
+    "shared/communityPostShare.ts": "fe4fcc57d5a3bd33abcaa3b28134754d8f0ddec3dd51d45a905d2144076e7a90",
+    "server/tests/infinity-text-package.contract.test.ts": "b8bde5c05ca4473fddcb8f35c8779305925f3e74d278f8cb9e749c8ed0c305a4"
+  },
+  "catalogPreservation": {
+    "rawCatalogSha256": "c8031f7eb96b1ce939ee2118d46dc2aac13e7332dee4ce89dc3119d4d6f65c3f",
+    "unchanged": true,
+    "observationCount": 30666,
+    "snapshot": "2026-09-04T15:05:09.288Z"
+  }
+}

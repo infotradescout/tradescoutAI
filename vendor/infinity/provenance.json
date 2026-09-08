@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-08T21:39:40.677Z",
+  "package": {
+    "name": "@tradescout-infinity/contracts",
+    "version": "0.1.0",
+    "archive": "tradescout-infinity-contracts-0.1.0-f98fd111846c.tgz",
+    "sha256": "f98fd111846cb99989719695b8d73cc4b0dec20c2084aff37b215e0627ed3c6c",
+    "integrity": "sha512-++jiXTTtILTAx97j3J7AjA4eQj1iuvpPWqg4/GzoCCjXOu8xVwl869P4Q8rSx6AyC5virX+aKPY797WZb1Vokw=="
+  },
+  "source": {
+    "repository": "https://github.com/infotradescout/tradescout-infinity",
+    "revision": "7fd9c3a972ece06a2ba746490f91180274322c3d",
+    "branch": "infinity/ecosystem-encyclopedia",
+    "dirty": true,
+    "module": "packages/contracts/src/text.ts",
+    "sourceSha256": "32734943cc1dc62ed3fd4dcf4d4f74cd061b4dc0bede287b716311898ae1fab7",
+    "compiledModuleSha256": "90d30e3f27ad07208f583c096c0f68c8fc236576f8e2c0dba71574f6165217f9",
+    "declarationSha256": "88e5892fcd92b2a833db1aea5b4ae64e93e8eb6a852aec1a64bf149ad18ffeb4"
+  },
+  "capability": {
+    "name": "cleanString",
+    "observedSourceHash": "9be8385f6c77a1279d279660b555596856cfabff85dc763a6a13164c0b188676",
+    "observedSnapshotOccurrences": 21,
+    "behavior": "Trim primitive strings; return empty string for nonstrings; preserve internal content without coercion."
+  },
+  "consumer": {
+    "path": "shared/communityPostShare.ts",
+    "baselineRevision": "5e6b298c9ec4fb47447ca72d188996f3a11bb051",
+    "import": "@tradescout-infinity/contracts/text"
+  },
+  "distribution": "Pinned local package artifact; source lives in Infinity. No registry publication or production migration is implied."
+}
