@@ -50,6 +50,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type IntakeMutationResponse = {
   item: ManagedPartnerIntakeRecord;
@@ -250,8 +251,10 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Partner intake was not saved",
-        description:
-          error instanceof Error ? error.message : "Review the intake details and try again.",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Review the intake details and try again."
+        ),
         variant: "destructive",
       });
     },
@@ -283,8 +286,7 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Queue update failed",
-        description:
-          error instanceof Error ? error.message : "Review the partner state and try again.",
+        description: formatUserFacingErrorMessage(error, "Review the partner state and try again."),
         variant: "destructive",
       });
     },
@@ -587,7 +589,7 @@ export default function AdminManagedPartnerIntakesPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Operating request recipient" htmlFor="partner-request-recipient">
+              <Field label="Operating request recipient slug" htmlFor="partner-request-recipient">
                 <Input
                   id="partner-request-recipient"
                   value={form.requestRecipientSlug}

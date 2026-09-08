@@ -7,7 +7,7 @@ const read = (relativePath: string) =>
 
 describe("Direct Connect create idempotency recovery", () => {
   it("keeps the rollout compatible while validating operation ids", () => {
-    const routes = read("server/routes/direct-connect.ts");
+    const routes = read("server/routes/direct-connect/operations.ts");
 
     expect(routes).toContain("const directConnectOperationIdSchema = z");
     expect(routes).toContain("operationId: directConnectOperationIdSchema.optional()");
@@ -16,7 +16,8 @@ describe("Direct Connect create idempotency recovery", () => {
   });
 
   it("serializes requester and admin retries with durable replay receipts", () => {
-    const routes = read("server/routes/direct-connect.ts");
+    const routes =
+      read("server/routes/direct-connect.ts") + read("server/routes/direct-connect/operations.ts");
 
     expect(routes).toContain("direct-connect-requester-create:");
     expect(routes).toContain("direct-connect-admin-create:");

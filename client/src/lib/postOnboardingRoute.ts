@@ -84,6 +84,12 @@ export function isSafeNextPath(path: string): boolean {
   return !createsAuthLoop;
 }
 
+export function readSafeReturnPath(path: string): string | undefined {
+  const query = path.includes("?") ? path.slice(path.indexOf("?") + 1).split("#", 1)[0] : "";
+  const next = new URLSearchParams(query).get("next") || "";
+  return isSafeNextPath(next) ? next : undefined;
+}
+
 export function buildAuthEntryRoute(options: {
   mode: AuthEntryMode;
   next?: string | null;

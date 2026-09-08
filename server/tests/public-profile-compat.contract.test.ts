@@ -76,7 +76,7 @@ describe("public profile compatibility contracts", () => {
     expect(routesSource).toContain("canonicalProfileUrl:");
     expect(uiSource).toContain("canonicalProfileUrl?: string | null;");
     expect(uiSource).toContain("window.location.assign(");
-    expect(uiSource).toContain("user.canonicalProfileUrl");
+    expect(uiSource).toContain("target.canonicalProfileUrl");
   });
 
   it("Provider discovery points prefer canonical public profile URLs when available", () => {

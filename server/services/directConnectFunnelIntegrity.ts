@@ -9,6 +9,11 @@ import {
   type ExistingDirectConnectFunnelStall,
 } from "./directConnectFunnelIntegrityCore";
 
+export {
+  computeDirectConnectFunnelStalls,
+  DIRECT_CONNECT_FUNNEL_ORDER,
+} from "./directConnectFunnelIntegrityCore";
+
 export const DIRECT_CONNECT_FUNNEL_EVENT_TYPES = [
   "direct_connect_request_started",
   "direct_connect_request_review_opened",
@@ -72,9 +77,7 @@ async function acquireDetectorLock(client: PoolClient): Promise<boolean> {
 
 async function releaseDetectorLock(client: PoolClient): Promise<void> {
   try {
-    await client.query("SELECT pg_advisory_unlock(hashtext($1)::bigint)", [
-      ADVISORY_LOCK_KEY,
-    ]);
+    await client.query("SELECT pg_advisory_unlock(hashtext($1)::bigint)", [ADVISORY_LOCK_KEY]);
   } catch (error) {
     console.error("[direct-connect-friction] failed to release detector lock", error);
   }

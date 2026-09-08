@@ -79,12 +79,14 @@ describe("public profile IndexNow reconciliation", () => {
       },
     ]);
 
-    expect(urls).toEqual([
-      "https://www.thetradescout.com/u/source-backed-profile",
-      "https://www.thetradescout.com/u/source-backed-profile/categories/stone",
-      `https://www.thetradescout.com/u/source-backed-profile/gallery/${completedProject.slug}`,
-      "https://www.thetradescout.com/u/source-backed-profile/inventory/named-stone",
-    ]);
+    expect(urls).toEqual(
+      [
+        "https://www.thetradescout.com/u/source-backed-profile",
+        "https://www.thetradescout.com/u/source-backed-profile/categories/stone",
+        `https://www.thetradescout.com/u/source-backed-profile/gallery/${completedProject.slug}`,
+        "https://www.thetradescout.com/u/source-backed-profile/inventory/named-stone",
+      ].sort()
+    );
     expect(urls.join("\n")).not.toContain("trending-selection-04");
     expect(urls.join("\n")).not.toContain(genericPhoto.slug);
     expect(urls.join("\n")).not.toContain("custom-domain-profile");
@@ -93,9 +95,7 @@ describe("public profile IndexNow reconciliation", () => {
   });
 
   it("fingerprints the URL graph deterministically", () => {
-    expect(
-      fingerprintPublicProfileIndexNowUrls(["https://example/a", "https://example/b"])
-    ).toBe(
+    expect(fingerprintPublicProfileIndexNowUrls(["https://example/a", "https://example/b"])).toBe(
       fingerprintPublicProfileIndexNowUrls([
         "https://example/b",
         "https://example/a",
@@ -147,7 +147,9 @@ describe("public profile IndexNow reconciliation", () => {
 
   it("skips an unchanged graph after a successful fingerprint record", async () => {
     const queryable = {
-      query: vi.fn(async (text: string) => ({ rows: /select 1/i.test(text) ? [{ exists: 1 }] : [] })),
+      query: vi.fn(async (text: string) => ({
+        rows: /select 1/i.test(text) ? [{ exists: 1 }] : [],
+      })),
     };
     const submit = vi.fn();
 

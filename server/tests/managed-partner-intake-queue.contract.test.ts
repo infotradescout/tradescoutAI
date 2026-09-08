@@ -141,12 +141,13 @@ describe("managed partner intake queue", () => {
     expect(queue).toContain("Existing website and source links");
     expect(queue).toContain("Profile control");
     expect(queue).toContain("Contact handling");
-    expect(queue).toContain('label="Operating request recipient"');
+    expect(queue).toContain('label="Operating request recipient slug"');
     expect(queue).toContain('htmlFor="partner-request-recipient"');
     expect(queue).toContain("value={form.requestRecipientSlug}");
     expect(queue).toContain("options={MANAGED_PARTNER_CONTACT_MODES}");
     expect(queue).toContain("Verified relationship");
     expect(queue).toContain('label="Known facts and boundaries"');
+    expect(queue).toContain("Record what is known now");
     expect(queue).toContain("Name the blocker before saving");
     expect(queue).toContain("Moving an intake to");
     expect(queue).toContain("Open live profile");

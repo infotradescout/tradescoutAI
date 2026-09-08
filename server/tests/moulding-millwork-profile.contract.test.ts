@@ -23,6 +23,9 @@ describe("Moulding & Millwork Supply public profile contract", () => {
     expect(provisioner).toContain('claimStatus: existingBusiness?.claimStatus || "claimed"');
     expect(provisioner).toContain('status: existingBusiness?.status || ("active" as const)');
     expect(provisioner).toContain('status: existingProfile?.status || ("published" as const)');
+    expect(provisioner).toContain(
+      "publiclyReleased: existingProfile?.publiclyReleased ?? shouldReleaseNewProfile"
+    );
     expect(provisioner).toContain("existingBusiness.publicDiscoveryEnabled");
     expect(provisioner).toContain("tradePartner: true");
     expect(provisioner).toContain('eq(counties.fips, "22051")');
@@ -144,6 +147,7 @@ describe("Moulding & Millwork Supply public profile contract", () => {
     expect(provisioner).toContain("shouldSeedExactProfileRelease");
     expect(provisioner).toContain("!hasExplicitPublicProfileIds");
     expect(provisioner).toContain("!operatorProfileAuthorityRevoked");
+    expect(provisioner).toContain("profile.publiclyReleased === true");
     expect(provisioner).toContain("publicProfileIds: Array.from(");
     expect(provisioner).toContain(
       "Moulding & Millwork owner provisioning refused an unconfirmed pre-existing account"

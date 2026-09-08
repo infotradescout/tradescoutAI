@@ -2,10 +2,6 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { desc, sql } from "drizzle-orm";
 
-// contact_permissions.authority_gate is varchar(30)
-const SUPER_ADMIN_AUTHORITY_GATE = "system_super_admin_auto";
-const SUPER_ADMIN_RESPONSE_REASON = "system_super_admin_auto_connection";
-
 type EnsureSuperAdminConnectionResult = {
   ensured: boolean;
   reason?: string;
@@ -41,8 +37,10 @@ export async function ensureSuperAdminConnectionForUser(
 
   const now = Date.now();
 
-  // If the current user is the super admin account, backfill their
-  // bidirectional support link + accepted contact edge with all users.
+  // If the current user is the super admin account, backfill only the social
+  // discovery edges. Support outreach is still governed by the normal
+  // Decision Card/contact-permission lifecycle; this helper must never create
+  // or rewrite contact authority.
   // Throttle to avoid repeating heavy set-based inserts on every /api/auth/user poll.
   if (superAdminUserId === normalizedUserId) {
     const lastSweep = lastSuperAdminSweepAt.get(superAdminUserId) || 0;
@@ -78,86 +76,6 @@ export async function ensureSuperAdminConnectionForUser(
         )
     `);
 
-    await db.execute(sql`
-      insert into contact_permissions (
-        requester_id,
-        target_user_id,
-        status,
-        authority_gate,
-        intent,
-        decision_scope,
-        responded_at,
-        responded_by,
-        response_reason,
-        updated_at
-      )
-      select
-        su.id,
-        u.id,
-        'accepted',
-        ${SUPER_ADMIN_AUTHORITY_GATE},
-        'platform_support',
-        'Platform support connection',
-        now(),
-        su.id,
-        ${SUPER_ADMIN_RESPONSE_REASON},
-        now()
-      from users su
-      join users u on u.id <> su.id
-      where u.id <> ${superAdminUserId}
-        and su.id = ${superAdminUserId}
-      on conflict (requester_id, target_user_id)
-      do update set
-        status = 'accepted',
-        authority_gate = ${SUPER_ADMIN_AUTHORITY_GATE},
-        intent = 'platform_support',
-        decision_scope = 'Platform support connection',
-        responded_at = now(),
-        responded_by = ${superAdminUserId},
-        response_reason = ${SUPER_ADMIN_RESPONSE_REASON},
-        updated_at = now()
-    `);
-
-    await db.execute(sql`
-      insert into contact_permissions (
-        requester_id,
-        target_user_id,
-        status,
-        authority_gate,
-        intent,
-        decision_scope,
-        responded_at,
-        responded_by,
-        response_reason,
-        updated_at
-      )
-      select
-        u.id,
-        su.id,
-        'accepted',
-        ${SUPER_ADMIN_AUTHORITY_GATE},
-        'platform_support',
-        'Platform support connection',
-        now(),
-        su.id,
-        ${SUPER_ADMIN_RESPONSE_REASON},
-        now()
-      from users su
-      join users u on u.id <> su.id
-      where u.id <> ${superAdminUserId}
-        and su.id = ${superAdminUserId}
-      on conflict (requester_id, target_user_id)
-      do update set
-        status = 'accepted',
-        authority_gate = ${SUPER_ADMIN_AUTHORITY_GATE},
-        intent = 'platform_support',
-        decision_scope = 'Platform support connection',
-        responded_at = now(),
-        responded_by = ${superAdminUserId},
-        response_reason = ${SUPER_ADMIN_RESPONSE_REASON},
-        updated_at = now()
-    `);
-
     lastSuperAdminSweepAt.set(superAdminUserId, now);
     return { ensured: true, reason: "self_super_admin_full_sweep", superAdminUserId };
   }
@@ -188,45 +106,6 @@ export async function ensureSuperAdminConnectionForUser(
       where follower_id = su.id
         and following_id = u.id
     )
-  `);
-
-  await db.execute(sql`
-    insert into contact_permissions (
-      requester_id,
-      target_user_id,
-      status,
-      authority_gate,
-      intent,
-      decision_scope,
-      responded_at,
-      responded_by,
-      response_reason,
-      updated_at
-    )
-    select
-      u.id,
-      su.id,
-      'accepted',
-      ${SUPER_ADMIN_AUTHORITY_GATE},
-      'platform_support',
-      'Platform support connection',
-      now(),
-      su.id,
-      ${SUPER_ADMIN_RESPONSE_REASON},
-      now()
-    from users u
-    join users su on su.id = ${superAdminUserId}
-    where u.id = ${normalizedUserId}
-    on conflict (requester_id, target_user_id)
-    do update set
-      status = 'accepted',
-      authority_gate = ${SUPER_ADMIN_AUTHORITY_GATE},
-      intent = 'platform_support',
-      decision_scope = 'Platform support connection',
-      responded_at = now(),
-      responded_by = ${superAdminUserId},
-      response_reason = ${SUPER_ADMIN_RESPONSE_REASON},
-      updated_at = now()
   `);
 
   return { ensured: true, superAdminUserId };

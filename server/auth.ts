@@ -2,6 +2,8 @@ import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import type { Profile as GoogleProfile, VerifyCallback } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express, Request, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
@@ -11,18 +13,30 @@ import { storage } from "./storage";
 import { users, type User } from "@shared/schema";
 import {
   getRolePermissions,
-  getRoleHierarchyLevel,
-  canUserPerformAction,
+  hasExplicitRoleGrant,
   userHasBusinessProviderTools,
 } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import { desc, sql } from "drizzle-orm";
-import { isPrivilegedAliasEmail } from "./utils/authorityPolicy";
+import { isReservedSignupIdentityEmail } from "./utils/authorityPolicy";
 import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
 import {
   resolveRequestAuthorityContext,
   type RequestAuthorityContext,
 } from "./utils/requestEffectiveUser";
+
+import {
+  decideOAuthIdentity,
+  oauthIdentityFailure,
+  OAuthIdentityCollisionError,
+  type OAuthProvider,
+} from "./utils/oauthIdentityPolicy";
+import { withAdvisoryLock } from "./utils/advisoryLocks";
+import { BoundedConcurrencyGate } from "./utils/boundedConcurrency";
+
+// Each resolution holds two advisory-lock sessions while using a query session.
+// Bound local fan-out so sign-in bursts cannot consume the entire shared pool.
+const oauthIdentityGate = new BoundedConcurrencyGate({ maxConcurrent: 4, maxQueued: 16 });
 
 function normalizeLegacyRole(role: unknown): UserRole | null {
   if (typeof role !== "string" || role.trim().length === 0) return null;
@@ -136,7 +150,214 @@ export function applyRequestSessionCookieScope(req: Request): void {
   }
 }
 
-export async function setupAuth(app: Express) {
+export interface AuthProviderAvailability {
+  google: boolean;
+  facebook: boolean;
+  diagnostics: {
+    facebook: {
+      disabledByEnv: boolean;
+      hasId: boolean;
+      hasSecret: boolean;
+      idSource: "FACEBOOK_APP_ID" | "FACEBOOK_CLIENT_ID" | null;
+      secretSource: "FACEBOOK_APP_SECRET" | "FACEBOOK_CLIENT_SECRET" | null;
+    };
+    google: {
+      hasId: boolean;
+      hasSecret: boolean;
+      hasCallback: boolean;
+    };
+  };
+}
+
+export interface SetupAuthOptions {
+  onNewSocialUser?: (user: User, provider: OAuthProvider) => void | Promise<void>;
+}
+
+export function getAuthProviderAvailability(): AuthProviderAvailability {
+  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
+  const facebookIdSource = process.env.FACEBOOK_APP_ID
+    ? "FACEBOOK_APP_ID"
+    : process.env.FACEBOOK_CLIENT_ID
+      ? "FACEBOOK_CLIENT_ID"
+      : null;
+  const facebookSecretSource = process.env.FACEBOOK_APP_SECRET
+    ? "FACEBOOK_APP_SECRET"
+    : process.env.FACEBOOK_CLIENT_SECRET
+      ? "FACEBOOK_CLIENT_SECRET"
+      : null;
+  const googleHasId = Boolean(process.env.GOOGLE_CLIENT_ID);
+  const googleHasSecret = Boolean(process.env.GOOGLE_CLIENT_SECRET);
+
+  return {
+    google: googleHasId && googleHasSecret,
+    facebook: !facebookDisabled && Boolean(facebookIdSource && facebookSecretSource),
+    diagnostics: {
+      facebook: {
+        disabledByEnv: facebookDisabled,
+        hasId: Boolean(facebookIdSource),
+        hasSecret: Boolean(facebookSecretSource),
+        idSource: facebookIdSource,
+        secretSource: facebookSecretSource,
+      },
+      google: {
+        hasId: googleHasId,
+        hasSecret: googleHasSecret,
+        hasCallback: Boolean(process.env.GOOGLE_CALLBACK_URL),
+      },
+    },
+  };
+}
+
+function configuredOAuthCallbackUrl(provider: OAuthProvider): string {
+  const canonicalWebOrigin = String(
+    process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
+  ).replace(/\/+$/, "");
+  const configured = String(
+    (provider === "google" ? process.env.GOOGLE_CALLBACK_URL : process.env.FACEBOOK_CALLBACK_URL) ||
+      ""
+  ).trim();
+  const defaultCallback = `${canonicalWebOrigin}/api/auth/${provider}/callback`;
+
+  return process.env.NODE_ENV === "production" &&
+    /onrender\.com/i.test(configured) &&
+    canonicalWebOrigin.startsWith("https://")
+    ? defaultCallback
+    : configured || defaultCallback;
+}
+
+function normalizedProviderEmail(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+type OAuthUserResolution =
+  | { user: User; isNewUser: boolean; failure?: never }
+  | { failure: { code: string; message: string }; user?: never; isNewUser?: never };
+
+async function resolveOAuthUser(input: {
+  provider: OAuthProvider;
+  providerSubject: string;
+  providerEmail: string;
+  createUserData: Record<string, unknown>;
+}): Promise<OAuthUserResolution> {
+  const subject = typeof input.providerSubject === "string" ? input.providerSubject.trim() : "";
+  if (!subject)
+    return {
+      failure: {
+        code: "AUTH_IDENTITY_CONTEXT_INVALID",
+        message: "The social account identity is missing.",
+      },
+    };
+  const email =
+    normalizedProviderEmail(input.providerEmail) || `${subject}@${input.provider}.local`;
+  const retry = {
+    failure: {
+      code: "AUTH_OAUTH_RETRY",
+      message: "Another sign-in is in progress. Please try again.",
+    },
+  };
+  try {
+    // Reuse the bounded, nonblocking lock owner. Both subject and normalized
+    // email must be exclusive before checking or creating; contention denies
+    // this attempt instead of creating two accounts or silently attaching one.
+    const gated = await oauthIdentityGate.run(
+      async () =>
+        (await withAdvisoryLock(
+          `oauth:subject:${input.provider}:${subject}`,
+          async () =>
+            (await withAdvisoryLock(
+              `oauth:email:${email}`,
+              async (): Promise<OAuthUserResolution> => {
+                const providerUser =
+                  input.provider === "google"
+                    ? await storage.getUserByGoogleId(subject)
+                    : await storage.getUserByFacebookId(subject);
+                const emailUsers = await storage.getOAuthUsersByEmail(email);
+                if (emailUsers.length > 1) throw new OAuthIdentityCollisionError();
+                const decision = decideOAuthIdentity({
+                  providerUserId: providerUser?.id,
+                  emailUserId: emailUsers[0]?.id,
+                });
+                const failure = oauthIdentityFailure(input.provider, decision);
+                if (failure) return { failure };
+                if (decision.kind === "existing" && providerUser) {
+                  if ((providerUser as any).isActive === false)
+                    return {
+                      failure: {
+                        code: "AUTH_IDENTITY_CONTEXT_INVALID",
+                        message: "This account is unavailable.",
+                      },
+                    };
+                  return { user: providerUser, isNewUser: false };
+                }
+                if (isReservedSignupIdentityEmail(email)) {
+                  return {
+                    failure: {
+                      code: "AUTH_ACCOUNT_EXISTS",
+                      message: "Unable to create an account with this sign-in method",
+                    },
+                  };
+                }
+                const user = await storage.createUser({
+                  ...input.createUserData,
+                  email,
+                  provider: input.provider,
+                  providerId: subject,
+                  [input.provider === "google" ? "googleId" : "facebookId"]: subject,
+                } as any);
+                return { user, isNewUser: true };
+              }
+            )) ?? retry
+        )) ?? retry
+    );
+    return gated.accepted ? gated.value : retry;
+  } catch (error) {
+    if (error instanceof OAuthIdentityCollisionError) {
+      return {
+        failure: {
+          code: "AUTH_IDENTITY_COLLISION",
+          message: "Conflicting account records require account recovery.",
+        },
+      };
+    }
+    // A separate local-signup path may win the email uniqueness race. It is
+    // still not permission to sign in to or attach a provider to that account.
+    let cause: any = error;
+    const seen = new Set<unknown>();
+    while (cause && typeof cause === "object" && !seen.has(cause)) {
+      seen.add(cause);
+      if (cause.code === "23505")
+        return {
+          failure: {
+            code: "AUTH_ACCOUNT_LINK_REQUIRED",
+            message: "An account already exists. Use its existing sign-in method.",
+          },
+        };
+      cause = cause.cause;
+    }
+    throw error;
+  }
+}
+
+function notifyNewSocialUser(options: SetupAuthOptions, user: User, provider: OAuthProvider): void {
+  if (!options.onNewSocialUser) return;
+  try {
+    void Promise.resolve(options.onNewSocialUser(user, provider)).catch((error) => {
+      console.error("[AUTH] New social-user hook failed", {
+        provider,
+        userId: user.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  } catch (error) {
+    console.error("[AUTH] New social-user hook failed", {
+      provider,
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+export async function setupAuth(app: Express, options: SetupAuthOptions = {}) {
   app.set("trust proxy", 1);
   app.use(getSession());
   // A business's custom domain (e.g. jwstonelogistics.com) is a different
@@ -342,8 +563,7 @@ export async function setupAuth(app: Express) {
     })
   );
 
-  // Facebook strategy for social authentication
-  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
+  const providerAvailability = getAuthProviderAvailability();
   const facebookAppId = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID;
   const facebookAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
 
@@ -354,22 +574,12 @@ export async function setupAuth(app: Express) {
     disable: process.env.DISABLE_FACEBOOK_AUTH,
   });
 
-  if (facebookDisabled || !facebookAppId || !facebookAppSecret) {
+  if (!providerAvailability.facebook || !facebookAppId || !facebookAppSecret) {
     console.log(
       "Facebook strategy skipped (set FACEBOOK_APP_ID/SECRET or FACEBOOK_CLIENT_ID/CLIENT_SECRET to enable; set DISABLE_FACEBOOK_AUTH=true to silence this message)"
     );
   } else {
-    const canonicalWebOrigin = String(
-      process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
-    ).replace(/\/+$/, "");
-    const defaultFacebookCallbackURL = `${canonicalWebOrigin}/api/auth/facebook/callback`;
-    const configuredFacebookCallback = String(process.env.FACEBOOK_CALLBACK_URL || "").trim();
-    const facebookCallbackURL =
-      process.env.NODE_ENV === "production" &&
-      /onrender\.com/i.test(configuredFacebookCallback) &&
-      canonicalWebOrigin.startsWith("https://")
-        ? defaultFacebookCallbackURL
-        : configuredFacebookCallback || defaultFacebookCallbackURL;
+    const facebookCallbackURL = configuredOAuthCallbackUrl("facebook");
 
     console.log("[AUTH] Using Facebook callback URL:", facebookCallbackURL);
     console.log(
@@ -386,42 +596,38 @@ export async function setupAuth(app: Express) {
             callbackURL: facebookCallbackURL,
             profileFields: ["id", "displayName", "photos", "email", "first_name", "last_name"],
           },
-          async (accessToken, refreshToken, profile, done) => {
+          async (_accessToken, _refreshToken, profile, done) => {
             try {
-              let user = await storage.getUserByFacebookId(profile.id);
-
-              if (user) {
-                return done(null, user);
-              }
-
-              const email = profile.emails?.[0]?.value;
-              if (email) {
-                user = await storage.getUserByEmail(email);
-                if (user) {
-                  await storage.updateUser(user.id, {
-                    facebookId: profile.id,
-                    profileImageUrl: profile.photos?.[0]?.value,
-                  });
-                  return done(null, user);
-                }
-              }
-
-              const newUser = await storage.createUser({
-                email: email || `${profile.id}@facebook.local`,
-                firstName: profile.name?.givenName || profile.displayName,
-                lastName: profile.name?.familyName || "",
-                profileImageUrl: profile.photos?.[0]?.value,
-                facebookId: profile.id,
-                role: null,
-                // Email verification must be completed via the in-product workflow,
-                // regardless of signup method (local or OAuth).
-                emailVerified: false,
-                onboardingCompleted: false,
-                createdAt: new Date(),
-                updatedAt: new Date(),
+              const providerEmail = normalizedProviderEmail(profile.emails?.[0]?.value);
+              const resolution = await resolveOAuthUser({
+                provider: "facebook",
+                providerSubject: profile.id,
+                providerEmail,
+                createUserData: {
+                  email: providerEmail || `${profile.id}@facebook.local`,
+                  firstName: profile.name?.givenName || profile.displayName,
+                  lastName: profile.name?.familyName || "",
+                  profileImageUrl: profile.photos?.[0]?.value,
+                  facebookId: profile.id,
+                  provider: "facebook",
+                  providerId: profile.id,
+                  role: null,
+                  // Email verification must be completed via the in-product workflow,
+                  // regardless of signup method (local or OAuth).
+                  emailVerified: false,
+                  onboardingCompleted: false,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                },
               });
-
-              return done(null, newUser);
+              if (resolution.failure) {
+                return done(null, false, resolution.failure as any);
+              }
+              (resolution.user as any)._wasNewSocialUser = resolution.isNewUser;
+              if (resolution.isNewUser) {
+                notifyNewSocialUser(options, resolution.user, "facebook");
+              }
+              return done(null, resolution.user);
             } catch (error) {
               return done(error);
             }
@@ -432,6 +638,70 @@ export async function setupAuth(app: Express) {
     } catch (error) {
       console.error("Error registering Facebook strategy:", error);
     }
+  }
+
+  if (providerAvailability.google) {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!googleClientId || !googleClientSecret) {
+      throw new Error(
+        "[AUTH] Google OAuth enabled but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET missing"
+      );
+    }
+
+    const googleCallbackURL = configuredOAuthCallbackUrl("google");
+    console.log("[AUTH] Using Google callback URL:", googleCallbackURL);
+
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: googleClientId,
+          clientSecret: googleClientSecret,
+          callbackURL: googleCallbackURL,
+        },
+        async (
+          _accessToken: string,
+          _refreshToken: string,
+          profile: GoogleProfile,
+          done: VerifyCallback
+        ) => {
+          try {
+            const providerEmail = normalizedProviderEmail(profile.emails?.[0]?.value);
+            const resolution = await resolveOAuthUser({
+              provider: "google",
+              providerSubject: profile.id,
+              providerEmail,
+              createUserData: {
+                email: providerEmail || `${profile.id}@google.local`,
+                firstName: profile.name?.givenName || profile.displayName || "",
+                lastName: profile.name?.familyName || "",
+                googleId: profile.id,
+                provider: "google",
+                providerId: profile.id,
+                role: null,
+                emailVerified: false,
+                onboardingCompleted: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              },
+            });
+            if (resolution.failure) {
+              return done(null, false, resolution.failure as any);
+            }
+            (resolution.user as any)._wasNewSocialUser = resolution.isNewUser;
+            if (resolution.isNewUser) {
+              notifyNewSocialUser(options, resolution.user, "google");
+            }
+            return done(null, resolution.user);
+          } catch (error) {
+            console.error("[AUTH] Google login failed", {
+              code: "AUTH_PROVIDER_LOOKUP_FAILED",
+            });
+            return done(error as Error);
+          }
+        }
+      )
+    );
   }
 
   // Serialize/deserialize user for session
@@ -485,14 +755,19 @@ const ADMIN_ONLY_PERMISSIONS = new Set<keyof ReturnType<typeof getRolePermission
 ]);
 
 function isAuthorityEscapeRequest(req: Request): boolean {
-  const path = String(req.originalUrl || req.path || "").split("?")[0];
+  const path = String(req.originalUrl || req.path || "")
+    .split("?")[0]
+    .toLowerCase()
+    .replace(/\/+$/, "");
   if (!AUTHORITY_ESCAPE_ROUTES.has(path)) return false;
   if (path.endsWith("/logout")) return req.method === "GET" || req.method === "POST";
   return req.method === "POST";
 }
 
 function isImpersonationPrivilegedRequest(req: Request): boolean {
-  const path = String(req.originalUrl || req.path || "").split("?")[0];
+  const path = String(req.originalUrl || req.path || "")
+    .split("?")[0]
+    .toLowerCase();
   return IMPERSONATION_PRIVILEGED_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`)
   );
@@ -511,12 +786,14 @@ function blockImpersonatedPrivilege(req: Request, res: any, force = false): bool
 
 async function bindRequestAuthority(req: Request, res: any): Promise<boolean> {
   const authorityRequest = req as AuthorityBoundRequest;
-  if (authorityRequest.requestAuthorityContext?.ok) return true;
+  if (authorityRequest.requestAuthorityContext?.ok) {
+    authorityRequest.user = authorityRequest.requestAuthorityContext.effectiveUser;
+    return true;
+  }
 
   try {
-    const context = await resolveRequestAuthorityContext(
-      authorityRequest,
-      async (userId) => storage.getUser(userId)
+    const context = await resolveRequestAuthorityContext(authorityRequest, async (userId) =>
+      storage.getUser(userId)
     );
     if (!context.ok) {
       res.status(403).json({
@@ -564,6 +841,15 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return;
   }
 
+  // Session exits must remain reachable even when the target was removed.
+  // Bind authority before logging so invalid contexts produce no user event.
+  if (isAuthorityEscapeRequest(req)) {
+    next();
+    return;
+  }
+  if (!(await bindRequestAuthority(req, res))) return;
+  if (blockImpersonatedPrivilege(req, res)) return;
+
   try {
     const user = req.user as User | undefined;
     const userId = user?.id;
@@ -583,8 +869,6 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     console.error("Error handling user.session_started logging", err);
   }
 
-  if (!isAuthorityEscapeRequest(req) && !(await bindRequestAuthority(req, res))) return;
-  if (blockImpersonatedPrivilege(req, res)) return;
   next();
 };
 
@@ -599,12 +883,12 @@ export const requireOnboardingComplete: RequestHandler = async (req, res, next) 
 
   const anyUser: any = user || {};
 
-  // Super admins always bypass onboarding gates.
+  // Persisted admin roles/flags may bypass onboarding gates.
   const normalizedRole = normalizeLegacyRole(anyUser.role);
   if (
     normalizedRole === "super_admin" ||
-    isPrivilegedAliasEmail(anyUser?.email) ||
-    isPrivilegedAliasEmail(anyUser?.claims?.email)
+    anyUser.isAdmin === true ||
+    anyUser.isSuperAdmin === true
   ) {
     return next();
   }
@@ -619,7 +903,7 @@ export const requireOnboardingComplete: RequestHandler = async (req, res, next) 
   });
 };
 
-// Enhanced role-based authorization middleware with hierarchy support
+// Role gates accept only roles explicitly named for this boundary.
 export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
   return async (req, res, next) => {
     if (!req.isAuthenticated()) {
@@ -634,6 +918,7 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       activeRole?: unknown;
       roles?: unknown;
       isAdmin?: unknown;
+      isSuperAdmin?: unknown;
     };
 
     const primaryRole = normalizeLegacyRole((user as any).role);
@@ -645,30 +930,25 @@ export const requireRole = (allowedRoles: UserRole[]): RequestHandler => {
       .map((role) => normalizeLegacyRole(role))
       .filter(Boolean) as UserRole[];
 
-    const isAdminFlag = (user as any).isAdmin === true;
-    const isAliasSuperAdmin =
-      isPrivilegedAliasEmail((user as any)?.email) ||
-      isPrivilegedAliasEmail((user as any)?.claims?.email);
+    const isAdminFlag = user.isAdmin === true;
+    const isSuperAdminFlag = user.isSuperAdmin === true;
 
     const candidateRoles = new Set<UserRole>();
     if (primaryRole) candidateRoles.add(primaryRole);
     if (activeRole) candidateRoles.add(activeRole);
     roleList.forEach((role) => candidateRoles.add(role));
-    // Legacy / computed flags should still grant access through role gates when present.
-    if (isAdminFlag) candidateRoles.add("super_admin");
-    if (isAliasSuperAdmin) candidateRoles.add("super_admin");
+    // The generic persisted flag represents the lowest admin tier. Super-admin
+    // authority requires its own persisted role or flag, never an email alias.
+    if (isAdminFlag) candidateRoles.add("moderator");
+    if (isSuperAdminFlag) candidateRoles.add("super_admin");
 
     if (candidateRoles.size === 0) {
       return res.status(403).json({ message: "No role assigned" });
     }
 
-    const userLevel = Math.max(
-      ...Array.from(candidateRoles).map((role) => getRoleHierarchyLevel(role))
+    const hasPermission = Array.from(candidateRoles).some((role) =>
+      hasExplicitRoleGrant(role, allowedRoles)
     );
-    const hasPermission = allowedRoles.some((role) => {
-      const requiredLevel = getRoleHierarchyLevel(role);
-      return userLevel >= requiredLevel;
-    });
 
     if (!hasPermission) {
       return res.status(403).json({ message: "Insufficient permissions" });
@@ -707,12 +987,11 @@ export const requirePermission = (
   };
 };
 
-// Specific role middleware with hierarchy
+// Each role boundary names its intended staff and administrative grants.
 export const isAdmin: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
-// Backward-compat: some legacy routes imported `isHeadAdmin`; it now matches `super_admin`.
-export const isHeadAdmin: RequestHandler = requireRole(["super_admin"]);
 export const isSuperAdmin: RequestHandler = requireRole(["super_admin"]);
-export const isModerator: RequestHandler = requireRole(["moderator", "ops_admin", "super_admin"]);
+export const isHeadAdmin: RequestHandler = isSuperAdmin;
+export const isModerator: RequestHandler = isAdmin;
 export const isStaff: RequestHandler = requireRole([
   "support_agent",
   "content_moderator",
@@ -732,9 +1011,7 @@ export const isBusinessProvider: RequestHandler = async (req, res, next) => {
   if (!(await bindRequestAuthority(req, res))) return;
 
   const user = (req.user || {}) as any;
-  const isAdminFlag = user.isAdmin === true;
-  const isAliasSuperAdmin =
-    isPrivilegedAliasEmail(user?.email) || isPrivilegedAliasEmail(user?.claims?.email);
+  const isAdminFlag = user.isAdmin === true || user.isSuperAdmin === true;
   const normalizedRoles = [
     normalizeLegacyRole(user.role),
     normalizeLegacyRole(user.activeRole),
@@ -746,7 +1023,7 @@ export const isBusinessProvider: RequestHandler = async (req, res, next) => {
     ["moderator", "ops_admin", "super_admin"].includes(String(role))
   );
 
-  if (isAdminFlag || isAliasSuperAdmin || hasAdminRole || userHasBusinessProviderTools(user)) {
+  if (isAdminFlag || hasAdminRole || userHasBusinessProviderTools(user)) {
     return next();
   }
 
@@ -776,48 +1053,9 @@ export async function validatePassword(password: string, hash: string): Promise<
   return bcrypt.compare(password, hash);
 }
 
-// Master admin setup function
-// Middleware to require authentication
-export const requireAuth = async (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-  if (!(await bindRequestAuthority(req, res))) return;
-  next();
-};
-
-// Middleware to require admin role
-export const requireAdmin = async (req: any, res: any, next: any) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  if (!(await bindRequestAuthority(req, res))) return;
-  if (blockImpersonatedPrivilege(req, res, true)) return;
-
-  const user = req.user || {};
-  const activeRole = typeof user.activeRole === "string" ? user.activeRole : "";
-  const primaryRole = typeof user.role === "string" ? user.role : "";
-  const roles = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
-  const isAdminFlag = user.isAdmin === true;
-  const isAliasSuperAdmin =
-    isPrivilegedAliasEmail(user?.email) || isPrivilegedAliasEmail(user?.claims?.email);
-
-  const adminRoles = new Set(["moderator", "ops_admin", "super_admin"]);
-  const normalizedPrimaryRole = normalizeLegacyRole(primaryRole) || primaryRole;
-  const normalizedActiveRole = normalizeLegacyRole(activeRole) || activeRole;
-  const normalizedRoles = roles.map((role: string) => normalizeLegacyRole(role) || role);
-  const hasAdminRole =
-    adminRoles.has(normalizedActiveRole) ||
-    adminRoles.has(normalizedPrimaryRole) ||
-    normalizedRoles.some((role: string) => adminRoles.has(role));
-
-  if (isAdminFlag || hasAdminRole || isAliasSuperAdmin) {
-    return next();
-  }
-
-  return res.status(403).json({ error: "Admin access required" });
-};
+// Compatibility exports share the same fresh-account and impersonation owner.
+export const requireAuth: RequestHandler = isAuthenticated;
+export const requireAdmin: RequestHandler = isAdmin;
 
 export async function createMasterAdmin(
   email: string,

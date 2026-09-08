@@ -121,18 +121,14 @@ function formatDate(value: unknown): string {
 function seedStatusBadge(status: string) {
   if (status === "succeeded") {
     return (
-      <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
-        Succeeded
-      </Badge>
+      <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">Succeeded</Badge>
     );
   }
   if (status === "failed") {
     return <Badge className="border-red-400/30 bg-red-400/10 text-red-200">Failed</Badge>;
   }
   if (status === "running") {
-    return (
-      <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">Running</Badge>
-    );
+    return <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">Running</Badge>;
   }
   return <Badge className="border-white/15 bg-white/5 text-white/55">{readable(status)}</Badge>;
 }
@@ -203,7 +199,9 @@ export default function AdminBusinessDirectoryOpsPage() {
       const record = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
       toast({
         title: "Directory seed started",
-        description: record.seedRunId ? `Run ${String(record.seedRunId)}` : "The seeding job started.",
+        description: record.seedRunId
+          ? `Run ${String(record.seedRunId)}`
+          : "The seeding job started.",
       });
       await queryClient.invalidateQueries({ queryKey: ["admin-seed-runs"] });
     },
@@ -274,7 +272,7 @@ export default function AdminBusinessDirectoryOpsPage() {
         <TabsContent value="seeding" className="mt-0 space-y-7">
           <AdminSection
             title="Pensacola and Escambia supply"
-            description="Aggregated county supply health only. This view does not expose contact lists or sell leads."
+            description="Aggregated counts only for county FIPS 12033 (Escambia). This view does not expose contact lists or sell leads."
             className="pt-0"
             actions={
               <Button
@@ -299,7 +297,8 @@ export default function AdminBusinessDirectoryOpsPage() {
             ) : pensacolaLiquidityQuery.isError || !liquidity ? (
               <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                The Pensacola supply summary is unavailable. Existing directory records were not changed.
+                The Pensacola supply summary is unavailable. Existing directory records were not
+                changed.
               </div>
             ) : (
               <>
@@ -361,10 +360,14 @@ export default function AdminBusinessDirectoryOpsPage() {
                     <p className="font-medium text-white/70">Current evidence</p>
                     <p className="mt-2">{liquidity.supply.verifiedActiveSource}</p>
                     <p className="mt-3">
-                      Recent seed window: {liquidity.recentSeeding.windowDays} days · {liquidity.recentSeeding.totalRuns} runs · {liquidity.recentSeeding.insertedCount} inserted · {liquidity.recentSeeding.errorCount} errors.
+                      Recent seed window: {liquidity.recentSeeding.windowDays} days ·{" "}
+                      {liquidity.recentSeeding.totalRuns} runs ·{" "}
+                      {liquidity.recentSeeding.insertedCount} inserted ·{" "}
+                      {liquidity.recentSeeding.errorCount} errors.
                     </p>
                     <p className="mt-3">
-                      Contacted and interested counts stay unavailable until a safe operating event source exists.
+                      Contacted and interested counts stay unavailable until a safe operating event
+                      source exists.
                     </p>
                   </div>
                 </div>
@@ -389,7 +392,9 @@ export default function AdminBusinessDirectoryOpsPage() {
                   disabled={runsQuery.isFetching}
                   className="border-white/12 bg-transparent text-white/60"
                 >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${runsQuery.isFetching ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    className={`mr-2 h-4 w-4 ${runsQuery.isFetching ? "animate-spin" : ""}`}
+                  />
                   Refresh runs
                 </Button>
               </div>
@@ -397,7 +402,9 @@ export default function AdminBusinessDirectoryOpsPage() {
           >
             <div className="grid gap-4 border-y border-white/10 px-3 py-5 md:grid-cols-2 sm:px-4">
               <div className="space-y-2">
-                <Label htmlFor="seed-location" className="text-white/65">Location</Label>
+                <Label htmlFor="seed-location" className="text-white/65">
+                  Location
+                </Label>
                 <Input
                   id="seed-location"
                   value={locationText}
@@ -408,39 +415,56 @@ export default function AdminBusinessDirectoryOpsPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="seed-fips" className="text-white/65">County FIPS</Label>
+                  <Label htmlFor="seed-fips" className="text-white/65">
+                    County FIPS
+                  </Label>
                   <Input
                     id="seed-fips"
                     value={countyFips}
-                    onChange={(event) => setCountyFips(event.target.value.replace(/\D/g, "").slice(0, 5))}
+                    onChange={(event) =>
+                      setCountyFips(event.target.value.replace(/\D/g, "").slice(0, 5))
+                    }
                     placeholder="12033"
                     className="border-white/10 bg-black/20 text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="seed-state" className="text-white/65">State</Label>
+                  <Label htmlFor="seed-state" className="text-white/65">
+                    State
+                  </Label>
                   <Input
                     id="seed-state"
                     value={stateCode}
                     onChange={(event) =>
-                      setStateCode(event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))
+                      setStateCode(
+                        event.target.value
+                          .toUpperCase()
+                          .replace(/[^A-Z]/g, "")
+                          .slice(0, 2)
+                      )
                     }
                     placeholder="FL"
                     className="border-white/10 bg-black/20 text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="seed-delay" className="text-white/65">Delay ms</Label>
+                  <Label htmlFor="seed-delay" className="text-white/65">
+                    Delay ms
+                  </Label>
                   <Input
                     id="seed-delay"
                     value={delayMs}
-                    onChange={(event) => setDelayMs(event.target.value.replace(/\D/g, "").slice(0, 5))}
+                    onChange={(event) =>
+                      setDelayMs(event.target.value.replace(/\D/g, "").slice(0, 5))
+                    }
                     className="border-white/10 bg-black/20 text-white"
                   />
                 </div>
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="seed-terms" className="text-white/65">Search terms</Label>
+                <Label htmlFor="seed-terms" className="text-white/65">
+                  Search terms
+                </Label>
                 <Textarea
                   id="seed-terms"
                   value={terms}
@@ -448,7 +472,10 @@ export default function AdminBusinessDirectoryOpsPage() {
                   placeholder="business, plumber, electrician, roofing"
                   className="min-h-24 border-white/10 bg-black/20 text-white"
                 />
-                <p className="text-xs text-white/32">Comma-separated terms. The server records inserts, duplicates, and errors for each run.</p>
+                <p className="text-xs text-white/32">
+                  Comma-separated terms. The server records inserts, duplicates, and errors for each
+                  run.
+                </p>
               </div>
               <div className="md:col-span-2">
                 <Button
@@ -495,18 +522,34 @@ export default function AdminBusinessDirectoryOpsPage() {
                         <span className="truncate font-mono text-xs text-white/38">{run.id}</span>
                       </div>
                       <p className="mt-2 truncate text-sm text-white/62">
-                        {run.locationText || [run.stateCode, run.countyFips].filter(Boolean).join("-") || "Location not recorded"}
+                        {run.locationText ||
+                          [run.stateCode, run.countyFips].filter(Boolean).join("-") ||
+                          "Location not recorded"}
                       </p>
-                      <p className="mt-1 text-xs text-white/32">Started {formatDate(run.startedAt)}</p>
+                      <p className="mt-1 text-xs text-white/32">
+                        Started {formatDate(run.startedAt)}
+                      </p>
                     </div>
                     <div className="text-sm text-white/55">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">Results</p>
-                      <p className="mt-1">{run.insertedCount} inserted · {run.duplicateCount} duplicates</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                        Results
+                      </p>
+                      <p className="mt-1">
+                        {run.insertedCount} inserted · {run.duplicateCount} duplicates
+                      </p>
                     </div>
                     <div className="text-sm text-white/55">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">Errors</p>
-                      <p className={`mt-1 ${run.errorCount > 0 ? "text-red-200" : ""}`}>{run.errorCount}</p>
-                      {run.errorMessage ? <p className="mt-1 line-clamp-1 text-xs text-red-200/70">{run.errorMessage}</p> : null}
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                        Errors
+                      </p>
+                      <p className={`mt-1 ${run.errorCount > 0 ? "text-red-200" : ""}`}>
+                        {run.errorCount}
+                      </p>
+                      {run.errorMessage ? (
+                        <p className="mt-1 line-clamp-1 text-xs text-red-200/70">
+                          {run.errorMessage}
+                        </p>
+                      ) : null}
                     </div>
                     <Button
                       type="button"
@@ -521,7 +564,10 @@ export default function AdminBusinessDirectoryOpsPage() {
                 ))}
               </AdminList>
             ) : (
-              <AdminEmptyState title="No seed runs yet" description="Start a directory search to create the first audited run." />
+              <AdminEmptyState
+                title="No seed runs yet"
+                description="Start a directory search to create the first audited run."
+              />
             )}
 
             {selectedRunId ? (
@@ -544,18 +590,25 @@ export default function AdminBusinessDirectoryOpsPage() {
                 {logsQuery.isLoading ? (
                   <div className="px-4 py-8 text-sm text-white/45">Loading logs…</div>
                 ) : logsQuery.isError ? (
-                  <div className="px-4 py-8 text-sm text-red-200">The log stream could not be loaded.</div>
+                  <div className="px-4 py-8 text-sm text-red-200">
+                    The log stream could not be loaded.
+                  </div>
                 ) : logs.length ? (
                   <div className="max-h-[34rem] divide-y divide-white/8 overflow-y-auto">
                     {logs.map((log) => (
-                      <div key={log.id} className="grid gap-2 px-3 py-3 font-mono text-xs sm:grid-cols-[7rem_minmax(0,1fr)] sm:px-4">
+                      <div
+                        key={log.id}
+                        className="grid gap-2 px-3 py-3 font-mono text-xs sm:grid-cols-[7rem_minmax(0,1fr)] sm:px-4"
+                      >
                         <span className="text-white/32">[{String(log.level).toUpperCase()}]</span>
                         <span className="whitespace-pre-wrap text-white/58">{log.message}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="px-4 py-8 text-sm text-white/45">No logs were recorded for this run.</div>
+                  <div className="px-4 py-8 text-sm text-white/45">
+                    No logs were recorded for this run.
+                  </div>
                 )}
               </div>
             ) : null}
@@ -575,7 +628,9 @@ export default function AdminBusinessDirectoryOpsPage() {
                 disabled={suggestionsQuery.isFetching}
                 className="border-white/12 bg-transparent text-white/60"
               >
-                <RefreshCw className={`mr-2 h-4 w-4 ${suggestionsQuery.isFetching ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${suggestionsQuery.isFetching ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
             }
@@ -620,7 +675,9 @@ export default function AdminBusinessDirectoryOpsPage() {
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge className="border-white/15 bg-white/5 text-white/55">{readable(suggestion.kind)}</Badge>
+                          <Badge className="border-white/15 bg-white/5 text-white/55">
+                            {readable(suggestion.kind)}
+                          </Badge>
                           <a
                             href={`/business/${encodeURIComponent(suggestion.businessSlug)}`}
                             target="_blank"
@@ -631,7 +688,9 @@ export default function AdminBusinessDirectoryOpsPage() {
                             <span className="truncate">{suggestion.businessName}</span>
                             <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                           </a>
-                          <span className="truncate text-xs text-white/32">/{suggestion.businessSlug}</span>
+                          <span className="truncate text-xs text-white/32">
+                            /{suggestion.businessSlug}
+                          </span>
                         </div>
                         <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-white/52">
                           {message || "No explanatory message was provided."}

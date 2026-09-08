@@ -124,7 +124,9 @@ describe("Precision Aerial production profile contract", () => {
     expect(source).toContain('claimStatus: "unclaimed"');
     expect(source).toContain("publicDiscoveryEnabled: false");
     expect(source).toContain('status: "active"');
-    expect(source).toContain('status: "published"');
+    expect(source).toContain(
+      "profileReleaseSeedFields({ existingProfile, releaseNewProfile: true })"
+    );
     expect(source).toContain("PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS");
     expect(source).toContain("PRECISION_AERIAL_PROFILE_PROVISIONING_SOURCE");
     expect(source).toContain("business is claimed; provisioning will not overwrite it");

@@ -2,9 +2,10 @@ import { Router } from "express";
 import { db } from "../db";
 import { scoutOutcomeEvents, scoutUserConfidenceState } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { resolveRequestEffectiveUser } from "../utils/requestEffectiveUser";
+import { isAuthenticated, isSuperAdmin } from "../auth";
 
 const router = Router();
+router.use(isAuthenticated, isSuperAdmin);
 
 /**
  * SUPER ADMIN ONLY: System control levers.
@@ -16,20 +17,8 @@ let globalAuthorityMode: "normal" | "conservative" | "advisory" = "normal";
 let confidenceDampener: number = 1.0; // multiplier
 let outcomeLearningEnabled: boolean = true;
 
-function isSuperAdmin(req: any): boolean {
-  const identityContext = resolveRequestEffectiveUser(req);
-  if (!identityContext.ok || identityContext.isImpersonating) return false;
-  const rawRole = typeof req.user?.role === "string" ? req.user.role.trim().toLowerCase() : "";
-  const role = rawRole === "owner" || rawRole === "head_admin" ? "super_admin" : rawRole;
-  return req.isAuthenticated() && role === "super_admin";
-}
-
 // Get current control state
 router.get("/state", (req, res) => {
-  if (!isSuperAdmin(req)) {
-    return res.status(403).json({ message: "Super admin only" });
-  }
-
   res.json({
     authorityMode: globalAuthorityMode,
     confidenceDampener,
@@ -39,10 +28,6 @@ router.get("/state", (req, res) => {
 
 // Set authority mode
 router.post("/authority-mode", (req, res) => {
-  if (!isSuperAdmin(req)) {
-    return res.status(403).json({ message: "Super admin only" });
-  }
-
   const { mode } = req.body;
   if (!["normal", "conservative", "advisory"].includes(mode)) {
     return res.status(400).json({ message: "Invalid mode" });
@@ -56,10 +41,6 @@ router.post("/authority-mode", (req, res) => {
 
 // Set confidence dampener
 router.post("/confidence-dampener", (req, res) => {
-  if (!isSuperAdmin(req)) {
-    return res.status(403).json({ message: "Super admin only" });
-  }
-
   const { multiplier } = req.body;
   if (typeof multiplier !== "number" || multiplier < 0 || multiplier > 2) {
     return res.status(400).json({ message: "Multiplier must be 0-2" });
@@ -73,10 +54,6 @@ router.post("/confidence-dampener", (req, res) => {
 
 // Toggle outcome learning
 router.post("/outcome-learning", (req, res) => {
-  if (!isSuperAdmin(req)) {
-    return res.status(403).json({ message: "Super admin only" });
-  }
-
   const { enabled } = req.body;
   if (typeof enabled !== "boolean") {
     return res.status(400).json({ message: "enabled must be boolean" });
@@ -90,10 +67,6 @@ router.post("/outcome-learning", (req, res) => {
 
 // Reset confidence for a scope
 router.post("/reset-scope", async (req, res) => {
-  if (!isSuperAdmin(req)) {
-    return res.status(403).json({ message: "Super admin only" });
-  }
-
   const { scope } = req.body;
   if (!scope || typeof scope !== "string") {
     return res.status(400).json({ message: "scope required" });
@@ -113,10 +86,6 @@ router.post("/reset-scope", async (req, res) => {
 
 // Get system health metrics
 router.get("/health", async (req, res) => {
-  if (!isSuperAdmin(req)) {
-    return res.status(403).json({ message: "Super admin only" });
-  }
-
   try {
     const [interventionTotals] = await db
       .select({

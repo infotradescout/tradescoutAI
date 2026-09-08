@@ -30,7 +30,7 @@ describe("Render Docker deploy lifecycle", () => {
     expect(dockerfile).not.toContain("COPY --from=builder /app/docs ./docs");
     expect(dockerfile).not.toContain("COPY --from=builder /app/data ./data");
     expect(dockerfile).toContain(
-      'CMD ["sh", "-c", "node runtime/run-release.mjs ensure-public-media-ready scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]'
+      'CMD ["sh", "-c", "node runtime/run-release.mjs check-required-production-schema scripts/check-required-production-schema.mjs && node runtime/run-release.mjs ensure-public-media-ready scripts/ensure-public-media-ready.mjs && exec node dist/index.js"]'
     );
     expect(mediaGate).toContain("RENDER_GIT_COMMIT");
     expect(mediaGate).toContain("deploymentMarkerObjectKey");
@@ -45,7 +45,7 @@ describe("Render Docker deploy lifecycle", () => {
     expect(blueprint).toContain("dockerfilePath: ./Dockerfile");
     expect(blueprint).toContain("autoDeployTrigger: commit");
     expect(blueprint).toContain(
-      "preDeployCommand: node runtime/run-release.mjs migrate-red-graniti-public-media scripts/migrate-red-graniti-public-media.mjs && node runtime/run-release.mjs migrate-jw-stone-public-media scripts/migrate-jw-stone-public-media.mjs && node runtime/run-release.mjs migrate-profile-public-media scripts/migrate-profile-public-media.mjs && node runtime/run-release.mjs db-migrate-safe scripts/db-migrate-safe.mjs && node runtime/run-release.mjs check-required-production-schema scripts/check-required-production-schema.mjs"
+      "preDeployCommand: node runtime/run-release.mjs run-production-predeploy scripts/run-production-predeploy.mjs"
     );
     expect(blueprint).not.toContain("preDeployCommand: node dist/release/");
     expect(blueprint).toContain("healthCheckPath: /api/health");

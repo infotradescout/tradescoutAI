@@ -276,7 +276,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
   // ── Share ──────────────────────────────────────────────────────────────────
   const handleShare = async (item: ExchangeItem) => {
     await share({
-      path: `/exchange/${encodeURIComponent(item.category || config.slug)}/${encodeURIComponent(item.id)}`,
+      path: `/exchange/${config.slug}/${encodeURIComponent(item.id)}`,
       title: item.title || "Exchange listing",
       text: item.description,
       contextLabel: "Listing link",
@@ -681,7 +681,9 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             <span className="truncate">{item.location}</span>
                           </span>
                           <span className="shrink-0 ml-2">
-                            {isProfileCatalog ? "Managed request" : formatListedTime(item.createdAt)}
+                            {isProfileCatalog
+                              ? "Managed request"
+                              : formatListedTime(item.createdAt)}
                           </span>
                         </div>
 
@@ -794,7 +796,9 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                                 {item.seller.verified ? (
                                   <span className="text-emerald-400">Verified seller</span>
                                 ) : (
-                                  <span>{isProfileCatalog ? "Business profile" : "Seller profile"}</span>
+                                  <span>
+                                    {isProfileCatalog ? "Business profile" : "Seller profile"}
+                                  </span>
                                 )}
                               </div>
                             </div>

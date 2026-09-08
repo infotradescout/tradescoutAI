@@ -13,7 +13,9 @@ describe("Admin production acceptance", () => {
     expect(source).toContain('router.post("/production-acceptance/write-canary"');
     expect(source).toContain("runWriteCanary: true");
     expect(source).toContain("runProductionAcceptanceReport");
-    expect(source).toContain("router.use(isAuthenticated, isSuperAdmin)");
+    expect(source).toMatch(
+      /router\.use\(\s*\["\/production-acceptance", "\/ecosystem-truth", "\/tool-blueprints"\],\s*isAuthenticated,\s*isSuperAdmin\s*\)/
+    );
     expect(source).not.toContain('role === "super_admin"');
   });
 
@@ -87,7 +89,7 @@ describe("Admin production acceptance", () => {
     expect(validation).toContain('validation.availability === "unsupported"');
     expect(acceptance).toContain("trade_deals_has_county");
     expect(acceptance).toContain("tradeDealsHaveCounty &&");
-    expect(acceptance).toContain('status: !tradeDealsHaveCounty');
+    expect(acceptance).toContain("status: !tradeDealsHaveCounty");
     expect(acceptance).toContain("this lane remains unavailable");
   });
 

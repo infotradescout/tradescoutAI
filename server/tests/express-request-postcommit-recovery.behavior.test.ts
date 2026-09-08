@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   inserted: {} as Record<string, any[]>,
   transactionFails: false,
   getUserByEmail: vi.fn(),
+  getUser: vi.fn(),
   createUser: vi.fn(),
   updateUser: vi.fn(),
   activationToken: vi.fn(),
@@ -17,10 +18,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../db", async () => {
   const { getTableName } = await import("drizzle-orm");
+  const { PgDialect } = await import("drizzle-orm/pg-core");
   const target = {
     profileId: "synthetic-profile",
     profileSlug: "louisiana-stone-solutions",
     profileStatus: "published",
+    profilePubliclyReleased: true,
     businessId: "synthetic-business",
     businessName: "Louisiana Stone Solutions",
     ownerUserId: "synthetic-business-owner",
@@ -38,13 +41,19 @@ vi.mock("../db", async () => {
     profileData: { notificationEmail: "selected-business@example.invalid" },
   };
   const db: any = {
-    execute: vi.fn(async () => ({
-      rows: [{
-        request_metadata: mocks.inserted.work_request_events?.find(
-          (event) => event.type === "created"
-        )?.metadata,
-      }],
-    })),
+    execute: vi.fn(async (query: any) =>
+      new PgDialect().sqlToQuery(query).sql.includes("FROM contact_permissions")
+        ? { rows: [] }
+        : {
+            rows: [
+              {
+                request_metadata: mocks.inserted.work_request_events?.find(
+                  (event) => event.type === "created"
+                )?.metadata,
+              },
+            ],
+          }
+    ),
     transaction: async (run: any) => {
       if (mocks.transactionFails) throw new Error("synthetic transaction failure");
       return run(db);
@@ -53,7 +62,7 @@ vi.mock("../db", async () => {
       values: (values: any) => {
         const name = getTableName(table);
         const rows = (Array.isArray(values) ? values : [values]).map((value: any) => ({
-          id: "synthetic-committed-request",
+          id: name === "work_requests" ? "synthetic-committed-request" : `synthetic-${name}`,
           ...value,
         }));
         mocks.inserted[name] = [...(mocks.inserted[name] || []), ...rows];
@@ -69,6 +78,7 @@ vi.mock("../db", async () => {
 vi.mock("../storage", () => ({
   storage: {
     getUserByEmail: mocks.getUserByEmail,
+    getUser: mocks.getUser,
     createUser: mocks.createUser,
     updateUser: mocks.updateUser,
     logEvent: vi.fn(),
@@ -81,7 +91,13 @@ vi.mock("../services/emailVerificationService", () => ({
   emailVerificationService: { createToken: mocks.verificationToken },
 }));
 vi.mock("../notification-service", () => ({
-  notificationService: { createNotification: mocks.notifyOwner },
+  notificationService: {
+    createNotification: mocks.notifyOwner,
+    sendNotification: mocks.notifyOwner,
+  },
+}));
+vi.mock("../utils/superAdminConnection", () => ({
+  ensureSuperAdminConnectionForUser: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("../services/directConnectBetaOversight", () => ({
   notifySuperAdminsOfDirectConnectRequest: vi.fn(),
@@ -138,14 +154,24 @@ describe("Express request success after the request transaction commits", () => 
     vi.restoreAllMocks();
   });
 
-  async function submit() {
+  async function submit(sessionUserId?: string) {
     const { registerTradePartnerExpressRoutes } = await import("../routes/tradepartner-express");
     const app = express();
     app.use(express.json());
+    if (sessionUserId) {
+      app.use((req: any, _res, next) => {
+        req.user = { id: sessionUserId };
+        next();
+      });
+    }
     registerTradePartnerExpressRoutes(app);
     return request(app)
       .post("/api/tradepartner-profiles/louisiana-stone-solutions/express-request")
-      .send({ ...contact, requestType: "request_service", message: "I need countertops and tile." });
+      .send({
+        ...contact,
+        requestType: "request_service",
+        message: "I need countertops and tile.",
+      });
   }
 
   function assertCommittedContact() {
@@ -160,13 +186,21 @@ describe("Express request success after the request transaction commits", () => 
       ...contact,
       consent: "share_with_selected_business",
     });
+    expect(event.metadata.submissionContact).toMatchObject({
+      version: 1,
+      workRequestId: "synthetic-committed-request",
+      name: contact.name,
+      phone: "2255550102",
+    });
+    expect(mocks.inserted.decision_cards).toHaveLength(1);
+    expect(mocks.inserted.contact_permissions).toHaveLength(1);
     const payloads = provider.mock.calls.map((call) => JSON.parse(call[1].body));
     const business = payloads.filter(
       (payload) => payload.to[0].email === "selected-business@example.invalid"
     );
     expect(business).toHaveLength(1);
     expect(business[0].textContent).toContain("Name: Submitted Visitor");
-    expect(business[0].textContent).toContain("Phone: (225) 555-0102");
+    expect(business[0].textContent).toContain("2255550102");
     expect(business[0].replyTo).toEqual({ email: contact.email });
     return payloads;
   }
@@ -191,10 +225,9 @@ describe("Express request success after the request transaction commits", () => 
       expect(payloads.filter((payload) => payload.to[0].email === contact.email)).toHaveLength(0);
       expect(response.text).not.toContain("synthetic-activation-token");
       expect(response.text).not.toContain("synthetic-verification-token");
-      expect(JSON.stringify([
-        vi.mocked(console.warn).mock.calls,
-        vi.mocked(console.error).mock.calls,
-      ])).not.toContain("synthetic-private-token-error-do-not-log");
+      expect(
+        JSON.stringify([vi.mocked(console.warn).mock.calls, vi.mocked(console.error).mock.calls])
+      ).not.toContain("synthetic-private-token-error-do-not-log");
     }
   );
 
@@ -202,7 +235,9 @@ describe("Express request success after the request transaction commits", () => 
     const response = await submit();
     expect(response.status).toBe(201);
     expect(response.body.onboardingEmailStatus).toBe("sent");
-    expect(response.body.onboardingPath).toContain("/reset-password?token=synthetic-activation-token");
+    expect(response.body.onboardingPath).toContain(
+      "/reset-password?token=synthetic-activation-token"
+    );
     const payloads = assertCommittedContact();
     expect(payloads.filter((payload) => payload.to[0].email === contact.email)).toHaveLength(1);
     expect(mocks.activationToken).toHaveBeenCalledTimes(1);
@@ -210,15 +245,21 @@ describe("Express request success after the request transaction commits", () => 
   });
 
   it("does not require account-setup services for an existing requester", async () => {
-    mocks.getUserByEmail.mockResolvedValue({ id: "synthetic-existing-requester", ...contact });
+    mocks.getUser.mockResolvedValue({
+      id: "synthetic-existing-requester",
+      ...contact,
+      firstName: "Submitted",
+      lastName: "Visitor",
+    });
     mocks.activationToken.mockRejectedValue(new Error("unused"));
     mocks.verificationToken.mockRejectedValue(new Error("unused"));
-    const response = await submit();
+    const response = await submit("synthetic-existing-requester");
     expect(response.status).toBe(201);
     expect(response.body.accountCreated).toBe(false);
     expect(mocks.activationToken).not.toHaveBeenCalled();
     expect(mocks.verificationToken).not.toHaveBeenCalled();
     expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.getUserByEmail).not.toHaveBeenCalled();
     assertCommittedContact();
   });
 
