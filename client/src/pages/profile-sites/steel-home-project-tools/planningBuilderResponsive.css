@@ -19,7 +19,9 @@
 }
 
 /* The model already exposes accessible names. Make the same actions readable on screen. */
-[data-testid="steel-home-countertop-3d-visualizer"] [aria-label="3D view controls"] button {
+[data-testid="steel-home-countertop-3d-visualizer"]
+  [aria-label="3D view controls"]
+  button[aria-label] {
   font-size: 0;
   min-height: 2.5rem;
 }

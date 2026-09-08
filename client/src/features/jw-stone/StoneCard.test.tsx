@@ -5,6 +5,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_CATALOG } from "./catalog";
 import { StoneCard } from "./StoneCard";
+import { stoneRoomDestination } from "./StoneRoomLink";
+import { stoneRoomBasePath } from "./marketplaceRoutes";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -25,7 +27,7 @@ function setRailGeometry(rail: HTMLElement, slides: HTMLElement[], width = 100) 
   });
 }
 
-describe("StoneCard", () => {
+describe("StoneCard", async () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -40,9 +42,9 @@ describe("StoneCard", () => {
     container.remove();
   });
 
-  it("shows the confirmed country on the Honey Onyx card", () => {
+  it("shows the confirmed country on the Honey Onyx card", async () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.id === "honey-onyx")!;
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneCard
           stone={stone}
@@ -56,7 +58,7 @@ describe("StoneCard", () => {
     expect(container.textContent).toContain("Country of origin: Iran");
   });
 
-  it("keeps stone photography in a fixed presentation frame with premium card controls", () => {
+  it("keeps stone photography in a fixed presentation frame with premium card controls", async () => {
     const stone =
       JW_STONE_CATALOG.find((entry) => entry.id === "blue-dunes") ||
       JW_STONE_CATALOG.find((entry) => entry.wishlistEligible);
@@ -65,7 +67,7 @@ describe("StoneCard", () => {
 
     const onAsk = vi.fn();
 
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneCard
           stone={stone}
@@ -100,14 +102,14 @@ describe("StoneCard", () => {
     expect(onAsk).toHaveBeenCalledWith(stone);
   });
 
-  it("uses a free native momentum rail and tracks the nearest photo without hard snap", () => {
+  it("uses a free native momentum rail and tracks the nearest photo without hard snap", async () => {
     const stone = JW_STONE_CATALOG.find(
       (entry) => entry.images.length > 1 && entry.wishlistEligible
     );
     expect(stone).toBeTruthy();
     if (!stone) throw new Error("Expected a multi-image wishlist stone");
 
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneCard
           stone={stone}
@@ -145,6 +147,9 @@ describe("StoneCard", () => {
       card?.querySelector('[data-testid="jw-stone-card-photo-dot-1"]')?.getAttribute("aria-current")
     ).toBe("true");
     expect(media?.className).toBe(stableMediaClass);
+    expect(card?.querySelector('a[data-testid^="jw-stone-room-"]')?.getAttribute("href")).toBe(
+      stoneRoomDestination(stone, stone.images[1]!, stoneRoomBasePath())
+    );
 
     click(card?.querySelector('[data-testid="jw-stone-card-photo-dot-0"]') ?? null);
     expect(
@@ -160,12 +165,12 @@ describe("StoneCard", () => {
     ).toBe("true");
   });
 
-  it("uses a single static cover when nested inside the material momentum rail", () => {
+  it("uses a single static cover when nested inside the material momentum rail", async () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.images.length > 1);
     expect(stone).toBeTruthy();
     if (!stone) throw new Error("Expected a multi-image stone");
 
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneCard
           stone={stone}

@@ -98,6 +98,17 @@ export default defineConfig({
         // into shared manual chunks and preloads them from the app entry.
         onlyExplicitManualChunks: true,
         manualChunks(id) {
+          // The planner and lazy Three renderer share exact-photo crop evidence.
+          // Keep that policy in its own feature chunk, avoiding a renderer -> planner
+          // cycle and keeping the measured planner implementation independently loadable.
+          const normalizedId = id.replace(/\\/g, "/");
+          if (
+            normalizedId.endsWith("/steel-home-project-tools/stoneProjectionSafety.ts") ||
+            normalizedId.endsWith("/shared/jwStonePublicMedia.ts") ||
+            normalizedId.endsWith("/scripts/data/jw-stone-public-media-manifest.json")
+          ) {
+            return "stone-projection-policy";
+          }
           if (!id.includes("node_modules")) {
             return;
           }
