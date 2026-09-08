@@ -48,6 +48,43 @@ afterEach(() => {
 });
 
 describe("sign-in route ownership", () => {
+  it.each([
+    ["AUTH_ACCOUNT_LINK_REQUIRED", "That email already belongs to an account."],
+    ["AUTH_IDENTITY_COLLISION", "We found conflicting account records."],
+  ])(
+    "renders %s on the existing sign-in surface while retaining the request destination",
+    async (code, message) => {
+      state.user = null;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => ({ ok: true, json: async () => ({ google: true, facebook: true }) }))
+      );
+      window.history.replaceState(
+        {},
+        "",
+        `/pre-scout-setup?mode=create&next=%2Fdirect-connect%3Fcounty%3D22005&oauthError=${code}`
+      );
+      const container = document.createElement("div");
+      document.body.append(container);
+      const root = createRoot(container);
+      try {
+        await act(async () => root.render(<PreScoutSetup />));
+        expect(container.textContent).toContain(message);
+        expect(container.textContent).toContain("no accounts were linked or changed");
+        expect(container.querySelectorAll('input[type="password"]')).toHaveLength(1);
+        expect(container.textContent).toContain("Your request draft is safe.");
+        const google = container.querySelector<HTMLAnchorElement>('[data-testid="login-google"]');
+        expect(google).not.toBeNull();
+        expect(new URL(google!.href).searchParams.get("next")).toContain(
+          "next=%2Fdirect-connect%3Fcounty%3D22005"
+        );
+      } finally {
+        await act(async () => root.unmount());
+        container.remove();
+      }
+    }
+  );
+
   it.each([true, false])(
     "uses refreshed onboarding completion (%s) after a delayed sign-in handler resumes",
     async (completed) => {

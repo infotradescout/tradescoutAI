@@ -503,6 +503,7 @@ import { storage } from "./storage";
 import {
   applyRequestSessionCookieScope,
   setupAuth,
+  getAuthProviderAvailability,
   bindAuthenticatedRequestAuthority,
   isAuthenticated,
   isAdmin,
@@ -521,8 +522,7 @@ import type { WriteClaimEventRequest } from "./services/claimEventSchema.js";
 import { callAIInference } from "./services/aiInference.js";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
-import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
-import type { VerifyCallback } from "passport-google-oauth20";
+import { safeOAuthReturnPath } from "./utils/oauthIdentityPolicy";
 import { db, pool } from "./db";
 import type { Request, Response, NextFunction } from "express";
 import {
@@ -1306,7 +1306,9 @@ export async function registerRoutes(app: any) {
   const buildRevision = resolveBuildRevision();
 
   // Setup authentication
-  await setupAuth(app);
+  await setupAuth(app, {
+    onNewSocialUser: (user) => createAutomaticCommunityWelcomeForUser(user),
+  });
 
   app.use(checkTrustedDevice);
 
@@ -4933,122 +4935,9 @@ export async function registerRoutes(app: any) {
 
   // OAuth strategies are configured in auth.ts
 
-  const hasGoogleOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
-  const facebookAppId = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID;
-  const facebookAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
-  const hasFacebookOAuth = !facebookDisabled && Boolean(facebookAppId && facebookAppSecret);
-
-  if (hasGoogleOAuth) {
-    const canonicalWebOrigin = String(
-      process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
-    ).replace(/\/+$/, "");
-    const defaultGoogleCallbackURL = `${canonicalWebOrigin}/api/auth/google/callback`;
-    const configuredGoogleCallback = String(process.env.GOOGLE_CALLBACK_URL || "").trim();
-    const googleCallbackURL =
-      process.env.NODE_ENV === "production" &&
-      /onrender\.com/i.test(configuredGoogleCallback) &&
-      canonicalWebOrigin.startsWith("https://")
-        ? defaultGoogleCallbackURL
-        : configuredGoogleCallback || defaultGoogleCallbackURL;
-
-    console.log("[AUTH] Using Google callback URL:", googleCallbackURL);
-
-    const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    if (!googleClientId || !googleClientSecret) {
-      throw new Error(
-        "[AUTH] Google OAuth enabled but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET missing"
-      );
-    }
-
-    passport.use(
-      new GoogleStrategy(
-        {
-          clientID: googleClientId,
-          clientSecret: googleClientSecret,
-          callbackURL: googleCallbackURL,
-        },
-        async (
-          accessToken: string,
-          refreshToken: string,
-          profile: GoogleProfile,
-          done: VerifyCallback
-        ) => {
-          // Always derive a non-empty email string for DB constraints
-          let email = "";
-          try {
-            email = profile.emails?.[0]?.value || `${profile.id}@google.local`;
-
-            let user = await storage.getUserByEmail(email);
-
-            const isNewUser = !user;
-
-            if (!user) {
-              if (isReservedSignupIdentityEmail(email)) {
-                return done(null, false, {
-                  message: "Unable to create an account with this sign-in method",
-                  code: "AUTH_ACCOUNT_EXISTS",
-                } as any);
-              }
-
-              user = await storage.createUser({
-                email,
-                firstName: profile.name?.givenName || profile.displayName || "",
-                lastName: profile.name?.familyName || "",
-                googleId: profile.id,
-                provider: "google",
-                providerId: profile.id,
-                role: null as any,
-                onboardingCompleted: false,
-              });
-            } else {
-              const updates: Partial<import("@shared/schema").User> = {};
-              if (!user.googleId) {
-                (updates as any).googleId = profile.id;
-              }
-              if (!user.provider) {
-                (updates as any).provider = "google";
-              }
-              if (!user.providerId) {
-                (updates as any).providerId = profile.id;
-              }
-              if (Object.keys(updates).length > 0) {
-                user = await storage.updateUser(user.id, updates);
-              }
-            }
-
-            if (user) {
-              (user as any)._wasNewSocialUser = isNewUser;
-
-              if (isNewUser) {
-                // Fire-and-forget welcome post; don't block OAuth callback
-                createAutomaticCommunityWelcomeForUser(user as any).catch((err) => {
-                  console.error(
-                    "[Community] Failed to create automatic welcome/intro posts for Google user",
-                    {
-                      userId: (user as any)?.id,
-                      error: (err as any)?.message,
-                    }
-                  );
-                });
-              }
-            }
-
-            done(null, user as any);
-          } catch (error) {
-            console.error("[AUTH] Google login error", {
-              message: (error as any)?.message,
-              email,
-              profileId: profile.id,
-              stack: (error as any)?.stack,
-            });
-            done(error as Error);
-          }
-        }
-      )
-    );
-  }
+  const authProviderAvailability = getAuthProviderAvailability();
+  const hasGoogleOAuth = authProviderAvailability.google;
+  const hasFacebookOAuth = authProviderAvailability.facebook;
 
   // Auth middleware already initialized at the top of registerRoutes
 
@@ -5157,34 +5046,10 @@ export async function registerRoutes(app: any) {
   app.get("/api/auth/providers", (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "no-store");
 
-    const facebookIdSource = process.env.FACEBOOK_APP_ID
-      ? "FACEBOOK_APP_ID"
-      : process.env.FACEBOOK_CLIENT_ID
-        ? "FACEBOOK_CLIENT_ID"
-        : null;
-    const facebookSecretSource = process.env.FACEBOOK_APP_SECRET
-      ? "FACEBOOK_APP_SECRET"
-      : process.env.FACEBOOK_CLIENT_SECRET
-        ? "FACEBOOK_CLIENT_SECRET"
-        : null;
-
     res.json({
       google: hasGoogleOAuth,
       facebook: hasFacebookOAuth,
-      diagnostics: {
-        facebook: {
-          disabledByEnv: facebookDisabled,
-          hasId: Boolean(facebookAppId),
-          hasSecret: Boolean(facebookAppSecret),
-          idSource: facebookIdSource,
-          secretSource: facebookSecretSource,
-        },
-        google: {
-          hasId: Boolean(process.env.GOOGLE_CLIENT_ID),
-          hasSecret: Boolean(process.env.GOOGLE_CLIENT_SECRET),
-          hasCallback: Boolean(process.env.GOOGLE_CALLBACK_URL),
-        },
-      },
+      diagnostics: authProviderAvailability.diagnostics,
     });
   });
 
@@ -5194,13 +5059,67 @@ export async function registerRoutes(app: any) {
       if (req.session) {
         delete (req.session as any).oauthNext;
       }
-      if (!raw) return "";
-      if (!raw.startsWith("/")) return "";
-      if (raw.startsWith("//")) return "";
-      return raw;
+      return safeOAuthReturnPath(raw);
     } catch {
       return "";
     }
+  };
+
+  const oauthFailureRedirect = (req: Request, info: unknown): string => {
+    const allowedCodes = new Set(["AUTH_ACCOUNT_LINK_REQUIRED", "AUTH_IDENTITY_COLLISION"]);
+    const candidateCode =
+      info && typeof info === "object" && typeof (info as any).code === "string"
+        ? String((info as any).code).trim()
+        : "";
+    const code = allowedCodes.has(candidateCode) ? candidateCode : "AUTH_OAUTH_FAILED";
+    const returnPath = readAndClearOAuthNext(req);
+
+    try {
+      const target = new URL("/pre-scout-setup?mode=signin", "https://www.thetradescout.com");
+      if (returnPath) {
+        const saved = new URL(returnPath, target.origin);
+        if (["/pre-scout-setup", "/login"].includes(saved.pathname)) {
+          target.search = saved.search;
+          target.hash = saved.hash;
+        } else {
+          target.searchParams.set("next", returnPath);
+        }
+      }
+      target.searchParams.set("mode", "signin");
+      target.searchParams.set("oauthError", code);
+      return `${target.pathname}${target.search}${target.hash}`;
+    } catch {
+      return `/login?oauthError=${encodeURIComponent(code)}`;
+    }
+  };
+
+  const completeOAuthCallback = (
+    provider: "google" | "facebook",
+    callbackURL: string | undefined,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    return passport.authenticate(
+      provider,
+      {
+        callbackURL,
+        session: true,
+      } as any,
+      (error: unknown, user: Express.User | false | null, info: unknown) => {
+        if (error) return next(error);
+        if (!user) return res.redirect(oauthFailureRedirect(req, info));
+
+        // Passport regenerates the session on login. Carry only the validated
+        // return destination across that boundary, never old authority markers.
+        const oauthNext = safeOAuthReturnPath((req.session as any)?.oauthNext);
+        return (req as any).logIn(user, { session: true }, (loginError: unknown) => {
+          if (loginError) return next(loginError);
+          if (oauthNext && req.session) (req.session as any).oauthNext = oauthNext;
+          return next();
+        });
+      }
+    )(req, res, next);
   };
 
   const getRuntimeOAuthCallbackUrl = (
@@ -5242,17 +5161,10 @@ export async function registerRoutes(app: any) {
   if (hasFacebookOAuth) {
     app.get("/api/auth/facebook", (req: Request, res: Response, next: any) => {
       try {
-        const requestedNext =
-          typeof (req.query as any)?.next === "string"
-            ? String((req.query as any).next).trim()
-            : "";
-        if (
-          req.session &&
-          requestedNext &&
-          requestedNext.startsWith("/") &&
-          !requestedNext.startsWith("//")
-        ) {
-          (req.session as any).oauthNext = requestedNext;
+        const requestedNext = safeOAuthReturnPath((req.query as any)?.next);
+        if (req.session) {
+          if (requestedNext) (req.session as any).oauthNext = requestedNext;
+          else delete (req.session as any).oauthNext;
         }
       } catch {
         // ignore
@@ -5293,10 +5205,7 @@ export async function registerRoutes(app: any) {
           "facebook",
           process.env.FACEBOOK_CALLBACK_URL
         );
-        return passport.authenticate("facebook", {
-          failureRedirect: "/login",
-          callbackURL,
-        } as any)(req, res, next);
+        return completeOAuthCallback("facebook", callbackURL, req, res, next);
       },
       (req: Request, res: Response) => {
         const user = req.user as any;
@@ -5347,17 +5256,10 @@ export async function registerRoutes(app: any) {
     // Google OAuth entrypoint: request standard OpenID scopes
     app.get("/api/auth/google", (req: Request, res: Response, next: any) => {
       try {
-        const requestedNext =
-          typeof (req.query as any)?.next === "string"
-            ? String((req.query as any).next).trim()
-            : "";
-        if (
-          req.session &&
-          requestedNext &&
-          requestedNext.startsWith("/") &&
-          !requestedNext.startsWith("//")
-        ) {
-          (req.session as any).oauthNext = requestedNext;
+        const requestedNext = safeOAuthReturnPath((req.query as any)?.next);
+        if (req.session) {
+          if (requestedNext) (req.session as any).oauthNext = requestedNext;
+          else delete (req.session as any).oauthNext;
         }
       } catch {
         // ignore
@@ -5399,11 +5301,7 @@ export async function registerRoutes(app: any) {
           "google",
           process.env.GOOGLE_CALLBACK_URL
         );
-        return passport.authenticate("google", {
-          failureRedirect: "/login",
-          session: true,
-          callbackURL,
-        } as any)(req, res, next);
+        return completeOAuthCallback("google", callbackURL, req, res, next);
       },
       (req: Request, res: Response) => {
         const user = req.user as any;

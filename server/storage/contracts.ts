@@ -299,6 +299,8 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByRole(role: string): Promise<User | undefined>;
   getUserByFacebookId(facebookId: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getOAuthUsersByEmail(email: string): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   createMasterAdmin(
     email: string,

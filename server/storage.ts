@@ -1,3 +1,7 @@
+import {
+  loadUniqueOAuthProviderUser,
+  loadOAuthEmailCandidates,
+} from "./storage/repositories/oauth-identities";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Storage layer interfaces with dynamic JSON blobs + 3rd-party SDKs; incremental hardening tracked separately. */
 import {
   users,
@@ -924,8 +928,17 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   }
 
   async getUserByFacebookId(facebookId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.facebookId, facebookId));
-    return this.normalizeLegacyAdminUser(user);
+    return this.normalizeLegacyAdminUser(
+      await loadUniqueOAuthProviderUser(db, "facebook", facebookId)
+    );
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    return this.normalizeLegacyAdminUser(await loadUniqueOAuthProviderUser(db, "google", googleId));
+  }
+
+  async getOAuthUsersByEmail(email: string): Promise<User[]> {
+    return loadOAuthEmailCandidates(db, email);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {

@@ -123,21 +123,18 @@ describe("reserved authority email regression", () => {
   it("prevents social signup from creating a new reserved authority identifier", () => {
     const auth = read("server/auth.ts");
     const routes = read("server/routes.ts");
-    const facebookStrategy = auth.slice(
-      auth.indexOf("new FacebookStrategy"),
-      auth.indexOf("// Serialize/deserialize user for session")
+    const resolver = auth.slice(
+      auth.indexOf("async function resolveOAuthUser"),
+      auth.indexOf("function notifyNewSocialUser")
     );
-    const googleStrategy = routes.slice(
-      routes.indexOf("new GoogleStrategy"),
-      routes.indexOf("// Public runtime capability contract for login UI")
-    );
-
-    expect(facebookStrategy.indexOf("isReservedSignupIdentityEmail(email)")).toBeLessThan(
-      facebookStrategy.indexOf("const newUser = await storage.createUser")
-    );
-    expect(googleStrategy.indexOf("isReservedSignupIdentityEmail(email)")).toBeLessThan(
-      googleStrategy.indexOf("user = await storage.createUser")
-    );
+    const reservedCheck = resolver.indexOf("isReservedSignupIdentityEmail(email)");
+    expect(reservedCheck).toBeGreaterThan(-1);
+    expect(reservedCheck).toBeLessThan(resolver.indexOf("await storage.createUser"));
+    for (const provider of ["Google", "Facebook"]) {
+      const strategy = auth.slice(auth.indexOf(`new ${provider}Strategy`));
+      expect(strategy).toContain("await resolveOAuthUser({");
+    }
+    expect(routes).not.toContain("new GoogleStrategy");
   });
 
   it("does not derive response admin flags or auth-user promotion from reserved emails", () => {

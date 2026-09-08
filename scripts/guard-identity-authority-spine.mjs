@@ -56,7 +56,7 @@ for (const boundary of [
 requireText(auth, "export const requireAuth: RequestHandler = isAuthenticated;", "auth alias");
 requireText(auth, "export const requireAdmin: RequestHandler = isAdmin;", "admin alias");
 
-const setupIndex = routes.indexOf("await setupAuth(app)");
+const setupIndex = routes.indexOf("await setupAuth(app,");
 const binderIndex = routes.indexOf("app.use(bindAuthenticatedRequestAuthority)");
 const adminIndex = routes.indexOf("mountAdminRoutes(app)");
 if (!(setupIndex >= 0 && binderIndex > setupIndex && adminIndex > binderIndex)) {
