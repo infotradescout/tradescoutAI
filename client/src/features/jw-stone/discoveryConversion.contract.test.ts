@@ -1,6 +1,12 @@
+// @vitest-environment jsdom
+
 import fs from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
+import { resolveMarketplaceSeo } from "./JwStoneProfileSeo";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -17,15 +23,22 @@ describe("JW Stone discovery and request conversion", () => {
     expect(firstCut).toContain("aspect-[3/2]");
   });
 
-  it("aligns visible and hydrated metadata with Pensacola buyer intent", () => {
-    const hero = read("client/src/features/jw-stone/MarketplaceIntroduction.tsx");
+  it("aligns the rendered accessible description and hydrated metadata with Pensacola buyer intent", () => {
+    const hero = document.createElement("div");
+    hero.innerHTML = renderToStaticMarkup(createElement(MarketplaceIntroduction));
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
 
-    expect(hero).toContain(
-      "Natural stone slabs for fabricators, builders, designers, architects, and homeowners"
+    expect(
+      hero
+        .querySelector('[data-testid="jw-marketplace-local-description"]')
+        ?.textContent?.replace(/\s+/g, " ")
+        .trim()
+    ).toBe(
+      "Natural stone slabs for fabricators, builders, designers, architects, and homeowners in Pensacola and across the Gulf Coast."
     );
-    expect(hero).toContain("in Pensacola and across the Gulf Coast.");
-    expect(marketplace).toContain("Natural Stone Slabs in Pensacola, FL | JW Stone Logistics");
+    expect(resolveMarketplaceSeo("/u/jw-stone").title).toBe(
+      "Natural Stone Slabs in Pensacola, FL | JW Stone Logistics"
+    );
     expect(marketplace).toContain('"@type": "Store"');
     expect(marketplace).toContain(
       'areaServed: { "@type": "AdministrativeArea", name: "Gulf Coast" }'
