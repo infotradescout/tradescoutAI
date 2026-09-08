@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-08T23:38:11Z",
+  "generated_at": "2026-09-08T23:40:02Z",
   "source": {
     "kind": "git",
-    "revision": "30612f116d7a1818ccd60a8813dbf8da922aeeab",
+    "revision": "dca18d9bc2a63790e46cc8771e143e7d5f44873f",
     "dirty": true,
-    "inventory_sha256": "61cbc3c7cf53df1df265e1e0e35d9523310dc0c5a85c2d9de5c3f9c2bb98451a"
+    "inventory_sha256": "d1026406feaca5626044e3a36d95583baa5e20359d12055347195a77103e9098"
   },
   "inventory": {
     "directories": [
@@ -5861,14 +5861,14 @@
       {
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
         "language": "tsx",
-        "sha256": "55efc619a55f8d6441ba5311b2d6832d4d68218badd60c85edaf8907f0388995",
-        "bytes": 21837
+        "sha256": "4b484c642a1852d950cda995a05cd65fff063a54ee6dd930228755e64b21ac0c",
+        "bytes": 34692
       },
       {
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
         "language": "tsx",
-        "sha256": "a8ef98de76a7c79ecbf698dc7bb55f23929f94d3791503d07bc0eb21461c12b1",
-        "bytes": 34556
+        "sha256": "dde308c95c8904e01c6bac7c03582521252860d4f64dcd646f985b14003df435",
+        "bytes": 36816
       },
       {
         "path": "client/src/pages/profile-sites/FinancialProfessionalProfileTheme.tsx",
@@ -5975,14 +5975,14 @@
       {
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.test.tsx",
         "language": "tsx",
-        "sha256": "4a11908d4a178d30f974258289e5e6482cbde208dcc483de6c40420f505245c9",
-        "bytes": 13442
+        "sha256": "6f7b431c5512c26730774699a9e92a4050e15b714e03bc6af391a48b38d77bc0",
+        "bytes": 13851
       },
       {
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
         "language": "tsx",
-        "sha256": "faa4f4c157ee1203077959aeae061cb236aff9fa839a1fd3764b2d566b92c371",
-        "bytes": 27639
+        "sha256": "52476404d79c15667b6c52e0839b1ddd1fa478067fa8300b379eebc4161de87f",
+        "bytes": 29104
       },
       {
         "path": "client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx",
@@ -48616,17 +48616,45 @@
         "exported": false
       },
       {
+        "name": "pressKey",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
+        "line": 50,
+        "exported": false
+      },
+      {
         "name": "renderBusinessCallPanel",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
-        "line": 68,
+        "line": 74,
         "exported": false
       },
       {
         "name": "businessCallButton",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
-        "line": 88,
+        "line": 94,
+        "exported": false
+      },
+      {
+        "name": "renderRequestPanel",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
+        "line": 102,
+        "exported": false
+      },
+      {
+        "name": "fillContactDetails",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
+        "line": 122,
+        "exported": false
+      },
+      {
+        "name": "submitForm",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
+        "line": 128,
         "exported": false
       },
       {
@@ -48689,35 +48717,35 @@
         "name": "handleKeyDown",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-        "line": 225,
+        "line": 246,
         "exported": false
       },
       {
         "name": "close",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-        "line": 296,
+        "line": 353,
         "exported": false
       },
       {
         "name": "stageCallRequest",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-        "line": 300,
+        "line": 357,
         "exported": false
       },
       {
         "name": "startApprovedBusinessCall",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-        "line": 306,
+        "line": 363,
         "exported": false
       },
       {
         "name": "submitRequest",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-        "line": 348,
+        "line": 405,
         "exported": false
       },
       {
@@ -49522,35 +49550,63 @@
         "name": "Journey",
         "kind": "component",
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.test.tsx",
-        "line": 102,
+        "line": 120,
+        "exported": false
+      },
+      {
+        "name": "CSSProperties",
+        "kind": "type",
+        "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
+        "line": 6,
+        "exported": false
+      },
+      {
+        "name": "ReactNode",
+        "kind": "type",
+        "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
+        "line": 7,
+        "exported": false
+      },
+      {
+        "name": "MouseEvent",
+        "kind": "type",
+        "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
+        "line": 8,
         "exported": false
       },
       {
         "name": "formatScoreHistoryDate",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-        "line": 23,
+        "line": 32,
         "exported": false
       },
       {
         "name": "externalActionProps",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-        "line": 34,
+        "line": 43,
         "exported": false
       },
       {
         "name": "ProjectServiceProfile",
         "kind": "component",
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-        "line": 46,
+        "line": 55,
         "exported": true
+      },
+      {
+        "name": "openServices",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
+        "line": 82,
+        "exported": false
       },
       {
         "name": "onKeyDown",
         "kind": "function",
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-        "line": 162,
+        "line": 180,
         "exported": false
       },
       {
@@ -136639,82 +136695,82 @@
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 454
+          "line": 514
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 475
+          "line": 535
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 502
+          "line": 562
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 528
+          "line": 588
         },
         {
           "tag": "form",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 552
+          "line": 612
         },
         {
           "tag": "input",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 591
+          "line": 651
         },
         {
           "tag": "input",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 602
+          "line": 662
         },
         {
           "tag": "input",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 615
+          "line": 675
         },
         {
           "tag": "select",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 637
+          "line": 697
         },
         {
           "tag": "select",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 663
+          "line": 723
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 682
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 693
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 701
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 713
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
           "line": 743
         },
         {
+          "tag": "input",
+          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
+          "line": 757
+        },
+        {
+          "tag": "input",
+          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
+          "line": 765
+        },
+        {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-          "line": 797
+          "line": 777
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
+          "line": 807
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
+          "line": 861
         },
         {
           "tag": "button",
@@ -137074,52 +137130,57 @@
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 271
+          "line": 276
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 309
+          "line": 318
         },
         {
           "tag": "input",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 338
+          "line": 366
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 365
+          "line": 388
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 408
+          "line": 404
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 545
+          "line": 447
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 586
+          "line": 584
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 615
+          "line": 625
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 633
+          "line": 654
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
-          "line": 647
+          "line": 672
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
+          "line": 686
         },
         {
           "tag": "button",
@@ -141986,10 +142047,10 @@
   "summary": {
     "directories": 128,
     "source_files": 2794,
-    "symbols": 14663,
+    "symbols": 14671,
     "components": 948,
-    "functions_and_hooks": 8990,
-    "raw_ui_elements": 4108,
+    "functions_and_hooks": 8995,
+    "raw_ui_elements": 4109,
     "errors": 11,
     "warnings": 5
   }
