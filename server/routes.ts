@@ -504,6 +504,7 @@ import {
   applyRequestSessionCookieScope,
   setupAuth,
   getAuthProviderAvailability,
+  configuredOAuthCallbackUrl,
   bindAuthenticatedRequestAuthority,
   isAuthenticated,
   isAdmin,
@@ -522,7 +523,7 @@ import type { WriteClaimEventRequest } from "./services/claimEventSchema.js";
 import { callAIInference } from "./services/aiInference.js";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
-import { safeOAuthReturnPath } from "./utils/oauthIdentityPolicy";
+import { oauthPostLoginPath, safeOAuthReturnPath } from "./utils/oauthIdentityPolicy";
 import { db, pool } from "./db";
 import type { Request, Response, NextFunction } from "express";
 import {
@@ -1253,7 +1254,11 @@ const sanitizeNextPath = (value: unknown): string => {
   return raw;
 };
 
-const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promise<void> => {
+const maybeSendEmailVerificationForUser = async (
+  req: Request,
+  user: any,
+  continuationPath: string
+): Promise<void> => {
   try {
     const emailVerificationRequired = await getGeneralSetting<boolean>(
       "email_verification_required",
@@ -1281,7 +1286,7 @@ const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promi
 
     const { token, expiresAt } = await emailVerificationService.createToken(userId);
     const verifyBase = getPublicBaseUrlFromRequest(req);
-    const next = sanitizeNextPath((req.session as any)?.oauthNext) || "/pre-scout-setup";
+    const next = safeOAuthReturnPath(continuationPath) || "/pre-scout-setup";
     const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
     await emailService.sendEmail({
@@ -5122,11 +5127,7 @@ export async function registerRoutes(app: any) {
     )(req, res, next);
   };
 
-  const getRuntimeOAuthCallbackUrl = (
-    req: Request,
-    provider: "google" | "facebook",
-    fallbackFromEnv?: string
-  ): string | undefined => {
+  const getRuntimeOAuthCallbackUrl = (req: Request, provider: "google" | "facebook"): string => {
     try {
       const host = String(req.get("host") || "").trim();
       const hostOnly = host.split(":")[0].toLowerCase();
@@ -5155,11 +5156,32 @@ export async function registerRoutes(app: any) {
     } catch {
       // fall through to env value
     }
-    return fallbackFromEnv;
+    return configuredOAuthCallbackUrl(provider);
+  };
+
+  const redirectOAuthEntryToCallbackOrigin = (
+    req: Request,
+    res: Response,
+    provider: "google" | "facebook",
+    callbackURL: string
+  ): boolean => {
+    if (process.env.NODE_ENV !== "production") return false;
+    const callbackOrigin = new URL(callbackURL).origin;
+    const requestOrigin = new URL(`${req.protocol}://${req.get("host")}`).origin;
+    if (requestOrigin === callbackOrigin) return false;
+    // A custom-domain cookie cannot accompany a canonical-domain callback.
+    // Move the authorization entry before Passport creates its session nonce.
+    const target = new URL(`/api/auth/${provider}`, callbackOrigin);
+    const next = safeOAuthReturnPath((req.query as any)?.next);
+    if (next) target.searchParams.set("next", next);
+    res.redirect(target.toString());
+    return true;
   };
 
   if (hasFacebookOAuth) {
     app.get("/api/auth/facebook", (req: Request, res: Response, next: any) => {
+      const callbackURL = getRuntimeOAuthCallbackUrl(req, "facebook");
+      if (redirectOAuthEntryToCallbackOrigin(req, res, "facebook", callbackURL)) return;
       try {
         const requestedNext = safeOAuthReturnPath((req.query as any)?.next);
         if (req.session) {
@@ -5169,11 +5191,6 @@ export async function registerRoutes(app: any) {
       } catch {
         // ignore
       }
-      const callbackURL = getRuntimeOAuthCallbackUrl(
-        req,
-        "facebook",
-        process.env.FACEBOOK_CALLBACK_URL
-      );
       return passport.authenticate("facebook", {
         scope: ["email"],
         callbackURL,
@@ -5182,29 +5199,7 @@ export async function registerRoutes(app: any) {
     app.get(
       "/api/auth/facebook/callback",
       (req: Request, res: Response, next: any) => {
-        try {
-          if (
-            typeof (req as any).isAuthenticated === "function" &&
-            (req as any).isAuthenticated() &&
-            (req as any).user
-          ) {
-            const user = req.user as any;
-            const anyUser: any = user || {};
-            const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
-            const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
-            return res.redirect(redirectTo);
-          }
-        } catch {
-          // ignore
-        }
-        return next();
-      },
-      (req: Request, res: Response, next: any) => {
-        const callbackURL = getRuntimeOAuthCallbackUrl(
-          req,
-          "facebook",
-          process.env.FACEBOOK_CALLBACK_URL
-        );
+        const callbackURL = getRuntimeOAuthCallbackUrl(req, "facebook");
         return completeOAuthCallback("facebook", callbackURL, req, res, next);
       },
       (req: Request, res: Response) => {
@@ -5219,14 +5214,11 @@ export async function registerRoutes(app: any) {
             destination: req.originalUrl || "/",
           }).catch(() => {});
         }
-        maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
-        const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
         const oauthNext = readAndClearOAuthNext(req);
-        const redirectBase = needsProfileNormalization
-          ? "/onboarding/profile"
-          : oauthNext || "/pre-scout-setup";
+        const redirectBase = oauthPostLoginPath(oauthNext, isOutcomeOnboardingComplete(anyUser));
+        maybeSendEmailVerificationForUser(req, user, redirectBase).catch(() => {});
         const redirectWithSession = (target: string) => {
           if (req.session) {
             return req.session.save((saveErr: any) => {
@@ -5255,6 +5247,8 @@ export async function registerRoutes(app: any) {
   if (hasGoogleOAuth) {
     // Google OAuth entrypoint: request standard OpenID scopes
     app.get("/api/auth/google", (req: Request, res: Response, next: any) => {
+      const callbackURL = getRuntimeOAuthCallbackUrl(req, "google");
+      if (redirectOAuthEntryToCallbackOrigin(req, res, "google", callbackURL)) return;
       try {
         const requestedNext = safeOAuthReturnPath((req.query as any)?.next);
         if (req.session) {
@@ -5264,11 +5258,6 @@ export async function registerRoutes(app: any) {
       } catch {
         // ignore
       }
-      const callbackURL = getRuntimeOAuthCallbackUrl(
-        req,
-        "google",
-        process.env.GOOGLE_CALLBACK_URL
-      );
       return passport.authenticate("google", {
         scope: ["openid", "email", "profile"],
         prompt: "select_account",
@@ -5278,29 +5267,7 @@ export async function registerRoutes(app: any) {
     app.get(
       "/api/auth/google/callback",
       (req: Request, res: Response, next: any) => {
-        try {
-          if (
-            typeof (req as any).isAuthenticated === "function" &&
-            (req as any).isAuthenticated() &&
-            (req as any).user
-          ) {
-            const user = req.user as any;
-            const anyUser: any = user || {};
-            const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
-            const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
-            return res.redirect(redirectTo);
-          }
-        } catch {
-          // ignore
-        }
-        return next();
-      },
-      (req: Request, res: Response, next: any) => {
-        const callbackURL = getRuntimeOAuthCallbackUrl(
-          req,
-          "google",
-          process.env.GOOGLE_CALLBACK_URL
-        );
+        const callbackURL = getRuntimeOAuthCallbackUrl(req, "google");
         return completeOAuthCallback("google", callbackURL, req, res, next);
       },
       (req: Request, res: Response) => {
@@ -5315,14 +5282,11 @@ export async function registerRoutes(app: any) {
             destination: req.originalUrl || "/",
           }).catch(() => {});
         }
-        maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
-        const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
         const oauthNext = readAndClearOAuthNext(req);
-        const redirectBase = needsProfileNormalization
-          ? "/onboarding/profile"
-          : oauthNext || "/pre-scout-setup";
+        const redirectBase = oauthPostLoginPath(oauthNext, isOutcomeOnboardingComplete(anyUser));
+        maybeSendEmailVerificationForUser(req, user, redirectBase).catch(() => {});
         const redirectWithSession = (target: string) => {
           if (req.session) {
             return req.session.save((saveErr: any) => {
