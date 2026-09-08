@@ -19,8 +19,7 @@ type AdminDirectConnectRequestDetailResponse = {
   requester: {
     id: string;
     name: string | null;
-    email: string | null;
-    phone: string | null;
+    contactVisibility: "withheld";
   } | null;
   originatingProfile: {
     id: string;
@@ -38,7 +37,6 @@ type AdminDirectConnectRequestDetailResponse = {
   events: Array<{
     id: string;
     type: string;
-    metadata: Record<string, any> | null;
     createdAt: string | null;
   }>;
   conversationId: string | null;
@@ -98,8 +96,9 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
             {requester ? (
               <div className="mt-1 space-y-0.5">
                 <div>{requester.name || "Unnamed"}</div>
-                <div className="text-white/60">{requester.email || "no email on file"}</div>
-                <div className="text-white/60">{requester.phone || "no phone on file"}</div>
+                <div className="text-white/60">
+                  Contact details stay governed by the assigned provider’s accepted request.
+                </div>
               </div>
             ) : (
               <div className="mt-1 text-white/50">Requester account not found</div>

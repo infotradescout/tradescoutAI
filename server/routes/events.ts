@@ -163,12 +163,7 @@ export type SanitizedDemandAttribution = {
   lastSeenAt?: string;
 };
 
-export type SanitizedEventValue =
-  | string
-  | number
-  | boolean
-  | null
-  | SanitizedDemandAttribution;
+export type SanitizedEventValue = string | number | boolean | null | SanitizedDemandAttribution;
 
 export type SanitizedEventData = Record<string, SanitizedEventValue>;
 
@@ -216,17 +211,34 @@ function sanitizeRoute(value: unknown): string | undefined {
 }
 
 function sanitizeDirectConnectRouteTemplate(value: unknown): string | undefined {
-  const route = sanitizeRoute(value);
-  if (!route || !/^\/direct-connect(?:\/|$)/i.test(route)) return undefined;
+  if (typeof value !== "string") return undefined;
+  const [route = ""] = value.trim().split(/[?#]/, 1);
+  if (
+    !route.startsWith("/") ||
+    route.length > MAX_ROUTE_LENGTH ||
+    /[\u0000-\u001f\u007f]/.test(route) ||
+    !/^\/direct-connect(?:\/|$)/i.test(route)
+  ) {
+    return undefined;
+  }
 
-  const segments = route
-    .split("/")
-    .filter(Boolean)
-    .map((segment) => {
-      if (UUID_SEGMENT.test(segment) || NUMERIC_SEGMENT.test(segment)) return ":id";
-      if (LONG_ID_SEGMENT.test(segment) && !/^direct-connect$/i.test(segment)) return ":id";
-      return segment.slice(0, 80);
-    });
+  const segments: string[] = [];
+  for (const segment of route.split("/").filter(Boolean)) {
+    if (UUID_SEGMENT.test(segment)) {
+      segments.push(":id");
+      continue;
+    }
+    if (containsObviousPrivateData(segment)) return undefined;
+    if (NUMERIC_SEGMENT.test(segment)) {
+      segments.push(":id");
+      continue;
+    }
+    if (LONG_ID_SEGMENT.test(segment) && !/^direct-connect$/i.test(segment)) {
+      segments.push(":id");
+      continue;
+    }
+    segments.push(segment.slice(0, 80));
+  }
 
   return `/${segments.join("/")}`.slice(0, MAX_ROUTE_LENGTH) || "/direct-connect";
 }
@@ -309,13 +321,29 @@ function issueMetadata(eventType: string): SanitizedEventData {
     case "direct_connect_permission_or_role_blocked":
       return { ...common, severity: "high", inspectNext: "effective_role_and_request_authority" };
     case "direct_connect_form_validation_blocked":
-      return { ...common, severity: "medium", inspectNext: "validation_field_and_review_transition" };
+      return {
+        ...common,
+        severity: "medium",
+        inspectNext: "validation_field_and_review_transition",
+      };
     case "direct_connect_repeated_submit_attempt":
-      return { ...common, severity: "medium", inspectNext: "submit_state_and_response_confirmation" };
+      return {
+        ...common,
+        severity: "medium",
+        inspectNext: "submit_state_and_response_confirmation",
+      };
     case "direct_connect_repeated_cta_click":
-      return { ...common, severity: "medium", inspectNext: "cta_handler_navigation_and_loading_state" };
+      return {
+        ...common,
+        severity: "medium",
+        inspectNext: "cta_handler_navigation_and_loading_state",
+      };
     case "direct_connect_empty_state_seen":
-      return { ...common, severity: "medium", inspectNext: "empty_state_data_source_and_next_action" };
+      return {
+        ...common,
+        severity: "medium",
+        inspectNext: "empty_state_data_source_and_next_action",
+      };
     default:
       return {};
   }
@@ -387,9 +415,7 @@ export function sanitizeEventData(value: unknown): SanitizedEventData {
     output.segmentCategory = segmentCategory;
   }
 
-  const segmentIntentLevel = sanitizeToken(
-    input.segmentIntentLevel ?? input.segment_intent_level
-  );
+  const segmentIntentLevel = sanitizeToken(input.segmentIntentLevel ?? input.segment_intent_level);
   if (segmentIntentLevel !== undefined && segmentIntentLevel !== null) {
     output.segmentIntentLevel = segmentIntentLevel;
   }
@@ -443,8 +469,7 @@ export function sanitizeDirectConnectEventData(value: unknown): SanitizedEventDa
     (typeof input.source === "string" && input.source.trim().startsWith("/")
       ? input.source
       : undefined);
-  output.routeTemplate =
-    sanitizeDirectConnectRouteTemplate(routeCandidate) ?? "/direct-connect";
+  output.routeTemplate = sanitizeDirectConnectRouteTemplate(routeCandidate) ?? "/direct-connect";
 
   return output;
 }
@@ -485,8 +510,7 @@ function scheduleEventWrite(args: {
   const persistedData: SanitizedEventData = {
     ...args.data,
     userId: typeof sessionUser?.id === "string" ? sessionUser.id : null,
-    contractorId:
-      typeof sessionUser?.contractorId === "string" ? sessionUser.contractorId : null,
+    contractorId: typeof sessionUser?.contractorId === "string" ? sessionUser.contractorId : null,
   };
 
   if (args.includeAnonymousSession && !persistedData.userId) {

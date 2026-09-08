@@ -64,7 +64,9 @@ describe("public profile search direct authority", () => {
     expect(query).toContain('"businesses"."public_discovery_enabled" = true');
     expect(query).toContain('"users"."verified_badge" = true');
     expect(query).toContain('"users"."verification_status"');
-    expect(query).toContain("publicProfileIds");
+    const release = /"profiles"\."publicly_released" = \$(\d+)/.exec(query);
+    expect(release).not.toBeNull();
+    expect(params[Number(release![1]) - 1]).toBe(true);
     expect(params).toContain("%stone%");
   });
 

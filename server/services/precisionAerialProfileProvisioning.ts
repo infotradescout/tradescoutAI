@@ -1,3 +1,4 @@
+import { profileReleaseSeedFields } from "@shared/profileVisibility";
 import { and, eq } from "drizzle-orm";
 import {
   PRECISION_AERIAL_BUSINESS_NAME,
@@ -432,7 +433,7 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
       businessId: business.id,
       slug: PRECISION_AERIAL_PROFILE_SLUG,
       ...profileSeedFields,
-      status: "published" as const,
+      ...profileReleaseSeedFields({ existingProfile, releaseNewProfile: true }),
       updatedAt: new Date(),
     };
 

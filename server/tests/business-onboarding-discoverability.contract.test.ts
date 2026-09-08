@@ -9,9 +9,12 @@ describe("business onboarding and discoverability contracts", () => {
   it("enforces business discoverability lock in visibility and profile publishing routes", () => {
     const routesSource = read("server/routes.ts");
     const businessProfileSource = read("server/routes/business-profile.ts");
+    const visibilityMutationSource = read("server/services/profileVisibilityMutation.ts");
 
-    expect(routesSource).toContain("BUSINESS_DISCOVERY_LOCKED");
-    expect(routesSource).toContain("Business discovery is locked until verification is complete");
+    expect(visibilityMutationSource).toContain("BUSINESS_DISCOVERY_LOCKED");
+    expect(visibilityMutationSource).toContain(
+      "Business discovery is locked until verification is complete"
+    );
 
     expect(businessProfileSource).toContain("discoverabilityLocked");
     expect(businessProfileSource).toContain(

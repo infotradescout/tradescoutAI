@@ -226,20 +226,68 @@ if (!hasTestDb) {
         tradeId,
       } as any);
 
+      const [mapBusiness] = await db
+        .insert(businesses)
+        .values({
+          ownerUserId: userId,
+          name: "Map HVAC Services",
+          slug: `map-business-${crypto.randomUUID()}`,
+          type: "other",
+          roleContext: "business_owner",
+          status: "active",
+          publicDiscoveryEnabled: true,
+        })
+        .returning();
       await db.insert(profiles).values({
         id: profileId,
         ownerUserId: userId,
+        businessId: mapBusiness.id,
         roleContext: "contractor",
         slug: `map-provider-${crypto.randomUUID()}`,
         displayName: "Map HVAC Services",
         status: "published",
+        publiclyReleased: true,
       } as any);
 
+      const unreleasedUserId = `map-unreleased-${crypto.randomUUID()}`;
+      const unreleasedProfileId = `map-unreleased-profile-${crypto.randomUUID()}`;
+      await db.insert(users).values({
+        id: unreleasedUserId,
+        email: `map-unreleased+${crypto.randomUUID()}@tradescout.test`,
+        role: "contractor",
+        latitude: "29.7604",
+        longitude: "-95.3698",
+        verificationStatus: "approved",
+        preferences: { publicProfileIds: [unreleasedProfileId] },
+      });
+      const [unreleasedBusiness] = await db
+        .insert(businesses)
+        .values({
+          ownerUserId: unreleasedUserId,
+          name: "Unreleased Map HVAC Services",
+          slug: `map-unreleased-business-${crypto.randomUUID()}`,
+          type: "other",
+          roleContext: "business_owner",
+          status: "active",
+          publicDiscoveryEnabled: true,
+        })
+        .returning();
+      await db.insert(profiles).values({
+        id: unreleasedProfileId,
+        ownerUserId: unreleasedUserId,
+        businessId: unreleasedBusiness.id,
+        roleContext: "contractor",
+        slug: `map-unreleased-${crypto.randomUUID()}`,
+        displayName: "Unreleased provider fixture",
+        status: "published",
+        publiclyReleased: false,
+      });
       const bbox = "-95.8,29.4,-95.0,30.1";
       const res = await request(app).get(`/api/map/providers?bbox=${encodeURIComponent(bbox)}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body?.providers)).toBe(true);
       expect(res.body?.providers.length).toBeGreaterThan(0);
+      expect(res.body.providers.some((item: any) => item.id === unreleasedUserId)).toBe(false);
 
       const provider = res.body.providers.find((item: any) => item.id === userId);
       expect(provider).toBeTruthy();

@@ -65,6 +65,7 @@ describe("profile-account privileged verification bypass", () => {
     expect(
       hasRequestPrivilegedVerificationBypass({
         user: {
+          id: "admin-1",
           role: "super_admin",
           roles: ["super_admin"],
           isAdmin: true,
@@ -97,7 +98,7 @@ describe("profile-account privileged verification bypass", () => {
     }
   });
 
-  it("allows a privileged impersonated role only through the canonical helper", () => {
+  it("does not turn a stale privileged session role into account verification", () => {
     const effectiveRole = "super_admin";
     const effectiveUser = {
       role: effectiveRole,
@@ -109,6 +110,7 @@ describe("profile-account privileged verification bypass", () => {
     expect(
       hasRequestPrivilegedVerificationBypass({
         user: {
+          id: "target-1",
           role: "homeowner",
           roles: ["homeowner"],
         },
@@ -118,7 +120,50 @@ describe("profile-account privileged verification bypass", () => {
           impersonatingRole: effectiveRole,
         },
       })
-    ).toBe(hasPrivilegedVerificationBypass(effectiveUser));
+    ).toBe(false);
+  });
+
+  it("never grants an administrative verification exception while impersonating", () => {
+    const principalUser = { id: "admin-1", role: "super_admin" };
+    const target = { id: "target-1", role: "super_admin" };
+    expect(
+      hasRequestPrivilegedVerificationBypass({
+        user: target,
+        principalUser,
+        session: {
+          originalUser: principalUser,
+          isImpersonating: true,
+          impersonatedUserId: target.id,
+          impersonatingRole: "super_admin",
+        },
+        requestAuthorityContext: {
+          ok: true,
+          principalUser,
+          effectiveUser: target,
+          principalUserId: principalUser.id,
+          effectiveUserId: target.id,
+          isImpersonating: true,
+        },
+      })
+    ).toBe(false);
+  });
+
+  it("rejects a bound context for a different account", () => {
+    const admin = { id: "admin-1", role: "super_admin" };
+    expect(
+      hasRequestPrivilegedVerificationBypass({
+        user: admin,
+        session: {},
+        requestAuthorityContext: {
+          ok: true,
+          principalUser: admin,
+          effectiveUser: { id: "other", role: "super_admin" },
+          principalUserId: admin.id,
+          effectiveUserId: "other",
+          isImpersonating: false,
+        },
+      })
+    ).toBe(false);
   });
 
   it("fails closed for incomplete or ambiguous impersonation sessions", () => {

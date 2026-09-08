@@ -24,7 +24,9 @@ describe("explicit onboarding completion authority", () => {
 
     expect(guard).toContain("isOutcomeOnboardingComplete(anyUser)");
     expect(guard).not.toContain("profileVersion");
-    expect(routes.match(/!isOutcomeOnboardingComplete\(anyUser\)/g)).toHaveLength(4);
+    expect(
+      routes.match(/oauthPostLoginPath\(oauthNext, isOutcomeOnboardingComplete\(anyUser\)\)/g)
+    ).toHaveLength(2);
   });
 
   it("removes schema-version inference from live client routing gates", () => {

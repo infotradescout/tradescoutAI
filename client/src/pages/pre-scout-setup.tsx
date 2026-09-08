@@ -31,6 +31,19 @@ import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
 
+function oauthFailureMessage(code: string): string | null {
+  if (code === "AUTH_ACCOUNT_LINK_REQUIRED") {
+    return "That email already belongs to an account. Sign in with its existing method; no accounts were linked or changed.";
+  }
+  if (code === "AUTH_IDENTITY_COLLISION") {
+    return "We found conflicting account records. Sign in with your existing method or use account recovery; no accounts were linked or changed.";
+  }
+  if (code === "AUTH_OAUTH_FAILED") {
+    return "Social sign-in could not be completed. Try again or use your existing sign-in method.";
+  }
+  return null;
+}
+
 export default function PreScoutSetup() {
   const { user, isAuthenticated, refetch } = useAuth();
   const queryClient = useQueryClient();
@@ -83,6 +96,9 @@ export default function PreScoutSetup() {
     parseAuthMode(windowSearchParams.get("mode")) ||
     parseAuthMode(locationSearchParams.get("mode")) ||
     "create";
+
+  const oauthErrorCode = (searchParams.get("oauthError") || "").trim();
+  const oauthError = oauthFailureMessage(oauthErrorCode);
 
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
   const existingDraft: ProfileDraft | undefined = provisional?.profileDraft;
@@ -378,6 +394,13 @@ export default function PreScoutSetup() {
   }, [requestedAuthMode]);
 
   useEffect(() => {
+    if (!oauthError) return;
+    setAuthMode("signin");
+    setSignInError(oauthError);
+    setSignInErrorCode(oauthErrorCode);
+  }, [oauthError, oauthErrorCode]);
+
+  useEffect(() => {
     if (isAuthenticated) return;
     bootstrapDemandAttribution();
     void trackDemandEvent("auth_view", { mode: authMode });
@@ -502,8 +525,9 @@ export default function PreScoutSetup() {
         });
       }
       void trackDemandEvent("signin_success", { mode: "signin" });
-      toast({ title: "Signed in", description: "Opening onboarding." });
-      navigate(isAdminDestination ? postSetupNext : authenticatedNextPath);
+      toast({ title: "Signed in", description: "Opening your next step." });
+      // The authenticated-user effect owns routing after the refreshed user is
+      // rendered. This handler still holds the pre-login onboarding state.
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
       const rawMessage = String(error?.message || "Please try again.");
@@ -627,8 +651,8 @@ export default function PreScoutSetup() {
 
       await ensureSessionEstablished();
       void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
-      toast({ title: "Account created", description: "Opening onboarding." });
-      navigate(isAdminDestination ? postSetupNext : authenticatedNextPath);
+      toast({ title: "Account created", description: "Opening your next step." });
+      // Let the authenticated-user effect choose from the refreshed account.
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
       const message = error?.message || "Unable to create account.";

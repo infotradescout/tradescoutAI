@@ -37,7 +37,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     );
     expect(provisioning).toContain('verificationStatus: "approved"');
     expect(provisioning).toContain("verifiedBadge: true");
-    expect(provisioning).toContain('status: "published"');
+    expect(provisioning).toContain(
+      "profileReleaseSeedFields({ existingProfile, releaseNewProfile: true })"
+    );
     expect(provisioning).toContain('claimStatus: "claimed"');
     expect(provisioning).toContain("publicDiscoveryEnabled: true");
     expect(provisioning).not.toContain('"community_builder"');

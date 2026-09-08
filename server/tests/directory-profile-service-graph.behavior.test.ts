@@ -17,6 +17,7 @@ const publicProfileRow = (overrides: Record<string, unknown> = {}) => ({
   business_sources: [],
   business_claim_status: "claimed",
   profile_id: "profile-1",
+  profile_publicly_released: true,
   profile_slug: "la-plumbing-solutions",
   profile_display_name: "LA Plumbing Solutions",
   profile_role_context: "specialty_tradesperson",
@@ -51,6 +52,7 @@ const publicProfileRow = (overrides: Record<string, unknown> = {}) => ({
   owner_verification_status: "approved",
   owner_provider: "email",
   owner_preferences: { publicProfileIds: ["profile-1"] },
+  professional_role_approved: true,
   ...overrides,
 });
 
@@ -66,8 +68,7 @@ describe("directory-to-profile service graph", () => {
       businessSlug: "la-plumbing-solutions",
       profileSlug: "la-plumbing-solutions",
       profileUrl: "https://www.thetradescout.com/u/la-plumbing-solutions",
-      serviceAreaUrl:
-        "https://www.thetradescout.com/u/la-plumbing-solutions/service-areas",
+      serviceAreaUrl: "https://www.thetradescout.com/u/la-plumbing-solutions/service-areas",
     });
     expect(discoveries[0].services.map((service) => service.url)).toEqual([
       "https://www.thetradescout.com/u/la-plumbing-solutions/services/repairs-leaks-replacements",
@@ -140,8 +141,7 @@ describe("directory-to-profile service graph", () => {
           url: "https://www.thetradescout.com/u/la-plumbing-solutions/services/repairs-leaks-replacements",
         },
       ],
-      serviceAreaUrl:
-        "https://www.thetradescout.com/u/la-plumbing-solutions/service-areas",
+      serviceAreaUrl: "https://www.thetradescout.com/u/la-plumbing-solutions/service-areas",
     };
     const source = `<!doctype html><html><head></head><body><main data-seo-trade="county"><article><ul><li><a href="/business/la-plumbing-solutions">LA Plumbing Solutions</a> <small>(Claimed)</small></li><li><a href="/business/direct-only-provider">Direct Only</a></li></ul></article></main></body></html>`;
     const enriched = enrichPublicDirectoryProfileHtml({
@@ -151,9 +151,7 @@ describe("directory-to-profile service graph", () => {
     });
 
     expect(enriched).toContain('data-seo-directory-profile-service-graph="true"');
-    expect(enriched).toContain(
-      'href="https://www.thetradescout.com/u/la-plumbing-solutions"'
-    );
+    expect(enriched).toContain('href="https://www.thetradescout.com/u/la-plumbing-solutions"');
     expect(enriched).toContain('data-seo-directory-provider-services="la-plumbing-solutions"');
     expect(enriched).toContain(
       "https://www.thetradescout.com/u/la-plumbing-solutions/services/repairs-leaks-replacements"

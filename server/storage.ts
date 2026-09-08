@@ -1,3 +1,7 @@
+import {
+  loadUniqueOAuthProviderUser,
+  loadOAuthEmailCandidates,
+} from "./storage/repositories/oauth-identities";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Storage layer interfaces with dynamic JSON blobs + 3rd-party SDKs; incremental hardening tracked separately. */
 import { conversationParticipantSql, conversationProviderParticipantSql } from "./services/conversationParticipants";
 import {
@@ -346,7 +350,19 @@ import bcrypt from "bcrypt";
 import { applyPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import { computeAllocationShares } from "./utils/communityCauseAllocation";
 import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
-import type { IStorage } from "./storage/contracts";
+import { stripImmutableProfileBookingPatch } from "./services/profileBookingIdentity";
+import {
+  createProfessionalApplicationPersistence,
+  editableProfessionalProfileData,
+} from "./storage/repositories/professional-applications";
+export { createProfessionalApplicationPersistence } from "./storage/repositories/professional-applications";
+import type {
+  IStorage,
+  ProfessionalApplicationDecision,
+  ProfessionalApplicationDecisionResult,
+  ProfessionalApplicationSubmissionResult,
+  ProfessionalProfileEditable,
+} from "./storage/contracts";
 export type { IStorage } from "./storage/contracts";
 
 // Helper to safely convert strings/numbers to Decimal format
@@ -386,6 +402,7 @@ type InsertAffiliateCommission = Omit<AffiliateCommission, "id" | "createdAt"> &
 };
 
 export class DatabaseStorage extends CrmAndDealsStorageRepository implements IStorage {
+  private readonly professionalApplications = createProfessionalApplicationPersistence(db);
   private readonly userSecurityRepository = new UserSecurityRepository();
   private readonly sitemapRepository = new SitemapRepository();
   private readonly businessRepository = new BusinessRepository();
@@ -706,6 +723,11 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   async createProfileBookingRequest(
     input: Omit<InsertProfileBookingRequest, "id" | "createdAt" | "updatedAt">
   ): Promise<ProfileBookingRequest> {
+    const exactProfileId = String((input as any).profileId || "").trim();
+    const exactLineage = (input as any).lineageKind === "exact_profile";
+    if ((exactLineage && !exactProfileId) || (!exactLineage && Boolean(exactProfileId))) {
+      throw new Error("Profile booking lineage is inconsistent");
+    }
     const [row] = await db
       .insert(profileBookingRequests)
       .values({
@@ -745,15 +767,41 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   async updateProfileBookingRequest(
     id: string,
-    patch: Partial<Omit<InsertProfileBookingRequest, "id" | "ownerUserId" | "requesterUserId">>
+    patch: Partial<
+      Omit<
+        InsertProfileBookingRequest,
+        "id" | "ownerUserId" | "requesterUserId" | "profileId" | "lineageKind"
+      >
+    >
   ): Promise<ProfileBookingRequest> {
+    const mutablePatch = stripImmutableProfileBookingPatch(patch as any);
     const [row] = await db
       .update(profileBookingRequests)
-      .set({ ...(patch as any), updatedAt: new Date() })
+      .set({ ...mutablePatch, updatedAt: new Date() })
       .where(eq(profileBookingRequests.id, id))
       .returning();
     if (!row) throw new Error("Profile booking request not found");
     return row as ProfileBookingRequest;
+  }
+
+  async transitionProfileBookingPaymentStatus(args: {
+    id: string;
+    paymentIntentId: string;
+    from: Array<"requires_payment" | "processing" | "failed">;
+    to: "failed" | "paid";
+  }): Promise<ProfileBookingRequest | undefined> {
+    const [row] = await db
+      .update(profileBookingRequests)
+      .set({ paymentStatus: args.to, updatedAt: new Date() })
+      .where(
+        and(
+          eq(profileBookingRequests.id, args.id),
+          eq(profileBookingRequests.paymentIntentId, args.paymentIntentId),
+          inArray(profileBookingRequests.paymentStatus, args.from)
+        )
+      )
+      .returning();
+    return row as ProfileBookingRequest | undefined;
   }
 
   private normalizeDecimal(value: any): number {
@@ -881,8 +929,17 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   }
 
   async getUserByFacebookId(facebookId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.facebookId, facebookId));
-    return this.normalizeLegacyAdminUser(user);
+    return this.normalizeLegacyAdminUser(
+      await loadUniqueOAuthProviderUser(db, "facebook", facebookId)
+    );
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    return this.normalizeLegacyAdminUser(await loadUniqueOAuthProviderUser(db, "google", googleId));
+  }
+
+  async getOAuthUsersByEmail(email: string): Promise<User[]> {
+    return loadOAuthEmailCandidates(db, email);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -4459,16 +4516,10 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   // Professional Profile Methods
 
-  async createRealtorProfile(profile: InsertRealtorProfile): Promise<RealtorProfile> {
-    const normalizedProfile: InsertRealtorProfile = {
-      ...profile,
-      specializations: this.coerceStringArray((profile as any).specializations) as any,
-    };
-    const [newProfile] = await db
-      .insert(realtorProfiles)
-      .values(normalizedProfile as any)
-      .returning();
-    return newProfile;
+  async submitRealtorApplication(
+    profile: InsertRealtorProfile
+  ): Promise<ProfessionalApplicationSubmissionResult<RealtorProfile>> {
+    return this.professionalApplications.submitRealtorApplication(profile);
   }
 
   async getRealtorProfile(id: string): Promise<RealtorProfile | undefined> {
@@ -4486,27 +4537,21 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   async updateRealtorProfile(
     id: string,
-    profileData: Partial<RealtorProfile>
+    profileData: ProfessionalProfileEditable<RealtorProfile>
   ): Promise<RealtorProfile> {
+    const editableProfileData = editableProfessionalProfileData(profileData);
     const [updated] = await db
       .update(realtorProfiles)
-      .set({ ...profileData, updatedAt: new Date() })
+      .set({ ...editableProfileData, updatedAt: new Date() })
       .where(eq(realtorProfiles.id, id))
       .returning();
     return updated;
   }
 
-  async createCarSalesmanProfile(profile: InsertCarSalesmanProfile): Promise<CarSalesmanProfile> {
-    const normalizedProfile: InsertCarSalesmanProfile = {
-      ...profile,
-      specializations: this.coerceStringArray((profile as any).specializations) as any,
-      brandsSpecialty: this.coerceStringArray((profile as any).brandsSpecialty) as any,
-    };
-    const [newProfile] = await db
-      .insert(carSalesmanProfiles)
-      .values(normalizedProfile as any)
-      .returning();
-    return newProfile;
+  async submitCarSalesmanApplication(
+    profile: InsertCarSalesmanProfile
+  ): Promise<ProfessionalApplicationSubmissionResult<CarSalesmanProfile>> {
+    return this.professionalApplications.submitCarSalesmanApplication(profile);
   }
 
   async getCarSalesmanProfile(id: string): Promise<CarSalesmanProfile | undefined> {
@@ -4527,139 +4572,35 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   async updateCarSalesmanProfile(
     id: string,
-    profileData: Partial<CarSalesmanProfile>
+    profileData: ProfessionalProfileEditable<CarSalesmanProfile>
   ): Promise<CarSalesmanProfile> {
+    const editableProfileData = editableProfessionalProfileData(profileData);
     const [updated] = await db
       .update(carSalesmanProfiles)
-      .set({ ...profileData, updatedAt: new Date() })
+      .set({ ...editableProfileData, updatedAt: new Date() })
       .where(eq(carSalesmanProfiles.id, id))
       .returning();
     return updated;
   }
 
-  async updateUserRole(userId: string, role: "realtor" | "car_dealer"): Promise<void> {
-    await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));
-  }
-
   async getPendingRealtorApplications(): Promise<(RealtorProfile & { user: User })[]> {
-    const result = await db
-      .select({
-        id: realtorProfiles.id,
-        userId: realtorProfiles.userId,
-        licenseNumber: realtorProfiles.licenseNumber,
-        brokerageName: realtorProfiles.brokerageName,
-        mlsId: realtorProfiles.mlsId,
-        specializations: realtorProfiles.specializations,
-        yearsExperience: realtorProfiles.yearsExperience,
-        transactionsCompleted: realtorProfiles.transactionsCompleted,
-        averageTransactionValue: realtorProfiles.averageTransactionValue,
-        serviceAreas: realtorProfiles.serviceAreas,
-        licenseState: realtorProfiles.licenseState,
-        licenseExpiration: realtorProfiles.licenseExpiration,
-        verificationStatus: realtorProfiles.verificationStatus,
-        verificationDocuments: realtorProfiles.verificationDocuments,
-        isActive: realtorProfiles.isActive,
-        createdAt: realtorProfiles.createdAt,
-        updatedAt: realtorProfiles.updatedAt,
-        user: {
-          id: users.id,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          profileImageUrl: users.profileImageUrl,
-          role: users.role,
-          createdAt: users.createdAt,
-        },
-      })
-      .from(realtorProfiles)
-      .innerJoin(users, eq(realtorProfiles.userId, users.id))
-      .where(eq(realtorProfiles.verificationStatus, "pending"));
-
-    return result.map((row: any) => ({
-      ...row,
-      user: row.user as User,
-    }));
+    return this.professionalApplications.getPendingRealtorApplications();
   }
 
   async getPendingCarSalesmanApplications(): Promise<(CarSalesmanProfile & { user: User })[]> {
-    const result = await db
-      .select({
-        id: carSalesmanProfiles.id,
-        userId: carSalesmanProfiles.userId,
-        dealershipName: carSalesmanProfiles.dealershipName,
-        dealerLicense: carSalesmanProfiles.dealerLicense,
-        salesmanLicense: carSalesmanProfiles.salesmanLicense,
-        specializations: carSalesmanProfiles.specializations,
-        yearsExperience: carSalesmanProfiles.yearsExperience,
-        vehiclesSold: carSalesmanProfiles.vehiclesSold,
-        averageVehicleValue: carSalesmanProfiles.averageVehicleValue,
-        brandsSpecialty: carSalesmanProfiles.brandsSpecialty,
-        serviceAreas: carSalesmanProfiles.serviceAreas,
-        licenseState: carSalesmanProfiles.licenseState,
-        licenseExpiration: carSalesmanProfiles.licenseExpiration,
-        verificationStatus: carSalesmanProfiles.verificationStatus,
-        verificationDocuments: carSalesmanProfiles.verificationDocuments,
-        isActive: carSalesmanProfiles.isActive,
-        createdAt: carSalesmanProfiles.createdAt,
-        updatedAt: carSalesmanProfiles.updatedAt,
-        user: {
-          id: users.id,
-          email: users.email,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          profileImageUrl: users.profileImageUrl,
-          role: users.role,
-          createdAt: users.createdAt,
-        },
-      })
-      .from(carSalesmanProfiles)
-      .innerJoin(users, eq(carSalesmanProfiles.userId, users.id))
-      .where(eq(carSalesmanProfiles.verificationStatus, "pending"));
-
-    return result.map((row: any) => ({
-      ...row,
-      user: row.user as User,
-    }));
+    return this.professionalApplications.getPendingCarSalesmanApplications();
   }
 
-  async updateRealtorVerificationStatus(
-    profileId: string,
-    verificationData: {
-      approved: boolean;
-      notes: string;
-      reviewedBy: string;
-      reviewedAt: Date;
-    }
-  ): Promise<RealtorProfile> {
-    const [updatedProfile] = await db
-      .update(realtorProfiles)
-      .set({
-        verificationStatus: verificationData.approved ? "approved" : "rejected",
-        updatedAt: new Date(),
-      })
-      .where(eq(realtorProfiles.id, profileId))
-      .returning();
-    return updatedProfile;
+  async decideRealtorApplication(
+    decision: ProfessionalApplicationDecision
+  ): Promise<ProfessionalApplicationDecisionResult<RealtorProfile>> {
+    return this.professionalApplications.decideRealtorApplication(decision);
   }
 
-  async updateCarSalesmanVerificationStatus(
-    profileId: string,
-    verificationData: {
-      approved: boolean;
-      notes: string;
-      reviewedBy: string;
-      reviewedAt: Date;
-    }
-  ): Promise<CarSalesmanProfile> {
-    const [updatedProfile] = await db
-      .update(carSalesmanProfiles)
-      .set({
-        verificationStatus: verificationData.approved ? "approved" : "rejected",
-        updatedAt: new Date(),
-      })
-      .where(eq(carSalesmanProfiles.id, profileId))
-      .returning();
-    return updatedProfile;
+  async decideCarSalesmanApplication(
+    decision: ProfessionalApplicationDecision
+  ): Promise<ProfessionalApplicationDecisionResult<CarSalesmanProfile>> {
+    return this.professionalApplications.decideCarSalesmanApplication(decision);
   }
 
   // Marketplace conversation operations
@@ -7089,19 +7030,34 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   }
 
   async updateRecommendationCampaign(
+    contractorId: string,
     campaignId: string,
     updates: Partial<RecommendationCampaign>
-  ): Promise<RecommendationCampaign> {
+  ): Promise<RecommendationCampaign | undefined> {
     const [campaign] = await db
       .update(recommendationCampaigns)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(recommendationCampaigns.id, campaignId))
+      .where(
+        and(
+          eq(recommendationCampaigns.id, campaignId),
+          eq(recommendationCampaigns.contractorId, contractorId)
+        )
+      )
       .returning();
     return campaign;
   }
 
-  async deleteRecommendationCampaign(campaignId: string): Promise<void> {
-    await db.delete(recommendationCampaigns).where(eq(recommendationCampaigns.id, campaignId));
+  async deleteRecommendationCampaign(contractorId: string, campaignId: string): Promise<boolean> {
+    const deleted = await db
+      .delete(recommendationCampaigns)
+      .where(
+        and(
+          eq(recommendationCampaigns.id, campaignId),
+          eq(recommendationCampaigns.contractorId, contractorId)
+        )
+      )
+      .returning({ id: recommendationCampaigns.id });
+    return deleted.length > 0;
   }
 
   async getActiveCampaigns(): Promise<RecommendationCampaign[]> {

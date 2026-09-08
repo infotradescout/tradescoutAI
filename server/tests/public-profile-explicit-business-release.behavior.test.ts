@@ -4,6 +4,7 @@ import { derivePublishedProfileExposure } from "../services/ownerConfirmedDirect
 function candidate(overrides: Record<string, unknown> = {}) {
   return {
     profileId: "profile-1",
+    profilePubliclyReleased: false,
     businessId: "business-1",
     profileSlug: "local-business",
     profileStatus: "published",
@@ -38,6 +39,7 @@ describe("explicit business profile release", () => {
     expect(
       derivePublishedProfileExposure(
         candidate({
+          profilePubliclyReleased: true,
           ownerPreferences: {
             profileVisibility: "private",
             publicProfileIds: ["profile-1"],

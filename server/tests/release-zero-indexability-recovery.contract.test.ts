@@ -11,6 +11,7 @@ import {
   isPrivateAppShellPath,
   PRIVATE_APP_SHELL_PREFIXES,
 } from "../privateShellIndexability";
+import { deriveTradeSlugFromProfileData } from "../publicationBusiness";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -31,9 +32,7 @@ describe("Release 0 discovery indexability recovery", () => {
     ]);
 
     for (const variant of STABLE_PUBLIC_LANDING_BASE_VARIANTS) {
-      expect(
-        resolvePublicLandingIndexability({ requestPath: `/landing/${variant}` })
-      ).toEqual({
+      expect(resolvePublicLandingIndexability({ requestPath: `/landing/${variant}` })).toEqual({
         canonicalPath: `/landing/${variant}`,
         indexable: true,
         stableVariant: variant,
@@ -70,16 +69,13 @@ describe("Release 0 discovery indexability recovery", () => {
   });
 
   it("applies noindex at both private shell boundaries", () => {
-    expect(PRIVATE_APP_SHELL_PREFIXES).toEqual([
-      "/scout",
-      "/auth",
-      "/dashboard",
-      "/account",
-    ]);
+    expect(PRIVATE_APP_SHELL_PREFIXES).toEqual(["/scout", "/auth", "/dashboard", "/account"]);
     for (const prefix of PRIVATE_APP_SHELL_PREFIXES) {
       expect(isPrivateAppShellPath(prefix)).toBe(true);
       expect(isPrivateAppShellPath(`${prefix}/settings?tab=profile`)).toBe(true);
     }
+    expect(isPrivateAppShellPath("/SCOUT/history")).toBe(true);
+    expect(isPrivateAppShellPath("/%73cout/history#latest")).toBe(true);
     expect(isPrivateAppShellPath("/scouting")).toBe(false);
     expect(isPrivateAppShellPath("/public-profile")).toBe(false);
 
@@ -90,6 +86,9 @@ describe("Release 0 discovery indexability recovery", () => {
     expect(replaced).toContain('content="noindex,nofollow,noarchive"');
     expect(replaced).not.toContain('content="index,follow"');
     expect(inserted).toContain('content="noindex,nofollow,noarchive"');
+    expect(applyPrivateShellNoindex("<main>Private shell</main>")).toContain(
+      'content="noindex,nofollow,noarchive"'
+    );
   });
 
   it("wires recent empty states and sitemap rows to crawlability gates", () => {
@@ -106,7 +105,23 @@ describe("Release 0 discovery indexability recovery", () => {
     expect(publicationSource).toContain("listingStaleDaysUnclaimed");
     expect(publicationSource).toContain("listingStaleDaysVerified");
     expect(publicationSource).toContain("PUBLIC_TRADE_INPUT_SLUGS");
+    expect(publicationSource).toContain("WITH ORDINALITY");
+    expect(publicationSource).toContain("LIMIT 8");
     expect(serverSource).toContain('res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive")');
     expect(serverSource).toContain("applyPrivateShellNoindex(templateHtml)");
+  });
+
+  it("keeps the sitemap trade bound identical to the public business renderer", () => {
+    const sevenUnknownServices = Array.from({ length: 7 }, (_, index) => `unknown-${index}`);
+    expect(
+      deriveTradeSlugFromProfileData({
+        services: [...sevenUnknownServices, "plumbing"],
+      })
+    ).toBe("plumbing");
+    expect(
+      deriveTradeSlugFromProfileData({
+        services: [...sevenUnknownServices, "unknown-7", "plumbing"],
+      })
+    ).toBeNull();
   });
 });

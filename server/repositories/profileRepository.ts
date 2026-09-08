@@ -21,6 +21,7 @@ import {
   isSteelHomePackagesProfilePubliclyReleased,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
 } from "@shared/steelHomePackagesProfile";
+import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
 import {
   MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
   MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
@@ -38,6 +39,7 @@ export type PublicProfileRecord = {
   ctaConfig: any;
   seoMeta: any;
   businessId: string | null;
+  publiclyReleased: boolean;
   updatedAt: Date | null;
   profileSections: any | null;
   profileBooking: any | null;
@@ -70,6 +72,7 @@ export async function loadCanonicalPublicMapProfileUrls(
       ownerUserId: profiles.ownerUserId,
       slug: profiles.slug,
       profileStatus: profiles.status,
+      profilePubliclyReleased: profiles.publiclyReleased,
       profileRoleContext: profiles.roleContext,
       profileHeadline: profiles.headline,
       profileContentBlocks: profiles.contentBlocks,
@@ -86,6 +89,7 @@ export async function loadCanonicalPublicMapProfileUrls(
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       businessSources: businesses.sources,
       businessClaimStatus: businesses.claimStatus,
+      professionalRoleApproved: durableProfessionalProfileApprovalSql,
       businessProfileData: businesses.profileData,
     })
     .from(profiles)
@@ -126,6 +130,7 @@ function slugify(input: string): string {
 function publicProfileSearchExposurePredicate() {
   return sql`(
     ${profiles.businessId} IS NOT NULL
+    AND ${profiles.ownerUserId} = ${businesses.ownerUserId}
     AND ${businesses.status} = 'active'
     AND ${businesses.publicDiscoveryEnabled} = true
     AND lower(trim(COALESCE(${users.verificationStatus}::text, ''))) <> 'suspended'
@@ -151,14 +156,12 @@ function publicProfileSearchExposurePredicate() {
         )
       )
     )
+    AND ${durableProfessionalProfileApprovalSql}
   )`;
 }
 
 function publicProfileVisibilityPredicate() {
-  return sql`(
-    COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
-      @> jsonb_build_array(CAST(${profiles.id} AS text))
-  )`;
+  return eq(profiles.publiclyReleased, true);
 }
 
 function publicProfileReleaseExposurePredicate() {
@@ -228,6 +231,7 @@ export class ProfileRepository {
         ctaConfig: profiles.ctaConfig,
         seoMeta: profiles.seoMeta,
         businessId: profiles.businessId,
+        publiclyReleased: profiles.publiclyReleased,
         updatedAt: profiles.updatedAt,
         profileSections: sql`(${users.preferences} -> 'profileSections')`,
         legacyProfileBooking: sql`(${users.preferences} -> 'profileBooking')`,
@@ -250,6 +254,7 @@ export class ProfileRepository {
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         businessSources: businesses.sources,
         businessClaimStatus: businesses.claimStatus,
+        professionalRoleApproved: durableProfessionalProfileApprovalSql,
         businessProfileData: businesses.profileData,
       })
       .from(profiles)
@@ -279,6 +284,7 @@ export class ProfileRepository {
       publicDiscoveryEnabled: _publicDiscoveryEnabled,
       businessSources: _businessSources,
       businessClaimStatus: _businessClaimStatus,
+      professionalRoleApproved: _professionalRoleApproved,
       businessProfileData: _businessProfileData,
       ...publicProfile
     } = row;
@@ -314,6 +320,7 @@ export class ProfileRepository {
         businessId: row.businessId,
         profileSlug: row.slug,
         profileStatus: "published",
+        profilePubliclyReleased: row.publiclyReleased,
         profileRoleContext: row.roleContext,
         profileHeadline: row.headline,
         profileServicesDescription: row.servicesDescription,
@@ -331,6 +338,7 @@ export class ProfileRepository {
         publicDiscoveryEnabled: row.publicDiscoveryEnabled,
         businessSources: row.businessSources,
         businessClaimStatus: row.businessClaimStatus,
+        professionalRoleApproved: row.professionalRoleApproved,
         businessProfileData: row.businessProfileData,
       })
     ) {

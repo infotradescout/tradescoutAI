@@ -45,9 +45,7 @@ const PRIMARY = "bg-orange-500 font-black text-black hover:bg-orange-400";
 const SECONDARY = "border-border bg-card text-foreground hover:bg-muted";
 
 function asRecord(value: unknown): AnyRecord {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as AnyRecord)
-    : {};
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as AnyRecord) : {};
 }
 
 function asList<T>(value: unknown): T[] {
@@ -257,7 +255,7 @@ export default function PropertyBlessingsLaunchWorkspace() {
 
   if (detailQuery.isError || persistenceQuery.isError || projectsQuery.isError || !project) {
     return (
-      <div className="min-h-screen bg-background p-6 text-foreground">
+      <div className="min-h-full bg-background p-6 text-foreground">
         <EmptyState
           title="The Property Blessings launch record could not be loaded"
           text="The full property passport remains available while this launch-control record is checked."
@@ -301,7 +299,7 @@ export default function PropertyBlessingsLaunchWorkspace() {
   return (
     <div
       data-testid="property-blessings-launch-workspace"
-      className="min-h-screen bg-background text-foreground"
+      className="min-h-full bg-background text-foreground"
     >
       <header className="border-b border-border bg-card/40">
         <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-6 lg:py-8">
@@ -568,12 +566,17 @@ function ControlTab({
           <Panel eyebrow="Already represented" title="Current package coverage">
             <div className="space-y-2">
               {Object.entries(currentCoverage).map(([key, value]) => (
-                <div key={key} className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3">
+                <div
+                  key={key}
+                  className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3"
+                >
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-400" />
                     <div>
                       <p className="text-sm font-black">{human(key)}</p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{String(value)}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {String(value)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -613,7 +616,13 @@ function ControlTab({
   );
 }
 
-function ScopeTab({ scopeMatrix, checklists }: { scopeMatrix: AnyRecord[]; checklists: AnyRecord }) {
+function ScopeTab({
+  scopeMatrix,
+  checklists,
+}: {
+  scopeMatrix: AnyRecord[];
+  checklists: AnyRecord;
+}) {
   return (
     <div className="space-y-5">
       <Panel
@@ -670,7 +679,9 @@ function ScopeTab({ scopeMatrix, checklists }: { scopeMatrix: AnyRecord[]; check
               key={key}
               eyebrow="Commercial terms"
               title={human(key)}
-              action={<Pill status={String(checklist.relationshipStatus || "needs_confirmation")} />}
+              action={
+                <Pill status={String(checklist.relationshipStatus || "needs_confirmation")} />
+              }
             >
               <ol className="space-y-2">
                 {fields.map((field, index) => (
@@ -812,7 +823,9 @@ function TemplatePanel({
           </div>
         ))}
         {items.length > 8 ? (
-          <p className="pt-2 text-xs font-black text-orange-400">+ {items.length - 8} more required items</p>
+          <p className="pt-2 text-xs font-black text-orange-400">
+            + {items.length - 8} more required items
+          </p>
         ) : null}
       </div>
     </Panel>
@@ -881,9 +894,7 @@ function PartnersTab({ targets, pipeline }: { targets: TargetRow[]; pipeline: An
                     label={target.role}
                   />
                 </div>
-                <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                  {human(target.lane)}
-                </p>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">{human(target.lane)}</p>
               </article>
             ))}
           </div>
@@ -1160,7 +1171,9 @@ function ReleaseTab({
                 </div>
               ))
             ) : (
-              <p className="text-sm leading-6 text-muted-foreground">No readiness packet is stored.</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                No readiness packet is stored.
+              </p>
             )}
             <Button
               variant="outline"

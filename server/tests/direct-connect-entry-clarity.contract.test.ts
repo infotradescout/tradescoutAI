@@ -13,7 +13,12 @@ const stagedContextSource = fs.readFileSync(
 
 describe("Direct Connect entry clarity contract", () => {
   it("shows one request surface instead of stacking first-use panels above it", () => {
-    expect(source).toContain('{activeSection !== "post" ? (');
+    expect(source).toContain("let centerContent: ReactNode = null");
+    expect(source).toContain("switch (activeSection)");
+    expect(source).toMatch(/case "post":\s*centerContent = \(\s*<DirectConnectRequestComposer/);
+    expect(source).toContain(
+      "const showSectionChrome = shouldRenderDirectConnectSectionChrome(activeSection)"
+    );
     expect(source).not.toContain('activeSection === "post" ? "hidden md:block" : ""');
   });
 
@@ -38,7 +43,7 @@ describe("Direct Connect entry clarity contract", () => {
     expect(stagedContextSource).toContain("parseDirectConnectEntryContext(path)");
     expect(stagedContextSource).toContain("sanitizeDirectConnectEntryContext(envelope.context)");
     expect(stagedContextSource).toContain("window.sessionStorage");
-    expect(source).toContain("entryLocation={directConnectLocation}");
+    expect(source).toContain("entryLocation={composerEntryLocation}");
     expect(source).toContain('prefillSubjectType === "product" ? "buy_sell"');
     expect(source).toContain("prefillSubjectType={requestPrefill?.subjectType}");
     expect(source).toContain("prefillLocation={requestPrefill?.location}");
