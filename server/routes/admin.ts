@@ -49,6 +49,15 @@ import {
 } from "../../shared/schema";
 import { and } from "drizzle-orm";
 import { resolveRuntimeEntrypoint } from "../runtimeEntrypoints";
+import {
+  PROFESSIONAL_VERIFICATION_DECISION_REQUIRED_RESPONSE,
+  updateUserPreservingApprovedProfessionalRoles,
+} from "../services/professionalRoleAuthority";
+import {
+  ADMIN_ROLE_MUTATION_CONFIRMATION,
+  evaluateAdminRoleMutationAuthority,
+  parseAdminRoleMutationRequest,
+} from "../services/adminRoleMutationPolicy";
 
 function parseIsoDateParam(value: unknown): Date | null {
   if (typeof value !== "string") return null;
@@ -2026,68 +2035,162 @@ export function mountAdminRoutes(app: any) {
     requireAdmin,
     async (req: Request, res: Response) => {
       try {
-        const actorId = normalizeImmutableTargetId(
+        const sessionActorId = normalizeImmutableTargetId(
           (req as any)?.user?.id || (req as any)?.user?.claims?.sub
         );
-        const actor = actorId ? await storage.getUser(actorId) : null;
-        const actorContext = resolvePrivilegedActor(actor || (req as any)?.user);
+        const actor = sessionActorId ? await storage.getUser(sessionActorId) : null;
+        const actorId = normalizeImmutableTargetId(actor?.id || sessionActorId);
+        const actorContext = resolvePrivilegedActor(actor);
         const targetUserId = normalizeImmutableTargetId((req.params as any)?.userId);
         const { roles, activeRole } = (req.body || {}) as any;
         const reason = normalizePrivilegedReason(
           (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
-          12
+          12,
+          500
         );
+        const confirmation = String(
+          (req.body as any)?.confirmPhrase ??
+            (req.body as any)?.confirmation ??
+            (req.body as any)?.adminSafety?.confirmPhrase ??
+            ""
+        ).trim();
+        const auditRoleMutation = (
+          outcome: "started" | "denied" | "completed",
+          details: Record<string, unknown>
+        ) =>
+          auditPrivilegedAction({
+            action: "admin_user_roles_update",
+            route: "/api/admin/users/:userId/roles",
+            operationType: "update_user_roles",
+            actorId,
+            actorRole: actorContext.actorRole,
+            actorRoles: actorContext.actorRoles,
+            targetType: "user",
+            targetId: targetUserId,
+            resolutionSource: "route_param:user_id",
+            reason,
+            outcome,
+            details,
+          });
 
-        if (!actorId) {
+        if (!actorId || !actor) {
+          await auditRoleMutation("denied", { code: "PERSISTED_ACTOR_NOT_FOUND" });
           return res.status(401).json({ message: "Actor not found" });
         }
         if (!targetUserId) {
+          await auditRoleMutation("denied", { code: "IMMUTABLE_TARGET_REQUIRED" });
           return res.status(400).json({ message: "userId is required" });
         }
+        if (!actorHasPrivilegedCapability(actor, ["ops_admin", "super_admin"])) {
+          await auditRoleMutation("denied", { code: "ROLE_MUTATION_AUTHORITY_REQUIRED" });
+          return res.status(403).json({
+            message: "Ops admin or super admin authority is required.",
+            code: "ROLE_MUTATION_AUTHORITY_REQUIRED",
+          });
+        }
         if (!reason) {
-          return res.status(400).json({ message: "reason is required (min 12 chars)" });
+          await auditRoleMutation("denied", { code: "ROLE_MUTATION_REASON_REQUIRED" });
+          return res.status(400).json({ message: "reason is required (12-500 chars)" });
+        }
+        if (confirmation !== ADMIN_ROLE_MUTATION_CONFIRMATION) {
+          await auditRoleMutation("denied", { code: "ROLE_MUTATION_CONFIRMATION_REQUIRED" });
+          return res.status(400).json({
+            message: `Type "${ADMIN_ROLE_MUTATION_CONFIRMATION}" to confirm role changes.`,
+            code: "ROLE_MUTATION_CONFIRMATION_REQUIRED",
+          });
+        }
+
+        const parsedMutation = parseAdminRoleMutationRequest(roles, activeRole);
+        if (parsedMutation.outcome === "professional_decision_required") {
+          await auditRoleMutation("denied", { code: parsedMutation.code });
+          return res.status(409).json(PROFESSIONAL_VERIFICATION_DECISION_REQUIRED_RESPONSE);
+        }
+        if (parsedMutation.outcome !== "allowed") {
+          await auditRoleMutation("denied", { code: parsedMutation.code });
+          return res.status(400).json({
+            message: parsedMutation.message,
+            code: parsedMutation.code,
+          });
         }
 
         const targetUser = await storage.getUser(targetUserId);
         if (!targetUser) {
+          await auditRoleMutation("denied", { code: "TARGET_NOT_FOUND" });
           return res.status(404).json({ message: "User not found" });
         }
-
-        if (!Array.isArray(roles) || roles.length === 0) {
-          return res.status(400).json({ message: "Roles must be a non-empty array" });
-        }
-
-        if (!activeRole || !roles.includes(activeRole)) {
-          return res.status(400).json({ message: "Active role must be one of the assigned roles" });
-        }
-
-        await db
-          .update(users)
-          .set({
-            roles,
-            activeRole,
-            role: activeRole,
-            updatedAt: new Date(),
-          })
-          .where(eq(users.id, targetUserId));
-
-        await auditPrivilegedAction({
-          action: "admin_user_roles_update",
-          route: "/api/admin/users/:userId/roles",
-          operationType: "update_user_roles",
+        const initialAuthority = evaluateAdminRoleMutationAuthority({
+          actor,
           actorId,
-          actorRole: actorContext.actorRole,
-          actorRoles: actorContext.actorRoles,
-          targetType: "user",
-          targetId: targetUserId,
-          resolutionSource: "route_param:user_id",
-          reason,
-          outcome: "completed",
-          details: {
-            targetEmail: targetUser.email || null,
-            roleCount: roles.length,
-            activeRole,
+          target: targetUser,
+          targetUserId,
+          requestedRoles: parsedMutation.roles,
+        });
+        if (initialAuthority.outcome !== "allowed") {
+          await auditRoleMutation("denied", { code: initialAuthority.code });
+          return res.status(403).json({
+            message: initialAuthority.message,
+            code: initialAuthority.code,
+          });
+        }
+
+        await auditRoleMutation("started", {
+          requestedRoles: parsedMutation.roles,
+          requestedActiveRole: parsedMutation.activeRole,
+          targetWasProtected: initialAuthority.targetIsProtected,
+        });
+
+        let lockedAuthorityDenial: { outcome: "denied"; code: string; message: string } | undefined;
+        const roleUpdate = await updateUserPreservingApprovedProfessionalRoles({
+          database: db,
+          userId: targetUserId,
+          requestedProfessionalRoleValues: [...parsedMutation.roles, parsedMutation.activeRole],
+          buildPatch: ({ currentUser }) => {
+            const lockedAuthority = evaluateAdminRoleMutationAuthority({
+              actor,
+              actorId,
+              target: currentUser,
+              targetUserId,
+              requestedRoles: parsedMutation.roles,
+            });
+            if (lockedAuthority.outcome !== "allowed") {
+              lockedAuthorityDenial = lockedAuthority;
+              return null;
+            }
+            return {
+              roles: parsedMutation.roles,
+              activeRole: parsedMutation.activeRole,
+              role: parsedMutation.activeRole,
+              updatedAt: new Date(),
+            };
           },
+        });
+        if (roleUpdate.outcome === "professional_approval_required") {
+          await auditRoleMutation("denied", {
+            code: "PROFESSIONAL_VERIFICATION_DECISION_REQUIRED",
+          });
+          return res.status(409).json(PROFESSIONAL_VERIFICATION_DECISION_REQUIRED_RESPONSE);
+        }
+        if (roleUpdate.outcome === "not_found") {
+          await auditRoleMutation("denied", { code: "TARGET_NOT_FOUND_DURING_UPDATE" });
+          return res.status(404).json({ message: "User not found" });
+        }
+        if (roleUpdate.outcome !== "updated") {
+          await auditRoleMutation("denied", {
+            code: lockedAuthorityDenial?.code || "ROLE_MUTATION_CONFLICT",
+          });
+          return res.status(409).json({
+            message:
+              lockedAuthorityDenial?.message ||
+              "The target account changed while roles were being updated.",
+            code: lockedAuthorityDenial?.code || "ROLE_MUTATION_CONFLICT",
+          });
+        }
+
+        await auditRoleMutation("completed", {
+          targetEmail: targetUser.email || null,
+          roleCount: roleUpdate.user.roles.length,
+          activeRole: parsedMutation.activeRole,
+          protectedTarget: initialAuthority.targetIsProtected,
         });
 
         res.json({ message: "User roles updated successfully" });

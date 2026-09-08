@@ -4,6 +4,8 @@ import { db } from "../db";
 import { clearAdminAuditLog, getAdminAuditLog } from "../services/adminAuditLogService";
 import {
   users,
+  businesses,
+  profiles,
   contractorCounties,
   contractors,
   contractorTrades,
@@ -18,6 +20,31 @@ import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 const INTEGRATION_TIMEOUT_MS = 30000;
 const truthyEnvValues = new Set(["1", "true", "yes", "on", "enabled"]);
+
+async function releaseProviderProfile(userId: string) {
+  await db.update(users).set({ verificationStatus: "approved" }).where(eq(users.id, userId));
+  const [business] = await db
+    .insert(businesses)
+    .values({
+      ownerUserId: userId,
+      name: "Eligible Direct Connect fixture",
+      slug: `dc-provider-business-${crypto.randomUUID()}`,
+      type: "other",
+      roleContext: "business_owner",
+      status: "active",
+      publicDiscoveryEnabled: true,
+    })
+    .returning();
+  await db.insert(profiles).values({
+    ownerUserId: userId,
+    businessId: business.id,
+    roleContext: "contractor",
+    slug: `dc-provider-profile-${crypto.randomUUID()}`,
+    displayName: business.name,
+    status: "published",
+    publiclyReleased: true,
+  });
+}
 
 vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });
 
@@ -643,8 +670,13 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     const expressRes = await providerAgent
       .post(`/api/direct-connect/requests/${requestId}/express-interest`)
       .send({});
-    expect([200, 201]).toContain(expressRes.status);
-    const assignmentId = String(expressRes.body?.assignment?.id || "");
+    expect(expressRes.status).toBe(403);
+    await releaseProviderProfile(String(providerUser.id));
+    const eligibleExpressRes = await providerAgent
+      .post(`/api/direct-connect/requests/${requestId}/express-interest`)
+      .send({});
+    expect([200, 201]).toContain(eligibleExpressRes.status);
+    const assignmentId = String(eligibleExpressRes.body?.assignment?.id || "");
     expect(assignmentId.length).toBeGreaterThan(0);
 
     const respondRes = await providerAgent
@@ -717,7 +749,12 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     const expressRes = await providerAgent
       .post(`/api/direct-connect/requests/${requestId}/express-interest`)
       .send({});
-    expect([200, 201]).toContain(expressRes.status);
+    expect(expressRes.status).toBe(403);
+    await releaseProviderProfile(String(providerUser.id));
+    const eligibleExpressRes = await providerAgent
+      .post(`/api/direct-connect/requests/${requestId}/express-interest`)
+      .send({});
+    expect([200, 201]).toContain(eligibleExpressRes.status);
 
     const [updatedRequest] = await db
       .select({ status: workRequests.status })

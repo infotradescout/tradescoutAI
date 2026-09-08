@@ -29,6 +29,8 @@ function paymentIntent(overrides: Record<string, unknown> = {}) {
       bookingRequestId: "booking-1",
       ownerUserId: "owner-1",
       buyerUserId: "buyer-1",
+      profileId: "profile-1",
+      lineageKind: "exact_profile",
     },
     ...overrides,
   } as any;
@@ -52,6 +54,7 @@ function paymentInput(overrides: Record<string, unknown> = {}) {
       ownerUserId: "owner-1",
       buyerUserId: "buyer-1",
       profileId: "profile-1",
+      lineageKind: "exact_profile",
       slotId: "",
       updatePaymentState,
       ...overrides,
@@ -183,6 +186,51 @@ describe("profile booking payment hardening", () => {
     });
     expect(create).not.toHaveBeenCalled();
     expect(updatePaymentState).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["profile id", { profileId: "sibling-profile" }],
+    ["lineage kind", { lineageKind: "legacy_owner", profileId: "" }],
+  ])("rejects a reusable intent with mismatched %s metadata", async (_label, metadataPatch) => {
+    const { input, retrieve, create } = paymentInput();
+    retrieve.mockResolvedValue(
+      paymentIntent({
+        metadata: {
+          ...paymentIntent().metadata,
+          ...metadataPatch,
+        },
+      })
+    );
+
+    await expect(resolveProfileBookingPaymentIntent(input)).resolves.toEqual({
+      ok: false,
+      status: 409,
+      message: "Stored payment intent does not match booking",
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("allows missing profileId metadata only for explicit legacy lineage", async () => {
+    const { input, retrieve } = paymentInput({
+      profileId: null,
+      lineageKind: "legacy_owner",
+    });
+    retrieve.mockResolvedValue(
+      paymentIntent({
+        metadata: {
+          type: "profile_booking",
+          bookingRequestId: "booking-1",
+          ownerUserId: "owner-1",
+          buyerUserId: "buyer-1",
+          lineageKind: "legacy_owner",
+        },
+      })
+    );
+
+    await expect(resolveProfileBookingPaymentIntent(input)).resolves.toMatchObject({
+      ok: true,
+      reused: true,
+    });
   });
 
   it("reconciles a succeeded intent to paid without accepting the booking", async () => {

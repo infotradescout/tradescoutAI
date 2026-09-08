@@ -2,7 +2,14 @@ import express from "express";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTableConfig } from "drizzle-orm/pg-core";
-import { businesses, profiles, searchAnalytics, users } from "@shared/schema";
+import {
+  businesses,
+  profiles,
+  searchAnalytics,
+  users,
+  realtorProfiles,
+  carSalesmanProfiles,
+} from "@shared/schema";
 
 const fixture = vi.hoisted(() => ({
   client: null as import("@electric-sql/pglite").PGlite | null,
@@ -44,7 +51,14 @@ beforeAll(async () => {
     date: "timestamp",
     array: "text[]",
   };
-  for (const table of [users, businesses, profiles, searchAnalytics]) {
+  for (const table of [
+    users,
+    businesses,
+    profiles,
+    searchAnalytics,
+    realtorProfiles,
+    carSalesmanProfiles,
+  ]) {
     const config = getTableConfig(table);
     const columns = config.columns.map(
       (column) => `${quote(column.name)} ${types[column.dataType] || "text"}`
@@ -75,7 +89,7 @@ async function seed(slug: string, status: string | null, badge: boolean, newer =
     [`business-${slug}`, ownerId]
   );
   await fixture.client!.query(
-    "INSERT INTO profiles (id, slug, display_name, headline, role_context, owner_user_id, business_id, status, updated_at) VALUES ($1, $1, $1, 'Synthetic business', 'business_owner', $2, $3, 'published', $4)",
+    "INSERT INTO profiles (id, slug, display_name, headline, role_context, owner_user_id, business_id, status, publicly_released, updated_at) VALUES ($1, $1, $1, 'Synthetic business', 'business_owner', $2, $3, 'published', true, $4)",
     [slug, ownerId, `business-${slug}`, newer ? "2026-09-06" : "2026-09-05"]
   );
   return ownerId;

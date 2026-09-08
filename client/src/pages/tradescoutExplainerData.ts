@@ -1088,10 +1088,9 @@ export const explainerChapters: readonly ExplainerChapter[] = [
           },
           {
             number: "02.08",
-            action: "Complete extra screening when the role requires it",
-            name: "Background screening and Screen Pass",
-            description:
-              "A background-check intake exists as an additional verification path. Screen Pass is the portable direction: show that the required screen was completed without exposing the private report. Broader partner completion is still expanding.",
+            action: "Review background-screening information",
+            name: "Background screening",
+            description: "Background screening is not available through TradeScout yet.",
           },
           {
             number: "02.09",

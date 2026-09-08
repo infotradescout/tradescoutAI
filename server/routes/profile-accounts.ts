@@ -20,6 +20,7 @@ import {
   type ProfileAccountEntitlement,
 } from "../services/profileAccountEntitlementService";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { isReservedSignupIdentityEmail } from "../utils/authorityPolicy";
 import { hasRequestPrivilegedVerificationBypass } from "../utils/privilegedVerification";
 import { requireCriticalSchema } from "../schemaPreflight";
 import { JW_STONE_MEMBER_PRICING_PRODUCT_KEY } from "@shared/jwStoneMemberPricing";
@@ -274,6 +275,15 @@ export function registerProfileAccountRoutes(app: Express) {
         return;
       }
 
+      const email = normalizeEmail(parsed.data.email);
+      if (isReservedSignupIdentityEmail(email)) {
+        res.status(409).json({
+          message: "An account with this email already exists. Sign in to continue.",
+          code: "AUTH_ACCOUNT_EXISTS",
+        });
+        return;
+      }
+
       let createdUserId = "";
       try {
         const registrationEnabled = await getGeneralSetting<boolean>("registration_enabled", true);
@@ -299,7 +309,6 @@ export function registerProfileAccountRoutes(app: Express) {
           return;
         }
 
-        const email = normalizeEmail(parsed.data.email);
         const existingUser = await storage.getUserByEmail(email);
         if (existingUser) {
           res.status(409).json({

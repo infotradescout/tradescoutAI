@@ -2,7 +2,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { Building, ClipboardList, Compass, Share2, ShoppingBag, Users, Wrench } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ROUTES } from "@/lib/routes";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import MobileAppBar from "@/components/navigation/MobileAppBar";

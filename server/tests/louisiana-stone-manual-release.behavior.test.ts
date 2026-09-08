@@ -31,6 +31,8 @@ describe("manual admin publication through real public readers and contact resol
     mocks.row = {
       id: "synthetic-profile",
       profileId: "synthetic-profile",
+      publiclyReleased: true,
+      profilePubliclyReleased: true,
       slug: "louisiana-stone-solutions",
       profileSlug: "louisiana-stone-solutions",
       profileStatus: "published",
@@ -97,4 +99,41 @@ describe("manual admin publication through real public readers and contact resol
     ).toBeUndefined();
     expect((await request(app).post(url).send(decision)).status).toBe(404);
   });
+
+  it("denies a revoked canonical release despite retained admin source and legacy release preferences", async () => {
+    mocks.row.publiclyReleased = false;
+    mocks.row.profilePubliclyReleased = false;
+    expect(
+      await new ProfileRepository().getProfileBySlugPublic("louisiana-stone-solutions")
+    ).toBeUndefined();
+
+    const app = express();
+    app.use(express.json());
+    registerTradePartnerExpressRoutes(app);
+    const response = await request(app)
+      .post("/api/tradepartner-profiles/louisiana-stone-solutions/express-contact/reveal")
+      .send({ authorityGate: "profile_direct_connect", decision: "call" });
+    expect(response.status).toBe(404);
+    expect(response.text).not.toContain("2255550198");
+  });
+
+  it.each([
+    { businessOwnerUserId: "other-owner" },
+    { ownerVerificationStatus: "suspended" },
+    { profileData: {}, businessProfileData: {}, ownerPhone: "2255550177" },
+  ])(
+    "denies missing business authority or phone without using private owner contact",
+    async (changes) => {
+      Object.assign(mocks.row, changes);
+      const app = express();
+      app.use(express.json());
+      registerTradePartnerExpressRoutes(app);
+      const response = await request(app)
+        .post("/api/tradepartner-profiles/louisiana-stone-solutions/express-contact/reveal")
+        .send({ authorityGate: "profile_direct_connect", decision: "call" });
+      expect(response.status).toBe(404);
+      expect(response.text).not.toContain("2255550198");
+      expect(response.text).not.toContain("2255550177");
+    }
+  );
 });

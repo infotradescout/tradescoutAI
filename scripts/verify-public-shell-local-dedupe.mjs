@@ -4,7 +4,9 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   assertNoUnreviewedDynamicLandingMedia,
+  assertPublicShellSourceTotals,
   gitBlobSha,
+  publicShellSourceStats,
   validatePublicShellDedupeManifest,
 } from "./public-shell-local-dedupe-core.mjs";
 
@@ -73,31 +75,8 @@ for (const publicRoot of roots) {
     }
   }
 }
-function publicFileStats(directory) {
-  let files = 0;
-  let bytes = 0;
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      const nested = publicFileStats(absolute);
-      files += nested.files;
-      bytes += nested.bytes;
-    } else if (entry.isFile()) {
-      files += 1;
-      bytes += fs.statSync(absolute).size;
-    }
-  }
-  return { files, bytes };
-}
-const clientPublic = publicFileStats(path.join(root, manifest.source.pathPrefix));
-if (
-  clientPublic.files !== manifest.expected.clientPublicFiles ||
-  clientPublic.bytes !== manifest.expected.clientPublicBytes
-) {
-  throw new Error(
-    `Release B client/public totals changed without review: expected ${manifest.expected.clientPublicFiles} files and ${manifest.expected.clientPublicBytes} bytes; found ${clientPublic.files} files and ${clientPublic.bytes} bytes`
-  );
-}
+const clientPublic = publicShellSourceStats(path.join(root, manifest.source.pathPrefix));
+assertPublicShellSourceTotals(clientPublic, manifest.expected);
 console.log(
   `[public-shell-dedupe] Release B verified ${summary.files} removed paths (${summary.bytes} bytes), ${summary.aliases} compatibility aliases, and ${summary.deadPinned} dead pinned paths`
 );

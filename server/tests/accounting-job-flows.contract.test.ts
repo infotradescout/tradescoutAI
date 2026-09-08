@@ -8,6 +8,36 @@ const read = (relativePath: string) => {
 };
 
 describe("accounting job flow contracts", () => {
+  it("requires explicit lineage on every null-FK accounting selector or mutation", () => {
+    const source = read("server/invoicingDocumentsRouter.ts");
+    const nullFkSelector = "job_id IS NULL";
+    const standalonePredicate = "permissions->>'lineageKind' = 'standalone_accounting'";
+    const selectorOffsets = [...source.matchAll(new RegExp(nullFkSelector, "g"))].map(
+      (match) => match.index ?? -1
+    );
+
+    expect(selectorOffsets.length).toBeGreaterThanOrEqual(10);
+    for (const offset of selectorOffsets) {
+      const queryEnd = source.indexOf("`", offset);
+      expect(queryEnd).toBeGreaterThan(offset);
+      const query = source.slice(offset, queryEnd);
+      const isStandalone = query.includes(standalonePredicate);
+      const isCanonicalProfileOfferReceipt =
+        query.includes("permissions->>'lineageKind' = 'profile_offer_purchase'") &&
+        query.includes("permissions->>'source' = 'profile_offer_purchase'") &&
+        query.includes("payload->>'profileOfferPurchaseId' = $4");
+      expect(isStandalone || isCanonicalProfileOfferReceipt).toBe(true);
+    }
+
+    expect(source).toContain("documentLineagePermissions(PROFILE_OFFER_PURCHASE_LINEAGE");
+    expect(source).toContain('source: "profile_offer_purchase"');
+    expect(source).toContain(
+      "AND (job_id IS NOT NULL OR permissions->>'lineageKind' = 'standalone_accounting')"
+    );
+    expect(source).toContain("left(payload->>'accountingGroupId', 5) = 'acct_'");
+    expect(source).not.toContain("payload->>'accountingGroupId' LIKE 'acct_%'");
+  });
+
   it("exposes a canonical accounting job-flow endpoint", () => {
     const source = read("server/invoicingDocumentsRouter.ts");
 

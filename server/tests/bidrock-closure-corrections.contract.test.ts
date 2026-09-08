@@ -22,7 +22,11 @@ describe("BidRock closure migration and readiness contracts", () => {
     const recoveryEntries = entries.filter((entry) => /^012[1-5]_/.test(entry.tag));
 
     expect(packageJson.scripts["db:migrate"]).toContain("runtime/run-release.mjs db-migrate-safe");
-    expect(migrateScript).toContain('run("npx drizzle-kit migrate")');
+    expect(migrateScript).toContain("await runVerifiedMigration({");
+    expect(migrateScript).toContain(
+      'runCommand("npx", ["drizzle-kit", "migrate", `--config=${config}`]'
+    );
+    expect(migrateScript).toContain("runCommand(process.execPath, [requiredSchemaEntrypoint()]");
     expect(recoveryEntries.map((entry) => entry.tag)).toEqual([
       "0121_jw_stone_inventory_truth",
       "0122_stone_core_schema",

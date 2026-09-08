@@ -34,13 +34,13 @@ describe("public profile TradeScout footer", () => {
       expect(read(relativePath), relativePath).toContain("<TradeScoutProfileHandoff");
     }
 
-    expect(read("client/src/pages/profile-sites/DefaultProfileTheme.tsx")).toContain(
-      "{tradeScoutHandoff}"
-    );
+    for (const theme of ["PreservedDefaultProfileTheme", "BusinessProfileTheme"]) {
+      expect(read(`client/src/pages/profile-sites/${theme}.tsx`)).toContain("{tradeScoutHandoff}");
+    }
 
     for (const [relativePath, footerTestId] of [
       [
-        "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+        "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
         'data-testid="wholesaler-brand-footer"',
       ],
       [
