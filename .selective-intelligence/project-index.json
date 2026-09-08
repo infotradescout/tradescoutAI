@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-08T21:30:36Z",
+  "generated_at": "2026-09-08T21:39:43Z",
   "source": {
     "kind": "git",
-    "revision": "89f0f9b2ed75746ed9d85930c72c283d2e6e3097",
+    "revision": "2a9ac3aa24b66aa7571c0a1fe8546dd4e7385566",
     "dirty": true,
-    "inventory_sha256": "1c5f5f63b85152a65e0a7cf9bb8444e5a3352f86f562053851d88bfe9cd2624f"
+    "inventory_sha256": "37308a3f3ad7ab6359ab98f7baa54ea403257616fd4d25dc63cb81c2ddad1736"
   },
   "inventory": {
     "directories": [
@@ -5307,8 +5307,8 @@
       {
         "path": "client/src/pages/for-businesses.contract.test.ts",
         "language": "ts",
-        "sha256": "b6bcb4be561116cc2b24e1a81b3483773a2c0e760f88d32e3ad5c2953e398fd5",
-        "bytes": 1716
+        "sha256": "8d2b84dbcc6d67fbd493b7748a587fe126bda4d8dbf643a734da62110e14eeec",
+        "bytes": 1680
       },
       {
         "path": "client/src/pages/for-businesses.tsx",
@@ -8655,8 +8655,8 @@
       {
         "path": "scripts/tests/oauth-identity-http.native.ts",
         "language": "ts",
-        "sha256": "be80221cdc79587d540db0cd0a4b235e637e8baa3126c6f5fb0500b3274598b6",
-        "bytes": 17386
+        "sha256": "cd27db79d6aff5821abfe124acfbc1a4de9dca629763a0d34c2f64359c4ce554",
+        "bytes": 16946
       },
       {
         "path": "scripts/tests/profile-origin-behavior.test.mjs",
@@ -8685,8 +8685,8 @@
       {
         "path": "scripts/tests/recovery-schema.native.mjs",
         "language": "mjs",
-        "sha256": "cacb9988e1076bc48b5fef5d7424eb331015ba520f1ed511962d2eccf9021d3f",
-        "bytes": 11761
+        "sha256": "f4435b3aaee29315672a3504f6123afa05cd1fe329cb40965f5b8028f085adc5",
+        "bytes": 17186
       },
       {
         "path": "scripts/tests/recovery-transactions.native.ts",
@@ -9039,8 +9039,8 @@
       {
         "path": "server/auth.ts",
         "language": "ts",
-        "sha256": "fbcde622afca1fa895a525c739cdcdd56ce331b7591ffc76cd486ed58d0fa8b7",
-        "bytes": 38809
+        "sha256": "9e8ec5b32faf74771e0334c80cae3273e67efb53a3a270fca3c01551ea8e50ab",
+        "bytes": 37729
       },
       {
         "path": "server/badges/badgeEngine.ts",
@@ -9783,8 +9783,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "e708b43a644e3bbbd392d3a78f4cdde13fb5d46e980791a98abb92add1f88c31",
-        "bytes": 1013303
+        "sha256": "c1dcc4b2794793e077fb76eb8dcf91769c977111b78e96dc821cf2401c533d7b",
+        "bytes": 987181
       },
       {
         "path": "server/routes/address-verification.ts",
@@ -13545,8 +13545,8 @@
       {
         "path": "server/tests/jw-stone-member-pricing.test.ts",
         "language": "ts",
-        "sha256": "774af8179e8dcaf78d690fdcdde17e86bc745a733edad1df52bace20d47d5e00",
-        "bytes": 15280
+        "sha256": "1e87ad73b791566891176c0cd26a90a55e526d35817f90f294332f3af3fbc66d",
+        "bytes": 14901
       },
       {
         "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
@@ -13821,8 +13821,8 @@
       {
         "path": "server/tests/oauth-strategy-callbacks.behavior.test.ts",
         "language": "ts",
-        "sha256": "25f4bae34378657bce0b0e8eac92ccf0105d241807ee3690bb79f689918d4a78",
-        "bytes": 11705
+        "sha256": "69e002474004305bd271bc72bc26f970b12d8e4ed3086088a31f557cf3bbe8a5",
+        "bytes": 11463
       },
       {
         "path": "server/tests/oauth-strategy-callbacks.integration.test.ts",
@@ -13869,8 +13869,8 @@
       {
         "path": "server/tests/onboarding-explicit-completion-authority.contract.test.ts",
         "language": "ts",
-        "sha256": "1aaad2718e8cf9807f221dbb3b550e0d671e8745c5c2629629f91d382f5bfab4",
-        "bytes": 1840
+        "sha256": "8cc447e06c6cc2a39c90e54893b757197d9609d623973f7cd96807f08ddd693f",
+        "bytes": 1794
       },
       {
         "path": "server/tests/onboarding-flow-contracts.test.ts",
@@ -15285,8 +15285,8 @@
       {
         "path": "server/tests/scout-v2-gates.test.ts",
         "language": "ts",
-        "sha256": "bfcdb446d8866db72800b078cc747c5ee2e895d155a873954b7f8f807434b8a6",
-        "bytes": 1068
+        "sha256": "d56f46a315af590654e6187a35817bc0c3e095aed0539c2e797bc3fba8f79f98",
+        "bytes": 1034
       },
       {
         "path": "server/tests/scout-v2-route-registration.contract.test.ts",
@@ -16011,14 +16011,14 @@
       {
         "path": "server/utils/oauthIdentityPolicy.test.ts",
         "language": "ts",
-        "sha256": "54640879426ac49a4e68ba0cdaf94b92daea9420715d9f5b7afc0119fe382631",
-        "bytes": 3298
+        "sha256": "205e429209da976c3b7e2d289f37c636651d2c5c110b0a7a74c01413ef979266",
+        "bytes": 3213
       },
       {
         "path": "server/utils/oauthIdentityPolicy.ts",
         "language": "ts",
-        "sha256": "a3ffac37eeed24e27ff8861a716916dd5e63ad49b7fb1d15c980a7e81db7041c",
-        "bytes": 3471
+        "sha256": "e43a85c881b0021bfd7be305f6fae56882af5acb0e0ce2a0757882e6e4b0bbd3",
+        "bytes": 3367
       },
       {
         "path": "server/utils/onboardingService.ts",
@@ -64740,7 +64740,7 @@
         "name": "main",
         "kind": "function",
         "path": "scripts/tests/recovery-schema.native.mjs",
-        "line": 180,
+        "line": 195,
         "exported": false
       },
       {
