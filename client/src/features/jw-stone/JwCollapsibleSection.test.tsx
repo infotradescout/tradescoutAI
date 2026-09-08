@@ -40,10 +40,10 @@ describe("JwCollapsibleSection", () => {
     act(() => {
       root.render(
         <JwCollapsibleSection
-          id="material-library"
+          id="current-inventory"
           testId="jw-inventory"
           headingId="jw-inventory-heading"
-          title="Material Library"
+          title="Browse Full Inventory"
           summary="Must not appear on photo band"
           background={<div data-testid="jw-inventory-collage" />}
         >
@@ -55,7 +55,7 @@ describe("JwCollapsibleSection", () => {
     const toggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
     expect(toggle?.tagName).toBe("BUTTON");
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
-    expect(toggle?.getAttribute("aria-label")).toBe("Open Material Library");
+    expect(toggle?.getAttribute("aria-label")).toBe("Open Browse Full Inventory");
     expect(toggle?.className).toMatch(/cursor-pointer/);
     expect(toggle?.className).toMatch(/focus-visible:ring/);
 
@@ -77,7 +77,7 @@ describe("JwCollapsibleSection", () => {
 
     click(toggle);
     expect(toggle?.getAttribute("aria-expanded")).toBe("true");
-    expect(toggle?.getAttribute("aria-label")).toBe("Close Material Library");
+    expect(toggle?.getAttribute("aria-label")).toBe("Close Browse Full Inventory");
     expect(visibleOpenCloseLabels(container)).toEqual(["Close"]);
     expect(
       container.querySelector('[data-testid="jw-inventory-expand-chevron"]')?.getAttribute("class")
@@ -88,10 +88,10 @@ describe("JwCollapsibleSection", () => {
     act(() => {
       root.render(
         <JwCollapsibleSection
-          id="material-library"
+          id="current-inventory"
           testId="jw-inventory"
           headingId="jw-inventory-heading"
-          title="Material Library"
+          title="Browse Full Inventory"
           background={<div data-testid="jw-inventory-collage" />}
         >
           <p data-testid="jw-inventory-body">stone grid</p>

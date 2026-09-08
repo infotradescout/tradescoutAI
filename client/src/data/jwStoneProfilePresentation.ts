@@ -26,7 +26,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       videoUrl: "/images/businesses/jw-stone/video/hero.mp4",
       posterUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
       inventoryItemSlug: "amazonic-green",
-      eyebrow: "Amazonic Green · material library",
+      eyebrow: "Amazonic Green · full inventory",
       headline: "Natural stone, selected at the source.",
       teaser: "Search the full collection or ask JW Stone about your project.",
       preserveMedia: true,
@@ -34,7 +34,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       zoomVideo: true,
     },
     copy: {
-      inventoryTitle: "Material Library",
+      inventoryTitle: "Browse Full Inventory",
       ctaHeading: "Tell JW Stone what you need",
     },
     media: {
@@ -50,7 +50,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       sourceRequests: true,
       browseCtaImage:
         "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-      browseCtaEyebrow: "White Rhino · material library",
+      browseCtaEyebrow: "White Rhino · full inventory",
       featuredCollection: {
         label: "JW Stone Picks",
         slugs: ["blue-dunes", "cristallo", "gold-macaubas", "rhino-white", "taj-mahal", "titanium"],

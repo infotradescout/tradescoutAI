@@ -961,6 +961,9 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/daily-deals/:rest*">
                 <LazyPage Component={DailyDeals} />
               </Route>
+              <Route path="/help-demo">
+                <LazyPage Component={HelpDemo} />
+              </Route>
               <Route path="/help-demo/:rest*">
                 <LazyPage Component={HelpDemo} />
               </Route>
