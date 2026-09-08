@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "wouter";
 import {
   SEOHelmet,
@@ -69,6 +70,15 @@ const startSteps = [
   "Publish when it is ready, then respond, work, and evolve.",
 ];
 
+export const FOR_BUSINESSES_METADATA = {
+  title: "TradeScout for Local Businesses",
+  description:
+    "Bring your public presence, proof, customer requests, active work, and follow-up together without buying leads or paying for placement.",
+  keywords:
+    "local business profile, trusted local business, business verification, customer requests, direct connect, local business discovery",
+  canonical: "https://www.thetradescout.com/for-businesses",
+} as const;
+
 export default function ForBusinessesPage() {
   const structuredData = {
     "@context": "https://schema.org",
@@ -89,15 +99,26 @@ export default function ForBusinessesPage() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 md:space-y-8 md:py-12">
+    <>
       <SEOHelmet
-        title="TradeScout for Local Businesses"
-        description="Bring your public presence, proof, customer requests, active work, and follow-up together without buying leads or paying for placement."
-        keywords="local business profile, trusted local business, business verification, customer requests, direct connect, local business discovery"
-        canonical="https://www.thetradescout.com/for-businesses"
+        title={FOR_BUSINESSES_METADATA.title}
+        description={FOR_BUSINESSES_METADATA.description}
+        keywords={FOR_BUSINESSES_METADATA.keywords}
+        canonical={FOR_BUSINESSES_METADATA.canonical}
         structuredData={structuredData}
       />
+      <ForBusinessesContent />
+    </>
+  );
+}
 
+/** Shared visible content for the app and the initial public HTML response. */
+export function ForBusinessesContent() {
+  return (
+    <main
+      data-seo-for-businesses="true"
+      className="mx-auto max-w-6xl space-y-6 px-4 py-8 md:space-y-8 md:py-12"
+    >
       <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(255,106,0,0.18),transparent_42%),linear-gradient(145deg,rgba(17,29,36,0.98),rgba(10,15,19,0.98))] px-6 py-10 shadow-2xl md:px-10 md:py-14">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-ts-orange/20" />
         <div className="relative max-w-4xl space-y-6">
@@ -123,7 +144,7 @@ export default function ForBusinessesPage() {
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
               </Button>
             </Link>
-            <Link href="/how-it-works">
+            <Link href="/how-it-works" asChild>
               <a className="inline-flex h-12 items-center px-3 text-sm font-semibold text-white/75 transition-colors hover:text-white">
                 See what customers experience
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />

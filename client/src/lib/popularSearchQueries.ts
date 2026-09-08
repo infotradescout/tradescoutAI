@@ -1,7 +1,27 @@
+import { buildDirectConnectHref } from "../pages/direct-connect/directConnectRoutes";
+
 export type PopularQuery = {
   query: string;
   href: string;
 };
+
+/** Static search suggestions cannot assume an indexable directory exists for
+ * every trade/state pair. The business browser accepts these same filters even
+ * when a public directory has no eligible listings yet. */
+export function getPopularQueryHref(item: PopularQuery): string {
+  const tradeScope = /^\/trade\/([a-z0-9-]+)(?:\/([a-z]{2}))?$/.exec(item.href);
+  if (!tradeScope) return item.href;
+  const params = new URLSearchParams({
+    trade: tradeScope[1],
+    state: (tradeScope[2] || "").toUpperCase(),
+    // A new search must not inherit a previous county, text filter or provider.
+    county: "",
+    q: "",
+    selected: "",
+    source: "public_discovery",
+  });
+  return `${buildDirectConnectHref("pros")}?${params.toString()}`;
+}
 
 // Shared by the interactive entry page and its initial public HTML.
 export const LOCAL_BUSINESS_DISCOVERY = {

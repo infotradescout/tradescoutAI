@@ -1,10 +1,16 @@
 import { formatTradeScoutTitle } from "@shared/brand";
 import { resolvePublicLandingIndexability } from "@shared/publicLandingIndexability";
-import { LOCAL_BUSINESS_DISCOVERY } from "../client/src/lib/popularSearchQueries";
-import { createElement } from "react";
+import { createElement, type ComponentType } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Router } from "wouter";
 import { PENSACOLA_DISCOVERY } from "@shared/pensacolaDiscovery";
 import PensacolaContent from "../client/src/pages/pensacola-content";
+import {
+  FIND_LOCAL_BUSINESSES_METADATA,
+  FindLocalBusinessesContent,
+} from "../client/src/pages/find-local-businesses";
+import { FOR_BUSINESSES_METADATA, ForBusinessesContent } from "../client/src/pages/for-businesses";
+import { TANGIPAHOA_METADATA, TangipahoaContent } from "../client/src/pages/tangipahoa";
 import {
   explainerChapters,
   type ExplainerCard,
@@ -31,7 +37,10 @@ function escapeHtml(value: string) {
 function upsertTag(html: string, regex: RegExp, tag: string) {
   const element = /^<(meta|link)\b/i.exec(tag)?.[1];
   const identity = /\s(name|property|rel)=["']([^"']+)["']/i.exec(tag);
-  let matcher = new RegExp(regex.source, regex.flags.includes("g") ? regex.flags : `${regex.flags}g`);
+  let matcher = new RegExp(
+    regex.source,
+    regex.flags.includes("g") ? regex.flags : `${regex.flags}g`
+  );
   if (element && identity) {
     const key = identity[2].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Match the tag's identity across whitespace, quote and attribute-order
@@ -110,15 +119,18 @@ export function buildPublicPensacolaHtml(
   });
 }
 
-export function buildPublicFindLocalBusinessesHtml(
-  opts: Pick<PublicLandingHtmlOptions, "origin" | "templateHtml">
+function buildPublicDiscoveryHtml(
+  opts: Pick<PublicLandingHtmlOptions, "origin" | "templateHtml">,
+  content: Readonly<{ title: string; description: string; canonical: string }>,
+  PageContent: ComponentType
 ): string {
-  const content = LOCAL_BUSINESS_DISCOVERY;
-  const canonical = `${opts.origin}/find-local-businesses`;
+  const requestPath = new URL(content.canonical).pathname;
+  const canonical = `${opts.origin}${requestPath}`;
+  const title = formatTradeScoutTitle(content.title);
   let html = upsertTag(
     opts.templateHtml,
     /<title>[\s\S]*?<\/title>/i,
-    `<title>${escapeHtml(content.title)}</title>`
+    `<title>${escapeHtml(title)}</title>`
   );
   for (const [name, value, attribute] of [
     ["description", content.description, "name"],
@@ -127,11 +139,11 @@ export function buildPublicFindLocalBusinessesHtml(
       "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
       "name",
     ],
-    ["og:title", content.title, "property"],
+    ["og:title", title, "property"],
     ["og:description", content.description, "property"],
     ["og:url", canonical, "property"],
     ["og:type", "website", "property"],
-    ["twitter:title", content.title, "name"],
+    ["twitter:title", title, "name"],
     ["twitter:description", content.description, "name"],
   ]) {
     html = upsertTag(
@@ -145,26 +157,37 @@ export function buildPublicFindLocalBusinessesHtml(
     /<link rel="canonical"[^>]*>/i,
     `<link rel="canonical" href="${escapeHtml(canonical)}" />`
   );
-  const links = content.browseLinks
-    .map((item) => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`)
-    .join("\n");
   html = injectSummary(
     html,
-    `<main data-seo-find-local-businesses="true" style="padding:1rem;max-width:1152px;margin:0 auto;line-height:1.5;">
-    <h1>${escapeHtml(content.heading)}</h1>
-    <p>${escapeHtml(content.introduction)}</p>
-    <nav aria-label="Browse local businesses"><ul>${links}</ul></nav>
-    <p><a href="${escapeHtml(content.tangipahoaRequestHref)}">Start a Request</a></p>
-    <p><a href="${escapeHtml(content.tangipahoaRecentHref)}">View Tangipahoa activity</a></p>
-  </main>`
+    renderToStaticMarkup(
+      createElement(Router, { ssrPath: requestPath, children: createElement(PageContent) })
+    )
   );
   return injectJsonLd(html, {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: content.title,
+    name: title,
     description: content.description,
     url: canonical,
   });
+}
+
+export function buildPublicFindLocalBusinessesHtml(
+  opts: Pick<PublicLandingHtmlOptions, "origin" | "templateHtml">
+): string {
+  return buildPublicDiscoveryHtml(opts, FIND_LOCAL_BUSINESSES_METADATA, FindLocalBusinessesContent);
+}
+
+export function buildPublicForBusinessesHtml(
+  opts: Pick<PublicLandingHtmlOptions, "origin" | "templateHtml">
+): string {
+  return buildPublicDiscoveryHtml(opts, FOR_BUSINESSES_METADATA, ForBusinessesContent);
+}
+
+export function buildPublicTangipahoaHtml(
+  opts: Pick<PublicLandingHtmlOptions, "origin" | "templateHtml">
+): string {
+  return buildPublicDiscoveryHtml(opts, TANGIPAHOA_METADATA, TangipahoaContent);
 }
 
 function titleCaseSlug(value: string) {
