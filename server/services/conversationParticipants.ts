@@ -172,6 +172,8 @@ export async function loadAcceptedJobForConversation(params: {
             AND wr.source = 'direct_connect'
             AND a.status = 'accepted'
             AND COALESCE(a.contractor_id, a.responder_user_id) = ${providerKey}
+            AND (a.contractor_id IS NULL OR a.responder_user_id IS NULL
+              OR a.responder_user_id = ${providerUserId})
             AND NOT EXISTS (
               SELECT 1 FROM work_request_assignments other
               WHERE other.work_request_id = wr.id AND other.status = 'accepted' AND other.id <> a.id

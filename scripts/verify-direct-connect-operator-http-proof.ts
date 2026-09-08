@@ -307,6 +307,14 @@ try {
     ]);
     const dualIdentity = await call("operator", "GET", base, undefined, 200);
     assert.equal(dualIdentity.assignments[0].responderName, expectedName);
+    await expectThreadContext(fixture.conversationId, expectedName ? requestId : null);
+    await call(
+      "provider",
+      "GET",
+      `/api/direct-connect/messages/threads/${fixture.conversationId}/job`,
+      undefined,
+      expectedName ? 200 : 404
+    );
     if (expectedName === null) assert.equal(dualIdentity.assignments[0].responderUserId, null);
   }
   await client.query("UPDATE work_request_assignments SET responder_user_id=NULL WHERE id=$1", [
