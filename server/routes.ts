@@ -16,6 +16,8 @@ import { createHash, randomUUID } from "crypto";
 import { generateGeminiTextWithFallback } from "./ai/geminiFallback";
 import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
 import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
+import { participantMessageMetadata } from "./utils/messageAuthor";
+import { canAccessConversation } from "./services/conversationParticipants";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { onboardingRouter } from "./routes/onboarding";
 import { businessesRouter } from "./routes/businesses";
@@ -13452,8 +13454,7 @@ export async function registerRoutes(app: any) {
           return res.status(404).json({ message: "Thread not found" });
         }
         if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
+          !(await canAccessConversation(legacyConversation.id, String(userId)))
         ) {
           return res.status(403).json({ message: "Access denied" });
         }
@@ -13507,8 +13508,7 @@ export async function registerRoutes(app: any) {
         const legacyConversation = await storage.getConversation(threadId);
         if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
         if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
+          !(await canAccessConversation(legacyConversation.id, String(userId)))
         ) {
           return res.status(403).json({ message: "Access denied" });
         }
@@ -13554,8 +13554,7 @@ export async function registerRoutes(app: any) {
           if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
           threadType = "legacy";
           if (
-            legacyConversation.homeownerId !== userId &&
-            legacyConversation.contractorId !== userId
+            !(await canAccessConversation(legacyConversation.id, String(userId)))
           ) {
             return res.status(403).json({ message: "Access denied" });
           }
@@ -13790,7 +13789,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -13849,8 +13848,7 @@ export async function registerRoutes(app: any) {
           const legacyConversation = authority.conversation;
           threadType = "legacy";
           if (
-            legacyConversation.homeownerId !== userId &&
-            legacyConversation.contractorId !== userId
+            !(await canAccessConversation(legacyConversation.id, String(userId)))
           ) {
             return res.status(403).json({ message: "Access denied" });
           }
@@ -13944,7 +13942,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -14004,8 +14002,7 @@ export async function registerRoutes(app: any) {
         }
         const legacyConversation = authority.conversation;
         if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
+          !(await canAccessConversation(legacyConversation.id, String(userId)))
         ) {
           return res.status(403).json({ message: "Access denied" });
         }
@@ -14018,7 +14015,7 @@ export async function registerRoutes(app: any) {
           content,
           messageType: messageType || "text",
           metadata: {
-            ...(metadata && typeof metadata === "object" ? metadata : {}),
+            ...participantMessageMetadata(metadata, userId, senderType),
             connectionId: authority.connectionId,
             workRequestId: authority.workRequestId,
           },
@@ -14050,7 +14047,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -14086,7 +14083,7 @@ export async function registerRoutes(app: any) {
         const conversation = authority.conversation;
 
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        if (!(await canAccessConversation(conversation.id, String(userId)))) {
           return res.status(403).json({ message: "Access denied" });
         }
 
@@ -14167,7 +14164,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -14204,7 +14201,7 @@ export async function registerRoutes(app: any) {
         }
         const conversation = authority.conversation;
 
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        if (!(await canAccessConversation(conversation.id, String(userId)))) {
           return res.status(403).json({ message: "Access denied" });
         }
 
@@ -14246,7 +14243,7 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+      if (!(await canAccessConversation(conversation.id, String(userId)))) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -14258,7 +14255,7 @@ export async function registerRoutes(app: any) {
         .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
         .where(
           and(
-            eq(workRequestAssignments.contractorId, conversation.contractorId),
+            sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
             eq(workRequests.createdByUserId, conversation.homeownerId),
             eq(workRequests.source, "direct_connect" as any),
             inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -14306,7 +14303,7 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+      if (!(await canAccessConversation(conversation.id, String(userId)))) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -14318,7 +14315,7 @@ export async function registerRoutes(app: any) {
         .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
         .where(
           and(
-            eq(workRequestAssignments.contractorId, conversation.contractorId),
+            sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
             eq(workRequests.createdByUserId, conversation.homeownerId),
             eq(workRequests.source, "direct_connect" as any),
             inArray(workRequestAssignments.status, ["accepted", "completed"] as any),

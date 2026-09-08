@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Storage layer interfaces with dynamic JSON blobs + 3rd-party SDKs; incremental hardening tracked separately. */
+import { conversationParticipantSql, conversationProviderParticipantSql } from "./services/conversationParticipants";
 import {
   users,
   profiles,
@@ -2062,12 +2063,11 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     userId: string,
     userType: "homeowner" | "contractor"
   ): Promise<Conversation[]> {
-    const userField =
-      userType === "homeowner" ? conversations.homeownerId : conversations.contractorId;
     return await db
       .select()
       .from(conversations)
-      .where(eq(userField, userId))
+      .where(userType === "homeowner" ? eq(conversations.homeownerId, userId) :
+        conversationProviderParticipantSql(conversations.contractorId, userId))
       .orderBy(desc(conversations.lastMessageAt));
   }
 
@@ -2139,7 +2139,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       .select()
       .from(conversations)
       .where(
-        sql`${conversations.homeownerId} = ${userId} OR ${conversations.contractorId} = ${userId}`
+        conversationParticipantSql(conversations, userId)
       )
       .orderBy(desc(conversations.lastMessageAt))
       .limit(limit)

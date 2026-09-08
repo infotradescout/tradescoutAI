@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
+import { AdminDirectConnectOperations } from "./AdminDirectConnectOperations";
 
 type AdminDirectConnectRequestDetailResponse = {
   request: {
@@ -9,6 +10,7 @@ type AdminDirectConnectRequestDetailResponse = {
     title: string;
     description: string;
     category: string | null;
+    countyFips: string | null;
     status: string | null;
     source: string | null;
     createdAt: string | null;
@@ -72,7 +74,7 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
     );
   }
 
-  const { request, requester, originatingProfile, assignments, events, conversationId } = data;
+  const { request, requester, originatingProfile, assignments, events } = data;
 
   return (
     <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -158,16 +160,12 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
           )}
         </div>
 
-        {conversationId ? (
-          <a
-            href={`/messages?thread=${encodeURIComponent(conversationId)}`}
-            className="inline-block text-ts-orange hover:underline text-xs"
-          >
-            Open conversation thread
-          </a>
-        ) : (
-          <div className="text-xs text-white/50">No conversation thread yet.</div>
-        )}
+        <AdminDirectConnectOperations
+          key={request.id}
+          requestId={request.id}
+          countyFips={request.countyFips}
+          status={request.status}
+        />
       </CardContent>
     </Card>
   );

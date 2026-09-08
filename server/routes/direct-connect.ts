@@ -85,6 +85,7 @@ import { resolveAnonymousSessionId } from "../utils/anonymousSession";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
+import { registerDirectConnectAdminOperations } from "./direct-connect/admin-operations";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { hasVerifiedTradeScoutAdminCustody } from "../services/ownerConfirmedDirectProfile";
@@ -2222,6 +2223,22 @@ const toTradeDisplayName = (value: string): string => {
 };
 
 export function registerDirectConnectRoutes(app: Express) {
+  registerDirectConnectAdminOperations(app, {
+    isAuthenticated,
+    isOperator: isDirectConnectOperator,
+    filterContractors: filterContractorsEligibleForRequest,
+    filterBusinesses: filterBusinessesEligibleForRequest,
+    notifyProvider: (userId, requestId) =>
+      notificationService.createNotification({
+        userId,
+        type: "new_project_request",
+        title: "New Direct Connect request",
+        message: "A TradeScout operator has invited you to review a request.",
+        actionUrl: `/direct-connect/inbox?requestId=${encodeURIComponent(requestId)}`,
+        actionText: "Review request",
+        deliveryMethods: ["in_app"],
+      }),
+  });
   void ensureDirectConnectDispatchLedgerTables().catch((error) => {
     console.warn("[direct-connect] Failed to ensure dispatch ledger tables", error);
   });
@@ -8408,6 +8425,7 @@ export function registerDirectConnectRoutes(app: Express) {
             title: request.title,
             description: request.description,
             category: request.category,
+            countyFips: request.countyFips,
             status: request.status,
             source: request.source,
             createdAt: request.createdAt,
@@ -10298,6 +10316,7 @@ export function registerDirectConnectRoutes(app: Express) {
                   responderUserId: isBusinessAssignment ? String(userId) : null,
                   conversationId,
                   responseSummary,
+                  assignmentId: String(updatedAssignment.id),
                 },
               });
 
