@@ -982,6 +982,7 @@ export default function Exchange() {
   return (
     <>
       <SEOHelmet
+        noIndex
         title="TradeScout Exchange | Buy, Sell, and Discover Local Listings"
         description="Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse local items, post what you want to sell, and explore hyperlocal marketplace activity."
         keywords="tradescout exchange, buy and sell locally, local marketplace, local listings, sell items locally"
@@ -1438,7 +1439,9 @@ export default function Exchange() {
                                     {item.seller.verified ? (
                                       <span className="text-emerald-400">Verified seller</span>
                                     ) : (
-                                      <span>{isProfileCatalog ? "Business profile" : "Seller profile"}</span>
+                                      <span>
+                                        {isProfileCatalog ? "Business profile" : "Seller profile"}
+                                      </span>
                                     )}
                                   </div>
                                 </div>

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   isJwStonePublicDiscoveryHtml,
   preparePublicSeoHtmlForResponse,
@@ -12,6 +12,9 @@ import {
 } from "../publicSeoHtml";
 import { buildPublicFindLocalBusinessesHtml } from "../publicLandingHtml";
 import { LOCAL_BUSINESS_DISCOVERY } from "../../client/src/lib/popularSearchQueries";
+import { buildPublicExchangeHtml } from "../publicExchangeHtml";
+
+vi.mock("../storage", () => ({ storage: { getMarketplaceListings: vi.fn() } }));
 
 const templateHtml = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
 const landingTemplateHtml = fs.readFileSync(
@@ -53,6 +56,41 @@ describe("public SEO response HTML", () => {
     expect(html).toContain("TradeScout encountered a startup issue");
     expect(html).toContain("JavaScript is required");
   });
+
+  it.each(["Googlebot/2.1", "Google-InspectionTool/1.0", "bingbot/2.0", "OAI-SearchBot/1.0"])(
+    "keeps the app entry available to %s when the route has no server-rendered body",
+    (userAgent) => {
+      const html = preparePublicSeoHtmlForUserAgent(templateHtml, userAgent);
+
+      // Metadata-only renderers use this application template. Removing its
+      // entry script prevents a rendering crawler from
+      // ever discovering the actual page content and route-specific metadata.
+      expect(html).toMatch(/<script\b[^>]*\btype="module"[^>]*\bsrc=/);
+      expect(html).not.toContain("TradeScout encountered a startup issue");
+      expect(html).not.toContain("JavaScript is required");
+    }
+  );
+
+  it.each([null, "vehicles", "real-estate", "building-materials", "tools"])(
+    "keeps the real Exchange renderer usable for the %s category",
+    async (categorySlug) => {
+      const requestUrl = categorySlug ? `/exchange/${categorySlug}` : "/exchange";
+      const rendered = await buildPublicExchangeHtml({
+        origin: "https://www.thetradescout.com",
+        templateHtml,
+        requestUrl,
+        categorySlug,
+      });
+      const html = preparePublicSeoHtmlForUserAgent(rendered, "Googlebot/2.1");
+
+      expect(html).toContain('<div id="root"></div>');
+      expect(html).toMatch(/<script\b[^>]*\btype="module"[^>]*\bsrc=/);
+      expect(html).toContain(`href="https://www.thetradescout.com${requestUrl}"`);
+      expect(html).toContain('type="application/ld+json"');
+      expect(html).toContain('<meta name="robots" content="noindex,follow" />');
+      expect(html).not.toContain('id="ts-boot-fallback"');
+    }
+  );
 
   it.each([
     [
@@ -205,13 +243,13 @@ describe("public SEO response HTML", () => {
     expect(stripPublicSeoBootPlaceholders(html)).toBe(html);
   });
 
-  it("removes the lightweight landing recovery placeholder from crawler responses", () => {
+  it("keeps an unrendered landing entry usable while removing its recovery placeholder", () => {
     const html = preparePublicSeoHtmlForResponse(landingTemplateHtml, {
       retainSeoSummary: true,
     });
 
     expect(html).not.toContain('id="ts-landing-fallback"');
-    expect(html).not.toContain('src="/src/landing-main.tsx"');
+    expect(html).toContain('src="/src/landing-main.tsx"');
   });
 
   it("aligns signed-card HTML caching with the short opaque-token lifetime", () => {

@@ -32,7 +32,7 @@ export function gitBlobSha(buffer) {
 }
 
 export function validatePublicShellDedupeManifest(manifest) {
-  if (manifest?.version !== 3 || manifest?.contractId !== "public-shell-local-dedupe-v3") {
+  if (manifest?.version !== 4 || manifest?.contractId !== "public-shell-local-dedupe-v4") {
     throw new Error("Unexpected public shell dedupe contract");
   }
   if (
@@ -83,8 +83,8 @@ export function validatePublicShellDedupeManifest(manifest) {
     manifest.expected?.aliases !== 6 ||
     manifest.expected?.deadPinned !== 4 ||
     manifest.expected?.clientPublicFiles !== 200 ||
-    // v3 adds only the reviewed 171-byte /pensacola sitemap entry; media identities are unchanged.
-    manifest.expected?.clientPublicBytes !== 2_804_092 ||
+    // v4 removes gated Exchange shells and the retired contractor alias from the sitemap; media identities are unchanged.
+    manifest.expected?.clientPublicBytes !== 2_801_062 ||
     manifest.expected?.entryDigestSha256 !== digest ||
     manifest.entries.length !== 10 ||
     bytes !== 1_433_218 ||

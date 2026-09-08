@@ -222,6 +222,14 @@ export async function buildPublicExchangeHtml(opts: ExchangeHtmlOptions): Promis
     /<meta property="og:type"[^>]*>/i,
     `<meta property="og:type" content="website" />`
   );
+  // The hub and category UI require ProgressiveFeatureGate and redirect new
+  // visitors to Scout. Public listing detail pages have a separate renderer
+  // and publication-gated sitemap; do not advertise these gated shells as them.
+  html = upsertTag(
+    html,
+    /<meta\b[^>]*\bname=["']robots["'][^>]*>/i,
+    '<meta name="robots" content="noindex,follow" />'
+  );
   html = upsertTag(
     html,
     /<meta name="twitter:card"[^>]*>/i,
