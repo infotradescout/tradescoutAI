@@ -17,6 +17,8 @@ import {
 const completeSchemaCheck = {
   notificationOutboxContract: true,
   notificationOutboxMigrationRecorded: true,
+  recommendationRuntimeContract: true,
+  recommendationRuntimeSchemaMigrationRecorded: true,
   contractorRecommendationColumns: true,
   notificationRuntimeColumns: true,
   userPrivacySettingsContract: true,
@@ -73,6 +75,14 @@ describe("required production schema guard", () => {
       })
     ).toEqual(["drizzle.__drizzle_migrations[0136 canonical hash]"]);
   });
+  it.each(["recommendationRuntimeContract", "recommendationRuntimeSchemaMigrationRecorded"])(
+    "rejects missing recommendation authority: %s",
+    (field) => {
+      expect(
+        evaluateRequiredProductionSchema({ ...completeSchemaCheck, [field]: false })
+      ).toHaveLength(1);
+    }
+  );
   it("accepts the committed migration hash across LF and CRLF checkouts", () => {
     expect(buildLineEndingCompatibleMigrationHashes("select 1;\n")).toEqual(
       buildLineEndingCompatibleMigrationHashes("select 1;\r\n")

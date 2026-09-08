@@ -3,7 +3,10 @@ import {
   loadOAuthEmailCandidates,
 } from "./storage/repositories/oauth-identities";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Storage layer interfaces with dynamic JSON blobs + 3rd-party SDKs; incremental hardening tracked separately. */
-import { conversationParticipantSql, conversationProviderParticipantSql } from "./services/conversationParticipants";
+import {
+  conversationParticipantSql,
+  conversationProviderParticipantSql,
+} from "./services/conversationParticipants";
 import {
   users,
   profiles,
@@ -1421,7 +1424,12 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
         average: sql<number>`avg(5.0)`, // Default to 5.0 since recommendations don't have ratings
       })
       .from(recommendations)
-      .where(eq(recommendations.contractorId, contractorId));
+      .where(
+        and(
+          eq(recommendations.contractorId, contractorId),
+          inArray(recommendations.recommendationType, ["positive", "negative"])
+        )
+      );
 
     return {
       count: result?.count || 0,
@@ -2123,8 +2131,11 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     return await db
       .select()
       .from(conversations)
-      .where(userType === "homeowner" ? eq(conversations.homeownerId, userId) :
-        conversationProviderParticipantSql(conversations.contractorId, userId))
+      .where(
+        userType === "homeowner"
+          ? eq(conversations.homeownerId, userId)
+          : conversationProviderParticipantSql(conversations.contractorId, userId)
+      )
       .orderBy(desc(conversations.lastMessageAt));
   }
 
@@ -2195,9 +2206,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     const convoRows = await db
       .select()
       .from(conversations)
-      .where(
-        conversationParticipantSql(conversations, userId)
-      )
+      .where(conversationParticipantSql(conversations, userId))
       .orderBy(desc(conversations.lastMessageAt))
       .limit(limit)
       .offset(offset);
@@ -3780,6 +3789,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       eq(recommendations.contractorId, contractorId),
       eq(recommendations.isPublic, true),
       eq(recommendations.moderationStatus, "approved"),
+      inArray(recommendations.recommendationType, ["positive", "negative"]),
     ];
 
     if (options?.type && options.type !== "all") {
@@ -3808,7 +3818,8 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       .where(
         and(
           eq(recommendations.contractorId, contractorId),
-          eq(recommendations.moderationStatus, "approved")
+          eq(recommendations.moderationStatus, "approved"),
+          inArray(recommendations.recommendationType, ["positive", "negative"])
         )
       );
 
@@ -6809,7 +6820,12 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     const contractorRecommendations = await db
       .select()
       .from(recommendations)
-      .where(eq(recommendations.contractorId, contractorId));
+      .where(
+        and(
+          eq(recommendations.contractorId, contractorId),
+          inArray(recommendations.recommendationType, ["positive", "negative"])
+        )
+      );
 
     const totalRecommendations = contractorRecommendations.length;
     const positiveRecommendations = contractorRecommendations.filter(
@@ -6882,8 +6898,9 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       .select({ count: sql<number>`count(*)` })
       .from(contractors)
       .innerJoin(recommendations, eq(contractors.id, recommendations.contractorId))
-      .where(gt(sql<number>`count(${recommendations.id})`, totalRecommendations))
-      .groupBy(contractors.id);
+      .where(inArray(recommendations.recommendationType, ["positive", "negative"]))
+      .groupBy(contractors.id)
+      .having(gt(sql<number>`count(${recommendations.id})`, totalRecommendations));
 
     const competitorComparison = {
       totalContractors: allContractorsCount[0]?.count || 0,
@@ -6984,7 +7001,12 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     const currentRecommendations = await db
       .select({ count: sql<number>`count(*)` })
       .from(recommendations)
-      .where(eq(recommendations.contractorId, contractorId));
+      .where(
+        and(
+          eq(recommendations.contractorId, contractorId),
+          inArray(recommendations.recommendationType, ["positive", "negative"])
+        )
+      );
 
     const currentCount = currentRecommendations[0]?.count || 0;
 

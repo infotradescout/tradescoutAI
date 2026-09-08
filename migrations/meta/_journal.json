@@ -981,6 +981,13 @@
       "when": 1788804240000,
       "tag": "0136_restore_notification_outbox_schema",
       "breakpoints": false
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1788804300000,
+      "tag": "0137_restore_recommendation_runtime_schema",
+      "breakpoints": false
     }
   ]
 }

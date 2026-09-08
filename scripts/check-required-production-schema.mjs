@@ -49,6 +49,14 @@ export const NOTIFICATION_OUTBOX_MIGRATION_PATH = path.resolve(
 
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
+export const RECOMMENDATION_RUNTIME_SCHEMA_MIGRATION_HASHES =
+  buildLineEndingCompatibleMigrationHashes(
+    fs.readFileSync(
+      path.resolve(process.cwd(), "migrations/0137_restore_recommendation_runtime_schema.sql"),
+      "utf8"
+    )
+  );
+
 export function buildLineEndingCompatibleMigrationHashes(sql) {
   const lf = String(sql).replace(/\r\n?/g, "\n");
   const crlf = lf.replace(/\n/g, "\r\n");
@@ -132,6 +140,12 @@ export function evaluateRequiredProductionSchema(check) {
     );
   if (check.migrationLedger && !check.notificationOutboxMigrationRecorded)
     missing.push("drizzle.__drizzle_migrations[0136 canonical hash]");
+  if (!check.recommendationRuntimeContract)
+    missing.push(
+      "recommendations[current columns, private defaults and legacy rating compatibility]"
+    );
+  if (check.migrationLedger && !check.recommendationRuntimeSchemaMigrationRecorded)
+    missing.push("drizzle.__drizzle_migrations[0137 canonical hash]");
   if (!check.contractorRecommendationColumns)
     missing.push("contractors[recommendation projection columns]");
   if (!check.notificationRuntimeColumns)
@@ -271,6 +285,32 @@ export async function verifyRequiredProductionSchema(client) {
         ('notification_jobs', 'next_retry_at', array['timestamp']::text[], 'YES', null, null),
         ('notification_jobs', 'created_at', array['timestamp']::text[], 'YES', null, 'now()'),
         ('notification_jobs', 'updated_at', array['timestamp']::text[], 'YES', null, 'now()'),
+        ('recommendations', 'id', array['varchar']::text[], 'NO', null, 'gen_random_uuid()'),
+        ('recommendations', 'contractor_id', array['varchar']::text[], 'NO', null, null),
+        ('recommendations', 'user_id', array['varchar']::text[], 'NO', null, null),
+        ('recommendations', 'recommendation_type', array['varchar']::text[], 'NO', null, null),
+        ('recommendations', 'comment', array['text']::text[], 'NO', null, null),
+        ('recommendations', 'project_type', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'project_value', array['numeric']::text[], 'YES', null, null),
+        ('recommendations', 'work_quality', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'timeliness', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'communication', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'would_hire_again', array['bool']::text[], 'YES', null, null),
+        ('recommendations', 'photo_url', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'customer_name', array['varchar']::text[], 'NO', null, null),
+        ('recommendations', 'customer_email', array['varchar']::text[], 'NO', null, null),
+        ('recommendations', 'customer_phone', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'ip_address', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'user_agent', array['text']::text[], 'YES', null, null),
+        ('recommendations', 'is_verified', array['bool']::text[], 'YES', null, 'false'),
+        ('recommendations', 'verification_method', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'verified_at', array['timestamp']::text[], 'YES', null, null),
+        ('recommendations', 'is_public', array['bool']::text[], 'YES', null, 'false'),
+        ('recommendations', 'moderation_status', array['varchar']::text[], 'YES', null, '''pending''::charactervarying'),
+        ('recommendations', 'moderated_at', array['timestamp']::text[], 'YES', null, null),
+        ('recommendations', 'moderated_by', array['varchar']::text[], 'YES', null, null),
+        ('recommendations', 'created_at', array['timestamp']::text[], 'YES', null, 'now()'),
+        ('recommendations', 'updated_at', array['timestamp']::text[], 'YES', null, 'now()'),
         ('notification_delivery_log', 'id', array['varchar']::text[], 'NO', null, 'gen_random_uuid()'),
         ('notification_delivery_log', 'notification_id', array['varchar']::text[], 'NO', null, null),
         ('notification_delivery_log', 'user_id', array['varchar']::text[], 'NO', null, null),
@@ -674,6 +714,19 @@ export async function verifyRequiredProductionSchema(client) {
             and c.confkey = array[(select attnum from pg_attribute
               where attrelid = c.confrelid and attname = 'id')]::smallint[]
         ) as notification_outbox_contract,
+      coalesce((select valid from column_contracts where table_name = 'recommendations'), false)
+        and not exists (
+          select 1 from information_schema.columns
+          where table_schema='public' and table_name='recommendations'
+            and column_name='rating' and is_nullable <> 'YES'
+        )
+        and exists (
+          select 1 from pg_constraint c
+          where c.conrelid=to_regclass('public.recommendations')
+            and c.contype='p' and c.convalidated and not c.condeferrable
+            and c.conkey=array[(select attnum from pg_attribute
+              where attrelid=c.conrelid and attname='id')]::smallint[]
+        ) as recommendation_runtime_contract,
       coalesce((select valid from column_contracts where table_name = 'contractors'), false)
         as contractor_recommendation_columns,
       coalesce((select valid from column_contracts where table_name = 'notifications'), false)
@@ -879,6 +932,8 @@ export async function verifyRequiredProductionSchema(client) {
   );
   const row = schemaResult.rows?.[0] || {};
   const check = {
+    recommendationRuntimeContract: Boolean(row.recommendation_runtime_contract),
+    recommendationRuntimeSchemaMigrationRecorded: false,
     contractorRecommendationColumns: Boolean(row.contractor_recommendation_columns),
     notificationRuntimeColumns: Boolean(row.notification_runtime_columns),
     notificationOutboxContract: Boolean(row.notification_outbox_contract),
@@ -970,7 +1025,10 @@ export async function verifyRequiredProductionSchema(client) {
           ) as contact_runtime_schema_present,
           exists (
             select 1 from drizzle.__drizzle_migrations where hash = any($9::text[])
-          ) as notification_outbox_present
+          ) as notification_outbox_present,
+          exists (
+            select 1 from drizzle.__drizzle_migrations where hash = any($10::text[])
+          ) as recommendation_runtime_schema_present
       `,
       [
         REQUIRED_MIGRATION_HASHES,
@@ -982,6 +1040,7 @@ export async function verifyRequiredProductionSchema(client) {
         DOCUMENT_STANDALONE_LINEAGE_MIGRATION_HASHES,
         CONTACT_RUNTIME_SCHEMA_MIGRATION_HASHES,
         NOTIFICATION_OUTBOX_MIGRATION_HASHES,
+        RECOMMENDATION_RUNTIME_SCHEMA_MIGRATION_HASHES,
       ]
     );
     check.migrationRecorded = Boolean(migrationResult.rows?.[0]?.required_present);
@@ -1009,8 +1068,10 @@ export async function verifyRequiredProductionSchema(client) {
     check.contactRuntimeSchemaMigrationRecorded = Boolean(
       migrationResult.rows?.[0]?.contact_runtime_schema_present
     );
+    check.recommendationRuntimeSchemaMigrationRecorded = Boolean(
+      migrationResult.rows?.[0]?.recommendation_runtime_schema_present
+    );
   }
-
   if (check.publicationRules) {
     const rulesResult = await client.query(
       "select exists (select 1 from ts_publication_rules where id = 'default') as present"
