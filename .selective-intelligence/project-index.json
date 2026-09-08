@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-08T20:56:28Z",
+  "generated_at": "2026-09-08T20:59:44Z",
   "source": {
     "kind": "git",
-    "revision": "85cb2849836ebee410ecab685736e80cffa7175d",
+    "revision": "98e58234445a8e48aed3d95099647fd8022a9614",
     "dirty": true,
-    "inventory_sha256": "ac37a63fdaf9697d530fd3ee9c3c832126458ad3488ea3c51200fbb1f4c06525"
+    "inventory_sha256": "53b71728e33da5c6c46585b66f51907c7431d830405a389c908c73fbe542bbad"
   },
   "inventory": {
     "directories": [
@@ -52,7 +52,7 @@
       },
       {
         "path": "client/src/components",
-        "source_file_count": 87
+        "source_file_count": 83
       },
       {
         "path": "client/src/components/admin",
@@ -60,7 +60,7 @@
       },
       {
         "path": "client/src/components/auth",
-        "source_file_count": 7
+        "source_file_count": 6
       },
       {
         "path": "client/src/components/business",
@@ -108,7 +108,7 @@
       },
       {
         "path": "client/src/components/layout",
-        "source_file_count": 11
+        "source_file_count": 10
       },
       {
         "path": "client/src/components/messages",
@@ -164,7 +164,7 @@
       },
       {
         "path": "client/src/components/ui",
-        "source_file_count": 63
+        "source_file_count": 62
       },
       {
         "path": "client/src/components/verification",
@@ -480,6 +480,10 @@
       },
       {
         "path": "src/db",
+        "source_file_count": 1
+      },
+      {
+        "path": "test-results/assets",
         "source_file_count": 1
       },
       {
@@ -949,12 +953,6 @@
         "bytes": 7752
       },
       {
-        "path": "client/src/components/EmptyState.tsx",
-        "language": "tsx",
-        "sha256": "29cdf45d0dd93dde60732bf7d529b2d74918429d0bb41e5bf61fb40c0de29340",
-        "bytes": 1076
-      },
-      {
         "path": "client/src/components/EnhancedAdSystem.tsx",
         "language": "tsx",
         "sha256": "7f3aa5e43d032087342858bb02f0b9c9da9ce398db87cda541c283d5487f1cdd",
@@ -1027,12 +1025,6 @@
         "bytes": 934
       },
       {
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "language": "tsx",
-        "sha256": "3e828bc81d9cb63f8c0a6d5ce91e413e503e07d2021806a4063bb536660b3efc",
-        "bytes": 2189
-      },
-      {
         "path": "client/src/components/LoadingSpinner.tsx",
         "language": "tsx",
         "sha256": "bb2adb5d842070f514369838cc54feee5dbb23364e3297ded2d3fdf415c860c9",
@@ -1043,12 +1035,6 @@
         "language": "tsx",
         "sha256": "a301245cd98154ac222677570d5de62e2b1b0d36c59dab0819953bdb978d3147",
         "bytes": 7336
-      },
-      {
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "language": "tsx",
-        "sha256": "18148315dddd8e0833e1aaf93a305680c3e838b2a0aa641948ee61344e3c420c",
-        "bytes": 10220
       },
       {
         "path": "client/src/components/MaterialListBuilder.tsx",
@@ -1417,12 +1403,6 @@
         "bytes": 7568
       },
       {
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "language": "tsx",
-        "sha256": "ffb99bc609f7d556592e0a81f88c536cc7c83e6316c4609d3c0cf8ae702ebe22",
-        "bytes": 9120
-      },
-      {
         "path": "client/src/components/auth/OnboardingFlow.tsx",
         "language": "tsx",
         "sha256": "89129a8e46283feeb1ec1c2b1e35b131688cb6420c899eecdeb81ab61fcee915",
@@ -1511,12 +1491,6 @@
         "language": "ts",
         "sha256": "4f744349574fe454703e2f7079ff9959d428d2328c31bfc93dd3beb3775bf79a",
         "bytes": 601
-      },
-      {
-        "path": "client/src/components/contractor-card-skeleton.tsx",
-        "language": "tsx",
-        "sha256": "87b625f995161104dba8924288cc8c4affc8981fe7d5d42fa53432c317e43aae",
-        "bytes": 2125
       },
       {
         "path": "client/src/components/contractor-card.test.tsx",
@@ -1647,14 +1621,14 @@
       {
         "path": "client/src/components/layout/AppShell.tsx",
         "language": "tsx",
-        "sha256": "c4b479f151fbff558dfd8f960dac30a1ab379f678d02bafeaa61ed62f959c665",
-        "bytes": 6132
+        "sha256": "a05bb78ba7aaf8922f197dd86dc902c3fc8072d8a51a147827930472ad0da268",
+        "bytes": 6131
       },
       {
         "path": "client/src/components/layout/AppShellCore.tsx",
         "language": "tsx",
-        "sha256": "46e3eebc1757bbbb974202c6c6b06d377cca3a96c0022c9dbe1c6146d2106222",
-        "bytes": 61308
+        "sha256": "954f77325a8939ec157dc8c925421dd5c2c3b49f11dfb45502fbdeba8f7bc49f",
+        "bytes": 61307
       },
       {
         "path": "client/src/components/layout/AuthenticatedSocialFrame.tsx",
@@ -1703,12 +1677,6 @@
         "language": "ts",
         "sha256": "db1ac46b07aaf3543ad45fa174791eb7b78bafe1410ef736ba229e050a409189",
         "bytes": 5523
-      },
-      {
-        "path": "client/src/components/layout/navigation.tsx",
-        "language": "tsx",
-        "sha256": "e9da8361160de5a2a236e32203b5dfedbd2bb7c524e66247b24d36b84b92b03b",
-        "bytes": 29302
       },
       {
         "path": "client/src/components/messages/MessagesPanel.direct-connect.contract.test.ts",
@@ -2275,12 +2243,6 @@
         "bytes": 5319
       },
       {
-        "path": "client/src/components/ui/navigation.tsx",
-        "language": "tsx",
-        "sha256": "bb23f7e40ab75ded6d44389652a0821f7a4e2125bacfb9ba50e78fa0093d9860",
-        "bytes": 8310
-      },
-      {
         "path": "client/src/components/ui/notification-center.tsx",
         "language": "tsx",
         "sha256": "f7ee03b964f152a2bb7ee4313a9c873331b7628d24cfc0f5afd2114366527892",
@@ -2291,12 +2253,6 @@
         "language": "tsx",
         "sha256": "dd28793e282d20e391b2c6795b74a8291d09172214f2923422991bd382aab7ed",
         "bytes": 21594
-      },
-      {
-        "path": "client/src/components/ui/page-header.tsx",
-        "language": "tsx",
-        "sha256": "98e82058a2c29e07d4eb2e89be50e4e73a246210bed643582e32850f80f3f745",
-        "bytes": 915
       },
       {
         "path": "client/src/components/ui/pagination.tsx",
@@ -2389,10 +2345,16 @@
         "bytes": 1103
       },
       {
+        "path": "client/src/components/ui/states.behavior.test.tsx",
+        "language": "tsx",
+        "sha256": "d18de8eaafee59d8df815f1c47519acb30999c1b63c6f0eac534b8bb75c9a72f",
+        "bytes": 3570
+      },
+      {
         "path": "client/src/components/ui/states.tsx",
         "language": "tsx",
-        "sha256": "782de8b47eef89fdbf39a9e91ded9ace061d20c9368746094b3b74f55dbdb3e1",
-        "bytes": 2498
+        "sha256": "820694d8a96ef901032d62a9fbb6be83f42304cadce99115103d460f312b07b4",
+        "bytes": 3704
       },
       {
         "path": "client/src/components/ui/switch.tsx",
@@ -2535,8 +2497,8 @@
       {
         "path": "client/src/experiments/scout-landing-lite.tsx",
         "language": "tsx",
-        "sha256": "7ffc01788b5af7e6076c5742d506056053f95d5cb4c559371079a2e6f359f3d5",
-        "bytes": 11738
+        "sha256": "9ce36b53cd28db19874878f8ab50273b536c20f258f7f8709f95a59334031ec0",
+        "bytes": 11737
       },
       {
         "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
@@ -3145,10 +3107,16 @@
         "bytes": 41
       },
       {
+        "path": "client/src/hooks/use-mobile.test.tsx",
+        "language": "tsx",
+        "sha256": "b79df52fd2cd01d8d50a67e8cf75da3dc2b45b8d086c7eae7a63ddff69b661c5",
+        "bytes": 2886
+      },
+      {
         "path": "client/src/hooks/use-mobile.tsx",
         "language": "tsx",
-        "sha256": "d2377fbad5ad2bdf7fa896a68c36ac8bf4aa74a974b2061f77b41ae58d623001",
-        "bytes": 584
+        "sha256": "7dd07fdf9a4d315b73c39ca2b56f23ad26a8ebb32d9e72306c564b994e0c5102",
+        "bytes": 663
       },
       {
         "path": "client/src/hooks/use-toast.ts",
@@ -3209,12 +3177,6 @@
         "language": "ts",
         "sha256": "2cc2b2da0b70e48d50e79b07372cc177b6a6ef6c0f97f410fec7a0763e73e07d",
         "bytes": 1562
-      },
-      {
-        "path": "client/src/hooks/useIsMobile.ts",
-        "language": "ts",
-        "sha256": "e9d48a58c3a7274cf022e5984582e95b30d069ffb7c1472331f690ed07119fe2",
-        "bytes": 476
       },
       {
         "path": "client/src/hooks/useIsStandalone.ts",
@@ -3621,8 +3583,8 @@
       {
         "path": "client/src/lib/popularSearchQueries.ts",
         "language": "ts",
-        "sha256": "34a087a81e16f0603de23012b3434a61a38b965ed7f96259749482cee0900ed9",
-        "bytes": 7865
+        "sha256": "8c57c2dac33f22417fafbf74c7b6f0f8f0139810af65dd719a2688e374afd8e9",
+        "bytes": 7707
       },
       {
         "path": "client/src/lib/postOnboardingRoute.browser.test.ts",
@@ -3879,8 +3841,8 @@
       {
         "path": "client/src/pages/CommunityModerationDemo.tsx",
         "language": "tsx",
-        "sha256": "8a02bed1328a7452cfc7efab9fc2b7c60afd536a457a5cd10b6f3eced84dde82",
-        "bytes": 195
+        "sha256": "d613b4369f8c15ff75fd55fb904448df56e81e11e58cdc534a11f70e5bf09bf2",
+        "bytes": 229
       },
       {
         "path": "client/src/pages/CommunityProfile.tsx",
@@ -4503,14 +4465,14 @@
       {
         "path": "client/src/pages/car-sales-trade-in.tsx",
         "language": "tsx",
-        "sha256": "2e2c9353677e97a6ddca90fb03b2d0c3ce8be54b1cfeadbb848ca8fd63bbe842",
-        "bytes": 186
+        "sha256": "275d095ba1b41791331af66b6e890db3f687c0f5fa2d1c69149b9a2460371c1d",
+        "bytes": 220
       },
       {
         "path": "client/src/pages/car-sales-vin-lookup.tsx",
         "language": "tsx",
-        "sha256": "f05278b95d3530db9acc7c9c2ff64531f6729196491bd335aa0009693cdce5a8",
-        "bytes": 179
+        "sha256": "aa9203f718b9dafd5c5de8d0339fb8597fca8614c314ac6c4147427494d42dd3",
+        "bytes": 201
       },
       {
         "path": "client/src/pages/car-salesman-application.tsx",
@@ -4521,8 +4483,8 @@
       {
         "path": "client/src/pages/car-salesman-dashboard.tsx",
         "language": "tsx",
-        "sha256": "06ddbd8a570d11173eaa6a2d65d5f1860e94946e2410990863ecc48dac0ac9bc",
-        "bytes": 192
+        "sha256": "8b69ce3bb2f66741397f37707cea738108201e5a2eff224128a758ee29cd64eb",
+        "bytes": 226
       },
       {
         "path": "client/src/pages/chat.tsx",
@@ -5139,8 +5101,8 @@
       {
         "path": "client/src/pages/exchange.tsx",
         "language": "tsx",
-        "sha256": "1c4f82d35c20cea4172e5f487edd47fb86e7afe1e306c352a3b111e7bf74a424",
-        "bytes": 127345
+        "sha256": "2e1e336410042911b7859ad75fb17b7c02c17a3bb42417f994b1c678212c4947",
+        "bytes": 124520
       },
       {
         "path": "client/src/pages/exchange/ExchangeBuildingMaterialsPage.tsx",
@@ -5343,8 +5305,8 @@
       {
         "path": "client/src/pages/find-local-businesses.tsx",
         "language": "tsx",
-        "sha256": "a09ee9a4adff4b84d3d0b6530f933b8092d7b2b00bbf504ce28e927c036408a8",
-        "bytes": 10572
+        "sha256": "a6b0dfa26a659b9aa76ddc6d849cb82e5dc311a9918234fef96c321e9e98d216",
+        "bytes": 10319
       },
       {
         "path": "client/src/pages/for-businesses.contract.test.ts",
@@ -5355,8 +5317,8 @@
       {
         "path": "client/src/pages/for-businesses.tsx",
         "language": "tsx",
-        "sha256": "d5a49a24246922da3199c33aaf4f4d8e1dcf2d15e87bc63c5e8a6d028f56b4fe",
-        "bytes": 10897
+        "sha256": "90262a9ac19b6d66bfdc4263b015da852aae2ef7c0c8a16f8e5b43a0ed32f079",
+        "bytes": 10660
       },
       {
         "path": "client/src/pages/foundation.tsx",
@@ -5421,8 +5383,8 @@
       {
         "path": "client/src/pages/help-demo.tsx",
         "language": "tsx",
-        "sha256": "511117125edfee691bbd815b37c54aac923e82f1c317661087f2b3c2612ccc7e",
-        "bytes": 193
+        "sha256": "1153eea156b427423f33d05393bbfbe22b6a51ef9327b0c66de654c05552237f",
+        "bytes": 213
       },
       {
         "path": "client/src/pages/help.tsx",
@@ -5493,8 +5455,8 @@
       {
         "path": "client/src/pages/homeowner-dashboard.tsx",
         "language": "tsx",
-        "sha256": "ffab29f0126308ffcf1dde645bc52869e825b61f29d56c255d45f51bb7f04fe8",
-        "bytes": 683
+        "sha256": "a018c3824d225adc180247bfa96a00b0c89fb961ed9532877b7f604f90144b86",
+        "bytes": 710
       },
       {
         "path": "client/src/pages/homes.tsx",
@@ -6399,8 +6361,8 @@
       {
         "path": "client/src/pages/realtor-cma.tsx",
         "language": "tsx",
-        "sha256": "a38c0fe52ea50b2c3254708debe425c5e3bea7aafd5312131f22d743f5143b92",
-        "bytes": 177
+        "sha256": "fff1943ecfc34aff1c38105e02a58b416591180fff0019b5c07b68f676debb7a",
+        "bytes": 197
       },
       {
         "path": "client/src/pages/realtor-connections.tsx",
@@ -6417,14 +6379,14 @@
       {
         "path": "client/src/pages/realtor-dashboard.tsx",
         "language": "tsx",
-        "sha256": "a2d619f6c89251fbef7d2428d7ae1c306970ad12b1c661cdd0daa22792f71db4",
-        "bytes": 181
+        "sha256": "5195f8626ae42cdb80cb26613865c22ea2d6fac3011d92d9b906ef93564048ac",
+        "bytes": 203
       },
       {
         "path": "client/src/pages/realtor-market-analysis.tsx",
         "language": "tsx",
-        "sha256": "8c84cfb259dff56b48c08cd8e82e0f75e46b46145161b0c41f75711e78ad17bc",
-        "bytes": 188
+        "sha256": "82a8d661694a08bb4007117d2b17e0e926876f6b95a0d51fd479336f17c249a5",
+        "bytes": 208
       },
       {
         "path": "client/src/pages/recent/CityRecentPage.tsx",
@@ -6621,8 +6583,8 @@
       {
         "path": "client/src/pages/tangipahoa.tsx",
         "language": "tsx",
-        "sha256": "ed8d4a72a3e651b44daac53941c2dc1f88982580c7373714452e14454fa3393e",
-        "bytes": 10161
+        "sha256": "9ca5e3a7f49fd8c78349ee0bb6ff99e659247b0ee33a3b4b150ed250b7ae7f93",
+        "bytes": 9931
       },
       {
         "path": "client/src/pages/tasks.tsx",
@@ -6909,8 +6871,8 @@
       {
         "path": "client/src/scout/ScoutOS.tsx",
         "language": "tsx",
-        "sha256": "6074590704301db8bc5037820fe1da267b4e2bb8275a7fa5f52053eb8d8834fb",
-        "bytes": 226588
+        "sha256": "8014cb30f8f10cb89a71a0cc0bc76843aef2d9b95c1fbfb5ba10a21874a0bef2",
+        "bytes": 226587
       },
       {
         "path": "client/src/scout/ScoutSearchDock.tsx",
@@ -9255,8 +9217,8 @@
       {
         "path": "server/index.ts",
         "language": "ts",
-        "sha256": "987dec3693283b4d4eeac13f82eea45c6e4ae7758e5f32a581f2f40b13e8a966",
-        "bytes": 137980
+        "sha256": "89c7aa83431597004a342ae768558aa1a1b1690dfa1ffffbcc45c7b5db39d6e4",
+        "bytes": 134824
       },
       {
         "path": "server/ingestion/adapters/fileObservationUtils.ts",
@@ -9585,8 +9547,8 @@
       {
         "path": "server/publicExchangeHtml.ts",
         "language": "ts",
-        "sha256": "f8feb6e3246c86a1af33c54249f0012687d39e6d147143a99041e76b68859da7",
-        "bytes": 12731
+        "sha256": "19239df63ed49cb5232e354d532254cdc5aa9971410116750750c76c14e15b71",
+        "bytes": 12434
       },
       {
         "path": "server/publicExchangeListing.ts",
@@ -9657,8 +9619,8 @@
       {
         "path": "server/publicLandingHtml.ts",
         "language": "ts",
-        "sha256": "9a626446f6b557118265b3897497c2df8a7fcdbd46098763cd41177149a843a5",
-        "bytes": 18513
+        "sha256": "f7149413a1f80d4af41bf1bcef8c407256bfcb82f12543734aaf74afe82cc645",
+        "bytes": 18043
       },
       {
         "path": "server/publicMediaStorage.ts",
@@ -9675,8 +9637,8 @@
       {
         "path": "server/publicProfileHtml.ts",
         "language": "ts",
-        "sha256": "bb0a15eb0f79c19e20f3c880e4f6a7b2be95633d75a2575eb486df6a12e800a3",
-        "bytes": 60648
+        "sha256": "e1166b1c1416b74ecd0ca51c0fbbc93b7011bcc9aa5256a8663428d4106d5657",
+        "bytes": 59154
       },
       {
         "path": "server/publicProfileItemRouting.ts",
@@ -9729,8 +9691,8 @@
       {
         "path": "server/publicSeoHtml.ts",
         "language": "ts",
-        "sha256": "84b619ac009884f4507e092ac9de81e5b2d10ea104591aab1707f27011951117",
-        "bytes": 14137
+        "sha256": "01a0cd3739939362038535b9139eb7f6d56af523f6539d69061296e08ca8c6ac",
+        "bytes": 13782
       },
       {
         "path": "server/publicShellAliasRoutes.ts",
@@ -10281,8 +10243,8 @@
       {
         "path": "server/routes/profiles.ts",
         "language": "ts",
-        "sha256": "0a672ec5396716855cf5bd3eba6b4e5d36a3d4c74ccfd42f5fa6a49eb83aa297",
-        "bytes": 158124
+        "sha256": "c2125d870182eacc053342725758c96abca29d7d5a1ec7691b6a502199de7d7d",
+        "bytes": 153958
       },
       {
         "path": "server/routes/promotions.ts",
@@ -12537,8 +12499,8 @@
       {
         "path": "server/tests/business-genericization.contract.test.ts",
         "language": "ts",
-        "sha256": "8c988a7b528920dedec34402adc6800a70efdb5e811c0e079c4bb362363aefe6",
-        "bytes": 21241
+        "sha256": "c39d182a27cafd6496fc5b7ef552aff6a5f985d20a5181926f54f6e4f6c400f6",
+        "bytes": 21205
       },
       {
         "path": "server/tests/business-onboarding-discoverability.contract.test.ts",
@@ -12783,8 +12745,8 @@
       {
         "path": "server/tests/core-sitemap-response.test.ts",
         "language": "ts",
-        "sha256": "caad31f54717b176176505a80b076052ba234140492804ef8ffafca4c7a40908",
-        "bytes": 1172
+        "sha256": "6f09af83b13ebd830f9152a87ce21020826f2183e55a3e34efaf3e32fc781838",
+        "bytes": 1141
       },
       {
         "path": "server/tests/cors-policy.test.ts",
@@ -13257,8 +13219,8 @@
       {
         "path": "server/tests/exchange-listing-seo.contract.test.ts",
         "language": "ts",
-        "sha256": "d6dc7ba607bf1229043195c9d97bf5ee5a43c44bfbce8a18f80b9830fd454327",
-        "bytes": 18457
+        "sha256": "ea5c6bb1ac4ee653bd571370d8cac9ded24d1d29c409c9c73921cec8be91b1e5",
+        "bytes": 17965
       },
       {
         "path": "server/tests/exchange-og-and-category-routing.contract.test.ts",
@@ -14253,8 +14215,8 @@
       {
         "path": "server/tests/profile-discovery-graph-html.behavior.test.ts",
         "language": "ts",
-        "sha256": "73fee01e03305daa3e21cf71eb60919df8f8ff69cf7cf19a3b4423a2eea1474d",
-        "bytes": 10376
+        "sha256": "e343d66f599539fb3b1b218d9b04081d3c235817e0e3b090faadfcdaa8adaca1",
+        "bytes": 10111
       },
       {
         "path": "server/tests/profile-gallery-share-metadata.test.ts",
@@ -14637,8 +14599,8 @@
       {
         "path": "server/tests/public-discovery-content.behavior.test.ts",
         "language": "ts",
-        "sha256": "0b18e9d5e5dce0094aba3e557e25c7a237cd84ade3c16f3f287710aa7f1ed811",
-        "bytes": 6322
+        "sha256": "5e120ac535b057316dd36b5df26aeb8bf8776067b8c9b1db8f9fff5d7252d629",
+        "bytes": 6157
       },
       {
         "path": "server/tests/public-discovery-equivalence.contract.test.ts",
@@ -14949,8 +14911,8 @@
       {
         "path": "server/tests/public-seo-html.test.ts",
         "language": "ts",
-        "sha256": "c52d69e41ffcb1e4df77720265ff891b84a3ff9208ff3ece5d959bdf08911b9c",
-        "bytes": 12470
+        "sha256": "df202ac34f89624e2bf40fded5cf110ac2be5d9fffe56f64cde13d1e62f26854",
+        "bytes": 12189
       },
       {
         "path": "server/tests/public-shell-aliases.test.ts",
@@ -15675,8 +15637,8 @@
       {
         "path": "server/tests/tradescout-public-discovery-business-entry.contract.test.ts",
         "language": "ts",
-        "sha256": "68b65c2999e5d7d68acd93425f8c6ff41dab5ab1cd58472a764b666b505a0571",
-        "bytes": 4945
+        "sha256": "0da55115e1c77893759c63bf4a47353bb5b84b03ef1ea4ad98840b4e6f373aef",
+        "bytes": 4854
       },
       {
         "path": "server/tests/tradescout-public-entry-rendered-smoke.test.ts",
@@ -16901,6 +16863,12 @@
         "language": "ts",
         "sha256": "edca1c96e4b84d26b002a071d396210bba8ecf661b106b28673149bed220ea6b",
         "bytes": 7419
+      },
+      {
+        "path": "test-results/assets/index-DaKof6xz.js",
+        "language": "js",
+        "sha256": "76a72613f69c2c658c63570f4ae708526a0f3acf0dcc5722f236ed10fa8463d5",
+        "bytes": 777636
       },
       {
         "path": "test-runner.js",
@@ -19209,20 +19177,6 @@
         "exported": false
       },
       {
-        "name": "EmptyStateProps",
-        "kind": "type",
-        "path": "client/src/components/EmptyState.tsx",
-        "line": 4,
-        "exported": false
-      },
-      {
-        "name": "EmptyState",
-        "kind": "component",
-        "path": "client/src/components/EmptyState.tsx",
-        "line": 10,
-        "exported": true
-      },
-      {
         "name": "AdContent",
         "kind": "type",
         "path": "client/src/components/EnhancedAdSystem.tsx",
@@ -19727,34 +19681,6 @@
         "exported": true
       },
       {
-        "name": "LoadingSkeletonProps",
-        "kind": "type",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 2,
-        "exported": false
-      },
-      {
-        "name": "LoadingSkeleton",
-        "kind": "component",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 8,
-        "exported": true
-      },
-      {
-        "name": "ContractorCardSkeleton",
-        "kind": "component",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 46,
-        "exported": true
-      },
-      {
-        "name": "DashboardCardSkeleton",
-        "kind": "component",
-        "path": "client/src/components/LoadingSkeleton.tsx",
-        "line": 65,
-        "exported": true
-      },
-      {
         "name": "LoadingSpinnerProps",
         "kind": "type",
         "path": "client/src/components/LoadingSpinner.tsx",
@@ -19787,34 +19713,6 @@
         "kind": "function",
         "path": "client/src/components/LoginForm.tsx",
         "line": 88,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminFormData",
-        "kind": "type",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 42,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminSetupProps",
-        "kind": "type",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 44,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminSetup",
-        "kind": "component",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 48,
-        "exported": true
-      },
-      {
-        "name": "onSubmit",
-        "kind": "function",
-        "path": "client/src/components/MasterAdminSetup.tsx",
-        "line": 102,
         "exported": false
       },
       {
@@ -21911,27 +21809,6 @@
         "exported": false
       },
       {
-        "name": "MasterAdminFormData",
-        "kind": "type",
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "line": 28,
-        "exported": false
-      },
-      {
-        "name": "MasterAdminSetup",
-        "kind": "component",
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "line": 30,
-        "exported": true
-      },
-      {
-        "name": "onSubmit",
-        "kind": "function",
-        "path": "client/src/components/auth/MasterAdminSetup.tsx",
-        "line": 70,
-        "exported": false
-      },
-      {
         "name": "OnboardingFlowProps",
         "kind": "type",
         "path": "client/src/components/auth/OnboardingFlow.tsx",
@@ -22413,13 +22290,6 @@
         "path": "client/src/components/contractor-card-placeholders.contract.test.ts",
         "line": 4,
         "exported": false
-      },
-      {
-        "name": "ContractorCardSkeleton",
-        "kind": "component",
-        "path": "client/src/components/contractor-card-skeleton.tsx",
-        "line": 2,
-        "exported": true
       },
       {
         "name": "renderCard",
@@ -23385,27 +23255,6 @@
         "kind": "function",
         "path": "client/src/components/layout/appShellMobileTaskbar.contract.test.ts",
         "line": 4,
-        "exported": false
-      },
-      {
-        "name": "Navigation",
-        "kind": "component",
-        "path": "client/src/components/layout/navigation.tsx",
-        "line": 39,
-        "exported": true
-      },
-      {
-        "name": "handleScroll",
-        "kind": "function",
-        "path": "client/src/components/layout/navigation.tsx",
-        "line": 47,
-        "exported": false
-      },
-      {
-        "name": "closeMobileMenu",
-        "kind": "function",
-        "path": "client/src/components/layout/navigation.tsx",
-        "line": 172,
         "exported": false
       },
       {
@@ -26307,13 +26156,6 @@
         "exported": false
       },
       {
-        "name": "Navigation",
-        "kind": "component",
-        "path": "client/src/components/ui/navigation.tsx",
-        "line": 21,
-        "exported": true
-      },
-      {
         "name": "LucideIcon",
         "kind": "type",
         "path": "client/src/components/ui/notification-center.tsx",
@@ -26396,20 +26238,6 @@
         "path": "client/src/components/ui/notification-preferences.tsx",
         "line": 171,
         "exported": false
-      },
-      {
-        "name": "PageHeaderProps",
-        "kind": "type",
-        "path": "client/src/components/ui/page-header.tsx",
-        "line": 3,
-        "exported": false
-      },
-      {
-        "name": "PageHeader",
-        "kind": "component",
-        "path": "client/src/components/ui/page-header.tsx",
-        "line": 8,
-        "exported": true
       },
       {
         "name": "Pagination",
@@ -26527,63 +26355,63 @@
         "name": "EmptyStateProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 3,
+        "line": 5,
         "exported": false
       },
       {
         "name": "EmptyState",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 11,
+        "line": 15,
         "exported": true
       },
       {
         "name": "ErrorStateProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 29,
+        "line": 64,
         "exported": false
       },
       {
         "name": "ErrorState",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 37,
+        "line": 72,
         "exported": true
       },
       {
         "name": "SkeletonBlockProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 61,
+        "line": 96,
         "exported": false
       },
       {
         "name": "SkeletonBlock",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 65,
+        "line": 100,
         "exported": true
       },
       {
         "name": "SkeletonTable",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 69,
+        "line": 104,
         "exported": true
       },
       {
         "name": "LoadingGateProps",
         "kind": "type",
         "path": "client/src/components/ui/states.tsx",
-        "line": 79,
+        "line": 114,
         "exported": false
       },
       {
         "name": "LoadingGate",
         "kind": "component",
         "path": "client/src/components/ui/states.tsx",
-        "line": 85,
+        "line": 120,
         "exported": true
       },
       {
@@ -29975,6 +29803,13 @@
         "exported": true
       },
       {
+        "name": "Viewport",
+        "kind": "component",
+        "path": "client/src/hooks/use-mobile.test.tsx",
+        "line": 37,
+        "exported": false
+      },
+      {
         "name": "useIsMobile",
         "kind": "hook",
         "path": "client/src/hooks/use-mobile.tsx",
@@ -29985,7 +29820,7 @@
         "name": "onChange",
         "kind": "function",
         "path": "client/src/hooks/use-mobile.tsx",
-        "line": 10,
+        "line": 12,
         "exported": false
       },
       {
@@ -30336,20 +30171,6 @@
         "kind": "function",
         "path": "client/src/hooks/useInstallPrompt.ts",
         "line": 23,
-        "exported": false
-      },
-      {
-        "name": "useIsMobile",
-        "kind": "hook",
-        "path": "client/src/hooks/useIsMobile.ts",
-        "line": 2,
-        "exported": true
-      },
-      {
-        "name": "handle",
-        "kind": "function",
-        "path": "client/src/hooks/useIsMobile.ts",
-        "line": 9,
         "exported": false
       },
       {
@@ -119413,11 +119234,6 @@
           "line": 32
         },
         {
-          "name": "Navigation",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 21
-        },
-        {
           "name": "NotificationCenter",
           "path": "client/src/components/ui/notification-center.tsx",
           "line": 87
@@ -119426,11 +119242,6 @@
           "name": "NotificationPreferences",
           "path": "client/src/components/ui/notification-preferences.tsx",
           "line": 113
-        },
-        {
-          "name": "PageHeader",
-          "path": "client/src/components/ui/page-header.tsx",
-          "line": 8
         },
         {
           "name": "Pagination",
@@ -119460,27 +119271,27 @@
         {
           "name": "EmptyState",
           "path": "client/src/components/ui/states.tsx",
-          "line": 11
+          "line": 15
         },
         {
           "name": "ErrorState",
           "path": "client/src/components/ui/states.tsx",
-          "line": 37
+          "line": 72
         },
         {
           "name": "SkeletonBlock",
           "path": "client/src/components/ui/states.tsx",
-          "line": 65
+          "line": 100
         },
         {
           "name": "SkeletonTable",
           "path": "client/src/components/ui/states.tsx",
-          "line": 69
+          "line": 104
         },
         {
           "name": "LoadingGate",
           "path": "client/src/components/ui/states.tsx",
-          "line": 85
+          "line": 120
         },
         {
           "name": "Toaster",
@@ -119983,61 +119794,6 @@
           "tag": "button",
           "path": "client/src/components/LoginForm.tsx",
           "line": 198
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 128
-        },
-        {
-          "tag": "form",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 156
-        },
-        {
-          "tag": "form",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 157
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 166
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 180
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 195
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 210
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 215
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 243
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 248
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/MasterAdminSetup.tsx",
-          "line": 268
         },
         {
           "tag": "button",
@@ -121320,51 +121076,6 @@
           "line": 97
         },
         {
-          "tag": "form",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 97
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 104
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 119
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 138
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 158
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 165
-        },
-        {
-          "tag": "input",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 187
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 194
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/auth/MasterAdminSetup.tsx",
-          "line": 213
-        },
-        {
           "tag": "input",
           "path": "client/src/components/auth/OnboardingFlow.tsx",
           "line": 101
@@ -122208,86 +121919,6 @@
           "tag": "button",
           "path": "client/src/components/layout/SimpleNavigation.tsx",
           "line": 240
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 276
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 290
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 301
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 312
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 330
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 343
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 356
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 476
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 493
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 511
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 529
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 613
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 624
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 635
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 653
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/navigation.tsx",
-          "line": 664
         },
         {
           "tag": "button",
@@ -123346,51 +122977,6 @@
         },
         {
           "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 71
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 101
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 113
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 121
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 134
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 154
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 185
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 197
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/ui/navigation.tsx",
-          "line": 206
-        },
-        {
-          "tag": "button",
           "path": "client/src/components/ui/notification-center.tsx",
           "line": 184
         },
@@ -123552,12 +123138,17 @@
         {
           "tag": "button",
           "path": "client/src/components/ui/states.tsx",
-          "line": 22
+          "line": 39
         },
         {
           "tag": "button",
           "path": "client/src/components/ui/states.tsx",
-          "line": 54
+          "line": 57
+        },
+        {
+          "tag": "button",
+          "path": "client/src/components/ui/states.tsx",
+          "line": 89
         },
         {
           "tag": "textarea",
@@ -134337,7 +133928,7 @@
         {
           "tag": "button",
           "path": "client/src/pages/homeowner-dashboard.tsx",
-          "line": 14
+          "line": 15
         },
         {
           "tag": "button",
@@ -140311,21 +139902,6 @@
           ]
         },
         {
-          "name": "ContractorCardSkeleton",
-          "owners": [
-            {
-              "path": "client/src/components/LoadingSkeleton.tsx",
-              "line": 46,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/contractor-card-skeleton.tsx",
-              "line": 2,
-              "kind": "component"
-            }
-          ]
-        },
-        {
           "name": "DefaultProfileTheme",
           "owners": [
             {
@@ -140341,21 +139917,6 @@
           ]
         },
         {
-          "name": "EmptyState",
-          "owners": [
-            {
-              "path": "client/src/components/EmptyState.tsx",
-              "line": 10,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/ui/states.tsx",
-              "line": 11,
-              "kind": "component"
-            }
-          ]
-        },
-        {
           "name": "Home",
           "owners": [
             {
@@ -140366,36 +139927,6 @@
             {
               "path": "client/src/pages/landing.tsx",
               "line": 1052,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "MasterAdminSetup",
-          "owners": [
-            {
-              "path": "client/src/components/MasterAdminSetup.tsx",
-              "line": 48,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/auth/MasterAdminSetup.tsx",
-              "line": 30,
-              "kind": "component"
-            }
-          ]
-        },
-        {
-          "name": "Navigation",
-          "owners": [
-            {
-              "path": "client/src/components/layout/navigation.tsx",
-              "line": 39,
-              "kind": "component"
-            },
-            {
-              "path": "client/src/components/ui/navigation.tsx",
-              "line": 21,
               "kind": "component"
             }
           ]
@@ -140459,21 +139990,6 @@
               "kind": "component"
             }
           ]
-        },
-        {
-          "name": "useIsMobile",
-          "owners": [
-            {
-              "path": "client/src/hooks/use-mobile.tsx",
-              "line": 4,
-              "kind": "hook"
-            },
-            {
-              "path": "client/src/hooks/useIsMobile.ts",
-              "line": 2,
-              "kind": "hook"
-            }
-          ]
         }
       ]
     }
@@ -140533,15 +140049,6 @@
     {
       "severity": "error",
       "code": "PI002",
-      "message": "Exported symbol ContractorCardSkeleton has multiple candidate owners.",
-      "paths": [
-        "client/src/components/LoadingSkeleton.tsx",
-        "client/src/components/contractor-card-skeleton.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
       "message": "Exported symbol DefaultProfileTheme has multiple candidate owners.",
       "paths": [
         "client/src/pages/profile-sites/DefaultProfileTheme.tsx",
@@ -140551,37 +140058,10 @@
     {
       "severity": "error",
       "code": "PI002",
-      "message": "Exported symbol EmptyState has multiple candidate owners.",
-      "paths": [
-        "client/src/components/EmptyState.tsx",
-        "client/src/components/ui/states.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
       "message": "Exported symbol Home has multiple candidate owners.",
       "paths": [
         "client/src/pages/home.tsx",
         "client/src/pages/landing.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol MasterAdminSetup has multiple candidate owners.",
-      "paths": [
-        "client/src/components/MasterAdminSetup.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx"
-      ]
-    },
-    {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol Navigation has multiple candidate owners.",
-      "paths": [
-        "client/src/components/layout/navigation.tsx",
-        "client/src/components/ui/navigation.tsx"
       ]
     },
     {
@@ -140621,18 +140101,9 @@
       ]
     },
     {
-      "severity": "error",
-      "code": "PI002",
-      "message": "Exported symbol useIsMobile has multiple candidate owners.",
-      "paths": [
-        "client/src/hooks/use-mobile.tsx",
-        "client/src/hooks/useIsMobile.ts"
-      ]
-    },
-    {
       "severity": "warning",
       "code": "PI003",
-      "message": "Raw <button> markup is spread across 451 files; reuse or establish one canonical primitive before adding another variant.",
+      "message": "Raw <button> markup is spread across 447 files; reuse or establish one canonical primitive before adding another variant.",
       "paths": [
         "client/src/AppRoutes.tsx",
         "client/src/admin/AdminHeader.tsx",
@@ -140657,7 +140128,6 @@
         "client/src/components/InteractiveCountyMap.tsx",
         "client/src/components/KeyboardNavigationHint.tsx",
         "client/src/components/LoginForm.tsx",
-        "client/src/components/MasterAdminSetup.tsx",
         "client/src/components/MaterialListBuilder.tsx",
         "client/src/components/MessagingPanel.tsx",
         "client/src/components/MobileAppBar.tsx",
@@ -140698,7 +140168,6 @@
         "client/src/components/auth-buttons.tsx",
         "client/src/components/auth-modal.tsx",
         "client/src/components/auth/FacebookSignup.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx",
         "client/src/components/auth/OnboardingFlow.tsx",
         "client/src/components/auth/RoleProtectedRoute.test.tsx",
         "client/src/components/auth/RoleSelection.tsx",
@@ -140728,7 +140197,6 @@
         "client/src/components/layout/NextGenNavigation.tsx",
         "client/src/components/layout/RightToolsPanel.tsx",
         "client/src/components/layout/SimpleNavigation.tsx",
-        "client/src/components/layout/navigation.tsx",
         "client/src/components/messages/MessagesPanel.tsx",
         "client/src/components/mobile-cta.tsx",
         "client/src/components/moderation/ModerationButtons.tsx",
@@ -140767,7 +140235,6 @@
         "client/src/components/ui/contextual-tooltip.tsx",
         "client/src/components/ui/error-boundary.tsx",
         "client/src/components/ui/help-bubble.tsx",
-        "client/src/components/ui/navigation.tsx",
         "client/src/components/ui/notification-center.tsx",
         "client/src/components/ui/notification-preferences.tsx",
         "client/src/components/ui/personal-events-manager.tsx",
@@ -141090,19 +140557,17 @@
     {
       "severity": "warning",
       "code": "PI003",
-      "message": "Raw <form> markup is spread across 54 files; reuse or establish one canonical primitive before adding another variant.",
+      "message": "Raw <form> markup is spread across 52 files; reuse or establish one canonical primitive before adding another variant.",
       "paths": [
         "client/src/components/EmailPasswordAuth.tsx",
         "client/src/components/ErrorReportButton.tsx",
         "client/src/components/LoginForm.tsx",
-        "client/src/components/MasterAdminSetup.tsx",
         "client/src/components/RecommendationForm.tsx",
         "client/src/components/RecommendationGenerator.tsx",
         "client/src/components/RegisterForm.tsx",
         "client/src/components/ReportContentModal.tsx",
         "client/src/components/TestingErrorReportButton.tsx",
         "client/src/components/admin/UserManagement.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx",
         "client/src/components/conversation-starter.tsx",
         "client/src/components/forms/ContactForm.tsx",
         "client/src/components/profile/ProfileBookingRequestDialog.tsx",
@@ -141151,7 +140616,7 @@
     {
       "severity": "warning",
       "code": "PI003",
-      "message": "Raw <input> markup is spread across 195 files; reuse or establish one canonical primitive before adding another variant.",
+      "message": "Raw <input> markup is spread across 193 files; reuse or establish one canonical primitive before adding another variant.",
       "paths": [
         "client/src/admin/SuperAdminLeftNav.tsx",
         "client/src/components/BugReportButton.tsx",
@@ -141161,7 +140626,6 @@
         "client/src/components/GooglePlacesBusinessInput.tsx",
         "client/src/components/GooglePlacesLocationInput.tsx",
         "client/src/components/LoginForm.tsx",
-        "client/src/components/MasterAdminSetup.tsx",
         "client/src/components/MaterialListBuilder.tsx",
         "client/src/components/MessagingPanel.tsx",
         "client/src/components/RecommendationForm.tsx",
@@ -141175,7 +140639,6 @@
         "client/src/components/admin/FeatureTogglePanel.tsx",
         "client/src/components/admin/FinanceLedgerPanel.tsx",
         "client/src/components/admin/UserManagement.tsx",
-        "client/src/components/auth/MasterAdminSetup.tsx",
         "client/src/components/auth/OnboardingFlow.tsx",
         "client/src/components/community/ContactOutcomeModal.tsx",
         "client/src/components/floating-help-button.tsx",
@@ -141619,13 +141082,13 @@
     }
   ],
   "summary": {
-    "directories": 126,
-    "source_files": 2779,
-    "symbols": 14581,
-    "components": 954,
-    "functions_and_hooks": 8920,
-    "raw_ui_elements": 4142,
-    "errors": 16,
+    "directories": 127,
+    "source_files": 2773,
+    "symbols": 14560,
+    "components": 945,
+    "functions_and_hooks": 8914,
+    "raw_ui_elements": 4098,
+    "errors": 11,
     "warnings": 5
   }
 }

@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ROUTES } from "@/lib/routes";
 import { NotificationCenter } from "@/components/ui/notification-center";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
