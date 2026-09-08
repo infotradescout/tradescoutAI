@@ -34,6 +34,7 @@ import {
 } from "@shared/jwStonePresentation";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
+import { resolveProfileServiceAreaHub } from "@shared/profileServiceAreaShare";
 import {
   buildPublicProfileAppIconPath,
   buildPublicProfileAppManifestPath,
@@ -200,7 +201,10 @@ function normalizePageMetadataCanonical(value: unknown, origin: string): string 
   }
 }
 
-function listPublishedProfileServiceItems(contentBlocks: unknown): string[] {
+function listPublishedProfileServiceItems(
+  contentBlocks: unknown,
+  includeDescriptions = true
+): string[] {
   if (!Array.isArray(contentBlocks)) return [];
   const services = contentBlocks.find(
     (block) =>
@@ -215,7 +219,9 @@ function listPublishedProfileServiceItems(contentBlocks: unknown): string[] {
       if (!item || typeof item !== "object") return "";
       const source = item as Record<string, unknown>;
       const title = cleanLlmsText(source.title || source.name || source.label, 100);
-      const detail = cleanLlmsText(source.body || source.description || source.text, 180);
+      const detail = includeDescriptions
+        ? cleanLlmsText(source.body || source.description || source.text, 180)
+        : "";
       return [title, detail].filter(Boolean).join(": ");
     })
     .filter((item: string) => item.length > 0)
@@ -1293,10 +1299,22 @@ export async function buildPublicProfileHtml({
     .filter(Boolean)
     .slice(0, 6)
     .join(", ");
+  // The public profile can store its visible services and area in content blocks
+  // while the linked business fields are empty. Read the published owner content
+  // here too; title-only services do not qualify for separate discovery pages.
+  const showProfileServices =
+    !itemShare && !pageCategoryShare && profileRecord.profileSections?.services !== false;
+  const publishedServiceItems = showProfileServices
+    ? listPublishedProfileServiceItems(data.profile.contentBlocks, false)
+    : [];
   const configuredAreas =
     data.profile.slug === "jw-stone" && businessRecord?.city
       ? [[businessRecord.city, businessRecord.stateCode].filter(Boolean).join(", ")]
-      : businessRecord?.serviceAreas || [];
+      : businessRecord?.serviceAreas?.length
+        ? businessRecord.serviceAreas
+        : showProfileServices
+          ? resolveProfileServiceAreaHub(data.profile.contentBlocks)?.areas || []
+          : [];
   const areasSummary = configuredAreas
     .map((value) => cleanPublicProfileText(value, 160))
     .filter(Boolean)
@@ -1457,8 +1475,9 @@ export async function buildPublicProfileHtml({
     ${categorySummary}
     ${categoryInventoryLinks ? `<section data-seo-profile-category-items="true"><h2>Published ${escapeHtml(pageCategoryShare?.categoryName || "category")} pages</h2><ul>${categoryInventoryLinks}</ul></section>` : ""}
     ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
-    ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
+    ${areasSummary ? `<p data-seo-profile-service-areas="true"><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}
+    ${publishedServiceItems.length ? `<section data-seo-profile-services="true"><h2>Services</h2><ul>${publishedServiceItems.map((service) => `<li>${escapeHtml(service)}</li>`).join("")}</ul></section>` : ""}
     ${categoryLinks ? `<section><h2>${categorySectionHeading}</h2><ul>${categoryLinks}</ul></section>` : ""}
     ${inventoryLinks ? `<section><h2>${inventorySectionHeading}</h2><ul>${inventoryLinks}</ul></section>` : ""}
     ${galleryLinks ? `<section data-seo-profile-gallery-links="true"><h2>Published projects and work</h2><ul>${galleryLinks}</ul></section>` : ""}

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listProfileGalleryItems } from "@shared/profileGalleryShare";
+import { JSDOM } from "jsdom";
+import { preparePublicSeoHtmlForUserAgent } from "../publicSeoHtml";
 
 const mocks = vi.hoisted(() => ({
   getProfileBySlugPublic: vi.fn(),
@@ -188,6 +190,63 @@ describe("automatic public profile discovery graph", () => {
     expect(html).toContain("1 current selection");
     expect(html).not.toContain("trending-selection-04");
   });
+
+  it("includes published service titles and the stored service area before JavaScript runs", async () => {
+    const serviceTitles = ["Kitchen projects in Pensacola", "Cabinets in Pensacola"];
+    mocks.getProfileBySlugPublic.mockResolvedValue({
+      ...profileRecord,
+      servicesDescription: null,
+      contentBlocks: [
+        ...contentBlocks,
+        { type: "services", data: { items: serviceTitles.map((title) => ({ title })) } },
+        { type: "serviceAreas", data: { areas: ["Pensacola, FL"] } },
+      ],
+    });
+    const raw = await buildPublicProfileHtml({
+      slug: "future-profile",
+      origin: "https://profile.example",
+      templateHtml,
+    });
+
+    for (const userAgent of ["Googlebot/2.1", "Mozilla/5.0 Chrome/140.0", "UnlistedReader/1.0"]) {
+      const document = new JSDOM(preparePublicSeoHtmlForUserAgent(raw!, userAgent)).window.document;
+      expect(
+        Array.from(
+          document.querySelectorAll("[data-seo-profile-services] li"),
+          (li) => li.textContent
+        )
+      ).toEqual(serviceTitles);
+      expect(document.querySelector("[data-seo-profile-service-areas]")?.textContent).toContain(
+        "Pensacola, FL"
+      );
+      // Title-only services belong on the business page; they do not create thin child pages.
+      expect(document.querySelector('a[href*="/services/"]')).toBeNull();
+    }
+  });
+
+  it.each(["hidden", "product"])(
+    "keeps business service copy off a %s surface",
+    async (surface) => {
+      mocks.getProfileBySlugPublic.mockResolvedValue({
+        ...profileRecord,
+        profileSections: { services: surface !== "hidden" },
+        contentBlocks: [
+          ...contentBlocks,
+          { type: "services", data: { items: ["Published service"] } },
+          { type: "serviceAreas", data: { areas: ["Pensacola, FL"] } },
+        ],
+      });
+      const html = await buildPublicProfileHtml({
+        slug: "future-profile",
+        origin: "https://profile.example",
+        templateHtml,
+        ...(surface === "product" ? { itemSlug: "named-stone" } : {}),
+      });
+      const document = new JSDOM(html!).window.document;
+      expect(document.querySelector("[data-seo-profile-services]")).toBeNull();
+      expect(document.querySelector("[data-seo-profile-service-areas]")).toBeNull();
+    }
+  );
 
   it("links a public project page back to the parent profile", async () => {
     const completedProject = publicGalleryItems()[1];

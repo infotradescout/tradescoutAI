@@ -8,11 +8,11 @@
  * 3. server/routes/profiles.ts — sitemap-exchange-listings.xml route registered
  * 4. server/routes/profiles.ts — sitemap-index.xml includes sitemap-exchange-listings.xml
  * 5. server/routes/profiles.ts — robots.txt includes Allow: /exchange/
- * 6. server/routes/profiles.ts — CORE_STATIC_PATHS includes all 15 exchange category pages
+ * 6. Runtime core sitemap coverage lives in core-sitemap-response.test.ts
  * 7. publicExchangeHtml.ts — BreadcrumbList JSON-LD injected for per-category pages
  * 8. client/public/robots.txt — static robots.txt includes Allow: /exchange/
  * 9. client/public/sitemap-index.xml — static sitemap-index.xml includes sitemap-exchange-listings.xml
- * 10. scripts/generate-sitemap.mjs — all 15 exchange category paths included
+ * 10. client/public/sitemap.xml — gated Exchange hub/category pages excluded
  * 11. server/storage.ts — IStorage interface declares listActiveExchangeListingsForSitemap
  * 12. server/repositories/sitemapRepository.ts — SitemapRepository has listActiveExchangeListingsForSitemap
  */
@@ -30,7 +30,6 @@ import { toPublicExchangeListing } from "../publicExchangeListing";
 const ROOT = path.resolve(__dirname, "../..");
 const SERVER_DIR = path.resolve(ROOT, "server");
 const CLIENT_PUBLIC_DIR = path.resolve(ROOT, "client/public");
-const SCRIPTS_DIR = path.resolve(ROOT, "scripts");
 
 function readFile(relPath: string): string {
   return fs.readFileSync(path.resolve(ROOT, relPath), "utf-8");
@@ -388,36 +387,6 @@ describe("server/routes/profiles.ts robots.txt", () => {
   });
 });
 
-// ─── 6. CORE_STATIC_PATHS includes all 15 exchange category pages ─────────────
-
-describe("server/routes/profiles.ts CORE_STATIC_PATHS", () => {
-  const src = readFile("server/routes/profiles.ts");
-
-  const expectedCategoryPaths = [
-    "/exchange/vehicles",
-    "/exchange/business",
-    "/exchange/real-estate",
-    "/exchange/construction",
-    "/exchange/tools",
-    "/exchange/furniture",
-    "/exchange/farm",
-    "/exchange/business-equipment",
-    "/exchange/electronics",
-    "/exchange/sports",
-    "/exchange/collectibles",
-    "/exchange/jewelry",
-    "/exchange/metals",
-    "/exchange/local-food",
-    "/exchange/other",
-  ];
-
-  for (const p of expectedCategoryPaths) {
-    it(`CORE_STATIC_PATHS includes ${p}`, () => {
-      expect(src).toContain(`"${p}"`);
-    });
-  }
-});
-
 // ─── 7. publicExchangeHtml.ts — BreadcrumbList JSON-LD for category pages ────
 
 describe("publicExchangeHtml.ts BreadcrumbList JSON-LD", () => {
@@ -461,34 +430,21 @@ describe("client/public/sitemap-index.xml", () => {
   });
 });
 
-// ─── 10. scripts/generate-sitemap.mjs — all 15 exchange category paths ────────
+// ─── 10. Static core sitemap reflects public, indexable destinations ─────────
 
-describe("scripts/generate-sitemap-core.mjs", () => {
-  const src = fs.readFileSync(path.resolve(SCRIPTS_DIR, "generate-sitemap-core.mjs"), "utf-8");
-
-  const expectedPaths = [
-    "/exchange/vehicles",
-    "/exchange/business",
-    "/exchange/real-estate",
-    "/exchange/construction",
-    "/exchange/tools",
-    "/exchange/furniture",
-    "/exchange/farm",
-    "/exchange/business-equipment",
-    "/exchange/electronics",
-    "/exchange/sports",
-    "/exchange/collectibles",
-    "/exchange/jewelry",
-    "/exchange/metals",
-    "/exchange/local-food",
-    "/exchange/other",
-  ];
-
-  for (const p of expectedPaths) {
-    it(`STATIC_PUBLIC_ROUTES includes ${p}`, () => {
-      expect(src).toContain(`'${p}'`);
-    });
-  }
+describe("client/public/sitemap.xml", () => {
+  it("includes public business discovery and excludes gated Exchange shells", () => {
+    const xml = fs.readFileSync(path.resolve(CLIENT_PUBLIC_DIR, "sitemap.xml"), "utf-8");
+    const paths = Array.from(
+      xml.matchAll(/<loc>([^<]+)<\/loc>/g),
+      (match) => new URL(match[1]).pathname
+    );
+    expect(paths).toContain("/find-local-businesses");
+    expect(paths).toContain("/for-businesses");
+    expect(paths.some((value) => value === "/exchange" || value.startsWith("/exchange/"))).toBe(
+      false
+    );
+  });
 });
 
 // ─── 11. server/storage.ts — IStorage interface ───────────────────────────────
