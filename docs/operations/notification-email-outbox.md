@@ -1,8 +1,9 @@
 # Durable notification email delivery
 
 `NotificationService` owns the inbox record and its email job. `emailService`
-remains the only email provider adapter. No contact, assignment, exposure, or
-provider selection route gains email eligibility from this change.
+remains the only email provider adapter. Normal assigned-provider request
+notifications may enroll email only for verified recipients with explicit
+New Requests Email consent and current canonical provider eligibility.
 
 ## Queue contract
 
@@ -19,7 +20,43 @@ when `SCHEDULER_ENABLED=true` and the configured scheduler leadership rule
 allows background work. Claims use PostgreSQL `FOR UPDATE SKIP LOCKED` and an
 atomic status update. A single process also prevents overlapping email passes.
 The worker re-reads the current recipient, notification, expiration, archive,
-schedule and preferences immediately before submission.
+schedule and preferences immediately before submission. A validation lease is
+separate from a provider submission lease: transient validation failures are
+safe to retry, while uncertain provider submissions are not.
+
+## Normal Direct Connect invitations
+
+The three normal producers (automatic routing, requester owner-direct selected
+providers, and normal newly created targeted providers) use the specialized
+assigned-provider notification operation. It binds the request, assignment,
+persisted provider event and recipient to a deterministic notification ID.
+Eligibility requires a routed Direct Connect request, exactly one current
+suggested/invited assignment and matching normal requester-authored event,
+plus the current contractor or business owner. Staff-authored/admin-directed,
+worker-only, ambiguous, stale or unbound contexts cannot enroll email.
+
+Enrollment requires a verified address and explicit global notification/email
+flags plus the enabled `new_project_request` email preference. Missing or
+malformed preferences fail closed. The normal inbox/push intent is retained
+when email context or eligibility lookups fail. If explicit consent was read
+successfully before a transient eligibility error, the record marks that
+evaluation deferred; replaying the same event after recovery can add its one
+email job without another inbox/push alert. Later opt-ins do not backfill these
+already bound notifications, and replay never resets an existing terminal/unknown job. No
+background historical recovery batch is introduced. A failure before the
+event binding or initial consent is established retains the inbox alert but
+does not establish a recoverable email intent. If the context lookup itself
+fails, that fallback inbox record is unbound; a later successful normal producer
+replay can create a distinct bound notification under then-current consent.
+
+At drain, the worker revalidates the exact binding and canonical county/trade/
+trust eligibility. After asynchronous eligibility checks, it reloads the
+binding and guards the submission transition with current request/assignment,
+verified recipient address, notification state and every stored consent row.
+Withdrawal, acceptance, reassignment, opt-out or changed verification/address
+during validation cancels submission. Changed eligibility context safely
+retries validation. Lease IDs prevent a superseded worker from submitting or
+overwriting the current worker's receipt.
 
 Producer delivery methods are the maximum allowed set; preferences only narrow
 it. In-app-only staff oversight stays in app. Preference mutations bind to the
@@ -34,8 +71,9 @@ invariants are **enforced** by service behavior and the focused tests.
 | Job status | Meaning and next action |
 | --- | --- |
 | `pending` | Persisted intent waiting for its schedule and an enabled worker. |
-| `running` | Claimed attempt. The provider may not yet have responded. |
-| `retry` | Known rate-limit rejection or missing provider configuration; next attempt is scheduled with exponential backoff and jitter. At most five attempts occur. |
+| `validating` | Claimed pre-submission checks. No provider call has begun. An expired validation lease can safely retry. |
+| `running` | Submission authority passed. The provider may not yet have responded. |
+| `retry` | Transient pre-submission validation failure, changed eligibility context, known rate-limit rejection or missing provider configuration; next attempt is scheduled with bounded backoff. At most five attempts occur. |
 | `completed` | Provider accepted the message. Its ID is recorded when returned. This does not establish mailbox delivery. |
 | `cancelled` | Recipient, notification, preferences or current email mode no longer permits sending. |
 | `failed` | Provider explicitly rejected the request, or five safe attempts were exhausted. |
@@ -88,12 +126,14 @@ schema, multi-process lock contention or external provider delivery.
 An operational cutover still requires an enabled scheduler, the intended
 shared provider/from configuration, and an email mode that permits notification
 mail. `EMAIL_MODE=account_creation_only` continues to suppress this generic
-notification purpose. Current Direct Connect routes request in-app/push only;
-staff oversight and assisted assignment remain in-app only. Existing Express
-Direct Connect provider-specific sends are a separate producer path and are
-not silently enrolled or replayed here. Existing unsent historical notifications
-are not bulk backfilled; newly created email intents and normal scheduled
-dispatch use the queue.
+notification purpose. The specialized operation adds email to the three normal
+producer intents only after the checks above. Staff oversight, admin manual
+notify and assisted assignment retain their existing in-app operation. Other
+standalone profile/worker-specific producers remain outside this activation.
+Existing Express Direct Connect provider-specific sends are a separate producer
+path and are not silently enrolled or replayed here. Existing unsent historical
+notifications are not bulk backfilled; newly created email intents and normal
+scheduled dispatch use the queue.
 
 Old application versions do not consume this job type. Rolling back this code
 preserves pending jobs but pauses their worker. Do not run old and new versions

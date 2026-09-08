@@ -1,6 +1,28 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 describe("emailService observability", () => {
+  it("preserves account-creation-only mode for generic and Direct Connect notification purpose", async () => {
+    vi.stubEnv("EMAIL_PROVIDER", "brevo");
+    vi.stubEnv("BREVO_API_KEY", "test-brevo-key-not-real");
+    vi.stubEnv("SENDGRID_API_KEY", "");
+    vi.stubEnv("EMAIL_MODE", "account_creation_only");
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { emailService } = await import("../services/emailService");
+    expect(
+      await emailService.sendEmail({
+        to: "synthetic@example.com",
+        subject: "Direct Connect update",
+        text: "Open the inbox",
+        purpose: "notification",
+        singleAttempt: true,
+      })
+    ).toMatchObject({ skipped: true, skippedReason: "email_mode_suppressed" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();

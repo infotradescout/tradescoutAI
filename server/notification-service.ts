@@ -8,6 +8,11 @@ import {
   notificationJobs,
   users,
   pushSubscriptions,
+  workRequests,
+  workRequestAssignments,
+  workRequestEvents,
+  contractors,
+  businesses,
   type Notification,
   type InsertNotification,
   type NotificationPreferences,
@@ -19,13 +24,44 @@ import {
   type User,
   type MarketplaceListing,
 } from "@shared/schema";
-import { eq, and, or, sql, desc, asc, isNull } from "drizzle-orm";
+import { eq, and, or, sql, desc, asc, isNull, inArray } from "drizzle-orm";
+import { createHash } from "node:crypto";
 import { emailService, EmailDeliveryError, maskEmailForLog } from "./services/emailService";
 import webPush from "web-push";
 
 const EMAIL_JOB_TYPE = "notification_email_v1";
 const EMAIL_MAX_ATTEMPTS = 5;
 const EMAIL_LEASE_MS = 10 * 60_000;
+
+type ProviderEmailBinding = { requestId: string; assignmentId: string; eventId: string };
+type ProviderEmailContext = {
+  request: any;
+  assignment: any;
+  event: any;
+  contractor: any | null;
+  business: any | null;
+};
+
+function providerNotificationId(binding: ProviderEmailBinding, userId: string) {
+  return `dc-provider:${createHash("sha256")
+    .update(JSON.stringify([binding.requestId, binding.assignmentId, binding.eventId, userId]))
+    .digest("hex")}`;
+}
+
+function hasExplicitProviderEmailConsent(
+  user: Pick<User, "emailVerified">,
+  preferences: NotificationPreferences | null
+) {
+  const type = preferences?.typePreferences?.new_project_request;
+  return (
+    user.emailVerified === true &&
+    preferences?.enableNotifications === true &&
+    preferences.enableEmailNotifications === true &&
+    type?.enabled === true &&
+    Array.isArray(type.delivery_methods) &&
+    type.delivery_methods.includes("email")
+  );
+}
 
 function deliveryMethodsFor(
   notification: Notification,
@@ -59,6 +95,13 @@ function escapeEmailHtml(value: string): string {
 export class NotificationService {
   private webPushConfigured = false;
   private processingEmailJobs = false;
+  private providerEmailEligibility?: (context: ProviderEmailContext) => Promise<boolean>;
+
+  configureDirectConnectEmailEligibility(
+    validator: (context: ProviderEmailContext) => Promise<boolean>
+  ) {
+    this.providerEmailEligibility = validator;
+  }
 
   constructor() {
     if (
@@ -104,25 +147,204 @@ export class NotificationService {
   // =====================================
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
+    return this.persistNotification(notification);
+  }
+
+  /** Normal provider event producers only; staff oversight uses createNotification. */
+  async createAssignedProviderNotification(
+    notification: InsertNotification,
+    requestId: string
+  ): Promise<Notification> {
+    const safeNotification = {
+      ...notification,
+      deliveryMethods: (notification.deliveryMethods || ["in_app"]).filter(
+        (method) => method !== "email"
+      ),
+    };
+    let context: ProviderEmailContext | null = null;
+    try {
+      context =
+        notification.type === "new_project_request"
+          ? await this.loadProviderEmailContext(requestId, notification.userId)
+          : null;
+    } catch {
+      console.warn(
+        "[Notifications] Provider email context unavailable; retaining in-app notification",
+        { requestId }
+      );
+    }
+    if (!context) return this.persistNotification(safeNotification);
+    const binding = { requestId, assignmentId: context.assignment.id, eventId: context.event.id };
+    let explicitConsent = false;
+    let evaluationDeferred = false;
+    try {
+      const [user] = await db
+        .select({ emailVerified: users.emailVerified })
+        .from(users)
+        .where(eq(users.id, notification.userId));
+      const preferences = await this.getUserPreferences(notification.userId);
+      explicitConsent = Boolean(user && hasExplicitProviderEmailConsent(user, preferences));
+      if (
+        explicitConsent &&
+        this.providerEmailEligibility &&
+        (await this.providerEmailEligibility(context))
+      )
+        safeNotification.deliveryMethods.push("email");
+    } catch {
+      evaluationDeferred = explicitConsent;
+      console.warn(
+        "[Notifications] Provider eligibility unavailable; retaining in-app notification",
+        { requestId }
+      );
+    }
+    return this.persistNotification(
+      {
+        ...safeNotification,
+        metadata: {
+          ...notification.metadata,
+          directConnectProviderEmail: binding,
+          directConnectProviderEmailDeferred: evaluationDeferred,
+        },
+      },
+      providerNotificationId(binding, notification.userId),
+      true
+    );
+  }
+
+  private async persistNotification(
+    notification: InsertNotification,
+    id?: string,
+    recoverDeferredProviderEmail = false
+  ): Promise<Notification> {
     const notificationData: any = {
       ...notification,
+      ...(id ? { id } : {}),
       deliveryMethods: notification.deliveryMethods || ["in_app"],
     };
 
     // Persist the email intent in the same transaction as the inbox record.
     // A request process exiting before delivery cannot lose an opted-in email.
-    const created: Notification = await db.transaction(async (tx: any) => {
-      const [record] = await tx.insert(notifications).values([notificationData]).returning();
+    const result = await db.transaction(async (tx: any) => {
+      const [record] = await tx
+        .insert(notifications)
+        .values([notificationData])
+        .onConflictDoNothing({ target: notifications.id })
+        .returning();
+      if (!record) {
+        const [existing] = await tx
+          .select()
+          .from(notifications)
+          .where(eq(notifications.id, id!))
+          .for("update");
+        if (!existing || existing.userId !== notification.userId)
+          throw new Error("Notification identity conflict");
+        // Retry only an explicitly opted-in event whose initial eligibility
+        // evaluation failed. New opt-ins never backfill old notifications.
+        if (
+          recoverDeferredProviderEmail &&
+          existing.metadata?.directConnectProviderEmailDeferred === true &&
+          notification.deliveryMethods?.includes("email")
+        ) {
+          const [recovered] = await tx
+            .update(notifications)
+            .set({
+              deliveryMethods: Array.from(
+                new Set([...(existing.deliveryMethods || ["in_app"]), "email"])
+              ),
+              metadata: { ...existing.metadata, directConnectProviderEmailDeferred: false },
+              updatedAt: new Date(),
+            })
+            .where(eq(notifications.id, id!))
+            .returning();
+          // A completed/unknown/failed job keeps its existing identity and state.
+          await this.enqueueEmailNotification(tx, recovered);
+          return { notification: recovered as Notification, created: false };
+        }
+        return { notification: existing as Notification, created: false };
+      }
       await this.enqueueEmailNotification(tx, record);
-      return record;
+      return { notification: record as Notification, created: true };
     });
+    const created = result.notification;
 
     // Send notification if not scheduled
-    if (!notification.scheduledFor) {
+    if (result.created && !notification.scheduledFor) {
       await this.sendNotification(created.id);
     }
 
     return created;
+  }
+
+  private async loadProviderEmailContext(
+    requestId: string,
+    userId: string,
+    binding?: ProviderEmailBinding
+  ): Promise<ProviderEmailContext | null> {
+    const [request] = await db.select().from(workRequests).where(eq(workRequests.id, requestId));
+    if (
+      !request ||
+      request.source !== "direct_connect" ||
+      request.status !== "routed" ||
+      request.createdByUserId === userId
+    )
+      return null;
+    const assignments = await db
+      .select()
+      .from(workRequestAssignments)
+      .where(eq(workRequestAssignments.workRequestId, requestId));
+    const contractorIds = assignments.map((a: any) => a.contractorId).filter(Boolean);
+    const profiles = contractorIds.length
+      ? await db.select().from(contractors).where(inArray(contractors.id, contractorIds))
+      : [];
+    const matching = assignments.filter((a: any) => {
+      const contractor = profiles.find((profile: any) => profile.id === a.contractorId);
+      return a.contractorId ? contractor?.userId === userId : a.responderUserId === userId;
+    });
+    // An account with multiple assignments is ambiguous; never pick the newest.
+    if (matching.length !== 1) return null;
+    const assignment = matching[0];
+    if (
+      assignment.workerId ||
+      !["suggested", "invited"].includes(assignment.status) ||
+      (binding && binding.assignmentId !== assignment.id) ||
+      String(assignment.scoreSnapshot?.routingMode || "").includes("admin")
+    )
+      return null;
+    const contractor =
+      profiles.find((profile: any) => profile.id === assignment.contractorId) || null;
+    const events = await db
+      .select()
+      .from(workRequestEvents)
+      .where(eq(workRequestEvents.workRequestId, requestId));
+    const matchingEvents = events.filter((event: any) => {
+      const metadata = event.metadata || {};
+      return (
+        ["provider_suggested", "provider_invited"].includes(event.type) &&
+        event.actorUserId === request.createdByUserId &&
+        metadata.source === "direct_connect" &&
+        metadata.author?.kind !== "staff" &&
+        !String(metadata.routeMode || "").includes("admin") &&
+        (!metadata.assignmentId || metadata.assignmentId === assignment.id) &&
+        new Date(event.createdAt).getTime() >= new Date(assignment.createdAt).getTime() &&
+        (contractor
+          ? metadata.contractorId === contractor.id && metadata.contractorUserId === userId
+          : !metadata.contractorId && metadata.responderUserId === userId)
+      );
+    });
+    if (matchingEvents.length !== 1 || (binding && binding.eventId !== matchingEvents[0].id))
+      return null;
+    const event = matchingEvents[0];
+    const [business] =
+      !contractor && typeof event.metadata?.businessId === "string"
+        ? await db
+            .select()
+            .from(businesses)
+            .where(
+              and(eq(businesses.id, event.metadata.businessId), eq(businesses.ownerUserId, userId))
+            )
+        : [];
+    if (!contractor && !business) return null;
+    return { request, assignment, event, contractor, business: business || null };
   }
 
   async getUserNotifications(
@@ -620,11 +842,21 @@ export class NotificationService {
         WHERE job_type = ${EMAIL_JOB_TYPE} AND status = 'running'
           AND started_at < ${new Date(Date.now() - EMAIL_LEASE_MS)}
       `);
+      // Validation has not submitted anything externally and is safe to retry
+      // after interruption. Only a running submission has an uncertain outcome.
+      await db.execute(sql`
+        UPDATE notification_jobs
+        SET status = CASE WHEN retry_count < max_retries THEN 'retry' ELSE 'failed' END,
+            next_retry_at = NOW() + INTERVAL '1 minute', updated_at = NOW()
+        WHERE job_type = ${EMAIL_JOB_TYPE} AND status = 'validating'
+          AND started_at < ${new Date(Date.now() - EMAIL_LEASE_MS)}
+      `);
       const batchSize = Math.min(100, Math.max(1, Math.floor(limit) || 20));
       while (processed < batchSize) {
         const claimed = await db.execute(sql`
           UPDATE notification_jobs AS job
-          SET status = 'running', started_at = NOW(), updated_at = NOW(),
+          SET status = 'validating', started_at = NOW(), updated_at = NOW(),
+              template_data = COALESCE(job.template_data, '{}'::jsonb) || jsonb_build_object('leaseId', gen_random_uuid()::text),
               retry_count = COALESCE(job.retry_count, 0) + 1
           WHERE job.id IN (
             SELECT id FROM notification_jobs
@@ -641,7 +873,12 @@ export class NotificationService {
         `);
         const job = claimed.rows[0];
         if (!job) break;
-        await this.deliverEmailJob(job);
+        try {
+          await this.deliverEmailJob(job);
+        } catch (error) {
+          if (job.providerAttemptStarted) throw error;
+          await this.finishEmailJob(job, { status: "retry", code: "validation_unavailable" });
+        }
         processed += 1;
       }
       return processed;
@@ -657,7 +894,12 @@ export class NotificationService {
         ? await db
             .select({
               notification: notifications,
-              user: { id: users.id, email: users.email, firstName: users.firstName },
+              user: {
+                id: users.id,
+                email: users.email,
+                firstName: users.firstName,
+                emailVerified: users.emailVerified,
+              },
               preferences: notificationPreferences,
             })
             .from(notifications)
@@ -689,7 +931,13 @@ export class NotificationService {
           retryCount: job.retryCount - 1,
           updatedAt: new Date(),
         })
-        .where(eq(notificationJobs.id, job.id));
+        .where(
+          and(
+            eq(notificationJobs.id, job.id),
+            eq(notificationJobs.status, "validating"),
+            sql`${notificationJobs.templateData}->>'leaseId' = ${job.templateData.leaseId}`
+          )
+        );
       return;
     }
     if (
@@ -707,6 +955,73 @@ export class NotificationService {
       return;
     }
 
+    let submissionAuthority = sql`TRUE`;
+    if (notification.type === "new_project_request") {
+      const binding = notification.metadata?.directConnectProviderEmail as
+        | ProviderEmailBinding
+        | undefined;
+      const validBinding =
+        binding &&
+        [binding.requestId, binding.assignmentId, binding.eventId].every(
+          (value) => typeof value === "string" && value.length > 0
+        );
+      const context =
+        validBinding && notification.id === providerNotificationId(binding, user.id)
+          ? await this.loadProviderEmailContext(binding.requestId, user.id, binding)
+          : null;
+      if (
+        !context ||
+        !hasExplicitProviderEmailConsent(user, preferences) ||
+        !this.providerEmailEligibility ||
+        !(await this.providerEmailEligibility(context))
+      ) {
+        await this.finishEmailJob(
+          job,
+          { status: "cancelled", code: "provider_invitation_ineligible" },
+          data
+        );
+        return;
+      }
+      const current = await this.loadProviderEmailContext(binding!.requestId, user.id, binding);
+      if (!current) {
+        await this.finishEmailJob(
+          job,
+          { status: "cancelled", code: "provider_invitation_ineligible" },
+          data
+        );
+        return;
+      }
+      if (JSON.stringify(current) !== JSON.stringify(context)) {
+        await this.finishEmailJob(job, { status: "retry", code: "eligibility_changed" }, data);
+        return;
+      }
+      // Serialize consent and invitation state with the submission transition.
+      // Revocation after this transition cannot recall an already submitted email.
+      submissionAuthority = sql`EXISTS (
+        SELECT 1 FROM users recipient
+        JOIN work_request_assignments assignment ON assignment.id = ${binding!.assignmentId}
+        JOIN work_requests request ON request.id = assignment.work_request_id
+        JOIN notifications notification ON notification.id = ${notification.id}
+        LEFT JOIN contractors provider ON provider.id = assignment.contractor_id
+        WHERE recipient.id = ${user.id} AND recipient.email = ${user.email}
+          AND recipient.email_verified = true
+          AND request.id = ${binding!.requestId} AND request.source = 'direct_connect' AND request.status = 'routed'
+          AND request.county_fips IS NOT DISTINCT FROM ${current.request.countyFips}
+          AND request.trade_id IS NOT DISTINCT FROM ${current.request.tradeId}
+          AND assignment.status IN ('suggested', 'invited') AND assignment.worker_id IS NULL
+          AND COALESCE(provider.user_id, assignment.responder_user_id) = recipient.id
+          AND notification.user_id = recipient.id AND notification.is_archived IS NOT TRUE
+          AND (notification.expires_at IS NULL OR notification.expires_at > NOW())
+          AND notification.delivery_methods @> '["email"]'::jsonb
+          AND EXISTS (
+            SELECT 1 FROM notification_preferences preference WHERE preference.user_id = recipient.id
+            GROUP BY preference.user_id HAVING BOOL_AND(COALESCE(
+              preference.enable_notifications = true AND preference.enable_email_notifications = true
+              AND preference.type_preferences @> '{"new_project_request":{"enabled":true,"delivery_methods":["email"]}}'::jsonb, false))
+          )
+      )`;
+    }
+
     // Request titles and message bodies can contain private contact details.
     // Direct Connect mail is an inbox pointer, never a second contact surface.
     const isDirectConnect =
@@ -722,6 +1037,27 @@ export class NotificationService {
         }
       : notification;
     let outcome: { status: string; code?: string; provider?: string; messageId?: string };
+    const started = await db
+      .update(notificationJobs)
+      .set({ status: "running", updatedAt: new Date() })
+      .where(
+        and(
+          eq(notificationJobs.id, job.id),
+          eq(notificationJobs.status, "validating"),
+          sql`${notificationJobs.templateData}->>'leaseId' = ${job.templateData.leaseId}`,
+          submissionAuthority
+        )
+      )
+      .returning({ id: notificationJobs.id });
+    if (!started.length) {
+      await this.finishEmailJob(
+        job,
+        { status: "cancelled", code: "submission_authority_changed" },
+        data
+      );
+      return;
+    }
+    job.providerAttemptStarted = true;
     try {
       const result = await emailService.sendEmail({
         to: user.email,
@@ -767,7 +1103,7 @@ export class NotificationService {
         )
       : null;
     await db.transaction(async (tx: any) => {
-      await tx
+      const updated = await tx
         .update(notificationJobs)
         .set({
           status: status === "accepted" ? "completed" : status,
@@ -780,8 +1116,15 @@ export class NotificationService {
             ? [{ userId: data?.user.id || "", error: outcome.code, timestamp: now.toISOString() }]
             : [],
         })
-        .where(eq(notificationJobs.id, job.id));
-      if (data)
+        .where(
+          and(
+            eq(notificationJobs.id, job.id),
+            inArray(notificationJobs.status, ["validating", "running", "unknown"]),
+            sql`${notificationJobs.templateData}->>'leaseId' = ${job.templateData.leaseId}`
+          )
+        )
+        .returning({ id: notificationJobs.id });
+      if (data && updated.length)
         await tx.insert(notificationDeliveryLog).values({
           notificationId: data.notification.id,
           userId: data.user.id,
