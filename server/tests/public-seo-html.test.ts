@@ -13,6 +13,7 @@ import {
 import { buildPublicFindLocalBusinessesHtml } from "../publicLandingHtml";
 import { LOCAL_BUSINESS_DISCOVERY } from "../../client/src/lib/popularSearchQueries";
 import { buildPublicExchangeHtml } from "../publicExchangeHtml";
+import { formatTradeScoutTitle } from "../../shared/brand";
 
 vi.mock("../storage", () => ({ storage: { getMarketplaceListings: vi.fn() } }));
 
@@ -181,27 +182,40 @@ describe("public SEO response HTML", () => {
       "OAI-SearchBot/1.0",
     ]) {
       const html = preparePublicSeoHtmlForUserAgent(raw, userAgent);
-      expect(html).toContain(`<h1>${LOCAL_BUSINESS_DISCOVERY.heading}</h1>`);
+      expect(html).toMatch(new RegExp(`<h1\\b[^>]*>${LOCAL_BUSINESS_DISCOVERY.heading}</h1>`));
       expect(html).toContain(LOCAL_BUSINESS_DISCOVERY.introduction);
       expect(html).not.toContain("clip:rect(0,0,0,0)");
       expect(html).not.toContain("JavaScript is required");
       expect(html).toContain(
         '<link rel="canonical" href="https://www.thetradescout.com/find-local-businesses"'
       );
-      expect(html).toContain(`<title>${LOCAL_BUSINESS_DISCOVERY.title}</title>`);
+      expect(html).toContain(
+        `<title>${formatTradeScoutTitle(LOCAL_BUSINESS_DISCOVERY.title)}</title>`
+      );
+      const anchors = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map(
+        (match) => ({
+          href: match[1].replace(/&amp;/g, "&"),
+          text: match[2]
+            .replace(/<[^>]*>/g, "")
+            .replace(/\s+/g, " ")
+            .trim(),
+        })
+      );
       for (const item of LOCAL_BUSINESS_DISCOVERY.browseLinks) {
-        expect(html).toContain(`href="${item.href}">${item.label}</a>`);
+        expect(anchors).toContainEqual({ href: item.href, text: item.label });
       }
       expect(html).toContain('href="/county/la/tangipahoa-parish/recent"');
       expect(html).not.toContain('href="/county/la/tangipahoa/recent"');
-      expect(html).toContain(
-        'href="/direct-connect?county=22105&amp;source=tangipahoa-launch">Start a Request</a>'
-      );
+      expect(anchors).toContainEqual({
+        href: "/direct-connect?county=22105&source=tangipahoa-launch",
+        text: "Start a Request",
+      });
       expect(html).not.toMatch(/href="(?:tel:|mailto:)/);
     }
     const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
-    expect(source.indexOf('app.get("/find-local-businesses"')).toBeGreaterThan(0);
-    expect(source.indexOf('app.get("/find-local-businesses"')).toBeLessThan(
+    const routeRegistration = '["/find-local-businesses", buildPublicFindLocalBusinessesHtml]';
+    expect(source.indexOf(routeRegistration)).toBeGreaterThan(0);
+    expect(source.indexOf(routeRegistration)).toBeLessThan(
       source.indexOf("express.static(publicDistPath")
     );
   });

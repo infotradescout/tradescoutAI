@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { LOCAL_BUSINESS_DISCOVERY } from "../../client/src/lib/popularSearchQueries";
+import { FIND_LOCAL_BUSINESSES_METADATA } from "../../client/src/pages/find-local-businesses";
 import { getDirectConnectSection } from "../../client/src/pages/direct-connect/directConnectRoutes";
 import { parseDirectConnectEntryContext } from "../../client/src/pages/direct-connect/directConnectEntryContext";
 
@@ -36,9 +37,10 @@ describe("TradeScout public discovery and business entry surfaces", () => {
     expect(findLocalBusinesses).toContain("TradeScout Direct Connect");
     expect(LOCAL_BUSINESS_DISCOVERY.introduction).toContain("trade and county context");
     expect(findLocalBusinesses).toContain("trusted local businesses and contractors");
-    expect(findLocalBusinesses).toContain(
-      'canonical="https://www.thetradescout.com/find-local-businesses"'
+    expect(FIND_LOCAL_BUSINESSES_METADATA.canonical).toBe(
+      "https://www.thetradescout.com/find-local-businesses"
     );
+    expect(findLocalBusinesses).toContain("canonical={FIND_LOCAL_BUSINESSES_METADATA.canonical}");
 
     const normalized = findLocalBusinesses.toLowerCase();
     expect(normalized).not.toContain("only contractors");
