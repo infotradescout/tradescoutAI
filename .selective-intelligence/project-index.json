@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-08T23:33:39Z",
+  "generated_at": "2026-09-08T23:38:11Z",
   "source": {
     "kind": "git",
-    "revision": "f5b200bd6c85dc23396a34a89357236a34be73a1",
+    "revision": "30612f116d7a1818ccd60a8813dbf8da922aeeab",
     "dirty": true,
-    "inventory_sha256": "49177f01a48d3969d8b218f100eabf6952a0c0bca9377cd4474900f96bfec32e"
+    "inventory_sha256": "61cbc3c7cf53df1df265e1e0e35d9523310dc0c5a85c2d9de5c3f9c2bb98451a"
   },
   "inventory": {
     "directories": [
@@ -1799,14 +1799,14 @@
       {
         "path": "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
         "language": "ts",
-        "sha256": "51789daf0a6ac21a72020eaf91dcf3814b61d33d64042499b2264043aa5c0d3c",
-        "bytes": 3256
+        "sha256": "616877ca0c68819329dd60e468adbd2cf7c649e68f14f5e54ede804ea3068b35",
+        "bytes": 3741
       },
       {
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
         "language": "tsx",
-        "sha256": "96f41045dbfc9c343569ad814151b9a509aee74c78cacc285c165b9fa96aeefa",
-        "bytes": 8816
+        "sha256": "83a9fe4d91a39878e0ceab652c988f3e19d381da1433eadcf508fd5d655ac063",
+        "bytes": 8750
       },
       {
         "path": "client/src/components/onboarding/SimpleSubtleHints.tsx",
@@ -2429,8 +2429,8 @@
       {
         "path": "client/src/components/verification/RecommendationVerification.tsx",
         "language": "tsx",
-        "sha256": "2eff3fa7a06f5d0fd1712f7441b3a002f52ff0919c5b70a0a0c6da4a2bc12007",
-        "bytes": 6283
+        "sha256": "3225b1d1fa23f0fe363e23158276ca94e7d01af9184d6349d0b03fb54aa73c75",
+        "bytes": 6288
       },
       {
         "path": "client/src/components/verification/VerificationBypassBanner.tsx",
@@ -17231,8 +17231,8 @@
       {
         "path": "tmp/action-first/action-first-browser-proof.mjs",
         "language": "mjs",
-        "sha256": "37f46253ef584c7d091180858d74d82ebefbdfe4d70f254ee8a7c97929f08da1",
-        "bytes": 11198
+        "sha256": "e007c44be29f573e157e213d4c3b05ae872042289932064f611becccbea87d60",
+        "bytes": 11510
       },
       {
         "path": "tmp/action-first/action-first-preview-launcher.mjs",
@@ -24245,42 +24245,42 @@
         "name": "BannerMode",
         "kind": "type",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 12,
+        "line": 17,
         "exported": true
       },
       {
         "name": "resolveProfileCompletionBannerMode",
         "kind": "function",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 20,
+        "line": 25,
         "exported": true
       },
       {
         "name": "ProfileCompletionBanner",
         "kind": "component",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 71,
+        "line": 77,
         "exported": true
       },
       {
         "name": "ModeConfig",
         "kind": "type",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 92,
+        "line": 98,
         "exported": false
       },
       {
         "name": "handleCtaClick",
         "kind": "function",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 187,
+        "line": 193,
         "exported": false
       },
       {
         "name": "handleDismissSkippedNudge",
         "kind": "function",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 192,
+        "line": 198,
         "exported": false
       },
       {
@@ -123034,12 +123034,12 @@
         {
           "tag": "button",
           "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-          "line": 222
+          "line": 228
         },
         {
           "tag": "button",
           "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-          "line": 231
+          "line": 237
         },
         {
           "tag": "button",

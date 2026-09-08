@@ -69,7 +69,7 @@ It fails closed if this publication protection is absent or replaced.
   and `artifacts/recommendation-*`. The initial Vite preview produced development
   WebSocket warnings. Screenshot review also found the Start Guide obscuring
   email confirmation; contextual recommendation paths now defer that guide without
-  marking it seen. Production-built asset checks exercise the confirmation and
+  marking it seen and suppress the unrelated profile-completion banner. Production-built asset checks exercise the confirmation and
   return controls with fresh local storage at the final checkpoint.
 - Broad Vitest snapshot: 6,022 passed, 14 failed, 160 skipped. Eleven JW Stone
   failures reproduced unchanged at base `87d87de4` in a separate worktree

@@ -20,7 +20,12 @@
     "artifacts/action-first-focused-final.log",
     "artifacts/action-first-full-tests.json",
     "artifacts/action-first-baseline-tests.json",
-    "artifacts/action-first-failure-recheck.log"
+    "artifacts/action-first-failure-recheck.log",
+    "artifacts/action-first-current-focused.log",
+    "artifacts/action-first-banner-tests.log",
+    "artifacts/action-first-browser-built-proof.log",
+    "artifacts/action-first-bloat-final.log",
+    "artifacts/action-first-bloat-baseline.log"
   ],
   "design": "Focused in-page composer; optional details disclosed on demand; saved state remains visible with one contextual next action.",
   "reuse": {

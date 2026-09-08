@@ -71,7 +71,7 @@ export function RecommendationVerification({ returnPath }: { returnPath: string 
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
+    <main className="mx-auto w-full max-w-[36rem] px-4 py-8 md:py-12">
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader className="space-y-3">
           {emailConfirmed ? (
