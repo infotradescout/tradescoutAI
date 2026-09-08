@@ -500,7 +500,8 @@ export default function MessagesPanel() {
       id: m.id,
       threadId: m.conversationId,
       authorId: m.senderId,
-      authorName: m.senderId === user?.id ? "You" : "Them",
+      authorName:
+        m.senderType === "staff" ? "TradeScout staff" : m.senderId === user?.id ? "You" : "Them",
       content: m.content,
       createdAt: m.createdAt,
       isMine: m.senderId === user?.id,
