@@ -7,14 +7,14 @@ const read = (relativePath: string) =>
 
 describe("assetid phase 1i completed work enrichment contracts", () => {
   it("defines a completed-work enrichment helper for HomeID-linked direct connect requests", () => {
-    const source = read("server/routes/direct-connect.ts");
+    const source = read("server/routes/direct-connect/home-id.ts");
     expect(source).toContain("async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect");
     expect(source).toContain('title: "homeid:completed_work_enrichment"');
     expect(source).toContain('source: "direct_connect_completed_work"');
   });
 
   it("preserves HomeID and request linkage in completed-work enrichment payload", () => {
-    const source = read("server/routes/direct-connect.ts");
+    const source = read("server/routes/direct-connect/home-id.ts");
     expect(source).toContain("directConnectRequestId: params.requestId");
     expect(source).toContain("homePacketId: context.homePacketId || null");
     expect(source).toContain("selectedDetailIds: context.selectedDetailIds");

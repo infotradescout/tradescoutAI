@@ -7,14 +7,10 @@ const read = (relativePath: string) =>
 
 describe("Dean Damaskos profile recovery", () => {
   const profile = read("shared/deanDamaskosProfile.ts");
-  const theme = read(
-    "client/src/pages/profile-sites/FinancialProfessionalProfileTheme.tsx"
-  );
+  const theme = read("client/src/pages/profile-sites/FinancialProfessionalProfileTheme.tsx");
   const adapter = read("client/src/data/profileSiteContentAdapters.ts");
   const view = read("client/src/pages/ProfileSiteView.tsx");
-  const bookingDialog = read(
-    "client/src/components/profile/ProfileBookingRequestDialog.tsx"
-  );
+  const bookingDialog = read("client/src/components/profile/ProfileBookingRequestDialog.tsx");
 
   it("uses Dean's current public self-description without inventing a regulated title", () => {
     expect(profile).toContain('DEAN_DAMASKOS_PROFILE_SLUG = "dean-damaskos"');
@@ -22,7 +18,9 @@ describe("Dean Damaskos profile recovery", () => {
     expect(profile).toContain('roleLine: "Financial Wealth Strategist"');
     expect(profile).toContain("https://deandamaskos.com/");
     expect(profile).not.toContain('roleLine: "Financial Advisor"');
-    expect(profile).not.toMatch(/fiduciary|registered investment adviser|registered representative/i);
+    expect(profile).not.toMatch(
+      /fiduciary|registered investment adviser|registered representative/i
+    );
   });
 
   it("bounds public claims and removes the stale acquisitions identity", () => {
@@ -41,8 +39,9 @@ describe("Dean Damaskos profile recovery", () => {
     expect(theme).not.toContain("mailto:");
     expect(view).toContain('siteTemplate === "financial-professional"');
     expect(view).toContain("<FinancialProfessionalProfileTheme");
-    expect(view).toContain("bookingAction=");
-    expect(view).toContain("<ProfileBookingRequestDialog");
+    expect(view).toContain("booking={");
+    expect(theme).toContain("<ProfileBookingRequestDialog");
+    expect(theme).toContain("bookingDetailsVisible");
     expect(view).toContain("bookingSignInHref");
     expect(bookingDialog).toContain('apiRequest("POST", "/api/profile-booking/requests"');
     expect(theme).not.toContain("/api/profile-booking");

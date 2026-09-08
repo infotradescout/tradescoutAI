@@ -32,7 +32,7 @@ describe("Selective Intelligence public-profile trigger", () => {
     const routes = read("server/routes/profiles.ts");
     const manifest = routes.slice(
       routes.indexOf("// Machine-readable profile-link trigger."),
-      routes.indexOf("// Owner-only: total and recent real page-view counts")
+      routes.indexOf("// Owner-only: deduped estimated visitors plus raw accepted page loads.")
     );
 
     expect(manifest).toContain("const editorPath = `${profilePath}/edit`");
@@ -46,7 +46,7 @@ describe("Selective Intelligence public-profile trigger", () => {
     const routes = read("server/routes/profiles.ts");
     const manifest = routes.slice(
       routes.indexOf("// Machine-readable profile-link trigger."),
-      routes.indexOf("// Owner-only: total and recent real page-view counts")
+      routes.indexOf("// Owner-only: deduped estimated visitors plus raw accepted page loads.")
     );
 
     expect(manifest).toContain("requestedSlug.length > 120");

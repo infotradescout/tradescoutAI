@@ -1,17 +1,19 @@
-export const PRIVATE_APP_SHELL_PREFIXES = [
-  "/scout",
-  "/auth",
-  "/dashboard",
-  "/account",
-] as const;
+export const PRIVATE_APP_SHELL_PREFIXES = ["/scout", "/auth", "/dashboard", "/account"] as const;
 
 export const PRIVATE_APP_SHELL_ROBOTS = "noindex,nofollow,noarchive";
 
 export function isPrivateAppShellPath(requestPath: string): boolean {
-  const pathOnly =
+  let pathOnly =
     String(requestPath || "/")
       .split("?")[0]
+      .split("#")[0]
       .replace(/\/+$/, "") || "/";
+  try {
+    pathOnly = decodeURIComponent(pathOnly);
+  } catch {
+    // Keep the raw path. A malformed escape cannot become a recognized route.
+  }
+  pathOnly = pathOnly.toLowerCase();
   return PRIVATE_APP_SHELL_PREFIXES.some(
     (prefix) => pathOnly === prefix || pathOnly.startsWith(`${prefix}/`)
   );
@@ -22,5 +24,8 @@ export function applyPrivateShellNoindex(templateHtml: string): string {
   if (/<meta name="robots"[^>]*>/i.test(templateHtml)) {
     return templateHtml.replace(/<meta name="robots"[^>]*>/i, robotsTag);
   }
-  return templateHtml.replace(/<\/head>/i, `${robotsTag}\n</head>`);
+  if (/<\/head>/i.test(templateHtml)) {
+    return templateHtml.replace(/<\/head>/i, `${robotsTag}\n</head>`);
+  }
+  return `${robotsTag}\n${templateHtml}`;
 }

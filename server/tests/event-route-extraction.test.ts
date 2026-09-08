@@ -20,10 +20,17 @@ import {
   rejectUnsupportedCmsProbe,
 } from "../http/publicRequestGuards";
 
-function createEventApp(storage: EventRoutesStorage, user?: { id?: string; contractorId?: string }) {
+function createEventApp(
+  storage: EventRoutesStorage,
+  user?: { id?: string; contractorId?: string }
+) {
   const app = express();
   app.use(express.json({ limit: "32kb" }));
-  if (user) app.use((req: any, _res, next) => { req.user = user; next(); });
+  if (user)
+    app.use((req: any, _res, next) => {
+      req.user = user;
+      next();
+    });
   registerEventRoutes(app, { storage });
   return app;
 }
@@ -83,7 +90,9 @@ describe("HTTP failure classification", () => {
 
   it("recognizes and cleanly rejects unsupported CMS probes", async () => {
     expect(isUnsupportedCmsProbeRequest({ path: "/wp-json/batch/v1", query: {} })).toBe(true);
-    expect(isUnsupportedCmsProbeRequest({ path: "/", query: { rest_route: "/batch/v1" } })).toBe(true);
+    expect(isUnsupportedCmsProbeRequest({ path: "/", query: { rest_route: "/batch/v1" } })).toBe(
+      true
+    );
     expect(isUnsupportedCmsProbeRequest({ path: "/direct-connect", query: {} })).toBe(false);
 
     const app = express();
@@ -178,7 +187,8 @@ describe("sanitization", () => {
         statusCode: 422,
         retryCount: 2.9,
         blocked: true,
-        route: "/direct-connect/requests/12345678-1234-1234-1234-123456789abc?email=private@example.com",
+        route:
+          "/direct-connect/requests/12345678-1234-1234-1234-123456789abc?email=private@example.com",
         message: "private request text",
         phone: "9856626247",
         address: "private address",
@@ -209,7 +219,7 @@ describe("sanitization", () => {
         source: "private@example.com",
         reason: "+1 (985) 662-6247",
         requestId: "9856626247",
-        routeTemplate: "/direct-connect",
+        routeTemplate: "/direct-connect/requests/9856626247",
       })
     ).toEqual({ surface: "direct_connect", routeTemplate: "/direct-connect" });
   });
@@ -334,13 +344,17 @@ describe("first-party route behavior", () => {
     const logEvent = vi.fn().mockResolvedValue(undefined);
     const app = createEventApp({ logEvent });
 
-    expect((await request(app).post("/api/events").send({ eventType: "event.unknown" })).status).toBe(204);
+    expect(
+      (await request(app).post("/api/events").send({ eventType: "event.unknown" })).status
+    ).toBe(204);
     expect(
       (
-        await request(app).post("/api/events").send({
-          eventType: "direct_connect_api_request_failed",
-          data: { source: "request_submit", message: "x".repeat(9 * 1024) },
-        })
+        await request(app)
+          .post("/api/events")
+          .send({
+            eventType: "direct_connect_api_request_failed",
+            data: { source: "request_submit", message: "x".repeat(9 * 1024) },
+          })
       ).status
     ).toBe(204);
     await flushEventWrite();

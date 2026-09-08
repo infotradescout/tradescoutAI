@@ -21,7 +21,7 @@ describe("scout-v2 auth gates", () => {
     const app = express();
     app.use((req, _res, next) => {
       (req as any).isAuthenticated = () => true;
-      (req as any).user = { role: "member" };
+      (req as any).user = { id: "ordinary-user", role: "member" };
       next();
     });
     app.use("/api/scout-v2", scoutV2Router);
@@ -29,6 +29,6 @@ describe("scout-v2 auth gates", () => {
     const res = await request(app).get("/api/scout-v2/status");
 
     expect(res.status).toBe(403);
-    expect(String(res.body?.message || res.body?.error || "")).toContain("Admin access required");
+    expect(res.body).toEqual({ message: "Insufficient permissions" });
   });
 });

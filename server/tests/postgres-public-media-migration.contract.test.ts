@@ -18,7 +18,9 @@ describe("production PostgreSQL public-media fallback", () => {
     expect(migration).toContain("jsonb_typeof(metadata) = 'object'");
     expect(migration).toContain("tradescout-schema:0127:v1");
     expect(migration).not.toMatch(/private\//);
-    expect(journal.entries.at(-1)).toMatchObject({
+    expect(
+      journal.entries.find((entry: { tag?: string }) => entry.tag === "0127_public_media_objects")
+    ).toMatchObject({
       idx: 130,
       tag: "0127_public_media_objects",
     });

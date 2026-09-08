@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout",
+    "releaseId": "recovery-20260908",
+    "releaseVersion": "1",
+    "buildId": "platform-recovery",
+    "lockVersion": "20260908"
+  },
+  "phase": "continuation",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout county discovery, claims-first accounts, gated requests/contact, business profiles and remaining isolated recovery work.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": true,
+      "outcome": "Recover the county request and account authority loop on current production-source baseline.",
+      "entry": "Sign in or claim an account, then start a county-scoped service request.",
+      "ending": "Reopen the request and allow contact only following the persisted decision and permission.",
+      "proof": [
+        {
+          "type": "automated_test",
+          "procedure": "Run scripts/tests/recovery-transactions.native.ts against a fresh loopback test database.",
+          "expected": "Professional, booking and address operations preserve ownership, lineage, atomicity and locks.",
+          "observed": "Native transaction cases passed on the current integration before the final OAuth merge; complete combined release and browser validation remains pending.",
+          "evidenceRef": "tmp/native.log"
+        }
+      ],
+      "journeySteps": [
+        "Resolve authenticated provider-subject or claims-first account identity.",
+        "Create and reopen a county request with a persisted decision.",
+        "Preserve contact permission, address evidence and denial behavior."
+      ],
+      "constraints": [
+        "Use existing TradeScout repository and canonical permission/storage/component owners; preserve County Map WIP and separate JW product changes."
+      ],
+      "requirementIds": [
+        "REQ-RECOVERY"
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-RECOVERY",
+          "scope": "active_deliverable",
+          "claim": "The recovered county request and account-authority loop is closed only after exact-candidate tests, native/browser evidence and deployment verification."
+        }
+      ],
+      "excludedFromActive": [
+        "LSS saved-content release is the next dependent deliverable; JW presentation, County Map and other product stacks retain separate ownership."
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "outcome": "Release the reviewed LSS service profile and authorized native saved-content update against the delivered platform baseline."
+    },
+    {
+      "id": "D3",
+      "active": false,
+      "outcome": "Preserve remaining JW, County Map, membership, dependency and external-provider work for its own evidence-backed completion."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "Existing TradeScout React/Express/Postgres contracts and Render production path own the workflow.",
+    "constraintsConsidered": [
+      "Persistent requests and identity, explicit access decisions, append-only migrations and existing production repository."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": true
+    }
+  }
+}

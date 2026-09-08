@@ -23,7 +23,7 @@ describe("assetid phase 1k homeid evidence vault contracts", () => {
   });
 
   it("adds completed-work evidence placeholders only from real request attachments", () => {
-    const directConnectSource = read("server/routes/direct-connect.ts");
+    const directConnectSource = read("server/routes/direct-connect/home-id.ts");
     expect(directConnectSource).toContain("async function upsertHomeIdEvidenceFromDirectConnect");
     expect(directConnectSource).toContain("title: HOMEID_PERSISTENCE_EVIDENCE_TITLE");
     expect(directConnectSource).toContain("rawAttachments");

@@ -12,7 +12,9 @@ describe("Admin Ecosystem Truth", () => {
 
     expect(route).toContain('router.get("/ecosystem-truth"');
     expect(route).toContain("runAdminEcosystemTruthReport");
-    expect(route).toContain("router.use(isAuthenticated, isSuperAdmin)");
+    expect(route).toMatch(
+      /router\.use\(\s*\["\/production-acceptance", "\/ecosystem-truth", "\/tool-blueprints"\],\s*isAuthenticated,\s*isSuperAdmin\s*\)/
+    );
     expect(route).toContain('res.setHeader("Cache-Control", "no-store")');
     expect(route).not.toContain('router.post("/ecosystem-truth"');
     expect(route).not.toContain('router.put("/ecosystem-truth"');
@@ -72,6 +74,8 @@ describe("Admin Ecosystem Truth", () => {
     expect(service).toContain("recordCount: null");
     expect(service).toContain("linkedCount: null");
     expect(service).toContain("unlinkedCount: null");
-    expect(service).toContain("Neither professional vertical is retired, disabled, or treated as abandoned");
+    expect(service).toContain(
+      "Neither professional vertical is retired, disabled, or treated as abandoned"
+    );
   });
 });

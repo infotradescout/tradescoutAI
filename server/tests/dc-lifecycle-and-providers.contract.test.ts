@@ -79,8 +79,8 @@ describe("DC lifecycle rail — action flags", () => {
   });
 
   it("defines canMarkComplete for pending_outcome or active_conversation", () => {
-    expect(DC_SHELL).toContain(
-      'const canMarkComplete = stage === "pending_outcome" || stage === "active_conversation"'
+    expect(DC_SHELL).toMatch(
+      /const canMarkComplete\s*=\s*stage === "pending_outcome" \|\|\s*stage === "active_conversation"/
     );
   });
 

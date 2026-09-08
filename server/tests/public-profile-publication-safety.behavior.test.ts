@@ -26,6 +26,7 @@ function businessCandidate(overrides: Record<string, unknown> = {}) {
   const profileId = String(overrides.profileId || "profile-1");
   return {
     profileId,
+    profilePubliclyReleased: true,
     businessId: "business-1",
     profileSlug: "local-business",
     profileStatus: "published",
@@ -54,6 +55,7 @@ function personalCandidate(overrides: Record<string, unknown> = {}) {
   const profileId = String(overrides.profileId || "personal-profile-1");
   return {
     profileId,
+    profilePubliclyReleased: true,
     businessId: null,
     profileSlug: "local-homeowner",
     profileStatus: "published",
@@ -80,7 +82,10 @@ describe("public profile publication safety", () => {
   it("ignores account-wide public visibility without exact profile release", () => {
     expect(
       derivePublishedProfileExposure(
-        personalCandidate({ ownerPreferences: { profileVisibility: "public", publicProfileIds: [] } })
+        personalCandidate({
+          profilePubliclyReleased: false,
+          ownerPreferences: { profileVisibility: "public", publicProfileIds: [] },
+        })
       )
     ).toEqual({
       mode: "private",
@@ -122,7 +127,10 @@ describe("public profile publication safety", () => {
     "keeps approved discoverable business %s public",
     (profileSlug) => {
       const candidate = businessCandidate({ profileSlug });
-      expect(derivePublishedProfileExposure(candidate)).toEqual({ mode: "public", reason: "public" });
+      expect(derivePublishedProfileExposure(candidate)).toEqual({
+        mode: "public",
+        reason: "public",
+      });
       expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(true);
       expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(true);
     }
@@ -240,5 +248,20 @@ describe("public profile publication safety", () => {
     expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(true);
     expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(false);
     expect(shouldIndexPublicProfileSlug(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug)).toBe(false);
+
+    expect(
+      derivePublishedProfileExposure({
+        ...candidate,
+        profilePubliclyReleased: false,
+      })
+    ).toEqual({ mode: "private", reason: "private" });
+  });
+
+  it("checks canonical release before the Steel Home unlisted exception", () => {
+    const source = String(derivePublishedProfileExposure);
+    expect(source.indexOf("isProfileVisibilityPublic")).toBeGreaterThanOrEqual(0);
+    expect(source.indexOf("isProfileVisibilityPublic")).toBeLessThan(
+      source.indexOf("isSteelHomePackagesUnlistedDirectProfile")
+    );
   });
 });

@@ -64,7 +64,10 @@ describe("direct connect intake contracts", () => {
     expect(source).toContain("title: title.trim()");
     expect(source).toContain("description: description.trim()");
     expect(source).toContain("category: activeRequestMeta.category");
-    expect(source).toContain("payload.countyFips = defaultCountyFips");
+    expect(source).toContain(
+      'const draftCountyFips = String(defaultCountyFips || user?.countyFips || "").trim()'
+    );
+    expect(source).toContain("payload.countyFips = draftCountyFips");
     expect(source).toContain("payload.stateCode = stateCode.trim().toUpperCase()");
     expect(source).toContain("payload.homeContextIntent = dispatch.homeContextIntent");
     expect(source).toContain("payload.homeId = dispatch.homeId.trim()");

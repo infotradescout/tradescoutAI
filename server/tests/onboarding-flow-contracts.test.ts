@@ -52,9 +52,9 @@ describe("onboarding flow contracts", () => {
   it("keeps OAuth callback redirects onboarding-aware", () => {
     const routesSource = read("server/routes.ts");
 
-    expect(routesSource).toContain(
-      "const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);"
-    );
+    expect(
+      routesSource.match(/oauthPostLoginPath\(oauthNext, isOutcomeOnboardingComplete\(anyUser\)\)/g)
+    ).toHaveLength(2);
     expect(routesSource).not.toContain(
       "profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true"
     );

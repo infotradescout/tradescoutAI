@@ -7,10 +7,10 @@ Merging to `main` **is** production (Render auto-deploy). This contract is the e
 | # | Requirement | How |
 | --- | --- | --- |
 | 1 | Exact proposed commit | `git rev-parse HEAD` recorded in evidence |
-| 2 | Clean dependency install | `npm ci` |
+| 2 | Clean dependency install | `npm ci` (cannot be skipped in release mode) |
 | 3 | Type + build | `npm run check` then `npm run build` |
 | 4 | Relevant contract tests | focused Vitest set plus discovery-performance Node contract tests inside the gate |
-| 5 | Database compatibility proof | migrate + `db:verify:required` on `TEST_DATABASE_URL` |
+| 5 | Database compatibility proof | migrate + `db:verify:required` on required `TEST_DATABASE_URL` |
 | 6 | Browser proof | `BASE_URL` public-entry smoke **or** manual note |
 | 7 | Health endpoint shape | `/api/health` returns service status, DB connectivity, `commit`, `migrations.*` (no secrets) |
 | 8 | Deployment commit marker | `x-tradescout-build` + `/api/health.commit` after deploy |
@@ -26,16 +26,31 @@ export TEST_DATABASE_URL="postgres://...disposable..."
 npm run gate:minimum-release -- --browser-proof=manual --browser-note="desktop+mobile / and /direct-connect OK"
 
 # Optional: post an informational GitHub commit status (never a required merge check):
-npm run gate:minimum-release -- --attest --skip-ci --browser-proof=manual --browser-note="..."
+npm run gate:minimum-release -- --attest --browser-proof=manual --browser-note="..."
 # or:
 node scripts/attest-minimum-release-contract.mjs artifacts/release-contract/<sha12>/evidence.json
 ```
 
 Evidence lands in `artifacts/release-contract/<sha12>/evidence.json`.
 
+Release mode is the default and fails closed on a dirty tree, skipped `npm ci`, or
+missing disposable database proof. `--skip-ci` and `--allow-db-skip` are rejected
+unless the explicit local-development mode is selected.
+
+For a partial local check that intentionally reuses installed dependencies and has
+no disposable database, run:
+
+```bash
+npm run gate:minimum-release:local -- --browser-proof=manual --browser-note="local paths checked"
+```
+
+That mode writes `result: non-attestation`, can never post a commit status, and is
+rejected when a CI environment is detected. A successful local-development command
+therefore means only that the executed subset passed; it is never release evidence.
+
 ## Optional status evidence
 
-The gate can post an informational **commit status** with context:
+Only complete, clean, strict release evidence can post an informational **commit status** with context:
 
 `tradescout/minimum-release-contract`
 

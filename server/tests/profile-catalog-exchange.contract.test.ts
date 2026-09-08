@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PROFILE_CATALOG_EXCHANGE_CATEGORY,
   PROFILE_CATALOG_EXCHANGE_SOURCE_TYPE,
@@ -8,13 +8,43 @@ import {
 } from "@shared/profileCatalogExchange";
 import {
   getProfileCatalogExchangeItem,
+  getPublicProfileCatalogExchangeItem,
   listProfileCatalogExchangeItems,
+  listPublicProfileCatalogExchangeItems,
 } from "../profileCatalogExchange";
+
+const authorityMocks = vi.hoisted(() => ({
+  getProfileBySlugPublic: vi.fn(),
+  getProfileOwnerUserId: vi.fn(),
+  hasExposureAuthority: vi.fn(),
+}));
+
+vi.mock("../storage", () => ({
+  storage: {
+    getProfileBySlugPublic: authorityMocks.getProfileBySlugPublic,
+    getProfileOwnerUserId: authorityMocks.getProfileOwnerUserId,
+  },
+}));
+
+vi.mock("../services/exposureAuthority", () => ({
+  hasExposureAuthority: authorityMocks.hasExposureAuthority,
+}));
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("profile catalog Exchange contract", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    authorityMocks.getProfileBySlugPublic.mockImplementation(async (slug: string) => ({
+      id: `profile-${slug}`,
+    }));
+    authorityMocks.getProfileOwnerUserId.mockImplementation(async (profileId: string) =>
+      profileId.replace("profile-", "owner-")
+    );
+    authorityMocks.hasExposureAuthority.mockResolvedValue(true);
+  });
+
   it("defines exactly one immutable request-only spotlight per approved business", () => {
     expect(PROFILE_CATALOG_EXCHANGE_SPOTLIGHTS).toHaveLength(2);
     expect(Object.isFrozen(PROFILE_CATALOG_EXCHANGE_SPOTLIGHTS)).toBe(true);
@@ -91,6 +121,49 @@ describe("profile catalog Exchange contract", () => {
     expect(routes).toContain('app.get("/api/exchange/items"');
     expect(routes).toContain('app.get("/api/marketplace/listings/:id"');
     expect(routes).not.toMatch(/app\.(?:post|put|patch|delete)\("\/api\/(?:exchange|marketplace)/);
+  });
+
+  it("fails closed when the maintained profile or its owner authority is absent", async () => {
+    authorityMocks.getProfileBySlugPublic.mockResolvedValueOnce(null);
+    await expect(
+      getPublicProfileCatalogExchangeItem("profile-catalog-jw-stone")
+    ).resolves.toBeNull();
+    expect(authorityMocks.getProfileOwnerUserId).not.toHaveBeenCalled();
+    expect(authorityMocks.hasExposureAuthority).not.toHaveBeenCalled();
+
+    authorityMocks.getProfileBySlugPublic.mockResolvedValueOnce({ id: "profile-jw-stone" });
+    authorityMocks.getProfileOwnerUserId.mockResolvedValueOnce(null);
+    await expect(
+      getPublicProfileCatalogExchangeItem("profile-catalog-jw-stone")
+    ).resolves.toBeNull();
+    expect(authorityMocks.hasExposureAuthority).not.toHaveBeenCalled();
+
+    authorityMocks.getProfileBySlugPublic.mockResolvedValueOnce({ id: "profile-jw-stone" });
+    authorityMocks.getProfileOwnerUserId.mockResolvedValueOnce("owner-jw-stone");
+    authorityMocks.hasExposureAuthority.mockResolvedValueOnce(false);
+    await expect(
+      getPublicProfileCatalogExchangeItem("profile-catalog-jw-stone")
+    ).resolves.toBeNull();
+  });
+
+  it("returns only catalog entries whose public profile and owner both retain authority", async () => {
+    authorityMocks.hasExposureAuthority.mockImplementation(
+      async (ownerId: string) => ownerId === "owner-jw-stone"
+    );
+
+    const visible = await listPublicProfileCatalogExchangeItems({
+      category: "building-materials",
+    });
+
+    expect(visible.map((item) => item.id)).toEqual(["profile-catalog-jw-stone"]);
+    expect(visible[0]?.publicProfilePath).toBe("/u/jw-stone#inventory-browser");
+  });
+
+  it("suppresses a catalog entry when authority resolution errors", async () => {
+    authorityMocks.getProfileBySlugPublic.mockRejectedValueOnce(new Error("authority unavailable"));
+    await expect(
+      getPublicProfileCatalogExchangeItem("profile-catalog-jw-stone")
+    ).resolves.toBeNull();
   });
 
   it("keeps the old-site lane additive-only and leaves current inventory untouched", () => {

@@ -366,5 +366,5 @@ test("package scripts put focused tests before the clean-tree bloat guard", () =
   assert.equal(packageJson.scripts["report:bloat"], "node scripts/report-bloat.mjs");
   assert.equal(packageJson.scripts["guard:bloat"], "node scripts/report-bloat.mjs --enforce");
   assert.equal(packageJson.scripts["test:bloat"], "node --test scripts/bloat-metrics.test.mjs");
-  assert.match(packageJson.scripts.verify, /^npm run test:bloat && npm run guard:bloat && npm run check/);
+  assert.match(packageJson.scripts.verify, /^npm run test:dependency-cleanup && npm run test:bloat && npm run guard:bloat && npm run check/);
 });

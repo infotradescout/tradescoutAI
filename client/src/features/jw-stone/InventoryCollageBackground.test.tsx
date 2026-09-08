@@ -37,9 +37,7 @@ describe("JW Stone Browse Full Inventory image treatment", () => {
   it("shows a smaller, gently rotated inventory panorama", () => {
     renderBackground();
 
-    const background = container.querySelector<HTMLElement>(
-      '[data-testid="jw-inventory-collage"]'
-    );
+    const background = container.querySelector<HTMLElement>('[data-testid="jw-inventory-collage"]');
     const image = container.querySelector<HTMLImageElement>(
       '[data-testid="jw-inventory-collage-image"]'
     );

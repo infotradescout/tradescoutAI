@@ -260,8 +260,7 @@ describe("generic business profile and tool contracts", () => {
       "client/src/components/ProgressFeedback.tsx",
       "client/src/components/auth/RoleSelection.tsx",
       "client/src/components/auth/FacebookSignup.tsx",
-      "client/src/components/ui/navigation.tsx",
-      "client/src/components/layout/navigation.tsx",
+      "client/src/components/layout/AppShellCore.tsx",
       "client/src/components/onboarding/tours/NewUserTour.tsx",
       "client/src/components/onboarding/tours/FeatureTour.tsx",
       "client/src/components/onboarding/tours/ContractorBoardTour.tsx",
@@ -270,7 +269,7 @@ describe("generic business profile and tool contracts", () => {
 
     expect(source).toContain("Welcome, Business Owner!");
     expect(source).toContain("Local Help Tour");
-    expect(source).toContain("Join as Business");
+    expect(source).toContain("Set up or manage my business");
     expect(source).toContain("public local business surfaces");
     expect(source).toContain("Business Profiles");
     expect(source).not.toContain("Welcome, Contractor!");

@@ -6,7 +6,7 @@ export const DEAN_DAMASKOS_PROFILE_SLUG = "dean-damaskos" as const;
  * The public source describes Dean as a "Financial Wealth Strategist" and
  * identifies Torque Financial. It does not establish an investment-adviser or
  * broker registration, so this copy deliberately avoids those regulated
- * titles and makes no performance, product, licensing, or fiduciary claims.
+ * titles and makes no performance, product, licensing, or duty-status claims.
  */
 export const DEAN_DAMASKOS_PROFILE_CONTENT = {
   companyName: "Torque Financial",
@@ -45,8 +45,14 @@ export const DEAN_DAMASKOS_PROFILE_CONTENT = {
   ],
   principles: [
     { title: "Plain language", body: "Make the questions and tradeoffs easier to understand." },
-    { title: "Personal context", body: "Begin with the person, household, or business—not a product." },
-    { title: "Confirmed next steps", body: "Verify services, credentials, terms, and availability before acting." },
+    {
+      title: "Personal context",
+      body: "Begin with the person, household, or business—not a product.",
+    },
+    {
+      title: "Confirmed next steps",
+      body: "Verify services, credentials, terms, and availability before acting.",
+    },
   ],
   sourceBasis: [
     {
@@ -72,12 +78,7 @@ export const DEAN_DAMASKOS_PROFILE_BLOCKS = [
   {
     type: "services",
     data: {
-      items: [
-        "Business protection",
-        "Employee benefits",
-        "Retirement planning",
-        "Wealth strategy",
-      ],
+      items: ["Business protection", "Employee benefits", "Retirement planning", "Wealth strategy"],
     },
   },
 ] as const;

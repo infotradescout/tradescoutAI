@@ -4,7 +4,7 @@ This guide provides instructions for deploying TradeScout AI to a production env
 
 ## Canonical Target
 - Canonical production host is **Render Web Service** (`render.yaml`).
-- **Production** path: Docker runtime; `preDeployCommand` runs `npm run db:migrate && npm run db:verify:required`; start with `RUNTIME_MIGRATIONS_MODE=off`.
+- **Production** path: Docker runtime; `preDeployCommand` runs the compiled schema-first production predeploy worker; start with `RUNTIME_MIGRATIONS_MODE=off`.
 - **Invariant:** the production image retains the migration scripts/config, SQL, shared schema, and production `drizzle-kit` so Render can block traffic when migrate or verify fails. See `docs/DEPLOYMENT_TARGET.md`.
 - After a Drizzle watermark trap, use `npm run db:migrate:fill-gaps` (not normal migrate alone). See `docs/runbooks/DB_MIGRATE_FILL_GAPS.md`.
 - Vercel, `docker-compose.yml`, and Kubernetes artifacts remain in-repo for experimentation; the root `Dockerfile` is the production image contract.

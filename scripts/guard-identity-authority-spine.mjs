@@ -47,16 +47,16 @@ for (const boundary of [
   "export const requireRole",
   "export const requirePermission",
   "export const isBusinessProvider",
-  "export const requireAuth",
-  "export const requireAdmin",
 ]) {
   const start = auth.indexOf(boundary);
   if (start < 0 || !auth.slice(start, start + 1600).includes("bindRequestAuthority(req, res)")) {
     failures.push(`server/auth.ts: ${boundary} is not bound to effective authority`);
   }
 }
+requireText(auth, "export const requireAuth: RequestHandler = isAuthenticated;", "auth alias");
+requireText(auth, "export const requireAdmin: RequestHandler = isAdmin;", "admin alias");
 
-const setupIndex = routes.indexOf("await setupAuth(app)");
+const setupIndex = routes.indexOf("await setupAuth(app,");
 const binderIndex = routes.indexOf("app.use(bindAuthenticatedRequestAuthority)");
 const adminIndex = routes.indexOf("mountAdminRoutes(app)");
 if (!(setupIndex >= 0 && binderIndex > setupIndex && adminIndex > binderIndex)) {
@@ -69,12 +69,16 @@ const authUser = routes.slice(authUserStart, authUserEnd);
 for (const needle of [
   "resolveRequestAuthorityContext(",
   "const userId = identityContext.effectiveUserId",
-  "if (identityContext.isImpersonating) return baseUser",
+  "req.requestAuthorityContext ??",
+  "let user = identityContext.effectiveUser",
+  "resolvePersistedClientAuthority(baseUser, approvedProfessionalRolesForAuth)",
   "isImpersonating: true",
 ]) {
   requireText(authUser, needle, "/api/auth/user");
 }
 forbidText(authUser, "role: sessionAny.impersonatingRole", "/api/auth/user");
+forbidText(authUser, "mergeSessionAuthority", "/api/auth/user");
+forbidText(authUser, "getPrivilegedAliasEmails", "/api/auth/user");
 
 for (const needle of [
   "principalUser?: any",
@@ -86,13 +90,19 @@ for (const needle of [
   requireText(resolver, needle, "server/utils/requestEffectiveUser.ts");
 }
 
+requireText(
+  sharedSuperAdmin,
+  'export { isSuperAdmin as requireSuperAdmin } from "../auth";',
+  "shared super-admin guard"
+);
 for (const [label, text] of [
-  ["server/middleware/requireSuperAdmin.ts", sharedSuperAdmin],
   ["server/routes/promptAdmin.ts", promptAdmin],
   ["server/routes/admin-control.ts", adminControl],
 ]) {
-  requireText(text, "resolveRequestEffectiveUser(req)", label);
-  requireText(text, "identityContext.isImpersonating", label);
+  requireText(text, 'import { isAuthenticated, isSuperAdmin } from "../auth";', label);
+  requireText(text, "router.use(isAuthenticated, isSuperAdmin);", label);
+  forbidText(text, "function isSuperAdmin(", label);
+  forbidText(text, "function requireSuperAdmin(", label);
 }
 
 if (failures.length > 0) {

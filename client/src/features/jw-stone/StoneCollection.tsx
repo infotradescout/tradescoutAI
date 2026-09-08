@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   JW_STONE_CATALOG,
   filterJwStoneCatalog,
@@ -57,13 +51,7 @@ type InventoryPagerProps = {
   onChange: (page: number) => void;
 };
 
-function InventoryPager({
-  page,
-  pageCount,
-  position,
-  statusRef,
-  onChange,
-}: InventoryPagerProps) {
+function InventoryPager({ page, pageCount, position, statusRef, onChange }: InventoryPagerProps) {
   if (pageCount <= 1) return null;
 
   return (

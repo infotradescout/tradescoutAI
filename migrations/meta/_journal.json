@@ -946,6 +946,34 @@
       "when": 1788669823182,
       "tag": "0131_preserve_jw_stone_pricing_revocation",
       "breakpoints": false
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1788804000000,
+      "tag": "0132_profile_booking_request_profile_lineage",
+      "breakpoints": false
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1788804060000,
+      "tag": "0133_professional_application_integrity",
+      "breakpoints": false
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1788804120000,
+      "tag": "0134_document_standalone_lineage_backfill",
+      "breakpoints": false
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1788804180000,
+      "tag": "0135_restore_contact_runtime_schema",
+      "breakpoints": false
     }
   ]
 }

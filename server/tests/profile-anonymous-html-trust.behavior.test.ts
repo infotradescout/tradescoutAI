@@ -56,6 +56,7 @@ function linkedRow(overrides: Record<string, unknown> = {}) {
     ctaConfig: {},
     seoMeta: { description: "PRIVATE SEO EVIDENCE", customDomain: "pending.example" },
     businessId: "business-onboarding-1",
+    publiclyReleased: true,
     updatedAt: new Date("2026-07-31T12:00:00.000Z"),
     profileSections: null,
     legacyProfileBooking: null,
@@ -80,6 +81,7 @@ function linkedRow(overrides: Record<string, unknown> = {}) {
     publicDiscoveryEnabled: true,
     businessSources: ["selective_intelligence_onboarding"],
     businessClaimStatus: "claimed",
+    professionalRoleApproved: true,
     businessProfileData: {},
     ...overrides,
   };
@@ -112,7 +114,7 @@ describe("anonymous public-profile HTML trust boundary", () => {
   it("keeps unlinked community profiles and verified linked profiles public", async () => {
     const repository = new ProfileRepository();
 
-    mocks.rows = [linkedRow({ businessId: null })];
+    mocks.rows = [linkedRow({ businessId: null, roleContext: "homeowner" })];
     await expect(repository.getProfileBySlugPublic("community-member")).resolves.toMatchObject({
       displayName: "PRIVATE ONBOARDING EVIDENCE",
     });

@@ -90,13 +90,15 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(jrSource).not.toContain("requestHref");
   });
 
-  it("always opens the call-or-form choice without roadmap copy", () => {
+  it("always opens the call-request-or-form choice without direct-call copy", () => {
     expect(profileSource).toContain("const canExpressCall =");
     expect(profileSource).toContain("allowCall={canExpressCall}");
     expect(panelSource).toContain('setView("choice")');
     expect(panelSource).toContain('view === "choice"');
     expect(panelSource).toContain("disabled={busy || !allowCall}");
-    expect(panelSource).toContain("Calling is coming soon");
+    expect(panelSource).toContain("Call requests unavailable");
+    expect(panelSource).toContain("They can call after accepting");
+    expect(panelSource).not.toContain("Call now");
     expect(panelSource).toContain("Requests are saved until {businessName} connects.");
     expect(panelSource).not.toContain("TradeScout is receiving requests for");
   });
@@ -110,18 +112,21 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain('onboardingEmailStatus = "failed"');
     expect(routeSource).toContain("onboardingPath,");
     expect(routeSource).toContain("onboardingEmailStatus,");
-    expect(panelSource).toContain("No email is required to continue from this browser.");
+    expect(panelSource).toContain('setView("success")');
+    expect(panelSource).not.toContain("json?.onboardingEmailStatus ===");
   });
 
-  it("returns signup to My Requests and offers HomeID only after signup", () => {
+  it("returns signed-in members to My Requests without a guest account CTA", () => {
     expect(routeSource).toContain("const requestWorkspaceParams = new URLSearchParams");
     expect(routeSource).toContain('from: "public_profile"');
     expect(routeSource).toContain("profile: target.profileSlug");
     expect(panelSource).toContain("setRequestWorkspacePath");
+    expect(panelSource).toContain("{hasViewerSession ? (");
     expect(panelSource).toContain("Manage this request");
+    expect(panelSource).toContain("Back to {businessName}");
     expect(resetSource).toContain("const safeNext = useMemo");
     expect(resetSource).toContain("mode=signin&next=");
-    expect(panelSource).toContain("add this project to your HomeID later");
+    expect(panelSource).not.toContain("add this project to your HomeID later");
   });
 });
 

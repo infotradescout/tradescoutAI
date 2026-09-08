@@ -42,7 +42,9 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(provisioner).toContain('profile_steward: "tradescout_verified_admin"');
     expect(provisioner).toContain('claimStatus: "admin_managed"');
     expect(provisioner).toContain("publicDiscoveryEnabled: true");
-    expect(provisioner).toContain('status: "published"');
+    expect(provisioner).toContain(
+      "profileReleaseSeedFields({ existingProfile, releaseNewProfile: true })"
+    );
     expect(provisioner).toContain("phone: REQUEST_ONLY_PHONE_SENTINEL");
     expect(provisioner).toContain("notificationEmail: TRADE_SCOUT_DIRECT_CONNECT_INBOX");
     expect(provisioner).toContain("email: TRADE_SCOUT_DIRECT_CONNECT_INBOX");
@@ -68,7 +70,10 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
 
     expect(block("siteTemplate")?.data?.id).toBe("default");
     expect(block("inventoryCatalog")).toBeUndefined();
-    expect(block("publicDiscovery")).toBeUndefined();
+    expect(block("publicDiscovery")?.data).toMatchObject({
+      routes: { gallery: "quarries" },
+      sitemap: { gallery: true },
+    });
     expect(block("profilePresentation")).toBeUndefined();
     expect(partnership?.title).toBe("Exclusive first-cut distributor");
     expect(partnership?.text).toContain(

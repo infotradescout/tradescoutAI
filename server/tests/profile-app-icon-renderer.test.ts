@@ -10,7 +10,9 @@ describe("profile app icon renderer", () => {
     const png = await renderProfileAppIconPng(
       {
         brandName: "JR's Auto Glass",
-        logoUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/logo.webp",
+        // Use a checked-in public image so this proof never depends on the
+        // production site or outbound network access.
+        logoUrl: "/icon-192.png",
         accentColor: "#d92727",
       },
       size,

@@ -41,6 +41,16 @@ export type DirectConnectEntryContext = {
   subjectType?: "business" | "product" | "service" | "evidence";
 };
 
+export type DirectConnectHomeIdHandoffContext = {
+  homeId?: string;
+  homePacketId?: string;
+  homeContextIntent?:
+    | "link_existing"
+    | "create_from_request"
+    | "update_from_request"
+    | "skip_for_now";
+};
+
 function readFirst(params: URLSearchParams, ...keys: string[]): string | undefined {
   for (const key of keys) {
     const value = params.get(key)?.trim();
@@ -52,6 +62,35 @@ function readFirst(params: URLSearchParams, ...keys: string[]): string | undefin
 function getQuery(path: string): URLSearchParams {
   const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
   return new URLSearchParams(query);
+}
+
+function readSafeHomeIdIdentity(
+  params: URLSearchParams,
+  key: "homeId" | "homePacketId"
+): string | undefined {
+  const value = params.get(key)?.trim() || "";
+  return /^[A-Za-z0-9_-]{1,120}$/.test(value) ? value : undefined;
+}
+
+export function parseDirectConnectHomeIdHandoffContext(
+  path: string
+): DirectConnectHomeIdHandoffContext {
+  const params = getQuery(path);
+  const rawIntent = params.get("homeContextIntent")?.trim() || "";
+  const homeContextIntent = [
+    "link_existing",
+    "create_from_request",
+    "update_from_request",
+    "skip_for_now",
+  ].includes(rawIntent)
+    ? (rawIntent as DirectConnectHomeIdHandoffContext["homeContextIntent"])
+    : undefined;
+
+  return {
+    homeId: readSafeHomeIdIdentity(params, "homeId"),
+    homePacketId: readSafeHomeIdIdentity(params, "homePacketId"),
+    homeContextIntent,
+  };
 }
 
 export function getDirectConnectIntent(path: string): DirectConnectIntent | null {
