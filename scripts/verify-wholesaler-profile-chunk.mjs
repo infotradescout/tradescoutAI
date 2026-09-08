@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const read = (relative) => readFileSync(path.join(root, relative), "utf8");
+const read = (relative) =>
+  readFileSync(path.join(root, relative), "utf8").replace(/\r\n/g, "\n");
 const source = read("client/src/pages/ProfileSiteView.tsx");
 assert.doesNotMatch(source, /import WholesalerProfileTheme from/);
 assert.match(source, /const WholesalerProfileTheme = lazy\(\s*\(\) => import\("@\/pages\/profile-sites\/WholesalerProfileTheme"\)\s*\)/);

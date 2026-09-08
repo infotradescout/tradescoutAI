@@ -1556,21 +1556,15 @@ export default function ProfileSiteView() {
         .filter(Boolean)
         .join(", ")
     : null;
-  // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
-  // Connect targeted straight at their own account (via the target/targetName
-  // prefill params DirectConnectShell already reads), instead of the
-  // anonymous, business-agnostic request flow every other profile uses.
+  // The profile slug is the server-supported recipient identity. An owner user
+  // id alone does not identify which business should receive this request.
   const jrsRequestDescription =
     "Vehicle year, make, model, and VIN (if available):\nWhich glass is damaged:\nChip or crack size and location:\nCamera or sensors near the glass:\nInsurance claim or self-pay:\nVehicle location:\nPreferred timing:\nPhotos attached:";
-  const jrsDirectConnectTarget = business?.directConnectOwnerUserId
-    ? `target=${encodeURIComponent(business.directConnectOwnerUserId)}`
-    : `profile=${encodeURIComponent(profile.slug)}`;
+  const jrsDirectConnectTarget = `profile=${encodeURIComponent(profile.slug)}`;
   const directConnectPath =
     profile.slug === "jrs-auto-glass"
       ? `/direct-connect?${jrsDirectConnectTarget}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
-      : business?.directConnectOwnerUserId
-        ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`
-        : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
+      : `/direct-connect?profile=${encodeURIComponent(profile.slug)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`;
   const directConnectHref = qualifyPublicProfileItemDestination(
     directConnectPath,
     platformBaseHref
@@ -2243,7 +2237,10 @@ export default function ProfileSiteView() {
                 ? recommendationsDirectory
                 : []
             }
-            trustActions={renderProfileTrustActions("dark")}
+            trustActions={renderProfileTrustActions(
+              resolvedLocalServicePresentation.layout === "project-profile" ? "light" : "dark",
+              resolvedLocalServicePresentation.layout === "project-profile" ? "compact" : "default"
+            )}
             verificationStatus={business?.verificationStatus}
             verifiedBadge={business?.verifiedBadge === true}
             communityVerification={business?.communityVerification}
@@ -2280,11 +2277,6 @@ export default function ProfileSiteView() {
   }
 
   if (siteTemplate === "financial-professional") {
-    const bookingDetailsVisible =
-      bookingEnabled &&
-      ((calendarVisibility === "public" && slots.length > 0) ||
-        (booking.pricingTableEnabled === true && pricingRows.length > 0));
-
     return (
       <>
         <SEOHelmet
@@ -2313,64 +2305,26 @@ export default function ProfileSiteView() {
             profileShareDestination={profileShareDestination}
             onDirectConnect={openServiceDirectConnect}
             trustActions={renderProfileTrustActions("light")}
-            bookingAction={
-              bookingEnabled ? (
-                <ProfileBookingRequestDialog
-                  profileId={profile.id}
-                  profileName={displayName}
-                  timezone={timezone}
-                  pricingRows={pricingRows}
-                  paidBookings={paidBookings}
-                  bookingPriceUsd={bookingPriceUsd}
-                  bookingCategory={bookingCategory}
-                  bookingStateCode={business?.stateCode || ""}
-                  hasViewerSession={hasViewerSession}
-                  viewerCanManage={viewerCanManage}
-                  signInHref={bookingSignInHref}
-                  platformBaseHref={platformBaseHref}
-                />
-              ) : undefined
-            }
-            bookingDetails={
-              bookingDetailsVisible ? (
-                <div className="rounded-3xl border border-[#17362f]/15 bg-[#f8f3e8] p-6 text-[#17362f] sm:p-8">
-                  <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#916425]">
-                    <Calendar className="h-4 w-4" />
-                    Booking details
-                  </p>
-                  {calendarVisibility === "public" && slots.length > 0 ? (
-                    <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                      {slots.slice(0, 14).map((slot) => (
-                        <div
-                          key={slot.id}
-                          className="flex items-center justify-between gap-4 rounded-xl border border-[#17362f]/12 px-4 py-3"
-                        >
-                          <span className="flex items-center gap-2">
-                            <Clock3 className="h-3.5 w-3.5 text-[#916425]" />
-                            {dayNames[slot.dayOfWeek] || "Day"}
-                          </span>
-                          <span>
-                            {slot.startTime}–{slot.endTime}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
-                    <div className="mt-5 divide-y divide-[#17362f]/12 border-y border-[#17362f]/12 text-sm">
-                      {pricingRows.slice(0, 10).map((row) => (
-                        <div key={row.id} className="flex justify-between gap-4 py-3">
-                          <span>{row.name}</span>
-                          <span className="font-black">{row.priceLabel}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  <p className="mt-5 text-xs leading-5 text-[#17362f]/60">
-                    A request is not confirmed until the profile owner accepts it.
-                  </p>
-                </div>
-              ) : undefined
+            booking={
+              bookingEnabled
+                ? {
+                    profileId: profile.id,
+                    profileName: displayName,
+                    timezone,
+                    pricingRows,
+                    paidBookings,
+                    bookingPriceUsd,
+                    bookingCategory,
+                    bookingStateCode: business?.stateCode || "",
+                    hasViewerSession,
+                    viewerCanManage,
+                    signInHref: bookingSignInHref,
+                    platformBaseHref,
+                    calendarVisibility,
+                    slots,
+                    pricingTableEnabled: booking.pricingTableEnabled === true,
+                  }
+                : undefined
             }
             profileItems={
               hasVisiblePublicProfileItems(profileItems, profileSections) ? (

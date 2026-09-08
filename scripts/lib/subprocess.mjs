@@ -24,12 +24,12 @@ export async function spawnCommand(command, args, options = {}) {
   const candidates = buildCandidates(command);
   if (candidates.length === 0) throw new Error("[subprocess] Missing command");
 
-  // Windows: prefer explicit cmd.exe dispatch so `.cmd` shims work without `shell: true`,
-  // avoiding Node's DEP0190 warning.
-  if (process.platform === "win32" && !/\.(?:exe|com)$/i.test(candidates[0])) {
+  // Native executables must keep their argument array intact, including an executable
+  // path containing spaces. Only Windows command shims need cmd.exe dispatch.
+  if (process.platform === "win32" && !/\.(?:exe|com)$/i.test(candidates[0]) && candidates[0] !== "node") {
     const comspec = process.env.ComSpec || "cmd.exe";
     const cmdline = toCmdCommandLine(candidates[0], args);
-    const child = spawn(comspec, ["/d", "/s", "/c", cmdline], { ...options, shell: false });
+    const child = spawn(comspec, ["/d", "/s", "/c", cmdline], { ...options, shell: false, windowsHide: true });
     await new Promise((resolve, reject) => {
       child.once("spawn", resolve);
       child.once("error", reject);
@@ -45,7 +45,7 @@ export async function spawnCommand(command, args, options = {}) {
 
   let lastError = null;
   for (const candidate of tryList) {
-    const child = spawn(candidate, args ?? [], { ...options, shell: false });
+    const child = spawn(candidate, args ?? [], { ...options, shell: false, windowsHide: true });
     const started = await new Promise((resolve, reject) => {
       child.once("spawn", () => resolve(true));
       child.once("error", (error) => {

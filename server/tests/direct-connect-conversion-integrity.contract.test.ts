@@ -286,7 +286,7 @@ describe("Direct Connect conversion-integrity lane", () => {
       expect(stalls).toHaveLength(0);
     });
 
-    it("does not flag an attempt that advanced to a later funnel stage", () => {
+    it("flags the highest stage when that later stage also exceeds the window", () => {
       const startedAt = new Date(baseNow.getTime() - windowMs - 1000);
       const submittedAt = new Date(startedAt.getTime() + 1000);
       const stalls = computeDirectConnectFunnelStalls({
@@ -302,7 +302,11 @@ describe("Direct Connect conversion-integrity lane", () => {
         windowMs,
         now: baseNow,
       });
-      expect(stalls).toHaveLength(0);
+      expect(stalls).toHaveLength(1);
+      expect(stalls[0]).toMatchObject({
+        identityKey: "u:1",
+        funnelStep: "direct_connect_request_submitted",
+      });
     });
 
     it("is idempotent -- does not re-flag an attempt already logged as stalled", () => {
@@ -334,6 +338,11 @@ describe("Direct Connect conversion-integrity lane", () => {
             identityKey: "u:1",
             eventType: "direct_connect_request_submitted",
             createdAt: firstSubmit,
+          },
+          {
+            identityKey: "u:1",
+            eventType: "direct_connect_requester_reply_viewed",
+            createdAt: new Date(firstSubmit.getTime() + 1000),
           },
           {
             identityKey: "u:1",

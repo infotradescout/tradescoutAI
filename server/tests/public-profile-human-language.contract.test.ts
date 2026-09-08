@@ -33,7 +33,7 @@ describe("public profile human-language contract", () => {
 
   it("shows useful profile facts without internal labels or fake zero-value stats", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
-    const defaultTheme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
+    const defaultTheme = read("client/src/pages/profile-sites/PreservedDefaultProfileTheme.tsx");
 
     expect(profileView).toContain('const profileTypeLabel = business ? "Local business"');
     expect(profileView).toContain("const quickFacts = [");
@@ -42,7 +42,11 @@ describe("public profile human-language contract", () => {
     expect(defaultTheme).not.toContain("Your details stay private until the business responds.");
     expect(defaultTheme).not.toContain("TradeScout securely holds requests");
     expect(defaultTheme).toContain("businessInitials(businessName)");
-    for (const source of [profileView, defaultTheme]) {
+    for (const source of [
+      profileView,
+      defaultTheme,
+      read("client/src/pages/profile-sites/BusinessProfileTheme.tsx"),
+    ]) {
       expect(source).not.toContain("after the business accepts");
       expect(source).not.toContain("Website Profile");
       expect(source).not.toContain("Business Snapshot");
@@ -53,7 +57,7 @@ describe("public profile human-language contract", () => {
   });
 
   it("keeps paid profile themes customer-facing", () => {
-    const stoneTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const stoneTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
     const jwPresentation = read("client/src/data/jwStoneProfilePresentation.ts");
     const autoGlassTheme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const requestPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");

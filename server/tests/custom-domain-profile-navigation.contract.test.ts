@@ -11,7 +11,7 @@ describe("custom-domain public Profile navigation contract", () => {
   const expressPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
   const profileFooter = read("client/src/pages/profile-sites/TradeScoutProfileHandoff.tsx");
   const manageChrome = read("client/src/components/profile/ProfileSiteManageChrome.tsx");
-  const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+  const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
   const localServiceTheme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
   const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
 

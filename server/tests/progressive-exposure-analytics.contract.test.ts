@@ -60,7 +60,7 @@ describe("progressive exposure analytics contracts", () => {
 
     expect(source).toContain('"/api/analytics/progressive-exposure/summary"');
     expect(source).toContain('"/api/analytics/progressive-exposure/timeline"');
-    expect(source).toContain("Progressive Exposure (Shadow)");
-    expect(source).toContain("Daily tier trend (last 7 days with events)");
+    expect(source).toContain("Progressive exposure readiness");
+    expect(source).toContain("Recent daily tier trend");
   });
 });

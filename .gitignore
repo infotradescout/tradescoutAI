@@ -84,5 +84,8 @@ artifacts/search-console/raw/
 /exports/
 /tmp/
 
+# Private runtime uploads and address-verification evidence.
+/private/uploads/
+
 # UI surface audits are generated on demand and must not dirty the repository root.
 /artifacts/ui-surface-audit/

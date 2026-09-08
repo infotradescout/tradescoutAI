@@ -38,7 +38,7 @@ describe("profile visibility contract guards", () => {
     const adminUsers = read("client/src/pages/admin-users.tsx");
 
     expect(adminUsers).toContain(
-      'profileVisibility: prefs.profileVisibility === "public" ? "public" : "private"'
+      'profileVisibility: preferences.profileVisibility === "public" ? "public" : "private"'
     );
   });
 });

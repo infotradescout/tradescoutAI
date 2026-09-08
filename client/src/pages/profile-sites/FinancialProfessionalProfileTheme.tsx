@@ -3,8 +3,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BriefcaseBusiness,
+  Calendar,
   CalendarClock,
   CircleCheck,
+  Clock3,
   HeartHandshake,
   MapPin,
   MessageCircle,
@@ -12,8 +14,37 @@ import {
 } from "lucide-react";
 
 import { ShareButton } from "@/components/ShareButton";
+import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import { SafeProfileImg } from "@/pages/profile-sites/safeProfileImage";
 import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
+
+type FinancialProfessionalBooking = {
+  profileId: string;
+  profileName: string;
+  timezone: string;
+  pricingRows: Array<{
+    id: string;
+    name: string;
+    priceLabel: string;
+    description?: string;
+  }>;
+  paidBookings: boolean;
+  bookingPriceUsd: number;
+  bookingCategory: string;
+  bookingStateCode: string;
+  hasViewerSession: boolean;
+  viewerCanManage: boolean;
+  signInHref: string;
+  platformBaseHref: string;
+  calendarVisibility: "public" | "private";
+  slots: Array<{
+    id: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  }>;
+  pricingTableEnabled: boolean;
+};
 
 type Props = {
   profileSlug: string;
@@ -28,8 +59,7 @@ type Props = {
   onDirectConnect: (serviceName?: string) => void;
   trustActions: ReactNode;
   profileItems?: ReactNode;
-  bookingAction?: ReactNode;
-  bookingDetails?: ReactNode;
+  booking?: FinancialProfessionalBooking;
 };
 
 type FocusArea = { eyebrow: string; title: string; body: string };
@@ -65,10 +95,7 @@ function cards<T extends Record<string, string>>(value: unknown, keys: Array<key
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => record(item))
-    .map(
-      (item) =>
-        Object.fromEntries(keys.map((key) => [key, text(item[String(key)])])) as T
-    )
+    .map((item) => Object.fromEntries(keys.map((key) => [key, text(item[String(key)])])) as T)
     .filter((item) => keys.every((key) => Boolean(item[key])));
 }
 
@@ -85,9 +112,7 @@ function readFinancialProfessionalProfile(
   contentBlocks: unknown
 ): FinancialProfessionalProfileData {
   const blocks = Array.isArray(contentBlocks) ? contentBlocks : [];
-  const block = blocks.find(
-    (entry) => record(entry).type === "financialProfessionalProfile"
-  );
+  const block = blocks.find((entry) => record(entry).type === "financialProfessionalProfile");
   const data = record(record(block).data);
 
   return {
@@ -99,9 +124,7 @@ function readFinancialProfessionalProfile(
     portraitUrl: text(data.portraitUrl),
     portraitAlt: text(data.portraitAlt),
     focusAreas: cards<FocusArea>(data.focusAreas, ["eyebrow", "title", "body"]),
-    biography: Array.isArray(data.biography)
-      ? data.biography.map(text).filter(Boolean)
-      : [],
+    biography: Array.isArray(data.biography) ? data.biography.map(text).filter(Boolean) : [],
     principles: cards<Principle>(data.principles, ["title", "body"]),
     sourceBasis: cards<SourceLink>(data.sourceBasis, ["label", "url"])
       .map((source) => ({ ...source, url: safeSourceUrl(source.url) }))
@@ -117,6 +140,8 @@ const focusIcons: Array<ComponentType<{ className?: string }>> = [
   ShieldCheck,
 ];
 
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export default function FinancialProfessionalProfileTheme({
   profileSlug,
   platformBaseHref = "",
@@ -130,8 +155,7 @@ export default function FinancialProfessionalProfileTheme({
   onDirectConnect,
   trustActions,
   profileItems,
-  bookingAction,
-  bookingDetails,
+  booking,
 }: Props) {
   const profile = readFinancialProfessionalProfile(contentBlocks);
   const companyName = profile.companyName || businessName;
@@ -147,12 +171,75 @@ export default function FinancialProfessionalProfileTheme({
           title: service,
           body: "Start a focused conversation and confirm the available scope before acting.",
         }));
+  const bookingAction = booking ? (
+    <ProfileBookingRequestDialog
+      profileId={booking.profileId}
+      profileName={booking.profileName}
+      timezone={booking.timezone}
+      pricingRows={booking.pricingRows}
+      paidBookings={booking.paidBookings}
+      bookingPriceUsd={booking.bookingPriceUsd}
+      bookingCategory={booking.bookingCategory}
+      bookingStateCode={booking.bookingStateCode}
+      hasViewerSession={booking.hasViewerSession}
+      viewerCanManage={booking.viewerCanManage}
+      signInHref={booking.signInHref}
+      platformBaseHref={booking.platformBaseHref}
+    />
+  ) : undefined;
+  const bookingDetailsVisible = Boolean(
+    booking &&
+    ((booking.calendarVisibility === "public" && booking.slots.length > 0) ||
+      (booking.pricingTableEnabled && booking.pricingRows.length > 0))
+  );
+  const bookingDetails =
+    bookingDetailsVisible && booking ? (
+      <div className="rounded-3xl border border-[#17362f]/15 bg-[#f8f3e8] p-6 text-[#17362f] sm:p-8">
+        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#916425]">
+          <Calendar className="h-4 w-4" />
+          Booking details
+        </p>
+        {booking.calendarVisibility === "public" && booking.slots.length > 0 ? (
+          <div className="mt-5 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {booking.slots.slice(0, 14).map((slot) => (
+              <div
+                key={slot.id}
+                className="flex items-center justify-between gap-4 rounded-xl border border-[#17362f]/12 px-4 py-3"
+              >
+                <span className="flex items-center gap-2">
+                  <Clock3 className="h-3.5 w-3.5 text-[#916425]" />
+                  {DAY_NAMES[slot.dayOfWeek] || "Day"}
+                </span>
+                <span>
+                  {slot.startTime}–{slot.endTime}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {booking.pricingTableEnabled && booking.pricingRows.length > 0 ? (
+          <div className="mt-5 divide-y divide-[#17362f]/12 border-y border-[#17362f]/12 text-sm">
+            {booking.pricingRows.slice(0, 10).map((row) => (
+              <div key={row.id} className="flex justify-between gap-4 py-3">
+                <span>{row.name}</span>
+                <span className="font-black">{row.priceLabel}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <p className="mt-5 text-xs leading-5 text-[#17362f]/60">
+          A request is not confirmed until the profile owner accepts it.
+        </p>
+      </div>
+    ) : undefined;
 
   return (
     <div
-      className="min-h-screen overflow-hidden bg-[#f3efe5] text-[#16332d]"
+      className="min-h-full overflow-hidden bg-[#f3efe5] text-[#16332d]"
       data-testid="financial-professional-profile"
-      style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif' }}
+      style={{
+        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+      }}
     >
       <section className="relative isolate overflow-hidden bg-[#0d2e29] text-[#fbf7ee]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(211,174,94,.26),transparent_26%),radial-gradient(circle_at_12%_92%,rgba(79,139,119,.24),transparent_34%)]" />
@@ -286,9 +373,7 @@ export default function FinancialProfessionalProfileTheme({
                     <h3 className="relative mt-8 font-serif text-3xl font-semibold leading-none">
                       {area.title}
                     </h3>
-                    <p className="relative mt-4 text-sm leading-6 text-[#17362f]/64">
-                      {area.body}
-                    </p>
+                    <p className="relative mt-4 text-sm leading-6 text-[#17362f]/64">{area.body}</p>
                     <button
                       type="button"
                       onClick={() => onDirectConnect(area.title)}
@@ -382,9 +467,7 @@ export default function FinancialProfessionalProfileTheme({
               </ul>
             ) : null}
             {profile.disclosure ? (
-              <p className="mt-8 text-[11px] leading-5 text-[#17362f]/55">
-                {profile.disclosure}
-              </p>
+              <p className="mt-8 text-[11px] leading-5 text-[#17362f]/55">{profile.disclosure}</p>
             ) : null}
           </div>
         </section>

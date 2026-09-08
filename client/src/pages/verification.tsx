@@ -1,11 +1,12 @@
 import { memo, useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getCurrentInternalPath, readSafeReturnPath } from "@/lib/postOnboardingRoute";
 
 type StatusTone = "complete" | "pending" | "required";
 
@@ -42,6 +43,10 @@ function toneLabel(tone: StatusTone) {
 
 const Verification = memo(function Verification() {
   const { user, isAuthenticated } = useAuth();
+  const [location] = useLocation();
+  const returnPath = readSafeReturnPath(getCurrentInternalPath(location));
+  const withReturn = (path: string) =>
+    returnPath ? `${path}?next=${encodeURIComponent(returnPath)}` : path;
 
   const { data: addressStatus, isLoading: loadingAddress } = useQuery<any>({
     queryKey: ["/api/address-verification/status"],
@@ -110,7 +115,7 @@ const Verification = memo(function Verification() {
         : "required";
   const businessVerificationParams = new URLSearchParams({
     source: "verification_hub",
-    next: "/verification",
+    next: withReturn("/verification"),
   });
   if (profileVerification?.profileId) {
     businessVerificationParams.set("businessProfileId", profileVerification.profileId);
@@ -263,19 +268,23 @@ const Verification = memo(function Verification() {
           </CardHeader>
           <CardContent className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/profile-settings">Update profile details</Link>
+              <Link href={withReturn("/profile-settings")}>Update profile details</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/address-verification">Complete address verification</Link>
+              <Link href={withReturn("/address-verification")}>Complete address verification</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/identity-verification">Complete identity verification</Link>
+              <Link href={withReturn("/identity-verification")}>
+                Complete identity verification
+              </Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
               <Link href={businessVerificationPath}>Verify your business</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/direct-connect">Open Direct Connect</Link>
+              <Link href={returnPath || "/direct-connect"}>
+                {returnPath ? "Return to saved request" : "Open Direct Connect"}
+              </Link>
             </Button>
           </CardContent>
         </Card>

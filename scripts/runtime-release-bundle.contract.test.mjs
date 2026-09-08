@@ -130,6 +130,7 @@ test("release launcher fails closed when neither security module is present", (t
 test("production release entries are bundled with evidence and an external guard", () => {
   const source = read("build-server.mjs");
   for (const entry of [
+    "run-production-predeploy",
     "ensure-public-media-ready",
     "migrate-jw-stone-public-media",
     "migrate-red-graniti-public-media",
@@ -175,19 +176,48 @@ test("all bundled migration workers resolve copied manifests", () => {
   }
 });
 
-test("bundled database migration uses its colocated independent schema verifier without baselining", () => {
+test("bundled database migration launches its independent colocated verifier without baselining", () => {
   const source = read("scripts/db-migrate-safe.mjs");
   assert.match(source, /path\.join\(scriptDirectory, "check-required-production-schema\.mjs"\)/);
   assert.match(source, /fs\.existsSync\(bundled\)/);
-  assert.match(source, /runVerifiedMigration\(/);
+  assert.match(
+    source,
+    /path\.resolve\(process\.cwd\(\), "scripts\/check-required-production-schema\.mjs"\)/
+  );
+  assert.match(source, /runVerifiedMigration\(\{/);
   assert.match(
     source,
     /verify:\s*\(\) => runCommand\(process\.execPath, \[requiredSchemaEntrypoint\(\)\]/
   );
+  assert.match(source, /DATABASE_URL: dbUrl/);
   assert.doesNotMatch(
     source,
-    /baselineEntrypoint|db-baseline-drizzle|insert into drizzle|Attempting baseline/
+    /baselineEntrypoint|db-baseline-drizzle|insert into drizzle|mark-already-applied|Attempting baseline/
   );
+  const resolver = source.match(/function requiredSchemaEntrypoint\(\) \{([\s\S]*?)\n\}/);
+  assert.ok(resolver, "the worker must resolve the independent verifier");
+  const resolveVerifier = new Function("fs", "path", "process", "scriptDirectory", resolver[1]);
+  const bundleDirectory = path.join(root, "dist", "release");
+  const bundledVerifier = path.join(bundleDirectory, "check-required-production-schema.mjs");
+  for (const exists of [true, false]) {
+    const checked = [];
+    const actual = resolveVerifier(
+      {
+        existsSync: (candidate) => {
+          checked.push(candidate);
+          return exists;
+        },
+      },
+      path,
+      { cwd: () => root },
+      bundleDirectory
+    );
+    assert.deepEqual(checked, [bundledVerifier]);
+    assert.equal(
+      actual,
+      exists ? bundledVerifier : path.join(root, "scripts", "check-required-production-schema.mjs")
+    );
+  }
 });
 
 test("runtime entrypoint resolver prefers a built production worker and preserves dev source", () => {

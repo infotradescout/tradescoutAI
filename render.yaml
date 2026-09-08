@@ -11,7 +11,9 @@ services:
     # Do NOT use checksPass (deadlock risk with post-deploy observers).
     # GitHub Actions deploy workflow is optional backup only — not required for prod.
     autoDeployTrigger: commit
-    # The media migrations are idempotent and write their markers only after every
+    # The fail-closed predeploy worker migrates and verifies the required database
+    # schema before any media migration can write objects or deployment markers.
+    # Media migrations are idempotent and write their markers only after every
     # pinned public object is present and verified in existing server object storage.
     # Complete R2 configuration is preferred, then the existing AWS S3 contract.
     # If neither is active, the existing production PostgreSQL service owns the
@@ -19,7 +21,7 @@ services:
     # A failure blocks traffic swap and leaves the current production release live.
     # Every worker goes through the release launcher so remote PostgreSQL URLs use
     # explicit sslmode=verify-full before any connection is opened.
-    preDeployCommand: node runtime/run-release.mjs migrate-red-graniti-public-media scripts/migrate-red-graniti-public-media.mjs && node runtime/run-release.mjs migrate-jw-stone-public-media scripts/migrate-jw-stone-public-media.mjs && node runtime/run-release.mjs migrate-profile-public-media scripts/migrate-profile-public-media.mjs && node runtime/run-release.mjs db-migrate-safe scripts/db-migrate-safe.mjs && node runtime/run-release.mjs check-required-production-schema scripts/check-required-production-schema.mjs
+    preDeployCommand: node runtime/run-release.mjs run-production-predeploy scripts/run-production-predeploy.mjs
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION

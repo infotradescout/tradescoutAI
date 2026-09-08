@@ -177,7 +177,8 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.textContent).not.toContain("expand to search and browse");
     expect(container.textContent).toContain("First Cut");
     expect(
-      container.querySelector('[data-testid="jw-first-cut"] [data-first-cut-lead] > span')?.className
+      container.querySelector('[data-testid="jw-first-cut"] [data-first-cut-lead] > span')
+        ?.className
     ).toMatch(/aspect-\[12\/5\]/);
     expect(container.textContent).toContain("Browse by color");
     expect(container.textContent).not.toContain("Browse by mood");
@@ -839,7 +840,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(
       inventory.compareDocumentPosition(palette) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(palette.compareDocumentPosition(materials) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      palette.compareDocumentPosition(materials) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(
       materials.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();

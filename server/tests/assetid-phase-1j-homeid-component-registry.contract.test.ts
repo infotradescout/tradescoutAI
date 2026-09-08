@@ -23,7 +23,7 @@ describe("assetid phase 1j homeid component registry contracts", () => {
   });
 
   it("maps direct connect component metadata into HomeID component records", () => {
-    const directConnectSource = read("server/routes/direct-connect.ts");
+    const directConnectSource = read("server/routes/direct-connect/home-id.ts");
     expect(directConnectSource).toContain("async function upsertHomeIdComponentFromDirectConnect");
     expect(directConnectSource).toContain("title: HOMEID_PERSISTENCE_COMPONENTS_TITLE");
     expect(directConnectSource).toContain('source: "direct_connect_completed_work"');

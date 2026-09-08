@@ -70,7 +70,7 @@ All 23 primary tools are represented. A `More` section is reserved only for a fu
 
 ## Primary workspace completion
 
-The primary Admin OS migration is structurally complete as of August 19, 2026.
+The primary Admin OS migration is structurally complete. The original 21 workspaces completed on August 19, 2026; Production Acceptance joined the primary navigation and native-surface authority on August 20, 2026.
 
 Production Acceptance and Ecosystem Truth extend that same operating shell with Super Admin-only proof and reconciliation workspaces. They do not create a second administrative product or new write authority.
 

@@ -22,7 +22,8 @@ describe("public profile IndexNow reconciliation scheduling", () => {
     expect(reconciliation).toContain("data->>'status' = 'submitted'");
     expect(reconciliation).toContain("INDEXNOW_BATCH_SIZE = 10_000");
     expect(reconciliation).toContain("shouldIndexPublicProfileSlug");
-    expect(reconciliation).toContain("customDomain");
+    expect(reconciliation).toContain("collectProfileIndexNowUrls({ ...candidate, slug, status:");
+    expect(reconciliation).toContain("url.origin !== CANONICAL_ORIGIN");
     expect(reconciliation).toContain("IndexNow is a change notification");
   });
 });

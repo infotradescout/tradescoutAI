@@ -23,10 +23,10 @@ tr '\0' '\n' < "$STAGED_ZLIST" | grep -E '\.(ts|tsx)$' | tr '\n' '\0' > "$ESLINT
 tr '\0' '\n' < "$STAGED_ZLIST" | grep -E '\.(ts|tsx|json|md)$' | tr '\n' '\0' > "$FORMAT_ZLIST" || true
 
 if [ -s "$ESLINT_ZLIST" ]; then
-  xargs -0 npx eslint --fix -- < "$ESLINT_ZLIST"
+  xargs -0 -n 20 -s 6000 npx eslint --fix -- < "$ESLINT_ZLIST"
 fi
 
 if [ -s "$FORMAT_ZLIST" ]; then
-  xargs -0 npx prettier --write -- < "$FORMAT_ZLIST"
-  xargs -0 git add -- < "$FORMAT_ZLIST"
+  xargs -0 -n 20 -s 6000 npx prettier --write -- < "$FORMAT_ZLIST"
+  xargs -0 -n 20 -s 6000 git add -- < "$FORMAT_ZLIST"
 fi

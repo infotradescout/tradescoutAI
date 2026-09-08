@@ -8,14 +8,25 @@ const read = (relativePath: string) => {
 };
 
 describe("public trade SEO rendering contracts", () => {
+  it("trade county html fails closed instead of serving an empty successful page", () => {
+    const source = read("server/publicTradeHtml.ts");
+    expect(source).not.toContain("serving fallback page without listings");
+    expect(source).toContain("if (items.length === 0) return null;");
+  });
+
   it("recent html serves fallback content when activity query fails", () => {
     const source = read("server/publicRecentHtml.ts");
     expect(source).toContain("Recent activity query failed; serving fallback page without items");
     expect(source).toContain("rows = []");
   });
 
-  it("best county html retains its compatibility fallback on discovery-column drift", () => {
+  it("county pages fail closed while best pages retain their explicit degraded mode", () => {
+    const countySource = read("server/publicCountyHtml.ts");
     const bestSource = read("server/publicBestHtml.ts");
+    expect(countySource).not.toContain(
+      "County directory query failed; serving page without listings"
+    );
+    expect(countySource).toContain("eq(businesses.publicDiscoveryEnabled, true as any)");
     expect(bestSource).toContain("Best trade county query failed; serving page without listings");
     expect(bestSource).toContain('isMissingColumnError(error, "public_discovery_enabled")');
   });
