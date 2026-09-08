@@ -130,7 +130,9 @@ WITH approved_professional_authority AS (
           ) AND authority.car_dealer_approved THEN 'car_dealer'::user_role
           WHEN authority.realtor_approved THEN 'realtor'::user_role
           WHEN authority.car_dealer_approved THEN 'car_dealer'::user_role
-          ELSE 'homeowner'::user_role
+          -- Claims-first accounts without approved professional authority must
+          -- keep their unselected role until they complete onboarding.
+          ELSE NULL::user_role
         END
       WHEN users.role::text = 'realtor' AND NOT authority.realtor_approved THEN
         CASE

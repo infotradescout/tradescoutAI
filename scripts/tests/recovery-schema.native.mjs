@@ -23,17 +23,29 @@ const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex"
 const root = path.resolve(import.meta.dirname, "../..");
 
 function verifyJournal() {
-  const baseline = JSON.parse(execFileSync("git", [
-    "show", `${RELEASED_BASE}:migrations/meta/_journal.json`,
-  ], { cwd: root, encoding: "utf8", windowsHide: true }));
-  const current = JSON.parse(fs.readFileSync(path.join(root, "migrations/meta/_journal.json"), "utf8"));
+  const baseline = JSON.parse(
+    execFileSync("git", ["show", `${RELEASED_BASE}:migrations/meta/_journal.json`], {
+      cwd: root,
+      encoding: "utf8",
+      windowsHide: true,
+    })
+  );
+  const current = JSON.parse(
+    fs.readFileSync(path.join(root, "migrations/meta/_journal.json"), "utf8")
+  );
   assert.equal(current.version, baseline.version);
   assert.equal(current.dialect, baseline.dialect);
-  assert.deepEqual(current.entries.slice(0, baseline.entries.length), baseline.entries,
-    "Recovery must preserve every released journal entry exactly");
+  assert.deepEqual(
+    current.entries.slice(0, baseline.entries.length),
+    baseline.entries,
+    "Recovery must preserve every released journal entry exactly"
+  );
   const additions = current.entries.slice(baseline.entries.length);
-  assert.deepEqual(additions.map((entry) => entry.tag), RECOVERY_TAGS,
-    "This recovery proof covers exactly the appended recovery migrations");
+  assert.deepEqual(
+    additions.map((entry) => entry.tag),
+    RECOVERY_TAGS,
+    "This recovery proof covers exactly the appended recovery migrations"
+  );
   let watermark = Math.max(...baseline.entries.map((entry) => entry.when));
   additions.forEach((entry, index) => {
     assert.equal(entry.idx, baseline.entries.length + index);
@@ -139,7 +151,10 @@ const cases = [
   },
 ];
 
-for (const [table, label] of [["realtor_profiles", "realtor"], ["car_salesman_profiles", "car salesman"]]) {
+for (const [table, label] of [
+  ["realtor_profiles", "realtor"],
+  ["car_salesman_profiles", "car salesman"],
+]) {
   const missing = `${table}[professional application integrity contract]`;
   cases.push(
     {
@@ -174,7 +189,7 @@ for (const [table, label] of [["realtor_profiles", "realtor"], ["car_salesman_pr
         COMMENT ON INDEX uq_${table}_user_id
           IS 'One ${label} application record per user; tradescout-schema:0129:v2'`,
       missing,
-    },
+    }
   );
 }
 
@@ -191,23 +206,193 @@ async function main() {
   let transactionOpen = false;
   try {
     await client.connect();
-    const { rows: [identity] } = await client.query(`SELECT current_database() AS database,
+    const {
+      rows: [identity],
+    } = await client.query(`SELECT current_database() AS database,
       host(inet_server_addr()) AS address, inet_server_port() AS port`);
-    assert.equal(identity.database, target.database, "Connected database must match the guarded URL");
+    assert.equal(
+      identity.database,
+      target.database,
+      "Connected database must match the guarded URL"
+    );
     assert.ok(["127.0.0.1", "::1"].includes(identity.address), "Connected server must be loopback");
     assert.equal(identity.port, Number(parsedUrl.port || 5432));
     await client.query("SET statement_timeout = '15s'; SET lock_timeout = '3s'");
     await verifyRequiredProductionSchema(client);
-    const ledgerBefore = (await client.query(
-      "SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id"
-    )).rows;
+    const ledgerBefore = (
+      await client.query(
+        "SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id"
+      )
+    ).rows;
     for (const entry of journal.additions) {
-      const hashes = buildLineEndingCompatibleMigrationHashes(fs.readFileSync(
-        path.join(root, "migrations", `${entry.tag}.sql`), "utf8"
-      ));
-      assert.ok(ledgerBefore.some((row) => hashes.includes(row.hash) && Number(row.created_at) === entry.when),
-        `${entry.tag} must be recorded after its real execution`);
+      const hashes = buildLineEndingCompatibleMigrationHashes(
+        fs.readFileSync(path.join(root, "migrations", `${entry.tag}.sql`), "utf8")
+      );
+      assert.ok(
+        ledgerBefore.some(
+          (row) => hashes.includes(row.hash) && Number(row.created_at) === entry.when
+        ),
+        `${entry.tag} must be recorded after its real execution`
+      );
     }
+
+    // Execute the real professional migration against claims-first and legacy
+    // accounts. The transaction restores every fixture and DDL change afterward.
+    const roleFixtures = [
+      {
+        name: "unfinished claims-first account",
+        role: null,
+        active: null,
+        roles: [],
+        nextRole: null,
+        nextActive: null,
+        nextRoles: [],
+      },
+      {
+        name: "unrelated authority retained",
+        role: null,
+        active: "contractor",
+        roles: ["contractor"],
+        nextRole: null,
+        nextActive: "contractor",
+        nextRoles: ["contractor"],
+      },
+      {
+        name: "pending realtor grants no role",
+        role: null,
+        active: "realtor",
+        roles: ["realtor", "contractor"],
+        profile: "realtor",
+        status: "pending",
+        enabled: false,
+        nextRole: null,
+        nextActive: null,
+        nextRoles: ["contractor"],
+      },
+      {
+        name: "rejected dealer grants no role",
+        role: null,
+        active: "vehicle-dealer",
+        roles: ["car_salesman"],
+        profile: "dealer",
+        status: "rejected",
+        enabled: false,
+        nextRole: null,
+        nextActive: null,
+        nextRoles: [],
+      },
+      {
+        name: "inactive approval grants no role",
+        role: null,
+        active: null,
+        roles: [],
+        profile: "realtor",
+        status: "approved",
+        enabled: false,
+        nextRole: null,
+        nextActive: null,
+        nextRoles: [],
+      },
+      {
+        name: "approved realtor retains authority",
+        role: null,
+        active: "Realtor",
+        roles: [],
+        profile: "realtor",
+        status: "approved",
+        enabled: true,
+        nextRole: "realtor",
+        nextActive: "realtor",
+        nextRoles: ["realtor"],
+      },
+      {
+        name: "approved dealer retains authority",
+        role: null,
+        active: "vehicle-dealer",
+        roles: [],
+        profile: "dealer",
+        status: "approved",
+        enabled: true,
+        nextRole: "car_dealer",
+        nextActive: "car_dealer",
+        nextRoles: ["car_dealer"],
+      },
+      {
+        name: "unapproved persisted realtor revoked",
+        role: "realtor",
+        active: "realtor",
+        roles: ["realtor"],
+        nextRole: "homeowner",
+        nextActive: "homeowner",
+        nextRoles: [],
+      },
+      {
+        name: "unapproved persisted dealer revoked",
+        role: "car_dealer",
+        active: "car_dealer",
+        roles: ["car_dealer"],
+        nextRole: "homeowner",
+        nextActive: "homeowner",
+        nextRoles: [],
+      },
+    ];
+    await client.query("BEGIN");
+    transactionOpen = true;
+    try {
+      for (const fixture of roleFixtures) {
+        fixture.id = `migration-role-${crypto.randomUUID()}`;
+        await client.query(
+          `INSERT INTO users (id, email, role, active_role, roles, onboarding_completed)
+          VALUES ($1, $2, $3, $4, $5, false)`,
+          [fixture.id, `${fixture.id}@example.invalid`, fixture.role, fixture.active, fixture.roles]
+        );
+        if (fixture.profile === "realtor") {
+          await client.query(
+            `INSERT INTO realtor_profiles
+            (user_id, license_number, brokerage_name, license_state, verification_status, is_active)
+            VALUES ($1, 'SYNTHETIC', 'Native migration fixture', 'LA', $2, $3)`,
+            [fixture.id, fixture.status, fixture.enabled]
+          );
+        } else if (fixture.profile === "dealer") {
+          await client.query(
+            `INSERT INTO car_salesman_profiles
+            (user_id, dealership_name, dealer_license, license_state, verification_status, is_active)
+            VALUES ($1, 'Native migration fixture', 'SYNTHETIC', 'LA', $2, $3)`,
+            [fixture.id, fixture.status, fixture.enabled]
+          );
+        }
+      }
+      await client.query(
+        fs.readFileSync(
+          path.join(root, "migrations/0133_professional_application_integrity.sql"),
+          "utf8"
+        )
+      );
+      for (const fixture of roleFixtures) {
+        const {
+          rows: [actual],
+        } = await client.query(
+          `SELECT role, active_role, roles, onboarding_completed
+          FROM users WHERE id = $1`,
+          [fixture.id]
+        );
+        assert.deepEqual(
+          actual,
+          {
+            role: fixture.nextRole,
+            active_role: fixture.nextActive,
+            roles: fixture.nextRoles,
+            onboarding_completed: false,
+          },
+          fixture.name
+        );
+        results.push({ name: fixture.name, migrationAuthorityPreserved: true });
+      }
+    } finally {
+      await client.query("ROLLBACK");
+      transactionOpen = false;
+    }
+    await verifyRequiredProductionSchema(client);
 
     for (const scenario of cases) {
       await client.query("BEGIN");
@@ -216,13 +401,19 @@ async function main() {
         // PostgreSQL DDL and ledger mutations are visible to this same client
         // but are never committed. Unexpected SQL errors do not count as proof.
         await client.query(scenario.sql);
-        await assert.rejects(() => verifyRequiredProductionSchema(client), (error) => {
-          assert.ok(error instanceof Error);
-          const expected = `Required production schema is missing: ${scenario.missing} ${DATABASE_RECOVERY_GUIDANCE}`;
-          assert.equal(error.message, expected,
-            `${scenario.name} must fail its specific contract, not an unrelated query error`);
-          return true;
-        });
+        await assert.rejects(
+          () => verifyRequiredProductionSchema(client),
+          (error) => {
+            assert.ok(error instanceof Error);
+            const expected = `Required production schema is missing: ${scenario.missing} ${DATABASE_RECOVERY_GUIDANCE}`;
+            assert.equal(
+              error.message,
+              expected,
+              `${scenario.name} must fail its specific contract, not an unrelated query error`
+            );
+            return true;
+          }
+        );
       } finally {
         await client.query("ROLLBACK");
         transactionOpen = false;
@@ -230,25 +421,39 @@ async function main() {
       await verifyRequiredProductionSchema(client);
       results.push({ name: scenario.name, rejected: true, restoredAfterRollback: true });
     }
-    assert.deepEqual((await client.query(
-      "SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id"
-    )).rows, ledgerBefore, "Native damage proof must not alter migration history");
-    console.log(JSON.stringify({
-      passed: true,
-      database: identity.database,
-      nativeCases: results.length,
-      canonicalBeforeAndAfterEveryCase: true,
-      transactionsRolledBack: true,
-      migrationHistoryUnchanged: true,
-      journal,
-      sourceFingerprints: Object.fromEntries([
-        "scripts/check-required-production-schema.mjs",
-        "scripts/tests/recovery-schema.native.mjs",
-        "migrations/meta/_journal.json",
-        ...RECOVERY_TAGS.map((tag) => `migrations/${tag}.sql`),
-      ].map((filename) => [filename, sha256(fs.readFileSync(path.join(root, filename)))])),
-      results,
-    }, null, 2));
+    assert.deepEqual(
+      (
+        await client.query(
+          "SELECT id, hash, created_at FROM drizzle.__drizzle_migrations ORDER BY id"
+        )
+      ).rows,
+      ledgerBefore,
+      "Native damage proof must not alter migration history"
+    );
+    console.log(
+      JSON.stringify(
+        {
+          passed: true,
+          database: identity.database,
+          nativeCases: results.length,
+          canonicalBeforeAndAfterEveryCase: true,
+          transactionsRolledBack: true,
+          migrationHistoryUnchanged: true,
+          journal,
+          sourceFingerprints: Object.fromEntries(
+            [
+              "scripts/check-required-production-schema.mjs",
+              "scripts/tests/recovery-schema.native.mjs",
+              "migrations/meta/_journal.json",
+              ...RECOVERY_TAGS.map((tag) => `migrations/${tag}.sql`),
+            ].map((filename) => [filename, sha256(fs.readFileSync(path.join(root, filename)))])
+          ),
+          results,
+        },
+        null,
+        2
+      )
+    );
   } finally {
     if (transactionOpen) await client.query("ROLLBACK");
     await client.end();
@@ -256,6 +461,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("[recovery-schema.native] Failed:", error instanceof Error ? error.message : "Native verification failed");
+  console.error(
+    "[recovery-schema.native] Failed:",
+    error instanceof Error ? error.message : "Native verification failed"
+  );
   process.exitCode = 1;
 });
