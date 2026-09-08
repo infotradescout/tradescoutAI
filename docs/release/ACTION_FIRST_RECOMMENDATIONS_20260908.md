@@ -52,8 +52,8 @@ It fails closed if this publication protection is absent or replaced.
 
 - `npm run check` passed. The full production build passed before final gate execution.
 - Focused auth, continuation, composer, verification, public DTO and profile tests:
-  106 passed; the final conflict/account-switch regression adds another passing
-  case. The final composer/storage/signup subset passes 42 tests.
+  119 passed in the final focused run, including app-shell/navigation contracts.
+  The final composer/storage/signup subset passes 42 tests.
 - Native PostgreSQL repository/HTTP/projection/schema tests: 62 passed. The
   standalone PGlite backend lane: 35 passed. Bootstrap/schema-preservation checks:
   22 passed. These validate real writes, duplicate races, moderation, private
@@ -67,8 +67,10 @@ It fails closed if this publication protection is absent or replaced.
   returned counts to zero. No external email provider was configured.
 - Browser evidence and screenshots are under local `artifacts/action-first-*`
   and `artifacts/recommendation-*`. The initial Vite preview produced development
-  WebSocket warnings; production-built assets are checked separately at the final
-  checkpoint.
+  WebSocket warnings. Screenshot review also found the Start Guide obscuring
+  email confirmation; contextual recommendation paths now defer that guide without
+  marking it seen. Production-built asset checks exercise the confirmation and
+  return controls with fresh local storage at the final checkpoint.
 - Broad Vitest snapshot: 6,022 passed, 14 failed, 160 skipped. Eleven JW Stone
   failures reproduced unchanged at base `87d87de4` in a separate worktree
   (57 passed, 11 failed). Two load-sensitive failures passed isolated reruns.
