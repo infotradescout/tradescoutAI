@@ -41,6 +41,8 @@ describe("public contractor recommendations", () => {
       recommendation({ id: "pending", moderationStatus: "pending" }),
       recommendation({ id: "private", isPublic: false }),
       recommendation({ id: "rejected", moderationStatus: "rejected" }),
+      recommendation({ id: "legacy", recommendationType: "legacy_unclassified" }),
+      recommendation({ id: "unknown", recommendationType: "unrecognized" }),
     ]);
 
     expect(result).toHaveLength(1);

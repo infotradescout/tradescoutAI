@@ -18,6 +18,7 @@ const RECOVERY_TAGS = [
   "0133_professional_application_integrity",
   "0134_document_standalone_lineage_backfill",
   "0135_restore_contact_runtime_schema",
+  "0137_restore_recommendation_runtime_schema",
 ];
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const root = path.resolve(import.meta.dirname, "../..");

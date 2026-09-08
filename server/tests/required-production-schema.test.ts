@@ -15,6 +15,8 @@ import {
 } from "../../scripts/check-required-production-schema.mjs";
 
 const completeSchemaCheck = {
+  recommendationRuntimeContract: true,
+  recommendationRuntimeSchemaMigrationRecorded: true,
   contractorRecommendationColumns: true,
   notificationRuntimeColumns: true,
   userPrivacySettingsContract: true,
@@ -55,6 +57,14 @@ const completeSchemaCheck = {
 };
 
 describe("required production schema guard", () => {
+  it.each(["recommendationRuntimeContract", "recommendationRuntimeSchemaMigrationRecorded"])(
+    "rejects missing recommendation authority: %s",
+    (field) => {
+      expect(
+        evaluateRequiredProductionSchema({ ...completeSchemaCheck, [field]: false })
+      ).toHaveLength(1);
+    }
+  );
   it("accepts the committed migration hash across LF and CRLF checkouts", () => {
     expect(buildLineEndingCompatibleMigrationHashes("select 1;\n")).toEqual(
       buildLineEndingCompatibleMigrationHashes("select 1;\r\n")

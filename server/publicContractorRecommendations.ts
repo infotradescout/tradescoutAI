@@ -30,7 +30,12 @@ export function toPublicContractorRecommendations(
   if (!Array.isArray(rows)) return [];
 
   return rows
-    .filter((row) => row?.isPublic === true && row?.moderationStatus === "approved")
+    .filter(
+      (row) =>
+        row?.isPublic === true &&
+        row?.moderationStatus === "approved" &&
+        ["positive", "negative"].includes(row.recommendationType)
+    )
     .map((row) => ({
       id: row.id,
       contractorId: row.contractorId,
