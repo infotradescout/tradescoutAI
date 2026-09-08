@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import { createClientOperationId } from "@/lib/clientOperationId";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type History = {
   hasMore: boolean;
@@ -193,7 +194,10 @@ export function AdminDirectConnectOperations({
               </Button>
               {assign.isError && (
                 <p role="alert" className="text-red-300">
-                  {assign.error.message}
+                  {formatUserFacingErrorMessage(
+                    assign.error,
+                    "Unable to invite this provider. Please try again."
+                  )}
                 </p>
               )}
             </>
@@ -278,7 +282,10 @@ export function AdminDirectConnectOperations({
             </Button>
             {sendReply.isError && (
               <p role="alert" className="text-red-300">
-                {sendReply.error.message}
+                {formatUserFacingErrorMessage(
+                  sendReply.error,
+                  "Unable to save the staff reply. Please try again."
+                )}
               </p>
             )}
           </>

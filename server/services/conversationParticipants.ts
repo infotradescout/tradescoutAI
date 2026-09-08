@@ -82,3 +82,65 @@ export async function resolveConversationProviderUserId(
   `);
   return typeof result.rows[0]?.userId === "string" ? result.rows[0].userId : null;
 }
+
+/** Exact accepted-event ownership for one conversation; callers enforce viewer membership. */
+export async function loadAcceptedJobForConversation(params: {
+  threadId: string;
+  requesterUserId: string;
+  providerKey: string;
+}): Promise<Record<string, any> | null> {
+  const { threadId, requesterUserId, providerKey } = params;
+  const providerUserId = await resolveConversationProviderUserId(providerKey);
+  if (!providerUserId) return null;
+  const acceptedRows = await db.execute(sql`
+          SELECT
+            wr.id AS request_id,
+            wr.title,
+            wr.description,
+            wr.category,
+            COALESCE(dispatch.county, wr.county_fips) AS county,
+            dispatch.city_area,
+            wr.status AS request_status,
+            wr.created_at AS request_created_at,
+            a.id AS assignment_id,
+            a.status AS assignment_status,
+            a.response_summary
+          FROM work_requests wr
+          INNER JOIN work_request_assignments a ON a.work_request_id = wr.id
+          LEFT JOIN direct_connect_dispatch_requests dispatch
+            ON dispatch.id = wr.id AND dispatch.user_id = wr.created_by_user_id
+          INNER JOIN work_request_events acceptance
+            ON acceptance.work_request_id = wr.id
+            AND acceptance.type = 'provider_accepted'
+            AND acceptance.actor_user_id = ${providerUserId}
+            AND acceptance.created_at >= a.created_at
+            AND acceptance.metadata ->> 'conversationId' = ${threadId}
+            AND (NULLIF(acceptance.metadata ->> 'assignmentId', '') IS NULL
+              OR acceptance.metadata ->> 'assignmentId' = a.id)
+            AND (
+              (a.contractor_id IS NOT NULL AND acceptance.metadata ->> 'contractorId' = a.contractor_id)
+              OR (a.contractor_id IS NULL AND acceptance.metadata ->> 'responderUserId' = a.responder_user_id)
+            )
+          WHERE wr.created_by_user_id = ${requesterUserId}
+            AND wr.source = 'direct_connect'
+            AND a.status = 'accepted'
+            AND COALESCE(a.contractor_id, a.responder_user_id) = ${providerKey}
+            AND NOT EXISTS (
+              SELECT 1 FROM work_request_assignments other
+              WHERE other.work_request_id = wr.id AND other.status = 'accepted' AND other.id <> a.id
+            )
+            AND 1 = (
+              SELECT COUNT(*) FROM work_request_events proof
+              WHERE proof.work_request_id = wr.id AND proof.type = 'provider_accepted'
+                AND proof.created_at >= a.created_at
+                AND (NULLIF(proof.metadata ->> 'assignmentId', '') IS NULL
+                  OR proof.metadata ->> 'assignmentId' = a.id)
+                AND (
+                  (a.contractor_id IS NOT NULL AND proof.metadata ->> 'contractorId' = a.contractor_id)
+                  OR (a.contractor_id IS NULL AND proof.metadata ->> 'responderUserId' = a.responder_user_id)
+                )
+            )
+          LIMIT 2
+        `);
+  return acceptedRows.rows?.length === 1 ? acceptedRows.rows[0] : null;
+}
