@@ -83,6 +83,53 @@ export async function resolveConversationProviderUserId(
   return typeof result.rows[0]?.userId === "string" ? result.rows[0].userId : null;
 }
 
+/** Staff display only: names follow the same unambiguous profile/account ownership. */
+export async function resolveConversationProviderIdentity(providerKey: string): Promise<{
+  userId: string;
+  displayName: string | null;
+} | null> {
+  if (!providerKey.trim()) return null;
+  const result = await db.execute(sql`
+    SELECT account.id AS "userId",
+      COALESCE(NULLIF(TRIM(profile.company_name), ''),
+        NULLIF(TRIM(CONCAT_WS(' ', account.first_name, account.last_name)), '')) AS "displayName"
+    FROM users account
+    LEFT JOIN contractors profile ON profile.id = ${providerKey} AND profile.user_id = account.id
+    WHERE account.id = ${conversationProviderUserSql(sql`${providerKey}`)}
+  `);
+  const row = result.rows[0];
+  return typeof row?.userId === "string"
+    ? {
+        userId: row.userId,
+        displayName: typeof row.displayName === "string" ? row.displayName : null,
+      }
+    : null;
+}
+
+/** Presentation follows exact server-owned acceptance proof, never participant similarity. */
+export async function loadLegacyConversationContext(threadId: string, viewerUserId: string) {
+  const [conversation] = await db
+    .select({ homeownerId: conversations.homeownerId, contractorId: conversations.contractorId })
+    .from(conversations)
+    .where(
+      and(eq(conversations.id, threadId), conversationParticipantSql(conversations, viewerUserId))
+    )
+    .limit(1);
+  if (!conversation) return null;
+  const job = await loadAcceptedJobForConversation({
+    threadId,
+    requesterUserId: conversation.homeownerId,
+    providerKey: conversation.contractorId,
+  });
+  if (!job) return null;
+  return {
+    kind: "direct_connect" as const,
+    label: "Direct Connect",
+    title: String(job.title),
+    entityId: String(job.request_id),
+  };
+}
+
 /** Exact accepted-event ownership for one conversation; callers enforce viewer membership. */
 export async function loadAcceptedJobForConversation(params: {
   threadId: string;
@@ -125,6 +172,8 @@ export async function loadAcceptedJobForConversation(params: {
             AND wr.source = 'direct_connect'
             AND a.status = 'accepted'
             AND COALESCE(a.contractor_id, a.responder_user_id) = ${providerKey}
+            AND (a.contractor_id IS NULL OR a.responder_user_id IS NULL
+              OR a.responder_user_id = ${providerUserId})
             AND NOT EXISTS (
               SELECT 1 FROM work_request_assignments other
               WHERE other.work_request_id = wr.id AND other.status = 'accepted' AND other.id <> a.id

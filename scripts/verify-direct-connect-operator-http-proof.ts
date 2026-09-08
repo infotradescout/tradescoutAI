@@ -294,6 +294,32 @@ try {
   assert.equal(history.replyAssignmentId, fixture.assignmentId);
   assert.equal(history.messages.length, 1);
   assert.equal(history.messages[0].senderType, "staff");
+  const adminDetail = await call("operator", "GET", base, undefined, 200);
+  assert.equal(adminDetail.assignments[0].responderName, "Synthetic County Installer");
+  assert.equal(adminDetail.assignments[0].responderUserId, fixture.identities.provider.id);
+  for (const [responderUserId, expectedName] of [
+    [fixture.identities.unrelated.id, null],
+    [fixture.identities.provider.id, "Synthetic County Installer"],
+  ]) {
+    await client.query("UPDATE work_request_assignments SET responder_user_id=$2 WHERE id=$1", [
+      fixture.assignmentId,
+      responderUserId,
+    ]);
+    const dualIdentity = await call("operator", "GET", base, undefined, 200);
+    assert.equal(dualIdentity.assignments[0].responderName, expectedName);
+    await expectThreadContext(fixture.conversationId, expectedName ? requestId : null);
+    await call(
+      "provider",
+      "GET",
+      `/api/direct-connect/messages/threads/${fixture.conversationId}/job`,
+      undefined,
+      expectedName ? 200 : 404
+    );
+    if (expectedName === null) assert.equal(dualIdentity.assignments[0].responderUserId, null);
+  }
+  await client.query("UPDATE work_request_assignments SET responder_user_id=NULL WHERE id=$1", [
+    fixture.assignmentId,
+  ]);
   const providerMessages = await call(
     "provider",
     "GET",
@@ -333,6 +359,31 @@ try {
   assert.equal(job.requestId, requestId);
   assert.equal(job.request.county, "12001");
   assert.equal(job.assignment.id, fixture.assignmentId);
+  const threadList = await call(
+    "provider",
+    "GET",
+    "/api/messages/threads?limit=50&offset=0",
+    undefined,
+    200
+  );
+  assert.equal(
+    threadList.threads.find((thread: any) => thread.id === fixture.conversationId)?.context
+      .entityId,
+    requestId
+  );
+  async function expectThreadContext(threadId: string, requestId: string | null) {
+    const detail = await call(
+      "provider",
+      "GET",
+      `/api/messages/threads/${threadId}`,
+      undefined,
+      200
+    );
+    assert.equal(detail.thread.context.kind, requestId ? "direct_connect" : "general");
+    assert.equal(detail.thread.context.entityId ?? null, requestId);
+  }
+  await expectThreadContext(fixture.conversationId, requestId);
+  await call("unrelated", "GET", `/api/messages/threads/${fixture.conversationId}`, undefined, 403);
   await call(
     "unrelated",
     "GET",
@@ -360,6 +411,7 @@ try {
     "INSERT INTO work_requests (id, created_by_user_id, title, description, source, status, county_fips) VALUES ($1,$2,'Second synthetic request','Separate scope for exact thread proof','direct_connect','in_progress','12001')",
     [secondRequest, fixture.identities.requester.id]
   );
+  await expectThreadContext(secondThread, null);
   await client.query(
     "INSERT INTO work_request_assignments (id, work_request_id, contractor_id, status, created_at) VALUES ($1,$2,$3,'accepted',NOW() - INTERVAL '1 minute')",
     [secondAssignment, secondRequest, fixture.providerId]
@@ -425,6 +477,7 @@ try {
     secondAssignment
   );
   const duplicateEvent = randomUUID();
+  await expectThreadContext(secondThread, secondRequest);
   await client.query(
     "INSERT INTO work_request_events (id, work_request_id, type, actor_user_id, metadata) SELECT $2,work_request_id,type,actor_user_id,metadata FROM work_request_events WHERE id=$1",
     [secondEvent, duplicateEvent]
@@ -436,6 +489,7 @@ try {
     undefined,
     404
   );
+  await expectThreadContext(secondThread, null);
   await client.query("DELETE FROM work_request_events WHERE id=$1", [duplicateEvent]);
   await client.query(
     "UPDATE work_request_events SET metadata = metadata || $2::jsonb WHERE id=$1",
@@ -448,6 +502,7 @@ try {
     undefined,
     404
   );
+  await expectThreadContext(fixture.conversationId, null);
   await client.query("UPDATE work_request_events SET metadata=$2::jsonb WHERE id=$1", [
     secondEvent,
     JSON.stringify(secondMetadata),

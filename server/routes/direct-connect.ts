@@ -86,7 +86,11 @@ import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
 import { registerDirectConnectAdminOperations } from "./direct-connect/admin-operations";
-import { canAccessConversation, loadAcceptedJobForConversation } from "../services/conversationParticipants";
+import {
+  canAccessConversation,
+  loadAcceptedJobForConversation,
+  resolveConversationProviderIdentity,
+} from "../services/conversationParticipants";
 import {
   adminDirectConnectRequestSchema,
   type AdminDirectConnectCategory,
@@ -7429,20 +7433,15 @@ export function registerDirectConnectRoutes(app: Express) {
           .where(eq(workRequestAssignments.workRequestId, requestId))
           .orderBy(asc(workRequestAssignments.createdAt));
 
-        const responderUserIds: string[] = Array.from(
-          new Set(
-            (assignments as any[])
-              .map((a) => (a.responderUserId ? String(a.responderUserId) : null))
-              .filter((id): id is string => Boolean(id))
-          )
-        );
-        const responders = responderUserIds.length
-          ? await Promise.all(responderUserIds.map((id: string) => storage.getUser(id)))
-          : [];
-        const responderById = new Map(
-          responders
-            .filter((u): u is NonNullable<typeof u> => Boolean(u))
-            .map((u) => [String(u.id), u])
+        const providerKeys = [
+          ...new Set<string>(assignments
+            .flatMap((a) => [a.contractorId, a.responderUserId])
+            .filter((id: unknown): id is string => typeof id === "string" && Boolean(id))),
+        ];
+        const responderByKey = new Map(
+          await Promise.all(providerKeys.map(async (key) =>
+            [key, await resolveConversationProviderIdentity(key)] as const
+          ))
         );
 
         const events = await db
@@ -7506,16 +7505,15 @@ export function registerDirectConnectRoutes(app: Express) {
             : null,
           originatingProfile,
           assignments: assignments.map((a) => {
-            const responder = a.responderUserId
-              ? responderById.get(String(a.responderUserId))
-              : null;
+            const provider = responderByKey.get(a.contractorId || a.responderUserId || "");
+            const conflictingIdentity = a.contractorId && a.responderUserId &&
+              provider?.userId !== responderByKey.get(a.responderUserId)?.userId;
+            const responder = conflictingIdentity ? null : provider;
             return {
               id: a.id,
               status: a.status,
-              responderUserId: a.responderUserId,
-              responderName: responder
-                ? [responder.firstName, responder.lastName].filter(Boolean).join(" ") || null
-                : null,
+              responderUserId: responder?.userId || null,
+              responderName: responder?.displayName || null,
               createdAt: a.createdAt,
             };
           }),
