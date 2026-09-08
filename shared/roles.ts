@@ -153,7 +153,8 @@ export interface RolePermissions {
   canManageAdmins: boolean;
 }
 
-// Role hierarchy levels (higher number = more authority)
+// Administrative ordering for role-assignment and display workflows only.
+// Unrelated product, provider, community and staff scopes do not inherit access.
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   // Customer & business roles (0-9)
   homeowner: 0,
@@ -802,6 +803,14 @@ export function getRoleHierarchyLevel(role: UserRole): number {
 
 export function getRolePermissions(role: UserRole): RolePermissions {
   return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.homeowner;
+}
+
+/** Every route boundary must explicitly name the roles that may enter it. */
+export function hasExplicitRoleGrant(
+  userRole: UserRole,
+  allowedRoles: readonly UserRole[]
+): boolean {
+  return allowedRoles.includes(userRole);
 }
 
 export function canUserPerformAction(

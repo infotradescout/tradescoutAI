@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getDirectConnectContextLabel,
   getDirectConnectIntent,
+  parseDirectConnectHomeIdHandoffContext,
   parseDirectConnectEntryContext,
 } from "./directConnectEntryContext";
 
@@ -57,6 +58,27 @@ describe("directConnectEntryContext", () => {
     expect(
       parseDirectConnectEntryContext("/direct-connect?source=home_action_surface&category=plumbing")
     ).toMatchObject({ source: "home_action_surface", tradeId: "plumbing" });
+  });
+
+  it("preserves a validated HomeID packet handoff without accepting arbitrary values", () => {
+    expect(
+      parseDirectConnectHomeIdHandoffContext(
+        "/direct-connect?homeId=home-7&homePacketId=packet_9&homeContextIntent=update_from_request"
+      )
+    ).toEqual({
+      homeId: "home-7",
+      homePacketId: "packet_9",
+      homeContextIntent: "update_from_request",
+    });
+    expect(
+      parseDirectConnectHomeIdHandoffContext(
+        "/direct-connect?homeId=%3Cscript%3E&homePacketId=packet%2F9&homeContextIntent=unexpected"
+      )
+    ).toEqual({
+      homeId: undefined,
+      homePacketId: undefined,
+      homeContextIntent: undefined,
+    });
   });
 
   it("preserves community, deal, profile, client, and shared-request references", () => {

@@ -1170,12 +1170,27 @@ export async function persistFinalizedDispatchRequest(args: {
 }
 
 function isMissingDispatchRequestParent(error: unknown): boolean {
-  const err = error as { code?: string; constraint?: string; detail?: string } | null;
-  return (
-    String(err?.code || "") === "23503" &&
-    String(err?.constraint || "").includes("direct_connect_dispatch") &&
-    String(err?.detail || "").includes("direct_connect_dispatch_requests")
-  );
+  // Legacy work requests can route without a finalized dispatch ledger. Drizzle
+  // wraps native PostgreSQL failures in `cause`; only that missing parent is optional.
+  const seen = new Set<object>();
+  let current = error;
+  for (let depth = 0; depth < 8 && current && typeof current === "object"; depth += 1) {
+    if (seen.has(current)) break;
+    seen.add(current);
+    const err = current as { code?: string; constraint?: string; detail?: string; cause?: unknown };
+    if (
+      err.code === "23503" &&
+      (err.constraint === "direct_connect_dispatch_candidates_request_id_fkey" ||
+        err.constraint === "direct_connect_dispatch_events_request_id_fkey") &&
+      String(err.detail || "").includes(
+        'is not present in table "direct_connect_dispatch_requests"'
+      )
+    ) {
+      return true;
+    }
+    current = err.cause;
+  }
+  return false;
 }
 
 export async function appendDispatchEvent(args: {

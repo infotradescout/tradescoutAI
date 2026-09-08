@@ -9,9 +9,13 @@ const read = (relativePath: string) =>
 function providerCandidate(overrides: Record<string, unknown> = {}) {
   return {
     profileId: "profile-1",
+    profilePubliclyReleased: true,
     businessId: null,
     profileSlug: "provider-one",
     profileStatus: "published",
+    profileRoleContext: "realtor",
+    profileHeadline: "Local real estate professional",
+    profileContentBlocks: [],
     profileOwnerUserId: "owner-1",
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "pending",
@@ -22,6 +26,7 @@ function providerCandidate(overrides: Record<string, unknown> = {}) {
     publicDiscoveryEnabled: null,
     businessSources: null,
     businessClaimStatus: null,
+    professionalRoleApproved: true,
     ...overrides,
   };
 }
@@ -38,7 +43,7 @@ describe("public map entity trust boundary", () => {
       canExposeProviderProfileOnPublicMap(
         providerCandidate({
           ownerVerificationStatus: "approved",
-          ownerPreferences: { publicProfileIds: ["different-profile"] },
+          profilePubliclyReleased: false,
         })
       )
     ).toBe(false);

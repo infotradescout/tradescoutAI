@@ -7,6 +7,9 @@ const ISOLATED_VIEWPORT_OWNERS = new Set([
   "client/src/pages/ProfileSiteView.tsx",
   "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
   "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
+  "client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx",
+  "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
+  "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
   "client/src/pages/trade-up-for-trade-schools.tsx",
 ]);
 

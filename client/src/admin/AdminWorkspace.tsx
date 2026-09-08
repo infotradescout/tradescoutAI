@@ -1,16 +1,9 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export function AdminWorkspace({
-  children,
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+export function AdminWorkspace({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={cn("mx-auto w-full max-w-[1680px] space-y-6", className)}
-      {...props}
-    >
+    <div className={cn("mx-auto w-full max-w-[1680px] space-y-6", className)} {...props}>
       {children}
     </div>
   );
@@ -24,7 +17,7 @@ export function AdminWorkspaceSubnav({
   return (
     <div
       className={cn(
-        "sticky top-[4.5rem] z-20 -mx-4 border-b border-white/10 bg-[#090a0b]/95 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8",
+        "sticky top-[4.5rem] z-20 -mx-4 border-b border-white/10 bg-tsBg/95 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8",
         className
       )}
       {...props}
@@ -112,11 +105,7 @@ export function AdminSummaryStrip({
   );
 }
 
-export function AdminToolbar({
-  children,
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+export function AdminToolbar({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
@@ -130,16 +119,9 @@ export function AdminToolbar({
   );
 }
 
-export function AdminList({
-  children,
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
+export function AdminList({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={cn("divide-y divide-white/10 border-y border-white/10", className)}
-      {...props}
-    >
+    <div className={cn("divide-y divide-white/10 border-y border-white/10", className)} {...props}>
       {children}
     </div>
   );

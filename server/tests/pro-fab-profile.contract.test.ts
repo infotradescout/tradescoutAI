@@ -28,7 +28,9 @@ describe("Pro Fab Specialty Services public profile contract", () => {
     expect(existingOwnerUpdate).not.toContain("verifiedBadge:");
     expect(provisioning).toContain("publicDiscoveryEnabled: false");
     expect(provisioning).toContain('status: "active"');
-    expect(provisioning).toContain('status: "published"');
+    expect(provisioning).toContain(
+      "profileReleaseSeedFields({ existingProfile, releaseNewProfile: true })"
+    );
     expect(provisioning).toContain('profileVisibility: "public"');
     expect(provisioning).toContain('claimStatus: existingBusiness?.claimStatus || "unclaimed"');
     expect(provisioning).toContain(
@@ -92,9 +94,7 @@ describe("Pro Fab Specialty Services public profile contract", () => {
       'ADMIN_MANAGED_PROFILE_SOURCE = "admin_provisioned_business_profile"'
     );
     expect(authorityRegistry).toContain("[PRO_FAB_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE");
-    expect(authorityService).toContain(
-      '} from "@shared/publicProfileExposureRegistry";'
-    );
+    expect(authorityService).toContain('} from "@shared/publicProfileExposureRegistry";');
     expect(authorityService).toContain("PRO_FAB_PROFILE_SLUG,");
     expect(authorityService).toContain("ADMIN_MANAGED_PROFILE_SOURCE,");
     expect(provisioning).toContain(
@@ -123,7 +123,7 @@ describe("Pro Fab Specialty Services public profile contract", () => {
       generalDirectConnectEnd
     );
 
-    expect(profileView).not.toContain('import ProFabProfileTheme from');
+    expect(profileView).not.toContain("import ProFabProfileTheme from");
     expect(profileView).toMatch(
       /const ProFabProfileTheme = lazy\(\(\) => import\("@\/pages\/profile-sites\/ProFabProfileTheme"\)\)/
     );

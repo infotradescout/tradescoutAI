@@ -4,11 +4,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import impersonationRouter from "../routes/admin/impersonation";
 import { clearAdminAuditLog, getAdminAuditLog } from "../services/adminAuditLogService";
 
-function createImpersonationTestApp(user: Record<string, unknown>) {
+function createImpersonationTestApp(user: Record<string, unknown> | null) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
     (req as any).user = user;
+    // Production Passport supplies this method before the canonical guard.
+    (req as any).isAuthenticated = () => Boolean((req as any).user);
     next();
   });
   app.use("/api/admin/impersonation", impersonationRouter);
@@ -80,6 +82,19 @@ describe("Phase 2C token impersonation router", () => {
       .send({ reason: "Trying to start impersonation without authority." });
 
     expect(response.status).toBe(403);
-    expect(String(response.body?.error || "")).toContain("Super admin privileges required");
+    expect(response.body).toEqual({ message: "Insufficient permissions" });
+    expect(await getAdminAuditLog(10)).toEqual([]);
   });
+
+  it.each([null, { id: "generic-admin", role: "homeowner", isAdmin: true }])(
+    "rejects an unauthenticated or generic-admin actor before issuing a token",
+    async (user) => {
+      const response = await request(createImpersonationTestApp(user))
+        .post("/api/admin/impersonation/start/user-456")
+        .send({ reason: "Synthetic denied request." });
+      expect(response.status).toBe(user ? 403 : 401);
+      expect(response.body?.token).toBeUndefined();
+      expect(await getAdminAuditLog(10)).toEqual([]);
+    }
+  );
 });

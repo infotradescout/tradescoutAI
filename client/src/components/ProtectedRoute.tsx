@@ -29,9 +29,18 @@ function isAdminLikeUser(user: any): boolean {
   const roles: string[] = Array.isArray(user.roles)
     ? user.roles.filter((r: unknown): r is string => typeof r === "string")
     : [];
-  return roles.some(
-    (r) => isAdminTier(r) || isSuperAdminRoleLike(r) || String(r).includes("admin")
-  );
+  return roles.some((r) => isAdminTier(r) || isSuperAdminRoleLike(r));
+}
+
+function hasRequiredRole(user: any, requiredRoles: string[]): boolean {
+  if (!user || requiredRoles.length === 0) return false;
+
+  const assignedRoles = [
+    typeof user.role === "string" ? user.role : undefined,
+    ...(Array.isArray(user.roles) ? user.roles : []),
+  ].filter((role): role is string => typeof role === "string" && role.trim().length > 0);
+
+  return requiredRoles.some((requiredRole) => assignedRoles.includes(requiredRole));
 }
 
 /**
@@ -69,7 +78,7 @@ export function ProtectedRoute({
     // Backwards-compatible role check for non-admin features;
     // also let admins bypass string role checks.
     if (isAdmin) return true;
-    return requiredRoles.includes(user.role);
+    return hasRequiredRole(user, requiredRoles);
   }, [user, isAuthenticated, requiredRoles, adminOnly]);
 
   // Handle redirects in useEffect to avoid setState during render
@@ -155,7 +164,7 @@ export function useCanAccess(requiredRoles: string[] = []) {
 
     // Admins can access anything guarded by string roles
     if (isAdmin) return true;
-    return requiredRoles.includes(user.role);
+    return hasRequiredRole(user, requiredRoles);
   }, [user, isAuthenticated, requiredRoles]);
 
   return {

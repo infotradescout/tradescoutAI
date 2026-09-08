@@ -24,8 +24,8 @@ describe("ISSA Build verified public renderer", () => {
     expect(renderer).toContain("Custom onyx installation");
     expect(renderer).toContain("Residential and commercial projects");
     expect(renderer).toContain("Project fulfillment");
-    expect(renderer).toContain("TradeScout manages every inquiry. ISSA Build handles the work.");
-    expect(renderer).toContain("Start a Request");
+    expect(renderer).toContain("onProjectRequest={() => setRequestOpen(true)}");
+    expect(renderer).toContain("profileSlug={props.profileSlug}");
     expect(renderer).toContain("<ExpressDirectConnectPanel");
     expect(renderer).toContain('initialView="request"');
     expect(renderer).toContain('initialRequestType="request_quote"');

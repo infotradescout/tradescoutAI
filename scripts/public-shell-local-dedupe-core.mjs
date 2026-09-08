@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 
 const SAFE_PATH = /^\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/;
 const BLOB_SHA = /^[a-f0-9]{40}$/;
-const DYNAMIC_LANDING_MEDIA = /\/landing\/\$\{[^}\r\n]+\}[^`'"\r\n]*\.(?:jpg|png|svg|webp)(?:[?#][^`'"\r\n]*)?/i;
+const SOURCE_TEXT_PATH = /\.(?:css|html|js|json|svg|txt|webmanifest|xml)$/i;
+const DYNAMIC_LANDING_MEDIA =
+  /\/landing\/\$\{[^}\r\n]+\}[^`'"\r\n]*\.(?:jpg|png|svg|webp)(?:[?#][^`'"\r\n]*)?/i;
 
 export function assertNoUnreviewedDynamicLandingMedia(sourceByPath, reviewedAllowlist = []) {
   const allowed = new Set(reviewedAllowlist);
@@ -29,6 +33,41 @@ export function shellDedupeDigest(entries) {
 export function gitBlobSha(buffer) {
   const bytes = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
   return createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
+}
+
+export function publicShellSourceStats(directory) {
+  let files = 0;
+  let bytes = 0;
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      const nested = publicShellSourceStats(absolute);
+      files += nested.files;
+      bytes += nested.bytes;
+    } else if (entry.isFile()) {
+      const content = fs.readFileSync(absolute);
+      files += 1;
+      bytes += content.length;
+      if (SOURCE_TEXT_PATH.test(entry.name)) {
+        // Match Git's LF source representation on Windows without changing the
+        // public file, its UTF-8 bytes, BOM, final newline, or any media identity.
+        new TextDecoder("utf-8", { fatal: true }).decode(content);
+        if (content.includes(0)) throw new Error(`Invalid public shell source text: ${absolute}`);
+        for (let index = 0; index + 1 < content.length; index++) {
+          if (content[index] === 13 && content[index + 1] === 10) bytes -= 1;
+        }
+      }
+    }
+  }
+  return { files, bytes };
+}
+
+export function assertPublicShellSourceTotals(actual, expected) {
+  if (actual.files !== expected.clientPublicFiles || actual.bytes !== expected.clientPublicBytes) {
+    throw new Error(
+      `Release B client/public totals changed without review: expected ${expected.clientPublicFiles} files and ${expected.clientPublicBytes} canonical source bytes; found ${actual.files} files and ${actual.bytes} canonical source bytes`
+    );
+  }
 }
 
 export function validatePublicShellDedupeManifest(manifest) {

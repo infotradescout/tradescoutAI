@@ -6,9 +6,9 @@ const source = readFileSync(preCommitPath, "utf8");
 
 const requiredSnippets = [
   "git diff --cached --name-only -z --diff-filter=ACMR",
-  "xargs -0 npx eslint --fix --",
-  "xargs -0 npx prettier --write --",
-  "xargs -0 git add --",
+  "xargs -0 -n 20 -s 6000 npx eslint --fix --",
+  "xargs -0 -n 20 -s 6000 npx prettier --write --",
+  "xargs -0 -n 20 -s 6000 git add --",
 ];
 
 const forbiddenSnippets = [

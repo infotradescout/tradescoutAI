@@ -12,7 +12,7 @@ import express from "express";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
-import { createHash, randomUUID } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
 import { generateGeminiTextWithFallback } from "./ai/geminiFallback";
 import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
 import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
@@ -34,10 +34,13 @@ import { registerQuoteCalculatorRoutes } from "./routes/quote-calculator";
 import { registerEventRoutes } from "./routes/events";
 import { registerPublicHeatmapRoutes } from "./routes/public-heatmap";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
+import { registerAdminUserControlRoutes } from "./routes/admin-user-controls";
+import { routeLeadToTopContractors } from "./services/leadRoutingService";
 import { registerProviderSearchRoutes } from "./routes/provider-search";
 import { registerProcurementRoutes } from "./routes/procurement";
 import { registerEmploymentRoutes } from "./routes/employment";
 import { registerIdentityVerificationRoutes } from "./routes/identity-verification";
+import { registerAddressVerificationRoutes } from "./routes/address-verification";
 import { registerObjectivesRoutes } from "./routes/objectives";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerBusinessContactRoutes } from "./routes/business-contact";
@@ -99,6 +102,7 @@ import {
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
+import { PROFILE_CATALOG_EXCHANGE_CATEGORY } from "../shared/profileCatalogExchange";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
 import {
   buildHomeScoutInspectionRequestDecisionScope,
@@ -107,6 +111,10 @@ import {
   normalizeHomeScoutListingId,
 } from "../shared/homeScoutListingShare";
 import { toPublicExchangeListing } from "./publicExchangeListing";
+import {
+  getPublicProfileCatalogExchangeItem,
+  listPublicProfileCatalogExchangeItems,
+} from "./profileCatalogExchange";
 import {
   toPublicHandmadeProduct,
   toPublicHandmadeProductReview,
@@ -124,6 +132,7 @@ import { resolveUserCountyWriteContext } from "./locationContext";
 import {
   resolveRequestAuthorityContext,
   resolveRequestEffectiveUser,
+  type RequestAuthorityContext,
 } from "./utils/requestEffectiveUser";
 import {
   getHomeScoutAuthorityUserId,
@@ -157,13 +166,15 @@ import {
 } from "./utils/privilegedVerification";
 import {
   collectAuthorityRoles,
-  getPrivilegedAliasEmails,
   isAdminTierRole,
   isDirectConnectUnverifiedBypassEnabled,
+  isPrivilegedOrAdminRoleToken,
+  isReservedSignupIdentityEmail,
   normalizeAuthorityRole,
   resolvePrivilegedVerificationBypass,
 } from "./utils/authorityPolicy";
 import { getAuthorityPhaseGateState } from "./utils/authorityPhaseGates";
+import { withAdvisoryLock } from "./utils/advisoryLocks";
 import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
 import {
   getComputedProviderEligibilitiesForUser,
@@ -177,6 +188,31 @@ import { passwordResetService } from "./services/passwordResetService";
 import { getRelatedBusinessSuggestions } from "./services/relatedBusinessSuggestions";
 import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
+import {
+  type CanonicalApprovedProfessionalRole,
+  PROFESSIONAL_APPROVAL_REQUIRED_RESPONSE,
+  PROFESSIONAL_APPROVAL_REQUIRED_ROLES,
+  PROFESSIONAL_VERIFICATION_DECISION_REQUIRED_RESPONSE,
+  approvedProfessionalRolesFromProfiles,
+  canonicalizeProfessionalRole,
+  reconcileUserRolePatchWithApprovedProfessionalRoles,
+  requestedProfessionalRole,
+  resolvePersistedClientAuthority,
+  updateUserPreservingApprovedProfessionalRoles,
+} from "./services/professionalRoleAuthority";
+import { parseAdminRoleMutationRequest } from "./services/adminRoleMutationPolicy";
+import {
+  evaluateImportedDirectoryArchiveAuthority,
+  evaluateImportedDirectoryArchiveVerificationState,
+  evaluateImportedDirectoryBusinessCardinality,
+} from "./services/importedDirectoryArchivePolicy";
+import {
+  evaluateAdminBusinessImportRequest,
+  evaluateAdminBusinessImportTarget,
+  resolvePostCommitClaimWriteWarning,
+} from "./services/adminBusinessOwnerImportPolicy";
+import { createImportedOwnerProjectionAtomically } from "./services/adminBusinessOwnerImportProjection";
+import { mutateExactProfileVisibilityAtomically } from "./services/profileVisibilityMutation";
 import {
   adminBusinessVerificationDecisionSchema,
   buildVerificationFieldReviewState,
@@ -213,6 +249,7 @@ import {
   normalizeImmutableTargetId,
   normalizePrivilegedReason,
   resolvePrivilegedActor,
+  runBestEffortPrivilegedSummaryAudit,
   suppliedEmailMatchesTarget,
 } from "./utils/privilegedActions";
 import { createServer } from "http";
@@ -233,6 +270,8 @@ import { buildMarketplaceConversationPresentation } from "./utils/conversationCo
 import {
   users,
   userRoleEnum,
+  realtorProfiles,
+  carSalesmanProfiles,
   businesses,
   affiliateAccounts,
   affiliateReferrals,
@@ -260,7 +299,6 @@ import {
   workRequests,
   workRequestEvents,
   workRequestAssignments,
-  addressVerifications,
   listingImportStaging,
   insertLeadSchema,
   insertMarketplaceCategorySchema,
@@ -268,7 +306,6 @@ import {
   insertMarketplaceReportSchema,
   insertVendorVerificationSchema,
   insertBuyerVerificationSchema,
-  insertAddressVerificationSchema,
   insertModerationReportSchema,
   insertModerationVoteSchema,
   insertModerationAppealSchema,
@@ -466,6 +503,8 @@ import { storage } from "./storage";
 import {
   applyRequestSessionCookieScope,
   setupAuth,
+  getAuthProviderAvailability,
+  configuredOAuthCallbackUrl,
   bindAuthenticatedRequestAuthority,
   isAuthenticated,
   isAdmin,
@@ -477,14 +516,14 @@ import {
   isContractor,
   isCommunityModerator,
   requireOnboardingComplete,
+  requireAdmin,
 } from "./auth";
 import { writeClaimEvent } from "./services/claimEventService.js";
 import type { WriteClaimEventRequest } from "./services/claimEventSchema.js";
 import { callAIInference } from "./services/aiInference.js";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
-import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
-import type { VerifyCallback } from "passport-google-oauth20";
+import { oauthPostLoginPath, safeOAuthReturnPath } from "./utils/oauthIdentityPolicy";
 import { db, pool } from "./db";
 import type { Request, Response, NextFunction } from "express";
 import {
@@ -883,6 +922,7 @@ import {
 import { registerPaymentWebhookRoutes } from "./paymentWebhookRoutes";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
+  requestAuthorityContext?: RequestAuthorityContext;
   user?: {
     id?: string;
     claims?: { sub?: string; [key: string]: any };
@@ -1214,7 +1254,11 @@ const sanitizeNextPath = (value: unknown): string => {
   return raw;
 };
 
-const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promise<void> => {
+const maybeSendEmailVerificationForUser = async (
+  req: Request,
+  user: any,
+  continuationPath: string
+): Promise<void> => {
   try {
     const emailVerificationRequired = await getGeneralSetting<boolean>(
       "email_verification_required",
@@ -1242,7 +1286,7 @@ const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promi
 
     const { token, expiresAt } = await emailVerificationService.createToken(userId);
     const verifyBase = getPublicBaseUrlFromRequest(req);
-    const next = sanitizeNextPath((req.session as any)?.oauthNext) || "/pre-scout-setup";
+    const next = safeOAuthReturnPath(continuationPath) || "/pre-scout-setup";
     const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
     await emailService.sendEmail({
@@ -1256,194 +1300,6 @@ const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promi
     console.error("[email-verification] Maybe-send failed:", error);
   }
 };
-// Helper function to route leads to top contractors
-interface Contractor {
-  id: string;
-  companyName: string;
-  isActive: boolean | null;
-  yearsInBusiness: number | null;
-  licenseNumber: string | null;
-  website: string | null;
-  phone: string | null;
-  description?: string;
-  [key: string]: any;
-}
-
-interface ScoredContractor extends Contractor {
-  matchScore: number;
-}
-async function routeLeadToTopContractors(lead: any, leadData: any) {
-  try {
-    const { countyId, tradeId } = lead;
-    const { county, trade, city, state, maxAssignees } = leadData;
-    // Fetch active contractors that match the lead's geography and trade
-    const contractors: Contractor[] = await storage.getContractors({
-      countyId,
-      tradeIds: tradeId ? [tradeId] : undefined,
-      sortBy: "verified",
-      limit: 50,
-    });
-    // ...rest of the function remains unchanged...
-
-    // Extract simple keywords from the lead description to improve matching
-    const leadDescription: string =
-      typeof (leadData as any)?.description === "string"
-        ? (leadData as any).description
-        : typeof (lead as any)?.description === "string"
-          ? (lead as any).description
-          : "";
-
-    const leadKeywords = new Set<string>(
-      leadDescription
-        .toLowerCase()
-        .split(/[^a-z0-9]+/)
-        .filter((w: string) => w.length >= 3)
-    );
-
-    // Load profile preferences (including servicesDescription) for all contractor owners
-    const contractorUserIds = contractors
-      .map((c: any) => c.userId)
-      .filter((id: any): id is string => typeof id === "string" && id.length > 0);
-
-    const contractorUsers = await storage.getUsersByIds(contractorUserIds);
-    const userById = new Map<string, any>();
-    for (const u of contractorUsers) {
-      userById.set(u.id, u);
-    }
-
-    // Enhanced matching logic: Score contractors based on available fields
-    const maxRecipients =
-      typeof maxAssignees === "number" && maxAssignees > 0 ? Math.min(maxAssignees, 25) : 3;
-
-    const scoredContractors = contractors
-      .filter((contractor: Contractor) => !!contractor.isActive) // Only active contractors
-      .map((contractor: Contractor): ScoredContractor => {
-        let score = 0;
-        // Business experience score (base weight) - more years = higher score
-        const yearsExp = contractor.yearsInBusiness || 1;
-        score += Math.min(50, yearsExp * 2.5); // Cap at 50 points
-
-        // Profile completeness score - more complete = better
-        let completeness = 0;
-        if (contractor.licenseNumber) completeness += 10;
-        if (contractor.website) completeness += 10;
-        if (contractor.phone) completeness += 10;
-        const owner = contractor.userId ? userById.get(contractor.userId) : undefined;
-        const profileServices: string =
-          typeof owner?.preferences?.servicesDescription === "string"
-            ? owner.preferences.servicesDescription
-            : "";
-
-        const aboutText =
-          (contractor as any).about ||
-          (contractor as any).description ||
-          (typeof profileServices === "string" ? profileServices : "") ||
-          "";
-        if (aboutText) completeness += 10;
-
-        // Content match score: boost contractors whose "about" text
-        // contains overlapping keywords with the lead description.
-        let keywordScore = 0;
-        if (leadKeywords.size && aboutText) {
-          const aboutTokens = Array.from(
-            new Set<string>(
-              aboutText
-                .toLowerCase()
-                .split(/[^a-z0-9]+/)
-                .filter((w: string) => w.length >= 3)
-            )
-          );
-
-          let matches = 0;
-          for (const token of aboutTokens) {
-            if (leadKeywords.has(token)) {
-              matches += 1;
-            }
-          }
-
-          // Cap content-match contribution so experience still dominates
-          keywordScore = Math.min(20, matches * 4);
-        }
-
-        // Recommendation signal: net score and volume
-        let recScore = 0;
-        const pos = Number((contractor as any).positiveRecommendations || 0);
-        const neg = Number((contractor as any).negativeRecommendations || 0);
-        const total = Number((contractor as any).totalRecommendations || 0);
-
-        const net = pos - neg;
-        if (net > 0) {
-          recScore += Math.min(20, net * 2); // reward strong net positive
-        }
-        if (total > 0) {
-          recScore += Math.min(10, Math.log10(total + 1) * 5); // small bump for volume
-        }
-
-        score += completeness + keywordScore + recScore;
-        return { ...contractor, matchScore: score };
-      })
-      .sort((a: any, b: any) => b.matchScore - a.matchScore) // Sort by match score
-      .slice(0, maxRecipients); // Take top N (default 3)
-
-    if (!scoredContractors || scoredContractors.length === 0) {
-      console.warn(
-        `No qualified contractors found for lead ${lead.id} in county ${county} for trade ${trade}.`
-      );
-      return;
-    }
-
-    const contractorIds = scoredContractors.map((c: ScoredContractor) => c.id);
-    await storage.assignLeadToContractors(lead.id, contractorIds);
-
-    // Log enhanced matching details
-    console.log(
-      `Enhanced matching for lead ${lead.id}: Selected ${scoredContractors.length} contractors with scores:`,
-      scoredContractors.map((c: ScoredContractor) => ({
-        name: c.companyName,
-        score: c.matchScore?.toFixed(1),
-      }))
-    );
-
-    await Promise.all(
-      scoredContractors.map(async (contractor: ScoredContractor) => {
-        try {
-          console.log(
-            `Notifying contractor ${contractor.companyName} (ID: ${contractor.id}) about new lead ${lead.id}`
-          );
-
-          const recipientUserId = contractor.userId;
-          if (recipientUserId) {
-            await notificationService.createNotification({
-              userId: recipientUserId,
-              type: "new_project_request",
-              title: "New Direct Connect request",
-              message: `You have a new Direct Connect request: ${lead.title} in ${city}, ${state}.`,
-              actionUrl: `/pro-dashboard/leads/${lead.id}`,
-              actionText: "View lead",
-              iconName: "briefcase",
-              iconColor: "orange",
-              deliveryMethods: ["in_app", "push"],
-            });
-          }
-          // Log the assignment event with match score
-          await storage.logEvent("lead_assigned", {
-            leadId: lead.id,
-            contractorId: contractor.id,
-            assignmentType: "enhanced_matching",
-            matchScore: contractor.matchScore,
-          });
-        } catch (notificationError) {
-          console.error(
-            `Failed to notify contractor ${contractor.id} for lead ${lead.id}:`,
-            notificationError
-          );
-        }
-      })
-    );
-  } catch (error: any) {
-    console.error(`Error routing lead ${lead.id} to top contractors:`, error);
-  }
-}
 
 const DEFAULT_FIRST_INTRO_APPENDIX =
   'TradeScout is a community operating system that keeps projects and dollars local. Homeowners and contractors can connect, message, and run the full job flow—quotes, scheduling, invoices, and payments (including off-site work). Beyond jobs, TradeScout includes a local marketplace, community feed and groups, and real neighborhood tools so communities can manage vendors, requests, budgets, and decisions with total transparency. Community Builders and the foundation layer add public accountability and local reinvestment—so TradeScout isn’t just "find a pro," it’s how a town organizes and improves itself.';
@@ -1455,7 +1311,11 @@ export async function registerRoutes(app: any) {
   const buildRevision = resolveBuildRevision();
 
   // Setup authentication
-  await setupAuth(app);
+  await setupAuth(app, {
+    onNewSocialUser: (user) => createAutomaticCommunityWelcomeForUser(user),
+  });
+
+  app.use(checkTrustedDevice);
 
   // Bind every authenticated request to one server-resolved effective account
   // before any feature or standalone admin router can evaluate req.user.
@@ -2473,12 +2333,6 @@ export async function registerRoutes(app: any) {
       normalizedActiveRole === "super_admin" ||
       roles.some((role) => role === "super_admin");
 
-    const adminAliasEmails = getPrivilegedAliasEmails();
-    const normalizedEmail = String(user?.email || "")
-      .trim()
-      .toLowerCase();
-    const isAdminAliasEmail = normalizedEmail.length > 0 && adminAliasEmails.has(normalizedEmail);
-
     const canonicalStateCodeRaw =
       (user as any).stateCode ?? (user as any).state_code ?? (user as any).state ?? null;
     const canonicalCountyFipsRaw =
@@ -2508,8 +2362,8 @@ export async function registerRoutes(app: any) {
       activeRole: normalizedActiveRole || user?.activeRole,
       roles,
       badges: computeBadgesForUser(user),
-      isAdmin: computedIsAdmin || isAdminAliasEmail,
-      isSuperAdmin: computedIsSuperAdmin || isAdminAliasEmail,
+      isAdmin: computedIsAdmin,
+      isSuperAdmin: computedIsSuperAdmin,
       // Guard against legacy/synthetic theme IDs leaking into persisted preferences.
       // The app derives "profile-*" appearance from `preferences.colorScheme`, not from themePreference.
       themePreference: normalizedThemePreference || user?.themePreference,
@@ -2586,6 +2440,15 @@ export async function registerRoutes(app: any) {
     "moderator",
     "ops_admin",
     "super_admin",
+    "hoa_admin",
+    "hoa_board",
+    "hoa_manager",
+    "tradescout_admin",
+    "support_agent",
+    "content_moderator",
+    "territory_manager",
+    "contractor_success",
+    ...PROFESSIONAL_APPROVAL_REQUIRED_ROLES,
     // Internal/system roles (not selectable)
     "content_seo",
     "analytics_specialist",
@@ -2606,6 +2469,9 @@ export async function registerRoutes(app: any) {
   const coerceToRoutingRoleEnum = (candidate: unknown): UserRoleEnumValue => {
     const raw = typeof candidate === "string" ? candidate.trim() : "";
     if (!raw) return "homeowner";
+    if (BLOCKED_SELF_ASSIGN_ROLES.has(raw) || isPrivilegedOrAdminRoleToken(raw)) {
+      return "homeowner";
+    }
 
     const viaAlias = PERSONA_TO_CANONICAL_ROUTING_ROLE[raw];
     if (viaAlias) return viaAlias;
@@ -2619,6 +2485,28 @@ export async function registerRoutes(app: any) {
 
   const dedupeStrings = (values: string[]) =>
     Array.from(new Set(values.map((v) => String(v || "").trim()).filter((v) => v.length > 0)));
+
+  const sendProfessionalApprovalRequired = (res: Response) =>
+    res.status(403).json(PROFESSIONAL_APPROVAL_REQUIRED_RESPONSE);
+
+  const sendPrivilegedRoleAssignmentForbidden = (res: Response) =>
+    res.status(403).json({
+      message: "Privileged and admin-bearing roles require a governed admin workflow.",
+      code: "PRIVILEGED_ROLE_ASSIGNMENT_FORBIDDEN",
+    });
+
+  const sendProfessionalVerificationDecisionRequired = (res: Response) =>
+    res.status(409).json(PROFESSIONAL_VERIFICATION_DECISION_REQUIRED_RESPONSE);
+
+  const loadApprovedProfessionalRoles = async (
+    userId: string
+  ): Promise<CanonicalApprovedProfessionalRole[]> => {
+    const [realtorProfile, carSalesmanProfile] = await Promise.all([
+      storage.getRealtorProfileByUserId(userId),
+      storage.getCarSalesmanProfileByUserId(userId),
+    ]);
+    return approvedProfessionalRolesFromProfiles(realtorProfile, carSalesmanProfile);
+  };
 
   type AuthMethod = "password" | "google" | "facebook";
   const getAvailableAuthMethodsForUser = (user: any): AuthMethod[] => {
@@ -2662,6 +2550,15 @@ export async function registerRoutes(app: any) {
       availableAuthMethods,
     });
   };
+
+  const sendReservedAuthorityEmailConflict = (res: Response) =>
+    res.status(409).json({
+      // Match the ordinary account-conflict contract so the reservation does
+      // not expose which authority configuration matched.
+      message: "An account with this email already exists. Sign in to continue.",
+      code: "AUTH_ACCOUNT_EXISTS",
+      availableAuthMethods: ["password"],
+    });
 
   // Authentication routes
   const establishAuthenticatedSession = (req: Request, user: any): Promise<void> =>
@@ -2782,6 +2679,10 @@ export async function registerRoutes(app: any) {
       }
       if (profilesData.length === 0) {
         return res.status(400).json({ message: "Create at least one profile" });
+      }
+
+      if (isReservedSignupIdentityEmail(email)) {
+        return sendReservedAuthorityEmailConflict(res);
       }
 
       const existingUser = await storage.getUserByEmail(email);
@@ -3290,6 +3191,13 @@ export async function registerRoutes(app: any) {
               ? [roleRaw]
               : [];
 
+      if (requestedProfessionalRole(userTypesInput)) {
+        return sendProfessionalApprovalRequired(res);
+      }
+      if (userTypesInput.some((role: unknown) => isPrivilegedOrAdminRoleToken(role))) {
+        return sendPrivilegedRoleAssignmentForbidden(res);
+      }
+
       const userTypes = userTypesInput
         .filter((t: any) => typeof t === "string")
         .map((t: string) => normalizeRole(t));
@@ -3321,6 +3229,10 @@ export async function registerRoutes(app: any) {
 
       if (!acceptTerms) {
         return res.status(400).json({ message: "You must accept the Terms of Service" });
+      }
+
+      if (isReservedSignupIdentityEmail(email)) {
+        return sendReservedAuthorityEmailConflict(res);
       }
 
       // Fail-soft county inference for signup flows where users skip county selection.
@@ -3513,12 +3425,10 @@ export async function registerRoutes(app: any) {
               claim = { status: "not_verified", businessId: biz.id };
             } else {
               await storage.claimUnclaimedBusinessForUser(biz.id, user.id);
-              userForLogin = await storage.updateUser(user.id, {
-                activeBusinessId: biz.id,
-                role: "business_owner" as any,
-                activeRole: "business_owner",
-                roles: Array.from(new Set([...(userTypes || []), "business_owner"])),
-              } as any);
+              // The repository transaction owns the business claim, canonical profile, and
+              // authority projection. Reload it; a second writer here could stale-overwrite a
+              // concurrently approved professional role.
+              userForLogin = (await storage.getUser(user.id)) || userForLogin;
               claim = { status: "claimed", businessId: biz.id };
             }
           }
@@ -4441,7 +4351,54 @@ export async function registerRoutes(app: any) {
           );
         }
 
-        await storage.updateUser(userId, updateData);
+        const onboardingUpdate = await updateUserPreservingApprovedProfessionalRoles({
+          database: db,
+          userId: String(userId || ""),
+          buildPatch: ({ currentUser: lockedUser, approvedProfessionalRoles }) => {
+            const nextPatch = { ...updateData };
+            const approvedRoleSet = new Set<string>(approvedProfessionalRoles);
+
+            if (Array.isArray(updateData.roles)) {
+              const lockedRoles = Array.isArray(lockedUser?.roles) ? lockedUser.roles : [];
+              const authorizedLockedRoles = lockedRoles.filter((lockedRole: unknown) => {
+                const professionalRole = canonicalizeProfessionalRole(lockedRole);
+                if (!professionalRole) return true;
+                return (
+                  professionalRole !== "car_salesman" &&
+                  professionalRole !== "vehicle_dealer" &&
+                  approvedRoleSet.has(professionalRole)
+                );
+              });
+              const inferredNonProfessionalRoles = updateData.roles.filter(
+                (inferredRole: unknown) => !canonicalizeProfessionalRole(inferredRole)
+              );
+              nextPatch.roles = [
+                ...new Set([...authorizedLockedRoles, ...inferredNonProfessionalRoles]),
+              ];
+            }
+
+            for (const roleField of ["role", "activeRole"] as const) {
+              const professionalRole = canonicalizeProfessionalRole(nextPatch[roleField]);
+              if (!professionalRole) continue;
+              if (
+                professionalRole === "car_salesman" ||
+                professionalRole === "vehicle_dealer" ||
+                !approvedRoleSet.has(professionalRole)
+              ) {
+                delete nextPatch[roleField];
+              } else {
+                nextPatch[roleField] = professionalRole;
+              }
+            }
+            return nextPatch;
+          },
+        });
+        if (onboardingUpdate.outcome === "not_found") {
+          return res.status(404).json({ message: "User not found" });
+        }
+        if (onboardingUpdate.outcome !== "updated") {
+          return res.status(409).json({ message: "Onboarding could not be completed" });
+        }
 
         res.json({ message: "Onboarding completed successfully" });
       } catch (error: any) {
@@ -4502,9 +4459,11 @@ export async function registerRoutes(app: any) {
         return;
       }
 
-      const identityContext = await resolveRequestAuthorityContext(req, async (targetUserId) =>
-        storage.getUser(targetUserId)
-      );
+      const identityContext =
+        req.requestAuthorityContext ??
+        (await resolveRequestAuthorityContext(req, async (targetUserId) =>
+          storage.getUser(targetUserId)
+        ));
       if (!identityContext.ok) {
         res.status(403).json({
           authenticated: false,
@@ -4515,7 +4474,7 @@ export async function registerRoutes(app: any) {
       }
       const userId = identityContext.effectiveUserId;
 
-      let user = await storage.getUser(userId);
+      let user = identityContext.effectiveUser;
       if (!user) {
         res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
         return;
@@ -4552,138 +4511,9 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      const adminEmailAliases = getPrivilegedAliasEmails();
-
-      const userEmail = String((user as any)?.email || "")
-        .trim()
-        .toLowerCase();
-      const isAdminAliasEmail =
-        !identityContext.isImpersonating &&
-        userEmail.length > 0 &&
-        adminEmailAliases.has(userEmail);
-      if (isAdminAliasEmail) {
-        const currentRoles = Array.from(
-          new Set(
-            [
-              ...(Array.isArray((user as any)?.roles) ? ((user as any).roles as unknown[]) : []),
-              (user as any)?.role,
-              (user as any)?.activeRole,
-            ]
-              .map((role) => normalizeAuthorityRole(role))
-              .filter(Boolean)
-          )
-        );
-        const alreadyAdminTier =
-          (user as any)?.isSuperAdmin === true ||
-          (user as any)?.isAdmin === true ||
-          currentRoles.some((role) => isAdminTierRole(role));
-
-        if (!alreadyAdminTier || !currentRoles.includes("super_admin")) {
-          const nextRoles = Array.from(new Set([...currentRoles, "super_admin"]));
-          try {
-            const existingUserId = user?.id;
-            if (!existingUserId) {
-              res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
-              return;
-            }
-            user = await storage.updateUser(existingUserId, {
-              role: "super_admin",
-              activeRole: "super_admin",
-              roles: nextRoles as any,
-              isAdmin: true,
-              isSuperAdmin: true,
-            } as any);
-            if (!user) {
-              res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
-              return;
-            }
-          } catch (adminAliasRepairError) {
-            console.error("[auth/user] Failed to reconcile super admin alias role", {
-              userId,
-              email: userEmail,
-              error: adminAliasRepairError,
-            });
-          }
-        }
-      }
-
-      const mergeSessionAuthority = (baseUser: any) => {
-        if (identityContext.isImpersonating) return baseUser;
-        const authUser = (req.user || {}) as any;
-        if (!baseUser || !authUser) return baseUser;
-        const authClaims =
-          authUser?.claims && typeof authUser.claims === "object" ? authUser.claims : {};
-
-        const claimsRolesRaw = Array.isArray((authClaims as any)?.roles)
-          ? ((authClaims as any).roles as unknown[])
-          : typeof (authClaims as any)?.roles === "string"
-            ? [String((authClaims as any).roles)]
-            : [];
-
-        const mergedRoles = Array.from(
-          new Set(
-            [
-              ...(Array.isArray(baseUser?.roles) ? baseUser.roles : []),
-              ...(Array.isArray(authUser?.roles) ? authUser.roles : []),
-              ...claimsRolesRaw,
-              baseUser?.role,
-              baseUser?.activeRole,
-              authUser?.role,
-              authUser?.activeRole,
-              (authClaims as any)?.role,
-              (authClaims as any)?.activeRole,
-            ]
-              .map((role) => normalizeAuthorityRole(role))
-              .filter(Boolean)
-          )
-        );
-
-        const findFirstAdminRole = (roles: string[]): string =>
-          roles.find((role) => isAdminTierRole(role)) || "";
-
-        const baseUserRoles = Array.from(
-          new Set(
-            [
-              ...(Array.isArray(baseUser?.roles) ? baseUser.roles : []),
-              baseUser?.activeRole,
-              baseUser?.role,
-            ]
-              .map((role) => normalizeAuthorityRole(role))
-              .filter(Boolean)
-          )
-        );
-        const baseUserAdminRole = findFirstAdminRole(baseUserRoles);
-
-        const resolvedRole =
-          normalizeAuthorityRole(baseUser?.activeRole) ||
-          normalizeAuthorityRole(baseUser?.role) ||
-          normalizeAuthorityRole(authUser?.activeRole) ||
-          normalizeAuthorityRole(authUser?.role) ||
-          normalizeAuthorityRole((authClaims as any)?.activeRole) ||
-          normalizeAuthorityRole((authClaims as any)?.role) ||
-          mergedRoles[0] ||
-          "";
-
-        const hasAdminRole = mergedRoles.some((role) => isAdminTierRole(role));
-        const hasSuperAdminRole = mergedRoles.includes("super_admin");
-
-        // Data authority: if DB says this user is admin-tier, do not allow stale session role payloads
-        // to downgrade admin surfaces in the app shell.
-        const effectiveRole =
-          baseUserAdminRole ||
-          (hasAdminRole && !isAdminTierRole(resolvedRole) ? findFirstAdminRole(mergedRoles) : "") ||
-          resolvedRole;
-
-        return {
-          ...baseUser,
-          role: effectiveRole || baseUser?.role,
-          activeRole: effectiveRole || baseUser?.activeRole,
-          roles: mergedRoles,
-          isAdmin: baseUser?.isAdmin === true || authUser?.isAdmin === true || hasAdminRole,
-          isSuperAdmin:
-            baseUser?.isSuperAdmin === true || authUser?.isSuperAdmin === true || hasSuperAdminRole,
-        };
-      };
+      const approvedProfessionalRolesForAuth = await loadApprovedProfessionalRoles(userId);
+      const mergePersistedAuthority = (baseUser: any) =>
+        resolvePersistedClientAuthority(baseUser, approvedProfessionalRolesForAuth);
 
       // Resolve the current super admin support account for session-level support paths.
       // Do not create contact edges here; governed contact must remain gated.
@@ -4708,14 +4538,13 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      const applyImpersonation = (baseUser: any) => {
-        const sessionAny = req.session as any;
+      const applyImpersonationMetadata = (baseUser: any) => {
         if (identityContext.isImpersonating) {
           return {
             ...baseUser,
             isImpersonating: true,
             impersonating: true,
-            originalRole: sessionAny.originalUser?.role,
+            originalRole: identityContext.principalUser?.role,
           };
         }
         return baseUser;
@@ -4763,7 +4592,9 @@ export async function registerRoutes(app: any) {
             const synced = await syncBusinessOnboardingFromSignals(updated);
             res.json({
               authenticated: true,
-              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(synced))),
+              user: buildAuthUserPayload(
+                mergePersistedAuthority(applyImpersonationMetadata(synced))
+              ),
             });
             return;
           }
@@ -4786,7 +4617,9 @@ export async function registerRoutes(app: any) {
             const synced = await syncBusinessOnboardingFromSignals(updated);
             res.json({
               authenticated: true,
-              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(synced))),
+              user: buildAuthUserPayload(
+                mergePersistedAuthority(applyImpersonationMetadata(synced))
+              ),
             });
             return;
           }
@@ -4795,7 +4628,9 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      const finalUser = buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(user)));
+      const finalUser = buildAuthUserPayload(
+        mergePersistedAuthority(applyImpersonationMetadata(user))
+      );
       // Graduate pilot: community-first experience is now default for all authenticated users.
       const communityFirst = true;
 
@@ -4976,28 +4811,85 @@ export async function registerRoutes(app: any) {
     requireRole(["super_admin"]),
     async (req: Request, res: Response) => {
       try {
-        const { email, password, firstName, lastName, role, address } = (req.body ?? {}) as any;
-
-        // Validate role assignment permissions
-        const currentUser = req.user as any;
-        const normalizedActorRole = normalizeAdminRoleToken(currentUser?.role);
-        const requestedRole = normalizeAdminRoleToken(role);
-        if (!requestedRole) {
-          return res.status(400).json({ message: "role is required" });
+        const actorId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        const actorContext = resolvePrivilegedActor(actor);
+        if (!actor || !actorHasPrivilegedCapability(actor, ["super_admin"])) {
+          return res.status(403).json({ message: "Super admin access required" });
         }
-        if (requestedRole === "super_admin" && normalizedActorRole !== "super_admin") {
-          return res
-            .status(403)
-            .json({ message: "Only super admins can create other super admins" });
+
+        const reason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12,
+          500
+        );
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (12-500 chars)" });
+        }
+
+        const parsed = z
+          .object({
+            email: z.string().trim().email().max(320),
+            password: z.string().min(12).max(256),
+            firstName: z.string().trim().min(1).max(100),
+            lastName: z.string().trim().min(1).max(100),
+            role: z.string().trim().min(1).max(64),
+            address: z.string().trim().min(1).max(500),
+          })
+          .passthrough()
+          .safeParse(req.body ?? {});
+        if (!parsed.success) {
+          return res.status(400).json({
+            message: "Invalid admin account payload",
+            errors: parsed.error.flatten().fieldErrors,
+          });
+        }
+
+        const { password, firstName, lastName, role, address } = parsed.data;
+        const email = parsed.data.email.toLowerCase();
+        const requestedRole = normalizeAdminRoleToken(role);
+        const allowedAdminCreationRoles = new Set(["moderator", "ops_admin", "super_admin"]);
+        if (requestedProfessionalRole([role])) {
+          return sendProfessionalVerificationDecisionRequired(res);
+        }
+        if (!allowedAdminCreationRoles.has(requestedRole)) {
+          return res.status(400).json({
+            message: "Only moderator, ops_admin, or super_admin accounts may be created here.",
+            code: "ADMIN_ACCOUNT_ROLE_REQUIRED",
+          });
+        }
+        if (isReservedSignupIdentityEmail(email)) {
+          return res.status(409).json({
+            message: "This email is reserved for platform recovery or service operations.",
+            code: "RESERVED_SIGNUP_IDENTITY",
+          });
         }
 
         // Check if user already exists
         const existingUser = await storage.getUserByEmail(email);
         if (existingUser) {
-          return res.status(400).json({ message: "User with this email already exists" });
+          return res.status(409).json({ message: "User with this email already exists" });
         }
 
         // Username check not needed as we removed username field
+
+        await auditPrivilegedAction({
+          action: "admin_account_create",
+          route: "/api/admin/create-account",
+          operationType: "create_admin_account",
+          actorId: normalizeImmutableTargetId(actorId),
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: null,
+          resolutionSource: "validated_email",
+          reason,
+          outcome: "started",
+          lookupInput: { targetEmail: email },
+          details: { assignedRole: requestedRole },
+        });
 
         // Hash password
         const hashedPassword = await hashPassword(password);
@@ -5010,8 +4902,25 @@ export async function registerRoutes(app: any) {
           lastName,
           address,
           role: requestedRole as any,
+          roles: [requestedRole] as any,
+          activeRole: requestedRole,
           emailVerified: true, // Admins are pre-verified
           addressVerified: true, // Admins are pre-verified
+        });
+
+        await auditPrivilegedAction({
+          action: "admin_account_create",
+          route: "/api/admin/create-account",
+          operationType: "create_admin_account",
+          actorId: normalizeImmutableTargetId(actorId),
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: String(newAdmin.id),
+          resolutionSource: "created_user_id",
+          reason,
+          outcome: "completed",
+          details: { assignedRole: requestedRole },
         });
 
         // Remove password hash from response
@@ -5031,115 +4940,9 @@ export async function registerRoutes(app: any) {
 
   // OAuth strategies are configured in auth.ts
 
-  const hasGoogleOAuth = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-  const facebookDisabled = process.env.DISABLE_FACEBOOK_AUTH === "true";
-  const facebookAppId = process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_CLIENT_ID;
-  const facebookAppSecret = process.env.FACEBOOK_APP_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
-  const hasFacebookOAuth = !facebookDisabled && Boolean(facebookAppId && facebookAppSecret);
-
-  if (hasGoogleOAuth) {
-    const canonicalWebOrigin = String(
-      process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
-    ).replace(/\/+$/, "");
-    const defaultGoogleCallbackURL = `${canonicalWebOrigin}/api/auth/google/callback`;
-    const configuredGoogleCallback = String(process.env.GOOGLE_CALLBACK_URL || "").trim();
-    const googleCallbackURL =
-      process.env.NODE_ENV === "production" &&
-      /onrender\.com/i.test(configuredGoogleCallback) &&
-      canonicalWebOrigin.startsWith("https://")
-        ? defaultGoogleCallbackURL
-        : configuredGoogleCallback || defaultGoogleCallbackURL;
-
-    console.log("[AUTH] Using Google callback URL:", googleCallbackURL);
-
-    const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    if (!googleClientId || !googleClientSecret) {
-      throw new Error(
-        "[AUTH] Google OAuth enabled but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET missing"
-      );
-    }
-
-    passport.use(
-      new GoogleStrategy(
-        {
-          clientID: googleClientId,
-          clientSecret: googleClientSecret,
-          callbackURL: googleCallbackURL,
-        },
-        async (
-          accessToken: string,
-          refreshToken: string,
-          profile: GoogleProfile,
-          done: VerifyCallback
-        ) => {
-          // Always derive a non-empty email string for DB constraints
-          let email = "";
-          try {
-            email = profile.emails?.[0]?.value || `${profile.id}@google.local`;
-
-            let user = await storage.getUserByEmail(email);
-
-            const isNewUser = !user;
-
-            if (!user) {
-              user = await storage.createUser({
-                email,
-                firstName: profile.name?.givenName || profile.displayName || "",
-                lastName: profile.name?.familyName || "",
-                googleId: profile.id,
-                provider: "google",
-                providerId: profile.id,
-                role: null as any,
-                onboardingCompleted: false,
-              });
-            } else {
-              const updates: Partial<import("@shared/schema").User> = {};
-              if (!user.googleId) {
-                (updates as any).googleId = profile.id;
-              }
-              if (!user.provider) {
-                (updates as any).provider = "google";
-              }
-              if (!user.providerId) {
-                (updates as any).providerId = profile.id;
-              }
-              if (Object.keys(updates).length > 0) {
-                user = await storage.updateUser(user.id, updates);
-              }
-            }
-
-            if (user) {
-              (user as any)._wasNewSocialUser = isNewUser;
-
-              if (isNewUser) {
-                // Fire-and-forget welcome post; don't block OAuth callback
-                createAutomaticCommunityWelcomeForUser(user as any).catch((err) => {
-                  console.error(
-                    "[Community] Failed to create automatic welcome/intro posts for Google user",
-                    {
-                      userId: (user as any)?.id,
-                      error: (err as any)?.message,
-                    }
-                  );
-                });
-              }
-            }
-
-            done(null, user as any);
-          } catch (error) {
-            console.error("[AUTH] Google login error", {
-              message: (error as any)?.message,
-              email,
-              profileId: profile.id,
-              stack: (error as any)?.stack,
-            });
-            done(error as Error);
-          }
-        }
-      )
-    );
-  }
+  const authProviderAvailability = getAuthProviderAvailability();
+  const hasGoogleOAuth = authProviderAvailability.google;
+  const hasFacebookOAuth = authProviderAvailability.facebook;
 
   // Auth middleware already initialized at the top of registerRoutes
 
@@ -5243,42 +5046,15 @@ export async function registerRoutes(app: any) {
   // Locality tracking middleware - track all interactions with geographic context
   app.use(localityTrackingMiddleware());
 
-  // Device auth middleware - check for trusted devices
-  app.use(checkTrustedDevice);
-
   // OAuth routes (canonical): only register when the strategy is configured.
   // This prevents runtime crashes like: "Unknown authentication strategy 'google'".
   app.get("/api/auth/providers", (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "no-store");
 
-    const facebookIdSource = process.env.FACEBOOK_APP_ID
-      ? "FACEBOOK_APP_ID"
-      : process.env.FACEBOOK_CLIENT_ID
-        ? "FACEBOOK_CLIENT_ID"
-        : null;
-    const facebookSecretSource = process.env.FACEBOOK_APP_SECRET
-      ? "FACEBOOK_APP_SECRET"
-      : process.env.FACEBOOK_CLIENT_SECRET
-        ? "FACEBOOK_CLIENT_SECRET"
-        : null;
-
     res.json({
       google: hasGoogleOAuth,
       facebook: hasFacebookOAuth,
-      diagnostics: {
-        facebook: {
-          disabledByEnv: facebookDisabled,
-          hasId: Boolean(facebookAppId),
-          hasSecret: Boolean(facebookAppSecret),
-          idSource: facebookIdSource,
-          secretSource: facebookSecretSource,
-        },
-        google: {
-          hasId: Boolean(process.env.GOOGLE_CLIENT_ID),
-          hasSecret: Boolean(process.env.GOOGLE_CLIENT_SECRET),
-          hasCallback: Boolean(process.env.GOOGLE_CALLBACK_URL),
-        },
-      },
+      diagnostics: authProviderAvailability.diagnostics,
     });
   });
 
@@ -5288,20 +5064,70 @@ export async function registerRoutes(app: any) {
       if (req.session) {
         delete (req.session as any).oauthNext;
       }
-      if (!raw) return "";
-      if (!raw.startsWith("/")) return "";
-      if (raw.startsWith("//")) return "";
-      return raw;
+      return safeOAuthReturnPath(raw);
     } catch {
       return "";
     }
   };
 
-  const getRuntimeOAuthCallbackUrl = (
-    req: Request,
+  const oauthFailureRedirect = (req: Request, info: unknown): string => {
+    const allowedCodes = new Set(["AUTH_ACCOUNT_LINK_REQUIRED", "AUTH_IDENTITY_COLLISION"]);
+    const candidateCode =
+      info && typeof info === "object" && typeof (info as any).code === "string"
+        ? String((info as any).code).trim()
+        : "";
+    const code = allowedCodes.has(candidateCode) ? candidateCode : "AUTH_OAUTH_FAILED";
+    const returnPath = readAndClearOAuthNext(req);
+
+    try {
+      const target = new URL("/pre-scout-setup?mode=signin", "https://www.thetradescout.com");
+      if (returnPath) {
+        const saved = new URL(returnPath, target.origin);
+        if (["/pre-scout-setup", "/login"].includes(saved.pathname)) {
+          target.search = saved.search;
+          target.hash = saved.hash;
+        } else {
+          target.searchParams.set("next", returnPath);
+        }
+      }
+      target.searchParams.set("mode", "signin");
+      target.searchParams.set("oauthError", code);
+      return `${target.pathname}${target.search}${target.hash}`;
+    } catch {
+      return `/login?oauthError=${encodeURIComponent(code)}`;
+    }
+  };
+
+  const completeOAuthCallback = (
     provider: "google" | "facebook",
-    fallbackFromEnv?: string
-  ): string | undefined => {
+    callbackURL: string | undefined,
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    return passport.authenticate(
+      provider,
+      {
+        callbackURL,
+        session: true,
+      } as any,
+      (error: unknown, user: Express.User | false | null, info: unknown) => {
+        if (error) return next(error);
+        if (!user) return res.redirect(oauthFailureRedirect(req, info));
+
+        // Passport regenerates the session on login. Carry only the validated
+        // return destination across that boundary, never old authority markers.
+        const oauthNext = safeOAuthReturnPath((req.session as any)?.oauthNext);
+        return (req as any).logIn(user, { session: true }, (loginError: unknown) => {
+          if (loginError) return next(loginError);
+          if (oauthNext && req.session) (req.session as any).oauthNext = oauthNext;
+          return next();
+        });
+      }
+    )(req, res, next);
+  };
+
+  const getRuntimeOAuthCallbackUrl = (req: Request, provider: "google" | "facebook"): string => {
     try {
       const host = String(req.get("host") || "").trim();
       const hostOnly = host.split(":")[0].toLowerCase();
@@ -5330,32 +5156,41 @@ export async function registerRoutes(app: any) {
     } catch {
       // fall through to env value
     }
-    return fallbackFromEnv;
+    return configuredOAuthCallbackUrl(provider);
+  };
+
+  const redirectOAuthEntryToCallbackOrigin = (
+    req: Request,
+    res: Response,
+    provider: "google" | "facebook",
+    callbackURL: string
+  ): boolean => {
+    if (process.env.NODE_ENV !== "production") return false;
+    const callbackOrigin = new URL(callbackURL).origin;
+    const requestOrigin = new URL(`${req.protocol}://${req.get("host")}`).origin;
+    if (requestOrigin === callbackOrigin) return false;
+    // A custom-domain cookie cannot accompany a canonical-domain callback.
+    // Move the authorization entry before Passport creates its session nonce.
+    const target = new URL(`/api/auth/${provider}`, callbackOrigin);
+    const next = safeOAuthReturnPath((req.query as any)?.next);
+    if (next) target.searchParams.set("next", next);
+    res.redirect(target.toString());
+    return true;
   };
 
   if (hasFacebookOAuth) {
     app.get("/api/auth/facebook", (req: Request, res: Response, next: any) => {
+      const callbackURL = getRuntimeOAuthCallbackUrl(req, "facebook");
+      if (redirectOAuthEntryToCallbackOrigin(req, res, "facebook", callbackURL)) return;
       try {
-        const requestedNext =
-          typeof (req.query as any)?.next === "string"
-            ? String((req.query as any).next).trim()
-            : "";
-        if (
-          req.session &&
-          requestedNext &&
-          requestedNext.startsWith("/") &&
-          !requestedNext.startsWith("//")
-        ) {
-          (req.session as any).oauthNext = requestedNext;
+        const requestedNext = safeOAuthReturnPath((req.query as any)?.next);
+        if (req.session) {
+          if (requestedNext) (req.session as any).oauthNext = requestedNext;
+          else delete (req.session as any).oauthNext;
         }
       } catch {
         // ignore
       }
-      const callbackURL = getRuntimeOAuthCallbackUrl(
-        req,
-        "facebook",
-        process.env.FACEBOOK_CALLBACK_URL
-      );
       return passport.authenticate("facebook", {
         scope: ["email"],
         callbackURL,
@@ -5364,33 +5199,8 @@ export async function registerRoutes(app: any) {
     app.get(
       "/api/auth/facebook/callback",
       (req: Request, res: Response, next: any) => {
-        try {
-          if (
-            typeof (req as any).isAuthenticated === "function" &&
-            (req as any).isAuthenticated() &&
-            (req as any).user
-          ) {
-            const user = req.user as any;
-            const anyUser: any = user || {};
-            const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
-            const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
-            return res.redirect(redirectTo);
-          }
-        } catch {
-          // ignore
-        }
-        return next();
-      },
-      (req: Request, res: Response, next: any) => {
-        const callbackURL = getRuntimeOAuthCallbackUrl(
-          req,
-          "facebook",
-          process.env.FACEBOOK_CALLBACK_URL
-        );
-        return passport.authenticate("facebook", {
-          failureRedirect: "/login",
-          callbackURL,
-        } as any)(req, res, next);
+        const callbackURL = getRuntimeOAuthCallbackUrl(req, "facebook");
+        return completeOAuthCallback("facebook", callbackURL, req, res, next);
       },
       (req: Request, res: Response) => {
         const user = req.user as any;
@@ -5404,14 +5214,11 @@ export async function registerRoutes(app: any) {
             destination: req.originalUrl || "/",
           }).catch(() => {});
         }
-        maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
-        const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
         const oauthNext = readAndClearOAuthNext(req);
-        const redirectBase = needsProfileNormalization
-          ? "/onboarding/profile"
-          : oauthNext || "/pre-scout-setup";
+        const redirectBase = oauthPostLoginPath(oauthNext, isOutcomeOnboardingComplete(anyUser));
+        maybeSendEmailVerificationForUser(req, user, redirectBase).catch(() => {});
         const redirectWithSession = (target: string) => {
           if (req.session) {
             return req.session.save((saveErr: any) => {
@@ -5440,27 +5247,17 @@ export async function registerRoutes(app: any) {
   if (hasGoogleOAuth) {
     // Google OAuth entrypoint: request standard OpenID scopes
     app.get("/api/auth/google", (req: Request, res: Response, next: any) => {
+      const callbackURL = getRuntimeOAuthCallbackUrl(req, "google");
+      if (redirectOAuthEntryToCallbackOrigin(req, res, "google", callbackURL)) return;
       try {
-        const requestedNext =
-          typeof (req.query as any)?.next === "string"
-            ? String((req.query as any).next).trim()
-            : "";
-        if (
-          req.session &&
-          requestedNext &&
-          requestedNext.startsWith("/") &&
-          !requestedNext.startsWith("//")
-        ) {
-          (req.session as any).oauthNext = requestedNext;
+        const requestedNext = safeOAuthReturnPath((req.query as any)?.next);
+        if (req.session) {
+          if (requestedNext) (req.session as any).oauthNext = requestedNext;
+          else delete (req.session as any).oauthNext;
         }
       } catch {
         // ignore
       }
-      const callbackURL = getRuntimeOAuthCallbackUrl(
-        req,
-        "google",
-        process.env.GOOGLE_CALLBACK_URL
-      );
       return passport.authenticate("google", {
         scope: ["openid", "email", "profile"],
         prompt: "select_account",
@@ -5470,34 +5267,8 @@ export async function registerRoutes(app: any) {
     app.get(
       "/api/auth/google/callback",
       (req: Request, res: Response, next: any) => {
-        try {
-          if (
-            typeof (req as any).isAuthenticated === "function" &&
-            (req as any).isAuthenticated() &&
-            (req as any).user
-          ) {
-            const user = req.user as any;
-            const anyUser: any = user || {};
-            const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
-            const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
-            return res.redirect(redirectTo);
-          }
-        } catch {
-          // ignore
-        }
-        return next();
-      },
-      (req: Request, res: Response, next: any) => {
-        const callbackURL = getRuntimeOAuthCallbackUrl(
-          req,
-          "google",
-          process.env.GOOGLE_CALLBACK_URL
-        );
-        return passport.authenticate("google", {
-          failureRedirect: "/login",
-          session: true,
-          callbackURL,
-        } as any)(req, res, next);
+        const callbackURL = getRuntimeOAuthCallbackUrl(req, "google");
+        return completeOAuthCallback("google", callbackURL, req, res, next);
       },
       (req: Request, res: Response) => {
         const user = req.user as any;
@@ -5511,14 +5282,11 @@ export async function registerRoutes(app: any) {
             destination: req.originalUrl || "/",
           }).catch(() => {});
         }
-        maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
-        const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
         const oauthNext = readAndClearOAuthNext(req);
-        const redirectBase = needsProfileNormalization
-          ? "/onboarding/profile"
-          : oauthNext || "/pre-scout-setup";
+        const redirectBase = oauthPostLoginPath(oauthNext, isOutcomeOnboardingComplete(anyUser));
+        maybeSendEmailVerificationForUser(req, user, redirectBase).catch(() => {});
         const redirectWithSession = (target: string) => {
           if (req.session) {
             return req.session.save((saveErr: any) => {
@@ -6252,10 +6020,10 @@ export async function registerRoutes(app: any) {
         county,
 
         // canonical machine + display fields used by useLocationContext and locality-aware APIs
-        stateCode: stateCode ?? state ?? null,
-        countyFips: trimmedCountyFips ?? null,
-        countyId: countyId ?? null,
-        countyName: countyName ?? county ?? null,
+        stateCode: stateCode !== undefined ? stateCode : state,
+        countyFips: trimmedCountyFips,
+        countyId,
+        countyName: countyName !== undefined ? countyName : county,
 
         // optional profile-level coordinates if provided (stored as strings for back-compat)
         latitude: typeof latitude === "number" ? String(latitude) : undefined,
@@ -6333,23 +6101,9 @@ export async function registerRoutes(app: any) {
         }
 
         const existingPrefs = ((currentUser as any)?.preferences || {}) as Record<string, any>;
-        const roleToken = String((currentUser as any)?.role || "")
-          .trim()
-          .toLowerCase();
-        const roleList: string[] = Array.isArray((currentUser as any)?.roles)
-          ? (currentUser as any).roles
-              .map((r: unknown) =>
-                String(r || "")
-                  .trim()
-                  .toLowerCase()
-              )
-              .filter(Boolean)
-          : [];
-        const isAdminActor =
-          roleToken === "admin" ||
-          roleToken === "super_admin" ||
-          roleList.includes("admin") ||
-          roleList.includes("super_admin");
+        const isAdminActor = collectAuthorityRoles(currentUser).some((role) =>
+          isAdminTierRole(role)
+        );
         const fallbackBusinessType =
           nextBusinessType ||
           String(existingPrefs?.businessOnboarding?.businessType || "") ||
@@ -6609,6 +6363,7 @@ export async function registerRoutes(app: any) {
         promotionPatch.stateCode = resolvedStateCode;
         promotionPatch.countyFips = resolvedCountyFips;
         promotionPatch.locationCommitted = true;
+        let promoteContractorRole = false;
 
         if (draft && typeof draft === "object") {
           // Location fields (already promoted by /api/user/preferences PATCH,
@@ -6632,21 +6387,7 @@ export async function registerRoutes(app: any) {
             if (typeof draft.businessName === "string" && draft.businessName.trim()) {
               promotionPatch.businessName = draft.businessName.trim();
             }
-            // Promote role to contractor if not already a privileged role
-            const currentRole = String((currentUser as any)?.role || "");
-            const privilegedRoles = ["admin", "super_admin", "moderator", "support"];
-            if (!privilegedRoles.some((r) => currentRole.includes(r))) {
-              const currentRoles: string[] = Array.isArray((currentUser as any)?.roles)
-                ? (currentUser as any).roles
-                : [];
-              if (!currentRoles.includes("contractor")) {
-                promotionPatch.roles = [...new Set([...currentRoles, "contractor"])];
-                if (!currentRole || currentRole === "homeowner") {
-                  promotionPatch.role = "contractor";
-                  promotionPatch.activeRole = "contractor";
-                }
-              }
-            }
+            promoteContractorRole = true;
           }
 
           // Clear the provisional draft now that it has been promoted
@@ -6672,8 +6413,44 @@ export async function registerRoutes(app: any) {
           }
         }
 
-        const user = await storage.updateUser(userId, promotionPatch as any);
-        res.json(sanitizeUserForResponse(user));
+        const onboardingUpdate = await updateUserPreservingApprovedProfessionalRoles({
+          database: db,
+          userId: String(userId || ""),
+          requestedProfessionalRoleValues: [],
+          buildPatch: ({ currentUser: lockedUser, approvedProfessionalRoles }) => {
+            const nextPatch = { ...promotionPatch };
+            const hasPrivilegedRole = collectAuthorityRoles(lockedUser).some((role) =>
+              isPrivilegedOrAdminRoleToken(role)
+            );
+            if (promoteContractorRole && !hasPrivilegedRole) {
+              const approvedRoleSet = new Set<string>(approvedProfessionalRoles);
+              const currentRoles = Array.isArray(lockedUser?.roles) ? lockedUser.roles : [];
+              const authorizedCurrentRoles = currentRoles.filter((currentRole: unknown) => {
+                const professionalRole = canonicalizeProfessionalRole(currentRole);
+                if (!professionalRole) return true;
+                return (
+                  professionalRole !== "car_salesman" &&
+                  professionalRole !== "vehicle_dealer" &&
+                  approvedRoleSet.has(professionalRole)
+                );
+              });
+              nextPatch.roles = [...new Set([...authorizedCurrentRoles, "contractor"])];
+              const currentRole = String(lockedUser?.role || "").trim();
+              if (!currentRole || currentRole === "homeowner") {
+                nextPatch.role = "contractor";
+                nextPatch.activeRole = "contractor";
+              }
+            }
+            return nextPatch;
+          },
+        });
+        if (onboardingUpdate.outcome === "not_found") {
+          return res.status(404).json({ message: "User not found" });
+        }
+        if (onboardingUpdate.outcome !== "updated") {
+          return res.status(409).json({ message: "Onboarding could not be completed" });
+        }
+        res.json(sanitizeUserForResponse(onboardingUpdate.user));
       } catch (error: any) {
         console.error("Error completing onboarding:", error);
         res.status(500).json({ message: "Failed to complete onboarding" });
@@ -6782,7 +6559,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // User role update (self-serve) - blocks admin roles
+  // User role update (self-serve) - blocks admin and unapproved professional roles
   app.patch("/api/user/roles", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
@@ -6800,25 +6577,27 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "Roles must be a non-empty array" });
       }
 
-      // Prevent privilege escalation: no admin/back-office roles here.
-      const blocked = new Set([
-        "super_admin",
-        "ops_admin",
-        "moderator",
-        "startup_founder",
-        "admin",
-        "tradescout_admin",
-      ]);
-      if (normalizedRoles.some((r: string) => blocked.has(r))) {
-        return res.status(400).json({ message: "Invalid role selection" });
+      if (normalizedRoles.some((role: string) => isPrivilegedOrAdminRoleToken(role))) {
+        return sendPrivilegedRoleAssignmentForbidden(res);
       }
+
+      const requestedProfessionalRoleToken = requestedProfessionalRole(normalizedRoles);
+      if (
+        requestedProfessionalRoleToken === "car_salesman" ||
+        requestedProfessionalRoleToken === "vehicle_dealer"
+      ) {
+        return sendProfessionalApprovalRequired(res);
+      }
+      const canonicalRoleSelections = normalizedRoles.map(
+        (role: string) => canonicalizeProfessionalRole(role) || role
+      );
 
       // Basic allowlist: only roles that exist in the product UI.
       const allowed = new Set([
         "homeowner",
         "contractor_user",
         "realtor",
-        "car_salesman",
+        "car_dealer",
         "insurance_agent",
         "mortgage_broker",
         "property_manager",
@@ -6827,31 +6606,50 @@ export async function registerRoutes(app: any) {
         "food_truck_owner",
         "bar_owner",
         "helper",
-        "vehicle_dealer",
-        "hoa_admin",
       ]);
 
-      const filteredRoles = normalizedRoles.filter((r: string) => allowed.has(r));
+      const filteredRoles = canonicalRoleSelections.filter((r: string) => allowed.has(r));
       if (filteredRoles.length === 0) {
         return res.status(400).json({ message: "Invalid role selection" });
       }
 
-      const current = await storage.getUser(userId);
-      const currentActive = (current as any)?.activeRole || (current as any)?.role;
-      const activeRole = filteredRoles.includes(currentActive) ? currentActive : filteredRoles[0];
-      const routingRole = coerceToRoutingRoleEnum(activeRole);
-      const rolesForDb = dedupeStrings([routingRole, ...filteredRoles]).filter(
-        (r) => !BLOCKED_SELF_ASSIGN_ROLES.has(r)
-      );
+      const result = await updateUserPreservingApprovedProfessionalRoles({
+        database: db,
+        userId: String(userId || ""),
+        requestedProfessionalRoleValues: normalizedRoles,
+        buildPatch: ({ currentUser, approvedProfessionalRoles }) => {
+          const currentActiveRaw = currentUser?.activeRole || currentUser?.role;
+          const currentActive =
+            canonicalizeProfessionalRole(currentActiveRaw) || String(currentActiveRaw || "").trim();
+          const activeRole = filteredRoles.includes(currentActive)
+            ? currentActive
+            : filteredRoles[0];
+          const routingRole = approvedProfessionalRoles.includes(
+            activeRole as CanonicalApprovedProfessionalRole
+          )
+            ? (activeRole as UserRoleEnumValue)
+            : coerceToRoutingRoleEnum(activeRole);
 
-      const user = await storage.updateUser(userId, {
-        roles: rolesForDb,
-        activeRole,
-        role: routingRole,
-        updatedAt: new Date(),
-      } as any);
+          return {
+            roles: dedupeStrings([routingRole, ...filteredRoles]),
+            activeRole,
+            role: routingRole,
+            updatedAt: new Date(),
+          };
+        },
+      });
 
-      res.json(sanitizeUserForResponse(user));
+      if (result.outcome === "professional_approval_required") {
+        return sendProfessionalApprovalRequired(res);
+      }
+      if (result.outcome === "not_found") {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (result.outcome !== "updated") {
+        return res.status(409).json({ message: "Role update could not be completed" });
+      }
+
+      res.json(sanitizeUserForResponse(result.user));
     } catch (error: any) {
       console.error("Error updating user roles:", error);
       res.status(500).json({ message: "Failed to update roles" });
@@ -6883,37 +6681,68 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "userTypes must be a non-empty array" });
       }
 
-      // Prevent privilege escalation: no admin/back-office types here.
-      const blocked = new Set(["admin"]);
+      if (rawTypes.some((role: string) => isPrivilegedOrAdminRoleToken(role))) {
+        return sendPrivilegedRoleAssignmentForbidden(res);
+      }
 
-      const normalized = Array.from(new Set(rawTypes.map((t: string) => normalizeRole(t)))).filter(
-        (typeId: string) => {
-          if (blocked.has(typeId)) return false;
-          // Only allow known user types with metadata
-          return Boolean(getUserTypeMetadata(typeId));
-        }
-      );
+      const requestedProfessionalRoleToken = requestedProfessionalRole(rawTypes);
+      if (
+        requestedProfessionalRoleToken === "car_salesman" ||
+        requestedProfessionalRoleToken === "vehicle_dealer"
+      ) {
+        return sendProfessionalApprovalRequired(res);
+      }
+
+      const normalized = Array.from(
+        new Set(
+          rawTypes.map(
+            (typeId: string) => canonicalizeProfessionalRole(typeId) || normalizeRole(typeId)
+          )
+        )
+      ).filter((typeId: string) => {
+        // Only allow known user types with metadata
+        return Boolean(getUserTypeMetadata(typeId));
+      });
 
       if (normalized.length === 0) {
         return res.status(400).json({ message: "Invalid userTypes selection" });
       }
 
-      const current = await storage.getUser(userId);
-      const currentActive = (current as any)?.activeRole || (current as any)?.role;
-      const activeRole = normalized.includes(currentActive) ? currentActive : normalized[0];
-      const routingRole = coerceToRoutingRoleEnum(activeRole);
-      const rolesForDb = dedupeStrings([routingRole, ...normalized]).filter(
-        (r) => !BLOCKED_SELF_ASSIGN_ROLES.has(r)
-      );
+      const result = await updateUserPreservingApprovedProfessionalRoles({
+        database: db,
+        userId: String(userId || ""),
+        requestedProfessionalRoleValues: rawTypes,
+        buildPatch: ({ currentUser, approvedProfessionalRoles }) => {
+          const currentActiveRaw = currentUser?.activeRole || currentUser?.role;
+          const currentActive =
+            canonicalizeProfessionalRole(currentActiveRaw) || String(currentActiveRaw || "").trim();
+          const activeRole = normalized.includes(currentActive) ? currentActive : normalized[0];
+          const routingRole = approvedProfessionalRoles.includes(
+            activeRole as CanonicalApprovedProfessionalRole
+          )
+            ? (activeRole as UserRoleEnumValue)
+            : coerceToRoutingRoleEnum(activeRole);
 
-      const user = await storage.updateUser(userId, {
-        roles: rolesForDb,
-        activeRole,
-        role: routingRole,
-        updatedAt: new Date(),
-      } as any);
+          return {
+            roles: dedupeStrings([routingRole, ...normalized]),
+            activeRole,
+            role: routingRole,
+            updatedAt: new Date(),
+          };
+        },
+      });
 
-      res.json(sanitizeUserForResponse(user));
+      if (result.outcome === "professional_approval_required") {
+        return sendProfessionalApprovalRequired(res);
+      }
+      if (result.outcome === "not_found") {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (result.outcome !== "updated") {
+        return res.status(409).json({ message: "User type update could not be completed" });
+      }
+
+      res.json(sanitizeUserForResponse(result.user));
     } catch (error: any) {
       console.error("Error updating user types:", error);
       res.status(500).json({ message: "Failed to update user types" });
@@ -7836,182 +7665,84 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Update profile visibility
+  // Update the exact Profile's public-release authority.
   app.patch(
     "/api/users/profile-visibility",
     isAuthenticated,
     async (req: Request, res: Response) => {
       try {
-        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const { profileVisibility, proceedUnverified } = (req.body ?? {}) as any;
+        const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+        const requestBody = (req.body ?? {}) as any;
+        const { profileVisibility, proceedUnverified } = requestBody;
+        const hasExplicitProfileId = Object.prototype.hasOwnProperty.call(requestBody, "profileId");
 
         if (!["public", "private"].includes(profileVisibility)) {
           return res.status(400).json({ message: "Invalid visibility option" });
         }
 
-        const currentUser = await storage.getUser(userId);
-        if (!currentUser) {
-          return res.status(404).json({ message: "User not found" });
-        }
-        const presenceType = String(
-          (currentUser as any)?.preferences?.provisional?.profileDraft?.presenceType || ""
-        ).trim();
-        const isBusinessAccount =
-          presenceType === "represent_business" ||
-          ["contractor", "business_owner", "service_provider", "property_manager"].includes(
-            String((currentUser as any)?.role || "")
-              .trim()
-              .toLowerCase()
-          );
-        const isBusinessVerifiedForDiscovery =
-          (currentUser as any)?.verifiedBadge === true ||
-          String((currentUser as any)?.verificationStatus || "")
-            .trim()
-            .toLowerCase() === "approved" ||
-          (currentUser as any)?.licenseVerified === true ||
-          (currentUser as any)?.addressVerified === true;
+        const mutationResult = await mutateExactProfileVisibilityAtomically({
+          ownerUserId: userId,
+          requestedProfileId: requestBody.profileId,
+          allowLegacyActiveProfileFallback: !hasExplicitProfileId,
+          profileVisibility: profileVisibility as "public" | "private",
+          proceedUnverified: proceedUnverified === true,
+        });
 
         if (
-          profileVisibility === "public" &&
-          isBusinessAccount &&
-          !isBusinessVerifiedForDiscovery
+          !mutationResult.ok &&
+          mutationResult.status === 200 &&
+          mutationResult.code === "CONTRACTOR_VERIFICATION_SUGGESTED"
         ) {
-          return res.status(428).json({
-            code: "BUSINESS_DISCOVERY_LOCKED",
-            message:
-              "Business discovery is locked until verification is complete. You can continue setup and requests now, but public visibility stays private.",
-            verificationOptional: true,
-            discoverabilityLocked: true,
+          try {
+            const { buildVerificationGateResponse } =
+              await import("./utils/explainAndOfferVerification");
+            const gateResponse = buildVerificationGateResponse({
+              action: "PUBLISH_PUBLIC_PROFILE",
+              missingRequirements: ["license"],
+              userRole: mutationResult.roleContext || "contractor",
+              targetUserId: undefined,
+              targetRole: mutationResult.roleContext || "contractor",
+              context: { visibility: "public", intent: "publish_profile" },
+            });
+            return res.status(200).json({
+              ...gateResponse,
+              message:
+                gateResponse.message +
+                " (Your profile remains private until you choose to continue without verification.)",
+              verificationOptional: true,
+              verificationSuggested: {
+                action: "PUBLISH_PUBLIC_PROFILE",
+                retryPath: `/api/users/profile-visibility`,
+                context: {
+                  profileId: mutationResult.profileId,
+                  profileVisibility,
+                },
+              },
+              allowProceedUnverified: true,
+            });
+          } catch (error) {
+            console.error("[profile-visibility] Failed to build verification gate", error);
+            return res.status(500).json({ message: "Failed to evaluate profile verification" });
+          }
+        }
+
+        if (!mutationResult.ok) {
+          return res.status(mutationResult.status).json({
+            code: mutationResult.code,
+            message: mutationResult.message,
+            verificationOptional: mutationResult.status === 428,
+            discoverabilityLocked: mutationResult.status === 428,
           });
         }
 
-        // C2-3: Soft gate - offer verification for better visibility (PUBLISH_PUBLIC_PROFILE action)
-        // Not blocking; contractor can publish unverified but gets visibility boost if verified
-        if (profileVisibility === "public" && proceedUnverified !== true) {
-          const isContractor = currentUser.role === "contractor";
-          const isVerified =
-            (currentUser as any)?.verificationStatus === "approved" ||
-            (currentUser as any)?.licenseVerified;
-
-          if (isContractor && !isVerified) {
-            // Offer verification as optional boost, don't block
-            try {
-              const { buildVerificationGateResponse } =
-                await import("./utils/explainAndOfferVerification");
-
-              const gateResponse = buildVerificationGateResponse({
-                action: "PUBLISH_PUBLIC_PROFILE",
-                missingRequirements: ["license"], // Light requirement for visibility boost
-                userRole: "contractor",
-                targetUserId: undefined,
-                targetRole: undefined,
-                context: { visibility: "public", intent: "publish_profile" },
-              });
-
-              // Return soft gate offer but don't block if they choose to proceed
-              // Client can either verify or confirm to continue unverified
-              res.status(200).json({
-                ...gateResponse,
-                message:
-                  gateResponse.message +
-                  " (Your profile will still be visible, but verified profiles rank higher.)",
-                verificationOptional: true,
-                verificationSuggested: {
-                  action: "PUBLISH_PUBLIC_PROFILE",
-                  retryPath: `/api/users/profile-visibility`,
-                  context: { profileVisibility },
-                },
-                // Allow client to confirm without verification
-                allowProceedUnverified: true,
-              });
-              return;
-            } catch (e) {
-              console.warn("[profile-visibility] Failed to build soft verification gate", e);
-              // Continue on error; don't block
-            }
-          }
-        }
-
-        const ensurePublishedActiveProfile = async () => {
-          const list = await storage.listProfilesByOwner(userId);
-          const activeProfileId = (currentUser as any)?.activeProfileId as string | undefined;
-          let targetProfile = activeProfileId
-            ? list.find((profile: any) => String(profile?.id || "") === String(activeProfileId))
-            : undefined;
-
-          if (!targetProfile) {
-            targetProfile = list.find(
-              (profile: any) => String(profile?.status || "") === "published"
-            );
-          }
-
-          if (!targetProfile) {
-            targetProfile = list[0];
-          }
-
-          if (!targetProfile) {
-            const fullName = [currentUser.firstName, currentUser.lastName]
-              .filter((value) => typeof value === "string" && value.trim().length > 0)
-              .join(" ")
-              .trim();
-            const emailLocal = String(currentUser.email || "")
-              .split("@")[0]
-              ?.trim();
-            const displayName = fullName || emailLocal || "TradeScout Profile";
-            const roleContextRaw = String(
-              (currentUser as any)?.activeRole || currentUser.role || "homeowner"
-            ).trim();
-            const roleContext = roleContextRaw.length >= 2 ? roleContextRaw : "homeowner";
-
-            targetProfile = await storage.createProfileForOwner(userId, {
-              ownerUserId: userId as any,
-              roleContext: roleContext as any,
-              slug: displayName,
-              displayName,
-              headline: null,
-              contentBlocks: [],
-              ctaConfig: {},
-              seoMeta: {},
-              status: "published" as any,
-            } as any);
-          } else if (String(targetProfile.status || "").toLowerCase() !== "published") {
-            targetProfile = await storage.updateProfileForOwner(userId, String(targetProfile.id), {
-              status: "published" as any,
-            } as any);
-          }
-
-          if (
-            targetProfile?.id &&
-            String((currentUser as any)?.activeProfileId || "") !== String(targetProfile.id)
-          ) {
-            await storage.setUserActiveProfile(userId, String(targetProfile.id));
-          }
-
-          return targetProfile;
-        };
-
-        let ensuredProfile: any = null;
-        if (profileVisibility === "public") {
-          ensuredProfile = await ensurePublishedActiveProfile();
-        }
-
-        const currentPrefs = currentUser.preferences || {};
-        const updatedPreferences = {
-          ...currentPrefs,
-          profileVisibility,
-          ...(profileVisibility === "private" ? { publicProfileIds: [] } : {}),
-        };
-
-        const user = await storage.updateUser(userId, {
-          preferences: updatedPreferences,
-          updatedAt: new Date(),
-        });
-
         res.json({
-          profileVisibility: user.preferences?.profileVisibility,
-          profileId: ensuredProfile?.id || null,
-          profileSlug: ensuredProfile?.slug || null,
-          profileStatus: ensuredProfile?.status || null,
+          profileVisibility,
+          legacyProfileVisibility: mutationResult.legacyProfileVisibility,
+          profileId: mutationResult.profileId,
+          profileSlug: mutationResult.profileSlug,
+          profileStatus: mutationResult.profileStatus,
         });
       } catch (error: any) {
         console.error("Error updating profile visibility:", error);
@@ -8240,7 +7971,20 @@ export async function registerRoutes(app: any) {
           });
         }
 
+        if (bookingIdentity.profileId) {
+          const releaseRecheck = await resolveProfileBookingOwner(storage, {
+            profileId: bookingIdentity.profileId,
+          });
+          if (!releaseRecheck.ok || releaseRecheck.ownerUserId !== ownerUserId) {
+            return res.status(404).json({ message: "Profile not available for booking" });
+          }
+        }
+
         const created = await storage.createProfileBookingRequest({
+          profileId: bookingIdentity.profileId,
+          lineageKind: legacyBusinessProfile
+            ? "legacy_business_profile"
+            : bookingIdentity.lineageKind,
           ownerUserId,
           requesterUserId,
           status: "requested",
@@ -10174,16 +9918,20 @@ export async function registerRoutes(app: any) {
         acceptsSubcontractWork,
       } = (req.body ?? {}) as any;
 
-      const existingUser = await storage.getUser(userId);
+      const requestedApprovalRole = requestedProfessionalRole([role]);
+      if (requestedApprovalRole === "car_salesman" || requestedApprovalRole === "vehicle_dealer") {
+        return sendProfessionalApprovalRequired(res);
+      }
 
       const normalizedRole =
-        role === "contractor_user"
+        requestedApprovalRole ||
+        (role === "contractor_user"
           ? "contractor"
           : role === "vehicle_dealer"
             ? "car_dealer"
             : role === "helper"
               ? "handyman"
-              : role;
+              : role);
 
       // Prevent privilege escalation: admin roles are backend-only.
       // Only allow the small set of roles that this onboarding flow is intended to set.
@@ -10197,64 +9945,104 @@ export async function registerRoutes(app: any) {
       if (!allowedOnboardingRoles.has(String(normalizedRole || "").trim())) {
         return res.status(400).json({ message: "Invalid role selection" });
       }
+      // Complete every request-level validation before the atomic authority/onboarding mutation.
+      // The role helper transaction rolls back as a unit if its user update fails.
+      if (
+        normalizedRole === "contractor" &&
+        (!companyName || String(companyName).trim().length < 2)
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Business name is required for contractor profiles" });
+      }
 
-      // Update user profile
-      const updatedUser = await storage.updateUser(userId, {
-        role: normalizedRole,
-        phone,
-        address,
-        city,
-        state,
-        zipCode,
-        onboardingCompleted: true,
-        profileVersion: CURRENT_PROFILE_VERSION,
-        preferences: {
-          ...(existingUser as any)?.preferences,
-          profileVisibility: (existingUser as any)?.preferences?.profileVisibility || "public",
-        },
-      });
+      const projectionKey = `auth-setup-profile:${String(userId)}:${String(normalizedRole)}`;
+      const setupResult = await withAdvisoryLock(`setup-profile:${String(userId)}`, async () => {
+        const roleUpdate = await updateUserPreservingApprovedProfessionalRoles({
+          database: db,
+          userId: String(userId || ""),
+          requestedProfessionalRoleValues: [role],
+          buildPatch: ({ currentUser }) => ({
+            role: normalizedRole,
+            phone,
+            address,
+            city,
+            state,
+            zipCode,
+            onboardingCompleted: true,
+            profileVersion: CURRENT_PROFILE_VERSION,
+            preferences: {
+              ...(currentUser as any)?.preferences,
+              profileVisibility: (currentUser as any)?.preferences?.profileVisibility || "public",
+            },
+          }),
+        });
+        if (roleUpdate.outcome === "professional_approval_required") {
+          return { ok: false as const, status: 403, body: PROFESSIONAL_APPROVAL_REQUIRED_RESPONSE };
+        }
+        if (roleUpdate.outcome === "not_found") {
+          return { ok: false as const, status: 404, body: { message: "User not found" } };
+        }
+        if (roleUpdate.outcome !== "updated") {
+          return {
+            ok: false as const,
+            status: 409,
+            body: { message: "Profile setup could not be completed" },
+          };
+        }
+        const updatedUser = roleUpdate.user;
 
-      const fullName = [updatedUser.firstName, updatedUser.lastName]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
-      const defaultDisplayName =
-        fullName || String(companyName || "").trim() || "TradeScout Profile";
+        const fullName = [updatedUser.firstName, updatedUser.lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+        const defaultDisplayName =
+          fullName || String(companyName || "").trim() || "TradeScout Profile";
+        const businessCapableRoles = new Set(["contractor", "realtor", "car_dealer", "handyman"]);
+        const ownedBusinesses = businessCapableRoles.has(normalizedRole)
+          ? await storage.listBusinessesByOwner(String(userId))
+          : [];
+        const existingContractor =
+          normalizedRole === "contractor"
+            ? await storage.getContractorByUserId(String(userId))
+            : undefined;
+        let createdBusiness: any =
+          (existingContractor?.businessId
+            ? ownedBusinesses.find(
+                (business: any) => String(business.id) === String(existingContractor.businessId)
+              )
+            : undefined) ||
+          ownedBusinesses.find(
+            (business: any) =>
+              String((business.profileData as any)?.setupProjectionKey || "") === projectionKey
+          ) ||
+          null;
 
-      const businessCapableRoles = new Set(["contractor", "realtor", "car_dealer", "handyman"]);
-      let createdBusiness: any = null;
-
-      if (businessCapableRoles.has(normalizedRole)) {
-        if (
-          normalizedRole === "contractor" &&
-          (!companyName || String(companyName).trim().length < 2)
-        ) {
-          return res
-            .status(400)
-            .json({ message: "Business name is required for contractor profiles" });
+        if (businessCapableRoles.has(normalizedRole) && !createdBusiness) {
+          const businessName = String(companyName || defaultDisplayName).trim();
+          createdBusiness = await storage.createBusinessForOwner(String(userId), {
+            name: businessName,
+            slug: businessName,
+            type: (normalizedRole === "contractor" ? "contractor" : "other") as any,
+            roleContext: normalizedRole as any,
+            profileData: {
+              description: businessDescription,
+              phone,
+              email: updatedUser.email,
+              setupProjectionKey: projectionKey,
+            } as any,
+            status: "active" as any,
+            countyIds: [],
+          });
         }
 
-        const businessName = String(companyName || defaultDisplayName).trim();
+        if (createdBusiness) {
+          await storage.setUserActiveBusiness(String(userId), createdBusiness.id);
+        }
 
-        createdBusiness = await storage.createBusinessForOwner(userId, {
-          name: businessName,
-          slug: businessName,
-          type: (normalizedRole === "contractor" ? "contractor" : "other") as any,
-          roleContext: normalizedRole as any,
-          profileData: {
-            description: businessDescription,
-            phone,
-            email: updatedUser.email,
-          } as any,
-          status: "active" as any,
-          countyIds: [],
-        });
-
-        await storage.setUserActiveBusiness(userId, createdBusiness.id);
-
-        if (normalizedRole === "contractor") {
+        if (normalizedRole === "contractor" && !existingContractor) {
           await storage.createContractor({
-            userId,
+            userId: String(userId),
             businessId: createdBusiness.id,
             companyName: String(companyName).trim(),
             slug: String(companyName)
@@ -10271,35 +10059,64 @@ export async function registerRoutes(app: any) {
             acceptsSubcontractWork: acceptsSubcontractWork || false,
           } as any);
         }
-      }
 
-      const createdProfile = await storage.createProfileForOwner(userId, {
-        ownerUserId: userId as any,
-        businessId: createdBusiness?.id || undefined,
-        roleContext: normalizedRole as any,
-        slug: String(companyName || defaultDisplayName).trim(),
-        displayName: String(companyName || defaultDisplayName).trim(),
-        headline: null,
-        contentBlocks: [],
-        ctaConfig: {},
-        seoMeta: {},
-        status: "published" as any,
-      } as any);
+        const ownedProfiles = await storage.listProfilesByOwner(String(userId));
+        let createdProfile: any =
+          ownedProfiles.find(
+            (profile: any) =>
+              String((profile.seoMeta as any)?.setupProjectionKey || "") === projectionKey
+          ) || null;
+        if (!createdProfile) {
+          createdProfile = await storage.createProfileForOwner(String(userId), {
+            ownerUserId: String(userId) as any,
+            businessId: createdBusiness?.id || undefined,
+            roleContext: normalizedRole as any,
+            slug: String(companyName || defaultDisplayName).trim(),
+            displayName: String(companyName || defaultDisplayName).trim(),
+            headline: null,
+            contentBlocks: [],
+            ctaConfig: {},
+            seoMeta: { setupProjectionKey: projectionKey },
+            status: "published" as any,
+          } as any);
+        }
 
-      const updatedWithActive = await storage.setUserActiveProfile(userId, createdProfile.id);
-
-      res.json({
-        ...updatedWithActive,
-        password: undefined,
-        activeProfileId: createdProfile.id,
-        createdProfileId: createdProfile.id,
-        createdProfileSlug: createdProfile.slug,
-        createdBusinessId: createdBusiness?.id || null,
-        createdBusinessSlug: createdBusiness?.slug || null,
+        const updatedWithActive = await storage.setUserActiveProfile(
+          String(userId),
+          createdProfile.id
+        );
+        return {
+          ok: true as const,
+          body: {
+            ...updatedWithActive,
+            password: undefined,
+            activeProfileId: createdProfile.id,
+            createdProfileId: createdProfile.id,
+            createdProfileSlug: createdProfile.slug,
+            createdBusinessId: createdBusiness?.id || null,
+            createdBusinessSlug: createdBusiness?.slug || null,
+          },
+        };
       });
+
+      if (!setupResult) {
+        return res.status(409).json({
+          message: "Profile setup is already in progress. Retry shortly.",
+          code: "PROFILE_SETUP_IN_PROGRESS",
+          retryable: true,
+        });
+      }
+      if (!setupResult.ok) {
+        return res.status(setupResult.status).json(setupResult.body);
+      }
+      res.json(setupResult.body);
     } catch (error: any) {
       console.error("Error setting up profile:", error);
-      res.status(500).json({ message: "Failed to setup profile" });
+      res.status(500).json({
+        message: "Failed to setup profile. Retry to resume setup.",
+        code: "PROFILE_SETUP_RETRYABLE",
+        retryable: true,
+      });
     }
   });
 
@@ -11136,6 +10953,10 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "role is required" });
       }
 
+      if (requestedProfessionalRole([requestedRoleToken])) {
+        return sendProfessionalVerificationDecisionRequired(res);
+      }
+
       if (!USER_ROLE_ENUM_VALUES.has(requestedRoleToken)) {
         return res.status(400).json({ message: "Invalid role" });
       }
@@ -11279,382 +11100,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Super admin user controls (minimal, but real)
-  app.post(
-    "/api/admin/user-controls/suspend/:userId",
-    isAuthenticated,
-    async (req: any, res: any) => {
-      try {
-        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const adminUser = await storage.getUser(adminUserId);
-        const actorContext = resolvePrivilegedActor(adminUser);
-        const reason = normalizePrivilegedReason(
-          req.body?.reason ?? req.body?.adminSafety?.reason,
-          12
-        );
-
-        if (!adminUser || !canRunOpsUserControls(adminUser)) {
-          return res.status(403).json({ message: "Ops admin access required" });
-        }
-        if (!reason) {
-          return res.status(400).json({ message: "reason is required (min 12 chars)" });
-        }
-
-        const { userId } = req.params;
-        if (userId === adminUserId) {
-          return res.status(400).json({ message: "Cannot suspend your own account" });
-        }
-
-        const targetUser = await storage.getUser(userId);
-        if (!targetUser) {
-          return res.status(404).json({ message: "User not found" });
-        }
-
-        if (hasRole(targetUser, "super_admin")) {
-          return res.status(403).json({ message: "Cannot suspend a super admin" });
-        }
-
-        const updated = await storage.updateUser(userId, {
-          verificationStatus: "suspended" as any,
-        });
-
-        await auditPrivilegedAction({
-          action: "admin_user_suspend",
-          route: "/api/admin/user-controls/suspend/:userId",
-          operationType: "suspend_user",
-          actorId: normalizeImmutableTargetId(adminUserId),
-          actorRole: actorContext.actorRole,
-          actorRoles: actorContext.actorRoles,
-          targetType: "user",
-          targetId: userId,
-          resolutionSource: "route_param:user_id",
-          reason,
-          outcome: "completed",
-          details: { verificationStatus: "suspended" },
-        });
-
-        return res.json({
-          id: updated.id,
-          role: updated.role,
-          verificationStatus: (updated as any).verificationStatus,
-        });
-      } catch (error: any) {
-        console.error("Error suspending user:", error);
-        return res.status(500).json({ message: "Failed to suspend user" });
-      }
-    }
-  );
-
-  app.post(
-    "/api/admin/user-controls/unsuspend/:userId",
-    isAuthenticated,
-    async (req: any, res: any) => {
-      try {
-        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const adminUser = await storage.getUser(adminUserId);
-        const actorContext = resolvePrivilegedActor(adminUser);
-        const reason = normalizePrivilegedReason(
-          req.body?.reason ?? req.body?.adminSafety?.reason,
-          12
-        );
-
-        if (!adminUser || !canRunOpsUserControls(adminUser)) {
-          return res.status(403).json({ message: "Ops admin access required" });
-        }
-        if (!reason) {
-          return res.status(400).json({ message: "reason is required (min 12 chars)" });
-        }
-
-        const { userId } = req.params;
-
-        const targetUser = await storage.getUser(userId);
-        if (!targetUser) {
-          return res.status(404).json({ message: "User not found" });
-        }
-
-        if (
-          hasRole(targetUser, "super_admin") &&
-          !hasRole(adminUser, "super_admin") &&
-          adminUser.id !== targetUser.id
-        ) {
-          return res.status(403).json({ message: "Cannot modify a super admin account" });
-        }
-
-        const updated = await storage.updateUser(userId, {
-          verificationStatus: "pending" as any,
-        });
-
-        await auditPrivilegedAction({
-          action: "admin_user_unsuspend",
-          route: "/api/admin/user-controls/unsuspend/:userId",
-          operationType: "unsuspend_user",
-          actorId: normalizeImmutableTargetId(adminUserId),
-          actorRole: actorContext.actorRole,
-          actorRoles: actorContext.actorRoles,
-          targetType: "user",
-          targetId: userId,
-          resolutionSource: "route_param:user_id",
-          reason,
-          outcome: "completed",
-          details: { verificationStatus: "pending" },
-        });
-
-        return res.json({
-          id: updated.id,
-          role: updated.role,
-          verificationStatus: (updated as any).verificationStatus,
-        });
-      } catch (error: any) {
-        console.error("Error unsuspending user:", error);
-        return res.status(500).json({ message: "Failed to unsuspend user" });
-      }
-    }
-  );
-
-  app.post(
-    "/api/admin/user-controls/verify/:userId",
-    isAuthenticated,
-    async (req: any, res: any) => {
-      try {
-        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const adminUser = await storage.getUser(adminUserId);
-        const actorContext = resolvePrivilegedActor(adminUser);
-        const reason = normalizePrivilegedReason(
-          req.body?.reason ?? req.body?.adminSafety?.reason,
-          12
-        );
-
-        if (!adminUser || !canRunOpsUserControls(adminUser)) {
-          return res.status(403).json({ message: "Ops admin access required" });
-        }
-        if (!reason) {
-          return res.status(400).json({ message: "reason is required (min 12 chars)" });
-        }
-
-        const { userId } = req.params;
-
-        const targetUser = await storage.getUser(userId);
-        if (!targetUser) {
-          return res.status(404).json({ message: "User not found" });
-        }
-        if (hasRole(targetUser, "super_admin") && !hasRole(adminUser, "super_admin")) {
-          return res.status(403).json({ message: "Cannot modify a super admin account" });
-        }
-
-        const updated = await storage.updateUser(userId, {
-          verificationStatus: "approved" as any,
-          addressVerified: true,
-        });
-
-        await auditPrivilegedAction({
-          action: "admin_user_verify",
-          route: "/api/admin/user-controls/verify/:userId",
-          operationType: "verify_user",
-          actorId: normalizeImmutableTargetId(adminUserId),
-          actorRole: actorContext.actorRole,
-          actorRoles: actorContext.actorRoles,
-          targetType: "user",
-          targetId: userId,
-          resolutionSource: "route_param:user_id",
-          reason,
-          outcome: "completed",
-          details: { verificationStatus: "approved", addressVerified: true },
-        });
-
-        return res.json({
-          id: updated.id,
-          role: updated.role,
-          verificationStatus: (updated as any).verificationStatus,
-          addressVerified: (updated as any).addressVerified,
-        });
-      } catch (error: any) {
-        console.error("Error verifying user:", error);
-        return res.status(500).json({ message: "Failed to verify user" });
-      }
-    }
-  );
-
-  app.post(
-    "/api/admin/user-controls/revoke-verify/:userId",
-    isAuthenticated,
-    async (req: any, res: any) => {
-      try {
-        const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const adminUser = await storage.getUser(adminUserId);
-        const actorContext = resolvePrivilegedActor(adminUser);
-        const reason = normalizePrivilegedReason(
-          req.body?.reason ?? req.body?.adminSafety?.reason,
-          12
-        );
-
-        if (!adminUser || !canRunOpsUserControls(adminUser)) {
-          return res.status(403).json({ message: "Ops admin access required" });
-        }
-        if (!reason) {
-          return res.status(400).json({ message: "reason is required (min 12 chars)" });
-        }
-
-        const { userId } = req.params;
-
-        const targetUser = await storage.getUser(userId);
-        if (!targetUser) {
-          return res.status(404).json({ message: "User not found" });
-        }
-        if (hasRole(targetUser, "super_admin") && !hasRole(adminUser, "super_admin")) {
-          return res.status(403).json({ message: "Cannot modify a super admin account" });
-        }
-
-        const updated = await storage.updateUser(userId, {
-          verificationStatus: "pending" as any,
-        });
-
-        await auditPrivilegedAction({
-          action: "admin_user_revoke_verify",
-          route: "/api/admin/user-controls/revoke-verify/:userId",
-          operationType: "revoke_user_verification",
-          actorId: normalizeImmutableTargetId(adminUserId),
-          actorRole: actorContext.actorRole,
-          actorRoles: actorContext.actorRoles,
-          targetType: "user",
-          targetId: userId,
-          resolutionSource: "route_param:user_id",
-          reason,
-          outcome: "completed",
-          details: { verificationStatus: "pending" },
-        });
-
-        return res.json({
-          id: updated.id,
-          role: updated.role,
-          verificationStatus: (updated as any).verificationStatus,
-        });
-      } catch (error: any) {
-        console.error("Error revoking verification:", error);
-        return res.status(500).json({ message: "Failed to revoke verification" });
-      }
-    }
-  );
-
-  app.post("/api/admin/user-controls/role/:userId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const adminUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const adminUser = await storage.getUser(adminUserId);
-      const actorContext = resolvePrivilegedActor(adminUser);
-      const reason = normalizePrivilegedReason(
-        req.body?.reason ?? req.body?.adminSafety?.reason,
-        12
-      );
-
-      const actorIsSuper = Boolean(adminUser && hasRole(adminUser, "super_admin"));
-      const actorIsOps = Boolean(adminUser && hasRole(adminUser, "ops_admin"));
-      if (!adminUser || (!actorIsSuper && !actorIsOps)) {
-        return res.status(403).json({ message: "Ops admin access required" });
-      }
-      if (!reason) {
-        return res.status(400).json({ message: "reason is required (min 12 chars)" });
-      }
-
-      const { userId } = req.params;
-      const body = (req.body ?? {}) as any;
-      let newRole = typeof body.newRole === "string" ? body.newRole.trim() : "";
-
-      if (!newRole) {
-        return res.status(400).json({ message: "newRole is required" });
-      }
-
-      // Map UI helper roles to canonical enum values
-      if (newRole === "contractor_user") {
-        newRole = "contractor";
-      }
-
-      // Enforce canonical admin tier: no head_admin role in product model.
-      newRole = normalizeAdminRoleToken(newRole);
-
-      const allowedRoles = [
-        "homeowner",
-        "renter",
-        "landlord",
-        "property_manager",
-        "hoa_member",
-        "business_owner",
-        "commercial_property",
-        "franchise_owner",
-        "startup_founder",
-        "contractor",
-        "handyman",
-        "service_provider",
-        "specialty_tradesperson",
-        "designer",
-        "inspector",
-        "realtor",
-        "mortgage_broker",
-        "insurance_agent",
-        "title_company",
-        "car_dealer",
-        "auto_service",
-        "hoa_board",
-        "community_builder",
-        "nonprofit_org",
-        "affiliate",
-        "content_creator",
-        "admin",
-        "content_seo",
-        "analytics_specialist",
-        "marketing_specialist",
-        "moderator",
-        "ops_admin",
-        "super_admin",
-      ];
-
-      if (!allowedRoles.includes(newRole)) {
-        return res.status(400).json({ message: "Invalid role" });
-      }
-
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (hasRole(targetUser, "super_admin") && !actorIsSuper) {
-        return res.status(403).json({ message: "Only super admins can modify super admins" });
-      }
-
-      if (!actorIsSuper) {
-        const blocked = new Set(["super_admin", "ops_admin", "moderator", "admin"]);
-        if (blocked.has(newRole)) {
-          return res.status(403).json({ message: "Ops admins cannot assign admin/staff roles" });
-        }
-      }
-
-      const updated = await storage.updateUser(userId, { role: newRole as any });
-
-      await auditPrivilegedAction({
-        action: "admin_user_role_update",
-        route: "/api/admin/user-controls/role/:userId",
-        operationType: "change_user_role",
-        actorId: normalizeImmutableTargetId(adminUserId),
-        actorRole: actorContext.actorRole,
-        actorRoles: actorContext.actorRoles,
-        targetType: "user",
-        targetId: userId,
-        resolutionSource: "route_param:user_id",
-        reason,
-        outcome: "completed",
-        details: {
-          oldRole: targetUser.role,
-          newRole,
-        },
-      });
-
-      return res.json({
-        id: updated.id,
-        role: updated.role,
-      });
-    } catch (error: any) {
-      console.error("Error updating user role via quick control:", error);
-      return res.status(500).json({ message: "Failed to update user role" });
-    }
-  });
+  registerAdminUserControlRoutes(app);
 
   registerQuoteCalculatorRoutes(app, { storage });
 
@@ -12889,6 +12335,7 @@ export async function registerRoutes(app: any) {
         "real-estate": "Real Estate",
         vehicles: "Vehicles",
         construction: "Construction Equipment",
+        "building-materials": "Building Materials & Surfaces",
         tools: "Tools & Hardware",
         furniture: "Furniture & Home Goods",
         farm: "Farm Equipment",
@@ -12909,6 +12356,10 @@ export async function registerRoutes(app: any) {
       if (rawCategoryId) {
         if (looksLikeUuid(rawCategoryId)) {
           resolvedCategoryId = rawCategoryId;
+        } else if (rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY) {
+          // Code-curated profile catalogs are not marketplace rows. Bound the
+          // ordinary storage query to no results, then merge the gated catalog.
+          resolvedCategoryId = "00000000-0000-0000-0000-000000000000";
         } else {
           const desiredName = categorySlugToName[rawCategoryId] || rawCategoryId;
           const categories = await storage.getMarketplaceCategories();
@@ -13122,12 +12573,30 @@ export async function registerRoutes(app: any) {
         .map((listing: any) => toPublicExchangeListing(listing))
         .filter(Boolean) as any[];
 
-      const profileOfferItems = await listProfileOfferExchangeItems(req, rawCategoryId);
-      const merged = [...mapped, ...profileOfferItems];
+      const profileOfferItems =
+        rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY
+          ? []
+          : await listProfileOfferExchangeItems(req, rawCategoryId);
+      const profileCatalogItems = await listPublicProfileCatalogExchangeItems({
+        category: rawCategoryId,
+        search: req.query.search as string | undefined,
+        hasPriceFilter: Boolean(req.query.priceMin || req.query.priceMax),
+        condition: req.query.condition as string | undefined,
+      });
+      const merged = [...mapped, ...profileOfferItems, ...profileCatalogItems];
       const sort = String(req.query.sort || "date_desc");
-      if (sort === "price_asc") merged.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      if (sort === "price_asc")
+        merged.sort((a, b) => {
+          const aPrice = a.price == null ? Number.POSITIVE_INFINITY : Number(a.price);
+          const bPrice = b.price == null ? Number.POSITIVE_INFINITY : Number(b.price);
+          return aPrice - bPrice;
+        });
       else if (sort === "price_desc")
-        merged.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+        merged.sort((a, b) => {
+          const aPrice = a.price == null ? Number.NEGATIVE_INFINITY : Number(a.price);
+          const bPrice = b.price == null ? Number.NEGATIVE_INFINITY : Number(b.price);
+          return bPrice - aPrice;
+        });
       else if (sort === "date_asc")
         merged.sort(
           (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
@@ -14392,28 +13861,6 @@ export async function registerRoutes(app: any) {
   );
 
   // Admin panel routes (require admin access)
-  const requireAdmin = (req: any, res: any, next: any) => {
-    if (!req.user) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-
-    const activeRole = normalizeAuthorityRole(req.user.activeRole);
-    const primaryRole = normalizeAuthorityRole(req.user.role);
-    const roles = Array.isArray(req.user.roles)
-      ? req.user.roles.map((r: any) => normalizeAuthorityRole(r)).filter(Boolean)
-      : [];
-    const hasAdmin =
-      req.user.isAdmin === true ||
-      isAdminTierRole(activeRole) ||
-      isAdminTierRole(primaryRole) ||
-      roles.some((role: string) => isAdminTierRole(role));
-
-    if (!hasAdmin) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    next();
-  };
-
   // Emergency admin access route - allows Facebook login to become master admin
   app.post("/api/auth/emergency-admin-access", async (req: any, res: any) => {
     return res.status(410).json({
@@ -14426,34 +13873,57 @@ export async function registerRoutes(app: any) {
     try {
       const { role } = req.body;
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const requestedApprovalRole = requestedProfessionalRole([role]);
+      if (requestedApprovalRole === "car_salesman" || requestedApprovalRole === "vehicle_dealer") {
+        return sendProfessionalApprovalRequired(res);
+      }
+      const requestedRole = requestedApprovalRole || String(role || "").trim();
 
-      // Get user's current roles
-      const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
-      if (!currentUser) {
+      const roleUpdate = await updateUserPreservingApprovedProfessionalRoles({
+        database: db,
+        userId: String(userId || ""),
+        requestedProfessionalRoleValues: [role],
+        buildPatch: ({ currentUser, approvedProfessionalRoles }) => {
+          if (requestedApprovalRole) {
+            return { activeRole: requestedRole, updatedAt: new Date() };
+          }
+
+          const assignedRoles = [
+            ...(Array.isArray(currentUser.roles) ? currentUser.roles : []),
+            currentUser.role,
+            currentUser.activeRole,
+            ...approvedProfessionalRoles,
+          ]
+            .map(
+              (assignedRole) =>
+                canonicalizeProfessionalRole(assignedRole) || String(assignedRole || "").trim()
+            )
+            .filter(Boolean);
+          if (!new Set(assignedRoles).has(requestedRole)) return null;
+          return { activeRole: requestedRole, updatedAt: new Date() };
+        },
+      });
+      if (roleUpdate.outcome === "professional_approval_required") {
+        return sendProfessionalApprovalRequired(res);
+      }
+      if (roleUpdate.outcome === "not_found") {
         return res.status(404).json({ message: "User not found" });
       }
-
-      const userRoles = currentUser.roles || [currentUser.role];
-      if (!userRoles.includes(role)) {
+      if (roleUpdate.outcome !== "updated") {
         return res
           .status(403)
           .json({ message: "You don't have permission to switch to this role" });
       }
 
-      // Update active role
-      await db
-        .update(users)
-        .set({ activeRole: role, updatedAt: new Date() })
-        .where(eq(users.id, userId));
-
       // Update session
       req.user = {
         ...req.user,
-        activeRole: role,
-        role: role, // Update primary role reference too
+        activeRole: roleUpdate.user.activeRole,
+        role: roleUpdate.user.role,
+        roles: roleUpdate.user.roles,
       };
 
-      res.json({ message: "Role switched successfully", activeRole: role });
+      res.json({ message: "Role switched successfully", activeRole: roleUpdate.user.activeRole });
     } catch (error: any) {
       console.error("Error switching role:", error);
       res.status(500).json({ message: "Failed to switch role" });
@@ -14877,7 +14347,6 @@ export async function registerRoutes(app: any) {
   app.post(
     "/api/admin/businesses/import",
     isAuthenticated,
-    isAdmin,
     businessImportMaybeUploadFile,
     // Accept text/csv uploads directly to avoid JSON body-size limits (413) in production.
     express.text({
@@ -14945,6 +14414,11 @@ export async function registerRoutes(app: any) {
         );
         const createOwnerAccounts =
           requestedCreateOwnerAccounts && confirmCreateUsers === "CREATE_USERS";
+        const importReason = normalizePrivilegedReason(
+          body.reason ?? body.adminSafety?.reason ?? query.reason,
+          12,
+          500
+        );
         const createPublicProfiles = readBool(
           body.createPublicProfiles ?? query.createPublicProfiles ?? query.create_public_profiles
         );
@@ -14956,6 +14430,41 @@ export async function registerRoutes(app: any) {
         );
         const sourceLabelRaw = readStr(body.source ?? query.source);
         const sourceLabel = (sourceLabelRaw || "admin_import").toLowerCase().slice(0, 64);
+
+        const actorId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        const actorContext = resolvePrivilegedActor(actor);
+        const importAuthority = evaluateAdminBusinessImportRequest({
+          actor,
+          createOwnerAccountsRequested: requestedCreateOwnerAccounts,
+          confirmation: confirmCreateUsers,
+          reason: importReason,
+        });
+        if (importAuthority.outcome === "denied") {
+          return res.status(importAuthority.status).json({
+            message: importAuthority.message,
+            code: importAuthority.code,
+          });
+        }
+
+        if (createOwnerAccounts) {
+          await auditPrivilegedAction({
+            action: "admin_business_owner_accounts_import",
+            route: "/api/admin/businesses/import",
+            operationType: "bulk_create_business_owner_accounts",
+            actorId: normalizeImmutableTargetId(actorId),
+            actorRole: actorContext.actorRole,
+            actorRoles: actorContext.actorRoles,
+            targetType: "user_batch",
+            targetId: null,
+            resolutionSource: "validated_import_payload",
+            reason: importReason,
+            outcome: "started",
+            details: { source: sourceLabel, dryRun },
+          });
+        }
 
         if (!isXlsxUpload && !content.trim()) {
           return res.status(400).json({ message: "content is required (or upload an .xlsx file)" });
@@ -15330,17 +14839,6 @@ export async function registerRoutes(app: any) {
           return "";
         };
 
-        const ensureUniqueBusinessProfileSlug = async (base: string, userId: string) => {
-          const baseSlug = slugify(base) || randomUUID();
-          let candidate = baseSlug;
-          for (let attempt = 0; attempt < 50; attempt++) {
-            const existing = await storage.getBusinessProfileBySlug(candidate);
-            if (!existing || existing.userId === userId) return candidate;
-            candidate = `${baseSlug}-${attempt + 2}`;
-          }
-          return `${baseSlug}-${randomUUID().slice(0, 8)}`;
-        };
-
         // Preload county lookups (FIPS -> county row)
         const allFips = Array.from(
           new Set(
@@ -15366,6 +14864,10 @@ export async function registerRoutes(app: any) {
 
         const resetBase =
           process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
+        const importEmailVerificationRequired =
+          sendActivationEmailsEffective && emailService.isConfigured()
+            ? await getGeneralSetting<boolean>("email_verification_required", true)
+            : false;
 
         const results: any[] = [];
         let createdUsers = 0;
@@ -15377,6 +14879,7 @@ export async function registerRoutes(app: any) {
         let createdPublicProfiles = 0;
         let activationPrepared = 0;
         let activationEmailed = 0;
+        let postCommitClaimWarnings = 0;
 
         for (let idx = 0; idx < records.length; idx++) {
           const rec = records[idx] || {};
@@ -15671,6 +15174,10 @@ export async function registerRoutes(app: any) {
             let businessId: string | null = null;
             let profileSlug: string | null = null;
             let publicProfileSlug: string | null = null;
+            let activationResetToken: string | null = null;
+            let activationResetExpiresAt: number | null = null;
+            let activationEmailVerificationToken: string | null = null;
+            let claimWarning: ReturnType<typeof resolvePostCommitClaimWriteWarning> = null;
 
             const knownKeys = new Set([
               "email",
@@ -15798,148 +15305,55 @@ export async function registerRoutes(app: any) {
               importExtras.state_code = resolvedStateCode;
 
             if (shouldCreateOwnerAccounts) {
-              const existingUser = await storage.getUserByEmail(email);
-              let userRecord = existingUser;
-
-              if (!existingUser) {
-                if (dryRun) {
-                  userRecord = {
-                    id: "__dry_run__",
-                    email,
-                  } as any;
-                } else {
-                  userRecord = await storage.createUser({
-                    email,
-                    phone: phone || undefined,
-                    address: (streetAddress || fulladdr || "").trim() || undefined,
-                    city: city || undefined,
-                    stateCode: resolvedStateCode || undefined,
-                    zipCode: zipCode || undefined,
-                    firstName: ownerFirstName || businessName || undefined,
-                    lastName: ownerLastName || undefined,
-                    role: "business_owner" as any,
-                    roles: ["business_owner"],
-                    activeRole: "business_owner",
-                    onboardingCompleted: false,
-                    profileVersion: 0,
-                    provider: "local",
-                  } as any);
-                }
+              if (dryRun) {
+                const targetAuthority = evaluateAdminBusinessImportTarget({ email });
+                if (targetAuthority.outcome === "denied") throw targetAuthority;
                 createdUsers++;
               } else {
-                const currentRoles: string[] = Array.isArray((existingUser as any).roles)
-                  ? ((existingUser as any).roles as string[])
-                  : [];
-                const nextRoles = Array.from(new Set([...currentRoles, "business_owner"]));
-                if (!dryRun && nextRoles.length !== currentRoles.length) {
-                  await storage.updateUser(existingUser.id, { roles: nextRoles } as any);
-                  updatedUsers++;
-                }
-              }
-
-              userId = String((userRecord as any).id);
-
-              // Create/attach a business entity record (draft)
-              if (!dryRun && userId && userId !== "__dry_run__") {
-                const existingBiz = await db
-                  .select({ id: businesses.id, name: businesses.name })
-                  .from(businesses)
-                  .where(
-                    and(
-                      eq(businesses.ownerUserId, userId),
-                      sql`lower(${businesses.name}) = ${businessName.toLowerCase()}`
-                    )
-                  )
-                  .limit(1);
-
-                if (existingBiz.length > 0) {
-                  businessId = existingBiz[0].id;
-                  updatedBusinesses++;
-                } else {
-                  const createdBiz = await storage.createBusinessForOwner(userId, {
-                    name: businessName,
-                    slug: businessName,
-                    type: "other" as any,
-                    roleContext: "business_owner" as any,
-                    profileData: {
-                      category: category || undefined,
-                      services: services.length ? services : undefined,
-                      website: website || undefined,
-                      phone: phone || undefined,
-                      email,
-                      address: (streetAddress || "").trim() || undefined,
-                      city: city || undefined,
-                      stateCode: resolvedStateCode || undefined,
-                      zipCode: zipCode || undefined,
-                      importExtras: Object.keys(importExtras).length ? importExtras : undefined,
-                    },
-                    sources: [sourceLabel],
-                    status: "draft" as any,
-                    countyIds,
-                  } as any);
-                  businessId = createdBiz.id;
-                  createdBusinesses++;
-                }
-              }
-
-              // Ensure business profile exists (stored on the user for now)
-              if (!dryRun && userId && userId !== "__dry_run__") {
-                const baseSlug = businessName;
-                const nextSlug = await ensureUniqueBusinessProfileSlug(baseSlug, userId);
-                profileSlug = nextSlug;
-
-                await storage.saveBusinessProfile({
-                  id: userId,
-                  userId,
-                  slug: nextSlug,
-                  name: businessName,
-                  headline: null as any,
-                  description: null,
-                  countyFips: countyFips || "",
+                const projection = await createImportedOwnerProjectionAtomically({
+                  database: db,
+                  actorId,
+                  confirmCreateUsers,
+                  importReason,
+                  sourceLabel,
+                  email,
+                  phone,
+                  streetAddress,
+                  fullAddress: fulladdr,
+                  city,
+                  stateCode: resolvedStateCode,
+                  zipCode,
+                  ownerFirstName,
+                  ownerLastName,
+                  businessName,
+                  category,
+                  services,
+                  website,
+                  importExtras,
+                  countyIds,
+                  countyFips,
                   countyName: county?.name || "",
-                  city: null,
-                  stateCode: resolvedStateCode || null,
-                  serviceAreas: countyFips ? [countyFips] : [],
-                  website: website || null,
-                  services: services.length ? services : null,
-                  verificationStatus: "pending" as any,
-                  addressVerified: false,
-                  cvsScore: null as any,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                  publishedAt: new Date().toISOString(),
-                } as any);
-
-                if (createPublicProfilesEffective) {
-                  const existingProfiles = await storage.listProfilesByOwner(userId);
-                  if (existingProfiles.length > 0) {
-                    publicProfileSlug = String(existingProfiles[0]?.slug || "") || null;
-                    if (!(existingUser as any)?.activeProfileId && existingProfiles[0]?.id) {
-                      await storage.setUserActiveProfile(userId, existingProfiles[0].id);
-                    }
-                  } else {
-                    const createdProfile = await storage.createProfileForOwner(userId, {
-                      businessId: businessId || undefined,
-                      roleContext: "business_owner" as any,
-                      slug: businessName,
-                      displayName: businessName,
-                      headline: null,
-                      contentBlocks: [],
-                      ctaConfig: {},
-                      seoMeta: {},
-                      status: "published" as any,
-                    } as any);
-                    createdPublicProfiles++;
-                    publicProfileSlug = createdProfile.slug;
-                    await storage.setUserActiveProfile(userId, createdProfile.id);
-                  }
-                }
+                  createPublicProfile: createPublicProfilesEffective,
+                  createEmailVerificationToken: importEmailVerificationRequired,
+                });
+                userId = String(projection.user.id);
+                businessId = projection.businessId;
+                profileSlug = projection.legacyProfileSlug;
+                publicProfileSlug = projection.publicProfileSlug;
+                activationResetToken = projection.resetToken;
+                activationResetExpiresAt = projection.resetExpiresAt;
+                activationEmailVerificationToken = projection.emailVerificationToken;
+                if (projection.userCreated) createdUsers++;
+                if (projection.userRoleUpdated) updatedUsers++;
+                if (projection.businessCreated) createdBusinesses++;
+                else updatedBusinesses++;
+                if (projection.publicProfileCreated) createdPublicProfiles++;
               }
 
               // Claim-first: write claim event for representsBusiness in this county (only with county scope)
-              if (!dryRun && userId && userId !== "__dry_run__" && countyFips && county) {
+              if (!dryRun && userId && countyFips && county) {
                 try {
-                  await writeClaimEvent({
+                  const claimResult = await writeClaimEvent({
                     userId,
                     claimType: ClaimType.REPRESENTS_BUSINESS,
                     countyFips,
@@ -15953,8 +15367,16 @@ export async function registerRoutes(app: any) {
                       profileSlug,
                     },
                   });
+                  claimWarning = resolvePostCommitClaimWriteWarning({ result: claimResult });
                 } catch (e) {
-                  console.warn("[admin business import] claim write failed", e);
+                  claimWarning = resolvePostCommitClaimWriteWarning({ error: e });
+                }
+                if (claimWarning) {
+                  postCommitClaimWarnings += 1;
+                  console.warn("[admin business import] claim write failed", {
+                    userId,
+                    warning: claimWarning,
+                  });
                 }
               }
             } else {
@@ -16142,36 +15564,39 @@ export async function registerRoutes(app: any) {
               }
             }
 
-            // Activation: generate password reset token and optionally email it (only when a user exists)
+            // Tokens were committed atomically with the account projection. Email is
+            // a post-commit best-effort side effect and cannot turn the row into an error.
             let activationLink: string | undefined;
-            if (!dryRun && userId && userId !== "__dry_run__") {
-              const { token, expiresAt } = await passwordResetService.createToken(userId);
+            let activationEmailWarning: string | undefined;
+            if (!dryRun && userId && activationResetToken && activationResetExpiresAt !== null) {
               activationPrepared++;
-              const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
+              const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${activationResetToken}`;
 
               if (sendActivationEmailsEffective && emailService.isConfigured()) {
-                const emailVerificationRequired = await getGeneralSetting<boolean>(
-                  "email_verification_required",
-                  true
-                );
-                let verifyLink: string | null = null;
-                if (emailVerificationRequired) {
-                  const verify = await emailVerificationService.createToken(userId);
-                  const verifyBase = getPublicBaseUrlFromRequest(req as any);
-                  verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
-                }
-
-                await emailService.sendEmail({
-                  to: email,
-                  subject: "Claim your TradeScout business account",
-                  html: `<p>Your business account has been created in TradeScout.</p>
-<p><a href="${resetLink}">Set your password</a> to claim your account. This link expires in ${Math.round((expiresAt - Date.now()) / 60000)} minutes.</p>
+                try {
+                  let verifyLink: string | null = null;
+                  if (activationEmailVerificationToken) {
+                    const verifyBase = getPublicBaseUrlFromRequest(req as any);
+                    verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${activationEmailVerificationToken}&next=${encodeURIComponent("/pre-scout-setup")}`;
+                  }
+                  await emailService.sendEmail({
+                    to: email,
+                    subject: "Claim your TradeScout business account",
+                    html: `<p>Your business account has been created in TradeScout.</p>
+<p><a href="${resetLink}">Set your password</a> to claim your account. This link expires in ${Math.round((activationResetExpiresAt - Date.now()) / 60000)} minutes.</p>
 ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` : ""}
 <p>After you sign in, you can finish your profile and complete insurance/license verification.</p>`,
-                  text: `Set your password: ${resetLink}`,
-                  purpose: "activation",
-                });
-                activationEmailed++;
+                    text: `Set your password: ${resetLink}`,
+                    purpose: "activation",
+                  });
+                  activationEmailed++;
+                } catch (emailError: any) {
+                  activationEmailWarning = "Account created; activation email delivery failed.";
+                  console.warn("[admin business import] activation email failed", {
+                    userId,
+                    error: emailError,
+                  });
+                }
               } else if (includeActivationLinksEffective && allowActivationLinkExport) {
                 activationLink = resetLink;
               }
@@ -16185,6 +15610,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               profileSlug,
               publicProfileSlug,
               activationLink,
+              activationEmailWarning,
+              claimWarning,
             });
           } catch (e: any) {
             results.push({
@@ -16195,17 +15622,56 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           }
         }
 
+        const batchAuditWarning = createOwnerAccounts
+          ? await runBestEffortPrivilegedSummaryAudit({
+              write: () =>
+                auditPrivilegedAction({
+                  action: "admin_business_owner_accounts_import",
+                  route: "/api/admin/businesses/import",
+                  operationType: "bulk_create_business_owner_accounts",
+                  actorId: normalizeImmutableTargetId(actorId),
+                  actorRole: actorContext.actorRole,
+                  actorRoles: actorContext.actorRoles,
+                  targetType: "user_batch",
+                  targetId: null,
+                  resolutionSource: "validated_import_payload",
+                  reason: importReason,
+                  outcome: "completed",
+                  details: {
+                    source: sourceLabel,
+                    dryRun,
+                    rows: records.length,
+                    createdUsers,
+                    updatedUsers,
+                    createdBusinesses,
+                    failedRows: results.filter((result) => result.status === "error").length,
+                    postCommitClaimWarnings,
+                  },
+                }),
+              warningCode: "BUSINESS_IMPORT_SUMMARY_AUDIT_FAILED",
+              warningMessage:
+                "The import rows committed, but the completed batch audit summary needs retry.",
+              onError: (error) =>
+                console.error("[admin business import] completed summary audit failed", error),
+            })
+          : null;
+
+        const responseWarnings = [
+          requestedCreateOwnerAccounts && !createOwnerAccounts
+            ? 'createOwnerAccounts was requested but ignored. To create real user accounts, set confirmCreateUsers="CREATE_USERS".'
+            : null,
+          postCommitClaimWarnings > 0
+            ? `${postCommitClaimWarnings} committed account projection(s) need claim-event retry.`
+            : null,
+          batchAuditWarning?.message || null,
+        ].filter((warning): warning is string => Boolean(warning));
+
         res.json({
           dryRun,
           delimiter: delimiter === "\t" ? "tab" : delimiter === "|" ? "pipe" : "comma",
           parse: lastParseMeta,
           parseFile,
-          warnings:
-            requestedCreateOwnerAccounts && !createOwnerAccounts
-              ? [
-                  'createOwnerAccounts was requested but ignored. To create real user accounts, set confirmCreateUsers="CREATE_USERS".',
-                ]
-              : [],
+          warnings: responseWarnings,
           totals: {
             rows: records.length,
             createdUsers,
@@ -16217,6 +15683,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             createdPublicProfiles,
             activationPrepared,
             activationEmailed,
+            postCommitClaimWarnings,
+          },
+          postCommit: {
+            claimWriteWarnings: postCommitClaimWarnings,
+            batchAuditWarning,
           },
           activationLinkExport: {
             requested: includeActivationLinksEffective,
@@ -16240,62 +15711,234 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Admin: find "import-created" directory owner accounts so they can be archived into unclaimed businesses.
   // These accounts were created before we defaulted imports to "directory entries only" (no auth users).
-  const archiveImportedDirectoryUserToDirectory = async (userId: string) => {
-    const id = String(userId || "").trim();
+  const IMPORTED_DIRECTORY_USER_PROVENANCE_KIND = "admin_directory_owner_import";
+  const importedDirectoryUserArchiveCandidatePredicate = and(
+    eq(users.onboardingCompleted, false),
+    isNull(users.password),
+    eq(users.provider, "local"),
+    isNull(users.providerId),
+    isNull(users.facebookId),
+    isNull(users.googleId),
+    eq(users.emailVerified, false),
+    eq(users.verificationStatus, "pending"),
+    eq(users.addressVerified, false),
+    eq(users.verifiedBadge, false),
+    sql`coalesce(${users.preferences} -> 'importProvenance' ->> 'kind', '') = ${IMPORTED_DIRECTORY_USER_PROVENANCE_KIND}`,
+    sql`coalesce(${users.preferences} -> 'importProvenance' ->> 'version', '') = '1'`,
+    eq(users.role, "business_owner"),
+    eq(users.activeRole, "business_owner"),
+    sql`cardinality(coalesce(${users.roles}, array[]::text[])) = 1`,
+    sql`'business_owner' = any(coalesce(${users.roles}, array[]::text[]))`,
+    sql`cardinality(${users.capabilityBundles}) = 0`,
+    sql`cardinality(${users.participationModes}) = 0`,
+    sql`not exists (
+      select 1
+      from unnest(
+        coalesce(${users.roles}, array[]::text[])
+        || array[coalesce(${users.role}::text, ''), coalesce(${users.activeRole}, '')]
+      ) as role_value
+      where regexp_replace(lower(trim(role_value)), '[ -]+', '_', 'g') like '%admin%'
+         or regexp_replace(lower(trim(role_value)), '[ -]+', '_', 'g') in (
+           'moderator', 'ops_admin', 'super_admin', 'support_agent', 'content_moderator',
+           'territory_manager', 'contractor_success', 'hoa_board', 'hoa_manager',
+           'realtor', 'car_dealer', 'car_salesman', 'vehicle_dealer'
+         )
+    )`,
+    sql`not exists (select 1 from realtor_profiles rp where rp.user_id = ${users.id})`,
+    sql`not exists (select 1 from car_salesman_profiles cp where cp.user_id = ${users.id})`,
+    sql`not exists (select 1 from contractors c where c.user_id = ${users.id})`,
+    sql`not exists (select 1 from address_verifications av where av.user_id = ${users.id})`,
+    sql`not exists (select 1 from identity_verifications iv where iv.user_id = ${users.id})`,
+    sql`not exists (select 1 from trusted_devices td where td.user_id = ${users.id})`,
+    sql`not exists (
+      select 1 from sessions s
+      where coalesce(s.sess -> 'passport' ->> 'user', '') = ${users.id}
+    )`,
+    sql`not exists (select 1 from user_profiles up where up.user_id = ${users.id})`,
+    sql`not exists (select 1 from profiles p where p.owner_user_id = ${users.id})`,
+    sql`not exists (
+      select 1 from contact_permissions cp
+      where cp.requester_id = ${users.id}
+         or cp.target_user_id = ${users.id}
+         or cp.responded_by = ${users.id}
+    )`,
+    sql`not exists (
+      select 1 from contact_permission_events cpe
+      where cpe.requester_id = ${users.id}
+         or cpe.target_user_id = ${users.id}
+         or cpe.actor_id = ${users.id}
+    )`,
+    sql`not exists (select 1 from decision_cards dc where dc.user_id = ${users.id})`,
+    sql`not exists (
+      select 1 from work_request_assignments wra where wra.responder_user_id = ${users.id}
+    )`,
+    sql`not exists (
+      select 1 from work_request_events wre where wre.actor_user_id = ${users.id}
+    )`,
+    sql`not exists (
+      select 1 from provider_declarations pd where pd.provider_user_id = ${users.id}
+    )`,
+    sql`not exists (
+      select 1 from provider_eligibilities pe where pe.provider_user_id = ${users.id}
+    )`,
+    sql`not exists (select 1 from events e where e.user_id = ${users.id})`,
+    sql`not exists (select 1 from claim_events ce where ce.user_id = ${users.id})`,
+    sql`not exists (select 1 from messages m where m.sender_id = ${users.id})`,
+    sql`not exists (
+      select 1 from conversations c
+      where c.homeowner_id = ${users.id} or c.contractor_id = ${users.id}
+    )`,
+    sql`not exists (
+      select 1 from marketplace_conversations mc
+      where mc.buyer_id = ${users.id} or mc.seller_id = ${users.id}
+    )`,
+    sql`not exists (
+      select 1 from profile_booking_requests pbr
+      where pbr.owner_user_id = ${users.id} or pbr.requester_user_id = ${users.id}
+    )`,
+    sql`not exists (select 1 from work_requests wr where wr.created_by_user_id = ${users.id})`,
+    sql`not exists (
+      select 1 from professional_partnerships pp
+      where pp.initiator_id = ${users.id} or pp.partner_id = ${users.id}
+    )`,
+    sql`not exists (
+      select 1 from partnership_referrals pr
+      where pr.referrer_id = ${users.id} or pr.customer_id = ${users.id}
+    )`,
+    sql`not exists (select 1 from marketplace_listings ml where ml.seller_id = ${users.id})`,
+    sql`not exists (select 1 from community_posts cp where cp.author_id = ${users.id})`,
+    sql`not exists (select 1 from recommendations r where r.user_id = ${users.id})`,
+    sql`(
+      select count(*)::int from businesses b where b.owner_user_id = ${users.id}
+    ) = 1`
+  );
+
+  const archiveImportedDirectoryUserToDirectory = async (input: {
+    userId: string;
+    actorId: string;
+    reason: string;
+    route: string;
+    confirmation: string;
+  }) => {
+    const id = String(input.userId || "").trim();
     if (!id) throw { status: 400, message: "userId is required" };
 
-    const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
-    const user = rows[0] as any;
-    if (!user) throw { status: 404, message: "User not found" };
+    const now = new Date();
+    return db.transaction(async (tx) => {
+      const lockedUsers = await tx
+        .select()
+        .from(users)
+        .where(inArray(users.id, Array.from(new Set([input.actorId, id]))))
+        .orderBy(asc(users.id))
+        .for("update");
+      const actor = lockedUsers.find((row) => String(row.id) === input.actorId);
+      const user = lockedUsers.find((row) => String(row.id) === id);
+      if (!user) throw { status: 404, message: "User not found" };
+      const actorContext = resolvePrivilegedActor(actor);
 
-    const roles: string[] = Array.isArray(user.roles) ? user.roles.map((r: any) => String(r)) : [];
-    const alreadyArchivedEmail = String(user.email || "")
-      .toLowerCase()
-      .startsWith("archived+");
-    const isCandidate =
-      user.onboardingCompleted === false &&
-      (user.password == null || user.password === "") &&
-      (roles.includes("business_owner") || String(user.role || "") === "business_owner");
+      const preferences =
+        user.preferences && typeof user.preferences === "object"
+          ? (user.preferences as Record<string, unknown>)
+          : {};
+      const alreadyArchivedEmail = String(user.email || "")
+        .toLowerCase()
+        .startsWith("archived+");
+      const originalOrCurrentEmail = String(preferences.archivedEmail || user.email || "");
+      const authorityDecision = evaluateImportedDirectoryArchiveAuthority({
+        actor,
+        actorId: input.actorId,
+        target: user,
+        targetUserId: id,
+        originalOrCurrentEmail,
+      });
+      if (authorityDecision.outcome === "denied") {
+        throw authorityDecision;
+      }
 
-    if (!isCandidate) {
-      // Idempotent cleanup behavior: if this user was already archived by this flow, return success.
-      if (
-        alreadyArchivedEmail &&
-        String((user.preferences as any)?.archivedReason || "") === "admin_import_cleanup"
-      ) {
-        return {
+      // Reassert token revocation even on an idempotent retry. Any later
+      // ineligible failure rolls this delete back with the archive transaction.
+      await tx.execute(sql`delete from public.auth_action_tokens where user_id = ${id}`);
+
+      // Idempotent only for rows already archived by this exact operation.
+      if (alreadyArchivedEmail && preferences.archivedReason === "admin_import_cleanup") {
+        await tx.execute(sql`
+          delete from sessions
+          where coalesce(sess -> 'passport' ->> 'user', '') = ${id}
+        `);
+        await tx.execute(sql`delete from trusted_devices where user_id = ${id}`);
+        await tx
+          .update(users)
+          .set({
+            roles: ["homeowner"],
+            role: "homeowner" as any,
+            activeRole: "homeowner",
+            capabilityBundles: [],
+            participationModes: [],
+            verificationStatus: "pending" as any,
+            addressVerified: false,
+            verifiedBadge: false,
+            updatedAt: now,
+          } as any)
+          .where(eq(users.id, id));
+        const archiveOutcome = {
           userId: id,
           archivedEmail: String(user.email || ""),
-          directoryBusinessId: String((user.preferences as any)?.archivedDirectoryBusinessId || ""),
+          directoryBusinessId: String(preferences.archivedDirectoryBusinessId || ""),
           directoryBusinessSlug: null,
           directoryBusinessName: null,
           alreadyArchived: true,
         };
+        await auditPrivilegedAction({
+          action: "admin_imported_directory_user_archive",
+          route: input.route,
+          operationType: "archive_imported_directory_user",
+          actorId: normalizeImmutableTargetId(input.actorId),
+          actorRole: actorContext.actorRole,
+          actorRoles: actorContext.actorRoles,
+          targetType: "user",
+          targetId: id,
+          resolutionSource: "locked_route_param:user_id",
+          reason: input.reason,
+          outcome: "completed",
+          details: { confirmation: input.confirmation, archiveOutcome },
+          database: tx,
+        });
+        return archiveOutcome;
       }
-      throw {
-        status: 400,
-        message:
-          "User does not match import-cleanup heuristics (must be an unclaimed import-style business_owner account).",
-      };
-    }
 
-    const originalEmail = String(user.email || "").trim();
-    const originalPhone = typeof user.phone === "string" ? user.phone : null;
-    const archivedEmail = `archived+${id}@thetradescout.invalid`;
+      const verificationStateDecision = evaluateImportedDirectoryArchiveVerificationState(user);
+      if (verificationStateDecision.outcome === "denied") {
+        throw verificationStateDecision;
+      }
 
-    const slugify = (text: string): string =>
-      String(text || "")
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/[\s_-]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 80);
+      const [eligible] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.id, id), importedDirectoryUserArchiveCandidatePredicate))
+        .limit(1);
+      if (!eligible) {
+        throw {
+          status: 409,
+          code: "IMPORT_ARCHIVE_TARGET_INELIGIBLE",
+          message:
+            "Only exact-provenance import accounts with no authority, profile, identity, or user activity may be archived.",
+        };
+      }
 
-    const now = new Date();
-    return db.transaction(async (tx) => {
-      // Prefer to detach an existing owned business (created during the old import flow)
-      // so we don't duplicate directory entries.
+      // Eligibility saw the original identity evidence. Only after it passes
+      // may the archive revoke sessions/devices and continue anonymization.
+      await tx.execute(sql`
+        delete from sessions
+        where coalesce(sess -> 'passport' ->> 'user', '') = ${id}
+      `);
+      await tx.execute(sql`delete from trusted_devices where user_id = ${id}`);
+
+      const originalEmail = String(user.email || "").trim();
+      const originalPhone = typeof user.phone === "string" ? user.phone : null;
+      const archivedEmail = `archived+${id}@thetradescout.invalid`;
+
+      // Exact import provenance must project to exactly one owned directory business.
+      // Lock and recheck the full set; ambiguous multi-business accounts fail closed.
       const ownedBizRows = await tx
         .select({
           id: businesses.id,
@@ -16311,13 +15954,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         .from(businesses)
         .where(eq(businesses.ownerUserId, id))
         .orderBy(desc(businesses.createdAt))
-        .limit(1);
+        .for("update");
+
+      const businessCardinalityDecision = evaluateImportedDirectoryBusinessCardinality(
+        ownedBizRows.length
+      );
+      if (businessCardinalityDecision.outcome === "denied") {
+        throw businessCardinalityDecision;
+      }
 
       let directoryBusinessId: string | null = null;
       let directoryBusinessSlug: string | null = null;
       let directoryBusinessName: string | null = null;
 
-      if (ownedBizRows.length > 0) {
+      if (ownedBizRows.length === 1) {
         const biz = ownedBizRows[0] as any;
         directoryBusinessId = String(biz.id);
         directoryBusinessSlug = String(biz.slug);
@@ -16350,118 +16000,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           : [];
         const nextSources = Array.from(new Set([...currentSources, "admin_import_cleanup"]));
 
-        try {
-          await tx
-            .update(businesses)
-            .set({
-              ownerUserId: null,
-              claimStatus: "unclaimed" as any,
-              profileData: nextProfileData,
-              sources: nextSources as any,
-              updatedAt: now,
-            } as any)
-            .where(eq(businesses.id, directoryBusinessId));
-        } catch (error: any) {
-          const isMissingClaimStatusColumn =
-            String(error?.code || "") === "42703" &&
-            String(error?.message || "")
-              .toLowerCase()
-              .includes("claim_status");
-          if (!isMissingClaimStatusColumn) throw error;
-
-          await tx
-            .update(businesses)
-            .set({
-              ownerUserId: null,
-              profileData: nextProfileData,
-              sources: nextSources as any,
-              updatedAt: now,
-            } as any)
-            .where(eq(businesses.id, directoryBusinessId));
-        }
-      } else {
-        // Fallback: create a directory business if the import-created user has no owned business.
-        const baseName =
-          String(user.businessSlug || "").trim() ||
-          String(user.firstName || "").trim() ||
-          (originalEmail.includes("@") ? originalEmail.split("@")[0] : "") ||
-          `business-${id.slice(0, 8)}`;
-
-        const baseSlug = slugify(baseName) || `business-${id.slice(0, 8)}`;
-        let candidateSlug = baseSlug;
-        for (let attempt = 0; attempt < 50; attempt++) {
-          const existing = await tx
-            .select({ id: businesses.id })
-            .from(businesses)
-            .where(eq(businesses.slug, candidateSlug))
-            .limit(1);
-          if (!existing.length) break;
-          candidateSlug = `${baseSlug}-${attempt + 2}`;
-        }
-
-        let inserted: any[] = [];
-        try {
-          inserted = await tx
-            .insert(businesses)
-            .values({
-              name: String(baseName).slice(0, 255),
-              slug: candidateSlug,
-              type: "other" as any,
-              ownerUserId: null,
-              roleContext: "business_owner" as any,
-              claimStatus: "unclaimed" as any,
-              sources: ["admin_import_cleanup"] as any,
-              status: "draft" as any,
-              profileData: {
-                ...(originalEmail ? { email: originalEmail } : {}),
-                ...(originalPhone ? { phone: originalPhone } : {}),
-                importExtras: {
-                  archived_from_user_id: id,
-                  archived_from_user_email: originalEmail,
-                  ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
-                },
-              } as any,
-              createdAt: now,
-              updatedAt: now,
-            } as any)
-            .returning();
-        } catch (error: any) {
-          const isMissingClaimStatusColumn =
-            String(error?.code || "") === "42703" &&
-            String(error?.message || "")
-              .toLowerCase()
-              .includes("claim_status");
-          if (!isMissingClaimStatusColumn) throw error;
-
-          inserted = await tx
-            .insert(businesses)
-            .values({
-              name: String(baseName).slice(0, 255),
-              slug: candidateSlug,
-              type: "other" as any,
-              ownerUserId: null,
-              roleContext: "business_owner" as any,
-              sources: ["admin_import_cleanup"] as any,
-              status: "draft" as any,
-              profileData: {
-                ...(originalEmail ? { email: originalEmail } : {}),
-                ...(originalPhone ? { phone: originalPhone } : {}),
-                importExtras: {
-                  archived_from_user_id: id,
-                  archived_from_user_email: originalEmail,
-                  ...(originalPhone ? { archived_from_user_phone: String(originalPhone) } : {}),
-                },
-              } as any,
-              createdAt: now,
-              updatedAt: now,
-            } as any)
-            .returning();
-        }
-
-        const createdBiz = inserted[0] as any;
-        directoryBusinessId = createdBiz?.id ? String(createdBiz.id) : null;
-        directoryBusinessSlug = createdBiz?.slug ? String(createdBiz.slug) : null;
-        directoryBusinessName = createdBiz?.name ? String(createdBiz.name) : null;
+        // Schema drift must abort the whole archive transaction. Retrying after
+        // a PostgreSQL statement error would run inside an already-aborted tx.
+        await tx
+          .update(businesses)
+          .set({
+            ownerUserId: null,
+            claimStatus: "unclaimed" as any,
+            profileData: nextProfileData,
+            sources: nextSources as any,
+            updatedAt: now,
+          } as any)
+          .where(eq(businesses.id, directoryBusinessId));
       }
 
       const nextPreferences: any =
@@ -16471,17 +16021,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       nextPreferences.archivedReason = "admin_import_cleanup";
       nextPreferences.archivedDirectoryBusinessId = directoryBusinessId;
 
-      const nextRoles = roles.filter((r) => r !== "business_owner");
-
       await tx
         .update(users)
         .set({
           email: archivedEmail,
           password: null,
           phone: null,
-          roles: nextRoles as any,
+          roles: ["homeowner"],
           role: "homeowner" as any,
           activeRole: "homeowner",
+          capabilityBundles: [],
+          participationModes: [],
+          verificationStatus: "pending" as any,
+          addressVerified: false,
+          verifiedBadge: false,
           activeBusinessId: null,
           activeProfileId: null,
           businessSlug: null,
@@ -16490,22 +16043,45 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         } as any)
         .where(eq(users.id, id));
 
-      return {
+      const archiveOutcome = {
         userId: id,
         archivedEmail,
         directoryBusinessId,
         directoryBusinessSlug,
         directoryBusinessName,
       };
+      await auditPrivilegedAction({
+        action: "admin_imported_directory_user_archive",
+        route: input.route,
+        operationType: "archive_imported_directory_user",
+        actorId: normalizeImmutableTargetId(input.actorId),
+        actorRole: actorContext.actorRole,
+        actorRoles: actorContext.actorRoles,
+        targetType: "user",
+        targetId: id,
+        resolutionSource: "locked_exact_import_provenance_predicate",
+        reason: input.reason,
+        outcome: "completed",
+        details: { confirmation: input.confirmation, archiveOutcome },
+        database: tx,
+      });
+      return archiveOutcome;
     });
   };
 
   app.get(
     "/api/admin/imported-directory-users",
     isAuthenticated,
-    isAdmin,
     async (req: Request, res: Response) => {
       try {
+        const actorId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        if (!actorHasPrivilegedCapability(actor, ["ops_admin", "super_admin"])) {
+          return res.status(403).json({ message: "Ops admin access required" });
+        }
+
         const limitRaw =
           typeof (req.query as any)?.limit === "string" ? String((req.query as any).limit) : "";
         const parsedLimit = limitRaw ? parseInt(limitRaw, 10) : 200;
@@ -16513,49 +16089,43 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           ? Math.max(50, Math.min(2000, parsedLimit))
           : 200;
 
-        const result = (await db.execute(sql`
-          select
-            u.id,
-            u.email,
-            u.first_name as "firstName",
-            u.last_name as "lastName",
-            u.phone,
-            u.role,
-            u.roles,
-            u.onboarding_completed as "onboardingCompleted",
-            u.email_verified as "emailVerified",
-            u.active_business_id as "activeBusinessId",
-            u.active_profile_id as "activeProfileId",
-            u.business_slug as "businessSlug",
-            u.created_at as "createdAt",
-            u.updated_at as "updatedAt",
-            (
+        const directoryUsers = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            phone: users.phone,
+            role: users.role,
+            roles: users.roles,
+            onboardingCompleted: users.onboardingCompleted,
+            emailVerified: users.emailVerified,
+            activeBusinessId: users.activeBusinessId,
+            activeProfileId: users.activeProfileId,
+            businessSlug: users.businessSlug,
+            createdAt: users.createdAt,
+            updatedAt: users.updatedAt,
+            ownedBusinessId: sql<string | null>`(
               select b.id
               from businesses b
-              where b.owner_user_id = u.id
+              where b.owner_user_id = ${users.id}
               order by b.created_at desc
               limit 1
-            ) as "ownedBusinessId",
-            (
+            )`,
+            ownedBusinessSlug: sql<string | null>`(
               select b.slug
               from businesses b
-              where b.owner_user_id = u.id
+              where b.owner_user_id = ${users.id}
               order by b.created_at desc
               limit 1
-            ) as "ownedBusinessSlug"
-          from users u
-          where u.onboarding_completed = false
-            and u.password_hash is null
-            and (
-              'business_owner' = any(u.roles)
-              or u.role = 'business_owner'
-            )
-          order by u.created_at desc
-          limit ${limit}
-        `)) as any;
+            )`,
+          })
+          .from(users)
+          .where(importedDirectoryUserArchiveCandidatePredicate)
+          .orderBy(desc(users.createdAt))
+          .limit(limit);
 
-        const users = Array.isArray(result?.rows) ? result.rows : [];
-        return res.json({ users });
+        return res.json({ users: directoryUsers });
       } catch (error: any) {
         console.error("Error listing imported directory users:", error);
         return res.status(500).json({ message: "Failed to list imported directory users" });
@@ -16568,11 +16138,40 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.post(
     "/api/admin/imported-directory-users/:userId/archive-to-directory",
     isAuthenticated,
-    isAdmin,
     async (req: Request, res: Response) => {
       try {
+        const actorId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        if (!actorHasPrivilegedCapability(actor, ["ops_admin", "super_admin"])) {
+          return res.status(403).json({ message: "Ops admin access required" });
+        }
+        const reason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12,
+          500
+        );
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (12-500 chars)" });
+        }
+        const confirmation = String(
+          (req.body as any)?.confirm || (req.body as any)?.confirmPhrase || ""
+        ).trim();
+        if (confirmation !== "ARCHIVE_IMPORTED_DIRECTORY_USER") {
+          return res.status(400).json({
+            message: 'Type "ARCHIVE_IMPORTED_DIRECTORY_USER" to confirm archiving.',
+          });
+        }
+
         const userId = String(req.params.userId || "").trim();
-        const outcome = await archiveImportedDirectoryUserToDirectory(userId);
+        const outcome = await archiveImportedDirectoryUserToDirectory({
+          userId,
+          actorId,
+          reason,
+          route: "/api/admin/imported-directory-users/:userId/archive-to-directory",
+          confirmation,
+        });
         return res.json({ ok: true, ...outcome });
       } catch (error: any) {
         console.error("Error archiving imported directory user:", error);
@@ -16593,10 +16192,25 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.post(
     "/api/admin/imported-directory-users/archive-all",
     isAuthenticated,
-    isAdmin,
     express.json({ limit: "1mb" }),
     async (req: Request, res: Response) => {
       try {
+        const actorId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        const actor = actorId ? await storage.getUser(actorId) : null;
+        const actorContext = resolvePrivilegedActor(actor);
+        if (!actorHasPrivilegedCapability(actor, ["ops_admin", "super_admin"])) {
+          return res.status(403).json({ message: "Ops admin access required" });
+        }
+        const reason = normalizePrivilegedReason(
+          (req.body as any)?.reason ?? (req.body as any)?.adminSafety?.reason,
+          12,
+          500
+        );
+        if (!reason) {
+          return res.status(400).json({ message: "reason is required (12-500 chars)" });
+        }
         const confirm = String(
           (req.body as any)?.confirm || (req.body as any)?.confirmPhrase || ""
         ).trim();
@@ -16608,29 +16222,25 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const parsedLimit = limitRaw ? parseInt(limitRaw, 10) : 500;
         const limit = Number.isFinite(parsedLimit) ? Math.max(1, Math.min(5000, parsedLimit)) : 500;
 
-        const result = (await db.execute(sql`
-          select u.id
-          from users u
-          where u.onboarding_completed = false
-            and u.password_hash is null
-            and (
-              'business_owner' = any(u.roles)
-              or u.role = 'business_owner'
-            )
-            and lower(u.email) not like 'archived+%@thetradescout.invalid'
-          order by u.created_at desc
-          limit ${limit}
-        `)) as any;
-
-        const ids: string[] = Array.isArray(result?.rows)
-          ? result.rows.map((r: any) => String(r?.id || "")).filter(Boolean)
-          : [];
+        const candidates = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(importedDirectoryUserArchiveCandidatePredicate)
+          .orderBy(desc(users.createdAt))
+          .limit(limit);
+        const ids = candidates.map((row) => String(row.id)).filter(Boolean);
 
         let archived = 0;
         const errors: Array<{ userId: string; message: string }> = [];
         for (const id of ids) {
           try {
-            await archiveImportedDirectoryUserToDirectory(id);
+            await archiveImportedDirectoryUserToDirectory({
+              userId: id,
+              actorId,
+              reason,
+              route: "/api/admin/imported-directory-users/archive-all",
+              confirmation: confirm,
+            });
             archived += 1;
           } catch (err: any) {
             errors.push({
@@ -16640,12 +16250,43 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           }
         }
 
+        const auditWarning = await runBestEffortPrivilegedSummaryAudit({
+          write: () =>
+            auditPrivilegedAction({
+              action: "admin_imported_directory_users_bulk_archive",
+              route: "/api/admin/imported-directory-users/archive-all",
+              operationType: "bulk_archive_imported_directory_users",
+              actorId: normalizeImmutableTargetId(actorId),
+              actorRole: actorContext.actorRole,
+              actorRoles: actorContext.actorRoles,
+              targetType: "user_batch",
+              targetId: null,
+              resolutionSource: "exact_import_provenance_predicate",
+              reason,
+              outcome: "completed",
+              details: {
+                confirmation: confirm,
+                requestedLimit: limit,
+                matched: ids.length,
+                archived,
+                failed: errors.length,
+              },
+            }),
+          warningCode: "IMPORT_ARCHIVE_SUMMARY_AUDIT_FAILED",
+          warningMessage:
+            "The archive row transactions committed, but the batch audit summary needs retry.",
+          onError: (error) =>
+            console.error("[admin import archive] completed summary audit failed", error),
+        });
+
         return res.json({
           requestedLimit: limit,
           matched: ids.length,
           archived,
           failed: errors.length,
           errors,
+          warnings: auditWarning ? [auditWarning.message] : [],
+          auditWarning,
         });
       } catch (error: any) {
         console.error("Error bulk archiving imported directory users:", error);
@@ -17231,6 +16872,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/marketplace/listings/:id", async (req: any, res: any) => {
     try {
       const { id } = req.params;
+      const profileCatalogItem = await getPublicProfileCatalogExchangeItem(id);
+      if (profileCatalogItem) return res.json(profileCatalogItem);
       const profileOfferId = fromProfileOfferExchangeId(id);
       if (profileOfferId) {
         try {
@@ -18733,233 +18376,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   );
 
-  // Address Verification Endpoints
-  app.post("/api/address-verification", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const parsedAddress = insertAddressVerificationSchema.safeParse(req.body);
-      if (!parsedAddress.success) {
-        return res.status(400).json({
-          message: "Invalid address verification payload",
-          issues: parsedAddress.error.issues,
-        });
-      }
-
-      const validatedData = parsedAddress.data;
-
-      // Calculate deadline (14 days from user creation)
-      const userCreatedAt = new Date(user.createdAt);
-      const deadline = new Date(userCreatedAt);
-      deadline.setDate(deadline.getDate() + 14);
-
-      const verification = await storage.createAddressVerification({
-        ...validatedData,
-        userId: user?.id,
-        deadline,
-      });
-
-      res.status(201).json(verification);
-    } catch (error: any) {
-      console.error("Error creating address verification:", error);
-      res.status(400).json({ message: "Failed to create address verification" });
-    }
-  });
-
-  app.get("/api/address-verification/status", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const verification = await storage.getAddressVerificationByUserId(user?.id);
-
-      // Calculate deadline if no verification exists
-      const userCreatedAt = new Date(user.createdAt);
-      const deadline = new Date(userCreatedAt);
-      deadline.setDate(deadline.getDate() + 14);
-
-      const daysRemaining = Math.max(
-        0,
-        Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-      );
-      const isExpired = daysRemaining === 0 && !user.addressVerified;
-
-      res.json({
-        verification: verification || null,
-        isVerified: user.addressVerified || false,
-        deadline: deadline.toISOString(),
-        daysRemaining,
-        isExpired,
-        requiresVerification: !user.addressVerified,
-      });
-    } catch (error: any) {
-      console.error("Error fetching address verification status:", error);
-      res.status(500).json({ message: "Failed to fetch verification status" });
-    }
-  });
-
-  app.post(
-    "/api/address-verification/postcard/request",
-    isAuthenticated,
-    async (req: any, res: any) => {
-      try {
-        const user = req.user as any;
-
-        // Generate 6-digit verification code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-        await storage.sendAddressVerificationPostcard(user?.id, code);
-
-        // In a real implementation, you would send the postcard via USPS API
-        console.log(`Postcard verification code for ${user?.id}: ${code}`);
-
-        res.json({
-          message:
-            "Verification postcard has been sent to your address. It should arrive within 5-7 business days.",
-          estimatedDelivery: "5-7 business days",
-        });
-      } catch (error: any) {
-        console.error("Error requesting postcard verification:", error);
-        res.status(500).json({ message: "Failed to request postcard verification" });
-      }
-    }
-  );
-
-  app.post(
-    "/api/address-verification/postcard/verify",
-    isAuthenticated,
-    async (req: any, res: any) => {
-      try {
-        const user = req.user as any;
-        const { code } = req.body;
-
-        if (!code || code.length !== 6) {
-          return res.status(400).json({ message: "Valid 6-digit code is required" });
-        }
-
-        const success = await storage.verifyAddressWithPostcard(user?.id, code);
-
-        if (success) {
-          res.json({
-            message: "Address verified successfully! You now have full access to the platform.",
-            verified: true,
-          });
-        } else {
-          res.status(400).json({
-            message:
-              "Invalid verification code. Please check the code on your postcard and try again.",
-            verified: false,
-          });
-        }
-      } catch (error: any) {
-        console.error("Error verifying postcard code:", error);
-        res.status(500).json({ message: "Failed to verify postcard code" });
-      }
-    }
-  );
-
-  app.put("/api/address-verification/:id", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const user = req.user as any;
-      const { id } = req.params;
-      const updates = req.body;
-
-      // Verify the user owns this verification
-      const existingVerification = await storage.getAddressVerificationByUserId(user?.id);
-      if (!existingVerification || existingVerification.id !== id) {
-        return res.status(403).json({ message: "Not authorized to update this verification" });
-      }
-
-      const verification = await storage.updateAddressVerification(id, {
-        ...updates,
-        submittedAt: new Date(),
-        status: "submitted",
-      });
-
-      res.json(verification);
-    } catch (error: any) {
-      console.error("Error updating address verification:", error);
-      res.status(400).json({ message: "Failed to update verification" });
-    }
-  });
-
-  // Admin endpoints for address verification
-  app.get(
-    "/api/admin/address-verifications",
-    isAuthenticated,
-    isAdmin,
-    async (req: any, res: any) => {
-      try {
-        const status = (req.query.status as string) || "all";
-
-        let query: any = db
-          .select({
-            verification: addressVerifications,
-            user: users,
-          })
-          .from(addressVerifications)
-          .leftJoin(users, eq(addressVerifications.userId, users.id));
-
-        if (status !== "all") {
-          const allowedStatuses = [
-            "pending",
-            "approved",
-            "rejected",
-            "expired",
-            "submitted",
-          ] as const;
-          if (allowedStatuses.includes(status as (typeof allowedStatuses)[number])) {
-            query = query.where(
-              eq(addressVerifications.status, status as (typeof allowedStatuses)[number])
-            );
-          }
-        }
-
-        const results = await query.orderBy(desc(addressVerifications.createdAt));
-
-        res.json(results);
-      } catch (error: any) {
-        console.error("Error fetching address verifications:", error);
-        res.status(500).json({ message: "Failed to fetch verifications" });
-      }
-    }
-  );
-
-  app.put(
-    "/api/admin/address-verifications/:id",
-    isAuthenticated,
-    isAdmin,
-    async (req: any, res: any) => {
-      try {
-        const { id } = req.params;
-        const { status, adminNotes } = req.body;
-        const user = req.user as any;
-
-        const updates: any = {
-          status,
-          adminNotes,
-          reviewedBy: user?.id,
-          reviewedAt: new Date(),
-        };
-
-        if (status === "approved") {
-          updates.approvedAt = new Date();
-
-          // Get verification record to find the user
-          const [verification] = await db
-            .select()
-            .from(addressVerifications)
-            .where(eq(addressVerifications.id, id));
-          if (verification) {
-            await storage.updateUser(verification.userId, { addressVerified: true });
-          }
-        }
-
-        const verification = await storage.updateAddressVerification(id, updates);
-        res.json(verification);
-      } catch (error: any) {
-        console.error("Error updating address verification:", error);
-        res.status(400).json({ message: "Failed to update verification" });
-      }
-    }
-  );
+  registerAddressVerificationRoutes(app);
 
   // Admin review queue for license/insurance/tax-id/business-registration submissions
   // captured via /api/profile/verification (self-reported, awaiting review).
@@ -24551,11 +23968,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(existingPayment.status).json({ message: existingPayment.message });
         }
 
-        const bookingIdentity = await resolveProfileBookingOwner(
-          storage,
-          req.body,
-          requestRecord.ownerUserId
-        );
+        const bookingIdentity = await resolveProfileBookingOwner(storage, req.body, {
+          ownerUserId: requestRecord.ownerUserId,
+          profileId: requestRecord.profileId,
+          lineageKind: requestRecord.lineageKind,
+        });
         if (!bookingIdentity.ok) {
           return res.status(bookingIdentity.status).json({ message: bookingIdentity.message });
         }
@@ -24604,6 +24021,21 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(400).json({ message: "Stripe not configured" });
         }
 
+        const paymentIdentityRecheck = await resolveProfileBookingOwner(
+          storage,
+          {},
+          {
+            ownerUserId: requestRecord.ownerUserId,
+            profileId: requestRecord.profileId,
+            lineageKind: requestRecord.lineageKind,
+          }
+        );
+        if (!paymentIdentityRecheck.ok) {
+          return res
+            .status(paymentIdentityRecheck.status)
+            .json({ message: paymentIdentityRecheck.message });
+        }
+
         const paymentIntentResult = await resolveProfileBookingPaymentIntent({
           stripe,
           bookingRequestId: String(requestRecord.id),
@@ -24613,7 +24045,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           description,
           ownerUserId: resolvedOwnerUserId,
           buyerUserId: normalizedBuyerUserId,
-          profileId: bookingIdentity.profileId,
+          profileId: paymentIdentityRecheck.profileId,
+          lineageKind: paymentIdentityRecheck.lineageKind,
           slotId,
           updatePaymentState: (patch) =>
             storage.updateProfileBookingRequest(requestRecord.id, patch as any),

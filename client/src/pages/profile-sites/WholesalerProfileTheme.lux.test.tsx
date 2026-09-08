@@ -131,11 +131,17 @@ describe("WholesalerProfileTheme lux fail-closed", () => {
       container.querySelector('[data-testid="luxury-material-house-showcase"]')
     ).not.toBeNull();
     expect(container.querySelector('[data-testid="luxury-material-house-unavailable"]')).toBeNull();
-    expect(container.querySelector("h1")?.textContent).toBe("Kitchens, bathrooms and stone.");
-    expect(container.textContent).toContain("Pensacola and surrounding areas");
-    expect(
-      container.querySelectorAll('nav[aria-label="ISSA Build Pensacola services"] a')
-    ).toHaveLength(5);
+    expect(container.querySelector("h1")?.textContent).toBe("Onyx, brought to light.");
+    for (const service of [
+      "Kitchen projects in Pensacola",
+      "Bathroom projects in Pensacola",
+      "Cabinets in Pensacola",
+      "Countertops and fabrication in Pensacola",
+    ]) {
+      expect(
+        container.querySelector('[data-testid="luxury-house-capabilities"]')?.textContent
+      ).toContain(service);
+    }
     const generalRequest = Array.from(container.querySelectorAll("button")).find(
       (button) =>
         button.textContent?.trim() === "Start a Request" &&

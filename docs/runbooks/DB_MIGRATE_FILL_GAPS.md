@@ -36,6 +36,20 @@ Keep the full current definitions, not only names or comments. In particular:
 - 0117 restores older managed-contact rules; 0130 is their successor.
 - 0118 includes verification/entitlement backfills; 0131 protects current JW membership revocations. Blindly replaying 0118 over an existing 0131 database can erase current decisions before a later SQL file repairs the function.
 
+The release pre-deploy entrypoint remains:
+
+```text
+preDeployCommand: node runtime/run-release.mjs run-production-predeploy scripts/run-production-predeploy.mjs
+runtime: docker
+healthCheckPath: /api/health
+```
+
+The paid production Docker service runs that command in the newly built image
+before traffic moves. The compiled worker performs normal migrate and required
+schema verification before any public-media migration. The image must retain
+the compiled release workers, runtime launcher/config, `migrations/`, and the
+independently locked production `drizzle-kit` dependency.
+
 Gap recovery therefore refuses, before applying SQL or modifying the ledger, when an older missing migration would overwrite one of these already recorded successors. It does not guess that all earlier SQL ran, nor automatically replay data backfills. Reconciliation across this boundary requires an explicitly reviewed transaction that preserves existing entitlement decisions, restores all affected current definitions, validates them, and commits only after those checks pass. An interrupted or repeated attempt must not downgrade the current rules.
 
 On a fresh disposable fixture without those existing decisions, execute the applicable canonical sequence in order. After replaying 0115, applying only the old diagnostic list without 0118 is insufficient.

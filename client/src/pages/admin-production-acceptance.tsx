@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type AcceptanceStatus = "working" | "genuinely_empty" | "unavailable" | "blocked";
 
@@ -48,28 +49,16 @@ const STATUS_LABEL: Record<AcceptanceStatus, string> = {
 function statusBadge(status: AcceptanceStatus) {
   if (status === "working") {
     return (
-      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
-        Working
-      </Badge>
+      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">Working</Badge>
     );
   }
   if (status === "genuinely_empty") {
-    return (
-      <Badge className="border-sky-400/25 bg-sky-400/10 text-sky-100">
-        Genuinely empty
-      </Badge>
-    );
+    return <Badge className="border-sky-400/25 bg-sky-400/10 text-sky-100">Genuinely empty</Badge>;
   }
   if (status === "blocked") {
-    return (
-      <Badge className="border-red-400/25 bg-red-400/10 text-red-100">Blocked</Badge>
-    );
+    return <Badge className="border-red-400/25 bg-red-400/10 text-red-100">Blocked</Badge>;
   }
-  return (
-    <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">
-      Unavailable
-    </Badge>
-  );
+  return <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">Unavailable</Badge>;
 }
 
 function readable(value: string): string {
@@ -113,9 +102,9 @@ export default function AdminProductionAcceptancePage() {
     report?.controlledWriteCanary.status === "failed" || writeCanaryMutation.isError;
   const allAccepted = Boolean(
     report &&
-      report.summary.blocked === 0 &&
-      report.summary.unavailable === 0 &&
-      !writeCanaryNeedsAttention
+    report.summary.blocked === 0 &&
+    report.summary.unavailable === 0 &&
+    !writeCanaryNeedsAttention
   );
 
   return (
@@ -135,9 +124,7 @@ export default function AdminProductionAcceptancePage() {
             disabled={reportQuery.isFetching}
             className="border-white/12 bg-transparent text-white/65"
           >
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${reportQuery.isFetching ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`mr-2 h-4 w-4 ${reportQuery.isFetching ? "animate-spin" : ""}`} />
             Refresh read-only report
           </Button>
         }
@@ -146,33 +133,28 @@ export default function AdminProductionAcceptancePage() {
           items={[
             {
               label: "Working",
-              value: reportReady ? report?.summary.working ?? 0 : "—",
+              value: reportReady ? (report?.summary.working ?? 0) : "—",
               detail: reportReady ? "Sources and operating rules passed" : "Checking sources",
               tone: reportReady ? "good" : "warning",
             },
             {
               label: "Genuinely empty",
-              value: reportReady ? report?.summary.genuinely_empty ?? 0 : "—",
+              value: reportReady ? (report?.summary.genuinely_empty ?? 0) : "—",
               detail: reportReady ? "Source works; no real records exist" : "Checking sources",
               tone: reportReady ? "neutral" : "warning",
             },
             {
               label: "Unavailable",
-              value: reportReady ? report?.summary.unavailable ?? 0 : "—",
+              value: reportReady ? (report?.summary.unavailable ?? 0) : "—",
               detail: reportReady ? "Required source could not be read" : "Checking sources",
               tone:
-                !reportReady || Number(report?.summary.unavailable || 0) > 0
-                  ? "warning"
-                  : "good",
+                !reportReady || Number(report?.summary.unavailable || 0) > 0 ? "warning" : "good",
             },
             {
               label: "Blocked",
-              value: reportReady ? report?.summary.blocked ?? 0 : "—",
+              value: reportReady ? (report?.summary.blocked ?? 0) : "—",
               detail: reportReady ? "Hard data or operating failure" : "Checking sources",
-              tone:
-                !reportReady || Number(report?.summary.blocked || 0) > 0
-                  ? "danger"
-                  : "good",
+              tone: !reportReady || Number(report?.summary.blocked || 0) > 0 ? "danger" : "good",
             },
           ]}
         />
@@ -268,7 +250,10 @@ export default function AdminProductionAcceptancePage() {
                 <p className="mt-1 opacity-75">{report.controlledWriteCanary.detail}</p>
                 {writeCanaryMutation.isError ? (
                   <p className="mt-2 text-red-200">
-                    {writeCanaryMutation.error?.message || "The write canary request failed."}
+                    {formatUserFacingErrorMessage(
+                      writeCanaryMutation.error,
+                      "The write canary request failed."
+                    )}
                   </p>
                 ) : null}
               </div>
@@ -317,7 +302,10 @@ export default function AdminProductionAcceptancePage() {
                       </p>
                       <div className="mt-3 space-y-2">
                         {lane.findings.map((finding, index) => (
-                          <p key={`${lane.id}-${index}`} className="text-sm leading-6 text-white/52">
+                          <p
+                            key={`${lane.id}-${index}`}
+                            className="text-sm leading-6 text-white/52"
+                          >
                             {finding}
                           </p>
                         ))}
@@ -330,10 +318,11 @@ export default function AdminProductionAcceptancePage() {
           </AdminSection>
 
           <div className="border-y border-white/10 px-4 py-4 text-xs leading-5 text-white/38">
-            Database checked {new Date(report.database.checkedAt).toLocaleString()}. Status labels: {" "}
+            Database checked {new Date(report.database.checkedAt).toLocaleString()}. Status labels:{" "}
             {Object.entries(STATUS_LABEL)
               .map(([key, label]) => `${label} (${key})`)
-              .join(" · ")}.
+              .join(" · ")}
+            .
           </div>
         </>
       )}

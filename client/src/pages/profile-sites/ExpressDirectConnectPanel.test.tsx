@@ -62,7 +62,139 @@ describe("Express Direct Connect anonymous inventory context", () => {
     act(() => root.unmount());
     container.remove();
     sessionStorage.removeItem(DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY);
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  function renderBusinessCallPanel({
+    profileSlug = "louisiana-stone-solutions",
+    allowCall = true,
+    open = true,
+  } = {}) {
+    act(() =>
+      root.render(
+        <ExpressDirectConnectPanel
+          open={open}
+          onClose={vi.fn()}
+          profileSlug={profileSlug}
+          businessName="Louisiana Stone Solutions"
+          hasViewerSession={false}
+          allowCall={allowCall}
+          stayInProfile
+        />
+      )
+    );
+  }
+
+  function businessCallButton() {
+    return (
+      Array.from(container.querySelectorAll("button")).find(
+        (button) => button.querySelector("strong")?.textContent === "Call"
+      ) || null
+    );
+  }
+
+  it("opens a registered business call only after the server accepts the explicit call decision", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ phone: "2255550198", tel: "tel:+12255550198" }),
+    });
+    const dialed: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      dialed.push(this.href);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderBusinessCallPanel();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+    await act(async () => {
+      businessCallButton()?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/tradepartner-profiles/louisiana-stone-solutions/express-contact/reveal"
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      authorityGate: "profile_direct_connect",
+      decision: "call",
+    });
+    expect(dialed).toEqual(["tel:+12255550198"]);
+    expect(container.querySelector('a[href^="tel:"]')?.getAttribute("href")).toBe(
+      "tel:+12255550198"
+    );
+    expect(container.textContent).toContain("Calling Louisiana Stone Solutions");
+    expect(container.textContent).toContain("Back to Louisiana Stone Solutions");
+  });
+
+  it.each([
+    { ok: false, status: 404, body: {} },
+    { ok: true, status: 200, body: { phone: "2255550198", tel: "javascript:alert(1)" } },
+  ])(
+    "keeps the request option available when the server denies or cannot return a call (%#)",
+    async ({ ok, status, body }) => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok, status, json: async () => body }));
+      const dial = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+      renderBusinessCallPanel();
+      await act(async () => {
+        businessCallButton()?.click();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(dial).not.toHaveBeenCalled();
+      expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+      expect(container.textContent).toContain(
+        "Calling is unavailable right now. You can still send a request."
+      );
+      click(
+        Array.from(container.querySelectorAll("button")).find((button) =>
+          button.textContent?.includes("Fill out the form")
+        ) || null
+      );
+      expect(container.querySelector("form")).not.toBeNull();
+    }
+  );
+
+  it("does not enable a registered call when the public reader withholds call capability", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    renderBusinessCallPanel({ allowCall: false });
+    expect(businessCallButton()).toBeNull();
+    const call = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Request a call")
+    );
+    expect(call?.disabled).toBe(true);
+    click(call || null);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("discards a pending call approval when the panel changes to another profile", async () => {
+    let finish: (response: any) => void = () => {};
+    const fetchMock = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const dial = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    vi.stubGlobal("fetch", fetchMock);
+    renderBusinessCallPanel();
+    click(businessCallButton());
+    renderBusinessCallPanel({ profileSlug: "public-profile" });
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+    await act(async () => {
+      finish({ ok: true, json: async () => ({ phone: "2255550198", tel: "tel:+12255550198" }) });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(dial).not.toHaveBeenCalled();
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+    expect(container.textContent).toContain("Request a call");
+    expect(container.textContent).not.toContain("2255550198");
   });
 
   it("keeps the stable item id out of public copy while submitting it for routing", async () => {
@@ -136,12 +268,80 @@ describe("Express Direct Connect anonymous inventory context", () => {
     expect(requestBody).toMatchObject({
       itemId: "trending-selection-05",
       requestType: "request_material",
+      contactPreference: "platform_message",
       message: "Customer type: Fabricator.\n\nI'm interested in this stone selection.",
       updatesOptIn: false,
       discoveryAttributionToken: "signed-payload.signed-signature",
     });
     expect(requestBody).not.toHaveProperty("stoneName");
     expect(requestBody).not.toHaveProperty("customerRole");
+  });
+
+  it("stages a call request without revealing or navigating to a phone URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        requestId: "call-request-1",
+        requestWorkspacePath: "/direct-connect/engagements?requestId=call-request-1",
+        contactPreference: "call",
+        deliveryCustody: "business",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      root.render(
+        <ExpressDirectConnectPanel
+          open
+          onClose={vi.fn()}
+          profileSlug="public-profile"
+          businessName="Example TradePartner"
+          hasViewerSession={false}
+          allowCall
+          requestMode="service"
+        />
+      );
+    });
+
+    const locationBefore = window.location.href;
+    const callChoice = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Request a call")
+    );
+    click(callChoice || null);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(window.location.href).toBe(locationBefore);
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
+    expect(container.querySelector("h3")?.textContent).toBe(
+      "Request a call from Example TradePartner"
+    );
+    expect(container.textContent).toContain(
+      "Sending this request shares your name and phone with Example TradePartner so they can respond."
+    );
+
+    change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");
+    change(container.querySelector<HTMLInputElement>('input[type="email"]'), "alex@example.com");
+    change(container.querySelector<HTMLInputElement>('input[type="tel"]'), "555-555-1212");
+    change(
+      container.querySelector<HTMLTextAreaElement>("textarea"),
+      "Please call about a service estimate."
+    );
+
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/express-request");
+    expect(String(fetchMock.mock.calls[0]?.[0] || "")).not.toContain("/express-contact/reveal");
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body || "{}"));
+    expect(requestBody.contactPreference).toBe("call");
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
   });
 
   it("defaults update opt-in unchecked and submits JW Stone marketing consent when checked", async () => {

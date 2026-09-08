@@ -52,7 +52,7 @@ const USER_AGENTS = [
 
 const BUSINESS_FIXTURES = [
   {
-    slug: "jrs-auto-glass",
+    slug: "river-city-auto-glass",
     name: "JR's Auto Glass",
     headline: "Mobile auto glass service for daily drivers.",
     servicesDescription: "Windshield replacement, chip repair, and camera recalibration.",
@@ -72,7 +72,7 @@ const BUSINESS_FIXTURES = [
     profileBooking: { enabled: true, paidBookings: false },
   },
   {
-    slug: "pro-fab-specialty-services",
+    slug: "hill-country-fabrication",
     name: "Pro Fab Specialty Services LLC",
     headline: "Specialty fabrication for practical jobsite needs.",
     servicesDescription: "Custom fabrication, repair, and specialty metal work.",
@@ -212,7 +212,7 @@ describe("platform-wide public discovery equivalence", () => {
 
   it("submits concrete runtime profile streams so eligible public businesses are discoverable", () => {
     const source = fs.readFileSync(
-      path.resolve(process.cwd(), "scripts/generate-sitemap.mjs"),
+      path.resolve(process.cwd(), "scripts/generate-sitemap-core.mjs"),
       "utf8"
     );
 

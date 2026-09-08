@@ -241,6 +241,7 @@ type ResolvePaymentIntentInput = {
   ownerUserId: string;
   buyerUserId: string;
   profileId?: string | null;
+  lineageKind: "legacy_owner" | "legacy_business_profile" | "exact_profile";
   slotId?: string;
   updatePaymentState: UpdatePaymentState;
 };
@@ -259,6 +260,11 @@ function isMissingStripeResource(error: unknown): boolean {
 export async function resolveProfileBookingPaymentIntent(
   input: ResolvePaymentIntentInput
 ): Promise<ResolvedPaymentIntent | PaymentFailure> {
+  const exactProfileId = String(input.profileId || "").trim();
+  const exactLineage = input.lineageKind === "exact_profile";
+  if ((exactLineage && !exactProfileId) || (!exactLineage && Boolean(exactProfileId))) {
+    return { ok: false, status: 409, message: "Booking lineage is inconsistent" };
+  }
   const amountCents = Math.round(input.amountUsd * 100);
   const existingId = String(input.existingPaymentIntentId || "").trim();
 
@@ -275,7 +281,11 @@ export async function resolveProfileBookingPaymentIntent(
         existing.metadata?.type === "profile_booking" &&
         existing.metadata?.bookingRequestId === input.bookingRequestId &&
         existing.metadata?.ownerUserId === input.ownerUserId &&
-        existing.metadata?.buyerUserId === input.buyerUserId;
+        existing.metadata?.buyerUserId === input.buyerUserId &&
+        existing.metadata?.lineageKind === input.lineageKind &&
+        (exactLineage
+          ? existing.metadata?.profileId === exactProfileId
+          : !String(existing.metadata?.profileId || "").trim());
       if (!metadataMatches) {
         return { ok: false, status: 409, message: "Stored payment intent does not match booking" };
       }
@@ -316,7 +326,8 @@ export async function resolveProfileBookingPaymentIntent(
       description: input.description,
       metadata: {
         type: "profile_booking",
-        ...(input.profileId ? { profileId: input.profileId } : {}),
+        ...(exactLineage ? { profileId: exactProfileId } : {}),
+        lineageKind: input.lineageKind,
         ownerUserId: input.ownerUserId,
         buyerUserId: input.buyerUserId,
         bookingRequestId: input.bookingRequestId,

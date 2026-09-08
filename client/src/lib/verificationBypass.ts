@@ -6,8 +6,6 @@ export function getVerificationBypassReasonLabel(
   switch (reason) {
     case "role":
       return "staff role override";
-    case "email_alias":
-      return "privileged alias override";
     case "admin_flag":
       return "admin authority override";
     case "manual_direct_connect_override":
@@ -23,7 +21,8 @@ export function isPrivilegedVerificationBypass(
   bypass?: VerificationBypassMetadata | null
 ): boolean {
   if (!bypass?.active) return false;
-  return bypass.privileged === true || bypass.reason === "role" || bypass.reason === "email_alias";
+  if (bypass.reason === "role" || bypass.reason === "admin_flag") return true;
+  return bypass.reason === "manual_direct_connect_override" && bypass.privileged === true;
 }
 
 export function getVerificationBypassUserMessage(

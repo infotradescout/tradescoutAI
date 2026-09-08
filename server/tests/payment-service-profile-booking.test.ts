@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const storageMocks = vi.hoisted(() => ({
   getProfileBookingRequestById: vi.fn(),
   updateProfileBookingRequest: vi.fn(),
+  transitionProfileBookingPaymentStatus: vi.fn(),
   updateContractorPayment: vi.fn(),
   updateMarketplaceTransactionPayment: vi.fn(),
   applyListingBoostForTransaction: vi.fn(),
@@ -27,6 +28,8 @@ const bookingRequest = (overrides: Record<string, unknown> = {}) => ({
   paymentIntentId: "pi_booking_1",
   paymentStatus: "processing",
   status: "requested",
+  profileId: "profile_1",
+  lineageKind: "exact_profile",
   ...overrides,
 });
 
@@ -37,6 +40,8 @@ const profileBookingEvent = (
     bookingRequestId?: string;
     ownerUserId?: string;
     buyerUserId?: string;
+    profileId?: string;
+    lineageKind?: string;
   } = {}
 ) =>
   ({
@@ -51,6 +56,8 @@ const profileBookingEvent = (
           bookingRequestId: overrides.bookingRequestId ?? "booking_1",
           ownerUserId: overrides.ownerUserId ?? "owner_1",
           buyerUserId: overrides.buyerUserId ?? "buyer_1",
+          profileId: overrides.profileId ?? "profile_1",
+          lineageKind: overrides.lineageKind ?? "exact_profile",
         },
       },
     },
@@ -60,6 +67,7 @@ describe("PaymentService profile-booking webhook state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storageMocks.updateProfileBookingRequest.mockResolvedValue(undefined);
+    storageMocks.transitionProfileBookingPaymentStatus.mockResolvedValue(undefined);
     storageMocks.updateContractorPayment.mockResolvedValue(undefined);
     storageMocks.updateMarketplaceTransactionPayment.mockResolvedValue({});
     storageMocks.applyListingBoostForTransaction.mockResolvedValue(undefined);
@@ -71,8 +79,11 @@ describe("PaymentService profile-booking webhook state", () => {
     await new PaymentService().handleStripeWebhook(profileBookingEvent("payment_intent.succeeded"));
 
     expect(storageMocks.getProfileBookingRequestById).toHaveBeenCalledWith("booking_1");
-    expect(storageMocks.updateProfileBookingRequest).toHaveBeenCalledWith("booking_1", {
-      paymentStatus: "paid",
+    expect(storageMocks.transitionProfileBookingPaymentStatus).toHaveBeenCalledWith({
+      id: "booking_1",
+      paymentIntentId: "pi_booking_1",
+      from: ["requires_payment", "processing", "failed"],
+      to: "paid",
     });
   });
 
@@ -178,6 +189,20 @@ describe("PaymentService profile-booking webhook state", () => {
     expect(storageMocks.updateProfileBookingRequest).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["sibling Profile", { profileId: "profile_sibling" }],
+    ["missing exact Profile", { profileId: "" }],
+    ["different lineage", { lineageKind: "legacy_owner", profileId: "" }],
+  ])("ignores a webhook with %s metadata", async (_label, eventOverrides) => {
+    storageMocks.getProfileBookingRequestById.mockResolvedValue(bookingRequest());
+
+    await new PaymentService().handleStripeWebhook(
+      profileBookingEvent("payment_intent.succeeded", eventOverrides)
+    );
+
+    expect(storageMocks.updateProfileBookingRequest).not.toHaveBeenCalled();
+  });
+
   it("marks only the matching current booking intent as failed", async () => {
     storageMocks.getProfileBookingRequestById.mockResolvedValue(bookingRequest());
 
@@ -185,9 +210,64 @@ describe("PaymentService profile-booking webhook state", () => {
       profileBookingEvent("payment_intent.payment_failed")
     );
 
-    expect(storageMocks.updateProfileBookingRequest).toHaveBeenCalledWith("booking_1", {
-      paymentStatus: "failed",
+    expect(storageMocks.transitionProfileBookingPaymentStatus).toHaveBeenCalledWith({
+      id: "booking_1",
+      paymentIntentId: "pi_booking_1",
+      from: ["requires_payment", "processing"],
+      to: "failed",
     });
+  });
+
+  it("accepts missing profile metadata only for a persisted explicit legacy lineage", async () => {
+    storageMocks.getProfileBookingRequestById.mockResolvedValue(
+      bookingRequest({ profileId: null, lineageKind: "legacy_owner" })
+    );
+
+    await new PaymentService().handleStripeWebhook(
+      profileBookingEvent("payment_intent.succeeded", {
+        profileId: "",
+        lineageKind: "legacy_owner",
+      })
+    );
+
+    expect(storageMocks.transitionProfileBookingPaymentStatus).toHaveBeenCalledWith({
+      id: "booking_1",
+      paymentIntentId: "pi_booking_1",
+      from: ["requires_payment", "processing", "failed"],
+      to: "paid",
+    });
+  });
+
+  it("keeps paid monotonic under concurrent succeeded and delayed failed webhooks", async () => {
+    let paymentStatus = "processing";
+    let initialReads = 0;
+    let releaseInitialReads!: () => void;
+    const bothRead = new Promise<void>((resolve) => {
+      releaseInitialReads = resolve;
+    });
+    storageMocks.getProfileBookingRequestById.mockImplementation(async () => {
+      if (initialReads < 2) {
+        initialReads += 1;
+        if (initialReads === 2) releaseInitialReads();
+        await bothRead;
+        return bookingRequest({ paymentStatus: "processing" });
+      }
+      return bookingRequest({ paymentStatus });
+    });
+    storageMocks.transitionProfileBookingPaymentStatus.mockImplementation(async (args: any) => {
+      if (!args.from.includes(paymentStatus)) return undefined;
+      paymentStatus = args.to;
+      return bookingRequest({ paymentStatus });
+    });
+
+    const service = new PaymentService();
+    await Promise.all([
+      service.handleStripeWebhook(profileBookingEvent("payment_intent.payment_failed")),
+      service.handleStripeWebhook(profileBookingEvent("payment_intent.succeeded")),
+    ]);
+
+    expect(paymentStatus).toBe("paid");
+    expect(storageMocks.transitionProfileBookingPaymentStatus).toHaveBeenCalledTimes(2);
   });
 
   it.each(["paid", "refunded", "failed"])(

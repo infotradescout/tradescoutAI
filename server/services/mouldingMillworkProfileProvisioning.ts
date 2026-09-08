@@ -63,8 +63,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       existingOwner?.preferences && typeof existingOwner.preferences === "object"
         ? (existingOwner.preferences as Record<string, any>)
         : {};
-    const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(new Set([...existingRoles, "business_owner", "contractor"]));
+    const roles = ["business_owner", "contractor"];
 
     const ownerValues = {
       firstName: existingOwner?.firstName || "Brian",
@@ -90,7 +89,18 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
     const [owner] = existingOwner
       ? await tx
           .update(users)
-          .set(ownerValues as any)
+          .set({
+            ...ownerValues,
+            // Merge on the locked UPDATE row, not the earlier provisioning snapshot.
+            roles: sql`(
+              select array_agg(distinct role_value)
+              from unnest(
+                coalesce(${users.roles}, array[]::text[])
+                || array['business_owner', 'contractor']::text[]
+              ) as role_value
+              where role_value <> ''
+            )`,
+          } as any)
           .where(eq(users.id, existingOwner.id))
           .returning()
       : await tx
@@ -180,9 +190,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
         },
       },
       claimStatus: existingBusiness?.claimStatus || "claimed",
-      publicDiscoveryEnabled: existingBusiness
-        ? existingBusiness.publicDiscoveryEnabled
-        : true,
+      publicDiscoveryEnabled: existingBusiness ? existingBusiness.publicDiscoveryEnabled : true,
       sources: Array.from(businessSources),
       status: existingBusiness?.status || ("active" as const),
       updatedAt: now,
@@ -268,6 +276,10 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
     if (existingProfile && String(existingProfile.ownerUserId) !== String(owner.id)) {
       throw new Error("Moulding & Millwork profile slug is owned by a different account");
     }
+    const shouldReleaseNewProfile =
+      business.status === "active" &&
+      business.publicDiscoveryEnabled === true &&
+      !operatorProfileAuthorityRevoked;
 
     const profileValues = {
       ownerUserId: owner.id,
@@ -290,6 +302,10 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
           "Request moulding, doors, windows, plan review, and millwork supply from Moulding & Millwork Supply in Harahan, Louisiana.",
       },
       status: existingProfile?.status || ("published" as const),
+      // The canonical release column owns anonymous visibility. Seed it only
+      // for a new, operator-confirmed record; an existing owner's false value
+      // is an explicit decision and must survive every boot.
+      publiclyReleased: existingProfile?.publiclyReleased ?? shouldReleaseNewProfile,
       updatedAt: now,
     };
 
@@ -317,6 +333,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
     const legacyProfileWasPublic = existingPreferences.profileVisibility === "public";
     const profileCanBeReleased =
       profile.status === "published" &&
+      profile.publiclyReleased === true &&
       business.status === "active" &&
       business.publicDiscoveryEnabled === true &&
       !operatorProfileAuthorityRevoked;
@@ -328,9 +345,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       ? {
           ...existingPreferences,
           profileVisibility: existingPreferences.profileVisibility || "public",
-          publicProfileIds: Array.from(
-            new Set([...existingPublicProfileIds, String(profile.id)])
-          ),
+          publicProfileIds: Array.from(new Set([...existingPublicProfileIds, String(profile.id)])),
         }
       : undefined;
 
