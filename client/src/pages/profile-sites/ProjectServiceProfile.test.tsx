@@ -43,6 +43,37 @@ const base: ComponentProps<typeof ProjectServiceProfile> = {
   ],
 };
 
+function installVisibilityObserver() {
+  const instances: TestVisibilityObserver[] = [];
+  class TestVisibilityObserver {
+    observe = vi.fn<(target: Element) => void>();
+    disconnect = vi.fn();
+
+    constructor(private readonly callback: IntersectionObserverCallback) {
+      instances.push(this);
+    }
+
+    emit(isIntersecting: boolean) {
+      const target = this.observe.mock.calls.at(-1)?.[0];
+      expect(target).toBeInstanceOf(HTMLElement);
+      act(() =>
+        this.callback(
+          [
+            {
+              target,
+              isIntersecting,
+              intersectionRatio: isIntersecting ? 1 : 0,
+            } as IntersectionObserverEntry,
+          ],
+          this as unknown as IntersectionObserver
+        )
+      );
+    }
+  }
+  vi.stubGlobal("IntersectionObserver", TestVisibilityObserver);
+  return instances;
+}
+
 describe("Project service profile review", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -58,6 +89,7 @@ describe("Project service profile review", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    vi.unstubAllGlobals();
   });
   const click = (element: HTMLElement | null) => {
     expect(element).not.toBeNull();
@@ -95,9 +127,16 @@ describe("Project service profile review", () => {
       );
     }
     act(() => root.render(<Journey />));
+    const servicePicker = container.querySelector<HTMLDetailsElement>("details");
+    expect(servicePicker?.open).toBe(false);
+    click(servicePicker?.querySelector("summary") || null);
+    expect(servicePicker?.open).toBe(true);
     const choices = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
     click(choices[0]);
     click(choices[1]);
+    expect(servicePicker?.querySelector("summary")?.textContent).toContain("2 services selected");
+    click(servicePicker?.querySelector("summary") || null);
+    expect(servicePicker?.open).toBe(false);
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     click(container.querySelector<HTMLButtonElement>(".service-profile-request button"));
     const dialog = container.querySelector('[role="dialog"]');
@@ -111,6 +150,11 @@ describe("Project service profile review", () => {
   it("allows correction and a general request without forcing a service selection", () => {
     const onDirectConnect = vi.fn();
     act(() => root.render(<ProjectServiceProfile {...base} onDirectConnect={onDirectConnect} />));
+    const servicePicker = container.querySelector<HTMLDetailsElement>("details");
+    expect(servicePicker?.open).toBe(false);
+    click(container.querySelector<HTMLButtonElement>(".service-profile-request button"));
+    expect(onDirectConnect).toHaveBeenLastCalledWith(undefined);
+    click(servicePicker?.querySelector("summary") || null);
     const first = container.querySelector<HTMLInputElement>('input[type="checkbox"]');
     click(first);
     click(first);
@@ -158,5 +202,110 @@ describe("Project service profile review", () => {
     expect(container.querySelector('[role="dialog"] img')?.getAttribute("src")).toBe(
       presentation.heroImage
     );
+  });
+
+  it("keeps a request available without reserving a photo element when media is absent", () => {
+    const onDirectConnect = vi.fn();
+    act(() =>
+      root.render(
+        <ProjectServiceProfile
+          {...base}
+          presentation={{ ...presentation, heroImage: "", heroImageAlt: "", logoImage: "" }}
+          galleryItems={[]}
+          onDirectConnect={onDirectConnect}
+        />
+      )
+    );
+    expect(container.querySelector("figure")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector('[aria-label="Photos"]')).toBeNull();
+    expect(container.querySelector('[aria-label="View full photo"]')).toBeNull();
+    expect(container.querySelector("h1")?.textContent).toBe(base.businessName);
+    click(container.querySelector<HTMLButtonElement>(".service-profile-request button"));
+    expect(onDirectConnect).toHaveBeenCalledWith(undefined);
+  });
+
+  it("keeps gallery items and their exact shared destination available without a hero", () => {
+    act(() =>
+      root.render(
+        <ProjectServiceProfile
+          {...base}
+          presentation={{ ...presentation, heroImage: "", heroImageAlt: "" }}
+          sharedGallerySlug="countertop-kitchen"
+        />
+      )
+    );
+    expect(container.querySelector("figure")).toBeNull();
+    expect(container.querySelectorAll(`img[src="${presentation.heroImage}"]`)).toHaveLength(1);
+    const galleryItem = container.querySelector("#profile-gallery-countertop-kitchen");
+    expect(galleryItem?.getAttribute("data-shared")).toBe("true");
+    click(galleryItem?.querySelector("button") || null);
+    const dialog = container.querySelector('[role="dialog"]');
+    expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(presentation.heroImage);
+    expect(dialog?.querySelector("[data-destination]")?.getAttribute("data-destination")).toBe(
+      "/u/louisiana-stone-solutions/gallery/countertop-kitchen"
+    );
+  });
+
+  it("shows the mobile request only when the main action is outside view and preserves its service context", () => {
+    const observers = installVisibilityObserver();
+    const onDirectConnect = vi.fn();
+    act(() => root.render(<ProjectServiceProfile {...base} onDirectConnect={onDirectConnect} />));
+    const primary = container.querySelector<HTMLButtonElement>(".service-profile-request button");
+    const mobile = container.querySelector<HTMLElement>(".service-profile-mobile-request");
+    expect(observers).toHaveLength(1);
+    expect(observers[0].observe).toHaveBeenCalledExactlyOnceWith(primary);
+    observers[0].emit(true);
+    expect(mobile?.hidden).toBe(true);
+    observers[0].emit(false);
+    expect(mobile?.hidden).toBe(false);
+    click(container.querySelector("details summary"));
+    click(container.querySelector<HTMLInputElement>('input[type="checkbox"]'));
+    click(mobile?.querySelector("button") || null);
+    expect(onDirectConnect).toHaveBeenCalledExactlyOnceWith("Countertops");
+    expect(mobile?.querySelector("button")?.textContent).toBe(primary?.textContent);
+    observers[0].emit(true);
+    expect(mobile?.hidden).toBe(true);
+  });
+
+  it("keeps keyboard focus on an available action when the primary request scrolls into view", () => {
+    const observers = installVisibilityObserver();
+    act(() => root.render(<ProjectServiceProfile {...base} />));
+    const primary = container.querySelector<HTMLButtonElement>(".service-profile-request button");
+    const mobile = container.querySelector<HTMLButtonElement>(
+      ".service-profile-mobile-request button"
+    );
+    observers[0].emit(false);
+    mobile?.focus();
+    expect(document.activeElement).toBe(mobile);
+    observers[0].emit(true);
+    expect([primary, mobile]).toContain(document.activeElement);
+    expect(document.activeElement?.closest("[hidden]")).toBeNull();
+  });
+
+  it("disconnects visibility observers and clears selected services when the profile changes", () => {
+    const observers = installVisibilityObserver();
+    const onDirectConnect = vi.fn();
+    act(() => root.render(<ProjectServiceProfile {...base} onDirectConnect={onDirectConnect} />));
+    click(container.querySelector("details summary"));
+    click(container.querySelector<HTMLInputElement>('input[type="checkbox"]'));
+    act(() =>
+      root.render(
+        <ProjectServiceProfile
+          {...base}
+          profileSlug="other-local-business"
+          onDirectConnect={onDirectConnect}
+        />
+      )
+    );
+    expect(observers).toHaveLength(2);
+    expect(observers[0].disconnect).toHaveBeenCalledOnce();
+    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(
+      false
+    );
+    click(container.querySelector<HTMLButtonElement>(".service-profile-request button"));
+    expect(onDirectConnect).toHaveBeenCalledExactlyOnceWith(undefined);
+    act(() => root.render(null));
+    expect(observers[1].disconnect).toHaveBeenCalledOnce();
   });
 });
