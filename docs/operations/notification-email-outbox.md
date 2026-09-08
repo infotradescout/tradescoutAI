@@ -114,14 +114,43 @@ already have been accepted. The lack of a provider ID is not proof of failure.
 
 ## Rollout and limits
 
-This change adds no schema migration: it reuses the modeled `notifications`,
-`notification_preferences`, `notification_jobs`, and
-`notification_delivery_log` tables. Legacy migration files do not prove that
-schema-pushed deployments have their current shape. Before release, verify
-these tables against `shared/schema/notifications.ts` and verify the complete
-release contract. The synthetic PostgreSQL tests exercise the queue queries,
-defaults, required columns and primary keys; they do not attest production
-schema, multi-process lock contention or external provider delivery.
+Migration `0136_restore_notification_outbox_schema.sql` restores the existing
+modeled `notification_jobs` and `notification_templates` tables, which were
+absent from the prior migration journal. It adds no email intents and preserves
+existing synced tables and jobs. Prior journal entries remain unchanged.
+Migration 0135 supplies the inbox, preferences and delivery-log compatibility
+contract. Required-schema verification now checks every modeled outbox/template
+column and default, indexes, immediate primary keys, the template foreign key,
+and the recorded 0136 hash. Incompatible existing shapes block release rather
+than being silently rewritten.
+
+The new template/job notification-type columns use the journal's `varchar`
+representation, matching 0000/0091; existing schema-pushed `notification_type`
+enum columns are accepted and preserved. The varchar representation does not
+enforce the enum's value list at the database layer. Server-owned producer,
+binding and recipient checks remain the authority for email eligibility.
+
+The full migration journal and verifier passed against a fresh disposable
+PostgreSQL 18.4 database. Native proof covers missing/drifted schema rejection,
+repeat migration preservation, transaction rollback, two separate Node workers
+claiming disjoint batches while skipping a locked job, expired validation and
+submission leases, and superseded receipt writes. All email adapters were
+mocked; this does not attest production schema or external provider delivery.
+
+To repeat the native proof, supply a dedicated loopback `TEST_DATABASE_URL`
+whose database name explicitly identifies it as a test database. Set
+`NODE_ENV=test` and configure that disposable database's timezone to `UTC`,
+then run the normal migration owner with that same target and:
+
+```sh
+node --import tsx scripts/tests/notification-email-outbox.native.ts
+```
+
+The script rejects non-loopback targets, strips inherited provider settings,
+checks the connected database identity and cleans up its synthetic fixtures.
+Run it without other writers on that dedicated database. The complete minimum
+release contract and production schema verification remain separate release
+requirements.
 
 An operational cutover still requires an enabled scheduler, the intended
 shared provider/from configuration, and an email mode that permits notification
