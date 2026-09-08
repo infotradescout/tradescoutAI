@@ -93,10 +93,17 @@ beforeAll(async () => {
   await fixture.client!.exec(
     "CREATE TABLE direct_connect_dispatch_requests (id text PRIMARY KEY, user_id text, contact_gate_state text)"
   );
+  await fixture.client!.exec(`CREATE TABLE direct_connect_dispatch_candidates (
+    id text PRIMARY KEY, request_id text REFERENCES direct_connect_dispatch_requests(id),
+    business_id text, contractor_id text, responder_user_id text, worker_id text,
+    eligibility_state text, eligibility_reasons jsonb, ineligibility_reasons jsonb,
+    territory_matched boolean, category_matched boolean, verification_state text,
+    profile_readiness text, contact_eligibility boolean, trust_state text, created_at timestamp
+  )`);
 }, 30000);
 beforeEach(async () => {
   await fixture.client!.exec(
-    "TRUNCATE admin_audit_log, businesses, contractors, conversations, messages, work_request_assignments, work_request_events, work_requests, direct_connect_dispatch_requests"
+    "TRUNCATE admin_audit_log, businesses, contractors, conversations, messages, work_request_assignments, work_request_events, work_requests, direct_connect_dispatch_candidates, direct_connect_dispatch_requests"
   );
   fixture.getUser
     .mockReset()
@@ -108,6 +115,9 @@ beforeEach(async () => {
     "INSERT INTO work_requests (id, created_by_user_id, source, status, county_fips) VALUES ('request-1', 'requester', 'direct_connect', 'open', '12001')"
   );
   await sql("INSERT INTO contractors (id, user_id) VALUES ('contractor-1', 'provider')");
+  await sql(
+    "INSERT INTO direct_connect_dispatch_requests VALUES ('request-1', 'requester', 'locked')"
+  );
 });
 afterAll(async () => {
   await fixture.client?.close();
@@ -132,11 +142,55 @@ async function seedAccepted() {
     ]
   );
   await sql(
-    "INSERT INTO direct_connect_dispatch_requests VALUES ('request-1', 'requester', 'released')"
+    "UPDATE direct_connect_dispatch_requests SET contact_gate_state = 'released' WHERE id = 'request-1'"
   );
 }
 
 describe("Direct Connect audited operator operations", () => {
+  it("persists the eligible provider in the same requester dispatch once across replay", async () => {
+    expect((await post("assignments", invitation)).status).toBe(201);
+    expect((await post("assignments", invitation)).status).toBe(200);
+    expect(
+      (
+        await sql(
+          "SELECT request_id, contractor_id, responder_user_id, eligibility_state FROM direct_connect_dispatch_candidates"
+        )
+      ).rows
+    ).toEqual([
+      {
+        request_id: "request-1",
+        contractor_id: "contractor-1",
+        responder_user_id: "provider",
+        eligibility_state: "eligible",
+      },
+    ]);
+    expect(
+      (await sql("SELECT contact_gate_state FROM direct_connect_dispatch_requests")).rows[0]
+        .contact_gate_state
+    ).toBe("locked");
+  });
+  it.each([
+    "UPDATE direct_connect_dispatch_requests SET user_id = 'other-requester'",
+    "DELETE FROM direct_connect_dispatch_requests",
+  ])("rejects missing or mismatched requester dispatch: %s", async (mutation) => {
+    await sql(mutation);
+    expect((await post("assignments", invitation)).status).toBe(409);
+    expect((await sql("SELECT id FROM direct_connect_dispatch_candidates")).rows).toEqual([]);
+    expect((await sql("SELECT id FROM work_request_assignments")).rows).toEqual([]);
+  });
+  it("rolls back assignment, state and audit when its dispatch snapshot fails", async () => {
+    await sql(
+      "ALTER TABLE direct_connect_dispatch_candidates ADD CONSTRAINT reject_snapshot CHECK (eligibility_state <> 'eligible')"
+    );
+    try {
+      expect((await post("assignments", invitation)).status).toBe(500);
+      expect((await sql("SELECT id FROM work_request_assignments")).rows).toEqual([]);
+      expect((await sql("SELECT id FROM admin_audit_log")).rows).toEqual([]);
+      expect((await sql("SELECT status FROM work_requests")).rows[0].status).toBe("open");
+    } finally {
+      await sql("ALTER TABLE direct_connect_dispatch_candidates DROP CONSTRAINT reject_snapshot");
+    }
+  });
   it("supports a business responder without inventing a contractor identity", async () => {
     await sql("INSERT INTO businesses (id, owner_user_id) VALUES ('business-1', 'business-owner')");
     const response = await post("assignments", { ...invitation, providerId: "business-1" });
@@ -274,6 +328,7 @@ describe("Direct Connect audited operator operations", () => {
     try {
       expect((await post("assignments", invitation)).status).toBe(500);
       expect((await sql("SELECT * FROM work_request_assignments")).rows).toHaveLength(0);
+      expect((await sql("SELECT * FROM direct_connect_dispatch_candidates")).rows).toHaveLength(0);
       expect((await sql("SELECT * FROM work_request_events")).rows).toHaveLength(0);
       expect((await sql("SELECT status FROM work_requests")).rows).toEqual([{ status: "open" }]);
       expect(fixture.notifyProvider).not.toHaveBeenCalled();

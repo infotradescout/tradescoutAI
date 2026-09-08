@@ -86,6 +86,7 @@ import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
 import { registerDirectConnectAdminOperations } from "./direct-connect/admin-operations";
+import { canAccessConversation, resolveConversationProviderUserId } from "../services/conversationParticipants";
 import {
   adminDirectConnectRequestSchema,
   type AdminDirectConnectCategory,
@@ -4444,16 +4445,17 @@ export function registerDirectConnectRoutes(app: Express) {
           .limit(1);
         if (!conversation) return res.status(404).json({ message: "Conversation not found" });
 
-        const contractor = await storage.getContractorByUserId(userId).catch(() => null);
         const providerKey = String(conversation.contractorId || "").trim();
         const requesterUserId = String(conversation.homeownerId || "").trim();
         const viewerIsRequester = requesterUserId === userId;
         const viewerIsProvider =
-          providerKey === userId ||
-          (contractor?.id ? providerKey === String(contractor.id) : false);
+          !viewerIsRequester && (await canAccessConversation(threadId, userId));
         if (!viewerIsRequester && !viewerIsProvider) {
           return res.status(403).json({ message: "Thread not available for this user" });
         }
+        const providerUserId = await resolveConversationProviderUserId(providerKey);
+        if (!providerUserId)
+          return res.status(404).json({ message: "No accepted Direct Connect job for thread" });
 
         const acceptedRows = await db.execute(sql`
           SELECT
@@ -4461,8 +4463,8 @@ export function registerDirectConnectRoutes(app: Express) {
             wr.title,
             wr.description,
             wr.category,
-            wr.county,
-            wr.city_area,
+            COALESCE(dispatch.county, wr.county_fips) AS county,
+            dispatch.city_area,
             wr.status AS request_status,
             wr.created_at AS request_created_at,
             a.id AS assignment_id,
@@ -4470,17 +4472,42 @@ export function registerDirectConnectRoutes(app: Express) {
             a.response_summary
           FROM work_requests wr
           INNER JOIN work_request_assignments a ON a.work_request_id = wr.id
+          LEFT JOIN direct_connect_dispatch_requests dispatch
+            ON dispatch.id = wr.id AND dispatch.user_id = wr.created_by_user_id
+          INNER JOIN work_request_events acceptance
+            ON acceptance.work_request_id = wr.id
+            AND acceptance.type = 'provider_accepted'
+            AND acceptance.actor_user_id = ${providerUserId}
+            AND acceptance.created_at >= a.created_at
+            AND acceptance.metadata ->> 'conversationId' = ${threadId}
+            AND (NULLIF(acceptance.metadata ->> 'assignmentId', '') IS NULL
+              OR acceptance.metadata ->> 'assignmentId' = a.id)
+            AND (
+              (a.contractor_id IS NOT NULL AND acceptance.metadata ->> 'contractorId' = a.contractor_id)
+              OR (a.contractor_id IS NULL AND acceptance.metadata ->> 'responderUserId' = a.responder_user_id)
+            )
           WHERE wr.created_by_user_id = ${requesterUserId}
             AND wr.source = 'direct_connect'
             AND a.status = 'accepted'
-            AND (
-              a.contractor_id = ${providerKey}
-              OR a.responder_user_id = ${providerKey}
+            AND COALESCE(a.contractor_id, a.responder_user_id) = ${providerKey}
+            AND NOT EXISTS (
+              SELECT 1 FROM work_request_assignments other
+              WHERE other.work_request_id = wr.id AND other.status = 'accepted' AND other.id <> a.id
             )
-          ORDER BY a.updated_at DESC NULLS LAST, a.created_at DESC NULLS LAST
-          LIMIT 1
+            AND 1 = (
+              SELECT COUNT(*) FROM work_request_events proof
+              WHERE proof.work_request_id = wr.id AND proof.type = 'provider_accepted'
+                AND proof.created_at >= a.created_at
+                AND (NULLIF(proof.metadata ->> 'assignmentId', '') IS NULL
+                  OR proof.metadata ->> 'assignmentId' = a.id)
+                AND (
+                  (a.contractor_id IS NOT NULL AND proof.metadata ->> 'contractorId' = a.contractor_id)
+                  OR (a.contractor_id IS NULL AND proof.metadata ->> 'responderUserId' = a.responder_user_id)
+                )
+            )
+          LIMIT 2
         `);
-        const accepted = ((acceptedRows.rows || []) as any[])[0] || null;
+        const accepted = acceptedRows.rows?.length === 1 ? acceptedRows.rows[0] as any : null;
         if (!accepted) {
           return res.status(404).json({ message: "No accepted Direct Connect job for thread" });
         }
@@ -9128,7 +9155,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 AND (
                   c.contractor_id = ${contractorId}
                   OR c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  OR (${workerId}::text IS NOT NULL AND c.worker_id = ${workerId})
                 )
               LIMIT 1
             `)
@@ -9139,7 +9166,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 AND c.eligibility_state = 'eligible'
                 AND (
                   c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  OR (${workerId}::text IS NOT NULL AND c.worker_id = ${workerId})
                 )
               LIMIT 1
             `);

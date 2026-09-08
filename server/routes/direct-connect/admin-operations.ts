@@ -13,6 +13,7 @@ import {
   workRequests,
 } from "@shared/schema";
 import { db } from "../../db";
+import { snapshotDispatchCandidate } from "../../services/directConnectDispatchLedgerService";
 import { storage } from "../../storage";
 import { redactContactDetails } from "../../utils/workRequestShare";
 
@@ -340,6 +341,30 @@ export function registerDirectConnectAdminOperations(app: Express, deps: Depende
               scoreSnapshot: { routingMode: "admin_manual" },
             })
             .returning();
+          const dispatch = await tx.execute(sql`SELECT id FROM direct_connect_dispatch_requests
+            WHERE id = ${requestId} AND user_id = ${context.request.createdByUserId} FOR SHARE`);
+          if (dispatch.rows.length !== 1)
+            throw new OperatorError(
+              409,
+              "This request has no matching requester-owned dispatch record. Resolve its request history before inviting a provider."
+            );
+          await snapshotDispatchCandidate(
+            {
+              requestId,
+              contractorId: contractor?.id || null,
+              businessId: business?.id || contractor?.businessId || null,
+              responderUserId: providerUserId,
+              eligibility: { status: "eligible", eligible: true },
+              eligibilityReasons: ["admin_manual_eligible_provider"],
+              territoryMatched: true,
+              categoryMatched: null,
+              verificationState: "unknown",
+              profileReadiness: "unknown",
+              contactEligibility: true,
+              trustState: "unknown",
+            },
+            tx
+          );
           await tx
             .update(workRequests)
             .set({ status: "routed", updatedAt: new Date() })
