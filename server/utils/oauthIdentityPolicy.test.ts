@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { safeOAuthReturnPath } from "./oauthIdentityPolicy";
+import { oauthPostLoginPath, safeOAuthReturnPath } from "./oauthIdentityPolicy";
 import { decideOAuthIdentity, oauthIdentityFailure } from "./oauthIdentityPolicy";
 
 describe("OAuth identity policy", () => {
+  it("retains county and claim context through incomplete onboarding", () => {
+    const next =
+      "/pre-scout-setup?next=%2Fdirect-connect%3Fcounty%3D22005&claimBusinessId=claim#form";
+    const redirect = new URL(oauthPostLoginPath(next, false), "https://www.thetradescout.com");
+    expect(redirect.pathname).toBe("/onboarding/profile");
+    expect(redirect.searchParams.get("next")).toBe(next);
+    expect(oauthPostLoginPath(next, true)).toBe(next);
+  });
+  it("drops unsafe onboarding continuations", () => {
+    expect(oauthPostLoginPath("/entry/..//evil.invalid", false)).toBe("/onboarding/profile");
+    expect(oauthPostLoginPath("/entry/..//evil.invalid", true)).toBe("/pre-scout-setup");
+  });
   it.each([
     "//evil.invalid/",
     "/\\evil.invalid",

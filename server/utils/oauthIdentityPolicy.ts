@@ -39,6 +39,12 @@ export type OAuthIdentityDecision =
       emailUserId: string;
     };
 
+export function oauthPostLoginPath(returnPath: unknown, onboardingCompleted: boolean): string {
+  const next = safeOAuthReturnPath(returnPath);
+  if (onboardingCompleted) return next || "/pre-scout-setup";
+  return next ? `/onboarding/profile?next=${encodeURIComponent(next)}` : "/onboarding/profile";
+}
+
 interface OAuthIdentityEvidence {
   providerUserId?: string | null;
   emailUserId?: string | null;

@@ -29,6 +29,6 @@ describe("scout-v2 auth gates", () => {
     const res = await request(app).get("/api/scout-v2/status");
 
     expect(res.status).toBe(403);
-    expect(String(res.body?.message || res.body?.error || "")).toContain("Admin access required");
+    expect(res.body).toEqual({ message: "Insufficient permissions" });
   });
 });

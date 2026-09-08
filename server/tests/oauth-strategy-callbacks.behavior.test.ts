@@ -51,6 +51,62 @@ for (const provider of ["google", "facebook"] as const) {
     const providerLookup =
       provider === "google" ? data.getUserByGoogleId : data.getUserByFacebookId;
     const existing = { id: "existing-account", email: "member@example.invalid", role: "homeowner" };
+    const tokenExchange = vi.fn();
+    function authenticate(session: Record<string, unknown>, query: Record<string, string> = {}) {
+      const strategy = Object.create((passport as any)._strategy(provider));
+      strategy._oauth2 = Object.create(strategy._oauth2);
+      strategy._oauth2.getOAuthAccessToken = (...args: any[]) => {
+        tokenExchange();
+        args[2](null, "synthetic-token", "", {});
+      };
+      strategy.userProfile = (_token: string, done: any) =>
+        done(null, {
+          id: "provider-subject",
+          emails: [{ value: "member@example.invalid" }],
+        });
+      return new Promise<{ kind: string; value: any }>((resolve) => {
+        strategy.redirect = (value: string) => resolve({ kind: "redirect", value });
+        strategy.fail = (value: any) => resolve({ kind: "fail", value });
+        strategy.error = (value: any) => resolve({ kind: "error", value });
+        strategy.success = (value: any) => resolve({ kind: "success", value });
+        strategy.authenticate({ session, query }, {});
+      });
+    }
+
+    it.each(["missing", "wrong", "other-session"])(
+      "rejects %s state before token exchange or account resolution",
+      async (kind) => {
+        const session = {};
+        const start = await authenticate(session);
+        expect(start.kind).toBe("redirect");
+        const state = new URL(start.value).searchParams.get("state");
+        expect(state).toMatch(/^[A-Za-z0-9]{24}$/);
+        tokenExchange.mockClear();
+        const query = {
+          code: "attacker-code",
+          ...(kind === "missing" ? {} : { state: kind === "wrong" ? "wrong-state" : state! }),
+        };
+        const result = await authenticate(kind === "other-session" ? {} : session, query);
+        expect(result.kind).toBe("fail");
+        expect(tokenExchange).not.toHaveBeenCalled();
+        expect(providerLookup).not.toHaveBeenCalled();
+        expect(data.getOAuthUsersByEmail).not.toHaveBeenCalled();
+        expect(data.createUser).not.toHaveBeenCalled();
+      }
+    );
+    it("accepts a session-bound state once and rejects replay before account resolution", async () => {
+      const session = {};
+      const start = await authenticate(session);
+      const state = new URL(start.value).searchParams.get("state")!;
+      expect(state).toBeTruthy();
+      expect((await authenticate(session, { code: "synthetic-code", state })).kind).toBe("success");
+      vi.clearAllMocks();
+      expect((await authenticate(session, { code: "synthetic-code", state })).kind).toBe("fail");
+      expect(tokenExchange).not.toHaveBeenCalled();
+      expect(providerLookup).not.toHaveBeenCalled();
+      expect(data.createUser).not.toHaveBeenCalled();
+    });
+
     function invoke(overrides: Record<string, unknown> = {}) {
       // Execute the callback registered on the real Passport strategy, not a
       // copied resolver. Token exchange/network is outside this synthetic proof.

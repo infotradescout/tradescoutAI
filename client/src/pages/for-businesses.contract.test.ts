@@ -9,7 +9,8 @@ describe("ForBusinessesPage acquisition contracts", () => {
   it("presents one human business proposition without exposing acquisition machinery", () => {
     const source = read("client/src/pages/for-businesses.tsx");
 
-    expect(source).toContain('title="TradeScout for Local Businesses"');
+    expect(source).toContain('title: "TradeScout for Local Businesses"');
+    expect(source).toContain("title={FOR_BUSINESSES_METADATA.title}");
     expect(source).toContain("Give people a clear reason to choose your business.");
     expect(source).toContain("Claim or create your business");
     expect(source).toContain("Selective Inheritance");

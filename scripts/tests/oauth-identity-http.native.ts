@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import passport from "passport";
 import dotenv from "dotenv";
 import { eq, or } from "drizzle-orm";
@@ -35,12 +36,41 @@ dotenv.config = dotenv.configDotenv = () => ({ parsed: {} });
 const { createApp } = await import("../../server/app");
 const { db, pool } = await import("../../server/db");
 const { users } = await import("../../shared/schema");
+const { emailService } = await import("../../server/services/emailService");
+const emailWaiters = new Map<string, (text: string) => void>();
+// Capture generated verification links without delivering mail.
+(emailService as any).sendEmail = async (message: any) => {
+  emailWaiters.get(String(message.to))?.(String(message.text || ""));
+  return { success: true };
+};
 const timeout = setTimeout(() => {
   console.error("OAUTH_HTTP_TIMEOUT");
   process.exit(2);
 }, 90000);
 const prefix = `oauth-http-${randomUUID()}`;
 let base = "";
+const requestAsHost = (requestPath: string, host: string) =>
+  new Promise<Response>((resolve, reject) => {
+    const request = httpRequest(
+      `${base}${requestPath}`,
+      {
+        headers: { Host: host, "X-Forwarded-Proto": "https" },
+      },
+      (response) => {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(response.headers)) {
+          for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value])
+            headers.append(key, item);
+        }
+        response.resume();
+        response.on("end", () =>
+          resolve(new Response(null, { status: response.statusCode, headers }))
+        );
+      }
+    );
+    request.on("error", reject);
+    request.end();
+  });
 const results: object[] = [];
 const returnPath =
   "/pre-scout-setup?mode=create&next=%2Fdirect-connect%3Fcounty%3D22005&claimBusinessId=synthetic-claim#form";
@@ -74,33 +104,146 @@ try {
       .returning();
     const strategy = (passport as any)._strategy(provider);
     let profile: any;
+    let tokenExchanges = 0;
+    let identityVerifications = 0;
+    const registeredVerifier = strategy._verify;
+    strategy._verify = (...args: any[]) => {
+      identityVerifications += 1;
+      return registeredVerifier(...args);
+    };
     // Simulate only the external provider response: Passport strategy, registered
     // verification callback, storage, advisory locks, routes and sessions are real.
-    strategy._oauth2.getOAuthAccessToken = (_code: any, _params: any, done: any) =>
+    strategy._oauth2.getOAuthAccessToken = (_code: any, _params: any, done: any) => {
+      tokenExchanges += 1;
       done(null, "synthetic-token", "", {});
+    };
     strategy.userProfile = (_token: any, done: any) => done(null, profile);
+    process.env.NODE_ENV = "production";
+    try {
+      const customEntry = await requestAsHost(
+        `/api/auth/${provider}?next=${encodeURIComponent(returnPath)}`,
+        "business.example.invalid"
+      );
+      assert.equal(customEntry.status, 302);
+      const handoff = new URL(customEntry.headers.get("location")!);
+      assert.equal(handoff.origin, "https://www.thetradescout.com");
+      assert.equal(handoff.pathname, `/api/auth/${provider}`);
+      assert.equal(handoff.searchParams.get("next"), returnPath);
+      assert.equal(handoff.searchParams.has("state"), false);
+      assert.equal(
+        customEntry.headers.getSetCookie().length,
+        0,
+        "custom host must not create the OAuth nonce session"
+      );
+      // Follow the canonical entry through the loopback listener with a
+      // synthetic canonical Host; never follow the external provider URL.
+      const canonicalEntry = await requestAsHost(
+        `${handoff.pathname}${handoff.search}`,
+        handoff.host
+      );
+      assert.equal(canonicalEntry.status, 302);
+      const authorization = new URL(canonicalEntry.headers.get("location")!);
+      assert.match(authorization.searchParams.get("state") || "", /^[A-Za-z0-9]{24}$/);
+      assert.equal(
+        authorization.searchParams.get("redirect_uri"),
+        `https://www.thetradescout.com/api/auth/${provider}/callback`
+      );
+      assert.ok(canonicalEntry.headers.getSetCookie().length);
+      results.push({
+        provider,
+        label: "production custom-host entry aligns nonce and callback origin",
+        preservedContinuation: true,
+      });
+    } finally {
+      process.env.NODE_ENV = "test";
+    }
+    const begin = async (requestedNext = returnPath) => {
+      const response = await fetch(
+        `${base}/api/auth/${provider}?next=${encodeURIComponent(requestedNext)}`,
+        { redirect: "manual" }
+      );
+      assert.equal(response.status, 302);
+      const state = new URL(response.headers.get("location")!).searchParams.get("state");
+      assert.match(state || "", /^[A-Za-z0-9]{24}$/, "authorization entry must mint a nonce");
+      const cookie = response.headers
+        .getSetCookie()
+        .map((v) => v.split(";")[0])
+        .join("; ");
+      assert.ok(cookie, "the authorization nonce must be persisted in a browser session");
+      return { state: state!, cookie };
+    };
+    const rejectState = async (
+      label: string,
+      cookie: string,
+      state?: string,
+      existingId: string | null = null
+    ) => {
+      const before = { tokenExchanges, identityVerifications };
+      const response = await fetch(
+        `${base}/api/auth/${provider}/callback?code=attacker-code${state === undefined ? "" : `&state=${encodeURIComponent(state)}`}`,
+        {
+          redirect: "manual",
+          headers: { cookie },
+        }
+      );
+      assert.equal(response.status, 302, label);
+      const redirect = new URL(response.headers.get("location")!, base);
+      assert.equal(redirect.origin, base);
+      assert.equal(redirect.searchParams.get("oauthError"), "AUTH_OAUTH_FAILED", label);
+      assert.equal(tokenExchanges, before.tokenExchanges, `${label}: reject before token exchange`);
+      assert.equal(
+        identityVerifications,
+        before.identityVerifications,
+        `${label}: reject before account resolution`
+      );
+      const identity = await fetch(`${base}/__oauth-smoke-identity`, { headers: { cookie } });
+      assert.equal((await identity.json()).id, existingId, `${label}: no new login`);
+      results.push({
+        provider,
+        label,
+        rejectedBeforeTokenExchange: true,
+        rejectedBeforeIdentity: true,
+      });
+    };
     const run = async (
       label: string,
       p: any,
       expectedId: string | null,
       failure?: string,
-      requestedNext = returnPath
+      requestedNext = returnPath,
+      needsOnboarding = false,
+      needsEmailVerification = false
     ) => {
       profile = p;
-      const start = await fetch(
-        `${base}/api/auth/${provider}?next=${encodeURIComponent(requestedNext)}`,
-        { redirect: "manual" }
+      const { state, cookie } = await begin(requestedNext);
+      const verificationMail = needsEmailVerification
+        ? new Promise<string>((resolve, reject) => {
+            const timer = setTimeout(
+              () => reject(new Error("Verification message was not generated")),
+              5000
+            );
+            emailWaiters.set(p.emails[0].value, (text) => {
+              clearTimeout(timer);
+              resolve(text);
+            });
+          })
+        : null;
+      const response = await fetch(
+        `${base}/api/auth/${provider}/callback?code=synthetic&state=${encodeURIComponent(state)}`,
+        {
+          redirect: "manual",
+          headers: { cookie },
+        }
       );
-      assert.equal(start.status, 302);
-      const cookie = start.headers
-        .getSetCookie()
-        .map((v) => v.split(";")[0])
-        .join("; ");
-      const response = await fetch(`${base}/api/auth/${provider}/callback?code=synthetic`, {
-        redirect: "manual",
-        headers: { cookie },
-      });
       assert.equal(response.status, 302, label);
+      if (expectedId === "new-account") {
+        const created = await db.select().from(users).where(eq(users.email, p.emails[0].value));
+        assert.equal(created.length, 1);
+        assert.equal(created[0].role, null);
+        assert.equal(created[0].onboardingCompleted, false);
+        assert.equal(created[0].emailVerified, false);
+        expectedId = created[0].id;
+      }
       const freshCookie =
         response.headers
           .getSetCookie()
@@ -127,6 +270,20 @@ try {
         assert.equal(redirect.searchParams.get("mode"), "signin");
         assert.equal(redirect.searchParams.get("next"), "/direct-connect?county=22005");
         assert.equal(redirect.searchParams.get("claimBusinessId"), "synthetic-claim");
+      } else if (needsOnboarding) {
+        const onboardingPath = `/onboarding/profile?next=${encodeURIComponent(requestedNext)}`;
+        if (needsEmailVerification) {
+          assert.equal(redirect.pathname, "/check-email");
+          assert.equal(redirect.searchParams.get("next"), onboardingPath);
+          const mail = await verificationMail!;
+          const verificationLink = new URL(mail.match(/https?:\/\/\S+/)![0]);
+          assert.equal(
+            verificationLink.searchParams.get("next"),
+            onboardingPath,
+            "verification email retains the captured county and claim destination"
+          );
+          emailWaiters.delete(p.emails[0].value);
+        } else assert.equal(response.headers.get("location"), onboardingPath);
       } else
         assert.equal(
           response.headers.get("location"),
@@ -140,8 +297,62 @@ try {
         authenticated: identity.status === 200,
         failure: failure ?? null,
       });
+      return { state, cookie, freshCookie };
     };
-    await run("stored subject owner", { id: subject, emails: [{ value: ownerEmail }] }, owner.id);
+    for (const kind of ["missing", "wrong", "other-session", "no-session"]) {
+      const flow = await begin();
+      const other = kind === "other-session" ? await begin() : flow;
+      await rejectState(
+        `${kind} state`,
+        kind === "no-session" ? "" : other.cookie,
+        kind === "missing" ? undefined : kind === "wrong" ? "wrong-state" : flow.state
+      );
+    }
+    const signedIn = await run(
+      "stored subject owner",
+      { id: subject, emails: [{ value: ownerEmail }] },
+      owner.id
+    );
+    await rejectState("replayed state with original session", signedIn.cookie, signedIn.state);
+    await rejectState(
+      "replayed state with authenticated session",
+      signedIn.freshCookie,
+      signedIn.state,
+      owner.id
+    );
+    await run(
+      "new account keeps county and claim continuation through email and onboarding",
+      {
+        id: `${subject}-fresh`,
+        emails: [{ value: `${subject}-fresh@example.invalid` }],
+      },
+      "new-account",
+      undefined,
+      returnPath,
+      true,
+      true
+    );
+    const [incomplete] = await db
+      .insert(users)
+      .values({
+        email: `${subject}-incomplete@example.invalid`,
+        [field]: `${subject}-incomplete`,
+        role: null,
+        onboardingCompleted: false,
+        emailVerified: true,
+      })
+      .returning();
+    await run(
+      "incomplete account keeps county and claim continuation",
+      {
+        id: `${subject}-incomplete`,
+        emails: [{ value: incomplete.email }],
+      },
+      incomplete.id,
+      undefined,
+      returnPath,
+      true
+    );
     for (const next of [
       "/entry/..//evil.invalid",
       "/.%2e//evil.invalid",

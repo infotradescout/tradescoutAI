@@ -215,7 +215,7 @@ export const CLIENT_ROUTE_FAMILIES = Object.freeze([
     owner: "product-platform", audience: "public-and-account-holder", roles: ["anonymous", "authenticated"],
     canonicalObject: "business", job: "Use a bounded product capability", readiness: "closed_beta",
   }),
-  family("platform-shell", /^\/$|^\/:rest\*$|^\/(?:help-demo|test-page)\/:rest\*$/, {
+  family("platform-shell", /^\/$|^\/:rest\*$|^\/help-demo$|^\/(?:help-demo|test-page)\/:rest\*$/, {
     owner: "platform-routing", audience: "public", roles: ["anonymous", "authenticated"],
     canonicalObject: "user_identity", job: "Enter the canonical shell or truthful not-found state", readiness: "production",
   }),

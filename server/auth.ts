@@ -208,7 +208,7 @@ export function getAuthProviderAvailability(): AuthProviderAvailability {
   };
 }
 
-function configuredOAuthCallbackUrl(provider: OAuthProvider): string {
+export function configuredOAuthCallbackUrl(provider: OAuthProvider): string {
   const canonicalWebOrigin = String(
     process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
   ).replace(/\/+$/, "");
@@ -594,6 +594,7 @@ export async function setupAuth(app: Express, options: SetupAuthOptions = {}) {
             clientID: facebookAppId,
             clientSecret: facebookAppSecret,
             callbackURL: facebookCallbackURL,
+            state: true,
             profileFields: ["id", "displayName", "photos", "email", "first_name", "last_name"],
           },
           async (_accessToken, _refreshToken, profile, done) => {
@@ -658,6 +659,7 @@ export async function setupAuth(app: Express, options: SetupAuthOptions = {}) {
           clientID: googleClientId,
           clientSecret: googleClientSecret,
           callbackURL: googleCallbackURL,
+          state: true,
         },
         async (
           _accessToken: string,
