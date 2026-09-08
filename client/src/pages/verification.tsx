@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getCurrentInternalPath, readSafeReturnPath } from "@/lib/postOnboardingRoute";
+import { isRecommendationVerificationPath } from "@shared/recommendationContinuation";
+import { RecommendationVerification } from "@/components/verification/RecommendationVerification";
 
 type StatusTone = "complete" | "pending" | "required";
 
@@ -41,7 +43,7 @@ function toneLabel(tone: StatusTone) {
   return "Required";
 }
 
-const Verification = memo(function Verification() {
+const VerificationOverview = memo(function VerificationOverview() {
   const { user, isAuthenticated } = useAuth();
   const [location] = useLocation();
   const returnPath = readSafeReturnPath(getCurrentInternalPath(location));
@@ -312,4 +314,12 @@ const Verification = memo(function Verification() {
   );
 });
 
-export default Verification;
+export default function Verification() {
+  const [location] = useLocation();
+  const currentPath = getCurrentInternalPath(location);
+  const returnPath = readSafeReturnPath(currentPath);
+  if (returnPath && isRecommendationVerificationPath(currentPath)) {
+    return <RecommendationVerification returnPath={returnPath} />;
+  }
+  return <VerificationOverview />;
+}

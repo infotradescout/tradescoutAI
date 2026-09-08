@@ -1,0 +1,39 @@
+{
+  "acceptance": [
+    "Guest can write recommendation before authentication on desktop and mobile",
+    "Private draft survives same-device auth navigation, failure, reload; no text/PII in URLs",
+    "Incomplete authenticated accounts can save; no onboarding flag auto-completion",
+    "Repeat saves do not duplicate; actor identity and verification are server-controlled",
+    "Unverified or unapproved recommendations excluded from public DTO/counts/stats",
+    "Email verification returns to saved action; approval requires verified author",
+    "No messaging/contact/CVS bypass; no live email sends in validation"
+  ],
+  "activeDeliverable": "Recommend a business: guest composer and recoverable local draft, minimal account return, private authenticated submission, contextual email confirmation, moderation with verification publication guard.",
+  "authority": "Reversible local implementation and branch/PR preparation authorized; main merge and production deploy not authorized by this request.",
+  "laterDeliverables": [
+    "Apply the proven capture-and-hold interaction to other publishing and contact workflows while preserving their distinct trust and county requirements.",
+    "Modernize address and professional verification providers only from verified capabilities; no provider purchase or synthetic verification."
+  ],
+  "evidence": [
+    "docs/release/ACTION_FIRST_RECOMMENDATIONS_20260908.md",
+    "artifacts/action-first-browser-evidence.json",
+    "artifacts/action-first-focused-final.log",
+    "artifacts/action-first-full-tests.json",
+    "artifacts/action-first-baseline-tests.json",
+    "artifacts/action-first-failure-recheck.log"
+  ],
+  "design": "Focused in-page composer; optional details disclosed on demand; saved state remains visible with one contextual next action.",
+  "reuse": {
+    "server": "Extract recommendation routes from routes.ts, extend storage and existing moderation fields",
+    "verification": "Reuse email verification token issuance and consumption; no new provider",
+    "authentication": "Extend preScoutAuthHandoff, oauthIdentityPolicy and strict recommendation continuation",
+    "draft": "New browser-only recommendation draft owner because no reusable recommendation draft persistence exists",
+    "primitives": "Existing Button, Card, Input, Textarea, Select, RadioGroup, Dialog",
+    "composer": "Extend RecommendationForm and PublicProfileTrustActions; no parallel composer"
+  },
+  "timestampUtc": "2026-09-08T22:47:19.5787746Z",
+  "baseCommit": "87d87de46bf84f8dac3039eb36fdf7f194d3578c",
+  "authoritativeIntent": "Let people take an action before full onboarding, retain it privately, and enforce contextual verification before it has public effect.",
+  "indexBaseline": "11 existing duplicate/export findings reviewed: onboarding wrappers are compatibility aliases to canonical onboarding; other findings outside lane (config aliases, legacy profile themes, procurement wrappers, AppShell wrappers). No new duplicate owner authorized.",
+  "checkpointStatus": "Implementation and bounded local journey verified; exact commit release gate and review branch next; production not released."
+}
