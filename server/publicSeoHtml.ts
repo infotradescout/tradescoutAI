@@ -310,7 +310,13 @@ export function preparePublicSeoHtmlForResponse(
 ): string {
   const upgradedHtml = upgradePublicSocialPreviewHtml(html);
   if (options.retainSeoSummary) {
-    return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
+    const crawlerHtml = stripPublicSeoBootPlaceholders(upgradedHtml);
+    // Metadata alone is not a rendered page. Exchange, for example, injects
+    // titles and schema into an empty app root. Rendering crawlers still need
+    // the application entry to see its content and links.
+    return SEO_ROOT_SUMMARY_PATTERN.test(crawlerHtml)
+      ? crawlerHtml.replace(CLIENT_MODULE_SCRIPT_PATTERN, "")
+      : crawlerHtml;
   }
 
   return upgradedHtml.replace(SEO_ROOT_SUMMARY_PATTERN, '<div id="root"></div>');
