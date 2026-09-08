@@ -309,7 +309,7 @@ export default function SteelHomePackagesProfile({
         <SteelHomeBuilderDirectory onOpen={openPlanner} />
       ) : null}
 
-      {activePlanner && activeBuilder ? (
+      {storageReady && activePlanner && activeBuilder ? (
         <section
           className="flex min-h-0 flex-1 flex-col bg-[#f5f1e8]"
           aria-labelledby="steel-home-active-planner-title"

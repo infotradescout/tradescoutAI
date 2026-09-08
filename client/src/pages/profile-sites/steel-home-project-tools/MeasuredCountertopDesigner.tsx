@@ -56,11 +56,17 @@ import {
   ProjectToggle,
 } from "./ProjectToolControls";
 import type { StoneSurfaceTarget } from "./StoneVisualizer3D";
-import { buildStoneDesignerImageHref, buildStoneDesignerPhotoKey } from "./stoneDesignerImages";
+import {
+  buildStoneDesignerImageHref,
+  buildStoneDesignerPhotoKey,
+  STONE_DESIGNER_SELECTION_PARAM,
+  STONE_DESIGNER_PHOTO_PARAM,
+} from "./stoneDesignerImages";
 import { getStoneProjectionDecision } from "./stoneProjectionSafety";
 import {
   buildCountertopStudioShareUrl,
   parseCountertopStudioShareUrl,
+  parseCountertopStoneSelectionUrl,
 } from "./countertopStudioShare";
 import {
   buildSteelHomeBuilderPath,
@@ -931,6 +937,19 @@ export default function MeasuredCountertopDesigner({
   const [sharedDesign, setSharedDesign] = useState(() =>
     typeof window === "undefined" ? null : parseCountertopStudioShareUrl(window.location.href)
   );
+  const [linkedStone] = useState(() =>
+    typeof window === "undefined" ? null : parseCountertopStoneSelectionUrl(window.location.href)
+  );
+  const linkedStoneApplied = useRef(false);
+  useEffect(() => {
+    if (!linkedStone || linkedStoneApplied.current) return;
+    linkedStoneApplied.current = true;
+    onChange({ ...designInput, ...linkedStone });
+    const url = new URL(window.location.href);
+    url.searchParams.delete(STONE_DESIGNER_SELECTION_PARAM);
+    url.searchParams.delete(STONE_DESIGNER_PHOTO_PARAM);
+    window.history.replaceState(window.history.state, "", url);
+  }, [linkedStone, designInput, onChange]);
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null);

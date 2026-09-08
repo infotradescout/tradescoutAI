@@ -8,7 +8,18 @@ import {
   resolveCountertopPlannerDesign,
   type CountertopPlannerDesignInput,
 } from "./countertopPlannerModel";
-import { createEmptySteelHomeProjectDraft } from "./projectModel";
+import {
+  createEmptySteelHomeProjectDraft,
+  loadSteelHomeProjectDraft,
+  saveSteelHomeProjectDraft,
+  STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY,
+} from "./projectModel";
+import SteelHomePackagesProfile from "../SteelHomePackagesProfile";
+import { getCatalogItemById } from "@/features/jw-stone/catalog";
+import { stoneRoomDestination } from "@/features/jw-stone/StoneRoomLink";
+import { stoneRoomBasePath } from "@/features/jw-stone/marketplaceRoutes";
+import { buildStoneDesignerPhotoKey } from "./stoneDesignerImages";
+import { getStoneProjectionDecision } from "./stoneProjectionSafety";
 import {
   buildCountertopStudioShareUrl,
   parseCountertopStudioShareUrl,
@@ -58,6 +69,7 @@ describe("CountertopDesigner truthful measurement gates", () => {
   let onRequest: ReturnType<typeof vi.fn<(intent: "stone" | "fabricator") => void>>;
 
   beforeEach(() => {
+    window.localStorage.clear();
     window.history.replaceState(null, "", "/u/steel-home-packages/builders/countertops");
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -84,6 +96,102 @@ describe("CountertopDesigner truthful measurement gates", () => {
       await Promise.resolve();
     });
   }
+
+  it("hydrates the public parent's saved draft before applying one exact catalog photo", async () => {
+    const stone = getCatalogItemById("arizona-gold")!;
+    const index = stone.images.findIndex((image) => !getStoneProjectionDecision(image).allowed);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const draft = createEmptySteelHomeProjectDraft();
+    draft.countertops = {
+      ...draft.countertops,
+      stoneId: "cristallo",
+      room: "Kitchen",
+      wallAIn: 180,
+      measurementsReviewed: true,
+      roomWidthIn: 240,
+      roomDepthIn: 192,
+      sink: "Single-bowl undermount",
+      sinkRun: "main",
+      sinkPositionIn: 48,
+      sinkFrontPositionIn: 12,
+      sinkTemplateWidthIn: 30,
+      sinkTemplateDepthIn: 18,
+      notes: "Preserve existing cabinet layout",
+      textureOffsetX: 0.25,
+      textureScale: 1.5,
+    };
+    saveSteelHomeProjectDraft(window.localStorage, draft);
+    const loaded = loadSteelHomeProjectDraft(window.localStorage);
+    const writes = vi.spyOn(Storage.prototype, "setItem");
+    window.history.replaceState(
+      null,
+      "",
+      stoneRoomDestination(stone, stone.images[index]!, stoneRoomBasePath())!
+    );
+    await act(async () => {
+      root.render(
+        <SteelHomePackagesProfile
+          requestHref="/direct-connect"
+          laborRequestHref="/direct-connect"
+          initialBuilder="countertops"
+        />
+      );
+    });
+    await vi.waitFor(() => {
+      expect(loadSteelHomeProjectDraft(window.localStorage).countertops.stoneId).toBe(stone.id);
+    });
+    const selection = {
+      stoneId: stone.id,
+      textureImageIndex: index,
+      texturePhotoKey: buildStoneDesignerPhotoKey(stone.images[index]!),
+    };
+    expect(loadSteelHomeProjectDraft(window.localStorage)).toEqual({
+      ...loaded,
+      countertops: { ...loaded.countertops, ...selection },
+    });
+    for (const [key, value] of writes.mock.calls) {
+      if (key !== STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY) continue;
+      expect(JSON.parse(value).countertops).toMatchObject({
+        wallAIn: 180,
+        measurementsReviewed: true,
+        notes: "Preserve existing cabinet layout",
+      });
+    }
+    expect(container.textContent).toContain("Reference photo only");
+    expect(window.location.search).toBe("");
+    act(() =>
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-view-plan"]')!
+        .click()
+    );
+    expect(
+      container.querySelector<HTMLInputElement>('[data-testid="steel-home-countertop-run-a"]')
+        ?.value
+    ).toBe("180");
+    expect(
+      container.querySelector<HTMLSelectElement>('[data-testid="steel-home-countertop-room"]')
+        ?.value
+    ).toBe("Kitchen");
+    expect(onRequest).not.toHaveBeenCalled();
+  });
+
+  it("does not alter a saved design when the requested photo belongs to another stone", async () => {
+    const stone = getCatalogItemById("arizona-gold")!;
+    const foreign = getCatalogItemById("taj-mahal")!;
+    window.history.replaceState(
+      null,
+      "",
+      `?stone=${stone.shareSlug}&photo=${buildStoneDesignerPhotoKey(foreign.images[0]!)}`
+    );
+    await render({
+      ...createEmptySteelHomeProjectDraft().countertops,
+      stoneId: "cristallo",
+      wallAIn: 180,
+      notes: "Retain me",
+    });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onRequest).not.toHaveBeenCalled();
+  });
 
   it("contains gallery focus when filtering removes every stone and restores the trigger on Escape", async () => {
     await render({
@@ -351,11 +459,11 @@ describe("CountertopDesigner truthful measurement gates", () => {
       sinkTemplateWidthIn: 30,
       sinkTemplateDepthIn: 18,
     };
-    window.history.replaceState(
-      null,
-      "",
-      buildCountertopStudioShareUrl(shared, window.location.href)
-    );
+    const sharedUrl = new URL(buildCountertopStudioShareUrl(shared, window.location.href)!);
+    const catalogStone = getCatalogItemById("arizona-gold")!;
+    sharedUrl.searchParams.set("stone", catalogStone.shareSlug!);
+    sharedUrl.searchParams.set("photo", buildStoneDesignerPhotoKey(catalogStone.images[0]!)!);
+    window.history.replaceState(null, "", sharedUrl);
     await render({ ...createEmptySteelHomeProjectDraft().countertops, stoneId: "cristallo" });
     expect(onChange).not.toHaveBeenCalled();
     expect(

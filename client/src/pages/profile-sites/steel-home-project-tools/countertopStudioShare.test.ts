@@ -1,13 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { getCatalogItemById } from "@/features/jw-stone/catalog";
+import { getCatalogItemById, JW_STONE_CATALOG } from "@/features/jw-stone/catalog";
 import { createEmptySteelHomeProjectDraft } from "./projectModel";
 import {
   COUNTERTOP_STUDIO_SHARE_PARAM,
   buildCountertopStudioSnapshot,
   buildCountertopStudioShareUrl,
   parseCountertopStudioShareUrl,
+  parseCountertopStoneSelectionUrl,
 } from "./countertopStudioShare";
 import { buildStoneDesignerPhotoKey } from "./stoneDesignerImages";
+import { getStoneProjectionDecision } from "./stoneProjectionSafety";
+
+describe("catalog stone navigation", () => {
+  const stone = getCatalogItemById("arizona-gold")!;
+  const selectionUrl = (slug: string, image: string) =>
+    `https://example.com/u/steel-home-packages/builders/countertops?stone=${slug}&photo=${buildStoneDesignerPhotoKey(image)}`;
+
+  it("returns only exact stone and photo selection, including an unprepared reference photo", () => {
+    const index = stone.images.findIndex((image) => !getStoneProjectionDecision(image).allowed);
+    expect(index).toBeGreaterThanOrEqual(0);
+    expect(
+      parseCountertopStoneSelectionUrl(selectionUrl(stone.shareSlug!, stone.images[index]!))
+    ).toEqual({
+      stoneId: stone.id,
+      textureImageIndex: index,
+      texturePhotoKey: buildStoneDesignerPhotoKey(stone.images[index]!),
+    });
+  });
+
+  it("rejects unknown, anonymous, malformed, missing, duplicate, and foreign photo selections", () => {
+    const anonymous = JW_STONE_CATALOG.find((entry) => entry.anonymous)!;
+    const valid = selectionUrl(stone.shareSlug!, stone.images[0]!);
+    for (const url of [
+      selectionUrl("unknown-stone", stone.images[0]!),
+      selectionUrl(anonymous.shareSlug || anonymous.id, anonymous.images[0]!),
+      selectionUrl(stone.shareSlug!, getCatalogItemById("taj-mahal")!.images[0]!),
+      valid.replace(/photo=.*/, "photo=ph_invalid"),
+      valid.replace(/&photo=.*/, ""),
+      `${valid}&stone=${stone.shareSlug}`,
+      `${valid}&photo=${buildStoneDesignerPhotoKey(stone.images[0]!)}`,
+      "not a URL",
+    ])
+      expect(parseCountertopStoneSelectionUrl(url)).toBeNull();
+  });
+
+  it("leaves every shared snapshot to the explicit Open shared plan flow", () => {
+    const valid = selectionUrl(stone.shareSlug!, stone.images[0]!);
+    expect(parseCountertopStoneSelectionUrl(`${valid}&studio=`)).toBeNull();
+    const full = new URL(
+      buildCountertopStudioShareUrl(
+        {
+          ...createEmptySteelHomeProjectDraft().countertops,
+          stoneId: "taj-mahal",
+        },
+        valid
+      )!
+    );
+    full.searchParams.set("stone", stone.shareSlug!);
+    full.searchParams.set("photo", buildStoneDesignerPhotoKey(stone.images[0]!)!);
+    expect(parseCountertopStoneSelectionUrl(full.href)).toBeNull();
+    expect(parseCountertopStudioShareUrl(full.href)?.stoneId).toBe("taj-mahal");
+  });
+});
 
 function decodeShareSnapshot(url: string): Record<string, unknown> {
   const encoded = new URL(url).searchParams.get(COUNTERTOP_STUDIO_SHARE_PARAM)!;

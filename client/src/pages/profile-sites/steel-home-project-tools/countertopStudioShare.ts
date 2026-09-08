@@ -8,6 +8,8 @@ import {
   buildStoneDesignerPhotoKey,
   isStoneDesignerPhotoKey,
   resolveStoneDesignerPhotoIndex,
+  STONE_DESIGNER_SELECTION_PARAM,
+  STONE_DESIGNER_PHOTO_PARAM,
 } from "./stoneDesignerImages";
 import {
   addCountertopPlannerExtensionToShareUrl,
@@ -15,6 +17,30 @@ import {
 } from "./countertopPlannerModel";
 
 export const COUNTERTOP_STUDIO_SHARE_PARAM = "studio" as const;
+
+/** A catalog navigation changes only the selected stone/photo; it never imports plan geometry. */
+export function parseCountertopStoneSelectionUrl(
+  href: string
+): Pick<SteelHomeCountertopDesign, "stoneId" | "textureImageIndex" | "texturePhotoKey"> | null {
+  try {
+    const params = new URL(href).searchParams;
+    // Shared plans always retain their separate explicit-open flow, even when malformed.
+    if (params.has(COUNTERTOP_STUDIO_SHARE_PARAM)) return null;
+    if (
+      params.getAll(STONE_DESIGNER_SELECTION_PARAM).length !== 1 ||
+      params.getAll(STONE_DESIGNER_PHOTO_PARAM).length !== 1
+    )
+      return null;
+    const stone = getNamedCatalogItemByShareSlug(params.get(STONE_DESIGNER_SELECTION_PARAM) || "");
+    const photoKey = params.get(STONE_DESIGNER_PHOTO_PARAM);
+    if (!stone || stone.anonymous || !isStoneDesignerPhotoKey(photoKey)) return null;
+    const index = resolveStoneDesignerPhotoIndex(stone.images, photoKey);
+    if (index < 0) return null;
+    return { stoneId: stone.id, textureImageIndex: index, texturePhotoKey: photoKey };
+  } catch {
+    return null;
+  }
+}
 
 type CountertopStudioSnapshotFields = {
   s: string;
