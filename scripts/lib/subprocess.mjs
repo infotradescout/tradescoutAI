@@ -26,7 +26,7 @@ export async function spawnCommand(command, args, options = {}) {
 
   // Windows: prefer explicit cmd.exe dispatch so `.cmd` shims work without `shell: true`,
   // avoiding Node's DEP0190 warning.
-  if (process.platform === "win32") {
+  if (process.platform === "win32" && !/\.(?:exe|com)$/i.test(candidates[0])) {
     const comspec = process.env.ComSpec || "cmd.exe";
     const cmdline = toCmdCommandLine(candidates[0], args);
     const child = spawn(comspec, ["/d", "/s", "/c", cmdline], { ...options, shell: false });
@@ -37,7 +37,8 @@ export async function spawnCommand(command, args, options = {}) {
     return child;
   }
 
-  // POSIX: attempt direct spawn and optionally fall back to common extensions.
+  // Native executables run directly, preserving Windows paths with spaces and
+  // literal arguments. POSIX commands may fall back to common extensions.
   const base = candidates[0];
   const tryList =
     /[\\/]/.test(base) || /\.[a-z0-9]+$/i.test(base) ? [base] : [base, `${base}.sh`];
