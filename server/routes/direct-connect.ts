@@ -1574,6 +1574,20 @@ export function registerDirectConnectRoutes(app: Express) {
     return shareToken || null;
   };
 
+  notificationService.configureDirectConnectEmailEligibility(
+    async ({ request, contractor, business }) => {
+      if (contractor)
+        return (
+          (await filterContractorsEligibleForRequest([contractor], request)).eligible.length === 1
+        );
+      if (business)
+        return (
+          (await filterBusinessesEligibleForRequest([business], request)).eligible.length === 1
+        );
+      return false;
+    }
+  );
+
   const routeRequestToTopContractors = async ({
     requestRow,
     actorUserId,
@@ -2125,6 +2139,7 @@ export function registerDirectConnectRoutes(app: Express) {
         actorUserId: String(actorUserId),
         metadata: {
           contractorId: isBusinessProvider || isWorkerProvider ? null : candidate.id,
+          businessId: isBusinessProvider ? candidate.id : null,
           contractorUserId: candidate.userId ?? null,
           responderUserId:
             isBusinessProvider || isWorkerProvider ? (candidate.userId ?? null) : null,
@@ -2205,17 +2220,20 @@ export function registerDirectConnectRoutes(app: Express) {
       await Promise.all(
         Array.from(notifyUserIds).map(async (notifyUserId) => {
           try {
-            await notificationService.createNotification({
-              userId: notifyUserId,
-              type: "new_project_request",
-              title: "New Direct Connect request",
-              message: `You have a new Direct Connect request: ${requestRow.title}`,
-              actionUrl: "/direct-connect/inbox",
-              actionText: "View in Direct Connect",
-              iconName: "briefcase",
-              iconColor: "orange",
-              deliveryMethods: ["in_app", "push"],
-            });
+            await notificationService.createAssignedProviderNotification(
+              {
+                userId: notifyUserId,
+                type: "new_project_request",
+                title: "New Direct Connect request",
+                message: `You have a new Direct Connect request: ${requestRow.title}`,
+                actionUrl: "/direct-connect/inbox",
+                actionText: "View in Direct Connect",
+                iconName: "briefcase",
+                iconColor: "orange",
+                deliveryMethods: ["in_app", "push"],
+              },
+              requestId
+            );
           } catch (err) {
             console.error("[direct-connect] Failed to notify provider for routed request", err);
           }
@@ -2500,17 +2518,20 @@ export function registerDirectConnectRoutes(app: Express) {
             ];
             await Promise.all(
               notifyUserIds.map(async (notifyUserId) => {
-                await notificationService.createNotification({
-                  userId: notifyUserId,
-                  type: "new_project_request",
-                  title: "New Direct Connect request",
-                  message: `You have a new Direct Connect request: ${requestRow.title}`,
-                  actionUrl: "/direct-connect/inbox",
-                  actionText: "View in Direct Connect",
-                  iconName: "briefcase",
-                  iconColor: "orange",
-                  deliveryMethods: ["in_app", "push"],
-                });
+                await notificationService.createAssignedProviderNotification(
+                  {
+                    userId: notifyUserId,
+                    type: "new_project_request",
+                    title: "New Direct Connect request",
+                    message: `You have a new Direct Connect request: ${requestRow.title}`,
+                    actionUrl: "/direct-connect/inbox",
+                    actionText: "View in Direct Connect",
+                    iconName: "briefcase",
+                    iconColor: "orange",
+                    deliveryMethods: ["in_app", "push"],
+                  },
+                  requestId
+                );
               })
             );
           } catch (error) {
@@ -6646,17 +6667,20 @@ export function registerDirectConnectRoutes(app: Express) {
                 ];
                 await Promise.all(
                   notifyUserIds.map(async (notifyUserId) => {
-                    await notificationService.createNotification({
-                      userId: notifyUserId,
-                      type: "new_project_request",
-                      title: "New Direct Connect request",
-                      message: `You have a new Direct Connect request: ${created.title}`,
-                      actionUrl: "/direct-connect/inbox",
-                      actionText: "View in Direct Connect",
-                      iconName: "briefcase",
-                      iconColor: "orange",
-                      deliveryMethods: ["in_app", "push"],
-                    });
+                    await notificationService.createAssignedProviderNotification(
+                      {
+                        userId: notifyUserId,
+                        type: "new_project_request",
+                        title: "New Direct Connect request",
+                        message: `You have a new Direct Connect request: ${created.title}`,
+                        actionUrl: "/direct-connect/inbox",
+                        actionText: "View in Direct Connect",
+                        iconName: "briefcase",
+                        iconColor: "orange",
+                        deliveryMethods: ["in_app", "push"],
+                      },
+                      String(created.id)
+                    );
                   })
                 );
               } catch (e) {

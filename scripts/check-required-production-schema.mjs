@@ -42,6 +42,11 @@ export const CONTACT_RUNTIME_SCHEMA_MIGRATION_PATH = path.resolve(
   "migrations/0135_restore_contact_runtime_schema.sql"
 );
 
+export const NOTIFICATION_OUTBOX_MIGRATION_PATH = path.resolve(
+  process.cwd(),
+  "migrations/0136_restore_notification_outbox_schema.sql"
+);
+
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
 export function buildLineEndingCompatibleMigrationHashes(sql) {
@@ -115,8 +120,18 @@ export const CONTACT_RUNTIME_SCHEMA_MIGRATION_HASHES = buildLineEndingCompatible
   fs.readFileSync(CONTACT_RUNTIME_SCHEMA_MIGRATION_PATH, "utf8")
 );
 
+export const NOTIFICATION_OUTBOX_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
+  fs.readFileSync(NOTIFICATION_OUTBOX_MIGRATION_PATH, "utf8")
+);
+
 export function evaluateRequiredProductionSchema(check) {
   const missing = [];
+  if (!check.notificationOutboxContract)
+    missing.push(
+      "notification_jobs/notification_templates[canonical columns, defaults, indexes and constraints]"
+    );
+  if (check.migrationLedger && !check.notificationOutboxMigrationRecorded)
+    missing.push("drizzle.__drizzle_migrations[0136 canonical hash]");
   if (!check.contractorRecommendationColumns)
     missing.push("contractors[recommendation projection columns]");
   if (!check.notificationRuntimeColumns)
@@ -217,6 +232,45 @@ export async function verifyRequiredProductionSchema(client) {
       default_expression
     ) as (
       values
+        ('notification_templates', 'id', array['varchar']::text[], 'NO', null, 'gen_random_uuid()'),
+        ('notification_templates', 'type', array['varchar', 'notification_type']::text[], 'NO', null, null),
+        ('notification_templates', 'name', array['varchar']::text[], 'NO', null, null),
+        ('notification_templates', 'description', array['text']::text[], 'YES', null, null),
+        ('notification_templates', 'title_template', array['varchar']::text[], 'NO', null, null),
+        ('notification_templates', 'message_template', array['text']::text[], 'NO', null, null),
+        ('notification_templates', 'email_subject_template', array['varchar']::text[], 'YES', null, null),
+        ('notification_templates', 'email_body_template', array['text']::text[], 'YES', null, null),
+        ('notification_templates', 'sms_template', array['text']::text[], 'YES', null, null),
+        ('notification_templates', 'template_variables', array['jsonb']::text[], 'YES', null, null),
+        ('notification_templates', 'icon_name', array['varchar']::text[], 'YES', null, null),
+        ('notification_templates', 'icon_color', array['varchar']::text[], 'YES', null, '''blue''::charactervarying'),
+        ('notification_templates', 'priority', array['notification_priority']::text[], 'YES', null, '''normal''::notification_priority'),
+        ('notification_templates', 'default_delivery_methods', array['jsonb']::text[], 'YES', null, '''["in_app"]''::jsonb'),
+        ('notification_templates', 'expires_after_hours', array['int4']::text[], 'YES', null, '168'),
+        ('notification_templates', 'is_active', array['bool']::text[], 'YES', null, 'true'),
+        ('notification_templates', 'is_default', array['bool']::text[], 'YES', null, 'false'),
+        ('notification_templates', 'created_at', array['timestamp']::text[], 'YES', null, 'now()'),
+        ('notification_templates', 'updated_at', array['timestamp']::text[], 'YES', null, 'now()'),
+        ('notification_jobs', 'id', array['varchar']::text[], 'NO', null, 'gen_random_uuid()'),
+        ('notification_jobs', 'job_type', array['varchar']::text[], 'NO', null, null),
+        ('notification_jobs', 'scheduled_for', array['timestamp']::text[], 'NO', null, null),
+        ('notification_jobs', 'target_user_ids', array['jsonb']::text[], 'YES', null, null),
+        ('notification_jobs', 'target_filters', array['jsonb']::text[], 'YES', null, null),
+        ('notification_jobs', 'notification_type', array['varchar', 'notification_type']::text[], 'NO', null, null),
+        ('notification_jobs', 'template_id', array['varchar']::text[], 'YES', null, null),
+        ('notification_jobs', 'template_data', array['jsonb']::text[], 'YES', null, null),
+        ('notification_jobs', 'status', array['varchar']::text[], 'YES', null, '''pending''::charactervarying'),
+        ('notification_jobs', 'started_at', array['timestamp']::text[], 'YES', null, null),
+        ('notification_jobs', 'completed_at', array['timestamp']::text[], 'YES', null, null),
+        ('notification_jobs', 'target_count', array['int4']::text[], 'YES', null, '0'),
+        ('notification_jobs', 'success_count', array['int4']::text[], 'YES', null, '0'),
+        ('notification_jobs', 'failure_count', array['int4']::text[], 'YES', null, '0'),
+        ('notification_jobs', 'error_log', array['jsonb']::text[], 'YES', null, null),
+        ('notification_jobs', 'max_retries', array['int4']::text[], 'YES', null, '3'),
+        ('notification_jobs', 'retry_count', array['int4']::text[], 'YES', null, '0'),
+        ('notification_jobs', 'next_retry_at', array['timestamp']::text[], 'YES', null, null),
+        ('notification_jobs', 'created_at', array['timestamp']::text[], 'YES', null, 'now()'),
+        ('notification_jobs', 'updated_at', array['timestamp']::text[], 'YES', null, 'now()'),
         ('notification_delivery_log', 'id', array['varchar']::text[], 'NO', null, 'gen_random_uuid()'),
         ('notification_delivery_log', 'notification_id', array['varchar']::text[], 'NO', null, null),
         ('notification_delivery_log', 'user_id', array['varchar']::text[], 'NO', null, null),
@@ -515,6 +569,11 @@ export async function verifyRequiredProductionSchema(client) {
       schema_marker
     ) as (
       values
+        ('notification_jobs', 'idx_notification_jobs_scheduled', false, array['scheduled_for%']::text[], array[false]::boolean[], null, 'tradescout-schema:0136:v1'),
+        ('notification_jobs', 'idx_notification_jobs_status', false, array['status%']::text[], array[false]::boolean[], null, 'tradescout-schema:0136:v1'),
+        ('notification_jobs', 'idx_notification_jobs_type', false, array['job_type%']::text[], array[false]::boolean[], null, 'tradescout-schema:0136:v1'),
+        ('notification_templates', 'idx_notification_templates_type', false, array['type%']::text[], array[false]::boolean[], null, 'tradescout-schema:0136:v1'),
+        ('notification_templates', 'idx_notification_templates_active', false, array['is_active%']::text[], array[false]::boolean[], null, 'tradescout-schema:0136:v1'),
         ('profile_accounts', 'idx_profile_accounts_target', false, array['target_profile_id%', 'status%', 'updated_at%']::text[], array[false, false, true]::boolean[], null::text, 'tradescout-schema:0115:v1'::text),
         ('profile_accounts', 'idx_profile_accounts_owner', false, array['owner_user_id%', 'status%', 'updated_at%']::text[], array[false, false, true]::boolean[], null, 'tradescout-schema:0115:v1'),
         ('profile_accounts', 'idx_profile_accounts_business', false, array['business_profile_id%', 'status%', 'updated_at%']::text[], array[false, false, true]::boolean[], '%business_profile_id is not null%', 'tradescout-schema:0115:v1'),
@@ -590,6 +649,31 @@ export async function verifyRequiredProductionSchema(client) {
       group by expected.table_name
     )
     select
+      coalesce((select valid from column_contracts where table_name = 'notification_jobs'), false)
+        and coalesce((select valid from column_contracts where table_name = 'notification_templates'), false)
+        and coalesce((select valid from index_contracts where table_name = 'notification_jobs'), false)
+        and coalesce((select valid from index_contracts where table_name = 'notification_templates'), false)
+        and not exists (
+          select 1 from (values ('notification_jobs'), ('notification_templates')) required(table_name)
+          where not exists (
+            select 1 from pg_constraint c
+            where c.conrelid = to_regclass('public.' || required.table_name)
+              and c.contype = 'p' and c.convalidated and not c.condeferrable
+              and c.conkey = array[(select attnum from pg_attribute
+                where attrelid = c.conrelid and attname = 'id')]::smallint[]
+          )
+        )
+        and exists (
+          select 1 from pg_constraint c
+          where c.conrelid = to_regclass('public.notification_jobs')
+            and c.contype = 'f' and c.convalidated and not c.condeferrable
+            and c.confrelid = to_regclass('public.notification_templates')
+            and c.confdeltype = 'a' and c.confupdtype = 'a'
+            and c.conkey = array[(select attnum from pg_attribute
+              where attrelid = c.conrelid and attname = 'template_id')]::smallint[]
+            and c.confkey = array[(select attnum from pg_attribute
+              where attrelid = c.confrelid and attname = 'id')]::smallint[]
+        ) as notification_outbox_contract,
       coalesce((select valid from column_contracts where table_name = 'contractors'), false)
         as contractor_recommendation_columns,
       coalesce((select valid from column_contracts where table_name = 'notifications'), false)
@@ -797,6 +881,8 @@ export async function verifyRequiredProductionSchema(client) {
   const check = {
     contractorRecommendationColumns: Boolean(row.contractor_recommendation_columns),
     notificationRuntimeColumns: Boolean(row.notification_runtime_columns),
+    notificationOutboxContract: Boolean(row.notification_outbox_contract),
+    notificationOutboxMigrationRecorded: false,
     userPrivacySettingsContract: Boolean(row.user_privacy_settings_contract),
     contactRuntimeSchemaMigrationRecorded: false,
     publicationRules: Boolean(row.publication_rules),
@@ -881,7 +967,10 @@ export async function verifyRequiredProductionSchema(client) {
           ) as document_standalone_lineage_present
           , exists (
             select 1 from drizzle.__drizzle_migrations where hash = any($8::text[])
-          ) as contact_runtime_schema_present
+          ) as contact_runtime_schema_present,
+          exists (
+            select 1 from drizzle.__drizzle_migrations where hash = any($9::text[])
+          ) as notification_outbox_present
       `,
       [
         REQUIRED_MIGRATION_HASHES,
@@ -892,6 +981,7 @@ export async function verifyRequiredProductionSchema(client) {
         PROFESSIONAL_APPLICATION_INTEGRITY_MIGRATION_HASHES,
         DOCUMENT_STANDALONE_LINEAGE_MIGRATION_HASHES,
         CONTACT_RUNTIME_SCHEMA_MIGRATION_HASHES,
+        NOTIFICATION_OUTBOX_MIGRATION_HASHES,
       ]
     );
     check.migrationRecorded = Boolean(migrationResult.rows?.[0]?.required_present);
@@ -912,6 +1002,9 @@ export async function verifyRequiredProductionSchema(client) {
     );
     check.documentStandaloneLineageMigrationRecorded = Boolean(
       migrationResult.rows?.[0]?.document_standalone_lineage_present
+    );
+    check.notificationOutboxMigrationRecorded = Boolean(
+      migrationResult.rows?.[0]?.notification_outbox_present
     );
     check.contactRuntimeSchemaMigrationRecorded = Boolean(
       migrationResult.rows?.[0]?.contact_runtime_schema_present
