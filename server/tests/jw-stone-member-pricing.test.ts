@@ -104,7 +104,7 @@ describe("JW Stone private member pricing", () => {
   });
   it("mounts private pricing only after authentication and authority binding", () => {
     const routesSource = readFileSync("server/routes.ts", "utf8");
-    const setupAuthIndex = routesSource.indexOf("await setupAuth(app);");
+    const setupAuthIndex = routesSource.search(/await setupAuth\(app(?:,|\))/);
     const authorityIndex = routesSource.indexOf("app.use(bindAuthenticatedRequestAuthority);");
     const pricingIndex = routesSource.indexOf("registerJwStoneMemberPricingRoutes(app);");
 
