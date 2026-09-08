@@ -43,7 +43,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  trackFirstUseGuidanceViewed,
+  trackFirstUseTaskPromptClicked,
+  trackFirstUseTaskPromptViewed,
+} from "@/lib/firstUseAnalytics";
+import { resolveHomeIdFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
 import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "@/lib/homeidPersistence";
+import { stageDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 
 type Tab =
   | "overview"
@@ -177,6 +184,7 @@ const RECORD_TYPES = [
 
 const STAGES = ["Property", "Design", "Engineering", "Package", "Build", "Closeout", "Occupancy"];
 const COVERED = new Set(["structural_system", "roofing", "cabinets", "natural_stone"]);
+const COMPONENT_DETAIL_CATEGORIES = new Set(["roof", "hvac", "plumbing", "electrical", "appliances"]);
 const PANEL = "rounded-3xl border border-white/[0.10] bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,.035)]";
 const INPUT = "border-white/[0.10] bg-black/[0.20] text-white placeholder:text-white/[0.25]";
 const SECONDARY = "border-white/[0.10] bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white";
@@ -373,7 +381,11 @@ export default function HomeIdWorkspace() {
     if (!homeId || typeof window === "undefined") return;
     const url = new URL(window.location.href);
     url.searchParams.set("homeId", homeId);
-    tab === "overview" ? url.searchParams.delete("tab") : url.searchParams.set("tab", tab);
+    if (tab === "overview") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", tab);
+    }
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }, [homeId, tab]);
 
@@ -433,6 +445,30 @@ export default function HomeIdWorkspace() {
   const propertyLocation = location(selectedHome);
   const propertyAssigned = Boolean(propertyLocation);
   const currentStage = propertyAssigned ? "Design and property screening" : "Preconstruction";
+  const hasSelectedHome = Boolean(selectedHome);
+  const hasComponentLikeDetail =
+    components.length > 0 ||
+    facts.some((item) => COMPONENT_DETAIL_CATEGORIES.has(String(item.category || "")));
+  const homeIdFirstTaskPrompt = useMemo(
+    () =>
+      resolveHomeIdFirstUseTaskPrompt({
+        hasSelectedHome,
+        knownDetailsCount: facts.length,
+        hasComponentLikeDetail,
+      }),
+    [facts.length, hasComponentLikeDetail, hasSelectedHome]
+  );
+
+  useEffect(() => {
+    if (!homeId) return;
+    trackFirstUseGuidanceViewed("homes", "authenticated");
+    trackFirstUseTaskPromptViewed({
+      surface: "homes",
+      promptMessage: homeIdFirstTaskPrompt.message,
+      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+      userState: "authenticated",
+    });
+  }, [homeId, homeIdFirstTaskPrompt.ctaLabel, homeIdFirstTaskPrompt.message]);
 
   const refresh = async () => {
     if (!homeId) return;
@@ -593,12 +629,39 @@ export default function HomeIdWorkspace() {
 
   const openRequest = (packetId?: string) => {
     if (!homeId) return;
-    const params = new URLSearchParams({
+    const packet = packetId ? packets.find((item) => item.id === packetId) : undefined;
+    const directConnectHref = stageDirectConnectEntryContext({
       homeId,
       homeContextIntent: "update_from_request",
+      source: "homeid_request_packet",
+      ...(packet
+        ? {
+            homePacketId: packet.id,
+            homePacketSelectedDetailIds: [...packet.selectedDetailIds],
+            ...(packet.status === "ready_for_handoff"
+              ? { homePacketReadinessState: packet.status }
+              : {}),
+          }
+        : {}),
     });
-    if (packetId) params.set("homePacketId", packetId);
-    navigate(`/direct-connect?${params.toString()}`);
+    navigate(directConnectHref);
+  };
+
+  const openFirstTask = () => {
+    const targetTab: Tab =
+      homeIdFirstTaskPrompt.ctaLabel === "Create request details" ? "requests" : "property";
+    const targetRoute = `/homes${homeId ? `?homeId=${encodeURIComponent(homeId)}&tab=${targetTab}` : `?tab=${targetTab}`}`;
+    trackFirstUseTaskPromptClicked({
+      surface: "homes",
+      promptMessage: homeIdFirstTaskPrompt.message,
+      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+      targetRoute,
+      userState: "authenticated",
+    });
+    setTab(targetTab);
+    if (targetTab === "property") {
+      window.setTimeout(() => detailRef.current?.focus(), 60);
+    }
   };
 
   if (!homeId && !homesQuery.isLoading && homes.length === 0) {
@@ -746,6 +809,24 @@ export default function HomeIdWorkspace() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
+          </div>
+
+          <div
+            className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-400/[0.22] bg-orange-400/[0.07] px-4 py-3"
+            data-testid="homeid-first-task-prompt"
+          >
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-300">
+                Suggested next step
+              </p>
+              <p className="mt-1 text-sm font-semibold text-white/[0.78]">
+                {homeIdFirstTaskPrompt.message}
+              </p>
+            </div>
+            <Button variant="outline" className={SECONDARY} onClick={openFirstTask}>
+              {homeIdFirstTaskPrompt.ctaLabel}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1587,6 +1668,15 @@ function Requests({
     <div className="grid gap-5 xl:grid-cols-[440px_minmax(0,1fr)]">
       <Panel eyebrow="Prepare first" title="Build a request from HomeID facts">
         <div className="space-y-4">
+          <p
+            className="text-sm leading-6 text-white/[0.48]"
+            data-testid="homeid-direct-connect-boundary"
+          >
+            HomeID remembers useful property history. Direct Connect starts the job only when you
+            submit. Opening Direct Connect prepares the draft composer; no provider dispatch,
+            routing, or payment happens here. Save the relevant facts so future requests start with
+            better property history.
+          </p>
           <Select value={requestType} onValueChange={setRequestType}>
             <SelectTrigger className={INPUT}><SelectValue /></SelectTrigger>
             <SelectContent>

@@ -21,6 +21,14 @@ export type DirectConnectEntryContextType =
   | "shared_request"
   | "employment_post";
 
+export type DirectConnectHomeContextIntent =
+  | "link_existing"
+  | "create_from_request"
+  | "update_from_request"
+  | "skip_for_now";
+
+export type DirectConnectHomePacketReadinessState = "ready_for_handoff";
+
 export type DirectConnectEntryContext = {
   countyFips?: string;
   stateCode?: string;
@@ -39,6 +47,11 @@ export type DirectConnectEntryContext = {
   contextType?: DirectConnectEntryContextType;
   contextId?: string;
   subjectType?: "business" | "product" | "service" | "evidence";
+  homeId?: string;
+  homeContextIntent?: DirectConnectHomeContextIntent;
+  homePacketId?: string;
+  homePacketSelectedDetailIds?: string[];
+  homePacketReadinessState?: DirectConnectHomePacketReadinessState;
 };
 
 function readFirst(params: URLSearchParams, ...keys: string[]): string | undefined {
@@ -109,6 +122,15 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
   const clientId = readFirst(params, "clientId");
   const sharedRequest = readFirst(params, "shared");
   const employmentPostId = readFirst(params, "employmentPostId");
+  const rawHomeContextIntent = readFirst(params, "homeContextIntent");
+  const homeContextIntent: DirectConnectHomeContextIntent | undefined =
+    rawHomeContextIntent === "link_existing" ||
+    rawHomeContextIntent === "create_from_request" ||
+    rawHomeContextIntent === "update_from_request" ||
+    rawHomeContextIntent === "skip_for_now"
+      ? rawHomeContextIntent
+      : undefined;
+  const rawHomePacketReadinessState = readFirst(params, "homePacketReadinessState");
 
   let contextType: DirectConnectEntryContextType | undefined;
   let contextId: string | undefined;
@@ -172,6 +194,11 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
     contextType,
     contextId,
     subjectType,
+    homeId: readFirst(params, "homeId"),
+    homeContextIntent,
+    homePacketId: readFirst(params, "homePacketId"),
+    homePacketReadinessState:
+      rawHomePacketReadinessState === "ready_for_handoff" ? rawHomePacketReadinessState : undefined,
   };
 }
 

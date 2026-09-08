@@ -59,6 +59,27 @@ describe("directConnectEntryContext", () => {
     ).toMatchObject({ source: "home_action_surface", tradeId: "plumbing" });
   });
 
+  it("preserves the legacy HomeID query handoff without accepting invalid state", () => {
+    expect(
+      parseDirectConnectEntryContext(
+        "/direct-connect?homeId=home-17&homeContextIntent=update_from_request&homePacketId=packet-8&homePacketReadinessState=ready_for_handoff"
+      )
+    ).toMatchObject({
+      homeId: "home-17",
+      homeContextIntent: "update_from_request",
+      homePacketId: "packet-8",
+      homePacketReadinessState: "ready_for_handoff",
+    });
+    expect(
+      parseDirectConnectEntryContext(
+        "/direct-connect?homeContextIntent=remove&homePacketReadinessState=needs_info"
+      )
+    ).toMatchObject({
+      homeContextIntent: undefined,
+      homePacketReadinessState: undefined,
+    });
+  });
+
   it("preserves community, deal, profile, client, and shared-request references", () => {
     expect(parseDirectConnectEntryContext("/direct-connect?postId=post-1")).toMatchObject({
       contextType: "community_post",
