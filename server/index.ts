@@ -88,6 +88,8 @@ import {
 import {
   buildPublicLandingHtml,
   buildPublicFindLocalBusinessesHtml,
+  buildPublicForBusinessesHtml,
+  buildPublicTangipahoaHtml,
   buildPublicPensacolaHtml,
 } from "./publicLandingHtml";
 import { applyPrivateShellNoindex, isPrivateAppShellPath } from "./privateShellIndexability";
@@ -1747,18 +1749,24 @@ app.use(landingContractHeaders);
                 res.send(html);
               });
 
-              app.get("/find-local-businesses", (req, res) => {
-                const templateHtml = getCachedTemplate(path.join(publicDistPath, "index.html"));
-                if (!templateHtml) {
-                  return sendPublicPageRenderFailure(res, "Application files not found");
-                }
-                const html = buildPublicFindLocalBusinessesHtml({
-                  origin: resolvePublicOrigin(req),
-                  templateHtml,
+              for (const [routePath, renderHtml] of [
+                ["/find-local-businesses", buildPublicFindLocalBusinessesHtml],
+                ["/for-businesses", buildPublicForBusinessesHtml],
+                ["/tangipahoa", buildPublicTangipahoaHtml],
+              ] as const) {
+                app.get(routePath, (req, res) => {
+                  const templateHtml = getCachedTemplate(path.join(publicDistPath, "index.html"));
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
+                  const html = renderHtml({ origin: resolvePublicOrigin(req), templateHtml });
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(html);
                 });
-                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
-                res.send(html);
-              });
+              }
 
               // 2) Serve other static files (index.html, icons, etc.)
               app.use(

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   isJwStonePublicDiscoveryHtml,
   preparePublicSeoHtmlForResponse,
@@ -12,6 +12,10 @@ import {
 } from "../publicSeoHtml";
 import { buildPublicFindLocalBusinessesHtml } from "../publicLandingHtml";
 import { LOCAL_BUSINESS_DISCOVERY } from "../../client/src/lib/popularSearchQueries";
+import { buildPublicExchangeHtml } from "../publicExchangeHtml";
+import { formatTradeScoutTitle } from "../../shared/brand";
+
+vi.mock("../storage", () => ({ storage: { getMarketplaceListings: vi.fn() } }));
 
 const templateHtml = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
 const landingTemplateHtml = fs.readFileSync(
@@ -53,6 +57,41 @@ describe("public SEO response HTML", () => {
     expect(html).toContain("TradeScout encountered a startup issue");
     expect(html).toContain("JavaScript is required");
   });
+
+  it.each(["Googlebot/2.1", "Google-InspectionTool/1.0", "bingbot/2.0", "OAI-SearchBot/1.0"])(
+    "keeps the app entry available to %s when the route has no server-rendered body",
+    (userAgent) => {
+      const html = preparePublicSeoHtmlForUserAgent(templateHtml, userAgent);
+
+      // Metadata-only renderers use this application template. Removing its
+      // entry script prevents a rendering crawler from
+      // ever discovering the actual page content and route-specific metadata.
+      expect(html).toMatch(/<script\b[^>]*\btype="module"[^>]*\bsrc=/);
+      expect(html).not.toContain("TradeScout encountered a startup issue");
+      expect(html).not.toContain("JavaScript is required");
+    }
+  );
+
+  it.each([null, "vehicles", "real-estate", "building-materials", "tools"])(
+    "keeps the real Exchange renderer usable for the %s category",
+    async (categorySlug) => {
+      const requestUrl = categorySlug ? `/exchange/${categorySlug}` : "/exchange";
+      const rendered = await buildPublicExchangeHtml({
+        origin: "https://www.thetradescout.com",
+        templateHtml,
+        requestUrl,
+        categorySlug,
+      });
+      const html = preparePublicSeoHtmlForUserAgent(rendered, "Googlebot/2.1");
+
+      expect(html).toContain('<div id="root"></div>');
+      expect(html).toMatch(/<script\b[^>]*\btype="module"[^>]*\bsrc=/);
+      expect(html).toContain(`href="https://www.thetradescout.com${requestUrl}"`);
+      expect(html).toContain('type="application/ld+json"');
+      expect(html).toContain('<meta name="robots" content="noindex,follow" />');
+      expect(html).not.toContain('id="ts-boot-fallback"');
+    }
+  );
 
   it.each([
     [
@@ -143,27 +182,40 @@ describe("public SEO response HTML", () => {
       "OAI-SearchBot/1.0",
     ]) {
       const html = preparePublicSeoHtmlForUserAgent(raw, userAgent);
-      expect(html).toContain(`<h1>${LOCAL_BUSINESS_DISCOVERY.heading}</h1>`);
+      expect(html).toMatch(new RegExp(`<h1\\b[^>]*>${LOCAL_BUSINESS_DISCOVERY.heading}</h1>`));
       expect(html).toContain(LOCAL_BUSINESS_DISCOVERY.introduction);
       expect(html).not.toContain("clip:rect(0,0,0,0)");
       expect(html).not.toContain("JavaScript is required");
       expect(html).toContain(
         '<link rel="canonical" href="https://www.thetradescout.com/find-local-businesses"'
       );
-      expect(html).toContain(`<title>${LOCAL_BUSINESS_DISCOVERY.title}</title>`);
+      expect(html).toContain(
+        `<title>${formatTradeScoutTitle(LOCAL_BUSINESS_DISCOVERY.title)}</title>`
+      );
+      const anchors = [...html.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map(
+        (match) => ({
+          href: match[1].replace(/&amp;/g, "&"),
+          text: match[2]
+            .replace(/<[^>]*>/g, "")
+            .replace(/\s+/g, " ")
+            .trim(),
+        })
+      );
       for (const item of LOCAL_BUSINESS_DISCOVERY.browseLinks) {
-        expect(html).toContain(`href="${item.href}">${item.label}</a>`);
+        expect(anchors).toContainEqual({ href: item.href, text: item.label });
       }
       expect(html).toContain('href="/county/la/tangipahoa-parish/recent"');
       expect(html).not.toContain('href="/county/la/tangipahoa/recent"');
-      expect(html).toContain(
-        'href="/direct-connect?county=22105&amp;source=tangipahoa-launch">Start a Request</a>'
-      );
+      expect(anchors).toContainEqual({
+        href: "/direct-connect?county=22105&source=tangipahoa-launch",
+        text: "Start a Request",
+      });
       expect(html).not.toMatch(/href="(?:tel:|mailto:)/);
     }
     const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
-    expect(source.indexOf('app.get("/find-local-businesses"')).toBeGreaterThan(0);
-    expect(source.indexOf('app.get("/find-local-businesses"')).toBeLessThan(
+    const routeRegistration = '["/find-local-businesses", buildPublicFindLocalBusinessesHtml]';
+    expect(source.indexOf(routeRegistration)).toBeGreaterThan(0);
+    expect(source.indexOf(routeRegistration)).toBeLessThan(
       source.indexOf("express.static(publicDistPath")
     );
   });
@@ -205,13 +257,13 @@ describe("public SEO response HTML", () => {
     expect(stripPublicSeoBootPlaceholders(html)).toBe(html);
   });
 
-  it("removes the lightweight landing recovery placeholder from crawler responses", () => {
+  it("keeps an unrendered landing entry usable while removing its recovery placeholder", () => {
     const html = preparePublicSeoHtmlForResponse(landingTemplateHtml, {
       retainSeoSummary: true,
     });
 
     expect(html).not.toContain('id="ts-landing-fallback"');
-    expect(html).not.toContain('src="/src/landing-main.tsx"');
+    expect(html).toContain('src="/src/landing-main.tsx"');
   });
 
   it("aligns signed-card HTML caching with the short opaque-token lifetime", () => {

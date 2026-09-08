@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "wouter";
 import {
   SEOHelmet,
@@ -6,7 +7,11 @@ import {
 } from "@/components/SEOHelmet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HOMEOWNER_POPULAR_QUERIES, LOCAL_BUSINESS_DISCOVERY } from "@/lib/popularSearchQueries";
+import {
+  HOMEOWNER_POPULAR_QUERIES,
+  LOCAL_BUSINESS_DISCOVERY,
+  getPopularQueryHref,
+} from "@/lib/popularSearchQueries";
 
 const faqItems = [
   {
@@ -31,11 +36,15 @@ const faqItems = [
   },
 ];
 
-export default function FindLocalBusinessesPage() {
-  const tangipahoaHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref;
-  const tangipahoaCountyHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRecentHref;
-  const topQueries = HOMEOWNER_POPULAR_QUERIES.slice(0, 18);
+export const FIND_LOCAL_BUSINESSES_METADATA = {
+  title: LOCAL_BUSINESS_DISCOVERY.title,
+  description: LOCAL_BUSINESS_DISCOVERY.description,
+  keywords:
+    "find local businesses, contractor search, local businesses near me, county contractors, local services, trusted local businesses and contractors, direct connect",
+  canonical: "https://www.thetradescout.com/find-local-businesses",
+} as const;
 
+export default function FindLocalBusinessesPage() {
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -55,15 +64,27 @@ export default function FindLocalBusinessesPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+    <>
       <SEOHelmet
-        title={LOCAL_BUSINESS_DISCOVERY.title}
-        description={LOCAL_BUSINESS_DISCOVERY.description}
-        keywords="find local businesses, contractor search, local businesses near me, county contractors, local services, trusted local businesses and contractors, direct connect"
-        canonical="https://www.thetradescout.com/find-local-businesses"
+        title={FIND_LOCAL_BUSINESSES_METADATA.title}
+        description={FIND_LOCAL_BUSINESSES_METADATA.description}
+        keywords={FIND_LOCAL_BUSINESSES_METADATA.keywords}
+        canonical={FIND_LOCAL_BUSINESSES_METADATA.canonical}
         structuredData={structuredData}
       />
+      <FindLocalBusinessesContent />
+    </>
+  );
+}
 
+/** Shared visible content for the app and the initial public HTML response. */
+export function FindLocalBusinessesContent() {
+  const tangipahoaHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref;
+  const tangipahoaCountyHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRecentHref;
+  const topQueries = HOMEOWNER_POPULAR_QUERIES.slice(0, 18);
+
+  return (
+    <main data-seo-find-local-businesses="true" className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <section className="space-y-3">
         <h1 className="text-3xl md:text-4xl font-bold text-white">
           {LOCAL_BUSINESS_DISCOVERY.heading}
@@ -119,7 +140,7 @@ export default function FindLocalBusinessesPage() {
               View Tangipahoa activity
             </Button>
           </Link>
-          <Link href="/trade/hvac/la">
+          <Link href={getPopularQueryHref({ query: "Louisiana HVAC", href: "/trade/hvac/la" })}>
             <Button variant="outline" className="border-white/20 text-white">
               Louisiana HVAC demand
             </Button>
@@ -165,7 +186,7 @@ export default function FindLocalBusinessesPage() {
         </p>
         <div className="flex flex-wrap gap-2">
           {topQueries.map((item) => (
-            <Link key={item.query} href={item.href}>
+            <Link key={item.query} href={getPopularQueryHref(item)} asChild>
               <a className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/85 hover:border-ts-orange/50 hover:text-white transition-colors">
                 {item.query}
               </a>
@@ -227,6 +248,6 @@ export default function FindLocalBusinessesPage() {
           </Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

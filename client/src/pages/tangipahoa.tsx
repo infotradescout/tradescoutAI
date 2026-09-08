@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "wouter";
 import {
   SEOHelmet,
@@ -9,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   BUSINESS_POPULAR_QUERIES,
   HOMEOWNER_POPULAR_QUERIES,
+  getPopularQueryHref,
   LOCAL_BUSINESS_DISCOVERY,
 } from "@/lib/popularSearchQueries";
 
@@ -37,19 +39,16 @@ const faqItems = [
   },
 ];
 
+export const TANGIPAHOA_METADATA = {
+  title: "Tangipahoa Parish, LA Local Business Hub | TradeScout",
+  description:
+    "TradeScout Tangipahoa Parish launch hub for local businesses and contractors. Get in front of local demand in Hammond, Ponchatoula, and across Tangipahoa Parish.",
+  keywords:
+    "tangipahoa parish contractors, hammond louisiana contractors, ponchatoula local services, tangipahoa business marketing, louisiana local business leads",
+  canonical: "https://www.thetradescout.com/tangipahoa",
+} as const;
+
 export default function TangipahoaPage() {
-  const localSearchHref = `/direct-connect?county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch&intent=local_search`;
-  const providerDemandHref = `/direct-connect?county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch&intent=provider_demand`;
-  const createAccountHref = `/create-account?source=tangipahoa-launch&county=${TANGIPAHOA_COUNTY_CODE}`;
-  const applyHref = `/claim-my-business?stateCode=LA&countyFips=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa`;
-
-  const homeownerQueries = HOMEOWNER_POPULAR_QUERIES.filter(
-    (item) => item.query.toLowerCase().includes("louisiana") || item.href.endsWith("/la")
-  ).slice(0, 10);
-  const businessQueries = BUSINESS_POPULAR_QUERIES.filter(
-    (item) => item.query.toLowerCase().includes("louisiana") || item.href.endsWith("/la")
-  ).slice(0, 10);
-
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -69,15 +68,35 @@ export default function TangipahoaPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+    <>
       <SEOHelmet
-        title="Tangipahoa Parish, LA Local Business Hub | TradeScout"
-        description="TradeScout Tangipahoa Parish launch hub for local businesses and contractors. Get in front of local demand in Hammond, Ponchatoula, and across Tangipahoa Parish."
-        keywords="tangipahoa parish contractors, hammond louisiana contractors, ponchatoula local services, tangipahoa business marketing, louisiana local business leads"
-        canonical="https://www.thetradescout.com/tangipahoa"
+        title={TANGIPAHOA_METADATA.title}
+        description={TANGIPAHOA_METADATA.description}
+        keywords={TANGIPAHOA_METADATA.keywords}
+        canonical={TANGIPAHOA_METADATA.canonical}
         structuredData={structuredData}
       />
+      <TangipahoaContent />
+    </>
+  );
+}
 
+/** Shared visible content for the app and the initial public HTML response. */
+export function TangipahoaContent() {
+  const localSearchHref = `/direct-connect?county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch&intent=local_search`;
+  const providerDemandHref = `/direct-connect?county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch&intent=provider_demand`;
+  const createAccountHref = `/create-account?source=tangipahoa-launch&county=${TANGIPAHOA_COUNTY_CODE}`;
+  const applyHref = `/claim-my-business?stateCode=LA&countyFips=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa`;
+
+  const homeownerQueries = HOMEOWNER_POPULAR_QUERIES.filter(
+    (item) => item.query.toLowerCase().includes("louisiana") || item.href.endsWith("/la")
+  ).slice(0, 10);
+  const businessQueries = BUSINESS_POPULAR_QUERIES.filter(
+    (item) => item.query.toLowerCase().includes("louisiana") || item.href.endsWith("/la")
+  ).slice(0, 10);
+
+  return (
+    <main data-seo-tangipahoa="true" className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <section className="space-y-3">
         <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
           Louisiana Launch Focus
@@ -160,7 +179,7 @@ export default function TangipahoaPage() {
               <h3 className="text-lg font-semibold text-white">People hiring services</h3>
               <div className="flex flex-wrap gap-2">
                 {homeownerQueries.map((item) => (
-                  <Link key={item.query} href={item.href}>
+                  <Link key={item.query} href={getPopularQueryHref(item)} asChild>
                     <a className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/85 hover:border-ts-orange/50 hover:text-white transition-colors">
                       {item.query}
                     </a>
@@ -174,7 +193,7 @@ export default function TangipahoaPage() {
               <h3 className="text-lg font-semibold text-white">Businesses looking for work</h3>
               <div className="flex flex-wrap gap-2">
                 {businessQueries.map((item) => (
-                  <Link key={item.query} href={item.href}>
+                  <Link key={item.query} href={getPopularQueryHref(item)} asChild>
                     <a className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/85 hover:border-ts-orange/50 hover:text-white transition-colors">
                       {item.query}
                     </a>
@@ -206,6 +225,6 @@ export default function TangipahoaPage() {
           </Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

@@ -16,7 +16,7 @@ const FACT_BEARING_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-(?:profile|business)\s*
 // Directory builders already enforce public visibility and indexability. Keep
 // their approved content regardless of UA without issuing business attribution.
 const PUBLIC_DIRECTORY_DISCOVERY_MARKER =
-  /\bdata-seo-(?:trade|county|city|trade-city|best|recent|find-local-businesses|pensacola)\s*=/i;
+  /\bdata-seo-(?:trade|county|city|trade-city|best|recent|find-local-businesses|for-businesses|tangipahoa|pensacola)\s*=/i;
 const PUBLIC_PROFILE_JOURNEY_PAGE_MARKER =
   /\bdata-public-profile-(?:service|service-area)-page\s*=\s*(["'])true\1/i;
 const PUBLIC_PROFILE_SERVICE_JOURNEY_MARKER =
@@ -310,7 +310,13 @@ export function preparePublicSeoHtmlForResponse(
 ): string {
   const upgradedHtml = upgradePublicSocialPreviewHtml(html);
   if (options.retainSeoSummary) {
-    return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
+    const crawlerHtml = stripPublicSeoBootPlaceholders(upgradedHtml);
+    // Metadata alone is not a rendered page. Exchange, for example, injects
+    // titles and schema into an empty app root. Rendering crawlers still need
+    // the application entry to see its content and links.
+    return SEO_ROOT_SUMMARY_PATTERN.test(crawlerHtml)
+      ? crawlerHtml.replace(CLIENT_MODULE_SCRIPT_PATTERN, "")
+      : crawlerHtml;
   }
 
   return upgradedHtml.replace(SEO_ROOT_SUMMARY_PATTERN, '<div id="root"></div>');
