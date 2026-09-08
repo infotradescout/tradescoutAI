@@ -85,8 +85,71 @@ describe("CountertopDesigner truthful measurement gates", () => {
     });
   }
 
+  it("contains gallery focus when filtering removes every stone and restores the trigger on Escape", async () => {
+    await render({
+      ...createEmptySteelHomeProjectDraft().countertops,
+      measurementsReviewed: true,
+      stoneId: "arizona-gold",
+    });
+    const trigger = container.querySelector<HTMLButtonElement>(
+      '[data-testid="steel-home-countertop-surface-open"]'
+    )!;
+    await act(async () => {
+      trigger.focus();
+      trigger.click();
+    });
+    const dialog = document.querySelector<HTMLElement>(
+      '[data-testid="steel-home-countertop-surface-gallery"]'
+    )!;
+    const search = dialog.querySelector<HTMLInputElement>('input[type="search"]')!;
+    const close = dialog.querySelector<HTMLButtonElement>(
+      'button[aria-label="Close stone gallery"]'
+    )!;
+    expect(document.activeElement).toBe(search);
+
+    setInputValue(search, "no-matching-stone-928174");
+    expect(dialog.querySelectorAll("button")).toHaveLength(1);
+    const backwards = new KeyboardEvent("keydown", {
+      key: "Tab",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      close.focus();
+      close.dispatchEvent(backwards);
+    });
+    expect(backwards.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(search);
+
+    const backgroundRequest = container.querySelector<HTMLButtonElement>(
+      '[data-testid="steel-home-countertop-find-fabricator"]'
+    )!;
+    act(() => backgroundRequest.focus());
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(onRequest).not.toHaveBeenCalled();
+
+    await act(async () => {
+      search.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(
+      document.querySelector('[data-testid="steel-home-countertop-surface-gallery"]')
+    ).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onRequest).not.toHaveBeenCalled();
+  });
+
   it("keeps legacy numeric starter values out of measured outputs until reviewed", async () => {
     await render(createEmptySteelHomeProjectDraft().countertops);
+    act(() =>
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-view-plan"]')!
+        .click()
+    );
 
     expect(container.textContent).toContain("Footprint unresolved");
     expect(container.textContent).toContain("counter · surface unselected");
@@ -122,6 +185,11 @@ describe("CountertopDesigner truthful measurement gates", () => {
 
   it("unlocks the measured plan after review and resets review when a surface value changes", async () => {
     await render(createEmptySteelHomeProjectDraft().countertops);
+    act(() =>
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-view-plan"]')!
+        .click()
+    );
     const reviewed = container.querySelector<HTMLInputElement>(
       '[data-testid="steel-home-countertop-measurements-reviewed"]'
     );
@@ -172,6 +240,8 @@ describe("CountertopDesigner truthful measurement gates", () => {
     );
     expect(fabricator?.disabled).toBe(false);
     act(() => fabricator?.click());
+    expect(onRequest).not.toHaveBeenCalled();
+    act(() => fabricator?.click());
     expect(onRequest).toHaveBeenCalledWith("fabricator");
   });
 
@@ -190,8 +260,50 @@ describe("CountertopDesigner truthful measurement gates", () => {
     expect(fabricator?.disabled).toBe(true);
 
     act(() => stone?.click());
+    expect(onRequest).not.toHaveBeenCalled();
+    act(() => stone?.click());
     expect(onRequest).toHaveBeenCalledWith("stone");
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ included: true }));
+  });
+
+  it("keeps showroom room and floor exploration out of the saved project and reviews before requesting", async () => {
+    await render({
+      ...createEmptySteelHomeProjectDraft().countertops,
+      measurementsReviewed: true,
+      room: "Kitchen",
+      wallAIn: 180,
+      stoneId: "cristallo",
+    });
+    const bathroom = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      (button) => button.textContent === "Bathroom"
+    )!;
+    act(() => bathroom.click());
+    const floor = container.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    act(() => floor.click());
+    expect(onChange).not.toHaveBeenCalled();
+    const request = container.querySelector<HTMLButtonElement>(
+      '[data-testid="steel-home-countertop-find-fabricator"]'
+    )!;
+    expect(request.textContent).toContain("Review fabrication plan");
+    act(() => request.click());
+    expect(onRequest).not.toHaveBeenCalled();
+    expect(
+      container.querySelector<HTMLSelectElement>('[data-testid="steel-home-countertop-room"]')
+        ?.value
+    ).toBe("Kitchen");
+    expect(
+      container.querySelector<HTMLInputElement>('[data-testid="steel-home-countertop-run-a"]')
+        ?.value
+    ).toBe("180");
+    act(() => request.click());
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        room: "Kitchen",
+        wallAIn: 180,
+        floorStone: false,
+        measurementsReviewed: true,
+      })
+    );
   });
 
   it("shares the selected measured design with a usable link when clipboard access fails", async () => {

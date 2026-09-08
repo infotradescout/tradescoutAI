@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Content as DialogContentPrimitive } from "@radix-ui/react-dialog";
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -73,7 +75,7 @@ type Props = {
   onRequest: (intent: "stone" | "fabricator") => void;
 };
 
-type ViewMode = "plan" | "3d";
+type ViewMode = "showroom" | "plan" | "3d";
 
 type RunGeometry = {
   x: number;
@@ -513,12 +515,15 @@ function SurfaceGallery({
   selectedId,
   onSelect,
   onClose,
+  onRestoreFocus,
 }: {
   selectedId: string;
   onSelect: (stoneId: string) => void;
   onClose: () => void;
+  onRestoreFocus: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const matching = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return allNamedStones;
@@ -530,91 +535,104 @@ function SurfaceGallery({
   }, [query]);
 
   return (
-    <div
-      className="fixed inset-0 z-[90] flex flex-col bg-[#f5f1e8] text-[#18312f]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="measured-countertop-gallery-title"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onClose();
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
       }}
-      data-testid="steel-home-countertop-surface-gallery"
     >
-      <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-[#18312f]/12 bg-[#faf7f1] px-4 sm:px-6">
-        <div>
-          <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-[#a94f2e]">
-            JW Stone catalog
-          </p>
-          <h3 id="measured-countertop-gallery-title" className="text-lg font-black">
-            Choose a stone reference
-          </h3>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close stone gallery"
-          className="grid h-11 w-11 place-items-center rounded-full border border-[#18312f]/15 bg-white"
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContentPrimitive
+          className="fixed inset-0 z-[1001] flex flex-col bg-[#f5f1e8] text-[#18312f]"
+          aria-describedby={undefined}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            searchRef.current?.focus();
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            onRestoreFocus();
+          }}
+          data-testid="steel-home-countertop-surface-gallery"
         >
-          <X className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </header>
-      <div className="border-b border-[#18312f]/10 bg-[#eee8dd] p-4 sm:px-6">
-        <label className="relative block">
-          <span className="sr-only">Search stone</span>
-          <Search
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#68736f]"
-            aria-hidden="true"
-          />
-          <input
-            autoFocus
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by stone or material"
-            className={`${PROJECT_FIELD_CLASS} pl-11`}
-          />
-        </label>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {matching.map((stone) => {
-            const selected = stone.id === selectedId;
-            return (
-              <button
-                key={stone.id}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => onSelect(stone.id)}
-                className={`overflow-hidden rounded-2xl border bg-white text-left ${
-                  selected ? "border-[#a94f2e] ring-2 ring-[#a94f2e]/20" : "border-[#18312f]/10"
-                }`}
-                data-testid={`steel-home-countertop-stone-${stone.id}`}
-              >
-                <span className="relative block aspect-[4/3] overflow-hidden bg-[#d5d1c8]">
-                  <img
-                    src={buildStoneDesignerImageHref(stone.id)}
-                    alt={`${stone.publicLabel} inventory reference`}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                  {selected ? (
-                    <span className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-[#18312f] text-white">
-                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+          <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-[#18312f]/12 bg-[#faf7f1] px-4 sm:px-6">
+            <div>
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-[#a94f2e]">
+                JW Stone catalog
+              </p>
+              <DialogTitle asChild className="text-[#18312f]">
+                <h3 className="text-lg font-black">Choose a stone reference</h3>
+              </DialogTitle>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close stone gallery"
+              className="grid h-11 w-11 place-items-center rounded-full border border-[#18312f]/15 bg-white"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </header>
+          <div className="border-b border-[#18312f]/10 bg-[#eee8dd] p-4 sm:px-6">
+            <label className="relative block">
+              <span className="sr-only">Search stone</span>
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#68736f]"
+                aria-hidden="true"
+              />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search by stone or material"
+                className={`${PROJECT_FIELD_CLASS} pl-11`}
+              />
+            </label>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {matching.map((stone) => {
+                const selected = stone.id === selectedId;
+                return (
+                  <button
+                    key={stone.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => onSelect(stone.id)}
+                    className={`overflow-hidden rounded-2xl border bg-white text-left ${
+                      selected ? "border-[#a94f2e] ring-2 ring-[#a94f2e]/20" : "border-[#18312f]/10"
+                    }`}
+                    data-testid={`steel-home-countertop-stone-${stone.id}`}
+                  >
+                    <span className="relative block aspect-[4/3] overflow-hidden bg-[#d5d1c8]">
+                      <img
+                        src={buildStoneDesignerImageHref(stone.id)}
+                        alt={`${stone.publicLabel} inventory reference`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      {selected ? (
+                        <span className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-[#18312f] text-white">
+                          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                      ) : null}
                     </span>
-                  ) : null}
-                </span>
-                <span className="block p-3">
-                  <span className="block text-sm font-black">{stone.publicLabel}</span>
-                  <span className="mt-1 block text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#77817d]">
-                    {stone.materialLabel || "Material to confirm"}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+                    <span className="block p-3">
+                      <span className="block text-sm font-black">{stone.publicLabel}</span>
+                      <span className="mt-1 block text-[0.66rem] font-bold uppercase tracking-[0.1em] text-[#77817d]">
+                        {stone.materialLabel || "Material to confirm"}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </DialogContentPrimitive>
+      </DialogPortal>
+    </Dialog>
   );
 }
 
@@ -899,8 +917,17 @@ export default function MeasuredCountertopDesigner({
   onRequest,
 }: Props) {
   const design = useMemo(() => resolveCountertopPlannerDesign(designInput), [designInput]);
-  const [view, setView] = useState<ViewMode>("plan");
+  const [view, setView] = useState<ViewMode>("showroom");
+  const [showroomFloorStone, setShowroomFloorStone] = useState(false);
+  const [showroomRoom, setShowroomRoom] = useState<CountertopPlannerDesign["room"]>(() =>
+    design.room === "Primary bathroom" || design.room === "Guest bathroom"
+      ? "Primary bathroom"
+      : design.room === "Living room"
+        ? "Living room"
+        : "Kitchen"
+  );
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const galleryTriggerRef = useRef<HTMLButtonElement>(null);
   const [sharedDesign, setSharedDesign] = useState(() =>
     typeof window === "undefined" ? null : parseCountertopStudioShareUrl(window.location.href)
   );
@@ -1054,7 +1081,6 @@ export default function MeasuredCountertopDesigner({
   const visualizerDesign = resolveCountertopPlannerDesign({
     ...design,
     floorStone: false,
-    stoneId: projection.allowed ? design.stoneId : "",
   });
 
   return (
@@ -1088,6 +1114,7 @@ export default function MeasuredCountertopDesigner({
                   })
                 );
                 setSharedDesign(null);
+                setView("plan");
                 setShareUrl("");
               }}
               data-testid="steel-home-countertop-open-shared"
@@ -1116,7 +1143,7 @@ export default function MeasuredCountertopDesigner({
         </button>
         <p className="text-xs text-white/70">
           {selectedStone?.shareSlug
-            ? "Includes the selected stone and measurements. Project notes and contact details stay private."
+            ? "Shares the selected stone and your measured draft. Sample rooms, floor previews, notes and contact details are not included."
             : "Choose a stone to share this plan."}
         </p>
         {shareUrl ? (
@@ -1135,10 +1162,19 @@ export default function MeasuredCountertopDesigner({
           </label>
         ) : null}
       </div>
-      <div className="grid min-w-0 xl:grid-cols-[minmax(0,1.18fr)_minmax(22rem,.82fr)]">
+      <div className="grid min-w-0 xl:grid-cols-[minmax(0,1.65fr)_minmax(21rem,.75fr)]">
         <div className="min-w-0 border-b border-white/10 p-3 sm:p-5 xl:border-b-0 xl:border-r">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.07] p-2">
             <div className="flex gap-1" aria-label="Countertop planner views">
+              <button
+                type="button"
+                aria-pressed={view === "showroom"}
+                onClick={() => setView("showroom")}
+                className={`min-h-10 rounded-xl px-3 text-xs font-black ${view === "showroom" ? "bg-white text-[#18312f]" : "text-white/70 hover:bg-white/10"}`}
+                data-testid="steel-home-countertop-view-showroom"
+              >
+                Room visualizer
+              </button>
               <button
                 type="button"
                 aria-pressed={view === "plan"}
@@ -1159,13 +1195,44 @@ export default function MeasuredCountertopDesigner({
                 }`}
                 data-testid="steel-home-countertop-view-3d"
               >
-                3D Preview
+                Measured 3D
               </button>
             </div>
             <p className="px-2 text-[0.66rem] font-black uppercase tracking-[0.14em] text-[#f0b392]">
-              Plan first · 3D second
+              {view === "showroom" ? "Explore your stone" : "Your project measurements"}
             </p>
           </div>
+
+          {view === "showroom" ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Sample room">
+              {(["Kitchen", "Primary bathroom", "Living room"] as const).map((room) => (
+                <button
+                  key={room}
+                  type="button"
+                  aria-pressed={showroomRoom === room}
+                  onClick={() => setShowroomRoom(room)}
+                  className={`min-h-10 rounded-full border px-4 text-xs font-bold ${showroomRoom === room ? "border-[#f0b392] bg-[#f0b392] text-[#18312f]" : "border-white/20 text-white/80"}`}
+                >
+                  {room === "Primary bathroom" ? "Bathroom" : room}
+                </button>
+              ))}
+              <label className="ml-auto flex min-h-10 items-center gap-2 text-xs font-semibold text-white/80">
+                <input
+                  type="checkbox"
+                  checked={showroomFloorStone}
+                  onChange={(event) => setShowroomFloorStone(event.target.checked)}
+                />
+                Preview stone floor
+              </label>
+              <p
+                className="w-full text-xs leading-5 text-white/65"
+                data-testid="steel-home-countertop-showroom-notice"
+              >
+                Furnished example rooms. Your project measurements stay unchanged; the floor preview
+                is not included in a countertop request or shared plan.
+              </p>
+            </div>
+          ) : null}
 
           <div className="relative mt-3 min-h-[30rem] overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#eee9df] sm:min-h-[34rem]">
             {view === "plan" ? (
@@ -1196,37 +1263,25 @@ export default function MeasuredCountertopDesigner({
                 <Suspense
                   fallback={
                     <div className="grid min-h-[34rem] place-items-center bg-[#29302e] text-sm font-semibold text-white/70">
-                      Preparing the measured 3D preview…
+                      Preparing the 3D room…
                     </div>
                   }
                 >
                   <StoneVisualizer3D
                     design={visualizerDesign}
+                    presentation={view === "showroom" ? "showroom" : "measured"}
+                    showroomFloorStone={showroomFloorStone}
+                    showroomRoom={showroomRoom}
                     selectedTarget={selectedSurfaceTarget}
                     onSelectTarget={setSelectedSurfaceTarget}
                   />
                 </Suspense>
-                {!projection.allowed && selectedStone && selectedImage ? (
-                  <div className="absolute right-3 top-20 z-20 w-44 overflow-hidden rounded-2xl border border-white/15 bg-[#101817]/92 p-2 shadow-xl backdrop-blur-sm sm:w-56">
-                    <img
-                      src={buildStoneDesignerImageHref(selectedStone.id, design.textureImageIndex)}
-                      alt={`${selectedStone.publicLabel} reference photo`}
-                      className="aspect-[4/3] w-full rounded-xl object-contain bg-black/20"
-                    />
-                    <p className="mt-2 text-[0.68rem] font-black text-white">
-                      Reference photo only
-                    </p>
-                    <p className="mt-1 text-[0.62rem] leading-4 text-white/65">
-                      Raw inventory photography is not stretched across the room.
-                    </p>
-                  </div>
-                ) : null}
               </div>
             )}
           </div>
 
-          {view === "3d" ? (
-            <div className="mt-3 grid gap-2 rounded-2xl border border-white/10 bg-white/[0.07] p-3 sm:grid-cols-4">
+          {view !== "plan" ? (
+            <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-white/[0.07] p-3 sm:grid-cols-4">
               {COUNTERTOP_CAMERA_PRESET_OPTIONS.map((preset) => (
                 <button
                   key={preset}
@@ -1246,7 +1301,7 @@ export default function MeasuredCountertopDesigner({
           ) : null}
 
           <div
-            className="mt-3 grid gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.07] p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+            className={`mt-3 gap-3 rounded-[1.25rem] border border-white/10 bg-white/[0.07] p-4 sm:grid-cols-[1fr_auto] sm:items-center ${view === "showroom" ? "hidden" : "grid"}`}
             data-testid="steel-home-countertop-live-summary"
             aria-live="polite"
           >
@@ -1305,6 +1360,7 @@ export default function MeasuredCountertopDesigner({
                   </p>
                 </div>
                 <button
+                  ref={galleryTriggerRef}
                   type="button"
                   onClick={() => setGalleryOpen(true)}
                   className="min-h-11 shrink-0 rounded-full bg-[#18312f] px-4 text-xs font-black text-white"
@@ -1325,7 +1381,7 @@ export default function MeasuredCountertopDesigner({
                   <div className="rounded-xl border border-[#a94f2e]/18 bg-[#fff6f1] p-3">
                     <p className="text-xs font-black text-[#713d2b]">
                       {projection.allowed
-                        ? "Projection-ready stone-only crop"
+                        ? "Actual stone-face sample · illustrative scale"
                         : "Reference photo only"}
                     </p>
                     <p className="mt-1 text-[0.7rem] leading-5 text-[#7d665b]">
@@ -1349,6 +1405,7 @@ export default function MeasuredCountertopDesigner({
                     <button
                       key={buildStoneDesignerPhotoKey(imageHref) || index}
                       type="button"
+                      aria-label={`Photo ${index + 1}${getStoneProjectionDecision(imageHref).allowed ? " · room preview available" : " · reference only"}`}
                       aria-pressed={design.textureImageIndex === index}
                       onClick={() =>
                         update({
@@ -1395,442 +1452,483 @@ export default function MeasuredCountertopDesigner({
                   ))}
                 </div>
               </fieldset>
-            </section>
-
-            <section className="rounded-2xl border border-[#18312f]/12 bg-white p-4">
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#a94f2e]">
-                1 · Layout and measurements
-              </p>
-              <p className="mt-2 text-xs leading-5 text-[#68736f]">
-                Enter the finished countertop runs. Changing these values resets the measurement
-                review.
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <ProjectTextSelect
-                  label="Room"
-                  value={design.room}
-                  options={COUNTERTOP_ROOM_OPTIONS}
-                  onChange={(room) => update({ room })}
-                  testId="steel-home-countertop-room"
-                />
-                <ProjectSelect
-                  label="Layout"
-                  value={design.layout}
-                  options={COUNTERTOP_LAYOUT_OPTIONS}
-                  onChange={(layout) => updateGeometry({ layout })}
-                  testId="steel-home-countertop-layout"
-                />
-                <ProjectNumberField
-                  label="Main run"
-                  value={design.wallAIn}
-                  min={24}
-                  max={360}
-                  suffix="in"
-                  onChange={(wallAIn) => updateGeometry({ wallAIn })}
-                  testId="steel-home-countertop-run-a"
-                />
-                <ProjectNumberField
-                  label="Finished depth"
-                  value={design.wallDepthIn}
-                  min={12}
-                  max={72}
-                  step={0.5}
-                  suffix="in"
-                  onChange={(wallDepthIn) => updateGeometry({ wallDepthIn })}
-                  testId="steel-home-countertop-wall-depth"
-                />
-                {design.layout !== "straight" ? (
-                  <ProjectNumberField
-                    label="Left return"
-                    value={design.wallBIn}
-                    min={24}
-                    max={360}
-                    suffix="in"
-                    onChange={(wallBIn) => updateGeometry({ wallBIn })}
-                    testId="steel-home-countertop-run-b"
-                  />
-                ) : null}
-                {design.layout === "u-shape" ? (
-                  <ProjectNumberField
-                    label="Right return"
-                    value={design.wallCIn}
-                    min={24}
-                    max={360}
-                    suffix="in"
-                    onChange={(wallCIn) => updateGeometry({ wallCIn })}
-                    testId="steel-home-countertop-run-c"
-                  />
-                ) : null}
-              </div>
-              <div className="mt-4">
-                <ProjectToggle
-                  checked={design.island}
-                  onChange={(island) => updateGeometry({ island })}
-                  label="Include an island"
-                  description="No island is added by default."
-                  testId="steel-home-countertop-island"
-                />
-              </div>
-              {design.island ? (
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <ProjectNumberField
-                    label="Island length"
-                    value={design.islandLengthIn}
-                    min={24}
-                    max={180}
-                    suffix="in"
-                    onChange={(islandLengthIn) => updateGeometry({ islandLengthIn })}
-                    testId="steel-home-countertop-island-length"
-                  />
-                  <ProjectNumberField
-                    label="Island width"
-                    value={design.islandWidthIn}
-                    min={20}
-                    max={72}
-                    suffix="in"
-                    onChange={(islandWidthIn) => updateGeometry({ islandWidthIn })}
-                    testId="steel-home-countertop-island-width"
-                  />
+              {projection.allowed ? (
+                <div className="mt-4 space-y-3 rounded-xl bg-[#f4f0e8] p-3">
+                  <p className="text-xs leading-5 text-[#68736f]">
+                    Adjust the sample pattern. These controls do not establish slab yield or
+                    matching seams.
+                  </p>
+                  {(
+                    [
+                      ["Pattern size", "textureScale", 0.5, 3],
+                      ["Pattern horizontal position", "textureOffsetX", -1, 1],
+                      ["Pattern vertical position", "textureOffsetY", -1, 1],
+                    ] as const
+                  ).map(([label, field, min, max]) => (
+                    <label key={field} className="block text-xs font-bold">
+                      {label}
+                      <input
+                        type="range"
+                        aria-label={label}
+                        min={min}
+                        max={max}
+                        step={0.05}
+                        value={design[field]}
+                        onChange={(event) => update({ [field]: Number(event.target.value) })}
+                        className="mt-1 h-9 w-full accent-[#a94f2e]"
+                      />
+                    </label>
+                  ))}
                 </div>
               ) : null}
-              <div className="mt-4 rounded-xl border border-[#a94f2e]/25 bg-[#fff0e8] p-3">
-                <ProjectToggle
-                  checked={design.measurementsReviewed}
-                  onChange={(measurementsReviewed) => update({ measurementsReviewed })}
-                  label="I entered or reviewed the surface measurements"
-                  description="This unlocks the measured plan and fabricator handoff."
-                  testId="steel-home-countertop-measurements-reviewed"
-                />
-              </div>
+              {view === "showroom" ? (
+                <button
+                  type="button"
+                  onClick={() => setView("plan")}
+                  className="mt-4 min-h-11 w-full rounded-xl border border-[#18312f]/20 px-4 text-xs font-black"
+                >
+                  Enter my measurements
+                </button>
+              ) : null}
             </section>
 
-            <details className="group rounded-2xl border border-[#18312f]/12 bg-white">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black [&::-webkit-details-marker]:hidden">
-                2 · Edge, backsplash, and seams
-                <ChevronDown
-                  className="h-4 w-4 transition group-open:rotate-180"
-                  aria-hidden="true"
-                />
-              </summary>
-              <div className="grid gap-4 border-t border-[#18312f]/10 p-4 sm:grid-cols-2">
-                <ProjectTextSelect
-                  label="Edge"
-                  value={design.edge}
-                  options={COUNTERTOP_EDGE_OPTIONS}
-                  onChange={(edge) => update({ edge })}
-                  testId="steel-home-countertop-edge"
-                />
-                <ProjectTextSelect
-                  label="Backsplash"
-                  value={design.backsplash}
-                  options={COUNTERTOP_BACKSPLASH_OPTIONS}
-                  onChange={(backsplash) => update({ backsplash })}
-                  testId="steel-home-countertop-backsplash"
-                />
-                <ProjectTextSelect
-                  label="Waterfall ends"
-                  value={design.waterfall}
-                  options={design.island ? COUNTERTOP_WATERFALL_OPTIONS : (["None"] as const)}
-                  onChange={(waterfall) => update({ waterfall })}
-                  testId="steel-home-countertop-waterfall"
-                />
-                <ProjectToggle
-                  checked={design.showSeams}
-                  onChange={(showSeams) => update({ showSeams })}
-                  label="Show planning seams"
-                  description="Final seam placement requires slab layout and fabricator review."
-                  testId="steel-home-countertop-seams"
-                />
-              </div>
-            </details>
-
-            <details
-              open={openings.length > 0}
-              className="group rounded-2xl border border-[#18312f]/12 bg-white"
-              data-testid="steel-home-countertop-cutouts"
-            >
-              <summary className="flex min-h-16 cursor-pointer list-none items-start justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-                <div>
-                  <p className="text-sm font-black">3 · Openings and coordination points</p>
-                  <p className="mt-1 text-xs leading-5 text-[#68736f]">
-                    Nothing is added by default. Openings support the independent fabricator handoff
-                    and do not price the stone.
-                  </p>
-                </div>
-                <ChevronDown
-                  className="mt-1 h-4 w-4 shrink-0 transition group-open:rotate-180"
-                  aria-hidden="true"
-                />
-              </summary>
-              <div className="space-y-4 border-t border-[#18312f]/10 p-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <ProjectTextSelect
-                    label="Sink opening"
-                    value={design.sink}
-                    options={COUNTERTOP_SINK_OPTIONS}
-                    onChange={(sink) => {
-                      update({
-                        sink,
-                        sinkRun: sink === "None" ? "" : design.sinkRun,
-                        sinkPositionIn: sink === "None" ? null : design.sinkPositionIn,
-                        sinkFrontPositionIn: sink === "None" ? null : design.sinkFrontPositionIn,
-                        sinkTemplateWidthIn: null,
-                        sinkTemplateDepthIn: null,
-                      });
-                      if (sink !== "None") setSelectedOpeningId("sink");
-                    }}
-                    testId="steel-home-countertop-sink"
-                  />
-                  <ProjectTextSelect
-                    label="Cooktop or range opening"
-                    value={design.cooktop}
-                    options={COUNTERTOP_COOKTOP_OPTIONS}
-                    onChange={(cooktop) => {
-                      update({
-                        cooktop,
-                        cooktopRun: cooktop === "None" ? "" : design.cooktopRun,
-                        cooktopPositionIn: cooktop === "None" ? null : design.cooktopPositionIn,
-                        cooktopFrontPositionIn:
-                          cooktop === "None" ? null : design.cooktopFrontPositionIn,
-                        cooktopTemplateWidthIn: null,
-                        cooktopTemplateDepthIn: null,
-                      });
-                      if (cooktop !== "None") setSelectedOpeningId("cooktop");
-                    }}
-                    testId="steel-home-countertop-cooktop"
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-[#68736f]">
-                    {openings.length} added · {placementProblems.length} placement issues
-                  </p>
-                  <button
-                    type="button"
-                    onClick={addOtherOpening}
-                    disabled={design.otherCutouts.length >= 6}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#18312f]/15 px-4 text-xs font-black disabled:opacity-40"
-                    data-testid="steel-home-countertop-add-other-cutout"
-                  >
-                    <Plus className="h-4 w-4" aria-hidden="true" /> Add other opening
-                  </button>
-                </div>
-
-                {openings.some((opening) => opening.templateStatus === "unresolved") ? (
-                  <div className="rounded-xl border border-[#b26a34]/25 bg-[#fff8e8] p-3 text-[#74451f]">
-                    <p className="text-xs font-black">
-                      Template sizes unresolved · coordination points only
-                    </p>
-                    <p className="mt-1 text-xs leading-5">
-                      A coordination point can start a conversation. No cut-sized opening is shown
-                      until both manufacturer dimensions are entered.
-                    </p>
-                  </div>
-                ) : null}
-
-                {openings.length ? (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {openings.map((opening) => (
-                      <button
-                        key={opening.id}
-                        type="button"
-                        aria-pressed={selectedOpeningId === opening.id}
-                        onClick={() => setSelectedOpeningId(opening.id)}
-                        className={`min-h-14 rounded-xl border px-3 py-2 text-left ${
-                          selectedOpeningId === opening.id
-                            ? "border-[#a94f2e] bg-[#fff4ee]"
-                            : "border-[#18312f]/10 bg-[#f8f5ef]"
-                        }`}
-                        data-testid={`steel-home-countertop-cutout-item-${opening.id}`}
-                        data-representation={opening.representation}
-                      >
-                        <span className="block text-xs font-black">{opening.label}</span>
-                        <span className="mt-1 block text-[0.68rem] text-[#68736f]">
-                          {opening.run && opening.positionIn !== null
-                            ? `${getCountertopCutoutRunLabel(opening.run)} · ${opening.positionIn}" from start`
-                            : "Needs a location"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-xl bg-[#f4f0e8] p-3 text-xs leading-5 text-[#68736f]">
-                    No openings added.
-                  </p>
-                )}
-
-                {selectedOpening ? (
-                  <OpeningEditor
-                    design={design}
-                    item={selectedOpening}
-                    otherCutout={selectedOtherCutout}
-                    onChange={(values) => changeOpening(selectedOpening.id, values)}
-                    onOtherChange={(values) =>
-                      update({
-                        otherCutouts: design.otherCutouts.map((cutout) =>
-                          cutout.id === selectedOpening.id ? { ...cutout, ...values } : cutout
-                        ),
-                      })
-                    }
-                    onTemplateChange={(values) => {
-                      if (selectedOpening.id === "sink") {
-                        update({
-                          ...(values.widthIn !== undefined
-                            ? { sinkTemplateWidthIn: values.widthIn }
-                            : {}),
-                          ...(values.depthIn !== undefined
-                            ? { sinkTemplateDepthIn: values.depthIn }
-                            : {}),
-                        });
-                      } else if (selectedOpening.id === "cooktop") {
-                        update({
-                          ...(values.widthIn !== undefined
-                            ? { cooktopTemplateWidthIn: values.widthIn }
-                            : {}),
-                          ...(values.depthIn !== undefined
-                            ? { cooktopTemplateDepthIn: values.depthIn }
-                            : {}),
-                        });
-                      }
-                    }}
-                    onRemove={() => removeOpening(selectedOpening.id)}
-                  />
-                ) : null}
-
-                {placementProblems.length ? (
-                  <div
-                    className="rounded-xl border border-[#a1392e]/25 bg-[#fff0ea] p-3 text-[#7f2b24]"
-                    role="status"
-                    data-testid="steel-home-countertop-cutout-validation"
-                  >
-                    <p className="flex items-center gap-2 text-xs font-black">
-                      <AlertTriangle className="h-4 w-4" aria-hidden="true" /> Resolve before
-                      fabricator handoff
-                    </p>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5">
-                      {placementProblems.map((problem) => (
-                        <li key={problem}>{problem}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            </details>
-
-            <details className="group rounded-2xl border border-[#18312f]/12 bg-white">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black [&::-webkit-details-marker]:hidden">
-                4 · Optional 3D scene measurements
-                <ChevronDown
-                  className="h-4 w-4 transition group-open:rotate-180"
-                  aria-hidden="true"
-                />
-              </summary>
-              <div className="border-t border-[#18312f]/10 p-4">
-                <p className="text-xs leading-5 text-[#68736f]">
-                  Blank stays unresolved. The 3D preview does not invent room walls, top height,
-                  thickness, or island position.
+            <div className={view === "showroom" ? "hidden" : "space-y-5"}>
+              <section className="rounded-2xl border border-[#18312f]/12 bg-white p-4">
+                <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#a94f2e]">
+                  1 · Layout and measurements
+                </p>
+                <p className="mt-2 text-xs leading-5 text-[#68736f]">
+                  Enter the finished countertop runs. Changing these values resets the measurement
+                  review.
                 </p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <OptionalMeasurementField
-                    label="Room inside width"
-                    value={design.roomWidthIn}
+                  <ProjectTextSelect
+                    label="Room"
+                    value={design.room}
+                    options={COUNTERTOP_ROOM_OPTIONS}
+                    onChange={(room) => update({ room })}
+                    testId="steel-home-countertop-room"
+                  />
+                  <ProjectSelect
+                    label="Layout"
+                    value={design.layout}
+                    options={COUNTERTOP_LAYOUT_OPTIONS}
+                    onChange={(layout) => updateGeometry({ layout })}
+                    testId="steel-home-countertop-layout"
+                  />
+                  <ProjectNumberField
+                    label="Main run"
+                    value={design.wallAIn}
                     min={24}
-                    max={1200}
-                    onChange={(roomWidthIn) => update({ roomWidthIn })}
-                    testId="steel-home-countertop-room-width"
+                    max={360}
+                    suffix="in"
+                    onChange={(wallAIn) => updateGeometry({ wallAIn })}
+                    testId="steel-home-countertop-run-a"
                   />
-                  <OptionalMeasurementField
-                    label="Room inside depth"
-                    value={design.roomDepthIn}
-                    min={24}
-                    max={1200}
-                    onChange={(roomDepthIn) => update({ roomDepthIn })}
-                    testId="steel-home-countertop-room-depth"
-                  />
-                  <OptionalMeasurementField
-                    label="Room wall height"
-                    value={design.roomWallHeightIn}
-                    min={48}
-                    max={240}
-                    onChange={(roomWallHeightIn) => update({ roomWallHeightIn })}
-                    testId="steel-home-countertop-room-wall-height"
-                  />
-                  <OptionalMeasurementField
-                    label="Finished top height"
-                    value={design.finishedTopHeightIn}
+                  <ProjectNumberField
+                    label="Finished depth"
+                    value={design.wallDepthIn}
                     min={12}
                     max={72}
-                    onChange={(finishedTopHeightIn) => update({ finishedTopHeightIn })}
-                    testId="steel-home-countertop-finished-top-height"
+                    step={0.5}
+                    suffix="in"
+                    onChange={(wallDepthIn) => updateGeometry({ wallDepthIn })}
+                    testId="steel-home-countertop-wall-depth"
                   />
-                  <OptionalMeasurementField
-                    label="Finished top thickness"
-                    value={design.topThicknessIn}
-                    min={0.25}
-                    max={6}
-                    onChange={(topThicknessIn) => update({ topThicknessIn })}
-                    testId="steel-home-countertop-top-thickness"
-                  />
-                  {design.island ? (
-                    <>
-                      <OptionalMeasurementField
-                        label="Island left edge from main-run left"
-                        value={design.islandLeftOffsetIn}
-                        min={-600}
-                        max={1200}
-                        onChange={(islandLeftOffsetIn) => update({ islandLeftOffsetIn })}
-                        testId="steel-home-countertop-island-left-offset"
-                      />
-                      <OptionalMeasurementField
-                        label="Island back edge from main wall"
-                        value={design.islandBackOffsetIn}
-                        min={-120}
-                        max={1200}
-                        onChange={(islandBackOffsetIn) => update({ islandBackOffsetIn })}
-                        testId="steel-home-countertop-island-back-offset"
-                      />
-                    </>
+                  {design.layout !== "straight" ? (
+                    <ProjectNumberField
+                      label="Left return"
+                      value={design.wallBIn}
+                      min={24}
+                      max={360}
+                      suffix="in"
+                      onChange={(wallBIn) => updateGeometry({ wallBIn })}
+                      testId="steel-home-countertop-run-b"
+                    />
+                  ) : null}
+                  {design.layout === "u-shape" ? (
+                    <ProjectNumberField
+                      label="Right return"
+                      value={design.wallCIn}
+                      min={24}
+                      max={360}
+                      suffix="in"
+                      onChange={(wallCIn) => updateGeometry({ wallCIn })}
+                      testId="steel-home-countertop-run-c"
+                    />
                   ) : null}
                 </div>
-                {diagnostics.filter((item) => item.scope === "scene").length ? (
-                  <ul className="mt-4 list-disc space-y-1 rounded-xl bg-[#fff0ea] p-4 pl-8 text-xs leading-5 text-[#7f2b24]">
-                    {diagnostics
-                      .filter((item) => item.scope === "scene")
-                      .map((diagnostic) => (
-                        <li key={diagnostic.id}>{diagnostic.label}</li>
-                      ))}
-                  </ul>
+                <div className="mt-4">
+                  <ProjectToggle
+                    checked={design.island}
+                    onChange={(island) => updateGeometry({ island })}
+                    label="Include an island"
+                    description="No island is added by default."
+                    testId="steel-home-countertop-island"
+                  />
+                </div>
+                {design.island ? (
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <ProjectNumberField
+                      label="Island length"
+                      value={design.islandLengthIn}
+                      min={24}
+                      max={180}
+                      suffix="in"
+                      onChange={(islandLengthIn) => updateGeometry({ islandLengthIn })}
+                      testId="steel-home-countertop-island-length"
+                    />
+                    <ProjectNumberField
+                      label="Island width"
+                      value={design.islandWidthIn}
+                      min={20}
+                      max={72}
+                      suffix="in"
+                      onChange={(islandWidthIn) => updateGeometry({ islandWidthIn })}
+                      testId="steel-home-countertop-island-width"
+                    />
+                  </div>
                 ) : null}
-              </div>
-            </details>
+                <div className="mt-4 rounded-xl border border-[#a94f2e]/25 bg-[#fff0e8] p-3">
+                  <ProjectToggle
+                    checked={design.measurementsReviewed}
+                    onChange={(measurementsReviewed) => update({ measurementsReviewed })}
+                    label="I entered or reviewed the surface measurements"
+                    description="This unlocks the measured plan and fabricator handoff."
+                    testId="steel-home-countertop-measurements-reviewed"
+                  />
+                </div>
+              </section>
 
-            <label className="block space-y-2 text-sm font-bold">
-              <span>Fabricator notes (optional)</span>
-              <textarea
-                value={design.notes}
-                maxLength={240}
-                onChange={(event) => update({ notes: event.target.value })}
-                placeholder="Overhangs, seams, waterfall direction, or special coordination notes"
-                className={PROJECT_TEXTAREA_CLASS}
-                data-testid="steel-home-countertop-notes"
-              />
-              <span className="block text-xs font-normal leading-5 text-[#68736f]">
-                Stone ordering and fabrication remain separate. A qualified fabricator must
-                field-verify every measurement and template before cutting.
-              </span>
-            </label>
+              <details className="group rounded-2xl border border-[#18312f]/12 bg-white">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black [&::-webkit-details-marker]:hidden">
+                  2 · Edge, backsplash, and seams
+                  <ChevronDown
+                    className="h-4 w-4 transition group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="grid gap-4 border-t border-[#18312f]/10 p-4 sm:grid-cols-2">
+                  <ProjectTextSelect
+                    label="Edge"
+                    value={design.edge}
+                    options={COUNTERTOP_EDGE_OPTIONS}
+                    onChange={(edge) => update({ edge })}
+                    testId="steel-home-countertop-edge"
+                  />
+                  <ProjectTextSelect
+                    label="Backsplash"
+                    value={design.backsplash}
+                    options={COUNTERTOP_BACKSPLASH_OPTIONS}
+                    onChange={(backsplash) => update({ backsplash })}
+                    testId="steel-home-countertop-backsplash"
+                  />
+                  <ProjectTextSelect
+                    label="Waterfall ends"
+                    value={design.waterfall}
+                    options={design.island ? COUNTERTOP_WATERFALL_OPTIONS : (["None"] as const)}
+                    onChange={(waterfall) => update({ waterfall })}
+                    testId="steel-home-countertop-waterfall"
+                  />
+                  <ProjectToggle
+                    checked={design.showSeams}
+                    onChange={(showSeams) => update({ showSeams })}
+                    label="Show planning seams"
+                    description="Final seam placement requires slab layout and fabricator review."
+                    testId="steel-home-countertop-seams"
+                  />
+                </div>
+              </details>
+
+              <details
+                open={openings.length > 0}
+                className="group rounded-2xl border border-[#18312f]/12 bg-white"
+                data-testid="steel-home-countertop-cutouts"
+              >
+                <summary className="flex min-h-16 cursor-pointer list-none items-start justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                  <div>
+                    <p className="text-sm font-black">3 · Openings and coordination points</p>
+                    <p className="mt-1 text-xs leading-5 text-[#68736f]">
+                      Nothing is added by default. Openings support the independent fabricator
+                      handoff and do not price the stone.
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className="mt-1 h-4 w-4 shrink-0 transition group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="space-y-4 border-t border-[#18312f]/10 p-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <ProjectTextSelect
+                      label="Sink opening"
+                      value={design.sink}
+                      options={COUNTERTOP_SINK_OPTIONS}
+                      onChange={(sink) => {
+                        update({
+                          sink,
+                          sinkRun: sink === "None" ? "" : design.sinkRun,
+                          sinkPositionIn: sink === "None" ? null : design.sinkPositionIn,
+                          sinkFrontPositionIn: sink === "None" ? null : design.sinkFrontPositionIn,
+                          sinkTemplateWidthIn: null,
+                          sinkTemplateDepthIn: null,
+                        });
+                        if (sink !== "None") setSelectedOpeningId("sink");
+                      }}
+                      testId="steel-home-countertop-sink"
+                    />
+                    <ProjectTextSelect
+                      label="Cooktop or range opening"
+                      value={design.cooktop}
+                      options={COUNTERTOP_COOKTOP_OPTIONS}
+                      onChange={(cooktop) => {
+                        update({
+                          cooktop,
+                          cooktopRun: cooktop === "None" ? "" : design.cooktopRun,
+                          cooktopPositionIn: cooktop === "None" ? null : design.cooktopPositionIn,
+                          cooktopFrontPositionIn:
+                            cooktop === "None" ? null : design.cooktopFrontPositionIn,
+                          cooktopTemplateWidthIn: null,
+                          cooktopTemplateDepthIn: null,
+                        });
+                        if (cooktop !== "None") setSelectedOpeningId("cooktop");
+                      }}
+                      testId="steel-home-countertop-cooktop"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs font-semibold text-[#68736f]">
+                      {openings.length} added · {placementProblems.length} placement issues
+                    </p>
+                    <button
+                      type="button"
+                      onClick={addOtherOpening}
+                      disabled={design.otherCutouts.length >= 6}
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#18312f]/15 px-4 text-xs font-black disabled:opacity-40"
+                      data-testid="steel-home-countertop-add-other-cutout"
+                    >
+                      <Plus className="h-4 w-4" aria-hidden="true" /> Add other opening
+                    </button>
+                  </div>
+
+                  {openings.some((opening) => opening.templateStatus === "unresolved") ? (
+                    <div className="rounded-xl border border-[#b26a34]/25 bg-[#fff8e8] p-3 text-[#74451f]">
+                      <p className="text-xs font-black">
+                        Template sizes unresolved · coordination points only
+                      </p>
+                      <p className="mt-1 text-xs leading-5">
+                        A coordination point can start a conversation. No cut-sized opening is shown
+                        until both manufacturer dimensions are entered.
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {openings.length ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {openings.map((opening) => (
+                        <button
+                          key={opening.id}
+                          type="button"
+                          aria-pressed={selectedOpeningId === opening.id}
+                          onClick={() => setSelectedOpeningId(opening.id)}
+                          className={`min-h-14 rounded-xl border px-3 py-2 text-left ${
+                            selectedOpeningId === opening.id
+                              ? "border-[#a94f2e] bg-[#fff4ee]"
+                              : "border-[#18312f]/10 bg-[#f8f5ef]"
+                          }`}
+                          data-testid={`steel-home-countertop-cutout-item-${opening.id}`}
+                          data-representation={opening.representation}
+                        >
+                          <span className="block text-xs font-black">{opening.label}</span>
+                          <span className="mt-1 block text-[0.68rem] text-[#68736f]">
+                            {opening.run && opening.positionIn !== null
+                              ? `${getCountertopCutoutRunLabel(opening.run)} · ${opening.positionIn}" from start`
+                              : "Needs a location"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-xl bg-[#f4f0e8] p-3 text-xs leading-5 text-[#68736f]">
+                      No openings added.
+                    </p>
+                  )}
+
+                  {selectedOpening ? (
+                    <OpeningEditor
+                      design={design}
+                      item={selectedOpening}
+                      otherCutout={selectedOtherCutout}
+                      onChange={(values) => changeOpening(selectedOpening.id, values)}
+                      onOtherChange={(values) =>
+                        update({
+                          otherCutouts: design.otherCutouts.map((cutout) =>
+                            cutout.id === selectedOpening.id ? { ...cutout, ...values } : cutout
+                          ),
+                        })
+                      }
+                      onTemplateChange={(values) => {
+                        if (selectedOpening.id === "sink") {
+                          update({
+                            ...(values.widthIn !== undefined
+                              ? { sinkTemplateWidthIn: values.widthIn }
+                              : {}),
+                            ...(values.depthIn !== undefined
+                              ? { sinkTemplateDepthIn: values.depthIn }
+                              : {}),
+                          });
+                        } else if (selectedOpening.id === "cooktop") {
+                          update({
+                            ...(values.widthIn !== undefined
+                              ? { cooktopTemplateWidthIn: values.widthIn }
+                              : {}),
+                            ...(values.depthIn !== undefined
+                              ? { cooktopTemplateDepthIn: values.depthIn }
+                              : {}),
+                          });
+                        }
+                      }}
+                      onRemove={() => removeOpening(selectedOpening.id)}
+                    />
+                  ) : null}
+
+                  {placementProblems.length ? (
+                    <div
+                      className="rounded-xl border border-[#a1392e]/25 bg-[#fff0ea] p-3 text-[#7f2b24]"
+                      role="status"
+                      data-testid="steel-home-countertop-cutout-validation"
+                    >
+                      <p className="flex items-center gap-2 text-xs font-black">
+                        <AlertTriangle className="h-4 w-4" aria-hidden="true" /> Resolve before
+                        fabricator handoff
+                      </p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5">
+                        {placementProblems.map((problem) => (
+                          <li key={problem}>{problem}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
+
+              <details className="group rounded-2xl border border-[#18312f]/12 bg-white">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black [&::-webkit-details-marker]:hidden">
+                  4 · Optional 3D scene measurements
+                  <ChevronDown
+                    className="h-4 w-4 transition group-open:rotate-180"
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="border-t border-[#18312f]/10 p-4">
+                  <p className="text-xs leading-5 text-[#68736f]">
+                    Blank stays unresolved. The 3D preview does not invent room walls, top height,
+                    thickness, or island position.
+                  </p>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <OptionalMeasurementField
+                      label="Room inside width"
+                      value={design.roomWidthIn}
+                      min={24}
+                      max={1200}
+                      onChange={(roomWidthIn) => update({ roomWidthIn })}
+                      testId="steel-home-countertop-room-width"
+                    />
+                    <OptionalMeasurementField
+                      label="Room inside depth"
+                      value={design.roomDepthIn}
+                      min={24}
+                      max={1200}
+                      onChange={(roomDepthIn) => update({ roomDepthIn })}
+                      testId="steel-home-countertop-room-depth"
+                    />
+                    <OptionalMeasurementField
+                      label="Room wall height"
+                      value={design.roomWallHeightIn}
+                      min={48}
+                      max={240}
+                      onChange={(roomWallHeightIn) => update({ roomWallHeightIn })}
+                      testId="steel-home-countertop-room-wall-height"
+                    />
+                    <OptionalMeasurementField
+                      label="Finished top height"
+                      value={design.finishedTopHeightIn}
+                      min={12}
+                      max={72}
+                      onChange={(finishedTopHeightIn) => update({ finishedTopHeightIn })}
+                      testId="steel-home-countertop-finished-top-height"
+                    />
+                    <OptionalMeasurementField
+                      label="Finished top thickness"
+                      value={design.topThicknessIn}
+                      min={0.25}
+                      max={6}
+                      onChange={(topThicknessIn) => update({ topThicknessIn })}
+                      testId="steel-home-countertop-top-thickness"
+                    />
+                    {design.island ? (
+                      <>
+                        <OptionalMeasurementField
+                          label="Island left edge from main-run left"
+                          value={design.islandLeftOffsetIn}
+                          min={-600}
+                          max={1200}
+                          onChange={(islandLeftOffsetIn) => update({ islandLeftOffsetIn })}
+                          testId="steel-home-countertop-island-left-offset"
+                        />
+                        <OptionalMeasurementField
+                          label="Island back edge from main wall"
+                          value={design.islandBackOffsetIn}
+                          min={-120}
+                          max={1200}
+                          onChange={(islandBackOffsetIn) => update({ islandBackOffsetIn })}
+                          testId="steel-home-countertop-island-back-offset"
+                        />
+                      </>
+                    ) : null}
+                  </div>
+                  {diagnostics.filter((item) => item.scope === "scene").length ? (
+                    <ul className="mt-4 list-disc space-y-1 rounded-xl bg-[#fff0ea] p-4 pl-8 text-xs leading-5 text-[#7f2b24]">
+                      {diagnostics
+                        .filter((item) => item.scope === "scene")
+                        .map((diagnostic) => (
+                          <li key={diagnostic.id}>{diagnostic.label}</li>
+                        ))}
+                    </ul>
+                  ) : null}
+                </div>
+              </details>
+
+              <label className="block space-y-2 text-sm font-bold">
+                <span>Fabricator notes (optional)</span>
+                <textarea
+                  value={design.notes}
+                  maxLength={240}
+                  onChange={(event) => update({ notes: event.target.value })}
+                  placeholder="Overhangs, seams, waterfall direction, or special coordination notes"
+                  className={PROJECT_TEXTAREA_CLASS}
+                  data-testid="steel-home-countertop-notes"
+                />
+                <span className="block text-xs font-normal leading-5 text-[#68736f]">
+                  Stone ordering and fabrication remain separate. A qualified fabricator must
+                  field-verify every measurement and template before cutting.
+                </span>
+              </label>
+            </div>
           </div>
 
           <div className="sticky bottom-0 z-20 grid gap-3 border-t border-[#18312f]/12 bg-white px-4 py-3 shadow-[0_-12px_35px_rgba(24,49,47,.09)] sm:grid-cols-2 sm:px-6">
             <div>
               <button
                 type="button"
-                onClick={() => request("stone")}
+                onClick={() => (view === "showroom" ? setView("plan") : request("stone"))}
                 disabled={!stoneReadiness.ready}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#a94f2e] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-[#b8aaa2]"
                 data-testid="steel-home-countertop-request-stone"
               >
-                <ShoppingBag className="h-4 w-4" aria-hidden="true" /> Request this stone
+                <ShoppingBag className="h-4 w-4" aria-hidden="true" />{" "}
+                {view === "showroom" ? "Review stone request" : "Request this stone"}
               </button>
               {!stoneReadiness.ready ? (
                 <p className="mt-1 text-[0.68rem] font-bold text-[#8f3329]">
@@ -1841,12 +1939,13 @@ export default function MeasuredCountertopDesigner({
             <div>
               <button
                 type="button"
-                onClick={() => request("fabricator")}
+                onClick={() => (view === "showroom" ? setView("plan") : request("fabricator"))}
                 disabled={!fabricatorReadiness.ready}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[#18312f]/20 bg-white px-5 text-sm font-black text-[#18312f] disabled:cursor-not-allowed disabled:bg-[#ecebe6] disabled:text-[#7d8581]"
                 data-testid="steel-home-countertop-find-fabricator"
               >
-                <Hammer className="h-4 w-4" aria-hidden="true" /> Find a fabricator
+                <Hammer className="h-4 w-4" aria-hidden="true" />{" "}
+                {view === "showroom" ? "Review fabrication plan" : "Find a fabricator"}
               </button>
               {!fabricatorReadiness.ready ? (
                 <p className="mt-1 text-[0.68rem] font-bold text-[#8f3329]">
@@ -1863,14 +1962,20 @@ export default function MeasuredCountertopDesigner({
           selectedId={design.stoneId}
           onSelect={(stoneId) => {
             const stone = getCatalogItemById(stoneId);
+            const textureImageIndex = Math.max(
+              0,
+              stone?.images.findIndex((image) => getStoneProjectionDecision(image).allowed) ?? 0
+            );
             update({
               stoneId,
-              textureImageIndex: 0,
-              texturePhotoKey: buildStoneDesignerPhotoKey(stone?.images[0] || "") || "",
+              textureImageIndex,
+              texturePhotoKey:
+                buildStoneDesignerPhotoKey(stone?.images[textureImageIndex] || "") || "",
             });
             setGalleryOpen(false);
           }}
           onClose={() => setGalleryOpen(false)}
+          onRestoreFocus={() => galleryTriggerRef.current?.focus()}
         />
       ) : null}
     </section>
