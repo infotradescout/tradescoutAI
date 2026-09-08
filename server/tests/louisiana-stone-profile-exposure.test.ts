@@ -33,6 +33,7 @@ function companyCandidate(
 ): PublishedProfileExposureCandidate {
   return {
     profileId: "synthetic-company-profile",
+    profilePubliclyReleased: true,
     businessId: "synthetic-company-business",
     profileSlug: LOUISIANA_STONE_SOLUTIONS_PROFILE_SLUG,
     profileStatus: "published",
@@ -117,7 +118,10 @@ describe("Louisiana Stone Solutions manual admin release", () => {
   ])(
     "requires deliberate release of this profile despite account-wide visibility",
     (preferences) => {
-      const candidate = companyCandidate({ ownerPreferences: preferences });
+      const candidate = companyCandidate({
+        profilePubliclyReleased: false,
+        ownerPreferences: preferences,
+      });
       expect(derivePublishedProfileExposure(candidate)).toEqual({
         mode: "private",
         reason: "private",
@@ -126,6 +130,29 @@ describe("Louisiana Stone Solutions manual admin release", () => {
       expect(canExposePublishedProfilePublicly(candidate)).toBe(false);
     }
   );
+
+  it.each([false, null, undefined])(
+    "does not recover a missing or revoked canonical release from stale exact-profile preferences (%s)",
+    (profilePubliclyReleased) => {
+      const candidate = companyCandidate({ profilePubliclyReleased });
+      expect(isOwnerConfirmedDirectProfile(candidate)).toBe(true);
+      expect(derivePublishedProfileExposure(candidate)).toEqual({
+        mode: "private",
+        reason: "private",
+      });
+      expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(false);
+    }
+  );
+
+  it("uses the canonical released profile after legacy preferences change", () => {
+    const candidate = companyCandidate({
+      ownerPreferences: { profileVisibility: "private", publicProfileIds: [] },
+    });
+    expect(derivePublishedProfileExposure(candidate)).toEqual({
+      mode: "direct_only",
+      reason: "direct_only",
+    });
+  });
 
   it.each([
     { businessOwnerUserId: "synthetic-other-owner" },

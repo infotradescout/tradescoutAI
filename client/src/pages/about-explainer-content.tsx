@@ -204,9 +204,9 @@ const featureGroups = [
         href: routes.verification,
       },
       {
-        action: "Complete extra screening when the role requires it",
-        name: "Background screening and Screen Pass",
-        copy: "A background-check intake exists as an additional verification path. Screen Pass is the planned portable result: show that the required screen was completed without exposing the private report. The portable pass and end-to-end partner completion are not finished yet.",
+        action: "Review background-screening information",
+        name: "Background screening",
+        copy: "Background screening is not available through TradeScout yet.",
         href: routes.backgroundCheck,
       },
       {
@@ -495,8 +495,8 @@ export function AboutExplainerContent() {
           <p className="hero-principle">Local recommendations should lead somewhere.</p>
           <p className="hero-lede">
             Recommendations drive TradeScout. Local experience helps a requester choose a business,
-            send a request with their name and phone number, and record the outcome for the
-            next requester—without selling the lead, ranking, trust, or contact information.
+            send a request with their name and phone number, and record the outcome for the next
+            requester—without selling the lead, ranking, trust, or contact information.
           </p>
           <div className="plain-promises" aria-label="TradeScout product rules">
             <span>Payment cannot buy recommendations</span>
@@ -847,9 +847,7 @@ export function AboutExplainerContent() {
             <section className="connect-section" id="connect" aria-labelledby="connect-title">
               <div className="connect-heading">
                 <span className="section-kicker">Direct Connect</span>
-                <h2 id="connect-title">
-                  Send a request to the business you choose.
-                </h2>
+                <h2 id="connect-title">Send a request to the business you choose.</h2>
                 <p>
                   Review your request and choose who receives it. Sending it shares your name and
                   phone number with the selected business so it can respond. Searching or viewing a
@@ -953,7 +951,8 @@ export function AboutExplainerContent() {
                 <summary>
                   <strong>Accept or decline</strong>
                   <small>
-                    The business reviews the submitted request and chooses whether to accept the work.
+                    The business reviews the submitted request and chooses whether to accept the
+                    work.
                   </small>
                 </summary>
                 <div className="connection-stage">

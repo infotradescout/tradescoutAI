@@ -1,3 +1,4 @@
+import { profileReleaseSeedFields } from "@shared/profileVisibility";
 import { and, eq, or, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import {
@@ -6,7 +7,10 @@ import {
   ISSA_BUILD_LOCAL_DISCOVERY,
   ISSA_BUILD_PROFILE_SLUG,
 } from "@shared/issaBuildProfile";
-import { buildIssaBuildBusinessContentBlocks, issaBuildBusinessText } from "@shared/issaBuildPageContent";
+import {
+  buildIssaBuildBusinessContentBlocks,
+  issaBuildBusinessText,
+} from "@shared/issaBuildPageContent";
 import { ISSA_BUILD_MANAGED_CONTACT } from "@shared/issaBuildManagedContact";
 import { db } from "../db";
 
@@ -198,13 +202,22 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       profileData: {
         ...existingProfileData,
-        tagline: issaBuildBusinessText(existingProfileData.tagline, ISSA_BUILD_LOCAL_DISCOVERY.headline),
-        description: issaBuildBusinessText(existingProfileData.description, ISSA_BUILD_LOCAL_DISCOVERY.description),
-        category: existingProfileData.category && existingProfileData.category !== "Natural Onyx"
-          ? existingProfileData.category : ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory,
-        services: Array.isArray(existingProfileData.services) && existingProfileData.services.length
-          ? existingProfileData.services
-          : ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => service.title),
+        tagline: issaBuildBusinessText(
+          existingProfileData.tagline,
+          ISSA_BUILD_LOCAL_DISCOVERY.headline
+        ),
+        description: issaBuildBusinessText(
+          existingProfileData.description,
+          ISSA_BUILD_LOCAL_DISCOVERY.description
+        ),
+        category:
+          existingProfileData.category && existingProfileData.category !== "Natural Onyx"
+            ? existingProfileData.category
+            : ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory,
+        services:
+          Array.isArray(existingProfileData.services) && existingProfileData.services.length
+            ? existingProfileData.services
+            : ISSA_BUILD_LOCAL_DISCOVERY.services.map((service) => service.title),
         contactPreference: "message",
         // The dedicated ISSA presentation shows only the approved managed pair.
         // Generic public-business contact projection remains disabled so no
@@ -339,7 +352,10 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       slug: ISSA_BUILD_PROFILE_SLUG,
       displayName: ISSA_BUILD_BUSINESS_NAME,
-      headline: issaBuildBusinessText(existingProfile?.headline, ISSA_BUILD_LOCAL_DISCOVERY.headline),
+      headline: issaBuildBusinessText(
+        existingProfile?.headline,
+        ISSA_BUILD_LOCAL_DISCOVERY.headline
+      ),
       contentBlocks: buildIssaBuildBusinessContentBlocks(existingProfile?.contentBlocks),
       ctaConfig: {
         ...recordValue(existingProfile?.ctaConfig),
@@ -352,12 +368,17 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       seoMeta: {
         ...existingSeo,
         title: issaBuildBusinessText(existingSeo.title, ISSA_BUILD_LOCAL_DISCOVERY.title),
-        description: issaBuildBusinessText(existingSeo.description, ISSA_BUILD_LOCAL_DISCOVERY.description),
-        imageUrl: existingSeo.imageUrl || "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
+        description: issaBuildBusinessText(
+          existingSeo.description,
+          ISSA_BUILD_LOCAL_DISCOVERY.description
+        ),
+        imageUrl:
+          existingSeo.imageUrl ||
+          "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
         imageWidth: existingSeo.imageWidth || 1600,
         imageHeight: existingSeo.imageHeight || 1200,
       },
-      status: "published" as const,
+      ...profileReleaseSeedFields({ existingProfile, releaseNewProfile: true }),
       updatedAt: now,
     };
 

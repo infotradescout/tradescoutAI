@@ -153,7 +153,9 @@ describe("direct connect requester status contracts", () => {
   it("keeps anonymous continuity limited to local draft state", () => {
     const uiSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(uiSource).toContain("Create your free account to share this request");
-    expect(uiSource).toContain("Your contact information stays private until you approve");
+    expect(uiSource).toContain(
+      "Sending it shares your name and phone with the receiving business."
+    );
   });
 
   it("avoids homeowner-only language in generic requester surfaces", () => {

@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const read = (relativePath) => readFileSync(path.join(root, relativePath), "utf8");
+const read = (relativePath) =>
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 const profileSource = read("client/src/pages/ProfileSiteView.tsx");
 
 assert.doesNotMatch(profileSource, /import ProFabProfileTheme from/);

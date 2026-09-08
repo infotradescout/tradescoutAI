@@ -1,5 +1,5 @@
-import EmptyState from "@/components/EmptyState";
+import { EmptyState } from "@/components/ui/states";
 
 export default function RealtorCMA() {
-  return <EmptyState title="Realtor Tools" message="No data available yet." />;
+  return <EmptyState title="Realtor Tools" description="No data available yet." scope="page" />;
 }

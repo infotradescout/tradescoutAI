@@ -116,13 +116,13 @@ function workspaceBranding(workspace: ProcurementWorkspace) {
 function statusBadge(status?: string | null) {
   if (status === "active") {
     return (
-      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
-        Active
-      </Badge>
+      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">Active</Badge>
     );
   }
   if (status === "suspended" || status === "inactive") {
-    return <Badge className="border-red-400/25 bg-red-400/10 text-red-100">{readable(status)}</Badge>;
+    return (
+      <Badge className="border-red-400/25 bg-red-400/10 text-red-100">{readable(status)}</Badge>
+    );
   }
   return (
     <Badge className="border-white/15 bg-white/5 text-white/52">
@@ -362,7 +362,9 @@ export default function ProcurementWorkspacesPage() {
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
                         Type
                       </p>
-                      <p className="mt-2 text-sm text-white/62">{readable(workspaceType(workspace))}</p>
+                      <p className="mt-2 text-sm text-white/62">
+                        {readable(workspaceType(workspace))}
+                      </p>
                     </div>
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
@@ -391,11 +393,19 @@ export default function ProcurementWorkspacesPage() {
                       />
                       <DetailBlock
                         label="Members"
-                        value={workspace.memberCount == null ? "Not reported" : String(workspace.memberCount)}
+                        value={
+                          workspace.memberCount == null
+                            ? "Not reported"
+                            : String(workspace.memberCount)
+                        }
                       />
                       <DetailBlock
                         label="Orders"
-                        value={workspace.orderCount == null ? "Not reported" : String(workspace.orderCount)}
+                        value={
+                          workspace.orderCount == null
+                            ? "Not reported"
+                            : String(workspace.orderCount)
+                        }
                       />
                       <DetailBlock
                         label="Created"
@@ -459,7 +469,7 @@ function CreateWorkspaceDialog({
   const canSubmit = draft.slug.trim().length > 0 && draft.name.trim().length > 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] border-white/10 bg-[#090a0b] text-white sm:max-w-2xl">
+      <DialogContent className="max-w-[95vw] border-white/10 bg-tsBg text-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create procurement workspace</DialogTitle>
           <DialogDescription className="text-white/48">
@@ -564,9 +574,7 @@ function Field({
 function DetailBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-        {label}
-      </p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">{label}</p>
       <p className="mt-2 break-words text-sm leading-6 text-white/58">{value}</p>
     </div>
   );

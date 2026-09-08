@@ -146,12 +146,12 @@ describe("canonical public-profile trust actions", () => {
     const app = read("client/src/App.tsx");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const themes = [
-      "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+      "client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx",
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
       "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
-      "client/src/pages/profile-sites/DefaultProfileTheme.tsx",
+      "client/src/pages/profile-sites/PreservedDefaultProfileTheme.tsx",
     ].map(read);
 
     expect(actions).toContain(">Like</span>");
@@ -165,11 +165,31 @@ describe("canonical public-profile trust actions", () => {
     expect(app).toContain('import { Toaster } from "./components/ui/toaster"');
     expect(app).toContain("<Toaster />");
     expect(profileView).toContain('renderProfileTrustActions("light")');
-    expect(profileView.match(/renderProfileTrustActions\(\s*"dark"/g)).toHaveLength(5);
+    expect(profileView.match(/renderProfileTrustActions\(\s*"dark"/g)).toHaveLength(4);
+    const localServiceTheme = profileView.slice(
+      profileView.indexOf("<LocalServiceProfileBoundary>"),
+      profileView.indexOf("</LocalServiceProfileBoundary>")
+    );
+    expect(localServiceTheme).toMatch(
+      /trustActions=\{renderProfileTrustActions\(\s*resolvedLocalServicePresentation\.layout === "project-profile" \? "light" : "dark",\s*resolvedLocalServicePresentation\.layout === "project-profile" \? "compact" : "default"\s*\)\}/
+    );
+    const trustRenderer = profileView.slice(
+      profileView.indexOf("const renderProfileTrustActions ="),
+      profileView.indexOf("const readProfileBlockText =")
+    );
+    expect(trustRenderer).toContain("<PublicProfileTrustActions");
+    expect(trustRenderer).toContain("tone={tone}");
+    expect(trustRenderer).toContain("density={density}");
     themes.forEach((theme) => {
       expect(theme).toContain("trustActions: ReactNode");
       expect(theme).toMatch(/\{(?:resolvedTrustActions|trustActions)\}/);
     });
+    const businessTheme = read("client/src/pages/profile-sites/BusinessProfileTheme.tsx");
+    expect(businessTheme).toContain("ComponentProps<typeof PreservedDefaultProfileTheme>");
+    expect(businessTheme).toContain('data-testid="profile-trust-section"');
+    expect(businessTheme).toContain(
+      'surfaceForeground === "#ffffff" ? trustActions : lightTrustActions || trustActions'
+    );
   });
 
   it("credits Codex contributions in the repository README", () => {

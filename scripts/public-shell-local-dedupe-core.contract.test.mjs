@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import {
   assertNoUnreviewedDynamicLandingMedia,
+  assertPublicShellSourceTotals,
   gitBlobSha,
+  publicShellSourceStats,
   validatePublicShellDedupeManifest,
 } from "./public-shell-local-dedupe-core.mjs";
 
@@ -15,6 +19,75 @@ const manifest = JSON.parse(
   )
 );
 
+function publicSourceFixture(t) {
+  const temporaryRoot = path.resolve(os.tmpdir());
+  const directory = fs.mkdtempSync(path.join(temporaryRoot, "tradescout-public-source-"));
+  t.after(() => {
+    assert.equal(path.dirname(directory), temporaryRoot);
+    assert.ok(path.basename(directory).startsWith("tradescout-public-source-"));
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
+  return directory;
+}
+
+test("source totals treat LF and CRLF alike without changing UTF-8, BOM, or media bytes", (t) => {
+  const directory = publicSourceFixture(t);
+  const extensions = ["css", "html", "js", "json", "svg", "txt", "webmanifest", "xml"];
+  const source = Buffer.from("\uFEFFfirst café line\nsecond line\n");
+  const binary = Buffer.from([0x89, 0, 13, 10, 0xff, 13, 10]);
+  for (const extension of extensions)
+    fs.writeFileSync(path.join(directory, `source.${extension}`), source);
+  fs.mkdirSync(path.join(directory, "nested"));
+  fs.writeFileSync(path.join(directory, "nested", "image.png"), binary);
+  const expected = {
+    files: extensions.length + 1,
+    bytes: extensions.length * source.length + binary.length,
+  };
+  assert.deepEqual(publicShellSourceStats(directory), expected);
+  for (const extension of extensions) {
+    fs.writeFileSync(
+      path.join(directory, `source.${extension}`),
+      source.toString("utf8").replace(/\n/g, "\r\n")
+    );
+  }
+  assert.deepEqual(publicShellSourceStats(directory), expected);
+  assert.deepEqual(fs.readFileSync(path.join(directory, "nested", "image.png")), binary);
+  assert.notEqual(gitBlobSha(binary), gitBlobSha(Buffer.from([0x89, 0, 10, 0xff, 10])));
+});
+
+test("source totals still reject real text, final-newline, binary, and file-count changes", (t) => {
+  const directory = publicSourceFixture(t);
+  const sourcePath = path.join(directory, "sitemap.xml");
+  const mediaPath = path.join(directory, "icon.png");
+  const originalSource = "<urlset>\n</urlset>\n";
+  const originalMedia = Buffer.from([0, 13, 10, 0xff]);
+  fs.writeFileSync(sourcePath, originalSource);
+  fs.writeFileSync(mediaPath, originalMedia);
+  const stats = publicShellSourceStats(directory);
+  const expected = { clientPublicFiles: stats.files, clientPublicBytes: stats.bytes };
+  const verify = () => assertPublicShellSourceTotals(publicShellSourceStats(directory), expected);
+  assert.doesNotThrow(verify);
+  for (const changed of [originalSource + " ", originalSource.trimEnd(), originalSource + "\r"]) {
+    fs.writeFileSync(sourcePath, changed);
+    assert.throws(verify, /totals changed without review/);
+  }
+  fs.writeFileSync(sourcePath, originalSource);
+  fs.writeFileSync(mediaPath, Buffer.from([0, 10, 0xff]));
+  assert.throws(verify, /totals changed without review/);
+  fs.writeFileSync(mediaPath, originalMedia);
+  fs.writeFileSync(path.join(directory, "extra.txt"), "");
+  assert.throws(verify, /totals changed without review/);
+});
+
+test("text normalization refuses invalid UTF-8 and binary content disguised as source", (t) => {
+  const directory = publicSourceFixture(t);
+  const sourcePath = path.join(directory, "source.svg");
+  fs.writeFileSync(sourcePath, Buffer.from([0xff, 13, 10]));
+  assert.throws(() => publicShellSourceStats(directory), /encoded data was not valid/);
+  fs.writeFileSync(sourcePath, Buffer.from([0, 13, 10]));
+  assert.throws(() => publicShellSourceStats(directory), /Invalid public shell source text/);
+});
+
 test("Release B pins six redirects and four dead paths after deleting only their local bytes", () => {
   assert.deepEqual(validatePublicShellDedupeManifest(manifest), {
     files: 10,
@@ -24,10 +97,7 @@ test("Release B pins six redirects and four dead paths after deleting only their
     digest: "cc384baaf127ea06cfd89e6e12f15d1a4d1eb5a0b9189aa6b26ba097ca530839",
   });
   for (const entry of manifest.entries) {
-    assert.equal(
-      fs.existsSync(new URL(`client/public/${entry.publicPath.slice(1)}`, root)),
-      false
-    );
+    assert.equal(fs.existsSync(new URL(`client/public/${entry.publicPath.slice(1)}`, root)), false);
   }
 });
 

@@ -25,13 +25,13 @@ describe("Release 2 identity authority spine", () => {
       "export const requireRole",
       "export const requirePermission",
       "export const isBusinessProvider",
-      "export const requireAuth",
-      "export const requireAdmin",
     ]) {
       const start = auth.indexOf(boundary);
       expect(start).toBeGreaterThanOrEqual(0);
       expect(auth.slice(start, start + 1400)).toContain("bindRequestAuthority(req, res)");
     }
+    expect(auth).toContain("export const requireAuth: RequestHandler = isAuthenticated;");
+    expect(auth).toContain("export const requireAdmin: RequestHandler = isAdmin;");
   });
 
   it("keeps privileged routes and admin-only gates unavailable while impersonating", () => {
@@ -47,7 +47,7 @@ describe("Release 2 identity authority spine", () => {
 
   it("mounts the identity spine before feature and standalone admin routers", () => {
     const routes = read("server/routes.ts");
-    const setup = routes.indexOf("await setupAuth(app)");
+    const setup = routes.indexOf("await setupAuth(app,");
     const binder = routes.indexOf("app.use(bindAuthenticatedRequestAuthority)");
     const admin = routes.indexOf("mountAdminRoutes(app)");
 
@@ -64,7 +64,13 @@ describe("Release 2 identity authority spine", () => {
 
     expect(authUserRoute).toContain("resolveRequestAuthorityContext(");
     expect(authUserRoute).toContain("const userId = identityContext.effectiveUserId");
-    expect(authUserRoute).toContain("if (identityContext.isImpersonating) return baseUser");
+    expect(authUserRoute).toContain("req.requestAuthorityContext ??");
+    expect(authUserRoute).toContain("let user = identityContext.effectiveUser");
+    expect(authUserRoute).toContain(
+      "resolvePersistedClientAuthority(baseUser, approvedProfessionalRolesForAuth)"
+    );
+    expect(authUserRoute).not.toContain("mergeSessionAuthority");
+    expect(authUserRoute).not.toContain("getPrivilegedAliasEmails");
     expect(authUserRoute).toContain("if (!identityContext.isImpersonating)");
     expect(authUserRoute).toContain("isImpersonating: true");
     expect(authUserRoute).toContain("impersonating: true");
@@ -76,12 +82,14 @@ describe("Release 2 identity authority spine", () => {
     const promptAdmin = read("server/routes/promptAdmin.ts");
     const adminControl = read("server/routes/admin-control.ts");
 
-    for (const source of [sharedMiddleware, promptAdmin, adminControl]) {
-      expect(source).toContain("resolveRequestEffectiveUser(req)");
-      expect(source).toContain("identityContext.isImpersonating");
-    }
-    for (const source of [sharedMiddleware, promptAdmin]) {
-      expect(source).toContain('code: "IMPERSONATION_PRIVILEGE_BOUNDARY"');
+    expect(sharedMiddleware).toContain(
+      'export { isSuperAdmin as requireSuperAdmin } from "../auth";'
+    );
+    for (const source of [promptAdmin, adminControl]) {
+      expect(source).toContain('import { isAuthenticated, isSuperAdmin } from "../auth";');
+      expect(source).toContain("router.use(isAuthenticated, isSuperAdmin);");
+      expect(source).not.toContain("function isSuperAdmin(");
+      expect(source).not.toContain("function requireSuperAdmin(");
     }
   });
 });

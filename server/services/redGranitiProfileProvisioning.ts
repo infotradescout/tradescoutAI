@@ -1,3 +1,4 @@
+import { profileReleaseSeedFields } from "@shared/profileVisibility";
 import { and, eq, ne, or, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
@@ -380,7 +381,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
         imageWidth: 78,
         imageHeight: 78,
       },
-      status: "published" as const,
+      ...profileReleaseSeedFields({ existingProfile, releaseNewProfile: true }),
       updatedAt: now,
     };
 
@@ -395,6 +396,8 @@ export async function provisionRedGranitiProfile(): Promise<void> {
           .values(profileValues as any)
           .returning();
     if (!profile) throw new Error("R.E.D. Graniti profile provisioning failed");
+
+    if (profile.status !== "published" || profile.publiclyReleased !== true) return;
 
     const adminPreferences = recordValue(adminOwner.preferences);
     const publicProfileIds = Array.from(

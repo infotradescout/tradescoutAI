@@ -6,8 +6,8 @@ Canonical production target: **Render Web Service** `tradescoutAI`.
 
 - Config source: `render.yaml`
 - Runtime: **Docker**, built from the root `Dockerfile`
-- Predeploy database step: `npm run db:migrate && npm run db:verify:required`
-- Start: Docker `CMD ["node", "dist/index.js"]`
+- Predeploy: compiled `run-production-predeploy` worker (database migrate → required-schema verification → public-media migrations)
+- Start: required-schema verification → public-media readiness fallback → `dist/index.js`
 - Render HTTP health check: `/api/health`
 - Runtime migrations at boot: disabled (`RUNTIME_MIGRATIONS_MODE=off`)
 
@@ -21,9 +21,9 @@ conversion is not required for this lifecycle.
 The pre-deploy command runs inside the newly built image. The production stage
 must therefore retain all of the following:
 
-- `scripts/`, including `scripts/lib/subprocess.mjs`
-- `drizzle.config.ts`, `shared/`, and `migrations/`
-- `drizzle-kit` as a production dependency after `npm prune --omit=dev`
+- compiled `dist/release` workers, including `run-production-predeploy`
+- `runtime/run-release.mjs`, `runtime/drizzle.config.mjs`, and `migrations/`
+- the independently locked runtime dependencies, including production `drizzle-kit`
 
 If any item is missing, do not enable or retain the pre-deploy setting: the next
 deploy will fail before traffic moves. Do not work around that failure by
@@ -33,9 +33,9 @@ removing migrate or verify.
 
 1. Open production web service `tradescoutAI` (`srv-d4rivgm3jp1c7391th0g`).
 2. Keep Runtime=`Docker`, Branch=`main`, and Auto-Deploy=`On Commit`.
-3. Set Pre-Deploy Command to `npm run db:migrate && npm run db:verify:required`.
+3. Set Pre-Deploy Command to `node runtime/run-release.mjs run-production-predeploy scripts/run-production-predeploy.mjs`.
 4. Set Health Check Path to `/api/health`.
-5. Deploy once and prove the deploy log ran both commands before instance start.
+5. Deploy once and prove the log completed migrate and required-schema verification before starting any media migration.
 6. Confirm `GET /api/health` remains healthy and compatible, and that
    `x-tradescout-build` matches the deployed SHA.
 7. Do **not** lower migration, schema-verification, or health bars to make a deploy pass.

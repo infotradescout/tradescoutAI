@@ -124,7 +124,9 @@ function normalizeState(value: unknown): string {
   return /^[A-Z]{2}$/.test(state) ? state : "";
 }
 
-function expectedProfile(discovery: PublicDirectoryProfileDiscovery): DirectoryProfileGraphAuditExpectedProfile {
+function expectedProfile(
+  discovery: PublicDirectoryProfileDiscovery
+): DirectoryProfileGraphAuditExpectedProfile {
   return {
     businessSlug: discovery.businessSlug,
     profileSlug: discovery.profileSlug,
@@ -254,9 +256,7 @@ export function fingerprintDirectoryProfileGraphAuditTargets(
       )
     )
     .sort();
-  return lines.length > 0
-    ? createHash("sha256").update(lines.join("\n")).digest("hex")
-    : null;
+  return lines.length > 0 ? createHash("sha256").update(lines.join("\n")).digest("hex") : null;
 }
 
 function readHrefUrls(html: string, pageUrl: string): Set<string> {
@@ -337,11 +337,10 @@ export function evaluateDirectoryProfileGraphHtml(args: {
   const checks: DirectoryProfileGraphAuditChecks = {
     httpOk: args.httpStatus === 200,
     finalUrlMatches: Boolean(expectedTargetUrl && finalUrl === expectedTargetUrl),
-    htmlContentType: /(?:text\/html|application\/xhtml\+xml)/i.test(
-      String(args.contentType || "")
+    htmlContentType: /(?:text\/html|application\/xhtml\+xml)/i.test(String(args.contentType || "")),
+    enrichmentMarkerPresent: /\bdata-seo-directory-profile-service-graph\s*=\s*(["'])true\1/i.test(
+      args.html
     ),
-    enrichmentMarkerPresent:
-      /\bdata-seo-directory-profile-service-graph\s*=\s*(["'])true\1/i.test(args.html),
     expectedProfileLinksPresent: missingProfileUrls.length === 0,
     legacyBusinessAliasesRetired: legacyBusinessAliases.length === 0,
     expectedServiceLinksPresent: missingServiceUrls.length === 0,
@@ -446,7 +445,9 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-async function loadCurrentTargets(queryable: Queryable = pool): Promise<DirectoryProfileGraphAuditTarget[]> {
+async function loadCurrentTargets(
+  queryable: Queryable = pool
+): Promise<DirectoryProfileGraphAuditTarget[]> {
   const [profileResult, scopeResult] = await Promise.all([
     queryable.query(
       `select b.slug as business_slug,
@@ -460,6 +461,7 @@ async function loadCurrentTargets(queryable: Queryable = pool): Promise<Director
               b.profile_data,
               b.updated_at as business_updated_at,
               p.id as profile_id,
+              p.publicly_released as profile_publicly_released,
               p.slug as profile_slug,
               p.display_name as profile_display_name,
               p.role_context as profile_role_context,
@@ -474,6 +476,21 @@ async function loadCurrentTargets(queryable: Queryable = pool): Promise<Director
               u.verification_status as owner_verification_status,
               u.provider as owner_provider,
               u.preferences as owner_preferences,
+              case
+                when p.role_context = 'realtor' then exists (
+                  select 1 from realtor_profiles rp
+                   where rp.user_id = p.owner_user_id
+                     and rp.verification_status = 'approved'
+                     and rp.is_active = true
+                )
+                when p.role_context = 'car_dealer' then exists (
+                  select 1 from car_salesman_profiles cp
+                   where cp.user_id = p.owner_user_id
+                     and cp.verification_status = 'approved'
+                     and cp.is_active = true
+                )
+                else true
+              end as professional_role_approved,
               c.name as county_name,
               c.state_code
          from profiles p
@@ -527,31 +544,28 @@ async function persistAudit(args: {
       ]
     );
   }
-  await args.queryable.query(
-    `insert into events (event_type, data) values ($1, $2::jsonb)`,
-    [
-      AUDIT_SUMMARY_EVENT,
-      JSON.stringify({
-        ...args.summary,
-        fingerprint: args.fingerprint,
-        observedAt: args.observedAt,
-        failedTargets: args.results
-          .filter((result) => result.status !== "production_verified")
-          .slice(0, 50)
-          .map((result) => ({
-            url: result.url,
-            status: result.status,
-            failedChecks: result.failedChecks,
-            missingProfileUrls: result.missingProfileUrls,
-            missingServiceUrls: result.missingServiceUrls,
-            missingServiceAreaUrls: result.missingServiceAreaUrls,
-            legacyBusinessAliases: result.legacyBusinessAliases,
-            detail: result.detail,
-          })),
-        evidenceBoundary,
-      }),
-    ]
-  );
+  await args.queryable.query(`insert into events (event_type, data) values ($1, $2::jsonb)`, [
+    AUDIT_SUMMARY_EVENT,
+    JSON.stringify({
+      ...args.summary,
+      fingerprint: args.fingerprint,
+      observedAt: args.observedAt,
+      failedTargets: args.results
+        .filter((result) => result.status !== "production_verified")
+        .slice(0, 50)
+        .map((result) => ({
+          url: result.url,
+          status: result.status,
+          failedChecks: result.failedChecks,
+          missingProfileUrls: result.missingProfileUrls,
+          missingServiceUrls: result.missingServiceUrls,
+          missingServiceAreaUrls: result.missingServiceAreaUrls,
+          legacyBusinessAliases: result.legacyBusinessAliases,
+          detail: result.detail,
+        })),
+      evidenceBoundary,
+    }),
+  ]);
 }
 
 export async function runPublicDirectoryProfileGraphAudit(
@@ -559,7 +573,8 @@ export async function runPublicDirectoryProfileGraphAudit(
 ): Promise<DirectoryProfileGraphAuditResult> {
   const now = options.now || (() => new Date());
   const targets = (
-    options.targets || (await (options.loadTargets || (() => loadCurrentTargets(options.queryable)))())
+    options.targets ||
+    (await (options.loadTargets || (() => loadCurrentTargets(options.queryable)))())
   ).slice(0, MAX_TARGETS);
   const fingerprint = fingerprintDirectoryProfileGraphAuditTargets(targets);
   const expectedProfileCount = new Set(
@@ -592,9 +607,7 @@ export async function runPublicDirectoryProfileGraphAudit(
         timeoutMs: options.timeoutMs || DEFAULT_TIMEOUT_MS,
       })
   );
-  const verifiedCount = results.filter(
-    (result) => result.status === "production_verified"
-  ).length;
+  const verifiedCount = results.filter((result) => result.status === "production_verified").length;
   const failedCount = results.filter((result) => result.status === "production_failed").length;
   const unavailableCount = results.filter((result) => result.status === "unavailable").length;
   const summary = {

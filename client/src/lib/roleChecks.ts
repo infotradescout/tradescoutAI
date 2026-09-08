@@ -8,7 +8,6 @@
  * If a user can't act, they shouldn't see it.
  */
 
-import { SUPPORT_EMAIL_ALIASES } from "@shared/supportInbox";
 import {
   isBusinessProviderRole as isSharedBusinessProviderRole,
   userHasBusinessProviderTools,
@@ -85,80 +84,27 @@ type AdminLikeUser = {
 export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolean => {
   if (!user) return false;
 
-  const normalizeEmail = (value: unknown): string =>
-    typeof value === "string" ? value.trim().toLowerCase() : "";
-  const adminAliasEmails = new Set<string>(SUPPORT_EMAIL_ALIASES);
-  const userEmail = normalizeEmail(user.email);
-  const claimsEmail = normalizeEmail(user.claims?.email);
-  if (
-    (userEmail && adminAliasEmails.has(userEmail)) ||
-    (claimsEmail && adminAliasEmails.has(claimsEmail))
-  ) {
-    return true;
-  }
-
-  const truthyFlag = (value: unknown): boolean => {
-    if (value === true) return true;
-    if (typeof value === "string") return value.trim().toLowerCase() === "true";
-    return false;
-  };
-
-  if (
-    truthyFlag(user.isAdmin) ||
-    truthyFlag(user.isSuperAdmin) ||
-    truthyFlag(user.claims?.isAdmin) ||
-    truthyFlag(user.claims?.isSuperAdmin)
-  ) {
+  if (user.isAdmin === true || user.isSuperAdmin === true) {
     return true;
   }
 
   if (isAdminTier(user.role) || isSuperAdminLike(user.role)) return true;
   if (isAdminTier(user.activeRole) || isSuperAdminLike(user.activeRole)) return true;
-  if (isAdminTier(user.claims?.role as UserRole) || isSuperAdminLike(user.claims?.role as UserRole))
-    return true;
-  if (
-    isAdminTier(user.claims?.activeRole as UserRole) ||
-    isSuperAdminLike(user.claims?.activeRole as UserRole)
-  )
-    return true;
 
-  const tokenLooksAdminLike = (rawValue: unknown): boolean => {
+  const isExplicitAdminRole = (rawValue: unknown): boolean => {
     const normalized = normalizeRole(
       typeof rawValue === "string" ? rawValue : String(rawValue || "")
     );
     if (!normalized) return false;
-    return (
-      isAdminTier(normalized) ||
-      isSuperAdminLike(normalized) ||
-      normalized.includes("admin") ||
-      normalized === "moderator"
-    );
+    return isAdminTier(normalized) || isSuperAdminLike(normalized) || normalized === "moderator";
   };
 
-  if (tokenLooksAdminLike(user.role) || tokenLooksAdminLike(user.activeRole)) {
+  if (isExplicitAdminRole(user.role) || isExplicitAdminRole(user.activeRole)) {
     return true;
   }
 
-  const roleCollections: unknown[][] = [];
-  if (Array.isArray(user.roles)) roleCollections.push(user.roles);
-  if (Array.isArray(user.claims?.roles)) roleCollections.push(user.claims?.roles as unknown[]);
-
-  for (const roleCollection of roleCollections) {
-    const hasAdminLikeToken = roleCollection.some((role) => {
-      if (tokenLooksAdminLike(role)) return true;
-      if (role && typeof role === "object") {
-        const obj = role as Record<string, unknown>;
-        return (
-          tokenLooksAdminLike(obj.role) ||
-          tokenLooksAdminLike(obj.name) ||
-          tokenLooksAdminLike(obj.value)
-        );
-      }
-      return false;
-    });
-
-    if (hasAdminLikeToken) return true;
-  }
+  if (Array.isArray(user.roles) && user.roles.some((role) => isExplicitAdminRole(role)))
+    return true;
 
   return false;
 };

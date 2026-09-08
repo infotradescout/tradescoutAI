@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ROUTES } from "@/lib/routes";
 import { NotificationCenter } from "@/components/ui/notification-center";
 import { RightToolsPanel } from "@/components/layout/RightToolsPanel";
@@ -445,10 +445,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
   const mobileBrandHref = isSuperAdmin ? "/admin" : isLoggedIn ? DEFAULT_LANDING : "/";
   const hasAdminAccess = hasAdminUiAccess(user);
-  const verificationBypass = user?.verificationBypass;
-  const hasAdminAliasBypass =
-    verificationBypass?.active === true && verificationBypass?.reason === "email_alias";
-  const shouldShowAdminNav = hasAdminAccess || isSuperAdmin || hasAdminAliasBypass;
+  const shouldShowAdminNav = hasAdminAccess || isSuperAdmin;
   const unlockSnapshot = useMemo(
     () =>
       evaluateFeatureUnlocks({

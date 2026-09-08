@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
 import { canDiscoverPublishedProfilePublicly } from "./ownerConfirmedDirectProfile";
+import { durableProfessionalProfileApprovalSql } from "./profileTargetAuthority";
 
 export type CanonicalBusinessProfileRoute = {
   slug: string;
@@ -15,6 +16,7 @@ function databaseBoolean(value: unknown): boolean {
 export function canUseLinkedProfileAsCanonicalBusinessRoute(row: Record<string, any>): boolean {
   return canDiscoverPublishedProfilePublicly({
     profileId: row.profileId,
+    profilePubliclyReleased: row.profilePubliclyReleased,
     businessId: row.businessId,
     profileSlug: row.slug,
     profileStatus: "published",
@@ -33,6 +35,7 @@ export function canUseLinkedProfileAsCanonicalBusinessRoute(row: Record<string, 
     publicDiscoveryEnabled: databaseBoolean(row.publicDiscoveryEnabled),
     businessSources: row.businessSources,
     businessClaimStatus: row.businessClaimStatus,
+    professionalRoleApproved: row.professionalRoleApproved,
   });
 }
 
@@ -50,6 +53,7 @@ export async function resolveCanonicalBusinessProfileRoute(
   const linkedProfiles = await db
     .select({
       profileId: profiles.id,
+      profilePubliclyReleased: profiles.publiclyReleased,
       slug: profiles.slug,
       profileRoleContext: profiles.roleContext,
       profileHeadline: profiles.headline,
@@ -67,6 +71,7 @@ export async function resolveCanonicalBusinessProfileRoute(
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       businessSources: businesses.sources,
       businessClaimStatus: businesses.claimStatus,
+      professionalRoleApproved: durableProfessionalProfileApprovalSql,
     })
     .from(profiles)
     .innerJoin(businesses, eq(businesses.id, profiles.businessId))
