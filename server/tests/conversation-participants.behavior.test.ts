@@ -16,20 +16,21 @@ import {
   conversationParticipantSql,
   conversationProviderParticipantSql,
   resolveConversationProviderUserId,
+  resolveConversationProviderIdentity,
 } from "../services/conversationParticipants";
 
 beforeAll(async () => {
   await fixture.database!.exec(`
-    CREATE TABLE users (id text PRIMARY KEY);
-    CREATE TABLE contractors (id text PRIMARY KEY, user_id text);
+    CREATE TABLE users (id text PRIMARY KEY, first_name text, last_name text);
+    CREATE TABLE contractors (id text PRIMARY KEY, user_id text, company_name text);
     CREATE TABLE conversations (id text PRIMARY KEY, homeowner_id text NOT NULL, contractor_id text NOT NULL);
   `);
 });
 beforeEach(async () => {
   await fixture.database!.exec(`
     TRUNCATE conversations, contractors, users;
-    INSERT INTO users VALUES ('homeowner'), ('provider-owner'), ('business-user'), ('worker-user'), ('stranger'), ('operator');
-    INSERT INTO contractors VALUES ('contractor-profile', 'provider-owner');
+    INSERT INTO users (id) VALUES ('homeowner'), ('provider-owner'), ('business-user'), ('worker-user'), ('stranger'), ('operator');
+    INSERT INTO contractors (id, user_id) VALUES ('contractor-profile', 'provider-owner');
     INSERT INTO conversations VALUES
       ('contractor-thread', 'homeowner', 'contractor-profile'),
       ('business-thread', 'homeowner', 'business-user'),
@@ -50,6 +51,23 @@ async function listedFor(userId: string): Promise<string[]> {
 }
 
 describe("canonical conversation participant identity", () => {
+  it("displays the owned contractor company or direct account name without guessing missing identities", async () => {
+    await fixture.database!.exec(`
+      UPDATE contractors SET company_name = 'Verified fixture business';
+      UPDATE users SET first_name = 'Direct', last_name = 'Responder' WHERE id = 'business-user';
+    `);
+    expect(await resolveConversationProviderIdentity("contractor-profile")).toEqual({
+      userId: "provider-owner",
+      displayName: "Verified fixture business",
+    });
+    expect(await resolveConversationProviderIdentity("business-user")).toEqual({
+      userId: "business-user",
+      displayName: "Direct Responder",
+    });
+    expect(await resolveConversationProviderIdentity("missing")).toBeNull();
+    await fixture.database!.exec("INSERT INTO users (id) VALUES ('contractor-profile')");
+    expect(await resolveConversationProviderIdentity("contractor-profile")).toBeNull();
+  });
   it("keeps provider-only listings separate from the same account's requester conversations", async () => {
     const onlyProvider = async (userId: string) =>
       (
@@ -88,7 +106,7 @@ describe("canonical conversation participant identity", () => {
   });
 
   it("fails closed for both candidate providers when a profile key is also another account's ID", async () => {
-    await fixture.database!.exec("INSERT INTO users VALUES ('contractor-profile')");
+    await fixture.database!.exec("INSERT INTO users (id) VALUES ('contractor-profile')");
     expect(await resolveConversationProviderUserId("contractor-profile")).toBeNull();
     for (const account of ["provider-owner", "contractor-profile"]) {
       expect(await canAccessConversation("contractor-thread", account)).toBe(false);
@@ -99,7 +117,7 @@ describe("canonical conversation participant identity", () => {
 
   it("allows a shared profile/account key only when both identify the same account", async () => {
     await fixture.database!.exec(
-      "INSERT INTO contractors VALUES ('business-user', 'business-user')"
+      "INSERT INTO contractors (id, user_id) VALUES ('business-user', 'business-user')"
     );
     expect(await resolveConversationProviderUserId("business-user")).toBe("business-user");
     expect(await canAccessConversation("business-thread", "business-user")).toBe(true);
@@ -108,16 +126,19 @@ describe("canonical conversation participant identity", () => {
   it.each([null, "deleted-owner"])(
     "does not reinterpret a claimed profile key with missing owner %s as a direct account",
     async (owner) => {
-      await fixture.database!.query("INSERT INTO contractors VALUES ('business-user', $1)", [
-        owner,
-      ]);
+      await fixture.database!.query(
+        "INSERT INTO contractors (id, user_id) VALUES ('business-user', $1)",
+        [owner]
+      );
       expect(await resolveConversationProviderUserId("business-user")).toBeNull();
       expect(await canAccessConversation("business-thread", "business-user")).toBe(false);
     }
   );
 
   it("rejects the owner of a different contractor profile", async () => {
-    await fixture.database!.exec("INSERT INTO contractors VALUES ('other-profile', 'stranger')");
+    await fixture.database!.exec(
+      "INSERT INTO contractors (id, user_id) VALUES ('other-profile', 'stranger')"
+    );
     expect(await resolveConversationProviderUserId("other-profile")).toBe("stranger");
     expect(await canAccessConversation("contractor-thread", "stranger")).toBe(false);
   });
