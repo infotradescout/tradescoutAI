@@ -50,6 +50,18 @@ describe("countertop spatial studio sharing", () => {
       sinkPositionIn: 42,
       sinkFrontPositionIn: 21,
       notes: "private gate code 1234",
+      measurementsReviewed: true,
+      roomWidthIn: 240,
+      roomDepthIn: 192,
+      roomWallHeightIn: 108,
+      finishedTopHeightIn: 36,
+      topThicknessIn: 1.25,
+      islandLeftOffsetIn: 48,
+      islandBackOffsetIn: 84,
+      sinkTemplateWidthIn: 30,
+      sinkTemplateDepthIn: 18,
+      cooktopTemplateWidthIn: 28.5,
+      cooktopTemplateDepthIn: 19.75,
     };
 
     const shareUrl = buildCountertopStudioShareUrl(
@@ -89,6 +101,18 @@ describe("countertop spatial studio sharing", () => {
       sinkPositionIn: 42,
       sinkFrontPositionIn: 21,
       notes: "",
+      measurementsReviewed: true,
+      roomWidthIn: 240,
+      roomDepthIn: 192,
+      roomWallHeightIn: 108,
+      finishedTopHeightIn: 36,
+      topThicknessIn: 1.25,
+      islandLeftOffsetIn: 48,
+      islandBackOffsetIn: 84,
+      sinkTemplateWidthIn: 30,
+      sinkTemplateDepthIn: 18,
+      cooktopTemplateWidthIn: 28.5,
+      cooktopTemplateDepthIn: 19.75,
     });
   });
 
@@ -170,5 +194,25 @@ describe("countertop spatial studio sharing", () => {
     expect(
       parseCountertopStudioShareUrl(replaceShareSnapshot(v2Url, legacySnapshot))?.textureImageIndex
     ).toBe(2);
+  });
+
+  it("keeps missing or malformed legacy measurements unresolved", () => {
+    const design = {
+      ...createEmptySteelHomeProjectDraft().countertops,
+      stoneId: "taj-mahal",
+      measurementsReviewed: true,
+      roomWidthIn: 240,
+    };
+    const url = new URL(buildCountertopStudioShareUrl(design, "https://example.com/studio")!);
+    for (const extension of [null, "not-json", JSON.stringify({ v: 7, mr: true, rw: 240 })]) {
+      if (extension === null) url.searchParams.delete("measure");
+      else url.searchParams.set("measure", extension);
+      expect(parseCountertopStudioShareUrl(url.href)).toMatchObject({
+        stoneId: "taj-mahal",
+        measurementsReviewed: false,
+        roomWidthIn: null,
+        sinkTemplateWidthIn: null,
+      });
+    }
   });
 });

@@ -9,6 +9,10 @@ import {
   isStoneDesignerPhotoKey,
   resolveStoneDesignerPhotoIndex,
 } from "./stoneDesignerImages";
+import {
+  addCountertopPlannerExtensionToShareUrl,
+  parseCountertopPlannerExtensionFromShareUrl,
+} from "./countertopPlannerModel";
 
 export const COUNTERTOP_STUDIO_SHARE_PARAM = "studio" as const;
 
@@ -143,7 +147,7 @@ export function buildCountertopStudioShareUrl(
   const current = new URL(baseHref, "https://tradescout.local");
   const share = new URL(current.pathname, current.origin);
   share.searchParams.set(COUNTERTOP_STUDIO_SHARE_PARAM, encodeSnapshot(snapshot));
-  return share.toString();
+  return addCountertopPlannerExtensionToShareUrl(share.toString(), design);
 }
 
 export function parseCountertopStudioShareUrl(href: string): SteelHomeCountertopDesign | null {
@@ -220,6 +224,7 @@ export function parseCountertopStudioShareUrl(href: string): SteelHomeCountertop
         cooktopPositionIn: snapshot.cpp,
         cooktopFrontPositionIn: snapshot.cf,
         otherCutouts,
+        ...parseCountertopPlannerExtensionFromShareUrl(href),
       },
     }).countertops;
   } catch {

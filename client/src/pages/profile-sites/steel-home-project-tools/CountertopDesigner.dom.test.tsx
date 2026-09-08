@@ -9,6 +9,10 @@ import {
   type CountertopPlannerDesignInput,
 } from "./countertopPlannerModel";
 import { createEmptySteelHomeProjectDraft } from "./projectModel";
+import {
+  buildCountertopStudioShareUrl,
+  parseCountertopStudioShareUrl,
+} from "./countertopStudioShare";
 
 vi.mock("./StoneVisualizer3D", () => ({
   default: () => <div data-testid="mock-countertop-3d" />,
@@ -54,6 +58,7 @@ describe("CountertopDesigner truthful measurement gates", () => {
   let onRequest: ReturnType<typeof vi.fn<(intent: "stone" | "fabricator") => void>>;
 
   beforeEach(() => {
+    window.history.replaceState(null, "", "/u/steel-home-packages/builders/countertops");
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -64,6 +69,7 @@ describe("CountertopDesigner truthful measurement gates", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    vi.restoreAllMocks();
   });
 
   async function render(initialDesign: CountertopPlannerDesignInput) {
@@ -186,5 +192,78 @@ describe("CountertopDesigner truthful measurement gates", () => {
     act(() => stone?.click());
     expect(onRequest).toHaveBeenCalledWith("stone");
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ included: true }));
+  });
+
+  it("shares the selected measured design with a usable link when clipboard access fails", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("Clipboard unavailable"));
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    try {
+      await render({
+        ...createEmptySteelHomeProjectDraft().countertops,
+        stoneId: "cristallo",
+        measurementsReviewed: true,
+        roomWidthIn: 240,
+        notes: "private gate code 1234",
+      });
+      await act(async () => {
+        container
+          .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-share"]')!
+          .click();
+      });
+      const link = container.querySelector<HTMLInputElement>('input[aria-label="Plan link"]')!;
+      expect(link.value).toContain("/u/steel-home-packages/builders/countertops?");
+      expect(writeText).toHaveBeenCalledWith(link.value);
+      expect(container.textContent).toContain("Select and copy the link below.");
+      expect(parseCountertopStudioShareUrl(link.value)).toMatchObject({
+        stoneId: "cristallo",
+        roomWidthIn: 240,
+        measurementsReviewed: true,
+        notes: "",
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("waits for the recipient to open a shared plan before replacing their current draft", async () => {
+    const shared = {
+      ...createEmptySteelHomeProjectDraft().countertops,
+      stoneId: "taj-mahal",
+      measurementsReviewed: true,
+      wallAIn: 144,
+      roomWidthIn: 240,
+      sink: "Single-bowl undermount" as const,
+      sinkRun: "main" as const,
+      sinkPositionIn: 48,
+      sinkFrontPositionIn: 12,
+      sinkTemplateWidthIn: 30,
+      sinkTemplateDepthIn: 18,
+    };
+    window.history.replaceState(
+      null,
+      "",
+      buildCountertopStudioShareUrl(shared, window.location.href)
+    );
+    await render({ ...createEmptySteelHomeProjectDraft().countertops, stoneId: "cristallo" });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(
+      container.querySelector('[data-testid="steel-home-countertop-shared-plan"]')
+    ).toBeTruthy();
+    act(() =>
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-open-shared"]')!
+        .click()
+    );
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stoneId: "taj-mahal",
+        wallAIn: 144,
+        roomWidthIn: 240,
+        sinkTemplateWidthIn: 30,
+        sinkTemplateDepthIn: 18,
+      })
+    );
+    expect(container.querySelector('[data-testid="steel-home-countertop-shared-plan"]')).toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-countertop-preview"]')).toBeTruthy();
   });
 });

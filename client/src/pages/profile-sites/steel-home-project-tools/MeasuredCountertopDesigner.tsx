@@ -8,6 +8,7 @@ import {
   Plus,
   Ruler,
   Search,
+  Share2,
   ShoppingBag,
   Trash2,
   X,
@@ -55,6 +56,14 @@ import {
 import type { StoneSurfaceTarget } from "./StoneVisualizer3D";
 import { buildStoneDesignerImageHref, buildStoneDesignerPhotoKey } from "./stoneDesignerImages";
 import { getStoneProjectionDecision } from "./stoneProjectionSafety";
+import {
+  buildCountertopStudioShareUrl,
+  parseCountertopStudioShareUrl,
+} from "./countertopStudioShare";
+import {
+  buildSteelHomeBuilderPath,
+  resolveSteelHomeBuilderPathname,
+} from "@shared/steelHomeBuilderRoutes";
 
 const StoneVisualizer3D = lazy(() => import("./StoneVisualizer3D"));
 
@@ -277,12 +286,19 @@ function CountertopMeasuredPlan({
           Main run {design.wallAIn}&quot; × {design.wallDepthIn}&quot;
         </text>
         {design.layout !== "straight" ? (
-          <text x={geometry.topX - 12} y={geometry.topY + geometry.leftRunHeight / 2} textAnchor="end">
+          <text
+            x={geometry.topX - 12}
+            y={geometry.topY + geometry.leftRunHeight / 2}
+            textAnchor="end"
+          >
             Left {design.wallBIn}&quot;
           </text>
         ) : null}
         {design.layout === "u-shape" ? (
-          <text x={geometry.topX + geometry.topRunWidth + 12} y={geometry.topY + geometry.rightRunHeight / 2}>
+          <text
+            x={geometry.topX + geometry.topRunWidth + 12}
+            y={geometry.topY + geometry.rightRunHeight / 2}
+          >
             Right {design.wallCIn}&quot;
           </text>
         ) : null}
@@ -439,7 +455,8 @@ function CountertopMeasuredPlan({
       ) : null}
 
       <text x="28" y="462" fill="#68736f" fontFamily="system-ui" fontSize="10" fontWeight="700">
-        {stone ? `${stone.publicLabel} selected as a reference` : "No stone selected"} · openings and backsplash do not change the gross footprint shown here
+        {stone ? `${stone.publicLabel} selected as a reference` : "No stone selected"} · openings
+        and backsplash do not change the gross footprint shown here
       </text>
     </svg>
   );
@@ -478,7 +495,8 @@ function OptionalMeasurementField({
               return;
             }
             const parsed = Number(event.target.value);
-            if (Number.isFinite(parsed)) onChange(Math.min(max, Math.max(min, snapToEighth(parsed))));
+            if (Number.isFinite(parsed))
+              onChange(Math.min(max, Math.max(min, snapToEighth(parsed))));
           }}
           className={`${PROJECT_FIELD_CLASS} pr-12`}
           data-testid={testId}
@@ -624,11 +642,7 @@ function normalizePlacements(design: CountertopPlannerDesign): CountertopPlanner
       ? { run, positionIn, frontPositionIn }
       : { run: "" as const, positionIn: null, frontPositionIn: null };
   const sink = clean(design.sinkRun, design.sinkPositionIn, design.sinkFrontPositionIn);
-  const cooktop = clean(
-    design.cooktopRun,
-    design.cooktopPositionIn,
-    design.cooktopFrontPositionIn
-  );
+  const cooktop = clean(design.cooktopRun, design.cooktopPositionIn, design.cooktopFrontPositionIn);
   return {
     ...design,
     ...{
@@ -819,7 +833,10 @@ function OpeningEditor({
             label="Center from front edge"
             value={item.frontPositionIn}
             min={frontBounds?.minimum ?? 1}
-            max={frontBounds?.maximum ?? Math.max(1, getCountertopCutoutRunDepth(design, item.run || "main") - 1)}
+            max={
+              frontBounds?.maximum ??
+              Math.max(1, getCountertopCutoutRunDepth(design, item.run || "main") - 1)
+            }
             onChange={(frontPositionIn) => onChange({ frontPositionIn })}
             testId="steel-home-countertop-cutout-front-position"
           />
@@ -845,7 +862,9 @@ function OpeningEditor({
             step="0.125"
             value={item.positionIn}
             onChange={(event) =>
-              onChange({ positionIn: clampAlongRun(design, item.run, Number(event.target.value), width) })
+              onChange({
+                positionIn: clampAlongRun(design, item.run, Number(event.target.value), width),
+              })
             }
             className="h-11 w-full accent-[#a94f2e]"
             data-testid="steel-home-countertop-cutout-position-range"
@@ -874,10 +893,19 @@ function OpeningEditor({
   );
 }
 
-export default function MeasuredCountertopDesigner({ design: designInput, onChange, onRequest }: Props) {
+export default function MeasuredCountertopDesigner({
+  design: designInput,
+  onChange,
+  onRequest,
+}: Props) {
   const design = useMemo(() => resolveCountertopPlannerDesign(designInput), [designInput]);
   const [view, setView] = useState<ViewMode>("plan");
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [sharedDesign, setSharedDesign] = useState(() =>
+    typeof window === "undefined" ? null : parseCountertopStudioShareUrl(window.location.href)
+  );
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null);
   const [selectedSurfaceTarget, setSelectedSurfaceTarget] = useState<StoneSurfaceTarget>("counter");
   const selectedStone = getCatalogItemById(design.stoneId);
@@ -896,6 +924,23 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
 
   const update = (values: Partial<CountertopPlannerDesign>) =>
     onChange(resolveCountertopPlannerDesign({ ...design, ...values, floorStone: false }));
+
+  const shareDesign = async () => {
+    const path =
+      resolveSteelHomeBuilderPathname(window.location.pathname) === "countertops"
+        ? window.location.pathname
+        : buildSteelHomeBuilderPath("countertops");
+    const url = buildCountertopStudioShareUrl(design, new URL(path, window.location.origin).href);
+    if (!url) return;
+    setShareUrl(url);
+    setShareStatus("Select and copy the link below.");
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareStatus("Plan link copied.");
+    } catch {
+      // The visible link also works when clipboard access is unavailable.
+    }
+  };
 
   const updateGeometry = (values: Partial<CountertopPlannerDesign>) => {
     const next = resolveCountertopPlannerDesign({
@@ -1018,6 +1063,78 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
       className="min-w-0 overflow-x-hidden bg-[#17201f] text-white"
       data-testid="steel-home-countertop-designer"
     >
+      {sharedDesign ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.07] p-4"
+          data-testid="steel-home-countertop-shared-plan"
+        >
+          <div>
+            <p className="font-bold">A shared stone plan is ready to open</p>
+            <p className="mt-1 text-xs text-white/70">
+              Opening it replaces this browser’s countertop draft. Review the shared measurements
+              before requesting fabrication.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="min-h-10 rounded-xl bg-white px-4 text-xs font-black text-[#18312f]"
+              onClick={() => {
+                onChange(
+                  resolveCountertopPlannerDesign({
+                    ...sharedDesign,
+                    included: design.included,
+                    floorStone: false,
+                  })
+                );
+                setSharedDesign(null);
+                setShareUrl("");
+              }}
+              data-testid="steel-home-countertop-open-shared"
+            >
+              Open shared plan
+            </button>
+            <button
+              type="button"
+              className="min-h-10 rounded-xl px-4 text-xs font-bold hover:bg-white/10"
+              onClick={() => setSharedDesign(null)}
+            >
+              Keep my draft
+            </button>
+          </div>
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-3 border-b border-white/10 p-3 sm:px-5">
+        <button
+          type="button"
+          onClick={shareDesign}
+          disabled={!selectedStone?.shareSlug || selectedStone.anonymous}
+          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/20 px-4 text-xs font-black hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+          data-testid="steel-home-countertop-share"
+        >
+          <Share2 className="h-4 w-4" aria-hidden="true" /> Share plan
+        </button>
+        <p className="text-xs text-white/70">
+          {selectedStone?.shareSlug
+            ? "Includes the selected stone and measurements. Project notes and contact details stay private."
+            : "Choose a stone to share this plan."}
+        </p>
+        {shareUrl ? (
+          <label className="block w-full min-w-0 text-xs font-bold">
+            Plan link
+            <input
+              aria-label="Plan link"
+              readOnly
+              value={shareUrl}
+              onFocus={(event) => event.currentTarget.select()}
+              className="mt-2 min-h-10 w-full rounded-lg border border-white/20 bg-[#17201f] px-3 text-white"
+            />
+            <span className="mt-2 block text-white/70" role="status">
+              {shareStatus}
+            </span>
+          </label>
+        ) : null}
+      </div>
       <div className="grid min-w-0 xl:grid-cols-[minmax(0,1.18fr)_minmax(22rem,.82fr)]">
         <div className="min-w-0 border-b border-white/10 p-3 sm:p-5 xl:border-b-0 xl:border-r">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.07] p-2">
@@ -1067,8 +1184,9 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                     <Ruler className="mx-auto h-9 w-9 text-[#a94f2e]" aria-hidden="true" />
                     <p className="mt-4 text-xl font-black">Measured plan not available yet</p>
                     <p className="mt-2 text-sm leading-6 text-[#68736f]">
-                      Enter the actual run, depth, and enabled-island measurements, then confirm that
-                      you reviewed them. Starter values are never presented as project measurements.
+                      Enter the actual run, depth, and enabled-island measurements, then confirm
+                      that you reviewed them. Starter values are never presented as project
+                      measurements.
                     </p>
                   </div>
                 </div>
@@ -1095,7 +1213,9 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                       alt={`${selectedStone.publicLabel} reference photo`}
                       className="aspect-[4/3] w-full rounded-xl object-contain bg-black/20"
                     />
-                    <p className="mt-2 text-[0.68rem] font-black text-white">Reference photo only</p>
+                    <p className="mt-2 text-[0.68rem] font-black text-white">
+                      Reference photo only
+                    </p>
                     <p className="mt-1 text-[0.62rem] leading-4 text-white/65">
                       Raw inventory photography is not stretched across the room.
                     </p>
@@ -1143,11 +1263,13 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                 {placementProblems.length ? ` · ${placementProblems.length} need attention` : ""}
               </p>
               <p className="mt-2 text-xs font-semibold text-white/60">
-                counter · {selectedStone ? "reference selected" : "surface unselected"} · floor stone disabled
+                counter · {selectedStone ? "reference selected" : "surface unselected"} · floor
+                stone disabled
               </p>
               {!design.measurementsReviewed ? (
                 <p className="mt-2 text-xs font-bold leading-5 text-[#f5c3aa]">
-                  Starter run values are unreviewed; measured plan and countertop geometry stay hidden.
+                  Starter run values are unreviewed; measured plan and countertop geometry stay
+                  hidden.
                 </p>
               ) : null}
             </div>
@@ -1155,7 +1277,9 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
               <Ruler className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
               <div>
                 <p className="text-xl font-black">
-                  {design.measurementsReviewed ? `About ${squareFeet} sq. ft.` : "Footprint unresolved"}
+                  {design.measurementsReviewed
+                    ? `About ${squareFeet} sq. ft.`
+                    : "Footprint unresolved"}
                 </p>
                 <p className="text-xs font-semibold text-white/55">
                   Gross top footprint · backsplash excluded
@@ -1200,9 +1324,13 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                   />
                   <div className="rounded-xl border border-[#a94f2e]/18 bg-[#fff6f1] p-3">
                     <p className="text-xs font-black text-[#713d2b]">
-                      {projection.allowed ? "Projection-ready stone-only crop" : "Reference photo only"}
+                      {projection.allowed
+                        ? "Projection-ready stone-only crop"
+                        : "Reference photo only"}
                     </p>
-                    <p className="mt-1 text-[0.7rem] leading-5 text-[#7d665b]">{projection.reason}</p>
+                    <p className="mt-1 text-[0.7rem] leading-5 text-[#7d665b]">
+                      {projection.reason}
+                    </p>
                     <p className="mt-1 text-[0.7rem] leading-5 text-[#7d665b]">
                       This does not confirm stock, hold status, price, fabrication, or reservation.
                     </p>
@@ -1274,7 +1402,8 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                 1 · Layout and measurements
               </p>
               <p className="mt-2 text-xs leading-5 text-[#68736f]">
-                Enter the finished countertop runs. Changing these values resets the measurement review.
+                Enter the finished countertop runs. Changing these values resets the measurement
+                review.
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <ProjectTextSelect
@@ -1378,7 +1507,10 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
             <details className="group rounded-2xl border border-[#18312f]/12 bg-white">
               <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black [&::-webkit-details-marker]:hidden">
                 2 · Edge, backsplash, and seams
-                <ChevronDown className="h-4 w-4 transition group-open:rotate-180" aria-hidden="true" />
+                <ChevronDown
+                  className="h-4 w-4 transition group-open:rotate-180"
+                  aria-hidden="true"
+                />
               </summary>
               <div className="grid gap-4 border-t border-[#18312f]/10 p-4 sm:grid-cols-2">
                 <ProjectTextSelect
@@ -1421,10 +1553,14 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                 <div>
                   <p className="text-sm font-black">3 · Openings and coordination points</p>
                   <p className="mt-1 text-xs leading-5 text-[#68736f]">
-                    Nothing is added by default. Openings support the independent fabricator handoff and do not price the stone.
+                    Nothing is added by default. Openings support the independent fabricator handoff
+                    and do not price the stone.
                   </p>
                 </div>
-                <ChevronDown className="mt-1 h-4 w-4 shrink-0 transition group-open:rotate-180" aria-hidden="true" />
+                <ChevronDown
+                  className="mt-1 h-4 w-4 shrink-0 transition group-open:rotate-180"
+                  aria-hidden="true"
+                />
               </summary>
               <div className="space-y-4 border-t border-[#18312f]/10 p-4">
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1486,7 +1622,8 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                       Template sizes unresolved · coordination points only
                     </p>
                     <p className="mt-1 text-xs leading-5">
-                      A coordination point can start a conversation. No cut-sized opening is shown until both manufacturer dimensions are entered.
+                      A coordination point can start a conversation. No cut-sized opening is shown
+                      until both manufacturer dimensions are entered.
                     </p>
                   </div>
                 ) : null}
@@ -1567,7 +1704,8 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                     data-testid="steel-home-countertop-cutout-validation"
                   >
                     <p className="flex items-center gap-2 text-xs font-black">
-                      <AlertTriangle className="h-4 w-4" aria-hidden="true" /> Resolve before fabricator handoff
+                      <AlertTriangle className="h-4 w-4" aria-hidden="true" /> Resolve before
+                      fabricator handoff
                     </p>
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5">
                       {placementProblems.map((problem) => (
@@ -1582,11 +1720,15 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
             <details className="group rounded-2xl border border-[#18312f]/12 bg-white">
               <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black [&::-webkit-details-marker]:hidden">
                 4 · Optional 3D scene measurements
-                <ChevronDown className="h-4 w-4 transition group-open:rotate-180" aria-hidden="true" />
+                <ChevronDown
+                  className="h-4 w-4 transition group-open:rotate-180"
+                  aria-hidden="true"
+                />
               </summary>
               <div className="border-t border-[#18312f]/10 p-4">
                 <p className="text-xs leading-5 text-[#68736f]">
-                  Blank stays unresolved. The 3D preview does not invent room walls, top height, thickness, or island position.
+                  Blank stays unresolved. The 3D preview does not invent room walls, top height,
+                  thickness, or island position.
                 </p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <OptionalMeasurementField
@@ -1673,7 +1815,8 @@ export default function MeasuredCountertopDesigner({ design: designInput, onChan
                 data-testid="steel-home-countertop-notes"
               />
               <span className="block text-xs font-normal leading-5 text-[#68736f]">
-                Stone ordering and fabrication remain separate. A qualified fabricator must field-verify every measurement and template before cutting.
+                Stone ordering and fabrication remain separate. A qualified fabricator must
+                field-verify every measurement and template before cutting.
               </span>
             </label>
           </div>
