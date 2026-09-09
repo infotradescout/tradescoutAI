@@ -4,6 +4,8 @@ import {
 } from "@shared/recommendationContinuation";
 import { registerRecommendationRoutes } from "./routes/recommendations";
 import { publicRecommendationConditions } from "./storage/repositories/recommendations";
+import { PgDialect } from "drizzle-orm/pg-core";
+import { exposureAuthoritySqlPredicate } from "./services/exposureAuthority";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Legacy route module ingests dynamic JSON across many endpoints; incremental hardening tracked separately. */
 import scoutRoute from "./routes/scout";
 import scoutNormalizeRouter from "./routes/scout-normalize";
@@ -113,7 +115,11 @@ import {
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
-import { PROFILE_CATALOG_EXCHANGE_CATEGORY } from "../shared/profileCatalogExchange";
+import {
+  exchangePageWindow,
+  mergeExchangeDiscoveryItems,
+  readExchangeSourcePages,
+} from "./exchangeDiscovery";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
 import {
   buildHomeScoutInspectionRequestDecisionScope,
@@ -12077,14 +12083,20 @@ export async function registerRoutes(app: any) {
     const condition = String(req.query.condition || "")
       .trim()
       .toLowerCase();
-    if (condition && condition !== "new") return [];
 
-    const clauses = ["po.is_active = true", "po.offer_type = 'item'"];
+    const clauses = [
+      "po.is_active = true",
+      "po.offer_type = 'item'",
+      new PgDialect().sqlToQuery(exposureAuthoritySqlPredicate(sql`po.seller_user_id`)).sql,
+    ];
     const params: any[] = [];
     const addParam = (value: any) => {
       params.push(value);
       return `$${params.length}`;
     };
+
+    if (condition && condition !== "any")
+      clauses.push(`LOWER(COALESCE(po.metadata->>'condition', 'new')) = ${addParam(condition)}`);
 
     if (requestedCategory && requestedCategory !== "other") {
       clauses.push(
@@ -12115,32 +12127,41 @@ export async function registerRoutes(app: any) {
     const sort = String(req.query.sort || "date_desc");
     const orderBy =
       sort === "price_asc"
-        ? "po.price ASC, po.updated_at DESC"
+        ? 'po.price ASC NULLS LAST, po.id::text COLLATE "C" ASC'
         : sort === "price_desc"
-          ? "po.price DESC, po.updated_at DESC"
+          ? 'po.price DESC NULLS LAST, po.id::text COLLATE "C" ASC'
           : sort === "date_asc"
-            ? "po.updated_at ASC, po.created_at ASC"
-            : "po.updated_at DESC, po.created_at DESC";
-    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 100);
+            ? 'po.created_at ASC NULLS LAST, po.id::text COLLATE "C" ASC'
+            : 'po.created_at DESC NULLS LAST, po.id::text COLLATE "C" ASC';
+    const page = exchangePageWindow(req.query);
 
     try {
-      const result = await pool.query(
-        `SELECT po.*, u.first_name, u.last_name, u.trust_score, u.verified_badge,
+      return await readExchangeSourcePages(
+        async (sourceOffset, sourceLimit) => {
+          const queryParams = [...params, sourceLimit, sourceOffset];
+          const result = await pool.query(
+            `SELECT po.*, u.first_name, u.last_name, u.trust_score, u.verified_badge,
                 u.email_verified, u.address_verified, u.city, u.state, u.state_code,
                 u.county, u.county_name, u.county_fips
          FROM profile_offers po
          JOIN users u ON u.id = po.seller_user_id
          WHERE ${clauses.join(" AND ")}
          ORDER BY ${orderBy}
-         LIMIT ${addParam(limit)}`,
-        params
+         LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            queryParams
+          );
+          const authorityByUserId = await buildExposureAuthorityMap(
+            result.rows.map((row) => String(row.seller_user_id || "").trim())
+          );
+          return {
+            sourceCount: result.rows.length,
+            items: result.rows
+              .filter((row) => authorityByUserId[String(row.seller_user_id || "").trim()] === true)
+              .map((row) => buildProfileOfferExchangeItem(row, requestedCategory)),
+          };
+        },
+        page.limit == null ? undefined : page.offset + page.limit
       );
-      const authorityByUserId = await buildExposureAuthorityMap(
-        result.rows.map((row) => String(row.seller_user_id || "").trim())
-      );
-      return result.rows
-        .filter((row) => authorityByUserId[String(row.seller_user_id || "").trim()] === true)
-        .map((row) => buildProfileOfferExchangeItem(row, requestedCategory));
     } catch (error) {
       if (isMissingProfileOffersTable(error)) return [];
       throw error;
@@ -12180,123 +12201,113 @@ export async function registerRoutes(app: any) {
       if (rawCategoryId) {
         if (looksLikeUuid(rawCategoryId)) {
           resolvedCategoryId = rawCategoryId;
-        } else if (rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY) {
-          // Code-curated profile catalogs are not marketplace rows. Bound the
-          // ordinary storage query to no results, then merge the gated catalog.
-          resolvedCategoryId = "00000000-0000-0000-0000-000000000000";
         } else {
           const desiredName = categorySlugToName[rawCategoryId] || rawCategoryId;
           const categories = await storage.getMarketplaceCategories();
           const match = (categories || []).find(
             (c: any) => String(c?.name || "").toLowerCase() === desiredName.toLowerCase()
           );
-          if (match?.id) {
-            resolvedCategoryId = String(match.id);
-          }
+          resolvedCategoryId = match?.id
+            ? String(match.id)
+            : "00000000-0000-0000-0000-000000000000";
         }
       }
 
-      // Exchange is not location-gated. Locality params are treated as a sort preference, not a filter.
-      const preferredStateCode =
-        typeof req.query.stateCode === "string"
-          ? String(req.query.stateCode)
-          : typeof req.query.state === "string" && String(req.query.state).length === 2
-            ? String(req.query.state)
-            : undefined;
-
-      const preferredCountyFips =
-        typeof req.query.countyFips === "string"
-          ? String(req.query.countyFips)
-          : typeof req.query.county === "string" && /^\d{5}$/.test(String(req.query.county))
-            ? String(req.query.county)
-            : undefined;
-
-      // Resolve county name when caller provides FIPS, so we can prefer either legacy county strings or FIPS.
-      let preferredCountyName: string | undefined;
-      if (preferredCountyFips) {
-        try {
-          const countyRow = await storage.getCountyByFips(preferredCountyFips);
-          if (countyRow?.name) preferredCountyName = String(countyRow.name);
-        } catch {
-          // Ignore geo lookup failures; preference ordering can still use FIPS.
-        }
-      }
-
-      const listings = await storage.getMarketplaceListings({
-        categoryId: resolvedCategoryId,
-        status: "active",
-        // Keep explicit county/state filters available for callers that truly want filtering.
-        county:
-          typeof req.query.filterCounty === "string"
-            ? (req.query.filterCounty as string)
-            : undefined,
-        state:
-          typeof req.query.filterState === "string" ? (req.query.filterState as string) : undefined,
-        preferredStateCode,
-        preferredCountyFips,
-        preferredCountyName,
-        priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
-        priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
-        condition: req.query.condition as string,
-        searchQuery: req.query.search as string,
-        sortBy: req.query.sort as any,
-        limit: req.query.limit ? Number(req.query.limit) : undefined,
-        offset: req.query.offset ? Number(req.query.offset) : undefined,
-        // Category-specific extra filters
-        yearMin: req.query.yearMin ? Number(req.query.yearMin) : undefined,
-        yearMax: req.query.yearMax ? Number(req.query.yearMax) : undefined,
-        mileageMax: req.query.mileageMax ? Number(req.query.mileageMax) : undefined,
-        titleStatus: req.query.titleStatus ? String(req.query.titleStatus) : undefined,
-        authenticated: req.query.authenticated ? String(req.query.authenticated) : undefined,
-        graded: req.query.graded ? String(req.query.graded) : undefined,
-        // Business
-        businessType: req.query.businessType ? String(req.query.businessType) : undefined,
-        annualRevenueRange: req.query.annualRevenueRange
-          ? String(req.query.annualRevenueRange)
-          : undefined,
-        ownerFinancing: req.query.ownerFinancing ? String(req.query.ownerFinancing) : undefined,
-        // Construction / Farm
-        hoursMax: req.query.hoursMax ? Number(req.query.hoursMax) : undefined,
-        inspectionReady: req.query.inspectionReady ? String(req.query.inspectionReady) : undefined,
-        fieldReady: req.query.fieldReady ? String(req.query.fieldReady) : undefined,
-        // Furniture
-        material: req.query.material ? String(req.query.material) : undefined,
-        assemblyStatus: req.query.assemblyStatus ? String(req.query.assemblyStatus) : undefined,
-        // Business Equipment
-        powerRequirements: req.query.powerRequirements
-          ? String(req.query.powerRequirements)
-          : undefined,
-        installRequired: req.query.installRequired ? String(req.query.installRequired) : undefined,
-        // Electronics
-        storage: req.query.storage ? String(req.query.storage) : undefined,
-        powersOn: req.query.powersOn ? String(req.query.powersOn) : undefined,
-        carrierStatus: req.query.carrierStatus ? String(req.query.carrierStatus) : undefined,
-        // Sports
-        sport: req.query.sport ? String(req.query.sport) : undefined,
-        competitionReady: req.query.competitionReady
-          ? String(req.query.competitionReady)
-          : undefined,
-        // Jewelry
-        metal: req.query.metal ? String(req.query.metal) : undefined,
-        handoff: req.query.handoff ? String(req.query.handoff) : undefined,
-        // Local Food
-        pickupOrDelivery: req.query.pickupOrDelivery
-          ? String(req.query.pickupOrDelivery)
-          : undefined,
-        leadTime: req.query.leadTime ? String(req.query.leadTime) : undefined,
-        // Other
-        inspectionAvailable: req.query.inspectionAvailable
-          ? String(req.query.inspectionAvailable)
-          : undefined,
-        // Tools
-        includesBatteries: req.query.includesBatteries
-          ? String(req.query.includesBatteries)
-          : undefined,
-        includesChargers: req.query.includesChargers
-          ? String(req.query.includesChargers)
-          : undefined,
-        includesCase: req.query.includesCase ? String(req.query.includesCase) : undefined,
-      });
+      // Public browsing is global; explicit filterCounty/filterState narrow it.
+      const page = exchangePageWindow(req.query);
+      const listings = await readExchangeSourcePages(
+        async (sourceOffset, sourceLimit) => {
+          const rows = await storage.getMarketplaceListings({
+            categoryId: resolvedCategoryId,
+            status: "active",
+            // Keep explicit county/state filters available for callers that truly want filtering.
+            county:
+              typeof req.query.filterCounty === "string"
+                ? (req.query.filterCounty as string)
+                : undefined,
+            state:
+              typeof req.query.filterState === "string"
+                ? (req.query.filterState as string)
+                : undefined,
+            publicExposureOnly: true,
+            priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
+            priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
+            condition: req.query.condition as string,
+            searchQuery: req.query.search as string,
+            sortBy: req.query.sort as any,
+            limit: sourceLimit,
+            offset: sourceOffset,
+            // Category-specific extra filters
+            yearMin: req.query.yearMin ? Number(req.query.yearMin) : undefined,
+            yearMax: req.query.yearMax ? Number(req.query.yearMax) : undefined,
+            mileageMax: req.query.mileageMax ? Number(req.query.mileageMax) : undefined,
+            titleStatus: req.query.titleStatus ? String(req.query.titleStatus) : undefined,
+            authenticated: req.query.authenticated ? String(req.query.authenticated) : undefined,
+            graded: req.query.graded ? String(req.query.graded) : undefined,
+            // Business
+            businessType: req.query.businessType ? String(req.query.businessType) : undefined,
+            annualRevenueRange: req.query.annualRevenueRange
+              ? String(req.query.annualRevenueRange)
+              : undefined,
+            ownerFinancing: req.query.ownerFinancing ? String(req.query.ownerFinancing) : undefined,
+            // Construction / Farm
+            hoursMax: req.query.hoursMax ? Number(req.query.hoursMax) : undefined,
+            inspectionReady: req.query.inspectionReady
+              ? String(req.query.inspectionReady)
+              : undefined,
+            fieldReady: req.query.fieldReady ? String(req.query.fieldReady) : undefined,
+            // Furniture
+            material: req.query.material ? String(req.query.material) : undefined,
+            assemblyStatus: req.query.assemblyStatus ? String(req.query.assemblyStatus) : undefined,
+            // Business Equipment
+            powerRequirements: req.query.powerRequirements
+              ? String(req.query.powerRequirements)
+              : undefined,
+            installRequired: req.query.installRequired
+              ? String(req.query.installRequired)
+              : undefined,
+            // Electronics
+            storage: req.query.storage ? String(req.query.storage) : undefined,
+            powersOn: req.query.powersOn ? String(req.query.powersOn) : undefined,
+            carrierStatus: req.query.carrierStatus ? String(req.query.carrierStatus) : undefined,
+            // Sports
+            sport: req.query.sport ? String(req.query.sport) : undefined,
+            competitionReady: req.query.competitionReady
+              ? String(req.query.competitionReady)
+              : undefined,
+            // Jewelry
+            metal: req.query.metal ? String(req.query.metal) : undefined,
+            handoff: req.query.handoff ? String(req.query.handoff) : undefined,
+            // Local Food
+            pickupOrDelivery: req.query.pickupOrDelivery
+              ? String(req.query.pickupOrDelivery)
+              : undefined,
+            leadTime: req.query.leadTime ? String(req.query.leadTime) : undefined,
+            // Other
+            inspectionAvailable: req.query.inspectionAvailable
+              ? String(req.query.inspectionAvailable)
+              : undefined,
+            // Tools
+            includesBatteries: req.query.includesBatteries
+              ? String(req.query.includesBatteries)
+              : undefined,
+            includesChargers: req.query.includesChargers
+              ? String(req.query.includesChargers)
+              : undefined,
+            includesCase: req.query.includesCase ? String(req.query.includesCase) : undefined,
+          });
+          const authority = await buildExposureAuthorityMap(rows.map((row) => row.sellerId));
+          return {
+            sourceCount: rows.length,
+            items: rows.filter(
+              (row) =>
+                authority[row.sellerId] === true &&
+                !EXCHANGE_FORBIDDEN_TEXT.test(`${row.title || ""} ${row.description || ""}`)
+            ),
+          };
+        },
+        page.limit == null ? undefined : page.offset + page.limit
+      );
 
       const sellerIds = Array.from(
         new Set((listings || []).map((l: any) => String(l?.sellerId || "").trim()).filter(Boolean))
@@ -12397,42 +12408,21 @@ export async function registerRoutes(app: any) {
         .map((listing: any) => toPublicExchangeListing(listing))
         .filter(Boolean) as any[];
 
-      const profileOfferItems =
-        rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY
-          ? []
-          : await listProfileOfferExchangeItems(req, rawCategoryId);
+      const profileOfferItems = await listProfileOfferExchangeItems(req, rawCategoryId);
       const profileCatalogItems = await listPublicProfileCatalogExchangeItems({
         category: rawCategoryId,
         search: req.query.search as string | undefined,
         hasPriceFilter: Boolean(req.query.priceMin || req.query.priceMax),
         condition: req.query.condition as string | undefined,
+        filterState: req.query.filterState as string | undefined,
+        filterCounty: req.query.filterCounty as string | undefined,
       });
-      const merged = [...mapped, ...profileOfferItems, ...profileCatalogItems];
-      const sort = String(req.query.sort || "date_desc");
-      if (sort === "price_asc")
-        merged.sort((a, b) => {
-          const aPrice = a.price == null ? Number.POSITIVE_INFINITY : Number(a.price);
-          const bPrice = b.price == null ? Number.POSITIVE_INFINITY : Number(b.price);
-          return aPrice - bPrice;
-        });
-      else if (sort === "price_desc")
-        merged.sort((a, b) => {
-          const aPrice = a.price == null ? Number.NEGATIVE_INFINITY : Number(a.price);
-          const bPrice = b.price == null ? Number.NEGATIVE_INFINITY : Number(b.price);
-          return bPrice - aPrice;
-        });
-      else if (sort === "date_asc")
-        merged.sort(
-          (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-        );
-      else
-        merged.sort(
-          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-        );
-
-      const offset = req.query.offset ? Math.max(0, Number(req.query.offset)) : 0;
-      const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : undefined;
-      res.json(limit ? merged.slice(offset, offset + limit) : merged);
+      res.json(
+        mergeExchangeDiscoveryItems<any>(
+          [mapped, profileOfferItems, profileCatalogItems],
+          req.query
+        )
+      );
     } catch (error: any) {
       console.error("Error fetching exchange items:", error);
       res.status(500).json({ message: "Failed to fetch items" });

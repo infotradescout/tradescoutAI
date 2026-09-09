@@ -14,7 +14,9 @@ describe("operator-confirmed public-profile architecture", () => {
       fs.existsSync(path.resolve(process.cwd(), "server/services/publicProfileAuthority.ts"))
     ).toBe(false);
     expect(repository).toContain("async getProfileBySlugPublic(slug: string)");
-    expect(repository).toContain("canServePublishedProfileAtDirectRoute({");
+    expect(repository).toContain(": canServePublishedProfileAtDirectRoute");
+    expect(repository).toContain("? canDiscoverPublishedProfilePublicly");
+    expect(repository).toContain("!canExpose({");
     expect(repository).toContain("businessProfileData: row.businessProfileData");
     expect(repository).toContain("ownerEmailVerified: row.ownerEmailVerified");
     expect(policy).toContain("isOperatorConfirmedTradePartnerProfile(candidate)");

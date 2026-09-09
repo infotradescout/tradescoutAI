@@ -519,7 +519,11 @@ export default function ExchangeListingDetail() {
                 {isProfileCatalog ? (
                   <>
                     <Package className="h-3 w-3 shrink-0" />
-                    <span>Profile catalog</span>
+                    <span>
+                      {listing.specifications?.catalogKind === "inventory_item"
+                        ? "Profile item"
+                        : "Profile catalog"}
+                    </span>
                     <span>·</span>
                     <span>Managed TradeScout request</span>
                   </>
@@ -782,7 +786,9 @@ export default function ExchangeListingDetail() {
               {isProfileOffer
                 ? "Review Purchase on Profile"
                 : isProfileCatalog
-                  ? "Open Catalog & Request"
+                  ? listing.specifications?.catalogKind === "inventory_item"
+                    ? "Open Item & Request"
+                    : "Open Catalog & Request"
                   : "Review Protected Connection"}
             </Button>
             {isProfileOffer ? (
