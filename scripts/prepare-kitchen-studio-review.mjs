@@ -50,7 +50,7 @@ let browser;
 const results={commit,scope:'Actual editor components with their real local draft persistence; isolated host, no production writes',checks:[],passed:false};
 try{
  for(let n=0;n<100;n++){try{if((await fetch('http://127.0.0.1:4179')).ok)break;}catch{}await new Promise(resolve=>setTimeout(resolve,100));}
- browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ browser=await chromium.launch({channel:'chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader-webgl','--enable-unsafe-swiftshader']});
  for(const [name,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}]]){
   const context=await browser.newContext({viewport,acceptDownloads:true,serviceWorkers:'block'}),page=await context.newPage();
   const errors=[];page.on('pageerror',error=>errors.push(error.message));page.on('dialog',dialog=>dialog.accept());
