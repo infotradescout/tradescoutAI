@@ -15,6 +15,7 @@ import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig
 import {
   canExposeProviderProfileOnPublicMap,
   canServePublishedProfileAtDirectRoute,
+  canDiscoverPublishedProfilePublicly,
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
 import {
@@ -311,11 +312,17 @@ export class ProfileRepository {
     return row ? this.toPublicProfileRecord(row) : undefined;
   }
 
-  async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
+  private async getProfileBySlugWithVisibility(
+    slug: string,
+    discoveryOnly = false
+  ): Promise<PublicProfileRecord | undefined> {
     const row = await this.getProfileBySlugRecord(slug, true);
     if (!row) return undefined;
+    const canExpose = discoveryOnly
+      ? canDiscoverPublishedProfilePublicly
+      : canServePublishedProfileAtDirectRoute;
     if (
-      !canServePublishedProfileAtDirectRoute({
+      !canExpose({
         profileId: row.id,
         businessId: row.businessId,
         profileSlug: row.slug,
@@ -345,6 +352,15 @@ export class ProfileRepository {
       return undefined;
     }
     return this.toPublicProfileRecord(row);
+  }
+
+  /** Discovery excludes private, unlisted-review, and direct-only profiles. */
+  async getProfileBySlugForDiscovery(slug: string): Promise<PublicProfileRecord | undefined> {
+    return this.getProfileBySlugWithVisibility(slug, true);
+  }
+
+  async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
+    return this.getProfileBySlugWithVisibility(slug);
   }
 
   async searchProfilesPublic(args: {

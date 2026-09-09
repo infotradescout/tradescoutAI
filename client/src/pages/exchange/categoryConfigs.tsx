@@ -205,7 +205,7 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
     slug: "building-materials",
     name: "Building Materials & Surfaces",
     description:
-      "Profile-linked material catalogs with availability, project fit, and pricing confirmed through a managed TradeScout request.",
+      "Browse individual stone selections and building materials. Open an item to review its photos and ask about your project.",
     icon: Layers3,
     showCondition: false,
     catalogOnly: true,
