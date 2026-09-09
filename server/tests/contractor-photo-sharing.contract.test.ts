@@ -37,7 +37,9 @@ describe("contractor project photo sharing contract", () => {
 
     expect(routes).toContain("toPublicContractorRecommendations(recommendationRows)");
     expect(routes).toContain("userId, businessId, insuranceDocUrl");
-    expect(mapper).toContain('row?.isPublic === true && row?.moderationStatus === "approved"');
+    expect(mapper).toContain("row?.isPublic === true");
+    expect(mapper).toContain('row?.moderationStatus === "approved"');
+    expect(mapper).toContain("row?.isVerified === true");
     expect(mapper).not.toContain("customerEmail: row.customerEmail");
     expect(mapper).not.toContain("customerPhone: row.customerPhone");
     expect(mapper).not.toContain("moderatedBy: row.moderatedBy");

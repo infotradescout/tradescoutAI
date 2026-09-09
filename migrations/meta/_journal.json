@@ -988,6 +988,13 @@
       "when": 1788804300000,
       "tag": "0137_restore_recommendation_runtime_schema",
       "breakpoints": false
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1788918000000,
+      "tag": "0138_recommendation_publication_projection",
+      "breakpoints": false
     }
   ]
 }

@@ -41,6 +41,10 @@ export const CONTACT_RUNTIME_SCHEMA_MIGRATION_PATH = path.resolve(
   process.cwd(),
   "migrations/0135_restore_contact_runtime_schema.sql"
 );
+export const RECOMMENDATION_PUBLICATION_MIGRATION_PATH = path.resolve(
+  process.cwd(),
+  "migrations/0138_recommendation_publication_projection.sql"
+);
 
 export const NOTIFICATION_OUTBOX_MIGRATION_PATH = path.resolve(
   process.cwd(),
@@ -127,6 +131,27 @@ export const DOCUMENT_STANDALONE_LINEAGE_MIGRATION_HASH =
 export const CONTACT_RUNTIME_SCHEMA_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
   fs.readFileSync(CONTACT_RUNTIME_SCHEMA_MIGRATION_PATH, "utf8")
 );
+const recommendationPublicationSql = fs.readFileSync(
+  RECOMMENDATION_PUBLICATION_MIGRATION_PATH,
+  "utf8"
+);
+export const RECOMMENDATION_PUBLICATION_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
+  recommendationPublicationSql
+);
+export const RECOMMENDATION_PUBLICATION_FUNCTION_BODIES = [
+  "refresh_contractor_recommendation_projection",
+  "sync_recommendation_publication_projection",
+  "sync_author_recommendation_publication_projection",
+].map((name) => {
+  const match = recommendationPublicationSql.match(
+    new RegExp(
+      `CREATE OR REPLACE FUNCTION ${name}\\([^)]*\\)[\\s\\S]*?AS \\$\\$([\\s\\S]*?)\\$\\$;`,
+      "i"
+    )
+  );
+  if (!match?.[1]) throw new Error(`0138 is missing ${name}`);
+  return normalizeSqlBody(match[1]);
+});
 
 export const NOTIFICATION_OUTBOX_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
   fs.readFileSync(NOTIFICATION_OUTBOX_MIGRATION_PATH, "utf8")
@@ -146,6 +171,14 @@ export function evaluateRequiredProductionSchema(check) {
     );
   if (check.migrationLedger && !check.recommendationRuntimeSchemaMigrationRecorded)
     missing.push("drizzle.__drizzle_migrations[0137 canonical hash]");
+  if (!check.recommendationSubmissionColumns)
+    missing.push("recommendations[private submission and moderation columns]");
+  if (!check.recommendationPublicationProjection)
+    missing.push(
+      "recommendations[0138 authoritative publication projection functions and triggers]"
+    );
+  if (check.migrationLedger && !check.recommendationPublicationMigrationRecorded)
+    missing.push("drizzle.__drizzle_migrations[0138 canonical hash]");
   if (!check.contractorRecommendationColumns)
     missing.push("contractors[recommendation projection columns]");
   if (!check.notificationRuntimeColumns)
@@ -727,6 +760,79 @@ export async function verifyRequiredProductionSchema(client) {
             and c.conkey=array[(select attnum from pg_attribute
               where attrelid=c.conrelid and attname='id')]::smallint[]
         ) as recommendation_runtime_contract,
+      not exists (
+        select 1 from (values
+          ('recommendations','recommendation_type',array['text','varchar']::text[]),
+          ('recommendations','project_type',array['text','varchar']::text[]),
+          ('recommendations','project_value',array['numeric']::text[]),
+          ('recommendations','work_quality',array['text','varchar']::text[]),
+          ('recommendations','timeliness',array['text','varchar']::text[]),
+          ('recommendations','communication',array['text','varchar']::text[]),
+          ('recommendations','would_hire_again',array['bool']::text[]),
+          ('recommendations','customer_name',array['text','varchar']::text[]),
+          ('recommendations','customer_email',array['text','varchar']::text[]),
+          ('recommendations','customer_phone',array['text','varchar']::text[]),
+          ('recommendations','ip_address',array['text','varchar']::text[]),
+          ('recommendations','user_agent',array['text','varchar']::text[]),
+          ('recommendations','verification_method',array['text','varchar']::text[]),
+          ('recommendations','verified_at',array['timestamp']::text[]),
+          ('recommendations','is_verified',array['bool']::text[]),
+          ('recommendations','is_public',array['bool']::text[]),
+          ('recommendations','moderation_status',array['text','varchar']::text[]),
+          ('recommendations','moderated_at',array['timestamp']::text[]),
+          ('recommendations','moderated_by',array['text','varchar']::text[]),
+          ('contractor_leaderboard_stats','monthly_positive_recommendations',array['int4']::text[]),
+          ('contractor_leaderboard_stats','monthly_negative_recommendations',array['int4']::text[]),
+          ('contractor_leaderboard_stats','monthly_total_recommendations',array['int4']::text[]),
+          ('contractor_leaderboard_stats','lifetime_positive_recommendations',array['int4']::text[]),
+          ('contractor_leaderboard_stats','lifetime_negative_recommendations',array['int4']::text[]),
+          ('contractor_leaderboard_stats','lifetime_total_recommendations',array['int4']::text[]),
+          ('contractor_leaderboard_stats','monthly_recommendation_score',array['numeric']::text[]),
+          ('contractor_leaderboard_stats','lifetime_recommendation_score',array['numeric']::text[]),
+          ('contractor_leaderboard_stats','monthly_recommendation_percentage',array['numeric']::text[]),
+          ('contractor_leaderboard_stats','lifetime_recommendation_percentage',array['numeric']::text[])
+        ) required(table_name,column_name,types)
+        where not exists (select 1 from information_schema.columns actual
+          where actual.table_schema='public' and actual.table_name=required.table_name
+            and actual.column_name=required.column_name and actual.udt_name=any(required.types))
+      ) and not exists (select 1 from information_schema.columns where table_schema='public'
+        and table_name='recommendations' and column_name='rating' and is_nullable='NO')
+        as recommendation_submission_columns,
+      not exists (
+        select 1 from (values
+          ('refresh_contractor_recommendation_projection',1,'void',1),
+          ('sync_recommendation_publication_projection',0,'trigger',2),
+          ('sync_author_recommendation_publication_projection',0,'trigger',3)
+        ) required(name,args,result,position)
+        where not exists (select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+          join pg_language l on l.oid=p.prolang
+          where n.nspname='public' and p.proname=required.name and p.pronargs=required.args
+            and p.prorettype=required.result::regtype and l.lanname='plpgsql'
+            and p.provolatile='v' and not p.prosecdef
+            and p.proargtypes=case when required.args=1 then '1043'::oidvector else ''::oidvector end
+            and trim(regexp_replace(p.prosrc,'[[:space:]]+',' ','g'))=($3::text[])[required.position])
+      ) and not exists (
+        select 1 from (values
+          ('recommendations','recommendation_publication_projection','sync_recommendation_publication_projection',29),
+          ('users','author_recommendation_publication_projection','sync_author_recommendation_publication_projection',25)
+        ) required(table_name,trigger_name,function_name,event_mask)
+        where not exists (select 1 from pg_trigger t join pg_proc p on p.oid=t.tgfoid
+          join pg_namespace n on n.oid=p.pronamespace
+          where t.tgrelid=to_regclass('public.'||required.table_name) and t.tgname=required.trigger_name
+            and not t.tgisinternal and t.tgenabled in ('O','A') and t.tgtype=required.event_mask
+            and t.tgnargs=0 and t.tgqual is null and t.tgconstraint=0
+            and n.nspname='public' and p.proname=required.function_name
+            and obj_description(t.oid,'pg_trigger')='tradescout-schema:0136:v1'
+            and (case when required.table_name='users' then t.tgattr=''::int2vector else
+              (select array_agg(a.attname::text order by a.attname) from unnest(t.tgattr) key(attnum)
+                join pg_attribute a on a.attrelid=t.tgrelid and a.attnum=key.attnum)
+              =array['contractor_id','created_at','customer_email','is_public','is_verified','moderation_status','recommendation_type','user_id']::text[] end))
+      ) and exists (select 1 from pg_index i
+        where i.indexrelid=to_regclass('public.contractor_leaderboard_period_unique')
+          and i.indrelid=to_regclass('public.contractor_leaderboard_stats') and i.indisunique
+          and i.indisvalid and i.indisready and i.indpred is null
+          and pg_get_indexdef(i.indexrelid) like '%(contractor_id, month, year)')
+        as recommendation_publication_projection,
       coalesce((select valid from column_contracts where table_name = 'contractors'), false)
         as contractor_recommendation_columns,
       coalesce((select valid from column_contracts where table_name = 'notifications'), false)
@@ -928,12 +1034,19 @@ export async function verifyRequiredProductionSchema(client) {
           and column_name = 'public_discovery_enabled'
       ) as public_discovery_enabled
   `,
-    [PROFILE_ACCOUNT_IDENTITY_FUNCTION_BODY, PROFILE_BOOKING_LINEAGE_FUNCTION_BODY]
+    [
+      PROFILE_ACCOUNT_IDENTITY_FUNCTION_BODY,
+      PROFILE_BOOKING_LINEAGE_FUNCTION_BODY,
+      RECOMMENDATION_PUBLICATION_FUNCTION_BODIES,
+    ]
   );
   const row = schemaResult.rows?.[0] || {};
   const check = {
     recommendationRuntimeContract: Boolean(row.recommendation_runtime_contract),
     recommendationRuntimeSchemaMigrationRecorded: false,
+    recommendationSubmissionColumns: Boolean(row.recommendation_submission_columns),
+    recommendationPublicationProjection: Boolean(row.recommendation_publication_projection),
+    recommendationPublicationMigrationRecorded: false,
     contractorRecommendationColumns: Boolean(row.contractor_recommendation_columns),
     notificationRuntimeColumns: Boolean(row.notification_runtime_columns),
     notificationOutboxContract: Boolean(row.notification_outbox_contract),
@@ -1029,6 +1142,9 @@ export async function verifyRequiredProductionSchema(client) {
           exists (
             select 1 from drizzle.__drizzle_migrations where hash = any($10::text[])
           ) as recommendation_runtime_schema_present
+, exists (
+            select 1 from drizzle.__drizzle_migrations where hash = any($11::text[])
+          ) as recommendation_publication_present
       `,
       [
         REQUIRED_MIGRATION_HASHES,
@@ -1041,6 +1157,7 @@ export async function verifyRequiredProductionSchema(client) {
         CONTACT_RUNTIME_SCHEMA_MIGRATION_HASHES,
         NOTIFICATION_OUTBOX_MIGRATION_HASHES,
         RECOMMENDATION_RUNTIME_SCHEMA_MIGRATION_HASHES,
+        RECOMMENDATION_PUBLICATION_MIGRATION_HASHES,
       ]
     );
     check.migrationRecorded = Boolean(migrationResult.rows?.[0]?.required_present);
@@ -1070,6 +1187,9 @@ export async function verifyRequiredProductionSchema(client) {
     );
     check.recommendationRuntimeSchemaMigrationRecorded = Boolean(
       migrationResult.rows?.[0]?.recommendation_runtime_schema_present
+    );
+    check.recommendationPublicationMigrationRecorded = Boolean(
+      migrationResult.rows?.[0]?.recommendation_publication_present
     );
   }
   if (check.publicationRules) {

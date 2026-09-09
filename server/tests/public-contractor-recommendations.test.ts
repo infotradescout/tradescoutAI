@@ -35,7 +35,7 @@ function recommendation(overrides: Partial<Recommendation> = {}): Recommendation
 }
 
 describe("public contractor recommendations", () => {
-  it("publishes only approved recommendations explicitly marked public", () => {
+  it("publishes only verified, approved recommendations explicitly marked public", () => {
     const result = toPublicContractorRecommendations([
       recommendation(),
       recommendation({ id: "pending", moderationStatus: "pending" }),
@@ -43,6 +43,8 @@ describe("public contractor recommendations", () => {
       recommendation({ id: "rejected", moderationStatus: "rejected" }),
       recommendation({ id: "legacy", recommendationType: "legacy_unclassified" }),
       recommendation({ id: "unknown", recommendationType: "unrecognized" }),
+      recommendation({ id: "unverified", isVerified: false }),
+      recommendation({ id: "missing-evidence", isVerified: null }),
     ]);
 
     expect(result).toHaveLength(1);

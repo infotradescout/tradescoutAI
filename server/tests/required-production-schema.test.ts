@@ -19,6 +19,9 @@ const completeSchemaCheck = {
   notificationOutboxMigrationRecorded: true,
   recommendationRuntimeContract: true,
   recommendationRuntimeSchemaMigrationRecorded: true,
+  recommendationSubmissionColumns: true,
+  recommendationPublicationProjection: true,
+  recommendationPublicationMigrationRecorded: true,
   contractorRecommendationColumns: true,
   notificationRuntimeColumns: true,
   userPrivacySettingsContract: true,
@@ -83,6 +86,20 @@ describe("required production schema guard", () => {
       ).toHaveLength(1);
     }
   );
+  it.each([
+    "recommendationSubmissionColumns",
+    "recommendationPublicationProjection",
+    "recommendationPublicationMigrationRecorded",
+  ])("blocks release when %s is missing", (field) => {
+    expect(evaluateRequiredProductionSchema({ ...completeSchemaCheck, [field]: false })).toEqual([
+      field === "recommendationSubmissionColumns"
+        ? "recommendations[private submission and moderation columns]"
+        : field === "recommendationPublicationProjection"
+          ? "recommendations[0138 authoritative publication projection functions and triggers]"
+          : "drizzle.__drizzle_migrations[0138 canonical hash]",
+    ]);
+  });
+
   it("accepts the committed migration hash across LF and CRLF checkouts", () => {
     expect(buildLineEndingCompatibleMigrationHashes("select 1;\n")).toEqual(
       buildLineEndingCompatibleMigrationHashes("select 1;\r\n")

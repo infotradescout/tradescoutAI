@@ -1478,7 +1478,7 @@ export const contractors = pgTable("contractors", {
   positiveRecommendations: integer("positive_recommendations").default(0),
   negativeRecommendations: integer("negative_recommendations").default(0),
   totalRecommendations: integer("total_recommendations").default(0),
-  recommendationScore: decimal("recommendation_score", { precision: 5, scale: 2 }).default("0.00"), // positive minus negative
+  recommendationScore: decimal("recommendation_score").default("0.00"), // positive minus negative
   recommendationPercentage: decimal("recommendation_percentage", {
     precision: 5,
     scale: 2,
@@ -1711,11 +1711,8 @@ export const contractorLeaderboardStats = pgTable(
     lifetimePositiveRecommendations: integer("lifetime_positive_recommendations").default(0),
     lifetimeNegativeRecommendations: integer("lifetime_negative_recommendations").default(0),
     lifetimeTotalRecommendations: integer("lifetime_total_recommendations").default(0),
-    monthlyRecommendationScore: decimal("monthly_recommendation_score", { precision: 5, scale: 2 }), // Monthly (positive - negative)
-    lifetimeRecommendationScore: decimal("lifetime_recommendation_score", {
-      precision: 5,
-      scale: 2,
-    }), // Lifetime (positive - negative)
+    monthlyRecommendationScore: decimal("monthly_recommendation_score"), // Monthly (positive - negative)
+    lifetimeRecommendationScore: decimal("lifetime_recommendation_score"), // Lifetime (positive - negative)
     monthlyRecommendationPercentage: decimal("monthly_recommendation_percentage", {
       precision: 5,
       scale: 2,
@@ -1728,6 +1725,11 @@ export const contractorLeaderboardStats = pgTable(
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => [
+    uniqueIndex("contractor_leaderboard_period_unique").on(
+      table.contractorId,
+      table.month,
+      table.year
+    ),
     index("contractor_leaderboard_month_year_idx").on(table.contractorId, table.month, table.year),
     index("leaderboard_monthly_ranking_idx").on(
       table.month,

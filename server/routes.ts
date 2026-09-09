@@ -1,3 +1,9 @@
+import {
+  isRecommendationActionPath,
+  isRecommendationContinuationPath,
+} from "@shared/recommendationContinuation";
+import { registerRecommendationRoutes } from "./routes/recommendations";
+import { publicRecommendationConditions } from "./storage/repositories/recommendations";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Legacy route module ingests dynamic JSON across many endpoints; incremental hardening tracked separately. */
 import scoutRoute from "./routes/scout";
 import scoutNormalizeRouter from "./routes/scout-normalize";
@@ -407,13 +413,13 @@ async function attachConnectionRecommendationCounts<T extends { id: string }>(
       connectionRecommendationCount: sql<number>`count(distinct ${recommendations.userId})::int`,
     })
     .from(recommendations)
+    .innerJoin(users, eq(users.id, recommendations.userId))
     .where(
       and(
         inArray(recommendations.contractorId, contractorIds),
         inArray(recommendations.userId, connectionIds),
         eq(recommendations.recommendationType, "positive"),
-        eq(recommendations.isPublic, true),
-        eq(recommendations.moderationStatus, "approved")
+        ...publicRecommendationConditions()
       )
     )
     .groupBy(recommendations.contractorId);
@@ -3131,12 +3137,13 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Registration is currently disabled" });
       }
 
-      const emailVerificationRequired = await getGeneralSetting<boolean>(
-        "email_verification_required",
-        true
-      );
-
       const body = (req.body || {}) as any;
+      const recommendationNext = isRecommendationContinuationPath(body.next)
+        ? body.next.trim()
+        : "";
+      const emailVerificationRequired =
+        Boolean(recommendationNext) ||
+        (await getGeneralSetting<boolean>("email_verification_required", true));
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       const password = typeof body.password === "string" ? body.password : "";
       const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
@@ -3224,11 +3231,13 @@ export async function registerRoutes(app: any) {
       if (password.length < 8)
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       if (!firstName) return res.status(400).json({ message: "First name is required" });
-      if (!lastName) return res.status(400).json({ message: "Last name is required" });
-      if (!phone) return res.status(400).json({ message: "Phone number is required" });
+      if (!lastName && !recommendationNext)
+        return res.status(400).json({ message: "Last name is required" });
+      if (!phone && !recommendationNext)
+        return res.status(400).json({ message: "Phone number is required" });
 
       const phoneDigits = phone.replace(/\D/g, "");
-      if (phoneDigits.length < 10) {
+      if (phone && phoneDigits.length < 10) {
         return res.status(400).json({ message: "Please enter a valid phone number" });
       }
 
@@ -3457,7 +3466,7 @@ export async function registerRoutes(app: any) {
       if (emailVerificationRequired && !user.emailVerified) {
         const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
-        const next = "/pre-scout-setup";
+        const next = recommendationNext || "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
         try {
@@ -4056,6 +4065,13 @@ export async function registerRoutes(app: any) {
       if (!updated) {
         return res.status(404).json({ message: "User not found" });
       }
+
+      // Refresh only private recommendation evidence; email confirmation never approves publication.
+      await storage.verifyPendingRecommendationsForUser(userId).catch((error) => {
+        // The confirmation is already durable and its token consumed. Private
+        // recommendation reads and moderation retry this evidence refresh.
+        console.error("Failed to refresh pending recommendation verification:", error);
+      });
 
       // Auto-login: establish a session immediately after verification so the user
       // lands in the app without a second sign-in step (mirrors OAuth flow behavior).
@@ -5237,7 +5253,13 @@ export async function registerRoutes(app: any) {
         };
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
-            if (required && user && user.emailVerified !== true && email) {
+            if (
+              required &&
+              user &&
+              user.emailVerified !== true &&
+              email &&
+              !isRecommendationActionPath(redirectBase)
+            ) {
               return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
               );
@@ -5305,7 +5327,13 @@ export async function registerRoutes(app: any) {
         };
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
-            if (required && user && user.emailVerified !== true && email) {
+            if (
+              required &&
+              user &&
+              user.emailVerified !== true &&
+              email &&
+              !isRecommendationActionPath(redirectBase)
+            ) {
               return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
               );
@@ -11194,39 +11222,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Recommendations (requires auth)
-  app.post("/api/recommendations", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const recommendationData = { ...req.body, userId };
-
-      // Track rating submission with locality context
-      // LocalityTracker call removed
-
-      const recommendation = await storage.createRecommendation({
-        ...recommendationData,
-        ipAddress: req.ip || null,
-        userAgent: req.get("user-agent") || null,
-      });
-
-      // Update leaderboard stats when recommendation is created
-      await storage.updateContractorLeaderboardStats(
-        recommendationData.contractorId,
-        recommendationData.rating
-      );
-
-      await storage.logEvent("recommendation_submitted", {
-        recommendationId: recommendation.id,
-        contractorId: recommendation.contractorId,
-        userId,
-      });
-
-      res.json(recommendation);
-    } catch (error: any) {
-      console.error("Error creating recommendation:", error);
-      res.status(500).json({ message: "Failed to create recommendation" });
-    }
-  });
+  registerRecommendationRoutes(app);
 
   registerContractorLeaderboardRoutes(app, storage);
 
@@ -11927,205 +11923,6 @@ export async function registerRoutes(app: any) {
       } catch (error: any) {
         console.error("Error updating contractor application:", error);
         res.status(500).json({ message: "Failed to update application" });
-      }
-    }
-  );
-
-  // Create recommendation for contractor with anti-abuse protection (LOGIN REQUIRED)
-  app.post(
-    "/api/contractors/:contractorId/recommendations",
-    isAuthenticated,
-    requireOnboardingComplete,
-    async (req: any, res: any) => {
-      try {
-        const { contractorId } = req.params;
-        const {
-          recommendationType,
-          comment,
-          projectType,
-          projectValue,
-          workQuality,
-          timeliness,
-          communication,
-          wouldHireAgain,
-          customerName,
-          customerEmail,
-          customerPhone,
-        } = (req.body ?? {}) as any;
-
-        // Validate required fields
-        if (!customerName || !customerEmail || !comment || !recommendationType) {
-          return res.status(400).json({
-            success: false,
-            message: "Customer name, email, comment, and recommendation type are required",
-          });
-        }
-
-        // Get client IP and user agent for anti-abuse
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get("User-Agent");
-
-        const recommendation = await storage.createRecommendation({
-          contractorId,
-          userId: (req.user as any)?.id || (req.user as any)?.claims?.sub, // User must be authenticated
-          recommendationType,
-          comment,
-          projectType,
-          projectValue,
-          workQuality,
-          timeliness,
-          communication,
-          wouldHireAgain,
-          customerName,
-          customerEmail,
-          customerPhone,
-          ipAddress,
-          userAgent,
-        });
-
-        res.json({
-          success: true,
-          message: "Recommendation submitted for review. It will be published after moderation.",
-          recommendation: {
-            id: recommendation.id,
-            recommendationType: recommendation.recommendationType,
-            moderationStatus: recommendation.moderationStatus,
-          },
-        });
-      } catch (error: any) {
-        console.error("Error creating recommendation:", error);
-        res.status(400).json({
-          success: false,
-          message: (error as Error).message || "Failed to submit recommendation",
-        });
-      }
-    }
-  );
-
-  // Get contractor recommendations
-  app.get("/api/contractors/:contractorId/recommendations", async (req: any, res: any) => {
-    try {
-      const { contractorId } = req.params;
-      const { type = "all", limit = 10 } = req.query;
-
-      const recommendations = await storage.getContractorRecommendations(contractorId, {
-        type: type as "positive" | "negative" | "all",
-        limit: parseInt(limit as string),
-      });
-
-      res.json(recommendations);
-    } catch (error: any) {
-      console.error("Error fetching recommendations:", error);
-      res.status(500).json({ message: "Failed to fetch recommendations" });
-    }
-  });
-
-  // Admin: Get pending recommendations for moderation
-  app.get(
-    "/api/admin/recommendations/pending",
-    isAuthenticated,
-    requireRole(["super_admin", "ops_admin", "moderator"]),
-    async (req: any, res: any) => {
-      try {
-        const { limit = 50 } = req.query;
-
-        const pendingRecommendations = await db
-          .select({
-            id: recommendations.id,
-            contractorId: recommendations.contractorId,
-            recommendationType: recommendations.recommendationType,
-            comment: recommendations.comment,
-            customerName: recommendations.customerName,
-            customerEmail: recommendations.customerEmail,
-            projectType: recommendations.projectType,
-            projectValue: recommendations.projectValue,
-            createdAt: recommendations.createdAt,
-            contractorName: contractors.companyName,
-          })
-          .from(recommendations)
-          .leftJoin(contractors, eq(recommendations.contractorId, contractors.id))
-          .where(eq(recommendations.moderationStatus, "pending"))
-          .orderBy(desc(recommendations.createdAt))
-          .limit(parseInt(limit as string));
-
-        res.json(pendingRecommendations);
-      } catch (error: any) {
-        console.error("Error fetching pending recommendations:", error);
-        res.status(500).json({ message: "Failed to fetch pending recommendations" });
-      }
-    }
-  );
-
-  // Admin: Moderate recommendation
-  app.patch(
-    "/api/admin/recommendations/:id/moderate",
-    isAuthenticated,
-    requireRole(["super_admin", "ops_admin", "moderator"]),
-    async (req: any, res: any) => {
-      try {
-        const { id } = req.params;
-        const { action } = (req.body ?? {}) as any; // action: 'approve' or 'reject'
-        const moderatorId = (req.user as any)?.id;
-
-        if (!["approve", "reject"].includes(action)) {
-          return res.status(400).json({ message: "Action must be 'approve' or 'reject'" });
-        }
-
-        // Get the recommendation first
-        const [recommendation] = await db
-          .select()
-          .from(recommendations)
-          .where(eq(recommendations.id, id));
-
-        if (!recommendation) {
-          return res.status(404).json({ message: "Recommendation not found" });
-        }
-
-        if (
-          action === "approve" &&
-          !["positive", "negative"].includes(recommendation.recommendationType)
-        ) {
-          return res.status(409).json({
-            message:
-              "This historical review has no explicit recommendation. It cannot be published as an endorsement.",
-          });
-        }
-
-        // Update moderation status
-        const [moderated] = await db
-          .update(recommendations)
-          .set({
-            moderationStatus: action === "approve" ? "approved" : "rejected",
-            isPublic: action === "approve",
-            moderatedAt: new Date(),
-            moderatedBy: moderatorId,
-          })
-          .where(
-            and(
-              eq(recommendations.id, id),
-              action === "approve"
-                ? inArray(recommendations.recommendationType, ["positive", "negative"])
-                : undefined
-            )
-          )
-          .returning({ id: recommendations.id });
-        if (!moderated)
-          return res
-            .status(409)
-            .json({ message: "The review changed before moderation. Reload it and try again." });
-
-        // Update contractor stats if approved
-        if (action === "approve") {
-          await storage.updateContractorRecommendationStats(recommendation.contractorId);
-        }
-
-        res.json({
-          success: true,
-          message: `Recommendation ${action}d successfully`,
-        });
-      } catch (error: any) {
-        console.error("Error moderating recommendation:", error);
-        res.status(500).json({ message: "Failed to moderate recommendation" });
       }
     }
   );
@@ -12882,7 +12679,9 @@ export async function registerRoutes(app: any) {
           merged.slice(offset, offset + limit).map(async (thread) => {
             if (!legacyIds.has(thread.id)) return thread;
             const context = await loadLegacyConversationContext(thread.id, String(userId));
-            return context ? { ...thread, kind: context.kind, subject: context.title, context } : thread;
+            return context
+              ? { ...thread, kind: context.kind, subject: context.title, context }
+              : thread;
           })
         );
         res.json({ threads });

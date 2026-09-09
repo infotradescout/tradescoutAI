@@ -121,10 +121,16 @@ await probe(
       ).rows[0].n,
       0
     );
+    // The outbox recovery records dispatch completion even when preferences
+    // suppress every channel, so the scheduler cannot replay suppressed work.
+    // The absent delivery log above is the evidence that nothing was delivered.
     assert.equal(
-      (await pool.query("select sent_at from notifications where id=$1", [disabled.id])).rows[0]
-        .sent_at,
-      null
+      (
+        await pool.query("select sent_at is not null as complete from notifications where id=$1", [
+          disabled.id,
+        ])
+      ).rows[0].complete,
+      true
     );
   }
 );

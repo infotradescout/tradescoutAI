@@ -7,6 +7,7 @@ import { buildTrustSnapshotsInsertSql } from "../../server/services/trustSnapsho
 import ts from "typescript";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as operators from "drizzle-orm";
+import { z } from "zod";
 
 assert.equal(process.env.NODE_ENV, "test");
 const target = assertDisposableTestDatabaseUrl(process.env.TEST_DATABASE_URL);
@@ -20,6 +21,32 @@ const schema = await import("../../shared/schema.ts");
 const client = new pg.Client({ connectionString: process.env.TEST_DATABASE_URL });
 await client.connect();
 const db = drizzle(client);
+const {
+  createRecommendationRepository,
+  publicRecommendationConditions,
+  RecommendationSubmissionError,
+} = await import("../../server/storage/repositories/recommendations.ts");
+// The outer fixture transaction always rolls back. Repository transactions use
+// savepoints here so the actual owner cannot commit the surrounding DDL fixture.
+const repositoryDatabase = new Proxy(db, {
+  get(target, property) {
+    if (property === "transaction")
+      return async (run) => {
+        await client.query("SAVEPOINT recommendation_owner");
+        try {
+          const result = await run(db);
+          await client.query("RELEASE SAVEPOINT recommendation_owner");
+          return result;
+        } catch (error) {
+          await client.query("ROLLBACK TO SAVEPOINT recommendation_owner");
+          throw error;
+        }
+      };
+    const value = target[property];
+    return typeof value === "function" ? value.bind(target) : value;
+  },
+});
+const recommendationRepository = createRecommendationRepository(repositoryDatabase);
 // Execute the actual route handler and storage method source with the native
 // fixture DB, without importing unrelated server startup/provider side effects.
 const sourceFile = (file) =>
@@ -30,6 +57,7 @@ const storageClass = storageSource.statements.find(
 );
 const methodNames = [
   "getContractorRatings",
+  "moderateContractorRecommendation",
   "getContractorRecommendations",
   "updateContractorRecommendationStats",
   "analyzeContractorPerformance",
@@ -51,12 +79,25 @@ function instantiate(source, variable, storage) {
     "schema",
     "operators",
     "storage",
-    "const {recommendations,contractors}=schema; const {and,eq,inArray,sql,gt,desc}=operators;\n" +
+    "recommendationRepository",
+    "publicRecommendationConditions",
+    "z",
+    "RecommendationSubmissionError",
+    "const {recommendations,contractors,users}=schema; const {and,eq,inArray,sql,gt,desc}=operators;\n" +
       compiled +
       "\nreturn " +
       variable +
       ";"
-  )(db, schema, operators, storage);
+  )(
+    db,
+    schema,
+    operators,
+    storage,
+    recommendationRepository,
+    publicRecommendationConditions,
+    z,
+    RecommendationSubmissionError
+  );
 }
 const storageOwner = instantiate(
   "const owner = new (class {" + methods.join("\n") + "})();",
@@ -71,7 +112,7 @@ let goalProgress;
 storageOwner.updateRecommendationGoal = async (_id, data) => {
   goalProgress = data.currentProgress;
 };
-const routesSource = sourceFile("server/routes.ts");
+const routesSource = sourceFile("server/routes/recommendations.ts");
 let moderationNode;
 function visit(node) {
   if (
@@ -86,7 +127,12 @@ function visit(node) {
 visit(routesSource);
 assert.ok(moderationNode, "Current authenticated moderation owner is missing");
 const moderate = instantiate(
-  "const handler = " + moderationNode.getText(routesSource) + ";",
+  routesSource.statements
+    .find((node) => ts.isFunctionDeclaration(node) && node.name?.text === "handleError")
+    .getText(routesSource) +
+    "\nconst handler = " +
+    moderationNode.getText(routesSource) +
+    ";",
   "handler",
   storageOwner
 );
@@ -120,6 +166,11 @@ const signalSql =
   scoringSql.slice(signalStart, signalEnd).trim().replace(/,$/, "") +
   " SELECT positive_recommendations, negative_recommendations FROM recommendation_signals WHERE user_id=$1";
 const provider = "native-recommendation-schema-provider";
+const author = "native-recommendation-schema-author";
+const publicationMigration = fs.readFileSync(
+  "migrations/0138_recommendation_publication_projection.sql",
+  "utf8"
+);
 const contractor = "native-recommendation-schema-contractor";
 const addedColumns = [
   "recommendation_type",
@@ -209,7 +260,10 @@ try {
     ],
   ]) {
     await transaction(async () => {
+      if (label === "wrong classification type")
+        await client.query("DROP TRIGGER recommendation_publication_projection ON recommendations");
       await client.query(mutation);
+      if (label === "wrong classification type") await client.query(publicationMigration);
       await assert.rejects(
         verifyRequiredProductionSchema(client),
         /Required production schema is missing/
@@ -233,19 +287,25 @@ try {
       "INSERT INTO contractors(id,user_id,company_name,slug,is_active,verified_licensed,verified_insured) VALUES($1,$2,'Native fixture',$1,true,true,true)",
       [contractor, provider]
     );
-    // Recreate the journal's populated legacy shape inside a rollback-only fixture.
     await client.query(
-      "ALTER TABLE recommendations " + addedColumns.map((c) => `DROP COLUMN ${c}`).join(",")
+      "INSERT INTO users(id,email,role,email_verified) VALUES($1,'fixture@tradescout.test','homeowner',true)",
+      [author]
+    );
+    // Recreate the journal's populated legacy shape inside a rollback-only fixture.
+    await client.query("DROP TRIGGER recommendation_publication_projection ON recommendations");
+    await client.query(
+      "ALTER TABLE recommendations " + addedColumns.map((c) => `DROP COLUMN ${c} CASCADE`).join(",")
     );
     await client.query(
       "ALTER TABLE recommendations ALTER COLUMN comment DROP NOT NULL, ALTER COLUMN rating SET NOT NULL"
     );
     await client.query(
       "INSERT INTO recommendations(id,contractor_id,user_id,rating,comment,is_verified) VALUES('native-legacy-high',$1,$2,5,NULL,true),('native-legacy-low',$1,$2,1,'Original low rating text',false)",
-      [contractor, provider]
+      [contractor, author]
     );
     await client.query(migration);
     await client.query(migration);
+    await client.query(publicationMigration);
     const legacy = (
       await client.query(
         "SELECT id,rating,comment,recommendation_type,is_verified,is_public,moderation_status,customer_name,customer_email FROM recommendations WHERE id LIKE 'native-legacy-%' ORDER BY id"
@@ -278,7 +338,7 @@ try {
     await verifyRequiredProductionSchema(client);
     await client.query(
       "INSERT INTO recommendations(id,contractor_id,user_id,recommendation_type,comment,customer_name,customer_email) VALUES('native-current-new',$1,$2,'positive','Explicit modern review','Fixture','fixture@tradescout.test')",
-      [contractor, provider]
+      [contractor, author]
     );
     assert.equal(
       (await client.query("SELECT rating FROM recommendations WHERE id='native-current-new'"))
@@ -290,7 +350,7 @@ try {
     );
     await client.query(
       "INSERT INTO recommendations(id,contractor_id,user_id,recommendation_type,comment,customer_name,customer_email,is_public,moderation_status,is_verified) VALUES('native-legacy-partial',$1,$2,NULL,'Preserved partial history','','',true,'approved',true)",
-      [contractor, provider]
+      [contractor, author]
     );
     await client.query(migration);
     assert.deepEqual(
@@ -309,13 +369,13 @@ try {
     assert.equal((await moderation("native-legacy-high", "approve")).statusCode, 409);
     assert.equal((await moderation("native-legacy-low", "reject")).statusCode, 200);
     assert.equal((await moderation("native-current-new", "approve")).statusCode, 200);
-    assert.deepEqual(await signals(), { positive_recommendations: 0, negative_recommendations: 0 });
+    assert.deepEqual(await signals(), { positive_recommendations: 1, negative_recommendations: 0 });
     const baseline = await score();
     // Even corrupted publication flags cannot turn the sentinel into polarity.
     await client.query(
       "UPDATE recommendations SET is_public=true,moderation_status='approved' WHERE id='native-legacy-high'"
     );
-    assert.deepEqual(await signals(), { positive_recommendations: 0, negative_recommendations: 0 });
+    assert.deepEqual(await signals(), { positive_recommendations: 1, negative_recommendations: 0 });
     assert.equal(await score(), baseline);
     assert.deepEqual(
       toPublicContractorRecommendations([
@@ -366,17 +426,39 @@ try {
     ]) {
       await client.query(
         "INSERT INTO recommendations(id,contractor_id,user_id,recommendation_type,comment,customer_name,customer_email,is_verified,is_public,moderation_status) VALUES($1,$2,$3,$4,'Preserved canonical text','Fixture','fixture@tradescout.test',$5,$6,$7)",
-        ["native-current-" + id, contractor, provider, type, verified, published, moderation]
+        ["native-current-" + id, contractor, author, type, verified, published, moderation]
       );
     }
-    assert.deepEqual(await signals(), { positive_recommendations: 1, negative_recommendations: 0 });
+    assert.deepEqual(await signals(), { positive_recommendations: 2, negative_recommendations: 0 });
     assert.equal(await score(), baseline + 2);
     await client.query(
       "INSERT INTO recommendations(id,contractor_id,user_id,recommendation_type,comment,customer_name,customer_email,is_verified,is_public,moderation_status) VALUES('native-current-negative',$1,$2,'negative','Explicit negative','Fixture','fixture@tradescout.test',true,true,'approved')",
-      [contractor, provider]
+      [contractor, author]
     );
-    assert.deepEqual(await signals(), { positive_recommendations: 1, negative_recommendations: 1 });
+    assert.deepEqual(await signals(), { positive_recommendations: 2, negative_recommendations: 1 });
     assert.equal(await score(), baseline - 3);
+    await client.query("UPDATE users SET email_verified=false WHERE id=$1", [author]);
+    assert.deepEqual(await signals(), { positive_recommendations: 0, negative_recommendations: 0 });
+    assert.equal((await storageOwner.getContractorRecommendations(contractor)).length, 0);
+    assert.equal(
+      (
+        await client.query("SELECT total_recommendations FROM contractors WHERE id=$1", [
+          contractor,
+        ])
+      ).rows[0].total_recommendations,
+      0
+    );
+    await client.query(
+      "UPDATE users SET email_verified=true,email='changed@tradescout.test' WHERE id=$1",
+      [author]
+    );
+    assert.deepEqual(await signals(), { positive_recommendations: 0, negative_recommendations: 0 });
+    await client.query("UPDATE users SET email='fixture@tradescout.test' WHERE id=$1", [author]);
+    assert.deepEqual(await signals(), { positive_recommendations: 2, negative_recommendations: 1 });
+    proof.push({
+      authorRevocationRemovesTrustAndPublicCredit: true,
+      changedAuthorEmailRemovesTrustCredit: true,
+    });
     const before = (
       await client.query(
         "SELECT * FROM recommendations WHERE id LIKE 'native-current-%' ORDER BY id"
