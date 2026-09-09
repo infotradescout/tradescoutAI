@@ -1,7 +1,11 @@
 # Infinity text contract
 
-`shared/communityPostShare.ts` imports `cleanString` from
-`@tradescout-infinity/contracts/text`. The source owner is Infinity's existing
+Eleven shared modules import `cleanString` from
+`@tradescout-infinity/contracts/text`. These cover community, contractor photo
+and promotion, handmade product, home listing, profile gallery, offer, portfolio
+and service sharing, public business listings, and live-readiness checks. The
+initial caller and ten additional paths are recorded in `provenance.json`.
+The source owner is Infinity's existing
 `packages/contracts/src/text.ts`. This function trims primitive strings and
 returns an empty string for other values; it does not coerce, sanitize, or
 truncate content.
@@ -24,4 +28,5 @@ source hashes, update the consumer dependency and lockfile, then run the package
 distribution and community-sharing tests. Do not edit the archive or create a
 second helper in the consumer.
 
-`reuse-proof.json` records this migration's checks and remaining release gaps.
+`reuse-proof.json` records the initial one-caller checkpoint. The current PR
+description records validation for the latest commit and the wider adoption.

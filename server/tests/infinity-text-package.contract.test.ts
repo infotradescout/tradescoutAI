@@ -44,10 +44,14 @@ describe("Infinity text package distribution", () => {
     expect(provenance.consumer.import).toBe(textImport);
   });
 
-  it("bundles the actual community share caller through the browser-safe text export", async () => {
+  it("bundles every recorded caller through the browser-safe text export", async () => {
+    const { consumer } = readJson("vendor/infinity/provenance.json");
+    const callers = [consumer.path, ...consumer.additionalPaths];
+    expect(new Set(callers).size).toBe(11);
     const result = await build({
       absWorkingDir: root,
-      entryPoints: ["shared/communityPostShare.ts"],
+      entryPoints: callers,
+      outdir: path.join(root, "tmp/infinity-text-bundle"),
       bundle: true,
       platform: "browser",
       format: "esm",
@@ -56,7 +60,7 @@ describe("Infinity text package distribution", () => {
       logLevel: "silent",
     });
     const inputs = Object.keys(result.metafile!.inputs).map((input) => input.replaceAll("\\", "/"));
-    expect(inputs).toContain("shared/communityPostShare.ts");
+    for (const caller of callers) expect(inputs).toContain(caller);
     expect(
       inputs.some((input) => /@tradescout-infinity\/contracts\/dist\/src\/text\.js$/.test(input))
     ).toBe(true);
@@ -69,8 +73,15 @@ describe("Infinity text package distribution", () => {
     expect(imports.some((entry) => entry.path === "node:crypto" || entry.path === "crypto")).toBe(
       false
     );
-    expect(result.outputFiles).toHaveLength(1);
-    expect(result.outputFiles![0].text).not.toContain("node:crypto");
+    expect(result.outputFiles).toHaveLength(callers.length);
+    for (const output of Object.values(result.metafile!.outputs)) {
+      expect(
+        Object.keys(output.inputs).some((input) =>
+          /@tradescout-infinity\/contracts\/dist\/src\/text\.js$/.test(input.replaceAll("\\", "/"))
+        )
+      ).toBe(true);
+    }
+    for (const file of result.outputFiles!) expect(file.text).not.toContain("node:crypto");
   });
 
   it("makes the pinned archive available to Docker dependency installation and split workspaces", async () => {

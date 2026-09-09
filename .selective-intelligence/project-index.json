@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-09T04:59:18Z",
+  "generated_at": "2026-09-09T14:52:27Z",
   "source": {
     "kind": "git",
-    "revision": "a0db11f67850d37eaa8f6d5feb0e37d8cc315966",
+    "revision": "6dd00a906597524e5b767961c6f2fd0248e1f545",
     "dirty": true,
-    "inventory_sha256": "6e2cd6ea9f26664a0b05848279cac8e5130f6f7b0a76f1d2dd5ce61a0da27286"
+    "inventory_sha256": "e40360428b7c88e94dd8a09ac1f881856bd0688804a8c5e4047262e0fd3003ad"
   },
   "inventory": {
     "directories": [
@@ -7851,8 +7851,8 @@
       {
         "path": "scripts/generate-sitemap-core.mjs",
         "language": "mjs",
-        "sha256": "ea1bf5eb02b21095f22f34909a19df802789fed78f67dd7c19084221db696fc0",
-        "bytes": 7616
+        "sha256": "6f3c1b55becbe64f6ef693641aa4fc62c9a0d62e540e76afd0692ceb4d71dae8",
+        "bytes": 7903
       },
       {
         "path": "scripts/generate-sitemap.mjs",
@@ -12753,8 +12753,8 @@
       {
         "path": "server/tests/core-sitemap-response.test.ts",
         "language": "ts",
-        "sha256": "6f09af83b13ebd830f9152a87ce21020826f2183e55a3e34efaf3e32fc781838",
-        "bytes": 1141
+        "sha256": "bd8363052a3a0b4b61c553517a98a7cf65f4ce043387f15a701df52dc2a0b804",
+        "bytes": 4286
       },
       {
         "path": "server/tests/cors-policy.test.ts",
@@ -13431,8 +13431,8 @@
       {
         "path": "server/tests/infinity-text-package.contract.test.ts",
         "language": "ts",
-        "sha256": "a4450e066cb6d1943fb284feb2d3c53fd07a54b4f5da0fab3c823f49f0a7497f",
-        "bytes": 4494
+        "sha256": "bdab361ed82c1f4304475a8ed24f483ce3d7b74b1aa6c4bbb9f64077b90ec33d",
+        "bytes": 5006
       },
       {
         "path": "server/tests/intent-parity-status.test.ts",
@@ -16275,14 +16275,14 @@
       {
         "path": "shared/contractorPhotoShare.ts",
         "language": "ts",
-        "sha256": "f49f100ef9aaf96cf9d4d698ca4c74c952c07a6d807b88d0c2205d5a933a5aec",
-        "bytes": 3278
+        "sha256": "221c4bb40dfc9fecc636c64e1c3d342a1c8b3c9df3ab39e90beb4702b01a9d39",
+        "bytes": 3240
       },
       {
         "path": "shared/contractorPromoShare.ts",
         "language": "ts",
-        "sha256": "2d45a5792dcecc727e2416edf01d44a499b1c9eadbed04bb655813d86098250b",
-        "bytes": 9954
+        "sha256": "19d733dacc72f952aa968ac96c76dd4aecb5316ab56e15a9f811bfee0ef34ab0",
+        "bytes": 9916
       },
       {
         "path": "shared/database-url-security.d.ts",
@@ -16353,14 +16353,14 @@
       {
         "path": "shared/handmadeProductShare.ts",
         "language": "ts",
-        "sha256": "0cfde056b1583828c925ff59c7c3c58f1adde0bd010d0bdd999a5c3e0b48b723",
-        "bytes": 1656
+        "sha256": "a01dc80b3a923f355ca5905d383dc643ebfb3d5d5dd2f053bf0913edb839b1a1",
+        "bytes": 1618
       },
       {
         "path": "shared/homeScoutListingShare.ts",
         "language": "ts",
-        "sha256": "90c01f49b32d4fece069b427ffee61a824d1492300add1ec9473179a9d6531f7",
-        "bytes": 6670
+        "sha256": "ed4bed44021dfef370622f6cd747a329d741122141af07b93e640d8d21d2feec",
+        "bytes": 6632
       },
       {
         "path": "shared/identityPolicy.ts",
@@ -16449,8 +16449,8 @@
       {
         "path": "shared/liveReadiness.ts",
         "language": "ts",
-        "sha256": "17dedca6a3089319e3e702a6c8b6a83fbf11d2165dc42ecf5591fcc22dadafcd",
-        "bytes": 10784
+        "sha256": "3d53e3f41d6a2abc6a48b96d803cc71c7c365b2f519dad47ad884e31eb63f11c",
+        "bytes": 10746
       },
       {
         "path": "shared/localServiceProfile.ts",
@@ -16575,8 +16575,8 @@
       {
         "path": "shared/profileGalleryShare.ts",
         "language": "ts",
-        "sha256": "4e383d25336234a2933367a35aa5c5e9851d44ebd15fc4f5bb0eadaf98fe49c0",
-        "bytes": 7889
+        "sha256": "8adcecaeac8df4230365badc2d8af0714f1b43e494c77fa83dd6ee14135ee902",
+        "bytes": 7851
       },
       {
         "path": "shared/profileItemShare.ts",
@@ -16587,14 +16587,14 @@
       {
         "path": "shared/profileOfferShare.ts",
         "language": "ts",
-        "sha256": "342ecc29765b870e4064809f7a2dce40eac435d1ce839ac99831acaf76f7b432",
-        "bytes": 4430
+        "sha256": "661287bbe1c99a04cda8dd21451f99c5649c450a236db54ef61242d53e4eb295",
+        "bytes": 4392
       },
       {
         "path": "shared/profilePortfolioShare.ts",
         "language": "ts",
-        "sha256": "ef6a559a79ae0b06e9309efa78d52cc8e86b520b9f0b2ddc73487b294cb02e37",
-        "bytes": 5853
+        "sha256": "348879412cfe58154dee7207e748e8bb2498540ad999a41afbcf9f45a50bf2c1",
+        "bytes": 5815
       },
       {
         "path": "shared/profilePublicItemRoute.ts",
@@ -16635,8 +16635,8 @@
       {
         "path": "shared/profileServiceShare.ts",
         "language": "ts",
-        "sha256": "162d59ab8582f01ac38c67d9b761526b2d4270f1317ae37abeb614a2ec79f9e3",
-        "bytes": 10218
+        "sha256": "fe93559ab1cc354e9cd54b2f0accb52579e891fe54c707be6eba0ca4ff9fbd26",
+        "bytes": 10180
       },
       {
         "path": "shared/profileSiteTemplates.ts",
@@ -16665,8 +16665,8 @@
       {
         "path": "shared/publicBusinessListing.ts",
         "language": "ts",
-        "sha256": "097f8ba6e5c46ded93abc013ef7d570b0f23ec3a1c433b5260cf59984b41e16a",
-        "bytes": 4310
+        "sha256": "2ee8b59bb73286d550e38806a93e5782768f020036b2b5f68d63a400d819abc8",
+        "bytes": 4272
       },
       {
         "path": "shared/publicLandingIndexability.ts",
@@ -102914,6 +102914,13 @@
         "exported": false
       },
       {
+        "name": "generate",
+        "kind": "function",
+        "path": "server/tests/core-sitemap-response.test.ts",
+        "line": 26,
+        "exported": false
+      },
+      {
         "name": "buildResponse",
         "kind": "function",
         "path": "server/tests/countyInferenceService.test.ts",
@@ -110120,203 +110127,189 @@
         "name": "ResolvedProfileGalleryItem",
         "kind": "type",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 5,
+        "line": 7,
         "exported": false
       },
       {
         "name": "ContractorProjectPhoto",
         "kind": "type",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 9,
+        "line": 11,
         "exported": true
       },
       {
         "name": "ContractorPhotoShareMetadata",
         "kind": "type",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 11,
+        "line": 13,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/contractorPhotoShare.ts",
-        "line": 22,
-        "exported": false
       },
       {
         "name": "capForShare",
         "kind": "function",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 26,
+        "line": 24,
         "exported": false
       },
       {
         "name": "contractorPhotoBlocks",
         "kind": "function",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 32,
+        "line": 30,
         "exported": false
       },
       {
         "name": "listContractorProjectPhotos",
         "kind": "function",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 54,
+        "line": 52,
         "exported": true
       },
       {
         "name": "resolveContractorProjectPhoto",
         "kind": "function",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 62,
+        "line": 60,
         "exported": true
       },
       {
         "name": "buildContractorPhotoShareSearch",
         "kind": "function",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 71,
+        "line": 69,
         "exported": true
       },
       {
         "name": "createContractorPhotoShareMetadata",
         "kind": "function",
         "path": "shared/contractorPhotoShare.ts",
-        "line": 75,
+        "line": 73,
         "exported": true
       },
       {
         "name": "ContractorPromoSource",
         "kind": "type",
         "path": "shared/contractorPromoShare.ts",
-        "line": 6,
+        "line": 8,
         "exported": false
       },
       {
         "name": "ContractorPromoProviderSource",
         "kind": "type",
         "path": "shared/contractorPromoShare.ts",
-        "line": 24,
+        "line": 26,
         "exported": false
       },
       {
         "name": "PublicContractorPromoCard",
         "kind": "type",
         "path": "shared/contractorPromoShare.ts",
-        "line": 33,
+        "line": 35,
         "exported": true
       },
       {
         "name": "PublicContractorPromoDetail",
         "kind": "type",
         "path": "shared/contractorPromoShare.ts",
-        "line": 46,
+        "line": 48,
         "exported": true
       },
       {
         "name": "ContractorPromoShareMetadata",
         "kind": "type",
         "path": "shared/contractorPromoShare.ts",
-        "line": 65,
+        "line": 67,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/contractorPromoShare.ts",
-        "line": 74,
-        "exported": false
       },
       {
         "name": "normalizeOptionalDecimal",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 78,
+        "line": 76,
         "exported": false
       },
       {
         "name": "normalizeDate",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 84,
+        "line": 82,
         "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 92,
+        "line": 90,
         "exported": false
       },
       {
         "name": "formatMoney",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 105,
+        "line": 103,
         "exported": false
       },
       {
         "name": "normalizeContractorPromoSlug",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 113,
+        "line": 111,
         "exported": true
       },
       {
         "name": "buildContractorPromoPath",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 119,
+        "line": 117,
         "exported": true
       },
       {
         "name": "isContractorPromoPubliclyAvailable",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 124,
+        "line": 122,
         "exported": true
       },
       {
         "name": "listContractorPromoImageUrls",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 140,
+        "line": 138,
         "exported": true
       },
       {
         "name": "formatContractorPromoDiscount",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 159,
+        "line": 157,
         "exported": true
       },
       {
         "name": "buildCard",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 169,
+        "line": 167,
         "exported": false
       },
       {
         "name": "buildPublicContractorPromoCards",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 199,
+        "line": 197,
         "exported": true
       },
       {
         "name": "buildPublicContractorPromoDetail",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 216,
+        "line": 214,
         "exported": true
       },
       {
         "name": "createContractorPromoShareMetadata",
         "kind": "function",
         "path": "shared/contractorPromoShare.ts",
-        "line": 248,
+        "line": 246,
         "exported": true
       },
       {
@@ -110841,147 +110834,133 @@
         "name": "HandmadeProductImageSource",
         "kind": "type",
         "path": "shared/handmadeProductShare.ts",
-        "line": 3,
-        "exported": false
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/handmadeProductShare.ts",
-        "line": 8,
+        "line": 5,
         "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/handmadeProductShare.ts",
-        "line": 12,
+        "line": 10,
         "exported": false
       },
       {
         "name": "normalizeHandmadeProductId",
         "kind": "function",
         "path": "shared/handmadeProductShare.ts",
-        "line": 25,
+        "line": 23,
         "exported": true
       },
       {
         "name": "buildHandmadeProductPath",
         "kind": "function",
         "path": "shared/handmadeProductShare.ts",
-        "line": 30,
+        "line": 28,
         "exported": true
       },
       {
         "name": "listHandmadeProductImageUrls",
         "kind": "function",
         "path": "shared/handmadeProductShare.ts",
-        "line": 35,
+        "line": 33,
         "exported": true
       },
       {
         "name": "HomeScoutListingSource",
         "kind": "type",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 7,
+        "line": 9,
         "exported": false
       },
       {
         "name": "PublicHomeScoutListingCard",
         "kind": "type",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 24,
+        "line": 26,
         "exported": true
       },
       {
         "name": "HomeScoutListingShareMetadata",
         "kind": "type",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 41,
+        "line": 43,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/homeScoutListingShare.ts",
-        "line": 50,
-        "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 54,
+        "line": 52,
         "exported": false
       },
       {
         "name": "normalizeDate",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 67,
+        "line": 65,
         "exported": false
       },
       {
         "name": "normalizeOptionalNumber",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 75,
+        "line": 73,
         "exported": false
       },
       {
         "name": "normalizeHomeScoutListingId",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 81,
+        "line": 79,
         "exported": true
       },
       {
         "name": "buildHomeScoutListingPath",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 86,
+        "line": 84,
         "exported": true
       },
       {
         "name": "buildHomeScoutInspectionRequestDecisionScope",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 91,
+        "line": 89,
         "exported": true
       },
       {
         "name": "normalizeHomeScoutInspectionReportId",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 96,
+        "line": 94,
         "exported": true
       },
       {
         "name": "buildHomeScoutInspectionServiceDecisionScope",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 101,
+        "line": 99,
         "exported": true
       },
       {
         "name": "listHomeScoutListingPhotoUrls",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 106,
+        "line": 104,
         "exported": true
       },
       {
         "name": "buildPublicHomeScoutListingCards",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 118,
+        "line": 116,
         "exported": true
       },
       {
         "name": "createHomeScoutListingShareMetadata",
         "kind": "function",
         "path": "shared/homeScoutListingShare.ts",
-        "line": 162,
+        "line": 160,
         "exported": true
       },
       {
@@ -111387,182 +111366,175 @@
         "name": "LiveReadinessState",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 2,
+        "line": 4,
         "exported": true
       },
       {
         "name": "LiveReadinessActionId",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 14,
+        "line": 16,
         "exported": true
       },
       {
         "name": "DirectConnectUserSide",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 26,
+        "line": 28,
         "exported": true
       },
       {
         "name": "DirectConnectReadinessItem",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 28,
+        "line": 30,
         "exported": true
       },
       {
         "name": "DirectConnectRequesterSnapshot",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 37,
+        "line": 39,
         "exported": true
       },
       {
         "name": "DirectConnectResponderSnapshot",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 44,
+        "line": 46,
         "exported": true
       },
       {
         "name": "LiveReadinessUser",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 52,
+        "line": 54,
         "exported": true
       },
       {
         "name": "LiveReadinessInput",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 68,
+        "line": 70,
         "exported": true
       },
       {
         "name": "LiveReadinessResult",
         "kind": "type",
         "path": "shared/liveReadiness.ts",
-        "line": 73,
+        "line": 75,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/liveReadiness.ts",
-        "line": 96,
-        "exported": false
       },
       {
         "name": "hasText",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 100,
+        "line": 98,
         "exported": false
       },
       {
         "name": "isValidStateCode",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 104,
+        "line": 102,
         "exported": false
       },
       {
         "name": "isValidCountyFips",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 108,
+        "line": 106,
         "exported": false
       },
       {
         "name": "hasProfileBasics",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 112,
+        "line": 110,
         "exported": false
       },
       {
         "name": "hasLocalSetup",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 122,
+        "line": 120,
         "exported": false
       },
       {
         "name": "hasIntentConfirmation",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 130,
+        "line": 128,
         "exported": false
       },
       {
         "name": "hasVerificationForLiveState",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 137,
+        "line": 135,
         "exported": false
       },
       {
         "name": "hasActiveConversation",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 145,
+        "line": 143,
         "exported": false
       },
       {
         "name": "hasResponderDecision",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 158,
+        "line": 156,
         "exported": false
       },
       {
         "name": "hasRequesterReplies",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 166,
+        "line": 164,
         "exported": false
       },
       {
         "name": "hasWaitingRequest",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 178,
+        "line": 176,
         "exported": false
       },
       {
         "name": "projectRequesterDirectConnectReadiness",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 186,
+        "line": 184,
         "exported": true
       },
       {
         "name": "projectResponderDirectConnectReadiness",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 198,
+        "line": 196,
         "exported": true
       },
       {
         "name": "isBusinessLiveProfile",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 210,
+        "line": 208,
         "exported": false
       },
       {
         "name": "result",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 215,
+        "line": 213,
         "exported": false
       },
       {
         "name": "resolveLiveReadiness",
         "kind": "function",
         "path": "shared/liveReadiness.ts",
-        "line": 235,
+        "line": 233,
         "exported": true
       },
       {
@@ -112290,112 +112262,105 @@
         "name": "RawProfileContentBlock",
         "kind": "type",
         "path": "shared/profileGalleryShare.ts",
-        "line": 7,
+        "line": 9,
         "exported": false
       },
       {
         "name": "RawGalleryImage",
         "kind": "type",
         "path": "shared/profileGalleryShare.ts",
-        "line": 16,
+        "line": 18,
         "exported": false
       },
       {
         "name": "ResolvedProfileGalleryItem",
         "kind": "type",
         "path": "shared/profileGalleryShare.ts",
-        "line": 28,
+        "line": 30,
         "exported": true
       },
       {
         "name": "ProfileGalleryItemShareMetadata",
         "kind": "type",
         "path": "shared/profileGalleryShare.ts",
-        "line": 41,
+        "line": 43,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/profileGalleryShare.ts",
-        "line": 52,
-        "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 56,
+        "line": 54,
         "exported": false
       },
       {
         "name": "stableGalleryToken",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 69,
+        "line": 67,
         "exported": false
       },
       {
         "name": "titleSlug",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 78,
+        "line": 76,
         "exported": false
       },
       {
         "name": "firstString",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 87,
+        "line": 85,
         "exported": false
       },
       {
         "name": "capForShare",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 95,
+        "line": 93,
         "exported": false
       },
       {
         "name": "galleryImageValue",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 101,
+        "line": 99,
         "exported": false
       },
       {
         "name": "normalizeProfileGalleryItemSlug",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 128,
+        "line": 126,
         "exported": true
       },
       {
         "name": "listProfileGalleryItems",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 141,
+        "line": 139,
         "exported": true
       },
       {
         "name": "resolveProfileGalleryItem",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 205,
+        "line": 203,
         "exported": true
       },
       {
         "name": "buildProfileGalleryShareSearch",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 214,
+        "line": 212,
         "exported": true
       },
       {
         "name": "createProfileGalleryItemShareMetadata",
         "kind": "function",
         "path": "shared/profileGalleryShare.ts",
-        "line": 222,
+        "line": 220,
         "exported": true
       },
       {
@@ -112535,196 +112500,182 @@
         "name": "ExchangeCategorySlug",
         "kind": "type",
         "path": "shared/profileOfferShare.ts",
-        "line": 3,
+        "line": 5,
         "exported": false
       },
       {
         "name": "ProfileServiceOfferShareInput",
         "kind": "type",
         "path": "shared/profileOfferShare.ts",
-        "line": 10,
+        "line": 12,
         "exported": false
       },
       {
         "name": "ProfileServiceOfferShareMetadata",
         "kind": "type",
         "path": "shared/profileOfferShare.ts",
-        "line": 17,
+        "line": 19,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/profileOfferShare.ts",
-        "line": 26,
-        "exported": false
       },
       {
         "name": "capText",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 30,
+        "line": 28,
         "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 37,
+        "line": 35,
         "exported": false
       },
       {
         "name": "normalizeProfileOfferExchangeCategory",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 50,
+        "line": 48,
         "exported": true
       },
       {
         "name": "normalizeProfileOfferId",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 56,
+        "line": 54,
         "exported": true
       },
       {
         "name": "buildProfileServiceOfferPath",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 62,
+        "line": 60,
         "exported": true
       },
       {
         "name": "buildProfileServiceOfferDecisionScope",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 67,
+        "line": 65,
         "exported": true
       },
       {
         "name": "buildProfileOfferExchangePath",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 72,
+        "line": 70,
         "exported": true
       },
       {
         "name": "listProfileOfferImageUrls",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 82,
+        "line": 80,
         "exported": true
       },
       {
         "name": "createProfileServiceOfferShareMetadata",
         "kind": "function",
         "path": "shared/profileOfferShare.ts",
-        "line": 100,
+        "line": 98,
         "exported": true
       },
       {
         "name": "RawProfilePortfolioItem",
         "kind": "type",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 4,
+        "line": 6,
         "exported": false
       },
       {
         "name": "ResolvedProfilePortfolioItem",
         "kind": "type",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 14,
+        "line": 16,
         "exported": true
       },
       {
         "name": "ProfilePortfolioItemShareMetadata",
         "kind": "type",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 25,
+        "line": 27,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/profilePortfolioShare.ts",
-        "line": 36,
-        "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 40,
+        "line": 38,
         "exported": false
       },
       {
         "name": "stablePortfolioToken",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 53,
+        "line": 51,
         "exported": false
       },
       {
         "name": "titleSlug",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 62,
+        "line": 60,
         "exported": false
       },
       {
         "name": "portfolioItemFingerprint",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 71,
+        "line": 69,
         "exported": false
       },
       {
         "name": "capForShare",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 81,
+        "line": 79,
         "exported": false
       },
       {
         "name": "composeShareDescription",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 87,
+        "line": 85,
         "exported": false
       },
       {
         "name": "normalizeProfilePortfolioItemSlug",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 94,
+        "line": 92,
         "exported": true
       },
       {
         "name": "buildProfilePortfolioItemSlug",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 106,
+        "line": 104,
         "exported": true
       },
       {
         "name": "buildProfilePortfolioShareSearch",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 114,
+        "line": 112,
         "exported": true
       },
       {
         "name": "resolveProfilePortfolioItem",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 122,
+        "line": 120,
         "exported": true
       },
       {
         "name": "createProfilePortfolioItemShareMetadata",
         "kind": "function",
         "path": "shared/profilePortfolioShare.ts",
-        "line": 156,
+        "line": 154,
         "exported": true
       },
       {
@@ -113214,154 +113165,147 @@
         "name": "ResolvedProfileServiceItem",
         "kind": "type",
         "path": "shared/profileServiceShare.ts",
-        "line": 9,
+        "line": 11,
         "exported": true
       },
       {
         "name": "ProfileServiceShareMetadata",
         "kind": "type",
         "path": "shared/profileServiceShare.ts",
-        "line": 21,
+        "line": 23,
         "exported": true
       },
       {
         "name": "RawProfileContentBlock",
         "kind": "type",
         "path": "shared/profileServiceShare.ts",
-        "line": 32,
+        "line": 34,
         "exported": false
       },
       {
         "name": "RawProfileService",
         "kind": "type",
         "path": "shared/profileServiceShare.ts",
-        "line": 37,
+        "line": 39,
         "exported": false
       },
       {
         "name": "cleanPublicText",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 51,
-        "exported": false
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/profileServiceShare.ts",
-        "line": 59,
+        "line": 53,
         "exported": false
       },
       {
         "name": "firstString",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 63,
+        "line": 61,
         "exported": false
       },
       {
         "name": "titleSlug",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 71,
+        "line": 69,
         "exported": false
       },
       {
         "name": "stableServiceToken",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 80,
+        "line": 78,
         "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 89,
+        "line": 87,
         "exported": false
       },
       {
         "name": "normalizeBasePath",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 101,
+        "line": 99,
         "exported": false
       },
       {
         "name": "normalizePathname",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 107,
+        "line": 105,
         "exported": false
       },
       {
         "name": "normalizeProfileServiceSlug",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 115,
+        "line": 113,
         "exported": true
       },
       {
         "name": "isFactBearingProfileService",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 125,
+        "line": 123,
         "exported": true
       },
       {
         "name": "listProfileServiceItems",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 133,
+        "line": 131,
         "exported": true
       },
       {
         "name": "listFactBearingProfileServices",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 213,
+        "line": 211,
         "exported": true
       },
       {
         "name": "resolveProfileServiceItem",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 219,
+        "line": 217,
         "exported": true
       },
       {
         "name": "buildProfileServicePath",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 234,
+        "line": 232,
         "exported": true
       },
       {
         "name": "buildProfileServiceUrl",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 245,
+        "line": 243,
         "exported": true
       },
       {
         "name": "resolveProfileServiceRoute",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 264,
+        "line": 262,
         "exported": true
       },
       {
         "name": "capForShare",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 281,
+        "line": 279,
         "exported": false
       },
       {
         "name": "createProfileServiceShareMetadata",
         "kind": "function",
         "path": "shared/profileServiceShare.ts",
-        "line": 287,
+        "line": 285,
         "exported": true
       },
       {
@@ -113725,56 +113669,49 @@
         "name": "RawMarketplaceListing",
         "kind": "type",
         "path": "shared/publicBusinessListing.ts",
-        "line": 5,
+        "line": 7,
         "exported": false
       },
       {
         "name": "RawMarketplaceCategory",
         "kind": "type",
         "path": "shared/publicBusinessListing.ts",
-        "line": 18,
+        "line": 20,
         "exported": false
       },
       {
         "name": "PublicBusinessListingCard",
         "kind": "type",
         "path": "shared/publicBusinessListing.ts",
-        "line": 23,
+        "line": 25,
         "exported": true
-      },
-      {
-        "name": "cleanString",
-        "kind": "function",
-        "path": "shared/publicBusinessListing.ts",
-        "line": 37,
-        "exported": false
       },
       {
         "name": "normalizePublicImageReference",
         "kind": "function",
         "path": "shared/publicBusinessListing.ts",
-        "line": 41,
+        "line": 39,
         "exported": false
       },
       {
         "name": "normalizeCreatedAt",
         "kind": "function",
         "path": "shared/publicBusinessListing.ts",
-        "line": 54,
+        "line": 52,
         "exported": false
       },
       {
         "name": "resolveListingImage",
         "kind": "function",
         "path": "shared/publicBusinessListing.ts",
-        "line": 62,
+        "line": 60,
         "exported": false
       },
       {
         "name": "buildPublicBusinessListingCards",
         "kind": "function",
         "path": "shared/publicBusinessListing.ts",
-        "line": 82,
+        "line": 80,
         "exported": true
       },
       {
@@ -141435,9 +141372,9 @@
   "summary": {
     "directories": 126,
     "source_files": 2780,
-    "symbols": 14604,
+    "symbols": 14595,
     "components": 946,
-    "functions_and_hooks": 8945,
+    "functions_and_hooks": 8936,
     "raw_ui_elements": 4099,
     "errors": 11,
     "warnings": 5

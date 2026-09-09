@@ -27,7 +27,20 @@
   "consumer": {
     "path": "shared/communityPostShare.ts",
     "baselineRevision": "5e6b298c9ec4fb47447ca72d188996f3a11bb051",
-    "import": "@tradescout-infinity/contracts/text"
+    "import": "@tradescout-infinity/contracts/text",
+    "additionalPaths": [
+      "shared/contractorPhotoShare.ts",
+      "shared/contractorPromoShare.ts",
+      "shared/handmadeProductShare.ts",
+      "shared/homeScoutListingShare.ts",
+      "shared/liveReadiness.ts",
+      "shared/profileGalleryShare.ts",
+      "shared/profileOfferShare.ts",
+      "shared/profilePortfolioShare.ts",
+      "shared/profileServiceShare.ts",
+      "shared/publicBusinessListing.ts"
+    ],
+    "additionalPathsBaselineRevision": "6dd00a906597524e5b767961c6f2fd0248e1f545"
   },
   "distribution": "Pinned local package artifact built from a clean committed Infinity source. No registry publication, merge, or production migration is implied."
 }
