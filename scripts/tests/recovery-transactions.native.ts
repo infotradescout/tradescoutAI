@@ -112,25 +112,55 @@ await probe(
       providerCalls += 1;
       throw new Error("Disabled preferences must never reach the provider adapter");
     };
-    let disabled;
+    const disabled = await service.createNotification({
+      userId: id,
+      type: "new_message",
+      title: "Disabled in-app fixture",
+      message: "Respect preference",
+      deliveryMethods: ["in_app"],
+    });
     try {
-      disabled = await service.createNotification({
+      const disabledEmail = await service.createNotification({
         userId: id,
         type: "new_message",
         title: "Disabled fixture",
         message: "Respect preference",
         deliveryMethods: ["in_app", "email"],
       });
-      assert.equal(await service.processEmailDeliveryJobs(), 0);
+      await service.processEmailDeliveryJobs();
       assert.equal(providerCalls, 0);
-      assert.equal(
+      assert.deepEqual(
         (
-          await pool.query("select count(*)::int n from notification_jobs where id=$1", [
-            `notification-email:${disabled.id}`,
-          ])
-        ).rows[0].n,
-        0
+          await pool.query(
+            "select status, success_count, completed_at is not null as terminal, next_retry_at from notification_jobs where id=$1",
+            [`notification-email:${disabledEmail.id}`]
+          )
+        ).rows[0],
+        { status: "cancelled", success_count: 0, terminal: true, next_retry_at: null }
       );
+      assert.deepEqual(
+        (
+          await pool.query(
+            "select status,error_code,sent_at,delivered_at,external_id from notification_delivery_log where notification_id=$1",
+            [disabledEmail.id]
+          )
+        ).rows,
+        [
+          {
+            status: "cancelled",
+            error_code: "notification_ineligible",
+            sent_at: null,
+            delivered_at: null,
+            external_id: null,
+          },
+        ]
+      );
+      assert.equal(
+        await service.processEmailDeliveryJobs(),
+        0,
+        "Suppressed intent is terminal and cannot replay"
+      );
+      assert.equal(providerCalls, 0);
     } finally {
       emailService.sendEmail = originalSendEmail;
     }
