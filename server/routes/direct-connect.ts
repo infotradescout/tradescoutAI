@@ -85,6 +85,12 @@ import { resolveAnonymousSessionId } from "../utils/anonymousSession";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
+import { registerDirectConnectAdminOperations } from "./direct-connect/admin-operations";
+import {
+  canAccessConversation,
+  loadAcceptedJobForConversation,
+  resolveConversationProviderIdentity,
+} from "../services/conversationParticipants";
 import {
   adminDirectConnectRequestSchema,
   type AdminDirectConnectCategory,
@@ -1357,6 +1363,22 @@ const toTradeDisplayName = (value: string): string => {
 };
 
 export function registerDirectConnectRoutes(app: Express) {
+  registerDirectConnectAdminOperations(app, {
+    isAuthenticated,
+    isOperator: isDirectConnectOperator,
+    filterContractors: filterContractorsEligibleForRequest,
+    filterBusinesses: filterBusinessesEligibleForRequest,
+    notifyProvider: (userId, requestId) =>
+      notificationService.createNotification({
+        userId,
+        type: "new_project_request",
+        title: "New Direct Connect request",
+        message: "A TradeScout operator has invited you to review a request.",
+        actionUrl: `/direct-connect/inbox?requestId=${encodeURIComponent(requestId)}`,
+        actionText: "Review request",
+        deliveryMethods: ["in_app"],
+      }),
+  });
   void ensureDirectConnectDispatchLedgerTables().catch((error) => {
     console.warn("[direct-connect] Failed to ensure dispatch ledger tables", error);
   });
@@ -1573,6 +1595,20 @@ export function registerDirectConnectRoutes(app: Express) {
 
     return shareToken || null;
   };
+
+  notificationService.configureDirectConnectEmailEligibility(
+    async ({ request, contractor, business }) => {
+      if (contractor)
+        return (
+          (await filterContractorsEligibleForRequest([contractor], request)).eligible.length === 1
+        );
+      if (business)
+        return (
+          (await filterBusinessesEligibleForRequest([business], request)).eligible.length === 1
+        );
+      return false;
+    }
+  );
 
   const routeRequestToTopContractors = async ({
     requestRow,
@@ -2125,6 +2161,7 @@ export function registerDirectConnectRoutes(app: Express) {
         actorUserId: String(actorUserId),
         metadata: {
           contractorId: isBusinessProvider || isWorkerProvider ? null : candidate.id,
+          businessId: isBusinessProvider ? candidate.id : null,
           contractorUserId: candidate.userId ?? null,
           responderUserId:
             isBusinessProvider || isWorkerProvider ? (candidate.userId ?? null) : null,
@@ -2205,17 +2242,20 @@ export function registerDirectConnectRoutes(app: Express) {
       await Promise.all(
         Array.from(notifyUserIds).map(async (notifyUserId) => {
           try {
-            await notificationService.createNotification({
-              userId: notifyUserId,
-              type: "new_project_request",
-              title: "New Direct Connect request",
-              message: `You have a new Direct Connect request: ${requestRow.title}`,
-              actionUrl: "/direct-connect/inbox",
-              actionText: "View in Direct Connect",
-              iconName: "briefcase",
-              iconColor: "orange",
-              deliveryMethods: ["in_app", "push"],
-            });
+            await notificationService.createAssignedProviderNotification(
+              {
+                userId: notifyUserId,
+                type: "new_project_request",
+                title: "New Direct Connect request",
+                message: `You have a new Direct Connect request: ${requestRow.title}`,
+                actionUrl: "/direct-connect/inbox",
+                actionText: "View in Direct Connect",
+                iconName: "briefcase",
+                iconColor: "orange",
+                deliveryMethods: ["in_app", "push"],
+              },
+              requestId
+            );
           } catch (err) {
             console.error("[direct-connect] Failed to notify provider for routed request", err);
           }
@@ -2500,17 +2540,20 @@ export function registerDirectConnectRoutes(app: Express) {
             ];
             await Promise.all(
               notifyUserIds.map(async (notifyUserId) => {
-                await notificationService.createNotification({
-                  userId: notifyUserId,
-                  type: "new_project_request",
-                  title: "New Direct Connect request",
-                  message: `You have a new Direct Connect request: ${requestRow.title}`,
-                  actionUrl: "/direct-connect/inbox",
-                  actionText: "View in Direct Connect",
-                  iconName: "briefcase",
-                  iconColor: "orange",
-                  deliveryMethods: ["in_app", "push"],
-                });
+                await notificationService.createAssignedProviderNotification(
+                  {
+                    userId: notifyUserId,
+                    type: "new_project_request",
+                    title: "New Direct Connect request",
+                    message: `You have a new Direct Connect request: ${requestRow.title}`,
+                    actionUrl: "/direct-connect/inbox",
+                    actionText: "View in Direct Connect",
+                    iconName: "briefcase",
+                    iconColor: "orange",
+                    deliveryMethods: ["in_app", "push"],
+                  },
+                  requestId
+                );
               })
             );
           } catch (error) {
@@ -4427,43 +4470,15 @@ export function registerDirectConnectRoutes(app: Express) {
           .limit(1);
         if (!conversation) return res.status(404).json({ message: "Conversation not found" });
 
-        const contractor = await storage.getContractorByUserId(userId).catch(() => null);
         const providerKey = String(conversation.contractorId || "").trim();
         const requesterUserId = String(conversation.homeownerId || "").trim();
         const viewerIsRequester = requesterUserId === userId;
         const viewerIsProvider =
-          providerKey === userId ||
-          (contractor?.id ? providerKey === String(contractor.id) : false);
+          !viewerIsRequester && (await canAccessConversation(threadId, userId));
         if (!viewerIsRequester && !viewerIsProvider) {
           return res.status(403).json({ message: "Thread not available for this user" });
         }
-
-        const acceptedRows = await db.execute(sql`
-          SELECT
-            wr.id AS request_id,
-            wr.title,
-            wr.description,
-            wr.category,
-            wr.county,
-            wr.city_area,
-            wr.status AS request_status,
-            wr.created_at AS request_created_at,
-            a.id AS assignment_id,
-            a.status AS assignment_status,
-            a.response_summary
-          FROM work_requests wr
-          INNER JOIN work_request_assignments a ON a.work_request_id = wr.id
-          WHERE wr.created_by_user_id = ${requesterUserId}
-            AND wr.source = 'direct_connect'
-            AND a.status = 'accepted'
-            AND (
-              a.contractor_id = ${providerKey}
-              OR a.responder_user_id = ${providerKey}
-            )
-          ORDER BY a.updated_at DESC NULLS LAST, a.created_at DESC NULLS LAST
-          LIMIT 1
-        `);
-        const accepted = ((acceptedRows.rows || []) as any[])[0] || null;
+        const accepted = await loadAcceptedJobForConversation({ threadId, requesterUserId, providerKey });
         if (!accepted) {
           return res.status(404).json({ message: "No accepted Direct Connect job for thread" });
         }
@@ -6646,17 +6661,20 @@ export function registerDirectConnectRoutes(app: Express) {
                 ];
                 await Promise.all(
                   notifyUserIds.map(async (notifyUserId) => {
-                    await notificationService.createNotification({
-                      userId: notifyUserId,
-                      type: "new_project_request",
-                      title: "New Direct Connect request",
-                      message: `You have a new Direct Connect request: ${created.title}`,
-                      actionUrl: "/direct-connect/inbox",
-                      actionText: "View in Direct Connect",
-                      iconName: "briefcase",
-                      iconColor: "orange",
-                      deliveryMethods: ["in_app", "push"],
-                    });
+                    await notificationService.createAssignedProviderNotification(
+                      {
+                        userId: notifyUserId,
+                        type: "new_project_request",
+                        title: "New Direct Connect request",
+                        message: `You have a new Direct Connect request: ${created.title}`,
+                        actionUrl: "/direct-connect/inbox",
+                        actionText: "View in Direct Connect",
+                        iconName: "briefcase",
+                        iconColor: "orange",
+                        deliveryMethods: ["in_app", "push"],
+                      },
+                      String(created.id)
+                    );
                   })
                 );
               } catch (e) {
@@ -7415,20 +7433,15 @@ export function registerDirectConnectRoutes(app: Express) {
           .where(eq(workRequestAssignments.workRequestId, requestId))
           .orderBy(asc(workRequestAssignments.createdAt));
 
-        const responderUserIds: string[] = Array.from(
-          new Set(
-            (assignments as any[])
-              .map((a) => (a.responderUserId ? String(a.responderUserId) : null))
-              .filter((id): id is string => Boolean(id))
-          )
-        );
-        const responders = responderUserIds.length
-          ? await Promise.all(responderUserIds.map((id: string) => storage.getUser(id)))
-          : [];
-        const responderById = new Map(
-          responders
-            .filter((u): u is NonNullable<typeof u> => Boolean(u))
-            .map((u) => [String(u.id), u])
+        const providerKeys = [
+          ...new Set<string>(assignments
+            .flatMap((a) => [a.contractorId, a.responderUserId])
+            .filter((id: unknown): id is string => typeof id === "string" && Boolean(id))),
+        ];
+        const responderByKey = new Map(
+          await Promise.all(providerKeys.map(async (key) =>
+            [key, await resolveConversationProviderIdentity(key)] as const
+          ))
         );
 
         const events = await db
@@ -7473,6 +7486,7 @@ export function registerDirectConnectRoutes(app: Express) {
             title: request.title,
             description: redactContactDetails(String(request.description || "")),
             category: request.category,
+            countyFips: request.countyFips,
             status: request.status,
             source: request.source,
             createdAt: request.createdAt,
@@ -7491,16 +7505,15 @@ export function registerDirectConnectRoutes(app: Express) {
             : null,
           originatingProfile,
           assignments: assignments.map((a) => {
-            const responder = a.responderUserId
-              ? responderById.get(String(a.responderUserId))
-              : null;
+            const provider = responderByKey.get(a.contractorId || a.responderUserId || "");
+            const conflictingIdentity = a.contractorId && a.responderUserId &&
+              provider?.userId !== responderByKey.get(a.responderUserId)?.userId;
+            const responder = conflictingIdentity ? null : provider;
             return {
               id: a.id,
               status: a.status,
-              responderUserId: a.responderUserId,
-              responderName: responder
-                ? [responder.firstName, responder.lastName].filter(Boolean).join(" ") || null
-                : null,
+              responderUserId: responder?.userId || null,
+              responderName: responder?.displayName || null,
               createdAt: a.createdAt,
             };
           }),
@@ -9110,7 +9123,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 AND (
                   c.contractor_id = ${contractorId}
                   OR c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  OR (${workerId}::text IS NOT NULL AND c.worker_id = ${workerId})
                 )
               LIMIT 1
             `)
@@ -9121,7 +9134,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 AND c.eligibility_state = 'eligible'
                 AND (
                   c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  OR (${workerId}::text IS NOT NULL AND c.worker_id = ${workerId})
                 )
               LIMIT 1
             `);
@@ -9456,15 +9469,16 @@ export function registerDirectConnectRoutes(app: Express) {
               throw new Error("Direct Connect acceptance did not update the work request");
             }
 
-            await tx.insert(workRequestEvents).values({
-              workRequestId: requestRow.id,
-              type: "provider_accepted",
-              actorUserId: String(userId),
-              metadata: {
-                contractorId: isContractorAssignment ? contractor!.id : null,
-                responderUserId: isBusinessAssignment ? String(userId) : null,
-                conversationId,
-                responseSummary,
+             await tx.insert(workRequestEvents).values({
+               workRequestId: requestRow.id,
+               type: "provider_accepted",
+               actorUserId: String(userId),
+               metadata: {
+                 contractorId: isContractorAssignment ? contractor!.id : null,
+                 responderUserId: isBusinessAssignment ? String(userId) : null,
+                 conversationId,
+                 responseSummary,
+                 assignmentId: String(updatedAssignment.id),
                 ...(authorityTransition
                   ? {
                       sourceDecisionCardId: authorityTransition.sourceDecisionCardId,

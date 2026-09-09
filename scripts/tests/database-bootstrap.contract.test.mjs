@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
+import { spawnCommand } from "../lib/subprocess.mjs";
 import ts from "typescript";
 import {
   evaluateRequiredProductionSchema,
@@ -14,6 +15,24 @@ import {
 import "./release-runtime-chain.test.mjs";
 
 const run = (migrate, verify) => runVerifiedMigration({ migrate, verify, report: () => {} });
+test("native verifier executable paths preserve arguments without shell interpretation", async () => {
+  const args = ["argument with spaces", "literal&value", "100%literal%", 'literal"quote', ""];
+  const child = await spawnCommand(
+    process.execPath,
+    ["-e", "process.stdout.write(JSON.stringify(process.argv.slice(1)))", "--", ...args],
+    { stdio: ["ignore", "pipe", "pipe"], windowsHide: true }
+  );
+  let output = "";
+  let errors = "";
+  child.stdout.on("data", (chunk) => { output += chunk; });
+  child.stderr.on("data", (chunk) => { errors += chunk; });
+  const code = await new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", resolve);
+  });
+  assert.equal(code, 0, errors);
+  assert.deepEqual(JSON.parse(output), args);
+});
 test("a successful SQL command is not success when schema verification fails", async () => {
   assert.equal(
     await run(

@@ -5,6 +5,7 @@ RUN apk add --no-cache fontconfig ttf-dejavu
 
 # Install dependencies deterministically from package-lock.json
 COPY package.json package-lock.json ./
+COPY vendor/infinity ./vendor/infinity
 RUN npm ci
 
 # Copy source (dockerignore will prevent huge/unneeded folders)

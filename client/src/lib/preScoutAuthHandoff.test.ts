@@ -22,4 +22,22 @@ describe("pre-Scout auth handoff", () => {
     expect(sanitizePreScoutNext("/login?next=/projects/7")).toBe("");
     expect(sanitizePreScoutNext("//evil.example/path")).toBe("");
   });
+
+  it.each([
+    "/u/acme-repair?trustAction=recommend",
+    "/contractors/acme-repair?trustAction=recommend",
+    "/verification?next=%2Fu%2Facme-repair%3FtrustAction%3Drecommend",
+  ])("returns an incomplete account directly to captured recommendation work: %s", (path) => {
+    expect(
+      resolvePreScoutAuthenticatedRoute({ explicitNext: path, onboardingCompleted: false })
+    ).toBe(path);
+  });
+
+  it("still onboards unrelated verification and contact destinations", () => {
+    for (const path of ["/verification", "/direct-connect?trustAction=recommend"]) {
+      expect(
+        resolvePreScoutAuthenticatedRoute({ explicitNext: path, onboardingCompleted: false })
+      ).toBe(`/onboarding?next=${encodeURIComponent(path)}`);
+    }
+  });
 });

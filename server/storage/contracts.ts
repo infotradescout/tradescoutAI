@@ -446,6 +446,7 @@ export interface IStorage {
   getProfileBySlugForManagement(slug: string): Promise<PublicProfileRecord | undefined>;
   getProfileBySlugPublished(slug: string): Promise<PublicProfileRecord | undefined>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
+  getProfileBySlugForDiscovery(slug: string): Promise<PublicProfileRecord | undefined>;
   listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
   listBusinessProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
   countActiveDirectoryBusinessesForSitemap(): Promise<number>;
@@ -777,6 +778,7 @@ export interface IStorage {
 
   // Listings
   getMarketplaceListings(filters?: {
+    publicExposureOnly?: boolean;
     categoryId?: string;
     county?: string;
     state?: string;

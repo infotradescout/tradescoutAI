@@ -974,6 +974,27 @@
       "when": 1788804180000,
       "tag": "0135_restore_contact_runtime_schema",
       "breakpoints": false
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1788804240000,
+      "tag": "0136_restore_notification_outbox_schema",
+      "breakpoints": false
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1788804300000,
+      "tag": "0137_restore_recommendation_runtime_schema",
+      "breakpoints": false
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1788918000000,
+      "tag": "0138_recommendation_publication_projection",
+      "breakpoints": false
     }
   ]
 }

@@ -3,6 +3,15 @@ import { oauthPostLoginPath, safeOAuthReturnPath } from "./oauthIdentityPolicy";
 import { decideOAuthIdentity, oauthIdentityFailure } from "./oauthIdentityPolicy";
 
 describe("OAuth identity policy", () => {
+  it.each([
+    "/u/acme-repair?trustAction=recommend",
+    "/contractors/acme-repair?trustAction=recommend",
+    "/verification?next=%2Fu%2Facme-repair%3FtrustAction%3Drecommend",
+  ])("resumes captured recommendations without assigning onboarding completion: %s", (path) => {
+    expect(oauthPostLoginPath(path, false)).toBe(path);
+    expect(oauthPostLoginPath(path, true)).toBe(path);
+  });
+
   it("retains county and claim context through incomplete onboarding", () => {
     const next =
       "/pre-scout-setup?next=%2Fdirect-connect%3Fcounty%3D22005&claimBusinessId=claim#form";
