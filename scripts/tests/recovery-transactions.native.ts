@@ -37,6 +37,7 @@ const { createProfessionalApplicationPersistence } =
 const { registerAddressVerificationRoutes } =
   await import("../../server/routes/address-verification");
 const { NotificationService } = await import("../../server/notification-service");
+const { emailService } = await import("../../server/services/emailService");
 const identity = (
   await pool.query("select current_database() name,current_setting('TimeZone') timezone")
 ).rows[0];
@@ -105,13 +106,34 @@ await probe(
       "insert into notification_preferences(user_id,enable_notifications) values($1,false)",
       [id]
     );
-    const disabled = await service.createNotification({
-      userId: id,
-      type: "new_message",
-      title: "Disabled fixture",
-      message: "Respect preference",
-      deliveryMethods: ["in_app"],
-    });
+    let providerCalls = 0;
+    const originalSendEmail = emailService.sendEmail;
+    emailService.sendEmail = async () => {
+      providerCalls += 1;
+      throw new Error("Disabled preferences must never reach the provider adapter");
+    };
+    let disabled;
+    try {
+      disabled = await service.createNotification({
+        userId: id,
+        type: "new_message",
+        title: "Disabled fixture",
+        message: "Respect preference",
+        deliveryMethods: ["in_app", "email"],
+      });
+      assert.equal(await service.processEmailDeliveryJobs(), 0);
+      assert.equal(providerCalls, 0);
+      assert.equal(
+        (
+          await pool.query("select count(*)::int n from notification_jobs where id=$1", [
+            `notification-email:${disabled.id}`,
+          ])
+        ).rows[0].n,
+        0
+      );
+    } finally {
+      emailService.sendEmail = originalSendEmail;
+    }
     assert.equal(
       (
         await pool.query(
