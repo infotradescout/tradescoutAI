@@ -61,6 +61,7 @@ try{
   await page.goto('http://127.0.0.1:4179',{waitUntil:'networkidle'});
   await clickVisible(page.getByTestId('steel-home-cabinet-start-kitchen'));
   for(const [id,value] of [['steel-home-cabinet-primary-wall','180'],['steel-home-cabinet-return-wall','156'],['steel-home-cabinet-ceiling-height','108']]){const field=page.getByTestId(id);await field.scrollIntoViewIfNeeded();await field.fill(value);}
+  await clickVisible(page.locator('summary').filter({hasText:'3. Cabinet, appliance, and island modules'}));
   await clickVisible(page.getByTestId('steel-home-cabinet-add-base-cabinet'));
   await selectVisible(page.getByLabel('Cabinet door style',{exact:true}),'Shaker');
   await selectVisible(page.getByLabel('Cabinet finish',{exact:true}),'sage');
