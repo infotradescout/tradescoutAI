@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 import { CURRENT_PROFILE_VERSION } from "./profile";
 
 export type LiveReadinessState =
@@ -93,10 +95,6 @@ export type LiveReadinessResult = {
     riskPrevented: string;
   };
 };
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function hasText(value: unknown): boolean {
   return cleanString(value).length > 0;

@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 import { sanitizePublicDiscoveryText } from "./publicListingSafety";
 
 const PROFILE_SERVICE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -55,10 +57,6 @@ function cleanPublicText(value: unknown, maxLength: number): string {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);
-}
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
 }
 
 function firstString(...values: unknown[]): string {

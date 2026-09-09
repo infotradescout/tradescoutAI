@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 import { sanitizePublicListingText } from "./publicListingSafety";
 
 const CONTRACTOR_PROMO_SLUG_PATTERN = /^[a-z0-9-]{1,80}$/;
@@ -71,10 +73,6 @@ export type ContractorPromoShareMetadata = {
   imageUrl: string | null;
   imageAlt: string;
 };
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function normalizeOptionalDecimal(value: unknown): string | null {
   if (value === null || value === undefined || value === "") return null;

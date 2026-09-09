@@ -116,12 +116,12 @@ function extractExistingLastmodByLoc() {
 
   const raw = readFileSync(OUTPUT_PATH, 'utf-8');
   const map = new Map();
-  const urlEntryRegex = /<url>[\s\S]*?<loc>([^<]+)<\/loc>[\s\S]*?<lastmod>([^<]+)<\/lastmod>[\s\S]*?<\/url>/g;
+  const urlEntryRegex = /<url>([\s\S]*?)<\/url>/g;
   let match;
 
   while ((match = urlEntryRegex.exec(raw)) !== null) {
-    const loc = String(match[1] || '').trim();
-    const lastmod = String(match[2] || '').trim();
+    const loc = String(match[1].match(/<loc>([^<]+)<\/loc>/)?.[1] || '').trim();
+    const lastmod = String(match[1].match(/<lastmod>([^<]+)<\/lastmod>/)?.[1] || '').trim();
     if (!loc || !lastmod) continue;
     map.set(loc, lastmod);
   }
@@ -130,20 +130,24 @@ function extractExistingLastmodByLoc() {
 }
 
 function generateSitemap() {
-  const today = new Date().toISOString().split('T')[0];
   const existingLastmodByLoc = extractExistingLastmodByLoc();
 
   const urls = PUBLIC_ROUTES.map((route) => {
     const loc = `${PRODUCTION_URL}${route.path}`;
-    const lastmod = existingLastmodByLoc.get(loc) || today;
-    return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority.toFixed(1)}</priority>\n  </url>`;
+    // A build date is not evidence that this page changed. Preserve known dates
+    // and omit the optional tag when no modification date is available.
+    const lastmod = existingLastmodByLoc.get(loc);
+    const lastmodTag = lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : '';
+    return `  <url>\n    <loc>${loc}</loc>${lastmodTag}\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority.toFixed(1)}</priority>\n  </url>`;
   }).join('\n');
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>\n`;
 
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
   const indexTargets = SUBMITTED_SITEMAP_TARGETS.map(
-    (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`
+    // The indexed feeds are generated at runtime; their modification dates are
+    // unknown at build time. See https://www.sitemaps.org/protocol.html#index.
+    (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n  </sitemap>`
   ).join('\n');
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexTargets}\n</sitemapindex>`;
   writeFileSync(OUTPUT_INDEX_PATH, sitemapIndex, 'utf-8');
