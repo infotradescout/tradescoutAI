@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-09T14:52:27Z",
+  "generated_at": "2026-09-09T14:54:32Z",
   "source": {
     "kind": "git",
-    "revision": "6dd00a906597524e5b767961c6f2fd0248e1f545",
+    "revision": "1b787875e42e164da4b7e38fa19b43f21d988b5f",
     "dirty": true,
-    "inventory_sha256": "e40360428b7c88e94dd8a09ac1f881856bd0688804a8c5e4047262e0fd3003ad"
+    "inventory_sha256": "57240098a66ba8c9656f73c659061eb50aa85f8bc398d7236a51f414036b6391"
   },
   "inventory": {
     "directories": [
@@ -8265,8 +8265,8 @@
       {
         "path": "scripts/public-shell-local-dedupe-core.mjs",
         "language": "mjs",
-        "sha256": "e3d0b6405372199fdde02699d8e29b8fea6889faa94cab48417fdd2a5c7d0f5f",
-        "bytes": 6041
+        "sha256": "be751bcc8c1b9ca39e43c7d49624be5750c7f8b9dfccd7f0005a3d8c5110e941",
+        "bytes": 6026
       },
       {
         "path": "scripts/push-schema-programmatic.ts",
