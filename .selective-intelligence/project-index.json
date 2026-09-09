@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-09T05:51:59Z",
+  "generated_at": "2026-09-09T06:16:17Z",
   "source": {
     "kind": "git",
-    "revision": "60dd7379266bd22f2304a9b2833fad3e7d375759",
+    "revision": "3628444d1636d490b20b4ebae120fb3136ab3e7f",
     "dirty": true,
-    "inventory_sha256": "b862495962d122ed338d1b7967224c37cfa6ff9f017a8cf2d71f069f924d6332"
+    "inventory_sha256": "633aeea9e9157176039518bd8bbc72cd039715bd2c0933008b30905d1895a1e0"
   },
   "inventory": {
     "directories": [
@@ -11001,8 +11001,8 @@
       {
         "path": "server/services/exposureAuthority.ts",
         "language": "ts",
-        "sha256": "d7832aa8a5b91ab1bc596697f582377fe2539da8e9b298d93cab91726b8c2cc1",
-        "bytes": 3079
+        "sha256": "239e9ce01b41ec047df18159bc84053dab8b1669fece5ec3e8564ea534ab9477",
+        "bytes": 3161
       },
       {
         "path": "server/services/externalActionsClient.ts",
@@ -13263,8 +13263,8 @@
       {
         "path": "server/tests/exposure-authority-sql-parity.test.ts",
         "language": "ts",
-        "sha256": "945bfbf36e977f4f35db34d0b5f234df93347fdf844065537c07d6d8b651540f",
-        "bytes": 4655
+        "sha256": "10a6bf671e43be261a634c72ec36058022c8d811ee9db71e4d4ceb33be75d720",
+        "bytes": 6193
       },
       {
         "path": "server/tests/express-request-contact-delivery.behavior.test.ts",
