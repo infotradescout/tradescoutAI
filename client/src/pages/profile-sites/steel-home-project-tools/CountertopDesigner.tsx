@@ -1,9 +1,10 @@
-import { useRef, useState, type ComponentProps } from "react";
+import { lazy, Suspense, useRef, useState, type ComponentProps } from "react";
 import MeasuredCountertopDesigner from "./MeasuredCountertopDesigner";
-import CountertopPrecisionReview from "./CountertopPrecisionReview";
 import { useDesignerHistory } from "./useDesignerHistory";
 import "./planningBuilderResponsive.css";
 import "./kitchenDesignerStudio.css";
+
+const CountertopPrecisionReview = lazy(() => import("./CountertopPrecisionReview"));
 
 type Props = ComponentProps<typeof MeasuredCountertopDesigner>;
 export default function CountertopDesigner(props: Props) {
@@ -74,7 +75,11 @@ export default function CountertopDesigner(props: Props) {
         <button type="button" onClick={exportDrawing}>Export drawing</button>
       </div>
       {notice && <p className="kitchen-designer-notice" role="status">{notice}</p>}
-      {review && <CountertopPrecisionReview design={props.design} />}
+      {review && (
+        <Suspense fallback={<div className="grid min-h-[24rem] place-items-center p-6 text-sm font-semibold">Loading scaled drawing…</div>}>
+          <CountertopPrecisionReview design={props.design} />
+        </Suspense>
+      )}
       <div className="kitchen-designer-editor" style={review ? { display: "none" } : undefined}>
         <MeasuredCountertopDesigner {...props} onChange={history.change} />
       </div>
