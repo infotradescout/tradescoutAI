@@ -8,7 +8,7 @@ export function exposureAuthoritySqlPredicate(userId: SQLWrapper): SQL {
     WHERE exposure_user.id = ${userId}
       AND exposure_user.email_verified = true
       AND (exposure_user.address_verified = true
-        OR lower(COALESCE(exposure_user.verification_status, '')) IN ('approved', 'verified')
+        OR lower(COALESCE(exposure_user.verification_status::text, '')) IN ('approved', 'verified')
         OR EXISTS (SELECT 1 FROM business_verifications exposure_verification
           WHERE exposure_verification.provider_user_id = exposure_user.id
             AND exposure_verification.status = 'approved'
