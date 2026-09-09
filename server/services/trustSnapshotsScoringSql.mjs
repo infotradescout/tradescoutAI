@@ -238,7 +238,7 @@ export function buildTrustSnapshotsInsertSql({
         AND c.is_active IS TRUE
         AND r.is_verified IS TRUE
         AND r.is_public IS TRUE
-        AND lower(COALESCE(r.moderation_status, '')) = 'approved'
+        AND r.moderation_status = 'approved'
         AND r.recommendation_type IN ('positive', 'negative')
         AND author.email_verified IS TRUE
         AND length(trim(author.email)) > 0

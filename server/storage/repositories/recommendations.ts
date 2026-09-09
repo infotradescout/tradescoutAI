@@ -65,9 +65,15 @@ export function withCurrentRecommendationVerification(
   };
 }
 
+export const recommendationAuthorVerificationFields = {
+  email: users.email,
+  emailVerified: users.emailVerified,
+  isActive: sql<boolean>`coalesce(to_jsonb(${users})->>'is_active', 'true') <> 'false'`,
+};
+
 const authorFields = {
   ...getTableColumns(users),
-  isActive: sql<boolean>`coalesce(to_jsonb(${users})->>'is_active', 'true') <> 'false'`,
+  ...recommendationAuthorVerificationFields,
 };
 
 // Public reads also check the current account: revoked confirmation or an email

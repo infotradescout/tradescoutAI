@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-09T05:16:31Z",
+  "generated_at": "2026-09-09T05:36:26Z",
   "source": {
     "kind": "git",
-    "revision": "142a5ea8cd359e6ed3038a526ad86121ba002a1b",
+    "revision": "43908b296218bea23a2ac6f661e2f1aaf3feb230",
     "dirty": true,
-    "inventory_sha256": "a9d285488a4d6436d995692ddabbd4d691cc6658921dd816efdca56b59a58142"
+    "inventory_sha256": "9b8c8b992fb3405d847cfa5764b606f046e9a4fdc53e83fa981db76bfe747e21"
   },
   "inventory": {
     "directories": [
@@ -8739,8 +8739,8 @@
       {
         "path": "scripts/tests/recommendation-runtime-schema.native.mjs",
         "language": "mjs",
-        "sha256": "2263aa4598d68b4e43faeb64271242b974b214823ea1a9a91abe81d6b28f355f",
-        "bytes": 19772
+        "sha256": "8b3a374255e9e89cdd596bf430fd192213abd5b2be74225dd31417c27671634a",
+        "bytes": 20521
       },
       {
         "path": "scripts/tests/recovery-request-journey.browser.mjs",
@@ -10389,8 +10389,8 @@
       {
         "path": "server/routes/recommendations.ts",
         "language": "ts",
-        "sha256": "5ac83d23a9564a7f45d448dbb589d6e47001bff4e2ce499c292099651091a103",
-        "bytes": 10019
+        "sha256": "fbc1d244eaebf4908754675beee7887a1120560d7f3cecec6d1d4968176aa327",
+        "bytes": 10041
       },
       {
         "path": "server/routes/red-graniti-public-media.ts",
@@ -12027,8 +12027,8 @@
       {
         "path": "server/services/trustSnapshotsScoringSql.mjs",
         "language": "mjs",
-        "sha256": "0fe6c7e1c48ca0b8a91e19802843e398d6acae1c739fc7d3e971936e139588b0",
-        "bytes": 24521
+        "sha256": "8165e17ead468b30518cc157dd8c2472f7c808fc4ab2b5aa7f5b2b6c537cfafb",
+        "bytes": 23908
       },
       {
         "path": "server/services/unifiedScoutRouter.ts",
@@ -12153,8 +12153,8 @@
       {
         "path": "server/storage/repositories/recommendations.ts",
         "language": "ts",
-        "sha256": "a5f673ed719c7b27625a47f469d1d121b3a8ce936f9fe6bb9207af4d5103484a",
-        "bytes": 15628
+        "sha256": "6a38d29d571e48b02e2d4d7c4a1bd8a1479531a3521669b064355419d49742fe",
+        "bytes": 15793
       },
       {
         "path": "server/storage/repositories/social-and-leaderboards.ts",
@@ -15099,8 +15099,8 @@
       {
         "path": "server/tests/recommendation-submission.behavior.test.ts",
         "language": "ts",
-        "sha256": "c0d96d6fe1aa94c00b1711eb40ff1dfc5b13657bd9262208c67331c943acb1fd",
-        "bytes": 25211
+        "sha256": "47ae7a64b67b97c53d41740e7ae5b805e5a892e904eef610bdd513f0c12d24ea",
+        "bytes": 25756
       },
       {
         "path": "server/tests/red-graniti-image-loading.contract.test.ts",
@@ -78798,42 +78798,42 @@
         "name": "savedRecommendation",
         "kind": "function",
         "path": "server/routes/recommendations.ts",
-        "line": 27,
+        "line": 28,
         "exported": false
       },
       {
         "name": "statusResponse",
         "kind": "function",
         "path": "server/routes/recommendations.ts",
-        "line": 47,
+        "line": 48,
         "exported": false
       },
       {
         "name": "handleError",
         "kind": "function",
         "path": "server/routes/recommendations.ts",
-        "line": 68,
+        "line": 69,
         "exported": false
       },
       {
         "name": "accountChanged",
         "kind": "function",
         "path": "server/routes/recommendations.ts",
-        "line": 78,
+        "line": 79,
         "exported": false
       },
       {
         "name": "registerRecommendationRoutes",
         "kind": "function",
         "path": "server/routes/recommendations.ts",
-        "line": 89,
+        "line": 90,
         "exported": true
       },
       {
         "name": "submit",
         "kind": "function",
         "path": "server/routes/recommendations.ts",
-        "line": 91,
+        "line": 92,
         "exported": false
       },
       {
@@ -102374,35 +102374,35 @@
         "name": "publicRecommendationConditions",
         "kind": "function",
         "path": "server/storage/repositories/recommendations.ts",
-        "line": 75,
+        "line": 81,
         "exported": true
       },
       {
         "name": "createRecommendationRepository",
         "kind": "function",
         "path": "server/storage/repositories/recommendations.ts",
-        "line": 99,
+        "line": 105,
         "exported": true
       },
       {
         "name": "authorFor",
         "kind": "function",
         "path": "server/storage/repositories/recommendations.ts",
-        "line": 100,
+        "line": 106,
         "exported": false
       },
       {
         "name": "verificationFor",
         "kind": "function",
         "path": "server/storage/repositories/recommendations.ts",
-        "line": 115,
+        "line": 121,
         "exported": false
       },
       {
         "name": "refreshStats",
         "kind": "function",
         "path": "server/storage/repositories/recommendations.ts",
-        "line": 127,
+        "line": 133,
         "exported": false
       },
       {
@@ -106994,7 +106994,7 @@
         "name": "projectionReady",
         "kind": "function",
         "path": "server/tests/recommendation-submission.behavior.test.ts",
-        "line": 420,
+        "line": 430,
         "exported": false
       },
       {

@@ -13,6 +13,7 @@ import { storage } from "../storage";
 import { toPublicContractorRecommendations } from "../publicContractorRecommendations";
 import {
   hasConfirmedRecommendationEmail,
+  recommendationAuthorVerificationFields,
   RecommendationSubmissionError,
   withCurrentRecommendationVerification,
 } from "../storage/repositories/recommendations";
@@ -136,7 +137,7 @@ export function registerRecommendationRoutes(app: Express) {
         userAgent: req.get("User-Agent") || null,
       });
       const [author] = await db
-        .select({ email: users.email, emailVerified: users.emailVerified })
+        .select(recommendationAuthorVerificationFields)
         .from(users)
         .where(eq(users.id, userId));
       const missingVerification: "email"[] = hasConfirmedRecommendationEmail(author)

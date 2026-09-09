@@ -25,8 +25,8 @@
           "type": "automated_test",
           "procedure": "Run immutable migration checks, native recommendation and recovery proofs, focused UI/security tests, typecheck/build, and exact-commit minimum release gate with current synthetic browser journeys.",
           "expected": "Immutable main history; restoration before projection; private unclassified legacy data; actor-verified and moderated publication; preserved recovery authority.",
-          "observed": "Not yet executed on the combined candidate.",
-          "evidenceRef": "artifacts/platform-integration"
+          "observed": "Combined native recommendation, legacy/schema, recovery and suppression proofs passed. Independent review reproduced and repaired CVS moderation-case inflation and disabled-author replay status; both regressions failed before and passed after the bounded fixes. The strict minimum release gate and actual desktop/mobile journeys passed the earlier combined checkpoint; current exact-source receipts are recorded separately after the corrected candidate is committed.",
+          "evidenceRef": "artifacts/platform-integration-result.json"
         }
       ],
       "journeySteps": [

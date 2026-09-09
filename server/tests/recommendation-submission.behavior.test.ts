@@ -374,9 +374,10 @@ describe("action-first recommendation saving", () => {
 describe("verification and moderation publication boundary", () => {
   it("serializes simultaneous moderation and invalidates a disabled author's public totals", async () => {
     await db.update(users).set({ emailVerified: true }).where(eq(users.id, "author"));
+    const negativePayload = content({ recommendationType: "negative" });
     const [positive, negative] = await Promise.all([
       submit(content(), "author"),
-      submit(content({ recommendationType: "negative" }), "verified"),
+      submit(negativePayload, "verified"),
     ]);
     expect([positive.status, negative.status]).toEqual([200, 200]);
     const decisions = await Promise.all([
@@ -399,6 +400,15 @@ describe("verification and moderation publication boundary", () => {
     );
     try {
       await fixture.client!.exec("UPDATE users SET is_active=false WHERE id='verified'");
+      const replay = await submit(negativePayload, "verified");
+      expect(replay.status).toBe(200);
+      expect(replay.body).toMatchObject({
+        missingVerification: ["email"],
+        recommendation: { id: negative.body.recommendation.id, isPublic: false, isVerified: false },
+      });
+      expect(replay.body.message).not.toContain("is published");
+      const mine = await request(app).get(`${path}/mine`).set("x-fixture-user", "verified");
+      expect(mine.body).toEqual(replay.body);
       expect((await db.select().from(contractors))[0]).toMatchObject({
         positiveRecommendations: 1,
         negativeRecommendations: 0,

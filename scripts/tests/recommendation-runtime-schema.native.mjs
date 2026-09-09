@@ -422,6 +422,9 @@ try {
       ["publication-unknown", "positive", true, null, "approved"],
       ["pending", "positive", true, true, "pending"],
       ["moderation-unknown", "positive", true, true, null],
+      ["moderation-uppercase", "positive", true, true, "APPROVED"],
+      ["moderation-mixed-case", "positive", true, true, "Approved"],
+      ["moderation-whitespace", "positive", true, true, " approved "],
       ["rejected", "positive", true, true, "rejected"],
     ]) {
       await client.query(
@@ -431,6 +434,18 @@ try {
     }
     assert.deepEqual(await signals(), { positive_recommendations: 2, negative_recommendations: 0 });
     assert.equal(await score(), baseline + 2);
+    assert.equal((await storageOwner.getContractorRecommendations(contractor)).length, 2);
+    assert.equal(Number((await storageOwner.getContractorRatings(contractor)).count), 2);
+    assert.deepEqual(
+      (
+        await client.query(
+          "SELECT positive_recommendations,total_recommendations FROM contractors WHERE id=$1",
+          [contractor]
+        )
+      ).rows[0],
+      { positive_recommendations: 2, total_recommendations: 2 }
+    );
+    proof.push({ noncanonicalModerationGetsNoTrustPublicOrProjectionCredit: true });
     await client.query(
       "INSERT INTO recommendations(id,contractor_id,user_id,recommendation_type,comment,customer_name,customer_email,is_verified,is_public,moderation_status) VALUES('native-current-negative',$1,$2,'negative','Explicit negative','Fixture','fixture@tradescout.test',true,true,'approved')",
       [contractor, author]
