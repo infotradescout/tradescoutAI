@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-09T05:58:30Z",
+  "generated_at": "2026-09-09T06:04:40Z",
   "source": {
     "kind": "git",
-    "revision": "790d2a9b30911df01cf89fbb131760b5bbe7f741",
+    "revision": "f597d154827999ce85164340381c7dcef262fb61",
     "dirty": true,
-    "inventory_sha256": "1c5f43bc121db2c2a86fc18e8b8c9152e6c2b386a82774127a499571b052bd5f"
+    "inventory_sha256": "5bab9fed953c78daecb8ccd5c60e75784db849457997ee19c669460b56b95654"
   },
   "inventory": {
     "directories": [
@@ -615,8 +615,8 @@
       {
         "path": "client/src/AppRoutes.tsx",
         "language": "tsx",
-        "sha256": "aa03d3e377368da38a3d5675def251f1e49d57506a96223695aae141b8efc951",
-        "bytes": 90479
+        "sha256": "bc63b56e1677d78fb64d88febaeb3534d1d0ded9287176e08a3c04de2e59c55f",
+        "bytes": 88435
       },
       {
         "path": "client/src/SmartHome.tsx",
@@ -3669,20 +3669,20 @@
       {
         "path": "client/src/lib/progressiveFeatureGating.contract.test.ts",
         "language": "ts",
-        "sha256": "faaad333ea2b7e96b9feb69098047d19b35c06e3fbcf433dc16bbcfacff85940",
-        "bytes": 5619
+        "sha256": "ba08ea70e0f544f5597becfed253759a7122eb099bfb7a2a9d31102bf727a57d",
+        "bytes": 5502
       },
       {
         "path": "client/src/lib/progressiveFeatureUnlocks.test.ts",
         "language": "ts",
-        "sha256": "d3b0e0e10d562ce5a7284bcceee294056ca0b6dbfecfe903f3968e01be3de186",
-        "bytes": 2697
+        "sha256": "dc34a3804c9be3f4315bbac252f0ef87b92b7e7adf3796dcb3d2b6dae15f0102",
+        "bytes": 2629
       },
       {
         "path": "client/src/lib/progressiveFeatureUnlocks.ts",
         "language": "ts",
-        "sha256": "83e0b989f0a79e2841971ba5215ee7da66eb0e223e12ed13f43c7598088fa90a",
-        "bytes": 4028
+        "sha256": "1b0450827ae146f570253ed44cd310f603273ffa3dc20bffc8963739ccad7876",
+        "bytes": 3897
       },
       {
         "path": "client/src/lib/publicProfileContinuation.ts",
@@ -5139,8 +5139,8 @@
       {
         "path": "client/src/pages/exchange.tsx",
         "language": "tsx",
-        "sha256": "e4f01a73ad6a08731d293668f710346b903b19a980dbe8e1b4f5295fa1364896",
-        "bytes": 127031
+        "sha256": "03cb9e82b0f0f2a58ce71f186885efd8734003508748357427c78841f31c96f3",
+        "bytes": 124213
       },
       {
         "path": "client/src/pages/exchange/ExchangeBuildingMaterialsPage.tsx",
@@ -5163,8 +5163,8 @@
       {
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
         "language": "tsx",
-        "sha256": "803302f4e28f84025b17c0e498e01086bd8a3055713c79381f51d902978f222f",
-        "bytes": 43458
+        "sha256": "6afde4e9cbaede6e91067020aab183eec4e07f376ab3ad88504fd7fa7f2f66a4",
+        "bytes": 42502
       },
       {
         "path": "client/src/pages/exchange/ExchangeCollectiblesPage.tsx",
@@ -5205,8 +5205,8 @@
       {
         "path": "client/src/pages/exchange/ExchangeListingDetail.tsx",
         "language": "tsx",
-        "sha256": "24a9f529a95f1ebc4b739853383b4f6a329fb01eb5e75c5950b8670446699d66",
-        "bytes": 37977
+        "sha256": "94ef0ba601d1d240eec5fa7fbc77141216ee8efd88348ac88939bfe05dfa8099",
+        "bytes": 37100
       },
       {
         "path": "client/src/pages/exchange/ExchangeLocalFoodPage.tsx",
@@ -5247,8 +5247,8 @@
       {
         "path": "client/src/pages/exchange/categoryConfigs.tsx",
         "language": "tsx",
-        "sha256": "096b06c87201f176e48a207ef698c5ea56664c76a9e5a8da7c170d56439ff0c1",
-        "bytes": 23249
+        "sha256": "97e9742d16662f6b6f3995f485a441074896f9a625036b840c35a00842df3551",
+        "bytes": 22513
       },
       {
         "path": "client/src/pages/file-management.tsx",
@@ -9279,8 +9279,8 @@
       {
         "path": "server/exchangeDiscovery.ts",
         "language": "ts",
-        "sha256": "1ff67c3f007d774c772d03b2f3cae81a21ba2c915cdbce3be24cbefbb8047bf9",
-        "bytes": 2892
+        "sha256": "867b81eb6a42e4070c29a055d8d340b531b8dc255821243584844b9fc8768594",
+        "bytes": 2819
       },
       {
         "path": "server/http/corsPolicy.ts",
@@ -9525,8 +9525,8 @@
       {
         "path": "server/profileCatalogExchange.ts",
         "language": "ts",
-        "sha256": "8d28fdee347a042c5daec1ec3f5706994b52ec9289113c9099f4d29268ddb99c",
-        "bytes": 9933
+        "sha256": "cfdbf2d99467ff12628331d4985de8632260c8fe7c0b0d7ec3ca9f9d71a3fca9",
+        "bytes": 9675
       },
       {
         "path": "server/profileImageSitemap.ts",
@@ -9831,8 +9831,8 @@
       {
         "path": "server/repositories/profileRepository.ts",
         "language": "ts",
-        "sha256": "d25d11cce7d163707c8302d05e095cdf3ea359fb679f6abd1062412244f735e1",
-        "bytes": 18449
+        "sha256": "feaffb7c5fa80f11a6cd8c9dbb9c3658b051af8e30e03c24dc9919b829dc0dc2",
+        "bytes": 17946
       },
       {
         "path": "server/repositories/sitemapRepository.ts",
@@ -9861,8 +9861,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "1b267479cd68d9b111d22b3d54c7c7991780510e2c70fff0e04144ecd081065a",
-        "bytes": 1007380
+        "sha256": "d06cb2e1a314be279e8e4109a1ec35e36dcb8592744ff28e7e29bd1fd71573ab",
+        "bytes": 981449
       },
       {
         "path": "server/routes/address-verification.ts",
@@ -10371,8 +10371,8 @@
       {
         "path": "server/routes/public-profile-app.ts",
         "language": "ts",
-        "sha256": "26b46781e4ac36da4b5329d9fcea3564dfd9d9fe9b17a41aa4e634ca3b809fd6",
-        "bytes": 3883
+        "sha256": "fb34504a2070babcf084e06ed5aeb247b1964afa9e3e695189101673fa4ff50f",
+        "bytes": 3777
       },
       {
         "path": "server/routes/public-profile-social-preview.ts",
@@ -11091,8 +11091,8 @@
       {
         "path": "server/services/exposureAuthority.ts",
         "language": "ts",
-        "sha256": "75963f64166724ab348bbf2ea2b0234eff73ffa7045f15cd6758b807854e465d",
-        "bytes": 3155
+        "sha256": "d7832aa8a5b91ab1bc596697f582377fe2539da8e9b298d93cab91726b8c2cc1",
+        "bytes": 3079
       },
       {
         "path": "server/services/externalActionsClient.ts",
@@ -12117,14 +12117,14 @@
       {
         "path": "server/storage.ts",
         "language": "ts",
-        "sha256": "5f05d3d9418174c88048ea4ddb0f0190e44ab7a9600e9cc49c174980557643a1",
-        "bytes": 288928
+        "sha256": "450431718de32bef3c8e71c2ec1de2014b429be7691c223e094f3347328d7295",
+        "bytes": 279971
       },
       {
         "path": "server/storage/contracts.ts",
         "language": "ts",
-        "sha256": "f83297f52799be26db31c7c7e36459708a44d4b5e83d86bd6bcae9320f84e34e",
-        "bytes": 55724
+        "sha256": "96329da20ab346d06d6747b1418aaf0062c79f5f9891a94e32346d342cd12178",
+        "bytes": 54246
       },
       {
         "path": "server/storage/repositories/crm-and-deals.ts",
@@ -12141,8 +12141,8 @@
       {
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
         "language": "ts",
-        "sha256": "0e3cd46c33da556b241fede92557ea0876bc3312f5031e0b1f1c96c765ea308d",
-        "bytes": 67997
+        "sha256": "d82315584b58be289aea8aebb65a625b17103da59d308f9ed1716eff352fe5a4",
+        "bytes": 66001
       },
       {
         "path": "server/storage/repositories/oauth-identities.ts",
@@ -13347,8 +13347,8 @@
       {
         "path": "server/tests/exchange-discovery.behavior.test.ts",
         "language": "ts",
-        "sha256": "f5ee38a81586ae7d5a88271bf226d14e30ac2d6ade78d2b6ba1b4a3a18d56404",
-        "bytes": 11097
+        "sha256": "0873eb055b81cd1be0f24abfbbeb434dba36fff227895c1cbfd77e225786d049",
+        "bytes": 10793
       },
       {
         "path": "server/tests/exchange-listing-seo.contract.test.ts",
@@ -13359,8 +13359,8 @@
       {
         "path": "server/tests/exchange-nullable-pagination.behavior.test.ts",
         "language": "ts",
-        "sha256": "c3d7976e26dec5daa8a4afd3e74b74a40612e5fcc708496481ee37c5540a1f10",
-        "bytes": 4454
+        "sha256": "52b55730bfd634cef3544ecf72616115c1cb5f605029eba0714da15af13ac8a4",
+        "bytes": 4360
       },
       {
         "path": "server/tests/exchange-og-and-category-routing.contract.test.ts",
@@ -13377,8 +13377,8 @@
       {
         "path": "server/tests/exposure-authority-sql-parity.test.ts",
         "language": "ts",
-        "sha256": "543759caf9883095129bed99f115e10ce111cc08317ba05be3ece5e05ce7c28f",
-        "bytes": 4759
+        "sha256": "945bfbf36e977f4f35db34d0b5f234df93347fdf844065537c07d6d8b651540f",
+        "bytes": 4655
       },
       {
         "path": "server/tests/express-request-contact-delivery.behavior.test.ts",
@@ -14361,8 +14361,8 @@
       {
         "path": "server/tests/profile-catalog-exchange.contract.test.ts",
         "language": "ts",
-        "sha256": "c219809ebb1bfb1cb651e3677c3ca9d0da76ae656e20a8c3b0d1d60545ed93fd",
-        "bytes": 10558
+        "sha256": "866cc710546293c86dd9c01cb4f65b9a88ae5366abdcef8f8c8e3acc91149acc",
+        "bytes": 10302
       },
       {
         "path": "server/tests/profile-child-route-publication-parity.behavior.test.ts",
@@ -14997,8 +14997,8 @@
       {
         "path": "server/tests/public-profile-operator-authority.contract.test.ts",
         "language": "ts",
-        "sha256": "40b51cb63b9dd2ebf82e29cece51edf5921f0d22897dc59059b66db400f7aa8a",
-        "bytes": 2106
+        "sha256": "584926458c7b837d7066b595f1cdcbc7fc30f91361eb86ea4533b264f4fc991b",
+        "bytes": 2067
       },
       {
         "path": "server/tests/public-profile-product-card.contract.test.ts",
