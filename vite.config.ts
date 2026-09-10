@@ -102,6 +102,11 @@ export default defineConfig({
           // Keep that policy in its own feature chunk, avoiding a renderer -> planner
           // cycle and keeping the measured planner implementation independently loadable.
           const normalizedId = id.replace(/\\/g, "/");
+          if (normalizedId.endsWith("/steel-home-project-tools/countertopStudioShare.ts")) {
+            // Both the editor and optional drawing view offer measured-plan sharing.
+            // Neither view should import the other's implementation to reuse this codec.
+            return "countertop-plan-sharing";
+          }
           if (
             normalizedId.endsWith("/steel-home-project-tools/stoneProjectionSafety.ts") ||
             normalizedId.endsWith("/shared/jwStonePublicMedia.ts") ||
@@ -146,8 +151,8 @@ export default defineConfig({
       "/ws": {
         target: "http://localhost:5000",
         changeOrigin: true,
-        secure: false,
         ws: true,
+        secure: false,
       },
     },
   },
