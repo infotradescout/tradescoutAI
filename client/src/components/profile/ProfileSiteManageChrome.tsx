@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,8 @@ import {
   type ProfileSiteTemplateGalleryId,
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
+
+const JwStoneCurrentInventoryManager = lazy(() => import("./JwStoneCurrentInventoryManager"));
 
 type Props = {
   profileId: string;
@@ -64,6 +66,7 @@ export default function ProfileSiteManageChrome({
   const [saving, setSaving] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [leadPickerOpen, setLeadPickerOpen] = useState(false);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
   const [bridging, setBridging] = useState(false);
   const hero = useMemo(() => readHeroFields(contentBlocks), [contentBlocks]);
   const [draftDisplayName, setDraftDisplayName] = useState(displayName);
@@ -211,6 +214,19 @@ export default function ProfileSiteManageChrome({
               size="sm"
               variant="outline"
               className="shrink-0 border-white/20 bg-white/5"
+              aria-expanded={inventoryOpen}
+              aria-controls="jw-physical-inventory"
+              onClick={() => setInventoryOpen((open) => !open)}
+            >
+              {inventoryOpen ? "Close inventory" : "Current Inventory"}
+            </Button>
+          ) : null}
+          {isJwStone ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="shrink-0 border-white/20 bg-white/5"
               onClick={() => {
                 setLeadPickerOpen((open) => !open);
                 if (!editMode) onToggleEdit(true);
@@ -284,6 +300,19 @@ export default function ProfileSiteManageChrome({
                 <p className="mt-1 text-xs text-white/65">{template.description}</p>
               </button>
             ))}
+          </div>
+        ) : null}
+
+        {inventoryOpen && isJwStone ? (
+          <div id="jw-physical-inventory">
+            <Suspense fallback={<p role="status">Loading current inventory…</p>}>
+              <JwStoneCurrentInventoryManager
+                key={profileSlug}
+                open
+                profileSlug={profileSlug}
+                onClose={() => setInventoryOpen(false)}
+              />
+            </Suspense>
           </div>
         ) : null}
 
