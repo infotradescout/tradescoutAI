@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, type ComponentProps } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentProps } from "react";
 import MeasuredCountertopDesigner from "./MeasuredCountertopDesigner";
 import { useDesignerHistory } from "./useDesignerHistory";
 import "./planningBuilderResponsive.css";
@@ -10,18 +10,20 @@ type Props = ComponentProps<typeof MeasuredCountertopDesigner>;
 export default function CountertopDesigner(props: Props) {
   const history = useDesignerHistory(props.design, props.onChange);
   const [review, setReview] = useState(false);
+  const [exportPending, setExportPending] = useState(false);
   const [notice, setNotice] = useState("");
   const root = useRef<HTMLDivElement>(null);
-  const exportDrawing = () => {
-    setReview(true);
-    // Export only this self-contained drawing; notes, contacts and photos stay out.
-    requestAnimationFrame(() => {
-      const svg = root.current?.querySelector<SVGSVGElement>("[data-testid=countertop-precision-drawing]");
-      if (!svg) {
-        setNotice("Open Scaled drawing, then choose Export drawing again.");
-        return;
-      }
+
+  useEffect(() => {
+    const container = root.current;
+    if (!exportPending || !review || !container) return;
+    let completed = false;
+    const downloadWhenReady = () => {
+      const svg = container.querySelector<SVGSVGElement>("[data-testid=countertop-precision-drawing]");
+      if (completed || !svg) return;
+      completed = true;
       try {
+        // Export only this self-contained drawing; notes, contacts and photos stay out.
         const copy = svg.cloneNode(true) as SVGSVGElement;
         copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
         copy.removeAttribute("style");
@@ -47,16 +49,35 @@ export default function CountertopDesigner(props: Props) {
         const link = document.createElement("a");
         link.href = url;
         link.download = "tradescout-countertop-review.svg";
-        document.body.append(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        try {
+          document.body.append(link);
+          link.click();
+        } finally {
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
         setNotice("Drawing download started. Field templating remains required.");
       } catch {
         setNotice("Download unavailable. The scaled drawing remains visible for review.");
       }
-    });
-  };
+      setExportPending(false);
+    };
+    const observer = new MutationObserver(downloadWhenReady);
+    observer.observe(container, { childList: true, subtree: true });
+    const timeout = window.setTimeout(() => {
+      if (completed) return;
+      completed = true;
+      setExportPending(false);
+      setNotice("The drawing is still loading. Retry Export drawing when it is visible.");
+    }, 15000);
+    downloadWhenReady();
+    return () => {
+      completed = true;
+      observer.disconnect();
+      window.clearTimeout(timeout);
+    };
+  }, [exportPending, review]);
+
   return (
     <div className="kitchen-designer-studio" ref={root} onKeyDown={event => {
       const target = event.target as HTMLElement;
@@ -70,9 +91,9 @@ export default function CountertopDesigner(props: Props) {
         <strong>Countertop studio</strong>
         <button type="button" disabled={!history.canUndo} onClick={history.undo}>Undo</button>
         <button type="button" disabled={!history.canRedo} onClick={history.redo}>Redo</button>
-        <button type="button" aria-pressed={!review} onClick={() => setReview(false)}>Edit design</button>
+        <button type="button" aria-pressed={!review} onClick={() => { setExportPending(false); setReview(false); setNotice(""); }}>Edit design</button>
         <button type="button" aria-pressed={review} onClick={() => setReview(true)}>Scaled drawing</button>
-        <button type="button" onClick={exportDrawing}>Export drawing</button>
+        <button type="button" disabled={exportPending} aria-busy={exportPending} onClick={() => { setReview(true); setNotice("Preparing drawing…"); setExportPending(true); }}>Export drawing</button>
       </div>
       {notice && <p className="kitchen-designer-notice" role="status">{notice}</p>}
       {review && (
