@@ -97,7 +97,7 @@ describe("CabinetDesigner measured workbench", () => {
     expect(container.textContent).not.toMatch(/early price|\$\d/);
   });
 
-  it("gates the request until shell, module placement, and measurement review are complete", () => {
+  it("gates the request until shell, module placement, and measurement review are complete", async () => {
     click(container, "steel-home-cabinet-start-kitchen");
     const request = container.querySelector<HTMLButtonElement>(
       '[data-testid="steel-home-cabinet-include"]'
@@ -116,6 +116,7 @@ describe("CabinetDesigner measured workbench", () => {
     click(container, "steel-home-cabinet-review-measurements");
     expect(request.disabled).toBe(false);
     expect(container.textContent).toContain("Ready for review");
+    await act(async () => { await import("./CabinetInteractivePlan"); });
     expect(container.querySelector('[data-testid="steel-home-cabinet-plan"]')).not.toBeNull();
 
     act(() => request.click());
@@ -153,7 +154,7 @@ describe("CabinetDesigner measured workbench", () => {
     });
   });
 
-  it("lets a selected module move and resize on the eighth-inch grid", () => {
+  it("lets a selected module move and resize on the eighth-inch grid", async () => {
     click(container, "steel-home-cabinet-start-built-in");
     enterShell(container);
     click(container, "steel-home-cabinet-add-wall-cabinet");
@@ -169,6 +170,7 @@ describe("CabinetDesigner measured workbench", () => {
     setNumberValue(offset, "12.06");
     expect(width.value).toBe("31.25");
     expect(offset.value).toBe("12");
+    await act(async () => { await import("./CabinetInteractivePlan"); });
     expect(container.querySelector('[data-module^="cabinet-module-"]')).not.toBeNull();
   });
 });
