@@ -1,4 +1,7 @@
-import { useEffect, useRef, type ComponentProps } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { buildSteelHomeBuilderPath, resolveSteelHomeBuilderPathname } from "@shared/steelHomeBuilderRoutes";
+import { resolveCountertopPlannerDesign } from "./countertopPlannerModel";
+import { buildCountertopStudioShareUrl } from "./countertopStudioShare";
 import CountertopPrecisionReview from "./CountertopPrecisionReview";
 
 type Props = ComponentProps<typeof CountertopPrecisionReview> & {
@@ -6,10 +9,25 @@ type Props = ComponentProps<typeof CountertopPrecisionReview> & {
   onExportComplete: (notice: string) => void;
 };
 
-/** This optional view owns both the drawing and its exporter, so a cold export waits for both. */
+/** This optional view owns the drawing and its exporter, so a cold export waits for both. */
 export default function CountertopDrawingReview({ design, exportRequested, onExportComplete }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const exported = useRef(false);
+  const [shareLink, setShareLink] = useState("");
+  const [shareNotice, setShareNotice] = useState("");
+  useEffect(() => { setShareLink(""); setShareNotice(""); }, [design]);
+  const shareDrawing = async () => {
+    const pathname = resolveSteelHomeBuilderPathname(window.location.pathname) === "countertops"
+      ? window.location.pathname : buildSteelHomeBuilderPath("countertops");
+    const link = buildCountertopStudioShareUrl(
+      resolveCountertopPlannerDesign({ ...design, floorStone: false }),
+      new URL(pathname, window.location.origin).href
+    );
+    if (!link) { setShareNotice("Choose a named stone in the editor before sharing this plan."); return; }
+    setShareLink(link);
+    setShareNotice("Select and copy the link below.");
+    try { await navigator.clipboard.writeText(link); setShareNotice("Plan link copied."); } catch { /* The selectable link remains usable. */ }
+  };
   useEffect(() => {
     if (!exportRequested) { exported.current = false; return; }
     if (exported.current) return;
@@ -50,5 +68,13 @@ export default function CountertopDrawingReview({ design, exportRequested, onExp
       onExportComplete("Download unavailable. The scaled drawing remains visible for review.");
     }
   }, [exportRequested, onExportComplete]);
-  return <div ref={root}><CountertopPrecisionReview design={design} /></div>;
+  return <div ref={root}>
+    <div className="kitchen-designer-toolbar" aria-label="Drawing sharing actions">
+      <button type="button" onClick={shareDrawing}>Copy plan link</button>
+      <p className="text-xs">Shares measured dimensions and the selected stone, not notes or contact details.</p>
+      {shareLink && <label className="block w-full min-w-0 text-xs">Drawing plan link<input aria-label="Drawing plan link" readOnly value={shareLink} onFocus={event => event.currentTarget.select()} className="mt-2 min-h-11 w-full rounded border border-[#aebdb5] bg-white px-3 text-[#18312f]" /></label>}
+      {shareNotice && <p role="status" className="w-full text-xs">{shareNotice}</p>}
+    </div>
+    <CountertopPrecisionReview design={design} />
+  </div>;
 }
