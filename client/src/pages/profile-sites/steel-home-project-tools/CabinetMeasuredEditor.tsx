@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, ChevronDown, Plus, RotateCcw, Send, Trash2 } from "lucide-react";
 import type { SteelHomeCabinetDesign } from "./projectModel";
 import CabinetThreePreview from "./CabinetThreePreview";
+import PlanView from "./CabinetPlanView";
 import {
   CABINET_PLANNER_STARTS,
   applyCabinetPlannerStart,
@@ -11,7 +12,6 @@ import {
   createBlankCabinetPlannerExtension,
   createCabinetPlannerModule,
   createCabinetShellItem,
-  getCabinetModuleBounds,
   getCabinetPlannerDiagnostics,
   isCabinetPlannerRequestReady,
   reconcileCabinetPlannerExtension,
@@ -141,143 +141,6 @@ function UnresolvedPreview({ message }: { message: string }) {
         <p className="mt-2 text-xs leading-5 text-[#68736f]">{message}</p>
       </div>
     </div>
-  );
-}
-
-function PlanView({
-  planner,
-  onSelectModule,
-}: {
-  planner: CabinetPlannerExtensionV1;
-  onSelectModule: (id: string) => void;
-}) {
-  const width = planner.shell.widthIn;
-  const depth = planner.shell.depthIn;
-  if (width === null || depth === null) {
-    return <UnresolvedPreview message="Enter room width and depth to draw the measured plan." />;
-  }
-  const scale = Math.min(620 / width, 360 / depth);
-  const originX = (760 - width * scale) / 2;
-  const originY = (500 - depth * scale) / 2;
-  const selected = planner.selectedModuleId;
-  const itemLine = (item: CabinetShellItem) => {
-    const start = item.offsetIn * scale;
-    const extent = item.widthIn * scale;
-    if (item.wall === "north") return { x: originX + start, y: originY, width: extent, height: 8 };
-    if (item.wall === "south") {
-      return {
-        x: originX + (width - item.offsetIn - item.widthIn) * scale,
-        y: originY + depth * scale - 8,
-        width: extent,
-        height: 8,
-      };
-    }
-    if (item.wall === "east") {
-      return { x: originX + width * scale - 8, y: originY + start, width: 8, height: extent };
-    }
-    return {
-      x: originX,
-      y: originY + (depth - item.offsetIn - item.widthIn) * scale,
-      width: 8,
-      height: extent,
-    };
-  };
-
-  return (
-    <svg
-      viewBox="0 0 760 500"
-      role="img"
-      aria-label={`Measured cabinet plan, ${width} by ${depth} inches`}
-      className="h-full min-h-[24rem] w-full bg-[#ede7dd]"
-      data-testid="steel-home-cabinet-plan"
-    >
-      <rect width="760" height="500" fill="#ede7dd" />
-      <rect
-        x={originX}
-        y={originY}
-        width={width * scale}
-        height={depth * scale}
-        fill="#faf8f3"
-        stroke="#18312f"
-        strokeWidth="5"
-      />
-      {planner.shellItems.map((item) => {
-        const box = itemLine(item);
-        return (
-          <g key={item.id} data-shell-item={item.id}>
-            <rect {...box} fill={item.kind === "obstacle" ? "#9b3f32" : "#4f8c8e"} />
-            <title>{`${item.label}: ${item.widthIn} inches on ${item.wall} wall`}</title>
-          </g>
-        );
-      })}
-      {planner.modules.map((module) => {
-        const bounds = getCabinetModuleBounds(planner, module);
-        if (!bounds) return null;
-        const x = originX + bounds.x1 * scale;
-        const y = originY + bounds.z1 * scale;
-        const moduleWidth = Math.max(4, (bounds.x2 - bounds.x1) * scale);
-        const moduleDepth = Math.max(4, (bounds.z2 - bounds.z1) * scale);
-        return (
-          <g
-            key={module.id}
-            role="button"
-            tabIndex={0}
-            aria-label={`Select ${module.label}`}
-            onClick={() => onSelectModule(module.id)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelectModule(module.id);
-              }
-            }}
-            className="cursor-pointer focus:outline-none"
-            data-module={module.id}
-          >
-            <rect
-              x={x}
-              y={y}
-              width={moduleWidth}
-              height={moduleDepth}
-              rx="2"
-              fill={module.kind === "island" ? "#a94f2e" : "#ac7b4e"}
-              stroke={selected === module.id ? "#f4b08c" : "#18312f"}
-              strokeWidth={selected === module.id ? 6 : 2}
-            />
-            {moduleWidth > 46 ? (
-              <text
-                x={x + moduleWidth / 2}
-                y={y + moduleDepth / 2 + 4}
-                textAnchor="middle"
-                fill="white"
-                fontSize="11"
-                fontWeight="800"
-              >
-                {module.label.slice(0, 16)}
-              </text>
-            ) : null}
-          </g>
-        );
-      })}
-      <g fill="#18312f" fontFamily="system-ui, sans-serif" fontWeight="800">
-        <text x="380" y={Math.max(20, originY - 14)} textAnchor="middle" fontSize="13">
-          NORTH · {width}&quot;
-        </text>
-        <text
-          x="380"
-          y={Math.min(490, originY + depth * scale + 24)}
-          textAnchor="middle"
-          fontSize="13"
-        >
-          SOUTH · {width}&quot;
-        </text>
-        <text x="24" y="250" fontSize="13" transform="rotate(-90 24 250)" textAnchor="middle">
-          WEST · {depth}&quot;
-        </text>
-        <text x="736" y="250" fontSize="13" transform="rotate(90 736 250)" textAnchor="middle">
-          EAST · {depth}&quot;
-        </text>
-      </g>
-    </svg>
   );
 }
 
@@ -760,7 +623,7 @@ export default function CabinetDesigner({
             data-testid="steel-home-cabinet-preview"
           >
             {planner.view === "plan" ? (
-              <PlanView planner={planner} onSelectModule={selectModule} />
+              <PlanView planner={planner} onSelectModule={selectModule} onChange={commitGeometry} />
             ) : null}
             {planner.view === "elevations" ? <ElevationView planner={planner} /> : null}
             {planner.view === "3d" ? (
