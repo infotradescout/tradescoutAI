@@ -16,7 +16,7 @@ const working = await fs.mkdtemp(path.join(os.tmpdir(), 'kitchen-room-proof-'));
 const proof = { head, phase, deployedCommit: deployed || null, startedAt: new Date().toISOString(), checks: [], passed: false };
 const run = (command, args, options = {}) => execFileSync(command, args, { cwd: repo, stdio: 'inherit', env: process.env, ...options });
 const record = (name, detail) => { proof.checks.push({ name, passed: true, detail }); console.log('KITCHEN_CHECK ' + JSON.stringify({ name, detail })); };
-let browser, server, harnessPath;
+let browser, server, harnessPath, activePage;
 try {
   if (phase === 'preview') {
     run('npm', ['run', 'check']); record('TypeScript', 'passed');
@@ -81,17 +81,18 @@ function App(){`);
       : `Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Mobile Safari/537.36`;
     const context = await browser.newContext({ viewport, userAgent, isMobile: device === 'mobile', hasTouch: device === 'mobile', acceptDownloads: true, serviceWorkers: 'block' });
     const blockedWrites = [];
+    let delayedReviewRequests = 0;
     await context.route('**/*', async route => {
       const request = route.request();
       if (!['GET', 'HEAD'].includes(request.method())) { blockedWrites.push(new URL(request.url()).pathname); return route.abort('blockedbyclient'); }
       if (phase === 'preview' && request.isNavigationRequest() && new URL(request.url()).origin === local && new URL(request.url()).pathname.startsWith('/u/')) return route.fulfill({ body: entryHtml, contentType: 'text/html' });
-      if (/CountertopPrecisionReview[^/]*\.js/.test(request.url())) await new Promise(resolve => setTimeout(resolve, 800));
+      if (/Countertop(?:Precision|Drawing)Review[^/]*\.js/.test(request.url())) { delayedReviewRequests++; await new Promise(resolve => setTimeout(resolve, 800)); }
       return route.continue();
     });
     await context.addInitScript(() => {
       Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => Promise.reject(new Error('Synthetic clipboard-denied scenario')) } });
     });
-    const page = await context.newPage();
+    const page = await context.newPage(); activePage = page;
     page.setDefaultTimeout(30000);
     const errors = [];
     const loadedCrops = [];
@@ -108,7 +109,6 @@ function App(){`);
       await page.getByTestId('steel-home-countertop-designer').waitFor({ state: 'visible' });
     };
     const read = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey);
-    // Start a synthetic draft through the existing sample harness, then move it to the disposable production browser when applicable.
     page.on('dialog', dialog => dialog.accept());
     await page.goto(local, { waitUntil: 'networkidle' });
     await click(page.getByRole('button', { name: 'Load sample kitchen', exact: true }));
@@ -120,7 +120,7 @@ function App(){`);
     await page.evaluate(({ key, sample }) => localStorage.setItem(key, JSON.stringify(sample)), { key: storageKey, sample });
     await go(fixture.faceHref);
     await page.waitForFunction(({ key, selected }) => JSON.parse(localStorage.getItem(key) || 'null')?.countertops?.texturePhotoKey === selected, { key: storageKey, selected: fixture.faceSelection.texturePhotoKey });
-    let actual = await read();
+    const actual = await read();
     assert.deepEqual(actual.cabinets, sample.cabinets);
     assert.deepEqual(actual.countertops, { ...sample.countertops, ...fixture.faceSelection });
     await page.locator('canvas').first().waitFor({ state: 'visible' });
@@ -164,17 +164,23 @@ function App(){`);
     await click(page.getByRole('button', { name: 'Export drawing', exact: true }));
     const download = await pending;
     assert.equal(await download.failure(), null);
+    assert(delayedReviewRequests > 0, 'Cold drawing chunk delay was not exercised');
     const exportPath = path.join(working, `drawing-${device}.svg`);
     await download.saveAs(exportPath);
     const svg = await fs.readFile(exportPath, 'utf8');
     assert(svg.includes('PLANNING ONLY') && svg.includes('84,0'));
     assert(!svg.includes('Recipient local note') && !svg.includes('PRIVATE synthetic'));
+    await click(page.getByRole('button', { name: 'Copy plan link', exact: true }));
+    const drawingLink = await page.getByLabel('Drawing plan link', { exact: true }).inputValue();
+    const drawingShared = await fixturePage.evaluate(url => window.__roomProof.parse(url), drawingLink);
+    assert(drawingShared && drawingShared.wallAIn === 84 && drawingShared.notes === '' && !drawingShared.floorStone);
+    assert.equal((await read()).countertops.notes, 'Recipient local note');
     await page.screenshot({ path: path.join(working, `drawing-${device}.png`), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
     assert.deepEqual(errors, []);
-    record(`${device}: first-click export and reference photo`, 'Exact reference photo preserved recipient geometry; one click exported after delayed lazy loading; warning present; private notes absent; zero page errors/overflow');
+    record(`${device}: first-click export and drawing sharing`, 'Exact reference photo preserved geometry; one click exported after an 800ms lazy-chunk delay; drawing-view link preserves dimensions without notes; warning present; zero page errors/overflow');
     console.log('KITCHEN_BLOCKED_WRITES ' + JSON.stringify({ device, count: blockedWrites.length }));
-    await context.close();
+    await context.close(); activePage = undefined;
   }
   await browser.close(); browser = undefined;
   server.kill(); server = undefined;
@@ -182,7 +188,7 @@ function App(){`);
   await fs.rm(publish, { recursive: true, force: true });
   if (phase === 'preview') {
     assert(process.env.TEST_DATABASE_URL, 'A disposable TEST_DATABASE_URL must be configured');
-    run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Combined cabinet, exact-photo room preview, private-safe shared plan, recipient undo, and delayed first-click export passed on this exact head at desktop and mobile; synthetic local drafts only']);
+    run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Combined cabinet, exact-photo room preview, private-safe shared plan, recipient undo, drawing-view sharing and delayed first-click export passed on this exact head at desktop and mobile; synthetic local drafts only']);
     const gate = JSON.parse(await fs.readFile(`artifacts/release-contract/${head.slice(0, 12)}/evidence.json`, 'utf8'));
     assert.equal(gate.result, 'pass'); assert.equal(gate.attestable, true); assert.equal(gate.commit, head);
     proof.minimumRelease = gate;
@@ -198,6 +204,7 @@ function App(){`);
 } catch (error) {
   proof.error = String(error.stack || error);
   console.error('KITCHEN_FAILURE ' + proof.error);
+  if (activePage) { proof.visibleText = (await activePage.locator('body').innerText().catch(() => '')).slice(0, 3000); await activePage.screenshot({ path: path.join(working, 'failure.png'), fullPage: true }).catch(() => {}); }
   console.log('KITCHEN_TREE ' + execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }));
 } finally {
   await browser?.close(); server?.kill();
@@ -211,5 +218,4 @@ function App(){`);
   console.log('KITCHEN_RESULT ' + JSON.stringify(proof));
   await fs.rm(working, { recursive: true, force: true });
 }
-// The report is published even on failure so failed evidence remains inspectable.
-// Only evidence.passed=true AND minimumRelease.attestable=true authorize a preview release.
+// A published report may describe failure; only passed=true with exact-head attestable gate evidence authorizes release.
