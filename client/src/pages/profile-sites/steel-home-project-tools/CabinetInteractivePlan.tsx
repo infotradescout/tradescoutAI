@@ -122,7 +122,7 @@ export default function CabinetPlanView({ planner, onSelectModule, onChange }: P
         {([['Left', -1, 0], ['Up', 0, -1], ['Down', 0, 1], ['Right', 1, 0]] as const).map(([label, dx, dz]) => <button type="button" key={label} disabled={!selectedModule || activeId !== null} onClick={() => selectedModule && nudge(selectedModule.id, dx * .125, dz * .125)} aria-label={`Move selected cabinet ${label.toLowerCase()}`} className="min-h-11 min-w-11 rounded-lg border border-[#18312f]/20 bg-white px-2 font-bold disabled:opacity-40 focus-visible:outline focus-visible:outline-2">{label}</button>)}
       </div>
     </div>
-    <svg ref={svg} viewBox="0 0 760 500" role="group" aria-label={`Measured cabinet plan, ${width} by ${depth} inches`} aria-describedby={helpId} className="block min-h-[20rem] w-full flex-1" data-testid="steel-home-cabinet-plan" data-placement-invalid={Boolean(preview?.problems.length)}>
+    <svg ref={svg} viewBox="0 0 760 500" role="group" aria-label={`Measured cabinet plan, ${width} by ${depth} inches`} aria-describedby={helpId} style={{ touchAction: "none" }} className="block min-h-[20rem] w-full flex-1" data-testid="steel-home-cabinet-plan" data-placement-invalid={Boolean(preview?.problems.length)}>
       <rect width="760" height="500" fill="#ede7dd" />
       <rect x={originX} y={originY} width={width * scale} height={depth * scale} fill="#faf8f3" stroke="#18312f" strokeWidth="5" />
       {planner.shellItems.map(item => <g key={item.id} data-shell-item={item.id}><rect {...boxFor(item)} fill={item.kind === "obstacle" ? "#9b3f32" : "#4f8c8e"} /><title>{`${item.label}: ${item.widthIn} inches on ${item.wall} wall`}</title></g>)}
@@ -156,7 +156,7 @@ export default function CabinetPlanView({ planner, onSelectModule, onChange }: P
     </svg>
     <div className="border-t border-[#18312f]/10 bg-white/90 p-3 text-xs leading-5 text-[#18312f]">
       <p role="status" aria-live="polite" className="min-h-10 font-semibold" data-testid="cabinet-placement-status">{feedback}</p>
-      <p id={helpId} className="text-[#53625e]">Drag along the chosen wall; islands move freely. Arrow keys move 1/8 in; Shift + arrow moves 1 in. Alt disables magnetic snapping. Escape cancels. Use Place on for another wall. Warnings check recorded geometry, not door swings or required working clearances.</p>
+      <p id={helpId} className="text-[#53625e]">Drag along the chosen wall; islands move freely. Scroll outside the drawing to move the page. Arrow keys move 1/8 in; Shift + arrow moves 1 in. Alt disables magnetic snapping. Escape cancels. Use Place on for another wall. Warnings check recorded geometry, not door swings or required working clearances.</p>
     </div>
   </div>;
 }
