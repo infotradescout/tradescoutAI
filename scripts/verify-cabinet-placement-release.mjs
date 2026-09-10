@@ -112,7 +112,10 @@ try {
     assert.equal(await item('a').getAttribute('data-offset-in'), '30', 'Snap preview did not use measured target');
     assert(await page.locator('[data-snap-guide]').count(), 'Snap guide not visible');
     assert.deepEqual(await read(), baseline, 'Pointer movement wrote an intermediate draft');
-    await page.getByTestId('cabinet-direct-placement').screenshot({ path: path.join(working, `snap-${device}.png`) });
+    // Element screenshots can resize mobile viewports and interrupt an active pointer.
+    // Capture the unchanged viewport during the gesture; whole-element images follow release.
+    await page.screenshot({ path: path.join(working, `snap-${device}.png`), fullPage: false });
+    assert.equal(await item('a').getAttribute('data-offset-in'), '30', 'Evidence capture interrupted the drag');
     await end(); await waitPosition('a', 30);
     assert.equal((await read()).cabinets.planner.shell.measurementsReviewed, false);
     await click(page.getByRole('button', { name: 'Undo', exact: true })); await waitPosition('a', 0);
@@ -122,7 +125,7 @@ try {
     const beforeBlocked = await read();
     await begin('a'); await move(20, 0);
     assert.equal(await page.getByTestId('steel-home-cabinet-plan').getAttribute('data-placement-invalid'), 'true');
-    await page.getByTestId('cabinet-direct-placement').screenshot({ path: path.join(working, `collision-${device}.png`) });
+    await page.screenshot({ path: path.join(working, `collision-${device}.png`), fullPage: false });
     await end();
     assert.deepEqual(await read(), beforeBlocked);
     assert((await page.getByTestId('cabinet-placement-status').textContent()).includes('Move not applied'));
