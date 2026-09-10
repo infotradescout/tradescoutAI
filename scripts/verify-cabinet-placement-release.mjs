@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
+import { prepareCabinetParentFixture, verifyCabinetParentRegression } from './prepare-cabinet-parent-proof.mjs';
 
 const phase = process.env.CABINET_PLACEMENT_PHASE || 'preview';
 assert(['preview', 'production'].includes(phase));
@@ -19,12 +20,11 @@ const record = (name, detail) => { const check = { name, detail, passed: true };
 let browser, server, activePage;
 try {
   if (phase === 'preview') {
-    // The PR's base-to-head patch was reviewed: only the plan extraction, its import,
-    // unused import removal and the new commitGeometry callback changed this editor.
-    // Pin that reviewed blob without requiring unavailable shallow-clone ancestors.
     const file = 'client/src/pages/profile-sites/steel-home-project-tools/CabinetMeasuredEditor.tsx';
     assert.equal(execFileSync('git', ['hash-object', file], { encoding: 'utf8' }).trim(), '0f95e998422a52e74ac6e0cd0da7134c4188b0b6');
-    record('Reviewed editor identity', 'The exact integration blob matches the reviewed PR patch; existing controls, elevations, 3D and request code are unchanged');
+    record('Reviewed editor identity', 'Existing measured controls, elevations, 3D and request code remain unchanged');
+    await verifyCabinetParentRegression();
+    record('Parent regression reproduced and fixed', 'The exact former production parent fails the targeted Undo assertion; the checked-in single-update parent passes the complete regression suite');
     run('npm', ['run', 'check']); record('TypeScript', 'passed');
     run('npm', ['run', 'test:run', '--', 'client/src/features/jw-stone', 'client/src/pages/profile-sites/steel-home-project-tools', 'client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx', 'server/tests/steel-home-builder-profile-route.contract.test.ts', 'server/tests/steel-home-builder-profile-route.runtime.test.ts']);
     record('Affected tests', 'All selected suites passed; counts recorded by Vitest');
@@ -34,6 +34,7 @@ try {
   run(process.execPath, ['node_modules/playwright/cli.js', 'install', 'chromium']);
   run(process.execPath, ['scripts/prepare-kitchen-studio-review.mjs']);
   record('Existing cabinet/countertop workflows', 'Desktop/mobile appearance, duplicate, undo/redo, 3D, reload, scaled drawing and SVG export component regressions passed');
+  await prepareCabinetParentFixture();
   server = spawn(process.execPath, ['scripts/serve-kitchen-studio-review.mjs'], { env: { ...process.env, PORT: '4179' }, stdio: 'inherit' });
   const local = 'http://127.0.0.1:4179';
   for (let n = 0; n < 100; n++) { try { if ((await fetch(local)).ok) break; } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
@@ -69,18 +70,19 @@ try {
       shellItems: [{ id: 'door', kind: 'door', label: 'Door', wall: 'north', offsetIn: 120, widthIn: 30, heightIn: 80, elevationIn: 0, depthIn: 4 }],
       presentation: { style: 'Shaker', finish: 'sage', hardware: 'Brushed brass', fronts: { a: 'drawers', b: 'doors', east: 'doors', island: 'drawers' } },
     };
-    const destination = phase === 'production' ? origin + '/u/steel-home-packages/builders/cabinets' : local;
-    if (phase === 'production') {
-      const response = await page.goto(destination, { waitUntil: 'domcontentloaded' });
-      assert(response?.ok()); assert.equal(response.headers()['x-tradescout-build'], deployed);
-      await page.getByTestId('steel-home-cabinet-designer').waitFor({ state: 'visible' });
-    }
+    // Both phases now run through the real production parent and save/history integration.
+    const destination = phase === 'production' ? origin + '/u/steel-home-packages/builders/cabinets' : local + '/cabinet-parent.html';
+    const entry = await page.goto(destination, { waitUntil: 'domcontentloaded' });
+    assert(entry?.ok());
+    if (phase === 'production') assert.equal(entry.headers()['x-tradescout-build'], deployed);
+    await page.getByTestId('steel-home-cabinet-designer').waitFor({ state: 'visible' });
     await page.evaluate(({ key, sample }) => localStorage.setItem(key, JSON.stringify(sample)), { key, sample });
     const response = await page.reload({ waitUntil: 'domcontentloaded' });
     if (phase === 'production') assert.equal(response.headers()['x-tradescout-build'], deployed);
     await page.getByTestId('cabinet-direct-placement').waitFor({ state: 'visible' });
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).cabinets.planner.modules[0].id === 'a', key);
     const baseline = await read();
+    assert.notEqual(baseline.cabinets.notes, baseline.cabinets.planner.notes, 'The previous duplicate-update failure case must be exercised');
     const item = id => page.locator(`[data-module="${id}"]`);
     const waitPosition = (id, offset, z) => page.waitForFunction(({ key, id, offset, z }) => {
       const module = JSON.parse(localStorage.getItem(key)).cabinets.planner.modules.find(m => m.id === id);
@@ -112,8 +114,6 @@ try {
     assert.equal(await item('a').getAttribute('data-offset-in'), '30', 'Snap preview did not use measured target');
     assert(await page.locator('[data-snap-guide]').count(), 'Snap guide not visible');
     assert.deepEqual(await read(), baseline, 'Pointer movement wrote an intermediate draft');
-    // Element screenshots can resize mobile viewports and interrupt an active pointer.
-    // Capture the unchanged viewport during the gesture; whole-element images follow release.
     await page.screenshot({ path: path.join(working, `snap-${device}.png`), fullPage: false });
     assert.equal(await item('a').getAttribute('data-offset-in'), '30', 'Evidence capture interrupted the drag');
     await end(); await waitPosition('a', 30);
@@ -121,7 +121,7 @@ try {
     await click(page.getByRole('button', { name: 'Undo', exact: true })); await waitPosition('a', 0);
     assert.deepEqual(await read(), baseline, 'One undo did not restore the entire pre-drag draft');
     await click(page.getByRole('button', { name: 'Redo', exact: true })); await waitPosition('a', 30);
-    record(`${device}: snap and single-step undo`, 'Real pointer movement previewed at 30 inches without writing; drop committed; one Undo restored the entire original draft and review flag; Redo restored placement');
+    record(`${device}: snap and single-step undo`, 'Through the actual parent: pointer preview did not write; one Undo restored the entire original draft, notes and review flag; Redo restored placement');
     const beforeBlocked = await read();
     await begin('a'); await move(20, 0);
     assert.equal(await page.getByTestId('steel-home-cabinet-plan').getAttribute('data-placement-invalid'), 'true');
@@ -143,7 +143,7 @@ try {
     const field = page.getByTestId('steel-home-cabinet-module-offset'); await field.scrollIntoViewIfNeeded(); await field.fill('25'); await waitPosition('a', 25);
     await click(page.getByLabel('Snap to walls and cabinets', { exact: true }));
     await begin('a'); await move(4.5, 0); await end(); await waitPosition('a', 29.5);
-    record(`${device}: exact positioning`, 'Eighth-inch arrows, one-inch shifted arrows, accessible movement buttons and original numeric inputs agree; magnet toggle leaves grid precision intact');
+    record(`${device}: exact positioning`, 'Eighth-inch arrows, one-inch shifted arrows, movement buttons and original numeric inputs agree; magnet toggle leaves grid precision intact');
     await begin('east'); await move(0, 12); await end(); await waitPosition('east', 48);
     await begin('island'); await move(24, 12); await end(); await waitPosition('island', 84, 72);
     const final = await read();
@@ -163,7 +163,7 @@ try {
     assert((await page.getByRole('region', { name: 'Cabinet dimensioned review' }).textContent()).includes('29.5'));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
     assert.deepEqual(errors, []);
-    record(`${device}: room and saved-design integration`, 'L-shaped cabinet layout and two-axis island movements survived reload; appearance, notes and countertops preserved; elevations, 3D, review and request gate work; no page errors or horizontal overflow');
+    record(`${device}: room and saved-design integration`, 'Actual parent: L-layout and two-axis island movement survived reload; appearance, notes and countertops preserved; elevations, 3D, review and request gate work; no page errors or horizontal overflow');
     console.log('CABINET_BLOCKED_WRITES ' + JSON.stringify({ device, writes }));
     await context.close(); activePage = null;
   }
@@ -174,7 +174,7 @@ try {
     const database = await startCabinetLoopbackTestDatabase();
     proof.testDatabase = database.evidence;
     try {
-      run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Real desktop mouse and mobile CDP touch dragging, snap guides, single-step undo/redo, collisions, Escape, pointer interruption, numeric and keyboard positioning, L-layout and island reload passed on this exact head; no customer requests submitted'], { env: { ...process.env, TEST_DATABASE_URL: database.url } });
+      run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Actual production parent and children: desktop mouse and mobile CDP touch drag, snap, one-step undo/redo with differing legacy notes, collision rejection, cancellation, exact controls, L-layout and island reload passed on this exact head; synthetic local drafts only'], { env: { ...process.env, TEST_DATABASE_URL: database.url } });
       proof.minimumRelease = JSON.parse(await fs.readFile(`artifacts/release-contract/${head.slice(0, 12)}/evidence.json`, 'utf8'));
       assert.equal(proof.minimumRelease.commit, head); assert.equal(proof.minimumRelease.result, 'pass'); assert.equal(proof.minimumRelease.attestable, true);
     } finally { await database.stop(); }
