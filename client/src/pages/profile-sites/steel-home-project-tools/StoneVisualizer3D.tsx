@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { getCatalogItemById } from "@/features/jw-stone/catalog";
-import { isHandScaleCoverImage } from "@/features/jw-stone/coverImages";
-import { resolveSlabDimensionForInventoryImage } from "@/features/jw-stone/slabDimensions";
+import { getStoneProjectionDecision } from "./stoneProjectionSafety";
+import { createStoneShowroomSceneDesign } from "./stoneShowroom";
+import { addStoneShowroomFurnishings } from "./stoneShowroomFurnishings";
 import { type CountertopCutoutRun } from "./projectModel";
 import {
   getCountertopPlannerDiagnostics,
@@ -23,6 +24,9 @@ export type StoneSurfaceTarget = "counter" | "island" | "backsplash" | "floor";
 
 type Props = {
   design: CountertopPlannerDesignInput;
+  presentation?: "measured" | "showroom";
+  showroomFloorStone?: boolean;
+  showroomRoom?: CountertopPlannerDesignInput["room"];
   selectedTarget: StoneSurfaceTarget;
   onSelectTarget: (target: StoneSurfaceTarget) => void;
 };
@@ -860,7 +864,8 @@ function addConfiguredSurfaces(
 function buildScene(
   parent: THREE.Group,
   records: StoneMaterialRecord[],
-  designInput: CountertopPlannerDesignInput
+  designInput: CountertopPlannerDesignInput,
+  showroom = false
 ) {
   const design = resolveCountertopPlannerDesign(designInput);
   const metrics = getLayoutMetrics(design);
@@ -874,6 +879,7 @@ function buildScene(
     addSchematicGrid(parent, metrics);
   }
   addConfiguredSurfaces(parent, records, design, metrics);
+  if (showroom) addStoneShowroomFurnishings(parent, design);
 }
 
 function applyCamera(runtime: Runtime, design: CountertopPlannerDesignInput, force = false) {
@@ -944,6 +950,14 @@ function configureTexture(
   texture.center.set(0.5, 0.5);
   texture.rotation = THREE.MathUtils.degToRad(design.veinRotation);
   const repeat = getStoneVisualizerTextureRepeat(record, design, dimensions);
+  if (!dimensions && texture.image?.width && texture.image?.height) {
+    // Keep an illustrative crop's aspect ratio. Its pixels are not evidence of inches.
+    const imageAspect = texture.image.width / texture.image.height;
+    const quarterTurn = design.veinRotation === 90 || design.veinRotation === 270;
+    repeat.x *=
+      (quarterTurn ? record.heightFt / record.widthFt : record.widthFt / record.heightFt) /
+      imageAspect;
+  }
   texture.repeat.set(repeat.x, repeat.y);
   texture.offset.set(design.textureOffsetX * 0.35, design.textureOffsetY * 0.35);
   texture.updateMatrix();
@@ -1032,8 +1046,25 @@ function clearTextureFromRecords(runtime: Runtime) {
   runtime.renderOnce();
 }
 
-export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarget }: Props) {
-  const plannerDesign = useMemo(() => resolveCountertopPlannerDesign(design), [design]);
+export default function StoneVisualizer3D({
+  design,
+  selectedTarget,
+  onSelectTarget,
+  presentation = "measured",
+  showroomFloorStone = false,
+  showroomRoom,
+}: Props) {
+  const showroom = presentation === "showroom";
+  const plannerDesign = useMemo(
+    () =>
+      showroom
+        ? createStoneShowroomSceneDesign(design, {
+            floorStone: showroomFloorStone,
+            room: showroomRoom,
+          })
+        : resolveCountertopPlannerDesign(design),
+    [design, showroom, showroomFloorStone, showroomRoom]
+  );
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runtimeRef = useRef<Runtime | null>(null);
@@ -1049,10 +1080,12 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
   const [textureStatus, setTextureStatus] = useState("Loading the selected inventory photo…");
   const stone = getCatalogItemById(plannerDesign.stoneId);
   const selectedImage = stone?.images[plannerDesign.textureImageIndex] ?? null;
-  const textureImageHref = stone
+  const referenceImageHref = stone
     ? buildNamedStoneDesignerImageHref(stone.shareSlug || "", selectedImage || "") ||
       buildStoneDesignerImageHref(stone.id, plannerDesign.textureImageIndex)
     : "";
+  const projection = getStoneProjectionDecision(selectedImage);
+  const textureImageHref = projection.projectionImageHref || "";
   const openingSchedule = getCountertopPlannerOpeningSchedule(plannerDesign);
   const unplacedOpeningCount = openingSchedule.filter(
     (item) =>
@@ -1072,6 +1105,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
   const geometryDesign = useMemo(
     () => plannerDesign,
     [
+      showroom,
       plannerDesign.room,
       plannerDesign.layout,
       plannerDesign.wallAIn,
@@ -1390,7 +1424,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
     runtime.revision += 1;
     clearGroup(runtime.content);
     runtime.records = [];
-    buildScene(runtime.content, runtime.records, geometryDesign);
+    buildScene(runtime.content, runtime.records, geometryDesign, showroom);
     applyCamera(runtime, geometryDesign, true);
     setSceneRevision((value) => value + 1);
   }, [geometryDesign, rendererAttempt]);
@@ -1423,17 +1457,15 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
       runtime.sourceTextureKey = "";
       clearTextureFromRecords(runtime);
       setTextureStatus(
-        "The selected catalog photo is unavailable. Choose another JW Stone surface or photo."
+        stone ? projection.reason : "Choose a JW Stone surface to explore its color and pattern."
       );
       return;
     }
 
-    const dimensions = isHandScaleCoverImage(selectedImage)
-      ? null
-      : resolveSlabDimensionForInventoryImage(selectedImage);
+    const dimensions = projection.dimensions;
     const successStatus = dimensions
       ? `Using this photo's recorded ${dimensions.widthIn}×${dimensions.heightIn}-inch source dimensions as a planning scale.`
-      : "Scale unverified for this photo — crop and direction are visual only until slab dimensions are confirmed.";
+      : "Actual stone-face sample · illustrative pattern size, not a measured slab layout.";
     if (runtime.sourceTexture && runtime.sourceTextureKey === textureSourceKey) {
       setTextureStatus(successStatus);
       return;
@@ -1443,7 +1475,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
     runtime.sourceTexture = null;
     runtime.sourceTextureKey = textureSourceKey;
     clearTextureFromRecords(runtime);
-    setTextureStatus("Loading the exact selected inventory photo…");
+    setTextureStatus("Loading this stone’s prepared face sample…");
     const loadTimeout = window.setTimeout(() => {
       if (
         cancelled ||
@@ -1499,9 +1531,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
     ) {
       return;
     }
-    const dimensions = isHandScaleCoverImage(selectedImage)
-      ? null
-      : resolveSlabDimensionForInventoryImage(selectedImage);
+    const dimensions = projection.dimensions;
     applyTextureToRecords(runtime, runtime.sourceTexture, plannerDesign, dimensions);
   }, [sceneRevision, selectedImage, sourceTextureRevision, textureMappingKey, textureSourceKey]);
 
@@ -1544,7 +1574,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
   return (
     <div
       ref={hostRef}
-      className="relative h-full min-h-[24rem] overflow-hidden rounded-[1.4rem] bg-[#d8d0c2] sm:min-h-[26rem]"
+      className="relative h-[34rem] min-h-[34rem] overflow-hidden rounded-[1.4rem] bg-[#d8d0c2] sm:h-[38rem]"
       data-testid="steel-home-countertop-3d-visualizer"
     >
       {error ? (
@@ -1554,9 +1584,9 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
           aria-live="assertive"
         >
           <div className="max-w-md">
-            {stone && textureImageHref ? (
+            {stone && referenceImageHref ? (
               <img
-                src={textureImageHref}
+                src={referenceImageHref}
                 alt={`${stone.publicLabel} catalog photo`}
                 className="mx-auto aspect-[4/3] w-full rounded-2xl object-contain"
               />
@@ -1582,26 +1612,30 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
         ref={canvasRef}
         className="block h-full w-full touch-pan-y"
         aria-hidden={error ? true : undefined}
-        aria-label={`Interactive 3D ${starterScene ? "countertop starter" : `${plannerDesign.room.toLowerCase()} countertop scene`} using ${stone?.publicLabel || "no selected stone"}. ${starterScene ? "Starter grid only; legacy run values are not shown until they are reviewed." : measuredScene ? "Room and vertical geometry use entered measurements." : `${sceneDiagnostics.length} scene measurements remain unresolved; unresolved geometry is schematic or hidden.`} Drag sideways to orbit, use two fingers or the wheel to zoom, and tap a modeled surface to edit it. One-finger vertical swipes scroll the page.`}
+        aria-label={`Interactive 3D ${showroom ? "sample room" : starterScene ? "countertop starter" : `${plannerDesign.room.toLowerCase()} countertop scene`} using ${stone?.publicLabel || "no selected stone"}. ${showroom ? "Example dimensions and furnishings for visual exploration only; your measured draft is unchanged." : starterScene ? "Starter grid only; legacy run values are not shown until they are reviewed." : measuredScene ? "Room and vertical geometry use entered measurements." : `${sceneDiagnostics.length} scene measurements remain unresolved; unresolved geometry is schematic or hidden.`} Drag sideways to orbit, use two fingers or the wheel to zoom, and tap a modeled surface to highlight it. One-finger vertical swipes scroll the page.`}
       />
       {!error ? (
         <>
           <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-3">
-            <div className="rounded-xl bg-[#101817]/88 px-3 py-2 text-white shadow-lg backdrop-blur-sm">
+            <div className="rounded-xl bg-[#101817e6] px-3 py-2 text-white shadow-lg backdrop-blur-sm">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#f0b392]">
-                {starterScene
-                  ? "Starter grid · measurements unreviewed"
-                  : `${measuredScene ? "Measured 3D scene" : "Schematic 3D plan"} · ${plannerDesign.room}`}
+                {showroom
+                  ? `Sample room · ${plannerDesign.room}`
+                  : starterScene
+                    ? "Starter grid · measurements unreviewed"
+                    : `${measuredScene ? "Measured 3D scene" : "Schematic 3D plan"} · ${plannerDesign.room}`}
               </p>
               <p className="mt-1 hidden text-xs font-semibold text-white/72 sm:block">
-                {starterScene
-                  ? "Review the surface run values to show countertop geometry"
-                  : measuredScene
-                    ? "Drag to orbit · wheel or pinch to zoom · tap a surface"
-                    : `${sceneDiagnostics.length} measurements unresolved · no room or island is invented`}
+                {showroom
+                  ? "Example dimensions · drag to orbit · pinch to zoom"
+                  : starterScene
+                    ? "Review the surface run values to show countertop geometry"
+                    : measuredScene
+                      ? "Drag to orbit · wheel or pinch to zoom · tap a surface"
+                      : `${sceneDiagnostics.length} measurements unresolved · no room or island is invented`}
               </p>
             </div>
-            <div className="rounded-full bg-[#f7f2e9]/94 px-3 py-2 text-[0.65rem] font-black capitalize text-[#18312f] shadow-lg">
+            <div className="rounded-full bg-[#f7f2e9f0] px-3 py-2 text-[0.65rem] font-black capitalize text-[#18312f] shadow-lg">
               Selected {selectedTarget}
             </div>
           </div>
@@ -1651,7 +1685,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
               Reset view
             </button>
           </div>
-          <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 rounded-xl bg-[#101817]/88 px-3 py-2 text-white backdrop-blur-sm">
+          <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 rounded-xl bg-[#101817e6] px-3 py-2 text-white backdrop-blur-sm">
             <p
               className="min-w-0 flex-1 text-[0.66rem] font-semibold leading-5 text-white/78"
               role="status"
@@ -1678,10 +1712,14 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
       ) : null}
       <div className="sr-only">
         <p>
-          {starterScene
-            ? "The canvas is a starter grid only because the saved numeric run values have not been reviewed."
-            : "The canvas contains only entered countertop, room-shell, and opening geometry."}{" "}
-          It does not invent cabinets, fixtures, furniture, fireplaces, doors, or windows.
+          {showroom
+            ? "This is a furnished sample room for visual exploration. Example dimensions are not saved as project measurements."
+            : starterScene
+              ? "The canvas is a starter grid only because the saved numeric run values have not been reviewed."
+              : "The canvas contains only entered countertop, room-shell, and opening geometry."}{" "}
+          {!showroom
+            ? "It does not invent cabinets, fixtures, furniture, fireplaces, doors, or windows."
+            : "Furnishings and windows are decorative examples. No cutouts are added to your plan."}
         </p>
         <ul>
           <li>Countertop surface: {stone?.publicLabel || "not selected"}</li>
