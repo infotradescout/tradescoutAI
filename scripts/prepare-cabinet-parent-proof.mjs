@@ -42,6 +42,7 @@ export async function prepareCabinetParentFixture() {
   const repo = process.cwd();
   const source = await fs.mkdtemp(path.join(repo, '.cabinet-parent-source-'));
   const out = path.join(repo, '.kitchen-studio-review');
+  const originalNodeEnv = process.env.NODE_ENV;
   try {
     await fs.writeFile(path.join(source, 'cabinet-parent.html'), '<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Actual cabinet parent verification</title></head><body style="margin:0"><div id="root"></div><script type="module" src="/parent.tsx"></script></body></html>');
     await fs.writeFile(path.join(source, 'parent.tsx'), `
@@ -55,5 +56,13 @@ createRoot(document.getElementById('root')!).render(<SteelHomePackagesProfile in
       resolve: { alias: { '@': path.join(repo, 'client/src'), '@shared': path.join(repo, 'shared'), '@assets': path.join(repo, 'attached_assets') } },
       esbuild: { jsx: 'automatic' }, css: { postcss: repo },
       build: { outDir: out, emptyOutDir: false, rollupOptions: { input: path.join(source, 'cabinet-parent.html') } }, logLevel: 'warn' });
-  } finally { await fs.rm(source, { recursive: true, force: true }); }
+  } finally {
+    // Vite's programmatic production build can set NODE_ENV on this process.
+    // Do not let fixture compilation make the later gate omit its development tools.
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
+    await fs.rm(source, { recursive: true, force: true });
+  }
+  assert.equal(process.env.NODE_ENV, originalNodeEnv);
+  console.log('CABINET_PARENT_FIXTURE ' + JSON.stringify({ actualParent: true, nodeEnvironmentRestored: true }));
 }
