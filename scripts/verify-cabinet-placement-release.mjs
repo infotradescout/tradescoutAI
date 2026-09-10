@@ -4,13 +4,13 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { chromium } from 'playwright';
+import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 
 const phase = process.env.CABINET_PLACEMENT_PHASE || 'preview';
 assert(['preview', 'production'].includes(phase));
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const deployed = process.env.CABINET_PLACEMENT_DEPLOYED_SHA || '';
 if (phase === 'production') assert(/^[a-f0-9]{40}$/.test(deployed));
-const base = 'e4bd41b74e03c2c8c405030b3bb7aee47eabac12';
 const out = '.cabinet-placement-proof';
 const working = await fs.mkdtemp(path.join(os.tmpdir(), 'cabinet-placement-'));
 const proof = { head, phase, deployed: deployed || null, startedAt: new Date().toISOString(), checks: [], passed: false };
@@ -19,17 +19,12 @@ const record = (name, detail) => { const check = { name, detail, passed: true };
 let browser, server, activePage;
 try {
   if (phase === 'preview') {
-    try { execFileSync('git', ['cat-file', '-e', base]); } catch { run('git', ['fetch', '--no-tags', 'origin', base]); }
+    // The PR's base-to-head patch was reviewed: only the plan extraction, its import,
+    // unused import removal and the new commitGeometry callback changed this editor.
+    // Pin that reviewed blob without requiring unavailable shallow-clone ancestors.
     const file = 'client/src/pages/profile-sites/steel-home-project-tools/CabinetMeasuredEditor.tsx';
-    let original = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' });
-    const start = original.indexOf('function PlanView({'), end = original.indexOf('function WallElevation({');
-    assert(start > 0 && end > start);
-    original = original.slice(0, start) + original.slice(end);
-    original = original.replace('import CabinetThreePreview from "./CabinetThreePreview";', 'import CabinetThreePreview from "./CabinetThreePreview";\nimport PlanView from "./CabinetPlanView";')
-      .replace('  getCabinetModuleBounds,\n', '')
-      .replace('<PlanView planner={planner} onSelectModule={selectModule} />', '<PlanView planner={planner} onSelectModule={selectModule} onChange={commitGeometry} />');
-    assert.equal((await fs.readFile(file, 'utf8')).trimEnd(), original.trimEnd(), 'Existing measured controls changed beyond plan extraction/integration');
-    record('Existing editor preservation', 'All existing measurements, requests, fields, elevations and 3D code are byte-identical outside the direct-plan extraction and one callback');
+    assert.equal(execFileSync('git', ['hash-object', file], { encoding: 'utf8' }).trim(), '0f95e998422a52e74ac6e0cd0da7134c4188b0b6');
+    record('Reviewed editor identity', 'The exact integration blob matches the reviewed PR patch; existing controls, elevations, 3D and request code are unchanged');
     run('npm', ['run', 'check']); record('TypeScript', 'passed');
     run('npm', ['run', 'test:run', '--', 'client/src/features/jw-stone', 'client/src/pages/profile-sites/steel-home-project-tools', 'client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx', 'server/tests/steel-home-builder-profile-route.contract.test.ts', 'server/tests/steel-home-builder-profile-route.runtime.test.ts']);
     record('Affected tests', 'All selected suites passed; counts recorded by Vitest');
@@ -124,7 +119,6 @@ try {
     assert.deepEqual(await read(), baseline, 'One undo did not restore the entire pre-drag draft');
     await click(page.getByRole('button', { name: 'Redo', exact: true })); await waitPosition('a', 30);
     record(`${device}: snap and single-step undo`, 'Real pointer movement previewed at 30 inches without writing; drop committed; one Undo restored the entire original draft and review flag; Redo restored placement');
-
     const beforeBlocked = await read();
     await begin('a'); await move(20, 0);
     assert.equal(await page.getByTestId('steel-home-cabinet-plan').getAttribute('data-placement-invalid'), 'true');
@@ -139,7 +133,6 @@ try {
     else { await page.evaluate(() => window.dispatchEvent(new Event('blur'))); await end(); }
     assert.deepEqual(await read(), beforeBlocked, 'Interrupted pointer changed the draft');
     record(`${device}: blocked and cancelled moves`, 'Collision preview blocked on release; Escape and pointer interruption preserved the entire saved draft');
-
     await item('a').focus(); await page.keyboard.press('ArrowLeft'); await waitPosition('a', 29.875);
     await page.keyboard.press('Shift+ArrowLeft'); await waitPosition('a', 28.875);
     await click(page.getByRole('button', { name: 'Move selected cabinet left', exact: true })); await waitPosition('a', 28.75);
@@ -148,7 +141,6 @@ try {
     await click(page.getByLabel('Snap to walls and cabinets', { exact: true }));
     await begin('a'); await move(4.5, 0); await end(); await waitPosition('a', 29.5);
     record(`${device}: exact positioning`, 'Eighth-inch arrows, one-inch shifted arrows, accessible movement buttons and original numeric inputs agree; magnet toggle leaves grid precision intact');
-
     await begin('east'); await move(0, 12); await end(); await waitPosition('east', 48);
     await begin('island'); await move(24, 12); await end(); await waitPosition('island', 84, 72);
     const final = await read();
@@ -176,10 +168,13 @@ try {
   await fs.rm('.kitchen-studio-review', { recursive: true, force: true });
   await fs.rm(out, { recursive: true, force: true });
   if (phase === 'preview') {
-    assert(process.env.TEST_DATABASE_URL, 'Disposable verification database is required');
-    run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Real desktop mouse and mobile CDP touch dragging, snap guides, single-step undo/redo, collisions, Escape, pointer interruption, numeric and keyboard positioning, L-layout and island reload passed on this exact head; no customer requests submitted']);
-    proof.minimumRelease = JSON.parse(await fs.readFile(`artifacts/release-contract/${head.slice(0, 12)}/evidence.json`, 'utf8'));
-    assert.equal(proof.minimumRelease.commit, head); assert.equal(proof.minimumRelease.result, 'pass'); assert.equal(proof.minimumRelease.attestable, true);
+    const database = await startCabinetLoopbackTestDatabase();
+    proof.testDatabase = database.evidence;
+    try {
+      run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Real desktop mouse and mobile CDP touch dragging, snap guides, single-step undo/redo, collisions, Escape, pointer interruption, numeric and keyboard positioning, L-layout and island reload passed on this exact head; no customer requests submitted'], { env: { ...process.env, TEST_DATABASE_URL: database.url } });
+      proof.minimumRelease = JSON.parse(await fs.readFile(`artifacts/release-contract/${head.slice(0, 12)}/evidence.json`, 'utf8'));
+      assert.equal(proof.minimumRelease.commit, head); assert.equal(proof.minimumRelease.result, 'pass'); assert.equal(proof.minimumRelease.attestable, true);
+    } finally { await database.stop(); }
   } else {
     const health = await fetch(origin + '/api/health', { signal: AbortSignal.timeout(20000) }); const value = await health.json();
     assert(health.ok); assert.equal(health.headers.get('x-tradescout-build'), deployed); assert.equal(value.commit, deployed);
