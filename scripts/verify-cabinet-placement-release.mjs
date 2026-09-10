@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
+import { verifyCabinetParentRegression, prepareCabinetParentFixture } from './prepare-cabinet-parent-proof.mjs';
 
 const phase = process.env.CABINET_PLACEMENT_PHASE || 'preview';
 assert(['preview', 'production'].includes(phase));
@@ -19,12 +20,11 @@ const record = (name, detail) => { const check = { name, detail, passed: true };
 let browser, server, activePage;
 try {
   if (phase === 'preview') {
-    // The PR's base-to-head patch was reviewed: only the plan extraction, its import,
-    // unused import removal and the new commitGeometry callback changed this editor.
-    // Pin that reviewed blob without requiring unavailable shallow-clone ancestors.
     const file = 'client/src/pages/profile-sites/steel-home-project-tools/CabinetMeasuredEditor.tsx';
     assert.equal(execFileSync('git', ['hash-object', file], { encoding: 'utf8' }).trim(), '0f95e998422a52e74ac6e0cd0da7134c4188b0b6');
-    record('Reviewed editor identity', 'The exact integration blob matches the reviewed PR patch; existing controls, elevations, 3D and request code are unchanged');
+    record('Reviewed editor identity', 'Measured editor unchanged; repair is restricted to its production parent callback wiring');
+    await verifyCabinetParentRegression();
+    record('Actual-parent regression', 'Exact former production parent reproduced disabled Undo; restored checked-in fix passed the real-parent regression suite');
     run('npm', ['run', 'check']); record('TypeScript', 'passed');
     run('npm', ['run', 'test:run', '--', 'client/src/features/jw-stone', 'client/src/pages/profile-sites/steel-home-project-tools', 'client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx', 'server/tests/steel-home-builder-profile-route.contract.test.ts', 'server/tests/steel-home-builder-profile-route.runtime.test.ts']);
     record('Affected tests', 'All selected suites passed; counts recorded by Vitest');
@@ -34,6 +34,8 @@ try {
   run(process.execPath, ['node_modules/playwright/cli.js', 'install', 'chromium']);
   run(process.execPath, ['scripts/prepare-kitchen-studio-review.mjs']);
   record('Existing cabinet/countertop workflows', 'Desktop/mobile appearance, duplicate, undo/redo, 3D, reload, scaled drawing and SVG export component regressions passed');
+  // The placement journeys below use the actual production parent, not the sample save wrapper.
+  await prepareCabinetParentFixture();
   server = spawn(process.execPath, ['scripts/serve-kitchen-studio-review.mjs'], { env: { ...process.env, PORT: '4179' }, stdio: 'inherit' });
   const local = 'http://127.0.0.1:4179';
   for (let n = 0; n < 100; n++) { try { if ((await fetch(local)).ok) break; } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
@@ -59,6 +61,7 @@ try {
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key) || 'null')?.cabinets?.planner?.modules?.length === 3, key);
     const sample = await read();
     const source = sample.cabinets.planner.modules[0];
+    sample.cabinets.notes = 'Earlier outer summary';
     sample.cabinets.planner = { ...sample.cabinets.planner, shell: { widthIn: 180, depthIn: 156, heightIn: 108, measurementsReviewed: true }, view: 'plan', selectedModuleId: 'a', notes: 'Synthetic cabinet placement note',
       modules: [
         { ...source, id: 'a', label: 'Base A', offsetIn: 0 },
@@ -69,18 +72,18 @@ try {
       shellItems: [{ id: 'door', kind: 'door', label: 'Door', wall: 'north', offsetIn: 120, widthIn: 30, heightIn: 80, elevationIn: 0, depthIn: 4 }],
       presentation: { style: 'Shaker', finish: 'sage', hardware: 'Brushed brass', fronts: { a: 'drawers', b: 'doors', east: 'doors', island: 'drawers' } },
     };
-    const destination = phase === 'production' ? origin + '/u/steel-home-packages/builders/cabinets' : local;
-    if (phase === 'production') {
-      const response = await page.goto(destination, { waitUntil: 'domcontentloaded' });
-      assert(response?.ok()); assert.equal(response.headers()['x-tradescout-build'], deployed);
-      await page.getByTestId('steel-home-cabinet-designer').waitFor({ state: 'visible' });
-    }
+    const destination = phase === 'production' ? origin + '/u/steel-home-packages/builders/cabinets' : local + '/cabinet-parent.html';
+    const initialResponse = await page.goto(destination, { waitUntil: 'domcontentloaded' });
+    assert(initialResponse?.ok());
+    if (phase === 'production') assert.equal(initialResponse.headers()['x-tradescout-build'], deployed);
+    await page.getByTestId('steel-home-cabinet-designer').waitFor({ state: 'visible' });
     await page.evaluate(({ key, sample }) => localStorage.setItem(key, JSON.stringify(sample)), { key, sample });
     const response = await page.reload({ waitUntil: 'domcontentloaded' });
     if (phase === 'production') assert.equal(response.headers()['x-tradescout-build'], deployed);
     await page.getByTestId('cabinet-direct-placement').waitFor({ state: 'visible' });
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).cabinets.planner.modules[0].id === 'a', key);
     const baseline = await read();
+    assert.notEqual(baseline.cabinets.notes, baseline.cabinets.planner.notes, 'Fixture must cover divergent legacy note fields');
     const item = id => page.locator(`[data-module="${id}"]`);
     const waitPosition = (id, offset, z) => page.waitForFunction(({ key, id, offset, z }) => {
       const module = JSON.parse(localStorage.getItem(key)).cabinets.planner.modules.find(m => m.id === id);
@@ -112,16 +115,15 @@ try {
     assert.equal(await item('a').getAttribute('data-offset-in'), '30', 'Snap preview did not use measured target');
     assert(await page.locator('[data-snap-guide]').count(), 'Snap guide not visible');
     assert.deepEqual(await read(), baseline, 'Pointer movement wrote an intermediate draft');
-    // Element screenshots can resize mobile viewports and interrupt an active pointer.
-    // Capture the unchanged viewport during the gesture; whole-element images follow release.
     await page.screenshot({ path: path.join(working, `snap-${device}.png`), fullPage: false });
     assert.equal(await item('a').getAttribute('data-offset-in'), '30', 'Evidence capture interrupted the drag');
     await end(); await waitPosition('a', 30);
     assert.equal((await read()).cabinets.planner.shell.measurementsReviewed, false);
+    assert.equal((await read()).cabinets.notes, baseline.cabinets.planner.notes);
     await click(page.getByRole('button', { name: 'Undo', exact: true })); await waitPosition('a', 0);
     assert.deepEqual(await read(), baseline, 'One undo did not restore the entire pre-drag draft');
     await click(page.getByRole('button', { name: 'Redo', exact: true })); await waitPosition('a', 30);
-    record(`${device}: snap and single-step undo`, 'Real pointer movement previewed at 30 inches without writing; drop committed; one Undo restored the entire original draft and review flag; Redo restored placement');
+    record(`${device}: snap and single-step undo`, 'Actual production parent: pointer preview did not save; drop committed once; one Undo restored the entire draft and divergent notes/review flag; Redo restored placement');
     const beforeBlocked = await read();
     await begin('a'); await move(20, 0);
     assert.equal(await page.getByTestId('steel-home-cabinet-plan').getAttribute('data-placement-invalid'), 'true');
@@ -163,7 +165,7 @@ try {
     assert((await page.getByRole('region', { name: 'Cabinet dimensioned review' }).textContent()).includes('29.5'));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
     assert.deepEqual(errors, []);
-    record(`${device}: room and saved-design integration`, 'L-shaped cabinet layout and two-axis island movements survived reload; appearance, notes and countertops preserved; elevations, 3D, review and request gate work; no page errors or horizontal overflow');
+    record(`${device}: room and saved-design integration`, 'Actual parent: L-shaped layout and two-axis island placement survived reload; appearance, notes and countertops preserved; elevations, 3D, review and request gate work; no page errors or overflow');
     console.log('CABINET_BLOCKED_WRITES ' + JSON.stringify({ device, writes }));
     await context.close(); activePage = null;
   }
@@ -171,10 +173,9 @@ try {
   await fs.rm('.kitchen-studio-review', { recursive: true, force: true });
   await fs.rm(out, { recursive: true, force: true });
   if (phase === 'preview') {
-    const database = await startCabinetLoopbackTestDatabase();
-    proof.testDatabase = database.evidence;
+    const database = await startCabinetLoopbackTestDatabase(); proof.testDatabase = database.evidence;
     try {
-      run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Real desktop mouse and mobile CDP touch dragging, snap guides, single-step undo/redo, collisions, Escape, pointer interruption, numeric and keyboard positioning, L-layout and island reload passed on this exact head; no customer requests submitted'], { env: { ...process.env, TEST_DATABASE_URL: database.url } });
+      run('npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Actual production parent passed desktop mouse and CDP touch dragging, snap guides, divergent-note single-step undo/redo, collisions, cancellation, exact positioning, L-layout and island reload; original parent failure reproduced; no customer requests submitted'], { env: { ...process.env, TEST_DATABASE_URL: database.url } });
       proof.minimumRelease = JSON.parse(await fs.readFile(`artifacts/release-contract/${head.slice(0, 12)}/evidence.json`, 'utf8'));
       assert.equal(proof.minimumRelease.commit, head); assert.equal(proof.minimumRelease.result, 'pass'); assert.equal(proof.minimumRelease.attestable, true);
     } finally { await database.stop(); }
@@ -194,7 +195,7 @@ try {
   await fs.mkdir(out, { recursive: true }); await fs.cp(working, out, { recursive: true });
   await fs.writeFile(path.join(out, 'evidence.json'), JSON.stringify(proof, null, 2));
   const images = (await fs.readdir(out)).filter(name => name.endsWith('.png'));
-  await fs.writeFile(path.join(out, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cabinet placement verification</title><h1>' + (proof.passed ? 'PASS' : 'FAILED — not release approval') + '</h1><p>' + phase + ' ' + head + '</p><a href="evidence.json">Evidence</a>' + images.map(name => '<p><a href="' + name + '">' + name + '</a></p>').join(''));
+  await fs.writeFile(path.join(out, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cabinet parent and placement verification</title><h1>' + (proof.passed ? 'PASS' : 'FAILED — not release approval') + '</h1><p>' + phase + ' ' + head + '</p><a href="evidence.json">Evidence</a>' + images.map(name => '<p><a href="' + name + '">' + name + '</a></p>').join(''));
   console.log('CABINET_RESULT ' + JSON.stringify(proof)); await fs.rm(working, { recursive: true, force: true });
 }
 // Failed reports remain publishable; only the exact-head passed verdict and attestable gate authorize release.
