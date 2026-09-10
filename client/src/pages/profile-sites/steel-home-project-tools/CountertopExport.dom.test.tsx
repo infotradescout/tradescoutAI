@@ -19,7 +19,7 @@ describe("Countertop export loading lifecycle", () => {
   let root: Root;
   let container: HTMLDivElement;
   let download: ReturnType<typeof vi.spyOn>;
-  let createObjectURL: ReturnType<typeof vi.fn>;
+  let createObjectURL: ReturnType<typeof vi.fn<(object: Blob | MediaSource) => string>>;
   const OriginalURL = globalThis.URL;
   const button = (name: string) => Array.from(container.querySelectorAll("button")).find(node => node.textContent === name)!;
   async function releaseDrawing() {
@@ -32,7 +32,7 @@ describe("Countertop export loading lifecycle", () => {
   beforeEach(async () => {
     drawing.ready = false;
     drawing.pending = new Promise<void>(resolve => { drawing.release = resolve; });
-    createObjectURL = vi.fn(() => "blob:countertop-review");
+    createObjectURL = vi.fn<(object: Blob | MediaSource) => string>(() => "blob:countertop-review");
     vi.stubGlobal("URL", class extends OriginalURL {
       static createObjectURL = createObjectURL;
       static revokeObjectURL = vi.fn();
