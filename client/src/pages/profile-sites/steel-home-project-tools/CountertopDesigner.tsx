@@ -1,91 +1,23 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ComponentProps } from "react";
+import { lazy, Suspense, useCallback, useState, type ComponentProps } from "react";
 import MeasuredCountertopDesigner from "./MeasuredCountertopDesigner";
 import { useDesignerHistory } from "./useDesignerHistory";
 import "./planningBuilderResponsive.css";
 import "./kitchenDesignerStudio.css";
 
-const CountertopPrecisionReview = lazy(() => import("./CountertopPrecisionReview"));
-
+const CountertopDrawingReview = lazy(() => import("./CountertopDrawingReview"));
 type Props = ComponentProps<typeof MeasuredCountertopDesigner>;
+
 export default function CountertopDesigner(props: Props) {
   const history = useDesignerHistory(props.design, props.onChange);
   const [review, setReview] = useState(false);
   const [exportPending, setExportPending] = useState(false);
   const [notice, setNotice] = useState("");
-  const root = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = root.current;
-    if (!exportPending || !review || !container) return;
-    let completed = false;
-    const downloadWhenReady = () => {
-      const svg = container.querySelector<SVGSVGElement>("[data-testid=countertop-precision-drawing]");
-      if (completed || !svg) return;
-      completed = true;
-      try {
-        // Export only this self-contained drawing; notes, contacts and photos stay out.
-        const copy = svg.cloneNode(true) as SVGSVGElement;
-        copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-        copy.removeAttribute("style");
-        copy.setAttribute("width", "1200");
-        copy.setAttribute("height", "900");
-        const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-        title.textContent = "TradeScout countertop planning review — dimensions in inches; not a fabrication template";
-        copy.prepend(title);
-        const bounds = (copy.getAttribute("viewBox") ?? "").split(/\s+/).map(Number);
-        if (bounds.length === 4 && bounds.every(Number.isFinite)) {
-          const font = bounds[2] / 65;
-          const warning = document.createElementNS("http://www.w3.org/2000/svg", "text");
-          warning.setAttribute("x", String(bounds[0] + bounds[2] / 2));
-          warning.setAttribute("y", String(bounds[1] + bounds[3] - font));
-          warning.setAttribute("font-size", String(font));
-          warning.setAttribute("text-anchor", "middle");
-          warning.setAttribute("fill", "#843d26");
-          warning.textContent = "PLANNING ONLY — verify field dimensions; not a fabrication template";
-          copy.append(warning);
-        }
-        const blob = new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "tradescout-countertop-review.svg";
-        try {
-          document.body.append(link);
-          link.click();
-        } finally {
-          link.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }
-        setNotice("Drawing download started. Field templating remains required.");
-      } catch {
-        setNotice("Download unavailable. The scaled drawing remains visible for review.");
-      }
-      setExportPending(false);
-    };
-    const observer = new MutationObserver(downloadWhenReady);
-    observer.observe(container, { childList: true, subtree: true });
-    const timeout = window.setTimeout(() => {
-      if (completed) return;
-      completed = true;
-      setExportPending(false);
-      setNotice("The drawing is still loading. Retry Export drawing when it is visible.");
-    }, 15000);
-    downloadWhenReady();
-    return () => {
-      completed = true;
-      observer.disconnect();
-      window.clearTimeout(timeout);
-    };
-  }, [exportPending, review]);
-
+  const completeExport = useCallback((message: string) => { setExportPending(false); setNotice(message); }, []);
   return (
-    <div className="kitchen-designer-studio" ref={root} onKeyDown={event => {
+    <div className="kitchen-designer-studio" onKeyDown={event => {
       const target = event.target as HTMLElement;
       if (target.closest("input,textarea,select,[contenteditable=true]") || event.altKey || !(event.ctrlKey || event.metaKey)) return;
-      if (event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        event.shiftKey ? history.redo() : history.undo();
-      }
+      if (event.key.toLowerCase() === "z") { event.preventDefault(); event.shiftKey ? history.redo() : history.undo(); }
     }}>
       <div className="kitchen-designer-toolbar" aria-label="Countertop editing actions">
         <strong>Countertop studio</strong>
@@ -97,8 +29,8 @@ export default function CountertopDesigner(props: Props) {
       </div>
       {notice && <p className="kitchen-designer-notice" role="status">{notice}</p>}
       {review && (
-        <Suspense fallback={<div className="grid min-h-[24rem] place-items-center p-6 text-sm font-semibold">Loading scaled drawing…</div>}>
-          <CountertopPrecisionReview design={props.design} />
+        <Suspense fallback={<div role="status" className="grid min-h-[24rem] place-items-center p-6 text-sm font-semibold">Loading scaled drawing…</div>}>
+          <CountertopDrawingReview design={props.design} exportRequested={exportPending} onExportComplete={completeExport} />
         </Suspense>
       )}
       <div className="kitchen-designer-editor" style={review ? { display: "none" } : undefined}>
