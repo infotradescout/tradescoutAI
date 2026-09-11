@@ -14,6 +14,7 @@ const output = path.resolve(process.env.CUSTOMER_PATH_OUTPUT || '.customer-path-
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'customer-path-validation-'));
 const proof = { head, phase, startedAt: new Date().toISOString(), checks: [], passed: false, releaseAttested: false };
 const testReport = path.join(temporary, 'vitest.json');
+const databaseTestReport = path.join(temporary, 'database-vitest.json');
 const browserReport = path.join(temporary, 'browser-evidence.json');
 let database, server, serverLog;
 function redact(value) {
@@ -51,6 +52,32 @@ async function waitFor(url, child) {
   }
   throw new Error('Fixture server did not become ready');
 }
+async function liveRecommendationEntry(deployed) {
+  const { chromium } = await import('playwright');
+  const browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--no-sandbox','--disable-dev-shm-usage'] });
+  const evidence = [];
+  try {
+    for (const [device,viewport] of [['desktop',{width:1440,height:1000}],['touch',{width:390,height:844}]]) {
+      const context = await browser.newContext({viewport,isMobile:device==='touch',hasTouch:device==='touch',serviceWorkers:'block',userAgent:`Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36`});
+      const blockedWrites=[],errors=[];
+      await context.route('**/*',route=>{
+        if(!['GET','HEAD'].includes(route.request().method())){blockedWrites.push(new URL(route.request().url()).pathname);return route.abort('blockedbyclient');}
+        return route.continue();
+      });
+      const page=await context.newPage(); page.setDefaultTimeout(45000); page.on('pageerror',error=>errors.push(error.message));
+      const response=await page.goto('https://www.thetradescout.com/contractors/issa-build?trustAction=recommend',{waitUntil:'domcontentloaded',timeout:60000});
+      assert(response?.ok()); assert.equal(response.headers()['x-tradescout-build'],deployed);
+      assert.equal(new URL(page.url()).pathname,'/contractors/issa-build');
+      await page.getByTestId('textarea-comment').waitFor();
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false);
+      assert.deepEqual(errors,[]);
+      await page.screenshot({path:path.join(temporary,device+'-live-recommendation-entry.png'),fullPage:true});
+      evidence.push({device,passed:true,scope:'Actual production document and guest composer; no text entered, no account or recommendation submitted',blockedWrites});
+      await context.close();
+    }
+  } finally { await browser.close(); }
+  return evidence;
+}
 try {
   proof.initialSourceStatus = clean();
   assert.equal(proof.initialSourceStatus, '', 'Initial exact-source tree must be clean');
@@ -62,6 +89,7 @@ try {
     check('Read-only live customer paths', process.execPath, ['scripts/customer-path-browser-proof.mjs'], { CUSTOMER_PATH_PHASE: phase, CUSTOMER_PATH_DEPLOYED_SHA: deployed, CUSTOMER_PATH_BROWSER_OUTPUT: temporary });
     proof.browser = JSON.parse(await fs.readFile(browserReport, 'utf8'));
     assert.equal(proof.browser.passed, true);
+    proof.liveRecommendationEntry = await liveRecommendationEntry(deployed);
     const response = await fetch('https://www.thetradescout.com/api/health', { signal: AbortSignal.timeout(20000) });
     const health = await response.json();
     assert(response.ok); assert.equal(response.headers.get('x-tradescout-build'), deployed);
@@ -71,11 +99,16 @@ try {
     // Preserve the separately released cabinet-library tree and its chunk configuration.
     assert.equal(execFileSync('git',['rev-parse','HEAD:client/src/pages/profile-sites'],{encoding:'utf8'}).trim(),'655badf1f60673d86a43e5764cb982be30d55de0');
     assert.equal(execFileSync('git',['rev-parse','HEAD:vite.config.ts'],{encoding:'utf8'}).trim(),'feac48dd18e12697f13d26509f41d5d122e9617f');
+    // The readiness guard checks real ancestry and PR subjects in origin/main.
+    // Fetch canonical remote history rather than substituting the candidate as main.
+    check('Fetch canonical main history','git',['fetch','--no-tags','--depth=2048','https://github.com/infotradescout/tradescoutAI.git','refs/heads/main:refs/remotes/origin/main']);
+    proof.mainAtVerification=execFileSync('git',['rev-parse','origin/main'],{encoding:'utf8'}).trim();
     const historicalBase = '64e99ca14db7553494265f7f1d8d3257ae0e3b86';
     if (spawnSync('git',['cat-file','-e',historicalBase+':migrations/meta/_journal.json'],{cwd:root}).status !== 0) {
       check('Recover exact migration-history objects','git',['fetch','--no-tags','--depth=1','https://github.com/infotradescout/tradescoutAI.git',historicalBase]);
     }
     assert.equal(execFileSync('git',['rev-parse',historicalBase+':migrations/meta/_journal.json'],{encoding:'utf8'}).trim(),'6ce1ef27cb1ddc165f8dc8234deb2ade1a37df57');
+    check('Production readiness with actual main ancestry','npm',['run','guard:production-readiness-registry']);
     check('TypeScript', 'npm', ['run', 'check']);
     const tracked = execFileSync('git', ['ls-files', '*.test.ts', '*.test.tsx'], { encoding: 'utf8' }).trim().split('\n');
     const selected = tracked.filter(file => !file.startsWith('scripts/') && /recommendation|exchange|exposure-authority|pre-scout|preScout|progressiveFeature|ProtectedRoute|ProfileCompletionBanner|public-profile-trust|public-profile-operator|notification-email|emailService|conversation-participants|messageAuthor|oauthIdentity|direct-connect|infinity-text|userFacingError|required-production-schema|contractor-photo-sharing|steel-home-project-tools|SteelHomePackagesProfile|steel-home-builder-profile|features\/jw-stone/i.test(file));
@@ -104,6 +137,9 @@ try {
       serverLog = await fs.open(path.join(temporary,'fixture-server.private.log'),'w',0o600);
       server = spawn(process.execPath, ['--import','tsx','scripts/direct-connect-operator-http-proof.ts'], { cwd: root, env: { ...process.env, ...appEnvironment }, stdio: ['ignore',serverLog.fd,serverLog.fd] });
       await waitFor('http://127.0.0.1:5218/api/auth/providers', server);
+      check('Previously conditional native database tests','npm',['run','test:run','--','server/tests/direct-connect-gates.integration.test.ts','server/tests/direct-connect-redaction.test.ts','--maxWorkers=1','--reporter=default','--reporter=json','--outputFile='+databaseTestReport],{...appEnvironment,RUN_INTEGRATION_TESTS:'true'});
+      const databaseTests=JSON.parse(await fs.readFile(databaseTestReport,'utf8'));
+      assert.equal(databaseTests.numPendingTests,0,'Database-enabled cases must not be skipped');
       check('Actual authenticated county request and contact HTTP journey', process.execPath, ['--import','tsx','scripts/verify-direct-connect-operator-http-proof.ts'], appEnvironment);
       check('Actual desktop/mobile built customer journeys', process.execPath, ['scripts/customer-path-browser-proof.mjs'], { ...appEnvironment, CUSTOMER_PATH_BROWSER_OUTPUT: temporary });
       proof.browser = JSON.parse(await fs.readFile(browserReport,'utf8')); assert.equal(proof.browser.passed,true);
@@ -122,7 +158,9 @@ try {
   if (serverLog) console.error('CUSTOMER_FIXTURE_FAILURE_LOG ' + redact((await fs.readFile(path.join(temporary,'fixture-server.private.log'),'utf8')).slice(-14000)));
 } finally {
   await stopServer(); await serverLog?.close(); await database?.stop();
-  try { const tests = JSON.parse(await fs.readFile(testReport,'utf8')); proof.tests = Object.fromEntries(['numTotalTests','numPassedTests','numFailedTests','numPendingTests','numTotalTestSuites','numPassedTestSuites'].map(key=>[key,tests[key]])); proof.testFiles = tests.testResults?.map(file=>({name:path.relative(root,file.name),status:file.status,pending:file.assertionResults.filter(test=>test.status==='pending').length})); } catch {}
+  for(const [key,file] of [['tests',testReport],['databaseTests',databaseTestReport]]) {
+    try { const tests = JSON.parse(await fs.readFile(file,'utf8')); proof[key] = Object.fromEntries(['numTotalTests','numPassedTests','numFailedTests','numPendingTests','numTotalTestSuites','numPassedTestSuites'].map(name=>[name,tests[name]])); if(key==='tests')proof.testFiles = tests.testResults?.map(file=>({name:path.relative(root,file.name),status:file.status,pending:file.assertionResults.filter(test=>test.status==='pending').length})); } catch {}
+  }
   try { proof.browser = JSON.parse(await fs.readFile(browserReport,'utf8')); } catch {}
   proof.finishedAt = new Date().toISOString();
   await fs.mkdir(output,{recursive:true});
