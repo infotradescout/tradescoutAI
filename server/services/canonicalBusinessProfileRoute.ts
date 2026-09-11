@@ -1,5 +1,6 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
+import { resolveIssaBuildCanonicalRedirect } from "@shared/issaBuildRoutes";
 import { db } from "../db";
 import { canDiscoverPublishedProfilePublicly } from "./ownerConfirmedDirectProfile";
 import { durableProfessionalProfileApprovalSql } from "./profileTargetAuthority";
@@ -88,8 +89,11 @@ export async function resolveCanonicalBusinessProfileRoute(
   const profileSlug = String(linkedProfile?.slug || "").trim();
   if (!profileSlug) return null;
 
+  // Resolve only after the existing publication/ownership decision. Reuse the
+  // public route owner so the business entry does not add a redundant redirect.
+  const profilePath = `/u/${encodeURIComponent(profileSlug)}`;
   return {
     slug: profileSlug,
-    path: `/u/${encodeURIComponent(profileSlug)}`,
+    path: resolveIssaBuildCanonicalRedirect(profilePath) || profilePath,
   };
 }

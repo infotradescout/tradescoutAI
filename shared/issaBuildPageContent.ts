@@ -36,7 +36,13 @@ const LEGACY_PRODUCT_COPY = new Set([
 
 export function issaBuildBusinessText(value: unknown, fallback = ""): string {
   const text = typeof value === "string" ? value.trim() : "";
-  return text && !LEGACY_PRODUCT_COPY.has(text) ? text : fallback;
+  const resolved = text && !LEGACY_PRODUCT_COPY.has(text) ? text : fallback;
+  // This one stored default exceeded the existing shared title budget after
+  // the TradeScout suffix. Keep meaningful words intact without rewriting
+  // custom titles, descriptions, product copy or the persisted owner record.
+  return resolved === "ISSA Build | Pensacola Kitchens, Bathrooms & Countertops"
+    ? "ISSA Build | Pensacola Kitchens & Bathrooms"
+    : resolved;
 }
 
 /** Product text and photographs stay on the existing product presentation. */
