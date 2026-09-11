@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { buildProfileServiceAreaUrl, resolveProfileServiceAreaHub } from "@shared/profileServiceAreaShare";
 import { listFactBearingProfileServices } from "@shared/profileServiceShare";
+import { resolvePublicProfileRootDiscoverySlug } from "@shared/publicProfileRootDiscovery";
 import { storage } from "./storage";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
 
@@ -22,16 +23,8 @@ export async function attachPublicProfileServiceAreaLink(
   req: Request,
   res: Response
 ): Promise<void> {
-  const requestPath = String(req.path || "").replace(/\/+$/, "") || "/";
-  const match = requestPath.match(/^\/u\/([^/]+)$/i);
-  if (!match) return;
-
-  let profileSlug = "";
-  try {
-    profileSlug = decodeURIComponent(match[1]).trim().toLowerCase();
-  } catch {
-    return;
-  }
+  const profileSlug = resolvePublicProfileRootDiscoverySlug(req.path);
+  if (!profileSlug) return;
 
   const profile = await storage.getProfileBySlugPublic(profileSlug);
   if (!profile || profile.seoMeta?.customDomain) return;
@@ -48,6 +41,7 @@ export async function attachPublicProfileServiceAreaLink(
   const originalSend = res.send.bind(res);
   res.send = ((body?: any) => {
     if (
+      res.statusCode >= 200 && res.statusCode < 300 &&
       typeof body === "string" &&
       /<html[\s>]/i.test(body) &&
       !body.includes('data-seo-profile-service-area-link="true"')
