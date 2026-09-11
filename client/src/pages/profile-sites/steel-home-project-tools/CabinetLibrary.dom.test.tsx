@@ -91,9 +91,17 @@ describe("Cabinet library through the actual planner parent", () => {
   it("retains a visible schedule when downloads are unavailable", async () => {
     await open(); await preset("door-base"); await click("Add to plan");
     await click("Cabinet schedule");
-    // jsdom has no object-URL downloader; the UI must keep the schedule available.
-    await click("Export cabinet schedule");
-    expect(container.textContent).toContain("Download unavailable");
-    expect(container.querySelector('[aria-label="Dimensioned cabinet schedule"]')).not.toBeNull();
+    const original = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+    const denied = vi.fn(() => { throw new Error("Synthetic download denial"); });
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: denied });
+    try {
+      await click("Export cabinet schedule");
+      expect(denied).toHaveBeenCalledTimes(1);
+      expect(container.textContent).toContain("Download unavailable");
+      expect(container.querySelector('[aria-label="Dimensioned cabinet schedule"]')).not.toBeNull();
+    } finally {
+      if (original) Object.defineProperty(URL, "createObjectURL", original);
+      else Reflect.deleteProperty(URL, "createObjectURL");
+    }
   });
 });
