@@ -1,7 +1,25 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+
+// The current readiness guard verifies recorded recovery merges against origin/main.
+// A single-branch/shallow hosted checkout must obtain the actual remote history;
+// never fake that ref with the candidate or suppress the guard's ancestry check.
+if ((process.env.CABINET_LIBRARY_PHASE || 'preview') === 'preview') {
+  const readGit = args => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const head = readGit(['rev-parse', 'HEAD']);
+  const shallow = readGit(['rev-parse', '--is-shallow-repository']) === 'true';
+  const priorMain = spawnSync('git', ['rev-parse', '--verify', 'refs/remotes/origin/main'], { encoding: 'utf8' });
+  console.log('ACCESSORY_HISTORY_BEFORE ' + JSON.stringify({ head, shallow, originMain: priorMain.status === 0 ? priorMain.stdout.trim() : null }));
+  execFileSync('git', ['fetch', '--no-tags', ...(shallow ? ['--unshallow'] : []), 'origin', 'refs/heads/main:refs/remotes/origin/main'], { stdio: 'inherit' });
+  assert.equal(readGit(['rev-parse', 'HEAD']), head, 'History retrieval must not change the candidate');
+  assert.equal(readGit(['rev-parse', '--is-shallow-repository']), 'false', 'Readiness requires complete merge ancestry');
+  console.log('ACCESSORY_HISTORY_AFTER ' + JSON.stringify({ head, originMain: readGit(['rev-parse', 'refs/remotes/origin/main']), shallow: false }));
+  // Fail early on a real registry/merge discrepancy. The strict gate repeats this
+  // same unmodified guard later, after its own clean dependency installation.
+  execFileSync(process.execPath, ['scripts/guard-production-readiness-registry.mjs'], { stdio: 'inherit', env: process.env });
+}
 
 // Preserve the existing complete cabinet/countertop regression and strict release pipeline.
 // Execute a deterministic in-memory extension; no source or gate files are rewritten.
