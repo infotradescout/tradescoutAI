@@ -3,6 +3,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { proveJwStoneSupplierResponse } from './jw-stone-supplier-response-journey.mjs';
 
+if (process.env.SUPPLIER_PREPARE_SUBTOTAL_FIX === 'true') {
+  const { prepareSupplierSubtotalFix } = await import('./prepare-supplier-subtotal-fix.mjs');
+  await prepareSupplierSubtotalFix();
+  process.exit(0); // Preparation is never reported as executed workflow proof.
+}
+
 /** Runs only with the parent verifier's fresh loopback database and browser. */
 export async function proveJwStoneRequestJourney({ page, context, database, fixture, email, userId, device, output, rootPath }) {
   const base = 'http://127.0.0.1:5228';
