@@ -25,7 +25,9 @@ export type CabinetModuleKind =
   | "wall-cabinet"
   | "tall-cabinet"
   | "appliance"
-  | "island";
+  | "island"
+  | "filler"
+  | "end-panel";
 export type CabinetShellItemKind =
   | "door"
   | "window"
@@ -34,6 +36,14 @@ export type CabinetShellItemKind =
   | "drain"
   | "electric"
   | "vent";
+
+export function isCabinetAccessory(module: { kind: string }): boolean {
+  return module.kind === "filler" || module.kind === "end-panel";
+}
+
+export function isCountedCabinet(module: { kind: string }): boolean {
+  return module.kind !== "appliance" && !isCabinetAccessory(module);
+}
 
 export type CabinetRoomShell = {
   widthIn: number | null;
@@ -67,6 +77,8 @@ export type CabinetPlannerModule = {
   depthIn: number;
   heightIn: number;
   elevationIn: number;
+  /** Accessories only: distance from the named wall to the back of the actual panel. */
+  wallInsetIn?: number;
 };
 
 export type CabinetPlannerExtensionV1 = {
@@ -122,6 +134,8 @@ const MODULE_VALUES = new Set<CabinetModuleKind>([
   "tall-cabinet",
   "appliance",
   "island",
+  "filler",
+  "end-panel",
 ]);
 const SHELL_ITEM_VALUES = new Set<CabinetShellItemKind>([
   "door",
@@ -238,6 +252,24 @@ export function createCabinetPlannerModule(
       heightIn: 34.5,
       elevationIn: 0,
     },
+    filler: {
+      label: "Filler strip",
+      surface: "north",
+      widthIn: 3,
+      depthIn: 0.75,
+      heightIn: 30.5,
+      elevationIn: 4,
+      wallInsetIn: 23.25,
+    },
+    "end-panel": {
+      label: "Finished end panel",
+      surface: "north",
+      widthIn: 0.75,
+      depthIn: 24,
+      heightIn: 34.5,
+      elevationIn: 0,
+      wallInsetIn: 0,
+    },
   };
   return {
     id,
@@ -332,6 +364,9 @@ export function reconcileCabinetPlannerExtension(value: unknown): CabinetPlanner
             depthIn: cleanDimension(entry.depthIn, base.depthIn, 0.125, 120),
             heightIn: cleanDimension(entry.heightIn, base.heightIn, 0.125, 240),
             elevationIn: cleanDimension(entry.elevationIn, base.elevationIn, 0, 240),
+            ...(isCabinetAccessory(base)
+              ? { wallInsetIn: cleanDimension(entry.wallInsetIn, base.wallInsetIn ?? 0, 0, 720) }
+              : {}),
           },
         ];
       })
@@ -379,6 +414,7 @@ export function getCabinetModuleBounds(
   if (width === null || depth === null) return null;
   const y1 = module.elevationIn;
   const y2 = module.elevationIn + module.heightIn;
+  const inset = isCabinetAccessory(module) ? module.wallInsetIn ?? 0 : 0;
   if (module.surface === "floor") {
     return {
       x1: module.offsetIn,
@@ -393,8 +429,8 @@ export function getCabinetModuleBounds(
     return {
       x1: module.offsetIn,
       x2: module.offsetIn + module.widthIn,
-      z1: 0,
-      z2: module.depthIn,
+      z1: inset,
+      z2: inset + module.depthIn,
       y1,
       y2,
     };
@@ -403,16 +439,16 @@ export function getCabinetModuleBounds(
     return {
       x1: width - module.offsetIn - module.widthIn,
       x2: width - module.offsetIn,
-      z1: depth - module.depthIn,
-      z2: depth,
+      z1: depth - inset - module.depthIn,
+      z2: depth - inset,
       y1,
       y2,
     };
   }
   if (module.surface === "east") {
     return {
-      x1: width - module.depthIn,
-      x2: width,
+      x1: width - inset - module.depthIn,
+      x2: width - inset,
       z1: module.offsetIn,
       z2: module.offsetIn + module.widthIn,
       y1,
@@ -420,8 +456,8 @@ export function getCabinetModuleBounds(
     };
   }
   return {
-    x1: 0,
-    x2: module.depthIn,
+    x1: inset,
+    x2: inset + module.depthIn,
     z1: depth - module.offsetIn - module.widthIn,
     z2: depth - module.offsetIn,
     y1,
@@ -644,7 +680,10 @@ export function buildCabinetPlannerRequestBrief(stateInput: CabinetPlannerExtens
         module.surface === "floor"
           ? `floor at X ${module.offsetIn}\", Y ${module.roomDepthOffsetIn}\"`
           : `${module.surface} wall at ${module.offsetIn}\"`;
-      return `- ${module.label}: ${module.widthIn}\" W × ${module.depthIn}\" D × ${module.heightIn}\" H; ${placement}; elevation ${module.elevationIn}\"`;
+      const accessory = isCabinetAccessory(module)
+        ? `; ${module.kind} accessory, not a cabinet or assumed countertop support${module.surface === "floor" ? "" : `; wall setback ${module.wallInsetIn ?? 0}\"`}`
+        : "";
+      return `- ${module.label}: ${module.widthIn}\" W × ${module.depthIn}\" D × ${module.heightIn}\" H; ${placement}; elevation ${module.elevationIn}\"${accessory}`;
     }),
     "",
     "Openings, obstacles, and utilities",
