@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import "./kitchenWorkspaceControls.css";
 
 type Props = { label: string; children: ReactNode; onClose: () => void };
 
