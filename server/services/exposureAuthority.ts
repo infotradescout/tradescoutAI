@@ -1,4 +1,3 @@
-import { storage } from "../storage";
 import { sql, type SQL, type SQLWrapper } from "drizzle-orm";
 
 /** Query-time counterpart of the canonical sale-exposure gate, before LIMIT. */
@@ -33,6 +32,9 @@ export async function buildExposureAuthorityMap(
 
   for (const userId of uniqueUserIds) authorityByUserId[userId] = false;
 
+  // Storage imports the pure SQL predicate while its repository chain initializes.
+  // Resolve storage only for an actual async decision, never during module loading.
+  const { storage } = await import("../storage");
   const [users, verificationSummary] = await Promise.all([
     storage.getUsersByIds(uniqueUserIds),
     storage.getUserVerificationSummary(uniqueUserIds),
