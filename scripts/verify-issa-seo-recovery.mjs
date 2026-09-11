@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 
 const phase = process.env.ISSA_SEO_PHASE || 'audit';
@@ -25,23 +26,42 @@ function run(name, command, extra = {}) {
   proof.steps.push(step); console.log('ISSA_STEP ' + JSON.stringify({ ...step, tail: undefined }));
   assert.equal(result.status, 0, name);
 }
+async function health(strict = false) {
+  const response = await fetch(origin + '/api/health', { signal: AbortSignal.timeout(20000) });
+  const body = await response.json();
+  const evidence = { checkedAt: new Date().toISOString(), status: response.status, build: response.headers.get('x-tradescout-build'), body };
+  if (strict) {
+    const expected = process.env.ISSA_SEO_DEPLOYED_SHA;
+    assert.equal(response.status, 200); assert.equal(evidence.build, expected); assert.equal(body.commit, expected);
+    assert.equal(body.status, 'healthy'); assert.equal(body.database, 'connected'); assert.equal(body.migrations?.compatibility, 'compatible');
+  }
+  return evidence;
+}
+function checkOptionalPageBuild(build, route) {
+  // Early service middleware precedes the build-header owner. Record absence,
+  // never fabricate per-response SHA proof. Root and surrounding health MUST match.
+  if (build !== null && build !== undefined) assert.equal(build, process.env.ISSA_SEO_DEPLOYED_SHA, route + ' build');
+}
 async function inspect(route, agent) {
   const response = await fetch(origin + route, { redirect: 'manual', headers: { 'user-agent': agents[agent] }, signal: AbortSignal.timeout(20000) });
   const html = await response.text();
   const canonical = [...html.matchAll(/<link\b[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*>/gi)].map(match => match[1]);
   const robots = [...html.matchAll(/<meta\b[^>]*name=["'](?:robots|googlebot)["'][^>]*content=["']([^"']+)["'][^>]*>/gi)].map(match => match[1]);
-  const page = { route, agent, status: response.status, build: response.headers.get('x-tradescout-build'), location: response.headers.get('location'), xRobots: response.headers.get('x-robots-tag'), canonical, robots, title: html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1], h1: [...html.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map(match => match[1].replace(/<[^>]*>/g, '')), hasServiceIdentity: html.includes('"@type":"Service"'), hasClientModule: /<script\b[^>]*type=["']module/.test(html) };
+  const page = { route, agent, status: response.status, build: response.headers.get('x-tradescout-build'), bodySha256: createHash('sha256').update(html).digest('hex'), location: response.headers.get('location'), xRobots: response.headers.get('x-robots-tag'), canonical, robots, title: html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1], h1: [...html.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map(match => match[1].replace(/<[^>]*>/g, '')), hasServiceIdentity: html.includes('"@type":"Service"'), hasClientModule: /<script\b[^>]*type=["']module/.test(html) };
   proof.pages.push(page); console.log('ISSA_PAGE ' + JSON.stringify(page));
   return { page, html };
 }
 async function audit(strict = false) {
   const expected = process.env.ISSA_SEO_DEPLOYED_SHA || '';
   if (strict) assert.match(expected, /^[a-f0-9]{40}$/);
+  proof.healthBefore = await health(strict);
   for (const agent of ['browser', 'googlebot']) {
     for (const route of ['/issa-build', ...serviceSlugs.map(slug => '/u/issa-build/services/' + slug)]) {
       const { page, html } = await inspect(route, agent);
       if (!strict) continue;
-      assert.equal(page.status, 200, route); assert.equal(page.build, expected, route + ' build');
+      assert.equal(page.status, 200, route);
+      if (route === '/issa-build') assert.equal(page.build, expected);
+      else checkOptionalPageBuild(page.build, route);
       assert.deepEqual(page.canonical, [origin + route], route + ' canonical');
       assert(!page.xRobots?.includes('noindex')); assert(!page.robots.some(value => /noindex/i.test(value)));
       assert(page.h1.length > 0); assert(html.includes('ISSA Build'));
@@ -53,16 +73,10 @@ async function audit(strict = false) {
   const urls = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
   proof.sitemap = { status: sitemap.status, issaUrls: urls.filter(url => url.includes('issa-build')) };
   if (strict) {
-    assert.equal(sitemap.status, 200);
-    assert(urls.includes(origin + '/issa-build'));
+    assert.equal(sitemap.status, 200); assert(urls.includes(origin + '/issa-build'));
     for (const slug of serviceSlugs) assert(urls.includes(origin + '/u/issa-build/services/' + slug), 'Service missing from live sitemap: ' + slug);
   }
-  const response = await fetch(origin + '/api/health', { signal: AbortSignal.timeout(20000) });
-  proof.health = await response.json(); proof.healthBuild = response.headers.get('x-tradescout-build');
-  if (strict) {
-    assert.equal(response.status, 200); assert.equal(proof.healthBuild, expected); assert.equal(proof.health.commit, expected);
-    assert.equal(proof.health.status, 'healthy'); assert.equal(proof.health.database, 'connected'); assert.equal(proof.health.migrations?.compatibility, 'compatible');
-  }
+  proof.healthAfter = await health(strict);
 }
 async function browserProof() {
   run('Install Chromium', [process.execPath, 'node_modules/playwright/cli.js', 'install', 'chromium']);
@@ -77,17 +91,20 @@ async function browserProof() {
       const page = await context.newPage(); page.setDefaultTimeout(30000); page.on('pageerror', error => errors.push(error.message));
       for (const slug of serviceSlugs) {
         const response = await page.goto(origin + '/u/issa-build/services/' + slug, { waitUntil: 'networkidle', timeout: 45000 });
-        assert(response?.ok()); assert.equal(response.headers()['x-tradescout-build'], process.env.ISSA_SEO_DEPLOYED_SHA);
+        assert(response?.ok());
+        const build = response.headers()['x-tradescout-build'] || null;
+        checkOptionalPageBuild(build, slug);
         await page.locator('[data-public-profile-service-page="true"] h1').waitFor();
         const headings = await page.locator('h1').allTextContents(); assert.equal(headings.length, 1);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false, slug + ' horizontal overflow');
         assert.equal(await page.getByRole('link', { name: 'Start a Request', exact: true }).count(), 1);
         assert.equal(await page.getByRole('link', { name: 'View full profile', exact: true }).count(), 1);
         await page.screenshot({ path: path.join(output, device + '-' + slug + '.png'), fullPage: true });
-        proof.browser.push({ device, slug, passed: true, heading: headings[0] });
+        proof.browser.push({ device, slug, passed: true, build, heading: headings[0] });
       }
       assert.deepEqual(errors, []); await context.close();
     }
+    proof.healthAfterBrowser = await health(true);
   } finally { await browser.close(); }
 }
 try {
