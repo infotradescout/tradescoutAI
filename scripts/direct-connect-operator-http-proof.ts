@@ -3,7 +3,7 @@
  * OPERATOR_HTTP_PROOF=true. No provider credentials or production targets are retained.
  */
 import assert from "node:assert/strict";
-import { mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -30,8 +30,12 @@ const preserve = new Set([
   "TEST_DATABASE_URL",
   "OPERATOR_HTTP_PROOF",
   "OPERATOR_PROOF_OUTPUT",
+  "OPERATOR_PROOF_BUILT_CLIENT",
 ]);
 for (const key of Object.keys(process.env)) if (!preserve.has(key)) delete process.env[key];
+// Do not allow a repository .env file to reintroduce provider or production credentials.
+const { default: dotenv } = await import("dotenv");
+dotenv.config = dotenv.configDotenv = () => ({ parsed: {} });
 process.env.SESSION_SECRET = "synthetic-operator-proof-session-only";
 process.env.EMAIL_MODE = "account_creation_only";
 process.env.DISABLE_FACEBOOK_AUTH = "true";
@@ -141,8 +145,18 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 const server = await registerRoutes(app);
-const { setupVite } = await import("../server/vite");
-await setupVite(app, server);
+if (process.env.OPERATOR_PROOF_BUILT_CLIENT === "true") {
+  const distPath = path.resolve("dist/public");
+  await access(path.join(distPath, "index.html"));
+  app.use(express.static(distPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+} else {
+  const { setupVite } = await import("../server/vite");
+  await setupVite(app, server);
+}
 await new Promise<void>((resolve) => server.listen(5218, "127.0.0.1", resolve));
 const privateState = { runId, password, identities, providerId, baseUrl: "http://127.0.0.1:5218" };
 await writeFile(path.join(output, "fixture.private.json"), JSON.stringify(privateState, null, 2));
