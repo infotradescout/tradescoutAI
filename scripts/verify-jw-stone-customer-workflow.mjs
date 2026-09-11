@@ -7,12 +7,15 @@ import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import pg from 'pg';
 import { chromium } from 'playwright';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
+import { proveJwStoneRequestJourney } from './jw-stone-request-journey.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || 'test-results/jw-workflow');
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'jw-workflow-'));
 const base = 'http://127.0.0.1:5228';
-const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, actualEmailDeliveryProved: false, source: 'Synthetic localhost native database, actual application routes and built client' };
+const rootPath = '/u/jw-stone';
+const itemPath = rootPath + '/stones/honey-onyx';
+const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, actualEmailDeliveryProved: false, formalPricedQuoteProved: false, source: 'Synthetic localhost native database, actual application routes and built client' };
 let database, client, server, browser, activePage, logFile;
 function clean() { return execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(); }
 function note(name, detail = {}) { report.checks.push({ name, ...detail, passed: true }); console.log('JW_WORKFLOW_CHECK ' + JSON.stringify(report.checks.at(-1))); }
@@ -39,8 +42,7 @@ try {
   database = await startCabinetLoopbackTestDatabase(); report.database = database.evidence;
   client = new pg.Client({ connectionString: database.url }); await client.connect();
   await client.query('CREATE DATABASE ts_jw_workflow_test'); await client.end();
-  const target = new URL(database.url); target.pathname = '/ts_jw_workflow_test';
-  assert.equal(target.hostname, '127.0.0.1');
+  const target = new URL(database.url); target.pathname = '/ts_jw_workflow_test'; assert.equal(target.hostname, '127.0.0.1');
   const env = { NODE_ENV: 'test', DATABASE_URL: target.href, TEST_DATABASE_URL: target.href, ALLOW_INSECURE_TEST_DATABASE: 'true', JW_WORKFLOW_FIXTURE: 'true', JW_WORKFLOW_PRIVATE_OUTPUT: temp };
   run('Fresh migrations', ['npm', 'run', 'db:migrate'], env);
   run('Required schema', ['npm', 'run', 'db:verify:required'], env);
@@ -55,17 +57,19 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert(ready, 'Actual fixture routes did not start');
+  const fixture = JSON.parse(await fs.readFile(path.join(temp, 'fixture.json'), 'utf8'));
+  assert.equal(fixture.base, base);
   await fs.mkdir(out, { recursive: true });
   browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   for (const [device, viewport] of [['desktop', { width: 1440, height: 1000 }], ['touch', { width: 390, height: 844 }]]) {
-    const context = await browser.newContext({ viewport, isMobile: device === 'touch', hasTouch: device === 'touch', serviceWorkers: 'block' });
+    const context = await browser.newContext({ viewport, isMobile: device === 'touch', hasTouch: device === 'touch', serviceWorkers: 'block', userAgent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36` });
     const errors = [], failures = [];
     await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort('blockedbyclient'));
     const page = await context.newPage(); activePage = page; page.setDefaultTimeout(45000);
     page.on('pageerror', error => errors.push(error.message));
     page.on('response', r => { if (r.status() >= 500 && new URL(r.url()).pathname.startsWith('/api/')) failures.push({ path: new URL(r.url()).pathname, status: r.status() }); });
     const click = async locator => { await locator.scrollIntoViewIfNeeded(); if (device === 'touch') await locator.tap(); else await locator.click(); };
-    const initial = await page.goto(base + '/jw-stone', { waitUntil: 'domcontentloaded', timeout: 60000 }); assert.equal(initial.status(), 200);
+    const initial = await page.goto(base + rootPath, { waitUntil: 'domcontentloaded', timeout: 60000 }); assert.equal(initial.status(), 200);
     await page.getByTestId('jw-marketplace-account-button').waitFor();
     const denied = await request(context, 'GET', '/api/u/jw-stone/member-pricing'); assert.equal(denied.status(), 401);
     assert(!(await denied.text()).includes('slabPriceCents')); note(device + ': guest pricing denied');
@@ -92,24 +96,28 @@ try {
     const pricing = await price.json(); assert.equal(pricing.access, 'member'); assert.equal(pricing.viewerId, user.id);
     assert.equal(pricing.prices.length, 1); assert.equal(pricing.prices[0].slabPriceCents, 10101); assert.equal(pricing.prices[0].bundlePriceCents, 9090);
     assert(!JSON.stringify(pricing).includes('landedCostCents')); assert.match(price.headers()['cache-control'], /private.*no-store/);
+    // Open the actual named item rather than assuming its card is on the first catalog page.
+    await page.goto(base + itemPath, { waitUntil: 'domcontentloaded' });
     await page.getByText('$101.01', { exact: false }).first().waitFor();
     const localState = await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }));
     assert(!localState.includes('slabPriceCents')); assert(!localState.includes('landedCostCents'));
     await page.screenshot({ path: path.join(out, device + '-synthetic-member-pricing.png'), fullPage: false });
     note(device + ': actual visible synthetic member rates; internal cost excluded; no persistent browser price storage');
     await page.reload({ waitUntil: 'domcontentloaded' }); await page.getByText('$101.01', { exact: false }).first().waitFor();
-    const accountAgain = await request(context, 'POST', '/api/u/jw-stone/account', { businessName, sourcePath: '/jw-stone' }); assert.equal(accountAgain.status(), 201);
+    const accountAgain = await request(context, 'POST', '/api/u/jw-stone/account', { businessName, sourcePath: rootPath }); assert.equal(accountAgain.status(), 201);
     assert.equal((await client.query('SELECT count(*)::int AS n FROM profile_accounts WHERE owner_user_id=$1', [user.id])).rows[0].n, 1);
     note(device + ': reload and replay preserve membership without duplicate accounts');
     await context.clearCookies();
     const login = await request(context, 'POST', '/api/auth/login', { email, password }); assert.equal(login.status(), 200);
-    const returning = await request(context, 'GET', '/api/u/jw-stone/member-pricing'); assert.equal(returning.status(), 200);
+    assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 200);
     note(device + ': real returning-user login retains member pricing');
+    const requestEvidence = await proveJwStoneRequestJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath });
+    note(device + ': material request reaches the selected supplier', requestEvidence);
     await client.query("UPDATE profile_account_entitlements SET status='revoked' WHERE profile_account_id=$1 AND product_key='jw_stone_member_pricing'", [memberships[0].id]);
-    const afterRevoke = await request(context, 'GET', '/api/u/jw-stone/member-pricing'); assert.equal(afterRevoke.status(), 403, 'Revoked pricing must remain denied');
-    await request(context, 'POST', '/api/u/jw-stone/account', { businessName, sourcePath: '/jw-stone' });
+    assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 403, 'Revoked pricing must remain denied');
+    await request(context, 'POST', '/api/u/jw-stone/account', { businessName, sourcePath: rootPath });
     assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 403, 'Reconnect must not undo a revocation');
-    await page.reload({ waitUntil: 'domcontentloaded' }); await page.getByTestId('jw-marketplace-account-button').waitFor();
+    await page.goto(base + itemPath, { waitUntil: 'domcontentloaded' }); await page.getByTestId('jw-marketplace-account-button').waitFor();
     assert.equal(await page.getByText('$101.01', { exact: false }).count(), 0);
     note(device + ': revocation and reconnect cannot recover private prices');
     assert.deepEqual(errors, [], 'Uncaught browser errors'); assert.deepEqual(failures, [], 'Unexpected server errors');
@@ -118,8 +126,7 @@ try {
   report.finalSourceStatus = clean(); assert.equal(report.finalSourceStatus, ''); report.passed = true;
 } catch (error) {
   report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]');
-  if (activePage) { report.failureText = (await activePage.locator('body').innerText().catch(() => '')).slice(0, 7000); await fs.mkdir(out, { recursive: true }); await activePage.screenshot({ path: path.join(out, 'failure.png'), fullPage: false }).catch(() => {}); }
-  // Do not publish private fixture logs or verification tokens. Keep only sanitized error-class lines.
+  if (activePage) { report.failureText = (await activePage.locator('body').innerText().catch(() => '')).slice(0, 7000); report.failurePath = new URL(activePage.url()).pathname; await fs.mkdir(out, { recursive: true }); await activePage.screenshot({ path: path.join(out, 'failure.png'), fullPage: false }).catch(() => {}); }
   try { const log = await fs.readFile(path.join(temp, 'server.private.log'), 'utf8'); report.serverErrors = log.split('\n').filter(line => /Error:|error:|code:|detail:|column:|relation|schema.*failed/i.test(line)).map(line => line.replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]').replace(/token[^\s]*[=:][^\s]+/gi, '[TOKEN]')).slice(-35); } catch {}
   console.error('JW_WORKFLOW_FAILURE ' + report.error);
 } finally {
