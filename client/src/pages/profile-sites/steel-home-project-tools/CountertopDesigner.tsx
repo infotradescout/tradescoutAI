@@ -4,6 +4,7 @@ import type { SteelHomeCabinetDesign, SteelHomeCountertopDesign } from "./projec
 import { useDesignerHistory } from "./useDesignerHistory";
 import "./planningBuilderResponsive.css";
 import "./kitchenDesignerStudio.css";
+import "./kitchenWorkspaceControls.css";
 
 const CountertopDrawingReview = lazy(() => import("./CountertopDrawingReview"));
 const CabinetCountertopImport = lazy(() => import("./CabinetCountertopImport"));
