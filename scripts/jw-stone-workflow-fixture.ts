@@ -3,7 +3,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
-// No customer records or provider credentials may enter this fixture.
 assert.equal(process.env.NODE_ENV, "test");
 assert.equal(process.env.JW_WORKFLOW_FIXTURE, "true");
 const databaseUrl = new URL(process.env.TEST_DATABASE_URL || "");
@@ -22,7 +21,7 @@ process.env.PUBLIC_WEB_URL = "http://127.0.0.1:5228";
 process.env.EMAIL_MODE = "account_creation_only";
 process.env.DISABLE_FACEBOOK_AUTH = "true";
 
-// The real source validator receives invented test rates, never the owner's workbook.
+// The real source validator receives invented rates, never the owner's workbook.
 const { JW_STONE_PRICING_DRIVE_FILE_ID, JW_STONE_PRICING_DRIVE_FOLDER_ID, jwStonePriceKey } = await import("../shared/jwStoneMemberPricing");
 const now = new Date().toISOString();
 process.env.JW_STONE_PRICING_SOURCE = "approved_import";
@@ -51,9 +50,12 @@ const [business] = await db.insert(schema.businesses).values({
 const [profile] = await db.insert(schema.profiles).values({
   ownerUserId: ownerId, businessId: business.id, roleContext: "contractor", slug: "jw-stone",
   displayName: "JW Stone Logistics", status: "published", publiclyReleased: true,
-  headline: "Synthetic isolated supplier fixture; not public stock or pricing",
-  contentBlocks: [],
+  headline: "Synthetic isolated supplier fixture; not public stock or pricing", contentBlocks: [],
 }).returning();
+// Production runs this real schema inspection before accepting guarded requests.
+// Do not replace its middleware, set test readiness flags or bypass its result.
+const { runSchemaPreflight } = await import("../server/schemaPreflight");
+await runSchemaPreflight();
 const { default: express } = await import("express");
 const { registerRoutes } = await import("../server/routes");
 const app = express();
