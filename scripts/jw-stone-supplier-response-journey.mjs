@@ -28,14 +28,15 @@ export async function proveJwStoneSupplierResponse({ page, context, database, fi
     const inbox = await call(supplier, 'GET', '/api/direct-connect/inbox');
     assert(JSON.stringify(inbox).includes(assignmentId), 'Assigned supplier cannot find the browser-created request in its actual inbox');
     note('Correct supplier receives the actual browser-created request');
-    await call(context, 'POST', `/api/direct-connect/assignments/${assignmentId}/respond`, { decision: 'accept', availabilityWindow: 'Next week', priceBand: 'custom_quote', scopeNote: 'Review measured kitchen scope and material details.' }, 403);
-    const accepted = await call(supplier, 'POST', `/api/direct-connect/assignments/${assignmentId}/respond`, { decision: 'accept', availabilityWindow: 'Next week', priceBand: 'custom_quote', scopeNote: 'Review measured kitchen scope and material details.' });
+    // The actual route conceals assignments from non-assignees with 404.
+    await call(context, 'POST', `/api/direct-connect/assignments/${assignmentId}/respond`, { decision: 'accept', availabilityWindow: 'Next week', priceBand: 'custom_quote', scopeNote: 'Review measured kitchen scope and material details.' }, 404);
+    assert.equal((await database.query('SELECT status FROM work_request_assignments WHERE id=$1', [assignmentId])).rows[0].status, 'invited');
+    const accepted = await call(supplier, 'POST', `/api/direct-connect/assignments/${assignmentId}/respond`, { decision: 'accept', availabilityWindow: 'Next week', priceBand: 'custom_quote', scopeNote: 'Confirm material selection and supply requirements; fabrication is separate.' });
     const acceptedRow = (await database.query('SELECT status FROM work_request_assignments WHERE id=$1', [assignmentId])).rows[0];
     assert.equal(acceptedRow.status, 'accepted');
     const events = (await database.query("SELECT metadata FROM work_request_events WHERE work_request_id=$1 AND type='provider_accepted'", [requestId])).rows;
     assert.equal(events.length, 1); const conversationId = events[0].metadata.conversationId; assert(conversationId);
     note('Only assigned supplier accepts; persisted acceptance and conversation created', { responseKeys: Object.keys(accepted) });
-    // Follow the existing consent path, not a direct database change to bypass it.
     await call(supplier, 'POST', `/api/direct-connect/contractor/requests/${requestId}/request-contact`, {});
     const approve = await context.request.post(base + `/api/direct-connect/requests/${requestId}/contact-gate`, { data: { nextState: 'user_approved' } });
     assert([200,409].includes(approve.status()), 'Existing requester-consent transition failed');
@@ -48,13 +49,13 @@ export async function proveJwStoneSupplierResponse({ page, context, database, fi
     const jobId = workspace[0].id; assert(JSON.stringify(job).includes(jobId));
     const createPath = `/api/direct-connect/jobs/${jobId}/estimates`;
     await call(context, 'POST', createPath, { title: 'Synthetic forbidden customer quote', scopeSummary: 'Requester must not issue the supplier estimate.' }, 403);
-    const created = await call(supplier, 'POST', createPath, { title: 'Synthetic cabinet and countertop estimate', scopeSummary: 'Invented demonstration amounts for cabinet materials and countertop labor. Not a real offer.' }, 201);
+    const created = await call(supplier, 'POST', createPath, { title: 'Synthetic material supply estimate', scopeSummary: 'Invented demonstration prices for stone supply, handling, and delivery. Fabrication and installation are not included. Not a real offer.' }, 201);
     const estimateId = created.estimateId; assert.equal(typeof estimateId, 'string');
     const lines = [
-      { lineType: 'other', name: 'Template visit', quantity: 1, unit: 'visit', unitCost: 100 },
-      { lineType: 'other', name: 'Delivery', quantity: 1, unit: 'trip', unitCost: 200 },
-      { lineType: 'material', name: 'Cabinet materials', quantity: 2, unit: 'each', unitCost: 150 },
-      { lineType: 'labor', name: 'Countertop fabrication labor', quantity: 2, unit: 'hours', unitCost: 50 },
+      { lineType: 'other', name: 'Pallet allowance', quantity: 1, unit: 'pallet', unitCost: 100 },
+      { lineType: 'other', name: 'Delivery allowance', quantity: 1, unit: 'trip', unitCost: 200 },
+      { lineType: 'material', name: 'Synthetic stone material', quantity: 2, unit: 'each', unitCost: 150 },
+      { lineType: 'labor', name: 'Synthetic handling allowance', quantity: 2, unit: 'hours', unitCost: 50 },
     ];
     let expectedTotal = 0;
     for (const line of lines) {
