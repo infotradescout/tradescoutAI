@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -155,7 +156,7 @@ export function extractGeneratedSitemapPaths(source) {
   return uniqueSorted([...block.matchAll(/\bpath:\s*["']([^"']+)["']/g)].map((match) => match[1]));
 }
 
-export function validatePrRecoveryRecords(records = PR_RECOVERY_DISPOSITIONS) {
+export function validatePrRecoveryRecords(records = PR_RECOVERY_DISPOSITIONS, verifyMerge) {
   const failures = [];
   const byNumber = new Map();
   for (const pr of records) {
@@ -180,27 +181,59 @@ export function validatePrRecoveryRecords(records = PR_RECOVERY_DISPOSITIONS) {
         failures.push(`Held PR #${pr.number} lacks an unmerged headRef and replacement linkage`);
       }
     }
+    if (pr.mergedIntoMain === true) {
+      if (pr.status !== "closed" || pr.disposition !== "close") {
+        failures.push(`Merged PR #${pr.number} must be closed, not an open hold`);
+      }
+      if (!/^[0-9a-f]{40}$/.test(pr.mergeCommit ?? "")) {
+        failures.push(`Merged PR #${pr.number} lacks an exact merge commit`);
+      } else if (verifyMerge && !verifyMerge(pr)) {
+        failures.push(`Merged PR #${pr.number} lacks matching PR commit evidence in origin/main`);
+      }
+      if (!pr.headRef || !Array.isArray(pr.replaces) || !pr.replaces.length) {
+        failures.push(`Merged PR #${pr.number} lacks its source headRef and replacement linkage`);
+      }
+    } else if (pr.mergeCommit) {
+      failures.push(`PR #${pr.number} records a merge commit without mergedIntoMain`);
+    }
   }
   for (const pr of records) {
     if (pr.replacementPr) {
       const replacement = byNumber.get(pr.replacementPr);
-      if (!replacement || replacement.disposition !== "hold" || replacement.status !== "open") {
-        failures.push(`PR #${pr.number} replacement #${pr.replacementPr} is not an open hold`);
+      const openHold = replacement?.disposition === "hold" && replacement.status === "open";
+      const mergedReplacement = replacement?.disposition === "close" && replacement.status === "closed" && replacement.mergedIntoMain === true;
+      if (!openHold && !mergedReplacement) {
+        failures.push(`PR #${pr.number} replacement #${pr.replacementPr} is neither an open hold nor a merged recovery`);
       }
       if (!replacement?.replaces?.includes(pr.number)) {
         failures.push(`PR #${pr.number} replacement #${pr.replacementPr} lacks reverse linkage`);
       }
     }
-    if (pr.disposition === "hold") {
+    if (pr.disposition === "hold" || pr.mergedIntoMain === true) {
       for (const replacedNumber of pr.replaces ?? []) {
         const replaced = byNumber.get(replacedNumber);
         if (!replaced || replaced.replacementPr !== pr.number) {
-          failures.push(`Held PR #${pr.number} replacement link to #${replacedNumber} is not reciprocal`);
+          failures.push(`Recovery PR #${pr.number} replacement link to #${replacedNumber} is not reciprocal`);
         }
       }
     }
   }
   return failures;
+}
+
+export function verifyRecoveryMergeCommit(pr, root = process.cwd()) {
+  if (!Number.isSafeInteger(pr.number) || !/^[0-9a-f]{40}$/.test(pr.mergeCommit ?? "")) return false;
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", pr.mergeCommit, "origin/main"], {
+      cwd: root, stdio: "ignore",
+    });
+    const subject = execFileSync("git", ["show", "-s", "--format=%s", pr.mergeCommit], {
+      cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return new RegExp(`\\(#${pr.number}\\)|\\bpull request #${pr.number}\\b`).test(subject);
+  } catch {
+    return false;
+  }
 }
 
 function validateFamilies(families, label) {
@@ -350,7 +383,7 @@ export function runProductionReadinessGuard(root = process.cwd()) {
   }
   const uniqueApiRoutes = uniqueSorted(apiRegistrations);
 
-  failures.push(...validatePrRecoveryRecords());
+  failures.push(...validatePrRecoveryRecords(PR_RECOVERY_DISPOSITIONS, (pr) => verifyRecoveryMergeCommit(pr, root)));
   for (const [id, object] of Object.entries(CANONICAL_OBJECTS)) {
     if (!object.owner || !object.source || object.authority !== "server") {
       failures.push(`Canonical object ${id} lacks a server owner or source`);
@@ -396,6 +429,7 @@ export function runProductionReadinessGuard(root = process.cwd()) {
       openPrHolds: PR_RECOVERY_DISPOSITIONS.filter(
         (pr) => pr.status === "open" && pr.disposition === "hold"
       ).length,
+      mergedPrRecoveries: PR_RECOVERY_DISPOSITIONS.filter((pr) => pr.mergedIntoMain === true).length,
       clientRoutes: uniqueSorted(routeEntries.map((entry) => entry.path)).length,
       compatibilityRedirects: extractCompatibilityRedirects(compatibilitySource).length,
       serverRenderedClientRoutes: extractServerRenderedClientRoutes(serverIndex).length,
@@ -415,6 +449,7 @@ function printResult(result) {
   console.log(`Canonical objects: ${result.counts.canonicalObjects}`);
   console.log(`PR recovery dispositions: ${result.counts.prRecoveryDispositions}`);
   console.log(`Open PRs held for recovery: ${result.counts.openPrHolds}`);
+  console.log(`Merged PR recoveries with commit evidence: ${result.counts.mergedPrRecoveries}`);
   console.log(`Owned client routes: ${result.counts.clientRoutes}`);
   console.log(`Compatibility redirects: ${result.counts.compatibilityRedirects}`);
   console.log(`Server-rendered client routes: ${result.counts.serverRenderedClientRoutes}`);

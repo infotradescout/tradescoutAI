@@ -192,7 +192,7 @@ test("bundled database migration launches its independent colocated verifier wit
   assert.match(source, /DATABASE_URL: dbUrl/);
   assert.doesNotMatch(
     source,
-    /baselineEntrypoint|db-baseline-drizzle|insert into drizzle|mark-already-applied/
+    /baselineEntrypoint|db-baseline-drizzle|insert into drizzle|mark-already-applied|Attempting baseline/
   );
   const resolver = source.match(/function requiredSchemaEntrypoint\(\) \{([\s\S]*?)\n\}/);
   assert.ok(resolver, "the worker must resolve the independent verifier");

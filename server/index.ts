@@ -1309,6 +1309,19 @@ app.use(landingContractHeaders);
     }
 
     if (backgroundJobsEnabled) {
+      const processNotificationDeliveries = async () => {
+        try {
+          await notificationService.processScheduledNotifications();
+          await notificationService.processEmailDeliveryJobs();
+        } catch (error) {
+          console.error("[Notifications] Scheduled delivery pass failed", error);
+        }
+      };
+      // Persisted work survives process restarts; claims prevent duplicate sends
+      // when scheduler leadership is disabled and multiple instances run.
+      void processNotificationDeliveries();
+      setInterval(() => void processNotificationDeliveries(), 60_000).unref();
+
       // Run birthday notifications only on the elected scheduler instance.
       setInterval(async () => {
         const now = new Date();

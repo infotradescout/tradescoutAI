@@ -56,6 +56,9 @@ export default function ContractorProfile() {
   });
 
   const contractor = contractorData?.contractor;
+  const resumingRecommendation =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("trustAction") === "recommend";
   const projectPhotos = listContractorProjectPhotos(contractor?.photos);
   const requestedGallerySlug =
     typeof window !== "undefined"
@@ -80,10 +83,15 @@ export default function ContractorProfile() {
       typeof contractorData?.canonicalBusinessProfileUrl === "string"
         ? contractorData.canonicalBusinessProfileUrl.trim()
         : "";
-    if (canonicalUrl && !photoShareMeta) {
+    if (canonicalUrl && !photoShareMeta && !resumingRecommendation) {
       setLocation(canonicalUrl);
     }
-  }, [contractorData?.canonicalBusinessProfileUrl, photoShareMeta, setLocation]);
+  }, [
+    contractorData?.canonicalBusinessProfileUrl,
+    photoShareMeta,
+    setLocation,
+    resumingRecommendation,
+  ]);
 
   useEffect(() => {
     if (!photoShareMeta?.itemSlug) return;
@@ -461,6 +469,9 @@ export default function ContractorProfile() {
             <RecommendationForm
               contractorId={contractor.id}
               contractorName={contractor.companyName}
+              defaultOpen={resumingRecommendation}
+              resumeSaved={resumingRecommendation}
+              resumePath={`/contractors/${encodeURIComponent(slug || contractor.slug)}?trustAction=recommend`}
             />
           </div>
 
