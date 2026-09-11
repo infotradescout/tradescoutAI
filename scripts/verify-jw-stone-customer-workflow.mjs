@@ -36,6 +36,7 @@ async function request(context, method, pathname, data) {
 try {
   assert.equal(clean(), '', 'Fresh exact-head checkout required');
   for (const key of ['DATABASE_URL', 'TEST_DATABASE_URL', 'SENDGRID_API_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY', 'SMTP_PASS', 'JW_STONE_PRICING_APPROVED_IMPORT']) assert(!process.env[key], 'No inherited data or provider credentials: ' + key);
+  run('Profile account customer-session isolation', ['npm', 'run', 'test:run', '--', 'client/src/components/profile/PublicProfileAccountDialog.session.test.tsx', '--maxWorkers=1']);
   run('Typecheck', ['npm', 'run', 'check']);
   run('Production client and server build', ['npm', 'run', 'build']);
   run('Install Chromium', [process.execPath, 'node_modules/playwright/cli.js', 'install', 'chromium']);
@@ -57,8 +58,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert(ready, 'Actual fixture routes did not start');
-  const fixture = JSON.parse(await fs.readFile(path.join(temp, 'fixture.json'), 'utf8'));
-  assert.equal(fixture.base, base);
+  const fixture = JSON.parse(await fs.readFile(path.join(temp, 'fixture.json'), 'utf8')); assert.equal(fixture.base, base);
   await fs.mkdir(out, { recursive: true });
   browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   for (const [device, viewport] of [['desktop', { width: 1440, height: 1000 }], ['touch', { width: 390, height: 844 }]]) {
@@ -83,8 +83,7 @@ try {
     const registered = page.waitForResponse(r => new URL(r.url()).pathname === '/api/profile-accounts/register' && r.request().method() === 'POST');
     await click(page.getByTestId('profile-account-submit'));
     const registration = await registered; assert.equal(registration.status(), 201, 'Actual business registration failed');
-    const registrationData = await registration.json();
-    await page.getByTestId('profile-account-dialog-connected').waitFor();
+    const registrationData = await registration.json(); await page.getByTestId('profile-account-dialog-connected').waitFor();
     const user = (await client.query('SELECT id,email_verified,onboarding_completed,profile_visibility::text FROM users WHERE email=$1', [email])).rows[0];
     assert(user); assert.equal(user.email_verified, false); assert.equal(user.onboarding_completed, false); assert.equal(user.profile_visibility, 'private');
     const memberships = (await client.query('SELECT id,status,verification_status,business_profile_id FROM profile_accounts WHERE owner_user_id=$1', [user.id])).rows;
@@ -96,7 +95,6 @@ try {
     const pricing = await price.json(); assert.equal(pricing.access, 'member'); assert.equal(pricing.viewerId, user.id);
     assert.equal(pricing.prices.length, 1); assert.equal(pricing.prices[0].slabPriceCents, 10101); assert.equal(pricing.prices[0].bundlePriceCents, 9090);
     assert(!JSON.stringify(pricing).includes('landedCostCents')); assert.match(price.headers()['cache-control'], /private.*no-store/);
-    // Open the actual named item rather than assuming its card is on the first catalog page.
     await page.goto(base + itemPath, { waitUntil: 'domcontentloaded' });
     await page.getByText('$101.01', { exact: false }).first().waitFor();
     const localState = await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }));
