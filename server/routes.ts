@@ -12076,8 +12076,20 @@ export async function registerRoutes(app: any) {
           return res.status(404).json({ message: "Recommendation not found" });
         }
 
+        if (
+          action === "approve" &&
+          !["positive", "negative"].includes(recommendation.recommendationType)
+        ) {
+          return res
+            .status(409)
+            .json({
+              message:
+                "This historical review has no explicit recommendation. It cannot be published as an endorsement.",
+            });
+        }
+
         // Update moderation status
-        await db
+        const [moderated] = await db
           .update(recommendations)
           .set({
             moderationStatus: action === "approve" ? "approved" : "rejected",
@@ -12085,7 +12097,19 @@ export async function registerRoutes(app: any) {
             moderatedAt: new Date(),
             moderatedBy: moderatorId,
           })
-          .where(eq(recommendations.id, id));
+          .where(
+            and(
+              eq(recommendations.id, id),
+              action === "approve"
+                ? inArray(recommendations.recommendationType, ["positive", "negative"])
+                : undefined
+            )
+          )
+          .returning({ id: recommendations.id });
+        if (!moderated)
+          return res
+            .status(409)
+            .json({ message: "The review changed before moderation. Reload it and try again." });
 
         // Update contractor stats if approved
         if (action === "approve") {
