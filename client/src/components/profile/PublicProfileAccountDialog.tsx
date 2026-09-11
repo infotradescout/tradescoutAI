@@ -71,7 +71,20 @@ async function signIn(email: string, password: string): Promise<void> {
   }
 }
 
-export function PublicProfileAccountDialog({
+export function PublicProfileAccountDialog(props: PublicProfileAccountDialogProps) {
+  const { user, isAuthenticated } = useAuth();
+  const viewerId = String(user?.id || "");
+  // Account state and form fields belong to one viewer and target. A session
+  // transition must retire them before the next customer can see the dialog.
+  // Object refreshes for the same user do not discard their in-progress form.
+  const identityKey = JSON.stringify([
+    props.profileSlug,
+    viewerId || (isAuthenticated ? "authenticated-pending" : "guest"),
+  ]);
+  return <ProfileAccountDialogSession key={identityKey} {...props} />;
+}
+
+function ProfileAccountDialogSession({
   open,
   onOpenChange,
   onAccountChange,
@@ -82,6 +95,11 @@ export function PublicProfileAccountDialog({
 }: PublicProfileAccountDialogProps) {
   const { user, isAuthenticated, refetch } = useAuth();
   const hasSession = isAuthenticated || Boolean(user?.id);
+  const activeSessionRef = useRef(true);
+  useEffect(() => {
+    activeSessionRef.current = true;
+    return () => { activeSessionRef.current = false; };
+  }, []);
   const [mode, setMode] = useState<ProfileAccountMode>(initialMode);
   const [state, setState] = useState<ProfileAccountResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -139,10 +157,10 @@ export function PublicProfileAccountDialog({
   const resumePath = buildProfileAccountResumePath(profileSlug, "signin");
   const emailVerificationPath = useMemo(() => {
     const params = new URLSearchParams({ next: resumePath });
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = (email || String(user?.email || "")).trim().toLowerCase();
     if (normalizedEmail) params.set("email", normalizedEmail);
     return `/check-email?${params.toString()}`;
-  }, [email, resumePath]);
+  }, [email, resumePath, user?.email]);
   const passwordResetPath = useMemo(() => {
     const params = new URLSearchParams({ next: resumePath });
     const normalizedEmail = email.trim().toLowerCase();
@@ -159,7 +177,9 @@ export function PublicProfileAccountDialog({
   }, [connected, hasSession, mode, profileName, requiresBusiness]);
 
   const finishExistingSession = useCallback(async () => {
+    if (!activeSessionRef.current) return;
     const current = await loadProfileAccountState(profileSlug);
+    if (!activeSessionRef.current) return;
     setState(current);
     if (current.account?.status === "active") return;
     if (
@@ -174,7 +194,7 @@ export function PublicProfileAccountDialog({
       businessName: current.policy.requiredIdentity === "business" ? normalizedBusinessName : null,
       sourcePath: currentProfileAccountSourcePath(profileSlug),
     });
-    setState(created);
+    if (activeSessionRef.current) setState(created);
   }, [normalizedBusinessName, profileSlug]);
 
   useEffect(() => {
@@ -202,13 +222,14 @@ export function PublicProfileAccountDialog({
     setSubmitting(true);
     void finishExistingSession()
       .catch((nextError: unknown) => {
+        if (!activeSessionRef.current) return;
         setError(
           nextError instanceof Error
             ? nextError.message
             : "Your TradeScout account could not be connected. Please try again."
         );
       })
-      .finally(() => setSubmitting(false));
+      .finally(() => { if (activeSessionRef.current) setSubmitting(false); });
   }, [finishExistingSession, hasSession, open, profileSlug, state, submitting]);
 
   const createNewAccount = async () => {
@@ -238,6 +259,7 @@ export function PublicProfileAccountDialog({
         sourcePath: currentProfileAccountSourcePath(profileSlug),
         next: resumePath,
       });
+      if (!activeSessionRef.current) return;
       setState(created);
       if (created.emailVerificationRequired) {
         setNotice(
@@ -248,6 +270,7 @@ export function PublicProfileAccountDialog({
       }
       await refetch().catch(() => undefined);
     } catch (nextError) {
+      if (!activeSessionRef.current) return;
       const requestError = nextError as RequestError;
       if (requestError.status === 409 || requestError.code === "AUTH_ACCOUNT_EXISTS") {
         setMode("signin");
@@ -268,12 +291,14 @@ export function PublicProfileAccountDialog({
       } else if (mode === "signin") {
         if (!email.trim() || !password) throw new Error("Enter your email and password.");
         await signIn(email, password);
+        if (!activeSessionRef.current) return;
         await refetch().catch(() => undefined);
         await finishExistingSession();
       } else {
         await createNewAccount();
       }
     } catch (nextError) {
+      if (!activeSessionRef.current) return;
       const requestError = nextError as RequestError;
       if (requestError.code === "AUTH_SOCIAL_ONLY") {
         setMode("signin");
@@ -284,7 +309,7 @@ export function PublicProfileAccountDialog({
         setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
       }
     } finally {
-      setSubmitting(false);
+      if (activeSessionRef.current) setSubmitting(false);
     }
   };
 
@@ -378,6 +403,11 @@ export function PublicProfileAccountDialog({
                 </p>
               ) : null}
               {notice ? <p className="mt-2 font-semibold text-stone-600">{notice}</p> : null}
+              {user?.emailVerified === false ? (
+                <a href={emailVerificationPath} className="mt-2 inline-block font-semibold underline">
+                  Confirm your TradeScout email
+                </a>
+              ) : null}
             </div>
             <button
               type="button"
