@@ -11,8 +11,16 @@ if ((process.env.CABINET_LIBRARY_PHASE || 'preview') === 'preview') {
   const head = readGit(['rev-parse', 'HEAD']);
   const shallow = readGit(['rev-parse', '--is-shallow-repository']) === 'true';
   const priorMain = spawnSync('git', ['rev-parse', '--verify', 'refs/remotes/origin/main'], { encoding: 'utf8' });
-  console.log('ACCESSORY_HISTORY_BEFORE ' + JSON.stringify({ head, shallow, originMain: priorMain.status === 0 ? priorMain.stdout.trim() : null }));
-  execFileSync('git', ['fetch', '--no-tags', ...(shallow ? ['--unshallow'] : []), 'origin', 'refs/heads/main:refs/remotes/origin/main'], { stdio: 'inherit' });
+  const origin = spawnSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8' });
+  console.log('ACCESSORY_HISTORY_BEFORE ' + JSON.stringify({ head, shallow, originMain: priorMain.status === 0 ? priorMain.stdout.trim() : null, originConfigured: origin.status === 0 }));
+  if (origin.status !== 0) {
+    // Render removes clone remotes. This is the verified PUBLIC repository URL,
+    // not a credential, another workspace, a fabricated ref or a production write.
+    execFileSync('git', ['remote', 'add', 'origin', 'https://github.com/infotradescout/tradescoutAI.git'], { stdio: 'inherit' });
+  }
+  execFileSync('git', ['fetch', '--filter=blob:none', '--no-tags', ...(shallow ? ['--unshallow'] : []), 'origin', 'refs/heads/main:refs/remotes/origin/main'], {
+    stdio: 'inherit', env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+  });
   assert.equal(readGit(['rev-parse', 'HEAD']), head, 'History retrieval must not change the candidate');
   assert.equal(readGit(['rev-parse', '--is-shallow-repository']), 'false', 'Readiness requires complete merge ancestry');
   console.log('ACCESSORY_HISTORY_AFTER ' + JSON.stringify({ head, originMain: readGit(['rev-parse', 'refs/remotes/origin/main']), shallow: false }));
