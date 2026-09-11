@@ -1,6 +1,6 @@
 import type { CabinetPlannerModule, CabinetPresentation } from "./cabinetPlannerModel";
 export type CabinetCaseworkPart = {
-  role: "carcass" | "door" | "drawer" | "rail" | "handle" | "toe-kick" | "shelf" | "glass";
+  role: "carcass" | "door" | "drawer" | "rail" | "handle" | "toe-kick" | "shelf" | "glass" | "panel";
   centerIn: [number, number, number]; sizeIn: [number, number, number];
 };
 /** Render-only details stay inside the measured envelope. These are not shop drawings. */
@@ -8,6 +8,9 @@ export function buildCabinetCaseworkParts(module: CabinetPlannerModule, presenta
   if (module.kind === "appliance") return [];
   const w = module.widthIn, h = module.heightIn, d = module.depthIn;
   if (![w,h,d].every(value => Number.isFinite(value) && value > 0)) return [];
+  if (module.kind === "filler" || module.kind === "end-panel") {
+    return [{ role: "panel", centerIn: [0, h / 2, 0], sizeIn: [w, h, d] }];
+  }
   const parts: CabinetCaseworkPart[] = [];
   const t = Math.min(.7, w / 8, h / 12, d / 8);
   const toe = module.kind === "wall-cabinet" ? 0 : Math.min(4, h / 6);

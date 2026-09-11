@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import CabinetMeasuredEditor, { type CabinetDesignerProps } from "./CabinetMeasuredEditor";
 import {
   CABINET_STUDIO_STYLES, CABINET_STUDIO_FINISHES, CABINET_STUDIO_HARDWARE, CABINET_FRONT_LAYOUTS,
-  buildCabinetPlannerRequestBrief, duplicateCabinetModule, reconcileCabinetPlannerExtension,
+  buildCabinetPlannerRequestBrief, duplicateCabinetModule, isCabinetAccessory, reconcileCabinetPlannerExtension,
   type CabinetPresentation,
 } from "./cabinetPlannerModel";
 import type { SteelHomeCabinetDesign } from "./projectModel";
@@ -11,6 +11,7 @@ import "./kitchenDesignerStudio.css";
 export type { CabinetDesignerProps } from "./CabinetMeasuredEditor";
 
 const CabinetLibraryPanel = lazy(() => import("./CabinetLibraryPanel"));
+const CabinetAccessorySettings = lazy(() => import("./CabinetAccessorySettings"));
 
 export default function CabinetDesigner(props: CabinetDesignerProps) {
   const design = useMemo(() => ({ ...props.design, planner: reconcileCabinetPlannerExtension(props.plannerExtension ?? props.design.planner) }), [props.design, props.plannerExtension]);
@@ -59,11 +60,14 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
           onChange={next => history.change({ ...design, planner: next, notes: next.notes })}
           onClose={() => { setLibrary(null); libraryTrigger.current?.focus({ preventScroll: true }); }} />
       </Suspense>}
+      {selected && isCabinetAccessory(selected) && <Suspense fallback={<p role="status" className="p-4 text-sm">Loading accessory settings…</p>}>
+        <CabinetAccessorySettings planner={planner} onChange={next => history.change({ ...design, planner: next, notes: next.notes })} />
+      </Suspense>}
       <div className="kitchen-designer-appearance">
         <label>Door style<select aria-label="Cabinet door style" value={presentation.style ?? ""} onChange={event => appearance({ style: (event.target.value || null) as CabinetPresentation["style"] })}><option value="">Not selected</option>{CABINET_STUDIO_STYLES.map(style => <option key={style}>{style}</option>)}</select></label>
         <label>Finish<select aria-label="Cabinet finish" value={presentation.finish ?? ""} onChange={event => appearance({ finish: (event.target.value || null) as CabinetPresentation["finish"] })}><option value="">Not selected</option>{CABINET_STUDIO_FINISHES.map(finish => <option value={finish.value} key={finish.value}>{finish.label}</option>)}</select></label>
         <label>Hardware<select aria-label="Cabinet hardware" value={presentation.hardware ?? ""} onChange={event => appearance({ hardware: (event.target.value || null) as CabinetPresentation["hardware"] })}><option value="">Not selected</option>{CABINET_STUDIO_HARDWARE.map(hardware => <option key={hardware}>{hardware}</option>)}</select></label>
-        {selected && selected.kind !== "appliance" && <label>Selected cabinet fronts<select aria-label="Selected cabinet fronts" value={presentation.fronts[selected.id] ?? ""} onChange={event => {
+        {selected && selected.kind !== "appliance" && !isCabinetAccessory(selected) && <label>Selected cabinet fronts<select aria-label="Selected cabinet fronts" value={presentation.fronts[selected.id] ?? ""} onChange={event => {
           const fronts = { ...presentation.fronts }; if (event.target.value) fronts[selected.id] = event.target.value as (typeof CABINET_FRONT_LAYOUTS)[number]; else delete fronts[selected.id]; appearance({ fronts });
         }}><option value="">Generic preview</option>{CABINET_FRONT_LAYOUTS.map(front => <option key={front}>{front}</option>)}</select></label>}
         <p>Appearance is shown in 3D and saved with this measured design. Preview details are illustrative, not manufacturer specifications.</p>
