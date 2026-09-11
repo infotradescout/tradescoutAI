@@ -114,9 +114,12 @@ test("product retains exact source copy but not broad business service blocks", 
   product.find((block) => block.type === "premiumProduct").data.copy = "Test mutation";
   assert.equal(sourceBlocks.find((block) => block.type === "premiumProduct").data.copy, "Preserve this exact product copy");
 });
-test("only exact old service instruction descriptions are removed", () => {
+test("exact old service instructions become descriptive facts while owner text survives", () => {
   const result = content.buildIssaBuildBusinessContentBlocks(sourceBlocks);
-  assert.equal(result.find((block) => block.type === "services").data.items[0].description, undefined);
+  const description = result.find((block) => block.type === "services").data.items[0].description;
+  assert.equal(description, content.ISSA_BUILD_SERVICE_SUMMARIES[services[0].slug]);
+  assert.notEqual(description, services[0].description);
+  assert.ok(description.length >= 40);
   const edited = [{ type: "services", data: { items: [{ ...services[0], description: "Owner service wording" }] } }];
   assert.equal(content.buildIssaBuildBusinessContentBlocks(edited).find((block) => block.type === "services").data.items[0].description, "Owner service wording");
 });
