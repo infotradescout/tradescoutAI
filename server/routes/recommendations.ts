@@ -11,6 +11,7 @@ import { isAuthenticated, requireRole } from "../auth";
 import { db } from "../db";
 import { storage } from "../storage";
 import { toPublicContractorRecommendations } from "../publicContractorRecommendations";
+import { recommendationContinuationPage } from "../recommendationContinuationPage";
 import {
   hasConfirmedRecommendationEmail,
   recommendationAuthorVerificationFields,
@@ -89,6 +90,7 @@ function accountChanged(req: Request, userId: string, res: Response): boolean {
 }
 
 export function registerRecommendationRoutes(app: Express) {
+  app.get("/contractors/:slug", recommendationContinuationPage());
   const submit = async (req: Request, res: Response) => {
     const userId = (req.user as { id?: string } | undefined)?.id;
     if (!userId)
