@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CABINET_STUDIO_FINISHES, getCabinetModuleBounds, getCabinetPlannerDiagnostics,
+  isCabinetAccessory, isCountedCabinet,
   type CabinetPlannerExtensionV1, type CabinetPlannerModule, type CabinetPresentation,
 } from "./cabinetPlannerModel";
 import { buildCabinetCaseworkParts } from "./cabinetCasework";
 import {
-  CABINET_LIBRARY_PRESETS, cabinetLibrarySelection, cabinetSchedule, cabinetScheduleCsv,
+  CABINET_ALL_PRESETS, cabinetLibrarySelection, cabinetSchedule, cabinetScheduleCsv,
   findCabinetLibraryWallGap, proposeLibraryCabinet, type CabinetLibrarySelection,
 } from "./cabinetLibrary";
 
@@ -25,7 +26,7 @@ function CabinetFrontShapes({ module, presentation }: { module: CabinetPlannerMo
   const metal = hardware === "Brushed brass" ? "#b59a5c" : hardware === "Matte black" ? "#24282a" : "#9da6a8";
   const parts = buildCabinetCaseworkParts(module, presentation).sort((a, b) => a.centerIn[2] - b.centerIn[2]);
   if (module.kind === "appliance") return <rect x={-module.widthIn / 2} y={0} width={module.widthIn} height={module.heightIn} fill="none" stroke="#647780" strokeWidth={.3} strokeDasharray="2 2" />;
-  return <g data-front-arrangement={presentation?.fronts[module.id] ?? "generic"}>
+  return <g data-front-arrangement={isCabinetAccessory(module) ? "panel" : presentation?.fronts[module.id] ?? "generic"}>
     {parts.map((part, index) => <rect key={index} data-casework-role={part.role}
       x={part.centerIn[0] - part.sizeIn[0] / 2} y={module.heightIn - part.centerIn[1] - part.sizeIn[1] / 2}
       width={part.sizeIn[0]} height={part.sizeIn[1]}
@@ -53,7 +54,7 @@ function ScheduleElevations({ planner }: { planner: CabinetPlannerExtensionV1 })
         </svg>
       </figure>;
     })}
-    <p className="text-xs sm:col-span-2">Front details are illustrative and match the 3D casework parts. Floor cabinets remain in the plan, 3D view and schedule; these elevations show wall-attached modules.</p>
+    <p className="text-xs sm:col-span-2">Front details are illustrative and match the 3D casework parts. Floor cabinets and panels remain in the plan, 3D view and schedule; these elevations show wall-attached modules.</p>
   </div>;
 }
 
@@ -65,8 +66,11 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [view]);
   const proposal = useMemo(() => selection ? proposeLibraryCabinet(planner, selection, id) : null, [planner, selection, id]);
   const rows = useMemo(() => cabinetSchedule(planner), [planner]);
-  const cabinetCount = planner.modules.filter(module => module.kind !== "appliance").length;
-  const applianceCount = planner.modules.length - cabinetCount;
+  const cabinetCount = planner.modules.filter(isCountedCabinet).length;
+  const accessoryCount = planner.modules.filter(isCabinetAccessory).length;
+  const applianceCount = planner.modules.filter(module => module.kind === "appliance").length;
+  const selectedPreset = CABINET_ALL_PRESETS.find(item => item.id === selection?.presetId);
+  const accessorySelected = !!selectedPreset && isCabinetAccessory(selectedPreset);
   const diagnostics = getCabinetPlannerDiagnostics(planner);
   const numeric = (key: keyof Omit<CabinetLibrarySelection, "presetId" | "surface">, label: string, max: number, min = 0) => <label className="grid min-w-0 gap-1 text-xs font-bold" key={key}>
     {label}<input aria-label={`Library ${label}`} type="number" inputMode="decimal" min={min} max={max} step="0.125" value={selection?.[key] ?? ""}
@@ -89,19 +93,21 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
     className="max-h-[75vh] min-w-0 shrink-0 overflow-y-auto border-b border-[#18312f]/20 bg-[#f7f3ec] p-4 text-[#18312f] sm:p-5" data-testid="cabinet-library-panel">
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div><h2 ref={heading} tabIndex={-1} className="text-lg font-bold focus:outline-none">{view === "library" ? "Cabinet configuration library" : "Cabinet schedule"}</h2>
-        <p className="text-sm" data-testid="cabinet-schedule-count">{cabinetCount} cabinets · {applianceCount} appliance spaces</p></div>
+        <p className="text-sm" data-testid="cabinet-schedule-count">{cabinetCount} cabinets · {applianceCount} appliance spaces{accessoryCount > 0 ? ` · ${accessoryCount} accessories` : ""}</p></div>
       <button type="button" className={control} onClick={onClose}>Close library and schedule</button>
     </header>
     {view === "library" ? <>
       <p className="mb-3 text-sm">Choose a configuration, review its dimensions and location, then add it. These are editable planning sizes, not manufacturer products or prices. Existing cabinets are never moved automatically.</p>
       <div className="mb-4 grid gap-2 sm:grid-cols-3">
-        {CABINET_LIBRARY_PRESETS.map(preset => <button key={preset.id} type="button" className={`${control} text-left`} aria-pressed={selection?.presetId === preset.id}
-          data-testid={`cabinet-library-${preset.id}`} onClick={() => { setSelection(cabinetLibrarySelection(preset.id)); setNotice(""); }}>
+        {CABINET_ALL_PRESETS.map(preset => <button key={preset.id} type="button" className={`${control} text-left`} aria-pressed={selection?.presetId === preset.id}
+          data-testid={`cabinet-${isCabinetAccessory(preset) ? "accessory" : "library"}-${preset.id}`} onClick={() => { setSelection(cabinetLibrarySelection(preset.id)); setNotice(""); }}>
           <strong className="block">{preset.label}</strong><span className="block text-xs">{preset.widthIn} W × {preset.depthIn} D × {preset.heightIn} H in · elevation {preset.elevationIn} in</span>
+          {isCabinetAccessory(preset) && <span className="block text-xs">Accessory · wall setback {preset.wallInsetIn} in</span>}
         </button>)}
       </div>
       {selection && <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-3">
+          {accessorySelected && <p className="text-sm">Enter the actual panel dimensions, not a full cabinet box. Wall setback is measured to the back of the panel; it is ignored for floor placement. Accessories are counted separately and are not assumed countertop supports.</p>}
           <div className="grid grid-cols-2 gap-3">
             {numeric("widthIn", "Width in", 240, .125)}{numeric("depthIn", "Depth in", 120, .125)}
             {numeric("heightIn", "Height in", 240, .125)}{numeric("elevationIn", "Elevation in", 240)}
@@ -110,11 +116,12 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
                 const surface = event.target.value as CabinetLibrarySelection["surface"];
                 setSelection({ ...selection, surface, offsetIn: 0, roomDepthOffsetIn: surface === "floor" ? null : 0 }); setNotice("");
               }}>
-                {(CABINET_LIBRARY_PRESETS.find(item => item.id === selection.presetId)?.kind === "island" ? ["floor"] : ["north", "east", "south", "west", "floor"]).map(surface => <option key={surface} value={surface}>{surface === "floor" ? "Floor / island" : `${surface} wall`}</option>)}
+                {(selectedPreset?.kind === "island" ? ["floor"] : ["north", "east", "south", "west", "floor"]).map(surface => <option key={surface} value={surface}>{surface === "floor" ? "Floor / island" : `${surface} wall`}</option>)}
               </select>
             </label>
             {numeric("offsetIn", selection.surface === "floor" ? "X from west in" : "Offset from wall start in", 720)}
             {selection.surface === "floor" && numeric("roomDepthOffsetIn", "Y from north in", 720)}
+            {accessorySelected && selection.surface !== "floor" && numeric("wallInsetIn", "Wall setback in", 720)}
           </div>
           {selection.surface !== "floor" && <button type="button" className={control} onClick={() => {
             const offset = findCabinetLibraryWallGap(planner, selection, id);
@@ -139,7 +146,7 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
             <svg role="img" aria-label="Proposed cabinet front" className="h-48 w-full" viewBox={`${-proposal.module.widthIn / 2 - 1} -1 ${proposal.module.widthIn + 2} ${proposal.module.heightIn + 2}`}>
               <CabinetFrontShapes module={proposal.module} presentation={proposal.planner.presentation} />
             </svg>
-            <p className="text-xs">Same illustrative front parts as 3D. Style, finish and hardware use your existing selections.</p>
+            <p className="text-xs">{accessorySelected ? "Simple panel geometry uses the selected finish, with no doors, drawer fronts or hardware." : "Same illustrative front parts as 3D. Style, finish and hardware use your existing selections."}</p>
             <h3 className="mt-3 text-sm font-bold">Proposed plan position</h3>
             <svg role="img" aria-label="Proposed cabinet placement" className="h-48 w-full" viewBox={`-4 -4 ${planner.shell.widthIn! + 8} ${planner.shell.depthIn! + 8}`}>
               <rect width={planner.shell.widthIn!} height={planner.shell.depthIn!} fill="#faf8f3" stroke="#53625e" strokeWidth={.4} />
@@ -154,14 +161,14 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
         </div>
       </div>}
     </> : <>
-      <p className="mb-3 text-sm">Counts come from placed modules, not estimates. Appliance spaces are listed separately from cabinets. Dimensions are inches; this is a planning schedule, not an order or shop drawing.</p>
+      <p className="mb-3 text-sm">Counts come from placed modules, not estimates. Appliance spaces and accessory panels are listed separately from cabinets. Dimensions are inches; this is a planning schedule, not an order or shop drawing.</p>
       <button type="button" disabled={!rows.length} onClick={exportSchedule} className={`${control} mb-3`}>Export cabinet schedule</button>
       {diagnostics.length > 0 && <p role="status" className="mb-3 text-sm text-[#8f3329]">{diagnostics.length} planning checks remain unresolved. Review the measured plan before ordering.</p>}
       <div className="mb-4 max-w-full overflow-x-auto rounded-xl border border-[#18312f]/15 bg-white">
         <table className="w-full text-left text-sm" aria-label="Dimensioned cabinet schedule">
           <thead><tr>{["Qty", "Configuration", "W × D × H in", "Fronts", "Placements"].map(label => <th key={label} className="px-3 py-2">{label}</th>)}</tr></thead>
           <tbody>{rows.map((row, index) => <tr key={index} className="border-t border-[#18312f]/10" data-testid="cabinet-schedule-row">
-            <td className="px-3 py-2">{row.quantity}</td><td className="px-3 py-2">{row.label}{row.kind === "appliance" && <span className="block text-xs">Appliance space only</span>}</td>
+            <td className="px-3 py-2">{row.quantity}</td><td className="px-3 py-2">{row.label}{row.kind === "appliance" && <span className="block text-xs">Appliance space only</span>}{isCabinetAccessory(row) && <span className="block text-xs">Accessory, not a cabinet</span>}</td>
             <td className="whitespace-nowrap px-3 py-2">{row.widthIn} × {row.depthIn} × {row.heightIn}</td><td className="px-3 py-2">{row.front}</td>
             <td className="px-3 py-2">{row.placements.map((placement, i) => <p key={i}>{placement}</p>)}</td>
           </tr>)}</tbody>
