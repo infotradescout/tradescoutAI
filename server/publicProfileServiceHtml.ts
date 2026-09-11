@@ -11,6 +11,7 @@ import {
   resolveProfileServiceRoute,
   type ResolvedProfileServiceItem,
 } from "@shared/profileServiceShare";
+import { resolvePublicProfileRootDiscoverySlug } from "@shared/publicProfileRootDiscovery";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import { buildProfileSocialPreviewImageUrl } from "@shared/profileSocialPreview";
 import { storage } from "./storage";
@@ -397,7 +398,7 @@ function resolveServiceRequest(req: Request): ServiceRequestResolution | null {
       profileSlug: "",
       serviceSlug: "",
       source: "custom-domain",
-      requestOrigin: resolvePublicOrigin(req),
+      requestOrigin: `https://${String(req.hostname || "").trim().toLowerCase()}`,
       requestHost: String(req.hostname || "").trim().toLowerCase(),
     };
   }
@@ -512,16 +513,8 @@ export async function attachPublicProfileServiceLinks(
   req: Request,
   res: Response
 ): Promise<void> {
-  const requestPath = String(req.path || "").replace(/\/+$/, "") || "/";
-  const match = requestPath.match(/^\/u\/([^/]+)$/i);
-  if (!match) return;
-
-  let profileSlug = "";
-  try {
-    profileSlug = decodeURIComponent(match[1]).trim().toLowerCase();
-  } catch {
-    return;
-  }
+  const profileSlug = resolvePublicProfileRootDiscoverySlug(req.path);
+  if (!profileSlug) return;
   const profile = await storage.getProfileBySlugPublic(profileSlug);
   if (!profile || profile.seoMeta?.customDomain) return;
   const services = listFactBearingProfileServices(profile.contentBlocks);
@@ -542,6 +535,7 @@ export async function attachPublicProfileServiceLinks(
   const originalSend = res.send.bind(res);
   res.send = ((body?: any) => {
     if (
+      res.statusCode >= 200 && res.statusCode < 300 &&
       typeof body === "string" &&
       /<html[\s>]/i.test(body) &&
       !body.includes('data-seo-profile-service-links="true"')
