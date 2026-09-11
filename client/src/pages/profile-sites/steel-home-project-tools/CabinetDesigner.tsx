@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import CabinetMeasuredEditor, { type CabinetDesignerProps } from "./CabinetMeasuredEditor";
 import {
   CABINET_STUDIO_STYLES, CABINET_STUDIO_FINISHES, CABINET_STUDIO_HARDWARE, CABINET_FRONT_LAYOUTS,
@@ -10,6 +10,8 @@ import { useDesignerHistory } from "./useDesignerHistory";
 import "./kitchenDesignerStudio.css";
 export type { CabinetDesignerProps } from "./CabinetMeasuredEditor";
 
+const CabinetLibraryPanel = lazy(() => import("./CabinetLibraryPanel"));
+
 export default function CabinetDesigner(props: CabinetDesignerProps) {
   const design = useMemo(() => ({ ...props.design, planner: reconcileCabinetPlannerExtension(props.plannerExtension ?? props.design.planner) }), [props.design, props.plannerExtension]);
   const emit = useCallback((next: SteelHomeCabinetDesign) => {
@@ -18,6 +20,8 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
   }, [props.onChange, props.onPlannerExtensionChange]);
   const history = useDesignerHistory(design, emit);
   const [review, setReview] = useState(false);
+  const [library, setLibrary] = useState<"library" | "schedule" | null>(null);
+  const libraryTrigger = useRef<HTMLButtonElement | null>(null);
   const [notice, setNotice] = useState("");
   const planner = design.planner;
   const presentation: CabinetPresentation = planner.presentation ?? { style: null, finish: null, hardware: null, fronts: {} };
@@ -42,12 +46,19 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
         <strong>Cabinet studio</strong>
         <button type="button" disabled={!history.canUndo} onClick={history.undo}>Undo</button>
         <button type="button" disabled={!history.canRedo} onClick={history.redo}>Redo</button>
+        <button type="button" aria-expanded={library === "library"} onClick={event => { libraryTrigger.current = event.currentTarget; setLibrary("library"); }}>Cabinet library</button>
+        <button type="button" aria-expanded={library === "schedule"} onClick={event => { libraryTrigger.current = event.currentTarget; setLibrary("schedule"); }}>Cabinet schedule</button>
         <button type="button" disabled={!selected || planner.modules.length >= 120} onClick={() => {
           if (selected) history.change({ ...design, planner: duplicateCabinetModule(planner, selected.id, `cabinet-module-${crypto.randomUUID()}`) });
         }}>Duplicate selected</button>
         <button type="button" aria-expanded={review} onClick={() => setReview(value => !value)}>Dimensioned review</button>
         <button type="button" onClick={exportReview}>Export review</button>
       </div>
+      {library && <Suspense fallback={<p role="status" className="p-4 text-sm">Loading cabinet library…</p>}>
+        <CabinetLibraryPanel planner={planner} view={library}
+          onChange={next => history.change({ ...design, planner: next, notes: next.notes })}
+          onClose={() => { setLibrary(null); libraryTrigger.current?.focus({ preventScroll: true }); }} />
+      </Suspense>}
       <div className="kitchen-designer-appearance">
         <label>Door style<select aria-label="Cabinet door style" value={presentation.style ?? ""} onChange={event => appearance({ style: (event.target.value || null) as CabinetPresentation["style"] })}><option value="">Not selected</option>{CABINET_STUDIO_STYLES.map(style => <option key={style}>{style}</option>)}</select></label>
         <label>Finish<select aria-label="Cabinet finish" value={presentation.finish ?? ""} onChange={event => appearance({ finish: (event.target.value || null) as CabinetPresentation["finish"] })}><option value="">Not selected</option>{CABINET_STUDIO_FINISHES.map(finish => <option value={finish.value} key={finish.value}>{finish.label}</option>)}</select></label>
