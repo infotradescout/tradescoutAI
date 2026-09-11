@@ -1,4 +1,4 @@
-import { getCabinetModuleBounds, reconcileCabinetPlannerExtension } from "./cabinetPlannerModel";
+import { getCabinetModuleBounds, isCabinetAccessory, reconcileCabinetPlannerExtension } from "./cabinetPlannerModel";
 import type { SteelHomeCabinetDesign, SteelHomeCountertopDesign } from "./projectModel";
 import { proposeCabinetCountertopTransfer as proposeFootprint, type TransferOptions } from "./cabinetCountertopFootprint";
 export * from "./cabinetCountertopFootprint";
@@ -6,8 +6,11 @@ export * from "./cabinetCountertopFootprint";
 /** Validate the finished top layer too: a base may fit below a window while its top does not. */
 export function proposeCabinetCountertopTransfer(cabinets: SteelHomeCabinetDesign, current: SteelHomeCountertopDesign, options: TransferOptions) {
   const result = proposeFootprint(cabinets, current, options);
-  if (!result.next) return result;
   const planner = reconcileCabinetPlannerExtension(cabinets.planner);
+  if (planner.modules.some(isCabinetAccessory)) {
+    result.warnings.push("Filler strips and finished end panels are excluded from countertop supports. A front filler does not fill the support space behind it; gaps still need a separately reviewed solution. Panel positions and dimensions stay in the cabinet design.");
+  }
+  if (!result.next) return result;
   const upper = result.next.finishedTopHeightIn!;
   const lower = upper - result.next.topThicknessIn!;
   for (const item of planner.shellItems) {
