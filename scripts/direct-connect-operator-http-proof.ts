@@ -13,27 +13,13 @@ const target = new URL(process.env.TEST_DATABASE_URL || "");
 assert.equal(target.hostname, "127.0.0.1");
 assert.equal(target.pathname, "/ts_operator_test");
 const preserve = new Set([
-  "PATH",
-  "Path",
-  "SystemRoot",
-  "SYSTEMROOT",
-  "WINDIR",
-  "TEMP",
-  "TMP",
-  "COMSPEC",
-  "USERPROFILE",
-  "APPDATA",
-  "LOCALAPPDATA",
-  "PROGRAMFILES",
-  "PROGRAMFILES(X86)",
-  "NODE_ENV",
-  "TEST_DATABASE_URL",
-  "OPERATOR_HTTP_PROOF",
-  "OPERATOR_PROOF_OUTPUT",
+  "PATH", "Path", "SystemRoot", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "COMSPEC",
+  "USERPROFILE", "APPDATA", "LOCALAPPDATA", "PROGRAMFILES", "PROGRAMFILES(X86)",
+  "NODE_ENV", "TEST_DATABASE_URL", "OPERATOR_HTTP_PROOF", "OPERATOR_PROOF_OUTPUT",
   "OPERATOR_PROOF_BUILT_CLIENT",
 ]);
 for (const key of Object.keys(process.env)) if (!preserve.has(key)) delete process.env[key];
-// Do not allow a repository .env file to reintroduce provider or production credentials.
+// Do not let repository .env files introduce provider or production credentials.
 const { default: dotenv } = await import("dotenv");
 dotenv.config = dotenv.configDotenv = () => ({ parsed: {} });
 process.env.SESSION_SECRET = "synthetic-operator-proof-session-only";
@@ -42,35 +28,20 @@ process.env.DISABLE_FACEBOOK_AUTH = "true";
 process.env.DIRECT_CONNECT_BETA_ADMIN_NOTIFICATIONS = "false";
 process.env.PORT = "5218";
 process.env.PUBLIC_WEB_URL = "http://127.0.0.1:5218";
-const output = path.resolve(
-  process.env.OPERATOR_PROOF_OUTPUT || "test-results/operator-http-proof"
-);
+const output = path.resolve(process.env.OPERATOR_PROOF_OUTPUT || "test-results/operator-http-proof");
 await mkdir(output, { recursive: true });
 const { db, pool } = await import("../server/db");
-assert.equal(
-  (await pool.query("SELECT current_database() AS name")).rows[0].name,
-  "ts_operator_test"
-);
+assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].name, "ts_operator_test");
 const schema = await import("../shared/schema");
 const { default: bcrypt } = await import("bcrypt");
 const runId = randomUUID().slice(0, 8);
 const password = `SyntheticOnly-${runId}!`;
 const identities = Object.fromEntries(
-  ["requester", "operator", "provider", "unrelated", "ordinary-admin"].map((kind) => [
-    kind,
-    {
-      id: `operator-proof-${runId}-${kind}`,
-      email: `operator-proof-${runId}-${kind}@example.test`,
-      role:
-        kind === "operator"
-          ? "ops_admin"
-          : kind === "provider"
-            ? "contractor"
-            : kind === "ordinary-admin"
-              ? "admin"
-              : "homeowner",
-    },
-  ])
+  ["requester", "operator", "provider", "unrelated", "ordinary-admin"].map((kind) => [kind, {
+    id: `operator-proof-${runId}-${kind}`,
+    email: `operator-proof-${runId}-${kind}@example.test`,
+    role: kind === "operator" ? "ops_admin" : kind === "provider" ? "contractor" : kind === "ordinary-admin" ? "admin" : "homeowner",
+  }])
 );
 const passwordHash = await bcrypt.hash(password, 10);
 for (const [kind, account] of Object.entries(identities)) {
@@ -82,82 +53,61 @@ for (const [kind, account] of Object.entries(identities)) {
     phone: "2025550147",
     roles: [account.role],
     activeRole: account.role,
-    stateCode: "FL",
-    countyFips: "12001",
-    addressVerified: true,
-    emailVerified: true,
-    verificationStatus: "approved",
-    verifiedBadge: true,
-    onboardingCompleted: true,
-    profileVersion: 1,
-    locationCommitted: true,
+    state: "FL", city: "Gainesville", county: "Alachua",
+    stateCode: "FL", countyFips: "12001",
+    addressVerified: true, emailVerified: true, verificationStatus: "approved", verifiedBadge: true,
+    onboardingCompleted: true, profileVersion: 1, locationCommitted: true,
   });
 }
-await db
-  .insert(schema.states)
-  .values({ id: "FL", name: "Florida", code: "FL" })
-  .onConflictDoNothing();
-await db
-  .insert(schema.counties)
-  .values({ id: "operator-proof-alachua", name: "Alachua", fips: "12001", stateCode: "FL" })
-  .onConflictDoNothing();
+await db.insert(schema.states).values({ id: "FL", name: "Florida", code: "FL" }).onConflictDoNothing();
+await db.insert(schema.counties).values({ id: "operator-proof-alachua", name: "Alachua", fips: "12001", stateCode: "FL" }).onConflictDoNothing();
 const county = (await pool.query("SELECT id FROM counties WHERE fips = '12001'")).rows[0];
 const providerId = `operator-proof-${runId}-contractor-profile`;
-const [business] = await db
-  .insert(schema.businesses)
-  .values({
-    name: "Synthetic County Installer",
-    slug: `operator-proof-${runId}`,
-    ownerUserId: identities.provider.id,
-    roleContext: "business_owner",
-    type: "contractor",
-    status: "active",
-    claimStatus: "claimed",
-    publicDiscoveryEnabled: true,
-  })
-  .returning();
+const profileSlug = `operator-proof-${runId}`;
+const [business] = await db.insert(schema.businesses).values({
+  name: "Synthetic County Installer", slug: profileSlug, ownerUserId: identities.provider.id,
+  roleContext: "business_owner", type: "contractor", status: "active", claimStatus: "claimed", publicDiscoveryEnabled: true,
+}).returning();
 await db.insert(schema.contractors).values({
-  id: providerId,
-  userId: identities.provider.id,
-  businessId: business.id,
-  companyName: "Synthetic County Installer",
-  slug: `operator-proof-${runId}`,
-  verifiedLicensed: true,
-  verifiedInsured: true,
+  id: providerId, userId: identities.provider.id, businessId: business.id,
+  companyName: "Synthetic County Installer", slug: profileSlug, verifiedLicensed: true, verifiedInsured: true,
 });
-await db
-  .insert(schema.contractorCounties)
-  .values({ contractorId: providerId, countyId: county.id });
+await db.insert(schema.contractorCounties).values({ contractorId: providerId, countyId: county.id });
+const materialCount = 105;
+const materials = Array.from({ length: materialCount }, (_, i) => {
+  const number = String(i + 1).padStart(3, "0");
+  return { name: `Synthetic material ${number}`, slug: `synthetic-material-${number}`,
+    images: ["/operator-proof-material.svg"], publicSummary: "Synthetic inventory record for isolated navigation verification; not a real material or stock claim." };
+});
 await db.insert(schema.profiles).values({
-  ownerUserId: identities.provider.id,
-  businessId: business.id,
-  roleContext: "contractor",
-  slug: `operator-proof-${runId}`,
-  displayName: "Synthetic County Installer",
-  status: "published",
-  publiclyReleased: true,
+  ownerUserId: identities.provider.id, businessId: business.id, roleContext: "contractor", slug: profileSlug,
+  displayName: "Synthetic County Installer", status: "published", publiclyReleased: true,
   headline: "Synthetic local route fixture",
+  contentBlocks: [
+    { type: "publicDiscovery", data: { routes: { inventory: "stones" }, sitemap: { inventory: true } } },
+    { type: "inventoryCatalog", data: { exchangeCategorySlug: "building-materials", categories: [
+      { category: "Granite", categorySlug: "granite", stones: materials },
+    ] } },
+  ],
 });
 
 const { default: express } = await import("express");
 const { registerRoutes } = await import("../server/routes");
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json()); app.use(express.urlencoded({ extended: false }));
+// A fixture image, not a mocked application/API response or material photograph.
+app.get("/operator-proof-material.svg", (_req, res) => res.type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="640" height="480" fill="#ddd"/><text x="40" y="240" font-size="28">Synthetic inventory fixture</text></svg>'));
 const server = await registerRoutes(app);
 if (process.env.OPERATOR_PROOF_BUILT_CLIENT === "true") {
   const distPath = path.resolve("dist/public");
   await access(path.join(distPath, "index.html"));
   app.use(express.static(distPath));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api/")) return next();
-    res.sendFile(path.join(distPath, "index.html"));
-  });
+  app.get("*", (req, res, next) => { if (req.path.startsWith("/api/")) return next(); res.sendFile(path.join(distPath, "index.html")); });
 } else {
   const { setupVite } = await import("../server/vite");
   await setupVite(app, server);
 }
 await new Promise<void>((resolve) => server.listen(5218, "127.0.0.1", resolve));
-const privateState = { runId, password, identities, providerId, baseUrl: "http://127.0.0.1:5218" };
+const privateState = { runId, password, identities, providerId, profileSlug, materialCount, baseUrl: "http://127.0.0.1:5218" };
 await writeFile(path.join(output, "fixture.private.json"), JSON.stringify(privateState, null, 2));
 console.log(`OPERATOR_HTTP_READY ${runId} http://127.0.0.1:5218`);
