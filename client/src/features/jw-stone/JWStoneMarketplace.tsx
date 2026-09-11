@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
-import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
+import { PublicProfileAccountDialog } from "./JwStoneAccountDialog";
 import type { ProfileAccountMode } from "@/components/profile/profileAccountClient";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
