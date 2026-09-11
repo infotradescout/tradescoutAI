@@ -66,7 +66,7 @@ async function live() {
     const requestPage = await page.goto(requestUrl.href, { waitUntil: 'domcontentloaded', timeout: 60000 }); assert.equal(requestPage.status(), 200);
     const dialog = page.getByRole('dialog', { name: 'JW Stone Logistics', exact: true });
     await dialog.getByLabel('Name', { exact: true }).waitFor();
-    await dialog.getByLabel('I am a…', { exact: true }).waitFor();
+    await dialog.getByRole('combobox', { name: /^I am a/ }).waitFor();
     assert.equal(await dialog.locator('input[type="checkbox"]').isChecked(), false);
     await page.screenshot({ path: path.join(out, device + '-live-request-form.png'), fullPage: false });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
