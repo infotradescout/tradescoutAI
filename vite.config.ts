@@ -102,6 +102,11 @@ export default defineConfig({
           // Keep that policy in its own feature chunk, avoiding a renderer -> planner
           // cycle and keeping the measured planner implementation independently loadable.
           const normalizedId = id.replace(/\\/g, "/");
+          if (normalizedId.endsWith("/steel-home-project-tools/cabinetCasework.ts")) {
+            // The 3D editor and lazy schedule/library share these render-only parts.
+            // Their common geometry must not make the library import its owning editor.
+            return "cabinet-casework";
+          }
           if (normalizedId.endsWith("/steel-home-project-tools/countertopStudioShare.ts")) {
             // Both the editor and optional drawing view offer measured-plan sharing.
             // Neither view should import the other's implementation to reuse this codec.
