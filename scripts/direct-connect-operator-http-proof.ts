@@ -35,6 +35,7 @@ assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].nam
 const schema = await import("../shared/schema");
 const { default: bcrypt } = await import("bcrypt");
 const runId = randomUUID().slice(0, 8);
+const profileSlug = `operator-proof-${runId}`;
 const password = `SyntheticOnly-${runId}!`;
 const identities = Object.fromEntries(
   ["requester", "operator", "provider", "unrelated", "ordinary-admin"].map((kind) => [kind, {
@@ -57,13 +58,20 @@ for (const [kind, account] of Object.entries(identities)) {
     stateCode: "FL", countyFips: "12001",
     addressVerified: true, emailVerified: true, verificationStatus: "approved", verifiedBadge: true,
     onboardingCompleted: true, profileVersion: 1, locationCommitted: true,
+    ...(kind === "provider" ? {
+      businessSlug: profileSlug,
+      preferences: { provisional: { profileDraft: {
+        presenceType: "represent_business", businessName: "Synthetic County Installer",
+        stateCode: "FL", countyFips: "12001", countyName: "Alachua", city: "Gainesville",
+        visibility: "public", services: [],
+      } } },
+    } : {}),
   });
 }
 await db.insert(schema.states).values({ id: "FL", name: "Florida", code: "FL" }).onConflictDoNothing();
 await db.insert(schema.counties).values({ id: "operator-proof-alachua", name: "Alachua", fips: "12001", stateCode: "FL" }).onConflictDoNothing();
 const county = (await pool.query("SELECT id FROM counties WHERE fips = '12001'")).rows[0];
 const providerId = `operator-proof-${runId}-contractor-profile`;
-const profileSlug = `operator-proof-${runId}`;
 const [business] = await db.insert(schema.businesses).values({
   name: "Synthetic County Installer", slug: profileSlug, ownerUserId: identities.provider.id,
   roleContext: "business_owner", type: "contractor", status: "active", claimStatus: "claimed", publicDiscoveryEnabled: true,
