@@ -12,17 +12,18 @@ const source = await fs.readFile(sourcePath, "utf8");
 afterAll(async () => { await fs.rm(temporary, { recursive: true, force: true }); });
 
 async function execute(initialization: "current" | "old-static-import") {
-  // Only the storage fixture is substituted. The application authority module and
-  // real Drizzle SQL construction are bundled and executed by a separate Node VM.
+  // The application authority source and real Drizzle predicate are bundled.
+  // A late storage consumer and the asynchronous database dependency reproduce
+  // the initializer ordering from the actual compiled production entry.
   const authoritySource = initialization === "current" ? source
     : 'import { storage } from "../storage";\n' + source.replace('  const { storage } = await import("../storage");\n', "");
   const outfile = path.join(temporary, initialization + ".mjs");
   await build({
     stdin: { contents: `
       import assert from 'node:assert/strict';
-      import { storage } from 'fixture-storage';
       import { buildExposureAuthorityMap, hasExposureAuthority, exposureAuthoritySqlPredicate } from ${JSON.stringify(sourcePath)};
       import { sql } from 'drizzle-orm';
+      const { storage } = await import('fixture-storage');
       assert.equal(storage.ready, true);
       assert(exposureAuthoritySqlPredicate(sql.raw('seller_id')));
       assert.deepEqual(await buildExposureAuthorityMap([]), {});
@@ -34,15 +35,17 @@ async function execute(initialization: "current" | "old-static-import") {
     `, resolveDir: root, sourcefile: "exposure-startup-entry.ts", loader: "ts" },
     outfile, bundle: true, platform: "node", format: "esm", target: "node20", logLevel: "silent",
     plugins: [{ name: "isolated-storage-cycle", setup(builder) {
-      builder.onResolve({ filter: /^fixture-storage$/ }, () => ({ path: "fixture-storage", namespace: "fixture" }));
+      builder.onResolve({ filter: /^fixture-(storage|database)$/ }, args => ({ path: args.path, namespace: "fixture" }));
       builder.onResolve({ filter: /^\.\.\/storage$/ }, args => args.importer === sourcePath
         ? { path: "fixture-storage", namespace: "fixture" } : undefined);
-      builder.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({
-        loader: "ts", resolveDir: root, contents: `
+      builder.onLoad({ filter: /.*/, namespace: "fixture" }, args => ({
+        loader: "ts", resolveDir: root, contents: args.path === "fixture-database"
+          ? 'await Promise.resolve(); export const ready = true;'
+          : `
+          import { ready } from 'fixture-database';
           import { exposureAuthoritySqlPredicate } from ${JSON.stringify(sourcePath)};
           import { sql } from 'drizzle-orm';
-          await Promise.resolve();
-          if (!exposureAuthoritySqlPredicate(sql.raw('seller_id'))) throw new Error('Missing canonical SQL predicate');
+          if (!ready || !exposureAuthoritySqlPredicate(sql.raw('seller_id'))) throw new Error('Missing database or canonical SQL predicate');
           export const storage = {
             ready:true, calls:0,
             async getUsersByIds(ids) { this.calls++; return ids.filter(id=>id!=='missing').map(id=>({id,emailVerified:id==='allowed',addressVerified:true})); },
@@ -59,7 +62,7 @@ async function execute(initialization: "current" | "old-static-import") {
 describe("Compiled exposure authority startup", () => {
   it("reproduces exit 13 for the former static-storage dependency and boots the current exact module", async () => {
     const old = await execute("old-static-import");
-    expect(old.status).toBe(13);
+    expect(old.status, old.stderr).toBe(13);
     expect(old.stdout).not.toContain("EXPOSURE_STARTUP_PASS");
     const current = await execute("current");
     expect(current.error).toBeUndefined();
