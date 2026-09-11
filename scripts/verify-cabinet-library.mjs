@@ -53,8 +53,7 @@ try {
     const read = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey);
     const waitCount = count => page.waitForFunction(({ key, count }) => JSON.parse(localStorage.getItem(key)).cabinets.planner.modules.length === count, { key: storageKey, count });
     await page.goto(local, { waitUntil: 'networkidle' });
-    await click(button('Load sample kitchen'));
-    await waitCount(3);
+    await click(button('Load sample kitchen')); await waitCount(3);
     const sample = await read();
     sample.cabinets.notes = 'Earlier library outer notes';
     sample.cabinets.planner = { ...sample.cabinets.planner,
@@ -72,7 +71,7 @@ try {
     await page.getByTestId('cabinet-direct-placement').waitFor({ state: 'visible' }); await waitCount(0);
     const baseline = await read();
     await click(button('Cabinet library')); await page.getByTestId('cabinet-library-panel').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('[data-testid^="cabinet-library-"]').filter({ has: page.locator('strong') }).count(), 9);
+    assert.equal(await page.locator('button[data-testid^="cabinet-library-"]').filter({ has: page.locator('strong') }).count(), 9);
     await click(page.getByTestId('cabinet-library-drawer-bank'));
     assert.equal(await page.locator('[aria-label="Proposed cabinet front"] [data-casework-role="drawer"]').count(), 3);
     assert.deepEqual(await read(), baseline);
@@ -87,28 +86,22 @@ try {
     await click(button('Redo')); await waitCount(1); assert.deepEqual(await read(), first);
     record(`${device}: read-only library and one-step history`, 'Nine explicit choices; shared three-drawer preview; preview/cancel did not save; addition used one Undo/Redo step restoring full project and divergent note fields');
 
-    await click(page.getByTestId('cabinet-library-sink-base'));
-    assert.equal(await button('Add to plan').isDisabled(), true);
-    const beforeGap = await read(); await click(button('Find wall space'));
-    assert.deepEqual(await read(), beforeGap);
+    await click(page.getByTestId('cabinet-library-sink-base')); assert.equal(await button('Add to plan').isDisabled(), true);
+    const beforeGap = await read(); await click(button('Find wall space')); assert.deepEqual(await read(), beforeGap);
     assert.equal(await page.getByLabel('Library Offset from wall start in', { exact: true }).inputValue(), '18');
     await click(button('Add to plan')); await waitCount(2);
     await click(page.getByTestId('cabinet-library-pantry')); await click(button('Find wall space'));
     assert.equal(await page.getByLabel('Library Offset from wall start in', { exact: true }).inputValue(), '54');
     await click(button('Add to plan')); await waitCount(3);
     await click(page.getByTestId('cabinet-library-wall-doors')); await click(button('Add to plan')); await waitCount(4);
-    await click(page.getByTestId('cabinet-library-island-drawers'));
-    assert.equal(await button('Add to plan').isDisabled(), true);
+    await click(page.getByTestId('cabinet-library-island-drawers')); assert.equal(await button('Add to plan').isDisabled(), true);
     await page.getByLabel('Library X from west in', { exact: true }).fill('84');
     await page.getByLabel('Library Y from north in', { exact: true }).fill('72');
     await click(button('Add to plan')); await waitCount(5);
-    await click(button('Close library and schedule'));
-    await click(button('Duplicate selected')); await waitCount(6);
-    const six = await read();
-    assert.equal(six.cabinets.planner.modules[5].offsetIn, 114);
+    await click(button('Close library and schedule')); await click(button('Duplicate selected')); await waitCount(6);
+    const six = await read(); assert.equal(six.cabinets.planner.modules[5].offsetIn, 114);
     assert.equal(six.cabinets.planner.presentation.fronts[six.cabinets.planner.modules[5].id], 'drawers');
-    assert.deepEqual(six.countertops, baseline.countertops);
-    assert.deepEqual(six.building, baseline.building);
+    assert.deepEqual(six.countertops, baseline.countertops); assert.deepEqual(six.building, baseline.building);
     record(`${device}: configurations and measured fit`, 'Sink, drawer bank, pantry, wall cabinet and explicit-position island placed; overlapping additions blocked; gap search was read-only; duplicate retained fronts; countertops/building unchanged');
 
     await click(button('Cabinet schedule'));
@@ -120,8 +113,7 @@ try {
     const download = await pending; assert.equal(await download.failure(), null);
     const csvPath = path.join(working, `schedule-${device}.csv`); await download.saveAs(csvPath);
     const csv = await fs.readFile(csvPath, 'utf8');
-    assert(csv.includes('"2","Island drawer cabinet"'));
-    assert(csv.includes('"36","24","34.5","sink"'));
+    assert(csv.includes('"2","Island drawer cabinet"')); assert(csv.includes('"36","24","34.5","sink"'));
     assert(!csv.includes('PRIVATE') && !csv.includes('Earlier library'));
     await page.getByTestId('cabinet-library-panel').screenshot({ path: path.join(working, `schedule-${device}.png`) });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
@@ -130,20 +122,17 @@ try {
     assert.deepEqual(await read(), six);
     await click(page.getByTestId('steel-home-cabinet-view-3d'));
     await page.getByTestId('steel-home-cabinet-three-preview').locator('canvas').waitFor({ state: 'visible' });
-    await page.waitForTimeout(400);
-    assert.equal(await page.getByText('3D room unavailable', { exact: true }).count(), 0);
+    await page.waitForTimeout(400); assert.equal(await page.getByText('3D room unavailable', { exact: true }).count(), 0);
     await click(button('Reset view'));
     await page.getByTestId('steel-home-cabinet-three-preview').screenshot({ path: path.join(working, `casework-${device}.png`) });
-    assert.equal(await page.getByTestId('steel-home-cabinet-include').isDisabled(), true);
-    assert.deepEqual(errors, []);
+    assert.equal(await page.getByTestId('steel-home-cabinet-include').isDisabled(), true); assert.deepEqual(errors, []);
     assert(libraryRequests > 0, 'The lazy library chunk was not exercised');
     record(`${device}: schedule, reload and 3D`, 'Counted/grouped CSV and front elevations matched saved modules; export omitted private notes; exact draft survived reload; 3D and measurement-review gate intact; no page errors or horizontal overflow');
     console.log('LIBRARY_BLOCKED_WRITES ' + JSON.stringify({ device, paths: blockedWrites }));
     await context.close(); activePage = null;
   }
   await browser.close(); browser = null; server.kill(); server = null;
-  await fs.rm('.kitchen-studio-review', { recursive: true, force: true });
-  await fs.rm(out, { recursive: true, force: true });
+  await fs.rm('.kitchen-studio-review', { recursive: true, force: true }); await fs.rm(out, { recursive: true, force: true });
   if (phase === 'preview') {
     const database = await startCabinetLoopbackTestDatabase(); proof.testDatabase = database.evidence;
     try {
