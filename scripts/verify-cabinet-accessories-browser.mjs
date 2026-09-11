@@ -4,6 +4,7 @@ import path from 'node:path';
 
 export async function verifyCabinetAccessories({ browser, local, phase, deployed, working, record }) {
   const key = 'tradescout:steel-home-project-tools:draft:v9';
+  const parentHtml = phase === 'preview' ? await fs.readFile('.kitchen-studio-review/cabinet-parent.html', 'utf8') : null;
   for (const [device, viewport] of [['desktop', { width: 1440, height: 1000 }], ['touch', { width: 390, height: 844 }]]) {
     const context = await browser.newContext({ viewport, isMobile: device === 'touch', hasTouch: device === 'touch', serviceWorkers: 'block', acceptDownloads: true,
       userAgent: `Mozilla/5.0 (${device === 'desktop' ? 'Windows NT 10.0; Win64; x64' : 'Linux; Android 13; Pixel 7'}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} ${device === 'touch' ? 'Mobile ' : ''}Safari/537.36` });
@@ -11,6 +12,13 @@ export async function verifyCabinetAccessories({ browser, local, phase, deployed
     await context.route('**/*', route => {
       const request = route.request();
       if (!['GET', 'HEAD'].includes(request.method())) { blocked.push(new URL(request.url()).pathname); return route.abort('blockedbyclient'); }
+      // The production parent uses pushState. The read-only local fixture server is not
+      // an application router; serve the SAME compiled parent on local route reloads.
+      // Production responses and build-marker assertions are never intercepted here.
+      const url = new URL(request.url());
+      if (parentHtml && request.isNavigationRequest() && url.origin === local && url.pathname.startsWith('/u/')) {
+        return route.fulfill({ body: parentHtml, contentType: 'text/html' });
+      }
       return route.continue();
     });
     const page = await context.newPage();
