@@ -3,13 +3,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 /** Runs only with the parent verifier's fresh loopback database and browser. */
-export async function proveJwStoneRequestJourney({ page, context, database, fixture, email, userId, device, output }) {
+export async function proveJwStoneRequestJourney({ page, context, database, fixture, email, userId, device, output, rootPath }) {
   const base = 'http://127.0.0.1:5228';
-  assert.equal(fixture.base, base);
+  assert.equal(fixture.base, base); assert.equal(rootPath, '/u/jw-stone');
   assert.equal((await database.query('SELECT current_database() AS name')).rows[0].name, 'ts_jw_workflow_test');
   assert.match(email, /^jw-workflow-(desktop|touch)-[0-9a-f-]+@example\.test$/);
   const click = async locator => { await locator.scrollIntoViewIfNeeded(); return device === 'touch' ? locator.tap() : locator.click(); };
-  const response = await page.goto(base + '/jw-stone?request=collection', { waitUntil: 'domcontentloaded' });
+  const response = await page.goto(base + rootPath + '?request=collection', { waitUntil: 'domcontentloaded' });
   assert.equal(response.status(), 200);
   const dialog = page.getByRole('dialog', { name: 'JW Stone Logistics', exact: true });
   await dialog.waitFor();
