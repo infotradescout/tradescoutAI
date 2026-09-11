@@ -15,6 +15,8 @@ import {
 } from "../../scripts/check-required-production-schema.mjs";
 
 const completeSchemaCheck = {
+  notificationOutboxContract: true,
+  notificationOutboxMigrationRecorded: true,
   contractorRecommendationColumns: true,
   notificationRuntimeColumns: true,
   userPrivacySettingsContract: true,
@@ -55,6 +57,22 @@ const completeSchemaCheck = {
 };
 
 describe("required production schema guard", () => {
+  it("requires the durable outbox shape and its recorded migration", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        notificationOutboxContract: false,
+      })
+    ).toEqual([
+      "notification_jobs/notification_templates[canonical columns, defaults, indexes and constraints]",
+    ]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        notificationOutboxMigrationRecorded: false,
+      })
+    ).toEqual(["drizzle.__drizzle_migrations[0136 canonical hash]"]);
+  });
   it("accepts the committed migration hash across LF and CRLF checkouts", () => {
     expect(buildLineEndingCompatibleMigrationHashes("select 1;\n")).toEqual(
       buildLineEndingCompatibleMigrationHashes("select 1;\r\n")

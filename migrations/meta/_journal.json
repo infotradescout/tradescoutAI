@@ -974,6 +974,13 @@
       "when": 1788804180000,
       "tag": "0135_restore_contact_runtime_schema",
       "breakpoints": false
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1788804240000,
+      "tag": "0136_restore_notification_outbox_schema",
+      "breakpoints": false
     }
   ]
 }
