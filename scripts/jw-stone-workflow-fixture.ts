@@ -35,8 +35,9 @@ assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].nam
 const schema = await import("../shared/schema");
 const { default: bcrypt } = await import("bcrypt");
 const ownerId = "jw-fixture-owner-" + randomUUID();
+const ownerPassword = "SyntheticOnly-" + randomUUID();
 await db.insert(schema.users).values({
-  id: ownerId, email: ownerId + "@example.test", password: await bcrypt.hash(randomUUID(), 10),
+  id: ownerId, email: ownerId + "@example.test", password: await bcrypt.hash(ownerPassword, 10),
   firstName: "Synthetic", lastName: "Supplier", role: "contractor", roles: ["contractor"], activeRole: "contractor",
   phone: "2025550147", stateCode: "FL", countyFips: "12001", addressVerified: true, emailVerified: true,
   verificationStatus: "approved", verifiedBadge: true, onboardingCompleted: true, profileVersion: 1, locationCommitted: true,
@@ -67,5 +68,5 @@ app.use(express.static(dist));
 app.get("*", (req, res, next) => req.path.startsWith("/api/") ? next() : res.sendFile(path.join(dist, "index.html")));
 await new Promise<void>(resolve => server.listen(5228, "127.0.0.1", resolve));
 await fs.mkdir(output, { recursive: true });
-await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, businessId: business.id, profileId: profile.id, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
+await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, ownerPassword, businessId: business.id, profileId: profile.id, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
 console.log("JW_WORKFLOW_READY");
