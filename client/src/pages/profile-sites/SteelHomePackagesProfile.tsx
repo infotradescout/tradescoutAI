@@ -391,6 +391,7 @@ export default function SteelHomePackagesProfile({
               {activePlanner === "countertops" ? (
                 <CountertopDesigner
                   design={draft.countertops}
+                  cabinets={draft.cabinets}
                   onChange={updateCountertops}
                   onRequest={(intent) => setRequestSelection({ planner: "countertops", intent })}
                 />
