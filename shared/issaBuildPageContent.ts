@@ -15,6 +15,14 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const productSource = ISSA_BUILD_PROFILE_CONTENT_BLOCKS as unknown as IssaBuildContentBlock[];
 const productBlock = (type: string) => productSource.find((block) => block.type === type);
 
+/** Descriptive equivalents of the existing owner-confirmed services, not form instructions. */
+export const ISSA_BUILD_SERVICE_SUMMARIES: Readonly<Record<string, string>> = Object.freeze({
+  "kitchen-projects": "ISSA Build handles kitchen projects in Pensacola and surrounding areas, including cabinets, countertops and stone fabrication.",
+  "bathroom-projects": "ISSA Build handles bathroom projects in Pensacola and surrounding areas, including vanities, cabinets and stone surfaces.",
+  cabinets: "Kitchen and bathroom cabinets from ISSA Build for projects in Pensacola and surrounding areas.",
+  "countertops-fabrication": "ISSA Build handles stone countertops and fabrication for kitchen and bathroom projects in Pensacola and surrounding areas.",
+});
+
 /** Exact legacy values, not a keyword filter: owner-written copy must survive. */
 const LEGACY_PRODUCT_COPY = new Set([
   "Crafted for light.",
@@ -65,9 +73,14 @@ export function buildIssaBuildBusinessContentBlocks(input: unknown): IssaBuildCo
         if (!item || typeof item !== "object") return item;
         const value = item as Record<string, unknown>;
         const legacy = ISSA_BUILD_LOCAL_DISCOVERY.services.find((service) => service.slug === value.slug);
-        if (!legacy || value.description !== legacy.description) return value;
-        const { description: _legacyInstruction, ...retained } = value;
-        return retained;
+        // Only exact seeded identities may receive missing default facts. A custom
+        // title, body or description is not overwritten or padded for indexing.
+        if (!legacy || value.title !== legacy.title) return value;
+        const description = typeof value.description === "string" ? value.description.trim() : "";
+        const hasAlternateCopy = [value.body, value.text].some((copy) => typeof copy === "string" && copy.trim());
+        if (hasAlternateCopy || (description && value.description !== legacy.description)) return value;
+        const summary = ISSA_BUILD_SERVICE_SUMMARIES[legacy.slug];
+        return summary ? { ...value, description: summary } : value;
       });
     }
     if (block.type === "serviceAreas" && block.data?.description === productBlock("serviceAreas")?.data?.description) {
@@ -85,7 +98,9 @@ export function buildIssaBuildBusinessContentBlocks(input: unknown): IssaBuildCo
   }
   if (!types.has("services")) {
     blocks.push({ type: "services", data: {
-      items: ISSA_BUILD_LOCAL_DISCOVERY.services.map(({ slug, title }) => ({ slug, title })),
+      items: ISSA_BUILD_LOCAL_DISCOVERY.services.map(({ slug, title }) => ({
+        slug, title, description: ISSA_BUILD_SERVICE_SUMMARIES[slug],
+      })),
     } });
   }
   for (const type of ["inventoryCatalog", "publicDiscovery"]) {
