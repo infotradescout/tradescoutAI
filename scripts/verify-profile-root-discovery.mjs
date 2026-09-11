@@ -20,6 +20,7 @@ const agents = {
   crawlerDiagnostic: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html; TradeScoutReadOnlyAudit/1.0)',
 };
 const report = { head, tree, phase, startedAt: new Date().toISOString(), checks: [], pages: [], passed: false, googleIndexVerified: false, externalDeliveryTested: false };
+const testReport = path.join(temporary, 'tests.json');
 let browser;
 const clean = () => execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
 const decode = value => String(value).replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
@@ -34,8 +35,7 @@ function run(name, args, extra = {}) {
   assert.equal(result.status, 0, name + ' failed');
 }
 async function read(pathname, agent = 'browser') {
-  const url = new URL(pathname, base);
-  assert.equal(url.origin, base);
+  const url = new URL(pathname, base); assert.equal(url.origin, base);
   const response = await fetch(url, { redirect: 'manual', headers: { 'User-Agent': agents[agent] }, signal: AbortSignal.timeout(20000) });
   return { url: url.href, agent, status: response.status, build: response.headers.get('x-tradescout-build'), headerRobots: response.headers.get('x-robots-tag'), location: response.headers.get('location'), body: await response.text() };
 }
@@ -45,11 +45,26 @@ function summarize(raw) {
   const robots = [...raw.body.matchAll(/<meta\b[^>]*>/gi)].filter(m => ['robots', 'googlebot'].includes(attr(m[0], 'name'))).map(m => attr(m[0], 'content'));
   return { ...raw, body: undefined, canonical, robots, links, serviceLinks: links.filter(link => targets.some(target => link === base + target)), title: decode(raw.body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '') };
 }
+function requireBuildMarker(url, marker) {
+  if (phase !== 'production') return;
+  // The changed root must be exact-build. The five existing service handlers
+  // run before build-header middleware (confirmed in the saved pre-repair HTTP
+  // audit). Record their missing marker, never fabricate a per-response SHA.
+  if (url === base + '/issa-build' || marker !== null) assert.equal(marker, expected, url + ' wrong build');
+  else assert(targets.some(target => url === base + target), 'Unexpected unmarked route');
+}
 function requireIndexable(page) {
-  assert.equal(page.status, 200, page.url);
-  if (phase === 'production') assert.equal(page.build, expected, page.url + ' has wrong build');
+  assert.equal(page.status, 200, page.url); requireBuildMarker(page.url, page.build);
   assert.deepEqual(page.canonical, [page.url], page.url + ' canonical mismatch');
   assert(!/\bnoindex\b/i.test([...page.robots, page.headerRobots].join(';')), page.url + ' unexpectedly noindex');
+}
+async function health() {
+  const raw = await read('/api/health'); assert.equal(raw.status, 200);
+  const value = JSON.parse(raw.body);
+  assert.equal(value.status, 'healthy'); assert.equal(value.database, 'connected'); assert.equal(value.migrations.requiredSchemaOk, true);
+  assert.equal(value.migrations.compatibility, 'compatible');
+  if (phase === 'production') { assert.equal(raw.build, expected); assert.equal(value.commit, expected); }
+  return value;
 }
 async function browserPages() {
   run('Install Chromium', [process.execPath, 'node_modules/playwright/cli.js', 'install', 'chromium']);
@@ -63,31 +78,29 @@ async function browserPages() {
       if (!['GET', 'HEAD'].includes(route.request().method())) { blockedWrites.push(new URL(route.request().url()).pathname); return route.abort('blockedbyclient'); }
       return route.continue();
     });
-    const page = await context.newPage();
-    page.setDefaultTimeout(45000);
+    const page = await context.newPage(); page.setDefaultTimeout(45000);
     page.on('pageerror', error => errors.push(error.message));
     page.on('response', response => { if (response.status() >= 400 && ['script', 'stylesheet'].includes(response.request().resourceType())) failedAssets.push({ path: new URL(response.url()).pathname, status: response.status() }); });
     const steps = [];
     for (const pathname of ['/issa-build', ...targets]) {
       const response = await page.goto(base + pathname, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      assert.equal(response.status(), 200); assert.equal(response.headers()['x-tradescout-build'], expected);
-      assert.equal(new URL(page.url()).pathname, pathname);
+      assert.equal(response.status(), 200);
+      const build = response.headers()['x-tradescout-build'] || null;
+      requireBuildMarker(base + pathname, build); assert.equal(new URL(page.url()).pathname, pathname);
       await page.locator('h1').first().waitFor();
       const visibleText = await page.locator('body').innerText();
       assert(visibleText.includes('ISSA Build')); assert(!visibleText.includes('We could not render the app yet'));
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false, pathname + ' horizontal overflow');
       if (pathname !== '/issa-build') {
-        // These server-rendered public pages retain a real return link, not a JS-only action.
         const returnLink = page.locator('a').filter({ hasText: /ISSA Build|View full profile/i }).first();
-        assert(await returnLink.count());
+        assert(await returnLink.count(), 'Published service needs its existing return link');
       }
       const screenshot = device + '-' + pathname.split('/').filter(Boolean).join('-') + '.png';
       await page.screenshot({ path: path.join(out, screenshot), fullPage: true });
-      steps.push({ path: pathname, passed: true, screenshot });
+      steps.push({ path: pathname, build, passed: true, screenshot });
     }
     assert.deepEqual(errors, []); assert.deepEqual(failedAssets, []);
-    report.browser.push({ device, steps, errors, failedAssets, blockedWrites, passed: true });
-    await context.close();
+    report.browser.push({ device, steps, errors, failedAssets, blockedWrites, passed: true }); await context.close();
   }
 }
 try {
@@ -96,7 +109,6 @@ try {
   if (phase === 'release') {
     const files = execFileSync('git', ['ls-files', '*.test.ts', '*.test.tsx'], { encoding: 'utf8' }).trim().split('\n').filter(file => /public-profile-root-discovery|profile-service|profileService|public-seo-html|landing-contract/i.test(file));
     assert(files.includes('server/tests/public-profile-root-discovery.behavior.test.ts'));
-    const testReport = path.join(temporary, 'tests.json');
     run('Root identity, real link owners and existing service contracts', ['npm', 'run', 'test:run', '--', ...files, '--maxWorkers=2', '--reporter=default', '--reporter=json', '--outputFile=' + testReport]);
     const tests = JSON.parse(await fs.readFile(testReport, 'utf8'));
     report.tests = Object.fromEntries(['numTotalTests', 'numPassedTests', 'numFailedTests', 'numPendingTests'].map(key => [key, tests[key]]));
@@ -109,7 +121,7 @@ try {
     report.release = evidence.release;
   } else {
     if (phase === 'production') assert.match(expected, /^[a-f0-9]{40}$/);
-    report.expectedDeployed = expected || null;
+    report.expectedDeployed = expected || null; report.healthBefore = await health();
     for (const agent of Object.keys(agents)) {
       const page = summarize(await read('/issa-build', agent)); report.pages.push(page); requireIndexable(page);
       if (phase === 'production') {
@@ -126,18 +138,17 @@ try {
     for (const target of targets) assert(urls.includes(base + target), 'Existing target must remain in sitemap');
     const inactive = await read('/contractors/issa-build'); assert.equal(inactive.status, 404);
     report.inactiveLegacyControl = { status: inactive.status, url: inactive.url };
-    const health = await read('/api/health'); report.health = JSON.parse(health.body); assert.equal(health.status, 200);
-    assert.equal(report.health.status, 'healthy'); assert.equal(report.health.database, 'connected'); assert.equal(report.health.migrations.requiredSchemaOk, true);
-    if (phase === 'production') {
-      assert.equal(health.build, expected); assert.equal(report.health.commit, expected); assert.equal(report.health.migrations.compatibility, 'compatible');
-      await fs.mkdir(out, { recursive: true }); await browserPages();
-    }
+    if (phase === 'production') { await fs.mkdir(out, { recursive: true }); await browserPages(); }
+    report.healthAfter = await health();
+    report.responseBindingNote = 'Root and surrounding health require the expected deployed SHA. Existing early service responses lack a build header; their actual status, content, canonical and browser results are recorded without a fabricated per-response SHA.';
   }
   report.finalSourceStatus = clean(); assert.equal(report.finalSourceStatus, ''); report.passed = true;
 } catch (error) {
   report.error = String(error.stack || error); console.error('PROFILE_ROOT_FAILURE ' + report.error);
 } finally {
-  await browser?.close(); report.finishedAt = new Date().toISOString();
+  await browser?.close();
+  try { const tests = JSON.parse(await fs.readFile(testReport, 'utf8')); report.tests = Object.fromEntries(['numTotalTests', 'numPassedTests', 'numFailedTests', 'numPendingTests'].map(key => [key, tests[key]])); } catch {}
+  report.finishedAt = new Date().toISOString();
   await fs.mkdir(out, { recursive: true }); await fs.writeFile(path.join(out, 'evidence.json'), JSON.stringify(report, null, 2));
   await fs.writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
   await fs.writeFile(path.join(out, 'index.html'), '<meta name="robots" content="noindex,nofollow"><h1>' + (report.passed ? 'Declared root discovery checks passed' : 'FAILED — not approval') + '</h1><p>' + phase + ' ' + head + '</p><p>Not a Google indexing, ranking or customer acquisition claim.</p><a href="evidence.json">Evidence</a>');
