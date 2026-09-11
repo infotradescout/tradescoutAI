@@ -1078,9 +1078,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/exchange/real-estate" />
               </Route>
               <Route path="/exchange/real-estate">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={RealEstateMarketplace} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={RealEstateMarketplace} />
               </Route>
               <Route path="/homescout/listings/:id">
                 <ProgressiveFeatureGate featureId="home_scout_listings">
@@ -1123,19 +1121,13 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={ProfileServiceOfferDetail} />
               </Route>
               <Route path="/exchange/metals">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={MetalsExchange} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={MetalsExchange} />
               </Route>
               <Route path="/exchange/rental-property">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeRentalProperty} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeRentalProperty} />
               </Route>
               <Route path="/exchange/rental-equipment">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeRentalEquipment} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeRentalEquipment} />
               </Route>
               {/* Seller dashboard */}
               <Route path="/exchange/seller-dashboard">
@@ -1145,84 +1137,52 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               {/* Per-category Exchange pages */}
               <Route path="/exchange/:category/:listingId">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeListingDetail} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeListingDetail} />
               </Route>
               <Route path="/exchange/business">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryBusiness} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryBusiness} />
               </Route>
               <Route path="/exchange/vehicles">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryVehicles} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryVehicles} />
               </Route>
               <Route path="/exchange/construction">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryConstruction} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryConstruction} />
               </Route>
               <Route path="/exchange/building-materials">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryBuildingMaterials} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryBuildingMaterials} />
               </Route>
               <Route path="/exchange/tools">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryTools} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryTools} />
               </Route>
               <Route path="/exchange/furniture">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryFurniture} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryFurniture} />
               </Route>
               <Route path="/exchange/farm">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryFarm} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryFarm} />
               </Route>
               <Route path="/exchange/business-equipment">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryBusinessEquipment} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryBusinessEquipment} />
               </Route>
               <Route path="/exchange/electronics">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryElectronics} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryElectronics} />
               </Route>
               <Route path="/exchange/sports">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategorySports} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategorySports} />
               </Route>
               <Route path="/exchange/collectibles">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryCollectibles} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryCollectibles} />
               </Route>
               <Route path="/exchange/jewelry">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryJewelry} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryJewelry} />
               </Route>
               <Route path="/exchange/local-food">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryLocalFood} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryLocalFood} />
               </Route>
               <Route path="/exchange/other">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={ExchangeCategoryOther} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={ExchangeCategoryOther} />
               </Route>
               <Route path="/exchange">
-                <ProgressiveFeatureGate featureId="exchange">
-                  <LazyPage Component={Exchange} />
-                </ProgressiveFeatureGate>
+                <LazyPage Component={Exchange} />
               </Route>
               {/* Groups routes */}
               <Route path="/groups">

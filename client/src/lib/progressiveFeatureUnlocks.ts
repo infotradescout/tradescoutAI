@@ -87,7 +87,8 @@ export function evaluateFeatureUnlocks(input: EvaluateInput): ProgressiveUnlockS
 
   const unlocked: Record<AdvancedFeatureId, boolean> = {
     trade_deals: askScout >= 1 || decisionChoices >= 1,
-    exchange: meaningful >= 2,
+    // Public browsing is available immediately; commerce/contact have their own gates.
+    exchange: true,
     share: decisionChoices >= 1 || onboardingAnswers >= 1,
     home_scout_listings: setupComplete || countySignals >= 1,
     maps: countySignals >= 1 || meaningful >= 3,

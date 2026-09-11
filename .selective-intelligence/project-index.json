@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-08T22:55:37Z",
+  "generated_at": "2026-09-09T06:16:17Z",
   "source": {
     "kind": "git",
-    "revision": "87d87de46bf84f8dac3039eb36fdf7f194d3578c",
+    "revision": "3628444d1636d490b20b4ebae120fb3136ab3e7f",
     "dirty": true,
-    "inventory_sha256": "908e72ef0e6f9bfebe8caec3a15177127a9d0bd67850637b94f31fc2b0042553"
+    "inventory_sha256": "633aeea9e9157176039518bd8bbc72cd039715bd2c0933008b30905d1895a1e0"
   },
   "inventory": {
     "directories": [
@@ -348,7 +348,7 @@
       },
       {
         "path": "server",
-        "source_file_count": 114
+        "source_file_count": 115
       },
       {
         "path": "server/_archive",
@@ -448,7 +448,7 @@
       },
       {
         "path": "server/tests",
-        "source_file_count": 619
+        "source_file_count": 622
       },
       {
         "path": "server/tests/helpers",
@@ -585,20 +585,20 @@
       {
         "path": "client/public/firebase-messaging-sw.js",
         "language": "js",
-        "sha256": "48ac06fb93abaf536cc197c9567e9babf44713d4d184aa60ece5e08d56c4c504",
-        "bytes": 659
+        "sha256": "a596e9b4348a993b1297c17631ad35fe9858836210ae78a43d2e6b6b426fc203",
+        "bytes": 678
       },
       {
         "path": "client/public/service-worker.js",
         "language": "js",
-        "sha256": "1ca388d540b174b75861bf978d57c49224edac41596d78877b1dcf82a9c3defc",
-        "bytes": 146
+        "sha256": "7fbe699b1d530feae11228fa4fb71a03614ed0f3bf9247f24ad77c3f7e884477",
+        "bytes": 150
       },
       {
         "path": "client/public/sw.js",
         "language": "js",
-        "sha256": "0b4bf0100401e8d5e28125e64f20904912643489a5586a1598523c9c382d90c3",
-        "bytes": 4081
+        "sha256": "a4fd84e0f883df7242fb251ccf8234df5d35abef56a220081540cbd8668e0e62",
+        "bytes": 4215
       },
       {
         "path": "client/src/App.tsx",
@@ -615,8 +615,8 @@
       {
         "path": "client/src/AppRoutes.tsx",
         "language": "tsx",
-        "sha256": "5480c21361466969a53748402e7cbbddb785ac0e43f54d2a6a08ded35555720e",
-        "bytes": 92431
+        "sha256": "3cee51639d6fe0dae0c1d74df164132f9b98de7b2ffc64a060b0778f8c950bba",
+        "bytes": 88230
       },
       {
         "path": "client/src/SmartHome.tsx",
@@ -3651,20 +3651,20 @@
       {
         "path": "client/src/lib/progressiveFeatureGating.contract.test.ts",
         "language": "ts",
-        "sha256": "2215e6df5607984762ea980541251191c6dced096f1ccb1833d35a46d709b95d",
-        "bytes": 4981
+        "sha256": "ba08ea70e0f544f5597becfed253759a7122eb099bfb7a2a9d31102bf727a57d",
+        "bytes": 5502
       },
       {
         "path": "client/src/lib/progressiveFeatureUnlocks.test.ts",
         "language": "ts",
-        "sha256": "cf55be1edbf6a37fed4e96e0c1b988ba7894939bb4e68bc850236d8931b6d539",
-        "bytes": 2260
+        "sha256": "dc34a3804c9be3f4315bbac252f0ef87b92b7e7adf3796dcb3d2b6dae15f0102",
+        "bytes": 2629
       },
       {
         "path": "client/src/lib/progressiveFeatureUnlocks.ts",
         "language": "ts",
-        "sha256": "bd2e74b585e9bc8782bae41c4bd6f7dcb96d0a14a1e042d168b816a0acaa0376",
-        "bytes": 3950
+        "sha256": "1b0450827ae146f570253ed44cd310f603273ffa3dc20bffc8963739ccad7876",
+        "bytes": 3897
       },
       {
         "path": "client/src/lib/publicProfileContinuation.ts",
@@ -5097,8 +5097,8 @@
       {
         "path": "client/src/pages/exchange.tsx",
         "language": "tsx",
-        "sha256": "1c4f82d35c20cea4172e5f487edd47fb86e7afe1e306c352a3b111e7bf74a424",
-        "bytes": 127345
+        "sha256": "03cb9e82b0f0f2a58ce71f186885efd8734003508748357427c78841f31c96f3",
+        "bytes": 124213
       },
       {
         "path": "client/src/pages/exchange/ExchangeBuildingMaterialsPage.tsx",
@@ -5121,8 +5121,8 @@
       {
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
         "language": "tsx",
-        "sha256": "2c732c77e4bf476714a305694a48f9496da5ea05d136d5d1b57f429b157da9fa",
-        "bytes": 41930
+        "sha256": "6afde4e9cbaede6e91067020aab183eec4e07f376ab3ad88504fd7fa7f2f66a4",
+        "bytes": 42502
       },
       {
         "path": "client/src/pages/exchange/ExchangeCollectiblesPage.tsx",
@@ -5163,8 +5163,8 @@
       {
         "path": "client/src/pages/exchange/ExchangeListingDetail.tsx",
         "language": "tsx",
-        "sha256": "29c48baf0cea95b186248f8fe7a65ec2af15d13312bb46a82dcef3e81fe3310c",
-        "bytes": 37676
+        "sha256": "94ef0ba601d1d240eec5fa7fbc77141216ee8efd88348ac88939bfe05dfa8099",
+        "bytes": 37100
       },
       {
         "path": "client/src/pages/exchange/ExchangeLocalFoodPage.tsx",
@@ -5205,8 +5205,8 @@
       {
         "path": "client/src/pages/exchange/categoryConfigs.tsx",
         "language": "tsx",
-        "sha256": "f5fc6897e1b0629e1681dbb7a717f5d6fbab5dd073b062c6fdbe6b1fe34a7241",
-        "bytes": 23253
+        "sha256": "97e9742d16662f6b6f3995f485a441074896f9a625036b840c35a00842df3551",
+        "bytes": 22513
       },
       {
         "path": "client/src/pages/file-management.tsx",
@@ -5823,14 +5823,14 @@
       {
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
         "language": "tsx",
-        "sha256": "ec18d8256e1420f9647f80b9bc71e15698a32a3b9b30e55da9c47c510604f2f8",
-        "bytes": 33822
+        "sha256": "4b484c642a1852d950cda995a05cd65fff063a54ee6dd930228755e64b21ac0c",
+        "bytes": 34692
       },
       {
         "path": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
         "language": "tsx",
-        "sha256": "d9ee2f067a4ad60d9510c7b666ba3db5f61dd67e46f7637e66af5aad9f207fad",
-        "bytes": 35935
+        "sha256": "dde308c95c8904e01c6bac7c03582521252860d4f64dcd646f985b14003df435",
+        "bytes": 36816
       },
       {
         "path": "client/src/pages/profile-sites/FinancialProfessionalProfileTheme.tsx",
@@ -5937,14 +5937,14 @@
       {
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.test.tsx",
         "language": "tsx",
-        "sha256": "1411b343046f17eab1b968f1876ba5756f5b90240a7c06bfec44594abe6b7e4d",
-        "bytes": 13531
+        "sha256": "6f7b431c5512c26730774699a9e92a4050e15b714e03bc6af391a48b38d77bc0",
+        "bytes": 13851
       },
       {
         "path": "client/src/pages/profile-sites/ProjectServiceProfile.tsx",
         "language": "tsx",
-        "sha256": "5125048335d0b192ad3bc188e48e69c963f19981cf475656c1517b2d7cf687f9",
-        "bytes": 28377
+        "sha256": "52476404d79c15667b6c52e0839b1ddd1fa478067fa8300b379eebc4161de87f",
+        "bytes": 29104
       },
       {
         "path": "client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx",
@@ -9205,6 +9205,12 @@
         "bytes": 12951
       },
       {
+        "path": "server/exchangeDiscovery.ts",
+        "language": "ts",
+        "sha256": "867b81eb6a42e4070c29a055d8d340b531b8dc255821243584844b9fc8768594",
+        "bytes": 2819
+      },
+      {
         "path": "server/http/corsPolicy.ts",
         "language": "ts",
         "sha256": "7b694d4de30b387ac89dde2edfbfbab7d71660ba1165d0bed4b13c7b72e280cd",
@@ -9447,8 +9453,8 @@
       {
         "path": "server/profileCatalogExchange.ts",
         "language": "ts",
-        "sha256": "5e0a38b965c62880ef3b225c572a3c9f6ce27fd04105d3341a8f3bfb12f1c42d",
-        "bytes": 5262
+        "sha256": "cfdbf2d99467ff12628331d4985de8632260c8fe7c0b0d7ec3ca9f9d71a3fca9",
+        "bytes": 9675
       },
       {
         "path": "server/profileImageSitemap.ts",
@@ -9753,8 +9759,8 @@
       {
         "path": "server/repositories/profileRepository.ts",
         "language": "ts",
-        "sha256": "bcbba9b9fa02206a368b959b7f099a338d0389feaa48f75aa6db128796c674f3",
-        "bytes": 17856
+        "sha256": "feaffb7c5fa80f11a6cd8c9dbb9c3658b051af8e30e03c24dc9919b829dc0dc2",
+        "bytes": 17946
       },
       {
         "path": "server/repositories/sitemapRepository.ts",
@@ -9783,8 +9789,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "e708b43a644e3bbbd392d3a78f4cdde13fb5d46e980791a98abb92add1f88c31",
-        "bytes": 1013303
+        "sha256": "01e6bd720e0c7b01a03555e757736eb92cac9343414fe726e3166e65dd66b9b0",
+        "bytes": 986469
       },
       {
         "path": "server/routes/address-verification.ts",
@@ -10287,8 +10293,8 @@
       {
         "path": "server/routes/public-profile-app.ts",
         "language": "ts",
-        "sha256": "d05bbd61777bc8aa831c846a84d594a1683d1b0f863a087ebbc94b8b5d1fa908",
-        "bytes": 8066
+        "sha256": "fb34504a2070babcf084e06ed5aeb247b1964afa9e3e695189101673fa4ff50f",
+        "bytes": 3777
       },
       {
         "path": "server/routes/public-profile-social-preview.ts",
@@ -10995,8 +11001,8 @@
       {
         "path": "server/services/exposureAuthority.ts",
         "language": "ts",
-        "sha256": "85f78066ad2e7f37ba1081bdf501a8a998438184a1aecbb8dcee5a6314662aba",
-        "bytes": 2219
+        "sha256": "239e9ce01b41ec047df18159bc84053dab8b1669fece5ec3e8564ea534ab9477",
+        "bytes": 3161
       },
       {
         "path": "server/services/externalActionsClient.ts",
@@ -12021,14 +12027,14 @@
       {
         "path": "server/storage.ts",
         "language": "ts",
-        "sha256": "a64d8e09ef89fdd03b769da938679e66718514b73736036039b0f6abc96267f3",
-        "bytes": 291406
+        "sha256": "40e018724275f68d05f1001fd5810c0c59c377119bd6dccae0a951eae8d172f2",
+        "bytes": 282545
       },
       {
         "path": "server/storage/contracts.ts",
         "language": "ts",
-        "sha256": "02cda1e6f1f959819eea5c09b4033ed0a88fe39a4407c37a2a4fb814ccbd024a",
-        "bytes": 55600
+        "sha256": "96329da20ab346d06d6747b1418aaf0062c79f5f9891a94e32346d342cd12178",
+        "bytes": 54246
       },
       {
         "path": "server/storage/repositories/crm-and-deals.ts",
@@ -12045,8 +12051,8 @@
       {
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
         "language": "ts",
-        "sha256": "764c8a61ba141cda289af2ef914aa404e9f1216037eacaa2e06c65fcf406031d",
-        "bytes": 67305
+        "sha256": "d82315584b58be289aea8aebb65a625b17103da59d308f9ed1716eff352fe5a4",
+        "bytes": 66001
       },
       {
         "path": "server/storage/repositories/oauth-identities.ts",
@@ -13225,10 +13231,22 @@
         "bytes": 13734
       },
       {
+        "path": "server/tests/exchange-discovery.behavior.test.ts",
+        "language": "ts",
+        "sha256": "0873eb055b81cd1be0f24abfbbeb434dba36fff227895c1cbfd77e225786d049",
+        "bytes": 10793
+      },
+      {
         "path": "server/tests/exchange-listing-seo.contract.test.ts",
         "language": "ts",
         "sha256": "d6dc7ba607bf1229043195c9d97bf5ee5a43c44bfbce8a18f80b9830fd454327",
         "bytes": 18457
+      },
+      {
+        "path": "server/tests/exchange-nullable-pagination.behavior.test.ts",
+        "language": "ts",
+        "sha256": "52b55730bfd634cef3544ecf72616115c1cb5f605029eba0714da15af13ac8a4",
+        "bytes": 4360
       },
       {
         "path": "server/tests/exchange-og-and-category-routing.contract.test.ts",
@@ -13241,6 +13259,12 @@
         "language": "ts",
         "sha256": "e21216b6c53ba6524a78681a34fe3a199bf7e37b9f1e4542a919b83dabf149e4",
         "bytes": 4742
+      },
+      {
+        "path": "server/tests/exposure-authority-sql-parity.test.ts",
+        "language": "ts",
+        "sha256": "10a6bf671e43be261a634c72ec36058022c8d811ee9db71e4d4ceb33be75d720",
+        "bytes": 6193
       },
       {
         "path": "server/tests/express-request-contact-delivery.behavior.test.ts",
@@ -14211,8 +14235,8 @@
       {
         "path": "server/tests/profile-catalog-exchange.contract.test.ts",
         "language": "ts",
-        "sha256": "bf5b9178d4e4a4ddfc60948bde8d7a180e46b658e3c9c9fed685a517bf123b69",
-        "bytes": 7664
+        "sha256": "866cc710546293c86dd9c01cb4f65b9a88ae5366abdcef8f8c8e3acc91149acc",
+        "bytes": 10302
       },
       {
         "path": "server/tests/profile-child-route-publication-parity.behavior.test.ts",
@@ -14847,8 +14871,8 @@
       {
         "path": "server/tests/public-profile-operator-authority.contract.test.ts",
         "language": "ts",
-        "sha256": "76d9eaf630252b24547f224563b7f0bcef0181a6fbe5a8c1f88a3e89fb94d70d",
-        "bytes": 1979
+        "sha256": "584926458c7b837d7066b595f1cdcbc7fc30f91361eb86ea4533b264f4fc991b",
+        "bytes": 2067
       },
       {
         "path": "server/tests/public-profile-product-card.contract.test.ts",
@@ -32379,14 +32403,14 @@
         "name": "isFeatureUnlocked",
         "kind": "function",
         "path": "client/src/lib/progressiveFeatureUnlocks.ts",
-        "line": 111,
+        "line": 112,
         "exported": true
       },
       {
         "name": "getUnlockedAdvancedHrefs",
         "kind": "function",
         "path": "client/src/lib/progressiveFeatureUnlocks.ts",
-        "line": 118,
+        "line": 119,
         "exported": true
       },
       {
@@ -43887,154 +43911,154 @@
         "name": "ExchangePromotion",
         "kind": "type",
         "path": "client/src/pages/exchange.tsx",
-        "line": 121,
+        "line": 123,
         "exported": false
       },
       {
         "name": "CompanyPromotion",
         "kind": "type",
         "path": "client/src/pages/exchange.tsx",
-        "line": 137,
+        "line": 139,
         "exported": false
       },
       {
         "name": "SellFormCategorySlug",
         "kind": "type",
         "path": "client/src/pages/exchange.tsx",
-        "line": 174,
+        "line": 176,
         "exported": false
       },
       {
         "name": "ExchangePortalSlug",
         "kind": "type",
         "path": "client/src/pages/exchange.tsx",
-        "line": 179,
+        "line": 181,
         "exported": false
       },
       {
         "name": "ExchangeSearchScope",
         "kind": "type",
         "path": "client/src/pages/exchange.tsx",
-        "line": 180,
+        "line": 182,
         "exported": false
       },
       {
         "name": "isSellFormCategorySlug",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 275,
+        "line": 277,
         "exported": false
       },
       {
         "name": "Exchange",
         "kind": "component",
         "path": "client/src/pages/exchange.tsx",
-        "line": 369,
+        "line": 371,
         "exported": true
       },
       {
         "name": "SetItem",
         "kind": "type",
         "path": "client/src/pages/exchange.tsx",
-        "line": 463,
+        "line": 465,
         "exported": false
       },
       {
         "name": "addSetItem",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 468,
+        "line": 470,
         "exported": false
       },
       {
         "name": "removeSetItem",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 470,
+        "line": 472,
         "exported": false
       },
       {
         "name": "updateSetItem",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 471,
+        "line": 473,
         "exported": false
       },
       {
         "name": "decodeVehicleVin",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 487,
+        "line": 489,
         "exported": false
       },
       {
         "name": "shippingReady",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 790,
+        "line": 781,
         "exported": false
       },
       {
         "name": "isStateMatch",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 793,
+        "line": 784,
         "exported": false
       },
       {
         "name": "isCountyMatch",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 798,
+        "line": 789,
         "exported": false
       },
       {
         "name": "getCategoryHref",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 861,
+        "line": 834,
         "exported": false
       },
       {
         "name": "getCategoryIcon",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 885,
+        "line": 858,
         "exported": false
       },
       {
         "name": "formatPrice",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 890,
+        "line": 863,
         "exported": false
       },
       {
         "name": "getConditionBadge",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 900,
+        "line": 873,
         "exported": false
       },
       {
         "name": "shareLink",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 911,
+        "line": 884,
         "exported": false
       },
       {
         "name": "localLabel",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 956,
+        "line": 929,
         "exported": false
       },
       {
         "name": "formatListedTime",
         "kind": "function",
         "path": "client/src/pages/exchange.tsx",
-        "line": 970,
+        "line": 943,
         "exported": false
       },
       {
@@ -44069,63 +44093,63 @@
         "name": "SearchScope",
         "kind": "type",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 80,
+        "line": 81,
         "exported": false
       },
       {
         "name": "CategoryConfig",
         "kind": "type",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 84,
+        "line": 85,
         "exported": true
       },
       {
         "name": "formatPrice",
         "kind": "function",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 127,
+        "line": 128,
         "exported": false
       },
       {
         "name": "formatListedTime",
         "kind": "function",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 134,
+        "line": 135,
         "exported": false
       },
       {
         "name": "ExchangeCategoryPageProps",
         "kind": "type",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 150,
+        "line": 151,
         "exported": false
       },
       {
         "name": "ExchangeCategoryPage",
         "kind": "component",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 154,
+        "line": 155,
         "exported": true
       },
       {
         "name": "handleShare",
         "kind": "function",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 277,
+        "line": 289,
         "exported": false
       },
       {
         "name": "handleShareCategory",
         "kind": "function",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 285,
+        "line": 297,
         "exported": false
       },
       {
         "name": "FilterPanel",
         "kind": "component",
         "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-        "line": 311,
+        "line": 323,
         "exported": false
       },
       {
@@ -67005,6 +67029,27 @@
         "exported": false
       },
       {
+        "name": "DiscoveryItem",
+        "kind": "type",
+        "path": "server/exchangeDiscovery.ts",
+        "line": 1,
+        "exported": false
+      },
+      {
+        "name": "exchangePageWindow",
+        "kind": "function",
+        "path": "server/exchangeDiscovery.ts",
+        "line": 9,
+        "exported": true
+      },
+      {
+        "name": "timestamp",
+        "kind": "function",
+        "path": "server/exchangeDiscovery.ts",
+        "line": 52,
+        "exported": false
+      },
+      {
         "name": "isCorsNeutralPublicAssetRequest",
         "kind": "function",
         "path": "server/http/corsPolicy.ts",
@@ -68919,56 +68964,77 @@
         "name": "ProfileCatalogExchangeSpotlight",
         "kind": "type",
         "path": "server/profileCatalogExchange.ts",
-        "line": 5,
+        "line": 4,
         "exported": false
       },
       {
         "name": "PublicProfileCatalogExchangeItem",
         "kind": "type",
         "path": "server/profileCatalogExchange.ts",
-        "line": 11,
+        "line": 21,
         "exported": true
       },
       {
-        "name": "toPublicProfileCatalogItem",
+        "name": "ProfileCatalogExchangeFilters",
+        "kind": "type",
+        "path": "server/profileCatalogExchange.ts",
+        "line": 49,
+        "exported": true
+      },
+      {
+        "name": "baseItem",
         "kind": "function",
         "path": "server/profileCatalogExchange.ts",
-        "line": 45,
+        "line": 58,
         "exported": false
       },
       {
-        "name": "getProfileCatalogExchangeItem",
+        "name": "projectProfileInventoryExchangeItems",
         "kind": "function",
         "path": "server/profileCatalogExchange.ts",
-        "line": 89,
+        "line": 77,
         "exported": true
       },
       {
-        "name": "listProfileCatalogExchangeItems",
+        "name": "projectSpotlight",
         "kind": "function",
         "path": "server/profileCatalogExchange.ts",
-        "line": 98,
-        "exported": true
+        "line": 135,
+        "exported": false
       },
       {
-        "name": "hasPublicCatalogAuthority",
+        "name": "matchesFilters",
         "kind": "function",
         "path": "server/profileCatalogExchange.ts",
-        "line": 120,
+        "line": 161,
+        "exported": false
+      },
+      {
+        "name": "loadPublicCatalog",
+        "kind": "function",
+        "path": "server/profileCatalogExchange.ts",
+        "line": 177,
+        "exported": false
+      },
+      {
+        "name": "same",
+        "kind": "function",
+        "path": "server/profileCatalogExchange.ts",
+        "line": 189,
         "exported": false
       },
       {
         "name": "getPublicProfileCatalogExchangeItem",
         "kind": "function",
         "path": "server/profileCatalogExchange.ts",
-        "line": 133,
+        "line": 211,
         "exported": true
       },
       {
         "name": "listPublicProfileCatalogExchangeItems",
         "kind": "function",
         "path": "server/profileCatalogExchange.ts",
-        "line": 141,
+        "line": 228,
         "exported": true
       },
       {
@@ -73049,70 +73115,70 @@
         "name": "PublishedProfileExposureCandidate",
         "kind": "type",
         "path": "server/repositories/profileRepository.ts",
-        "line": 18,
+        "line": 19,
         "exported": false
       },
       {
         "name": "PublicProfileRecord",
         "kind": "type",
         "path": "server/repositories/profileRepository.ts",
-        "line": 31,
+        "line": 32,
         "exported": true
       },
       {
         "name": "PublicProfileSearchRecord",
         "kind": "type",
         "path": "server/repositories/profileRepository.ts",
-        "line": 54,
+        "line": 55,
         "exported": true
       },
       {
         "name": "loadCanonicalPublicMapProfileUrls",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 62,
+        "line": 63,
         "exported": true
       },
       {
         "name": "ProfileMutation",
         "kind": "type",
         "path": "server/repositories/profileRepository.ts",
-        "line": 113,
+        "line": 114,
         "exported": false
       },
       {
         "name": "slugify",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 115,
+        "line": 116,
         "exported": false
       },
       {
         "name": "publicProfileSearchExposurePredicate",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 130,
+        "line": 131,
         "exported": false
       },
       {
         "name": "publicProfileVisibilityPredicate",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 162,
+        "line": 163,
         "exported": false
       },
       {
         "name": "publicProfileReleaseExposurePredicate",
         "kind": "function",
         "path": "server/repositories/profileRepository.ts",
-        "line": 166,
+        "line": 167,
         "exported": false
       },
       {
         "name": "ProfileRepository",
         "kind": "class",
         "path": "server/repositories/profileRepository.ts",
-        "line": 178,
+        "line": 179,
         "exported": true
       },
       {
@@ -73168,812 +73234,812 @@
         "name": "RequestAuthorityContext",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 135,
+        "line": 141,
         "exported": false
       },
       {
         "name": "CanonicalApprovedProfessionalRole",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 192,
+        "line": 198,
         "exported": false
       },
       {
         "name": "getViewerConnectionIds",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 351,
+        "line": 357,
         "exported": false
       },
       {
         "name": "MarketSignalsWindow",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 540,
+        "line": 546,
         "exported": false
       },
       {
         "name": "parseMarketSignalsWindow",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 542,
+        "line": 548,
         "exported": false
       },
       {
         "name": "marketSignalsInterval",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 548,
+        "line": 554,
         "exported": false
       },
       {
         "name": "isValidCountyFips",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 561,
+        "line": 567,
         "exported": false
       },
       {
         "name": "isValidStateCode",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 565,
+        "line": 571,
         "exported": false
       },
       {
         "name": "safeText",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 573,
+        "line": 579,
         "exported": false
       },
       {
         "name": "safeScoutConversationId",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 580,
+        "line": 586,
         "exported": false
       },
       {
         "name": "compactScoutConversationMessages",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 587,
+        "line": 593,
         "exported": false
       },
       {
         "name": "scoutConversationPayload",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 614,
+        "line": 620,
         "exported": false
       },
       {
         "name": "ScoutConversationRelatedKind",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 631,
+        "line": 637,
         "exported": false
       },
       {
         "name": "scoutConversationRelatedTo",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 633,
+        "line": 639,
         "exported": false
       },
       {
         "name": "homeSavedConversationLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 661,
+        "line": 667,
         "exported": false
       },
       {
         "name": "vehicleSavedConversationLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 672,
+        "line": 678,
         "exported": false
       },
       {
         "name": "homeProjectSavedConversationLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 683,
+        "line": 689,
         "exported": false
       },
       {
         "name": "loadScoutConversationRelatedLabels",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 691,
+        "line": 697,
         "exported": false
       },
       {
         "name": "refreshScoutConversationRelatedLabels",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 809,
+        "line": 815,
         "exported": false
       },
       {
         "name": "ScoutConversationSurfaceFilter",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 856,
+        "line": 862,
         "exported": false
       },
       {
         "name": "scoutConversationSurfaceFilter",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 864,
+        "line": 870,
         "exported": false
       },
       {
         "name": "scoutConversationSurfaceWhere",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 879,
+        "line": 885,
         "exported": false
       },
       {
         "name": "AuthedRequest",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 924,
+        "line": 930,
         "exported": false
       },
       {
         "name": "ExpressHandler",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 933,
+        "line": 939,
         "exported": false
       },
       {
         "name": "StaffShareableTemplate",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 974,
+        "line": 980,
         "exported": false
       },
       {
         "name": "registerRoutes",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1306,
+        "line": 1312,
         "exported": true
       },
       {
         "name": "marketSignalsAccess",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1350,
+        "line": 1356,
         "exported": false
       },
       {
         "name": "limiterStore",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1748,
+        "line": 1754,
         "exported": false
       },
       {
         "name": "rateLimitKey",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1800,
+        "line": 1806,
         "exported": false
       },
       {
         "name": "pickMarketplaceWritableFields",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 1975,
+        "line": 1981,
         "exported": false
       },
       {
         "name": "normalizeMarketplaceWritableFields",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2017,
+        "line": 2023,
         "exported": false
       },
       {
         "name": "normalizeMarketplaceGuidanceInput",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2070,
+        "line": 2076,
         "exported": false
       },
       {
         "name": "buildListingValueGuidance",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2103,
+        "line": 2109,
         "exported": false
       },
       {
         "name": "getBetaWindow",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2211,
+        "line": 2217,
         "exported": false
       },
       {
         "name": "isFounderBadgeLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2236,
+        "line": 2242,
         "exported": false
       },
       {
         "name": "formatFounderRoleLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2238,
+        "line": 2244,
         "exported": false
       },
       {
         "name": "sanitizeUserForResponse",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2308,
+        "line": 2314,
         "exported": false
       },
       {
         "name": "getCompletedSetupBackfillPatch",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2417,
+        "line": 2423,
         "exported": false
       },
       {
         "name": "UserRoleEnumValue",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2434,
+        "line": 2440,
         "exported": false
       },
       {
         "name": "dedupeStrings",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2485,
+        "line": 2491,
         "exported": false
       },
       {
         "name": "sendProfessionalApprovalRequired",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2488,
+        "line": 2494,
         "exported": false
       },
       {
         "name": "sendPrivilegedRoleAssignmentForbidden",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2491,
+        "line": 2497,
         "exported": false
       },
       {
         "name": "sendProfessionalVerificationDecisionRequired",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2497,
+        "line": 2503,
         "exported": false
       },
       {
         "name": "AuthMethod",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2510,
+        "line": 2516,
         "exported": false
       },
       {
         "name": "sendAccountExistsConflict",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2537,
+        "line": 2543,
         "exported": false
       },
       {
         "name": "sendReservedAuthorityEmailConflict",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2553,
+        "line": 2559,
         "exported": false
       },
       {
         "name": "handleLocalLogin",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2587,
+        "line": 2593,
         "exported": false
       },
       {
         "name": "handleRegisterMultiProfile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2641,
+        "line": 2647,
         "exported": false
       },
       {
         "name": "ProfileRole",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2692,
+        "line": 2698,
         "exported": false
       },
       {
         "name": "UserIntent",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2694,
+        "line": 2700,
         "exported": false
       },
       {
         "name": "BusinessType",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2695,
+        "line": 2701,
         "exported": false
       },
       {
         "name": "SellerType",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2696,
+        "line": 2702,
         "exported": false
       },
       {
         "name": "NormalizedProfile",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2697,
+        "line": 2703,
         "exported": false
       },
       {
         "name": "OwnedVerificationProfileRow",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 2934,
+        "line": 2940,
         "exported": false
       },
       {
         "name": "verificationStatusForProfile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 2954,
+        "line": 2960,
         "exported": false
       },
       {
         "name": "handleRegister",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3121,
+        "line": 3127,
         "exported": false
       },
       {
         "name": "normalizeRole",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3166,
+        "line": 3172,
         "exported": false
       },
       {
         "name": "formatRoleLabel",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3299,
+        "line": 3305,
         "exported": false
       },
       {
         "name": "normalizePhone",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 3410,
+        "line": 3416,
         "exported": false
       },
       {
         "name": "performLogout",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4087,
+        "line": 4093,
         "exported": false
       },
       {
         "name": "mergePersistedAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4515,
+        "line": 4521,
         "exported": false
       },
       {
         "name": "applyImpersonationMetadata",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4540,
+        "line": 4546,
         "exported": false
       },
       {
         "name": "buildAuthUserPayload",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4552,
+        "line": 4558,
         "exported": false
       },
       {
         "name": "isLocalRequest",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 4665,
+        "line": 4671,
         "exported": false
       },
       {
         "name": "redirectWithSession",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 5222,
+        "line": 5228,
         "exported": false
       },
       {
         "name": "redirectWithSession",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 5290,
+        "line": 5296,
         "exported": false
       },
       {
         "name": "BusinessOnboardingModuleId",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 5594,
+        "line": 5600,
         "exported": false
       },
       {
         "name": "BusinessOnboardingModuleStatus",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 5601,
+        "line": 5607,
         "exported": false
       },
       {
         "name": "BusinessOnboardingState",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 5603,
+        "line": 5609,
         "exported": false
       },
       {
         "name": "normalizeRole",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 6668,
+        "line": 6674,
         "exported": false
       },
       {
         "name": "hasRole",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 7364,
+        "line": 7370,
         "exported": false
       },
       {
         "name": "BroadcastSegment",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 9642,
+        "line": 9648,
         "exported": false
       },
       {
         "name": "wants",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 10197,
+        "line": 10203,
         "exported": false
       },
       {
         "name": "points",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 11521,
+        "line": 11527,
         "exported": false
       },
       {
         "name": "toProfileOfferExchangeId",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12159,
+        "line": 12165,
         "exported": false
       },
       {
         "name": "fromProfileOfferExchangeId",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12161,
+        "line": 12167,
         "exported": false
       },
       {
         "name": "buildProfileOfferExchangeItem",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12168,
+        "line": 12174,
         "exported": false
       },
       {
         "name": "listProfileOfferExchangeItems",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12247,
+        "line": 12253,
         "exported": false
       },
       {
         "name": "addParam",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12260,
+        "line": 12269,
         "exported": false
       },
       {
         "name": "looksLikeUuid",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 12351,
+        "line": 12372,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 13247,
+        "line": 13237,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 13401,
+        "line": 13391,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 13509,
+        "line": 13499,
         "exported": false
       },
       {
         "name": "resolveLegacyConversationConnectionAuthority",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 13626,
+        "line": 13616,
         "exported": false
       },
       {
         "name": "completeDecisionCard",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14022,
+        "line": 14012,
         "exported": false
       },
       {
         "name": "businessImportMaybeUploadFile",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14285,
+        "line": 14275,
         "exported": false
       },
       {
         "name": "pushField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14507,
+        "line": 14497,
         "exported": false
       },
       {
         "name": "pushRow",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14512,
+        "line": 14502,
         "exported": false
       },
       {
         "name": "looksLikeHeader",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14564,
+        "line": 14554,
         "exported": false
       },
       {
         "name": "peek",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14568,
+        "line": 14558,
         "exported": false
       },
       {
         "name": "isEmailValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14572,
+        "line": 14562,
         "exported": false
       },
       {
         "name": "isFipsValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14574,
+        "line": 14564,
         "exported": false
       },
       {
         "name": "isPhoneValue",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14575,
+        "line": 14565,
         "exported": false
       },
       {
         "name": "normalizeEmail",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 14710,
+        "line": 14700,
         "exported": false
       },
       {
         "name": "inferredBusinessType",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15061,
+        "line": 15051,
         "exported": false
       },
       {
         "name": "inferredRoleContext",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 15092,
+        "line": 15082,
         "exported": false
       },
       {
         "name": "getMarketplaceCategoryIdByName",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 16758,
+        "line": 16748,
         "exported": false
       },
       {
         "name": "getMarketplaceCategoryNameById",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 16781,
+        "line": 16771,
         "exported": false
       },
       {
         "name": "match",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 16787,
+        "line": 16777,
         "exported": false
       },
       {
         "name": "looksLikeUuid",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 16981,
+        "line": 16971,
         "exported": false
       },
       {
         "name": "normalized",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 18281,
+        "line": 18271,
         "exported": false
       },
       {
         "name": "deriveCommunityTagsFromContent",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19248,
+        "line": 19238,
         "exported": false
       },
       {
         "name": "createAutomaticCommunityWelcomeForUser",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19329,
+        "line": 19319,
         "exported": false
       },
       {
         "name": "roleContext",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19364,
+        "line": 19354,
         "exported": false
       },
       {
         "name": "requireCommunityPrincipalIdentity",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 19405,
+        "line": 19395,
         "exported": false
       },
       {
         "name": "buildAuthorizedPublicHandmadeProducts",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 20248,
+        "line": 20238,
         "exported": false
       },
       {
         "name": "HomeScoutListingAccess",
         "kind": "type",
         "path": "server/routes.ts",
-        "line": 21681,
+        "line": 21671,
         "exported": false
       },
       {
         "name": "HomeScoutDecisionAuthorityError",
         "kind": "class",
         "path": "server/routes.ts",
-        "line": 21738,
+        "line": 21728,
         "exported": false
       },
       {
         "name": "extractInspectionPhrases",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22039,
+        "line": 22029,
         "exported": false
       },
       {
         "name": "scoreKeywordHits",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22052,
+        "line": 22042,
         "exported": false
       },
       {
         "name": "buildInspectionInsights",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22062,
+        "line": 22052,
         "exported": false
       },
       {
         "name": "clearDownloadTimeout",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22417,
+        "line": 22407,
         "exported": false
       },
       {
         "name": "sourcePath",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 22440,
+        "line": 22430,
         "exported": false
       },
       {
         "name": "intField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23227,
+        "line": 23217,
         "exported": false
       },
       {
         "name": "numField",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23234,
+        "line": 23224,
         "exported": false
       },
       {
         "name": "transactions",
         "kind": "function",
         "path": "server/routes.ts",
-        "line": 23444,
+        "line": 23434,
         "exported": false
       },
       {
@@ -77995,38 +78061,31 @@
         "exported": true
       },
       {
-        "name": "PublicProfileCatalogExchangeItem",
-        "kind": "type",
-        "path": "server/routes/public-profile-app.ts",
-        "line": 14,
-        "exported": false
-      },
-      {
         "name": "requestHost",
         "kind": "function",
         "path": "server/routes/public-profile-app.ts",
-        "line": 23,
+        "line": 18,
         "exported": false
       },
       {
         "name": "canServeProfileAppAsset",
         "kind": "function",
         "path": "server/routes/public-profile-app.ts",
-        "line": 31,
+        "line": 26,
         "exported": false
       },
       {
         "name": "profileAppOrigin",
         "kind": "function",
         "path": "server/routes/public-profile-app.ts",
-        "line": 44,
+        "line": 39,
         "exported": false
       },
       {
         "name": "registerPublicProfileAppRoutes",
         "kind": "function",
         "path": "server/routes/public-profile-app.ts",
-        "line": 84,
+        "line": 43,
         "exported": true
       },
       {
@@ -85898,17 +85957,24 @@
         "exported": true
       },
       {
+        "name": "exposureAuthoritySqlPredicate",
+        "kind": "function",
+        "path": "server/services/exposureAuthority.ts",
+        "line": 5,
+        "exported": true
+      },
+      {
         "name": "buildExposureAuthorityMap",
         "kind": "function",
         "path": "server/services/exposureAuthority.ts",
-        "line": 7,
+        "line": 24,
         "exported": true
       },
       {
         "name": "hasExposureAuthority",
         "kind": "function",
         "path": "server/services/exposureAuthority.ts",
-        "line": 53,
+        "line": 70,
         "exported": true
       },
       {
@@ -99285,63 +99351,63 @@
         "name": "normalize",
         "kind": "function",
         "path": "server/storage.ts",
-        "line": 1198,
+        "line": 1202,
         "exported": false
       },
       {
         "name": "escapeLike",
         "kind": "function",
         "path": "server/storage.ts",
-        "line": 1236,
+        "line": 1240,
         "exported": false
       },
       {
         "name": "DraftKind",
         "kind": "type",
         "path": "server/storage.ts",
-        "line": 1623,
+        "line": 1627,
         "exported": false
       },
       {
         "name": "ArtifactAccumulator",
         "kind": "type",
         "path": "server/storage.ts",
-        "line": 1625,
+        "line": 1629,
         "exported": false
       },
       {
         "name": "ActionType",
         "kind": "type",
         "path": "server/storage.ts",
-        "line": 1799,
+        "line": 1803,
         "exported": false
       },
       {
         "name": "OutcomeResult",
         "kind": "type",
         "path": "server/storage.ts",
-        "line": 1801,
+        "line": 1805,
         "exported": false
       },
       {
         "name": "OutcomeAccumulator",
         "kind": "type",
         "path": "server/storage.ts",
-        "line": 1802,
+        "line": 1806,
         "exported": false
       },
       {
         "name": "toParticipant",
         "kind": "function",
         "path": "server/storage.ts",
-        "line": 4679,
+        "line": 4683,
         "exported": false
       },
       {
         "name": "clamp",
         "kind": "function",
         "path": "server/storage.ts",
-        "line": 5709,
+        "line": 5713,
         "exported": false
       },
       {
@@ -101091,315 +101157,315 @@
         "name": "HomeScoutListing",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 25,
+        "line": 26,
         "exported": false
       },
       {
         "name": "InsertHomeScoutListing",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 26,
+        "line": 27,
         "exported": false
       },
       {
         "name": "HomeScoutSource",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 27,
+        "line": 28,
         "exported": false
       },
       {
         "name": "InsertHomeScoutSource",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 28,
+        "line": 29,
         "exported": false
       },
       {
         "name": "HomeScoutIngestRun",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 29,
+        "line": 30,
         "exported": false
       },
       {
         "name": "InsertHomeScoutIngestRun",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 30,
+        "line": 31,
         "exported": false
       },
       {
         "name": "HomeScoutListingEvent",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 31,
+        "line": 32,
         "exported": false
       },
       {
         "name": "InsertHomeScoutListingEvent",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 32,
+        "line": 33,
         "exported": false
       },
       {
         "name": "HomeScoutMarketBucket",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 33,
+        "line": 34,
         "exported": false
       },
       {
         "name": "InsertHomeScoutMarketBucket",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 34,
+        "line": 35,
         "exported": false
       },
       {
         "name": "HomeScoutListingReport",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 35,
+        "line": 36,
         "exported": false
       },
       {
         "name": "InsertHomeScoutListingReport",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 36,
+        "line": 37,
         "exported": false
       },
       {
         "name": "HomeScoutInspectionRequest",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 37,
+        "line": 38,
         "exported": false
       },
       {
         "name": "InsertHomeScoutInspectionRequest",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 38,
+        "line": 39,
         "exported": false
       },
       {
         "name": "HomeScoutInspectionReport",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 39,
+        "line": 40,
         "exported": false
       },
       {
         "name": "InsertHomeScoutInspectionReport",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 40,
+        "line": 41,
         "exported": false
       },
       {
         "name": "HomeScoutInspectionServiceRequest",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 41,
+        "line": 42,
         "exported": false
       },
       {
         "name": "InsertHomeScoutInspectionServiceRequest",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 42,
+        "line": 43,
         "exported": false
       },
       {
         "name": "User",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 43,
+        "line": 44,
         "exported": false
       },
       {
         "name": "Contractor",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 44,
+        "line": 45,
         "exported": false
       },
       {
         "name": "County",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 45,
+        "line": 46,
         "exported": false
       },
       {
         "name": "MarketplaceCategory",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 46,
+        "line": 47,
         "exported": false
       },
       {
         "name": "InsertMarketplaceCategory",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 47,
+        "line": 48,
         "exported": false
       },
       {
         "name": "MarketplaceListing",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 48,
+        "line": 49,
         "exported": false
       },
       {
         "name": "InsertMarketplaceListing",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 49,
+        "line": 50,
         "exported": false
       },
       {
         "name": "MarketplaceInquiry",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 50,
+        "line": 51,
         "exported": false
       },
       {
         "name": "InsertMarketplaceInquiry",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 51,
+        "line": 52,
         "exported": false
       },
       {
         "name": "MarketplaceFavorite",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 52,
+        "line": 53,
         "exported": false
       },
       {
         "name": "InsertMarketplaceFavorite",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 53,
+        "line": 54,
         "exported": false
       },
       {
         "name": "MarketplaceReport",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 54,
+        "line": 55,
         "exported": false
       },
       {
         "name": "InsertMarketplaceReport",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 55,
+        "line": 56,
         "exported": false
       },
       {
         "name": "VendorVerification",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 56,
+        "line": 57,
         "exported": false
       },
       {
         "name": "InsertVendorVerification",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 57,
+        "line": 58,
         "exported": false
       },
       {
         "name": "BuyerVerification",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 58,
+        "line": 59,
         "exported": false
       },
       {
         "name": "InsertBuyerVerification",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 59,
+        "line": 60,
         "exported": false
       },
       {
         "name": "AddressVerification",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 60,
+        "line": 61,
         "exported": false
       },
       {
         "name": "InsertAddressVerification",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 61,
+        "line": 62,
         "exported": false
       },
       {
         "name": "SQL",
         "kind": "type",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 79,
+        "line": 80,
         "exported": false
       },
       {
         "name": "hasHomeScoutInspectionReportsTable",
         "kind": "function",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 90,
+        "line": 91,
         "exported": false
       },
       {
         "name": "MarketplaceAndHomeScoutStorageRepository",
         "kind": "class",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 111,
+        "line": 112,
         "exported": true
       },
       {
         "name": "escapeLike",
         "kind": "function",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 221,
+        "line": 229,
         "exported": false
       },
       {
-        "name": "orderByClause",
+        "name": "primaryOrderBy",
         "kind": "function",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 298,
+        "line": 306,
         "exported": false
       },
       {
         "name": "escapeLike",
         "kind": "function",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 844,
+        "line": 858,
         "exported": false
       },
       {
         "name": "clamp",
         "kind": "function",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 1017,
+        "line": 1031,
         "exported": false
       },
       {
         "name": "getTime",
         "kind": "function",
         "path": "server/storage/repositories/marketplace-and-homescout.ts",
-        "line": 1840,
+        "line": 1854,
         "exported": false
       },
       {
@@ -103748,6 +103814,41 @@
         "exported": false
       },
       {
+        "name": "routeHarness",
+        "kind": "function",
+        "path": "server/tests/exchange-discovery.behavior.test.ts",
+        "line": 20,
+        "exported": false
+      },
+      {
+        "name": "sourceOrder",
+        "kind": "function",
+        "path": "server/tests/exchange-discovery.behavior.test.ts",
+        "line": 60,
+        "exported": false
+      },
+      {
+        "name": "value",
+        "kind": "function",
+        "path": "server/tests/exchange-discovery.behavior.test.ts",
+        "line": 62,
+        "exported": false
+      },
+      {
+        "name": "request",
+        "kind": "function",
+        "path": "server/tests/exchange-discovery.behavior.test.ts",
+        "line": 118,
+        "exported": false
+      },
+      {
+        "name": "value",
+        "kind": "function",
+        "path": "server/tests/exchange-discovery.behavior.test.ts",
+        "line": 185,
+        "exported": false
+      },
+      {
         "name": "readFile",
         "kind": "function",
         "path": "server/tests/exchange-listing-seo.contract.test.ts",
@@ -105113,10 +105214,10 @@
         "exported": false
       },
       {
-        "name": "read",
+        "name": "profile",
         "kind": "function",
         "path": "server/tests/profile-catalog-exchange.contract.test.ts",
-        "line": 32,
+        "line": 39,
         "exported": false
       },
       {
@@ -131889,382 +131990,392 @@
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1003
+          "line": 976
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1016
+          "line": 989
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1029
+          "line": 1002
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1047
+          "line": 1020
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1205
+          "line": 1177
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1229
+          "line": 1201
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1237
+          "line": 1209
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1251
+          "line": 1223
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1264
+          "line": 1236
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1276
+          "line": 1248
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1289
+          "line": 1261
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1309
+          "line": 1281
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1451
+          "line": 1426
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1480
+          "line": 1455
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1494
+          "line": 1469
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/exchange.tsx",
+          "line": 1530
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1556
+          "line": 1550
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1564
+          "line": 1558
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1584
+          "line": 1578
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1650
+          "line": 1644
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1663
+          "line": 1657
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1677
+          "line": 1671
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1699
+          "line": 1693
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1715
+          "line": 1709
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1723
+          "line": 1717
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1738
+          "line": 1732
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1752
+          "line": 1746
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1774
+          "line": 1768
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1861
+          "line": 1855
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1874
+          "line": 1868
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1888
+          "line": 1882
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1901
+          "line": 1895
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 1991
+          "line": 1984
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2007
+          "line": 2000
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2042
+          "line": 2035
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2068
+          "line": 2061
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2091
+          "line": 2084
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2112
+          "line": 2105
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2124
+          "line": 2117
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2193
+          "line": 2186
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2226
+          "line": 2219
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2272
+          "line": 2265
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2282
+          "line": 2275
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2288
+          "line": 2281
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2296
+          "line": 2289
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2312
+          "line": 2305
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2324
+          "line": 2317
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2353
+          "line": 2346
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2372
+          "line": 2365
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2387
+          "line": 2380
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2408
+          "line": 2401
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2452
+          "line": 2445
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2473
+          "line": 2466
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2766
+          "line": 2759
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2776
+          "line": 2769
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2787
+          "line": 2780
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange.tsx",
-          "line": 2798
+          "line": 2791
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 316
+          "line": 328
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 326
+          "line": 338
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 340
+          "line": 352
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 356
+          "line": 368
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 372
+          "line": 384
         },
         {
           "tag": "select",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 393
+          "line": 405
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 411
+          "line": 423
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 464
+          "line": 476
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 474
+          "line": 486
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 490
+          "line": 502
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 499
+          "line": 511
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 526
+          "line": 538
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 574
+          "line": 586
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 810
+          "line": 825
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 828
+          "line": 843
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 836
+          "line": 851
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
+          "line": 893
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 881
+          "line": 917
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 890
+          "line": 926
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 899
+          "line": 935
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeCategoryPage.tsx",
-          "line": 906
+          "line": 942
         },
         {
           "tag": "button",
@@ -132309,27 +132420,27 @@
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeListingDetail.tsx",
-          "line": 766
+          "line": 770
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/exchange/ExchangeListingDetail.tsx",
-          "line": 826
+          "line": 832
         },
         {
           "tag": "input",
           "path": "client/src/pages/exchange/ExchangeListingDetail.tsx",
-          "line": 841
+          "line": 847
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeListingDetail.tsx",
-          "line": 852
+          "line": 858
         },
         {
           "tag": "button",
           "path": "client/src/pages/exchange/ExchangeListingDetail.tsx",
-          "line": 859
+          "line": 865
         },
         {
           "tag": "button",
@@ -141414,11 +141525,11 @@
   ],
   "summary": {
     "directories": 126,
-    "source_files": 2779,
-    "symbols": 14602,
+    "source_files": 2783,
+    "symbols": 14613,
     "components": 946,
-    "functions_and_hooks": 8943,
-    "raw_ui_elements": 4099,
+    "functions_and_hooks": 8953,
+    "raw_ui_elements": 4101,
     "errors": 11,
     "warnings": 5
   }
