@@ -6,18 +6,19 @@ import { sql } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { registerDirectConnectJobLifecycleRoutes } from "../routes/direct-connect/job-lifecycle";
 
-// Focused arithmetic integration: actual registered Express route and PostgreSQL
-// SQL semantics. Authentication/schema validation are injected test fixtures;
-// their authority behavior is covered by the separate native customer journey.
+// Actual registered Express route and PostgreSQL SQL semantics. Authentication
+// and schema parsing are fixtures; the separate native journey tests them.
 const postgres = new PGlite();
 const dialect = new PgDialect();
 let counter = 0;
+let databaseError = "";
 const app = express();
 app.use(express.json());
 const db = {
   execute: async (statement: any) => {
     const query = dialect.sqlToQuery(statement);
-    return postgres.query(query.sql, query.params);
+    try { return await postgres.query(query.sql, query.params); }
+    catch (error: any) { databaseError = `${error.code}: ${error.message}`; throw error; }
   },
   select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
 };
@@ -57,19 +58,18 @@ beforeAll(async () => {
 });
 afterAll(async () => postgres.close());
 beforeEach(async () => {
+  databaseError = "";
   await postgres.exec("TRUNCATE job_estimate_line_items, job_estimates, direct_connect_dispatch_candidates;");
   await postgres.query("INSERT INTO job_estimates(id,workspace_id,request_id,status) VALUES ('estimate','workspace','request','draft')");
   await postgres.query("INSERT INTO direct_connect_dispatch_candidates(request_id,eligibility_state,responder_user_id) VALUES ('request','eligible','fixture-supplier')");
 });
-
 async function add(lineType: string, amount: number, quantity = 1) {
   const response = await request(app)
     .post("/api/direct-connect/jobs/workspace/estimates/estimate/line-items")
     .send({ lineType, name: "Fixture " + lineType, quantity, unit: "each", unitCost: amount });
-  expect(response.status, JSON.stringify(response.body)).toBe(201);
+  expect(response.status, JSON.stringify(response.body) + " " + databaseError).toBe(201);
   return response.body.totals;
 }
-
 describe("Estimate subtotals from actual line-item inserts", () => {
   it("adds 100 and 200 once rather than compounding previous other charges", async () => {
     expect((await add("other", 100)).totalEstimate).toBe(100);
