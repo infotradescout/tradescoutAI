@@ -25,6 +25,7 @@ try {
   await go('cabinets');
   await page.getByTestId('steel-home-cabinet-start-kitchen').click();
   for(const [id,value] of [['steel-home-cabinet-primary-wall','180'],['steel-home-cabinet-return-wall','156'],['steel-home-cabinet-ceiling-height','108']]) await page.getByTestId(id).fill(value);
+  await page.locator('summary').filter({hasText:'3. Cabinet, appliance, and island modules'}).click();
   await page.getByTestId('steel-home-cabinet-add-base-cabinet').click();
   let sample = await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
   const m=sample.cabinets.planner.modules[0];
