@@ -29,6 +29,7 @@ export function reconcileCabinetPlannerExtension(value: unknown): CabinetPlanner
   const source = raw as Partial<CabinetPresentation>;
   const fronts: CabinetPresentation["fronts"] = Object.create(null);
   for (const module of measured.modules) {
+    if (geometry.isCabinetAccessory(module)) continue;
     const candidate = source.fronts && Object.prototype.hasOwnProperty.call(source.fronts, module.id) ? source.fronts[module.id] : null;
     if (CABINET_FRONT_LAYOUTS.includes(candidate as (typeof CABINET_FRONT_LAYOUTS)[number])) fronts[module.id] = candidate as (typeof CABINET_FRONT_LAYOUTS)[number];
   }
