@@ -14,7 +14,10 @@ export async function proveJwStoneRequestJourney({ page, context, database, fixt
   const dialog = page.getByRole('dialog', { name: 'JW Stone Logistics', exact: true });
   await dialog.waitFor();
   assert.equal(await dialog.locator('a[href^="tel:"]').count(), 0, 'No phone release merely from opening');
-  await click(dialog.getByRole('button', { name: 'Fill out the form', exact: true }));
+  // The existing JW caller explicitly uses initialView=request; do not expect
+  // the older choice screen or add an extra click to the actual customer path.
+  await dialog.getByLabel('Name', { exact: true }).waitFor();
+  assert.equal(await dialog.getByRole('button', { name: 'Fill out the form', exact: true }).count(), 0);
   await dialog.getByLabel('Name', { exact: true }).fill('Synthetic Customer');
   await dialog.getByLabel('Email', { exact: true }).fill(email);
   await dialog.locator('input[name="phone"]').fill('2025550147');
