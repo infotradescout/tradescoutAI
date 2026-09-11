@@ -57,7 +57,9 @@ describe("Canonical public profile root discovery", () => {
     for (const url of [...serviceUrls, hubUrl]) expect(response.text).toContain(`href="${url}"`);
     for (const service of ISSA_BUILD_LOCAL_DISCOVERY.services) expect(response.text).toContain(service.description);
     expect(response.text).toContain('rel="canonical" href="https://www.thetradescout.com/issa-build"');
-    expect(response.text).not.toContain('/issa-build/services/');
+    const paths = [...response.text.matchAll(/<a\b[^>]*href="([^"]+)"/g)].map(match => new URL(match[1]).pathname);
+    expect(paths.filter(value => value.startsWith('/issa-build/services/'))).toEqual([]);
+    expect(paths.filter(value => value.startsWith('/u/issa-build/services/'))).toHaveLength(4);
     expect(response.text.match(/data-seo-profile-service-links="true"/g)).toHaveLength(1);
     expect(response.text.match(/data-seo-profile-service-area-link="true"/g)).toHaveLength(1);
     expect(mock.getProfileBySlugPublic).toHaveBeenCalledWith("issa-build");
