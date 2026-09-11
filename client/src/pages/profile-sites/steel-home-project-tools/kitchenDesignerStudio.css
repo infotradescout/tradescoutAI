@@ -1,1 +1,151 @@
-.kitchen-designer-studio{display:flex;flex-direction:column;min-width:0;height:100%;color:#18312f;background:#f6f3ed;overflow:auto}.kitchen-designer-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;padding:.75rem 1rem;border-bottom:1px solid #d6ddd7;background:#fff}.kitchen-designer-toolbar strong{margin-right:auto;font-size:1rem}.kitchen-designer-toolbar button,.kitchen-designer-appearance select{min-height:44px;border:1px solid #aebdb5;border-radius:8px;padding:.5rem .75rem;background:white;color:#18312f;font-size:.8rem}.kitchen-designer-toolbar button:disabled{opacity:.4;cursor:not-allowed}.kitchen-designer-toolbar button:focus-visible,.kitchen-designer-appearance select:focus-visible{outline:3px solid #a94f2e;outline-offset:2px}.kitchen-designer-appearance{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:end;padding:.75rem 1rem;border-bottom:1px solid #d6ddd7}.kitchen-designer-appearance label{display:grid;gap:.25rem;font-size:.75rem;font-weight:700;flex:1;min-width:130px}.kitchen-designer-appearance select{width:100%}.kitchen-designer-appearance p{flex-basis:100%;font-size:.72rem;line-height:1.5;color:#4b5d53}.kitchen-designer-editor{flex:1;min-height:0}.kitchen-designer-review{max-height:24rem;overflow:auto;padding:1rem;background:white;border-bottom:1px solid #aebdb5}.kitchen-designer-review pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.7 ui-monospace,monospace}.kitchen-designer-notice{padding:.5rem 1rem;font-size:.8rem;background:#e1ece5}.kitchen-designer-studio[data-cabinet-appearance=true] [data-testid=steel-home-cabinet-live-summary]>div:first-child>p:last-child{display:none}@media(max-width:1023px){.kitchen-designer-editor{flex:none;min-height:36rem}.kitchen-designer-toolbar strong{flex-basis:100%}}
+/* A definite outer height lets each editor own its scrolling instead of growing behind the shell. */
+[data-testid="steel-home-packages-profile"]:has(.kitchen-designer-studio) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+[data-testid="steel-home-packages-profile"]:has(.kitchen-designer-studio) > header { height: 48px; }
+[data-testid="steel-home-builder-workbench"]:has(.kitchen-designer-studio) {
+  min-height: 0;
+  overflow: hidden;
+}
+[data-testid="steel-home-builder-workbench"]:has(.kitchen-designer-studio) > header { height: 56px; }
+
+.kitchen-designer-studio {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  color: #18312f;
+  background: #f6f3ed;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.kitchen-designer-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid #d6ddd7;
+  background: #fff;
+}
+.kitchen-designer-toolbar strong { margin-right: auto; font-size: 1rem; }
+.kitchen-designer-toolbar button,
+.kitchen-designer-appearance select {
+  min-height: 44px;
+  border: 1px solid #aebdb5;
+  border-radius: 8px;
+  padding: .5rem .75rem;
+  background: white;
+  color: #18312f;
+  font-size: .8rem;
+}
+.kitchen-designer-toolbar button:disabled { opacity: .4; cursor: not-allowed; }
+.kitchen-designer-toolbar button[aria-expanded="true"] { border-color: #18312f; background: #e1ece5; }
+.kitchen-designer-toolbar button:focus-visible,
+.kitchen-designer-appearance select:focus-visible { outline: 3px solid #a94f2e; outline-offset: 2px; }
+.kitchen-designer-appearance {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: .35rem .75rem;
+  align-items: end;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid #d6ddd7;
+}
+.kitchen-designer-appearance label { display: grid; gap: .2rem; font-size: .75rem; font-weight: 700; flex: 1; min-width: 130px; }
+.kitchen-designer-appearance select { width: 100%; }
+.kitchen-designer-appearance p { flex-basis: 100%; margin: 0; font-size: .7rem; line-height: 1.4; color: #4b5d53; }
+.kitchen-designer-stage { position: relative; flex: 1; min-height: 0; min-width: 0; }
+.kitchen-designer-editor { flex: 1; min-height: 0; min-width: 0; }
+.kitchen-designer-stage > .kitchen-designer-editor { height: 100%; }
+.kitchen-designer-context-settings { flex: 0 0 auto; max-height: 160px; overflow: auto; }
+.kitchen-designer-review { max-height: 24rem; overflow: auto; padding: 1rem; background: white; border-bottom: 1px solid #aebdb5; }
+.kitchen-designer-review pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.7 ui-monospace,monospace; }
+.kitchen-designer-notice { flex: 0 0 auto; margin: 0; padding: .4rem .75rem; font-size: .8rem; background: #e1ece5; }
+.kitchen-designer-studio[data-cabinet-appearance="true"] [data-testid="steel-home-cabinet-live-summary"] > div:first-child > p:last-child { display: none; }
+
+/* The non-modal tool panel replaces the inspector; the canvas and history toolbar stay in place. */
+.kitchen-workspace-panel[open] {
+  position: absolute;
+  display: block;
+  inset: 0 0 0 auto;
+  z-index: 5;
+  box-sizing: border-box;
+  width: 40%;
+  min-width: 360px;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: #18312f;
+  background: #f7f3ec;
+  border: 0;
+  border-left: 1px solid #b9c4bd;
+  box-shadow: -8px 0 24px #18312f12;
+}
+.kitchen-workspace-panel > [data-testid="cabinet-library-panel"],
+.kitchen-workspace-panel > .kitchen-designer-review {
+  width: 100%; height: 100%; max-height: none; overflow-y: auto; overscroll-behavior: contain;
+}
+.kitchen-workspace-panel [data-testid="cabinet-library-panel"] > .grid { grid-template-columns: minmax(0,1fr); }
+.kitchen-workspace-panel [data-testid="cabinet-library-panel"] > .grid:has(> button) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.kitchen-designer-editor #cabinet-designer > .grid,
+.kitchen-designer-editor #cabinet-designer > .grid > div { min-width: 0; }
+.kitchen-designer-editor [data-testid="steel-home-cabinet-plan"] { min-width: 0; max-width: 100%; width: 100%; }
+
+@media (min-width: 1024px) {
+  .kitchen-designer-studio[data-cabinet-appearance] { overflow: hidden; }
+  .kitchen-designer-editor #cabinet-designer > .grid { min-height: 0; height: 100%; grid-template-columns: minmax(0,3fr) minmax(360px,2fr); }
+  .kitchen-designer-editor #cabinet-designer > .grid > div:first-child { min-height: 0; gap: 8px; padding: 12px; overflow: hidden; }
+  .kitchen-designer-stage[data-panel-open="true"] #cabinet-designer > .grid > div:last-child { visibility: hidden; }
+  .kitchen-designer-editor [data-testid="steel-home-cabinet-preview"] { min-height: 0; flex: 1 1 0; }
+  .kitchen-designer-editor [data-testid="cabinet-direct-placement"] { min-height: 0; }
+  .kitchen-designer-editor [data-testid="cabinet-direct-placement"] > div { flex: 0 0 auto; padding: 8px; }
+  .kitchen-designer-editor [data-testid="cabinet-direct-placement"] > svg { flex: 1 1 0; height: 0; min-height: 140px; }
+  .kitchen-designer-editor [data-testid="cabinet-placement-status"] { min-height: 0; }
+  .kitchen-designer-editor [data-testid="cabinet-direct-placement"] > div:last-child > p[id] { font-size: .68rem; line-height: 1.35; }
+  .kitchen-designer-editor [data-testid="steel-home-cabinet-live-summary"] { flex: 0 0 auto; padding: 8px 12px; gap: 8px; }
+  .kitchen-designer-editor [data-testid="steel-home-cabinet-live-summary"] > div:first-child > p:first-child { display: none; }
+  .kitchen-designer-editor [data-testid="steel-home-cabinet-three-preview"],
+  .kitchen-designer-editor [data-testid="steel-home-cabinet-three-preview"] canvas { min-height: 0; height: 100%; }
+  .kitchen-designer-studio:not([data-cabinet-appearance]) > .kitchen-designer-editor { overflow: auto; }
+}
+
+@media (max-width: 1023px) {
+  .kitchen-designer-studio > .kitchen-designer-toolbar { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: thin; }
+  .kitchen-designer-studio > .kitchen-designer-toolbar strong { display: none; }
+  .kitchen-designer-studio > .kitchen-designer-toolbar button { flex-shrink: 0; white-space: nowrap; }
+  .kitchen-designer-appearance { flex-wrap: nowrap; align-items: stretch; overflow-x: auto; scrollbar-width: thin; }
+  .kitchen-designer-appearance label { flex: 0 0 144px; }
+  .kitchen-designer-appearance p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .kitchen-designer-stage { flex: none; height: auto; }
+  .kitchen-designer-stage > .kitchen-designer-editor,
+  .kitchen-designer-editor #cabinet-designer { height: auto; min-height: 0; overflow: visible; }
+  .kitchen-designer-editor #cabinet-designer > .grid { height: auto; min-height: 0; grid-template-columns: minmax(0,1fr); }
+  .kitchen-designer-editor #cabinet-designer > .grid > div:first-child { min-height: 0; }
+  .kitchen-designer-editor [data-testid="steel-home-cabinet-preview"] { min-height: 0; }
+  .kitchen-designer-editor [data-testid="cabinet-direct-placement"] { height: auto; }
+  .kitchen-designer-editor [data-testid="steel-home-cabinet-plan"] { flex: none; height: 260px; min-height: 0; }
+  .kitchen-designer-stage[data-panel-open="true"] { height: max(360px,calc(100dvh - 244px)); overflow: hidden; }
+  .kitchen-designer-stage[data-panel-open="true"] > .kitchen-designer-editor { visibility: hidden; }
+  .kitchen-workspace-panel[open] { width: 100%; min-width: 0; border-left: 0; }
+  .kitchen-designer-studio:not([data-cabinet-appearance]) > .kitchen-designer-editor { flex: none; height: auto; min-height: 0; }
+}
+
+/* Keep the countertop room inspectable on short screens instead of a fixed 608px canvas. */
+.kitchen-designer-editor #countertop-designer > .grid > div:first-child > .relative {
+  height: clamp(280px,calc(100dvh - 390px),560px);
+  min-height: 0;
+}
+.kitchen-designer-editor #countertop-designer > .grid > div:first-child > .relative > div,
+.kitchen-designer-editor [data-testid="steel-home-countertop-3d-visualizer"] {
+  height: 100%; min-height: 0;
+}
+.kitchen-designer-editor [data-testid="steel-home-countertop-3d-visualizer"] canvas { height: 100% !important; min-height: 0; }
