@@ -24,6 +24,7 @@ if (process.env.WORKSPACE_MODE === 'thumbnail') {
   await fs.writeFile(path.join(out,'index.html'),'<h1>Synthetic workspace screenshots</h1>'+names.map(name=>'<p>'+name+'</p><img src="'+name+'.png" style="max-width:100%">').join(''));
 } else if (process.env.WORKSPACE_MODE === 'verify') {
   await import('./verify-kitchen-workspace.mjs');
+  await import('./emit-kitchen-workspace-image.mjs');
 } else {
   await import('./inspect-kitchen-workspace-capture.mjs');
 }
