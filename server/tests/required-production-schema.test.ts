@@ -15,6 +15,9 @@ import {
 } from "../../scripts/check-required-production-schema.mjs";
 
 const completeSchemaCheck = {
+  recommendationSubmissionColumns: true,
+  recommendationPublicationProjection: true,
+  recommendationPublicationMigrationRecorded: true,
   contractorRecommendationColumns: true,
   notificationRuntimeColumns: true,
   userPrivacySettingsContract: true,
@@ -55,6 +58,20 @@ const completeSchemaCheck = {
 };
 
 describe("required production schema guard", () => {
+  it.each([
+    "recommendationSubmissionColumns",
+    "recommendationPublicationProjection",
+    "recommendationPublicationMigrationRecorded",
+  ])("blocks release when %s is missing", (field) => {
+    expect(evaluateRequiredProductionSchema({ ...completeSchemaCheck, [field]: false })).toEqual([
+      field === "recommendationSubmissionColumns"
+        ? "recommendations[private submission and moderation columns]"
+        : field === "recommendationPublicationProjection"
+          ? "recommendations[0136 authoritative publication projection functions and triggers]"
+          : "drizzle.__drizzle_migrations[0136 canonical hash]",
+    ]);
+  });
+
   it("accepts the committed migration hash across LF and CRLF checkouts", () => {
     expect(buildLineEndingCompatibleMigrationHashes("select 1;\n")).toEqual(
       buildLineEndingCompatibleMigrationHashes("select 1;\r\n")

@@ -45,10 +45,11 @@ import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
 import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "@/lib/progressiveFeatureUnlocks";
-import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
+import { DEFAULT_LANDING, getCurrentInternalPath } from "@/lib/postOnboardingRoute";
 import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 
 export type NavItem = {
@@ -435,7 +436,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isSetupSurface =
     location.startsWith("/pre-scout-setup") || isOnboardingSurfacePath(location);
   const isAdminSurface = location.startsWith("/admin");
-  const isAuthOrSetupSurface = isAuthSurface || isSetupSurface;
+  // A captured action already supplies the user's goal. Keep its confirmation
+  // screen focused and defer the Start Guide without marking it seen.
+  const isRecommendationSurface = isRecommendationActionPath(getCurrentInternalPath(location));
+  const isAuthOrSetupSurface = isAuthSurface || isSetupSurface || isRecommendationSurface;
   const role =
     typeof (user as any)?.role === "string"
       ? String((user as any).role)

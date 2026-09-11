@@ -44,7 +44,8 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
-import { db } from "../../db";
+import { db, pool } from "../../db";
+import { createRecommendationRepository } from "./recommendations";
 import { MarketplaceAndHomeScoutStorageRepository } from "./marketplace-and-homescout";
 
 export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeScoutStorageRepository {
@@ -656,123 +657,10 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
   }
 
   // Leaderboard operations
-  async updateContractorLeaderboardStats(contractorId: string, rating: number): Promise<void> {
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
-
-    try {
-      const [latestStats] = await db
-        .select()
-        .from(contractorLeaderboardStats)
-        .where(eq(contractorLeaderboardStats.contractorId, contractorId))
-        .orderBy(desc(contractorLeaderboardStats.lastUpdated))
-        .limit(1);
-
-      const positiveDelta = rating > 0 ? 1 : 0;
-      const negativeDelta = rating > 0 ? 0 : 1;
-      const totalDelta = positiveDelta + negativeDelta;
-
-      // Get existing stats for this month/year
-      const [existingStats] = await db
-        .select()
-        .from(contractorLeaderboardStats)
-        .where(
-          and(
-            eq(contractorLeaderboardStats.contractorId, contractorId),
-            eq(contractorLeaderboardStats.month, month),
-            eq(contractorLeaderboardStats.year, year)
-          )
-        );
-
-      if (existingStats) {
-        const baseLifetimePositive =
-          existingStats.lifetimePositiveRecommendations ??
-          latestStats?.lifetimePositiveRecommendations ??
-          0;
-        const baseLifetimeNegative =
-          existingStats.lifetimeNegativeRecommendations ??
-          latestStats?.lifetimeNegativeRecommendations ??
-          0;
-        const baseLifetimeTotal =
-          existingStats.lifetimeTotalRecommendations ??
-          latestStats?.lifetimeTotalRecommendations ??
-          0;
-
-        const monthlyPositive = (existingStats.monthlyPositiveRecommendations ?? 0) + positiveDelta;
-        const monthlyNegative = (existingStats.monthlyNegativeRecommendations ?? 0) + negativeDelta;
-        const monthlyTotal = (existingStats.monthlyTotalRecommendations ?? 0) + totalDelta;
-
-        const lifetimePositive = baseLifetimePositive + positiveDelta;
-        const lifetimeNegative = baseLifetimeNegative + negativeDelta;
-        const lifetimeTotal = baseLifetimeTotal + totalDelta;
-
-        const monthlyScore = monthlyPositive - monthlyNegative;
-        const lifetimeScore = lifetimePositive - lifetimeNegative;
-
-        const monthlyPercentage =
-          monthlyTotal > 0 ? ((monthlyPositive / monthlyTotal) * 100).toFixed(2) : null;
-        const lifetimePercentage =
-          lifetimeTotal > 0 ? ((lifetimePositive / lifetimeTotal) * 100).toFixed(2) : null;
-
-        await db
-          .update(contractorLeaderboardStats)
-          .set({
-            monthlyPositiveRecommendations: monthlyPositive,
-            monthlyNegativeRecommendations: monthlyNegative,
-            monthlyTotalRecommendations: monthlyTotal,
-            monthlyRecommendationScore: monthlyScore.toString(),
-            monthlyRecommendationPercentage: monthlyPercentage,
-            lifetimePositiveRecommendations: lifetimePositive,
-            lifetimeNegativeRecommendations: lifetimeNegative,
-            lifetimeTotalRecommendations: lifetimeTotal,
-            lifetimeRecommendationScore: lifetimeScore.toString(),
-            lifetimeRecommendationPercentage: lifetimePercentage,
-            lastUpdated: now,
-          })
-          .where(eq(contractorLeaderboardStats.id, existingStats.id));
-      } else {
-        const baseLifetimePositive = latestStats?.lifetimePositiveRecommendations ?? 0;
-        const baseLifetimeNegative = latestStats?.lifetimeNegativeRecommendations ?? 0;
-        const baseLifetimeTotal = latestStats?.lifetimeTotalRecommendations ?? 0;
-
-        const monthlyPositive = positiveDelta;
-        const monthlyNegative = negativeDelta;
-        const monthlyTotal = totalDelta;
-
-        const lifetimePositive = baseLifetimePositive + positiveDelta;
-        const lifetimeNegative = baseLifetimeNegative + negativeDelta;
-        const lifetimeTotal = baseLifetimeTotal + totalDelta;
-
-        const monthlyScore = monthlyPositive - monthlyNegative;
-        const lifetimeScore = lifetimePositive - lifetimeNegative;
-
-        const monthlyPercentage =
-          monthlyTotal > 0 ? ((monthlyPositive / monthlyTotal) * 100).toFixed(2) : null;
-        const lifetimePercentage =
-          lifetimeTotal > 0 ? ((lifetimePositive / lifetimeTotal) * 100).toFixed(2) : null;
-
-        // Create new record
-        await db.insert(contractorLeaderboardStats).values({
-          contractorId,
-          month,
-          year,
-          monthlyPositiveRecommendations: monthlyPositive,
-          monthlyNegativeRecommendations: monthlyNegative,
-          monthlyTotalRecommendations: monthlyTotal,
-          monthlyRecommendationScore: monthlyScore.toString(),
-          monthlyRecommendationPercentage: monthlyPercentage,
-          lifetimePositiveRecommendations: lifetimePositive,
-          lifetimeNegativeRecommendations: lifetimeNegative,
-          lifetimeTotalRecommendations: lifetimeTotal,
-          lifetimeRecommendationScore: lifetimeScore.toString(),
-          lifetimeRecommendationPercentage: lifetimePercentage,
-          lastUpdated: now,
-        });
-      }
-    } catch (error: any) {
-      console.error("Error updating leaderboard stats:", error);
-    }
+  async updateContractorLeaderboardStats(contractorId: string, _rating: number): Promise<void> {
+    // Rebuild from confirmed, approved publication. A submitted rating never
+    // increments public reputation before verification and moderation.
+    await createRecommendationRepository(db).updateStats(contractorId);
   }
 
   async getMonthlyLeaderboard(
@@ -783,10 +671,6 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
     county?: string
   ): Promise<any> {
     try {
-      // Use direct SQL with pool.query to avoid Drizzle issues
-      const { Pool } = await import("@neondatabase/serverless");
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
       let query = `
         SELECT
           cls.contractor_id,
@@ -808,6 +692,7 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
         WHERE cls.month = $1
           AND cls.year = $2
           AND c.is_active = true
+          AND cls.monthly_total_recommendations > 0
       `;
 
       const params: Array<string | number> = [month, year];
@@ -866,10 +751,6 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
 
   async getLifetimeLeaderboard(limit: number, state?: string, county?: string): Promise<any> {
     try {
-      // Use direct SQL with pool.query to avoid Drizzle issues
-      const { Pool } = await import("@neondatabase/serverless");
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
       let query = `
         SELECT
           cls.contractor_id,
@@ -884,7 +765,7 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
         FROM contractor_leaderboard_stats cls
         INNER JOIN contractors c ON cls.contractor_id = c.id
         LEFT JOIN users u ON c.user_id = u.id
-        WHERE c.is_active = true
+        WHERE c.is_active = true AND cls.lifetime_total_recommendations > 0
       `;
 
       const params: Array<string | number> = [];
@@ -939,6 +820,12 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
   }
 
   async getContractorLeaderboardPosition(contractorId: string): Promise<any> {
+    const [visibleContractor] = await db
+      .select({ id: contractors.id })
+      .from(contractors)
+      .where(and(eq(contractors.id, contractorId), eq(contractors.isActive, true)))
+      .limit(1);
+    if (!visibleContractor) return { contractorId, monthly: null, lifetime: null };
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
@@ -965,12 +852,16 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
 
     // Calculate monthly rank
     let monthlyRank = null;
-    if (monthlyStats) {
+    if (monthlyStats && Number(monthlyStats.monthlyTotalRecommendations) > 0) {
       const [rankResult] = await db
-        .select({ rank: sql<number>`COUNT(*) + 1` })
+        .select({
+          rank: sql<number>`COUNT(DISTINCT ${contractorLeaderboardStats.contractorId}) + 1`,
+        })
         .from(contractorLeaderboardStats)
+        .innerJoin(contractors, eq(contractors.id, contractorLeaderboardStats.contractorId))
         .where(
           and(
+            eq(contractors.isActive, true),
             eq(contractorLeaderboardStats.month, month),
             eq(contractorLeaderboardStats.year, year),
             gt(
@@ -984,14 +875,20 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
 
     // Calculate lifetime rank
     let lifetimeRank = null;
-    if (lifetimeStats) {
+    if (lifetimeStats && Number(lifetimeStats.lifetimeTotalRecommendations) > 0) {
       const [rankResult] = await db
-        .select({ rank: sql<number>`COUNT(*) + 1` })
+        .select({
+          rank: sql<number>`COUNT(DISTINCT ${contractorLeaderboardStats.contractorId}) + 1`,
+        })
         .from(contractorLeaderboardStats)
+        .innerJoin(contractors, eq(contractors.id, contractorLeaderboardStats.contractorId))
         .where(
-          gt(
-            contractorLeaderboardStats.lifetimeTotalRecommendations,
-            lifetimeStats.lifetimeTotalRecommendations ?? 0
+          and(
+            eq(contractors.isActive, true),
+            gt(
+              contractorLeaderboardStats.lifetimeTotalRecommendations,
+              lifetimeStats.lifetimeTotalRecommendations ?? 0
+            )
           )
         );
       lifetimeRank = rankResult?.rank || 1;

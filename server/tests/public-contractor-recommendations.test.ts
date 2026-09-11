@@ -35,12 +35,14 @@ function recommendation(overrides: Partial<Recommendation> = {}): Recommendation
 }
 
 describe("public contractor recommendations", () => {
-  it("publishes only approved recommendations explicitly marked public", () => {
+  it("publishes only verified, approved recommendations explicitly marked public", () => {
     const result = toPublicContractorRecommendations([
       recommendation(),
       recommendation({ id: "pending", moderationStatus: "pending" }),
       recommendation({ id: "private", isPublic: false }),
       recommendation({ id: "rejected", moderationStatus: "rejected" }),
+      recommendation({ id: "unverified", isVerified: false }),
+      recommendation({ id: "missing-evidence", isVerified: null }),
     ]);
 
     expect(result).toHaveLength(1);

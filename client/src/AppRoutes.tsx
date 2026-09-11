@@ -2,6 +2,7 @@ import React, { lazy, memo, Suspense, useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { ErrorBoundary } from "./components/ui/error-boundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 import { useAuth } from "./hooks/useAuth";
 
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
@@ -101,8 +102,10 @@ const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() 
     if (!userNeedsOnboarding(user)) {
       return;
     }
-    // The only non-onboarding continuation allowed for an incomplete account:
-    // a session-scoped exact directory claim created by the outcome endpoint.
+    // Resume a captured recommendation or its email confirmation without
+    // requiring a separate onboarding outcome. Server publication gates apply.
+    if (isRecommendationActionPath(raw)) return;
+    // A session-scoped exact directory claim created by the outcome endpoint.
     if (isOutcomeOnboardingClaimContinuationPath(raw)) return;
     if (isOnboardingExemptPath(pathOnly)) return;
 
