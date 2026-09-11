@@ -2,6 +2,7 @@ import {
   CABINET_STUDIO_FINISHES,
   getCabinetModuleBounds,
   getCabinetPlannerDiagnostics,
+  isCabinetAccessory,
   reconcileCabinetPlannerExtension,
   type CabinetPlacementSurface,
   type CabinetPlannerExtensionV1,
@@ -13,11 +14,12 @@ export type CabinetLibraryPreset = {
   id: string;
   label: string;
   kind: CabinetPlannerModule["kind"];
-  front: CabinetPresentation["fronts"][string];
+  front: CabinetPresentation["fronts"][string] | null;
   widthIn: number;
   depthIn: number;
   heightIn: number;
   elevationIn: number;
+  wallInsetIn?: number;
 };
 
 // Explicitly chosen planning sizes, not manufacturer products or verified stock.
@@ -33,6 +35,12 @@ export const CABINET_LIBRARY_PRESETS: readonly CabinetLibraryPreset[] = [
   { id: "island-drawers", label: "Island drawer cabinet", kind: "island", front: "drawers", widthIn: 30, depthIn: 24, heightIn: 34.5, elevationIn: 0 },
 ];
 
+export const CABINET_ACCESSORY_PRESETS: readonly CabinetLibraryPreset[] = [
+  { id: "filler", label: "Filler strip", kind: "filler", front: null, widthIn: 3, depthIn: 0.75, heightIn: 30.5, elevationIn: 4, wallInsetIn: 23.25 },
+  { id: "end-panel", label: "Finished end panel", kind: "end-panel", front: null, widthIn: 0.75, depthIn: 24, heightIn: 34.5, elevationIn: 0, wallInsetIn: 0 },
+];
+export const CABINET_ALL_PRESETS = [...CABINET_LIBRARY_PRESETS, ...CABINET_ACCESSORY_PRESETS] as const;
+
 export type CabinetLibrarySelection = {
   presetId: string;
   surface: CabinetPlacementSurface;
@@ -42,6 +50,7 @@ export type CabinetLibrarySelection = {
   elevationIn: number | null;
   offsetIn: number | null;
   roomDepthOffsetIn: number | null;
+  wallInsetIn?: number | null;
 };
 export type CabinetLibraryProposal = {
   planner: CabinetPlannerExtensionV1 | null;
@@ -53,13 +62,14 @@ const overlaps = (a: number, b: number, c: number, d: number) => a < d - .001 &&
 const onGrid = (value: number) => Math.abs(value * 8 - Math.round(value * 8)) < 1e-7;
 
 export function cabinetLibrarySelection(presetId: string): CabinetLibrarySelection | null {
-  const preset = CABINET_LIBRARY_PRESETS.find(item => item.id === presetId);
+  const preset = CABINET_ALL_PRESETS.find(item => item.id === presetId);
   return preset ? {
     presetId, surface: preset.kind === "island" ? "floor" : "north",
     widthIn: preset.widthIn, depthIn: preset.depthIn, heightIn: preset.heightIn,
     elevationIn: preset.elevationIn, offsetIn: 0,
     // Floor position must be entered deliberately, not placed at an invented kitchen island position.
     roomDepthOffsetIn: preset.kind === "island" ? null : 0,
+    ...(isCabinetAccessory(preset) ? { wallInsetIn: preset.wallInsetIn ?? 0 } : {}),
   } : null;
 }
 
@@ -71,7 +81,7 @@ export function proposeLibraryCabinet(
 ): CabinetLibraryProposal {
   const planner = reconcileCabinetPlannerExtension(input);
   const problems: string[] = [];
-  const preset = CABINET_LIBRARY_PRESETS.find(item => item.id === selection.presetId);
+  const preset = CABINET_ALL_PRESETS.find(item => item.id === selection.presetId);
   if (!preset) problems.push("Choose a cabinet configuration.");
   if (!planner.starter || Object.values(planner.shell).slice(0, 3).some(value => value === null)) {
     problems.push("Enter the measured room width, depth and height first.");
@@ -86,6 +96,9 @@ export function proposeLibraryCabinet(
     ["offsetIn", "Offset", 0, 720],
   ];
   if (selection.surface === "floor") dimensions.push(["roomDepthOffsetIn", "Distance from north", 0, 720]);
+  if (preset && isCabinetAccessory(preset) && selection.surface !== "floor") {
+    dimensions.push(["wallInsetIn", "Wall setback", 0, 720]);
+  }
   for (const [key, label, minimum, maximum] of dimensions) {
     const value = selection[key];
     if (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum || !onGrid(value)) {
@@ -98,12 +111,13 @@ export function proposeLibraryCabinet(
     widthIn: selection.widthIn!, depthIn: selection.depthIn!, heightIn: selection.heightIn!,
     elevationIn: selection.elevationIn!, offsetIn: selection.offsetIn!,
     roomDepthOffsetIn: selection.surface === "floor" ? selection.roomDepthOffsetIn! : 0,
+    ...(isCabinetAccessory(preset) ? { wallInsetIn: selection.surface === "floor" ? 0 : selection.wallInsetIn! } : {}),
   };
   const appearance = planner.presentation ?? { style: null, finish: null, hardware: null, fronts: {} };
   const next = reconcileCabinetPlannerExtension({
     ...planner, selectedModuleId: id, modules: [...planner.modules, module],
     shell: { ...planner.shell, measurementsReviewed: false },
-    presentation: { ...appearance, fronts: { ...appearance.fronts, [id]: preset.front } },
+    presentation: { ...appearance, fronts: { ...appearance.fronts, ...(preset.front ? { [id]: preset.front } : {}) } },
   });
   problems.push(...getCabinetPlannerDiagnostics(next).filter(item => item.objectIds.includes(id)).map(item => item.message));
   const bounds = getCabinetModuleBounds(next, module)!;
@@ -111,7 +125,8 @@ export function proposeLibraryCabinet(
   for (const item of planner.shellItems) {
     if (!["door", "window", "obstacle"].includes(item.kind)) continue;
     const obstacle = getCabinetModuleBounds(next, {
-      ...module, surface: item.wall, widthIn: item.widthIn, depthIn: item.depthIn,
+      ...module, kind: "appliance", wallInsetIn: 0,
+      surface: item.wall, widthIn: item.widthIn, depthIn: item.depthIn,
       heightIn: item.heightIn, elevationIn: item.elevationIn, offsetIn: item.offsetIn,
     })!;
     if (overlaps(bounds.x1, bounds.x2, obstacle.x1, obstacle.x2) &&
@@ -169,7 +184,9 @@ export function cabinetSchedule(input: CabinetPlannerExtensionV1): CabinetSchedu
   const planner = reconcileCabinetPlannerExtension(input);
   const rows = new Map<string, CabinetScheduleRow>();
   for (const module of planner.modules) {
-    const front = module.kind === "appliance" ? "Appliance space, not a cabinet" : planner.presentation?.fronts[module.id] ?? "Not selected";
+    const front = module.kind === "appliance" ? "Appliance space, not a cabinet"
+      : isCabinetAccessory(module) ? "Accessory panel, not a cabinet"
+      : planner.presentation?.fronts[module.id] ?? "Not selected";
     const key = JSON.stringify([module.label, module.kind, module.widthIn, module.depthIn, module.heightIn, front]);
     const row = rows.get(key) ?? {
       quantity: 0, label: module.label, kind: module.kind,
@@ -179,7 +196,7 @@ export function cabinetSchedule(input: CabinetPlannerExtensionV1): CabinetSchedu
     row.quantity++; row.ids.push(module.id);
     row.placements.push(module.surface === "floor"
       ? `Floor: X ${module.offsetIn}, Y ${module.roomDepthOffsetIn}, elevation ${module.elevationIn} in`
-      : `${module.surface}: offset ${module.offsetIn}, elevation ${module.elevationIn} in`);
+      : `${module.surface}: offset ${module.offsetIn}, elevation ${module.elevationIn} in${isCabinetAccessory(module) ? `, wall setback ${module.wallInsetIn ?? 0} in` : ""}`);
     rows.set(key, row);
   }
   return [...rows.values()];
