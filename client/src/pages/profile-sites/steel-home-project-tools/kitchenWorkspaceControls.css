@@ -1,0 +1,28 @@
+/* The platform input theme is dark; the cabinet workspace is explicitly light. */
+.kitchen-designer-studio[data-cabinet-appearance] {
+  --ts-input-bg: #fff;
+  --ts-input-border: #aebdb5;
+  --ts-text: #18312f;
+  color-scheme: light;
+}
+.kitchen-designer-studio[data-cabinet-appearance] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.kitchen-designer-studio[data-cabinet-appearance] select,
+.kitchen-designer-studio[data-cabinet-appearance] textarea {
+  color: #18312f;
+  background-color: #fff;
+  border-color: #aebdb5;
+  caret-color: #18312f;
+}
+.kitchen-designer-studio[data-cabinet-appearance] input::placeholder,
+.kitchen-designer-studio[data-cabinet-appearance] textarea::placeholder {
+  color: #596965;
+  opacity: 1;
+}
+.kitchen-workspace-panel [data-testid="cabinet-library-panel"] > header {
+  position: sticky;
+  top: -1rem;
+  z-index: 2;
+  background: #f7f3ec;
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+}
