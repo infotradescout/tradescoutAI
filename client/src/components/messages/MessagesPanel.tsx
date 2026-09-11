@@ -500,7 +500,8 @@ export default function MessagesPanel() {
       id: m.id,
       threadId: m.conversationId,
       authorId: m.senderId,
-      authorName: m.senderId === user?.id ? "You" : "Them",
+      authorName:
+        m.senderType === "staff" ? "TradeScout staff" : m.senderId === user?.id ? "You" : "Them",
       content: m.content,
       createdAt: m.createdAt,
       isMine: m.senderId === user?.id,
@@ -759,7 +760,7 @@ export default function MessagesPanel() {
       </Card>
 
       <Card
-        className={`flex-1 flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)] md:flex ${hasSelection ? "flex" : "hidden md:flex"}`}
+        className={`min-h-0 min-w-0 flex-1 flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)] md:flex ${hasSelection ? "flex" : "hidden md:flex"}`}
       >
         <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -870,7 +871,12 @@ export default function MessagesPanel() {
         ) : (
           <>
             {activeThreadId && (
-              <div className="px-5 py-4 border-b border-white/10 space-y-3">
+              <div
+                className="max-h-[40%] shrink-0 overflow-y-auto px-5 py-4 border-b border-white/10 space-y-3"
+                role="region"
+                aria-label="Job and home context"
+                tabIndex={0}
+              >
                 {directConnectThreadJobQuery.isLoading ? (
                   <div className="rounded-xl border border-white/10 bg-tsCard/95 p-4">
                     <div className="h-4 w-44 rounded bg-white/10" />
@@ -1278,7 +1284,7 @@ export default function MessagesPanel() {
               </div>
             )}
 
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="min-h-40 flex-1 p-4" aria-label="Conversation messages">
               <div className="space-y-3">
                 {mappedMessages.length === 0 ? (
                   <div className="text-center text-white/60 py-12">No messages yet.</div>

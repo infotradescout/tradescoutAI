@@ -23,7 +23,26 @@ export type SendEmailParams = {
   requestId?: string | null;
   /** Optional secondary correlation id (e.g. HTTP request id). */
   correlationId?: string | null;
+  /** Durable callers own retry scheduling and must not repeat an ambiguous submission. */
+  singleAttempt?: boolean;
 };
+
+export class EmailDeliveryError extends Error {
+  constructor(readonly disposition: "retryable" | "rejected" | "unknown") {
+    super(`Email provider outcome: ${disposition}`);
+    this.name = "EmailDeliveryError";
+  }
+}
+
+function durableDeliveryError(status?: number): EmailDeliveryError {
+  // A rate-limit rejection is safe to retry. Timeout, transport, and upstream
+  // failures can happen after acceptance; retain them for reconciliation.
+  if (status === 429) return new EmailDeliveryError("retryable");
+  if (status && status >= 400 && status < 500 && status !== 408) {
+    return new EmailDeliveryError("rejected");
+  }
+  return new EmailDeliveryError("unknown");
+}
 
 export type EmailSkippedReason =
   | "provider_not_configured"
@@ -209,6 +228,7 @@ class EmailService {
 
     if (apiKey) {
       sgMail.setApiKey(apiKey);
+      sgMail.setTimeout(BREVO_TIMEOUT_MS);
     }
 
     const modeRaw = String(process.env.EMAIL_MODE || "all")
@@ -337,6 +357,9 @@ class EmailService {
           provider: "sendgrid",
           error,
         });
+        if (params.singleAttempt) {
+          throw durableDeliveryError(Number((error as any)?.code) || undefined);
+        }
         throw error;
       }
     }
@@ -368,7 +391,8 @@ class EmailService {
       };
 
       let lastError: unknown = null;
-      for (let attempt = 1; attempt <= BREVO_MAX_ATTEMPTS; attempt += 1) {
+      const maxAttempts = params.singleAttempt ? 1 : BREVO_MAX_ATTEMPTS;
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), BREVO_TIMEOUT_MS);
         try {
@@ -385,6 +409,7 @@ class EmailService {
 
           const responseText = await resp.text().catch(() => "");
           if (!resp.ok) {
+            if (params.singleAttempt) throw durableDeliveryError(resp.status);
             const error = new Error(
               `Brevo send failed (${resp.status}): ${responseText || resp.statusText}`
             );
@@ -399,7 +424,12 @@ class EmailService {
             });
             if (!retry) throw error;
           } else {
-            const json: any = responseText ? JSON.parse(responseText) : null;
+            // HTTP acceptance remains acceptance even when the optional message
+            // identifier body is malformed. Never resend an accepted message.
+            let json: any = null;
+            try {
+              json = responseText ? JSON.parse(responseText) : null;
+            } catch {}
             const messageId = json?.messageId || json?.["messageId"];
             console.info("[email] provider accepted message", {
               ...baseLog,
@@ -414,6 +444,9 @@ class EmailService {
             };
           }
         } catch (error) {
+          if (params.singleAttempt) {
+            throw error instanceof EmailDeliveryError ? error : durableDeliveryError();
+          }
           lastError = error;
           const retry = attempt < BREVO_MAX_ATTEMPTS;
           console.error("[email] Brevo delivery attempt failed", {

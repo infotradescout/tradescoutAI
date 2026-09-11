@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { buildAuthEntryRoute, isSafeNextPath } from "@/lib/postOnboardingRoute";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 
 export default function CheckEmail() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refetch } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
@@ -21,10 +23,13 @@ export default function CheckEmail() {
   }, []);
 
   const next = (params.get("next") || "").trim();
-  const safeNext = next.startsWith("/") ? next : "";
+  const safeNext = isSafeNextPath(next) ? next : "";
+  const isRecommendation = isRecommendationActionPath(safeNext);
 
   const [email, setEmail] = useState((params.get("email") || "").trim());
   const [isSending, setIsSending] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const resend = async () => {
     const trimmed = email.trim();
@@ -39,12 +44,9 @@ export default function CheckEmail() {
         next: safeNext || "/pre-scout-setup",
       });
       toast({
-        title: "Email sent",
+        title: "Confirmation requested",
         description: resp?.message || "If the account exists, a new link was sent.",
       });
-      if (resp?.verificationToken) {
-        console.warn("[EMAIL-VERIFY] Dev token:", resp.verificationToken);
-      }
     } catch (e: any) {
       toast({
         title: "Resend failed",
@@ -56,19 +58,31 @@ export default function CheckEmail() {
     }
   };
 
-  const continueAfterVerify = () => {
+  const continueAfterVerify = async () => {
     if (isAuthenticated) {
-      navigate(safeNext || "/pre-scout-setup");
+      if (isChecking) return;
+      setIsChecking(true);
+      setStatusMessage("");
+      try {
+        const result = await refetch();
+        if (result.error) throw result.error;
+        if (result.data?.emailVerified === true) {
+          navigate(safeNext || "/pre-scout-setup");
+        } else {
+          setStatusMessage(
+            "Your email is still awaiting confirmation. Open the link in your inbox or request another."
+          );
+        }
+      } catch (error: any) {
+        setStatusMessage(
+          error?.message || "We couldn't check your confirmation. Please try again."
+        );
+      } finally {
+        setIsChecking(false);
+      }
       return;
     }
-
-    const emailParam = email.trim() ? `?email=${encodeURIComponent(email.trim())}` : "";
-    const nextParam = safeNext
-      ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}`
-      : "";
-    navigate(
-      `/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}${nextParam ? `&${nextParam.slice(1)}` : ""}`
-    );
+    navigate(buildAuthEntryRoute({ mode: "signin", email, next: safeNext }));
   };
 
   return (
@@ -76,12 +90,21 @@ export default function CheckEmail() {
       <Card className="w-full max-w-md bg-tsCard border border-white/10 shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-2xl font-bold text-white">Check your email</CardTitle>
-          <p className="text-sm text-white/60">Open the link, then return here.</p>
+          <p className="text-sm text-white/60">
+            {isRecommendation
+              ? "Open the confirmation link to return to your recommendation. It stays private until approved."
+              : "Open the link, then return here."}
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
-            <label className="text-xs text-white/60">Email</label>
+            <label htmlFor="verification-email" className="text-xs text-white/60">
+              Email
+            </label>
             <Input
+              id="verification-email"
+              type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -91,15 +114,30 @@ export default function CheckEmail() {
           <Button className="w-full" onClick={resend} disabled={isSending}>
             {isSending ? "Sending..." : "Resend email"}
           </Button>
-          <Button variant="outline" className="w-full" onClick={continueAfterVerify}>
-            I verified my email
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={isChecking}
+            onClick={continueAfterVerify}
+          >
+            {isChecking ? "Checking confirmation…" : "I verified my email"}
           </Button>
+          {statusMessage && (
+            <p role="status" className="text-sm text-white/60">
+              {statusMessage}
+            </p>
+          )}
+          {isRecommendation && (
+            <Button variant="ghost" className="w-full" onClick={() => navigate(safeNext)}>
+              Back to recommendation
+            </Button>
+          )}
           <div className="text-center text-xs text-white/60">
             Different email?{" "}
             <button
               type="button"
               className="text-ts-orange hover:underline"
-              onClick={() => navigate("/pre-scout-setup?mode=create")}
+              onClick={() => navigate(buildAuthEntryRoute({ mode: "create", next: safeNext }))}
             >
               Use another account
             </button>

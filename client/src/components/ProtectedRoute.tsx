@@ -12,6 +12,7 @@ import {
   userNeedsOnboarding,
 } from "@/lib/postOnboardingRoute";
 import { isOutcomeOnboardingClaimContinuationPath } from "@/lib/outcomeOnboardingClaimContinuation";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -109,7 +110,8 @@ export function ProtectedRoute({
       user &&
       needsOnboarding &&
       !isSetupRoute &&
-      !isScopedClaimContinuation
+      !isScopedClaimContinuation &&
+      !isRecommendationActionPath(getCurrentInternalPath(location))
     ) {
       const requestedPath = getCurrentInternalPath(location);
       const entryRoute = getOnboardingEntryRoute(user);

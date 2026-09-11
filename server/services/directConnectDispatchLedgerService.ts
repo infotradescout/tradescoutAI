@@ -1777,24 +1777,27 @@ export async function markAllInternalDirectConnectNotificationsRead(args: {
   return Number((result as any)?.rowCount || 0);
 }
 
-export async function snapshotDispatchCandidate(args: {
-  requestId: string;
-  businessId?: string | null;
-  contractorId?: string | null;
-  responderUserId?: string | null;
-  workerId?: string | null;
-  eligibility: ContractorEligibilityResult;
-  eligibilityReasons?: string[];
-  ineligibilityReasons?: string[];
-  territoryMatched: boolean | null;
-  categoryMatched: boolean | null;
-  verificationState: string;
-  profileReadiness: string;
-  contactEligibility: boolean | null;
-  trustState: string;
-}) {
+export async function snapshotDispatchCandidate(
+  args: {
+    requestId: string;
+    businessId?: string | null;
+    contractorId?: string | null;
+    responderUserId?: string | null;
+    workerId?: string | null;
+    eligibility: ContractorEligibilityResult;
+    eligibilityReasons?: string[];
+    ineligibilityReasons?: string[];
+    territoryMatched: boolean | null;
+    categoryMatched: boolean | null;
+    verificationState: string;
+    profileReadiness: string;
+    contactEligibility: boolean | null;
+    trustState: string;
+  },
+  executor: Pick<typeof db, "execute"> = db
+) {
   try {
-    await db.execute(sql`
+    await executor.execute(sql`
       INSERT INTO direct_connect_dispatch_candidates (
         id, request_id, business_id, contractor_id, responder_user_id, worker_id,
         eligibility_state, eligibility_reasons, ineligibility_reasons,
