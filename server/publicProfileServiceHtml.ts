@@ -398,7 +398,7 @@ function resolveServiceRequest(req: Request): ServiceRequestResolution | null {
       profileSlug: "",
       serviceSlug: "",
       source: "custom-domain",
-      requestOrigin: `https://${String(req.hostname || "").trim().toLowerCase()}`,
+      requestOrigin: resolvePublicOrigin(req),
       requestHost: String(req.hostname || "").trim().toLowerCase(),
     };
   }
