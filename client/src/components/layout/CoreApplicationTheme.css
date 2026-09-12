@@ -75,8 +75,16 @@
 }
 
 [data-ts-core-ui="true"].ts-product-nav-dialog {
-  max-height: calc(100vh - 2rem);
-  max-height: min(760px, calc(100dvh - 2rem));
+  /* Size against the fixed containing block, not a translated content height.
+     This keeps the search header and close control visible after viewport changes. */
+  position: fixed;
+  inset: 1rem;
+  margin: auto;
+  width: min(56rem, calc(100% - 2rem));
+  height: calc(100% - 2rem);
+  min-height: 0;
+  max-height: 760px;
+  transform: none !important;
   overflow: hidden;
   display: flex;
   flex-direction: column;
