@@ -1,0 +1,75 @@
+name: JW Stone receiving proof
+
+on:
+  push:
+    branches: [jw-stone/ops-employee-receiving-mvp]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jw-stone-receiving-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  receiving-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      JW_STONE_RECEIVING_ENABLED: 'false'
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: npm
+      - run: npm ci --include=dev
+      - name: Receiving validation and mocked service tests
+        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-receiving.test.mjs scripts/jw-stone-receiving-service.test.mjs scripts/jw-stone-receiving-draft.test.mjs
+      - name: Install isolated browser
+        run: npx playwright install --with-deps chromium
+      - name: Actual React component and IndexedDB proof with fixture APIs
+        run: node scripts/jw-stone-receiving-draft.browser.mjs
+
+  application-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      JW_STONE_RECEIVING_ENABLED: 'false'
+      CI: 'true'
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: npm
+      - run: npm ci --include=dev
+      - name: Full TypeScript check
+        id: types
+        continue-on-error: true
+        run: npm run check
+      - name: JW Stone regressions
+        id: regressions
+        continue-on-error: true
+        run: npm run test:run -- client/src/features/jw-stone server/tests/stone-inventory-truth.contract.test.ts server/tests/jw-stone-member-pricing-route.behavior.test.ts
+      - name: Full production build without production credentials
+        id: build
+        continue-on-error: true
+        run: npm run build
+      - name: Fail when any application check failed
+        if: always()
+        env:
+          TYPES_OUTCOME: ${{ steps.types.outcome }}
+          REGRESSION_OUTCOME: ${{ steps.regressions.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        run: |
+          test "$TYPES_OUTCOME" = success
+          test "$REGRESSION_OUTCOME" = success
+          test "$BUILD_OUTCOME" = success
