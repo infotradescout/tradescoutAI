@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
+import { registerJwStoneReceivingRoutes } from "./jw-stone-receiving";
 import type {
   JwStoneInternalPricingResponse,
   JwStoneMemberPricingResponse,
@@ -109,6 +110,7 @@ export function projectJwStonePricingResponse(args: {
 }
 
 export function registerJwStoneMemberPricingRoutes(app: Express): void {
+  registerJwStoneReceivingRoutes(app);
   app.use("/api/u/jw-stone/member-pricing", requireCriticalSchema("profile_accounts"));
   app.get(
     "/api/u/jw-stone/member-pricing",
@@ -205,7 +207,9 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
             };
           }
           const price = priceByStoneKey.get(jwStonePriceKey(item.materialName));
-          if (!price) {
+          // Receiving lots have explicit lot prices. Never quote an unrelated catalog
+          // rate until cart review supports those prices; arrival inquiry stays available.
+          if (!price || item.sourceAssetRef.startsWith("jw-receiving:")) {
             return {
               inventoryPublicId: requested.inventoryPublicId,
               requestedQuantity: requested.quantity,

@@ -7,7 +7,9 @@ import type {
 } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
 import { jw } from "./brand";
-import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
+import { JwStoneEmployeeReceiving } from "./JwStoneEmployeeReceiving";
+import { JwStoneArrivalPrice } from "./JwStoneArrivalPrice";
+import { JwStoneArrivalGallery } from "./JwStoneArrivalGallery";
 
 function formatDimensions(dimensions: StoneInventoryDimensions | null): string | null {
   if (!dimensions) return null;
@@ -32,20 +34,25 @@ type Props = {
   onStartRequest: () => void;
 };
 
+// Employee entry remains available even when the public arrivals list is empty.
+export function NewArrivalsSection(props: Props) {
+  return <><JwStoneEmployeeReceiving /><PublicNewArrivalsSection {...props} /></>;
+}
+
 /**
- * Inventory truth boundary: Only physical lots explicitly marked sale-ready
- * may qualify, and they still require a separate New Arrivals choice. The
- * Browse Full Inventory does not claim that a physical item is on hand.
+ * Only physical lots explicitly published as sale-ready and selected as New
+ * Arrivals may qualify. Employee Receive & publish records both decisions.
  */
-export function NewArrivalsSection({ onAsk }: Props) {
+function PublicNewArrivalsSection({ onAsk }: Props) {
   const arrivalsQuery = useQuery({
     queryKey: ["jw-stone", "new-arrivals"],
     queryFn: () =>
       apiRequest(
         "GET",
-        "/api/u/jw-stone/stone-inventory/new-arrivals"
+        "/api/u/jw-stone/receiving/arrivals"
       ) as Promise<PublicStoneInventoryResponse>,
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const items = arrivalsQuery.data?.items ?? [];
 
@@ -78,7 +85,6 @@ export function NewArrivalsSection({ onAsk }: Props) {
         <ul className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
             const dimensions = formatDimensions(item.dimensions);
-            const image = item.imageUrls[0] || null;
             const finishSummary = item.finishQuantities
               .map((finish) => `${finish.slabCount} ${finish.finish}`)
               .join(" · ");
@@ -88,17 +94,7 @@ export function NewArrivalsSection({ onAsk }: Props) {
                 className="overflow-hidden border border-[var(--jw-border)] bg-[var(--jw-bg)]"
                 data-testid={`jw-new-arrival-item-${item.id}`}
               >
-                {image ? (
-                  <div className="aspect-[4/3] overflow-hidden bg-[var(--jw-dark)]">
-                    <img
-                      src={image}
-                      alt={`${item.materialName} ${item.assetKind.replace(/_/g, " ")}`}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                ) : null}
+                <JwStoneArrivalGallery item={item} />
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -142,11 +138,7 @@ export function NewArrivalsSection({ onAsk }: Props) {
                       </div>
                     ) : null}
                   </dl>
-                  <JwStoneMemberPriceDisplay
-                    stoneName={item.materialName}
-                    slabDimensions={item.dimensions}
-                    presentation="inventory"
-                  />
+                  <JwStoneArrivalPrice item={item} />
                   <p className={`mt-4 inline-flex items-center gap-1.5 text-xs ${jw.muted}`}>
                     <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
                     {formatConfirmedDate(item.lastConfirmedAt)}
