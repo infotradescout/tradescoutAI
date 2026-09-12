@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
+import sharp from 'sharp';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const phase = process.env.JW_WORKFLOW_PHASE || 'release';
@@ -20,9 +21,8 @@ async function checkedSource(file, expected) {
   return bytes.toString('utf8');
 }
 
-// These assertions are injected into the existing real-route/native-database and
-// production browser paths. All original signup, privacy, revocation and request
-// assertions remain; no test fixtures are given new entitlements by this wrapper.
+// Extend the existing real-route/native-database and production browser paths.
+// All original signup, access and request assertions remain intact.
 async function assertPortalEntry(page, directory, device) {
   const entry = page.getByTestId('jw-marketplace-account-button');
   assert((await entry.innerText()).includes('Fabricator Portal'));
@@ -35,7 +35,7 @@ async function assertPortalEntry(page, directory, device) {
     assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width, 'Portal entry clipped at ' + width);
     const header = page.getByTestId('jw-marketplace-header');
     assert.equal(await header.evaluate(node => node.scrollWidth > innerWidth + 1), false, 'Header overflow at ' + width);
-    await page.screenshot({ path: path.join(directory, `portal-entry-${device}-${width}.png`), fullPage: false });
+    await header.screenshot({ path: path.join(directory, `portal-entry-${device}-${width}.png`) });
   }
   await page.setViewportSize(original);
   await page.getByTestId('jw-marketplace-menu-button').click();
@@ -65,7 +65,6 @@ async function assertPortalConnected(page, directory, device) {
   assert.equal(await dialog.getByRole('heading', { name: 'JW Stone Fabricator Portal', exact: true }).count(), 1);
   assert((await dialog.innerText()).includes('Business verification is pending. Some business features may require approval.'));
   assert(!/\b(?:pric(?:e|es|ing)|wholesale|discount|unlock)\b/i.test(await dialog.innerText()));
-  await page.screenshot({ path: path.join(directory, `portal-connected-${device}.png`), fullPage: false });
 }
 
 if (phase === 'release') {
@@ -91,6 +90,23 @@ const result = spawnSync(process.execPath, ['--input-type=module', '-e', release
 if (result.error) throw result.error;
 const evidence = JSON.parse(await fs.readFile(path.join(output, 'evidence.json'), 'utf8'));
 assert.equal(evidence.head, head);
-console.log('JW_PORTAL_RESULT ' + JSON.stringify({ head, phase, passed: evidence.passed, error: evidence.error || null, tests: evidence.tests || null, release: evidence.release?.result || null, attestable: evidence.release?.attestable || false, deployed: evidence.deployed || null }));
+const summary = { head, phase, passed: evidence.passed, tests: evidence.tests || null, release: evidence.release?.result || null, attestable: evidence.release?.attestable || false, deployed: evidence.deployed || null };
+console.log('JW_PORTAL_RESULT ' + JSON.stringify({ ...summary, error: evidence.error || null }));
+
+// Detailed synthetic backend evidence remains in build logs and the untouched
+// release-contract artifact. A publicly served report contains only neutral UI.
+const images = [];
+for (const file of await fs.readdir(output)) {
+  if (/^portal-(?:entry|create|signin)-(?:desktop|touch)(?:-\d+)?\.png$/.test(file)) images.push(file);
+  else await fs.rm(path.join(output, file), { recursive: true, force: true });
+}
+await fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(summary, null, 2));
+await fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
+await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><html lang="en"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JW Stone portal review</title><h1>' + (summary.passed ? 'Portal verification passed' : 'Portal verification failed') + '</h1><p>' + phase + ' ' + head + '</p><a href="evidence.json">Verification summary</a>' + images.map(name => '<figure><img style="max-width:100%" src="' + name + '" alt="' + name + '"></figure>').join('') + '</html>');
+for (const name of ['portal-entry-touch-320.png', 'portal-signin-touch.png']) {
+  if (!images.includes(name)) continue;
+  const bytes = await sharp(path.join(output, name)).resize({ width: 390, withoutEnlargement: true }).webp({ quality: 38 }).toBuffer();
+  console.log('JW_PORTAL_VISUAL ' + JSON.stringify({ name, head, phase, sha256: createHash('sha256').update(bytes).digest('hex'), base64: bytes.toString('base64') }));
+}
 assert.equal(result.status, 0); assert.equal(evidence.passed, true, 'Portal verification must pass; a published report alone is not approval');
 if (phase === 'release') assert.equal(evidence.release?.attestable, true);
