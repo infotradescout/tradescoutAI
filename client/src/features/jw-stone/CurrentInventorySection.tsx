@@ -19,8 +19,8 @@ function formatDimensions(dimensions: StoneInventoryDimensions | null): string |
 
 function formatConfirmedDate(value: string): string {
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Recently confirmed";
-  return `Stock confirmed ${parsed.toLocaleDateString(undefined, {
+  if (Number.isNaN(parsed.getTime())) return "Update date unavailable";
+  return `Updated ${parsed.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -70,8 +70,8 @@ export function NewArrivalsSection({ onAsk }: Props) {
             New Arrivals
           </h2>
           <p className={`mt-2 max-w-2xl text-sm leading-6 ${jw.muted}`}>
-            Newly received physical lots selected by JW Stone. Ask about the exact lot, quantity,
-            finish, and timing.
+            Explore the latest arrivals. Ask about slab selection, quantities, finishes, and pickup
+            or delivery.
           </p>
         </header>
 
@@ -137,7 +137,7 @@ export function NewArrivalsSection({ onAsk }: Props) {
                     ) : null}
                     {finishSummary ? (
                       <div>
-                        <dt className={jw.muted}>Known finish</dt>
+                        <dt className={jw.muted}>Finish</dt>
                         <dd className="font-semibold text-[var(--jw-ink)]">{finishSummary}</dd>
                       </div>
                     ) : null}

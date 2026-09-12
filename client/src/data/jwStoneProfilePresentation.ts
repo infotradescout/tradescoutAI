@@ -61,8 +61,8 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       availableFacts: [
         "Stone photos",
         "Material categories",
-        "Confirmed finishes where listed",
-        "Source counts where listed",
+        "Finishes",
+        "Slab counts",
       ],
       contextHeading: "Helpful context to include",
     },
