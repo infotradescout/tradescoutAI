@@ -51,11 +51,15 @@ describe("profile-native account foundation", () => {
     const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
     const client = read("client/src/components/profile/profileAccountClient.ts");
     const onboarding = read("client/src/lib/postOnboardingRoute.ts");
+    const portalCopy = read("shared/jwStonePortalCopy.ts");
 
     expect(header).toContain("sticky top-0");
     expect(header).toContain('data-testid="jw-marketplace-account-button"');
     expect(header).toContain("onOpenAccount");
-    expect(header).toContain("Create account");
+    expect(header).toContain("JW_STONE_PORTAL_COPY.label");
+    expect(portalCopy).toContain('label: "Fabricator Portal"');
+    expect(portalCopy).toContain('accessLabel: "Business access"');
+    expect(portalCopy).not.toMatch(/\b(?:prices?|pricing|wholesale|discounts?|unlock)\b/i);
     expect(marketplace).toContain("<PublicProfileAccountDialog");
     expect(marketplace).toContain('profileSlug="jw-stone"');
     expect(dialog).toContain("Continue with ${profileName}.");
