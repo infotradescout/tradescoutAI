@@ -15,19 +15,20 @@ export async function verifyCabinetNativeTouchRecovery({ browser, local, phase, 
     await button('Load sample kitchen').tap();
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key) || 'null')?.cabinets?.planner?.modules?.length === 3, key);
     const draft = await read(), base = draft.cabinets.planner.modules[0];
-    draft.cabinets.planner = { ...draft.cabinets.planner, view: 'plan', selectedModuleId: 'native-base',
-      modules: [{ ...base, id: 'native-base', offsetIn: 0 }],
-      presentation: { style: 'Shaker', finish: 'sage', hardware: 'Matte black', fronts: { 'native-base': 'drawers' } },
+    draft.cabinets.planner = { ...draft.cabinets.planner, view: 'plan', selectedModuleId: 'native-neighbor',
+      modules: [{ ...base, id: 'native-base', offsetIn: 0 }, { ...base, id: 'native-neighbor', offsetIn: 90 }],
+      presentation: { style: 'Shaker', finish: 'sage', hardware: 'Matte black', fronts: { 'native-base': 'drawers', 'native-neighbor': 'doors' } },
     };
     const destination = phase === 'production' ? 'https://www.thetradescout.com/u/steel-home-packages/builders/cabinets' : local + '/cabinet-parent.html';
     const response = await page.goto(destination, { waitUntil: 'domcontentloaded' }); assert(response?.ok());
     if (phase === 'production') assert.equal(response.headers()['x-tradescout-build'], deployed);
     await page.getByTestId('steel-home-cabinet-designer').waitFor({ state: 'visible' });
     await page.evaluate(({ key, draft }) => localStorage.setItem(key, JSON.stringify(draft)), { key, draft });
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    const reloaded = await page.reload({ waitUntil: 'domcontentloaded' });
+    if (phase === 'production') assert.equal(reloaded.headers()['x-tradescout-build'], deployed);
     await page.locator('[data-module="native-base"]').waitFor({ state: 'visible' });
     const before = await read();
-    await button('Fit selected').tap();
+    await button('Zoom cabinet plan in').tap();
     const module = page.locator('[data-module="native-base"]'); await module.scrollIntoViewIfNeeded();
     const point = await module.evaluate(node => {
       const rect = node.querySelector('rect').getBoundingClientRect(), m = node.ownerSVGElement.getScreenCTM();
@@ -35,9 +36,12 @@ export async function verifyCabinetNativeTouchRecovery({ browser, local, phase, 
       return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, dx: Math.min(620 / shell.widthIn, 360 / shell.depthIn) * m.a * 12 };
     });
     const session = await context.newCDPSession(page);
+    const orderBefore = await page.locator('[data-module]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-module')));
+    assert.equal(before.cabinets.planner.selectedModuleId, 'native-neighbor');
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: point.x, y: point.y }] });
     for (let n = 1; n <= 5; n++) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: point.x + point.dx * n / 5, y: point.y }] });
     assert.deepEqual(await read(), before);
+    assert.deepEqual(await page.locator('[data-module]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-module'))), orderBefore, 'Dragging must not detach/reorder the captured SVG node');
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).cabinets.planner.modules[0].offsetIn === 12, key);
     const after = await read();
@@ -51,7 +55,7 @@ export async function verifyCabinetNativeTouchRecovery({ browser, local, phase, 
     await button('Undo').tap();
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).cabinets.planner.modules[0].offsetIn === 0, key);
     assert.deepEqual(await read(), before);
-    record('touch: original missing-click regression', 'The original raw-CDP drag followed immediately by a Playwright Undo tap now restores the complete draft; Redo and a second Undo each act once. No retry, timed wait or forced test click.');
+    record('touch: original missing-click and unselected-drag regressions', 'Raw CDP dragging an unselected cabinet retains its SVG node order and saves once. The original immediate Playwright Undo tap now restores the full draft and previous selection; Redo and second Undo each act once, without retries or delayed test clicks.');
 
     const focused = () => page.locator('.cabinet-design-focus').getAttribute('data-canvas-focus');
     await button('Focus drawing').tap(); assert.equal(await focused(), 'true');
