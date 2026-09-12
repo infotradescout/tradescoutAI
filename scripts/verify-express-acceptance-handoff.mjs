@@ -9,6 +9,7 @@ assert(['release','production'].includes(phase));
 const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const out=path.resolve(process.env.EXPRESS_HANDOFF_OUTPUT||'test-results/express-handoff');
 const temp=await fs.mkdtemp(path.join(os.tmpdir(),'express-handoff-'));
+const nativeOut=path.join(temp,'native');
 const evidence={head,phase,startedAt:new Date().toISOString(),checks:[],passed:false,quoteVerified:false,externalEmailVerified:false,liveCustomerWrites:false};
 function run(name,args,extra={}) {
   console.log('HANDOFF_STEP_START '+name);
@@ -27,9 +28,12 @@ try {
     evidence.focused=Object.fromEntries(['numTotalTests','numPassedTests','numFailedTests','numPendingTests'].map(key=>[key,parsed[key]]));
     assert.equal(parsed.numPendingTests,0);
     run('TypeScript',['npm','run','check']);
+    run('Native supplier acceptance and transactional rollback',[process.execPath,'scripts/express-acceptance-handoff.native.mjs'],{HANDOFF_NATIVE_OUTPUT:nativeOut});
+    evidence.native=JSON.parse(await fs.readFile(path.join(nativeOut,'evidence.json'),'utf8'));
+    assert.equal(evidence.native.head,head);assert.equal(evidence.native.passed,true);
   }
   const customerOut=path.join(temp,'customer');
-  run('Actual customer and supplier acceptance; unchanged release contract',[process.execPath,'scripts/verify-jw-stone-customer-workflow.mjs'],{JW_WORKFLOW_PHASE:phase,JW_WORKFLOW_OUTPUT:customerOut});
+  run('Preserved JW customer workflow and unchanged release contract',[process.execPath,'scripts/verify-jw-stone-customer-workflow.mjs'],{JW_WORKFLOW_PHASE:phase,JW_WORKFLOW_OUTPUT:customerOut});
   const customer=JSON.parse(await fs.readFile(path.join(customerOut,'evidence.json'),'utf8'));
   assert.equal(customer.head,head);assert.equal(customer.passed,true);
   if(phase==='release') {assert.equal(customer.release.commit,head);assert.equal(customer.release.attestable,true);assert.equal(customer.release.result,'pass');}
@@ -40,6 +44,7 @@ try {
   evidence.passed=true;
 }catch(error){evidence.error=String(error.stack||error);console.error('HANDOFF_FAILURE '+evidence.error);}
 finally {
+  try{evidence.native=JSON.parse(await fs.readFile(path.join(nativeOut,'evidence.json'),'utf8'));}catch{}
   evidence.finishedAt=new Date().toISOString();await fs.mkdir(out,{recursive:true});
   await fs.writeFile(path.join(out,'evidence.json'),JSON.stringify(evidence,null,2));
   await fs.writeFile(path.join(out,'robots.txt'),'User-agent: *\nDisallow: /\n');
