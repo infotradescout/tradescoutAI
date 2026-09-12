@@ -56,6 +56,7 @@ try {
     "client/src/lib/productNavigation.test.ts", "client/src/lib/appUiScope.contract.test.ts",
     "client/src/lib/darkSurfaceConvergence.contract.test.ts",
     "client/src/components/layout/appShellMobileTaskbar.contract.test.ts",
+    "client/src/components/layout/appShellRecommendation.behavior.test.tsx",
     "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
     "server/tests/authenticated-social-frame.contract.test.ts",
     "client/src/pages/direct-connect/directConnectShellHierarchy.contract.test.ts",
@@ -145,6 +146,18 @@ try {
     await page.goto(`${base}/direct-connect/opportunities`);
     await expect(page.getByTestId("desktop-app-rail").locator('[aria-current="page"]')).toHaveCount(1);
     await expect(page.getByTestId("desktop-app-rail").locator('[aria-current="page"]')).toHaveText("Jobs");
+  });
+  await check("recommendation verification keeps its focused shell while ordinary verification retains navigation", async () => {
+    await page.goto(`${base}/verification`);
+    await expect(page.getByTestId("desktop-app-rail")).toBeVisible();
+    const continuation = "/u/acme-repair?trustAction=recommend";
+    await page.goto(`${base}/verification?next=${encodeURIComponent(continuation)}`);
+    await page.waitForFunction(() => document.body.dataset.appMounted === "true" && document.querySelector(".app-shell"));
+    await expect(page.getByTestId("desktop-app-rail")).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveClass(/ts-desktop-app-rail-active/);
+    assert.equal(new URL(page.url()).pathname, "/verification");
+    await page.goto(`${base}/verification?next=${encodeURIComponent("/direct-connect")}`);
+    await expect(page.getByTestId("desktop-app-rail")).toBeVisible();
   });
   await page.goto(`${base}/help`);
   await openTools();

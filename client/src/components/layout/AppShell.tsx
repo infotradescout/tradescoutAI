@@ -3,9 +3,13 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  DESKTOP_PRODUCT_NAV_IDS, PRODUCT_NAV_ITEMS, getActiveProductNavItem,
+  DESKTOP_PRODUCT_NAV_IDS,
+  PRODUCT_NAV_ITEMS,
+  getActiveProductNavItem,
 } from "@/lib/productNavigation";
 import { isApplicationUiSurface, getUiPathname } from "@/lib/applicationUiScope";
+import { getCurrentInternalPath } from "@/lib/postOnboardingRoute";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 import ProductNavigator from "@/components/navigation/ProductNavigator";
 import AppShellCore from "./AppShellCore";
@@ -22,16 +26,25 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isMobile = useIsMobile();
   const [location] = useLocation();
   const pathOnly = getUiPathname(location);
-  const customDomainProfileSlug = typeof window === "undefined" ? "" : String(
-    (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
-      .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__ || ""
-  );
+  const customDomainProfileSlug =
+    typeof window === "undefined"
+      ? ""
+      : String(
+          (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
+            .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__ || ""
+        );
   const applicationUi = isApplicationUiSurface(location, customDomainProfileSlug);
-  const showDesktopAppRail = Boolean(isAuthenticated) && !isMobile && applicationUi;
-  const desktopPrimaryNav = useMemo(() => DESKTOP_PRODUCT_NAV_IDS.flatMap((id) => {
-    const item = PRODUCT_NAV_ITEMS.find((entry) => entry.id === id);
-    return item ? [item] : [];
-  }), []);
+  const isRecommendationSurface = isRecommendationActionPath(getCurrentInternalPath(location));
+  const showDesktopAppRail =
+    Boolean(isAuthenticated) && !isMobile && applicationUi && !isRecommendationSurface;
+  const desktopPrimaryNav = useMemo(
+    () =>
+      DESKTOP_PRODUCT_NAV_IDS.flatMap((id) => {
+        const item = PRODUCT_NAV_ITEMS.find((entry) => entry.id === id);
+        return item ? [item] : [];
+      }),
+    []
+  );
   const activeItem = getActiveProductNavItem(pathOnly, desktopPrimaryNav);
 
   useEffect(() => {
@@ -63,7 +76,11 @@ export function AppShell({ children, footer }: AppShellProps) {
           data-testid="desktop-app-rail"
           data-ts-core-ui="true"
           className="ts-desktop-app-rail fixed bottom-0 left-0 z-30 flex flex-col border-r px-2 py-3"
-          style={{ top: "var(--top-nav-h)", borderColor: "var(--border-primary)", background: "var(--surface-frame)" }}
+          style={{
+            top: "var(--top-nav-h)",
+            borderColor: "var(--border-primary)",
+            background: "var(--surface-frame)",
+          }}
           aria-label="TradeScout primary navigation"
         >
           <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
@@ -83,7 +100,9 @@ export function AppShell({ children, footer }: AppShellProps) {
               );
             })}
           </div>
-          <div className="mt-2 shrink-0"><ProductNavigator /></div>
+          <div className="mt-2 shrink-0">
+            <ProductNavigator />
+          </div>
         </nav>
       ) : null}
     </div>
