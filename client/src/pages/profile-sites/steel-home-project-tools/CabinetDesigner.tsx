@@ -8,6 +8,7 @@ import {
 } from "./cabinetPlannerModel";
 import type { SteelHomeCabinetDesign } from "./projectModel";
 import { useDesignerHistory } from "./useDesignerHistory";
+import { installCabinetToolbarTouch } from "./cabinetToolbarTouch";
 import "./kitchenDesignerStudio.css";
 import "./cabinetCanvasWorkflow.css";
 export type { CabinetDesignerProps } from "./CabinetMeasuredEditor";
@@ -26,6 +27,7 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
   const [panel, setPanel] = useState<Panel>(null);
   const [canvasFocus, setCanvasFocus] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  useEffect(() => root.current ? installCabinetToolbarTouch(root.current) : undefined, []);
   const panelTrigger = useRef<HTMLButtonElement | null>(null);
   const [notice, setNotice] = useState("");
   const planner = design.planner;
@@ -77,7 +79,7 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
       </div>
       <div className="kitchen-designer-appearance" aria-label="Cabinet appearance">
         <label>Door style<select aria-label="Cabinet door style" value={presentation.style ?? ""} onChange={event => appearance({ style: (event.target.value || null) as CabinetPresentation["style"] })}><option value="">Not selected</option>{CABINET_STUDIO_STYLES.map(style => <option key={style}>{style}</option>)}</select></label>
-        <label>Finish<select aria-label="Cabinet finish" value={presentation.finish ?? ""} onChange={event => appearance({ finish: (event.target.value || null) as CabinetPresentation["finish"] })}><option value="">Not selected</option>{CABINET_STUDIO_FINISHES.map(finish => <option value={finish.value} key={finish.value}>{finish.label}</option>)}</select></label>
+        <label>Finish<select aria-label="Cabinet finish" value={presentation.finish ?? ""} onChange={event => appearance({ finish: (event.target.value || null) as CabinetPresentation["finish"] })}><option value="">Not selected</option>{CABINET_STUDIO_FINISHES.map(finish => <option key={finish.value} key={finish.value}>{finish.label}</option>)}</select></label>
         <label>Hardware<select aria-label="Cabinet hardware" value={presentation.hardware ?? ""} onChange={event => appearance({ hardware: (event.target.value || null) as CabinetPresentation["hardware"] })}><option value="">Not selected</option>{CABINET_STUDIO_HARDWARE.map(hardware => <option key={hardware}>{hardware}</option>)}</select></label>
         {selected && selected.kind !== "appliance" && !isCabinetAccessory(selected) && <label>Selected cabinet fronts<select aria-label="Selected cabinet fronts" value={presentation.fronts[selected.id] ?? ""} onChange={event => {
           const fronts = { ...presentation.fronts }; if (event.target.value) fronts[selected.id] = event.target.value as (typeof CABINET_FRONT_LAYOUTS)[number]; else delete fronts[selected.id]; appearance({ fronts });
