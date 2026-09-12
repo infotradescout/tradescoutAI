@@ -21,6 +21,8 @@
 .cabinet-placement-actions button { min-width: 44px; padding: 5px; font-size: 11px; }
 .cabinet-canvas-help summary { padding: 5px 0; cursor: pointer; font-size: 11px; color: #435e50; }
 .cabinet-canvas-help p { padding: 6px 0; line-height: 1.5; color: #435e50; max-width: 74ch; }
+/* A light halo keeps the measured object labels legible even over navy or charcoal. */
+.cabinet-canvas-workflow [data-module] > text:not([stroke]) { fill: #102017; paint-order: stroke; stroke: #fffefa; stroke-width: 1.8px; stroke-linejoin: round; }
 
 .cabinet-visual-catalog { margin-bottom: 16px; min-width: 0; }
 .cabinet-catalog-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0 0 10px; }
@@ -77,7 +79,7 @@
   .cabinet-canvas-footer > p { font-size: 11px; }
   .cabinet-placement-actions { gap: 2px; }
   .cabinet-placement-actions > label { font-size: 10px; }
-  .cabinet-placement-actions button { min-width: 40px; }
+  .cabinet-placement-actions button { min-width: 44px; }
   .cabinet-design-focus[data-canvas-focus="true"] .kitchen-designer-editor #cabinet-designer > .grid > div:last-child,
   .cabinet-design-focus[data-canvas-focus="true"] > .kitchen-designer-appearance { display: none; }
 }
