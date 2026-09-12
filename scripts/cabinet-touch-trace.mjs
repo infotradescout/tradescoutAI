@@ -16,8 +16,10 @@ export async function installCabinetTouchTrace(page, key) {
     };
     for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'lostpointercapture', 'click']) {
       document.addEventListener(type, event => {
-        if (!event.target?.closest?.('[data-testid="steel-home-cabinet-plan"]')) return;
+        if (!event.target?.closest?.('[data-testid="steel-home-cabinet-plan"], [aria-label="Cabinet editing actions"]')) return;
+        const button = event.target.closest('button');
         push({ action: type, object: event.target.closest('[data-module]')?.getAttribute('data-module') || null,
+          control: button?.getAttribute('aria-label') || button?.textContent || null,
           target: event.target.tagName, detail: event.detail, pointer: event.pointerId, pointerType: event.pointerType,
           x: event.clientX, y: event.clientY, at: performance.now() });
       }, true);
@@ -28,9 +30,11 @@ export async function reportCabinetTouchTrace(page, key, context) {
   const trace = await page.evaluate(storageKey => {
     const drawing = document.querySelector('[data-testid="steel-home-cabinet-plan"]');
     const planner = JSON.parse(localStorage.getItem(storageKey) || 'null')?.cabinets?.planner;
+    const toolbar = document.querySelector('[aria-label="Cabinet editing actions"]');
     return { events: window.__cabinetTouchTrace || [], offset: planner?.modules?.find(m => m.id === 'base')?.offsetIn,
       selected: planner?.selectedModuleId, viewBox: drawing?.getAttribute('viewBox'),
       status: document.querySelector('[data-testid="cabinet-placement-status"]')?.textContent,
+      toolbar: toolbar ? { scrollLeft: toolbar.scrollLeft, controls: Array.from(toolbar.querySelectorAll('button')).map(button => ({ label: button.textContent, disabled: button.disabled, rect: button.getBoundingClientRect().toJSON() })) } : null,
       viewport: { width: innerWidth, height: innerHeight },
     };
   }, key);
