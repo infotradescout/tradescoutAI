@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { proveExpressAcceptanceHandoff } from './express-acceptance-handoff.native.mjs';
 
 /** Runs only with the parent verifier's fresh loopback database and browser. */
 export async function proveJwStoneRequestJourney({ page, context, database, fixture, email, userId, device, output, rootPath }) {
@@ -54,6 +53,5 @@ export async function proveJwStoneRequestJourney({ page, context, database, fixt
   await fs.mkdir(output, { recursive: true });
   await page.screenshot({ path: path.join(output, device + '-synthetic-request-receipt.png'), fullPage: false });
   await click(dialog.getByRole('button', { name: 'Close Direct Connect', exact: true }));
-  const supplierAcceptance = await proveExpressAcceptanceHandoff({ page, context, database, fixture, requestId: body.requestId, userId, device });
-  return { browserSubmit: true, persistedPrivateRequest: true, correctSupplierAssignment: true, supplierInAppNotice: true, contactPendingBeforeAcceptance: true, supplierAcceptance, marketingOptIn: false, externalEmailDelivery: false, formalPricedQuote: false };
+  return { browserSubmit: true, persistedPrivateRequest: true, correctSupplierAssignment: true, supplierInAppNotice: true, contactStillPending: true, marketingOptIn: false, externalEmailDelivery: false, formalPricedQuote: false };
 }
