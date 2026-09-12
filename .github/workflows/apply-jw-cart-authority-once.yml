@@ -1,0 +1,35 @@
+name: Apply JW cart authority once
+
+on:
+  push:
+    branches:
+      - jw-stone/cart-authoritative-inventory-20260911
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: jw-stone/cart-authoritative-inventory-20260911
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply bounded source patch
+        run: node scripts/patch-jw-cart-authoritative.mjs
+      - name: Remove one-shot patch machinery
+        run: |
+          rm scripts/patch-jw-cart-authoritative.mjs
+          rm .github/workflows/apply-jw-cart-authority-once.yml
+      - name: Commit branch update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Bind JW cart to authoritative current stock'
+          git push origin HEAD:jw-stone/cart-authoritative-inventory-20260911
