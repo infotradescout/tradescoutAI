@@ -1,0 +1,84 @@
+.cabinet-canvas-workflow { background: #eef1ec; color: #18312f; }
+.cabinet-canvas-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-bottom: 1px solid #d4ded6; background: #fff; }
+.cabinet-canvas-navigation label { min-width: 0; }
+.cabinet-canvas-navigation select { width: 100%; max-width: 180px; }
+.cabinet-canvas-navigation button, .cabinet-canvas-navigation select,
+.cabinet-placement-actions button, .cabinet-catalog-heading button, .cabinet-catalog-heading select {
+  min-height: 44px; border: 1px solid #bac8bf; border-radius: 8px; padding: 7px 10px;
+  background: #fff; color: #18312f; font: 600 12px/1.3 system-ui, sans-serif;
+}
+.cabinet-canvas-navigation button:disabled, .cabinet-placement-actions button:disabled { opacity: .4; cursor: not-allowed; }
+.cabinet-canvas-workflow :is(button, select):focus-visible, .cabinet-visual-catalog :is(button, select):focus-visible { outline: 3px solid #147d6c; outline-offset: 2px; }
+.cabinet-camera-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.cabinet-camera-actions button[aria-label] { min-width: 44px; font-size: 20px; padding: 4px 8px; }
+.cabinet-camera-actions output { font: 600 11px/1 system-ui, sans-serif; min-width: 34px; text-align: center; }
+.cabinet-object-picker { flex: 1 1 120px; max-width: 200px; }
+.cabinet-canvas-footer { border-top: 1px solid #d4ded6; background: #fff; font: 12px/1.4 system-ui, sans-serif; }
+.cabinet-canvas-footer > p { margin: 0 0 5px; font-weight: 600; overflow-wrap: anywhere; }
+.cabinet-placement-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.cabinet-placement-actions > label { display: flex; min-height: 44px; align-items: center; gap: 6px; font-size: 11px; }
+.cabinet-placement-actions > div { display: flex; gap: 3px; margin-left: auto; }
+.cabinet-placement-actions button { min-width: 44px; padding: 5px; font-size: 11px; }
+.cabinet-canvas-help summary { padding: 5px 0; cursor: pointer; font-size: 11px; color: #435e50; }
+.cabinet-canvas-help p { padding: 6px 0; line-height: 1.5; color: #435e50; max-width: 74ch; }
+
+.cabinet-visual-catalog { margin-bottom: 16px; min-width: 0; }
+.cabinet-catalog-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0 0 10px; }
+.cabinet-catalog-heading label { min-width: 0; flex: 1; }
+.cabinet-catalog-heading select { width: 100%; }
+.cabinet-catalog-heading button { flex-shrink: 0; }
+.cabinet-catalog-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; min-width: 0; }
+.cabinet-catalog-card { display: flex; flex-direction: column; align-items: stretch; gap: 5px; min-width: 0; padding: 10px; text-align: left; border: 1px solid #cbd5cc; border-radius: 12px; background: #fff; color: #193e31; transition: border-color .15s, box-shadow .15s; }
+.cabinet-catalog-card:hover { border-color: #568e75; box-shadow: 0 2px 10px #204a3312; }
+.cabinet-catalog-card[aria-pressed="true"] { border: 2px solid #137d67; padding: 9px; background: #f1f8f2; box-shadow: 0 0 0 1px #137d6712; }
+.cabinet-catalog-card strong { font: 700 13px/1.35 system-ui, sans-serif; }
+.cabinet-catalog-card span, .cabinet-catalog-card small { font: 11px/1.4 system-ui, sans-serif; color: #53675a; }
+.cabinet-catalog-thumbnail { width: 100%; height: 112px; min-height: 0; background: #f5f4ed; border-radius: 7px; }
+.cabinet-visual-catalog[data-compact="true"] .cabinet-catalog-cards { display: flex; overflow-x: auto; padding: 2px 2px 9px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.cabinet-visual-catalog[data-compact="true"] .cabinet-catalog-card { flex: 0 0 108px; scroll-snap-align: center; padding: 6px; }
+.cabinet-visual-catalog[data-compact="true"] .cabinet-catalog-thumbnail { height: 60px; }
+.cabinet-visual-catalog[data-compact="true"] .cabinet-catalog-card strong { font-size: 11px; }
+.cabinet-visual-catalog[data-compact="true"] .cabinet-catalog-card span,
+.cabinet-visual-catalog[data-compact="true"] .cabinet-catalog-card small { display: none; }
+.cabinet-configure-title { margin: 0 0 10px; font: 700 18px/1.3 system-ui, sans-serif; color: #183c30; }
+.cabinet-catalog-panel .cabinet-catalog-intro { font-size: 12px; line-height: 1.5; color: #4b6355; }
+.cabinet-catalog-panel[data-configuring="true"] .cabinet-catalog-intro { display: none; }
+.cabinet-catalog-panel [data-testid="cabinet-library-add"] { width: 100%; background: #176e58; color: #fff; border-color: #176e58; min-height: 48px; }
+.cabinet-catalog-panel [data-testid="cabinet-library-add"]:disabled { opacity: .4; }
+
+/* Scoped to the cabinet workflow. No changes to countertop data, rendering or other planners. */
+.cabinet-design-focus > .kitchen-designer-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+.cabinet-design-focus > .kitchen-designer-toolbar strong { display: none; }
+.cabinet-design-focus > .kitchen-designer-toolbar button { flex-shrink: 0; white-space: nowrap; }
+.cabinet-design-focus > .kitchen-designer-toolbar button[aria-label="Cabinet library"] { background: #176e58; color: white; border-color: #176e58; }
+.cabinet-design-focus > .kitchen-designer-appearance > p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.cabinet-design-focus .kitchen-designer-editor [data-testid="steel-home-cabinet-preview"] { border-radius: 12px; box-shadow: 0 3px 14px #18312f0c; }
+.cabinet-design-focus .kitchen-designer-editor [data-testid="cabinet-direct-placement"] > div { padding: 6px 8px; }
+.cabinet-design-focus .kitchen-designer-editor [data-testid="steel-home-cabinet-live-summary"] { padding: 6px 10px; }
+.cabinet-design-focus .kitchen-designer-editor [data-testid="steel-home-cabinet-live-summary"] p { font-size: 11px; margin-top: 0; }
+.cabinet-design-focus .kitchen-designer-editor [data-testid="steel-home-cabinet-live-summary"] > div:last-child { display: flex; align-items: center; gap: 5px; }
+.cabinet-design-focus .kitchen-designer-editor [data-testid="steel-home-cabinet-live-summary"] > div:last-child > p:last-child { font-size: 13px; }
+@media (min-width: 1024px) {
+  .cabinet-design-focus { --cabinet-inspector-width: 384px; }
+  .cabinet-design-focus .kitchen-designer-editor #cabinet-designer > .grid { grid-template-columns: minmax(0,1fr) var(--cabinet-inspector-width); }
+  .cabinet-design-focus .kitchen-workspace-panel[open] { width: var(--cabinet-inspector-width); min-width: 0; box-shadow: none; }
+  .cabinet-design-focus .kitchen-workspace-panel > [data-testid="cabinet-library-panel"] { padding: 14px; background: #fafbf8; }
+  .cabinet-design-focus .kitchen-workspace-panel [data-testid="cabinet-library-panel"] > header { background: #fafbf8; }
+  .cabinet-design-focus .kitchen-workspace-panel [data-testid="cabinet-library-panel"] > header h2 { font-size: 17px; }
+  .cabinet-design-focus .kitchen-designer-editor [data-testid="steel-home-cabinet-plan"] { min-height: 220px; }
+  .cabinet-design-focus[data-canvas-focus="true"] .kitchen-designer-editor #cabinet-designer > .grid { grid-template-columns: minmax(0,1fr); }
+  .cabinet-design-focus[data-canvas-focus="true"] .kitchen-designer-editor #cabinet-designer > .grid > div:last-child { display: none; }
+  .cabinet-design-focus[data-canvas-focus="true"] > .kitchen-designer-appearance { display: none; }
+}
+@media (max-width: 1023px) {
+  .cabinet-canvas-navigation .cabinet-object-picker { flex-basis: 125px; }
+  .cabinet-camera-actions { margin-left: 0; justify-content: flex-start; }
+  .cabinet-canvas-navigation select { max-width: 180px; font-size: 12px; }
+  .cabinet-canvas-footer > p { font-size: 11px; }
+  .cabinet-placement-actions { gap: 2px; }
+  .cabinet-placement-actions > label { font-size: 10px; }
+  .cabinet-placement-actions button { min-width: 40px; }
+  .cabinet-design-focus[data-canvas-focus="true"] .kitchen-designer-editor #cabinet-designer > .grid > div:last-child,
+  .cabinet-design-focus[data-canvas-focus="true"] > .kitchen-designer-appearance { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cabinet-catalog-card { transition: none; } }
