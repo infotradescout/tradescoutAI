@@ -4,6 +4,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import HomeOverview from "./homeid/HomeOverview";
+import HomeIdentityEditor from "./homeid/HomeIdentityEditor";
 import { collection, homeHref, resolveHomeView, type HomeSummary } from "./homeid/homeWorkspaceModel";
 import "./homeid/HomeOverview.css";
 
@@ -32,7 +33,10 @@ export default function Homes() {
   if (view !== "overview") {
     return (
       <div className="ts-home-record-frame">
-        <Link className="home-return-link" href={homeHref(selectedHomeId)}>← Property overview</Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link className="home-return-link" href={homeHref(selectedHomeId)}>← Property overview</Link>
+          {selectedHomeId && <HomeIdentityEditor key={`${user!.id}:${selectedHomeId}`} homeId={selectedHomeId} viewerId={user!.id} className="home-return-link gap-2" />}
+        </div>
         <Suspense fallback={<p role="status">Loading the property tools…</p>}>
           {view === "launch" ? <PropertyBlessingsLaunchWorkspace key={user!.id} /> : <HomeIdWorkspace key={`${user!.id}:${selectedHomeId || "new"}`} />}
         </Suspense>

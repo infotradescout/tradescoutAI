@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { ArrowUpRight, CalendarClock, FileText, FolderOpen, Home, LockKeyhole, Wrench } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { homeOverviewQueryKeys } from "./homeOverviewQueryKeys";
+import HomeIdentityEditor from "./HomeIdentityEditor";
 import {
   HOME_SECTIONS, PACKAGE_HOME_ID, collection, readHomeDetail, readPersistence,
   dateLabel, dueMaintenance, homeAddress, homeHref, homeName, humanLabel, recentRecords,
@@ -98,7 +99,7 @@ export default function HomeOverview({ viewerId, homeId, homes, homesPending, ho
             <div className="home-main-column">
               <Section title="What needs attention" action={open("maintenance", "Maintenance")}>
                 <div className="home-attention-list">
-                  {!homeAddress(home) && <Link className="home-attention-item" href={homeHref(homeId, "property")}><Home size={19} aria-hidden="true" /><span><strong>Review missing location details</strong><small>Open the record to add a location note.</small></span><ArrowUpRight size={17} aria-hidden="true" /></Link>}
+                  {!homeAddress(home) && <div className="home-attention-item"><Home size={19} aria-hidden="true" /><span><HomeIdentityEditor homeId={homeId} viewerId={viewerId} triggerLabel="Add property address" /><small>Save the address, state, and county or parish on the property itself.</small></span></div>}
                   <ReadState pending={schedules.isPending} error={schedules.isError} retry={() => void schedules.refetch()} label="Maintenance">
                     {due.slice(0, 3).map((item, index) => <Link className="home-attention-item" href={homeHref(homeId, "maintenance")} key={item.id || index}><CalendarClock size={19} aria-hidden="true" /><span><strong>{item.title || "Scheduled maintenance"}</strong><small>Due {dateLabel(item.nextDueAt)}</small></span><ArrowUpRight size={17} aria-hidden="true" /></Link>)}
                     {!due.length && <p className="home-empty">No dated maintenance is due in the saved schedule.</p>}
@@ -124,7 +125,7 @@ export default function HomeOverview({ viewerId, homeId, homes, homesPending, ho
               </Section>
             </div>
             <aside className="home-side-column" aria-label="Property records">
-              <Section title="Property details" action={open("property", "Open")}>
+              <Section title="Property details" action={<HomeIdentityEditor homeId={homeId} viewerId={viewerId} />}>
                 <dl className="home-fact-list"><div><dt>Property type</dt><dd>{humanLabel(home.propertyType)}</dd></div><div><dt>Address</dt><dd>{homeAddress(home) || "Not added"}</dd></div><div><dt>Year built</dt><dd>{home.yearBuilt || "Not recorded"}</dd></div></dl>
                 <ReadState pending={persistence.isPending} error={persistence.isError} retry={() => void persistence.refetch()} label="Saved details">
                   <p className="home-footnote">{persistence.data?.propertyDetails.length ?? 0} saved details · {persistence.data?.components.length ?? 0} system records</p>

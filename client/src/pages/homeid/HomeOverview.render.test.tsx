@@ -53,6 +53,7 @@ describe("actual HomeOverview render", () => {
     expect(html).toContain("Prepare a work request");
     expect(html).toContain("roof-report.pdf");
     expect(html).toContain("References are not uploaded files");
+    expect(html).toContain("Edit property");
   });
   it("does not turn failed loads into empty or healthy claims", () => {
     const html = render({ failedProjects: true });
@@ -70,12 +71,12 @@ describe("actual HomeOverview render", () => {
   it("offers the existing creation workflow for an empty account", () => {
     expect(render({ noHome: true })).toContain("Create a property record");
   });
-  it("treats a missing address as missing information, not an invented construction stage", () => {
+  it("offers real address editing without inventing a construction stage", () => {
     const html = render({ missingAddress: true });
     expect(html).toContain("Address not added");
-    expect(html).toContain("Review missing location details");
+    expect(html).toContain("Add property address");
     expect(html).not.toContain("Preconstruction");
-    expect(html).not.toContain("Add the property address");
+    expect(html).not.toContain("Review missing location details");
   });
   it("shares editor invalidation prefixes while keeping viewer caches distinct", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
