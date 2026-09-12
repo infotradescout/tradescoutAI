@@ -4,19 +4,23 @@ import { apiRequest, ApiError } from "@/lib/queryClient";
 import type { PublicStoneInventoryItem } from "@shared/stoneInventory";
 import type { jwStoneReceiptMemberPrice } from "@shared/jwStoneReceiving";
 import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
+import { JwStoneLotCartButton } from "./JwStoneCart";
 
 type Price = ReturnType<typeof jwStoneReceiptMemberPrice>;
 const dollars = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 export function JwStoneArrivalPrice({ item }: { item: PublicStoneInventoryItem }) {
+  return <><ArrivalPriceDetails item={item} /><JwStoneLotCartButton item={item} /></>;
+}
+function ArrivalPriceDetails({ item }: { item: PublicStoneInventoryItem }) {
   const { user } = useAuth();
   const viewerId = String(user?.id || "");
   const query = useQuery<{ viewerId: string; prices: Price[] }>({ queryKey: ["jw-stone", "arrival-prices", viewerId], enabled: Boolean(viewerId), queryFn: () => apiRequest("GET", "/api/u/jw-stone/receiving/prices"), staleTime: 0, gcTime: 0, retry: false });
-  const fallback = <JwStoneMemberPriceDisplay stoneName={item.materialName} slabDimensions={item.dimensions} presentation="inventory" />;
+  const fallback = <JwStoneMemberPriceDisplay stoneName={item.materialName} slabDimensions={item.dimensions} presentation="inventory" allowCatalogCart={false} />;
   if (!viewerId) return fallback;
   if (query.isError) return <p className="mt-4 text-sm">{query.error instanceof ApiError && query.error.status === 403 ? "JW Stone business membership is required to view pricing." : "Pricing is temporarily unavailable."}</p>;
   if (query.isLoading || query.data?.viewerId !== viewerId) return null;
   const price = query.data.prices.find(entry => entry.publicId === item.id);
-  if (!price) return fallback;
+  if (!price) return item.imageUrls.some(url => url.includes("/jw-stone/receiving/")) ? <p className="mt-4 text-sm">Review this lot in your cart for current pricing and availability.</p> : fallback;
   const length = Number(item.dimensions?.length), height = Number(item.dimensions?.height);
   const scale = item.dimensions?.unit === "mm" ? 1 / 25.4 : item.dimensions?.unit === "in" ? 1 : null;
   const area = scale && length > 0 && height > 0 ? length * scale * height * scale / 144 : null;
