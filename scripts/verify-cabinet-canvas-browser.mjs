@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { installCabinetTouchTrace, reportCabinetTouchTrace } from './cabinet-touch-trace.mjs';
+import { createCabinetTouchDriver, diagnoseCabinetTouchActivation } from './cabinet-touch-driver.mjs';
 
 export async function verifyCabinetCanvas({ browser, local, phase, deployed, working, record }) {
+  await diagnoseCabinetTouchActivation(browser);
   const key = 'tradescout:steel-home-project-tools:draft:v9';
   for (const [device, viewport] of [['desktop', { width: 1440, height: 1000 }], ['laptop', { width: 1366, height: 768 }], ['touch', { width: 390, height: 844 }]]) {
     const context = await browser.newContext({ viewport, isMobile: device === 'touch', hasTouch: device === 'touch', serviceWorkers: 'block', acceptDownloads: true,
@@ -18,7 +19,9 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
       page = await context.newPage(); page.setDefaultTimeout(30000);
       await installCabinetTouchTrace(page, key);
       page.on('pageerror', error => errors.push(error.message)); page.on('dialog', dialog => dialog.accept());
-      const click = async locator => { await locator.scrollIntoViewIfNeeded(); device === 'touch' ? await locator.tap() : await locator.click(); };
+      const touch = device === 'touch' ? await createCabinetTouchDriver(context, page) : null;
+      const session = touch?.session ?? null;
+      const click = async locator => { await locator.scrollIntoViewIfNeeded(); if (touch) await touch.tap(locator); else await locator.click(); };
       const button = name => page.getByRole('button', { name, exact: true });
       const read = () => page.evaluate(key => JSON.parse(localStorage.getItem(key)), key);
       await page.goto(local, { waitUntil: 'networkidle' });
@@ -38,7 +41,6 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
       const destination = phase === 'production' ? 'https://www.thetradescout.com/u/steel-home-packages/builders/cabinets' : local + '/cabinet-parent.html';
       const response = await page.goto(destination, { waitUntil: 'domcontentloaded' }); assert(response?.ok());
       if (phase === 'production') assert.equal(response.headers()['x-tradescout-build'], deployed);
-      // A fresh production origin correctly starts at the chooser, not an already measured plan.
       await page.getByTestId('steel-home-cabinet-designer').waitFor({ state: 'visible' });
       await page.evaluate(({ key, sample }) => localStorage.setItem(key, JSON.stringify(sample)), { key, sample });
       const reloaded = await page.reload({ waitUntil: 'domcontentloaded' });
@@ -61,7 +63,6 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
       assert.deepEqual(await read(), baseline);
       record(`${device}: reachable overlapping cabinets`, 'Lower layer exposes a base beneath its upper cabinet; other layers remain read-only ghost outlines; selecting and fitting an object preserves all measured fields');
 
-      const session = device === 'touch' ? await context.newCDPSession(page) : null;
       const dragBase = async inches => {
         const item = page.locator('[data-module="base"]'); await item.scrollIntoViewIfNeeded();
         const p = await item.evaluate(node => {
@@ -81,7 +82,6 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
         if (session) await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); else await page.mouse.up();
         await reportCabinetTouchTrace(page, key, { device, requestedInches: inches, start: p, endX: p.x + inches * p.px });
       };
-      // End at 42in, before the hidden end panel at 45in.
       await dragBase(12);
       await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).cabinets.planner.modules.find(m => m.id === 'base').offsetIn === 12, key);
       const moved = await read();
