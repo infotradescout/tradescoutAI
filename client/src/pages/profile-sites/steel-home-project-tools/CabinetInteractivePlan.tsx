@@ -123,8 +123,9 @@ export default function CabinetPlanView({ planner, onSelectModule, onChange }: P
   const feedback = preview ? [cabinetMovePosition(preview.module), ...preview.guides.map(guide => guide.label), ...preview.problems,
     preview.problems.length ? "Blocked: releasing restores the original position." : "Release to apply; Escape to cancel."].join(" · ") : notice || (selectedModule ? cabinetMovePosition(selectedModule) : "Select a cabinet to edit it. Drag to position it.");
   const visible = display.modules.filter(module => cabinetOnPlanLayer(module, layer));
-  // Paint upper cabinets last only when selected; the object picker and layer control resolve overlap explicitly.
-  const ordered = [...visible].sort((a, b) => Number(a.id === selected) - Number(b.id === selected));
+  // Reordering a captured SVG node can drop pointer capture. Paint by SAVED selection;
+  // active highlighting may change immediately, but DOM order changes only after release.
+  const ordered = [...visible].sort((a, b) => Number(a.id === planner.selectedModuleId) - Number(b.id === planner.selectedModuleId));
   const focusSelected = () => {
     const next = frameCabinetInPlan(planner, selected);
     if (next) { if (selectedModule && !cabinetOnPlanLayer(selectedModule, layer)) setLayer("all"); setCamera(next); }
