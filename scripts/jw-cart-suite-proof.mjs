@@ -13,6 +13,9 @@ const report = { head, baseline, passed: false, candidate: null, inheritedFailur
 function normalized(text, cwd) {
   return String(text || '').replace(/\u001b\[[0-9;]*m/g, '').split(cwd).join('[CHECKOUT]');
 }
+function compact(summary) {
+  return summary && { ...summary, failures: summary.failures.map(item => ({ ...item, messages: item.messages.map(message => message.slice(0, 1800)) })) };
+}
 async function test(cwd, label) {
   const destination = path.join(cwd, 'test-results/jw-cart-suite.json');
   const result = spawnSync('npm', ['run', 'test:run', '--', ...patterns, '--maxWorkers=2', '--reporter=json', '--outputFile=' + destination],
@@ -33,12 +36,14 @@ async function test(cwd, label) {
   }
   const summary = { exitCode: result.status, passedTests: json.numPassedTests, failedTests: json.numFailedTests,
     totalTests: json.numTotalTests, failures };
-  console.log('JW_CART_SUITE_RESULT ' + JSON.stringify({ label, ...summary }));
+  console.log('JW_CART_SUITE_RESULT ' + JSON.stringify({ label, ...compact(summary) }));
   if (result.error || (result.status !== 0 && !failures.length)) throw new Error(label + ': ' + text.slice(-5000));
   return summary;
 }
 let temp;
 try {
+  const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim() === 'true';
+  execFileSync('git', ['fetch', ...(shallow ? ['--unshallow'] : []), '--no-tags', 'origin', 'main', 'jw-stone/cart-review-flow-20260912'], { stdio: 'inherit', timeout: 300000 });
   execFileSync('git', ['merge-base', '--is-ancestor', baseline, head]);
   report.candidate = await test(root, 'candidate');
   if (report.candidate.failures.length) {
@@ -52,7 +57,6 @@ try {
     for (const failure of report.candidate.failures) {
       const inherited = before.failures.find(item => item.file === failure.file && item.name === failure.name);
       assert(inherited, 'New regression: ' + failure.file + ' > ' + failure.name);
-      // The exact failed assertion and diagnostic must already fail in main.
       assert.deepEqual(failure.messages, inherited.messages, 'Changed failure: ' + failure.file + ' > ' + failure.name);
     }
     report.inheritedFailures = report.candidate.failures;
@@ -64,5 +68,5 @@ try {
   if (temp) await fs.rm(temp, { recursive: true, force: true });
   await fs.mkdir(path.dirname(output), { recursive: true });
   await fs.writeFile(output, JSON.stringify(report, null, 2));
-  console.log('JW_CART_SUITE_PROOF ' + JSON.stringify(report));
+  console.log('JW_CART_SUITE_PROOF ' + JSON.stringify({ ...report, candidate: compact(report.candidate), inheritedFailures: report.inheritedFailures.map(item => ({ file: item.file, name: item.name })) }));
 }
