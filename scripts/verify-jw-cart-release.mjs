@@ -44,8 +44,11 @@ try {
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'A clean exact-commit checkout is required');
   for (const key of ['DATABASE_URL', 'TEST_DATABASE_URL', 'SENDGRID_API_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY', 'SMTP_PASS', 'STRIPE_SECRET_KEY', 'JW_STONE_PRICING_APPROVED_IMPORT', 'JW_STONE_DRIVE_REFRESH_TOKEN']) assert(!process.env[key], 'Verification must not inherit live credentials: ' + key);
   run('TypeScript', 'npm', ['run', 'check']);
-  run('Affected JW cart, pricing, inventory and account tests', 'npm', ['run', 'test:run', '--',
-    'client/src/features/jw-stone', 'server/tests/jw-stone', 'server/tests/stone-inventory', 'server/tests/profile-account', '--maxWorkers=2']);
+  run('Affected tests and exact inherited-main comparison', process.execPath, ['scripts/jw-cart-suite-proof.mjs']);
+  const suites = JSON.parse(await fs.readFile(path.join(output, 'suites.json'), 'utf8'));
+  assert.equal(suites.head, head); assert.equal(suites.passed, true);
+  report.affectedTests = { passedTests: suites.candidate.passedTests, failedTests: suites.candidate.failedTests,
+    inheritedFailures: suites.inheritedFailures.map(item => ({ file: item.file, name: item.name })) };
   run('Native desktop and touch signup, cart, quote request, and revocation', process.execPath, ['scripts/jw-stone-customer-workflow.native.mjs']);
   const browser = JSON.parse(await fs.readFile('test-results/jw-workflow/evidence.json', 'utf8'));
   assert.equal(browser.head, head); assert.equal(browser.passed, true, 'The native workflow report must pass, not merely exit');
@@ -69,6 +72,6 @@ try {
   try { await fs.cp('test-results/jw-workflow', path.join(output, 'browser'), { recursive: true }); } catch {}
   await fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(report, null, 2));
   await fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
-  await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>');
+  await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="suites.json">Affected test results and inherited failures</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>');
   console.log('JW_CART_RELEASE_SUMMARY ' + JSON.stringify(report));
 }
