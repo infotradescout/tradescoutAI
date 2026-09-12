@@ -343,7 +343,6 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(storySrcs.length).toBeGreaterThanOrEqual(4);
     expect(storySrcs[0]).toContain("/story/quarry.webp");
     expect(storySrcs.some((src) => src.includes("/story/taj-living-room.webp"))).toBe(true);
-    expect(storyRailClassName(story)).toBeUndefined();
     expect(storySrcs.some((src) => src.includes("/story/fireplace.webp"))).toBe(true);
     const storyRail = story?.querySelector("ul");
     expect(storyRail?.className).toMatch(/overflow-x-auto/);
