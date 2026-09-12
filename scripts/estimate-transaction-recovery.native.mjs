@@ -17,8 +17,6 @@ function run(name,args,env={}){const r=spawnSync(args[0],args.slice(1),{env:{...
 try{
  for(const key of ['DATABASE_URL','TEST_DATABASE_URL','SENDGRID_API_KEY','BREVO_API_KEY','RESEND_API_KEY','SMTP_PASS'])assert(!process.env[key],'No inherited production configuration');
  run('Production application build',['npm','run','build']);
- const ui=await fs.readFile('client/src/pages/direct-connect/DirectConnectShell.tsx','utf8');
- console.log('ESTIMATE_UI_MAP '+JSON.stringify(ui.split('\n').flatMap((text,index)=>/ReviewEstimatePanel|CreateEstimatePanel|path=.*jobs|jobWorkspaceId=|\/jobs\//.test(text)?[{line:index+1,text}]:[]).slice(0,50)));
  cluster=await startCabinetLoopbackTestDatabase();
  const admin=new pg.Client({connectionString:cluster.url});await admin.connect();try{await admin.query('CREATE DATABASE ts_operator_test');}finally{await admin.end();}
  const target=new URL(cluster.url);target.pathname='/ts_operator_test';assert.equal(target.hostname,'127.0.0.1');
@@ -34,15 +32,16 @@ try{
  async function actor(kind){const c=await playwrightRequest.newContext({baseURL:base});contexts.push(c);await api(c,'POST','/api/auth/login',{email:fixture.identities[kind].email,password:fixture.password});return c;}
  const customer=await actor('requester'),supplier=await actor('provider'),stranger=await actor('unrelated');
  step('Real password login with three separate fixture sessions');
- const request=await api(customer,'POST',`/api/tradepartner-profiles/${fixture.profileSlug}/express-request`,{name:'Synthetic Requester',email:fixture.identities.requester.email,phone:'2025550147',requestType:'request_service',contactPreference:'platform_message',message:'Synthetic measured kitchen project. Confirm material scope before proposing an estimate.',updatesOptIn:false});
+ const request=await api(customer,'POST',`/api/tradepartner-profiles/${fixture.profileSlug}/express-request`,{name:'Synthetic Requester',email:fixture.identities.requester.email,phone:'2025550147',requestType:'request_service',contactPreference:'platform_message',message:'Synthetic measured kitchen project. Confirm material scope before proposing an estimate.',updatesOptIn:false},201);
  const assignment=(await database.query('SELECT id FROM work_request_assignments WHERE work_request_id=$1 AND responder_user_id=$2',[request.requestId,fixture.identities.provider.id])).rows[0];assert(assignment);
- const accepted=await api(supplier,'POST',`/api/direct-connect/assignments/${assignment.id}/respond`,{decision:'accept',availabilityWindow:'Next week',priceBand:'custom_quote',scopeNote:'Synthetic itemized materials and labor estimate; no real offer.'});
+ await api(supplier,'POST',`/api/direct-connect/assignments/${assignment.id}/respond`,{decision:'accept',availabilityWindow:'Next week',priceBand:'custom_quote',scopeNote:'Synthetic itemized materials and labor estimate; no real offer.'});
  const event=(await database.query("SELECT metadata FROM work_request_events WHERE work_request_id=$1 AND type='provider_accepted'",[request.requestId])).rows[0];const conversationId=event.metadata.conversationId;assert(conversationId);
+ step('Actual selected-supplier request and acceptance');
  await api(supplier,'POST',`/api/direct-connect/contractor/requests/${request.requestId}/request-contact`,{});
  await api(customer,'POST',`/api/direct-connect/requests/${request.requestId}/contact-gate`,{nextState:'user_approved'});
  await api(customer,'POST',`/api/direct-connect/requests/${request.requestId}/contact-gate`,{nextState:'released'});
  const workspace=(await database.query('SELECT id,requester_user_id FROM direct_connect_job_workspaces WHERE request_id=$1',[request.requestId])).rows[0];assert(workspace);assert.equal(workspace.requester_user_id,fixture.identities.requester.id);
- step('Actual request, supplier acceptance, requester approval and job creation');
+ step('Requester contact approval and job creation through guarded routes');
  const pathRoot=`/api/direct-connect/jobs/${workspace.id}/estimates`;
  const created=await api(supplier,'POST',pathRoot,{title:'Synthetic itemized kitchen estimate',scopeSummary:'Invented materials, labor, pallet and delivery amounts for isolated testing only.'},201);
  const estimatePath=pathRoot+'/'+created.estimateId;
@@ -50,8 +49,7 @@ try{
  const lines=[['other','Pallet allowance',1,100],['other','Delivery allowance',1,200],['material','Synthetic materials',2,150],['labor','Synthetic labor',2,50]];
  let expectedTotal=0;
  for(let i=0;i<lines.length;i++){const [lineType,name,quantity,unitCost]=lines[i];expectedTotal+=quantity*unitCost;
-  const body=await api(supplier,'POST',estimatePath+'/line-items',{lineType,name,quantity,unit:'each',unitCost},201,{'Idempotency-Key':'native-line-'+i+'-key'});
-  assert.equal(body.totals.totalEstimate,expectedTotal);
+  const body=await api(supplier,'POST',estimatePath+'/line-items',{lineType,name,quantity,unit:'each',unitCost},201,{'Idempotency-Key':'native-line-'+i+'-key'});assert.equal(body.totals.totalEstimate,expectedTotal);
  }
  const quote=await api(supplier,'GET',estimatePath);assert.equal(quote.totalEstimate,700);assert.equal(quote.lineItems.length,4);
  const replayLine=await api(supplier,'POST',estimatePath+'/line-items',{lineType:'other',name:'Pallet allowance',quantity:1,unit:'each',unitCost:100},201,{'Idempotency-Key':'native-line-0-key'});assert.equal(replayLine.replayed,true);
@@ -71,25 +69,25 @@ try{
  assert.equal(notices.length,1);assert.equal(notices[0].recipient_user_id,fixture.identities.requester.id);assert.equal(notices[0].metadata_json.estimateId,created.estimateId);
  step('Failed send rolls back; retry publishes one readable quote and one receipt to the right customer');
  await api(customer,'POST',estimatePath+'/respond',{decision:'request_changes',note:'Synthetic revision request'});
- await api(supplier,'PATCH',estimatePath,{title:'Synthetic revised kitchen estimate'});
- await api(supplier,'POST',estimatePath+'/send',{});
+ await api(supplier,'PATCH',estimatePath,{title:'Synthetic revised kitchen estimate'});await api(supplier,'POST',estimatePath+'/send',{});
  await api(supplier,'POST',estimatePath+'/respond',{decision:'accept'},403);
  await api(customer,'POST',estimatePath+'/respond',{decision:'accept'});
  assert.equal((await api(customer,'POST',estimatePath+'/respond',{decision:'accept'})).replayed,true);
  assert.equal((await database.query('SELECT count(*)::int AS n FROM job_acceptances WHERE estimate_id=$1',[created.estimateId])).rows[0].n,1);
  await api(customer,'POST',estimatePath+'/respond',{decision:'decline'},409);
- step('Customer requests revision, receives resend and accepts once; other actors and conflicting decisions denied');
+ step('Customer revision, resend and acceptance persist once; other actors and conflicting decisions denied');
  const concurrent=await api(supplier,'POST',pathRoot,{title:'Synthetic concurrency estimate',scopeSummary:'Parallel additions must not lose totals.',subtotalOther:25},201);
  const cp=pathRoot+'/'+concurrent.estimateId;
  await Promise.all(Array.from({length:8},(_,i)=>api(supplier,'POST',cp+'/line-items',{lineType:'other',name:'Concurrent '+i,quantity:1,unit:'each',unitCost:1.25},201,{'Idempotency-Key':'concurrent-key-'+i})));
  const cq=await api(supplier,'GET',cp);assert.equal(cq.lineItems.length,8);assert.equal(cq.totalEstimate,35);
  await Promise.all(Array.from({length:4},()=>api(supplier,'POST',cp+'/line-items',{lineType:'material',name:'Repeated exact addition',quantity:1,unit:'each',unitCost:2},201,{'Idempotency-Key':'same-concurrent-key'})));
  const rq=await api(supplier,'GET',cp);assert.equal(rq.lineItems.length,9);assert.equal(rq.totalEstimate,37);
- step('Native concurrent additions preserve every amount; concurrent identical retry creates one line',{parallelAdds:8,totalAfterAdds:35,totalAfterReplay:37});
- proof.requestToCustomerQuote=true;proof.acceptedEstimateId=created.estimateId;proof.jobWorkspaceId=workspace.id;
- proof.customerReceipt={title:receipt.title,total:receipt.totalEstimate,lineCount:receipt.lineItems.length};
+ step('Concurrent additions preserve every amount; identical concurrent retry creates one line',{parallelAdds:8,totalAfterAdds:35,totalAfterReplay:37});
+ proof.requestToCustomerQuote=true;proof.customerReceipt={title:receipt.title,total:receipt.totalEstimate,lineCount:receipt.lineItems.length};
  proof.passed=true;
-}catch(error){proof.error=String(error.stack||error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[LOCAL_DATABASE]');console.error('ESTIMATE_NATIVE_FAILURE '+proof.error);}
+}catch(error){proof.error=String(error.stack||error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[LOCAL_DATABASE]');console.error('ESTIMATE_NATIVE_FAILURE '+proof.error);
+ if(log){const tail=(await fs.readFile(path.join(temp,'fixture.private.log'),'utf8')).slice(-12000).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[LOCAL_DATABASE]');console.error('ESTIMATE_FIXTURE_FAILURE '+tail);}
+}
 finally{
  for(const c of contexts)await c.dispose();
  if(server&&server.exitCode===null&&!server.signalCode)await new Promise(resolve=>{const timer=setTimeout(()=>{server.kill('SIGKILL');resolve();},5000);server.once('exit',()=>{clearTimeout(timer);resolve();});server.kill('SIGTERM');});
