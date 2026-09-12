@@ -57,7 +57,7 @@ export function MarketplaceHeader({
       data-testid="jw-marketplace-header"
       className={`sticky top-0 z-40 border-b ${jw.border} ${jw.surface}`}
     >
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-2 px-4 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-1 px-2 min-[375px]:gap-2 min-[375px]:px-4 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
         <a
           href={marketplaceBasePath() || "/"}
           aria-label="JW Stone home"
