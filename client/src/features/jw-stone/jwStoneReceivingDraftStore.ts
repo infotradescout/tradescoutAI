@@ -23,7 +23,7 @@ function validateOwner(viewerId: string): void {
 }
 function validateDraft(draft: ReceivingDraft | null): void {
   if (draft === null) return;
-  if (!draft || typeof draft !== "object" || !draft.fields || Array.isArray(draft.fields)
+  if (!draft || typeof draft !== "object" || !draft.fields || typeof draft.fields !== "object" || Array.isArray(draft.fields)
     || Object.entries(draft.fields).some(([key, value]) =>
       !RECEIVING_DRAFT_FIELDS.includes(key as typeof RECEIVING_DRAFT_FIELDS[number])
       || typeof value !== "string" || value.length > 2000)
