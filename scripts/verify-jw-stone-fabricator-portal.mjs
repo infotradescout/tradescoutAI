@@ -62,8 +62,12 @@ async function assertPortalForm(page, directory, device) {
 }
 async function assertPortalConnected(page, directory, device) {
   const dialog = page.getByTestId('profile-account-dialog');
+  // Signup refreshes authentication and remounts the session-scoped form. Wait
+  // for the actual connected business response, not the transient loading copy.
+  const pending = 'Business verification is pending. Some business features may require approval.';
+  await dialog.getByText(pending, { exact: true }).waitFor({ state: 'visible' });
   assert.equal(await dialog.getByRole('heading', { name: 'JW Stone Fabricator Portal', exact: true }).count(), 1);
-  assert((await dialog.innerText()).includes('Business verification is pending. Some business features may require approval.'));
+  assert((await dialog.innerText()).includes(pending));
   assert(!/\b(?:pric(?:e|es|ing)|wholesale|discount|unlock)\b/i.test(await dialog.innerText()));
 }
 
