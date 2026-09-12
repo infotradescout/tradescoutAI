@@ -1,4 +1,4 @@
-import { addJwStoneCartLine, migrateJwStoneLegacyCart, normalizeJwStoneCart, setJwStoneCartQuantity, type JwStoneCartLine } from "../../../../shared/jwStoneCart";
+import { addJwStoneCartLine, migrateJwStoneLegacyCart, normalizeJwStoneCart, setJwStoneCartQuantity, JW_STONE_CART_STORAGE_MAX_LINES, type JwStoneCartLine } from "../../../../shared/jwStoneCart";
 
 export const JW_STONE_CART_STORAGE_PREFIX = "tradescout:jw-stone:member-cart:v2:";
 export const JW_STONE_LEGACY_CART_STORAGE_PREFIX = "tradescout:jw-stone:member-cart:v1:";
@@ -24,7 +24,7 @@ export function createJwStoneCartStore(storage: CartStorage | null, viewerId: st
       if (raw !== null) {
         const parsed = JSON.parse(raw);
         if (parsed?.version !== 2 || parsed?.viewerId !== viewerId || !Array.isArray(parsed.lines)) throw new Error("Invalid cart storage");
-        return { lines: normalizeJwStoneCart(parsed.lines), persisted: true };
+        return { lines: normalizeJwStoneCart(parsed.lines, JW_STONE_CART_STORAGE_MAX_LINES), persisted: true };
       }
       const legacy = storage.getItem(legacyKey);
       return { lines: legacy === null ? [] : migrateJwStoneLegacyCart(JSON.parse(legacy)), persisted: true };
@@ -38,7 +38,9 @@ export function createJwStoneCartStore(storage: CartStorage | null, viewerId: st
     const lines = operation(latest.lines);
     let persisted = false;
     try {
-      if (storage) { storage.setItem(key, JSON.stringify({ version: 2, viewerId, lines })); persisted = true; }
+      // Do not overwrite a cart that could not be read, or a newer envelope.
+      // Memory-only edits remain visible without destroying its stored contents.
+      if (storage && read().persisted) { storage.setItem(key, JSON.stringify({ version: 2, viewerId, lines })); persisted = true; }
     } catch { /* Preserve usable in-memory edits and expose the persistence failure. */ }
     ephemeral = !persisted;
     publish({ lines, persisted });

@@ -32,16 +32,18 @@ export function registerJwStoneReceivingRoutes(app: Express): void {
     } catch { if (!res.headersSent) { res.setHeader("Cache-Control", "no-store"); res.status(503).end(); } }
   };
   app.head(photoRoute, photo); app.get(photoRoute, photo);
-  // Fresh reads after receiving; public projection contains no prices, notes, rack or costs.
-  app.get(`${BASE}/arrivals`, requireCriticalSchema("stone_inventory"), async (_req: Request, res: Response) => {
+  // Saved lots recheck all published stock, not just the merchandising subset.
+  // Both paths use the existing public projection (no prices, notes, rack or costs).
+  app.get([`${BASE}/arrivals`, `${BASE}/inventory`], requireCriticalSchema("stone_inventory"), async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("CDN-Cache-Control", "no-store");
     try {
       const context = await getPublicProfileTrustContext("jw-stone");
       const target = await getStoneInventoryProfileTarget("jw-stone");
       if (!context?.businessId || !target || context.businessId !== target.businessId) { res.status(404).json({ message: "JW Stone inventory is unavailable." }); return; }
-      res.json({ profileSlug: "jw-stone", freshnessDays: STONE_CURRENT_INVENTORY_FRESHNESS_DAYS, generatedAt: new Date().toISOString(), items: await listPublicStoneNewArrivals(target) });
-    } catch { res.status(503).json({ message: "New arrivals are temporarily unavailable." }); }
+      const items = /\/inventory\/?$/.test(req.path) ? await listPublicCurrentStoneInventory(target) : await listPublicStoneNewArrivals(target);
+      res.json({ profileSlug: "jw-stone", freshnessDays: STONE_CURRENT_INVENTORY_FRESHNESS_DAYS, generatedAt: new Date().toISOString(), items });
+    } catch { res.status(503).json({ message: "JW Stone inventory is temporarily unavailable." }); }
   });
   app.get(`${BASE}/access`, isAuthenticated, async (req: Request, res: Response) => {
     privateResponse(res);

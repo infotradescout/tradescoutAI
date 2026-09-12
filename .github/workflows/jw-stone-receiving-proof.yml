@@ -23,8 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
-      - name: Cart, wishlist, and mocked service regressions
-        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-cart-wishlist.test.mjs
+      - name: Cart, wishlist, migration, and mocked service regressions
+        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-cart-wishlist.test.mjs scripts/jw-stone-saved-lots-and-cart-migration.test.mjs
 
   receiving-browser:
     runs-on: ubuntu-latest
@@ -64,6 +64,10 @@ jobs:
           node-version: '22.16.0'
           cache: npm
       - run: npm ci --include=dev
+      - name: Saved-lot and cart interface handlers with mocked React and API ports
+        id: saved_lots
+        continue-on-error: true
+        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-saved-lots-ui.test.mjs
       - name: Full TypeScript check
         id: types
         continue-on-error: true
@@ -79,10 +83,12 @@ jobs:
       - name: Fail when any application check failed
         if: always()
         env:
+          SAVED_LOTS_OUTCOME: ${{ steps.saved_lots.outcome }}
           TYPES_OUTCOME: ${{ steps.types.outcome }}
           REGRESSION_OUTCOME: ${{ steps.regressions.outcome }}
           BUILD_OUTCOME: ${{ steps.build.outcome }}
         run: |
+          test "$SAVED_LOTS_OUTCOME" = success
           test "$TYPES_OUTCOME" = success
           test "$REGRESSION_OUTCOME" = success
           test "$BUILD_OUTCOME" = success

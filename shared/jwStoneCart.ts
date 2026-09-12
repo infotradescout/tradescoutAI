@@ -1,5 +1,8 @@
 /** Price-free cart intent. Only the authenticated server review may quote a lot. */
 export const JW_STONE_CART_MAX_LINES = 50;
+// Earlier carts persisted up to 100 selections. Preserve them during migration;
+// the API still reviews at most 50 lines per explicitly selected batch.
+export const JW_STONE_CART_STORAGE_MAX_LINES = 100;
 export const JW_STONE_CART_MAX_QUANTITY = 999;
 export type JwStoneCartLine = Readonly<{
   id: string;
@@ -73,8 +76,9 @@ export function parseJwStoneCartRequest(value: unknown): JwStoneCartRequestLine[
   });
 }
 /** Unknown client properties (including stored prices/costs) are never retained. */
-export function normalizeJwStoneCart(value: unknown): JwStoneCartLine[] {
+export function normalizeJwStoneCart(value: unknown, maxLines = JW_STONE_CART_MAX_LINES): JwStoneCartLine[] {
   if (!Array.isArray(value)) return [];
+  const limit = Number.isInteger(maxLines) && maxLines > 0 ? Math.min(maxLines, JW_STONE_CART_STORAGE_MAX_LINES) : JW_STONE_CART_MAX_LINES;
   const result: JwStoneCartLine[] = [];
   const seen = new Set<string>();
   for (const raw of value.slice(0, 500)) {
@@ -84,31 +88,43 @@ export function normalizeJwStoneCart(value: unknown): JwStoneCartLine[] {
     if (!kind) continue;
     seen.add(line.id);
     result.push({ id: line.id, kind, stoneName: line.stoneName.trim(), quantity: line.quantity });
-    if (result.length === JW_STONE_CART_MAX_LINES) break;
+    if (result.length === limit) break;
   }
   return result;
 }
 export function migrateJwStoneLegacyCart(value: unknown): JwStoneCartLine[] {
   if (!Array.isArray(value)) return [];
   // Legacy IDs identify a material/dimension estimate, never a particular lot.
-  return normalizeJwStoneCart(value.map(raw => ({ ...record(raw), kind: "catalog" })));
+  return normalizeJwStoneCart(value.map(raw => ({ ...record(raw), kind: "catalog" })), JW_STONE_CART_STORAGE_MAX_LINES);
 }
 export function addJwStoneCartLine(lines: readonly JwStoneCartLine[], next: Omit<JwStoneCartLine, "quantity">): JwStoneCartLine[] {
   const valid = normalizeJwStoneCart([{ ...next, quantity: 1 }])[0];
   if (!valid) throw new JwStoneCartInputError("This stone cannot be added to the cart.");
-  const current = normalizeJwStoneCart(lines);
+  const current = normalizeJwStoneCart(lines, JW_STONE_CART_STORAGE_MAX_LINES);
   const found = current.find(line => line.id === valid.id);
   if (found) {
     if (found.quantity === JW_STONE_CART_MAX_QUANTITY) throw new JwStoneCartInputError("The maximum quantity per lot is 999 slabs.");
     return current.map(line => line.id === valid.id ? { ...line, quantity: line.quantity + 1 } : line);
   }
-  if (current.length === JW_STONE_CART_MAX_LINES) throw new JwStoneCartInputError("The cart holds up to 50 selections. Remove one before adding another.");
+  if (current.length >= JW_STONE_CART_MAX_LINES) throw new JwStoneCartInputError("Your saved cart is preserved. Reduce it below 50 selections before adding another.");
   return [...current, valid];
 }
 export function setJwStoneCartQuantity(lines: readonly JwStoneCartLine[], id: string, value: number): JwStoneCartLine[] {
   if (value === 0) return lines.filter(line => line.id !== id);
   if (!quantity(value)) throw new JwStoneCartInputError("Enter a whole slab quantity from 1 to 999.");
   return lines.map(line => line.id === id ? { ...line, quantity: value } : line);
+}
+/** Review and inquiry use the same explicit batch; storage is never truncated. */
+export function jwStoneCartBatch(lines: readonly JwStoneCartLine[], requestedPage: number) {
+  const pages = Math.max(1, Math.ceil(lines.length / JW_STONE_CART_MAX_LINES));
+  const page = Math.max(0, Math.min(Number.isInteger(requestedPage) ? requestedPage : 0, pages - 1));
+  const start = page * JW_STONE_CART_MAX_LINES;
+  return { page, pages, start, lines: lines.slice(start, start + JW_STONE_CART_MAX_LINES) };
+}
+export function jwStoneCartInquiry(lines: readonly JwStoneCartLine[]): string {
+  if (!lines.length || lines.length > JW_STONE_CART_MAX_LINES) throw new JwStoneCartInputError("Choose one cart batch for this request.");
+  // Keep the complete lot identifier even when the material name needs shortening.
+  return "Please confirm availability, price, and pickup or delivery for these selections:\n" + lines.map(line => `${line.quantity} slabs — ${line.stoneName.replace(/[\r\n\u0000-\u001f]/g, " ").slice(0, 18)} — ${line.kind === "lot" ? line.id : "catalog selection; lot needed"}`).join("\n");
 }
 const cents = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value > 0 && value <= 10_000_000;
 /** Quotes only usable slab quantities; reserved stock and catalog suggestions cannot masquerade as inventory. */

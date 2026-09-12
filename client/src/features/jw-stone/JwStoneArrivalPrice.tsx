@@ -8,8 +8,8 @@ import { JwStoneLotCartButton } from "./JwStoneCart";
 
 type Price = ReturnType<typeof jwStoneReceiptMemberPrice>;
 const dollars = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-export function JwStoneArrivalPrice({ item }: { item: PublicStoneInventoryItem }) {
-  return <><ArrivalPriceDetails item={item} /><JwStoneLotCartButton item={item} /></>;
+export function JwStoneArrivalPrice({ item, onCartOpen }: { item: PublicStoneInventoryItem; onCartOpen?: () => void }) {
+  return <><ArrivalPriceDetails item={item} /><JwStoneLotCartButton item={item} onOpenCart={onCartOpen} /></>;
 }
 function ArrivalPriceDetails({ item }: { item: PublicStoneInventoryItem }) {
   const { user } = useAuth();

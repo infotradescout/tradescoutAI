@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, MessageCircle, Sparkles } from "lucide-react";
+import { Clock3, Sparkles } from "lucide-react";
 import type {
   PublicStoneInventoryItem,
   PublicStoneInventoryResponse,
@@ -10,13 +10,15 @@ import { jw } from "./brand";
 import { JwStoneEmployeeReceiving } from "./JwStoneEmployeeReceiving";
 import { JwStoneArrivalPrice } from "./JwStoneArrivalPrice";
 import { JwStoneArrivalGallery } from "./JwStoneArrivalGallery";
+import { JwStoneLotActions } from "./JwStoneLotActions";
+import { useJwStoneSavedLots } from "./useJwStoneSavedLots";
 
 function formatDimensions(dimensions: StoneInventoryDimensions | null): string | null {
   if (!dimensions) return null;
   const values = [dimensions.length, dimensions.height, dimensions.thickness].filter(
     (value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0
   );
-  return values.length ? `${values.join(" × ")} ${dimensions.unit || "in"}` : null;
+  return values.length ? `${values.join(" × ")} ${dimensions.unit || "(unit not provided)"}` : null;
 }
 
 function formatConfirmedDate(value: string): string {
@@ -35,15 +37,16 @@ type Props = {
 };
 
 // Employee entry remains available even when the public arrivals list is empty.
-export function NewArrivalsSection(props: Props) {
-  return <><JwStoneEmployeeReceiving /><PublicNewArrivalsSection {...props} /></>;
+export function NewArrivalsSection(_props: Props) {
+  const saved = useJwStoneSavedLots();
+  return <><JwStoneEmployeeReceiving />{saved.notice ? <p role="status" className="mx-auto max-w-[1600px] px-5 py-3 text-sm text-[var(--jw-ink)]">{saved.notice}</p> : null}<PublicNewArrivalsSection /></>;
 }
 
 /**
  * Only physical lots explicitly published as sale-ready and selected as New
  * Arrivals may qualify. Employee Receive & publish records both decisions.
  */
-function PublicNewArrivalsSection({ onAsk }: Props) {
+function PublicNewArrivalsSection() {
   const arrivalsQuery = useQuery({
     queryKey: ["jw-stone", "new-arrivals"],
     queryFn: () =>
@@ -143,14 +146,7 @@ function PublicNewArrivalsSection({ onAsk }: Props) {
                     <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
                     {formatConfirmedDate(item.lastConfirmedAt)}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => onAsk(item)}
-                    className={`mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 px-4 text-sm ${jw.accentCta}`}
-                  >
-                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                    Ask about this arrival
-                  </button>
+                  <JwStoneLotActions item={item} />
                 </div>
               </li>
             );
