@@ -3,6 +3,7 @@ import {
   Building,
   ClipboardList,
   Compass,
+  Menu,
   Share2,
   ShoppingBag,
   Users,
@@ -12,6 +13,11 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ROUTES } from "@/lib/routes";
+import {
+  PRODUCT_NAV_GROUPS,
+  getProductNavGroup,
+  isProductNavItemActive,
+} from "@/lib/productNavigation";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 import AppShellCore from "./AppShellCore";
@@ -204,6 +210,12 @@ export function AppShell({ children, footer }: AppShellProps) {
           background-color: color-mix(in oklab, var(--surface-frame) 88%, transparent) !important;
         }
 
+        .ts-product-navigator[open] > summary {
+          color: var(--theme-accent-primary);
+          background: color-mix(in oklab, var(--theme-accent-primary) 12%, var(--surface-card));
+          border-color: color-mix(in oklab, var(--theme-accent-primary) 30%, transparent);
+        }
+
         @media (max-width: 767px) {
           body.ts-desktop-app-rail-active .app-shell .ts-shell-main {
             left: 0 !important;
@@ -253,6 +265,83 @@ export function AppShell({ children, footer }: AppShellProps) {
               );
             })}
           </div>
+
+          <details className="ts-product-navigator relative mt-2" data-testid="all-tradescout-nav">
+            <summary
+              className="flex min-h-[54px] cursor-pointer list-none flex-col items-center justify-center gap-1 rounded-xl border border-transparent px-1.5 py-2 text-center text-[color:var(--text-secondary)] transition"
+              title="Open every TradeScout capability"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="text-[10px] font-semibold leading-none">All</span>
+            </summary>
+
+            <section
+              className="fixed bottom-3 z-50 max-h-[calc(100vh-80px)] w-[min(880px,calc(100vw-100px))] overflow-y-auto rounded-2xl border p-4 shadow-2xl"
+              style={{
+                left: `calc(${DESKTOP_APP_RAIL_WIDTH} + 8px)`,
+                borderColor: "var(--border-primary)",
+                background: "var(--surface-card)",
+                color: "var(--text-primary)",
+                boxShadow: "var(--surface-card-shadow)",
+              }}
+              aria-label="All TradeScout capabilities"
+            >
+              <div className="mb-4">
+                <p className="text-sm font-bold">All TradeScout</p>
+                <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                  Every capability stays available. The groups organize where each tool belongs.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {PRODUCT_NAV_GROUPS.map((group) => (
+                  <section key={group.id} className="min-w-0">
+                    <div className="mb-2 px-1">
+                      <p className="text-xs font-bold">{group.label}</p>
+                      <p className="mt-0.5 text-[10px] leading-4 text-[color:var(--text-secondary)]">
+                        {group.description}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      {getProductNavGroup(group.id).map((item) => {
+                        const Icon = item.icon;
+                        const active = isProductNavItemActive(item, pathOnly);
+                        return (
+                          <Link
+                            key={item.id}
+                            href={item.href}
+                            aria-current={active ? "page" : undefined}
+                            className="flex min-h-11 items-center gap-2.5 rounded-lg border px-2.5 py-2 no-underline transition"
+                            style={{
+                              borderColor: active
+                                ? "color-mix(in oklab, var(--theme-accent-primary) 38%, var(--border-primary))"
+                                : "var(--border-subtle)",
+                              background: active
+                                ? "color-mix(in oklab, var(--theme-accent-primary) 10%, var(--surface-intermediate))"
+                                : "var(--surface-intermediate)",
+                              color: active
+                                ? "var(--theme-accent-primary)"
+                                : "var(--text-primary)",
+                            }}
+                          >
+                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[color:var(--surface-input)]">
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-xs font-semibold">{item.label}</span>
+                              <span className="block truncate text-[10px] text-[color:var(--text-secondary)]">
+                                {item.description}
+                              </span>
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </section>
+          </details>
         </nav>
       ) : null}
     </>
