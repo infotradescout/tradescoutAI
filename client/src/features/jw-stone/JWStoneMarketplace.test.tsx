@@ -343,6 +343,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(storySrcs.length).toBeGreaterThanOrEqual(4);
     expect(storySrcs[0]).toContain("/story/quarry.webp");
     expect(storySrcs.some((src) => src.includes("/story/taj-living-room.webp"))).toBe(true);
+    expect(storyRailClassName(story)).toBeUndefined();
     expect(storySrcs.some((src) => src.includes("/story/fireplace.webp"))).toBe(true);
     const storyRail = story?.querySelector("ul");
     expect(storyRail?.className).toMatch(/overflow-x-auto/);
@@ -401,19 +402,22 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
   });
 
-  it("shows Account instead of Create account after TradeScout authentication", () => {
+  it("keeps Fabricator Portal and business context after TradeScout authentication", () => {
     authState.user = { id: 42, email: "owner@example.com" };
     authState.isAuthenticated = true;
     renderMarketplace();
 
     const accountButton = container.querySelector('[data-testid="jw-marketplace-account-button"]');
-    expect(accountButton?.textContent).toMatch(/^Account$/);
-    expect(accountButton?.getAttribute("aria-label")).toBe("Open your TradeScout account");
+    expect(accountButton?.textContent).toContain("Fabricator Portal");
+    expect(accountButton?.textContent).toContain("Business access");
+    expect(accountButton?.getAttribute("aria-label")).toBe("Open your JW Stone Fabricator Portal");
     expect(accountButton?.textContent).not.toContain("Create account");
 
     click(container.querySelector('[data-testid="jw-marketplace-menu-button"]'));
     const menu = container.querySelector('[data-testid="jw-marketplace-menu-panel"]');
-    expect(menu?.textContent).toContain("Account");
+    expect(menu?.textContent).toContain("Fabricator Portal");
+    expect(menu?.textContent).toContain("Business access");
+    expect(menu?.textContent).not.toMatch(/pricing|unlock|wholesale/i);
     expect(menu?.textContent).not.toContain("Create account");
   });
 
