@@ -39,7 +39,7 @@ export function availabilityDimensionsLine(stone: JwStoneCatalogItem): string {
   const parts: string[] = [];
   const count = confirmedSlabCount(stone);
   if (count != null) {
-    parts.push(`${count} ${count === 1 ? "slab" : "slabs"} recorded in supplied source`);
+    parts.push(`Slab count: ${count}`);
   }
   const dims = formatDimensionsForDisplay(stone.slabDimensions);
   if (dims) parts.push(dims);

@@ -169,7 +169,7 @@ describe("BidRock marketplace recovery contract", () => {
         sourceEvidence: { counts: [7] },
         slabDimensions: null,
       } as JwStoneCatalogItem)
-    ).toBe("7 slabs recorded in supplied source");
+    ).toBe("Slab count: 7");
     expect(current).toContain("Only physical lots explicitly marked sale-ready");
     expect(normalizedCurrent).toContain("does not claim that a physical item is on hand");
     expect(current).not.toContain("sourceAssetRef");
