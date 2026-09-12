@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
+import React, { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowUpRight, CalendarClock, FileText, FolderOpen, Home, LockKeyhole, Wrench } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { homeOverviewQueryKeys } from "./homeOverviewQueryKeys";
 import {
   HOME_SECTIONS, PACKAGE_HOME_ID, collection, readHomeDetail, readPersistence,
   dateLabel, dueMaintenance, homeAddress, homeHref, homeName, humanLabel, recentRecords,
@@ -28,22 +29,23 @@ function ReadState({ pending, error, retry, children, label }: {
 
 export default function HomeOverview({ viewerId, homeId, homes, homesPending, homesError, retryHomes, selectHome }: Props) {
   const encoded = encodeURIComponent(homeId || "");
+  const keys = homeOverviewQueryKeys(homeId || "_none", viewerId);
   const detail = useQuery({
-    queryKey: ["/api/homes", homeId, "overview", viewerId], enabled: Boolean(homeId),
+    queryKey: keys.detail, enabled: Boolean(homeId),
     queryFn: async () => readHomeDetail(await apiRequest("GET", `/api/homes/${encoded}`), homeId!),
   });
   // Do not load dependent records until the selected property's authorized response resolves.
   const permitted = Boolean(homeId && detail.isSuccess && !detail.isError);
   const projects = useQuery({
-    queryKey: ["/api/homes", homeId, "projects", viewerId], enabled: permitted,
+    queryKey: keys.projects, enabled: permitted,
     queryFn: async () => collection<SavedProject>(await apiRequest("GET", `/api/homes/${encoded}/projects`), "projects"),
   });
   const schedules = useQuery({
-    queryKey: ["/api/homes", homeId, "maintenance-schedules", viewerId], enabled: permitted,
+    queryKey: keys.schedules, enabled: permitted,
     queryFn: async () => collection<SavedSchedule>(await apiRequest("GET", `/api/homes/${encoded}/maintenance-schedules`), "schedules"),
   });
   const persistence = useQuery({
-    queryKey: ["/api/homeid", homeId, "persistence", viewerId], enabled: permitted,
+    queryKey: keys.persistence, enabled: permitted,
     queryFn: async () => readPersistence(await apiRequest("GET", `/api/homeid/${encoded}/persistence`)),
   });
   const [now, setNow] = useState(() => new Date());
@@ -96,7 +98,7 @@ export default function HomeOverview({ viewerId, homeId, homes, homesPending, ho
             <div className="home-main-column">
               <Section title="What needs attention" action={open("maintenance", "Maintenance")}>
                 <div className="home-attention-list">
-                  {!homeAddress(home) && <Link className="home-attention-item" href={homeHref(homeId, "property")}><Home size={19} aria-hidden="true" /><span><strong>Add the property address</strong><small>Keep location details with this record. No project stage is assumed.</small></span><ArrowUpRight size={17} aria-hidden="true" /></Link>}
+                  {!homeAddress(home) && <Link className="home-attention-item" href={homeHref(homeId, "property")}><Home size={19} aria-hidden="true" /><span><strong>Review missing location details</strong><small>Open the record to add a location note.</small></span><ArrowUpRight size={17} aria-hidden="true" /></Link>}
                   <ReadState pending={schedules.isPending} error={schedules.isError} retry={() => void schedules.refetch()} label="Maintenance">
                     {due.slice(0, 3).map((item, index) => <Link className="home-attention-item" href={homeHref(homeId, "maintenance")} key={item.id || index}><CalendarClock size={19} aria-hidden="true" /><span><strong>{item.title || "Scheduled maintenance"}</strong><small>Due {dateLabel(item.nextDueAt)}</small></span><ArrowUpRight size={17} aria-hidden="true" /></Link>)}
                     {!due.length && <p className="home-empty">No dated maintenance is due in the saved schedule.</p>}
