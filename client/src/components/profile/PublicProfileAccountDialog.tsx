@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Building2, CheckCircle2, Loader2, LogIn, RefreshCw, UserPlus } from "lucide-react";
+import { JW_STONE_PORTAL_COPY } from "@shared/jwStonePortalCopy";
 import {
   Dialog,
   DialogContent,
@@ -153,6 +154,8 @@ function ProfileAccountDialogSession({
 
   const connected = state?.account?.status === "active";
   const requiresBusiness = state?.policy.requiredIdentity === "business";
+  // Presentation only: JW membership eligibility still comes from the server policy.
+  const portalCopy = profileSlug === "jw-stone" ? JW_STONE_PORTAL_COPY : null;
   const normalizedBusinessName = businessName.trim();
   const resumePath = buildProfileAccountResumePath(profileSlug, "signin");
   const emailVerificationPath = useMemo(() => {
@@ -169,12 +172,17 @@ function ProfileAccountDialogSession({
   }, [email, resumePath]);
 
   const description = useMemo(() => {
+    if (portalCopy) {
+      if (connected) return portalCopy.readyDescription;
+      if (hasSession) return portalCopy.continueDescription;
+      return mode === "signin" ? portalCopy.signInDescription : portalCopy.introduction;
+    }
     if (connected) return `Your account with ${profileName} is ready.`;
     if (!hasSession && mode === "signin") {
       return `Use your existing TradeScout account to continue. No separate ${profileName} signup is required.`;
     }
     return `Continue with ${profileName}.`;
-  }, [connected, hasSession, mode, profileName, requiresBusiness]);
+  }, [connected, hasSession, mode, profileName, requiresBusiness, portalCopy]);
 
   const finishExistingSession = useCallback(async () => {
     if (!activeSessionRef.current) return;
@@ -354,13 +362,19 @@ function ProfileAccountDialogSession({
             )}
           </div>
           <DialogTitle className="text-2xl">
-            {connected
-              ? `Your ${profileName} account`
-              : hasSession
-                ? `Continue with ${profileName}`
-                : mode === "signin"
-                  ? "Sign in with TradeScout"
-                  : `Create an account with ${profileName}`}
+            {portalCopy
+              ? connected
+                ? portalCopy.title
+                : hasSession
+                  ? portalCopy.continueTitle
+                  : mode === "signin" ? portalCopy.signInTitle : portalCopy.createTitle
+              : connected
+                ? `Your ${profileName} account`
+                : hasSession
+                  ? `Continue with ${profileName}`
+                  : mode === "signin"
+                    ? "Sign in with TradeScout"
+                    : `Create an account with ${profileName}`}
           </DialogTitle>
           <DialogDescription className={mutedClass}>{description}</DialogDescription>
         </DialogHeader>
@@ -370,7 +384,7 @@ function ProfileAccountDialogSession({
             className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}
           >
             <Loader2 className="h-4 w-4 animate-spin" />
-            Opening your account…
+            {portalCopy?.loading || "Opening your account…"}
           </div>
         ) : loadError && !state ? (
           <div className="space-y-4" data-testid="profile-account-load-error">
@@ -393,12 +407,12 @@ function ProfileAccountDialogSession({
           <div className="space-y-4" data-testid="profile-account-dialog-connected">
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-stone-900">
               <p className="font-black">
-                {state?.account?.businessName || "Your account"} is connected to {profileName}.
+                {state?.account?.businessName || (portalCopy ? "Your business membership" : "Your account")} is connected to {profileName}.
               </p>
               {state?.account?.verificationStatus === "pending" ? (
                 <p className="mt-1 text-stone-600">
-                  {profileSlug === "jw-stone"
-                    ? "Your JW Stone membership includes stone pricing. Business verification is pending for other business-only features."
+                  {portalCopy
+                    ? portalCopy.pendingVerification
                     : "Business verification is pending. Protected pricing and business-only features remain locked until approval."}
                 </p>
               ) : null}
@@ -575,8 +589,8 @@ function ProfileAccountDialogSession({
               {mode === "signin" && !hasSession
                 ? "Sign in and continue"
                 : hasSession
-                  ? "Continue with TradeScout"
-                  : `Create account with ${profileName}`}
+                  ? portalCopy?.continueAction || "Continue with TradeScout"
+                  : portalCopy?.createAction || `Create account with ${profileName}`}
             </button>
 
             {!hasSession && mode === "signin" ? (
@@ -610,7 +624,7 @@ function ProfileAccountDialogSession({
               >
                 {mode === "create"
                   ? "Already have an account? Sign in"
-                  : "New here? Create an account"}
+                  : portalCopy?.newMemberAction || "New here? Create an account"}
               </button>
             ) : null}
           </div>

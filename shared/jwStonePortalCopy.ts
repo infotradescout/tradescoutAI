@@ -1,0 +1,20 @@
+/** Public JW Stone membership language. Access and entitlement rules live elsewhere. */
+export const JW_STONE_PORTAL_COPY = Object.freeze({
+  label: "Fabricator Portal",
+  title: "JW Stone Fabricator Portal",
+  createTitle: "Create a JW Stone business membership",
+  continueTitle: "Set up your JW Stone business membership",
+  signInTitle: "Sign in to the JW Stone Fabricator Portal",
+  introduction: "For stone fabricators and industry businesses. Register your business to work with JW Stone.",
+  signInDescription: "For stone fabricators and industry businesses. Use your existing TradeScout account to continue.",
+  continueDescription: "Connect your business to JW Stone using your existing TradeScout account.",
+  readyDescription: "Your JW Stone business membership is active.",
+  createAction: "Create business membership",
+  continueAction: "Continue with my business",
+  newMemberAction: "New here? Create a business membership",
+  pendingVerification: "Your business verification is pending.",
+  loading: "Opening the Fabricator Portal…",
+  loadingForm: "Loading business membership form…",
+  loadError: "The business membership form could not load. Reload this page to try again.",
+  reloadAction: "Reload business membership form",
+} as const);

@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Bookmark, Menu, UserRound, X } from "lucide-react";
+import { JW_STONE_PORTAL_COPY } from "@shared/jwStonePortalCopy";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
 
@@ -46,10 +47,10 @@ export function MarketplaceHeader({
     setMenuOpen(false);
     action?.();
   };
-  const accountLabel = hasAccount ? "Account" : "Create account";
+  const accountLabel = JW_STONE_PORTAL_COPY.label;
   const accountAriaLabel = hasAccount
-    ? "Open your TradeScout account"
-    : "Create a TradeScout account";
+    ? `Open your ${JW_STONE_PORTAL_COPY.title}`
+    : `Open the ${JW_STONE_PORTAL_COPY.title}`;
 
   return (
     <header
@@ -65,12 +66,12 @@ export function MarketplaceHeader({
           <img
             src={JW_STONE_LOGO_URL}
             alt="JW Stone"
-            className="h-auto w-[112px] object-contain object-left sm:w-[180px] md:w-[200px]"
+            className="h-auto w-[96px] object-contain object-left sm:w-[180px] md:w-[200px]"
             data-testid="jw-marketplace-logo"
           />
         </a>
 
-        <nav aria-label="JW Stone account and saved stones" className="flex items-center gap-0.5 sm:gap-1.5">
+        <nav aria-label="JW Stone Fabricator Portal and saved stones" className="flex items-center gap-0.5 sm:gap-1.5">
           <button
             type="button"
             onClick={onOpenWishlist}
@@ -96,8 +97,8 @@ export function MarketplaceHeader({
             className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
             aria-label={accountAriaLabel}
           >
-            <UserRound className="h-4 w-4" aria-hidden="true" />
-            <span className="text-xs font-semibold sm:text-sm">{accountLabel}</span>
+            <UserRound className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+            <span className="max-w-[4.5rem] text-center text-xs font-semibold leading-tight sm:max-w-none sm:text-sm">{accountLabel}</span>
           </button>
 
           <div className="relative" ref={menuRef}>

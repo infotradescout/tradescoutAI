@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentProps, type ComponentType } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { JW_STONE_PORTAL_COPY } from "@shared/jwStonePortalCopy";
 
 type AccountProps = ComponentProps<
   typeof import("@/components/profile/PublicProfileAccountDialog").PublicProfileAccountDialog
@@ -27,16 +28,16 @@ export function PublicProfileAccountDialog(props: AccountProps) {
     <Dialog open onOpenChange={props.onOpenChange}>
       <DialogContent className="border-stone-200 bg-white text-stone-950 sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Your {props.profileName} account</DialogTitle>
+          <DialogTitle>{JW_STONE_PORTAL_COPY.title}</DialogTitle>
           <DialogDescription>
-            {failed ? "The account form could not load. Reload this page to try again." : "Opening your account…"}
+            {failed ? JW_STONE_PORTAL_COPY.loadError : JW_STONE_PORTAL_COPY.loading}
           </DialogDescription>
         </DialogHeader>
         {failed ? (
           <button type="button" className="min-h-11 rounded-full bg-stone-950 px-5 font-bold text-white" onClick={() => window.location.reload()}>
-            Reload account form
+            {JW_STONE_PORTAL_COPY.reloadAction}
           </button>
-        ) : <p role="status" aria-live="polite" className="text-sm text-stone-600">Loading account form…</p>}
+        ) : <p role="status" aria-live="polite" className="text-sm text-stone-600">{JW_STONE_PORTAL_COPY.loadingForm}</p>}
       </DialogContent>
     </Dialog>
   );
