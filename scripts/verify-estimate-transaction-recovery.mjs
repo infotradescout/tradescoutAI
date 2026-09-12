@@ -18,15 +18,27 @@ function run(name,args,env={}){
 try{
  assert.equal(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim(),'');
  for(const key of ['DATABASE_URL','TEST_DATABASE_URL','SENDGRID_API_KEY','BREVO_API_KEY','RESEND_API_KEY','SMTP_PASS','STRIPE_SECRET_KEY'])assert(!process.env[key],key+' may not be inherited');
+ if(phase==='production')throw new Error('The post-deploy acceptance protocol must be recorded before production verification');
  const testFile=path.join(temp,'tests.json');
- run('Estimate SQL, failures, retries, recipient and contact boundaries',['npm','run','test:run','--','server/tests/estimate-transactions.behavior.test.ts','--maxWorkers=1','--reporter=default','--reporter=json','--outputFile='+testFile]);
+ run('Estimate SQL, registry, failures, retries and existing contact authority',['npm','run','test:run','--','server/tests/estimate-transactions.behavior.test.ts','server/tests/estimate-route-registration.test.ts','server/tests/tradepartner-express-authority-lifecycle.regression.test.ts','server/tests/tradepartner-express-phone-gate.regression.test.ts','--maxWorkers=2','--reporter=default','--reporter=json','--outputFile='+testFile]);
  const tests=JSON.parse(await fs.readFile(testFile,'utf8'));proof.tests=Object.fromEntries(['numTotalTests','numPassedTests','numFailedTests','numPendingTests'].map(k=>[k,tests[k]]));
  assert.equal(tests.numPendingTests,0);assert.equal(tests.numFailedTests,0);
  run('TypeScript',['npm','run','check']);
- if(phase!=='focused')throw new Error('Full route integration and native/browser verification must be added before release mode can pass');
+ const nativeOut=path.join(temp,'native');
+ run('Actual request, supplier, estimate, customer and concurrent additions',[process.execPath,'scripts/estimate-transaction-recovery.native.mjs'],{ESTIMATE_NATIVE_OUTPUT:nativeOut});
+ proof.native=JSON.parse(await fs.readFile(path.join(nativeOut,'evidence.json'),'utf8'));assert.equal(proof.native.head,head);assert.equal(proof.native.passed,true);
+ if(phase==='release'){
+   const startupOut=path.join(temp,'startup');
+   run('Unmodified compiled server startup with local TLS PostgreSQL',[process.execPath,'scripts/diagnose-compiled-startup.mjs'],{STARTUP_PHASE:'diagnostic',STARTUP_PROOF_OUTPUT:startupOut});
+   proof.startup=JSON.parse(await fs.readFile(path.join(startupOut,'evidence.json'),'utf8'));assert.equal(proof.startup.head,head);assert.equal(proof.startup.passed,true);assert.equal(proof.startup.compiledBoot,true);
+   const releaseOut=path.join(temp,'release');
+   run('Preserved JW workflows and unchanged strict minimum release',[process.execPath,'scripts/verify-jw-stone-customer-workflow.mjs'],{JW_WORKFLOW_PHASE:'release',JW_WORKFLOW_OUTPUT:releaseOut});
+   proof.release=JSON.parse(await fs.readFile(path.join(releaseOut,'evidence.json'),'utf8'));assert.equal(proof.release.head,head);assert.equal(proof.release.passed,true);assert.equal(proof.release.release.commit,head);assert.equal(proof.release.release.attestable,true);
+ }
  proof.finalSourceStatus=execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim();assert.equal(proof.finalSourceStatus,'');proof.passed=true;
 }catch(error){proof.error=String(error.stack||error);console.error('ESTIMATE_FAILURE '+proof.error);}
 finally{
+ try{const n=JSON.parse(await fs.readFile(path.join(temp,'native','evidence.json'),'utf8'));proof.native=n;}catch{}
  proof.finishedAt=new Date().toISOString();await fs.mkdir(out,{recursive:true});
  await fs.writeFile(path.join(out,'evidence.json'),JSON.stringify(proof,null,2));
  await fs.writeFile(path.join(out,'robots.txt'),'User-agent: *\nDisallow: /\n');
