@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, afterAll, describe, it, expect } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { lockEstimate, addEstimateLine, sendEstimate, respondToEstimate } from "../routes/direct-connect/estimate-transactions";
+import { lockEstimate, addEstimateLine, sendEstimate, respondToEstimate, estimateReceiptPath } from "../routes/direct-connect/estimate-transactions";
 
 const pg = new PGlite();
 const dialect = new PgDialect();
@@ -32,7 +32,7 @@ beforeAll(async()=>{await pg.exec(`
  CREATE TABLE job_estimate_line_items(id text PRIMARY KEY,estimate_id text REFERENCES job_estimates(id),line_type text,name text,description text,quantity numeric,unit text,rate numeric,unit_price numeric,total_cost numeric,supplier text,sku text,notes text,created_at timestamptz);
  CREATE TABLE direct_connect_dispatch_events(event_id text PRIMARY KEY,request_id text REFERENCES direct_connect_dispatch_requests(id),actor_type text,actor_id text,event_type text,metadata_json jsonb,created_at timestamptz);
  CREATE TABLE direct_connect_lifecycle_notifications(id text PRIMARY KEY,request_id text,actor_type text,actor_id text,recipient_type text,recipient_id text,event_type text,lifecycle_status text,message_key text,message_text text,is_read boolean,created_at timestamptz);
- CREATE TABLE direct_connect_notifications(id text PRIMARY KEY,request_id text,job_workspace_id text,event_id text REFERENCES direct_connect_dispatch_events(event_id),recipient_user_id text,recipient_role text,actor_type text,actor_id text,notification_type text,title text,message text,action_key text,status text,priority text,metadata_json jsonb,created_at timestamptz);
+ CREATE TABLE direct_connect_notifications(id text PRIMARY KEY,request_id text,job_workspace_id text,event_id text REFERENCES direct_connect_dispatch_events(event_id),recipient_user_id text,recipient_role text,actor_type text,actor_id text,notification_type text,title text,message text,action_url text,action_key text,status text,priority text,metadata_json jsonb,created_at timestamptz);
  CREATE TABLE job_acceptances(id text PRIMARY KEY,workspace_id text,estimate_id text,accepted_by text,accepted_at timestamptz,note text);
 `);});
 afterAll(async()=>{await pg.close();});
@@ -64,34 +64,34 @@ describe("Transactional estimates",()=>{
    expect((await add("permits",0.25)).totals.totalEstimate).toBe(23);
  });
  it.each(["UPDATE job_estimates","INSERT INTO direct_connect_dispatch_events"])("rolls back a line if %s fails",async failing=>{
-   failAt=failing;
-   await expect(add("other",100)).rejects.toThrow("Injected persistence failure");
+   failAt=failing;await expect(add("other",100)).rejects.toThrow("Injected persistence failure");
    expect(await count("job_estimate_line_items")).toBe(0);expect(Number((await row()).total_estimate)).toBe(0);
    failAt=null;expect((await add("other",100)).totals.totalEstimate).toBe(100);
  });
  it("replays an identified line without duplication and rejects changed content under the same key",async()=>{
-   await add("other",100,1,"retry-key-123");
-   expect((await add("other",100,1,"retry-key-123")).replayed).toBe(true);
-   expect(await count("job_estimate_line_items")).toBe(1);
-   await expect(add("other",200,1,"retry-key-123")).rejects.toMatchObject({status:409});
+   await add("other",100,1,"retry-key-123");expect((await add("other",100,1,"retry-key-123")).replayed).toBe(true);
+   expect(await count("job_estimate_line_items")).toBe(1);await expect(add("other",200,1,"retry-key-123")).rejects.toMatchObject({status:409});
  });
  it.each(["UPDATE direct_connect_job_workspaces","INSERT INTO direct_connect_dispatch_events","INSERT INTO direct_connect_lifecycle_notifications","INSERT INTO direct_connect_notifications"])("rolls back send and permits retry when %s fails",async failing=>{
-   await add("material",100);failAt=failing;
-   await expect(send()).rejects.toThrow("Injected persistence failure");
+   await add("material",100);failAt=failing;await expect(send()).rejects.toThrow("Injected persistence failure");
    expect((await row()).status).toBe("draft");expect(await count("direct_connect_notifications")).toBe(0);
    failAt=null;expect((await send()).status).toBe("sent");
  });
- it("sends once and creates only the intended customer's receipt on replay",async()=>{
+ it("sends one exact quote link only to the intended customer even on replay",async()=>{
    await add("material",100);expect((await send()).replayed).toBe(false);expect((await send()).replayed).toBe(true);
    expect(await count("direct_connect_notifications")).toBe(1);
    const notice=(await pg.query<any>("SELECT * FROM direct_connect_notifications")).rows[0];
    expect(notice.recipient_user_id).toBe("customer");expect(notice.metadata_json.estimateId).toBe("estimate");expect(notice.action_key).toBe("review_estimate");
+   expect(notice.action_url).toBe('/direct-connect/engagements?jobWorkspaceId=job&estimateId=estimate&action=review_estimate');
+ });
+ it("keeps IDs inside query parameters rather than permitting an external destination",()=>{
+   const href=estimateReceiptPath('job?x=1','quote&action=admin','requester');const url=new URL(href,'https://www.thetradescout.com');
+   expect(url.pathname).toBe('/direct-connect/engagements');expect(url.searchParams.get('jobWorkspaceId')).toBe('job?x=1');expect(url.searchParams.get('estimateId')).toBe('quote&action=admin');expect(url.searchParams.getAll('action')).toEqual(['review_estimate']);
  });
  it("requires an item before sending",async()=>{await expect(send()).rejects.toMatchObject({status:409});expect((await row()).status).toBe("draft");});
  it("does not edit sent amounts",async()=>{await add("material",100);await send();await expect(add("other",50)).rejects.toMatchObject({status:409});expect(Number((await row()).total_estimate)).toBe(100);});
  it.each(["INSERT INTO job_acceptances","UPDATE direct_connect_job_workspaces","INSERT INTO direct_connect_notifications"])("rolls back customer acceptance when %s fails",async failing=>{
-   await add("material",100);await send();failAt=failing;
-   await expect(respond("accept")).rejects.toThrow("Injected persistence failure");
+   await add("material",100);await send();failAt=failing;await expect(respond("accept")).rejects.toThrow("Injected persistence failure");
    expect((await row()).status).toBe("sent");expect(await count("job_acceptances")).toBe(0);
    failAt=null;await respond("accept");expect(await count("job_acceptances")).toBe(1);
  });
@@ -105,11 +105,12 @@ describe("Transactional estimates",()=>{
  });
  it("does not grant an unrelated account edit or response rights",async()=>{
    await expect(edit((tx,e)=>addEstimateLine(tx,e,{...supplier,userId:"stranger"},line("other",100)))).rejects.toMatchObject({status:403});
-   await expect(edit((tx,e)=>respondToEstimate(tx,e,"supplier","accept"))).rejects.toMatchObject({status:403});
-   expect(await count("job_estimate_line_items")).toBe(0);
+   await expect(edit((tx,e)=>respondToEstimate(tx,e,"supplier","accept"))).rejects.toMatchObject({status:403});expect(await count("job_estimate_line_items")).toBe(0);
+ });
+ it.each([[0,1],[-1,1],[1,-1],[Infinity,1],[1,NaN]])("rejects invalid quantity/price %s/%s without writing",async(quantity,price)=>{
+   await expect(add('other',price,quantity)).rejects.toMatchObject({status:400});expect(await count('job_estimate_line_items')).toBe(0);
  });
  it("keeps revoked contact blocked",async()=>{
-   await pg.exec("UPDATE direct_connect_dispatch_requests SET contact_gate_state='denied'");
-   await expect(add("other",100)).rejects.toMatchObject({status:409});
+   await pg.exec("UPDATE direct_connect_dispatch_requests SET contact_gate_state='denied'");await expect(add("other",100)).rejects.toMatchObject({status:409});
  });
 });
