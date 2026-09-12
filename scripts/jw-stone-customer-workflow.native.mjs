@@ -8,6 +8,7 @@ import pg from 'pg';
 import { chromium } from 'playwright';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 import { proveJwStoneRequestJourney } from './jw-stone-request-journey.mjs';
+import { proveJwStoneCartJourney } from './jw-stone-cart-journey.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || 'test-results/jw-workflow');
@@ -109,6 +110,8 @@ try {
     const login = await request(context, 'POST', '/api/auth/login', { email, password }); assert.equal(login.status(), 200);
     assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 200);
     note(device + ': real returning-user login retains member pricing');
+    const cartEvidence = await proveJwStoneCartJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath });
+    note(device + ': actual member cart reaches native private quote request', cartEvidence);
     const requestEvidence = await proveJwStoneRequestJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath });
     note(device + ': material request reaches the selected supplier', requestEvidence);
     await client.query("UPDATE profile_account_entitlements SET status='revoked' WHERE profile_account_id=$1 AND product_key='jw_stone_member_pricing'", [memberships[0].id]);
@@ -117,7 +120,8 @@ try {
     assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 403, 'Reconnect must not undo a revocation');
     await page.goto(base + itemPath, { waitUntil: 'domcontentloaded' }); await page.getByTestId('jw-marketplace-account-button').waitFor();
     assert.equal(await page.getByText('$101.01', { exact: false }).count(), 0);
-    note(device + ': revocation and reconnect cannot recover private prices');
+    assert.equal(await page.getByTestId('jw-stone-member-cart-button').count(), 0);
+    note(device + ': revocation and reconnect cannot recover private prices or cart access');
     assert.deepEqual(errors, [], 'Uncaught browser errors'); assert.deepEqual(failures, [], 'Unexpected server errors');
     await context.close(); activePage = undefined;
   }
@@ -133,5 +137,5 @@ try {
   await fs.writeFile(path.join(out, 'evidence.json'), JSON.stringify(report, null, 2));
   await fs.writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
   await fs.writeFile(path.join(out, 'index.html'), '<meta name="robots" content="noindex,nofollow"><h1>' + (report.passed ? 'Declared synthetic customer journey passed' : 'FAILED - not release approval') + '</h1><p>Not real customer, production pricing or email-delivery proof.</p><a href="evidence.json">Evidence</a>');
-  await fs.rm(temp, { recursive: true, force: true }); console.log('JW_WORKFLOW_SUMMARY ' + JSON.stringify(report));
+  await fs.rm(temp, { recursive: true }); console.log('JW_WORKFLOW_SUMMARY ' + JSON.stringify(report));
 }
