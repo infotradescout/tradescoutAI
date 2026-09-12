@@ -84,7 +84,9 @@ export function sanitizeJwStonePricingResponse(value: unknown, viewerId: string)
     sourceUpdatedAt: new Date(record.sourceUpdatedAt).toISOString(), access, prices } as JwStonePricingResponse;
 }
 
-export function JwStoneMemberPricingProvider({ children, viewerId }: { children: ReactNode; viewerId: string | null }) {
+export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }: {
+  children: ReactNode; viewerId: string | null; onOpenCart?: () => void;
+}) {
   const normalizedViewerId = String(viewerId || "").trim();
   const pricingQuery = useQuery({
     queryKey: ["jw-stone", "member-pricing", normalizedViewerId],
@@ -111,8 +113,9 @@ export function JwStoneMemberPricingProvider({ children, viewerId }: { children:
       if (current.length >= JW_STONE_CART_MAX_LINES) return current;
       return restoreJwStoneCart([...current, { ...item, quantity: 1 }]);
     });
+    onOpenCart?.();
     setCartOpen(true);
-  }, []);
+  }, [onOpenCart]);
   const updateCartQuantity = useCallback((id: string, quantity: number) => {
     if (!Number.isInteger(quantity) || quantity < 0 || quantity > 999) return;
     setCart((current) => quantity === 0 ? current.filter((item) => item.id !== id)
@@ -137,7 +140,7 @@ export function JwStoneMemberPricingProvider({ children, viewerId }: { children:
     {children}
     {value.cartEnabled ? <>
       <button type="button" style={JW_STONE_BRAND_STYLE} data-testid="jw-stone-member-cart-button"
-        onClick={() => { setCartOpen(true); void pricingQuery.refetch(); }}
+        onClick={() => { onOpenCart?.(); setCartOpen(true); void pricingQuery.refetch(); }}
         className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-4 z-50 inline-flex min-h-12 items-center gap-2 border border-[var(--jw-border)] bg-[var(--jw-ink)] px-4 py-2 text-sm font-semibold text-white shadow-lg sm:right-6"
         aria-label={`Open JW Stone cart, ${value.cartCount} ${value.cartCount === 1 ? "slab" : "slabs"}`}>
         <ShoppingCart className="h-4 w-4" aria-hidden="true" />Cart
