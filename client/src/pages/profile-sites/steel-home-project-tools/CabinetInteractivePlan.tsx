@@ -31,6 +31,7 @@ export default function CabinetPlanView({ planner, onSelectModule, onChange }: P
   const signature = JSON.stringify(planner);
   const latestSignature = useRef(signature); latestSignature.current = signature;
   const width = planner.shell.widthIn, depth = planner.shell.depthIn;
+  const framedRoom = useRef({ width, depth });
   const { scale, originX, originY } = cabinetPlanProjection(planner);
   const release = () => {
     const current = drag.current; drag.current = null;
@@ -46,7 +47,11 @@ export default function CabinetPlanView({ planner, onSelectModule, onChange }: P
     release(); setPreview(null); setActiveId(null); setNotice("Move cancelled. Saved measurements are unchanged.");
   }, []);
   useEffect(() => { if (drag.current && drag.current.signature !== signature) cancel(); }, [signature, cancel]);
-  useEffect(() => { cancel(); setCamera({ ...CABINET_PLAN_FRAME }); }, [width, depth, cancel]);
+  useEffect(() => {
+    if (framedRoom.current.width === width && framedRoom.current.depth === depth) return;
+    framedRoom.current = { width, depth };
+    cancel(); setCamera({ ...CABINET_PLAN_FRAME });
+  }, [width, depth, cancel]);
   useEffect(() => {
     const hidden = () => { if (document.hidden) cancel(); };
     window.addEventListener("blur", cancel); window.addEventListener("resize", cancel);
@@ -123,8 +128,8 @@ export default function CabinetPlanView({ planner, onSelectModule, onChange }: P
   const feedback = preview ? [cabinetMovePosition(preview.module), ...preview.guides.map(guide => guide.label), ...preview.problems,
     preview.problems.length ? "Blocked: releasing restores the original position." : "Release to apply; Escape to cancel."].join(" · ") : notice || (selectedModule ? cabinetMovePosition(selectedModule) : "Select a cabinet to edit it. Drag to position it.");
   const visible = display.modules.filter(module => cabinetOnPlanLayer(module, layer));
-  // Reordering a captured SVG node can drop pointer capture. Paint by SAVED selection;
-  // active highlighting may change immediately, but DOM order changes only after release.
+  // Reordering a captured SVG node can drop pointer capture. Paint by saved selection;
+  // active highlighting changes immediately, but DOM order changes only after release.
   const ordered = [...visible].sort((a, b) => Number(a.id === planner.selectedModuleId) - Number(b.id === planner.selectedModuleId));
   const focusSelected = () => {
     const next = frameCabinetInPlan(planner, selected);
