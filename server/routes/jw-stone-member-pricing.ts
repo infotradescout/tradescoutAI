@@ -20,22 +20,44 @@ import {
   getStoneInventoryProfileTarget,
   listSellerStoneInventory,
 } from "../services/stoneInventoryService";
+import {
+  createJwStoneCartReservation,
+  getJwStoneCartReservation,
+} from "../services/jwStoneCartReservation";
+
+const cartLineSchema = z
+  .object({
+    inventoryPublicId: z.string().regex(/^stone_[a-f0-9]{32}$/),
+    quantity: z.number().int().min(1).max(999),
+  })
+  .strict();
 
 const cartReviewSchema = z
   .object({
-    lines: z
-      .array(
-        z
-          .object({
-            inventoryPublicId: z.string().regex(/^stone_[a-f0-9]{32}$/),
-            quantity: z.number().int().min(1).max(999),
-          })
-          .strict()
-      )
-      .min(1)
-      .max(50),
+    lines: z.array(cartLineSchema).min(1).max(50),
   })
   .strict();
+
+const fulfillmentSchema = z.discriminatedUnion("method", [
+  z.object({ method: z.literal("pickup") }).strict(),
+  z
+    .object({
+      method: z.literal("delivery"),
+      postalCode: z.string().trim().regex(/^\d{5}(?:-\d{4})?$/),
+      destinationType: z.enum(["business", "jobsite"]),
+    })
+    .strict(),
+]);
+
+const reservationCreateSchema = z
+  .object({
+    lines: z.array(cartLineSchema).min(1).max(50),
+    fulfillment: fulfillmentSchema,
+    idempotencyKey: z.string().trim().min(8).max(160),
+  })
+  .strict();
+
+const reservationPublicIdSchema = z.string().regex(/^jwr_[a-z0-9]{20,80}$/);
 
 function requestUserId(req: Request): string {
   const user = req.user as { id?: unknown; claims?: { sub?: unknown } } | undefined;
@@ -103,13 +125,14 @@ export function projectJwStonePricingResponse(args: {
           bundlePriceCents: price.bundlePriceCents,
           ...(price.bundleMinSlabs == null ? {} : { bundleMinSlabs: price.bundleMinSlabs }),
         })
-      )
+      ),
     ),
   });
 }
 
 export function registerJwStoneMemberPricingRoutes(app: Express): void {
   app.use("/api/u/jw-stone/member-pricing", requireCriticalSchema("profile_accounts"));
+
   app.get(
     "/api/u/jw-stone/member-pricing",
     isAuthenticated,
@@ -260,6 +283,114 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
           message: error instanceof Error ? error.message : "Unknown cart review error",
         });
         res.status(503).json({ message: "JW Stone order review is temporarily unavailable." });
+      }
+    }
+  );
+
+  app.post(
+    "/api/u/jw-stone/member-pricing/cart-reservations",
+    isAuthenticated,
+    async (req: Request, res: Response): Promise<void> => {
+      res.setHeader("Cache-Control", "private, no-store");
+      res.vary("Cookie");
+      res.vary("Authorization");
+      try {
+        const viewerId = requestUserId(req);
+        if (!viewerId) {
+          res.status(401).json({ message: "Authentication required" });
+          return;
+        }
+        const parsed = reservationCreateSchema.safeParse(req.body);
+        if (!parsed.success) {
+          res.status(400).json({ message: parsed.error.issues[0]?.message || "Invalid reservation" });
+          return;
+        }
+        const access = await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
+        if (access !== "member") {
+          res.status(403).json({
+            message: "An active JW Stone business membership is required to reserve inventory.",
+          });
+          return;
+        }
+        const target = await getStoneInventoryProfileTarget("jw-stone");
+        if (!target) {
+          res.status(503).json({ message: "JW Stone inventory is temporarily unavailable." });
+          return;
+        }
+        const pricingSnapshot = await getJwStonePricingSnapshot();
+        const reservation = await createJwStoneCartReservation({
+          buyerUserId: viewerId,
+          sellerBusinessId: target.businessId,
+          lines: parsed.data.lines,
+          fulfillment: parsed.data.fulfillment,
+          idempotencyKey: parsed.data.idempotencyKey,
+          pricingSnapshot,
+        });
+        res.status(201).json({
+          ...reservation,
+          paymentStatus: "not_started",
+          checkoutStatus: "inventory_reserved",
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Reservation failed";
+        const status = /membership/i.test(message)
+          ? 403
+          : /idempotency|whole-slab|required/i.test(message)
+            ? 400
+            : /no longer|remain available|changed while reserving|pricing is unavailable|dimensions/i.test(message)
+              ? 409
+              : 503;
+        if (status === 503) {
+          console.error("[jw-stone-member-pricing] reservation unavailable", { message });
+        }
+        res.status(status).json({ message });
+      }
+    }
+  );
+
+  app.get(
+    "/api/u/jw-stone/member-pricing/cart-reservations/:reservationId",
+    isAuthenticated,
+    async (req: Request, res: Response): Promise<void> => {
+      res.setHeader("Cache-Control", "private, no-store");
+      res.vary("Cookie");
+      res.vary("Authorization");
+      try {
+        const viewerId = requestUserId(req);
+        if (!viewerId) {
+          res.status(401).json({ message: "Authentication required" });
+          return;
+        }
+        const reservationId = reservationPublicIdSchema.safeParse(req.params.reservationId);
+        if (!reservationId.success) {
+          res.status(400).json({ message: "A valid JW Stone reservation ID is required" });
+          return;
+        }
+        const access = await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
+        if (access !== "member") {
+          res.status(403).json({
+            message: "An active JW Stone business membership is required to view this reservation.",
+          });
+          return;
+        }
+        const reservation = await getJwStoneCartReservation({
+          buyerUserId: viewerId,
+          reservationId: reservationId.data,
+        });
+        if (!reservation) {
+          res.status(404).json({ message: "Reservation not found" });
+          return;
+        }
+        res.status(200).json({
+          ...reservation,
+          paymentStatus: "not_started",
+          checkoutStatus: reservation.status === "active" ? "inventory_reserved" : reservation.status,
+        });
+      } catch (error) {
+        console.error("[jw-stone-member-pricing] reservation read unavailable", {
+          message: error instanceof Error ? error.message : "Unknown reservation error",
+        });
+        res.status(503).json({ message: "JW Stone reservation is temporarily unavailable." });
       }
     }
   );
