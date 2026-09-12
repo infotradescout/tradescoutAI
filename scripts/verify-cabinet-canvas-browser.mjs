@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { installCabinetTouchTrace, reportCabinetTouchTrace } from './cabinet-touch-trace.mjs';
 
 export async function verifyCabinetCanvas({ browser, local, phase, deployed, working, record }) {
   const key = 'tradescout:steel-home-project-tools:draft:v9';
@@ -15,6 +16,7 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
     });
     try {
       page = await context.newPage(); page.setDefaultTimeout(30000);
+      await installCabinetTouchTrace(page, key);
       page.on('pageerror', error => errors.push(error.message)); page.on('dialog', dialog => dialog.accept());
       const click = async locator => { await locator.scrollIntoViewIfNeeded(); device === 'touch' ? await locator.tap() : await locator.click(); };
       const button = name => page.getByRole('button', { name, exact: true });
@@ -36,7 +38,8 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
       const destination = phase === 'production' ? 'https://www.thetradescout.com/u/steel-home-packages/builders/cabinets' : local + '/cabinet-parent.html';
       const response = await page.goto(destination, { waitUntil: 'domcontentloaded' }); assert(response?.ok());
       if (phase === 'production') assert.equal(response.headers()['x-tradescout-build'], deployed);
-      await page.getByTestId('cabinet-direct-placement').waitFor({ state: 'visible' });
+      // A fresh production origin correctly starts at the chooser, not an already measured plan.
+      await page.getByTestId('steel-home-cabinet-designer').waitFor({ state: 'visible' });
       await page.evaluate(({ key, sample }) => localStorage.setItem(key, JSON.stringify(sample)), { key, sample });
       const reloaded = await page.reload({ waitUntil: 'domcontentloaded' });
       if (phase === 'production') assert.equal(reloaded.headers()['x-tradescout-build'], deployed);
@@ -76,6 +79,7 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
         }
         assert.deepEqual(await read(), baseline, 'A camera-aware pointer move saved an intermediate design');
         if (session) await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); else await page.mouse.up();
+        await reportCabinetTouchTrace(page, key, { device, requestedInches: inches, start: p, endX: p.x + inches * p.px });
       };
       // End at 42in, before the hidden end panel at 45in.
       await dragBase(12);
@@ -156,6 +160,7 @@ export async function verifyCabinetCanvas({ browser, local, phase, deployed, wor
       assert.deepEqual(errors, []);
       record(`${device}: direct editing and focus`, { directWidthInputFocus: true, largerCanvas: focused, originalCanvas: withInspector, draftPreserved: true, reloadPreserved: true, cameraExcludedFromStorage: true, errors, blockedWrites: writes.length });
     } catch (error) {
+      if (page) await reportCabinetTouchTrace(page, key, { device, failed: true }).catch(() => {});
       await page?.screenshot({ path: path.join(working, `canvas-failure-${device}.png`), fullPage: true }).catch(() => {});
       console.error('CANVAS_VISIBLE_TEXT ' + (await page?.locator('body').innerText().catch(() => '') || '').slice(0, 4500));
       throw error;
