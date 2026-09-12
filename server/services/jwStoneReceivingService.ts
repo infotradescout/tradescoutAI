@@ -67,7 +67,7 @@ export async function receiveJwStoneArrival(target: StoneInventoryProfileTarget,
         JOIN stone_inventory_positions ip ON ip.asset_passport_id = ap.id
         WHERE ip.holder_business_id = $1 AND lower(ap.condition_json->'jwReceiving'->'receipt'->>'lotLabel') = $2
           AND ip.lifecycle_status = $3 LIMIT 1`, [target.businessId, lockKey, STONE_CURRENT_INVENTORY_AVAILABLE_STATUS]);
-      if (duplicate.rows[0]) throw new JwStoneReceivingConflict("That lot label already exists in inventory. Use its existing record instead of receiving it again.");
+      if (duplicate.rows[0]) throw new JwStoneReceivingInputError("That lot label already exists in inventory. Use its existing record instead of receiving it again.");
       state = { receipt, payloadHash, actorUserId, receivedAt: new Date().toISOString(), driveFolderId: media.folderId, driveIds: [], state: "pending" };
       const slug = jwStoneReceivingMaterialSlug(receipt.materialName);
       await client.query("BEGIN"); transaction = true;
