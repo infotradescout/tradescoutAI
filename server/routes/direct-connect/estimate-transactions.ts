@@ -30,7 +30,6 @@ export async function requireEstimateProvider(tx: Executor, row: any, actor: Est
     LIMIT 1 FOR SHARE
   `));
   if (!eligible) fail(403, "Estimate not available for this account.");
-  // A different eligible bidder does not acquire another business's draft.
   if (row.created_by && String(row.created_by) !== actor.userId) fail(403, "Only the estimate author can modify this estimate.");
 }
 
@@ -47,14 +46,18 @@ export function estimateMutationId(estimateId: string, actorId: string, key?: st
   return "eli_" + createHash("sha256").update(JSON.stringify([estimateId, actorId, key])).digest("hex").slice(0,48);
 }
 
+export function estimateReceiptPath(workspaceId:string,estimateId:string,role:"requester"|"business") {
+  const params=new URLSearchParams({jobWorkspaceId:workspaceId,estimateId,action:role==='requester'?'review_estimate':'create_estimate'});
+  return `/direct-connect/${role==='requester'?'engagements':'inbox'}?${params.toString()}`;
+}
+
 export async function recordEstimateEvent(tx: Executor, args: {
   estimate: any; actorId: string; eventType: string; metadata?: Record<string, unknown>;
   recipientId?: string | null; recipientRole?: "requester" | "business";
 }) {
   const eventId = randomUUID();
   const e = args.estimate;
-  const requester = String(e.requester_user_id) === args.actorId;
-  const actorType = requester ? "requester" : "contractor";
+  const actorType = String(e.requester_user_id) === args.actorId ? "requester" : "contractor";
   const metadata = { estimateId: String(e.id), jobWorkspaceId: String(e.workspace_id), ...args.metadata };
   await tx.execute(sql`
     INSERT INTO direct_connect_dispatch_events(event_id,request_id,actor_type,actor_id,event_type,metadata_json,created_at)
@@ -65,14 +68,15 @@ export async function recordEstimateEvent(tx: Executor, args: {
       : args.eventType === "estimate_accepted" ? "Estimate accepted"
       : args.eventType === "estimate_change_requested" ? "Estimate changes requested" : "Estimate declined";
     const actionKey = args.recipientRole === "requester" ? "review_estimate" : "view_job_workspace";
+    const actionUrl = estimateReceiptPath(String(e.workspace_id),String(e.id),args.recipientRole);
     const recipientType = args.recipientRole === "requester" ? "requester" : "contractor";
     await tx.execute(sql`
       INSERT INTO direct_connect_lifecycle_notifications(id,request_id,actor_type,actor_id,recipient_type,recipient_id,event_type,lifecycle_status,message_key,message_text,is_read,created_at)
       VALUES(${randomUUID()},${String(e.request_id)},${actorType},${args.actorId},${recipientType},${args.recipientId},${args.eventType},${args.eventType},${"direct_connect.lifecycle."+args.eventType},${title},false,now())
     `);
     await tx.execute(sql`
-      INSERT INTO direct_connect_notifications(id,request_id,job_workspace_id,event_id,recipient_user_id,recipient_role,actor_type,actor_id,notification_type,title,message,action_key,status,priority,metadata_json,created_at)
-      VALUES(${randomUUID()},${String(e.request_id)},${String(e.workspace_id)},${eventId},${args.recipientId},${args.recipientRole},${actorType},${args.actorId},${args.eventType},${title},${title},${actionKey},'unread','high',${JSON.stringify(metadata)}::jsonb,now())
+      INSERT INTO direct_connect_notifications(id,request_id,job_workspace_id,event_id,recipient_user_id,recipient_role,actor_type,actor_id,notification_type,title,message,action_url,action_key,status,priority,metadata_json,created_at)
+      VALUES(${randomUUID()},${String(e.request_id)},${String(e.workspace_id)},${eventId},${args.recipientId},${args.recipientRole},${actorType},${args.actorId},${args.eventType},${title},${title},${actionUrl},${actionKey},'unread','high',${JSON.stringify(metadata)}::jsonb,now())
     `);
   }
   return eventId;
@@ -89,7 +93,8 @@ export async function addEstimateLine(tx: Executor, estimate: any, actor: Estima
     rate: input.rate ?? null, unitCost: input.unitCost ?? null,
     supplier: input.supplier?.trim() || null, sku: input.sku?.trim() || null, notes: input.notes?.trim() || null,
   };
-  if (!Number.isFinite(value.quantity) || value.quantity < 0 || !Number.isFinite(Number(value.unitCost ?? value.rate ?? 0))) fail(400,"Invalid line item amounts.");
+  const price=Number(value.unitCost ?? value.rate ?? 0);
+  if (!Number.isFinite(value.quantity) || value.quantity <= 0 || !Number.isFinite(price) || price < 0) fail(400,"Invalid line item amounts.");
   if (key) {
     const previous = first(await tx.execute(sql`SELECT * FROM job_estimate_line_items WHERE id=${id} AND estimate_id=${String(estimate.id)}`));
     if (previous) {
@@ -104,11 +109,11 @@ export async function addEstimateLine(tx: Executor, estimate: any, actor: Estima
   const line = first(await tx.execute(sql`
     INSERT INTO job_estimate_line_items(id,estimate_id,line_type,name,description,quantity,unit,rate,unit_price,total_cost,supplier,sku,notes,created_at)
     VALUES(${id},${String(estimate.id)},${value.lineType},${value.name},${value.description},${value.quantity},${value.unit},${value.rate},${value.unitCost},
-      round(${value.quantity}::numeric * ${value.unitCost ?? value.rate ?? 0}::numeric,2),${value.supplier},${value.sku},${value.notes},now())
+      round(${value.quantity}::numeric * ${price}::numeric,2),${value.supplier},${value.sku},${value.notes},now())
     RETURNING total_cost
   `));
-  // The stored other subtotal includes the starting allowance and previous
-  // other lines. Add this line once; never add the accumulated SUM again.
+  // Retain the fixed starting allowance and prior other lines. Only the new
+  // line belongs in this increment; the accumulated SUM must not be added again.
   const otherDelta = ["material","labor"].includes(value.lineType) ? 0 : Number(line.total_cost);
   const updated = first(await tx.execute(sql`
     UPDATE job_estimates SET
