@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { getDirectConnectSection } from "../pages/direct-connect/directConnectRoutes";
 import {
   PRIMARY_PRODUCT_NAV_IDS, DESKTOP_PRODUCT_NAV_IDS, PRODUCT_NAV_GROUPS, PRODUCT_NAV_ITEMS,
   getProductNavGroup, isProductNavItemActive, getActiveProductNavItem, searchProductNavigation,
@@ -24,9 +25,17 @@ describe("TradeScout product navigation", () => {
   it("uses unique IDs and only existing internal route destinations", () => {
     expect(new Set(PRODUCT_NAV_ITEMS.map((item) => item.id)).size).toBe(PRODUCT_NAV_ITEMS.length);
     const router = fs.readFileSync(path.resolve(process.cwd(), "client/src/AppRoutes.tsx"), "utf8");
+    const declared = [...router.matchAll(/<Route\s+path="([^"]+)"/g)].map((match) => match[1]);
     for (const item of PRODUCT_NAV_ITEMS) {
       expect(item.href).toMatch(/^\/(?!\/)/);
-      expect(router).toContain(`path="${item.href}"`);
+      if (item.id === "jobs") {
+        // Jobs is owned by the real Direct Connect wildcard plus its inner router,
+        // not a literal top-level Route. Never count the application's 404 wildcard.
+        expect(declared).toContain("/direct-connect/:rest*");
+        expect(getDirectConnectSection(item.href)).toBe("employment");
+      } else {
+        expect(declared, `Missing route for ${item.id}: ${item.href}`).toContain(item.href);
+      }
       expect(PRODUCT_NAV_GROUPS.some((group) => group.id === item.group)).toBe(true);
     }
   });
