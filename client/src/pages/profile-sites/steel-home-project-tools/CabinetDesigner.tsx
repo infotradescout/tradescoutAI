@@ -64,10 +64,10 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
       <div className="kitchen-designer-toolbar" aria-label="Cabinet editing actions">
         <strong>Cabinet studio</strong>
         <button type="button" aria-label="Cabinet library" aria-expanded={panel === "library"} onClick={event => { panelTrigger.current = event.currentTarget; setCanvasFocus(false); setPanel("library"); }}>Cabinet library</button>
-        <button type="button" disabled={!selected} onClick={editSelected}>Edit selected dimensions</button>
-        <button type="button" disabled={!history.canUndo} onClick={history.undo}>Undo</button>
-        <button type="button" disabled={!history.canRedo} onClick={history.redo}>Redo</button>
+        <button type="button" aria-label="Undo" disabled={!history.canUndo} onClick={history.undo}>Undo</button>
+        <button type="button" aria-label="Redo" disabled={!history.canRedo} onClick={history.redo}>Redo</button>
         <button type="button" aria-pressed={canvasFocus} onClick={() => { setPanel(null); setCanvasFocus(value => !value); }}>{canvasFocus ? "Show inspector" : "Focus drawing"}</button>
+        <button type="button" aria-label="Edit selected dimensions" disabled={!selected} onClick={editSelected}>Edit selected</button>
         <button type="button" aria-expanded={panel === "schedule"} onClick={event => { panelTrigger.current = event.currentTarget; setCanvasFocus(false); setPanel("schedule"); }}>Cabinet schedule</button>
         <button type="button" disabled={!selected || planner.modules.length >= 120} onClick={() => {
           if (selected) history.change({ ...design, planner: duplicateCabinetModule(planner, selected.id, `cabinet-module-${crypto.randomUUID()}`) });
