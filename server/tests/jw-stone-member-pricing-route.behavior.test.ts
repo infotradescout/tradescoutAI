@@ -8,6 +8,9 @@ import {
 } from "@shared/jwStoneMemberPricing";
 
 const databaseBridge = vi.hoisted(() => ({ query: vi.fn() }));
+const inventoryFixture = vi.hoisted(() => ({
+  publicId: `stone_${"a".repeat(32)}`,
+}));
 vi.mock("../db", () => ({ pool: databaseBridge, db: {} }));
 vi.mock("../auth", () => ({
   isAuthenticated: (req: any, res: any, next: any) =>
@@ -18,10 +21,37 @@ vi.mock("../schemaPreflight", () => ({
 }));
 vi.mock("../services/stoneInventoryService", () => ({
   getStoneInventoryProfileTarget: async () => ({
+    profileId: "jw-profile",
+    profileSlug: "jw-stone",
+    profileStatus: "published",
     ownerUserId: "jw-owner",
+    businessId: "jw-business",
     businessOwnerUserId: "jw-owner",
   }),
   hasStoneInventoryCapability: async () => false,
+  listSellerStoneInventory: async () => [
+    {
+      id: inventoryFixture.publicId,
+      inventoryPositionId: "private-position-id",
+      passportCode: "private-passport",
+      materialSlug: "test-stone",
+      materialName: "Test Stone",
+      materialClass: "natural_stone",
+      materialFamily: "Granite",
+      assetKind: "slab",
+      sourceAssetRef: "private-source-ref",
+      quantity: 3,
+      unit: "slabs",
+      dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" },
+      finishQuantities: [],
+      locationLabel: "Private warehouse label",
+      imageUrls: [],
+      lastConfirmedAt: "2026-09-11T12:00:00.000Z",
+      confirmationExpiresAt: "2099-09-20T12:00:00.000Z",
+      publicAvailabilityStatus: "published",
+      isSaleReady: true,
+    },
+  ],
 }));
 import { registerJwStoneMemberPricingRoutes } from "../routes/jw-stone-member-pricing";
 import { resetJwStoneDrivePricingCacheForTests } from "../services/jwStoneDrivePricing";
@@ -29,6 +59,7 @@ import { resetJwStoneDrivePricingCacheForTests } from "../services/jwStoneDriveP
 describe("JW Stone private pricing HTTP path", () => {
   const database = new PGlite();
   const app = express();
+  app.use(express.json());
   app.use((req, _res, next) => {
     const id = req.get("x-fixture-viewer");
     if (id) req.user = { id, role: id === "admin" ? "super_admin" : "business_owner" } as any;
@@ -119,6 +150,60 @@ describe("JW Stone private pricing HTTP path", () => {
     expect(response.status).toBe(200);
     expect(response.body.access).toBe("internal");
     expect(response.body.prices[0].landedCostCents).toBe(100);
+  });
+  it("rejects cart review for guests and nonmembers", async () => {
+    const body = { lines: [{ inventoryPublicId: inventoryFixture.publicId, quantity: 1 }] };
+    expect((await request(app).post("/api/u/jw-stone/member-pricing/cart-review").send(body)).status).toBe(401);
+    expect(
+      (
+        await request(app)
+          .post("/api/u/jw-stone/member-pricing/cart-review")
+          .set("x-fixture-viewer", "nonmember")
+          .send(body)
+      ).status
+    ).toBe(403);
+  });
+  it("rechecks physical stock and slab pricing server-side for a member cart", async () => {
+    const response = await request(app)
+      .post("/api/u/jw-stone/member-pricing/cart-review")
+      .set("x-fixture-viewer", "member")
+      .send({ lines: [{ inventoryPublicId: inventoryFixture.publicId, quantity: 1 }] });
+    expect(response.status).toBe(200);
+    expect(response.body.readyForCheckout).toBe(true);
+    expect(response.body.subtotalCents).toBe(15000);
+    expect(response.body.lines[0]).toMatchObject({
+      inventoryPublicId: inventoryFixture.publicId,
+      requestedQuantity: 1,
+      availableQuantity: 3,
+      pricingTier: "slab",
+      unitRateCents: 300,
+      lineTotalCents: 15000,
+      status: "ready",
+    });
+    expect(JSON.stringify(response.body)).not.toMatch(/landed|private-position|private-passport|warehouse|source-ref/i);
+  });
+  it("uses the bundle rate only after the configured slab threshold", async () => {
+    const response = await request(app)
+      .post("/api/u/jw-stone/member-pricing/cart-review")
+      .set("x-fixture-viewer", "member")
+      .send({ lines: [{ inventoryPublicId: inventoryFixture.publicId, quantity: 2 }] });
+    expect(response.status).toBe(200);
+    expect(response.body.readyForCheckout).toBe(true);
+    expect(response.body.subtotalCents).toBe(20000);
+    expect(response.body.lines[0]).toMatchObject({ pricingTier: "bundle", unitRateCents: 200 });
+  });
+  it("fails closed when requested quantity exceeds current physical stock", async () => {
+    const response = await request(app)
+      .post("/api/u/jw-stone/member-pricing/cart-review")
+      .set("x-fixture-viewer", "member")
+      .send({ lines: [{ inventoryPublicId: inventoryFixture.publicId, quantity: 4 }] });
+    expect(response.status).toBe(200);
+    expect(response.body.readyForCheckout).toBe(false);
+    expect(response.body.subtotalCents).toBeNull();
+    expect(response.body.lines[0]).toMatchObject({
+      status: "insufficient_quantity",
+      availableQuantity: 3,
+    });
   });
   it("stops returning prices immediately after membership is suspended", async () => {
     await database.exec("UPDATE profile_accounts SET status = 'suspended'");
