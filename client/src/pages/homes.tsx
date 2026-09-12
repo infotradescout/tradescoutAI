@@ -1,31 +1,53 @@
+import { Suspense, lazy } from "react";
 import { useQuery } from "@tanstack/react-query";
-import HomeIdWorkspace from "./homeid/HomeIdWorkspace";
-import PropertyBlessingsLaunchWorkspace from "./homeid/PropertyBlessingsLaunchWorkspace";
+import { Link, useLocation, useSearch } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
+import HomeOverview from "./homeid/HomeOverview";
+import { collection, homeHref, resolveHomeView, type HomeSummary } from "./homeid/homeWorkspaceModel";
+import "./homeid/HomeOverview.css";
 
-const PROPERTY_BLESSINGS_HOME_ID = "073b355c-1aa3-4658-a776-ebedaa6aaefc";
-
-type HomesResponse = {
-  homes?: Array<{ id?: string | null }>;
-};
+const HomeIdWorkspace = lazy(() => import("./homeid/HomeIdWorkspace"));
+const PropertyBlessingsLaunchWorkspace = lazy(() => import("./homeid/PropertyBlessingsLaunchWorkspace"));
 
 export default function Homes() {
-  const homesQuery = useQuery<HomesResponse>({ queryKey: ["/api/homes"] });
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const requestedHomeId = new URLSearchParams(search).get("homeId")?.trim() || null;
+  const homesQuery = useQuery({
+    queryKey: ["/api/homes", user?.id],
+    enabled: isAuthenticated,
+    queryFn: async () => collection<HomeSummary>(await apiRequest("GET", "/api/homes"), "homes"),
+  });
+  const homes = homesQuery.data || [];
+  const selectedHomeId = requestedHomeId || homes[0]?.id || null;
+  const view = resolveHomeView(search, selectedHomeId);
 
-  if (typeof window === "undefined") return <HomeIdWorkspace />;
-
-  const params = new URLSearchParams(window.location.search);
-  const requestedHomeId = params.get("homeId");
-  const mode = params.get("mode");
-  const firstHomeId = String(homesQuery.data?.homes?.[0]?.id || "");
-  const selectedHomeId = requestedHomeId || firstHomeId;
-
-  if (!requestedHomeId && homesQuery.isLoading) {
-    return <div className="min-h-[50vh] bg-background" aria-label="Loading HomeID" />;
+  if (!isAuthenticated) {
+    if (isLoading) return <div className="ts-home-overview"><p role="status">Loading your property workspace…</p></div>;
+    return <section className="ts-home-overview"><h1>Your property workspace</h1><p>Sign in to view your private property records.</p><Link className="home-action" href={`/login?next=${encodeURIComponent(`/homes${search ? `?${search}` : ""}`)}`}>Sign in</Link></section>;
   }
 
-  return selectedHomeId === PROPERTY_BLESSINGS_HOME_ID && mode !== "passport" ? (
-    <PropertyBlessingsLaunchWorkspace />
-  ) : (
-    <HomeIdWorkspace />
-  );
+  if (view !== "overview") {
+    return (
+      <div className="ts-home-record-frame">
+        <Link className="home-return-link" href={homeHref(selectedHomeId)}>← Property overview</Link>
+        <Suspense fallback={<p role="status">Loading the property tools…</p>}>
+          {view === "launch" ? <PropertyBlessingsLaunchWorkspace key={user!.id} /> : <HomeIdWorkspace key={`${user!.id}:${selectedHomeId || "new"}`} />}
+        </Suspense>
+      </div>
+    );
+  }
+
+  return <HomeOverview
+    key={`${user!.id}:${selectedHomeId || "none"}`}
+    viewerId={user!.id}
+    homeId={selectedHomeId}
+    homes={homes}
+    homesPending={homesQuery.isPending}
+    homesError={homesQuery.isError}
+    retryHomes={() => void homesQuery.refetch()}
+    selectHome={(id) => navigate(homeHref(id))}
+  />;
 }
