@@ -1,0 +1,75 @@
+name: Fix JW reservation once
+
+on:
+  push:
+    branches:
+      - jw-stone/reservation-foundation-20260911
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: jw-stone/reservation-foundation-20260911
+          fetch-depth: 0
+      - name: Apply bounded source fixes
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+
+          service_path = Path('server/services/jwStoneCartReservation.ts')
+          source = service_path.read_text()
+          source = source.replace(
+              'import { pool } from "../db";\n',
+              'import type { PoolClient } from "pg";\nimport { pool } from "../db";\n',
+              1,
+          )
+          source = source.replace('Awaited<ReturnType<typeof pool.connect>>', 'PoolClient')
+          source = source.replace(
+              '    const delivery = args.fulfillment.method === "delivery";\n',
+              '    const deliveryDetails = args.fulfillment.method === "delivery" ? args.fulfillment : null;\n',
+              1,
+          )
+          source = source.replace(
+              '        delivery ? args.fulfillment.postalCode : null,\n',
+              '        deliveryDetails ? deliveryDetails.postalCode : null,\n',
+              1,
+          )
+          source = source.replace(
+              '        delivery ? args.fulfillment.destinationType : null,\n',
+              '        deliveryDetails ? deliveryDetails.destinationType : null,\n',
+              1,
+          )
+          source = source.replace(
+              '        delivery ? "pending_quote" : "not_required",\n',
+              '        deliveryDetails ? "pending_quote" : "not_required",\n',
+              2,
+          )
+          service_path.write_text(source)
+
+          journal_path = Path('migrations/meta/_journal.json')
+          journal = json.loads(journal_path.read_text())
+          entries = journal['entries']
+          if entries[-1]['tag'] != '0138_recommendation_publication_projection':
+              raise SystemExit(f"unexpected migration tail: {entries[-1]['tag']}")
+          entries.append({
+              'idx': 142,
+              'version': '7',
+              'when': 1789182300000,
+              'tag': '0139_jw_stone_cart_reservations',
+              'breakpoints': False,
+          })
+          journal_path.write_text(json.dumps(journal, indent=2) + '\n')
+      - name: Commit source and remove one-shot workflow
+        run: |
+          git config user.name 'TradeScout Reservation Fix'
+          git config user.email 'reservation-fix@tradescout.invalid'
+          git rm .github/workflows/fix-jw-reservation-once.yml
+          git add server/services/jwStoneCartReservation.ts migrations/meta/_journal.json
+          git commit -m 'Fix JW reservation types and register migration'
+          git push origin HEAD:jw-stone/reservation-foundation-20260911
