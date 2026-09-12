@@ -1,72 +1,73 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import {
-  PRIMARY_PRODUCT_NAV_IDS,
-  PRODUCT_NAV_GROUPS,
-  PRODUCT_NAV_ITEMS,
-  getProductNavGroup,
-  isProductNavItemActive,
+  PRIMARY_PRODUCT_NAV_IDS, DESKTOP_PRODUCT_NAV_IDS, PRODUCT_NAV_GROUPS, PRODUCT_NAV_ITEMS,
+  getProductNavGroup, isProductNavItemActive, getActiveProductNavItem, searchProductNavigation,
 } from "./productNavigation";
 
-describe("TradeScout product navigation taxonomy", () => {
-  it("keeps every major product family represented without deleting routes", () => {
-    expect(PRODUCT_NAV_GROUPS.map((group) => group.id)).toEqual([
-      "core",
-      "discover",
-      "work",
-      "business",
-      "assets",
-      "community",
-      "account",
-    ]);
+const preservedIds = ["scout", "requests", "businesses", "jobs", "exchange", "maps", "projects",
+  "messages", "commercial-work", "business-home", "finances", "share", "trade-deals", "marketing",
+  "analytics", "homes", "vehicles", "community", "leaderboard", "community-builders", "profile", "settings"];
 
-    expect(PRODUCT_NAV_ITEMS.map((item) => item.id)).toEqual(
-      expect.arrayContaining([
-        "scout",
-        "requests",
-        "businesses",
-        "jobs",
-        "exchange",
-        "maps",
-        "projects",
-        "messages",
-        "commercial-work",
-        "business-home",
-        "finances",
-        "share",
-        "trade-deals",
-        "marketing",
-        "analytics",
-        "homes",
-        "vehicles",
-        "community",
-        "leaderboard",
-        "community-builders",
-        "profile",
-        "settings",
-      ])
-    );
-  });
-
-  it("keeps the first-use navigation focused while advanced capabilities remain available", () => {
-    expect(PRIMARY_PRODUCT_NAV_IDS).toEqual([
-      "scout",
-      "requests",
-      "businesses",
-      "jobs",
-      "community",
-    ]);
+describe("TradeScout product navigation", () => {
+  it("preserves every previously listed product family and the five mobile primary destinations", () => {
+    expect(PRODUCT_NAV_GROUPS.map((group) => group.id)).toEqual(["core", "discover", "work", "business", "assets", "community", "account"]);
+    expect(PRODUCT_NAV_ITEMS.map((item) => item.id)).toEqual(expect.arrayContaining(preservedIds));
+    expect(PRIMARY_PRODUCT_NAV_IDS).toEqual(["scout", "requests", "businesses", "jobs", "community"]);
+    expect(DESKTOP_PRODUCT_NAV_IDS).toEqual([...PRIMARY_PRODUCT_NAV_IDS, "exchange", "share"]);
     expect(getProductNavGroup("business").some((item) => item.id === "finances")).toBe(true);
     expect(getProductNavGroup("discover").some((item) => item.id === "exchange")).toBe(true);
     expect(getProductNavGroup("assets").some((item) => item.id === "homes")).toBe(true);
   });
 
-  it("recognizes canonical and compatibility aliases as the same product destination", () => {
-    const requests = PRODUCT_NAV_ITEMS.find((item) => item.id === "requests");
-    const businesses = PRODUCT_NAV_ITEMS.find((item) => item.id === "businesses");
-    const community = PRODUCT_NAV_ITEMS.find((item) => item.id === "community");
+  it("uses unique IDs and only existing internal route destinations", () => {
+    expect(new Set(PRODUCT_NAV_ITEMS.map((item) => item.id)).size).toBe(PRODUCT_NAV_ITEMS.length);
+    const router = fs.readFileSync(path.resolve(process.cwd(), "client/src/AppRoutes.tsx"), "utf8");
+    for (const item of PRODUCT_NAV_ITEMS) {
+      expect(item.href).toMatch(/^\/(?!\/)/);
+      expect(router).toContain(`path="${item.href}"`);
+      expect(PRODUCT_NAV_GROUPS.some((group) => group.id === item.group)).toBe(true);
+    }
+  });
 
-    expect(requests && isProductNavItemActive(requests, "/direct-connect/inbox")).toBe(true);
-    expect(businesses && isProductNavItemActive(businesses, "/find-local-businesses")).toBe(true);
-    expect(community && isProductNavItemActive(community, "/community-feed")).toBe(true);
+  it.each([
+    ["/direct-connect/inbox?filter=requests", "requests"],
+    ["/direct-connect/active/", "requests"],
+    ["/direct-connect/opportunities", "jobs"],
+    ["/direct-connect/employment/applicants?tab=new", "jobs"],
+    ["/direct-connect/pros", "businesses"],
+    ["/find-local-businesses", "businesses"],
+    ["/directory/businesses#results", "businesses"],
+    ["/community-feed", "community"],
+    ["/share", "share"], ["/affiliate", "share"],
+    ["/finances/invoices/invoice-1", "invoices"],
+    ["/finances", "finances"], ["/accounting", "finances"],
+    ["/crm", "clients"], ["/profile-settings", "profile-settings"],
+    ["/exchange/building-materials/item", "exchange"],
+  ])("selects exactly one destination for %s", (route, id) => {
+    expect(getActiveProductNavItem(route)?.id).toBe(id);
+    expect(PRODUCT_NAV_ITEMS.filter((item) => isProductNavItemActive(item, route)).map((item) => item.id)).toEqual([id]);
+  });
+
+  it.each(["/direct-connector", "/community-builder", "/scout-info", "/not-a-tool"])(
+    "does not activate a similarly named but unrelated route: %s", (route) => expect(getActiveProductNavItem(route)).toBeUndefined()
+  );
+
+  it("keeps the desktop parent selected for nested tools but never also selects Requests on Jobs", () => {
+    const primary = PRODUCT_NAV_ITEMS.filter((item) => (DESKTOP_PRODUCT_NAV_IDS as readonly string[]).includes(item.id));
+    expect(getActiveProductNavItem("/direct-connect/opportunities", primary)?.id).toBe("jobs");
+    expect(getActiveProductNavItem("/exchange/real-estate", primary)?.id).toBe("exchange");
+  });
+
+  it("finds tools by ordinary language, aliases, and mixed case without losing destinations", () => {
+    expect(searchProductNavigation("  ").length).toBe(PRODUCT_NAV_ITEMS.length);
+    expect(searchProductNavigation("HOMEID").map((item) => item.id)).toContain("homes");
+    expect(searchProductNavigation("suppliers").map((item) => item.id)).toContain("supply-run");
+    expect(searchProductNavigation("saved items").map((item) => item.id)).toContain("saved-items");
+    expect(searchProductNavigation("CRM").map((item) => item.id)).toContain("clients");
+    expect(searchProductNavigation("financial reports").map((item) => item.id)).toContain("reports");
+    expect(searchProductNavigation("zzzz-no-such-tool")).toEqual([]);
+    expect(PRODUCT_NAV_ITEMS.map((item) => item.id)).toEqual(expect.arrayContaining(preservedIds));
   });
 });
