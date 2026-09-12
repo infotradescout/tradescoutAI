@@ -52,7 +52,8 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   await page.screenshot({ path: path.join(output, device + '-synthetic-cart-review.png'), fullPage: false });
   const store = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   assert(!/slabRateCents|minimumTotalCents|maximumTotalCents|landedCostCents/.test(store));
-  assert(store.includes('"quantity":2')); assert(store.includes(fixture.cartStockId));
+  const savedCart = await page.evaluate(viewerId => JSON.parse(localStorage.getItem('tradescout:jw-stone:member-cart:v2:' + viewerId) || '[]'), userId);
+  assert(savedCart.some(item => item.quantity === 2 && item.inventoryPublicId === fixture.cartStockId));
   await click(cart.getByRole('button', { name: 'Close cart', exact: true }));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await click(page.getByTestId('jw-stone-member-cart-button'));
