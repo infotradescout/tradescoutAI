@@ -13,6 +13,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  cart-wishlist-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Cart, wishlist, and mocked service regressions
+        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-cart-wishlist.test.mjs
+
   receiving-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 20
