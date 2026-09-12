@@ -5,17 +5,13 @@ import {
   type CabinetPlannerExtensionV1, type CabinetPlannerModule, type CabinetPresentation,
 } from "./cabinetPlannerModel";
 import { buildCabinetCaseworkParts } from "./cabinetCasework";
+import CabinetCatalogGallery from "./CabinetCatalogGallery";
 import {
   CABINET_ALL_PRESETS, cabinetLibrarySelection, cabinetSchedule, cabinetScheduleCsv,
   findCabinetLibraryWallGap, proposeLibraryCabinet, type CabinetLibrarySelection,
 } from "./cabinetLibrary";
 
-type Props = {
-  planner: CabinetPlannerExtensionV1;
-  view: "library" | "schedule";
-  onChange: (planner: CabinetPlannerExtensionV1) => void;
-  onClose: () => void;
-};
+type Props = { planner: CabinetPlannerExtensionV1; view: "library" | "schedule"; onChange: (planner: CabinetPlannerExtensionV1) => void; onClose: () => void };
 const control = "min-h-11 rounded-lg border border-[#18312f]/25 bg-white px-3 py-2 text-sm text-[#18312f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#a94f2e] disabled:opacity-40";
 const newId = () => `cabinet-module-${crypto.randomUUID()}`;
 
@@ -90,23 +86,18 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
     } catch { setNotice("Download unavailable. The complete schedule remains visible below."); }
   };
   return <section aria-label={view === "library" ? "Cabinet configuration library" : "Cabinet schedule"}
-    className="max-h-[75vh] min-w-0 shrink-0 overflow-y-auto border-b border-[#18312f]/20 bg-[#f7f3ec] p-4 text-[#18312f] sm:p-5" data-testid="cabinet-library-panel">
+    className="cabinet-catalog-panel max-h-[75vh] min-w-0 shrink-0 overflow-y-auto border-b border-[#18312f]/20 bg-[#f7f3ec] p-4 text-[#18312f] sm:p-5" data-testid="cabinet-library-panel" data-configuring={Boolean(selection)}>
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div><h2 ref={heading} tabIndex={-1} className="text-lg font-bold focus:outline-none">{view === "library" ? "Cabinet configuration library" : "Cabinet schedule"}</h2>
         <p className="text-sm" data-testid="cabinet-schedule-count">{cabinetCount} cabinets · {applianceCount} appliance spaces{accessoryCount > 0 ? ` · ${accessoryCount} accessories` : ""}</p></div>
       <button type="button" className={control} onClick={onClose}>Close library and schedule</button>
     </header>
     {view === "library" ? <>
-      <p className="mb-3 text-sm">Choose a configuration, review its dimensions and location, then add it. These are editable planning sizes, not manufacturer products or prices. Existing cabinets are never moved automatically.</p>
-      <div className="mb-4 grid gap-2 sm:grid-cols-3">
-        {CABINET_ALL_PRESETS.map(preset => <button key={preset.id} type="button" className={`${control} text-left`} aria-pressed={selection?.presetId === preset.id}
-          data-testid={`cabinet-${isCabinetAccessory(preset) ? "accessory" : "library"}-${preset.id}`} onClick={() => { setSelection(cabinetLibrarySelection(preset.id)); setNotice(""); }}>
-          <strong className="block">{preset.label}</strong><span className="block text-xs">{preset.widthIn} W × {preset.depthIn} D × {preset.heightIn} H in · elevation {preset.elevationIn} in</span>
-          {isCabinetAccessory(preset) && <span className="block text-xs">Accessory · wall setback {preset.wallInsetIn} in</span>}
-        </button>)}
-      </div>
-      {selection && <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <p className="cabinet-catalog-intro mb-3 text-sm">Choose a configuration, review its dimensions and location, then add it. These are editable planning sizes, not manufacturer products or prices. Existing cabinets are never moved automatically.</p>
+      <CabinetCatalogGallery selectedId={selection?.presetId} presentation={planner.presentation} onSelect={presetId => { setSelection(cabinetLibrarySelection(presetId)); setNotice(""); }} />
+      {selection && <div className="cabinet-catalog-configuration grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-3">
+          <h3 className="cabinet-configure-title">Configure {selectedPreset?.label}</h3>
           {accessorySelected && <p className="text-sm">Enter the actual panel dimensions, not a full cabinet box. Wall setback is measured to the back of the panel; it is ignored for floor placement. Accessories are counted separately and are not assumed countertop supports.</p>}
           <div className="grid grid-cols-2 gap-3">
             {numeric("widthIn", "Width in", 240, .125)}{numeric("depthIn", "Depth in", 120, .125)}
@@ -133,7 +124,6 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
             {proposal && !proposal.problems.length && <p>Placement fits the recorded geometry. Working clearances and door swings still require review.</p>}
           </div>
           <button type="button" className={`${control} font-bold`} data-testid="cabinet-library-add" disabled={!proposal?.planner || !!proposal.problems.length} onClick={() => {
-            // Re-evaluate the current props at the commit boundary; preview alone never saves.
             const current = proposeLibraryCabinet(planner, selection, id);
             if (!current.planner || current.problems.length) { setNotice(current.problems.join(" ")); return; }
             onChange(current.planner); setId(newId());
@@ -143,9 +133,7 @@ export default function CabinetLibraryPanel({ planner, view, onChange, onClose }
         <div className="min-w-0 rounded-xl border border-[#18312f]/15 bg-white p-3">
           {proposal?.module && proposal.planner ? <>
             <h3 className="text-sm font-bold">Proposed front · {proposal.module.widthIn} × {proposal.module.heightIn} in</h3>
-            <svg role="img" aria-label="Proposed cabinet front" className="h-48 w-full" viewBox={`${-proposal.module.widthIn / 2 - 1} -1 ${proposal.module.widthIn + 2} ${proposal.module.heightIn + 2}`}>
-              <CabinetFrontShapes module={proposal.module} presentation={proposal.planner.presentation} />
-            </svg>
+            <svg role="img" aria-label="Proposed cabinet front" className="h-48 w-full" viewBox={`${-proposal.module.widthIn / 2 - 1} -1 ${proposal.module.widthIn + 2} ${proposal.module.heightIn + 2}`}><CabinetFrontShapes module={proposal.module} presentation={proposal.planner.presentation} /></svg>
             <p className="text-xs">{accessorySelected ? "Simple panel geometry uses the selected finish, with no doors, drawer fronts or hardware." : "Same illustrative front parts as 3D. Style, finish and hardware use your existing selections."}</p>
             <h3 className="mt-3 text-sm font-bold">Proposed plan position</h3>
             <svg role="img" aria-label="Proposed cabinet placement" className="h-48 w-full" viewBox={`-4 -4 ${planner.shell.widthIn! + 8} ${planner.shell.depthIn! + 8}`}>
