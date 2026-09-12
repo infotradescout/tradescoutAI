@@ -1,11 +1,18 @@
 import { useEffect, useMemo, type ReactNode } from "react";
-import { Building, ClipboardList, Compass, Share2, ShoppingBag, Users, Wrench } from "lucide-react";
-import { useLocation } from "wouter";
+import {
+  Building,
+  ClipboardList,
+  Compass,
+  Share2,
+  ShoppingBag,
+  Users,
+  Wrench,
+} from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ROUTES } from "@/lib/routes";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
-import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 import AppShellCore from "./AppShellCore";
 import type { NavItem } from "./AppShellCore";
@@ -17,7 +24,7 @@ type AppShellProps = {
   footer?: ReactNode;
 };
 
-const DESKTOP_BOTTOM_NAV_HEIGHT = "58px";
+const DESKTOP_APP_RAIL_WIDTH = "76px";
 
 function isPublicProfileLikePath(pathOnly: string): boolean {
   if (/^\/(?:u|p)\/[^/]+(?:\/|$)/i.test(pathOnly)) return true;
@@ -33,21 +40,21 @@ function isPublicProfileLikePath(pathOnly: string): boolean {
   return false;
 }
 
-function buildDesktopBottomNav(): NavItem[] {
-  const iconStyle = { color: "var(--theme-accent-primary)" } as const;
+function buildDesktopPrimaryNav(): NavItem[] {
+  const iconStyle = { color: "currentColor" } as const;
 
   return [
     {
       label: "Scout",
       href: "/scout",
       icon: <Compass className="h-5 w-5" style={iconStyle} />,
-      description: "Open Scout to review what to do next.",
+      description: "Ask TradeScout what to do next.",
     },
     {
-      label: "Direct Connect",
+      label: "Requests",
       href: DIRECT_CONNECT_TASKBAR_RESUME_HREF,
       icon: <ClipboardList className="h-5 w-5" style={iconStyle} />,
-      description: "Post requests and track replies.",
+      description: "Create requests, track replies, and continue work.",
     },
     {
       label: "Businesses",
@@ -59,7 +66,7 @@ function buildDesktopBottomNav(): NavItem[] {
       label: "Jobs",
       href: "/direct-connect/opportunities",
       icon: <Wrench className="h-5 w-5" style={iconStyle} />,
-      description: "Find work, post jobs or resumes, and manage applicants.",
+      description: "Find work, hire, and manage applicants.",
     },
     {
       label: "Community",
@@ -68,23 +75,34 @@ function buildDesktopBottomNav(): NavItem[] {
       description: "See nearby posts and updates.",
     },
     {
-      label: "Share",
-      href: "/share",
-      icon: <Share2 className="h-5 w-5" style={iconStyle} />,
-      description: "Copy and publish your best links.",
-    },
-    {
       label: "Exchange",
       href: ROUTES.EXCHANGE ?? "/exchange",
       icon: <ShoppingBag className="h-5 w-5" style={iconStyle} />,
-      description: "Browse and post Exchange listings.",
+      description: "Buy, sell, rent, and browse listings.",
+    },
+    {
+      label: "Share",
+      href: "/share",
+      icon: <Share2 className="h-5 w-5" style={iconStyle} />,
+      description: "Share attributable links and activity.",
     },
   ];
 }
 
+function isNavItemActive(pathOnly: string, item: NavItem): boolean {
+  const itemPath = item.href.split("?")[0].split("#")[0] || "/";
+  if (itemPath === "/direct-connect") {
+    return pathOnly === itemPath || pathOnly.startsWith("/direct-connect/");
+  }
+  if (itemPath === "/community") {
+    return pathOnly === "/community" || pathOnly.startsWith("/community-") || pathOnly.startsWith("/community/");
+  }
+  return pathOnly === itemPath || pathOnly.startsWith(`${itemPath}/`);
+}
+
 /**
- * Owns the stable TradeScout OS chrome. Signed-in apps keep their own full-width
- * workspaces while primary navigation stays in the bottom taskbar.
+ * Owns the stable TradeScout OS chrome. Mobile keeps the compact bottom taskbar
+ * owned by AppShellCore; signed-in desktop gets a dedicated application rail.
  */
 export function AppShell({ children, footer }: AppShellProps) {
   const { isAuthenticated } = useAuth();
@@ -110,68 +128,89 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isPublicProfileSurface =
     Boolean(customDomainProfileSlug) || isPublicProfileLikePath(pathOnly);
 
-  const showDesktopBottomNav =
+  const showDesktopAppRail =
     Boolean(isAuthenticated) &&
     !isMobile &&
     !isAuthOrSetupSurface &&
     !isAdminSurface &&
     !isPublicProfileSurface;
 
-  const desktopBottomNavItems = useMemo(() => buildDesktopBottomNav(), []);
+  const desktopPrimaryNav = useMemo(() => buildDesktopPrimaryNav(), []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
 
-    document.body.classList.toggle("ts-desktop-bottom-nav-active", showDesktopBottomNav);
+    document.body.classList.toggle("ts-desktop-app-rail-active", showDesktopAppRail);
     return () => {
-      document.body.classList.remove("ts-desktop-bottom-nav-active");
+      document.body.classList.remove("ts-desktop-app-rail-active");
     };
-  }, [showDesktopBottomNav]);
+  }, [showDesktopAppRail]);
 
   return (
     <>
       <style>{`
-        body.ts-desktop-bottom-nav-active .app-shell .ts-shell-main {
-          bottom: ${DESKTOP_BOTTOM_NAV_HEIGHT} !important;
+        body.ts-desktop-app-rail-active .app-shell .ts-shell-main {
+          left: ${DESKTOP_APP_RAIL_WIDTH} !important;
         }
 
-        body.ts-desktop-bottom-nav-active [data-testid="profile-completion-banner"] {
-          bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 1rem) !important;
+        body.ts-desktop-app-rail-active .ts-desktop-app-rail {
+          width: ${DESKTOP_APP_RAIL_WIDTH};
         }
 
-        body.ts-desktop-bottom-nav-active .scout-search-dock-fixed {
-          bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 0.5rem) !important;
-        }
-
-        body.ts-desktop-bottom-nav-active .ts-desktop-bottom-nav-host .ts-bottom-nav-inner {
-          max-width: min(1440px, calc(100% - 24px));
-          margin-inline: auto;
-          margin-bottom: 4px;
+        body.ts-desktop-app-rail-active .scout-search-dock-fixed {
+          left: calc(${DESKTOP_APP_RAIL_WIDTH} + 0.5rem) !important;
         }
 
         @media (max-width: 767px) {
-          body.ts-desktop-bottom-nav-active .app-shell .ts-shell-main {
-            bottom: var(--bottom-nav-h) !important;
+          body.ts-desktop-app-rail-active .app-shell .ts-shell-main {
+            left: 0 !important;
           }
         }
       `}</style>
 
-      <AppShellCore footer={showDesktopBottomNav ? undefined : footer}>{children}</AppShellCore>
+      <AppShellCore footer={footer}>{children}</AppShellCore>
 
-      {showDesktopBottomNav ? (
-        <div
-          data-testid="desktop-bottom-nav"
-          className="ts-desktop-bottom-nav-host"
+      {showDesktopAppRail ? (
+        <nav
+          data-testid="desktop-app-rail"
+          className="ts-desktop-app-rail fixed bottom-0 left-0 z-30 flex flex-col border-r px-2 py-3"
           style={{
-            position: "fixed",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1000,
+            top: "var(--top-nav-h)",
+            borderColor: "var(--border-primary)",
+            background:
+              "color-mix(in oklab, var(--surface-frame) 96%, var(--surface-intermediate))",
           }}
+          aria-label="TradeScout primary navigation"
         >
-          <MobileAppBar items={desktopBottomNavItems} primaryLimit={5} />
-        </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+            {desktopPrimaryNav.map((item) => {
+              const active = isNavItemActive(pathOnly, item);
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  title={item.description}
+                  aria-current={active ? "page" : undefined}
+                  className="group flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center transition"
+                  style={{
+                    color: active ? "var(--theme-accent-primary)" : "var(--text-secondary)",
+                    backgroundColor: active
+                      ? "color-mix(in oklab, var(--theme-accent-primary) 12%, var(--surface-card))"
+                      : "transparent",
+                    border: active
+                      ? "1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)"
+                      : "1px solid transparent",
+                  }}
+                >
+                  <span className="inline-flex h-6 w-6 items-center justify-center">{item.icon}</span>
+                  <span className="max-w-full truncate text-[10px] font-semibold leading-none">
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       ) : null}
     </>
   );
