@@ -5,6 +5,22 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 
+// A diagnostic pass is not a customer-workflow or release pass. Run it at the
+// top-level output location so its patch is retained, without the workflow
+// wrapper interpreting an intentionally short-circuited child as completion.
+if (process.env.SUPPLIER_PREPARE_SUBTOTAL_FIX === 'true') {
+  assert.equal(process.env.JW_WORKFLOW_PHASE || 'workflow', 'workflow');
+  const { prepareSupplierSubtotalFix } = await import('./prepare-supplier-subtotal-fix.mjs');
+  await prepareSupplierSubtotalFix();
+  const diagnosticOutput = path.resolve(process.env.JW_WORKFLOW_OUTPUT || 'test-results/supplier-patch');
+  const diagnostic = JSON.parse(await fs.readFile(path.join(diagnosticOutput, 'evidence.json'), 'utf8'));
+  assert.equal(diagnostic.phase, 'isolated-subtotal-diagnosis');
+  assert.equal(diagnostic.preparationOnly, true);
+  assert.equal(diagnostic.productionChanged, false);
+  console.log('JW_DIAGNOSIS_ONLY ' + JSON.stringify({ passed: diagnostic.passed, workflowExecuted: false, releaseApproved: false, productionChanged: false }));
+  process.exit(diagnostic.passed ? 0 : 1);
+}
+
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const phase = process.env.JW_WORKFLOW_PHASE || 'workflow';
 assert(['workflow', 'release', 'production'].includes(phase));
@@ -85,6 +101,7 @@ try {
     const nativeOut = path.join(temp, 'native');
     run('Actual native customer workflow', [process.execPath, 'scripts/jw-stone-customer-workflow.native.mjs'], { JW_WORKFLOW_OUTPUT: nativeOut });
     report.workflow = JSON.parse(await fs.readFile(path.join(nativeOut, 'evidence.json'), 'utf8'));
+    assert.notEqual(report.workflow.preparationOnly, true, 'A preparation/diagnostic result cannot count as workflow completion');
     for (const file of await fs.readdir(nativeOut)) if (file.endsWith('.png')) await fs.copyFile(path.join(nativeOut, file), path.join(out, file));
     assert.equal(report.workflow.head, head); assert.equal(report.workflow.passed, true, 'Native workflow report failed');
     if (phase === 'release') {
