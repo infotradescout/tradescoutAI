@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Bookmark, Menu, UserRound, X } from "lucide-react";
+import { JW_STONE_PORTAL_COPY } from "@shared/jwStonePortalCopy";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
 
@@ -46,10 +47,10 @@ export function MarketplaceHeader({
     setMenuOpen(false);
     action?.();
   };
-  const accountLabel = hasAccount ? "Account" : "Create account";
+  const accountLabel = JW_STONE_PORTAL_COPY.label;
   const accountAriaLabel = hasAccount
-    ? "Open your TradeScout account"
-    : "Create a TradeScout account";
+    ? "Open your JW Stone Fabricator Portal"
+    : "Open JW Stone Fabricator Portal";
 
   return (
     <header
@@ -65,12 +66,12 @@ export function MarketplaceHeader({
           <img
             src={JW_STONE_LOGO_URL}
             alt="JW Stone"
-            className="h-auto w-[112px] object-contain object-left sm:w-[180px] md:w-[200px]"
+            className="h-auto w-[80px] object-contain object-left min-[375px]:w-[112px] sm:w-[180px] md:w-[200px]"
             data-testid="jw-marketplace-logo"
           />
         </a>
 
-        <nav aria-label="JW Stone account and saved stones" className="flex items-center gap-0.5 sm:gap-1.5">
+        <nav aria-label="JW Stone fabricator portal and saved stones" className="flex items-center gap-0.5 sm:gap-1.5">
           <button
             type="button"
             onClick={onOpenWishlist}
@@ -96,8 +97,11 @@ export function MarketplaceHeader({
             className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
             aria-label={accountAriaLabel}
           >
-            <UserRound className="h-4 w-4" aria-hidden="true" />
-            <span className="text-xs font-semibold sm:text-sm">{accountLabel}</span>
+            <UserRound className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-xs font-semibold sm:text-sm">{accountLabel}</span>
+              <span className="text-[10px] sm:text-xs">{JW_STONE_PORTAL_COPY.accessLabel}</span>
+            </span>
           </button>
 
           <div className="relative" ref={menuRef}>
@@ -131,6 +135,7 @@ export function MarketplaceHeader({
                     className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
                   >
                     {accountLabel}
+                    <span className="block text-xs font-normal">{JW_STONE_PORTAL_COPY.accessLabel}</span>
                   </button>
                   <a
                     href="#about-jw-stone"
