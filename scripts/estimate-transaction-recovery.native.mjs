@@ -6,6 +6,7 @@ import {spawn,spawnSync,execFileSync} from 'node:child_process';
 import pg from 'pg';
 import {request as playwrightRequest} from 'playwright';
 import {startCabinetLoopbackTestDatabase} from './start-cabinet-loopback-test-db.mjs';
+import {proveEstimateBrowser} from './estimate-transaction-browser.mjs';
 const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const out=path.resolve(process.env.ESTIMATE_NATIVE_OUTPUT||'test-results/estimate-native');
 const temp=await fs.mkdtemp(path.join(os.tmpdir(),'estimate-native-'));
@@ -84,6 +85,9 @@ try{
  const rq=await api(supplier,'GET',cp);assert.equal(rq.lineItems.length,9);assert.equal(rq.totalEstimate,37);
  step('Concurrent additions preserve every amount; identical concurrent retry creates one line',{parallelAdds:8,totalAfterAdds:35,totalAfterReplay:37});
  proof.requestToCustomerQuote=true;proof.customerReceipt={title:receipt.title,total:receipt.totalEstimate,lineCount:receipt.lineItems.length};
+ proof.browser=await proveEstimateBrowser({database,fixture,workspaceId:workspace.id,customer,supplier,stranger,output:out});
+ assert.equal(proof.browser.length,2);assert(proof.browser.every(r=>r.passed));
+ step('Actual desktop and touch editors, refresh/retry and customer decisions');
  proof.passed=true;
 }catch(error){proof.error=String(error.stack||error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[LOCAL_DATABASE]');console.error('ESTIMATE_NATIVE_FAILURE '+proof.error);
  if(log){const tail=(await fs.readFile(path.join(temp,'fixture.private.log'),'utf8')).slice(-12000).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[LOCAL_DATABASE]');console.error('ESTIMATE_FIXTURE_FAILURE '+tail);}
