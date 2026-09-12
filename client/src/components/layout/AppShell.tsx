@@ -95,7 +95,11 @@ function isNavItemActive(pathOnly: string, item: NavItem): boolean {
     return pathOnly === itemPath || pathOnly.startsWith("/direct-connect/");
   }
   if (itemPath === "/community") {
-    return pathOnly === "/community" || pathOnly.startsWith("/community-") || pathOnly.startsWith("/community/");
+    return (
+      pathOnly === "/community" ||
+      pathOnly.startsWith("/community-") ||
+      pathOnly.startsWith("/community/")
+    );
   }
   return pathOnly === itemPath || pathOnly.startsWith(`${itemPath}/`);
 }
@@ -127,13 +131,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isAdminSurface = pathOnly.startsWith("/admin");
   const isPublicProfileSurface =
     Boolean(customDomainProfileSlug) || isPublicProfileLikePath(pathOnly);
+  const isApplicationUiSurface =
+    !isAuthOrSetupSurface && !isAdminSurface && !isPublicProfileSurface;
 
-  const showDesktopAppRail =
-    Boolean(isAuthenticated) &&
-    !isMobile &&
-    !isAuthOrSetupSurface &&
-    !isAdminSurface &&
-    !isPublicProfileSurface;
+  const showDesktopAppRail = Boolean(isAuthenticated) && !isMobile && isApplicationUiSurface;
 
   const desktopPrimaryNav = useMemo(() => buildDesktopPrimaryNav(), []);
 
@@ -145,6 +146,15 @@ export function AppShell({ children, footer }: AppShellProps) {
       document.body.classList.remove("ts-desktop-app-rail-active");
     };
   }, [showDesktopAppRail]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    document.body.classList.toggle("ts-application-ui-scope", isApplicationUiSurface);
+    return () => {
+      document.body.classList.remove("ts-application-ui-scope");
+    };
+  }, [isApplicationUiSurface]);
 
   return (
     <>
@@ -159,6 +169,39 @@ export function AppShell({ children, footer }: AppShellProps) {
 
         body.ts-desktop-app-rail-active .scout-search-dock-fixed {
           left: calc(${DESKTOP_APP_RAIL_WIDTH} + 0.5rem) !important;
+        }
+
+        /*
+         * Core-app dark-surface convergence layer. These exact utility values
+         * are legacy styling authorities still present in application pages.
+         * Public/custom profile surfaces never receive ts-application-ui-scope.
+         */
+        body.ts-application-ui-scope [class~="bg-white/5"],
+        body.ts-application-ui-scope [class~="bg-white/[0.035]"] {
+          background-color: color-mix(in oklab, var(--surface-card) 88%, transparent) !important;
+        }
+
+        body.ts-application-ui-scope [class~="bg-white/10"],
+        body.ts-application-ui-scope [class~="bg-white/18"] {
+          background-color: color-mix(in oklab, var(--surface-intermediate) 90%, transparent) !important;
+        }
+
+        body.ts-application-ui-scope [class~="bg-zinc-950/95"] {
+          background-color: var(--surface-card) !important;
+        }
+
+        body.ts-application-ui-scope [class~="border-white/10"] {
+          border-color: var(--border-subtle) !important;
+        }
+
+        body.ts-application-ui-scope [class~="bg-black/18"],
+        body.ts-application-ui-scope [class~="bg-black/20"],
+        body.ts-application-ui-scope [class~="bg-black/25"] {
+          background-color: color-mix(in oklab, var(--surface-frame) 72%, transparent) !important;
+        }
+
+        body.ts-application-ui-scope [class~="bg-black/70"] {
+          background-color: color-mix(in oklab, var(--surface-frame) 88%, transparent) !important;
         }
 
         @media (max-width: 767px) {
