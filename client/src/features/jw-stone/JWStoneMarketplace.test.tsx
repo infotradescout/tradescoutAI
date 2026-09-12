@@ -401,19 +401,19 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
   });
 
-  it("shows Account instead of Create account after TradeScout authentication", () => {
+  it("keeps Fabricator Portal business wording after TradeScout authentication", () => {
     authState.user = { id: 42, email: "owner@example.com" };
     authState.isAuthenticated = true;
     renderMarketplace();
 
     const accountButton = container.querySelector('[data-testid="jw-marketplace-account-button"]');
-    expect(accountButton?.textContent).toMatch(/^Account$/);
-    expect(accountButton?.getAttribute("aria-label")).toBe("Open your TradeScout account");
+    expect(accountButton?.textContent).toMatch(/^Fabricator Portal$/);
+    expect(accountButton?.getAttribute("aria-label")).toBe("Open your JW Stone Fabricator Portal");
     expect(accountButton?.textContent).not.toContain("Create account");
 
     click(container.querySelector('[data-testid="jw-marketplace-menu-button"]'));
     const menu = container.querySelector('[data-testid="jw-marketplace-menu-panel"]');
-    expect(menu?.textContent).toContain("Account");
+    expect(menu?.textContent).toContain("Fabricator Portal");
     expect(menu?.textContent).not.toContain("Create account");
   });
 
@@ -556,6 +556,8 @@ describe("JW Stone marketplace luxury layout", () => {
     );
     expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).toBeNull();
 
+    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
+    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-material-marble"]'));
     expect(window.location.pathname).toContain("/materials/marble");
     expect(
