@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CabinetMeasuredEditor, { type CabinetDesignerProps } from "./CabinetMeasuredEditor";
 import KitchenWorkspacePanel from "./KitchenWorkspacePanel";
 import {
@@ -9,6 +9,7 @@ import {
 import type { SteelHomeCabinetDesign } from "./projectModel";
 import { useDesignerHistory } from "./useDesignerHistory";
 import "./kitchenDesignerStudio.css";
+import "./cabinetCanvasWorkflow.css";
 export type { CabinetDesignerProps } from "./CabinetMeasuredEditor";
 
 const CabinetLibraryPanel = lazy(() => import("./CabinetLibraryPanel"));
@@ -23,13 +24,27 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
   }, [props.onChange, props.onPlannerExtensionChange]);
   const history = useDesignerHistory(design, emit);
   const [panel, setPanel] = useState<Panel>(null);
+  const [canvasFocus, setCanvasFocus] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
   const panelTrigger = useRef<HTMLButtonElement | null>(null);
   const [notice, setNotice] = useState("");
   const planner = design.planner;
   const presentation: CabinetPresentation = planner.presentation ?? { style: null, finish: null, hardware: null, fronts: {} };
   const selected = planner.modules.find(module => module.id === planner.selectedModuleId);
+  useEffect(() => { if (!planner.starter) setCanvasFocus(false); }, [planner.starter]);
   const appearance = (patch: Partial<CabinetPresentation>) => history.change({ ...design, planner: reconcileCabinetPlannerExtension({ ...planner, presentation: { ...presentation, ...patch } }) });
   const closePanel = () => { setPanel(null); panelTrigger.current?.focus({ preventScroll: true }); };
+  const editSelected = () => {
+    setPanel(null); setCanvasFocus(false);
+    requestAnimationFrame(() => {
+      const input = root.current?.querySelector<HTMLInputElement>('[data-testid="steel-home-cabinet-module-width"]');
+      if (!input) return;
+      const details = input.closest("details");
+      if (details) details.open = true;
+      input.scrollIntoView({ block: "center", inline: "nearest" });
+      input.focus({ preventScroll: true });
+    });
+  };
   const exportReview = () => {
     try {
       const blob = new Blob([buildCabinetPlannerRequestBrief(planner)], { type: "text/plain;charset=utf-8" });
@@ -38,9 +53,9 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
       try { document.body.append(link); link.click(); }
       finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
       setNotice("Review download started. It includes this device's design and notes.");
-    } catch { setPanel("review"); setNotice("Download unavailable. The full review is shown for copying."); }
+    } catch { setPanel("review"); setCanvasFocus(false); setNotice("Download unavailable. The full review is shown for copying."); }
   };
-  return <div className="kitchen-designer-studio" data-cabinet-appearance={Boolean(planner.presentation)} onKeyDown={event => {
+  return <div ref={root} className="kitchen-designer-studio cabinet-design-focus" data-canvas-focus={canvasFocus} data-cabinet-appearance={Boolean(planner.presentation)} onKeyDown={event => {
     const target = event.target as HTMLElement;
     if (target.closest("input,textarea,select,[contenteditable=true]") || event.altKey || !(event.ctrlKey || event.metaKey)) return;
     if (event.key.toLowerCase() === "z") { event.preventDefault(); event.shiftKey ? history.redo() : history.undo(); }
@@ -48,14 +63,16 @@ export default function CabinetDesigner(props: CabinetDesignerProps) {
     {planner.starter && <>
       <div className="kitchen-designer-toolbar" aria-label="Cabinet editing actions">
         <strong>Cabinet studio</strong>
+        <button type="button" aria-label="Cabinet library" aria-expanded={panel === "library"} onClick={event => { panelTrigger.current = event.currentTarget; setCanvasFocus(false); setPanel("library"); }}>Cabinet library</button>
+        <button type="button" disabled={!selected} onClick={editSelected}>Edit selected dimensions</button>
         <button type="button" disabled={!history.canUndo} onClick={history.undo}>Undo</button>
         <button type="button" disabled={!history.canRedo} onClick={history.redo}>Redo</button>
-        <button type="button" aria-expanded={panel === "library"} onClick={event => { panelTrigger.current = event.currentTarget; setPanel("library"); }}>Cabinet library</button>
-        <button type="button" aria-expanded={panel === "schedule"} onClick={event => { panelTrigger.current = event.currentTarget; setPanel("schedule"); }}>Cabinet schedule</button>
+        <button type="button" aria-pressed={canvasFocus} onClick={() => { setPanel(null); setCanvasFocus(value => !value); }}>{canvasFocus ? "Show inspector" : "Focus drawing"}</button>
+        <button type="button" aria-expanded={panel === "schedule"} onClick={event => { panelTrigger.current = event.currentTarget; setCanvasFocus(false); setPanel("schedule"); }}>Cabinet schedule</button>
         <button type="button" disabled={!selected || planner.modules.length >= 120} onClick={() => {
           if (selected) history.change({ ...design, planner: duplicateCabinetModule(planner, selected.id, `cabinet-module-${crypto.randomUUID()}`) });
         }}>Duplicate selected</button>
-        <button type="button" aria-expanded={panel === "review"} onClick={event => { panelTrigger.current = event.currentTarget; setPanel(value => value === "review" ? null : "review"); }}>Dimensioned review</button>
+        <button type="button" aria-expanded={panel === "review"} onClick={event => { panelTrigger.current = event.currentTarget; setCanvasFocus(false); setPanel(value => value === "review" ? null : "review"); }}>Dimensioned review</button>
         <button type="button" onClick={event => { panelTrigger.current = event.currentTarget; exportReview(); }}>Export review</button>
       </div>
       <div className="kitchen-designer-appearance" aria-label="Cabinet appearance">
