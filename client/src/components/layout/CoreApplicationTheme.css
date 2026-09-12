@@ -1,0 +1,109 @@
+/* App-owned semantic surfaces. No root/body palette writes and no utility remapping.
+   The attribute is absent on public profiles; a portaled app dialog owns its own scope. */
+[data-ts-core-ui="true"] {
+  color-scheme: dark;
+  --surface-frame: var(--ts-surface-strong);
+  --surface-card: var(--ts-surface);
+  --surface-intermediate: var(--ts-surface-hover);
+  --surface-input: var(--ts-input-bg);
+  --text-primary: var(--ts-text);
+  --text-secondary: color-mix(in srgb, var(--ts-text) 76%, var(--ts-surface));
+  --text-tertiary: color-mix(in srgb, var(--ts-text) 66%, var(--ts-surface));
+  --text-muted: var(--text-tertiary);
+}
+
+[data-ts-core-ui="true"] .ts-shell-main {
+  background-color: var(--ts-bg) !important;
+}
+
+[data-ts-core-ui="true"] .ts-card::before {
+  content: none;
+}
+
+[data-ts-core-ui="true"] .ts-control {
+  background-color: var(--surface-input);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--ts-text) 40%, var(--surface-card));
+}
+
+[data-ts-core-ui="true"] .ts-control::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+[data-ts-core-ui="true"] .ts-control:focus-visible,
+[data-ts-core-ui="true"] .ts-product-nav-link:focus-visible,
+[data-ts-core-ui="true"] .ts-product-nav-trigger:focus-visible,
+[data-ts-core-ui="true"] .ts-product-nav-search:focus-visible,
+[data-ts-core-ui="true"] .ts-product-nav-clear:focus-visible {
+  outline: 2px solid var(--theme-accent-primary) !important;
+  outline-offset: 3px;
+}
+
+[data-ts-core-ui="true"] .ts-product-nav-link {
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+[data-ts-core-ui="true"] .ts-product-nav-link:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-intermediate);
+}
+
+[data-ts-core-ui="true"] .ts-product-nav-link[aria-current="page"] {
+  color: var(--text-primary);
+  background-color: color-mix(in srgb, var(--theme-accent-primary) 10%, var(--surface-card));
+  border-color: var(--theme-accent-primary);
+}
+
+[data-ts-core-ui="true"] .ts-product-nav-link[aria-current="page"] > svg {
+  color: var(--theme-accent-primary);
+}
+
+[data-ts-core-ui="true"] .ts-product-nav-trigger,
+[data-ts-core-ui="true"] .ts-product-nav-search,
+[data-ts-core-ui="true"] .ts-product-nav-clear {
+  border: 1px solid var(--border-active) !important;
+  background-color: var(--surface-input);
+  color: var(--text-primary);
+}
+
+[data-ts-core-ui="true"] .ts-product-nav-search {
+  border-color: color-mix(in srgb, var(--ts-text) 40%, var(--surface-card)) !important;
+}
+
+[data-ts-core-ui="true"].ts-product-nav-dialog {
+  /* Size against the fixed containing block, not a translated content height.
+     This keeps the search header and close control visible after viewport changes. */
+  position: fixed;
+  inset: 1rem;
+  margin: auto;
+  width: min(56rem, calc(100% - 2rem));
+  height: calc(100% - 2rem);
+  min-height: 0;
+  max-height: 760px;
+  transform: none !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  border: 1px solid var(--border-active);
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+}
+
+[data-ts-core-ui="true"] .ts-product-nav-results {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ts-core-ui="true"] .ts-product-nav-link {
+    transition: none;
+  }
+}

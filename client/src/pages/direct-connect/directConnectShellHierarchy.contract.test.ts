@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { shouldRenderDirectConnectSectionChrome } from "./directConnectRoutes";
+import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "./directConnectWorkspaceState";
+import { PRODUCT_NAV_ITEMS } from "../../lib/productNavigation";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
@@ -142,9 +144,11 @@ describe("Direct Connect shell hierarchy", () => {
     expect(appShellSource).toContain(
       'import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState"'
     );
-    expect(appShellSource).toMatch(
-      /label: "Direct Connect",\s+href: DIRECT_CONNECT_TASKBAR_RESUME_HREF/
+    expect(appShellSource).toContain(
+      'href={item.id === "requests" ? DIRECT_CONNECT_TASKBAR_RESUME_HREF : item.href}'
     );
+    expect(PRODUCT_NAV_ITEMS.find((item) => item.id === "requests")?.label).toBe("Requests");
+    expect(DIRECT_CONNECT_TASKBAR_RESUME_HREF).toBe("/direct-connect?resume=last-task");
     expect(shellSource).toContain("resolveDirectConnectTaskbarResumeHref");
     expect(shellSource).toContain("hasDirectConnectTaskbarResumeSignal");
     expect(shellSource).toContain("writeDirectConnectLastTask({");

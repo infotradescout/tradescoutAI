@@ -18,8 +18,10 @@ import {
   userHomes,
 } from "../../shared/schema";
 import { addPropertyLifecycleEvent } from "../services/propertyLifecycleService";
+import { homeIdentityRouter } from "./home-identity";
 
 const router = Router();
+router.use(homeIdentityRouter);
 const HOMEID_DASHBOARD_SECTION_TIMEOUT_MS = 2500;
 type HomeIdServerPropertyDetail = {
   id: string;
@@ -710,27 +712,27 @@ router.post("/api/homeid/create", isAuthenticated, async (req: any, res) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-  const body = createHomeIdSchema.parse(req.body ?? {});
+  const homeIdBody = createHomeIdSchema.parse(req.body ?? {});
   const [created] = await db
     .insert(userHomes)
     .values({
       ownerUserId: userId,
-      nickname: body.nickname || null,
-      propertyType: body.homeType,
-      yearBuilt: body.yearBuilt ?? null,
-      address1: body.address1 || null,
-      address2: body.address2 || null,
-      city: body.city || null,
-      stateCode: body.stateCode || null,
-      countyFips: body.countyFips || null,
-      zipCode: body.zipCode || null,
+      nickname: homeIdBody.nickname || null,
+      propertyType: homeIdBody.homeType,
+      yearBuilt: homeIdBody.yearBuilt ?? null,
+      address1: homeIdBody.address1 || null,
+      address2: homeIdBody.address2 || null,
+      city: homeIdBody.city || null,
+      stateCode: homeIdBody.stateCode || null,
+      countyFips: homeIdBody.countyFips || null,
+      zipCode: homeIdBody.zipCode || null,
       updatedAt: new Date(),
     })
     .returning();
 
   if (!created) return res.status(500).json({ message: "Failed to create HomeID" });
 
-  const authoritySubjectId = body.creatorSubjectId || userId;
+  const authoritySubjectId = homeIdBody.creatorSubjectId || userId;
   await db.insert(userHomeRecords).values({
     homeId: created.id,
     createdByUserId: userId,
@@ -738,10 +740,10 @@ router.post("/api/homeid/create", isAuthenticated, async (req: any, res) => {
     title: "homeid:authority",
     details: JSON.stringify({
       subjectId: authoritySubjectId,
-      role: homeIdRoleFromCreator(body.creatorRole),
+      role: homeIdRoleFromCreator(homeIdBody.creatorRole),
       status: "active",
       source: "homeid_create",
-      creatorRole: body.creatorRole,
+      creatorRole: homeIdBody.creatorRole,
       createdAt: new Date().toISOString(),
     }),
     tags: ["homeid", "authority"],
@@ -754,9 +756,9 @@ router.post("/api/homeid/create", isAuthenticated, async (req: any, res) => {
     recordType: "note",
     title: "homeid:creation",
     details: JSON.stringify({
-      homeType: body.homeType,
-      creatorRole: body.creatorRole,
-      requiredCoreFacts: HOMEID_CORE_REQUIREMENTS[body.homeType],
+      homeType: homeIdBody.homeType,
+      creatorRole: homeIdBody.creatorRole,
+      requiredCoreFacts: HOMEID_CORE_REQUIREMENTS[homeIdBody.homeType],
       createdAt: new Date().toISOString(),
     }),
     tags: ["homeid", "creation"],
@@ -765,8 +767,8 @@ router.post("/api/homeid/create", isAuthenticated, async (req: any, res) => {
 
   res.status(201).json({
     home: created,
-    homeType: body.homeType,
-    requiredCoreFacts: HOMEID_CORE_REQUIREMENTS[body.homeType],
+    homeType: homeIdBody.homeType,
+    requiredCoreFacts: HOMEID_CORE_REQUIREMENTS[homeIdBody.homeType],
   });
 });
 

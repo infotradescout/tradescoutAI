@@ -1,179 +1,111 @@
 import { useEffect, useMemo, type ReactNode } from "react";
-import { Building, ClipboardList, Compass, Share2, ShoppingBag, Users, Wrench } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ROUTES } from "@/lib/routes";
-import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
-import MobileAppBar from "@/components/navigation/MobileAppBar";
+import {
+  DESKTOP_PRODUCT_NAV_IDS,
+  PRODUCT_NAV_ITEMS,
+  getActiveProductNavItem,
+} from "@/lib/productNavigation";
+import { isApplicationUiSurface, getUiPathname } from "@/lib/applicationUiScope";
+import { getCurrentInternalPath } from "@/lib/postOnboardingRoute";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
+import ProductNavigator from "@/components/navigation/ProductNavigator";
 import AppShellCore from "./AppShellCore";
-import type { NavItem } from "./AppShellCore";
+import "./CoreApplicationTheme.css";
 
 export type { NavItem } from "./AppShellCore";
 
-type AppShellProps = {
-  children: ReactNode;
-  footer?: ReactNode;
-};
+type AppShellProps = { children: ReactNode; footer?: ReactNode };
+const DESKTOP_APP_RAIL_WIDTH = "76px";
 
-const DESKTOP_BOTTOM_NAV_HEIGHT = "58px";
-
-function isPublicProfileLikePath(pathOnly: string): boolean {
-  if (/^\/(?:u|p)\/[^/]+(?:\/|$)/i.test(pathOnly)) return true;
-  if (/^\/business\/[^/]+(?:\/edit)?$/i.test(pathOnly)) return true;
-  if (/^\/profile\/[^/]+$/i.test(pathOnly)) return true;
-  if (/^\/helpers\/[^/]+$/i.test(pathOnly)) return true;
-  if (pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/")) return true;
-
-  if (/^\/contractors\/[^/]+$/i.test(pathOnly)) {
-    return pathOnly !== "/contractors/top" && pathOnly !== "/contractors/board";
-  }
-
-  return false;
-}
-
-function buildDesktopBottomNav(): NavItem[] {
-  const iconStyle = { color: "var(--theme-accent-primary)" } as const;
-
-  return [
-    {
-      label: "Scout",
-      href: "/scout",
-      icon: <Compass className="h-5 w-5" style={iconStyle} />,
-      description: "Open Scout to review what to do next.",
-    },
-    {
-      label: "Direct Connect",
-      href: DIRECT_CONNECT_TASKBAR_RESUME_HREF,
-      icon: <ClipboardList className="h-5 w-5" style={iconStyle} />,
-      description: "Post requests and track replies.",
-    },
-    {
-      label: "Businesses",
-      href: ROUTES.CONTRACTORS ?? "/contractors",
-      icon: <Building className="h-5 w-5" style={iconStyle} />,
-      description: "Find businesses that serve your area.",
-    },
-    {
-      label: "Jobs",
-      href: "/direct-connect/opportunities",
-      icon: <Wrench className="h-5 w-5" style={iconStyle} />,
-      description: "Find work, post jobs or resumes, and manage applicants.",
-    },
-    {
-      label: "Community",
-      href: ROUTES.COMMUNITY ?? "/community",
-      icon: <Users className="h-5 w-5" style={iconStyle} />,
-      description: "See nearby posts and updates.",
-    },
-    {
-      label: "Share",
-      href: "/share",
-      icon: <Share2 className="h-5 w-5" style={iconStyle} />,
-      description: "Copy and publish your best links.",
-    },
-    {
-      label: "Exchange",
-      href: ROUTES.EXCHANGE ?? "/exchange",
-      icon: <ShoppingBag className="h-5 w-5" style={iconStyle} />,
-      description: "Browse and post Exchange listings.",
-    },
-  ];
-}
-
-/**
- * Owns the stable TradeScout OS chrome. Signed-in apps keep their own full-width
- * workspaces while primary navigation stays in the bottom taskbar.
- */
+/** Core app only. Public/custom profiles retain their own presentation and palette. */
 export function AppShell({ children, footer }: AppShellProps) {
   const { isAuthenticated } = useAuth();
   const isMobile = useIsMobile();
   const [location] = useLocation();
-  const pathOnly = location.split("?")[0].split("#")[0] || "/";
-
+  const pathOnly = getUiPathname(location);
   const customDomainProfileSlug =
-    typeof window !== "undefined"
-      ? String(
+    typeof window === "undefined"
+      ? ""
+      : String(
           (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
             .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__ || ""
-        ).trim()
-      : "";
-
-  const isAuthOrSetupSurface =
-    pathOnly.startsWith("/create-account") ||
-    pathOnly.startsWith("/login") ||
-    pathOnly.startsWith("/register") ||
-    pathOnly.startsWith("/pre-scout-setup") ||
-    isOnboardingSurfacePath(pathOnly);
-  const isAdminSurface = pathOnly.startsWith("/admin");
-  const isPublicProfileSurface =
-    Boolean(customDomainProfileSlug) || isPublicProfileLikePath(pathOnly);
-
-  const showDesktopBottomNav =
-    Boolean(isAuthenticated) &&
-    !isMobile &&
-    !isAuthOrSetupSurface &&
-    !isAdminSurface &&
-    !isPublicProfileSurface;
-
-  const desktopBottomNavItems = useMemo(() => buildDesktopBottomNav(), []);
+        );
+  const applicationUi = isApplicationUiSurface(location, customDomainProfileSlug);
+  const isRecommendationSurface = isRecommendationActionPath(getCurrentInternalPath(location));
+  const showDesktopAppRail =
+    Boolean(isAuthenticated) && !isMobile && applicationUi && !isRecommendationSurface;
+  const desktopPrimaryNav = useMemo(
+    () =>
+      DESKTOP_PRODUCT_NAV_IDS.flatMap((id) => {
+        const item = PRODUCT_NAV_ITEMS.find((entry) => entry.id === id);
+        return item ? [item] : [];
+      }),
+    []
+  );
+  const activeItem = getActiveProductNavItem(pathOnly, desktopPrimaryNav);
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    document.body.classList.toggle("ts-desktop-bottom-nav-active", showDesktopBottomNav);
-    return () => {
-      document.body.classList.remove("ts-desktop-bottom-nav-active");
-    };
-  }, [showDesktopBottomNav]);
+    document.body.classList.toggle("ts-desktop-app-rail-active", showDesktopAppRail);
+    return () => document.body.classList.remove("ts-desktop-app-rail-active");
+  }, [showDesktopAppRail]);
 
   return (
-    <>
+    <div data-ts-core-ui={applicationUi ? "true" : undefined} style={{ display: "contents" }}>
       <style>{`
-        body.ts-desktop-bottom-nav-active .app-shell .ts-shell-main {
-          bottom: ${DESKTOP_BOTTOM_NAV_HEIGHT} !important;
+        body.ts-desktop-app-rail-active .app-shell .ts-shell-main {
+          left: ${DESKTOP_APP_RAIL_WIDTH} !important;
         }
-
-        body.ts-desktop-bottom-nav-active [data-testid="profile-completion-banner"] {
-          bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 1rem) !important;
+        body.ts-desktop-app-rail-active .ts-desktop-app-rail {
+          width: ${DESKTOP_APP_RAIL_WIDTH};
         }
-
-        body.ts-desktop-bottom-nav-active .scout-search-dock-fixed {
-          bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 0.5rem) !important;
+        body.ts-desktop-app-rail-active .scout-search-dock-fixed {
+          left: calc(${DESKTOP_APP_RAIL_WIDTH} + 0.5rem) !important;
         }
-
-        body.ts-desktop-bottom-nav-active .ts-desktop-bottom-nav-host .ts-bottom-nav-inner {
-          max-width: min(1440px, calc(100% - 24px));
-          margin-inline: auto;
-          margin-bottom: 4px;
-        }
-
         @media (max-width: 767px) {
-          body.ts-desktop-bottom-nav-active .app-shell .ts-shell-main {
-            bottom: var(--bottom-nav-h) !important;
+          body.ts-desktop-app-rail-active .app-shell .ts-shell-main {
+            left: 0 !important;
           }
         }
       `}</style>
-
-      <AppShellCore footer={showDesktopBottomNav ? undefined : footer}>{children}</AppShellCore>
-
-      {showDesktopBottomNav ? (
-        <div
-          data-testid="desktop-bottom-nav"
-          className="ts-desktop-bottom-nav-host"
+      <AppShellCore footer={footer}>{children}</AppShellCore>
+      {showDesktopAppRail ? (
+        <nav
+          data-testid="desktop-app-rail"
+          data-ts-core-ui="true"
+          className="ts-desktop-app-rail fixed bottom-0 left-0 z-30 flex flex-col border-r px-2 py-3"
           style={{
-            position: "fixed",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1000,
+            top: "var(--top-nav-h)",
+            borderColor: "var(--border-primary)",
+            background: "var(--surface-frame)",
           }}
+          aria-label="TradeScout primary navigation"
         >
-          <MobileAppBar items={desktopBottomNavItems} primaryLimit={5} />
-        </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+            {desktopPrimaryNav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.id === "requests" ? DIRECT_CONNECT_TASKBAR_RESUME_HREF : item.href}
+                  title={item.description}
+                  aria-current={activeItem?.id === item.id ? "page" : undefined}
+                  className="ts-product-nav-link flex min-h-14 shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-center"
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-[11px] font-semibold leading-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="mt-2 shrink-0">
+            <ProductNavigator />
+          </div>
+        </nav>
       ) : null}
-    </>
+    </div>
   );
 }
 
