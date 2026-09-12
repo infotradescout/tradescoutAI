@@ -1,8 +1,9 @@
 import type { Request, Response, RequestHandler } from "express";
+import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import {
   EstimateOperationError, addEstimateLine, lockEstimate, requireEstimateProvider,
-  requireReleasedEstimateContact, recordEstimateEvent, estimateTotals,
+  requireReleasedEstimateContact, recordEstimateEvent, estimateTotals, estimateMutationId,
   sendEstimate, respondToEstimate, type EstimateActor,
 } from "./estimate-transactions";
 
@@ -39,7 +40,9 @@ export function createEstimateHandlers(deps:Dependencies):Map<string,RequestHand
       } catch(error) {
         if(error instanceof EstimateOperationError)return res.status(error.status).json({message:error.message});
         console.error("Estimate transaction failed:",error);
-        return res.status(500).json({message:"The estimate could not be saved. No changes from this operation were committed. Please retry.",requestId:(req as any).requestId||null});
+        // Connection failure during COMMIT can leave the outcome uncertain.
+        // The client must read/retry by operation key, not assume nothing saved.
+        return res.status(500).json({message:"The estimate operation could not be confirmed. Reload its saved state before retrying.",requestId:(req as any).requestId||null});
       }
     });
   };
@@ -48,14 +51,26 @@ export function createEstimateHandlers(deps:Dependencies):Map<string,RequestHand
     if(!workspace)fail(404,"Job workspace not found");
     await requireReleasedEstimateContact(tx,String(workspace.request_id));
     await requireEstimateProvider(tx,workspace,actor);
-    const id=deps.createId("est");
+    const key=req.get("Idempotency-Key");
+    const id=key?estimateMutationId("create:"+String(workspace.id),actor.userId,key).replace(/^eli_/,"est_"):deps.createId("est");
+    const values={title:p.title.trim(),scopeSummary:p.scopeSummary.trim(),subtotalOther:p.subtotalOther??0,terms:p.terms?.trim()||null,expirationDate:p.expirationDate?new Date(p.expirationDate).toISOString():null};
+    const fingerprint=createHash("sha256").update(JSON.stringify(values)).digest("hex");
+    if(key){
+      const existing=first(await tx.execute(sql`SELECT * FROM job_estimates WHERE id=${id} AND workspace_id=${req.params.jobWorkspaceId} FOR UPDATE`));
+      if(existing){
+        if(String(existing.created_by)!==actor.userId||String(existing.request_id)!==String(workspace.request_id))fail(409,"Estimate creation key conflicts with an existing record.");
+        const receipt=first(await tx.execute(sql`SELECT metadata_json FROM direct_connect_dispatch_events WHERE request_id=${String(workspace.request_id)} AND event_type='estimate_started' AND metadata_json->>'estimateId'=${id} AND metadata_json->>'creationFingerprint'=${fingerprint} LIMIT 1`));
+        if(!receipt)fail(409,"Idempotency-Key already identifies a different estimate creation.");
+        return {estimateId:id,jobWorkspaceId:req.params.jobWorkspaceId,status:String(existing.status),requestId:String(workspace.request_id),replayed:true};
+      }
+    }
     const estimate=first(await tx.execute(sql`
       INSERT INTO job_estimates(id,workspace_id,request_id,requester_user_id,business_id,contractor_id,title,scope_summary,status,subtotal_materials,subtotal_labor,subtotal_other,total_estimate,terms,expiration_date,created_by,created_at,updated_at)
-      VALUES(${id},${req.params.jobWorkspaceId},${String(workspace.request_id)},${String(workspace.requester_user_id)},${workspace.business_id||null},${workspace.contractor_id||actor.contractorId},${p.title.trim()},${p.scopeSummary.trim()},'draft',0,0,${p.subtotalOther??0},${p.subtotalOther??0},${p.terms?.trim()||null},${p.expirationDate?new Date(p.expirationDate).toISOString():null}::timestamptz,${actor.userId},now(),now()) RETURNING *
+      VALUES(${id},${req.params.jobWorkspaceId},${String(workspace.request_id)},${String(workspace.requester_user_id)},${workspace.business_id||null},${workspace.contractor_id||actor.contractorId},${values.title},${values.scopeSummary},'draft',0,0,${values.subtotalOther},${values.subtotalOther},${values.terms},${values.expirationDate}::timestamptz,${actor.userId},now(),now()) RETURNING *
     `));
     await tx.execute(sql`UPDATE direct_connect_job_workspaces SET active_stage='estimate',status='estimate_draft',updated_at=now() WHERE id=${req.params.jobWorkspaceId}`);
-    await recordEstimateEvent(tx,{estimate,actorId:actor.userId,eventType:"estimate_started"});
-    return {estimateId:id,jobWorkspaceId:req.params.jobWorkspaceId,status:"draft",requestId:String(workspace.request_id)};
+    await recordEstimateEvent(tx,{estimate,actorId:actor.userId,eventType:"estimate_started",metadata:{creationFingerprint:fingerprint}});
+    return {estimateId:id,jobWorkspaceId:req.params.jobWorkspaceId,status:"draft",requestId:String(workspace.request_id),replayed:false};
   },201);
   define(1,"estimateLineItemSchema",async(tx,req,p,actor)=>{
     const estimate=await lockEstimate(tx,req.params.jobWorkspaceId,req.params.estimateId);
