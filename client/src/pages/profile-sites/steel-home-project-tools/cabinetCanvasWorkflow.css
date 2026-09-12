@@ -51,7 +51,8 @@
 /* Scoped to the cabinet workflow. No changes to countertop data, rendering or other planners. */
 .cabinet-design-focus > .kitchen-designer-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
 .cabinet-design-focus > .kitchen-designer-toolbar strong { display: none; }
-.cabinet-design-focus > .kitchen-designer-toolbar button { flex-shrink: 0; white-space: nowrap; }
+.cabinet-design-focus > .kitchen-designer-toolbar button { flex-shrink: 0; white-space: nowrap; touch-action: manipulation; }
+.cabinet-canvas-navigation button, .cabinet-placement-actions button, .cabinet-catalog-card { touch-action: manipulation; }
 .cabinet-design-focus > .kitchen-designer-toolbar button[aria-label="Cabinet library"] { background: #176e58; color: white; border-color: #176e58; }
 .cabinet-design-focus > .kitchen-designer-appearance > p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .cabinet-design-focus .kitchen-designer-editor [data-testid="steel-home-cabinet-preview"] { border-radius: 12px; box-shadow: 0 3px 14px #18312f0c; }
