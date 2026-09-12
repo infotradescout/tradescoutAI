@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { proveJwStoneSupplierResponse } from './jw-stone-supplier-response-journey.mjs';
+
+if (process.env.SUPPLIER_PREPARE_SUBTOTAL_FIX === 'true') {
+  const { prepareSupplierSubtotalFix } = await import('./prepare-supplier-subtotal-fix.mjs');
+  await prepareSupplierSubtotalFix();
+  process.exit(0); // Preparation is never reported as executed workflow proof.
+}
 
 /** Runs only with the parent verifier's fresh loopback database and browser. */
 export async function proveJwStoneRequestJourney({ page, context, database, fixture, email, userId, device, output, rootPath }) {
@@ -19,8 +26,6 @@ export async function proveJwStoneRequestJourney({ page, context, database, fixt
   await dialog.getByLabel('Name', { exact: true }).fill('Synthetic Customer');
   await dialog.getByLabel('Email', { exact: true }).fill(email);
   await dialog.locator('input[name="phone"]').fill('2025550147');
-  // Wrapping labels also contain the select's option text. Match the stable
-  // visible label, then assert the exact selected values before submission.
   const role = dialog.getByRole('combobox', { name: /^I am a/ });
   const requestType = dialog.getByRole('combobox', { name: /^What do you need/ });
   await role.selectOption('fabricator'); await requestType.selectOption('request_material');
@@ -53,5 +58,6 @@ export async function proveJwStoneRequestJourney({ page, context, database, fixt
   await fs.mkdir(output, { recursive: true });
   await page.screenshot({ path: path.join(output, device + '-synthetic-request-receipt.png'), fullPage: false });
   await click(dialog.getByRole('button', { name: 'Close Direct Connect', exact: true }));
-  return { browserSubmit: true, persistedPrivateRequest: true, correctSupplierAssignment: true, supplierInAppNotice: true, contactStillPending: true, marketingOptIn: false, externalEmailDelivery: false, formalPricedQuote: false };
+  const supplier = await proveJwStoneSupplierResponse({ page, context, database, fixture, requestId: body.requestId, userId, device, output });
+  return { browserSubmit: true, persistedPrivateRequest: true, correctSupplierAssignment: true, supplierInAppNotice: true, contactPendingBeforeSupplierResponse: true, marketingOptIn: false, supplier, externalEmailDelivery: false, formalPricedQuote: false };
 }
