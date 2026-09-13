@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 import {
   EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME,
   type ExchangeCategorySlug,
@@ -23,10 +25,6 @@ export type ProfileServiceOfferShareMetadata = {
   imageUrl: string | null;
   imageAlt: string;
 };
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function capText(value: string, limit: number): string {
   const normalized = value.replace(/\s+/g, " ").trim();

@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 import { getExchangeCategorySlugFromMarketplaceCategoryName } from "./exchangeListingRules";
 import { sanitizePublicListingText } from "./publicListingSafety";
 
@@ -34,10 +36,6 @@ export type PublicBusinessListingCard = {
   detailPath: string;
   createdAt: string | null;
 };
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function normalizePublicImageReference(value: unknown): string | null {
   const candidate = cleanString(value);
