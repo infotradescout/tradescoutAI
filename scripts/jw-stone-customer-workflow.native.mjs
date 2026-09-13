@@ -62,7 +62,11 @@ try {
   const fixture = JSON.parse(await fs.readFile(path.join(temp, 'fixture.json'), 'utf8')); assert.equal(fixture.base, base);
   await fs.mkdir(out, { recursive: true });
   browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  for (const [device, viewport] of [['desktop', { width: 1440, height: 1000 }], ['touch', { width: 390, height: 844 }]]) {
+  const devices = [['desktop', { width: 1440, height: 1000 }], ['touch', { width: 390, height: 844 }]];
+  // Each scenario has its own browser and genuine signup. The existing one-pending-
+  // contact guard must not be bypassed or reset just to send a second test request.
+  for (const [device, viewport, journey] of devices.flatMap(([device, viewport]) =>
+    ['cart', 'request'].map(journey => [device, viewport, journey]))) {
     const context = await browser.newContext({ viewport, isMobile: device === 'touch', hasTouch: device === 'touch', serviceWorkers: 'block', userAgent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36` });
     const errors = [], failures = [];
     await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort('blockedbyclient'));
@@ -110,10 +114,13 @@ try {
     const login = await request(context, 'POST', '/api/auth/login', { email, password }); assert.equal(login.status(), 200);
     assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 200);
     note(device + ': real returning-user login retains member pricing');
-    const cartEvidence = await proveJwStoneCartJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath });
-    note(device + ': actual member cart reaches native private quote request', cartEvidence);
-    const requestEvidence = await proveJwStoneRequestJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath });
-    note(device + ': material request reaches the selected supplier', requestEvidence);
+    if (journey === 'cart') {
+      const cartEvidence = await proveJwStoneCartJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath });
+      note(device + ': actual member cart reaches native private quote request', cartEvidence);
+    } else {
+      const requestEvidence = await proveJwStoneRequestJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath });
+      note(device + ': material request reaches the selected supplier', requestEvidence);
+    }
     await client.query("UPDATE profile_account_entitlements SET status='revoked' WHERE profile_account_id=$1 AND product_key='jw_stone_member_pricing'", [memberships[0].id]);
     assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 403, 'Revoked pricing must remain denied');
     await request(context, 'POST', '/api/u/jw-stone/account', { businessName, sourcePath: rootPath });
