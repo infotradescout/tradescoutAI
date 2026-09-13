@@ -1,4 +1,5 @@
 import { useEffect, useState, type ComponentProps, type ComponentType } from "react";
+import { JW_STONE_PORTAL_COPY } from "@shared/jwStonePortalCopy";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type AccountProps = ComponentProps<
@@ -27,9 +28,10 @@ export function PublicProfileAccountDialog(props: AccountProps) {
     <Dialog open onOpenChange={props.onOpenChange}>
       <DialogContent className="border-stone-200 bg-white text-stone-950 sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Your {props.profileName} account</DialogTitle>
+          <DialogTitle>{JW_STONE_PORTAL_COPY.title}</DialogTitle>
           <DialogDescription>
-            {failed ? "The account form could not load. Reload this page to try again." : "Opening your account…"}
+            {JW_STONE_PORTAL_COPY.audience}{" "}
+            {failed ? "The account form could not load. Reload this page to try again." : JW_STONE_PORTAL_COPY.opening}
           </DialogDescription>
         </DialogHeader>
         {failed ? (
