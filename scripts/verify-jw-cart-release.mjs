@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 
@@ -70,6 +71,24 @@ try {
   report.finishedAt = new Date().toISOString();
   await fs.mkdir(output, { recursive: true });
   try { await fs.cp('test-results/jw-workflow', path.join(output, 'browser'), { recursive: true }); } catch {}
+  // These are actual browser captures from the credential-isolated synthetic fixture.
+  // Bounded chunks permit exact image review even when the report host is inaccessible.
+  report.visualEvidence = [];
+  for (const device of ['desktop', 'touch']) {
+    try {
+      const name = device + '-synthetic-cart-review.jpg';
+      const bytes = await fs.readFile(path.join(output, 'browser', name));
+      assert(bytes.length > 0 && bytes.length <= 120000, 'Cart review capture exceeds the export bound');
+      const data = bytes.toString('base64');
+      const metadata = { head, name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), chunks: Math.ceil(data.length / 3000) };
+      report.visualEvidence.push(metadata);
+      console.log('JW_CART_IMAGE ' + JSON.stringify(metadata));
+      for (let offset = 0; offset < data.length; offset += 3000) console.log('JW_CART_IMAGE_CHUNK ' + device + ' ' + (offset / 3000) + ' ' + data.slice(offset, offset + 3000));
+    } catch (error) {
+      report.visualExportError = String(error.message || error);
+      if (report.passed) { report.passed = false; process.exitCode = 1; }
+    }
+  }
   await fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(report, null, 2));
   await fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
   await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="suites.json">Affected test results and inherited failures</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>');
