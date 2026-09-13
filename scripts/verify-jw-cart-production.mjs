@@ -7,6 +7,9 @@ import { execFileSync } from 'node:child_process';
 export async function verifyJwCartProduction(expected) {
   assert.match(expected, /^[a-f0-9]{40}$/, 'An exact deployed commit is required');
   const origin = 'https://www.thetradescout.com';
+  // Explicitly documented in docs/jw-stone/MARKETPLACE_DOMAIN_CUTOVER.md.
+  const storefront = 'https://jwstonelogistics.com';
+  const allowedOrigins = new Set([origin, storefront]);
   const output = path.resolve('test-results/jw-cart-release');
   const report = {
     scope: 'production-public-read-only', expected,
@@ -16,10 +19,10 @@ export async function verifyJwCartProduction(expected) {
   };
   async function get(route) {
     const url = new URL(route, origin);
-    assert.equal(url.origin, origin);
+    assert(allowedOrigins.has(url.origin), 'Only the platform and its documented JW storefront may be read');
     const response = await fetch(url, {
       method: 'GET', redirect: 'manual', signal: AbortSignal.timeout(20000),
-      headers: { 'Cache-Control': 'no-cache', 'User-Agent': 'Mozilla/5.0 TradeScoutReadOnlyReleaseCheck' },
+      headers: { 'Cache-Control': 'no-cache', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36' },
     });
     return { response, text: await response.text() };
   }
@@ -41,36 +44,35 @@ export async function verifyJwCartProduction(expected) {
     const versionBody = JSON.parse(version.text);
     assert.equal(versionBody.commit || versionBody.buildRevision, expected);
     record('Version endpoint identifies the release');
-    let pageRoute = '/u/jw-stone';
-    let page;
-    const redirects = [];
-    for (let hop = 0; hop < 4; hop++) {
-      page = await get(pageRoute);
-      if (![301, 302, 307, 308].includes(page.response.status)) break;
-      const location = page.response.headers.get('location');
-      assert(location, 'A redirect must identify its destination');
-      const destination = new URL(location, origin + pageRoute);
-      assert.equal(destination.origin, origin, 'Never follow a cross-origin release-check redirect');
-      assert(['/u/jw-stone', '/jw-stone'].includes(destination.pathname.replace(/\/$/, '')), 'JW entry must remain on its own profile');
-      redirects.push({ from: pageRoute, status: page.response.status, to: destination.pathname });
-      pageRoute = destination.pathname + destination.search;
+    const legacy = await get('/u/jw-stone');
+    assert([301, 308].includes(legacy.response.status), 'The legacy storefront must redirect permanently');
+    const location = legacy.response.headers.get('location'); assert(location);
+    assert.equal(new URL(location, origin).href, storefront + '/', 'The legacy route must identify the configured JW home');
+    record('Legacy JW entry points to its configured storefront', { status: legacy.response.status, destination: storefront + '/' });
+    for (const pageUrl of [origin + '/jw-stone', storefront + '/']) {
+      const page = await get(pageUrl);
+      assert.equal(page.response.status, 200, pageUrl);
+      assert.equal(page.response.headers.get('x-tradescout-build'), expected, pageUrl);
+      assert(!/slabPriceCents|landedCostCents/.test(page.text), 'Anonymous page must not embed protected prices');
+      record('Public JW home serves the exact release without protected prices', { pageUrl });
+      const assets = [...new Set([...page.text.matchAll(/(?:src|href)=["']([^"']+)["']/g)]
+        .map(match => new URL(match[1], pageUrl))
+        .filter(url => allowedOrigins.has(url.origin) && /^\/assets\/.+\.(?:js|css)$/.test(url.pathname))
+        .map(url => url.href))];
+      assert(assets.length > 0 && assets.length <= 20, 'Expected a bounded public application asset set');
+      for (const asset of assets) {
+        const fetched = await get(asset);
+        assert.equal(fetched.response.status, 200, 'Public application asset: ' + asset);
+        assert(!/^\s*<!doctype html/i.test(fetched.text), 'An application asset must not return fallback HTML');
+      }
+      record('Public application assets load', { pageUrl, count: assets.length });
     }
-    assert(page); assert.equal(page.response.status, 200);
-    assert.equal(page.response.headers.get('x-tradescout-build'), expected);
-    assert(!/slabPriceCents|landedCostCents/.test(page.text), 'Anonymous page must not embed protected prices');
-    record('Public JW Stone entry serves the release without protected prices', { pageRoute, redirects });
-    const assets = [...new Set([...page.text.matchAll(/(?:src|href)=["'](\/assets\/[^"']+\.(?:js|css))["']/g)].map(match => match[1]))];
-    assert(assets.length > 0 && assets.length <= 20, 'Expected a bounded public application asset set');
-    for (const asset of assets) {
-      const fetched = await get(asset);
-      assert.equal(fetched.response.status, 200, 'Public application asset: ' + asset);
-      assert(!/^\s*<!doctype html/i.test(fetched.text), 'An application asset must not return fallback HTML');
+    for (const apiOrigin of allowedOrigins) {
+      const pricing = await get(apiOrigin + '/api/u/jw-stone/member-pricing');
+      assert.equal(pricing.response.status, 401, apiOrigin);
+      assert(!/slabPriceCents|bundlePriceCents|landedCostCents/.test(pricing.text));
+      record('Anonymous private-pricing request is denied without prices', { apiOrigin });
     }
-    record('Public application assets load', { count: assets.length });
-    const pricing = await get('/api/u/jw-stone/member-pricing');
-    assert.equal(pricing.response.status, 401);
-    assert(!/slabPriceCents|bundlePriceCents|landedCostCents/.test(pricing.text));
-    record('Anonymous private-pricing request is denied without prices');
     report.passed = true;
   } catch (error) { report.error = String(error.stack || error); }
   report.finishedAt = new Date().toISOString();
