@@ -6,6 +6,13 @@ import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 
+// Explicit post-deploy mode is public GET-only smoke, never pre-merge attestation.
+if (process.env.JW_CART_DEPLOYED_SHA) {
+  const { verifyJwCartProduction } = await import('./verify-jw-cart-production.mjs');
+  await verifyJwCartProduction(process.env.JW_CART_DEPLOYED_SHA);
+  process.exit(0);
+}
+
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const output = path.resolve('test-results/jw-cart-release');
 const canonicalRemote = 'https://github.com/infotradescout/tradescoutAI.git';
