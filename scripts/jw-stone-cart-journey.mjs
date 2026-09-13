@@ -50,6 +50,7 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   await cart.getByLabel(/^Job \/ PO reference/).fill('Synthetic cart job ' + device);
   await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
   await page.screenshot({ path: path.join(output, device + '-synthetic-cart-review.png'), fullPage: false });
+  await cart.screenshot({ path: path.join(output, device + '-synthetic-cart-review.jpg'), type: 'jpeg', quality: 25 });
   const store = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   assert(!/slabRateCents|minimumTotalCents|maximumTotalCents|landedCostCents/.test(store));
   const savedCart = await page.evaluate(viewerId => JSON.parse(localStorage.getItem('tradescout:jw-stone:member-cart:v2:' + viewerId) || '[]'), userId);
