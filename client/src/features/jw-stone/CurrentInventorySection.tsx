@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, MessageCircle, Sparkles } from "lucide-react";
+import { Clock3, Sparkles } from "lucide-react";
 import type {
   PublicStoneInventoryItem,
   PublicStoneInventoryResponse,
@@ -7,14 +7,18 @@ import type {
 } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
 import { jw } from "./brand";
-import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
+import { JwStoneEmployeeReceiving } from "./JwStoneEmployeeReceiving";
+import { JwStoneArrivalPrice } from "./JwStoneArrivalPrice";
+import { JwStoneArrivalGallery } from "./JwStoneArrivalGallery";
+import { JwStoneLotActions } from "./JwStoneLotActions";
+import { useJwStoneSavedLots } from "./useJwStoneSavedLots";
 
 function formatDimensions(dimensions: StoneInventoryDimensions | null): string | null {
   if (!dimensions) return null;
   const values = [dimensions.length, dimensions.height, dimensions.thickness].filter(
     (value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0
   );
-  return values.length ? `${values.join(" × ")} ${dimensions.unit || "in"}` : null;
+  return values.length ? `${values.join(" × ")} ${dimensions.unit || "(unit not provided)"}` : null;
 }
 
 function formatConfirmedDate(value: string): string {
@@ -32,20 +36,26 @@ type Props = {
   onStartRequest: () => void;
 };
 
+// Employee entry remains available even when the public arrivals list is empty.
+export function NewArrivalsSection(_props: Props) {
+  const saved = useJwStoneSavedLots();
+  return <><JwStoneEmployeeReceiving />{saved.notice ? <p role="status" className="mx-auto max-w-[1600px] px-5 py-3 text-sm text-[var(--jw-ink)]">{saved.notice}</p> : null}<PublicNewArrivalsSection /></>;
+}
+
 /**
- * Inventory truth boundary: Only physical lots explicitly marked sale-ready
- * may qualify, and they still require a separate New Arrivals choice. The
- * Browse Full Inventory does not claim that a physical item is on hand.
+ * Only physical lots explicitly published as sale-ready and selected as New
+ * Arrivals may qualify. Employee Receive & publish records both decisions.
  */
-export function NewArrivalsSection({ onAsk }: Props) {
+function PublicNewArrivalsSection() {
   const arrivalsQuery = useQuery({
     queryKey: ["jw-stone", "new-arrivals"],
     queryFn: () =>
       apiRequest(
         "GET",
-        "/api/u/jw-stone/stone-inventory/new-arrivals"
+        "/api/u/jw-stone/receiving/arrivals"
       ) as Promise<PublicStoneInventoryResponse>,
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const items = arrivalsQuery.data?.items ?? [];
 
@@ -78,7 +88,6 @@ export function NewArrivalsSection({ onAsk }: Props) {
         <ul className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
             const dimensions = formatDimensions(item.dimensions);
-            const image = item.imageUrls[0] || null;
             const finishSummary = item.finishQuantities
               .map((finish) => `${finish.slabCount} ${finish.finish}`)
               .join(" · ");
@@ -88,17 +97,7 @@ export function NewArrivalsSection({ onAsk }: Props) {
                 className="overflow-hidden border border-[var(--jw-border)] bg-[var(--jw-bg)]"
                 data-testid={`jw-new-arrival-item-${item.id}`}
               >
-                {image ? (
-                  <div className="aspect-[4/3] overflow-hidden bg-[var(--jw-dark)]">
-                    <img
-                      src={image}
-                      alt={`${item.materialName} ${item.assetKind.replace(/_/g, " ")}`}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                ) : null}
+                <JwStoneArrivalGallery item={item} />
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -142,23 +141,12 @@ export function NewArrivalsSection({ onAsk }: Props) {
                       </div>
                     ) : null}
                   </dl>
-                  <JwStoneMemberPriceDisplay
-                    stoneName={item.materialName}
-                    slabDimensions={item.dimensions}
-                    presentation="inventory"
-                  />
+                  <JwStoneArrivalPrice item={item} />
                   <p className={`mt-4 inline-flex items-center gap-1.5 text-xs ${jw.muted}`}>
                     <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
                     {formatConfirmedDate(item.lastConfirmedAt)}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => onAsk(item)}
-                    className={`mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 px-4 text-sm ${jw.accentCta}`}
-                  >
-                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                    Ask about this arrival
-                  </button>
+                  <JwStoneLotActions item={item} />
                 </div>
               </li>
             );
