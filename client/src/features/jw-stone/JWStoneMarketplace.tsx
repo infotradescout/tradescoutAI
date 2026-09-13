@@ -322,7 +322,13 @@ export default function JWStoneMarketplace() {
   };
 
   return (
-    <JwStoneMemberPricingProvider viewerId={viewerId}>
+    <JwStoneMemberPricingProvider
+      viewerId={viewerId}
+      onOpenCart={() => {
+        closeStone();
+        setWishlistOpen(false);
+      }}
+    >
       <div
         className={`min-h-screen max-w-full overflow-x-clip pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.25rem+env(safe-area-inset-bottom))] ${jw.page}`}
         style={JW_STONE_BRAND_STYLE}

@@ -52,6 +52,17 @@ const [profile] = await db.insert(schema.profiles).values({
   displayName: "JW Stone Logistics", status: "published", publiclyReleased: true,
   headline: "Synthetic isolated supplier fixture; not public stock or pricing", contentBlocks: [],
 }).returning();
+// Only the asserted disposable database receives this invented three-slab lot.
+const { getStoneInventoryProfileTarget, upsertCurrentStoneInventory, setStoneInventorySaleReady } = await import("../server/services/stoneInventoryService");
+const target = await getStoneInventoryProfileTarget("jw-stone");
+assert(target && target.businessId === business.id);
+const cartStock = await upsertCurrentStoneInventory(target, {
+  materialSlug: "honey-onyx", materialName: "Honey Onyx", materialClass: "natural_stone", materialFamily: "Onyx",
+  assetKind: "slab", quantity: 3, unit: "slabs", dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" },
+  finishQuantities: [{ finish: "Polished", slabCount: 3 }], imageUrls: [],
+  lastConfirmedAt: now, confirmationExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+});
+await setStoneInventorySaleReady({ target, publicId: cartStock.id, saleReady: true, actorUserId: ownerId });
 // Production runs this real schema inspection before accepting guarded requests.
 // Do not replace its middleware, set test readiness flags or bypass its result.
 const { runSchemaPreflight } = await import("../server/schemaPreflight");
@@ -67,5 +78,5 @@ app.use(express.static(dist));
 app.get("*", (req, res, next) => req.path.startsWith("/api/") ? next() : res.sendFile(path.join(dist, "index.html")));
 await new Promise<void>(resolve => server.listen(5228, "127.0.0.1", resolve));
 await fs.mkdir(output, { recursive: true });
-await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, businessId: business.id, profileId: profile.id, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
+await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, businessId: business.id, profileId: profile.id, cartStockId: cartStock.id, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
 console.log("JW_WORKFLOW_READY");

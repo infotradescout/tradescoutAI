@@ -145,6 +145,7 @@ export function NewArrivalsSection({ onAsk }: Props) {
                   <JwStoneMemberPriceDisplay
                     stoneName={item.materialName}
                     slabDimensions={item.dimensions}
+                    inventoryPublicId={item.id}
                     presentation="inventory"
                   />
                   <p className={`mt-4 inline-flex items-center gap-1.5 text-xs ${jw.muted}`}>
