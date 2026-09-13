@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 
-const baseline = '79dc948967dd11716ff8626cd858ee25472f7f9e';
+const baseline = '9152ce7f73993f039497a68d2ab6dc2d256f896f';
 const root = process.cwd();
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const output = path.resolve('test-results/jw-cart-release/suites.json');
