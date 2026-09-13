@@ -599,7 +599,7 @@ export async function setStoneInventorySaleReady(args: {
       `UPDATE stone_inventory_positions
           SET public_availability_status = $2,
               publication_evidence = CASE WHEN $3::boolean
-                THEN jsonb_build_object('type', 'seller_explicit_sale_ready', 'actorUserId', $4, 'recordedAt', NOW())
+                THEN jsonb_build_object('type', 'seller_explicit_sale_ready', 'actorUserId', $4::text, 'recordedAt', NOW())
                 ELSE '{}'::jsonb
               END,
               published_at = CASE WHEN $3::boolean THEN NOW() ELSE NULL END,
