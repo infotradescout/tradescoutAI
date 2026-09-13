@@ -90,6 +90,7 @@ describe("stone inventory truth and freshness", () => {
 
   it("shows only explicitly selected New Arrivals and disappears when there are none", () => {
     const publicSlot = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
+    const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const manager = read("client/src/components/profile/JwStoneCurrentInventoryManager.tsx");
     const routes = read("server/routes/stone-inventory.ts");
     const routeRegistration = read("server/routes.ts");
@@ -102,7 +103,12 @@ describe("stone inventory truth and freshness", () => {
     expect(publicSlot).toContain("Just arrived");
     expect(publicSlot).toContain("/api/u/jw-stone/receiving/arrivals");
     expect(receivingRoutes).toContain("listPublicStoneNewArrivals");
-    expect(publicSlot).toContain("<JwStoneEmployeeReceiving");
+    // Receiving must remain outside the arrivals' empty-state return and close
+    // the account modal through the marketplace that owns its open state.
+    expect(marketplace).toContain(
+      "<JwStoneEmployeeReceiving onEnter={() => changeAccountOpen(false)} />"
+    );
+    expect(publicSlot).not.toContain("<JwStoneEmployeeReceiving");
     expect(publicSlot).toMatch(/items\.length === 0\) return null/);
     expect(publicSlot).not.toContain(">Current Inventory<");
     expect(publicSlot).not.toContain("Refresh");

@@ -76,6 +76,7 @@ try {
       'scripts/jw-stone-employee-tools-loader.test.mjs',
       'scripts/jw-stone-drive-workflow-fixture.test.mjs',
       'scripts/jw-stone-customer-workflow.native.test.mjs',
+      'scripts/finish-proof-cli.test.mjs',
       'scripts/verify-jw-cart-release.test.mjs',
       'scripts/verify-jw-cart-production.test.mjs',
       'scripts/generate-sitemap-core.behavior.test.mjs']);
