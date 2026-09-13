@@ -74,7 +74,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
 
   it("keeps HomeID page copy aligned as durable memory feeding request action", () => {
     expect(homesSource).toContain(
-      "One private source of truth for the property, build, systems, documents, service"
+      "Keep projects, systems, documents, maintenance, and ownership history in one private workspace."
     );
     expect(homesSource).toContain(
       "Choose the HomeID facts that matter, save the packet, then carry that context into Direct Connect."

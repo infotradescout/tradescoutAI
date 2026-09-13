@@ -23,6 +23,7 @@ function runNode(args) {
 
 runNode([
   "--test",
+  path.join(scriptsDir, "generate-sitemap-core.behavior.test.mjs"),
   path.join(scriptsDir, "jw-stone-face-color-core.contract.test.mjs"),
   path.join(scriptsDir, "jw-stone-color-bucket-accuracy.contract.test.mjs"),
   path.join(scriptsDir, "jw-stone-public-media-core.contract.test.mjs"),

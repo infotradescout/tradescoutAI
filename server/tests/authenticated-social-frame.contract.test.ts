@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { isApplicationUiSurface } from "../../client/src/lib/applicationUiScope";
+import { DESKTOP_PRODUCT_NAV_IDS, PRODUCT_NAV_ITEMS } from "../../client/src/lib/productNavigation";
 
-const read = (relativePath: string) =>
-  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
-
+const read = (relativePath: string) => fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 const wrapper = read("client/src/components/layout/AppShell.tsx");
 const core = read("client/src/components/layout/AppShellCore.tsx");
 const mobileBottomNav = read("client/src/components/navigation/MobileAppBar.tsx");
@@ -18,15 +18,13 @@ const jobs = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 describe("signed-in TradeScout OS shell", () => {
   it("gives each app one full-width workspace without a universal social frame", () => {
     expect(wrapper).toContain('import AppShellCore from "./AppShellCore"');
-    expect(wrapper).toContain(
-      "<AppShellCore footer={showDesktopBottomNav ? undefined : footer}>{children}</AppShellCore>"
-    );
+    expect(wrapper).toContain("<AppShellCore footer={footer}>{children}</AppShellCore>");
     expect(wrapper).not.toContain("AuthenticatedSocialFrame");
     expect(wrapper).not.toContain("showAuthenticatedSocialFrame");
     expect(wrapper).not.toContain('data-testid="authenticated-social-frame"');
   });
 
-  it("keeps brand and compact system actions at the top without competing route navigation", () => {
+  it("keeps brand and compact system actions at the top without duplicating route navigation", () => {
     expect(core).toContain("TradeScoutLogo");
     expect(core).toContain('aria-label="Open Start here guide"');
     expect(core).toContain('aria-label="Open profile & tools panel"');
@@ -56,13 +54,17 @@ describe("signed-in TradeScout OS shell", () => {
     expect(core).toContain("onNavigate={() => setIsToolsOpen(false)}");
   });
 
-  it("uses the persistent bottom taskbar for primary navigation on desktop and mobile", () => {
-    expect(wrapper).toContain('const DESKTOP_BOTTOM_NAV_HEIGHT = "58px"');
-    expect(wrapper).toContain('data-testid="desktop-bottom-nav"');
-    expect(wrapper).toContain("<MobileAppBar items={desktopBottomNavItems} primaryLimit={5} />");
-    expect(wrapper).toContain("ts-desktop-bottom-nav-active");
-    expect(wrapper).toContain("bottom: ${DESKTOP_BOTTOM_NAV_HEIGHT} !important;");
-
+  it("uses a desktop application rail while preserving the mobile taskbar", () => {
+    expect(wrapper).toContain('const DESKTOP_APP_RAIL_WIDTH = "76px"');
+    expect(wrapper).toContain('data-testid="desktop-app-rail"');
+    expect(wrapper).toContain('aria-label="TradeScout primary navigation"');
+    expect(wrapper).toContain("ts-desktop-app-rail-active");
+    expect(wrapper).toContain("left: ${DESKTOP_APP_RAIL_WIDTH} !important;");
+    expect(wrapper).toContain("DESKTOP_PRODUCT_NAV_IDS.flatMap");
+    expect(DESKTOP_PRODUCT_NAV_IDS.map((id) => PRODUCT_NAV_ITEMS.find((item) => item.id === id)?.label)).toEqual([
+      "Scout", "Requests", "Businesses", "Jobs", "Community", "Exchange", "Share",
+    ]);
+    expect(wrapper).toContain("getActiveProductNavItem(pathOnly, desktopPrimaryNav)");
     expect(core).toContain("MOBILE FEATURE NAV");
     expect(core).toContain("items={mobileTaskbarNav}");
     expect(core).toContain("primaryLimit={5}");
@@ -72,11 +74,10 @@ describe("signed-in TradeScout OS shell", () => {
     expect(mobileBottomNav).toContain("primaryLimit");
   });
 
-  it("puts Scout's primary outcome input before continuation and clears both taskbars", () => {
+  it("puts Scout's primary outcome input before continuation and clears persistent navigation", () => {
     const homeMarkup = scoutHome.slice(scoutHome.lastIndexOf("return ("));
     const inputIndex = homeMarkup.indexOf("{primaryOutcomeInput}");
     const continuationIndex = homeMarkup.indexOf("<ScoutControlSnapshot");
-
     expect(inputIndex).toBeGreaterThan(-1);
     expect(continuationIndex).toBeGreaterThan(inputIndex);
     expect(scoutSearchDock).toContain('placement?: "inline" | "fixed"');
@@ -86,45 +87,35 @@ describe("signed-in TradeScout OS shell", () => {
     expect(scoutOs).toContain('placement="inline"');
     expect(scoutOs).toContain("{hasUserMessages ? (");
     expect(scoutOs).toContain('placement="fixed"');
-    expect(wrapper).toContain("bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 0.5rem) !important;");
+    expect(wrapper).toContain("left: calc(${DESKTOP_APP_RAIL_WIDTH} + 0.5rem) !important;");
   });
 
   it("keeps Community feed controls and Jobs tabs responsive without changing their product roles", () => {
-    expect(community).toContain(
-      'className="ts-community-viewbar mb-3 flex flex-nowrap items-center gap-1.5 overflow-x-auto'
-    );
+    expect(community).toContain('className="ts-community-viewbar mb-3 flex flex-nowrap items-center gap-1.5 overflow-x-auto');
     expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*flex-wrap:\s*nowrap;/s);
     expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*overflow-x:\s*auto;/s);
-    expect(styles).toMatch(
-      /@media \(max-width: 640px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    flex-wrap: wrap;\r?\n    overflow-x: visible;\r?\n    overflow-y: visible;/
-    );
-    expect(styles).toMatch(
-      /\.ts-community-viewbar__divider \{\r?\n    display: block !important;\r?\n    flex: 0 0 100%;\r?\n    width: 100%;\r?\n    height: 0;/
-    );
-    expect(styles).toMatch(
-      /@media \(min-width: 641px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    padding-top: 0\.25rem;\r?\n    padding-inline: 0\.25rem;/
-    );
+    expect(styles).toMatch(/@media \(max-width: 640px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    flex-wrap: wrap;\r?\n    overflow-x: visible;\r?\n    overflow-y: visible;/);
+    expect(styles).toMatch(/\.ts-community-viewbar__divider \{\r?\n    display: block !important;\r?\n    flex: 0 0 100%;\r?\n    width: 100%;\r?\n    height: 0;/);
+    expect(styles).toMatch(/@media \(min-width: 641px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    padding-top: 0\.25rem;\r?\n    padding-inline: 0\.25rem;/);
     expect(styles).toMatch(/\.ts-community-viewbar__item\s*\{[^}]*min-height:\s*44px;/s);
     expect(community).toContain('data-testid="community-start-actions"');
     expect(community).toContain("<details");
-    expect(community).toContain(
-      'className="grid min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"'
-    );
+    expect(community).toContain('className="grid min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"');
     expect(community).not.toContain("lg:grid-cols-[minmax(0,1fr)_300px]");
     expect(community).toContain("xl:grid-cols-[minmax(0,1fr)_300px]");
-
     expect(jobs).toContain('className="w-full max-w-full overflow-x-hidden"');
     expect(jobs).toContain('className="grid grid-cols-3 gap-1 md:flex');
     expect(jobs).toContain("SECTION_SHORT_LABELS[section]");
     expect(jobs).toContain("min-w-0 items-center justify-center");
   });
 
-  it("never applies the signed-in desktop taskbar to public or custom profiles", () => {
+  it("never applies the signed-in desktop rail to public or custom profiles", () => {
     expect(wrapper).toContain("__TS_CUSTOM_DOMAIN_PROFILE_SLUG__");
-    expect(wrapper).toContain("isPublicProfileLikePath(pathOnly)");
-    expect(wrapper).toContain("/^\\/(?:u|p)\\/[^/]+(?:\\/|$)/i");
-    expect(wrapper).toContain("/^\\/business\\/[^/]+(?:\\/edit)?$/i");
-    expect(wrapper).toContain('pathOnly === "/jw-stone"');
-    expect(wrapper).toContain("!isPublicProfileSurface");
+    expect(wrapper).toContain("isApplicationUiSurface(location, customDomainProfileSlug)");
+    expect(wrapper).toContain("Boolean(isAuthenticated) && !isMobile && applicationUi");
+    for (const route of ["/jw-stone", "/issa-build/onyx", "/u/test", "/p/test", "/business/test", "/helpers/test", "/contractors/test"]) {
+      expect(isApplicationUiSurface(route)).toBe(false);
+    }
+    expect(isApplicationUiSurface("/any-custom-path", "profile-owner")).toBe(false);
   });
 });
