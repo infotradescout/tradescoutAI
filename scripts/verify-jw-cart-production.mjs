@@ -41,11 +41,24 @@ export async function verifyJwCartProduction(expected) {
     const versionBody = JSON.parse(version.text);
     assert.equal(versionBody.commit || versionBody.buildRevision, expected);
     record('Version endpoint identifies the release');
-    const page = await get('/u/jw-stone');
-    assert.equal(page.response.status, 200);
+    let pageRoute = '/u/jw-stone';
+    let page;
+    const redirects = [];
+    for (let hop = 0; hop < 4; hop++) {
+      page = await get(pageRoute);
+      if (![301, 302, 307, 308].includes(page.response.status)) break;
+      const location = page.response.headers.get('location');
+      assert(location, 'A redirect must identify its destination');
+      const destination = new URL(location, origin + pageRoute);
+      assert.equal(destination.origin, origin, 'Never follow a cross-origin release-check redirect');
+      assert(['/u/jw-stone', '/jw-stone'].includes(destination.pathname.replace(/\/$/, '')), 'JW entry must remain on its own profile');
+      redirects.push({ from: pageRoute, status: page.response.status, to: destination.pathname });
+      pageRoute = destination.pathname + destination.search;
+    }
+    assert(page); assert.equal(page.response.status, 200);
     assert.equal(page.response.headers.get('x-tradescout-build'), expected);
     assert(!/slabPriceCents|landedCostCents/.test(page.text), 'Anonymous page must not embed protected prices');
-    record('Public JW Stone entry serves the release without protected prices');
+    record('Public JW Stone entry serves the release without protected prices', { pageRoute, redirects });
     const assets = [...new Set([...page.text.matchAll(/(?:src|href)=["'](\/assets\/[^"']+\.(?:js|css))["']/g)].map(match => match[1]))];
     assert(assets.length > 0 && assets.length <= 20, 'Expected a bounded public application asset set');
     for (const asset of assets) {
