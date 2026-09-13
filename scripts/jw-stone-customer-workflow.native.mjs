@@ -9,6 +9,7 @@ import { chromium } from 'playwright';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 import { proveJwStoneRequestJourney } from './jw-stone-request-journey.mjs';
 import { proveJwStoneCartJourney } from './jw-stone-cart-journey.mjs';
+import { proveJwStoneReceivingJourney } from './jw-stone-receiving-journey.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || 'test-results/jw-workflow');
@@ -16,7 +17,9 @@ const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'jw-workflow-'));
 const base = 'http://127.0.0.1:5228';
 const rootPath = '/u/jw-stone';
 const itemPath = rootPath + '/stones/honey-onyx';
-const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, actualEmailDeliveryProved: false, formalPricedQuoteProved: false, source: 'Synthetic localhost native database, actual application routes and built client' };
+const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, actualEmailDeliveryProved: false, formalPricedQuoteProved: false,
+  syntheticReceivingPublicationTested: false, receivingPhonePublicationTested: false, realDriveWriteAuthorityTested: false,
+  source: 'Synthetic localhost native database, actual application routes and built client; exact-URL simulated Drive' };
 let database, client, server, browser, activePage, logFile;
 function clean() { return execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(); }
 function note(name, detail = {}) { report.checks.push({ name, ...detail, passed: true }); console.log('JW_WORKFLOW_CHECK ' + JSON.stringify(report.checks.at(-1))); }
@@ -132,6 +135,13 @@ try {
     assert.deepEqual(errors, [], 'Uncaught browser errors'); assert.deepEqual(failures, [], 'Unexpected server errors');
     await context.close(); activePage = undefined;
   }
+  for (const [device, viewport] of devices) {
+    const receiving = await proveJwStoneReceivingJourney({ browser, database: client, fixture, device, viewport, output: out, privateOutput: temp,
+      onPage: page => { activePage = page; } });
+    note(device + ': employee receiving publishes one sanitized lot and reaches the separate member cart', receiving);
+  }
+  assert.equal(report.checks.filter(check => check.syntheticReceivingPublicationTested).length, 2);
+  report.syntheticReceivingPublicationTested = true;
   report.finalSourceStatus = clean(); assert.equal(report.finalSourceStatus, ''); report.passed = true;
 } catch (error) {
   report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]');
@@ -145,4 +155,7 @@ try {
   await fs.writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
   await fs.writeFile(path.join(out, 'index.html'), '<meta name="robots" content="noindex,nofollow"><h1>' + (report.passed ? 'Declared synthetic customer journey passed' : 'FAILED - not release approval') + '</h1><p>Not real customer, production pricing or email-delivery proof.</p><a href="evidence.json">Evidence</a>');
   await fs.rm(temp, { recursive: true }); console.log('JW_WORKFLOW_SUMMARY ' + JSON.stringify(report));
+  // Embedded PostgreSQL cleanup can restore process.exitCode. Set the verdict
+  // after every cleanup step so a failed browser assertion cannot exit success.
+  process.exitCode = report.passed ? 0 : 1;
 }

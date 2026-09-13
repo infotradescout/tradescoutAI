@@ -39,7 +39,8 @@ if (!process.argv.includes('--exact-copy')) {
 }
 
 const report = { head, startedAt: new Date().toISOString(), passed: false, steps: [], productionDataUsed: false, productionPaymentsCreated: false,
-  receivingPhonePublicationTested: false, releaseGate: { status: 'not-run' } };
+  syntheticReceivingPublicationTested: false, receivingPhonePublicationTested: false,
+  realDriveWriteAuthorityTested: false, releaseGate: { status: 'not-run' } };
 let database;
 function run(name, command, args, env = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', env: { ...process.env, ...env }, timeout: 1500000, maxBuffer: 100 * 1024 * 1024 });
@@ -66,6 +67,9 @@ try {
       'scripts/jw-stone-employee-access.test.mjs',
       'scripts/jw-stone-employee-access-ui.test.mjs',
       'scripts/jw-stone-employee-tools-loader.test.mjs',
+      'scripts/jw-stone-drive-workflow-fixture.test.mjs',
+      'scripts/jw-stone-customer-workflow.native.test.mjs',
+      'scripts/verify-jw-cart-release.test.mjs',
       'scripts/verify-jw-cart-production.test.mjs',
       'scripts/generate-sitemap-core.behavior.test.mjs']);
   run('Affected tests and exact inherited-main comparison', process.execPath, ['scripts/jw-cart-suite-proof.mjs']);
@@ -73,16 +77,31 @@ try {
   assert.equal(suites.head, head); assert.equal(suites.passed, true);
   report.affectedTests = { passedTests: suites.candidate.passedTests, failedTests: suites.candidate.failedTests,
     inheritedFailures: suites.inheritedFailures.map(item => ({ file: item.file, name: item.name })) };
-  run('Native desktop and touch signup, cart, quote request, and revocation', process.execPath, ['scripts/jw-stone-customer-workflow.native.mjs']);
+  run('Native desktop and touch signup, cart, receiving publication, quote request, and revocation', process.execPath, ['scripts/jw-stone-customer-workflow.native.mjs']);
   const browser = JSON.parse(await fs.readFile('test-results/jw-workflow/evidence.json', 'utf8'));
   assert.equal(browser.head, head); assert.equal(browser.passed, true, 'The native workflow report must pass, not merely exit');
   assert.equal(browser.checks.filter(check => check.nativeCartQuoteSubmitted && check.privateRequestPersisted && check.selectedSupplierNotifiedInApp).length, 2);
-  run('Canonical main history', 'git', ['fetch', '--no-tags', 'origin', 'main']);
+  assert.equal(browser.syntheticReceivingPublicationTested, true, 'Synthetic employee receiving must complete before release verification');
+  const receiving = browser.checks.filter(check => check.syntheticReceivingPublicationTested === true);
+  assert.deepEqual(receiving.map(check => check.device).sort(), ['desktop', 'touch']);
+  for (const check of receiving) {
+    for (const field of ['employeeUiGrantAndRevoke', 'employeeUiSignInWithoutBuyerAccount',
+      'originalPhotoSurvivesReloadAndRetry', 'sourceManifestBeforePublication',
+      'singleReceiptAfterLostAcknowledgement', 'publicPhotoMatchesSourceAndSqlBytes',
+      'sanitizedOrientationAndMetadata', 'separateBuyerReceiptPriceAndCart']) assert.equal(check[field], true, field + ' must be proved');
+    assert.equal(check.physicalPhoneCameraTested, false);
+    assert.equal(check.realDriveWriteAuthorityTested, false);
+    assert.equal(check.externalProviderRequests, false);
+  }
+  report.syntheticReceivingPublicationTested = true;
+  run('Canonical main history', 'git', ['fetch', '--no-tags', canonicalRemote, 'refs/heads/main:refs/remotes/origin/main']);
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), head);
+  report.canonicalMain = execFileSync('git', ['rev-parse', 'origin/main'], { encoding: 'utf8' }).trim();
   database = await startCabinetLoopbackTestDatabase();
   assert.equal(new URL(database.url).hostname, '127.0.0.1');
   report.releaseGate = { status: 'running' };
   run('Unchanged strict minimum release gate', 'npm', ['run', 'gate:minimum-release', '--',
-    '--browser-proof=manual', '--browser-note=Exact built client and actual native routes passed desktop and touch JW signup, exact-stock cart, quantity pricing, reload, native private quote submission, supplier notification, and revocation. Synthetic loopback data only.'],
+    '--browser-proof=manual', '--browser-note=Exact built client and actual native routes passed desktop and touch JW signup, exact-stock cart, quantity pricing, reload, native private quote submission, supplier notification, employee grant/revoke, original-photo retry/publication and separate-buyer received-lot cart. Synthetic loopback database and exact-URL simulated Drive; no physical camera or real provider authority proof.'],
     { NODE_ENV: 'test', TEST_DATABASE_URL: database.url, DATABASE_URL: database.url, ALLOW_INSECURE_TEST_DATABASE: 'true',
       SKIP_NPM_CI: '', BASE_URL: '', APP_URL: '', BROWSER_PROOF_NOTE: '' });
   const gate = JSON.parse(await fs.readFile(path.resolve('artifacts/release-contract', head.slice(0, 12), 'evidence.json'), 'utf8'));
@@ -129,4 +148,7 @@ try {
   await fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
   await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="suites.json">Affected test results and inherited failures</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>');
   console.log('JW_CART_RELEASE_SUMMARY ' + JSON.stringify(report));
+  // Database/library cleanup can reset the process status. A failed receipt must
+  // still prevent the host from publishing this directory as a successful proof.
+  if (!report.passed) process.exitCode = 1;
 }
