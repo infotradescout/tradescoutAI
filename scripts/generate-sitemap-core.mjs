@@ -130,20 +130,26 @@ function extractExistingLastmodByLoc() {
 }
 
 function generateSitemap() {
-  const today = new Date().toISOString().split('T')[0];
   const existingLastmodByLoc = extractExistingLastmodByLoc();
 
   const urls = PUBLIC_ROUTES.map((route) => {
     const loc = `${PRODUCTION_URL}${route.path}`;
-    const lastmod = existingLastmodByLoc.get(loc) || today;
-    return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority.toFixed(1)}</priority>\n  </url>`;
+    // Retain recorded route dates. A build does not establish when page content
+    // changed, so new routes omit this optional field until a date is recorded.
+    const lastmod = existingLastmodByLoc.get(loc);
+    const modified = lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : '';
+    return `  <url>\n    <loc>${loc}</loc>${modified}\n    <changefreq>${route.changefreq}</changefreq>\n    <priority>${route.priority.toFixed(1)}</priority>\n  </url>`;
   }).join('\n');
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>\n`;
 
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
+  // These child sitemaps are served by runtime owners. Their modification
+  // timestamps are unknown at build time; omit optional lastmod rather than
+  // inventing freshness and changing tracked release inputs on every new day.
+  // https://developers.google.com/search/docs/crawling-indexing/sitemaps/large-sitemaps
   const indexTargets = SUBMITTED_SITEMAP_TARGETS.map(
-    (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`
+    (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n  </sitemap>`
   ).join('\n');
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexTargets}\n</sitemapindex>`;
   writeFileSync(OUTPUT_INDEX_PATH, sitemapIndex, 'utf-8');
