@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "097a98d0511bc9f69913c23a9e55a7e443c87aed",
+  "productBase": "ec5a024b",
+  "mainBase": "e34f02520c697ee8e52fefcf6ebdd4d06ce6d6c2",
+  "environment": "Linux x64 Node24.19.0, root uid0",
+  "unitTests": {
+    "passed": 63,
+    "failed": 0,
+    "skipped": 0
+  },
+  "typecheck": "pass (canonical client/shared/server scope; fixture is separately syntax-checked)",
+  "productionBuild": "pass with unchanged bundle/media guards and reviewed sitemap byte pin",
+  "sourceAfterBuild": "clean",
+  "nativeDatabase": "not executed",
+  "browserJourneys": "not executed",
+  "strictReleaseGate": "not executed",
+  "productionUpdated": false,
+  "runnerAttempt": {
+    "head": "097a98d0511bc9f69913c23a9e55a7e443c87aed",
+    "passed": false,
+    "startedAt": "2026-09-13T17:48:53.970Z",
+    "productionProved": false,
+    "providerStorageProved": false,
+    "source": "Native disposable PostgreSQL; actual registerRoutes, cookie login, local object upload bytes and production-built frontend. No production/customer/provider writes.",
+    "checks": [],
+    "devices": [],
+    "releaseGate": {
+      "status": "not-run"
+    },
+    "error": "AssertionError [ERR_ASSERTION]: The isolated loopback database requires a non-root Linux x64 verification environment.\n    at file:///workspace/scratch/08e6db36fee2/tradescout-batch/scripts/verify-exchange-batch-native.mjs:40:3",
+    "finishedAt": "2026-09-13T17:48:53.982Z"
+  },
+  "logs": [
+    {
+      "file": "batch-final-unit.log",
+      "sha256": "3718d5ca914037a9457d9947e9ceb707dbea7d3430d1cfcd61394e8f4f8cfa93"
+    },
+    {
+      "file": "batch-final-typecheck.log",
+      "sha256": "5b5f02338fca4179539408c04464a1b2aad744f699333aed9372fddb9982832b"
+    },
+    {
+      "file": "batch-final-build.log",
+      "sha256": "1421fab4ffdf51ff4578bac798c87d175d11221931b7c0f277001a6529535a99"
+    },
+    {
+      "file": "batch-final-native-attempt.log",
+      "sha256": "639a734d22b23c9621d04bd89e377c10636af17bcf1b2a724f766e10d2886646"
+    }
+  ],
+  "validationScope": "The 63 cases, canonical TypeScript and production build passed with the corrected sitemap source. The only later executable change makes fixture-cluster teardown finish before a separate strict-gate cluster starts; syntax review and the actual fail-closed native prerequisite attempt were rerun on the recorded source commit. Native/browser/gate execution is still unproved."
+}

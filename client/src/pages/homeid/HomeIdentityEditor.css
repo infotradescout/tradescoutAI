@@ -1,0 +1,41 @@
+[data-ts-core-ui="true"].home-identity-dialog {
+  position:fixed; inset:1rem; margin:auto; transform:none !important;
+  width:min(720px, calc(100% - 2rem)); max-width:720px;
+  height:min(760px, calc(100% - 2rem)); min-height:0;
+  display:flex; flex-direction:column; gap:0; padding:0; overflow:hidden;
+  background:var(--ts-surface); color:var(--ts-text); border:1px solid var(--ts-border-strong);
+  border-radius:12px; color-scheme:dark;
+  --identity-muted:color-mix(in srgb, var(--ts-text) 76%, var(--ts-surface));
+}
+.home-identity-dialog .home-identity-header { padding:22px 48px 18px 22px; text-align:left; border-bottom:1px solid var(--ts-border-subtle); flex-shrink:0; }
+.home-identity-dialog .home-identity-header p { color:var(--identity-muted); line-height:1.6; }
+.home-identity-dialog .home-identity-session { display:flex; min-height:0; flex:1; }
+.home-identity-dialog .home-identity-session[hidden] { display:none; }
+.home-identity-dialog .home-identity-form { display:flex; min-height:0; flex:1; flex-direction:column; }
+.home-identity-dialog .home-identity-fields { padding:20px 22px; overflow-y:auto; min-height:0; flex:1; overscroll-behavior:contain; }
+.home-identity-dialog fieldset { border:0; margin:0 0 24px; padding:0; min-width:0; }
+.home-identity-dialog legend { font-size:16px; font-weight:650; margin-bottom:12px; }
+.home-identity-dialog .home-identity-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.home-identity-dialog .home-identity-field { min-width:0; }
+.home-identity-dialog label { display:block; margin-bottom:6px; font-size:13px; font-weight:600; }
+.home-identity-dialog :is(input,select) { width:100%; min-width:0; min-height:44px; border:1px solid color-mix(in srgb,var(--ts-text) 40%,var(--ts-surface)); border-radius:8px; padding:9px 11px; background:var(--ts-input-bg); color:var(--ts-text); font-size:16px; }
+.home-identity-dialog :is(input,select)[aria-invalid="true"] { border-color:var(--ts-warning); }
+.home-identity-dialog :is(small,.home-identity-hint) { display:block; color:var(--identity-muted); font-size:12px; line-height:1.65; margin:6px 0 12px; }
+.home-identity-dialog .home-identity-field-error { color:var(--ts-warning); font-size:12px; margin-top:6px; }
+.home-identity-dialog .home-identity-footer { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 22px; border-top:1px solid var(--ts-border-subtle); flex-shrink:0; }
+.home-identity-dialog .home-identity-footer p { flex:1; font-size:12px; color:var(--identity-muted); }
+.home-identity-dialog button { min-height:44px; padding:8px 12px; border-radius:8px; background:var(--ts-surface-hover); color:var(--ts-text); font-size:13px; font-weight:600; }
+.home-identity-dialog button.home-identity-save { background:var(--ts-accent); color:var(--ts-text-on-accent); }
+.home-identity-dialog :is(button,input,select):disabled { cursor:not-allowed; opacity:.55; }
+.home-identity-dialog :is(button,input,select):focus-visible { outline:2px solid var(--ts-accent) !important; outline-offset:3px; }
+.home-identity-dialog .home-identity-error, .home-identity-dialog .home-identity-discard { margin:0 0 16px; padding:14px; border-left:3px solid var(--ts-warning); background:var(--ts-surface-hover); font-size:13px; }
+.home-identity-dialog .home-identity-error p, .home-identity-dialog .home-identity-discard p { margin-bottom:8px; }
+.home-identity-dialog .home-identity-discard { margin:10px 22px 0; flex-shrink:0; }
+.home-identity-dialog .home-identity-discard > div { display:flex; flex-wrap:wrap; gap:8px; }
+.home-identity-dialog .home-identity-load { padding:24px; color:var(--identity-muted); }
+.ts-home-overview .home-identity-saved, .ts-home-record-frame .home-identity-saved { display:block; font-size:12px; color:var(--text-secondary); }
+@media (max-width:600px) {
+  .home-identity-dialog .home-identity-grid { grid-template-columns:minmax(0,1fr); }
+  .home-identity-dialog .home-identity-footer p { flex-basis:100%; }
+  .home-identity-dialog .home-identity-footer button { flex:1; }
+}

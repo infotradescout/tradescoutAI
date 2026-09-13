@@ -72,7 +72,7 @@ export function registerHardrockRoutes(app: Express) {
   // Public landing: accept application without requiring an account.
   app.post("/api/hardrock/apply", hardrockApplyLimiter, async (req, res) => {
     try {
-      const multer = (await import("multer")).default;
+      const multer = (await import("../utils/multipartUpload")).default;
       const crypto = await import("crypto");
 
       const uploadRoot = runtimePaths.publicUploads;

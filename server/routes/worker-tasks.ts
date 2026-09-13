@@ -1554,7 +1554,7 @@ export function registerWorkerTasksRoutes(app: Express): void {
   // Admin: direct file upload (text/images/etc), then ingest and sort
   app.post("/api/admin/knowledge/upload", isAuthenticated, isAdmin, async (req: any, res: any) => {
     try {
-      const multer = (await import("multer")).default;
+      const multer = (await import("../utils/multipartUpload")).default;
       const uploadDir = path.join(
         runtimePaths.scoutManualCache,
         "bulk_uploads",

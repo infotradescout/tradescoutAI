@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 import { sanitizePublicDiscoveryText } from "./publicListingSafety";
 
 const PROFILE_SERVICE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -55,10 +57,6 @@ function cleanPublicText(value: unknown, maxLength: number): string {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);
-}
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
 }
 
 function firstString(...values: unknown[]): string {
@@ -189,8 +187,9 @@ export function listProfileServiceItems(contentBlocks: unknown): ResolvedProfile
       usedSlugs.add(slug);
 
       const imageUrl = service
-        ? normalizePublicImageReference(firstString(service.imageUrl, service.image, service.src)) ||
-          fallbackImage
+        ? normalizePublicImageReference(
+            firstString(service.imageUrl, service.image, service.src)
+          ) || fallbackImage
         : fallbackImage;
       items.push({
         itemType: "service",
@@ -223,7 +222,9 @@ export function resolveProfileServiceItem(
 ): ResolvedProfileServiceItem | null {
   const serviceSlug = normalizeProfileServiceSlug(serviceSlugValue);
   if (!serviceSlug) return null;
-  return listFactBearingProfileServices(contentBlocks).find((item) => item.slug === serviceSlug) || null;
+  return (
+    listFactBearingProfileServices(contentBlocks).find((item) => item.slug === serviceSlug) || null
+  );
 }
 
 /**

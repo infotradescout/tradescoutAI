@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { selectRecordProject } from "../pages/homeid/homeRecordViewModel";
 
 const read = (relativePath: string) => {
   const fullPath = path.resolve(process.cwd(), relativePath);
@@ -509,10 +510,14 @@ describe("Scout entry framing contracts", () => {
     expect(homesSource).toContain("requestedHomeId");
     expect(homesSource).toContain('get("homeId")');
     expect(homesSource).toContain("<HomeIdWorkspace");
-    expect(homeWorkspaceSource).toContain('initial("projectId")');
-    expect(homeWorkspaceSource).toContain(
-      'projects.find((item) => String(item.id || "") === projectId)'
-    );
+    expect(homeWorkspaceSource).toContain('new URLSearchParams(search).get("projectId")');
+    expect(homeWorkspaceSource).toContain("selectRecordProject(projects, projectId)");
+    const projects = [
+      { id: "first", title: "First project" },
+      { id: "selected", title: "Selected project" },
+    ];
+    expect(selectRecordProject(projects, "selected")).toBe(projects[1]);
+    expect(selectRecordProject(projects, "missing")).toBeNull();
     expect(vehiclesSource).toContain("initialVehicleIdFromUrl");
     expect(vehiclesSource).toContain('get("vehicleId")');
   });

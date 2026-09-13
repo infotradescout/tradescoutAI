@@ -313,7 +313,7 @@ export function registerCommercialDirectoryRoutes(app: Express) {
           return res.status(404).json({ message: "Contractor profile not found." });
         }
 
-        const multer = (await import("multer")).default;
+        const multer = (await import("../utils/multipartUpload")).default;
         const crypto = await import("crypto");
         const uploadRoot = runtimePaths.publicUploads;
         const verificationRoot = path.join(uploadRoot, "contractor-verification");
@@ -701,7 +701,7 @@ export function registerCommercialDirectoryRoutes(app: Express) {
         const userId = toUserId(req);
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-        const multer = (await import("multer")).default;
+        const multer = (await import("../utils/multipartUpload")).default;
         const crypto = await import("crypto");
 
         const uploadRoot = runtimePaths.publicUploads;
@@ -823,7 +823,7 @@ export function registerCommercialDirectoryRoutes(app: Express) {
           .limit(1);
         if (!project) return res.status(404).json({ message: "Project not found" });
 
-        const multer = (await import("multer")).default;
+        const multer = (await import("../utils/multipartUpload")).default;
         const crypto = await import("crypto");
         const uploadRoot = runtimePaths.publicUploads;
         const projectRoot = path.join(uploadRoot, "commercial-projects");

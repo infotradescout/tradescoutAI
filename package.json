@@ -233,7 +233,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.453.0",
     "mammoth": "^1.11.0",
-    "multer": "^2.0.2",
+    "multer": "^2.3.0",
     "node-cron": "^4.6.0",
     "node-fetch": "^3.3.2",
     "openai": "^5.15.0",
@@ -250,7 +250,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "redis": "^5.12.1",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
     "stripe": "^18.4.0",
@@ -280,7 +280,10 @@
     "fast-xml-parser": "5.10.1",
     "nanoid@^5.0.0": "5.1.16",
     "uuid@<11.1.1": "11.1.1",
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "vitest": {
+      "vite": "6.4.3"
+    }
   },
   "devDependencies": {
     "@capacitor/android": "^7.4.3",
@@ -322,7 +325,7 @@
     "@typescript-eslint/eslint-plugin": "^8.51.0",
     "@typescript-eslint/parser": "^8.51.0",
     "@vitejs/plugin-react": "^5.0.4",
-    "@vitest/ui": "^4.1.10",
+    "@vitest/ui": "^4.1.11",
     "autocannon": "^8.0.0",
     "autoprefixer": "^10.4.20",
     "cross-env": "^10.1.0",
@@ -343,7 +346,7 @@
     "tsx": "^4.23.12",
     "typescript": "5.6.3",
     "vite": "^6.4.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

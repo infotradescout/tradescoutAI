@@ -4,7 +4,7 @@ import { streamPublicObject } from "../publicMediaStorage";
 import { listPublicStoneNewArrivals } from "../services/stoneNewArrivalsService";
 import { STONE_CURRENT_INVENTORY_FRESHNESS_DAYS } from "@shared/stoneInventory";
 import type { Express, Request, Response } from "express";
-import multer from "multer";
+import multer from "../utils/multipartUpload";
 import rateLimit from "express-rate-limit";
 import { isAuthenticated } from "../auth";
 import { pool } from "../db";
@@ -161,11 +161,9 @@ export function registerJwStoneReceivingRoutes(app: Express): void {
           ? "internal"
           : await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
         if (access === "none") {
-          res
-            .status(403)
-            .json({
-              message: "An active JW Stone business membership is required to view pricing.",
-            });
+          res.status(403).json({
+            message: "An active JW Stone business membership is required to view pricing.",
+          });
           return;
         }
         const context = await getPublicProfileTrustContext("jw-stone");
@@ -256,12 +254,10 @@ export function registerJwStoneReceivingRoutes(app: Express): void {
           console.error("[jw-stone-receiving] save incomplete", {
             message: error instanceof Error ? error.message : "Unknown receiving error",
           });
-          res
-            .status(503)
-            .json({
-              message:
-                "The arrival could not finish saving. Keep this screen open and retry the same submission. Nothing is listed until the photos and details are saved.",
-            });
+          res.status(503).json({
+            message:
+              "The arrival could not finish saving. Keep this screen open and retry the same submission. Nothing is listed until the photos and details are saved.",
+          });
         }
       });
     }
