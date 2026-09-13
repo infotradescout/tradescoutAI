@@ -47,7 +47,12 @@ describe("JW Stone member cart", () => {
       <JwStoneMemberPriceDisplay stoneName="Honey Onyx" slabDimensions="120 x 60" inventoryPublicId={inventoryPublicId} />
     </JwStoneMemberPricingProvider>
   </QueryClientProvider>));
-  const add = async () => { await eventually(() => expect(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]')).not.toBeNull()); click(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]')); };
+  const add = async () => {
+    await eventually(() => expect(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]')).not.toBeNull());
+    click(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]'));
+    // Opening is asynchronous: exercise the rendered cart, not a pending chunk import.
+    await eventually(() => expect(document.querySelector('[data-testid="jw-stone-member-cart"]')).not.toBeNull());
+  };
   beforeEach(() => {
     viewer = "member-a"; access = "member"; denied = false;
     window.localStorage.clear(); api.mockReset();
@@ -77,6 +82,12 @@ describe("JW Stone member cart", () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
     expect(document.querySelector('[data-testid="jw-stone-member-cart-button"]')).toBeNull();
     expect(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]')).toBeNull();
+  });
+  it("does not load stock or review a cart merely by viewing member prices", async () => {
+    render(stockId);
+    await eventually(() => expect(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]')).not.toBeNull());
+    expect(document.querySelector('[data-testid="jw-stone-member-cart"]')).toBeNull();
+    expect(api.mock.calls.some(([url]) => /\/(current|cart-review)$/.test(String(url)))).toBe(false);
   });
   it("adds, changes quantity, removes, and closes an empty cart", async () => {
     render(); await add();
