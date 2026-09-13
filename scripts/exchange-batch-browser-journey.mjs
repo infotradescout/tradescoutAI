@@ -80,6 +80,10 @@ export async function proveExchangeBatchBrowser({ browser, base, device, output,
       if (!lostResponse && route.request().method() === 'POST') {
         const response = await route.fetch();
         assert.equal(response.status(), 201, 'The response-loss test must lose an actual successful create');
+        const submitted = route.request().postDataJSON();
+        const saved = await response.json();
+        assert.equal(saved.specifications?.externalListingId, submitted.specifications.externalListingId, 'The real create response must preserve import identity');
+        assert.equal(saved.specifications?.exchangeBatchFingerprint, submitted.specifications.exchangeBatchFingerprint, 'The real create response must preserve fingerprint bytes');
         lostResponse = true;
         return route.abort('failed');
       }

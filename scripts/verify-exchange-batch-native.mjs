@@ -40,6 +40,7 @@ try {
   assert(process.platform === 'linux' && process.arch === 'x64' && process.getuid?.() !== 0, 'The isolated loopback database requires a non-root Linux x64 verification environment.');
   privateOutput = await fs.mkdtemp(path.join(os.tmpdir(), 'exchange-batch-native-'));
   await run('Parser and recovery cases', [process.execPath, '--experimental-strip-types', '--test', 'tests/exchange-batch-import.test.mjs', 'tests/exchange-batch-recovery.test.mjs']);
+  await run('Private import identity and public redaction regressions', ['npm', 'run', 'test:run', '--', 'server/tests/exchange-import-identity.test.ts']);
   await run('Full TypeScript', ['npm', 'run', 'check']);
   await run('Full production build and unchanged budgets', ['npm', 'run', 'build']);
   database = await startCabinetLoopbackTestDatabase(); report.database = database.evidence;
@@ -83,11 +84,13 @@ try {
   const concurrentA = await browser.newContext(), concurrentB = await browser.newContext();
   await authenticate(concurrentA, 'desktop'); await authenticate(concurrentB, 'desktop');
   const saved = (await readListings(fixture.accounts.desktop.id))[0];
-  const key = 'race-' + randomUUID();
-  const racing = suffix => ({ ...payload, title: 'Workshop cabinet ' + suffix, images: saved.images, specifications: { externalListingId: key, exchangeBatchFingerprint: 'a'.repeat(64) } });
+  const key = '0001234567890' + randomUUID().replaceAll('-', '');
+  const numericFingerprint = '1234567890'.repeat(6) + '1234';
+  const racing = suffix => ({ ...payload, title: 'Workshop cabinet ' + suffix, images: saved.images, specifications: { externalListingId: key, exchangeBatchFingerprint: numericFingerprint } });
   const responses = await Promise.all([concurrentA.request.post(base + '/api/marketplace/listings', { data: racing('left') }), concurrentB.request.post(base + '/api/marketplace/listings', { data: racing('right') })]);
   assert.equal(responses.filter(response => response.status() === 201).length, 1);
   assert.equal((await client.query("SELECT count(*)::int AS n FROM marketplace_listings WHERE seller_id=$1 AND specifications->>'externalListingId'=$2", [fixture.accounts.desktop.id, key])).rows[0].n, 1);
+  assert.equal((await client.query("SELECT specifications->>'exchangeBatchFingerprint' AS fingerprint FROM marketplace_listings WHERE seller_id=$1 AND specifications->>'externalListingId'=$2", [fixture.accounts.desktop.id, key])).rows[0].fingerprint, numericFingerprint);
   await concurrentA.close(); await concurrentB.close(); note('Two authenticated clients cannot create duplicate stable import identities');
   const publicResponse = await fetch(base + '/api/marketplace/listings');
   assert.equal(publicResponse.status, 200, 'Public browse must succeed before checking moderation privacy');
@@ -96,6 +99,18 @@ try {
   const publicIds = JSON.stringify(publicRows);
   for (const device of ['desktop', 'touch']) for (const listing of await readListings(fixture.accounts[device].id)) assert(!publicIds.includes(listing.id), 'Pending imported stock must remain outside public browse');
   note('Pending imported listings are not exposed in public browse');
+
+  // Mark one exclusively owned fixture row active to exercise the real public
+  // serializer. This models a moderation result; it does not prove moderation UI.
+  const moderated = await client.query("UPDATE marketplace_listings SET status='active' WHERE seller_id=$1 AND specifications->>'externalListingId'=$2 RETURNING id", [fixture.accounts.desktop.id, key]);
+  assert.equal(moderated.rowCount, 1);
+  const published = await fetch(base + '/api/marketplace/listings/' + moderated.rows[0].id);
+  assert.equal(published.status, 200, 'The public route must return the fixture-approved listing');
+  const publicDetail = JSON.stringify(await published.json());
+  for (const privateValue of ['externalListingId', 'exchangeBatchFingerprint', key, numericFingerprint]) {
+    assert(!publicDetail.includes(privateValue), 'Public route must exclude private import identity');
+  }
+  note('Actual public listing GET excludes numeric import identity and fingerprint after fixture moderation');
 
   assert.deepEqual(report.devices.map(device => device.device), ['desktop', 'touch']);
   assert(report.devices.every(device => device.passed === true && device.checks.length > 0));
