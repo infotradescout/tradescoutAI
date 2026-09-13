@@ -128,6 +128,7 @@ import {
   normalizeHomeScoutListingId,
 } from "../shared/homeScoutListingShare";
 import { toPublicExchangeListing } from "./publicExchangeListing";
+import { restorePrivateExchangeImportIdentity } from "./exchangeImportIdentity";
 import {
   getPublicProfileCatalogExchangeItem,
   listPublicProfileCatalogExchangeItems,
@@ -2033,7 +2034,10 @@ export async function registerRoutes(app: any) {
   });
 
   const normalizeMarketplaceWritableFields = (input: any) => {
-    const sanitizedSpecifications = sanitizeContactBearingValue(input?.specifications);
+    const sanitizedSpecifications = restorePrivateExchangeImportIdentity(
+      input?.specifications,
+      sanitizeContactBearingValue(input?.specifications)
+    );
     const sanitizedBundleItems = sanitizeContactBearingValue(input?.bundleItems);
     const sanitizedShippingQuote = sanitizeContactBearingValue(input?.shippingQuote);
     const sanitizedPackageDetails = sanitizeContactBearingValue(input?.packageDetails);
