@@ -1,66 +1,66 @@
 import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { PACKAGE_HOME_ID, resolveHomeView } from "../../client/src/pages/homeid/homeWorkspaceModel";
+import { HOME_SECTIONS, PACKAGE_HOME_ID, resolveHomeView } from "../../client/src/pages/homeid/homeWorkspaceModel";
+import { LAUNCH_TABS } from "../../client/src/pages/homeid/launchWorkspaceModel";
+const read = (file: string) => fs.readFileSync(file, "utf8");
+const entry = read("client/src/pages/homes.tsx");
+const record = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
+const launch = read("client/src/pages/homeid/PropertyBlessingsLaunchWorkspace.tsx");
+const model = read("client/src/pages/homeid/launchWorkspaceModel.ts");
 
-const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
-const entrySource = read("client/src/pages/homes.tsx");
-const workspaceSource = read("client/src/pages/homeid/HomeIdWorkspace.tsx");
-const propertyBlessingsSource = read("client/src/pages/homeid/PropertyBlessingsLaunchWorkspace.tsx");
-const overviewSource = read("client/src/pages/homeid/HomeOverview.tsx");
-
-describe("HomeID focused workspace product contract", () => {
-  it("defaults to the selected property and work rather than a record-specific launch dashboard", () => {
-    expect(entrySource).toContain("HomeOverview");
-    expect(entrySource).toContain("useSearch()");
-    expect(entrySource).toContain("resolveHomeView(search, selectedHomeId)");
+describe("HomeID workspace feature preservation", () => {
+  it("defaults to the property overview and keeps explicit package/passport links", () => {
+    expect(entry).toContain("HomeOverview"); expect(entry).toContain("useSearch()");
     expect(resolveHomeView(`homeId=${PACKAGE_HOME_ID}`, PACKAGE_HOME_ID)).toBe("overview");
-    expect(overviewSource).toContain('data-testid="homeid-overview"');
-    expect(workspaceSource).toContain('data-testid="homeid-workspace"');
-  });
-  it("keeps specialized package operations explicit and preserves all deep links", () => {
-    expect(entrySource).toContain("PropertyBlessingsLaunchWorkspace");
     expect(resolveHomeView("workspace=launch", PACKAGE_HOME_ID)).toBe("launch");
     expect(resolveHomeView("launchTab=scope", PACKAGE_HOME_ID)).toBe("launch");
     expect(resolveHomeView("mode=passport", PACKAGE_HOME_ID)).toBe("record");
-    expect(propertyBlessingsSource).toContain('data-testid="property-blessings-launch-workspace"');
   });
-  it("keeps the full property passport available for Property Blessings", () => {
-    expect(propertyBlessingsSource).toContain('mode: "passport"');
-    expect(propertyBlessingsSource).toContain("Open full property passport");
-    expect(propertyBlessingsSource).toContain('passportUrl("property")');
-    expect(propertyBlessingsSource).toContain('passportUrl("documents")');
-    expect(propertyBlessingsSource).toContain('passportUrl("timeline")');
+  it("retains all nine property sections and every existing save workflow", () => {
+    expect(HOME_SECTIONS.map((item) => item.id)).toEqual(["overview", "property", "build", "systems", "documents", "timeline", "maintenance", "requests", "sale"]);
+    for (const action of ["saveFact", "uploadDoc", "saveTimeline", "saveSchedule", "savePacket", "createHome"]) expect(record).toContain(`const ${action} = useMutation`);
+    for (const action of ["Upload Documents", "Continue Planning", "Start a Request", "Open Build Timeline", "Open HomeScout", "Open in Direct Connect"]) expect(record).toContain(action);
   });
-  it("uses saved projects, due maintenance, files and history without invented readiness", () => {
-    for (const copy of ["What needs attention", "Projects & work", "Recent history", "Property details", "Documents"]) expect(overviewSource).toContain(copy);
-    expect(overviewSource).not.toContain("Ready for next gate");
-    expect(overviewSource).not.toContain("Design and property screening");
-    expect(overviewSource).not.toMatch(/\.length\s*\|\|\s*(?:17|18|22|12)/);
-    expect(overviewSource).toContain("not a property inspection or readiness rating");
+  it("separates real property editing, property creation, and note entry", () => {
+    expect(record).toContain("HomeIdentityEditor"); expect(record).toContain("Edit address & details");
+    expect(record).toContain("New property"); expect(record).toContain("Add a property note");
+    expect(record).not.toContain("Add Property");
+    expect(record).not.toContain("Known and source-backed");
   });
-  it("preserves the complete existing property-passport features and mutations", () => {
-    for (const copy of ["Overview", "Property", "Build", "Systems", "Documents", "Timeline", "Maintenance", "Requests", "Sale & Transfer", "Add Property", "Upload Documents", "Continue Planning", "Start a Request"]) expect(workspaceSource).toContain(copy);
-    for (const action of ["saveFact", "uploadDoc", "saveTimeline", "saveSchedule", "savePacket", "createHome"]) expect(workspaceSource).toContain(action);
+  it("retains all six specialist sections and their saved operational data", () => {
+    expect(LAUNCH_TABS.map((item) => item.id)).toEqual(["control", "scope", "packages", "partners", "evidence", "release"]);
+    for (const field of ["metadata.launchBoard", "metadata.partnerPipeline", "partnerPipeline.primaryTargets", "metadata.packageExecution", "packageExecution.anchorScopeMatrix", "packageExecution.packageLevels", "packageExecution.executionSteps", "metadata.sourceFilesUsed", "metadata.sourceFilesExcluded", "metadata.firstPackageQuoteTemplate", "metadata.builderHandoffTemplate", "metadata.ownershipActivationTemplate"]) expect(model).toContain(field);
+    for (const action of ["Open full property passport", "Open saved scope request", "Open partner operations", "Builder Handoff Pack", "Ownership protection activation", "Open full systems record", "Open full HomeID timeline"]) expect(launch).toContain(action);
   });
-  it("retains uploaded package-plan execution controls", () => {
-    for (const copy of ["Launch Control", "First 90 days", "Launch board", "Scope Matrix", "18-line anchor metal-building scope matrix", "Package Levels", "Partner Pipeline", "No signed partner claim", "Source Records", "Release Gates", "Current launch gate", "Open saved scope request"]) expect(propertyBlessingsSource).toContain(copy);
-    for (const source of ["metadata.launchBoard", "metadata.partnerPipeline", "partnerPipeline.primaryTargets", "metadata.packageExecution", "packageExecution.anchorScopeMatrix", "packageExecution.packageLevels"]) expect(propertyBlessingsSource).toContain(source);
-    expect(propertyBlessingsSource).not.toContain("partnerPipeline.primaryWave");
-    expect(propertyBlessingsSource).not.toContain("partnerPipeline.backupAndConditional");
+  it("keeps prospective partners private and the contact owner unchanged", () => {
+    expect(launch).toContain("Private source-review pipeline"); expect(launch).toContain("No signed partner claim");
+    expect(launch).toContain("unconfirmed"); expect(launch).toContain("No pay-per-lead requirement");
+    expect(launch).toContain('/admin/tradepartners'); expect(launch).not.toContain('apiRequest("POST"');
   });
-  it("keeps target companies private and clearly unconfirmed", () => {
-    for (const copy of ["Private source-review pipeline", "No signed partner claim", "No pay-per-lead requirement", "unconfirmed"]) expect(propertyBlessingsSource).toContain(copy);
+  it("preserves uploads and adds authenticated downloads without equating references to files", () => {
+    expect(record).toContain("uploadPrivateObject(docFile)"); expect(record).toContain("documentDownloadHref(homeId, item.id)");
+    expect(record).toContain("Reference only"); expect(record).toContain("No files are stored yet");
+    expect(launch).toContain("original file not stored as a downloadable attachment");
   });
-  it("keeps source references distinct from stored property files", () => {
-    for (const copy of ["Reference only", "Upload a real property document", "No files are stored yet"]) expect(workspaceSource).toContain(copy);
-    expect(propertyBlessingsSource).toContain("original file not stored as a downloadable attachment");
-    expect(overviewSource).toContain("References are not uploaded files");
+  it("does not manufacture readiness or category-based coverage in either workspace", () => {
+    for (const source of [record, launch]) {
+      expect(source).not.toContain("Ready for next gate"); expect(source).not.toContain("Design and property screening");
+      expect(source).not.toContain("COVERED.has"); expect(source).not.toMatch(/\.length\s*\|\|\s*(?:17|18|22|12|3)/);
+    }
+    expect(record).toContain("savedProjectStage(project)"); expect(launch).toContain("scopeConfirmation(model)");
   });
-  it("bounds the retained record editor without global theme or public-profile changes", () => {
-    const css = read("client/src/pages/homeid/HomeOverview.css");
-    expect(css).toContain('.ts-home-record-frame > [data-testid="homeid-workspace"] { position:relative');
+  it("scopes private reads by viewer and derives both navigation states from the URL", () => {
+    expect(record).toContain('queryKey: [endpoint, "record", viewerId]');
+    expect(record).toContain("readRecordDetail(await apiRequest"); expect(record).toContain("recordTab(search)");
+    expect(launch).toContain("launchTab(search)"); expect(launch).toContain('"launch", user?.id');
+    expect(record).not.toContain("history.replaceState"); expect(launch).not.toContain("history.replaceState");
+    expect(record).toContain("requirePersistence()");
+  });
+  it("bounds the application record screens without global or custom-profile theme changes", () => {
+    const css = read("client/src/pages/homeid/HomeRecordWorkspace.css");
+    expect(css).toContain(".ts-home-record { position:relative");
     expect(css).not.toMatch(/(?:^|\n)\s*(?:body|html|:root)\b/);
-    expect(entrySource).toContain('className="home-return-link"');
+    expect(css).toContain("min-height:44px"); expect(css).toContain("var(--ts-surface)");
+    expect(entry).toContain('className="home-return-link"');
   });
 });

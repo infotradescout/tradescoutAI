@@ -1,2363 +1,395 @@
 import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Building2,
-  CalendarClock,
-  Check,
-  CheckCircle2,
-  CircleDot,
-  ClipboardList,
-  Clock3,
-  Database,
-  FileCheck2,
-  FileText,
-  FolderOpen,
-  Hammer,
-  HardHat,
-  Home,
-  Layers3,
-  MapPin,
-  PackageCheck,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-  Upload,
-  Wrench,
-  X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Link, useLocation, useSearch } from "wouter";
+import { ArrowUpRight, FileText, Home, Plus, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { HomeIdPropertyDetail, HomeIdRequestPacket } from "@/lib/homeidPersistence";
 import { resolveHomeIdFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
+import { trackFirstUseGuidanceViewed, trackFirstUseTaskPromptClicked, trackFirstUseTaskPromptViewed } from "@/lib/firstUseAnalytics";
+import { HOME_IDENTITY_TYPES, homeIdentityChangesSchema } from "@shared/homeIdentity";
+import HomeIdentityEditor from "./HomeIdentityEditor";
+import { HOME_SECTIONS, dateLabel, homeAddress, homeName, humanLabel, object, type HomeSection, type HomeSummary } from "./homeWorkspaceModel";
 import {
-  trackFirstUseGuidanceViewed,
-  trackFirstUseTaskPromptClicked,
-  trackFirstUseTaskPromptViewed,
-} from "@/lib/firstUseAnalytics";
+  rows, readRecordDetail, readRecordPersistence, recordTab, recordHref, buildTimelineHref,
+  selectRecordProject, savedProjectStage, recordedMissingInputs, savedValue, textList,
+  groupedSystems, documentDownloadHref, safeEvidenceHref,
+  type HomeRecord, type HomeDocument, type HomeProject, type HomeSchedule, type HomeSystem,
+  type HomeEvidence, type HomeAppliance,
+} from "./homeRecordViewModel";
+import "./HomeRecordWorkspace.css";
 
-type Tab =
-  | "overview"
-  | "property"
-  | "build"
-  | "systems"
-  | "documents"
-  | "timeline"
-  | "maintenance"
-  | "requests"
-  | "sale";
-
-type HomeRow = {
-  id?: string;
-  nickname?: string | null;
-  propertyType?: string | null;
-  yearBuilt?: number | null;
-  address1?: string | null;
-  address2?: string | null;
-  city?: string | null;
-  stateCode?: string | null;
-  countyFips?: string | null;
-  zipCode?: string | null;
-};
-
-type HomeRecord = {
-  id?: string;
-  recordType?: string;
-  occurredAt?: string | null;
-  title?: string | null;
-  details?: string | null;
-  createdAt?: string | null;
-};
-
-type HomeDocument = {
-  id?: string;
-  documentType?: string | null;
-  originalName?: string | null;
-  bytes?: number | null;
-  createdAt?: string | null;
-};
-
-type HomeProject = {
-  id?: string;
-  title?: string | null;
-  description?: string | null;
-  projectType?: string | null;
-  status?: string | null;
-  estimatedCost?: string | number | null;
-  desiredStartAt?: string | null;
-  metadata?: unknown;
-};
-
-type HomeSchedule = {
-  id?: string;
-  title?: string | null;
-  cadenceDays?: number | null;
-  nextDueAt?: string | null;
-  status?: string | null;
-};
-
-type Component = {
-  id: string;
-  type: string;
-  label: string;
-  status: "known" | "needs_review" | "unknown";
-};
-
-type Evidence = {
-  id: string;
-  title: string;
-  description?: string;
-  status: "pending" | "verified" | "needs_review";
-  fileUrl?: string;
-  fileName?: string;
-};
-
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: "property", label: "Property" },
-  { id: "build", label: "Build" },
-  { id: "systems", label: "Systems" },
-  { id: "documents", label: "Documents" },
-  { id: "timeline", label: "Timeline" },
-  { id: "maintenance", label: "Maintenance" },
-  { id: "requests", label: "Requests" },
-  { id: "sale", label: "Sale & Transfer" },
-];
-
-const HOME_TYPES = [
-  ["single_family", "Single-family home"],
-  ["manufactured_home", "Manufactured home"],
-  ["mobile_home", "Mobile home"],
-  ["new_build", "New build"],
-  ["land_lot", "Land or lot"],
-  ["rental_unit", "Rental unit"],
-  ["other", "Other"],
-] as const;
-
-const DETAIL_CATEGORIES = [
-  "roof",
-  "hvac",
-  "plumbing",
-  "electrical",
-  "foundation",
-  "exterior",
-  "interior",
-  "appliances",
-  "permits_documents",
-  "other",
-] as const;
-
-const DOC_TYPES = [
-  ["inspection_report", "Inspection report"],
-  ["invoice", "Invoice"],
-  ["receipt", "Receipt"],
-  ["photo", "Photo"],
-  ["manual", "Manual"],
-  ["permit", "Permit"],
-  ["other", "Other"],
-] as const;
-
-const RECORD_TYPES = [
-  ["inspection", "Inspection"],
-  ["upgrade", "Upgrade"],
-  ["improvement", "Improvement"],
-  ["maintenance", "Maintenance"],
-  ["warranty", "Warranty"],
-  ["note", "Note"],
-] as const;
-
+const DETAIL_CATEGORIES = ["roof", "hvac", "plumbing", "electrical", "foundation", "exterior", "interior", "appliances", "permits_documents", "other"];
+const DOC_TYPES = [["inspection_report", "Inspection report"], ["invoice", "Invoice"], ["receipt", "Receipt"], ["photo", "Photo"], ["manual", "Manual"], ["permit", "Permit"], ["other", "Other"]] as const;
+const RECORD_TYPES = [["inspection", "Inspection"], ["upgrade", "Upgrade"], ["improvement", "Improvement"], ["maintenance", "Maintenance"], ["warranty", "Warranty"], ["note", "Note"]] as const;
 const STAGES = ["Property", "Design", "Engineering", "Package", "Build", "Closeout", "Occupancy"];
-const COVERED = new Set(["structural_system", "roofing", "cabinets", "natural_stone"]);
-const PANEL =
-  "rounded-3xl border border-white/[0.10] bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,.035)]";
-const INPUT = "border-white/[0.10] bg-black/[0.20] text-white placeholder:text-white/[0.25]";
-const SECONDARY =
-  "border-white/[0.10] bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white";
-const PRIMARY = "bg-orange-500 font-black text-black hover:bg-orange-400";
-
-function record(value: unknown): Record<string, any> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, any>)
-    : {};
-}
-
-function list<T>(value: unknown): T[] {
-  return Array.isArray(value) ? (value as T[]) : [];
-}
-
-function human(value: unknown): string {
-  const text = String(value || "").trim();
-  return text
-    ? text
-        .replaceAll("_", " ")
-        .replaceAll("-", " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Not set";
-}
-
-function date(value: unknown, fallback = "Not dated"): string {
-  const parsed = new Date(String(value || ""));
-  if (Number.isNaN(parsed.getTime())) return fallback;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(parsed);
-}
-
-function money(value: unknown): string | null {
+const TABS = HOME_SECTIONS;
+type ReadQuery = { isPending: boolean; isError: boolean; refetch: () => Promise<unknown> };
+type Feedback = { isError: boolean; error: unknown };
+type DetailDraft = { category: string; note: string; status: "known" | "needs_review" };
+type TimelineDraft = { recordType: string; occurredAt: string; title: string; details: string };
+type ScheduleDraft = { title: string; cadenceDays: string; nextDueAt: string };
+type NewHomeDraft = { nickname: string; homeType: string; yearBuilt: string; address1: string; address2: string; city: string; stateCode: string; countyFips: string; zipCode: string };
+const emptyHome = (): NewHomeDraft => ({ nickname: "", homeType: "", yearBuilt: "", address1: "", address2: "", city: "", stateCode: "", countyFips: "", zipCode: "" });
+const uid = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+const human = (value: unknown) => humanLabel(typeof value === "string" ? value : null);
+function money(value: unknown) {
+  if (value === null || value === undefined || value === "") return "Not recorded";
   const amount = Number(value);
-  return Number.isFinite(amount) && amount > 0
-    ? new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0,
-      }).format(amount)
-    : null;
+  return Number.isFinite(amount) && amount >= 0 ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount) : "Not recorded";
 }
-
-function bytes(value: unknown): string {
+function fileSize(value: unknown) {
   const size = Number(value);
-  if (!Number.isFinite(size) || size <= 0) return "";
-  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  if (!Number.isFinite(size) || size < 0 || value == null) return "";
+  return size < 1024 * 1024 ? `${Math.round(size / 1024)} KB` : `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function initial(name: string): string | null {
-  if (typeof window === "undefined") return null;
-  return new URLSearchParams(window.location.search).get(name)?.trim() || null;
+export function Panel({ title, action, children }: { title: ReactNode; action?: ReactNode; children: ReactNode }) {
+  return <section className="hr-panel"><div className="hr-panel-heading"><h2>{title}</h2>{action}</div><div className="hr-panel-body">{children}</div></section>;
 }
-
-function initialTab(): Tab {
-  const value = initial("tab") || "";
-  return TABS.some((tab) => tab.id === value) ? (value as Tab) : "overview";
+export function Pill({ status, label }: { status?: string | null; label?: string }) {
+  // This label reports a saved status; component category never upgrades it.
+  const labels: Record<string, string> = { known: "Recorded", verified: "Marked verified", ready_for_handoff: "Prepared for review", needs_review: "Needs review", needs_info: "Needs information" };
+  return <span className="hr-status" data-status={status || "unknown"}>{label || labels[status || ""] || human(status)}</span>;
 }
-
-function title(home: HomeRow | null): string {
-  return String(home?.nickname || home?.address1 || "Untitled HomeID").trim();
+export function Empty({ title, text, action }: { title: string; text?: string; action?: ReactNode }) {
+  return <div className="hr-empty"><h3>{title}</h3>{text && <p>{text}</p>}{action}</div>;
 }
-
-function location(home: HomeRow | null): string {
-  const locality = [home?.city, home?.stateCode].filter(Boolean).join(", ");
-  return [home?.address1, home?.address2, locality, home?.zipCode].filter(Boolean).join(" · ");
+export function SavedEntries({ value, empty = "No details recorded." }: { value: unknown; empty?: string }) {
+  const entries = Object.entries(object(value));
+  return entries.length ? <dl className="hr-saved-fields">{entries.map(([key, item]) => <div key={key}><dt>{human(key)}</dt><dd>{savedValue(item)}</dd></div>)}</dl> : <p className="hr-muted">{empty}</p>;
 }
-
-function homeType(value: unknown): string {
-  return HOME_TYPES.find(([key]) => key === value)?.[1] || human(value || "Property");
+function ReadState({ queries, label, children }: { queries: ReadQuery[]; label: string; children: ReactNode }) {
+  if (queries.some((query) => query.isError)) return <div className="hr-error" role="alert"><p>{label} could not be loaded. Saved information has not changed.</p><button type="button" className="hr-button" onClick={() => void Promise.all(queries.map((query) => query.refetch()))}>Retry {label.toLowerCase()}</button></div>;
+  if (queries.some((query) => query.isPending)) return <p role="status" className="hr-loading">Loading {label.toLowerCase()}…</p>;
+  return <>{children}</>;
 }
-
-function uid(prefix: string): string {
-  return `${prefix}_${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
+function MutationError({ mutation }: { mutation: Feedback }) {
+  return mutation.isError ? <p className="hr-error" role="alert">{formatUserFacingErrorMessage(mutation.error, "The save did not complete. Your changes are still here.")}</p> : null;
 }
-
-function tone(status: string): string {
-  if (["known", "verified", "ready_for_handoff", "active"].includes(status)) {
-    return "border-emerald-400/[0.25] bg-emerald-400/[0.10] text-emerald-300";
-  }
-  if (["needs_review", "needs_info", "pending", "planning"].includes(status)) {
-    return "border-amber-400/[0.25] bg-amber-400/[0.10] text-amber-200";
-  }
-  return "border-white/[0.10] bg-white/[0.04] text-white/[0.55]";
-}
-
-function Panel({
-  eyebrow,
-  title,
-  action,
-  children,
-  className = "",
-}: {
-  eyebrow?: ReactNode;
-  title: ReactNode;
-  action?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={`${PANEL} ${className}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
-        <div>
-          {eyebrow ? (
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-300">
-              {eyebrow}
-            </p>
-          ) : null}
-          <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-white">{title}</h2>
-        </div>
-        {action}
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
-function Pill({ status, label }: { status: string; label?: string }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.11em] ${tone(status)}`}
-    >
-      <CircleDot className="h-3 w-3" />
-      {label || human(status)}
-    </span>
-  );
-}
-
-function Empty({
-  icon,
-  title,
-  text,
-  action,
-}: {
-  icon: ReactNode;
-  title: string;
-  text: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="grid min-h-[210px] place-items-center rounded-2xl border border-dashed border-white/[0.12] bg-black/[0.14] p-6 text-center">
-      <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-orange-400/[0.10] text-orange-300">
-          {icon}
-        </div>
-        <h3 className="mt-4 font-black text-white">{title}</h3>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/[0.50]">{text}</p>
-        {action ? <div className="mt-5">{action}</div> : null}
-      </div>
-    </div>
-  );
+function Action({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return <button type="button" {...props} className={`hr-button ${props.className || ""}`}>{children}</button>;
 }
 
 export default function HomeIdWorkspace() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const search = useSearch();
+  const [, navigate] = useLocation();
+  const homesQuery = useQuery({ queryKey: ["/api/homes", user?.id], enabled: isAuthenticated,
+    queryFn: async () => rows<HomeSummary>(await apiRequest("GET", "/api/homes"), "homes") });
+  const homes = homesQuery.data || [];
+  const requestedHomeId = new URLSearchParams(search).get("homeId")?.trim() || null;
+  const homeId = requestedHomeId || homes[0]?.id || null;
+  if (isLoading) return <p role="status">Loading your property workspace…</p>;
+  if (!isAuthenticated || !user?.id) return <section className="ts-home-record"><h1>Private property records</h1><Link className="hr-button" href={`/login?next=${encodeURIComponent(`/homes${search ? `?${search}` : ""}`)}`}>Sign in</Link></section>;
+  // Property/viewer changes reset drafts and live state; tab changes do not erase them.
+  return <RecordSession key={`${user.id}:${homeId || "new"}`} viewerId={user.id} homeId={homeId} homes={homes}
+    homesQuery={homesQuery} search={search} navigate={navigate} />;
+}
+
+function RecordSession({ viewerId, homeId, homes, homesQuery, search, navigate }: {
+  viewerId: string; homeId: string | null; homes: HomeSummary[]; homesQuery: ReadQuery;
+  search: string; navigate: (href: string) => void;
+}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
   const fileRef = useRef<HTMLInputElement>(null);
   const detailRef = useRef<HTMLTextAreaElement>(null);
-
-  const [homeId, setHomeId] = useState<string | null>(() => initial("homeId"));
-  const [projectId] = useState<string | null>(() => initial("projectId"));
-  const [tab, setTab] = useState<Tab>(() => initialTab());
+  const projectId = new URLSearchParams(search).get("projectId")?.trim() || null;
+  const tab = recordTab(search);
+  const setTab = (next: HomeSection) => navigate(recordHref(homeId, next, projectId));
   const [newHomeOpen, setNewHomeOpen] = useState(false);
-
-  const [newHome, setNewHome] = useState({
-    nickname: "",
-    homeType: "new_build",
-    address1: "",
-    city: "",
-    stateCode: "",
-    zipCode: "",
-  });
-  const [detail, setDetail] = useState({
-    category: "other",
-    note: "",
-    status: "known" as "known" | "needs_review",
-  });
+  const [newHome, setNewHome] = useState(emptyHome);
+  const [detail, setDetail] = useState<DetailDraft>({ category: "other", note: "", status: "known" });
   const [docType, setDocType] = useState("other");
   const [docFile, setDocFile] = useState<File | null>(null);
-  const [timeline, setTimeline] = useState({
-    recordType: "note",
-    occurredAt: "",
-    title: "",
-    details: "",
-  });
-  const [schedule, setSchedule] = useState({ title: "", cadenceDays: "90", nextDueAt: "" });
+  const [timeline, setTimeline] = useState<TimelineDraft>({ recordType: "note", occurredAt: "", title: "", details: "" });
+  const [schedule, setSchedule] = useState<ScheduleDraft>({ title: "", cadenceDays: "90", nextDueAt: "" });
   const [requestType, setRequestType] = useState("documentation");
   const [selectedDetailIds, setSelectedDetailIds] = useState<string[]>([]);
+  const encoded = encodeURIComponent(homeId || "_none");
+  const endpoint = `/api/homes/${encoded}`;
+  const persistenceEndpoint = `/api/homeid/${encoded}/persistence`;
+  const detailQuery = useQuery({ queryKey: [endpoint, "record", viewerId], enabled: Boolean(homeId),
+    queryFn: async () => readRecordDetail(await apiRequest("GET", endpoint), homeId!) });
+  const permitted = Boolean(homeId && detailQuery.isSuccess && !detailQuery.isError);
+  const persistenceQuery = useQuery({ queryKey: [persistenceEndpoint, "record", viewerId], enabled: permitted,
+    queryFn: async () => readRecordPersistence(await apiRequest("GET", persistenceEndpoint)) });
+  const projectsQuery = useQuery({ queryKey: [`${endpoint}/projects`, "record", viewerId], enabled: permitted,
+    queryFn: async () => rows<HomeProject>(await apiRequest("GET", `${endpoint}/projects`), "projects") });
+  const schedulesQuery = useQuery({ queryKey: [`${endpoint}/maintenance-schedules`, "record", viewerId], enabled: permitted,
+    queryFn: async () => rows<HomeSchedule>(await apiRequest("GET", `${endpoint}/maintenance-schedules`), "schedules") });
 
-  const homesQuery = useQuery({ queryKey: ["/api/homes"] });
-  const homes = list<HomeRow>(record(homesQuery.data).homes);
-
-  useEffect(() => {
-    if (!homeId && homes.length) setHomeId(String(homes[0].id || "") || null);
-  }, [homeId, homes]);
-
-  useEffect(() => {
-    if (!homeId || typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    url.searchParams.set("homeId", homeId);
-    if (tab === "overview") url.searchParams.delete("tab");
-    else url.searchParams.set("tab", tab);
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [homeId, tab]);
-
-  const detailQuery = useQuery({
-    queryKey: [homeId ? `/api/homes/${homeId}` : "/api/homes/_none"],
-    enabled: Boolean(homeId),
-  });
-  const persistenceQuery = useQuery({
-    queryKey: [homeId ? `/api/homeid/${homeId}/persistence` : "/api/homeid/_none/persistence"],
-    enabled: Boolean(homeId),
-  });
-  const projectsQuery = useQuery({
-    queryKey: [homeId ? `/api/homes/${homeId}/projects` : "/api/homes/_none/projects"],
-    enabled: Boolean(homeId),
-  });
-  const schedulesQuery = useQuery({
-    queryKey: [
-      homeId
-        ? `/api/homes/${homeId}/maintenance-schedules`
-        : "/api/homes/_none/maintenance-schedules",
-    ],
-    enabled: Boolean(homeId),
-  });
-
-  const detailData = record(detailQuery.data);
-  const selectedHome =
-    (detailData.home as HomeRow | undefined) ||
-    homes.find((item) => String(item.id || "") === homeId) ||
-    null;
-  const records = list<HomeRecord>(detailData.records).filter(
-    (item) => !String(item.title || "").startsWith("homeid:")
-  );
-  const documents = list<HomeDocument>(detailData.documents);
-  const appliances = list<any>(detailData.appliances);
-
-  const persistence = record(record(persistenceQuery.data).persistence);
-  const facts = list<HomeIdPropertyDetail>(persistence.propertyDetails);
-  const packets = list<HomeIdRequestPacket>(persistence.requestPackets);
-  const components = list<Component>(persistence.components);
-  const evidence = list<Evidence>(persistence.evidence);
-
-  const projects = list<HomeProject>(record(projectsQuery.data).projects);
-  const project =
-    projects.find((item) => String(item.id || "") === projectId) || projects[0] || null;
-  const projectMeta = record(project?.metadata);
-  const schedules = list<HomeSchedule>(record(schedulesQuery.data).schedules);
-
+  const selectedHome = detailQuery.data?.home || null;
+  const records = (detailQuery.data?.records || []).filter((item) => !item.title?.startsWith("homeid:"));
+  const documents = detailQuery.data?.documents || [];
+  const appliances = detailQuery.data?.appliances || [];
+  const facts = persistenceQuery.data?.propertyDetails || [];
+  const packets = persistenceQuery.data?.requestPackets || [];
+  const components = persistenceQuery.data?.components || [];
+  const evidence = persistenceQuery.data?.evidence || [];
+  const projects = projectsQuery.data || [];
+  const project = selectRecordProject(projects, projectId);
+  const missing = recordedMissingInputs(project, packets);
   const known = facts.filter((item) => item.status === "known");
   const review = facts.filter((item) => item.status === "needs_review");
-  const homeIdFirstTaskPrompt = useMemo(
-    () =>
-      resolveHomeIdFirstUseTaskPrompt({
-        hasSelectedHome: Boolean(homeId),
-        knownDetailsCount: known.length,
-        hasComponentLikeDetail: known.length > 0,
-      }),
-    [homeId, known.length]
-  );
-  const missing = Array.from(
-    new Set([
-      ...list<string>(projectMeta.requiredNextInputs),
-      ...packets.flatMap((packet) => list<string>(packet.missingHelpfulInfo)),
-    ])
-  ).filter(Boolean);
-  const missingCount = Math.max(
-    missing.length,
-    ...packets.map((packet) => Number(packet.missingHelpfulInfoCount || 0)),
-    0
-  );
-  const propertyLocation = location(selectedHome);
-  const propertyAssigned = Boolean(propertyLocation);
-  const currentStage = propertyAssigned ? "Design and property screening" : "Preconstruction";
-
+  const homeIdFirstTaskPrompt = useMemo(() => resolveHomeIdFirstUseTaskPrompt({
+    hasSelectedHome: Boolean(homeId), knownDetailsCount: known.length, hasComponentLikeDetail: known.length > 0,
+  }), [homeId, known.length]);
   useEffect(() => {
-    if (!homeId) return;
+    if (!homeId || !permitted || !persistenceQuery.isSuccess || persistenceQuery.isError) return;
     trackFirstUseGuidanceViewed("homes", "authenticated");
-    trackFirstUseTaskPromptViewed({
-      surface: "homes",
-      promptMessage: homeIdFirstTaskPrompt.message,
-      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
-      userState: "authenticated",
-    });
-  }, [homeId, homeIdFirstTaskPrompt.ctaLabel, homeIdFirstTaskPrompt.message]);
+    trackFirstUseTaskPromptViewed({ surface: "homes", promptMessage: homeIdFirstTaskPrompt.message, ctaLabel: homeIdFirstTaskPrompt.ctaLabel, userState: "authenticated" });
+  }, [homeId, permitted, persistenceQuery.isSuccess, persistenceQuery.isError, homeIdFirstTaskPrompt.message, homeIdFirstTaskPrompt.ctaLabel]);
 
   const refresh = async () => {
-    if (!homeId) return;
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["/api/homes"] }),
-      queryClient.invalidateQueries({ queryKey: [`/api/homes/${homeId}`] }),
-      queryClient.invalidateQueries({ queryKey: [`/api/homeid/${homeId}/persistence`] }),
-      queryClient.invalidateQueries({ queryKey: [`/api/homes/${homeId}/projects`] }),
-      queryClient.invalidateQueries({ queryKey: [`/api/homes/${homeId}/maintenance-schedules`] }),
-    ]);
+    await Promise.all(["/api/homes", endpoint, persistenceEndpoint, `${endpoint}/projects`, `${endpoint}/maintenance-schedules`]
+      .map((prefix) => queryClient.invalidateQueries({ queryKey: [prefix] })));
   };
-
-  const fail = (name: string, error: any) =>
-    toast({
-      title: name,
-      description: formatUserFacingErrorMessage(error, "Try again."),
-      variant: "destructive",
-    });
-
+  const requireReadableHome = () => { if (!permitted) throw new Error("Reload the selected property before saving."); };
+  const requirePersistence = () => {
+    requireReadableHome();
+    if (!persistenceQuery.isSuccess || persistenceQuery.isError) throw new Error("Load the existing property details before saving.");
+  };
+  const fail = (title: string, error: unknown) => toast({ title, description: formatUserFacingErrorMessage(error, "Your changes are still here. Please retry."), variant: "destructive" });
   const createHome = useMutation({
-    mutationFn: () =>
-      apiRequest("POST", "/api/homeid/create", {
-        nickname: newHome.nickname.trim() || undefined,
-        homeType: newHome.homeType,
-        creatorRole: "homeowner",
-        address1: newHome.address1.trim() || undefined,
-        city: newHome.city.trim() || undefined,
-        stateCode: newHome.stateCode.trim().toUpperCase() || undefined,
-        zipCode: newHome.zipCode.trim() || undefined,
-      }),
-    onSuccess: async (data: any) => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
-      const id = String(data?.home?.id || "");
-      if (id) setHomeId(id);
-      setNewHomeOpen(false);
-      toast({ title: "HomeID created" });
+    mutationFn: async () => {
+      if (!HOME_IDENTITY_TYPES.some(([type]) => type === newHome.homeType)) throw new Error("Choose the property type.");
+      const values = homeIdentityChangesSchema.parse({ nickname: newHome.nickname.trim() || null, propertyType: newHome.homeType,
+        yearBuilt: newHome.yearBuilt.trim() ? Number(newHome.yearBuilt) : null,
+        address1: newHome.address1.trim() || null, address2: newHome.address2.trim() || null, city: newHome.city.trim() || null,
+        stateCode: newHome.stateCode || null, countyFips: newHome.countyFips || null, zipCode: newHome.zipCode.trim() || null });
+      if ([values.address1, values.address2, values.city, values.stateCode, values.countyFips, values.zipCode].some(Boolean) && (!values.stateCode || !values.countyFips)) throw new Error("Choose the property's state and county or parish.");
+      const { propertyType, ...fields } = values;
+      const result = object(await apiRequest("POST", "/api/homeid/create", {
+        ...Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== null)),
+        homeType: propertyType, creatorRole: "homeowner",
+      }));
+      const id = object(result.home).id;
+      if (typeof id !== "string" || !id) throw new Error("The created property could not be read. Check your property list before retrying.");
+      return id;
     },
-    onError: (error: any) => fail("Could not create HomeID", error),
+    onSuccess: async (id) => { setNewHomeOpen(false); setNewHome(emptyHome()); await queryClient.invalidateQueries({ queryKey: ["/api/homes"] }); navigate(recordHref(id)); toast({ title: "HomeID created" }); },
+    onError: (error) => fail("Could not create HomeID", error),
   });
-
   const saveFact = useMutation({
     mutationFn: () => {
-      if (!homeId || !detail.note.trim()) throw new Error("Add the property fact first");
+      requirePersistence();
+      if (!detail.note.trim()) throw new Error("Add a property note first.");
       const now = new Date().toISOString();
-      const next: HomeIdPropertyDetail = {
-        id: uid("detail"),
-        category: detail.category,
-        note: detail.note.trim(),
-        status: detail.status,
-        createdAt: now,
-        savedAt: now,
-      };
-      return apiRequest("PUT", `/api/homeid/${homeId}/property-details`, {
-        propertyDetails: [next, ...facts],
-      });
+      const next: HomeIdPropertyDetail = { id: uid("detail"), category: detail.category, note: detail.note.trim(), status: detail.status, createdAt: now, savedAt: now };
+      return apiRequest("PUT", `/api/homeid/${homeId}/property-details`, { propertyDetails: [next, ...facts] });
     },
-    onSuccess: async () => {
-      setDetail({ category: "other", note: "", status: "known" });
-      await refresh();
-      toast({ title: "Property fact saved" });
-    },
-    onError: (error: any) => fail("Could not save property fact", error),
+    onSuccess: async () => { setDetail({ category: "other", note: "", status: "known" }); await refresh(); toast({ title: "Property note saved" }); },
+    onError: (error) => fail("Could not save property note", error),
   });
-
   const uploadDoc = useMutation({
     mutationFn: async () => {
-      if (!homeId || !docFile) throw new Error("Choose a file first");
+      requireReadableHome();
+      if (!docFile) throw new Error("Choose a file first.");
       const { objectKey } = await uploadPrivateObject(docFile);
-      return apiRequest("POST", `/api/homes/${homeId}/documents`, {
-        documentType: docType,
-        objectKey,
-        originalName: docFile.name,
-        contentType: docFile.type || "application/octet-stream",
-        bytes: docFile.size,
-      });
+      return apiRequest("POST", `${endpoint}/documents`, { documentType: docType, objectKey, originalName: docFile.name, contentType: docFile.type || "application/octet-stream", bytes: docFile.size });
     },
-    onSuccess: async () => {
-      setDocFile(null);
-      setDocType("other");
-      if (fileRef.current) fileRef.current.value = "";
-      await refresh();
-      toast({ title: "Document added to HomeID" });
-    },
-    onError: (error: any) => fail("Document upload failed", error),
+    onSuccess: async () => { setDocFile(null); setDocType("other"); if (fileRef.current) fileRef.current.value = ""; await refresh(); toast({ title: "Document added to HomeID" }); },
+    onError: (error) => fail("Document upload failed", error),
   });
-
   const saveTimeline = useMutation({
     mutationFn: () => {
-      if (!homeId || !timeline.title.trim()) throw new Error("Add a timeline title");
-      return apiRequest("POST", `/api/homes/${homeId}/records`, {
-        recordType: timeline.recordType,
-        occurredAt: timeline.occurredAt || undefined,
-        title: timeline.title.trim(),
-        details: timeline.details.trim() || undefined,
-      });
+      requireReadableHome();
+      if (timeline.title.trim().length < 2) throw new Error("Use at least two characters for the event title.");
+      return apiRequest("POST", `${endpoint}/records`, { recordType: timeline.recordType, occurredAt: timeline.occurredAt || undefined, title: timeline.title.trim(), details: timeline.details.trim() || undefined });
     },
-    onSuccess: async () => {
-      setTimeline({ recordType: "note", occurredAt: "", title: "", details: "" });
-      await refresh();
-      toast({ title: "Timeline event saved" });
-    },
-    onError: (error: any) => fail("Could not save timeline event", error),
+    onSuccess: async () => { setTimeline({ recordType: "note", occurredAt: "", title: "", details: "" }); await refresh(); toast({ title: "Timeline event saved" }); },
+    onError: (error) => fail("Could not save timeline event", error),
   });
-
   const saveSchedule = useMutation({
     mutationFn: () => {
-      if (!homeId || !schedule.title.trim()) throw new Error("Add a maintenance item");
-      return apiRequest("POST", `/api/homes/${homeId}/maintenance-schedules`, {
-        title: schedule.title.trim(),
-        cadenceDays: Number.parseInt(schedule.cadenceDays, 10),
-        nextDueAt: schedule.nextDueAt || undefined,
-      });
+      requireReadableHome();
+      const cadenceDays = Number(schedule.cadenceDays);
+      if (schedule.title.trim().length < 2 || !Number.isInteger(cadenceDays) || cadenceDays < 1 || cadenceDays > 3650) throw new Error("Add a maintenance title and a valid interval.");
+      return apiRequest("POST", `${endpoint}/maintenance-schedules`, { title: schedule.title.trim(), cadenceDays,
+        nextDueAt: schedule.nextDueAt ? new Date(`${schedule.nextDueAt}T12:00:00`).toISOString() : undefined });
     },
-    onSuccess: async () => {
-      setSchedule({ title: "", cadenceDays: "90", nextDueAt: "" });
-      await refresh();
-      toast({ title: "Maintenance schedule created" });
-    },
-    onError: (error: any) => fail("Could not create schedule", error),
+    onSuccess: async () => { setSchedule({ title: "", cadenceDays: "90", nextDueAt: "" }); await refresh(); toast({ title: "Maintenance schedule created" }); },
+    onError: (error) => fail("Could not create schedule", error),
   });
-
   const savePacket = useMutation({
     mutationFn: () => {
-      if (!homeId || !selectedDetailIds.length) throw new Error("Choose at least one HomeID fact");
+      requirePersistence();
+      if (!projectsQuery.isSuccess || projectsQuery.isError) throw new Error("Load the existing project details before preparing a request.");
+      if (!selectedDetailIds.length || selectedDetailIds.some((id) => !facts.some((fact) => fact.id === id))) throw new Error("Choose the saved property details to include.");
       const now = new Date().toISOString();
-      const packet: HomeIdRequestPacket = {
-        id: uid("packet"),
-        requestType,
-        selectedDetailIds,
-        missingHelpfulInfo: missing.slice(0, 15),
-        missingHelpfulInfoCount: Math.min(15, missing.length),
-        status: missing.length ? "needs_info" : "ready_for_handoff",
-        createdAt: now,
-        savedAt: now,
-      };
-      return apiRequest("PUT", `/api/homeid/${homeId}/request-packets`, {
-        requestPackets: [packet, ...packets],
-      });
+      const packet: HomeIdRequestPacket = { id: uid("packet"), requestType, selectedDetailIds,
+        missingHelpfulInfo: missing.slice(0, 15), missingHelpfulInfoCount: Math.min(15, missing.length),
+        status: missing.length ? "needs_info" : "ready_for_handoff", createdAt: now, savedAt: now };
+      return apiRequest("PUT", `/api/homeid/${homeId}/request-packets`, { requestPackets: [packet, ...packets] });
     },
-    onSuccess: async () => {
-      setSelectedDetailIds([]);
-      await refresh();
-      toast({ title: "Request details saved" });
-    },
-    onError: (error: any) => fail("Could not save request details", error),
+    onSuccess: async () => { setSelectedDetailIds([]); await refresh(); toast({ title: "Request details saved" }); },
+    onError: (error) => fail("Could not save request details", error),
   });
-
-  const openProperty = () => {
-    setTab("property");
-    setDetail((current) => ({ ...current, category: "permits_documents", status: "needs_review" }));
-    window.setTimeout(() => detailRef.current?.focus(), 60);
-  };
-
-  const openDocs = () => {
-    setTab("documents");
-    window.setTimeout(() => fileRef.current?.click(), 60);
-  };
-
+  const openProperty = () => { setTab("property"); window.requestAnimationFrame(() => detailRef.current?.focus()); };
+  const openDocs = () => { setTab("documents"); window.requestAnimationFrame(() => fileRef.current?.focus()); };
   const openRequest = (packetId?: string) => {
-    if (!homeId) return;
-    const params = new URLSearchParams({
-      homeId,
-      homeContextIntent: "update_from_request",
-    });
+    if (!homeId || !permitted) return;
+    const params = new URLSearchParams({ homeId, homeContextIntent: "update_from_request" });
     if (packetId) params.set("homePacketId", packetId);
     navigate(`/direct-connect?${params.toString()}`);
   };
-
   const openFirstTask = () => {
-    const targetTab: Tab =
-      homeIdFirstTaskPrompt.ctaLabel === "Create request details" ? "requests" : "property";
-    const targetRoute = `/homes?homeId=${encodeURIComponent(String(homeId || ""))}&tab=${targetTab}`;
-    trackFirstUseTaskPromptClicked({
-      surface: "homes",
-      promptMessage: homeIdFirstTaskPrompt.message,
-      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
-      targetRoute,
-      userState: "authenticated",
-    });
-    if (targetTab === "requests") {
-      setTab("requests");
-      return;
-    }
-    openProperty();
+    const targetTab: HomeSection = homeIdFirstTaskPrompt.ctaLabel === "Create request details" ? "requests" : "property";
+    const targetRoute = recordHref(homeId, targetTab, projectId);
+    trackFirstUseTaskPromptClicked({ surface: "homes", promptMessage: homeIdFirstTaskPrompt.message, ctaLabel: homeIdFirstTaskPrompt.ctaLabel, targetRoute, userState: "authenticated" });
+    targetTab === "requests" ? setTab("requests") : openProperty();
   };
 
-  if (!homeId && !homesQuery.isLoading && homes.length === 0) {
-    return (
-      <div
-        className="fixed inset-x-0 bottom-0 z-[35] grid place-items-center overflow-y-auto p-5 text-white"
-        style={{
-          top: "var(--top-nav-h, 56px)",
-          background:
-            "radial-gradient(circle at 20% 10%, rgba(249,115,22,.13), transparent 34%), var(--surface-app-bg, #07090b)",
-        }}
-        data-testid="homeid-workspace"
-      >
-        <div className={`${PANEL} w-full max-w-3xl p-8`}>
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-orange-500 text-black">
-            <Home className="h-7 w-7" />
-          </div>
-          <p className="mt-6 text-[11px] font-black uppercase tracking-[0.22em] text-orange-300">
-            HomeID
-          </p>
-          <h1 className="mt-2 text-4xl font-black tracking-[-0.05em] sm:text-5xl">
-            Start the property record before the paperwork scatters.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-white/[0.58]">
-            One private source of truth for the property, build, systems, documents, service
-            history, and eventual transfer.
-          </p>
-          <Button className={`mt-7 ${PRIMARY}`} onClick={() => setNewHomeOpen(true)}>
-            Create HomeID
-          </Button>
-        </div>
-        {newHomeOpen ? (
-          <NewHome
-            state={newHome}
-            setState={setNewHome}
-            close={() => setNewHomeOpen(false)}
-            create={() => createHome.mutate()}
-            pending={createHome.isPending}
-          />
-        ) : null}
-      </div>
-    );
-  }
-
-  const loading =
-    homesQuery.isLoading ||
-    (Boolean(homeId) &&
-      (detailQuery.isLoading || persistenceQuery.isLoading || projectsQuery.isLoading));
-
-  const stats = [
-    [
-      "Planning facts",
-      facts.length,
-      `${known.length} known · ${review.length} need review`,
-      "property",
-      <Database className="h-5 w-5" />,
-    ],
-    [
-      "Package systems",
-      components.length,
-      `${components.filter((item) => COVERED.has(item.type)).length} relationships covered`,
-      "systems",
-      <Layers3 className="h-5 w-5" />,
-    ],
-    [
-      "Decisions needed",
-      missingCount,
-      missingCount ? "Blocking the next release gate" : "No major gap detected",
-      "overview",
-      <ClipboardList className="h-5 w-5" />,
-    ],
-    [
-      "Source records",
-      evidence.length + documents.length,
-      `${evidence.length} references · ${documents.length} stored files`,
-      "documents",
-      <FileCheck2 className="h-5 w-5" />,
-    ],
-  ] as const;
-
-  return (
-    <div
-      className="fixed inset-x-0 bottom-0 z-[35] flex flex-col overflow-hidden text-white"
-      style={{
-        top: "var(--top-nav-h, 56px)",
-        background:
-          "radial-gradient(circle at 10% 0%, rgba(249,115,22,.09), transparent 30%), radial-gradient(circle at 92% 5%, rgba(14,165,233,.07), transparent 28%), var(--surface-app-bg, #07090b)",
-      }}
-      data-testid="homeid-workspace"
-    >
-      <header className="flex-none border-b border-white/[0.08] bg-black/[0.24] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-orange-500 text-black">
-              <Home className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-orange-300">
-                HomeID
-              </p>
-              <p className="truncate text-sm font-black">{title(selectedHome)}</p>
-            </div>
-          </div>
-          {homes.length > 1 ? (
-            <Select value={homeId || ""} onValueChange={setHomeId}>
-              <SelectTrigger className={`h-10 min-w-[220px] ${INPUT}`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {homes.map((home) => (
-                  <SelectItem key={String(home.id)} value={String(home.id)}>
-                    {title(home)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : null}
-          <Button variant="outline" className={SECONDARY} onClick={() => setNewHomeOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New HomeID
-          </Button>
-        </div>
-      </header>
-
-      <section className="flex-none border-b border-white/[0.08]">
-        <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
-            <div>
-              <div className="flex flex-wrap gap-2">
-                <Pill
-                  status={missingCount ? "needs_info" : "known"}
-                  label={missingCount ? "Needs information" : "Ready for next gate"}
-                />
-                <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.11em] text-white/[0.55]">
-                  {currentStage}
-                </span>
-              </div>
-              <h1 className="mt-3 text-3xl font-black leading-none tracking-[-0.055em] sm:text-4xl lg:text-5xl">
-                {title(selectedHome)}
-              </h1>
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-white/[0.55]">
-                <span className="inline-flex items-center gap-1.5">
-                  <Building2 className="h-4 w-4 text-orange-300" />
-                  {homeType(selectedHome?.propertyType)}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="h-4 w-4 text-orange-300" />
-                  {propertyLocation || "Property not assigned"}
-                </span>
-                {project?.status ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <HardHat className="h-4 w-4 text-orange-300" />
-                    {human(project.status)}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              <Button variant="outline" className={SECONDARY} onClick={openProperty}>
-                <MapPin className="mr-2 h-4 w-4" />
-                Add Property
-              </Button>
-              <Button variant="outline" className={SECONDARY} onClick={openDocs}>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Documents
-              </Button>
-              <Button variant="outline" className={SECONDARY} onClick={() => setTab("build")}>
-                <Hammer className="mr-2 h-4 w-4" />
-                Continue Planning
-              </Button>
-              <Button className={PRIMARY} onClick={() => openRequest()}>
-                Start a Request
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {stats.map(([label, value, note, target, icon]) => (
-              <button
-                key={label}
-                type="button"
-                className="rounded-2xl border border-white/[0.09] bg-white/[0.032] p-4 text-left transition hover:-translate-y-0.5 hover:border-orange-400/[0.25]"
-                onClick={() => setTab(target)}
-              >
-                <div className="flex items-start justify-between">
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-400/[0.10] text-orange-300">
-                    {icon}
-                  </span>
-                  <span className="text-3xl font-black tracking-[-0.04em]">{value}</span>
-                </div>
-                <p className="mt-4 text-xs font-black uppercase tracking-[0.13em] text-white/[0.75]">
-                  {label}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-white/[0.40]">{note}</p>
-              </button>
-            ))}
-          </div>
-          <div
-            className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-400/[0.18] bg-orange-400/[0.055] px-4 py-3"
-            data-testid="homeid-first-task-prompt"
-          >
-            <p className="text-sm font-semibold text-white/[0.72]">
-              {homeIdFirstTaskPrompt.message}
-            </p>
-            <Button variant="outline" className={SECONDARY} onClick={openFirstTask}>
-              {homeIdFirstTaskPrompt.ctaLabel}
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <nav className="flex-none border-b border-white/[0.08] bg-black/[0.16]">
-        <div className="mx-auto flex max-w-[1500px] gap-1 overflow-x-auto px-4 py-2 sm:px-6">
-          {TABS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTab(item.id)}
-              className={`min-h-10 flex-none rounded-full px-4 text-xs font-black transition ${
-                tab === item.id
-                  ? "bg-orange-500 text-black"
-                  : "text-white/[0.52] hover:bg-white/[0.055] hover:text-white"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div className="mx-auto max-w-[1500px] px-4 py-5 pb-28 sm:px-6 lg:pb-10">
-          {loading ? (
-            <div className="grid min-h-[460px] place-items-center">
-              <div className="text-center">
-                <RefreshCw className="mx-auto h-7 w-7 animate-spin text-orange-300" />
-                <p className="mt-3 text-sm text-white/[0.50]">Loading the property record…</p>
-              </div>
-            </div>
-          ) : tab === "overview" ? (
-            <Overview
-              propertyAssigned={propertyAssigned}
-              missing={missing}
-              components={components}
-              evidence={evidence}
-              projectMeta={projectMeta}
-              openProperty={openProperty}
-              openSystems={() => setTab("systems")}
-              openDocuments={() => setTab("documents")}
-            />
-          ) : tab === "property" ? (
-            <Property
-              home={selectedHome}
-              known={known}
-              review={review}
-              detail={detail}
-              setDetail={setDetail}
-              detailRef={detailRef}
-              save={() => saveFact.mutate()}
-              pending={saveFact.isPending}
-            />
-          ) : tab === "build" ? (
-            <Build
-              project={project}
-              metadata={projectMeta}
-              missing={missing}
-              homeId={homeId}
-              openProperty={openProperty}
-            />
-          ) : tab === "systems" ? (
-            <Systems components={components} />
-          ) : tab === "documents" ? (
-            <Documents
-              documents={documents}
-              evidence={evidence}
-              fileRef={fileRef}
-              docType={docType}
-              setDocType={setDocType}
-              docFile={docFile}
-              setDocFile={setDocFile}
-              upload={() => uploadDoc.mutate()}
-              pending={uploadDoc.isPending}
-            />
-          ) : tab === "timeline" ? (
-            <Timeline
-              records={records}
-              state={timeline}
-              setState={setTimeline}
-              save={() => saveTimeline.mutate()}
-              pending={saveTimeline.isPending}
-            />
-          ) : tab === "maintenance" ? (
-            <Maintenance
-              schedules={schedules}
-              appliances={appliances}
-              state={schedule}
-              setState={setSchedule}
-              save={() => saveSchedule.mutate()}
-              pending={saveSchedule.isPending}
-            />
-          ) : tab === "requests" ? (
-            <Requests
-              facts={facts}
-              packets={packets}
-              requestType={requestType}
-              setRequestType={setRequestType}
-              selected={selectedDetailIds}
-              setSelected={setSelectedDetailIds}
-              missing={missing}
-              save={() => savePacket.mutate()}
-              open={openRequest}
-              pending={savePacket.isPending}
-            />
-          ) : (
-            <Sale
-              homeId={homeId}
-              propertyAssigned={propertyAssigned}
-              evidenceCount={evidence.length + documents.length}
-              missingCount={missingCount}
-              openProperty={openProperty}
-              openDocuments={() => setTab("documents")}
-              openRequest={() => openRequest()}
-            />
-          )}
-        </div>
-      </main>
-
-      {newHomeOpen ? (
-        <NewHome
-          state={newHome}
-          setState={setNewHome}
-          close={() => setNewHomeOpen(false)}
-          create={() => createHome.mutate()}
-          pending={createHome.isPending}
-        />
-      ) : null}
-    </div>
-  );
+  return <div className="ts-home-record" data-testid="homeid-workspace">
+    <div className="hr-workspace-bar"><span className="hr-brand"><Home size={19} aria-hidden="true" />HomeID</span><div className="hr-actions">
+      {homes.length > 1 && <label className="hr-picker"><span className="sr-only">Choose property</span><select value={homeId || ""} onChange={(event) => navigate(recordHref(event.target.value, tab))}>
+        {homeId && !homes.some((home) => home.id === homeId) && <option value={homeId}>Selected property</option>}
+        {homes.map((home) => <option key={home.id} value={home.id}>{homeName(home)}</option>)}
+      </select></label>}
+      <Action onClick={() => setNewHomeOpen(true)}><Plus size={16} aria-hidden="true" />New property</Action>
+      <Action aria-label="Refresh property records" onClick={() => void refresh()}><RefreshCw size={16} aria-hidden="true" />Refresh</Action>
+    </div></div>
+    {homesQuery.isError && <div className="hr-error" role="alert"><p>Your property list could not be loaded.</p><Action onClick={() => void homesQuery.refetch()}>Retry property list</Action></div>}
+    {!homeId ? <ReadState queries={[homesQuery]} label="Properties"><Empty title="Create your first property record" text="Keep projects, systems, documents, maintenance, and ownership history in one private workspace." action={<Action className="hr-primary" onClick={() => setNewHomeOpen(true)}>Create HomeID</Action>} /></ReadState> :
+    <ReadState queries={[detailQuery]} label="Selected property">
+      {selectedHome && <>
+        <header className="hr-heading"><div><p className="hr-eyebrow">Private property record</p><h1>{homeName(selectedHome)}</h1><p>{homeAddress(selectedHome) || "Address not recorded"}</p><p className="hr-muted">{HOME_IDENTITY_TYPES.find(([type]) => type === selectedHome.propertyType)?.[1] || human(selectedHome.propertyType)}{selectedHome.yearBuilt ? ` · Built ${selectedHome.yearBuilt}` : ""}</p></div>
+          <div className="hr-actions"><HomeIdentityEditor homeId={homeId} viewerId={viewerId} className="hr-button" /><Action onClick={openDocs}>Upload Documents</Action><Action onClick={() => setTab("build")}>Continue Planning</Action><Action className="hr-primary" onClick={() => openRequest()}>Start a Request</Action></div>
+        </header>
+        <nav className="hr-sections" aria-label="Property record sections">{TABS.map((item) => <Link key={item.id} href={recordHref(homeId, item.id, projectId)} aria-current={tab === item.id ? "page" : undefined}>{item.label}</Link>)}</nav>
+        <main className="hr-content">
+          {tab === "overview" && <ReadState queries={[persistenceQuery, projectsQuery]} label="Property overview"><Overview project={project} missing={missing} components={components} evidence={evidence} facts={facts} documents={documents} openProperty={openProperty} openSystems={() => setTab("systems")} openDocuments={() => setTab("documents")} />
+            <div className="hr-guidance" data-testid="homeid-first-task-prompt"><p>{homeIdFirstTaskPrompt.message}</p><Action onClick={openFirstTask}>{homeIdFirstTaskPrompt.ctaLabel}</Action></div>
+          </ReadState>}
+          {tab === "property" && <ReadState queries={[persistenceQuery]} label="Property details"><Property home={selectedHome} viewerId={viewerId} known={known} review={review} detail={detail} setDetail={setDetail} detailRef={detailRef} save={() => saveFact.mutate()} pending={saveFact.isPending} /><MutationError mutation={saveFact} /></ReadState>}
+          {tab === "build" && <ReadState queries={[projectsQuery, persistenceQuery]} label="Projects"><Build project={project} projects={projects} projectId={projectId} homeId={homeId} missing={missing} openProperty={openProperty} selectProject={(id) => navigate(recordHref(homeId, "build", id))} /></ReadState>}
+          {tab === "systems" && <ReadState queries={[persistenceQuery]} label="Systems"><Systems components={components} /></ReadState>}
+          {tab === "documents" && <><Documents homeId={homeId} documents={documents} evidence={evidence} referencesQuery={persistenceQuery} fileRef={fileRef} docType={docType} setDocType={setDocType} docFile={docFile} setDocFile={setDocFile} upload={() => uploadDoc.mutate()} pending={uploadDoc.isPending} /><MutationError mutation={uploadDoc} /></>}
+          {tab === "timeline" && <><Timeline records={records} state={timeline} setState={setTimeline} save={() => saveTimeline.mutate()} pending={saveTimeline.isPending} /><MutationError mutation={saveTimeline} /></>}
+          {tab === "maintenance" && <ReadState queries={[schedulesQuery]} label="Maintenance"><Maintenance schedules={schedulesQuery.data || []} appliances={appliances} state={schedule} setState={setSchedule} save={() => saveSchedule.mutate()} pending={saveSchedule.isPending} /><MutationError mutation={saveSchedule} /></ReadState>}
+          {tab === "requests" && <ReadState queries={[persistenceQuery, projectsQuery]} label="Request details"><Requests facts={facts} packets={packets} requestType={requestType} setRequestType={setRequestType} selected={selectedDetailIds} setSelected={setSelectedDetailIds} missing={missing} save={() => savePacket.mutate()} open={openRequest} pending={savePacket.isPending} /><MutationError mutation={savePacket} /></ReadState>}
+          {tab === "sale" && <Sale homeId={homeId} openProperty={openProperty} openDocuments={() => setTab("documents")} openRequest={() => openRequest()} />}
+        </main>
+      </>}
+    </ReadState>}
+    <Dialog open={newHomeOpen} onOpenChange={(open) => { if (!createHome.isPending) setNewHomeOpen(open); }}><DialogContent data-ts-core-ui="true" className="home-record-dialog"><DialogHeader><DialogTitle>New property</DialogTitle><DialogDescription>Add a private HomeID. An address is optional until you have the location.</DialogDescription></DialogHeader>
+      <NewHome state={newHome} setState={setNewHome} close={() => setNewHomeOpen(false)} create={() => createHome.mutate()} pending={createHome.isPending} /><MutationError mutation={createHome} />
+    </DialogContent></Dialog>
+  </div>;
 }
 
-function Overview({
-  propertyAssigned,
-  missing,
-  components,
-  evidence,
-  projectMeta,
-  openProperty,
-  openSystems,
-  openDocuments,
-}: {
-  propertyAssigned: boolean;
-  missing: string[];
-  components: Component[];
-  evidence: Evidence[];
-  projectMeta: Record<string, any>;
-  openProperty: () => void;
-  openSystems: () => void;
-  openDocuments: () => void;
+export function Overview({ project, missing, components, evidence, facts, documents, openProperty, openSystems, openDocuments }: {
+  project: HomeProject | null; missing: string[]; components: HomeSystem[]; evidence: HomeEvidence[]; facts: HomeIdPropertyDetail[]; documents: HomeDocument[];
+  openProperty: () => void; openSystems: () => void; openDocuments: () => void;
 }) {
-  const coverage = [
-    ...components.filter((item) => COVERED.has(item.type)).map((item) => item.label),
-    ...Object.keys(record(projectMeta.currentCoverage)).map(human),
-    "TradeScout professional network",
-  ].filter((item, index, all) => item && all.indexOf(item) === index);
-
-  return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,.75fr)]">
-      <div className="space-y-5">
-        <Panel
-          eyebrow="Current stage"
-          title={propertyAssigned ? "Design and property screening" : "Preconstruction"}
-          action={
-            <Pill
-              status={missing.length ? "needs_info" : "known"}
-              label={missing.length ? "Needs information" : "Ready for next gate"}
-            />
-          }
-        >
-          <p className="max-w-3xl text-sm leading-6 text-white/[0.55]">
-            This HomeID organizes the property, package, source records, open decisions, and handoff
-            without pretending the final design or jurisdiction approval already exists.
-          </p>
-          <div className="mt-6 overflow-x-auto pb-2">
-            <div className="flex min-w-[720px] items-start">
-              {STAGES.map((stage, index) => (
-                <div key={stage} className="flex flex-1 items-start">
-                  <div className="flex min-w-[78px] flex-col items-center text-center">
-                    <span
-                      className={`grid h-9 w-9 place-items-center rounded-full border ${
-                        index === (propertyAssigned ? 1 : 0)
-                          ? "border-orange-400 bg-orange-500 font-black text-black"
-                          : index < (propertyAssigned ? 1 : 0)
-                            ? "border-emerald-400/[0.40] bg-emerald-400/[0.15] text-emerald-300"
-                            : "border-white/[0.12] bg-white/[0.035] text-white/[0.35]"
-                      }`}
-                    >
-                      {index < (propertyAssigned ? 1 : 0) ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        index + 1
-                      )}
-                    </span>
-                    <span className="mt-2 text-[10px] font-black uppercase tracking-[0.08em] text-white/[0.42]">
-                      {stage}
-                    </span>
-                  </div>
-                  {index < STAGES.length - 1 ? (
-                    <span className="mt-4 h-px flex-1 bg-white/[0.10]" />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        </Panel>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Panel
-            eyebrow="Already covered"
-            title="Package relationships in place"
-            action={
-              <Button variant="ghost" className="text-orange-300" onClick={openSystems}>
-                View systems
-              </Button>
-            }
-          >
-            <div className="space-y-2">
-              {(coverage.length
-                ? coverage
-                : [
-                    "Steel structure",
-                    "Roofing",
-                    "Cabinets",
-                    "Natural stone",
-                    "TradeScout professional network",
-                  ]
-              )
-                .slice(0, 7)
-                .map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-3 rounded-xl border border-emerald-400/[0.12] bg-emerald-400/[0.04] px-3 py-2.5"
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                    <span className="text-sm font-semibold text-white/[0.74]">{item}</span>
-                  </div>
-                ))}
-            </div>
-            <p className="mt-4 text-xs leading-5 text-white/[0.38]">
-              Covered means a relationship or lane exists. Exact products, quantities, delivery,
-              warranties, and property scope still require confirmation.
-            </p>
-          </Panel>
-
-          <Panel
-            eyebrow="Release gate"
-            title="What must be decided next"
-            action={
-              <Button variant="ghost" className="text-orange-300" onClick={openProperty}>
-                Add facts
-              </Button>
-            }
-          >
-            {missing.length ? (
-              <ol className="space-y-2">
-                {missing.slice(0, 7).map((item, index) => (
-                  <li
-                    key={item}
-                    className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2.5"
-                  >
-                    <span className="grid h-6 w-6 place-items-center rounded-full bg-orange-400/[0.12] text-[10px] font-black text-orange-200">
-                      {index + 1}
-                    </span>
-                    <span className="text-sm leading-5 text-white/[0.62]">{item}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <Empty
-                icon={<CheckCircle2 className="h-5 w-5" />}
-                title="No major planning gaps detected"
-                text="Review the property, engineering, supplier, payment, and inspection gates before final release."
-              />
-            )}
-          </Panel>
-        </div>
-      </div>
-
-      <div className="space-y-5">
-        <Panel eyebrow="Readiness" title="What this record can support now">
-          {[
-            ["Organize the preconstruction package", true],
-            ["Preserve source-backed planning facts", true],
-            ["Track open systems and partners", true],
-            ["Release a final property package", false],
-            ["Claim permit or code approval", false],
-          ].map(([label, ready]) => (
-            <div key={String(label)} className="mb-3 flex items-start gap-3 last:mb-0">
-              {ready ? (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
-              ) : (
-                <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-300" />
-              )}
-              <span className="text-sm leading-5 text-white/[0.60]">{label}</span>
-            </div>
-          ))}
-          {!propertyAssigned ? (
-            <Button className={`mt-5 w-full ${PRIMARY}`} onClick={openProperty}>
-              Assign the property first
-            </Button>
-          ) : null}
-        </Panel>
-
-        <Panel
-          eyebrow="Evidence"
-          title="Source-backed facts"
-          action={
-            <Button variant="ghost" className="text-orange-300" onClick={openDocuments}>
-              Open records
-            </Button>
-          }
-        >
-          {evidence.length ? (
-            <div className="space-y-3">
-              {evidence.slice(0, 4).map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-2xl border border-white/[0.09] bg-black/[0.18] p-3.5"
-                >
-                  <p className="text-sm font-black text-white/[0.80]">{item.title}</p>
-                  <p className="mt-1 line-clamp-3 text-xs leading-5 text-white/[0.42]">
-                    {item.description || "Source record attached to this HomeID."}
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <Pill status={item.status} />
-                    {!item.fileUrl ? (
-                      <span className="rounded-full border border-white/[0.09] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.10em] text-white/[0.35]">
-                        Reference only
-                      </span>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              icon={<FileText className="h-5 w-5" />}
-              title="No evidence records yet"
-              text="Add plans, surveys, permits, receipts, warranties, and inspections when they become real."
-            />
-          )}
-        </Panel>
-      </div>
-    </div>
-  );
-}
-
-function Property({
-  home,
-  known,
-  review,
-  detail,
-  setDetail,
-  detailRef,
-  save,
-  pending,
-}: {
-  home: HomeRow | null;
-  known: HomeIdPropertyDetail[];
-  review: HomeIdPropertyDetail[];
-  detail: { category: string; note: string; status: "known" | "needs_review" };
-  setDetail: React.Dispatch<React.SetStateAction<typeof detail>>;
-  detailRef: React.RefObject<HTMLTextAreaElement>;
-  save: () => void;
-  pending: boolean;
-}) {
-  const identity = [
-    ["Street address", home?.address1],
-    ["City", home?.city],
-    ["State", home?.stateCode],
-    ["ZIP", home?.zipCode],
-    ["County FIPS", home?.countyFips],
-    ["Year built", home?.yearBuilt],
-  ];
-
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_430px]">
-        <Panel eyebrow="Property identity" title="Where this HomeID belongs">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {identity.map(([label, value]) => (
-              <div
-                key={String(label)}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-              >
-                <p className="text-[10px] font-black uppercase tracking-[0.13em] text-white/[0.35]">
-                  {label}
-                </p>
-                <p
-                  className={`mt-2 text-sm font-black ${value ? "text-white/[0.78]" : "text-amber-200/[0.80]"}`}
-                >
-                  {value || "Not assigned"}
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 rounded-2xl border border-amber-400/[0.18] bg-amber-400/[0.055] p-4 text-xs leading-5 text-amber-100/[0.72]">
-            Add the address or parcel facts now. Final release still requires the legal description,
-            survey, restrictions, jurisdiction, utilities, hazards, and applicable professional
-            approvals.
-          </p>
-        </Panel>
-
-        <Panel eyebrow="Add one fact" title="Update the property record">
-          <div className="space-y-4">
-            <div>
-              <Label>Category</Label>
-              <Select
-                value={detail.category}
-                onValueChange={(value) => setDetail((current) => ({ ...current, category: value }))}
-              >
-                <SelectTrigger className={`mt-1 ${INPUT}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DETAIL_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {human(category)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Property fact</Label>
-              <Textarea
-                ref={detailRef}
-                value={detail.note}
-                onChange={(event) =>
-                  setDetail((current) => ({ ...current, note: event.target.value }))
-                }
-                placeholder="Example: Parcel 123-456, city water at the road, survey dated May 14, 2026."
-                className={`mt-1 min-h-28 ${INPUT}`}
-              />
-            </div>
-            <div>
-              <Label>Confidence</Label>
-              <Select
-                value={detail.status}
-                onValueChange={(value) =>
-                  setDetail((current) => ({
-                    ...current,
-                    status: value === "needs_review" ? "needs_review" : "known",
-                  }))
-                }
-              >
-                <SelectTrigger className={`mt-1 ${INPUT}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="known">Known and source-backed</SelectItem>
-                  <SelectItem value="needs_review">Needs review</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              className={`w-full ${PRIMARY}`}
-              onClick={save}
-              disabled={pending || !detail.note.trim()}
-            >
-              Save property fact
-            </Button>
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        <FactList
-          title={`Confirmed planning facts (${known.length})`}
-          items={known}
-          empty="No confirmed property facts yet."
-        />
-        <FactList
-          title={`Needs confirmation (${review.length})`}
-          items={review}
-          empty="Nothing is waiting for review."
-        />
-      </div>
-    </div>
-  );
-}
-
-function FactList({
-  title,
-  items,
-  empty,
-}: {
-  title: string;
-  items: HomeIdPropertyDetail[];
-  empty: string;
-}) {
-  return (
-    <Panel title={title}>
-      {items.length ? (
-        <div className="space-y-3">
-          {items.map((item) => (
-            <article
-              key={item.id}
-              className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-orange-300">
-                  {human(item.category)}
-                </p>
-                <Pill status={item.status} />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-white/[0.68]">{item.note}</p>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <Empty
-          icon={<Database className="h-5 w-5" />}
-          title={empty}
-          text="Add facts only when they are known or clearly marked for review."
-        />
-      )}
-    </Panel>
-  );
-}
-
-function Build({
-  project,
-  metadata,
-  missing,
-  homeId,
-  openProperty,
-}: {
-  project: HomeProject | null;
-  metadata: Record<string, any>;
-  missing: string[];
-  homeId: string | null;
-  openProperty: () => void;
-}) {
-  if (!project) {
-    return (
-      <Empty
-        icon={<HardHat className="h-5 w-5" />}
-        title="No build project is attached"
-        text="Start a build timeline when the property and project are ready to move beyond a general HomeID."
-        action={
-          <Button
-            className={PRIMARY}
-            onClick={() =>
-              (window.location.href = `/homes/build${homeId ? `?homeId=${encodeURIComponent(homeId)}` : ""}`)
-            }
-          >
-            Start Build Timeline
-          </Button>
-        }
-      />
-    );
-  }
-
-  const coverage = record(metadata.currentCoverage);
-  const unresolved = list<string>(metadata.unresolvedPackageLanes);
-  const boundaries = list<string>(metadata.boundaries);
-
-  return (
-    <div className="space-y-5">
-      <Panel
-        eyebrow="Active build"
-        title={project.title || "Build project"}
-        action={<Pill status={String(project.status || "planning")} />}
-      >
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <p className="text-sm leading-7 text-white/[0.60]">
-            {project.description ||
-              "This project is still in planning. Property, design, engineering, package, and release gates remain visible."}
-          </p>
-          <dl className="rounded-2xl border border-white/[0.09] bg-black/[0.18] p-4 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-white/[0.40]">Type</dt>
-              <dd className="font-black text-white/[0.72]">
-                {human(project.projectType || "new_build")}
-              </dd>
-            </div>
-            <div className="mt-3 flex justify-between gap-3">
-              <dt className="text-white/[0.40]">Target start</dt>
-              <dd className="font-black text-white/[0.72]">
-                {date(project.desiredStartAt, "Not set")}
-              </dd>
-            </div>
-            <div className="mt-3 flex justify-between gap-3">
-              <dt className="text-white/[0.40]">Budget</dt>
-              <dd className="font-black text-white/[0.72]">
-                {money(project.estimatedCost) || "Not set"}
-              </dd>
-            </div>
-          </dl>
-        </div>
+  const stage = savedProjectStage(project);
+  return <div className="hr-stack">
+    <div className="hr-summary-grid">{[["Saved property details", facts.length], ["System records", components.length], ["Uploaded documents", documents.length], ["Listed open inputs", missing.length]].map(([label, count]) => <div className="hr-summary" key={label}><strong>{count}</strong><span>{label}</span></div>)}</div>
+    <div className="hr-two-columns">
+      <Panel title="Project & planning"><h3>{project?.title || "No project selected"}</h3><div className="hr-actions"><Pill status={project?.status} /><span className="hr-muted">Project stage: {stage || "Not recorded"}</span></div>
+        <p>{project?.description || "Open Projects & build to start or select the work for this property."}</p>
+        <details className="hr-details"><summary>View the planning sequence</summary><p className="hr-muted">A planning reference, not a list of completed milestones.</p><ol className="hr-planning-sequence">{STAGES.map((name) => <li key={name} aria-current={stage?.toLowerCase() === name.toLowerCase() ? "step" : undefined}>{name}</li>)}</ol></details>
       </Panel>
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Panel eyebrow="Current coverage" title="Package lanes represented">
-          {Object.keys(coverage).length ? (
-            <div className="space-y-2">
-              {Object.entries(coverage).map(([key, value]) => (
-                <div
-                  key={key}
-                  className="flex items-center justify-between rounded-xl border border-emerald-400/[0.12] bg-emerald-400/[0.04] px-3 py-3"
-                >
-                  <span className="text-sm font-bold text-white/[0.72]">{human(key)}</span>
-                  <span className="text-[10px] font-black uppercase text-emerald-300">
-                    {human(value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              icon={<PackageCheck className="h-5 w-5" />}
-              title="Coverage has not been classified"
-              text="Add supplier lanes and exact scope before the project becomes order-ready."
-            />
-          )}
-        </Panel>
-
-        <Panel eyebrow="Open lanes" title="Package categories unresolved">
-          <div className="grid gap-2 sm:grid-cols-2">
-            {unresolved.map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-white/[0.09] bg-black/[0.15] px-3 py-3 text-sm text-white/[0.55]"
-              >
-                {human(item)}
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <Panel eyebrow="Next gate" title="Required decisions before release">
-          <ol className="grid gap-3 lg:grid-cols-2">
-            {missing.map((item, index) => (
-              <li
-                key={item}
-                className="flex items-start gap-3 rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-              >
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-orange-400/[0.12] text-xs font-black text-orange-200">
-                  {index + 1}
-                </span>
-                <span className="text-sm leading-6 text-white/[0.62]">{item}</span>
-              </li>
-            ))}
-          </ol>
-          <Button variant="outline" className={`mt-5 ${SECONDARY}`} onClick={openProperty}>
-            Add property facts
-          </Button>
-        </Panel>
-
-        <Panel eyebrow="Boundaries" title="What this project does not claim">
-          {(boundaries.length
-            ? boundaries
-            : [
-                "No property-specific approval is represented.",
-                "No final design, price, supplier order, permit, or schedule is represented.",
-                "No installed equipment or warranty activation is represented.",
-              ]
-          ).map((item) => (
-            <div key={item} className="mb-3 flex items-start gap-3 last:mb-0">
-              <ShieldCheck className="mt-0.5 h-4 w-4 text-amber-300" />
-              <p className="text-sm leading-6 text-white/[0.58]">{item}</p>
-            </div>
-          ))}
-          <Button
-            className={`mt-5 w-full ${PRIMARY}`}
-            onClick={() =>
-              (window.location.href = `/homes/build${homeId ? `?homeId=${encodeURIComponent(homeId)}` : ""}`)
-            }
-          >
-            Open Build Timeline
-          </Button>
-        </Panel>
-      </div>
+      <Panel title="Open planning inputs" action={<Action onClick={openProperty}>Add property note</Action>}>{missing.length ? <ul className="hr-list">{missing.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="hr-muted">No open inputs are listed in the saved project and requests.</p>}<p className="hr-note">An empty list does not confirm project readiness.</p></Panel>
+      <Panel title="Package & systems" action={<Action onClick={openSystems}>View systems</Action>}><SavedEntries value={object(project?.metadata).currentCoverage} empty="No package coverage has been recorded." /><p className="hr-note">{components.length} system records. Status is shown as recorded, not inferred from the system category.</p></Panel>
+      <Panel title="Documents & references" action={<Action onClick={openDocuments}>Open documents</Action>}><p>{documents.length} uploaded files · {evidence.length} references</p>{evidence.length ? <ul className="hr-list">{evidence.slice(0, 4).map((item) => <li key={item.id}>{item.title}<Pill status={item.status} /></li>)}</ul> : <p className="hr-muted">No references have been added.</p>}<p className="hr-note">File links and references are separate from uploaded property documents.</p></Panel>
     </div>
-  );
+  </div>;
 }
 
-function Systems({ components }: { components: Component[] }) {
-  const groups = [
-    ["Structure & envelope", ["structural_system", "roofing", "windows_doors", "insulation"]],
-    ["Property & site", ["site_foundation_utilities"]],
-    ["Mechanical & utilities", ["hvac", "water_heater", "plumbing", "electrical_lighting"]],
-    [
-      "Interior package",
-      ["cabinets", "natural_stone", "flooring", "appliances", "interior_finishes"],
-    ],
-    ["Protection", ["warranty_protection"]],
-    ["Plans & logistics", ["plans_engineering", "freight_logistics"]],
-  ] as const;
-
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          ["Relationship covered", components.filter((item) => COVERED.has(item.type)).length],
-          ["Needs selection", components.filter((item) => item.status === "needs_review").length],
-          ["Not yet defined", components.filter((item) => item.status === "unknown").length],
-        ].map(([label, value]) => (
-          <div key={String(label)} className={`${PANEL} p-4`}>
-            <p className="text-3xl font-black text-white">{value}</p>
-            <p className="mt-2 text-xs font-black uppercase tracking-[0.13em] text-white/[0.45]">
-              {label}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-        {groups.map(([name, types]) => {
-          const items = components.filter((item) =>
-            (types as readonly string[]).includes(item.type)
-          );
-          return (
-            <Panel key={name} title={name}>
-              {items.length ? (
-                <div className="space-y-3">
-                  {items.map((item) => {
-                    const covered = COVERED.has(item.type);
-                    return (
-                      <article
-                        key={item.id}
-                        className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-black leading-5 text-white/[0.76]">
-                            {item.label}
-                          </p>
-                          <Pill
-                            status={covered ? "known" : item.status}
-                            label={covered ? "Relationship covered" : undefined}
-                          />
-                        </div>
-                        <p className="mt-3 text-xs leading-5 text-white/[0.38]">
-                          {covered
-                            ? "A supplier or package lane exists. Product, quantity, delivery, and property scope still need confirmation."
-                            : item.status === "needs_review"
-                              ? "The lane is identified but the exact selection is not approved."
-                              : "This package lane has not been defined yet."}
-                        </p>
-                      </article>
-                    );
-                  })}
-                </div>
-              ) : (
-                <Empty
-                  icon={<Wrench className="h-5 w-5" />}
-                  title="Nothing recorded here"
-                  text="Add the system when it becomes part of the property or package record."
-                />
-              )}
-            </Panel>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function Documents({
-  documents,
-  evidence,
-  fileRef,
-  docType,
-  setDocType,
-  docFile,
-  setDocFile,
-  upload,
-  pending,
-}: {
-  documents: HomeDocument[];
-  evidence: Evidence[];
-  fileRef: React.RefObject<HTMLInputElement>;
-  docType: string;
-  setDocType: (value: string) => void;
-  docFile: File | null;
-  setDocFile: (file: File | null) => void;
-  upload: () => void;
-  pending: boolean;
+function Property({ home, viewerId, known, review, detail, setDetail, detailRef, save, pending }: {
+  home: HomeSummary; viewerId: string; known: HomeIdPropertyDetail[]; review: HomeIdPropertyDetail[]; detail: DetailDraft;
+  setDetail: React.Dispatch<React.SetStateAction<DetailDraft>>; detailRef: React.RefObject<HTMLTextAreaElement>; save: () => void; pending: boolean;
 }) {
-  return (
-    <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
-      <Panel eyebrow="Private storage" title="Upload a real property document">
-        <div className="space-y-4">
-          <Select value={docType} onValueChange={setDocType}>
-            <SelectTrigger className={INPUT}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DOC_TYPES.map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <label className="block cursor-pointer rounded-2xl border border-dashed border-orange-400/[0.25] bg-orange-400/[0.045] p-5 text-center">
-            <Upload className="mx-auto h-6 w-6 text-orange-300" />
-            <p className="mt-3 text-sm font-black text-white/[0.75]">
-              {docFile ? docFile.name : "Choose a file"}
-            </p>
-            <p className="mt-1 text-xs text-white/[0.38]">
-              Plans, surveys, permits, inspections, receipts, manuals, photos, and warranties.
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              className="sr-only"
-              onChange={(event) => setDocFile(event.target.files?.[0] || null)}
-            />
-          </label>
-          <Button className={`w-full ${PRIMARY}`} onClick={upload} disabled={pending || !docFile}>
-            Upload to HomeID
-          </Button>
-        </div>
-      </Panel>
-
-      <div className="space-y-5">
-        <Panel eyebrow="Stored files" title={`Property documents (${documents.length})`}>
-          {documents.length ? (
-            <div className="grid gap-3 lg:grid-cols-2">
-              {documents.map((item) => (
-                <article
-                  key={String(item.id)}
-                  className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400/[0.10] text-emerald-300">
-                      <FileText className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-white/[0.78]">
-                        {item.originalName || "HomeID document"}
-                      </p>
-                      <p className="mt-1 text-xs text-white/[0.38]">
-                        {human(item.documentType)}
-                        {bytes(item.bytes) ? ` · ${bytes(item.bytes)}` : ""}
-                      </p>
-                      <p className="mt-2 text-[10px] uppercase text-white/[0.28]">
-                        Added {date(item.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              icon={<FolderOpen className="h-5 w-5" />}
-              title="No files are stored yet"
-              text="The planning sources currently appear as evidence references. Upload the actual file when it belongs in HomeID."
-            />
-          )}
-        </Panel>
-
-        <Panel eyebrow="Source record" title={`Evidence and references (${evidence.length})`}>
-          <div className="space-y-3">
-            {evidence.map((item) => (
-              <article
-                key={item.id}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-black text-white/[0.78]">{item.title}</p>
-                    {item.fileName ? (
-                      <p className="mt-1 text-xs font-semibold text-orange-200/[0.70]">
-                        {item.fileName}
-                      </p>
-                    ) : null}
-                    <p className="mt-2 text-xs leading-5 text-white/[0.42]">
-                      {item.description || "Evidence attached to this HomeID."}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Pill status={item.status} />
-                    <span className="rounded-full border border-white/[0.09] px-2.5 py-1 text-[9px] font-bold uppercase text-white/[0.35]">
-                      {item.fileUrl ? "Stored file" : "Reference only"}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </Panel>
-      </div>
-    </div>
-  );
+  return <div className="hr-stack"><div className="hr-two-columns"><Panel title="Property identity" action={<HomeIdentityEditor homeId={home.id} viewerId={viewerId} triggerLabel="Edit address & details" className="hr-button" />}>
+    <dl className="hr-facts"><div><dt>Property name</dt><dd>{homeName(home)}</dd></div><div><dt>Address</dt><dd>{homeAddress(home) || "Not recorded"}</dd></div><div><dt>Property type</dt><dd>{HOME_IDENTITY_TYPES.find(([type]) => type === home.propertyType)?.[1] || human(home.propertyType)}</dd></div><div><dt>Year built</dt><dd>{home.yearBuilt || "Not recorded"}</dd></div></dl>
+    <p className="hr-note">Use Edit address & details for the property's address. Use a note for measurements, parcel information, decisions, or anything to review.</p>
+  </Panel><Panel title="Add a property note"><form onSubmit={(event) => { event.preventDefault(); save(); }}><fieldset disabled={pending} className="hr-form">
+    <label>Category<select value={detail.category} onChange={(event) => setDetail((current) => ({ ...current, category: event.target.value }))}>{DETAIL_CATEGORIES.map((category) => <option key={category} value={category}>{human(category)}</option>)}</select></label>
+    <label>Property note<textarea ref={detailRef} value={detail.note} maxLength={20000} onChange={(event) => setDetail((current) => ({ ...current, note: event.target.value }))} placeholder="Add a measurement, parcel detail, decision, or item to review." /></label>
+    <label>Review status<select value={detail.status} onChange={(event) => setDetail((current) => ({ ...current, status: event.target.value === "needs_review" ? "needs_review" : "known" }))}><option value="known">Recorded by you</option><option value="needs_review">Needs review</option></select></label>
+    <button className="hr-button hr-primary" disabled={pending || !detail.note.trim()} type="submit">{pending ? "Saving…" : "Save property note"}</button>
+  </fieldset></form></Panel></div><div className="hr-two-columns"><FactList title={`Saved details (${known.length})`} items={known} /><FactList title={`Needs review (${review.length})`} items={review} /></div></div>;
+}
+function FactList({ title, items }: { title: string; items: HomeIdPropertyDetail[] }) {
+  return <Panel title={title}>{items.length ? <div className="hr-stack">{items.map((item) => <article key={item.id} className="hr-item"><div className="hr-item-heading"><h3>{human(item.category)}</h3><Pill status={item.status} /></div><p className="hr-prewrap">{item.note}</p></article>)}</div> : <p className="hr-muted">No details in this group.</p>}</Panel>;
 }
 
-function Timeline({
-  records,
-  state,
-  setState,
-  save,
-  pending,
-}: {
-  records: HomeRecord[];
-  state: { recordType: string; occurredAt: string; title: string; details: string };
-  setState: React.Dispatch<React.SetStateAction<typeof state>>;
-  save: () => void;
-  pending: boolean;
+export function Build({ project, projects, projectId, homeId, missing, openProperty, selectProject }: {
+  project: HomeProject | null; projects: HomeProject[]; projectId: string | null; homeId: string; missing: string[]; openProperty: () => void; selectProject: (id: string | null) => void;
 }) {
-  return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
-      <Panel
-        eyebrow="Permanent history"
-        title={`Property and project timeline (${records.length})`}
-      >
-        {records.length ? (
-          <div className="relative ml-2 border-l border-white/[0.10] pl-6">
-            {records.map((item, index) => (
-              <article key={String(item.id || index)} className="relative pb-7 last:pb-0">
-                <span className="absolute -left-[31px] top-1 h-3 w-3 rounded-full border-2 border-orange-400 bg-[#0b0d0f]" />
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-white/[0.09] px-2.5 py-1 text-[9px] font-black uppercase text-white/[0.45]">
-                    {human(item.recordType || "note")}
-                  </span>
-                  <span className="text-[10px] font-bold uppercase text-white/[0.28]">
-                    {date(item.occurredAt || item.createdAt)}
-                  </span>
-                </div>
-                <h3 className="mt-2 font-black text-white/[0.80]">
-                  {item.title || "Timeline entry"}
-                </h3>
-                {item.details ? (
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-white/[0.50]">
-                    {item.details}
-                  </p>
-                ) : null}
-              </article>
-            ))}
-          </div>
-        ) : (
-          <Empty
-            icon={<Clock3 className="h-5 w-5" />}
-            title="No visible timeline events"
-            text="Add decisions, inspections, completed work, warranties, maintenance, and ownership events as they occur."
-          />
-        )}
-      </Panel>
-
-      <Panel eyebrow="Add event" title="Write the next permanent record">
-        <div className="space-y-4">
-          <Select
-            value={state.recordType}
-            onValueChange={(value) => setState((current) => ({ ...current, recordType: value }))}
-          >
-            <SelectTrigger className={INPUT}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RECORD_TYPES.map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            type="date"
-            value={state.occurredAt}
-            onChange={(event) =>
-              setState((current) => ({ ...current, occurredAt: event.target.value }))
-            }
-            className={INPUT}
-          />
-          <Input
-            value={state.title}
-            onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))}
-            placeholder="Example: Survey completed"
-            className={INPUT}
-          />
-          <Textarea
-            value={state.details}
-            onChange={(event) =>
-              setState((current) => ({ ...current, details: event.target.value }))
-            }
-            placeholder="What happened, who handled it, and what happens next?"
-            className={`min-h-28 ${INPUT}`}
-          />
-          <Button
-            className={`w-full ${PRIMARY}`}
-            onClick={save}
-            disabled={pending || !state.title.trim()}
-          >
-            Save timeline event
-          </Button>
-        </div>
-      </Panel>
-    </div>
-  );
+  return <div className="hr-stack"><div className="hr-actions"><label className="hr-picker">Choose project<select value={project?.id || ""} onChange={(event) => selectProject(event.target.value || null)}><option value="">Choose a saved project</option>{projects.map((item) => <option key={item.id} value={item.id}>{item.title || "Untitled project"}</option>)}</select></label><Link className="hr-button" href={buildTimelineHref(homeId, project?.id)}>Open Build Timeline<ArrowUpRight size={16} aria-hidden="true" /></Link></div>
+    {!project ? <Empty title={projectId ? "This project is not available in this property" : "No build project is attached"} text={projectId ? "Choose another saved project. No other project has been substituted." : "Start a project timeline when you are ready to plan work."} action={projectId ? <Action onClick={() => selectProject(null)}>Show this property's projects</Action> : <Link className="hr-button hr-primary" href={buildTimelineHref(homeId)}>Start Build Timeline</Link>} /> : <>
+      <Panel title={project.title || "Build project"} action={<Pill status={project.status} />}><p>{project.description || "No project description recorded."}</p><dl className="hr-facts"><div><dt>Type</dt><dd>{human(project.projectType)}</dd></div><div><dt>Stage</dt><dd>{savedProjectStage(project) || "Not recorded"}</dd></div><div><dt>Target start</dt><dd>{dateLabel(project.desiredStartAt)}</dd></div><div><dt>Budget</dt><dd>{money(project.estimatedCost)}</dd></div></dl></Panel>
+      <div className="hr-two-columns"><Panel title="Recorded package coverage"><SavedEntries value={object(project.metadata).currentCoverage} /></Panel><Panel title="Unresolved package categories">{textList(object(project.metadata).unresolvedPackageLanes).length ? <ul className="hr-list">{textList(object(project.metadata).unresolvedPackageLanes).map((item) => <li key={item}>{human(item)}</li>)}</ul> : <p className="hr-muted">No unresolved categories are listed.</p>}</Panel>
+      <Panel title="Listed planning inputs" action={<Action onClick={openProperty}>Add property note</Action>}>{missing.length ? <ol className="hr-list">{missing.map((item) => <li key={item}>{item}</li>)}</ol> : <p className="hr-muted">No open inputs are listed. Review the project before ordering or scheduling.</p>}</Panel>
+      <Panel title="Project boundaries & notes">{textList(object(project.metadata).boundaries).length ? <ul className="hr-list">{textList(object(project.metadata).boundaries).map((item) => <li key={item}>{item}</li>)}</ul> : <p className="hr-muted">No project-specific boundaries have been recorded.</p>}</Panel></div>
+    </>}
+  </div>;
 }
 
-function Maintenance({
-  schedules,
-  appliances,
-  state,
-  setState,
-  save,
-  pending,
-}: {
-  schedules: HomeSchedule[];
-  appliances: any[];
-  state: { title: string; cadenceDays: string; nextDueAt: string };
-  setState: React.Dispatch<React.SetStateAction<typeof state>>;
-  save: () => void;
-  pending: boolean;
-}) {
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
-        <Panel eyebrow="Preventive care" title={`Maintenance schedules (${schedules.length})`}>
-          {schedules.length ? (
-            <div className="grid gap-3 lg:grid-cols-2">
-              {schedules.map((item) => (
-                <article
-                  key={String(item.id)}
-                  className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-black text-white/[0.78]">
-                        {item.title || "Maintenance item"}
-                      </p>
-                      <p className="mt-1 text-xs text-white/[0.38]">
-                        Every {item.cadenceDays || 90} days
-                      </p>
-                    </div>
-                    <Pill status={String(item.status || "active")} />
-                  </div>
-                  <p className="mt-4 inline-flex items-center gap-2 text-xs text-white/[0.50]">
-                    <CalendarClock className="h-4 w-4 text-orange-300" />
-                    Next due {date(item.nextDueAt, "not scheduled")}
-                  </p>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              icon={<CalendarClock className="h-5 w-5" />}
-              title="No maintenance schedules yet"
-              text="Schedules begin when real equipment, warranties, and occupancy dates exist."
-            />
-          )}
-        </Panel>
-
-        <Panel eyebrow="Create schedule" title="Add preventive maintenance">
-          <div className="space-y-4">
-            <Input
-              value={state.title}
-              onChange={(event) =>
-                setState((current) => ({ ...current, title: event.target.value }))
-              }
-              placeholder="Example: Flush tankless water heater"
-              className={INPUT}
-            />
-            <Select
-              value={state.cadenceDays}
-              onValueChange={(value) => setState((current) => ({ ...current, cadenceDays: value }))}
-            >
-              <SelectTrigger className={INPUT}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30">30 days</SelectItem>
-                <SelectItem value="90">90 days</SelectItem>
-                <SelectItem value="180">6 months</SelectItem>
-                <SelectItem value="365">1 year</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="date"
-              value={state.nextDueAt}
-              onChange={(event) =>
-                setState((current) => ({ ...current, nextDueAt: event.target.value }))
-              }
-              className={INPUT}
-            />
-            <Button
-              className={`w-full ${PRIMARY}`}
-              onClick={save}
-              disabled={pending || !state.title.trim()}
-            >
-              Create schedule
-            </Button>
-          </div>
-        </Panel>
-      </div>
-
-      <Panel eyebrow="Installed assets" title={`Appliances and equipment (${appliances.length})`}>
-        {appliances.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {appliances.map((item) => (
-              <article
-                key={String(item.id)}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-              >
-                <p className="text-[10px] font-black uppercase text-orange-300">
-                  {item.category || "Equipment"}
-                </p>
-                <p className="mt-2 text-sm font-black text-white/[0.78]">
-                  {[item.brand, item.model].filter(Boolean).join(" ") || "Details not added"}
-                </p>
-                <p className="mt-2 text-xs text-white/[0.38]">
-                  {item.serial ? `Serial ${item.serial}` : "Serial number not added"}
-                </p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <Empty
-            icon={<Wrench className="h-5 w-5" />}
-            title="No installed equipment yet"
-            text="Do not create equipment records until a real product has been selected or installed."
-          />
-        )}
-      </Panel>
-    </div>
-  );
+export function Systems({ components }: { components: HomeSystem[] }) {
+  return <div className="hr-stack"><div className="hr-summary-grid">{[["Recorded", "known"], ["Needs review", "needs_review"], ["Not defined", "unknown"]].map(([label, status]) => <div className="hr-summary" key={status}><strong>{components.filter((item) => item.status === status).length}</strong><span>{label}</span></div>)}</div>
+    <div className="hr-two-columns">{groupedSystems(components).map((group) => <Panel key={group.name} title={group.name}>{group.items.length ? <div className="hr-stack">{group.items.map((item) => <article key={item.id} className="hr-item"><div className="hr-item-heading"><h3>{item.label || human(item.type)}</h3><Pill status={item.status} /></div><p className="hr-muted">{human(item.type)}</p></article>)}</div> : <p className="hr-muted">No system records in this group.</p>}</Panel>)}</div>
+  </div>;
 }
 
-function Requests({
-  facts,
-  packets,
-  requestType,
-  setRequestType,
-  selected,
-  setSelected,
-  missing,
-  save,
-  open,
-  pending,
-}: {
-  facts: HomeIdPropertyDetail[];
-  packets: HomeIdRequestPacket[];
-  requestType: string;
-  setRequestType: (value: string) => void;
-  selected: string[];
-  setSelected: React.Dispatch<React.SetStateAction<string[]>>;
-  missing: string[];
-  save: () => void;
-  open: (packetId?: string) => void;
-  pending: boolean;
+export function Documents({ homeId, documents, evidence, referencesQuery, fileRef, docType, setDocType, docFile, setDocFile, upload, pending }: {
+  homeId: string; documents: HomeDocument[]; evidence: HomeEvidence[]; referencesQuery: ReadQuery;
+  fileRef: React.RefObject<HTMLInputElement>; docType: string; setDocType: (value: string) => void; docFile: File | null; setDocFile: (value: File | null) => void; upload: () => void; pending: boolean;
 }) {
-  const toggle = (id: string) =>
-    setSelected((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-    );
-
-  return (
-    <div className="grid gap-5 xl:grid-cols-[440px_minmax(0,1fr)]">
-      <Panel eyebrow="Prepare first" title="Build a request from HomeID facts">
-        <div className="space-y-4">
-          <Select value={requestType} onValueChange={setRequestType}>
-            <SelectTrigger className={INPUT}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["repair", "inspection", "quote", "maintenance", "documentation", "other"].map(
-                (type) => (
-                  <SelectItem key={type} value={type}>
-                    {human(type)}
-                  </SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
-          <div className="max-h-72 space-y-2 overflow-y-auto">
-            {facts.map((fact) => (
-              <label
-                key={fact.id}
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${selected.includes(fact.id) ? "border-orange-400/[0.30] bg-orange-400/[0.065]" : "border-white/[0.09] bg-black/[0.15]"}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(fact.id)}
-                  onChange={() => toggle(fact.id)}
-                  className="mt-1"
-                />
-                <span>
-                  <span className="block text-[10px] font-black uppercase text-orange-200">
-                    {human(fact.category)}
-                  </span>
-                  <span className="mt-1 line-clamp-3 block text-xs leading-5 text-white/[0.55]">
-                    {fact.note}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-          {missing.length ? (
-            <p className="rounded-2xl border border-amber-400/[0.16] bg-amber-400/[0.045] p-3 text-xs leading-5 text-amber-100/[0.60]">
-              {missing.length} planning inputs remain unresolved. HomeID will keep them visible.
-            </p>
-          ) : null}
-          <Button
-            className={`w-full ${PRIMARY}`}
-            onClick={save}
-            disabled={pending || !selected.length}
-          >
-            Save request details
-          </Button>
-        </div>
-      </Panel>
-
-      <Panel
-        eyebrow="Saved packets"
-        title={`Requests prepared from this HomeID (${packets.length})`}
-        action={
-          <Button className={PRIMARY} onClick={() => open()}>
-            Start a Request
-          </Button>
-        }
-      >
-        {packets.length ? (
-          <div className="space-y-3">
-            {packets.map((packet) => (
-              <article
-                key={packet.id}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-black text-white/[0.78]">
-                      {human(packet.requestType)} request
-                    </p>
-                    <p className="mt-1 text-xs text-white/[0.38]">
-                      {packet.selectedDetailIds.length} facts attached ·{" "}
-                      {packet.missingHelpfulInfoCount} missing inputs
-                    </p>
-                    <p className="mt-2 text-[10px] uppercase text-white/[0.28]">
-                      Saved {date(packet.savedAt)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Pill status={String(packet.status)} />
-                    <Button variant="outline" className={SECONDARY} onClick={() => open(packet.id)}>
-                      Open in Direct Connect
-                    </Button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <Empty
-            icon={<ClipboardList className="h-5 w-5" />}
-            title="No request details saved"
-            text="Choose the HomeID facts that matter, save the packet, then carry that context into Direct Connect."
-          />
-        )}
-      </Panel>
-    </div>
-  );
+  return <div className="hr-stack"><div className="hr-two-columns"><Panel title="Upload a property document"><form onSubmit={(event) => { event.preventDefault(); upload(); }}><fieldset className="hr-form" disabled={pending}>
+    <label>Document type<select value={docType} onChange={(event) => setDocType(event.target.value)}>{DOC_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    <label>Choose a file<input ref={fileRef} type="file" onChange={(event) => setDocFile(event.target.files?.[0] || null)} /></label>
+    <p className="hr-note">Plans, surveys, permits, inspections, receipts, manuals, photos, and warranties.</p>{docFile && <p>{docFile.name} · {fileSize(docFile.size)}</p>}
+    <button className="hr-button hr-primary" type="submit" disabled={pending || !docFile}>{pending ? "Uploading…" : "Upload to HomeID"}</button>
+  </fieldset></form></Panel><Panel title={`Property documents (${documents.length})`}>{documents.length ? <div className="hr-stack">{documents.map((item, index) => <article key={item.id || index} className="hr-item"><div className="hr-item-heading"><h3><FileText size={17} aria-hidden="true" />{item.originalName || "Property document"}</h3>{item.id && <a className="hr-button" href={documentDownloadHref(homeId, item.id)} target="_blank" rel="noopener noreferrer" aria-label={`Open ${item.originalName || "property document"}`}>Open / download<ArrowUpRight size={15} aria-hidden="true" /></a>}</div><p className="hr-muted">{human(item.documentType)}{fileSize(item.bytes) ? ` · ${fileSize(item.bytes)}` : ""} · Added {dateLabel(item.createdAt)}</p></article>)}</div> : <Empty title="No files are stored yet" text="Upload a property document to keep it here." />}</Panel></div>
+    <Panel title="References"><ReadState queries={[referencesQuery]} label="References">{evidence.length ? <div className="hr-two-columns">{evidence.map((item) => <article key={item.id} className="hr-item"><div className="hr-item-heading"><h3>{item.title}</h3><Pill status={item.status} /></div>{item.fileName && <p>{item.fileName}</p>}{item.description && <p className="hr-prewrap">{item.description}</p>}{safeEvidenceHref(item.fileUrl) ? <a className="hr-button" href={safeEvidenceHref(item.fileUrl)!} target="_blank" rel="noopener noreferrer">Open file link</a> : <span className="hr-muted">Reference only</span>}<p className="hr-note">A reference or file link is not proof that the original file is stored in HomeID.</p></article>)}</div> : <p className="hr-muted">No references have been added.</p>}</ReadState></Panel>
+  </div>;
 }
 
-function Sale({
-  homeId,
-  propertyAssigned,
-  evidenceCount,
-  missingCount,
-  openProperty,
-  openDocuments,
-  openRequest,
-}: {
-  homeId: string | null;
-  propertyAssigned: boolean;
-  evidenceCount: number;
-  missingCount: number;
-  openProperty: () => void;
-  openDocuments: () => void;
-  openRequest: () => void;
-}) {
-  const steps = [
-    [
-      "Build the living property record",
-      "Keep plans, systems, warranties, inspections, maintenance, and improvements tied to the property.",
-      evidenceCount > 0,
-    ],
-    [
-      "Solve readiness gaps",
-      "Use Direct Connect for repairs, inspections, photos, measurements, and documents.",
-      missingCount === 0,
-    ],
-    [
-      "Prepare the buyer-facing packet",
-      "Choose which verified property facts and records should be shared.",
-      false,
-    ],
-    [
-      "Choose the sale path",
-      "Direct, assisted, or agent-supported, with licensed professionals used where needed.",
-      false,
-    ],
-  ] as const;
-
-  return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <Panel
-        eyebrow="HomeScout path"
-        title="Sell from the property record, not scattered paperwork"
-      >
-        <div className="space-y-3">
-          {steps.map(([name, text, ready], index) => (
-            <article
-              key={name}
-              className="flex items-start gap-4 rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
-            >
-              <span
-                className={`grid h-9 w-9 place-items-center rounded-full border ${ready ? "border-emerald-400/[0.35] bg-emerald-400/[0.12] text-emerald-300" : "border-white/[0.10] bg-white/[0.035] text-white/[0.42]"}`}
-              >
-                {ready ? <Check className="h-4 w-4" /> : index + 1}
-              </span>
-              <div>
-                <h3 className="text-sm font-black text-white/[0.78]">{name}</h3>
-                <p className="mt-1 text-sm leading-6 text-white/[0.48]">{text}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </Panel>
-
-      <div className="space-y-5">
-        <Panel eyebrow="Readiness" title="What should happen next">
-          <div className="space-y-3">
-            {!propertyAssigned ? (
-              <Button className={`w-full justify-between ${PRIMARY}`} onClick={openProperty}>
-                Assign the property
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            ) : null}
-            <Button
-              variant="outline"
-              className={`w-full justify-between ${SECONDARY}`}
-              onClick={openDocuments}
-            >
-              Review property records
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className={`w-full justify-between ${SECONDARY}`}
-              onClick={openRequest}
-            >
-              Fix a readiness gap
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className={`w-full justify-between ${SECONDARY}`}
-              onClick={() =>
-                (window.location.href = `/homescout/new${homeId ? `?homeId=${encodeURIComponent(homeId)}` : ""}`)
-              }
-            >
-              Open HomeScout
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </Panel>
-        <Panel eyebrow="Professional boundary" title="The owner controls the path">
-          <p className="text-sm leading-7 text-white/[0.55]">
-            HomeScout helps organize sale preparation and property information. Real estate rules,
-            disclosures, contracts, title, and closing requirements vary by state. Use licensed
-            professionals when needed.
-          </p>
-        </Panel>
-      </div>
-    </div>
-  );
+function Timeline({ records, state, setState, save, pending }: { records: HomeRecord[]; state: TimelineDraft; setState: React.Dispatch<React.SetStateAction<TimelineDraft>>; save: () => void; pending: boolean }) {
+  return <div className="hr-two-columns"><Panel title={`Property history (${records.length})`}>{records.length ? <ol className="hr-history">{records.map((item, index) => <li key={item.id || index}><p className="hr-muted">{dateLabel(item.occurredAt || item.createdAt)} · {human(item.recordType)}</p><h3>{item.title || "History entry"}</h3>{item.details && <p className="hr-prewrap">{item.details}</p>}</li>)}</ol> : <Empty title="No history has been recorded" text="Keep decisions, inspections, completed work, warranties, and maintenance with the property." />}</Panel>
+    <Panel title="Add history entry"><form onSubmit={(event) => { event.preventDefault(); save(); }}><fieldset className="hr-form" disabled={pending}><label>Event type<select value={state.recordType} onChange={(event) => setState((current) => ({ ...current, recordType: event.target.value }))}>{RECORD_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Event date<input type="date" value={state.occurredAt} onChange={(event) => setState((current) => ({ ...current, occurredAt: event.target.value }))} /></label><label>Event title<input value={state.title} maxLength={220} onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))} /></label><label>Event details<textarea value={state.details} maxLength={20000} onChange={(event) => setState((current) => ({ ...current, details: event.target.value }))} /></label><button className="hr-button hr-primary" type="submit" disabled={pending || state.title.trim().length < 2}>{pending ? "Saving…" : "Save timeline event"}</button></fieldset></form></Panel>
+  </div>;
 }
 
-function NewHome({
-  state,
-  setState,
-  close,
-  create,
-  pending,
-}: {
-  state: {
-    nickname: string;
-    homeType: string;
-    address1: string;
-    city: string;
-    stateCode: string;
-    zipCode: string;
-  };
-  setState: React.Dispatch<React.SetStateAction<typeof state>>;
-  close: () => void;
-  create: () => void;
-  pending: boolean;
+function Maintenance({ schedules, appliances, state, setState, save, pending }: { schedules: HomeSchedule[]; appliances: HomeAppliance[]; state: ScheduleDraft; setState: React.Dispatch<React.SetStateAction<ScheduleDraft>>; save: () => void; pending: boolean }) {
+  return <div className="hr-stack"><div className="hr-two-columns"><Panel title={`Maintenance schedules (${schedules.length})`}>{schedules.length ? <div className="hr-stack">{schedules.map((item, index) => <article className="hr-item" key={item.id || index}><div className="hr-item-heading"><h3>{item.title || "Maintenance item"}</h3><Pill status={item.status} /></div><p className="hr-muted">{item.cadenceDays ? `Every ${item.cadenceDays} days` : "Interval not recorded"}</p><p>Next due: {dateLabel(item.nextDueAt)}</p></article>)}</div> : <Empty title="No maintenance schedules yet" text="Add the care interval and next due date for the property or equipment." />}</Panel>
+    <Panel title="Add preventive maintenance"><form onSubmit={(event) => { event.preventDefault(); save(); }}><fieldset className="hr-form" disabled={pending}><label>Maintenance title<input value={state.title} maxLength={220} onChange={(event) => setState((current) => ({ ...current, title: event.target.value }))} /></label><label>Repeat interval<select value={state.cadenceDays} onChange={(event) => setState((current) => ({ ...current, cadenceDays: event.target.value }))}><option value="30">30 days</option><option value="90">90 days</option><option value="180">6 months</option><option value="365">1 year</option></select></label><label>Next due date<input type="date" value={state.nextDueAt} onChange={(event) => setState((current) => ({ ...current, nextDueAt: event.target.value }))} /></label><p className="hr-note">When no due date is entered, the first date is the selected interval from today.</p><button className="hr-button hr-primary" type="submit" disabled={pending || state.title.trim().length < 2}>{pending ? "Saving…" : "Create schedule"}</button></fieldset></form></Panel></div>
+    <Panel title={`Appliances & equipment (${appliances.length})`}>{appliances.length ? <div className="hr-two-columns">{appliances.map((item, index) => <article className="hr-item" key={item.id || index}><h3>{[item.brand, item.model].filter(Boolean).join(" ") || item.category || "Equipment"}</h3><p className="hr-muted">{human(item.category)}</p><p>{item.serial ? `Serial: ${item.serial}` : "Serial number not recorded"}</p>{item.installedAt && <p>Installed: {dateLabel(item.installedAt)}</p>}{item.notes && <p className="hr-prewrap">{item.notes}</p>}</article>)}</div> : <p className="hr-muted">No equipment has been recorded.</p>}</Panel>
+  </div>;
+}
+
+function Requests({ facts, packets, requestType, setRequestType, selected, setSelected, missing, save, open, pending }: {
+  facts: HomeIdPropertyDetail[]; packets: HomeIdRequestPacket[]; requestType: string; setRequestType: (value: string) => void;
+  selected: string[]; setSelected: React.Dispatch<React.SetStateAction<string[]>>; missing: string[]; save: () => void; open: (packetId?: string) => void; pending: boolean;
 }) {
-  return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/[0.75] backdrop-blur-sm"
-        onClick={close}
-        aria-label="Close new HomeID"
-      />
-      <section className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] border border-white/[0.12] bg-[#111416] p-6 shadow-2xl sm:p-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.20em] text-orange-300">
-              New HomeID
-            </p>
-            <h2 className="mt-2 text-2xl font-black tracking-[-0.04em]">
-              Create the property passport
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/[0.10] text-white/[0.55]"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="mt-6 space-y-4">
-          <Input
-            value={state.nickname}
-            onChange={(event) =>
-              setState((current) => ({ ...current, nickname: event.target.value }))
-            }
-            placeholder="Nickname"
-            className={INPUT}
-          />
-          <Select
-            value={state.homeType}
-            onValueChange={(value) => setState((current) => ({ ...current, homeType: value }))}
-          >
-            <SelectTrigger className={INPUT}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {HOME_TYPES.map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={state.address1}
-            onChange={(event) =>
-              setState((current) => ({ ...current, address1: event.target.value }))
-            }
-            placeholder="Street address or site — optional"
-            className={INPUT}
-          />
-          <div className="grid gap-3 sm:grid-cols-[1fr_90px_110px]">
-            <Input
-              value={state.city}
-              onChange={(event) =>
-                setState((current) => ({ ...current, city: event.target.value }))
-              }
-              placeholder="City"
-              className={INPUT}
-            />
-            <Input
-              value={state.stateCode}
-              maxLength={2}
-              onChange={(event) =>
-                setState((current) => ({ ...current, stateCode: event.target.value.toUpperCase() }))
-              }
-              placeholder="State"
-              className={INPUT}
-            />
-            <Input
-              value={state.zipCode}
-              onChange={(event) =>
-                setState((current) => ({ ...current, zipCode: event.target.value }))
-              }
-              placeholder="ZIP"
-              className={INPUT}
-            />
-          </div>
-        </div>
-        <div className="mt-7 flex justify-end gap-2">
-          <Button variant="outline" className={SECONDARY} onClick={close}>
-            Cancel
-          </Button>
-          <Button className={PRIMARY} onClick={create} disabled={pending}>
-            Create HomeID
-          </Button>
-        </div>
-      </section>
-    </div>
-  );
+  return <div className="hr-two-columns"><Panel title="Prepare a request"><form onSubmit={(event) => { event.preventDefault(); save(); }}><fieldset className="hr-form" disabled={pending}>
+    <label>Request type<select value={requestType} onChange={(event) => setRequestType(event.target.value)}>{["repair", "inspection", "quote", "maintenance", "documentation", "other"].map((value) => <option key={value} value={value}>{human(value)}</option>)}</select></label>
+    <p>Choose the saved details to include.</p><div className="hr-selection-list">{facts.map((fact) => <label key={fact.id} className="hr-check"><input type="checkbox" checked={selected.includes(fact.id)} onChange={() => setSelected((current) => current.includes(fact.id) ? current.filter((id) => id !== fact.id) : [...current, fact.id])} /><span><strong>{human(fact.category)}</strong><span className="hr-prewrap">{fact.note}</span><Pill status={fact.status} /></span></label>)}</div>
+    {!facts.length && <p className="hr-muted">Add a property note before preparing saved request details.</p>}{missing.length > 0 && <p className="hr-note">{missing.length} open inputs are listed in the saved project and requests.</p>}
+    <button className="hr-button hr-primary" type="submit" disabled={pending || !selected.length}>{pending ? "Saving…" : "Save request details"}</button><p className="hr-note">Saving here does not submit a request or share your property.</p>
+  </fieldset></form></Panel><Panel title={`Saved request details (${packets.length})`} action={<Action onClick={() => open()}>Start a Request</Action>}>{packets.length ? <div className="hr-stack">{packets.map((packet) => <article key={packet.id} className="hr-item"><div className="hr-item-heading"><h3>{human(packet.requestType)} request</h3><Pill status={packet.status} /></div><p className="hr-muted">{packet.selectedDetailIds.length} details selected · {packet.missingHelpfulInfoCount} listed open inputs</p><p className="hr-muted">Saved {dateLabel(packet.savedAt)}</p><Action onClick={() => open(packet.id)}>Open in Direct Connect</Action></article>)}</div> : <Empty title="No request details saved" text="Choose the HomeID facts that matter, save the packet, then carry that context into Direct Connect." />}</Panel></div>;
+}
+
+export function Sale({ homeId, openProperty, openDocuments, openRequest }: { homeId: string; openProperty: () => void; openDocuments: () => void; openRequest: () => void }) {
+  return <div className="hr-two-columns"><Panel title="Sale & Transfer"><ol className="hr-list"><li><strong>Review the property record.</strong><p>Keep plans, systems, warranties, inspections, maintenance, and improvements together.</p></li><li><strong>Prepare work that is still needed.</strong><p>Use Requests for repairs, inspections, measurements, and missing documents.</p></li><li><strong>Choose what to share.</strong><p>Review the selected records before making buyer-facing information available.</p></li><li><strong>Choose the sale path.</strong><p>Continue through HomeScout with the appropriate professional support.</p></li></ol><p className="hr-note">These are preparation steps, not completed tasks or a transfer-readiness rating.</p></Panel><Panel title="Continue from this record"><div className="hr-stack"><Action onClick={openProperty}>Review property notes</Action><Action onClick={openDocuments}>Review property records</Action><Action onClick={openRequest}>Prepare needed work</Action><Link className="hr-button hr-primary" href={`/homescout/new?${new URLSearchParams({ homeId })}`}>Open HomeScout<ArrowUpRight size={16} aria-hidden="true" /></Link></div><p className="hr-note">You control the information you share. Opening a listing does not transfer ownership.</p></Panel></div>;
+}
+
+function NewHome({ state, setState, close, create, pending }: { state: NewHomeDraft; setState: React.Dispatch<React.SetStateAction<NewHomeDraft>>; close: () => void; create: () => void; pending: boolean }) {
+  const states = useQuery({ queryKey: ["/api/states"], queryFn: async () => { const value = await apiRequest("GET", "/api/states"); if (!Array.isArray(value)) throw new Error("States could not be read."); return value as { code: string; name: string }[]; }, staleTime: 3600000 });
+  const counties = useQuery({ queryKey: ["/api/counties", state.stateCode], enabled: Boolean(state.stateCode), queryFn: async () => { const value = await apiRequest("GET", `/api/counties?state=${encodeURIComponent(state.stateCode)}`); if (!Array.isArray(value)) throw new Error("Counties could not be read."); return value as { fips: string; name: string }[]; }, staleTime: 3600000 });
+  const field = (key: keyof NewHomeDraft, label: string, maxLength: number) => <label>{label}<input value={state[key]} maxLength={maxLength} onChange={(event) => setState((current) => ({ ...current, [key]: event.target.value }))} /></label>;
+  return <form className="hr-create-form" onSubmit={(event) => { event.preventDefault(); create(); }}><fieldset className="hr-form" disabled={pending}>{field("nickname", "Property name (optional)", 160)}<label>Property type<select value={state.homeType} onChange={(event) => setState((current) => ({ ...current, homeType: event.target.value }))}><option value="">Choose property type</option>{HOME_IDENTITY_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><div className="hr-two-columns">{field("yearBuilt", "Year built (optional)", 4)}{field("address1", "Street address (optional)", 180)}{field("address2", "Unit or address line 2", 180)}{field("city", "City", 120)}
+    <label>State<select value={state.stateCode} disabled={pending || states.isPending || states.isError} onChange={(event) => setState((current) => ({ ...current, stateCode: event.target.value, countyFips: "" }))}><option value="">Choose state</option>{states.data?.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label><label>County or parish<select value={state.countyFips} disabled={pending || !state.stateCode || counties.isPending || counties.isError} onChange={(event) => setState((current) => ({ ...current, countyFips: event.target.value }))}><option value="">Choose county or parish</option>{counties.data?.map((item) => <option key={item.fips} value={item.fips}>{item.name}</option>)}</select></label>{field("zipCode", "ZIP code", 10)}</div>
+    {states.isError && <Action onClick={() => void states.refetch()}>Retry states</Action>}{counties.isError && <Action onClick={() => void counties.refetch()}>Retry counties</Action>}
+    <div className="hr-actions"><Action disabled={pending} onClick={close}>Cancel</Action><button className="hr-button hr-primary" type="submit" disabled={pending || !state.homeType}>{pending ? "Creating…" : "Create HomeID"}</button></div>
+  </fieldset></form>;
 }
