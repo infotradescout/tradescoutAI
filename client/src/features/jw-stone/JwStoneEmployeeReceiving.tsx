@@ -5,7 +5,7 @@ import { JwStoneEmployeeToolsLoader } from "./JwStoneEmployeeToolsLoader";
 
 type Access = { viewerId: string; allowed: boolean; enabled: boolean; canManageStaff?: boolean };
 
-export function JwStoneEmployeeReceiving() {
+export function JwStoneEmployeeReceiving({ onEnter }: { onEnter?: () => void } = {}) {
   const { user } = useAuth();
   const viewerId = String(user?.id || "");
   const access = useQuery<Access>({
@@ -27,6 +27,7 @@ export function JwStoneEmployeeReceiving() {
     <JwStoneEmployeeToolsLoader
       key={viewerId}
       viewerId={viewerId}
+      onEnter={onEnter}
       enabled={access.data.enabled}
       canManageStaff={access.data.canManageStaff === true}
     />

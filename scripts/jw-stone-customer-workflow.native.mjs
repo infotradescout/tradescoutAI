@@ -10,6 +10,7 @@ import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-
 import { proveJwStoneRequestJourney } from './jw-stone-request-journey.mjs';
 import { proveJwStoneCartJourney } from './jw-stone-cart-journey.mjs';
 import { proveJwStoneReceivingJourney } from './jw-stone-receiving-journey.mjs';
+import { finishProofCli } from './finish-proof-cli.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || 'test-results/jw-workflow');
@@ -149,13 +150,39 @@ try {
   try { const log = await fs.readFile(path.join(temp, 'server.private.log'), 'utf8'); report.serverErrors = log.split('\n').filter(line => /Error:|error:|code:|detail:|column:|relation|schema.*failed/i.test(line)).map(line => line.replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]').replace(/token[^\s]*[=:][^\s]+/gi, '[TOKEN]')).slice(-35); } catch {}
   console.error('JW_WORKFLOW_FAILURE ' + report.error);
 } finally {
-  await browser?.close(); await stop(); await logFile?.close(); await client?.end().catch(() => {}); await database?.stop();
-  report.finishedAt = new Date().toISOString(); await fs.mkdir(out, { recursive: true });
-  await fs.writeFile(path.join(out, 'evidence.json'), JSON.stringify(report, null, 2));
-  await fs.writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
-  await fs.writeFile(path.join(out, 'index.html'), '<meta name="robots" content="noindex,nofollow"><h1>' + (report.passed ? 'Declared synthetic customer journey passed' : 'FAILED - not release approval') + '</h1><p>Not real customer, production pricing or email-delivery proof.</p><a href="evidence.json">Evidence</a>');
-  await fs.rm(temp, { recursive: true }); console.log('JW_WORKFLOW_SUMMARY ' + JSON.stringify(report));
-  // Embedded PostgreSQL cleanup can restore process.exitCode. Set the verdict
-  // after every cleanup step so a failed browser assertion cannot exit success.
-  process.exitCode = report.passed ? 0 : 1;
+  const safeError = error => String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]');
+  const cleanup = async (name, action) => {
+    try { await action(); } catch (error) {
+      report.passed = false;
+      (report.cleanupErrors ??= []).push({ name, error: safeError(error) });
+    }
+  };
+  try {
+    // One failed cleanup must not prevent the remaining resources from closing
+    // or leave a successful receipt for a process that could not finish safely.
+    await cleanup('browser', () => browser?.close());
+    await cleanup('fixture server', stop);
+    await cleanup('private log', () => logFile?.close());
+    await cleanup('database client', () => client?.end());
+    await cleanup('database server', () => database?.stop());
+    await cleanup('private fixture removal', () => fs.rm(temp, { recursive: true }));
+    report.finishedAt = new Date().toISOString();
+    await fs.mkdir(out, { recursive: true });
+    await fs.writeFile(path.join(out, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
+    await fs.writeFile(path.join(out, 'index.html'), '<meta name="robots" content="noindex,nofollow"><h1>' + (report.passed ? 'Declared synthetic customer journey passed' : 'FAILED - not release approval') + '</h1><p>Not real customer, production pricing or email-delivery proof.</p><a href="evidence.json">Evidence</a>');
+    await fs.writeFile(path.join(out, 'evidence.json'), JSON.stringify(report, null, 2));
+  } catch (error) {
+    report.passed = false;
+    report.finalizationError = safeError(error);
+    console.error('JW_WORKFLOW_FINALIZATION_FAILURE ' + report.finalizationError);
+    // A partially written report is never success evidence. Retry the failed
+    // receipt where possible; unwritable output still ends with status 1.
+    try {
+      await fs.mkdir(out, { recursive: true });
+      await fs.writeFile(path.join(out, 'evidence.json'), JSON.stringify(report, null, 2));
+    } catch (writeError) { console.error('JW_WORKFLOW_EVIDENCE_FAILURE ' + safeError(writeError)); }
+  } finally {
+    try { console.log('JW_WORKFLOW_SUMMARY ' + JSON.stringify(report)); }
+    finally { await finishProofCli(report.passed ? 0 : 1); }
+  }
 }

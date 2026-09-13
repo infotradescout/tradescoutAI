@@ -13,6 +13,7 @@ import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
 import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { CurrentInventorySection } from "./CurrentInventorySection";
+import { JwStoneEmployeeReceiving } from "./JwStoneEmployeeReceiving";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneMemberPricingProvider } from "./JwStoneMemberPricing";
@@ -362,6 +363,7 @@ export default function JWStoneMarketplace() {
           }}
         />
         <FirstCutSection onOpen={openStone} />
+        <JwStoneEmployeeReceiving onEnter={() => changeAccountOpen(false)} />
         <CurrentInventorySection
           onAsk={askAboutCurrentStock}
           onStartRequest={() => startRequest([])}

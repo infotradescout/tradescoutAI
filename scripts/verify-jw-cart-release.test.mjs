@@ -11,14 +11,17 @@ const head = 'a'.repeat(40);
 
 // Execute the actual release wrapper while replacing expensive child processes
 // and I/O. In particular, simulate the observed cleanup that clears exitCode.
-async function runVerifier({ gatePasses, workflowPasses = true, receivingPasses = true, imagePresent = true }) {
+async function runVerifier({ gatePasses, workflowPasses = true, receivingPasses = true, imagePresent = true, cleanupThrows = false, evidenceWriteThrows = false }) {
   const writes = new Map(), commands = [];
   const sandboxProcess = { env: {}, argv: ['node', 'verifier', '--exact-copy'], execPath: 'node', exitCode: undefined };
   let cleanupRan = false;
   const gate = { commit: head, mode: 'release', result: gatePasses ? 'pass' : 'fail', attestable: gatePasses, initialDirtyTree: false, dirtyTree: false };
   const fakeFs = {
     async mkdir() {}, async cp() {},
-    async writeFile(file, value) { writes.set(path.basename(file), value); },
+    async writeFile(file, value) {
+      if (evidenceWriteThrows && path.basename(file) === 'evidence.json') throw new Error('Synthetic evidence write failure');
+      writes.set(path.basename(file), value);
+    },
     async readFile(file) {
       if (String(file).endsWith('suites.json')) return JSON.stringify({ head, passed: true, candidate: { passedTests: 1, failedTests: 0 }, inheritedFailures: [] });
       if (String(file).includes('jw-workflow/evidence.json')) return JSON.stringify({ head, passed: workflowPasses,
@@ -55,8 +58,9 @@ async function runVerifier({ gatePasses, workflowPasses = true, receivingPasses 
     'node:crypto': { createHash: crypto.createHash }, 'node:child_process': child,
     './start-cabinet-loopback-test-db.mjs': { startCabinetLoopbackTestDatabase: async () => ({
       url: 'postgresql://synthetic:synthetic@127.0.0.1:55439/disposable',
-      async stop() { cleanupRan = true; sandboxProcess.exitCode = 0; },
+      async stop() { cleanupRan = true; sandboxProcess.exitCode = 0; if (cleanupThrows) throw new Error('Synthetic cleanup failure'); },
     }) },
+    './finish-proof-cli.mjs': { finishProofCli: async exitCode => { sandboxProcess.exitCode = exitCode; } },
   };
   const module = new SourceTextModule(source, { context });
   await module.link(specifier => {
@@ -67,7 +71,7 @@ async function runVerifier({ gatePasses, workflowPasses = true, receivingPasses 
     }, { context });
   });
   await module.evaluate();
-  return { report: JSON.parse(writes.get('evidence.json')), exitCode: sandboxProcess.exitCode ?? 0, cleanupRan, commands };
+  return { report: writes.has('evidence.json') ? JSON.parse(writes.get('evidence.json')) : null, exitCode: sandboxProcess.exitCode ?? 0, cleanupRan, commands };
 }
 
 test('failed strict gate remains a failed process after database cleanup resets exit status', async () => {
@@ -106,4 +110,17 @@ test('fully passing receipt and evidence retain successful exit after cleanup', 
   assert.equal(result.report.passed, true);
   assert.equal(result.exitCode, 0);
   assert.equal(result.report.releaseGate.commit, head);
+});
+
+test('a cleanup exception becomes durable failed evidence and exits unsuccessfully', async () => {
+  const result = await runVerifier({ gatePasses: true, cleanupThrows: true });
+  assert.equal(result.report.passed, false);
+  assert.match(result.report.finalizationErrors[0].error, /Synthetic cleanup failure/);
+  assert.equal(result.exitCode, 1);
+});
+
+test('failure to write final evidence still reaches the unsuccessful CLI verdict', async () => {
+  const result = await runVerifier({ gatePasses: true, evidenceWriteThrows: true });
+  assert.equal(result.report, null);
+  assert.equal(result.exitCode, 1);
 });

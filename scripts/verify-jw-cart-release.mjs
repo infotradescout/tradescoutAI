@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
+import { finishProofCli } from './finish-proof-cli.mjs';
 
 // Explicit post-deploy mode is public GET-only smoke, never pre-merge attestation.
 if (process.env.JW_CART_DEPLOYED_SHA) {
@@ -34,8 +35,14 @@ if (!process.argv.includes('--exact-copy')) {
     exitCode = child.status ?? 1;
     await fs.mkdir(output, { recursive: true });
     await fs.cp(path.join(copy, 'test-results/jw-cart-release'), output, { recursive: true });
-  } finally { await fs.rm(temp, { recursive: true, force: true }); }
-  process.exit(exitCode);
+  } catch (error) {
+    exitCode = 1;
+    console.error('JW_CART_EXACT_COPY_FAILURE ' + String(error.stack || error));
+  } finally {
+    try { await fs.rm(temp, { recursive: true, force: true }); }
+    catch (error) { exitCode = 1; console.error('JW_CART_EXACT_COPY_CLEANUP_FAILURE ' + String(error.stack || error)); }
+    await finishProofCli(exitCode);
+  }
 }
 
 const report = { head, startedAt: new Date().toISOString(), passed: false, steps: [], productionDataUsed: false, productionPaymentsCreated: false,
@@ -122,33 +129,48 @@ try {
   console.error('JW_CART_RELEASE_FAILURE ' + report.error);
   process.exitCode = 1;
 } finally {
-  await database?.stop();
-  report.finishedAt = new Date().toISOString();
-  await fs.mkdir(output, { recursive: true });
-  try { await fs.cp('test-results/jw-workflow', path.join(output, 'browser'), { recursive: true }); } catch {}
-  // These are actual browser captures from the credential-isolated synthetic fixture.
-  // Bounded chunks permit exact image review even when the report host is inaccessible.
-  report.visualEvidence = [];
-  for (const device of ['desktop', 'touch']) {
-    try {
-      const name = device + '-synthetic-cart-review.jpg';
-      const bytes = await fs.readFile(path.join(output, 'browser', name));
-      assert(bytes.length > 0 && bytes.length <= 120000, 'Cart review capture exceeds the export bound');
-      const data = bytes.toString('base64');
-      const metadata = { head, name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), chunks: Math.ceil(data.length / 3000) };
-      report.visualEvidence.push(metadata);
-      console.log('JW_CART_IMAGE ' + JSON.stringify(metadata));
-      for (let offset = 0; offset < data.length; offset += 3000) console.log('JW_CART_IMAGE_CHUNK ' + device + ' ' + (offset / 3000) + ' ' + data.slice(offset, offset + 3000));
-    } catch (error) {
-      report.visualExportError = String(error.message || error);
-      if (report.passed) { report.passed = false; process.exitCode = 1; }
+  const finalizationErrors = [];
+  const attempt = async (phase, operation) => {
+    try { await operation(); }
+    catch (error) {
+      report.passed = false;
+      finalizationErrors.push({ phase, error: String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]') });
+      report.finalizationErrors = finalizationErrors;
     }
+  };
+  try {
+    await attempt('database cleanup', async () => database?.stop());
+    report.finishedAt = new Date().toISOString();
+    await attempt('evidence directory', async () => fs.mkdir(output, { recursive: true }));
+    await attempt('browser evidence copy', async () => fs.cp('test-results/jw-workflow', path.join(output, 'browser'), { recursive: true }));
+    // These are actual browser captures from the credential-isolated synthetic fixture.
+    // Bounded chunks permit exact image review even when the report host is inaccessible.
+    report.visualEvidence = [];
+    for (const device of ['desktop', 'touch']) {
+      try {
+        const name = device + '-synthetic-cart-review.jpg';
+        const bytes = await fs.readFile(path.join(output, 'browser', name));
+        assert(bytes.length > 0 && bytes.length <= 120000, 'Cart review capture exceeds the export bound');
+        const data = bytes.toString('base64');
+        const metadata = { head, name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), chunks: Math.ceil(data.length / 3000) };
+        report.visualEvidence.push(metadata);
+        console.log('JW_CART_IMAGE ' + JSON.stringify(metadata));
+        for (let offset = 0; offset < data.length; offset += 3000) console.log('JW_CART_IMAGE_CHUNK ' + device + ' ' + (offset / 3000) + ' ' + data.slice(offset, offset + 3000));
+      } catch (error) {
+        report.visualExportError = String(error.message || error);
+        if (report.passed) { report.passed = false; process.exitCode = 1; }
+      }
+    }
+    await attempt('robots file', async () => fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n'));
+    await attempt('index file', async () => fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="suites.json">Affected test results and inherited failures</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>'));
+    await attempt('final evidence file', async () => fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(report, null, 2)));
+    console.log('JW_CART_RELEASE_SUMMARY ' + JSON.stringify(report));
+  } catch (error) {
+    report.passed = false;
+    console.error('JW_CART_FINALIZATION_FAILURE ' + String(error.stack || error));
+  } finally {
+    // embedded-postgres registers a beforeExit hook that calls process.exit(0).
+    // Only an explicit exit after cleanup and flushed evidence preserves verdicts.
+    await finishProofCli(report.passed ? 0 : 1);
   }
-  await fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(report, null, 2));
-  await fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
-  await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="suites.json">Affected test results and inherited failures</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>');
-  console.log('JW_CART_RELEASE_SUMMARY ' + JSON.stringify(report));
-  // Database/library cleanup can reset the process status. A failed receipt must
-  // still prevent the host from publishing this directory as a successful proof.
-  if (!report.passed) process.exitCode = 1;
 }

@@ -238,6 +238,7 @@ test("the loaded tools preserve the original viewer-keyed workspace and owner-on
   const context = createContext({ console });
   const workspace = () => null, manager = () => null;
   const dependencies = {
+    "react": { useState: () => [true, () => {}], useEffect() {} },
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
     "./JwStoneReceivingWorkspace": { default: workspace },
     "./JwStoneEmployeeAccessManager": { default: manager },

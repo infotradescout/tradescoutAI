@@ -8,6 +8,7 @@ export type JwStoneEmployeeToolsProps = {
   viewerId: string;
   enabled: boolean;
   canManageStaff: boolean;
+  onEnter?: () => void;
 };
 const loadTools = createJwStoneComponentLoader<JwStoneEmployeeToolsProps>(() =>
   import("./JwStoneEmployeeTools").then((module) => module.default)

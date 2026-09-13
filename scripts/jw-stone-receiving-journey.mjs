@@ -57,9 +57,8 @@ export async function proveJwStoneReceivingJourney({ browser, database, fixture,
     await signIn(manager.page, fixture.owner);
     const ownerReceiving = manager.page.getByRole('dialog', { name: 'Receive stone', exact: true });
     await expect(ownerReceiving).toBeVisible();
+    await expect(manager.page.getByTestId('profile-account-dialog')).toHaveCount(0);
     await click(ownerReceiving.getByRole('button', { name: 'View JW Stone website', exact: true }));
-    const accountDialog = manager.page.getByTestId('profile-account-dialog');
-    if (await accountDialog.isVisible()) await click(accountDialog.getByRole('button', { name: 'Close', exact: true }));
     await click(manager.page.getByRole('button', { name: 'Manage employee access', exact: true }));
     const staff = manager.page.getByRole('dialog', { name: 'JW Stone employee access', exact: true });
     await staff.getByLabel("Employee's exact sign-in email", { exact: true }).fill(employee.email);
@@ -76,6 +75,7 @@ export async function proveJwStoneReceivingJourney({ browser, database, fixture,
     await signIn(receiver.page, employee);
     let form = receiver.page.getByRole('dialog', { name: 'Receive stone', exact: true });
     await expect(form).toBeVisible();
+    await expect(receiver.page.getByTestId('profile-account-dialog')).toHaveCount(0);
     await expect(form.locator('[name="materialName"]')).toBeEnabled();
     assert.equal((await database.query('SELECT count(*)::int AS n FROM profile_accounts WHERE owner_user_id=$1', [employee.id])).rows[0].n, 0,
       'Employee sign-in must not require or create buyer membership');

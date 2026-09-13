@@ -7,7 +7,6 @@ import type {
 } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
 import { jw } from "./brand";
-import { JwStoneEmployeeReceiving } from "./JwStoneEmployeeReceiving";
 import { JwStoneArrivalPrice } from "./JwStoneArrivalPrice";
 import { JwStoneArrivalGallery } from "./JwStoneArrivalGallery";
 import { JwStoneLotActions } from "./JwStoneLotActions";
@@ -36,12 +35,10 @@ type Props = {
   onStartRequest: () => void;
 };
 
-// Employee entry remains available even when the public arrivals list is empty.
 export function NewArrivalsSection(_props: Props) {
   const saved = useJwStoneSavedLots();
   return (
     <>
-      <JwStoneEmployeeReceiving />
       {saved.notice ? (
         <p role="status" className="mx-auto max-w-[1600px] px-5 py-3 text-sm text-[var(--jw-ink)]">
           {saved.notice}
