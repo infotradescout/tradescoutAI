@@ -50,13 +50,21 @@ export async function verifyJwCartProduction(expected) {
     assert.equal(new URL(location, origin).href, storefront + '/', 'The legacy route must identify the configured JW home');
     record('Legacy JW entry points to its configured storefront', { status: legacy.response.status, destination: storefront + '/' });
     for (const pageUrl of [origin + '/jw-stone', storefront + '/']) {
-      const page = await get(pageUrl);
-      assert.equal(page.response.status, 200, pageUrl);
-      assert.equal(page.response.headers.get('x-tradescout-build'), expected, pageUrl);
+      let page = await get(pageUrl);
+      let finalUrl = pageUrl;
+      if (pageUrl === origin + '/jw-stone' && [301, 308].includes(page.response.status)) {
+        const destination = page.response.headers.get('location'); assert(destination);
+        assert.equal(new URL(destination, pageUrl).href, storefront + '/', 'Platform entry may redirect only to the configured JW home');
+        record('Platform JW entry redirects to the configured storefront', { pageUrl, status: page.response.status, destination: storefront + '/' });
+        finalUrl = storefront + '/';
+        page = await get(finalUrl);
+      }
+      assert.equal(page.response.status, 200, finalUrl);
+      assert.equal(page.response.headers.get('x-tradescout-build'), expected, finalUrl);
       assert(!/slabPriceCents|landedCostCents/.test(page.text), 'Anonymous page must not embed protected prices');
-      record('Public JW home serves the exact release without protected prices', { pageUrl });
+      record('Public JW home serves the exact release without protected prices', { pageUrl, finalUrl });
       const assets = [...new Set([...page.text.matchAll(/(?:src|href)=["']([^"']+)["']/g)]
-        .map(match => new URL(match[1], pageUrl))
+        .map(match => new URL(match[1], finalUrl))
         .filter(url => allowedOrigins.has(url.origin) && /^\/assets\/.+\.(?:js|css)$/.test(url.pathname))
         .map(url => url.href))];
       assert(assets.length > 0 && assets.length <= 20, 'Expected a bounded public application asset set');
