@@ -14080,7 +14080,7 @@ export async function registerRoutes(app: any) {
   registerWorkerTasksRoutes(app);
 
   // Admin: bulk import business owner accounts (CSV/TSV/text)
-  const multer = (await import("multer")).default;
+  const multer = (await import("./utils/multipartUpload")).default;
   const configuredBusinessImportFileLimit = Number(
     process.env.BUSINESS_IMPORT_FILE_LIMIT_BYTES || 10 * 1024 * 1024
   );
