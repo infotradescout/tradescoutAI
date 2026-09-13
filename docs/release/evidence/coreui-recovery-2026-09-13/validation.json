@@ -1,0 +1,79 @@
+{
+  "sourceCandidate": "9b629a5098115c66a8d7967da21e2dc0bbf32631",
+  "mergedBase": "e34f02520c697ee8e52fefcf6ebdd4d06ce6d6c2",
+  "inheritedCoreUiHead": "0d40a2682c9cd3c8c21fc822c0689508e39ad898",
+  "environment": "Linux x64 Node24.19.0; npm ci --include=dev",
+  "strictReleasePassed": false,
+  "newCandidateBrowserPassed": false,
+  "newCandidateNativeDatabasePassed": false,
+  "productionUpdated": false,
+  "localProofScope": "Core UI TypeScript and 296 tests ran on merged815b4e1d. Later changes touch only sitemap generator, reviewed XML/manifest and proof-output defaults. Final build executed all generator/media assertions, budgets and client/server compilation on the corrected source; git status remained clean.",
+  "blocked": "PostgreSQL fixture requires non-root Linux; privilege drop unavailable. Available Chromium terminated before page creation. No replacement evidence or altered environment gates used.",
+  "logs": [
+    {
+      "check": "clean-install",
+      "result": "pass",
+      "file": "coreui-install.log",
+      "sha256": "dd3f18da88fefb0eb7ca27544b8c9c69f5395a500d30ff7529e002bf22ab0bbf"
+    },
+    {
+      "check": "typescript",
+      "result": "pass",
+      "file": "coreui-typecheck.log",
+      "sha256": "5b5f02338fca4179539408c04464a1b2aad744f699333aed9372fddb9982832b"
+    },
+    {
+      "check": "core-ui-296-tests-22-suites",
+      "result": "pass",
+      "file": "coreui-contracts.log",
+      "sha256": "b43bd1e4f1a06c764c1e978dfb1baf9b385e3b353ab2bb0c7774513ca33a8c3a"
+    },
+    {
+      "check": "sitemap-regression-before",
+      "result": "expected-fail-3",
+      "file": "coreui-sitemap-regression-before.log",
+      "sha256": "cb6c1a515528b8181e2072fe8405fdfd1af873eb19aa17a0491da9a6fd5a88fe"
+    },
+    {
+      "check": "sitemap-regression-after",
+      "result": "pass-3",
+      "file": "coreui-sitemap-regression-after.log",
+      "sha256": "b2da613af1743e6288355fddc87ccb4cd2b421d959c050b63bb59126230cb65a"
+    },
+    {
+      "check": "existing-seo",
+      "result": "pass-75",
+      "file": "coreui-sitemap-contracts-direct.log",
+      "sha256": "2b41bc0e8ba837485637c605321da330c1e28e01e3c77c5aa1888fba8e946afd"
+    },
+    {
+      "check": "public-shell-contracts",
+      "result": "pass-9",
+      "file": "coreui-public-shell-contracts.log",
+      "sha256": "8ad2936ac55d3834470e32c6639ca36c203dcde1a6ebc2a78c43aac2e7d5e2ae"
+    },
+    {
+      "check": "build-before-manifest-review",
+      "result": "fail-expected-byte-pin",
+      "file": "coreui-build-after-sitemap.log",
+      "sha256": "a61f32cee62be89fa52498168c2b39e9d0446c64c1e910dedef7dd3f9efee2d1"
+    },
+    {
+      "check": "final-production-build",
+      "result": "pass",
+      "file": "coreui-build-final.log",
+      "sha256": "fce116746ec8e32c21f1bdc388fa4126f0e4eb3341b80009eca1c5fe65a90086"
+    }
+  ],
+  "historicalHostedProof": {
+    "head": "0d40a2682c9cd3c8c21fc822c0689508e39ad898",
+    "baseUrl": "https://tradescout-core-ui-proof-647.onrender.com/",
+    "shellChecks": 11,
+    "homesOverviewChecks": 8,
+    "recordPackageChecks": 26,
+    "nativePropertyGroups": 6,
+    "identityBrowserChecks": 18,
+    "releaseGatePassed": false,
+    "failure": "Initial clean tree failed; shell report records M client/public/sitemap-index.xml after build. All earlier UI/native checks passed."
+  }
+}

@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 import {
   buildProfileGalleryShareSearch,
   listProfileGalleryItems,
@@ -19,10 +21,6 @@ export type ContractorPhotoShareMetadata = {
   imageAlt: string;
   canonical: string;
 };
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function capForShare(value: string, limit: number): string {
   if (value.length <= limit) return value;
