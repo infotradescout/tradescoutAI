@@ -20,6 +20,13 @@ try {
   for (const key of ["DATABASE_URL", "TEST_DATABASE_URL", "STRIPE_SECRET_KEY", "SENDGRID_API_KEY", "RESEND_API_KEY", "SMTP_PASS"]) {
     assert(!process.env[key], `Connected credentials are forbidden in this isolated check: ${key}`);
   }
+  // Render's temporary local clone may omit origin/main or its older ancestors.
+  // The unchanged readiness guard needs real canonical history, not a substituted ref.
+  const shallow = execFileSync("git", ["rev-parse", "--is-shallow-repository"], { encoding: "utf8" }).trim() === "true";
+  execFileSync("git", ["fetch", "--no-tags", ...(shallow ? ["--unshallow"] : []),
+    "https://github.com/infotradescout/tradescoutAI.git", "main:refs/remotes/origin/main"], { stdio: "inherit" });
+  assert.equal(execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), head);
+  result.canonicalMain = execFileSync("git", ["rev-parse", "origin/main"], { encoding: "utf8" }).trim();
   database = await startCabinetLoopbackTestDatabase();
   result.database = database.evidence;
   const note = `Exact commit ${head}: executed Playwright shell, property overview, nine-section record and six-section package screens on desktop/mobile, plus canonical property editor with native PostgreSQL. Reports are report.json, homes-report.json, home-record-report.json and home-identity-report.json. Browser authentication and unrelated reads are fixtures; not live production or manual pixel review.`;
@@ -52,4 +59,6 @@ finally {
   await database?.stop();
   fs.writeFileSync(path.join(out, "minimum-release-report.json"), JSON.stringify(result, null, 2));
   console.log("CORE_UI_RELEASE_RESULT " + JSON.stringify(result));
+  // Database cleanup must never turn a failed verifier into a successful process.
+  if (!result.passed) process.exitCode = 1;
 }
