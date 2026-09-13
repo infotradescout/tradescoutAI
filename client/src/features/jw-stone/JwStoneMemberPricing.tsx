@@ -14,7 +14,7 @@ import {
 import type { StoneInventoryDimensions } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
 import { parseSlabDimension, type SlabDimension } from "./slabDimensions";
-import { JwStoneMemberCart } from "./JwStoneMemberCart";
+import { JwStoneMemberCart } from "./JwStoneMemberCartLoader";
 import { JW_STONE_BRAND_STYLE } from "./brand";
 
 type VisibleJwStonePrice = JwStoneMemberPrice & Readonly<{ access: JwStonePricingAccess; landedCostCents?: number | null }>;
