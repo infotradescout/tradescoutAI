@@ -107,6 +107,13 @@ try {
   // Both owned clusters use the helper's fixed loopback port. Fully stop the
   // workflow cluster before starting a new clean cluster for the strict gate.
   await database.stop(); database = undefined;
+  // Temporary Render clones can omit canonical main history required by the
+  // unchanged readiness registry guard. Fetch the real ref without moving HEAD.
+  const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim() === 'true';
+  execFileSync('git', ['fetch', '--no-tags', ...(shallow ? ['--unshallow'] : []),
+    'https://github.com/infotradescout/tradescoutAI.git', 'main:refs/remotes/origin/main'], { stdio: 'inherit' });
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), head);
+  report.canonicalMain = execFileSync('git', ['rev-parse', 'origin/main'], { encoding: 'utf8' }).trim();
   database = await startCabinetLoopbackTestDatabase(); report.releaseDatabase = database.evidence;
   assert.equal(new URL(database.url).hostname, '127.0.0.1');
   assert.notEqual(new URL(database.url).pathname, '/ts_exchange_batch_test');
@@ -137,4 +144,5 @@ finally {
   if (report.error && privateOutput) { const log = await fs.readFile(path.join(privateOutput, 'server.log'), 'utf8').catch(() => ''); report.serverErrors = scrub(log).split('\n').filter(line => /Error:|error:|code:|detail:|column:|schema.*failed/i.test(line)).slice(-30); }
   if (privateOutput) await fs.rm(privateOutput, { recursive: true, force: true }); report.finishedAt = new Date().toISOString();
   await fs.writeFile(path.join(output, 'report.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify(report, null, 2));
+  if (!report.passed) process.exitCode = 1;
 }

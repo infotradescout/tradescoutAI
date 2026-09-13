@@ -15,8 +15,12 @@ export async function proveExchangeBatchBrowser({ browser, base, device, output,
   const click = async locator => { await locator.scrollIntoViewIfNeeded(); return device === 'touch' ? locator.tap() : locator.click(); };
   const open = async () => {
     await page.goto(base + '/marketplace/new', { waitUntil: 'domcontentloaded' });
-    const dismiss = page.getByRole('button', { name: /dismiss|got it|skip for now|close guide/i }).first();
-    if (await dismiss.isVisible().catch(() => false)) await click(dismiss);
+    const guide = page.getByRole('dialog', { name: 'What do you want to get done?', exact: true });
+    if (await guide.waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false)) {
+      await click(guide.getByRole('button', { name: 'Close Start here guide', exact: true }));
+      await guide.waitFor({ state: 'hidden' });
+      check('First-use guide closes through its visible control');
+    }
     await click(page.getByRole('button', { name: 'Batch upload CSV + photos', exact: true }));
     await page.getByRole('heading', { name: 'Batch upload Exchange listings', exact: true }).waitFor();
   };
