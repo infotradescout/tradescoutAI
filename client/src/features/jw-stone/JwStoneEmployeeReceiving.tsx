@@ -3,7 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import JwStoneReceivingWorkspace from "./JwStoneReceivingWorkspace";
 
-type Access = { viewerId: string; allowed: boolean; enabled: boolean };
+import JwStoneEmployeeAccessManager from "./JwStoneEmployeeAccessManager";
+
+type Access = { viewerId: string; allowed: boolean; enabled: boolean; canManageStaff?: boolean };
 
 export function JwStoneEmployeeReceiving() {
   const { user } = useAuth();
@@ -21,5 +23,8 @@ export function JwStoneEmployeeReceiving() {
     (access.error.status === 401 || access.error.status === 403);
   if (!viewerId || denied || access.data?.viewerId !== viewerId || !access.data.allowed) return null;
   // Account changes unmount the old editor; local drafts are keyed by the authenticated user.
-  return <JwStoneReceivingWorkspace key={viewerId} viewerId={viewerId} enabled={access.data.enabled} />;
+  return <>
+    <JwStoneReceivingWorkspace key={viewerId} viewerId={viewerId} enabled={access.data.enabled} />
+    {access.data.canManageStaff === true ? <JwStoneEmployeeAccessManager key={`staff:${viewerId}`} viewerId={viewerId} /> : null}
+  </>;
 }

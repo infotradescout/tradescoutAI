@@ -1,25 +1,17 @@
 import sharp from "sharp";
 import { pool } from "../db";
 import { ensureStoneCoreTables } from "./stoneCoreProvisioning";
-import { getStoneInventoryProfileTarget, type StoneInventoryProfileTarget } from "./stoneInventoryService";
+import { type StoneInventoryProfileTarget } from "./stoneInventoryService";
 import { createReceivingMediaSession, receivingHash } from "./jwStoneReceivingMedia";
-import { isManuallyAssignedJwStoneEmployee, jwStoneReceiptDimensions, jwStoneReceiptPublicId, jwStoneReceivingMaterialSlug, JwStoneReceivingInputError, type JwStoneReceipt } from "@shared/jwStoneReceiving";
+import { jwStoneReceiptDimensions, jwStoneReceiptPublicId, jwStoneReceivingMaterialSlug, JwStoneReceivingInputError, type JwStoneReceipt } from "@shared/jwStoneReceiving";
 import { STONE_CURRENT_INVENTORY_AVAILABLE_STATUS, STONE_CURRENT_INVENTORY_FRESHNESS_DAYS, STONE_CURRENT_INVENTORY_PRIVATE_STATUS, STONE_CURRENT_INVENTORY_PUBLIC_STATUS, STONE_CURRENT_INVENTORY_VERIFIED_STATUS } from "@shared/stoneInventory";
 
 export function receivingUserId(user: unknown): string {
   const record = user as { id?: unknown; claims?: { sub?: unknown } } | undefined;
   return String(record?.id || record?.claims?.sub || "").trim();
 }
-export async function jwStoneEmployeeTarget(user: unknown): Promise<StoneInventoryProfileTarget | null> {
-  const id = receivingUserId(user);
-  if (!id) return null;
-  const target = await getStoneInventoryProfileTarget("jw-stone");
-  if (!target) return null;
-  const account = user as { role?: string; roles?: string[]; isSuperAdmin?: boolean };
-  const roles = [account.role, ...(Array.isArray(account.roles) ? account.roles : [])];
-  const admin = account.isSuperAdmin === true || roles.includes("super_admin") || roles.includes("head_admin");
-  return admin || id === target.businessOwnerUserId || isManuallyAssignedJwStoneEmployee(id, process.env.JW_STONE_EMPLOYEE_USER_IDS || "") ? target : null;
-}
+// Compatibility export: all receiving consumers use the same live authority resolver.
+export { jwStoneEmployeeTarget } from "./jwStoneEmployeeAccessService";
 export class JwStoneReceivingConflict extends Error {}
 type ReceiptState = { receipt: JwStoneReceipt; payloadHash: string; actorUserId: string; receivedAt: string; driveFolderId: string; driveIds: string[]; state: "pending" | "published" };
 

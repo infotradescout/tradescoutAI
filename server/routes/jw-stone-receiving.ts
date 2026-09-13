@@ -1,3 +1,5 @@
+import { registerJwStoneEmployeeAccessRoutes } from "./jw-stone-employee-access";
+import { getJwStoneEmployeeAccess } from "../services/jwStoneEmployeeAccessService";
 import { streamPublicObject } from "../publicMediaStorage";
 import { listPublicStoneNewArrivals } from "../services/stoneNewArrivalsService";
 import { STONE_CURRENT_INVENTORY_FRESHNESS_DAYS } from "@shared/stoneInventory";
@@ -20,6 +22,7 @@ function privateResponse(res: Response) {
   res.vary("Cookie"); res.vary("Authorization");
 }
 export function registerJwStoneReceivingRoutes(app: Express): void {
+  registerJwStoneEmployeeAccessRoutes(app);
   const upload = multer({ storage: multer.memoryStorage(), limits: { files: JW_STONE_RECEIVING_MAX_PHOTOS, fileSize: JW_STONE_RECEIVING_MAX_PHOTO_BYTES, fields: 1, fieldSize: 16384, parts: JW_STONE_RECEIVING_MAX_PHOTOS + 1 } }).array("photos", JW_STONE_RECEIVING_MAX_PHOTOS);
   const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 40, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: req => receivingUserId(req.user), message: { message: "Too many receiving attempts. Your entries are still on this screen." } });
   const photoRoute = "/images/businesses/jw-stone/receiving/:receiptId/:fileName";
@@ -47,7 +50,10 @@ export function registerJwStoneReceivingRoutes(app: Express): void {
   });
   app.get(`${BASE}/access`, isAuthenticated, async (req: Request, res: Response) => {
     privateResponse(res);
-    try { res.json({ viewerId: receivingUserId(req.user), allowed: Boolean(await jwStoneEmployeeTarget(req.user)), enabled: receivingConfigured() }); }
+    try {
+      const access = await getJwStoneEmployeeAccess(req.user);
+      res.json({ viewerId: receivingUserId(req.user), allowed: access.allowed, canManageStaff: access.canManageStaff, enabled: receivingConfigured() });
+    }
     catch { res.status(503).json({ message: "Employee inventory access is temporarily unavailable." }); }
   });
   app.get(`${BASE}/receipts`, isAuthenticated, requireCriticalSchema("stone_inventory"), async (req: Request, res: Response) => {

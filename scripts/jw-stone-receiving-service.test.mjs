@@ -6,6 +6,8 @@ import { createHash } from "node:crypto";
 import { stripTypeScriptTypes } from "node:module";
 import { SourceTextModule, SyntheticModule, createContext } from "node:vm";
 import * as shared from "../shared/jwStoneReceiving.ts";
+import * as employeeAccess from "../shared/jwStoneEmployeeAccess.ts";
+const employeeSource = stripTypeScriptTypes(await readFile(new URL("../server/services/jwStoneEmployeeAccessService.ts", import.meta.url), "utf8"));
 
 const source = stripTypeScriptTypes(await readFile(new URL("../server/services/jwStoneReceivingService.ts", import.meta.url), "utf8"));
 const target = { profileSlug: "jw-stone", businessId: "test-jw-business", businessOwnerUserId: "test-owner" };
@@ -48,7 +50,7 @@ async function harness(options = {}) {
   const image = { metadata: async () => ({ format: options.badImage ? "svg" : "jpeg" }), rotate() { return this; }, resize() { return this; }, jpeg() { return this; }, toBuffer: async () => Buffer.from("MOCK SANITIZED JPEG") };
   const deps = {
     sharp: { default: () => image },
-    "../db": { pool: { connect: async () => client } },
+    "../db": { pool: { connect: async () => client, query: async () => ({ rows: [] }) } },
     "./stoneCoreProvisioning": { ensureStoneCoreTables: async () => {} },
     "./stoneInventoryService": { getStoneInventoryProfileTarget: async () => options.noTarget ? null : target },
     "./jwStoneReceivingMedia": {
@@ -70,14 +72,21 @@ async function harness(options = {}) {
       },
     },
     "@shared/jwStoneReceiving": shared,
+    "@shared/jwStoneEmployeeAccess": employeeAccess,
     "@shared/stoneInventory": constants,
   };
   const module = new SourceTextModule(source, { context });
-  await module.link(async specifier => {
+  const linker = async specifier => {
+    if (specifier === "./jwStoneEmployeeAccessService") {
+      const access = new SourceTextModule(employeeSource, { context });
+      await access.link(linker);
+      return access;
+    }
     const exports = deps[specifier];
     if (!exports) throw new Error(`Unexpected import ${specifier}`);
     return new SyntheticModule(Object.keys(exports), function () { for (const [key, value] of Object.entries(exports)) this.setExport(key, value); }, { context });
-  });
+  };
+  await module.link(linker);
   await module.evaluate();
   return { service: module.namespace, log, get condition() { return condition; }, get published() { return published; }, get rowsCreated() { return rowsCreated; }, get mediaCalls() { return mediaCalls; } };
 }

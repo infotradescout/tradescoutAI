@@ -182,6 +182,8 @@ async function routes(options = {}) {
   const middleware = () => {};
   const target = { businessId: "jw-business", profileSlug: "jw-stone" };
   const mod = await load("server/routes/jw-stone-receiving.ts", {
+    "./jw-stone-employee-access": { registerJwStoneEmployeeAccessRoutes: () => {} },
+    "../services/jwStoneEmployeeAccessService": { getJwStoneEmployeeAccess: async () => ({ allowed: false, canManageStaff: false, target: null }) },
     "../publicMediaStorage": { streamPublicObject: async () => "served" },
     "../services/stoneNewArrivalsService": { listPublicStoneNewArrivals: async () => { calls.push("arrivals"); return []; } },
     "@shared/stoneInventory": { STONE_CURRENT_INVENTORY_FRESHNESS_DAYS: 45 },

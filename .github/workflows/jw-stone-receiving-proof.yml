@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '22.16.0'
       - name: Cart, wishlist, migration, and mocked service regressions
-        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-cart-wishlist.test.mjs scripts/jw-stone-saved-lots-and-cart-migration.test.mjs
+        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-cart-wishlist.test.mjs scripts/jw-stone-saved-lots-and-cart-migration.test.mjs scripts/jw-stone-employee-access.test.mjs
 
   receiving-browser:
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
       - name: Saved-lot and cart interface handlers with mocked React and API ports
         id: saved_lots
         continue-on-error: true
-        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-saved-lots-ui.test.mjs
+        run: node --experimental-strip-types --experimental-vm-modules --test scripts/jw-stone-saved-lots-ui.test.mjs scripts/jw-stone-employee-access-ui.test.mjs
       - name: Full TypeScript check
         id: types
         continue-on-error: true
