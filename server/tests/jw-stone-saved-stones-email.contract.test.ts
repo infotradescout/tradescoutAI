@@ -67,10 +67,11 @@ describe("JW Stone saved-stones email copy", () => {
 
   it("keeps WishlistPanel email UX on the customer copy path", () => {
     const panel = read("client/src/features/jw-stone/WishlistPanel.tsx");
-    expect(panel).toContain("Email my saved stones");
+    expect(panel).toContain("Email my saved catalog stones");
     expect(panel).toContain("/api/jw-stone/saved-stones/email");
     expect(panel).toContain("shareSlug");
     expect(panel).not.toContain("Sheet Wish List");
-    expect(panel).toContain("Email yourself a copy");
+    expect(panel).toContain("Inventory lots are not included in this email");
+    expect(panel).toContain("use Copy all");
   });
 });

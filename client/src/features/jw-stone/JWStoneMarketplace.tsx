@@ -30,7 +30,7 @@ import {
 import { resolveMarketplaceSeo } from "./JwStoneProfileSeo";
 import { StoneCollection } from "./StoneCollection";
 import { StoneDetailDialog } from "./StoneDetailDialog";
-import { WishlistPanel } from "./WishlistPanel";
+import { WishlistPanel } from "./WishlistPanelLoader";
 import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";

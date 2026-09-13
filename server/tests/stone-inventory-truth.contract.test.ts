@@ -71,20 +71,20 @@ describe("stone inventory truth and freshness", () => {
     expect(STONE_CURRENT_INVENTORY_VERIFIED_STATUS).toBe("verified");
   });
 
-  it("presents JW's static catalog as a Material Library", () => {
+  it("keeps the customer-facing catalog separate from published physical stock", () => {
     const presentation = read("client/src/data/jwStoneProfilePresentation.ts");
     const collection = read("client/src/features/jw-stone/StoneCollection.tsx");
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const crawlerHtml = read("server/publicJwStoneMarketplaceHtml.ts");
 
-    expect(presentation).toContain('inventoryTitle: "Material Library"');
+    expect(presentation).toContain('inventoryTitle: "Browse Full Inventory"');
     expect(presentation).toContain("material library");
     expect(presentation).not.toContain("· current inventory");
-    expect(collection).toContain('title="Material Library"');
-    expect(collection).toContain('id="material-library"');
+    expect(collection).toContain('title="Browse Full Inventory"');
+    expect(collection).toContain('id="current-inventory"');
     expect(collection).not.toContain('title="Full inventory"');
     expect(marketplace).toContain("<CurrentInventorySection");
-    expect(crawlerHtml).toContain("<h2>Material Library</h2>");
+    expect(crawlerHtml).toMatch(/<h2>Material Library(?::[^<]+)?<\/h2>/);
     expect(crawlerHtml).not.toContain("Browse current selections by photo");
   });
 
@@ -95,11 +95,14 @@ describe("stone inventory truth and freshness", () => {
     const routeRegistration = read("server/routes.ts");
     const inventoryService = read("server/services/stoneInventoryService.ts");
     const arrivalsService = read("server/services/stoneNewArrivalsService.ts");
+    const receivingRoutes = read("server/routes/jw-stone-receiving.ts");
 
     expect(publicSlot).toContain("export function NewArrivalsSection");
     expect(publicSlot).toContain("New Arrivals");
     expect(publicSlot).toContain("Just arrived");
-    expect(publicSlot).toContain("/api/u/jw-stone/stone-inventory/new-arrivals");
+    expect(publicSlot).toContain("/api/u/jw-stone/receiving/arrivals");
+    expect(receivingRoutes).toContain("listPublicStoneNewArrivals");
+    expect(publicSlot).toContain("<JwStoneEmployeeReceiving");
     expect(publicSlot).toMatch(/items\.length === 0\) return null/);
     expect(publicSlot).not.toContain(">Current Inventory<");
     expect(publicSlot).not.toContain("Refresh");

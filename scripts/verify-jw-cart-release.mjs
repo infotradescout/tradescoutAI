@@ -38,7 +38,8 @@ if (!process.argv.includes('--exact-copy')) {
   process.exit(exitCode);
 }
 
-const report = { head, startedAt: new Date().toISOString(), passed: false, steps: [], productionDataUsed: false, productionPaymentsCreated: false };
+const report = { head, startedAt: new Date().toISOString(), passed: false, steps: [], productionDataUsed: false, productionPaymentsCreated: false,
+  receivingPhonePublicationTested: false, releaseGate: { status: 'not-run' } };
 let database;
 function run(name, command, args, env = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', env: { ...process.env, ...env }, timeout: 1500000, maxBuffer: 100 * 1024 * 1024 });
@@ -52,6 +53,21 @@ try {
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'A clean exact-commit checkout is required');
   for (const key of ['DATABASE_URL', 'TEST_DATABASE_URL', 'SENDGRID_API_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY', 'SMTP_PASS', 'STRIPE_SECRET_KEY', 'JW_STONE_PRICING_APPROVED_IMPORT', 'JW_STONE_DRIVE_REFRESH_TOKEN']) assert(!process.env[key], 'Verification must not inherit live credentials: ' + key);
   run('TypeScript', 'npm', ['run', 'check']);
+  run('Cart persistence, receiving integrity, staff authority and release verifier regressions', process.execPath,
+    ['--import', 'tsx', '--experimental-vm-modules', '--test',
+      'scripts/jw-stone-cart-wishlist.test.mjs',
+      'scripts/jw-stone-saved-lots-and-cart-migration.test.mjs',
+      'scripts/jw-stone-saved-lots-ui.test.mjs',
+      'scripts/jw-stone-receiving.test.mjs',
+      'scripts/jw-stone-receiving-draft.test.mjs',
+      'scripts/jw-stone-receiving-media.test.mjs',
+      'scripts/jw-stone-receiving-service.test.mjs',
+      'scripts/jw-stone-receiving-workspace.test.mjs',
+      'scripts/jw-stone-employee-access.test.mjs',
+      'scripts/jw-stone-employee-access-ui.test.mjs',
+      'scripts/jw-stone-employee-tools-loader.test.mjs',
+      'scripts/verify-jw-cart-production.test.mjs',
+      'scripts/generate-sitemap-core.behavior.test.mjs']);
   run('Affected tests and exact inherited-main comparison', process.execPath, ['scripts/jw-cart-suite-proof.mjs']);
   const suites = JSON.parse(await fs.readFile(path.join(output, 'suites.json'), 'utf8'));
   assert.equal(suites.head, head); assert.equal(suites.passed, true);
@@ -64,10 +80,23 @@ try {
   run('Canonical main history', 'git', ['fetch', '--no-tags', 'origin', 'main']);
   database = await startCabinetLoopbackTestDatabase();
   assert.equal(new URL(database.url).hostname, '127.0.0.1');
+  report.releaseGate = { status: 'running' };
   run('Unchanged strict minimum release gate', 'npm', ['run', 'gate:minimum-release', '--',
     '--browser-proof=manual', '--browser-note=Exact built client and actual native routes passed desktop and touch JW signup, exact-stock cart, quantity pricing, reload, native private quote submission, supplier notification, and revocation. Synthetic loopback data only.'],
-    { NODE_ENV: 'test', TEST_DATABASE_URL: database.url, DATABASE_URL: database.url, ALLOW_INSECURE_TEST_DATABASE: 'true' });
+    { NODE_ENV: 'test', TEST_DATABASE_URL: database.url, DATABASE_URL: database.url, ALLOW_INSECURE_TEST_DATABASE: 'true',
+      SKIP_NPM_CI: '', BASE_URL: '', APP_URL: '', BROWSER_PROOF_NOTE: '' });
+  const gate = JSON.parse(await fs.readFile(path.resolve('artifacts/release-contract', head.slice(0, 12), 'evidence.json'), 'utf8'));
+  assert.equal(gate.commit, head);
+  assert.equal(gate.mode, 'release');
+  assert.equal(gate.result, 'pass');
+  assert.equal(gate.attestable, true);
+  assert.equal(gate.initialDirtyTree, false);
+  assert.equal(gate.dirtyTree, false);
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), head);
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'Verification may not alter source files');
+  await fs.mkdir(output, { recursive: true });
+  await fs.writeFile(path.join(output, 'minimum-release-evidence.json'), JSON.stringify(gate, null, 2));
+  report.releaseGate = { status: 'pass', evidenceFile: 'minimum-release-evidence.json', commit: gate.commit, attestable: true };
   report.passed = true;
 } catch (error) {
   report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]');
