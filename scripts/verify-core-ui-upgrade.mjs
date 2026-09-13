@@ -8,6 +8,7 @@ const files = [
   "client/src/pages/homeid/homeIdentity.test.ts",
   "client/src/pages/homeid/homeRecordViewModel.test.ts",
   "client/src/pages/homeid/HomeRecordWorkspace.render.test.tsx",
+  "client/src/scout/scout-entry-framing.contract.test.ts",
   "server/tests/home-identity-route.test.ts",
   "server/tests/homeid-focused-workspace.contract.test.ts",
   "server/tests/assetid-phase-1f-homeid-direct-connect-draft.contract.test.ts",
@@ -29,5 +30,6 @@ if (result.status !== 0) {
     await import("./verify-homes-overview-browser.mjs");
     await import("./verify-home-record-workspaces-browser.mjs");
     await import("./verify-home-identity-native.mjs");
+    if (!process.exitCode) await import("./verify-core-ui-release.mjs");
   }
 }
