@@ -63,9 +63,14 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   assert.equal(await cart.getByLabel('Delivery ZIP', { exact: false }).inputValue(), '70401');
   assert.equal(await cart.getByLabel(/^Job \/ PO reference/).inputValue(), 'Synthetic cart job ' + device);
   await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
+  console.log('JW_CART_JOURNEY_STAGE ' + JSON.stringify({ device, stockAndPricing: true, restoredCart: true }));
   await click(cart.getByTestId('jw-cart-request-quote'));
   const dialog = page.getByRole('dialog', { name: 'JW Stone', exact: true }); await dialog.waitFor();
-  const details = await dialog.getByLabel('Details', { exact: true }).inputValue();
+  // A wrapping label can include a textarea's initial text. Match its visible label
+  // and assert the exact field, then verify every unchanged cart-context requirement.
+  const detailsField = dialog.locator('label').filter({ has: page.locator('span').filter({ hasText: /^Details$/ }) }).locator('textarea');
+  assert.equal(await detailsField.count(), 1, 'The native request must have one visibly labelled Details textarea');
+  const details = await detailsField.inputValue();
   for (const text of [fixture.cartStockId, '2 slab(s): Honey Onyx', '70401', 'Synthetic cart job ' + device, 'no order or inventory hold']) assert(details.includes(text), 'Quote draft dropped ' + text);
   assert.equal(await dialog.locator('a[href^="tel:"]').count(), 0, 'Cart handoff must not release contact');
   await dialog.getByLabel('Name', { exact: true }).fill('Synthetic Cart Customer');
