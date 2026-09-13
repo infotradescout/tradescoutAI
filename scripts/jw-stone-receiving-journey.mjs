@@ -18,7 +18,9 @@ export async function proveJwStoneReceivingJourney({ browser, database, fixture,
   const employee = fixture.employees[device];
   assert(employee?.email.endsWith('@example.test'));
   const contexts = [], errors = [], unexpectedFailures = [];
-  const click = async locator => { await locator.scrollIntoViewIfNeeded(); return device === 'touch' ? locator.tap() : locator.click(); };
+  // Keep scrolling and pointer action in Playwright's single locator retry loop:
+  // signup intentionally replaces the guest form after the auth session resolves.
+  const click = locator => device === 'touch' ? locator.tap() : locator.click();
   async function session() {
     const context = await browser.newContext({ viewport, isMobile: device === 'touch', hasTouch: device === 'touch', serviceWorkers: 'block' });
     contexts.push(context);
