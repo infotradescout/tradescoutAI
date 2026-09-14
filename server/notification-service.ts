@@ -27,6 +27,8 @@ import {
 import { eq, and, or, sql, desc, asc, isNull, inArray } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { emailService, EmailDeliveryError, maskEmailForLog } from "./services/emailService";
+import { buildDirectConnectRequestEmail } from "./services/directConnectRequestEmail";
+import { formatBudgetRange, readExpressRequestSubmittedContact } from "./utils/workRequestShare";
 import webPush from "web-push";
 
 const EMAIL_JOB_TYPE = "notification_email_v1";
@@ -112,7 +114,7 @@ export class NotificationService {
       webPush.setVapidDetails(
         process.env.VAPID_SUBJECT,
         process.env.VAPID_PUBLIC_KEY,
-        process.env.VAPID_PRIVATE_KEY
+        process.env.VAPID_SUBJECT
       );
       this.webPushConfigured = true;
     }
@@ -887,6 +889,61 @@ export class NotificationService {
     }
   }
 
+  private async buildProviderRequestEmail(context: ProviderEmailContext) {
+    const request = context.request;
+    const createdEvents = await db.select().from(workRequestEvents).where(and(
+      eq(workRequestEvents.workRequestId, request.id),
+      eq(workRequestEvents.actorUserId, request.createdByUserId),
+      eq(workRequestEvents.type, "created")
+    ));
+    const expressEvents = createdEvents.filter((event: any) =>
+      event.metadata?.source === "tradepartner_profile" && event.metadata?.connectionMode === "express"
+    );
+    let requesterContact: { name?: string | null; email?: string | null; phone?: string | null };
+    if (expressEvents.length) {
+      // An Express email match must never disclose the matched account's saved contact.
+      if (expressEvents.length !== 1 || expressEvents[0].metadata?.profileId !== request.sourceRefId) return null;
+      const submitted = readExpressRequestSubmittedContact(expressEvents[0].metadata);
+      if (!submitted) return null;
+      requesterContact = submitted;
+    } else {
+      const [requester] = await db.select({
+        firstName: users.firstName, lastName: users.lastName, email: users.email, phone: users.phone,
+      }).from(users).where(eq(users.id, request.createdByUserId));
+      if (!requester) return null;
+      // The authenticated request and requester-origin assignment are the contact intent.
+      // There is no second requester-release step for this assigned recipient.
+      requesterContact = {
+        name: [requester.firstName, requester.lastName].filter(Boolean).join(" "),
+        email: requester.email,
+        phone: requester.phone,
+      };
+    }
+    const { storage } = await import("./storage");
+    const [county, trade] = await Promise.all([
+      request.countyFips ? storage.getCountyByFips(String(request.countyFips)) : null,
+      request.tradeId ? storage.getTradeBySlug(String(request.tradeId)) : null,
+    ]);
+    const timing = [request.urgency, request.timeframe, request.startWindow]
+      .filter((value) => typeof value === "string" && value.trim()).join("; ");
+    return buildDirectConnectRequestEmail({
+      requestId: request.id,
+      assignmentId: context.assignment.id,
+      title: request.title,
+      description: request.description,
+      category: request.category,
+      trade: trade?.name || request.tradeId || null,
+      location: [county?.name || (request.countyFips ? `County/parish code ${request.countyFips}` : null), request.stateCode].filter(Boolean).join(", "),
+      // A saved account address is not necessarily the requested job site.
+      jobAddress: typeof request.address === "string" ? request.address : null,
+      budget: formatBudgetRange(request.budgetMin, request.budgetMax),
+      timing: timing || null,
+      requester: requesterContact,
+      attachmentCount: Array.isArray(request.attachments) ? request.attachments.length : 0,
+      origin: process.env.APP_URL || process.env.CLIENT_ORIGIN || "https://www.thetradescout.com",
+    });
+  }
+
   private async deliverEmailJob(job: any): Promise<void> {
     const notificationId = job.templateData?.notificationId;
     const [data] =
@@ -956,6 +1013,7 @@ export class NotificationService {
     }
 
     let submissionAuthority = sql`TRUE`;
+    let requestEmail: ReturnType<typeof buildDirectConnectRequestEmail> | null = null;
     if (notification.type === "new_project_request") {
       const binding = notification.metadata?.directConnectProviderEmail as
         | ProviderEmailBinding
@@ -980,6 +1038,11 @@ export class NotificationService {
           { status: "cancelled", code: "provider_invitation_ineligible" },
           data
         );
+        return;
+      }
+      requestEmail = await this.buildProviderRequestEmail(context);
+      if (!requestEmail) {
+        await this.finishEmailJob(job, { status: "cancelled", code: "request_contact_unavailable" }, data);
         return;
       }
       const current = await this.loadProviderEmailContext(binding!.requestId, user.id, binding);
@@ -1008,6 +1071,7 @@ export class NotificationService {
           AND request.id = ${binding!.requestId} AND request.source = 'direct_connect' AND request.status = 'routed'
           AND request.county_fips IS NOT DISTINCT FROM ${current.request.countyFips}
           AND request.trade_id IS NOT DISTINCT FROM ${current.request.tradeId}
+          AND request.updated_at IS NOT DISTINCT FROM ${current.request.updatedAt}
           AND assignment.status IN ('suggested', 'invited') AND assignment.worker_id IS NULL
           AND COALESCE(provider.user_id, assignment.responder_user_id) = recipient.id
           AND notification.user_id = recipient.id AND notification.is_archived IS NOT TRUE
@@ -1022,20 +1086,22 @@ export class NotificationService {
       )`;
     }
 
-    // Request titles and message bodies can contain private contact details.
-    // Direct Connect mail is an inbox pointer, never a second contact surface.
+    // Assigned-provider mail contains its authorized request, not a public-share projection.
+    // Unbound lifecycle notifications retain their existing neutral fallback.
     const isDirectConnect =
       notification.type.startsWith("dc_") ||
       ["new_project_request", "direct_connect_beta_request"].includes(notification.type);
-    const content = isDirectConnect
-      ? {
-          ...notification,
-          title: "Direct Connect update",
-          message: "You have an update in Direct Connect. Sign in to review it and respond.",
-          actionUrl: "/direct-connect/inbox",
-          actionText: "Open Direct Connect",
-        }
-      : notification;
+    const content = requestEmail
+      ? { ...notification, ...requestEmail }
+      : isDirectConnect
+        ? {
+            ...notification,
+            title: "Direct Connect update",
+            message: "You have an update in Direct Connect. Sign in to review it and respond.",
+            actionUrl: "/direct-connect/inbox",
+            actionText: "Open Direct Connect",
+          }
+        : notification;
     let outcome: { status: string; code?: string; provider?: string; messageId?: string };
     const started = await db
       .update(notificationJobs)
@@ -1198,7 +1264,7 @@ export class NotificationService {
   private generateEmailHTML(notification: Notification, user: Pick<User, "firstName">): string {
     const userName = escapeEmailHtml(user.firstName || "there");
     const title = escapeEmailHtml(notification.title);
-    const message = escapeEmailHtml(notification.message);
+    const message = escapeEmailHtml(notification.message).replace(/\r?\n/g, "<br>");
     let actionUrl = "";
     try {
       const origin = new URL(
