@@ -1,4 +1,6 @@
 export const STONE_DESIGNER_IMAGE_ROUTE = "/images/stone-designer" as const;
+export const STONE_DESIGNER_SELECTION_PARAM = "stone" as const;
+export const STONE_DESIGNER_PHOTO_PARAM = "photo" as const;
 export const STONE_DESIGNER_NAMED_PHOTO_ROUTE = `${STONE_DESIGNER_IMAGE_ROUTE}/named` as const;
 
 const PHOTO_KEY_PATTERN = /^ph_[0-9a-f]{16}$/;

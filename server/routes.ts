@@ -1,3 +1,11 @@
+import {
+  isRecommendationActionPath,
+  isRecommendationContinuationPath,
+} from "@shared/recommendationContinuation";
+import { registerRecommendationRoutes } from "./routes/recommendations";
+import { publicRecommendationConditions } from "./storage/repositories/recommendations";
+import { PgDialect } from "drizzle-orm/pg-core";
+import { exposureAuthoritySqlPredicate } from "./services/exposureAuthority";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Legacy route module ingests dynamic JSON across many endpoints; incremental hardening tracked separately. */
 import scoutRoute from "./routes/scout";
 import scoutNormalizeRouter from "./routes/scout-normalize";
@@ -16,6 +24,11 @@ import { createHash, randomBytes, randomUUID } from "crypto";
 import { generateGeminiTextWithFallback } from "./ai/geminiFallback";
 import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
 import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
+import { participantMessageMetadata } from "./utils/messageAuthor";
+import {
+  canAccessConversation,
+  loadLegacyConversationContext,
+} from "./services/conversationParticipants";
 import { contractorSignupRouter } from "./routes/contractor-signup";
 import { onboardingRouter } from "./routes/onboarding";
 import { businessesRouter } from "./routes/businesses";
@@ -102,7 +115,11 @@ import {
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
-import { PROFILE_CATALOG_EXCHANGE_CATEGORY } from "../shared/profileCatalogExchange";
+import {
+  exchangePageWindow,
+  mergeExchangeDiscoveryItems,
+  readExchangeSourcePages,
+} from "./exchangeDiscovery";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
 import {
   buildHomeScoutInspectionRequestDecisionScope,
@@ -402,13 +419,13 @@ async function attachConnectionRecommendationCounts<T extends { id: string }>(
       connectionRecommendationCount: sql<number>`count(distinct ${recommendations.userId})::int`,
     })
     .from(recommendations)
+    .innerJoin(users, eq(users.id, recommendations.userId))
     .where(
       and(
         inArray(recommendations.contractorId, contractorIds),
         inArray(recommendations.userId, connectionIds),
         eq(recommendations.recommendationType, "positive"),
-        eq(recommendations.isPublic, true),
-        eq(recommendations.moderationStatus, "approved")
+        ...publicRecommendationConditions()
       )
     )
     .groupBy(recommendations.contractorId);
@@ -3126,12 +3143,13 @@ export async function registerRoutes(app: any) {
         return res.status(403).json({ message: "Registration is currently disabled" });
       }
 
-      const emailVerificationRequired = await getGeneralSetting<boolean>(
-        "email_verification_required",
-        true
-      );
-
       const body = (req.body || {}) as any;
+      const recommendationNext = isRecommendationContinuationPath(body.next)
+        ? body.next.trim()
+        : "";
+      const emailVerificationRequired =
+        Boolean(recommendationNext) ||
+        (await getGeneralSetting<boolean>("email_verification_required", true));
       const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       const password = typeof body.password === "string" ? body.password : "";
       const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
@@ -3219,11 +3237,13 @@ export async function registerRoutes(app: any) {
       if (password.length < 8)
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       if (!firstName) return res.status(400).json({ message: "First name is required" });
-      if (!lastName) return res.status(400).json({ message: "Last name is required" });
-      if (!phone) return res.status(400).json({ message: "Phone number is required" });
+      if (!lastName && !recommendationNext)
+        return res.status(400).json({ message: "Last name is required" });
+      if (!phone && !recommendationNext)
+        return res.status(400).json({ message: "Phone number is required" });
 
       const phoneDigits = phone.replace(/\D/g, "");
-      if (phoneDigits.length < 10) {
+      if (phone && phoneDigits.length < 10) {
         return res.status(400).json({ message: "Please enter a valid phone number" });
       }
 
@@ -3452,7 +3472,7 @@ export async function registerRoutes(app: any) {
       if (emailVerificationRequired && !user.emailVerified) {
         const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
-        const next = "/pre-scout-setup";
+        const next = recommendationNext || "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
         try {
@@ -4051,6 +4071,13 @@ export async function registerRoutes(app: any) {
       if (!updated) {
         return res.status(404).json({ message: "User not found" });
       }
+
+      // Refresh only private recommendation evidence; email confirmation never approves publication.
+      await storage.verifyPendingRecommendationsForUser(userId).catch((error) => {
+        // The confirmation is already durable and its token consumed. Private
+        // recommendation reads and moderation retry this evidence refresh.
+        console.error("Failed to refresh pending recommendation verification:", error);
+      });
 
       // Auto-login: establish a session immediately after verification so the user
       // lands in the app without a second sign-in step (mirrors OAuth flow behavior).
@@ -5232,7 +5259,13 @@ export async function registerRoutes(app: any) {
         };
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
-            if (required && user && user.emailVerified !== true && email) {
+            if (
+              required &&
+              user &&
+              user.emailVerified !== true &&
+              email &&
+              !isRecommendationActionPath(redirectBase)
+            ) {
               return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
               );
@@ -5300,7 +5333,13 @@ export async function registerRoutes(app: any) {
         };
         getGeneralSetting<boolean>("email_verification_required", true)
           .then((required) => {
-            if (required && user && user.emailVerified !== true && email) {
+            if (
+              required &&
+              user &&
+              user.emailVerified !== true &&
+              email &&
+              !isRecommendationActionPath(redirectBase)
+            ) {
               return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
               );
@@ -11189,39 +11228,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Recommendations (requires auth)
-  app.post("/api/recommendations", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const recommendationData = { ...req.body, userId };
-
-      // Track rating submission with locality context
-      // LocalityTracker call removed
-
-      const recommendation = await storage.createRecommendation({
-        ...recommendationData,
-        ipAddress: req.ip || null,
-        userAgent: req.get("user-agent") || null,
-      });
-
-      // Update leaderboard stats when recommendation is created
-      await storage.updateContractorLeaderboardStats(
-        recommendationData.contractorId,
-        recommendationData.rating
-      );
-
-      await storage.logEvent("recommendation_submitted", {
-        recommendationId: recommendation.id,
-        contractorId: recommendation.contractorId,
-        userId,
-      });
-
-      res.json(recommendation);
-    } catch (error: any) {
-      console.error("Error creating recommendation:", error);
-      res.status(500).json({ message: "Failed to create recommendation" });
-    }
-  });
+  registerRecommendationRoutes(app);
 
   registerContractorLeaderboardRoutes(app, storage);
 
@@ -11926,183 +11933,6 @@ export async function registerRoutes(app: any) {
     }
   );
 
-  // Create recommendation for contractor with anti-abuse protection (LOGIN REQUIRED)
-  app.post(
-    "/api/contractors/:contractorId/recommendations",
-    isAuthenticated,
-    requireOnboardingComplete,
-    async (req: any, res: any) => {
-      try {
-        const { contractorId } = req.params;
-        const {
-          recommendationType,
-          comment,
-          projectType,
-          projectValue,
-          workQuality,
-          timeliness,
-          communication,
-          wouldHireAgain,
-          customerName,
-          customerEmail,
-          customerPhone,
-        } = (req.body ?? {}) as any;
-
-        // Validate required fields
-        if (!customerName || !customerEmail || !comment || !recommendationType) {
-          return res.status(400).json({
-            success: false,
-            message: "Customer name, email, comment, and recommendation type are required",
-          });
-        }
-
-        // Get client IP and user agent for anti-abuse
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get("User-Agent");
-
-        const recommendation = await storage.createRecommendation({
-          contractorId,
-          userId: (req.user as any)?.id || (req.user as any)?.claims?.sub, // User must be authenticated
-          recommendationType,
-          comment,
-          projectType,
-          projectValue,
-          workQuality,
-          timeliness,
-          communication,
-          wouldHireAgain,
-          customerName,
-          customerEmail,
-          customerPhone,
-          ipAddress,
-          userAgent,
-        });
-
-        res.json({
-          success: true,
-          message: "Recommendation submitted for review. It will be published after moderation.",
-          recommendation: {
-            id: recommendation.id,
-            recommendationType: recommendation.recommendationType,
-            moderationStatus: recommendation.moderationStatus,
-          },
-        });
-      } catch (error: any) {
-        console.error("Error creating recommendation:", error);
-        res.status(400).json({
-          success: false,
-          message: (error as Error).message || "Failed to submit recommendation",
-        });
-      }
-    }
-  );
-
-  // Get contractor recommendations
-  app.get("/api/contractors/:contractorId/recommendations", async (req: any, res: any) => {
-    try {
-      const { contractorId } = req.params;
-      const { type = "all", limit = 10 } = req.query;
-
-      const recommendations = await storage.getContractorRecommendations(contractorId, {
-        type: type as "positive" | "negative" | "all",
-        limit: parseInt(limit as string),
-      });
-
-      res.json(recommendations);
-    } catch (error: any) {
-      console.error("Error fetching recommendations:", error);
-      res.status(500).json({ message: "Failed to fetch recommendations" });
-    }
-  });
-
-  // Admin: Get pending recommendations for moderation
-  app.get(
-    "/api/admin/recommendations/pending",
-    isAuthenticated,
-    requireRole(["super_admin", "ops_admin", "moderator"]),
-    async (req: any, res: any) => {
-      try {
-        const { limit = 50 } = req.query;
-
-        const pendingRecommendations = await db
-          .select({
-            id: recommendations.id,
-            contractorId: recommendations.contractorId,
-            recommendationType: recommendations.recommendationType,
-            comment: recommendations.comment,
-            customerName: recommendations.customerName,
-            customerEmail: recommendations.customerEmail,
-            projectType: recommendations.projectType,
-            projectValue: recommendations.projectValue,
-            createdAt: recommendations.createdAt,
-            contractorName: contractors.companyName,
-          })
-          .from(recommendations)
-          .leftJoin(contractors, eq(recommendations.contractorId, contractors.id))
-          .where(eq(recommendations.moderationStatus, "pending"))
-          .orderBy(desc(recommendations.createdAt))
-          .limit(parseInt(limit as string));
-
-        res.json(pendingRecommendations);
-      } catch (error: any) {
-        console.error("Error fetching pending recommendations:", error);
-        res.status(500).json({ message: "Failed to fetch pending recommendations" });
-      }
-    }
-  );
-
-  // Admin: Moderate recommendation
-  app.patch(
-    "/api/admin/recommendations/:id/moderate",
-    isAuthenticated,
-    requireRole(["super_admin", "ops_admin", "moderator"]),
-    async (req: any, res: any) => {
-      try {
-        const { id } = req.params;
-        const { action } = (req.body ?? {}) as any; // action: 'approve' or 'reject'
-        const moderatorId = (req.user as any)?.id;
-
-        if (!["approve", "reject"].includes(action)) {
-          return res.status(400).json({ message: "Action must be 'approve' or 'reject'" });
-        }
-
-        // Get the recommendation first
-        const [recommendation] = await db
-          .select()
-          .from(recommendations)
-          .where(eq(recommendations.id, id));
-
-        if (!recommendation) {
-          return res.status(404).json({ message: "Recommendation not found" });
-        }
-
-        // Update moderation status
-        await db
-          .update(recommendations)
-          .set({
-            moderationStatus: action === "approve" ? "approved" : "rejected",
-            isPublic: action === "approve",
-            moderatedAt: new Date(),
-            moderatedBy: moderatorId,
-          })
-          .where(eq(recommendations.id, id));
-
-        // Update contractor stats if approved
-        if (action === "approve") {
-          await storage.updateContractorRecommendationStats(recommendation.contractorId);
-        }
-
-        res.json({
-          success: true,
-          message: `Recommendation ${action}d successfully`,
-        });
-      } catch (error: any) {
-        console.error("Error moderating recommendation:", error);
-        res.status(500).json({ message: "Failed to moderate recommendation" });
-      }
-    }
-  );
-
   // Get contractor leaderboard (ranked by net recommendation score)
   app.get("/api/contractors/leaderboard", async (req: any, res: any) => {
     try {
@@ -12253,14 +12083,20 @@ export async function registerRoutes(app: any) {
     const condition = String(req.query.condition || "")
       .trim()
       .toLowerCase();
-    if (condition && condition !== "new") return [];
 
-    const clauses = ["po.is_active = true", "po.offer_type = 'item'"];
+    const clauses = [
+      "po.is_active = true",
+      "po.offer_type = 'item'",
+      new PgDialect().sqlToQuery(exposureAuthoritySqlPredicate(sql`po.seller_user_id`)).sql,
+    ];
     const params: any[] = [];
     const addParam = (value: any) => {
       params.push(value);
       return `$${params.length}`;
     };
+
+    if (condition && condition !== "any")
+      clauses.push(`LOWER(COALESCE(po.metadata->>'condition', 'new')) = ${addParam(condition)}`);
 
     if (requestedCategory && requestedCategory !== "other") {
       clauses.push(
@@ -12291,32 +12127,41 @@ export async function registerRoutes(app: any) {
     const sort = String(req.query.sort || "date_desc");
     const orderBy =
       sort === "price_asc"
-        ? "po.price ASC, po.updated_at DESC"
+        ? 'po.price ASC NULLS LAST, po.id::text COLLATE "C" ASC'
         : sort === "price_desc"
-          ? "po.price DESC, po.updated_at DESC"
+          ? 'po.price DESC NULLS LAST, po.id::text COLLATE "C" ASC'
           : sort === "date_asc"
-            ? "po.updated_at ASC, po.created_at ASC"
-            : "po.updated_at DESC, po.created_at DESC";
-    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 100);
+            ? 'po.created_at ASC NULLS LAST, po.id::text COLLATE "C" ASC'
+            : 'po.created_at DESC NULLS LAST, po.id::text COLLATE "C" ASC';
+    const page = exchangePageWindow(req.query);
 
     try {
-      const result = await pool.query(
-        `SELECT po.*, u.first_name, u.last_name, u.trust_score, u.verified_badge,
+      return await readExchangeSourcePages(
+        async (sourceOffset, sourceLimit) => {
+          const queryParams = [...params, sourceLimit, sourceOffset];
+          const result = await pool.query(
+            `SELECT po.*, u.first_name, u.last_name, u.trust_score, u.verified_badge,
                 u.email_verified, u.address_verified, u.city, u.state, u.state_code,
                 u.county, u.county_name, u.county_fips
          FROM profile_offers po
          JOIN users u ON u.id = po.seller_user_id
          WHERE ${clauses.join(" AND ")}
          ORDER BY ${orderBy}
-         LIMIT ${addParam(limit)}`,
-        params
+         LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            queryParams
+          );
+          const authorityByUserId = await buildExposureAuthorityMap(
+            result.rows.map((row) => String(row.seller_user_id || "").trim())
+          );
+          return {
+            sourceCount: result.rows.length,
+            items: result.rows
+              .filter((row) => authorityByUserId[String(row.seller_user_id || "").trim()] === true)
+              .map((row) => buildProfileOfferExchangeItem(row, requestedCategory)),
+          };
+        },
+        page.limit == null ? undefined : page.offset + page.limit
       );
-      const authorityByUserId = await buildExposureAuthorityMap(
-        result.rows.map((row) => String(row.seller_user_id || "").trim())
-      );
-      return result.rows
-        .filter((row) => authorityByUserId[String(row.seller_user_id || "").trim()] === true)
-        .map((row) => buildProfileOfferExchangeItem(row, requestedCategory));
     } catch (error) {
       if (isMissingProfileOffersTable(error)) return [];
       throw error;
@@ -12356,123 +12201,113 @@ export async function registerRoutes(app: any) {
       if (rawCategoryId) {
         if (looksLikeUuid(rawCategoryId)) {
           resolvedCategoryId = rawCategoryId;
-        } else if (rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY) {
-          // Code-curated profile catalogs are not marketplace rows. Bound the
-          // ordinary storage query to no results, then merge the gated catalog.
-          resolvedCategoryId = "00000000-0000-0000-0000-000000000000";
         } else {
           const desiredName = categorySlugToName[rawCategoryId] || rawCategoryId;
           const categories = await storage.getMarketplaceCategories();
           const match = (categories || []).find(
             (c: any) => String(c?.name || "").toLowerCase() === desiredName.toLowerCase()
           );
-          if (match?.id) {
-            resolvedCategoryId = String(match.id);
-          }
+          resolvedCategoryId = match?.id
+            ? String(match.id)
+            : "00000000-0000-0000-0000-000000000000";
         }
       }
 
-      // Exchange is not location-gated. Locality params are treated as a sort preference, not a filter.
-      const preferredStateCode =
-        typeof req.query.stateCode === "string"
-          ? String(req.query.stateCode)
-          : typeof req.query.state === "string" && String(req.query.state).length === 2
-            ? String(req.query.state)
-            : undefined;
-
-      const preferredCountyFips =
-        typeof req.query.countyFips === "string"
-          ? String(req.query.countyFips)
-          : typeof req.query.county === "string" && /^\d{5}$/.test(String(req.query.county))
-            ? String(req.query.county)
-            : undefined;
-
-      // Resolve county name when caller provides FIPS, so we can prefer either legacy county strings or FIPS.
-      let preferredCountyName: string | undefined;
-      if (preferredCountyFips) {
-        try {
-          const countyRow = await storage.getCountyByFips(preferredCountyFips);
-          if (countyRow?.name) preferredCountyName = String(countyRow.name);
-        } catch {
-          // Ignore geo lookup failures; preference ordering can still use FIPS.
-        }
-      }
-
-      const listings = await storage.getMarketplaceListings({
-        categoryId: resolvedCategoryId,
-        status: "active",
-        // Keep explicit county/state filters available for callers that truly want filtering.
-        county:
-          typeof req.query.filterCounty === "string"
-            ? (req.query.filterCounty as string)
-            : undefined,
-        state:
-          typeof req.query.filterState === "string" ? (req.query.filterState as string) : undefined,
-        preferredStateCode,
-        preferredCountyFips,
-        preferredCountyName,
-        priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
-        priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
-        condition: req.query.condition as string,
-        searchQuery: req.query.search as string,
-        sortBy: req.query.sort as any,
-        limit: req.query.limit ? Number(req.query.limit) : undefined,
-        offset: req.query.offset ? Number(req.query.offset) : undefined,
-        // Category-specific extra filters
-        yearMin: req.query.yearMin ? Number(req.query.yearMin) : undefined,
-        yearMax: req.query.yearMax ? Number(req.query.yearMax) : undefined,
-        mileageMax: req.query.mileageMax ? Number(req.query.mileageMax) : undefined,
-        titleStatus: req.query.titleStatus ? String(req.query.titleStatus) : undefined,
-        authenticated: req.query.authenticated ? String(req.query.authenticated) : undefined,
-        graded: req.query.graded ? String(req.query.graded) : undefined,
-        // Business
-        businessType: req.query.businessType ? String(req.query.businessType) : undefined,
-        annualRevenueRange: req.query.annualRevenueRange
-          ? String(req.query.annualRevenueRange)
-          : undefined,
-        ownerFinancing: req.query.ownerFinancing ? String(req.query.ownerFinancing) : undefined,
-        // Construction / Farm
-        hoursMax: req.query.hoursMax ? Number(req.query.hoursMax) : undefined,
-        inspectionReady: req.query.inspectionReady ? String(req.query.inspectionReady) : undefined,
-        fieldReady: req.query.fieldReady ? String(req.query.fieldReady) : undefined,
-        // Furniture
-        material: req.query.material ? String(req.query.material) : undefined,
-        assemblyStatus: req.query.assemblyStatus ? String(req.query.assemblyStatus) : undefined,
-        // Business Equipment
-        powerRequirements: req.query.powerRequirements
-          ? String(req.query.powerRequirements)
-          : undefined,
-        installRequired: req.query.installRequired ? String(req.query.installRequired) : undefined,
-        // Electronics
-        storage: req.query.storage ? String(req.query.storage) : undefined,
-        powersOn: req.query.powersOn ? String(req.query.powersOn) : undefined,
-        carrierStatus: req.query.carrierStatus ? String(req.query.carrierStatus) : undefined,
-        // Sports
-        sport: req.query.sport ? String(req.query.sport) : undefined,
-        competitionReady: req.query.competitionReady
-          ? String(req.query.competitionReady)
-          : undefined,
-        // Jewelry
-        metal: req.query.metal ? String(req.query.metal) : undefined,
-        handoff: req.query.handoff ? String(req.query.handoff) : undefined,
-        // Local Food
-        pickupOrDelivery: req.query.pickupOrDelivery
-          ? String(req.query.pickupOrDelivery)
-          : undefined,
-        leadTime: req.query.leadTime ? String(req.query.leadTime) : undefined,
-        // Other
-        inspectionAvailable: req.query.inspectionAvailable
-          ? String(req.query.inspectionAvailable)
-          : undefined,
-        // Tools
-        includesBatteries: req.query.includesBatteries
-          ? String(req.query.includesBatteries)
-          : undefined,
-        includesChargers: req.query.includesChargers
-          ? String(req.query.includesChargers)
-          : undefined,
-        includesCase: req.query.includesCase ? String(req.query.includesCase) : undefined,
-      });
+      // Public browsing is global; explicit filterCounty/filterState narrow it.
+      const page = exchangePageWindow(req.query);
+      const listings = await readExchangeSourcePages(
+        async (sourceOffset, sourceLimit) => {
+          const rows = await storage.getMarketplaceListings({
+            categoryId: resolvedCategoryId,
+            status: "active",
+            // Keep explicit county/state filters available for callers that truly want filtering.
+            county:
+              typeof req.query.filterCounty === "string"
+                ? (req.query.filterCounty as string)
+                : undefined,
+            state:
+              typeof req.query.filterState === "string"
+                ? (req.query.filterState as string)
+                : undefined,
+            publicExposureOnly: true,
+            priceMin: req.query.priceMin ? Number(req.query.priceMin) : undefined,
+            priceMax: req.query.priceMax ? Number(req.query.priceMax) : undefined,
+            condition: req.query.condition as string,
+            searchQuery: req.query.search as string,
+            sortBy: req.query.sort as any,
+            limit: sourceLimit,
+            offset: sourceOffset,
+            // Category-specific extra filters
+            yearMin: req.query.yearMin ? Number(req.query.yearMin) : undefined,
+            yearMax: req.query.yearMax ? Number(req.query.yearMax) : undefined,
+            mileageMax: req.query.mileageMax ? Number(req.query.mileageMax) : undefined,
+            titleStatus: req.query.titleStatus ? String(req.query.titleStatus) : undefined,
+            authenticated: req.query.authenticated ? String(req.query.authenticated) : undefined,
+            graded: req.query.graded ? String(req.query.graded) : undefined,
+            // Business
+            businessType: req.query.businessType ? String(req.query.businessType) : undefined,
+            annualRevenueRange: req.query.annualRevenueRange
+              ? String(req.query.annualRevenueRange)
+              : undefined,
+            ownerFinancing: req.query.ownerFinancing ? String(req.query.ownerFinancing) : undefined,
+            // Construction / Farm
+            hoursMax: req.query.hoursMax ? Number(req.query.hoursMax) : undefined,
+            inspectionReady: req.query.inspectionReady
+              ? String(req.query.inspectionReady)
+              : undefined,
+            fieldReady: req.query.fieldReady ? String(req.query.fieldReady) : undefined,
+            // Furniture
+            material: req.query.material ? String(req.query.material) : undefined,
+            assemblyStatus: req.query.assemblyStatus ? String(req.query.assemblyStatus) : undefined,
+            // Business Equipment
+            powerRequirements: req.query.powerRequirements
+              ? String(req.query.powerRequirements)
+              : undefined,
+            installRequired: req.query.installRequired
+              ? String(req.query.installRequired)
+              : undefined,
+            // Electronics
+            storage: req.query.storage ? String(req.query.storage) : undefined,
+            powersOn: req.query.powersOn ? String(req.query.powersOn) : undefined,
+            carrierStatus: req.query.carrierStatus ? String(req.query.carrierStatus) : undefined,
+            // Sports
+            sport: req.query.sport ? String(req.query.sport) : undefined,
+            competitionReady: req.query.competitionReady
+              ? String(req.query.competitionReady)
+              : undefined,
+            // Jewelry
+            metal: req.query.metal ? String(req.query.metal) : undefined,
+            handoff: req.query.handoff ? String(req.query.handoff) : undefined,
+            // Local Food
+            pickupOrDelivery: req.query.pickupOrDelivery
+              ? String(req.query.pickupOrDelivery)
+              : undefined,
+            leadTime: req.query.leadTime ? String(req.query.leadTime) : undefined,
+            // Other
+            inspectionAvailable: req.query.inspectionAvailable
+              ? String(req.query.inspectionAvailable)
+              : undefined,
+            // Tools
+            includesBatteries: req.query.includesBatteries
+              ? String(req.query.includesBatteries)
+              : undefined,
+            includesChargers: req.query.includesChargers
+              ? String(req.query.includesChargers)
+              : undefined,
+            includesCase: req.query.includesCase ? String(req.query.includesCase) : undefined,
+          });
+          const authority = await buildExposureAuthorityMap(rows.map((row) => row.sellerId));
+          return {
+            sourceCount: rows.length,
+            items: rows.filter(
+              (row) =>
+                authority[row.sellerId] === true &&
+                !EXCHANGE_FORBIDDEN_TEXT.test(`${row.title || ""} ${row.description || ""}`)
+            ),
+          };
+        },
+        page.limit == null ? undefined : page.offset + page.limit
+      );
 
       const sellerIds = Array.from(
         new Set((listings || []).map((l: any) => String(l?.sellerId || "").trim()).filter(Boolean))
@@ -12573,42 +12408,21 @@ export async function registerRoutes(app: any) {
         .map((listing: any) => toPublicExchangeListing(listing))
         .filter(Boolean) as any[];
 
-      const profileOfferItems =
-        rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY
-          ? []
-          : await listProfileOfferExchangeItems(req, rawCategoryId);
+      const profileOfferItems = await listProfileOfferExchangeItems(req, rawCategoryId);
       const profileCatalogItems = await listPublicProfileCatalogExchangeItems({
         category: rawCategoryId,
         search: req.query.search as string | undefined,
         hasPriceFilter: Boolean(req.query.priceMin || req.query.priceMax),
         condition: req.query.condition as string | undefined,
+        filterState: req.query.filterState as string | undefined,
+        filterCounty: req.query.filterCounty as string | undefined,
       });
-      const merged = [...mapped, ...profileOfferItems, ...profileCatalogItems];
-      const sort = String(req.query.sort || "date_desc");
-      if (sort === "price_asc")
-        merged.sort((a, b) => {
-          const aPrice = a.price == null ? Number.POSITIVE_INFINITY : Number(a.price);
-          const bPrice = b.price == null ? Number.POSITIVE_INFINITY : Number(b.price);
-          return aPrice - bPrice;
-        });
-      else if (sort === "price_desc")
-        merged.sort((a, b) => {
-          const aPrice = a.price == null ? Number.NEGATIVE_INFINITY : Number(a.price);
-          const bPrice = b.price == null ? Number.NEGATIVE_INFINITY : Number(b.price);
-          return bPrice - aPrice;
-        });
-      else if (sort === "date_asc")
-        merged.sort(
-          (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-        );
-      else
-        merged.sort(
-          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-        );
-
-      const offset = req.query.offset ? Math.max(0, Number(req.query.offset)) : 0;
-      const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : undefined;
-      res.json(limit ? merged.slice(offset, offset + limit) : merged);
+      res.json(
+        mergeExchangeDiscoveryItems<any>(
+          [mapped, profileOfferItems, profileCatalogItems],
+          req.query
+        )
+      );
     } catch (error: any) {
       console.error("Error fetching exchange items:", error);
       res.status(500).json({ message: "Failed to fetch items" });
@@ -12850,7 +12664,16 @@ export async function registerRoutes(app: any) {
             return right - left;
           }
         );
-        const threads = merged.slice(offset, offset + limit);
+        const legacyIds = new Set(legacyThreads.map((thread) => thread.id));
+        const threads = await Promise.all(
+          merged.slice(offset, offset + limit).map(async (thread) => {
+            if (!legacyIds.has(thread.id)) return thread;
+            const context = await loadLegacyConversationContext(thread.id, String(userId));
+            return context
+              ? { ...thread, kind: context.kind, subject: context.title, context }
+              : thread;
+          })
+        );
         res.json({ threads });
       } catch (error: any) {
         console.error("Error fetching message threads:", error);
@@ -12920,24 +12743,25 @@ export async function registerRoutes(app: any) {
         if (!legacyConversation) {
           return res.status(404).json({ message: "Thread not found" });
         }
-        if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
-        ) {
+        if (!(await canAccessConversation(legacyConversation.id, String(userId)))) {
           return res.status(403).json({ message: "Access denied" });
         }
         const legacyMessages = await storage.getMessagesByConversation(req.params.threadId);
+        const directConnectContext = await loadLegacyConversationContext(
+          legacyConversation.id,
+          String(userId)
+        );
         const legacyThread = {
           id: legacyConversation.id,
-          subject: null as string | null,
+          subject: directConnectContext?.title || null,
           lastMessageSnippet: legacyMessages.length
             ? legacyMessages[legacyMessages.length - 1]?.content || null
             : null,
           lastMessageAt: (legacyConversation.lastMessageAt as any) ?? null,
           unreadCount: legacyMessages.filter((m: any) => m.senderId !== userId && !m.readAt).length,
           participantCount: 2,
-          kind: "general" as const,
-          context: {
+          kind: directConnectContext?.kind || ("general" as const),
+          context: directConnectContext || {
             kind: "general" as const,
             label: "Community",
             title: "Conversation",
@@ -12975,10 +12799,7 @@ export async function registerRoutes(app: any) {
 
         const legacyConversation = await storage.getConversation(threadId);
         if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
-        if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
-        ) {
+        if (!(await canAccessConversation(legacyConversation.id, String(userId)))) {
           return res.status(403).json({ message: "Access denied" });
         }
         const legacyMessages = await storage.getMessagesByConversation(threadId);
@@ -13022,10 +12843,7 @@ export async function registerRoutes(app: any) {
           const legacyConversation = await storage.getConversation(threadId);
           if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
           threadType = "legacy";
-          if (
-            legacyConversation.homeownerId !== userId &&
-            legacyConversation.contractorId !== userId
-          ) {
+          if (!(await canAccessConversation(legacyConversation.id, String(userId)))) {
             return res.status(403).json({ message: "Access denied" });
           }
         }
@@ -13259,7 +13077,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -13317,10 +13135,7 @@ export async function registerRoutes(app: any) {
           }
           const legacyConversation = authority.conversation;
           threadType = "legacy";
-          if (
-            legacyConversation.homeownerId !== userId &&
-            legacyConversation.contractorId !== userId
-          ) {
+          if (!(await canAccessConversation(legacyConversation.id, String(userId)))) {
             return res.status(403).json({ message: "Access denied" });
           }
         }
@@ -13413,7 +13228,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -13472,10 +13287,7 @@ export async function registerRoutes(app: any) {
           });
         }
         const legacyConversation = authority.conversation;
-        if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
-        ) {
+        if (!(await canAccessConversation(legacyConversation.id, String(userId)))) {
           return res.status(403).json({ message: "Access denied" });
         }
 
@@ -13487,7 +13299,7 @@ export async function registerRoutes(app: any) {
           content,
           messageType: messageType || "text",
           metadata: {
-            ...(metadata && typeof metadata === "object" ? metadata : {}),
+            ...participantMessageMetadata(metadata, userId, senderType),
             connectionId: authority.connectionId,
             workRequestId: authority.workRequestId,
           },
@@ -13519,7 +13331,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -13555,7 +13367,7 @@ export async function registerRoutes(app: any) {
         const conversation = authority.conversation;
 
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        if (!(await canAccessConversation(conversation.id, String(userId)))) {
           return res.status(403).json({ message: "Access denied" });
         }
 
@@ -13636,7 +13448,7 @@ export async function registerRoutes(app: any) {
             .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
             .where(
               and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
+                sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
                 eq(workRequests.createdByUserId, conversation.homeownerId),
                 eq(workRequests.source, "direct_connect" as any),
                 inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -13673,7 +13485,7 @@ export async function registerRoutes(app: any) {
         }
         const conversation = authority.conversation;
 
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        if (!(await canAccessConversation(conversation.id, String(userId)))) {
           return res.status(403).json({ message: "Access denied" });
         }
 
@@ -13715,7 +13527,7 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+      if (!(await canAccessConversation(conversation.id, String(userId)))) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -13727,7 +13539,7 @@ export async function registerRoutes(app: any) {
         .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
         .where(
           and(
-            eq(workRequestAssignments.contractorId, conversation.contractorId),
+            sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
             eq(workRequests.createdByUserId, conversation.homeownerId),
             eq(workRequests.source, "direct_connect" as any),
             inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
@@ -13775,7 +13587,7 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+      if (!(await canAccessConversation(conversation.id, String(userId)))) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -13787,7 +13599,7 @@ export async function registerRoutes(app: any) {
         .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
         .where(
           and(
-            eq(workRequestAssignments.contractorId, conversation.contractorId),
+            sql`COALESCE(${workRequestAssignments.contractorId}, ${workRequestAssignments.responderUserId}) = ${conversation.contractorId}`,
             eq(workRequests.createdByUserId, conversation.homeownerId),
             eq(workRequests.source, "direct_connect" as any),
             inArray(workRequestAssignments.status, ["accepted", "completed"] as any),

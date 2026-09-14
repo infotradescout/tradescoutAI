@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout",
+    "releaseId": "platform-unfinished-20260909",
+    "releaseVersion": "1",
+    "buildId": "recovery-onboarding-integration",
+    "lockVersion": "20260909"
+  },
+  "phase": "continuation",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout county discovery, claims-first accounts, gated requests/contact, business profiles and remaining isolated recovery work.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": true,
+      "outcome": "Combine already-authorized recovery and action-first onboarding into one verified local integration candidate.",
+      "entry": "A guest begins a business recommendation, creates a minimal account, and returns to save it.",
+      "ending": "The recommendation remains private until verified and moderated; existing recovery request/contact and legacy privacy contracts remain correct.",
+      "proof": [
+        {
+          "type": "automated_test",
+          "procedure": "Run immutable migration checks, native recommendation and recovery proofs, focused UI/security tests, typecheck/build, and exact-commit minimum release gate with current synthetic browser journeys.",
+          "expected": "Immutable main history; restoration before projection; private unclassified legacy data; actor-verified and moderated publication; preserved recovery authority.",
+          "observed": "Combined native recommendation, legacy/schema, recovery and suppression proofs passed. Independent review reproduced and repaired CVS moderation-case inflation and disabled-author replay status; both regressions failed before and passed after the bounded fixes. The strict minimum release gate and actual desktop/mobile journeys passed the earlier combined checkpoint; current exact-source receipts are recorded separately after the corrected candidate is committed.",
+          "evidenceRef": "artifacts/platform-integration-result.json"
+        }
+      ],
+      "journeySteps": [
+        "Recover and restore the immutable migration chain.",
+        "Save the recommendation through canonical account and recommendation owners.",
+        "Verify both new publication safeguards and existing recovery denial cases."
+      ],
+      "constraints": [
+        "Use existing TradeScout repository and canonical permission/storage/component owners; preserve County Map WIP and separate JW product changes."
+      ],
+      "requirementIds": [
+        "REQ-RECOVERY"
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-RECOVERY",
+          "scope": "active_deliverable",
+          "claim": "Only the local integration candidate is closed after current combined evidence. Merge, deployment, real-provider proof and broader unfinished work remain separate."
+        }
+      ],
+      "excludedFromActive": [
+        "LSS saved-content release is the next dependent deliverable; JW presentation, County Map and other product stacks retain separate ownership."
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "outcome": "Root-owned integration review, draft PR and any explicitly authorized future release; Infinity refresh and Exchange connection keep separate owners."
+    },
+    {
+      "id": "D3",
+      "active": false,
+      "outcome": "Preserve remaining JW, County Map, membership, dependency and external-provider work for its own evidence-backed completion."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "Existing TradeScout React/Express/Postgres contracts and Render production path own the workflow.",
+    "constraintsConsidered": [
+      "Persistent requests and identity, explicit access decisions, append-only migrations and existing production repository."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": true
+    }
+  }
+}

@@ -27,6 +27,10 @@ import { trackShellEvent } from "@/lib/analytics";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { resolvePreScoutAuthenticatedRoute, sanitizePreScoutNext } from "@/lib/preScoutAuthHandoff";
 import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
+import {
+  isRecommendationActionPath,
+  isRecommendationContinuationPath,
+} from "@shared/recommendationContinuation";
 
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
@@ -85,6 +89,12 @@ export default function PreScoutSetup() {
   const nextParam = (searchParams.get("next") || "").trim();
   const safeNext = sanitizePreScoutNext(nextParam);
   const postSetupNext = safeNext;
+  const isRecommendationDestination = isRecommendationActionPath(postSetupNext);
+  const recommendationNext = isRecommendationDestination
+    ? isRecommendationContinuationPath(postSetupNext)
+      ? postSetupNext
+      : new URL(postSetupNext, "https://tradescout.internal").searchParams.get("next") || ""
+    : "";
   const isDirectConnectDestination = postSetupNext.startsWith("/direct-connect");
   const isAdminDestination = postSetupNext.startsWith("/admin");
   const anyUser: any = user || {};
@@ -138,20 +148,26 @@ export default function PreScoutSetup() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createErrorCode, setCreateErrorCode] = useState<string | null>(null);
 
-  const authStepTitle = isDirectConnectDestination
+  const authStepTitle = isRecommendationDestination
     ? authMode === "create"
-      ? "Create your account to send this Direct Connect request."
-      : "Sign in to send this Direct Connect request."
-    : authMode === "create"
-      ? "Create your account to continue."
-      : "Sign in to continue.";
-  const authStepDescription = isDirectConnectDestination
-    ? authMode === "create"
-      ? "Your request draft is safe. Create a free account and go straight back to finish sending it."
-      : "Your request draft is safe. Sign in and go straight back to finish sending it."
-    : authMode === "create"
-      ? "Start here so Scout can save your progress, then tell onboarding the result you want."
-      : "Sign in to pick up where you left off.";
+      ? "Save your recommendation to your account."
+      : "Sign in to save your recommendation."
+    : isDirectConnectDestination
+      ? authMode === "create"
+        ? "Create your account to send this Direct Connect request."
+        : "Sign in to send this Direct Connect request."
+      : authMode === "create"
+        ? "Create your account to continue."
+        : "Sign in to continue.";
+  const authStepDescription = isRecommendationDestination
+    ? "Pick up your recommendation after signing in. Confirm your email before it can be published."
+    : isDirectConnectDestination
+      ? authMode === "create"
+        ? "Your request draft is safe. Create a free account and go straight back to finish sending it."
+        : "Your request draft is safe. Sign in and go straight back to finish sending it."
+      : authMode === "create"
+        ? "Start here so Scout can save your progress, then tell onboarding the result you want."
+        : "Sign in to pick up where you left off.";
   const authenticatedNextPath = useMemo(() => {
     return resolvePreScoutAuthenticatedRoute({
       explicitNext: postSetupNext,
@@ -437,6 +453,7 @@ export default function PreScoutSetup() {
 
   const buildAuthReturnPath = useCallback(
     (mode: AuthMode) => {
+      if (isRecommendationActionPath(postSetupNext)) return postSetupNext;
       const params = new URLSearchParams();
       params.set("mode", mode);
       if (postSetupNext) {
@@ -483,6 +500,12 @@ export default function PreScoutSetup() {
     return false;
   };
 
+  const refreshAuthenticatedAccount = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
+    await refetch?.();
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (authMode !== "signin") {
@@ -511,19 +534,15 @@ export default function PreScoutSetup() {
     try {
       await apiRequest("POST", "/api/auth/login", { email, password });
       const sessionReady = await ensureSessionEstablished();
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
-      try {
-        await refetch?.();
-      } catch {
-        // fail-soft
-      }
       if (!sessionReady) {
-        toast({
-          title: "Finalizing sign in",
-          description: "Session propagation is taking longer than expected. Retrying now.",
-        });
+        throw Object.assign(
+          new Error("Sign-in could not be confirmed. Please sign in again to continue."),
+          {
+            code: "AUTH_SESSION_NOT_READY",
+          }
+        );
       }
+      await refreshAuthenticatedAccount();
       void trackDemandEvent("signin_success", { mode: "signin" });
       toast({ title: "Signed in", description: "Opening your next step." });
       // The authenticated-user effect owns routing after the refreshed user is
@@ -569,7 +588,12 @@ export default function PreScoutSetup() {
     const firstName = createFirstName.trim();
     const lastName = createLastName.trim();
 
-    if (!firstName || !lastName || !email || !phone || !createPassword) {
+    if (
+      !firstName ||
+      !email ||
+      !createPassword ||
+      (!isRecommendationDestination && (!lastName || !phone))
+    ) {
       toast({
         title: "Missing fields",
         description: "Complete all required fields.",
@@ -578,7 +602,7 @@ export default function PreScoutSetup() {
       return;
     }
 
-    if (createPassword !== createConfirmPassword) {
+    if (!isRecommendationDestination && createPassword !== createConfirmPassword) {
       toast({
         title: "Password mismatch",
         description: "Passwords must match.",
@@ -630,18 +654,12 @@ export default function PreScoutSetup() {
         userIntent: "",
         acceptTerms: true,
         allowPhoneCalls: false,
+        ...(recommendationNext ? { next: recommendationNext } : {}),
         ...(claimBusinessId ? { claimBusinessId } : {}),
       });
 
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
-      try {
-        await refetch?.();
-      } catch {
-        // fail-soft
-      }
-
-      if (resp?.emailVerificationRequired === true) {
+      if (resp?.emailVerificationRequired === true && !isRecommendationDestination) {
+        await refreshAuthenticatedAccount();
         void trackDemandEvent("create_success", { mode: "create", verificationRequired: true });
         const emailParam = `email=${encodeURIComponent(email)}`;
         const nextValue = encodeURIComponent(buildAuthReturnPath("create"));
@@ -649,7 +667,20 @@ export default function PreScoutSetup() {
         return;
       }
 
-      await ensureSessionEstablished();
+      const sessionReady = await ensureSessionEstablished();
+      if (!sessionReady) {
+        setSignInEmail(email);
+        setCreateErrorCode("AUTH_SESSION_NOT_READY");
+        setCreateError(
+          isRecommendationDestination
+            ? "Your account was created, but sign-in could not be confirmed. Sign in to continue. Your recommendation is still saved on this device."
+            : "Your account was created, but sign-in could not be confirmed. Sign in to continue."
+        );
+        return;
+      }
+      // The successful poll may follow earlier guest responses. Refresh after
+      // it resolves so useAuth receives the established session before routing.
+      await refreshAuthenticatedAccount();
       void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
       toast({ title: "Account created", description: "Opening your next step." });
       // Let the authenticated-user effect choose from the refreshed account.
@@ -1002,10 +1033,15 @@ export default function PreScoutSetup() {
                   </form>
                 ) : (
                   <form onSubmit={handleCreateAccount} className="space-y-2.5">
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div
+                      className={`grid grid-cols-1 gap-2 ${isRecommendationDestination ? "" : "sm:grid-cols-2"}`}
+                    >
                       <div>
-                        <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                          First name
+                        <Label
+                          htmlFor="create-first-name"
+                          className="text-[11px] uppercase tracking-[0.12em] text-white/60"
+                        >
+                          {isRecommendationDestination ? "Your name" : "First name"}
                         </Label>
                         <Input
                           id="create-first-name"
@@ -1019,36 +1055,41 @@ export default function PreScoutSetup() {
                               setCreateErrorCode(null);
                             }
                           }}
-                          autoComplete="given-name"
-                          placeholder="First"
+                          autoComplete={isRecommendationDestination ? "name" : "given-name"}
+                          placeholder={isRecommendationDestination ? "Your name" : "First"}
                           className={authInputClass}
                           required
                         />
                       </div>
-                      <div>
-                        <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                          Last name
-                        </Label>
-                        <Input
-                          id="create-last-name"
-                          name="lastName"
-                          value={createLastName}
-                          onChange={(e) => {
-                            setCreateLastName(e.target.value);
-                            if (createError) {
-                              setCreateError(null);
-                              setCreateErrorCode(null);
-                            }
-                          }}
-                          autoComplete="family-name"
-                          placeholder="Last"
-                          className={authInputClass}
-                          required
-                        />
-                      </div>
+                      {!isRecommendationDestination && (
+                        <div>
+                          <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                            Last name
+                          </Label>
+                          <Input
+                            id="create-last-name"
+                            name="lastName"
+                            value={createLastName}
+                            onChange={(e) => {
+                              setCreateLastName(e.target.value);
+                              if (createError) {
+                                setCreateError(null);
+                                setCreateErrorCode(null);
+                              }
+                            }}
+                            autoComplete="family-name"
+                            placeholder="Last"
+                            className={authInputClass}
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
                     <div>
-                      <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                      <Label
+                        htmlFor="create-email"
+                        className="text-[11px] uppercase tracking-[0.12em] text-white/60"
+                      >
                         Email
                       </Label>
                       <Input
@@ -1070,30 +1111,37 @@ export default function PreScoutSetup() {
                         required
                       />
                     </div>
-                    <div>
-                      <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                        Phone
-                      </Label>
-                      <Input
-                        id="create-phone"
-                        name="phone"
-                        value={createPhone}
-                        onChange={(e) => {
-                          setCreatePhone(e.target.value);
-                          if (createError) {
-                            setCreateError(null);
-                            setCreateErrorCode(null);
-                          }
-                        }}
-                        autoComplete="tel"
-                        placeholder="(555) 555-5555"
-                        className={authInputClass}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {!isRecommendationDestination && (
                       <div>
                         <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                          Phone
+                        </Label>
+                        <Input
+                          id="create-phone"
+                          name="phone"
+                          value={createPhone}
+                          onChange={(e) => {
+                            setCreatePhone(e.target.value);
+                            if (createError) {
+                              setCreateError(null);
+                              setCreateErrorCode(null);
+                            }
+                          }}
+                          autoComplete="tel"
+                          placeholder="(555) 555-5555"
+                          className={authInputClass}
+                          required
+                        />
+                      </div>
+                    )}
+                    <div
+                      className={`grid grid-cols-1 gap-2 ${isRecommendationDestination ? "" : "sm:grid-cols-2"}`}
+                    >
+                      <div>
+                        <Label
+                          htmlFor="create-password"
+                          className="text-[11px] uppercase tracking-[0.12em] text-white/60"
+                        >
                           Password
                         </Label>
                         <Input
@@ -1115,28 +1163,30 @@ export default function PreScoutSetup() {
                           required
                         />
                       </div>
-                      <div>
-                        <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                          Confirm
-                        </Label>
-                        <Input
-                          id="create-confirm-password"
-                          name="confirmPassword"
-                          type="password"
-                          value={createConfirmPassword}
-                          onChange={(e) => {
-                            setCreateConfirmPassword(e.target.value);
-                            if (createError) {
-                              setCreateError(null);
-                              setCreateErrorCode(null);
-                            }
-                          }}
-                          autoComplete="new-password"
-                          placeholder="Repeat password"
-                          className={authInputClass}
-                          required
-                        />
-                      </div>
+                      {!isRecommendationDestination && (
+                        <div>
+                          <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                            Confirm
+                          </Label>
+                          <Input
+                            id="create-confirm-password"
+                            name="confirmPassword"
+                            type="password"
+                            value={createConfirmPassword}
+                            onChange={(e) => {
+                              setCreateConfirmPassword(e.target.value);
+                              if (createError) {
+                                setCreateError(null);
+                                setCreateErrorCode(null);
+                              }
+                            }}
+                            autoComplete="new-password"
+                            placeholder="Repeat password"
+                            className={authInputClass}
+                            required
+                          />
+                        </div>
+                      )}
                     </div>
                     <label className="flex items-start gap-2">
                       <input
@@ -1162,14 +1212,17 @@ export default function PreScoutSetup() {
                         >
                           {createError}
                         </p>
-                        {(createErrorCode === "AUTH_ACCOUNT_EXISTS" ||
+                        {(createErrorCode === "AUTH_SESSION_NOT_READY" ||
+                          createErrorCode === "AUTH_ACCOUNT_EXISTS" ||
                           createErrorCode === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY") && (
                           <button
                             type="button"
                             className="mt-1 text-xs font-medium underline underline-offset-2 text-white"
                             onClick={() => setAuthModeAndSyncUrl("signin")}
                           >
-                            Switch to sign in
+                            {createErrorCode === "AUTH_SESSION_NOT_READY"
+                              ? "Sign in to continue"
+                              : "Switch to sign in"}
                           </button>
                         )}
                       </div>
@@ -1183,9 +1236,11 @@ export default function PreScoutSetup() {
                       >
                         {authSubmitting
                           ? "Creating..."
-                          : isDirectConnectDestination
-                            ? "Create account to continue"
-                            : "Create account"}
+                          : isRecommendationDestination
+                            ? "Create account and return"
+                            : isDirectConnectDestination
+                              ? "Create account to continue"
+                              : "Create account"}
                       </Button>
                     </div>
                     <div className="flex justify-end">
@@ -1225,10 +1280,15 @@ export default function PreScoutSetup() {
             <CardHeader className="space-y-2">
               <div className="space-y-0.5">
                 <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">Routing</div>
-                <CardTitle className="text-xl text-white">Opening onboarding</CardTitle>
+                <CardTitle className="text-xl text-white">
+                  {isRecommendationDestination
+                    ? "Returning to your recommendation"
+                    : "Opening onboarding"}
+                </CardTitle>
                 <p className="text-sm text-white/60">
-                  Account access is ready. TradeScout is sending you into the main onboarding flow
-                  so profile setup, local context, and first-use guidance all stay in one place.
+                  {isRecommendationDestination
+                    ? "Your account is ready. Continue where you left off."
+                    : "Account access is ready. TradeScout is sending you into the main onboarding flow so profile setup, local context, and first-use guidance all stay in one place."}
                 </p>
               </div>
             </CardHeader>

@@ -17,6 +17,7 @@ import {
   validateApiRouteOwnership,
   validatePrRecoveryRecords,
   validateRouteExposure,
+  verifyRecoveryMergeCommit,
 } from "./guard-production-readiness-registry.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -25,7 +26,8 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 test("the real registry snapshot passes its hardened guard", () => {
   const result = runProductionReadinessGuard(root);
   assert.deepEqual(result.failures, []);
-  assert.equal(result.counts.openPrHolds, 7);
+  assert.equal(result.counts.openPrHolds, 0);
+  assert.equal(result.counts.mergedPrRecoveries, 7);
   assert.equal(result.counts.compatibilityRedirects, 54);
   assert.equal(result.counts.serverRenderedClientRoutes, 3);
 });
@@ -63,20 +65,43 @@ test("operational business and growth tools keep their exact role boundaries", (
   assert.deepEqual(routes.get("/notes")?.requiredRoles, []);
 });
 
-test("open Release 0 recovery drafts remain explicit unmerged holds", () => {
+test("landed Release 0 recoveries retain exact main ancestry and replacement linkage", () => {
   const expected = [545, 546, 547, 548, 549, 550, 551];
-  const held = PR_RECOVERY_DISPOSITIONS.filter((pr) => pr.disposition === "hold");
-  assert.deepEqual(held.map((pr) => pr.number).sort((a, b) => a - b), expected);
-  for (const pr of held) {
-    assert.equal(pr.status, "open");
-    assert.equal(pr.mergedIntoMain, false);
-    assert.match(pr.reason, /not current-main production evidence/);
+  const merged = PR_RECOVERY_DISPOSITIONS.filter((pr) => pr.mergedIntoMain === true);
+  assert.deepEqual(merged.map((pr) => pr.number).sort((a, b) => a - b), expected);
+  for (const pr of merged) {
+    assert.equal(pr.status, "closed");
+    assert.equal(pr.disposition, "close");
+    assert.equal(verifyRecoveryMergeCommit(pr, root), true, `PR #${pr.number}`);
   }
-  assert.deepEqual(validatePrRecoveryRecords(), []);
+  assert.deepEqual(validatePrRecoveryRecords(PR_RECOVERY_DISPOSITIONS, (pr) => verifyRecoveryMergeCommit(pr, root)), []);
 
-  const falseCurrentMainClaim = PR_RECOVERY_DISPOSITIONS.map((pr) =>
-    pr.number === 409
-      ? { ...pr, reason: "Superseded by current-main recovery in draft PR #546." }
+  const actual = merged.find((pr) => pr.number === 545);
+  const another = merged.find((pr) => pr.number === 546);
+  assert.equal(verifyRecoveryMergeCommit({ ...actual, mergeCommit: another.mergeCommit }, root), false);
+  assert.equal(verifyRecoveryMergeCommit({ ...actual, mergeCommit: "f".repeat(40) }, root), false);
+});
+
+test("merged recovery promotion rejects missing receipts, false ancestry and broken linkage", () => {
+  const mutate = (number, patch) => PR_RECOVERY_DISPOSITIONS.map((pr) => pr.number === number ? { ...pr, ...patch } : pr);
+  assert.ok(validatePrRecoveryRecords(mutate(545, { mergeCommit: undefined })).some((failure) => failure.includes("exact merge commit")));
+  assert.ok(validatePrRecoveryRecords(PR_RECOVERY_DISPOSITIONS, () => false).some((failure) => failure.includes("evidence in origin/main")));
+  assert.ok(validatePrRecoveryRecords(mutate(545, { status: "open", disposition: "hold" })).some((failure) => failure.includes("must be closed")));
+  assert.ok(validatePrRecoveryRecords(mutate(545, { replaces: [999] })).some((failure) => failure.includes("reciprocal")));
+  assert.ok(validatePrRecoveryRecords(mutate(545, { mergedIntoMain: false })).some((failure) => failure.includes("without mergedIntoMain")));
+});
+
+test("unmerged replacement fixtures remain holds and cannot claim current-main recovery", () => {
+  const records = [
+    { number: 900, status: "closed", disposition: "close", owner: "test", replacementPr: 901, reason: "Superseded by a bounded draft." },
+    { number: 901, status: "open", disposition: "hold", owner: "test", headRef: "test/recovery", mergedIntoMain: false, replaces: [900], reason: "Pending review; no current-main claim." },
+  ];
+  assert.deepEqual(validatePrRecoveryRecords(records), []);
+  assert.ok(validatePrRecoveryRecords(records.map((pr) => pr.number === 901 ? { ...pr, mergedIntoMain: true } : pr)).length > 0);
+
+  const falseCurrentMainClaim = records.map((pr) =>
+    pr.number === 900
+      ? { ...pr, reason: "Superseded by current-main recovery in draft PR #901." }
       : pr
   );
   assert.ok(

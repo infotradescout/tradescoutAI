@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import type { db as Database } from "../../db";
 import { and, eq, sql } from "drizzle-orm";
+import { persistAcceptedExpressDispatch } from "./express-dispatch-handoff";
 import {
   contactPermissionEvents,
   contactPermissions,
@@ -299,6 +300,17 @@ export async function transitionExpressDirectConnectAuthority(
       contactPreference,
     },
   });
+
+  if (isAccept) {
+    await persistAcceptedExpressDispatch(tx, {
+      request: params.requestRow,
+      requesterUserId,
+      providerUserId: params.providerUserId,
+      businessId: String(metadata.businessId),
+      sourceDecisionCardId,
+      requestType: String(metadata.requestType || "business_request"),
+    });
+  }
 
   return {
     sourceDecisionCardId,

@@ -227,14 +227,32 @@ export function registerStoneInventoryRoutes(app: Express): void {
 
   app.get(
     "/api/u/:slug/stone-inventory/manage",
+    requireCriticalSchema("bidrock"),
     isAuthenticated,
     async (req: Request, res: Response) => {
       try {
         const target = await managedTarget(req, res, "inventory_read");
         if (!target) return;
-        const items = await listSellerStoneInventory(target);
+        const [items, viewer] = await Promise.all([
+          listSellerStoneInventory(target),
+          getBidRockViewerContext(userId(req)),
+        ]);
         res.setHeader("Cache-Control", "private, no-store");
-        res.json(inventoryResponse(target.profileSlug, items));
+        res.json({
+          ...inventoryResponse(target.profileSlug, items),
+          capabilities: {
+            write: canBidRockViewerMutateStoneInventory(
+              viewer,
+              target.businessId,
+              "inventory_write"
+            ),
+            publish: canBidRockViewerMutateStoneInventory(
+              viewer,
+              target.businessId,
+              "inventory_publish"
+            ),
+          },
+        });
       } catch (error) {
         console.error("[stone-inventory] seller list failed", error);
         res.status(500).json({ message: "Seller inventory is temporarily unavailable" });

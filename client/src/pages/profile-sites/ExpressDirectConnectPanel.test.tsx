@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act } from "react";
+import { act, type ComponentProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
@@ -48,6 +48,12 @@ function selectCustomerRole(container: ParentNode, value = "fabricator") {
   change(select as HTMLSelectElement | null, value);
 }
 
+function pressKey(key: string, shiftKey = false) {
+  const event = new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true });
+  act(() => (document.activeElement || document.body).dispatchEvent(event));
+  return event;
+}
+
 describe("Express Direct Connect anonymous inventory context", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -93,6 +99,294 @@ describe("Express Direct Connect anonymous inventory context", () => {
       ) || null
     );
   }
+
+  function renderRequestPanel(
+    props: Partial<ComponentProps<typeof ExpressDirectConnectPanel>> = {}
+  ) {
+    act(() =>
+      root.render(
+        <ExpressDirectConnectPanel
+          open
+          onClose={vi.fn()}
+          profileSlug="louisiana-stone-solutions"
+          businessName="Louisiana Stone Solutions"
+          hasViewerSession={false}
+          allowCall={false}
+          initialView="request"
+          initialServiceName="Countertops, Tile"
+          {...props}
+        />
+      )
+    );
+  }
+
+  function fillContactDetails() {
+    change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");
+    change(container.querySelector<HTMLInputElement>('input[type="email"]'), "alex@example.com");
+    change(container.querySelector<HTMLInputElement>('input[type="tel"]'), "555-555-1212");
+  }
+
+  async function submitForm() {
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  it("recovers an unsent draft after closing to review the same business and changing services", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ requestId: "recovered-request" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderRequestPanel({ onClose: () => renderRequestPanel({ open: false }) });
+    fillContactDetails();
+    change(container.querySelector("textarea"), "Replace our kitchen counters and backsplash.");
+    change(container.querySelector("select"), "request_quote");
+    click(container.querySelector('input[type="checkbox"]'));
+    click(container.querySelector('[aria-label="Close Direct Connect"]'));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+
+    renderRequestPanel({ initialServiceName: "Countertops, Flooring" });
+    expect(container.querySelector("h3")?.textContent).toBe("Ask about Countertops, Flooring");
+    expect(container.querySelector<HTMLInputElement>('input[autocomplete="name"]')?.value).toBe(
+      "Alex Smith"
+    );
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Replace our kitchen counters and backsplash."
+    );
+    expect(container.querySelector<HTMLSelectElement>("select")?.value).toBe("request_quote");
+    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await submitForm();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      name: "Alex Smith",
+      email: "alex@example.com",
+      phone: "555-555-1212",
+      message: "Replace our kitchen counters and backsplash.",
+      requestType: "request_quote",
+      serviceName: "Countertops, Flooring",
+      updatesOptIn: true,
+    });
+  });
+
+  it("refreshes untouched service prefills but preserves details the visitor deliberately cleared", () => {
+    renderRequestPanel();
+    renderRequestPanel({ initialServiceName: "Flooring", initialRequestType: "request_quote" });
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "I'm interested in Flooring."
+    );
+    expect(container.querySelector<HTMLSelectElement>("select")?.value).toBe("request_quote");
+    change(container.querySelector("textarea"), "");
+    renderRequestPanel({ open: false, initialServiceName: "Flooring" });
+    renderRequestPanel({ initialServiceName: "Countertops" });
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(
+      false
+    );
+  });
+
+  it("retains the chosen customer role and edited material draft across a changed stone selection", () => {
+    const materialProps = {
+      profileSlug: "jw-stone",
+      businessName: "JW Stone",
+      requestMode: "materials" as const,
+      initialServiceName: null,
+      initialStoneName: "Steel Gray",
+      initialItemId: "steel-gray",
+    };
+    renderRequestPanel(materialProps);
+    selectCustomerRole(container, "designer");
+    change(container.querySelector("textarea"), "Please match these slabs to the kitchen plan.");
+    renderRequestPanel({ ...materialProps, open: false });
+    renderRequestPanel({
+      ...materialProps,
+      initialStoneName: "Amazonic Green",
+      initialItemId: "amazonic-green",
+    });
+    expect(container.querySelector("h3")?.textContent).toBe("Ask about Amazonic Green");
+    expect(container.querySelector<HTMLSelectElement>("select")?.value).toBe("designer");
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Please match these slabs to the kitchen plan."
+    );
+  });
+
+  it.each(["open", "closed"])(
+    "starts an empty draft when another profile replaces an %s panel",
+    (state) => {
+      renderRequestPanel();
+      fillContactDetails();
+      change(container.querySelector("textarea"), "Private kitchen project details.");
+      click(container.querySelector('input[type="checkbox"]'));
+      if (state === "closed") renderRequestPanel({ open: false });
+      renderRequestPanel({
+        profileSlug: "another-business",
+        businessName: "Another Business",
+        initialServiceName: "Painting",
+      });
+      expect(container.querySelector<HTMLInputElement>('input[autocomplete="name"]')?.value).toBe(
+        ""
+      );
+      expect(container.querySelector<HTMLInputElement>('input[type="email"]')?.value).toBe("");
+      expect(container.querySelector<HTMLInputElement>('input[type="tel"]')?.value).toBe("");
+      expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+        "I'm interested in Painting."
+      );
+      expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(
+        false
+      );
+    }
+  );
+
+  it("resets a draft when the request mode changes so incompatible selections cannot carry over", () => {
+    renderRequestPanel({ requestMode: "materials", initialServiceName: null });
+    fillContactDetails();
+    selectCustomerRole(container, "builder");
+    change(container.querySelector("textarea"), "Find matching slabs for our project.");
+    click(container.querySelector('input[type="checkbox"]'));
+    renderRequestPanel({ requestMode: "service", initialServiceName: "Countertops" });
+    expect(container.querySelectorAll("select")).toHaveLength(1);
+    expect(container.querySelector<HTMLSelectElement>("select")?.value).toBe("request_service");
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "I'm interested in Countertops."
+    );
+    expect(container.querySelector<HTMLInputElement>('input[autocomplete="name"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(
+      false
+    );
+  });
+
+  it("starts a fresh request after success without carrying contact details or consent into the next send", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ requestId: "submitted-request" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderRequestPanel();
+    fillContactDetails();
+    change(container.querySelector("textarea"), "Details belonging to the submitted request.");
+    click(container.querySelector('input[type="checkbox"]'));
+    await submitForm();
+    expect(container.textContent).toContain("Request sent");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).updatesOptIn).toBe(true);
+    renderRequestPanel({ open: false });
+    renderRequestPanel();
+    expect(container.textContent).not.toContain("Request sent");
+    expect(container.querySelector<HTMLInputElement>('input[autocomplete="name"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[type="email"]')?.value).toBe("");
+    expect(container.querySelector<HTMLInputElement>('input[type="tel"]')?.value).toBe("");
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "I'm interested in Countertops, Tile."
+    );
+    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(
+      false
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fillContactDetails();
+    await submitForm();
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toMatchObject({
+      message: "I'm interested in Countertops, Tile.",
+      updatesOptIn: false,
+    });
+  });
+
+  it("ignores a previous profile's pending result after starting a different business draft", async () => {
+    let finish: (response: any) => void = () => {};
+    const fetchMock = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderRequestPanel();
+    fillContactDetails();
+    await submitForm();
+    renderRequestPanel({ profileSlug: "another-business", businessName: "Another Business" });
+    change(
+      container.querySelector("textarea"),
+      "Only the new business should receive these details."
+    );
+    await act(async () => {
+      finish({ ok: true, json: async () => ({ requestId: "old-request" }) });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.querySelector("form")).not.toBeNull();
+    expect(container.textContent).not.toContain("Request sent");
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Only the new business should receive these details."
+    );
+    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(
+      false
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("contains Tab and Shift+Tab, skips the hidden trap field, and returns focus after Escape", () => {
+    const opener = document.createElement("button");
+    document.body.appendChild(opener);
+    opener.focus();
+    const onClose = vi.fn(() => renderRequestPanel({ open: false }));
+    renderRequestPanel({ onClose });
+    const first = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Back to contact options"]'
+    );
+    const last = container.querySelector<HTMLButtonElement>('button[type="submit"]');
+    expect(pressKey("Tab").defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(first);
+    expect(pressKey("Tab", true).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(last);
+    expect(pressKey("Tab").defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(first);
+    expect(pressKey("Tab").defaultPrevented).toBe(false);
+    expect(document.body.style.overflow).toBe("hidden");
+    pressKey("Escape");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+    expect(document.body.style.overflow).not.toBe("hidden");
+    opener.remove();
+  });
+
+  it("keeps focus contained while sending and does not close on Escape until the send settles", async () => {
+    let finish: (response: any) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+      )
+    );
+    const onClose = vi.fn();
+    renderRequestPanel({ onClose });
+    fillContactDetails();
+    const first = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Back to contact options"]'
+    );
+    first?.focus();
+    await submitForm();
+    expect(document.activeElement).toBe(first);
+    expect(pressKey("Tab", true).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(container.querySelector('input[type="checkbox"]'));
+    pressKey("Escape");
+    expect(onClose).not.toHaveBeenCalled();
+    await act(async () => {
+      finish({ ok: false, status: 503, json: async () => ({}) });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "I'm interested in Countertops, Tile."
+    );
+    pressKey("Escape");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 
   it("opens a registered business call only after the server accepts the explicit call decision", async () => {
     const fetchMock = vi.fn().mockResolvedValue({

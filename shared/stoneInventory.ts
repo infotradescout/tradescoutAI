@@ -18,6 +18,12 @@ export type StoneInventoryDimensions = Readonly<{
   unit?: "in" | "mm" | null;
 }>;
 
+/** Seller-only actions calculated by the same authority owner as inventory mutations. */
+export type StoneInventoryManageCapabilities = Readonly<{
+  write: boolean;
+  publish: boolean;
+}>;
+
 export type ConfirmedStoneStockLot = Readonly<{
   fixtureKey: string;
   materialSlug: string;

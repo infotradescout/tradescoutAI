@@ -1,5 +1,6 @@
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "@/data/jwStoneProfilePresentation";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
+import { buildSteelHomeBuilderPath } from "@shared/steelHomeBuilderRoutes";
 import type { MarketplaceUrlState } from "./types";
 
 export const JW_STONE_PLATFORM_PROFILE_BASE = `/u/${JW_STONE_PROFILE_SLUG}`;
@@ -98,6 +99,12 @@ export function toMarketplacePathHref(state: MarketplaceUrlState): string {
 export function stoneShareDestination(shareSlug: string): string {
   const base = marketplaceBasePath();
   return `${base}/stones/${encodeURIComponent(shareSlug)}`;
+}
+
+/** Custom-domain profiles must return to the existing TradeScout planner. */
+export function stoneRoomBasePath(): string {
+  const path = buildSteelHomeBuilderPath("countertops");
+  return isJwStoneMarketplaceDomainSurface() ? `https://www.thetradescout.com${path}` : path;
 }
 
 /** Guest-safe share target for First Cut photos (no named stone slug). */

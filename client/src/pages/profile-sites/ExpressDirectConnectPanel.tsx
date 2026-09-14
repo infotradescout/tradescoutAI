@@ -199,16 +199,27 @@ export default function ExpressDirectConnectPanel({
           : stableItemId
             ? "I'm interested in this stone selection."
             : "");
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    customerRole: "" as ExpressDirectConnectCustomerRole | "",
-    requestType: defaultRequestType,
-    message: initialFormMessage,
-    // Compliance default: unchecked. Opt-in only when the visitor checks it.
-    updatesOptIn: false,
-    website: "",
+  const initialForm = useMemo(
+    () => ({
+      name: "",
+      email: "",
+      phone: "",
+      customerRole: "" as ExpressDirectConnectCustomerRole | "",
+      requestType: defaultRequestType,
+      message: initialFormMessage,
+      // Compliance default: unchecked. Opt-in only when the visitor checks it.
+      updatesOptIn: false,
+      website: "",
+    }),
+    [defaultRequestType, initialFormMessage]
+  );
+  const [form, setForm] = useState(initialForm);
+  const draftRef = useRef({
+    profileSlug,
+    requestMode,
+    messageEdited: false,
+    requestTypeEdited: false,
+    submitted: false,
   });
   const updatesOptInLabel =
     requestMode === "materials" && profileSlug === "jw-stone"
@@ -220,16 +231,44 @@ export default function ExpressDirectConnectPanel({
   useEffect(() => {
     if (!open) return;
     const previous = document.body.style.overflow;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = "hidden";
     panelRef.current?.focus();
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = previous;
-      window.removeEventListener("keydown", handleKeyDown);
+      if (previousFocus?.isConnected) previousFocus.focus();
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) onClose();
+      if (event.key !== "Tab") return;
+      const panel = panelRef.current;
+      const controls = Array.from(
+        panel?.querySelectorAll<HTMLElement>(
+          "button, a[href], input, select, textarea, [tabindex]"
+        ) || []
+      ).filter(
+        (control) =>
+          control.tabIndex >= 0 &&
+          !control.matches(":disabled") &&
+          !control.closest('[hidden], [aria-hidden="true"]')
+      );
+      const activeIndex = controls.indexOf(document.activeElement as HTMLElement);
+      if (
+        activeIndex === -1 ||
+        (event.shiftKey ? activeIndex === 0 : activeIndex === controls.length - 1)
+      ) {
+        event.preventDefault();
+        (event.shiftKey ? controls[controls.length - 1] : controls[0])?.focus();
+        if (!controls.length) panel?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [busy, onClose, open]);
 
   useEffect(() => {
@@ -237,6 +276,29 @@ export default function ExpressDirectConnectPanel({
   }, [allowCall, open, profileSlug]);
 
   useEffect(() => {
+    const draft = draftRef.current;
+    const startNewDraft =
+      draft.profileSlug !== profileSlug ||
+      draft.requestMode !== requestMode ||
+      (open && draft.submitted);
+    if (startNewDraft) {
+      draftRef.current = {
+        profileSlug,
+        requestMode,
+        messageEdited: false,
+        requestTypeEdited: false,
+        submitted: false,
+      };
+    }
+    setForm((current) =>
+      startNewDraft
+        ? initialForm
+        : {
+            ...current,
+            requestType: draft.requestTypeEdited ? current.requestType : defaultRequestType,
+            message: draft.messageEdited ? current.message : initialFormMessage,
+          }
+    );
     if (!open) return;
     setView(initialView);
     setBusy(false);
@@ -246,24 +308,19 @@ export default function ExpressDirectConnectPanel({
     setRequestId("");
     setRequestWorkspacePath("");
     setRequestDeliveryCustody(deliveryCustody);
-    setForm((current) => ({
-      ...current,
-      customerRole: "",
-      updatesOptIn: false,
-      requestType: defaultRequestType,
-      message: initialFormMessage,
-    }));
   }, [
     allowCall,
     defaultRequestType,
     deliveryCustody,
     displayStoneName,
     initialRequestType,
+    initialForm,
     initialFormMessage,
     initialView,
     multiStoneSelections.length,
     open,
     profileSlug,
+    requestMode,
     selectedServiceName,
     stableItemId,
   ]);
@@ -348,6 +405,7 @@ export default function ExpressDirectConnectPanel({
 
   const submitRequest = async (event: FormEvent) => {
     event.preventDefault();
+    const draft = draftRef.current;
     setBusy(true);
     setError("");
     try {
@@ -409,6 +467,7 @@ export default function ExpressDirectConnectPanel({
         }
       );
       const json = await response.json().catch(() => ({}));
+      if (draftRef.current !== draft) return;
       if (!response.ok) {
         throw new Error(
           response.status === 400
@@ -425,11 +484,12 @@ export default function ExpressDirectConnectPanel({
           ? "tradescout_pending_owner"
           : "business"
       );
+      draft.submitted = true;
       setView("success");
     } catch (cause: any) {
-      setError(cause?.message || "We couldn’t send that yet.");
+      if (draftRef.current === draft) setError(cause?.message || "We couldn’t send that yet.");
     } finally {
-      setBusy(false);
+      if (draftRef.current === draft) setBusy(false);
     }
   };
 
@@ -662,12 +722,13 @@ export default function ExpressDirectConnectPanel({
                 </span>
                 <select
                   value={form.requestType}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    draftRef.current.requestTypeEdited = true;
                     setForm({
                       ...form,
                       requestType: event.target.value as ExpressDirectConnectRequestType,
-                    })
-                  }
+                    });
+                  }}
                   className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none focus:border-ts-orange"
                 >
                   {config.requestTypes.map((type) => (
@@ -684,7 +745,10 @@ export default function ExpressDirectConnectPanel({
                   rows={5}
                   minLength={10}
                   value={form.message}
-                  onChange={(event) => setForm({ ...form, message: event.target.value })}
+                  onChange={(event) => {
+                    draftRef.current.messageEdited = true;
+                    setForm({ ...form, message: event.target.value });
+                  }}
                   placeholder={config.placeholder}
                   className="w-full resize-y rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
                 />

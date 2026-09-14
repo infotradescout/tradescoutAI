@@ -1,0 +1,72 @@
+/* The platform input theme is dark; the cabinet workspace is explicitly light. */
+.kitchen-designer-studio[data-cabinet-appearance] {
+  --ts-input-bg: #fff;
+  --ts-input-border: #aebdb5;
+  --ts-text: #18312f;
+  color-scheme: light;
+}
+.kitchen-designer-studio[data-cabinet-appearance] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.kitchen-designer-studio[data-cabinet-appearance] select,
+.kitchen-designer-studio[data-cabinet-appearance] textarea {
+  color: #18312f;
+  background-color: #fff;
+  border-color: #aebdb5;
+  caret-color: #18312f;
+}
+.kitchen-designer-studio[data-cabinet-appearance] input::placeholder,
+.kitchen-designer-studio[data-cabinet-appearance] textarea::placeholder {
+  color: #596965;
+  opacity: 1;
+}
+.kitchen-workspace-panel [data-testid="cabinet-library-panel"] > header {
+  position: sticky;
+  top: -1rem;
+  z-index: 2;
+  background: #f7f3ec;
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+}
+@media (min-width: 1024px) {
+  .kitchen-designer-studio[data-cabinet-appearance] > .kitchen-designer-appearance label {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+  }
+  .kitchen-designer-studio[data-cabinet-appearance] > .kitchen-designer-appearance select {
+    flex: 1;
+    width: auto;
+    min-width: 85px;
+  }
+  .kitchen-designer-studio[data-cabinet-appearance] > .kitchen-designer-appearance p {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .kitchen-designer-studio [data-testid="steel-home-cabinet-live-summary"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+  }
+  .kitchen-designer-studio [data-testid="steel-home-cabinet-live-summary"] > div {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .kitchen-designer-studio [data-testid="steel-home-cabinet-live-summary"] p {
+    margin: 0;
+    font-size: .75rem;
+    line-height: 1.35;
+  }
+  .kitchen-designer-studio [data-testid="steel-home-cabinet-live-summary"] > div:last-child > p:first-child {
+    display: none;
+  }
+}
+/* Reserve room for the view controls beneath the canvas on a 768px-high laptop. */
+.kitchen-designer-studio .kitchen-designer-editor #countertop-designer > .grid > div:first-child > .relative {
+  height: clamp(260px,calc(100dvh - 460px),520px);
+}

@@ -1,4 +1,20 @@
-import { storage } from "../storage";
+import { sql, type SQL, type SQLWrapper } from "drizzle-orm";
+
+/** Query-time counterpart of the canonical sale-exposure gate, before LIMIT. */
+export function exposureAuthoritySqlPredicate(userId: SQLWrapper): SQL {
+  return sql`EXISTS (
+    SELECT 1 FROM users exposure_user
+    WHERE exposure_user.id = ${userId}
+      AND exposure_user.email_verified = true
+      AND (exposure_user.address_verified = true
+        OR lower(COALESCE(exposure_user.verification_status::text, '')) IN ('approved', 'verified')
+        OR EXISTS (SELECT 1 FROM business_verifications exposure_verification
+          WHERE exposure_verification.provider_user_id = exposure_user.id
+            AND exposure_verification.status = 'approved'
+            AND exposure_verification.verification_type IN ('license', 'insurance', 'ein')
+            AND (exposure_verification.expires_at IS NULL OR exposure_verification.expires_at > now())))
+  )`;
+}
 
 /**
  * Canonical Trust/CVS-adjacent exposure decision shared by public catalogs.
@@ -16,6 +32,9 @@ export async function buildExposureAuthorityMap(
 
   for (const userId of uniqueUserIds) authorityByUserId[userId] = false;
 
+  // Storage imports the pure SQL predicate while its repository chain initializes.
+  // Resolve storage only for an actual async decision, never during module loading.
+  const { storage } = await import("../storage");
   const [users, verificationSummary] = await Promise.all([
     storage.getUsersByIds(uniqueUserIds),
     storage.getUserVerificationSummary(uniqueUserIds),

@@ -1,4 +1,5 @@
 import { isSafeNextPath } from "@/lib/postOnboardingRoute";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 
 export function sanitizePreScoutNext(value: unknown): string {
   const next = typeof value === "string" ? value.trim() : "";
@@ -11,6 +12,7 @@ export function resolvePreScoutAuthenticatedRoute(args: {
 }): string {
   const next = sanitizePreScoutNext(args.explicitNext);
   if (next.startsWith("/admin")) return next;
+  if (isRecommendationActionPath(next)) return next;
   if (!args.onboardingCompleted) {
     return next ? `/onboarding?next=${encodeURIComponent(next)}` : "/onboarding";
   }

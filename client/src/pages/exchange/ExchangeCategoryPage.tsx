@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,7 @@ type ExchangeItem = {
   shippingCost: number | null;
   sourceType?: string;
   profileOfferId?: string;
+  profileItemSlug?: string;
   publicProfilePath?: string;
   // Category-specific spec fields
   year?: number;
@@ -235,15 +236,26 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
     extraFilterValues,
   ]);
 
-  const { data: items = [], isLoading } = useQuery<ExchangeItem[]>({
+  const {
+    data: itemPages,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isError: itemsError,
+  } = useInfiniteQuery({
     queryKey: ["/api/exchange/items", config.slug, queryParams],
-    queryFn: async () => {
-      const res = await fetch(`/api/exchange/items?${queryParams}`);
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: ExchangeItem[], pages) =>
+      lastPage.length === 48 ? pages.length * 48 : undefined,
+    queryFn: async ({ pageParam }) => {
+      const res = await fetch(`/api/exchange/items?${queryParams}&limit=48&offset=${pageParam}`);
       if (!res.ok) throw new Error("Failed to fetch listings");
-      return res.json();
+      return res.json() as Promise<ExchangeItem[]>;
     },
   });
 
+  const items = itemPages?.pages.flat() || [];
   // filteredItems = items (all filtering is now server-side)
   const filteredItems = items;
 
@@ -529,8 +541,8 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                 >
                   Show {filteredItems.length}{" "}
                   {config.catalogOnly
-                    ? `catalog spotlight${filteredItems.length !== 1 ? "s" : ""}`
-                    : `listing${filteredItems.length !== 1 ? "s" : ""}`}
+                    ? `item${filteredItems.length !== 1 ? "s" : ""} shown`
+                    : `listing${filteredItems.length !== 1 ? "s" : ""} shown`}
                 </Button>
               </SheetContent>
             </Sheet>
@@ -563,8 +575,8 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   <>
                     <span className="text-white font-medium">{filteredItems.length}</span>{" "}
                     {config.catalogOnly
-                      ? `catalog spotlight${filteredItems.length !== 1 ? "s" : ""}`
-                      : `listing${filteredItems.length !== 1 ? "s" : ""}`}
+                      ? `item${filteredItems.length !== 1 ? "s" : ""} shown`
+                      : `listing${filteredItems.length !== 1 ? "s" : ""} shown`}
                   </>
                 )}
               </p>
@@ -600,13 +612,13 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   </Card>
                 ))}
               </div>
-            ) : filteredItems.length === 0 ? (
+            ) : filteredItems.length === 0 && itemsError ? null : filteredItems.length === 0 ? (
               <EmptyState
                 icon={<Search />}
                 title={`No ${config.name.toLowerCase()} found`}
                 description={
                   config.catalogOnly
-                    ? "Try a broader search. Catalog spotlights are added only from maintained TradeScout business profiles."
+                    ? "Try a material name, a business name, or a broader search area."
                     : "Try broader filters, a different scope, or be the first to list."
                 }
                 actionLabel={config.catalogOnly ? undefined : "List something"}
@@ -623,7 +635,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   const isProfileOffer = item.sourceType === "profile_offer";
                   const isProfileCatalog = item.sourceType === "profile_catalog";
                   const isProfileLinked = isProfileOffer || isProfileCatalog;
-                  const detailPath = `/exchange/${config.slug}/${item.id}`;
+                  const detailPath =
+                    isProfileCatalog && item.profileItemSlug && item.publicProfilePath
+                      ? item.publicProfilePath
+                      : `/exchange/${config.slug}/${encodeURIComponent(item.id)}`;
                   return (
                     <Card
                       key={item.id}
@@ -653,7 +668,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         {/* Featured badge */}
                         {isProfileCatalog ? (
                           <Badge className="mb-1.5 bg-sky-500/15 text-sky-200 border-sky-400/30 text-[10px]">
-                            Profile catalog
+                            {item.profileItemSlug ? "Profile item" : "Profile catalog"}
                           </Badge>
                         ) : item.featured ? (
                           <Badge className="mb-1.5 bg-ts-orange/20 text-ts-orange border-ts-orange/30 text-[10px]">
@@ -682,7 +697,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                           </span>
                           <span className="shrink-0 ml-2">
                             {isProfileCatalog
-                              ? "Managed request"
+                              ? item.specifications?.material || "Ask about your project"
                               : formatListedTime(item.createdAt)}
                           </span>
                         </div>
@@ -835,11 +850,17 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             </Button>
                             <Button
                               size="sm"
-                              className="h-7 px-2.5 bg-ts-orange hover:bg-ts-orange-dark text-[11px]"
+                              className="h-7 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-[11px]"
                               onClick={() => navigate(detailPath)}
                             >
                               <MessageSquare className="h-3 w-3 mr-1" />
-                              {isProfileOffer ? "Buy" : isProfileCatalog ? "View catalog" : "View"}
+                              {isProfileOffer
+                                ? "Buy"
+                                : isProfileCatalog
+                                  ? item.profileItemSlug
+                                    ? "View item"
+                                    : "View catalog"
+                                  : "View"}
                             </Button>
                           </div>
                         </div>
@@ -862,6 +883,21 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   );
                 })}
               </div>
+            )}
+            {itemsError && (
+              <p role="alert" className="mt-3 text-sm text-white/70">
+                Items could not be loaded. Try again.
+              </p>
+            )}
+            {(hasNextPage || itemsError) && (
+              <Button
+                className="mt-4"
+                variant="outline"
+                disabled={isFetchingNextPage}
+                onClick={() => fetchNextPage()}
+              >
+                {isFetchingNextPage ? "Loading…" : itemsError ? "Try again" : "Load more items"}
+              </Button>
             )}
           </div>
         </div>

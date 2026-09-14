@@ -8,10 +8,13 @@ const read = (relativePath: string) =>
 describe("Direct Connect Messages job bridge", () => {
   it("resolves accepted Direct Connect jobs from a Messages thread without opening new contact", () => {
     const routeSource = read("server/routes/direct-connect.ts");
+    const conversationSource = read("server/services/conversationParticipants.ts");
 
     expect(routeSource).toContain('"/api/direct-connect/messages/threads/:threadId/job"');
     expect(routeSource).toContain("Thread not available for this user");
-    expect(routeSource).toContain("a.status = 'accepted'");
+    expect(routeSource).toContain("await loadAcceptedJobForConversation(");
+    expect(conversationSource).toContain("a.status = 'accepted'");
+    expect(conversationSource).toContain("acceptance.metadata ->> 'conversationId' = ${threadId}");
     expect(routeSource).toContain("getJobWorkspaceByRequestId(requestId)");
     expect(routeSource).toContain("buildMessageJobAssist");
     expect(routeSource).toContain("learningSignals");

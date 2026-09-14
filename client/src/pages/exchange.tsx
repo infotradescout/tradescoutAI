@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,7 @@ import {
 } from "@shared/exchangeListingRules";
 
 interface ExchangeItem {
+  specifications?: { material?: string };
   id: string;
   title: string;
   description: string;
@@ -116,6 +117,7 @@ interface ExchangeItem {
   county?: string;
   sourceType?: string;
   profileOfferId?: string;
+  profileItemSlug?: string;
   publicProfilePath?: string;
 }
 
@@ -203,7 +205,7 @@ const EXCHANGE_CATEGORIES = [
     id: "building-materials",
     name: "Building Materials & Surfaces",
     icon: Layers3,
-    description: "Profile catalogs for stone, onyx, and project materials",
+    description: "Stone, onyx, and project materials",
   },
   {
     id: "tools",
@@ -565,7 +567,14 @@ export default function Exchange() {
   }, [exchangeSlugToMarketplaceCategoryName, marketplaceCategories]);
 
   // Fetch exchange items
-  const { data: items, isLoading } = useQuery<ExchangeItem[]>({
+  const {
+    data: itemPages,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isError: itemsError,
+  } = useInfiniteQuery({
     queryKey: [
       "/api/exchange/items",
       selectedCategory,
@@ -574,9 +583,14 @@ export default function Exchange() {
       priceRange,
       conditionFilter,
       searchScope,
+      stateCode,
+      countyFips,
     ],
-    queryFn: async () => {
-      const params = new URLSearchParams();
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: ExchangeItem[], pages) =>
+      lastPage.length === 48 ? pages.length * 48 : undefined,
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: "48", offset: String(pageParam) });
       if (selectedCategory && selectedCategory !== "all") {
         params.append("categoryId", selectedCategory);
       }
@@ -609,27 +623,12 @@ export default function Exchange() {
       if (!response.ok) throw new Error("Failed to fetch items");
       const json = await response.json();
 
-      return json;
+      return json as ExchangeItem[];
     },
     enabled: activeTab === "browse",
   });
 
-  const { data: categoryCountItems = [] } = useQuery<ExchangeItem[]>({
-    queryKey: ["/api/exchange/items", "category-counts", stateCode, countyFips, searchScope],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (searchScope === "local") {
-        if (stateCode) params.append("stateCode", stateCode);
-        if (countyFips) params.append("countyFips", countyFips);
-      } else if (searchScope === "state") {
-        if (stateCode) params.append("stateCode", stateCode);
-      }
-      const response = await fetch(`/api/exchange/items?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch category counts");
-      return response.json();
-    },
-    enabled: activeTab === "browse" || activeTab === "categories",
-  });
+  const items = useMemo(() => itemPages?.pages.flat() || [], [itemPages]);
 
   const createListingMutation = useMutation({
     mutationFn: async (body: any) => {
@@ -774,19 +773,11 @@ export default function Exchange() {
     enabled: activeTab === "sales",
   });
 
-  // Filter items based on search
+  // Search is applied by the API across item, material and business identity.
   const filteredItems = useMemo(() => {
     if (!items) return [];
 
-    const matches = items.filter((item) => {
-      const matchesSearch =
-        !searchQuery ||
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const isSaved = favoriteListingIds.has(String(item.id));
-      const matchesSaved = !savedOnly || isSaved;
-      return matchesSearch && matchesSaved;
-    });
+    const matches = items.filter((item) => !savedOnly || favoriteListingIds.has(String(item.id)));
 
     const shippingReady = (item: ExchangeItem) =>
       item.isLocalPickupOnly !== true || Number.isFinite(Number(item.shippingCost));
@@ -828,7 +819,6 @@ export default function Exchange() {
     });
   }, [
     items,
-    searchQuery,
     savedOnly,
     favoriteListingIds,
     searchScope,
@@ -837,27 +827,10 @@ export default function Exchange() {
     locationCtx.countyName,
   ]);
 
-  const categoryAvailability = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const item of categoryCountItems || []) {
-      const key = String(item?.category || "").trim();
-      if (!key) continue;
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    return counts;
-  }, [categoryCountItems]);
-
-  const sortedExchangeCategories = useMemo(() => {
-    return [...EXCHANGE_CATEGORIES].sort((a, b) => {
-      const aCount = categoryAvailability.get(a.id) || 0;
-      const bCount = categoryAvailability.get(b.id) || 0;
-      const aAvailable = aCount > 0 ? 1 : 0;
-      const bAvailable = bCount > 0 ? 1 : 0;
-      if (aAvailable !== bAvailable) return bAvailable - aAvailable;
-      if (aCount !== bCount) return bCount - aCount;
-      return a.name.localeCompare(b.name);
-    });
-  }, [categoryAvailability]);
+  const sortedExchangeCategories = useMemo(
+    () => [...EXCHANGE_CATEGORIES].sort((a, b) => a.name.localeCompare(b.name)),
+    []
+  );
 
   const getCategoryHref = (categoryId: string) => {
     if (categoryId === "metals") return "/exchange/metals";
@@ -1164,7 +1137,6 @@ export default function Exchange() {
                   {sortedExchangeCategories.map((category) => {
                     const IconComponent = category.icon;
                     const active = selectedCategory === category.id;
-                    const availableCount = categoryAvailability.get(category.id) || 0;
                     return (
                       <Card
                         key={category.id}
@@ -1192,7 +1164,7 @@ export default function Exchange() {
                                 variant="outline"
                                 className="border-white/15 text-white/70 text-[10px]"
                               >
-                                {availableCount}
+                                Browse
                               </Badge>
                             </div>
                           </div>
@@ -1300,7 +1272,7 @@ export default function Exchange() {
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-tsCard px-3 py-2">
                   <div className="text-sm text-white/70">
                     <span className="font-semibold text-white">{filteredItems?.length ?? 0}</span>{" "}
-                    results
+                    results shown
                     {activeCategoryMeta ? (
                       <span className="text-white/60"> in {activeCategoryMeta.name}</span>
                     ) : null}
@@ -1342,7 +1314,10 @@ export default function Exchange() {
                       const isProfileCatalog = item.sourceType === "profile_catalog";
                       const isProfileLinked = isProfileOffer || isProfileCatalog;
                       const detailCategory = item.category || "other";
-                      const detailPath = `/exchange/${detailCategory}/${item.id}`;
+                      const detailPath =
+                        isProfileCatalog && item.profileItemSlug && item.publicProfilePath
+                          ? item.publicProfilePath
+                          : `/exchange/${detailCategory}/${encodeURIComponent(item.id)}`;
                       return (
                         <Card
                           key={item.id}
@@ -1367,7 +1342,7 @@ export default function Exchange() {
                             )}
                             {isProfileCatalog ? (
                               <Badge className="absolute top-2 right-2 bg-sky-600">
-                                Profile catalog
+                                {item.profileItemSlug ? "Profile item" : "Profile catalog"}
                               </Badge>
                             ) : item.featured ? (
                               <Badge className="absolute top-2 right-2 bg-ts-orange">
@@ -1399,7 +1374,7 @@ export default function Exchange() {
                               </div>
                               <span>
                                 {isProfileCatalog
-                                  ? "Managed request"
+                                  ? item.specifications?.material || "Ask about your project"
                                   : formatListedTime(item.createdAt)}
                               </span>
                             </div>
@@ -1493,7 +1468,7 @@ export default function Exchange() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="h-8 px-2.5 bg-ts-orange hover:bg-ts-orange-dark text-xs"
+                                  className="h-8 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-xs"
                                   onClick={() => {
                                     if (isProfileLinked) {
                                       navigate(detailPath);
@@ -1512,27 +1487,31 @@ export default function Exchange() {
                                   {isProfileOffer
                                     ? "Buy"
                                     : isProfileCatalog
-                                      ? "View Catalog"
+                                      ? item.profileItemSlug
+                                        ? "View Item"
+                                        : "View Catalog"
                                       : "Request Quote"}
                                 </Button>
                               </div>
                             </div>
 
-                            <div className="mt-2 text-[10px] text-white/60 flex items-center gap-3">
-                              <span className="inline-flex items-center gap-1">
-                                <Eye className="h-3 w-3" />
-                                {item.views}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Heart className="h-3 w-3" />
-                                {item.favorites}
-                              </span>
-                            </div>
+                            {!isProfileCatalog && (
+                              <div className="mt-2 text-[10px] text-white/60 flex items-center gap-3">
+                                <span className="inline-flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  {item.views}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Heart className="h-3 w-3" />
+                                  {item.favorites}
+                                </span>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       );
                     })
-                  ) : (
+                  ) : itemsError ? null : (
                     <div className="col-span-full">
                       <EmptyState
                         icon={<Search />}
@@ -1542,6 +1521,21 @@ export default function Exchange() {
                     </div>
                   )}
                 </div>
+                {itemsError && (
+                  <p role="alert" className="mt-3 text-sm text-white/70">
+                    Items could not be loaded. Try again.
+                  </p>
+                )}
+                {(hasNextPage || itemsError) && (
+                  <Button
+                    className="mt-4"
+                    variant="outline"
+                    disabled={isFetchingNextPage}
+                    onClick={() => fetchNextPage()}
+                  >
+                    {isFetchingNextPage ? "Loading…" : itemsError ? "Try again" : "Load more items"}
+                  </Button>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -1918,7 +1912,6 @@ export default function Exchange() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {sortedExchangeCategories.map((category) => {
                 const IconComponent = category.icon;
-                const availableCount = categoryAvailability.get(category.id) || 0;
                 return (
                   <Card
                     key={category.id}
@@ -1941,7 +1934,7 @@ export default function Exchange() {
                           variant="outline"
                           className="border-white/15 text-white/70 text-[10px]"
                         >
-                          {availableCount}
+                          Browse
                         </Badge>
                       </div>
                     </CardContent>

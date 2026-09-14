@@ -20,7 +20,7 @@ export type PublicContractorRecommendation = Pick<
 >;
 
 /**
- * Public contractor pages may only show explicitly published, approved
+ * Public contractor pages may only show explicitly published, approved, verified
  * recommendations. Verification evidence, contact details, request metadata,
  * and moderation internals never leave this boundary.
  */
@@ -30,7 +30,13 @@ export function toPublicContractorRecommendations(
   if (!Array.isArray(rows)) return [];
 
   return rows
-    .filter((row) => row?.isPublic === true && row?.moderationStatus === "approved")
+    .filter(
+      (row) =>
+        row?.isPublic === true &&
+        row?.moderationStatus === "approved" &&
+        row?.isVerified === true &&
+        ["positive", "negative"].includes(row.recommendationType)
+    )
     .map((row) => ({
       id: row.id,
       contractorId: row.contractorId,

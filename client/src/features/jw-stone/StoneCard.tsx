@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
 import { JwStoneShareControl } from "./JwStoneShareControl";
 import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
 import { JwStoneTopSellerBadge } from "./JwStoneTopSellerBadge";
-import { stoneShareDestination } from "./marketplaceRoutes";
+import { stoneRoomBasePath, stoneShareDestination } from "./marketplaceRoutes";
 import { availabilityDimensionsLine, materialFinishLine } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
 import { useMomentumRail } from "./useMomentumRail";
+
+const StoneRoomLink = lazy(() => import("./StoneRoomLink"));
 
 type StoneCardProps = {
   stone: JwStoneCatalogItem;
@@ -276,6 +278,16 @@ export function StoneCard({
           >
             View stone
           </button>
+          {!stone.anonymous && stone.shareSlug ? (
+            <Suspense fallback={null}>
+              <StoneRoomLink
+                stone={stone}
+                imageHref={selectedImage}
+                baseHref={stoneRoomBasePath()}
+                className={jw.ghostOnLight}
+              />
+            </Suspense>
+          ) : null}
           {stone.wishlistEligible && stone.shareSlug ? (
             <JwStoneShareControl
               destination={stoneShareDestination(stone.shareSlug)}

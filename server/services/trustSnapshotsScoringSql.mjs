@@ -233,11 +233,17 @@ export function buildTrustSnapshotsInsertSql({
           AS negative_recommendations
       FROM recommendations r
       JOIN contractors c ON c.id = r.contractor_id
+      JOIN users author ON author.id = r.user_id
       WHERE c.user_id IS NOT NULL
         AND c.is_active IS TRUE
         AND r.is_verified IS TRUE
         AND r.is_public IS TRUE
-        AND lower(COALESCE(r.moderation_status, '')) = 'approved'
+        AND r.moderation_status = 'approved'
+        AND r.recommendation_type IN ('positive', 'negative')
+        AND author.email_verified IS TRUE
+        AND length(trim(author.email)) > 0
+        AND lower(trim(author.email)) = lower(trim(r.customer_email))
+        AND COALESCE(to_jsonb(author)->>'is_active', 'true') <> 'false'
       GROUP BY c.user_id
     ),
     marketplace_signals AS (

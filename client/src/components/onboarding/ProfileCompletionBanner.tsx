@@ -5,10 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, ShieldCheck, Building2, Sparkles } from "lucide-react";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
-import { isBusinessUser, BUSINESS_LANDING } from "@/lib/postOnboardingRoute";
+import {
+  isBusinessUser,
+  BUSINESS_LANDING,
+  getCurrentInternalPath,
+} from "@/lib/postOnboardingRoute";
 import { trackShellEvent } from "@/lib/analytics";
 import { resolveLiveReadiness } from "@shared/liveReadiness";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 
 export type BannerMode =
   | "local_setup"
@@ -30,6 +35,7 @@ export function resolveProfileCompletionBannerMode(params: {
   if (isLoading) return null;
   if (!isAuthenticated || !user) return null;
   if (hasAdminUiAccess(user)) return null;
+  if (isRecommendationActionPath(path)) return null;
 
   const isSetupRoute =
     path.startsWith("/pre-scout-setup") ||
@@ -74,7 +80,7 @@ export default function ProfileCompletionBanner() {
   const [location, setLocation] = useLocation();
 
   const mode: BannerMode | null = useMemo(() => {
-    const path = String(location || "");
+    const path = getCurrentInternalPath(location);
     const sessionKey = "ts_skipped_intent_nudge_dismissed";
     const skippedIntentDismissed =
       typeof sessionStorage !== "undefined" && Boolean(sessionStorage.getItem(sessionKey));

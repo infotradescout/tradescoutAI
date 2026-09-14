@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
-import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
+import { PublicProfileAccountDialog } from "./JwStoneAccountDialog";
 import type { ProfileAccountMode } from "@/components/profile/profileAccountClient";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
@@ -322,7 +322,13 @@ export default function JWStoneMarketplace() {
   };
 
   return (
-    <JwStoneMemberPricingProvider viewerId={viewerId}>
+    <JwStoneMemberPricingProvider
+      viewerId={viewerId}
+      onOpenCart={() => {
+        closeStone();
+        setWishlistOpen(false);
+      }}
+    >
       <div
         className={`min-h-screen max-w-full overflow-x-clip pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.25rem+env(safe-area-inset-bottom))] ${jw.page}`}
         style={JW_STONE_BRAND_STYLE}

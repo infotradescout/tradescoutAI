@@ -7,6 +7,11 @@ import { conversations, messages, users } from "@shared/schema";
 import { eq, and, or, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { getSession } from "./auth";
+import { participantMessageMetadata } from "./utils/messageAuthor";
+import {
+  conversationParticipantSql,
+  resolveConversationProviderUserId,
+} from "./services/conversationParticipants";
 
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
@@ -222,9 +227,7 @@ export class MessagingService {
           const userConversations = await db
             .select()
             .from(conversations)
-            .where(
-              or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
-            )
+            .where(conversationParticipantSql(conversations, userId))
             .orderBy(desc(conversations.lastMessageAt));
 
           const connectedUser = this.connectedUsers.get(userId);
@@ -252,7 +255,7 @@ export class MessagingService {
             .where(
               and(
                 eq(conversations.id, conversationId),
-                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
+                conversationParticipantSql(conversations, userId)
               )
             )
             .limit(1);
@@ -295,7 +298,7 @@ export class MessagingService {
             .where(
               and(
                 eq(conversations.id, conversationId),
-                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
+                conversationParticipantSql(conversations, userId)
               )
             )
             .limit(1);
@@ -310,7 +313,7 @@ export class MessagingService {
           // [USER-CONTEXT] Track interaction type for language personalization
           // This metadata helps Scout understand user preferences and communication patterns
           const interactionMetadata = {
-            ...metadata,
+            ...participantMessageMetadata(metadata, userId, senderType),
             _interactionSignature: extractInteractionSignature(content),
             _messageType: messageType,
             _senderType: senderType,
@@ -343,7 +346,7 @@ export class MessagingService {
             senderType,
             content,
             messageType,
-            metadata,
+            metadata: interactionMetadata,
             createdAt: new Date(),
             readAt: null,
           };
@@ -352,9 +355,13 @@ export class MessagingService {
 
           // Emit notification to other user
           const otherUserId =
-            conv[0].homeownerId === userId ? conv[0].contractorId : conv[0].homeownerId;
+            conv[0].homeownerId === userId
+              ? await resolveConversationProviderUserId(conv[0].contractorId)
+              : conv[0].homeownerId;
 
-          const otherUserConnection = this.connectedUsers.get(otherUserId);
+          const otherUserConnection = otherUserId
+            ? this.connectedUsers.get(otherUserId)
+            : undefined;
           if (otherUserConnection) {
             otherUserConnection.socket.emit("message_notification", {
               conversationId,
@@ -390,7 +397,7 @@ export class MessagingService {
             .where(
               and(
                 eq(conversations.id, message.conversationId),
-                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
+                conversationParticipantSql(conversations, userId)
               )
             )
             .limit(1);

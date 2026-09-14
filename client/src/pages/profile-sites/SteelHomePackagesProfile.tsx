@@ -309,7 +309,7 @@ export default function SteelHomePackagesProfile({
         <SteelHomeBuilderDirectory onOpen={openPlanner} />
       ) : null}
 
-      {activePlanner && activeBuilder ? (
+      {storageReady && activePlanner && activeBuilder ? (
         <section
           className="flex min-h-0 flex-1 flex-col bg-[#f5f1e8]"
           aria-labelledby="steel-home-active-planner-title"
@@ -391,6 +391,7 @@ export default function SteelHomePackagesProfile({
               {activePlanner === "countertops" ? (
                 <CountertopDesigner
                   design={draft.countertops}
+                  cabinets={draft.cabinets}
                   onChange={updateCountertops}
                   onRequest={(intent) => setRequestSelection({ planner: "countertops", intent })}
                 />
@@ -399,10 +400,6 @@ export default function SteelHomePackagesProfile({
                 <CabinetDesigner
                   design={draft.cabinets}
                   onChange={updateCabinets}
-                  plannerExtension={draft.cabinets.planner}
-                  onPlannerExtensionChange={(planner) =>
-                    updateCabinets({ ...draft.cabinets, planner })
-                  }
                   onRequest={() => setRequestSelection({ planner: "cabinets", intent: "builder" })}
                 />
               ) : null}

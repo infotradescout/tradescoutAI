@@ -1,3 +1,5 @@
+import { isRecommendationActionPath } from "@shared/recommendationContinuation";
+
 export type OAuthProvider = "facebook" | "google";
 
 export class OAuthIdentityCollisionError extends Error {
@@ -41,6 +43,7 @@ export type OAuthIdentityDecision =
 
 export function oauthPostLoginPath(returnPath: unknown, onboardingCompleted: boolean): string {
   const next = safeOAuthReturnPath(returnPath);
+  if (isRecommendationActionPath(next)) return next;
   if (onboardingCompleted) return next || "/pre-scout-setup";
   return next ? `/onboarding/profile?next=${encodeURIComponent(next)}` : "/onboarding/profile";
 }

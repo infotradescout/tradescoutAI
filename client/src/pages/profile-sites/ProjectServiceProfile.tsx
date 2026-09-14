@@ -1,7 +1,16 @@
-import { useEffect, useMemo, useState, useRef, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+  type MouseEvent,
+} from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowDown,
   BadgeCheck,
   ChevronLeft,
   ChevronRight,
@@ -69,6 +78,15 @@ export default function ProjectServiceProfile({
   const galleryDialogRef = useRef<HTMLDivElement>(null);
   const requestActionRef = useRef<HTMLButtonElement>(null);
   const mobileRequestRef = useRef<HTMLDivElement>(null);
+  const servicesHeadingRef = useRef<HTMLHeadingElement>(null);
+  const openServices = (event: MouseEvent<HTMLAnchorElement>) => {
+    // Native fragment navigation creates an unmarked history entry that the
+    // profile Back guard treats as leaving. Keep this navigation in the current
+    // entry and move keyboard focus to the chosen section.
+    event.preventDefault();
+    servicesHeadingRef.current?.scrollIntoView({ block: "start" });
+    servicesHeadingRef.current?.focus({ preventScroll: true });
+  };
   const galleryItems = useMemo(() => {
     if (
       !presentation.heroImage ||
@@ -204,18 +222,38 @@ export default function ProjectServiceProfile({
       data-profile-layout="project-profile"
     >
       <header className="service-profile-bar">
-        <a href={tradeScoutReturnHref} aria-label="Return to TradeScout">
-          <ArrowLeft aria-hidden="true" />
-          TradeScout
-        </a>
-        <ShareButton
-          destination={profileShareDestination}
-          title={businessName}
-          text={businessName}
-          variant="outline"
-          label="Share"
-          className="service-profile-share"
-        />
+        {presentation.logoImage ? (
+          <div className="service-profile-logo-frame">
+            <img
+              src={presentation.logoImage}
+              alt={presentation.logoAlt}
+              className="service-profile-logo"
+            />
+          </div>
+        ) : (
+          <span className="service-profile-wordmark">{businessName}</span>
+        )}
+        <nav aria-label="Profile navigation">
+          <a href="#services" onClick={openServices}>
+            Services
+          </a>
+          <ShareButton
+            destination={profileShareDestination}
+            title={businessName}
+            text={businessName}
+            variant="outline"
+            label="Share"
+            className="service-profile-share"
+          />
+          <a
+            href={tradeScoutReturnHref}
+            aria-label="Return to TradeScout"
+            className="service-profile-return"
+          >
+            <ArrowLeft aria-hidden="true" />
+            <span>TradeScout</span>
+          </a>
+        </nav>
       </header>
 
       <section
@@ -224,20 +262,29 @@ export default function ProjectServiceProfile({
         data-has-photo={Boolean(presentation.heroImage)}
       >
         <div className="service-profile-identity">
-          <div className="service-profile-name">
-            {presentation.logoImage ? (
-              <img
-                src={presentation.logoImage}
-                alt={presentation.logoAlt}
-                className="service-profile-logo"
-              />
-            ) : null}
-            <div>
-              {presentation.eyebrow ? (
-                <p className="service-profile-category">{presentation.eyebrow}</p>
-              ) : null}
-              <h1>{businessName}</h1>
-            </div>
+          {presentation.eyebrow ? (
+            <p className="service-profile-category">{presentation.eyebrow}</p>
+          ) : null}
+          <h1>{businessName}</h1>
+          {presentation.heroTitle ? (
+            <h2 className="service-profile-specialty">{presentation.heroTitle}</h2>
+          ) : null}
+          {presentation.heroDescription ? (
+            <p className="service-profile-intro">{presentation.heroDescription}</p>
+          ) : null}
+          <div className="service-profile-hero-actions">
+            <button
+              type="button"
+              className="service-profile-primary service-profile-hero-request"
+              onClick={() => openProtectedContact("request", "overview")}
+            >
+              {presentation.primaryActionLabel || "Start a Request"}
+              <ArrowRight aria-hidden="true" />
+            </button>
+            <a href="#services" className="service-profile-explore" onClick={openServices}>
+              Explore services
+              <ArrowDown aria-hidden="true" />
+            </a>
           </div>
           <div className="service-profile-location-block">
             <p className="service-profile-location">
@@ -282,29 +329,61 @@ export default function ProjectServiceProfile({
                 View photo
               </span>
             </button>
-            <figcaption>
-              {presentation.galleryDescription || `Photo shared by ${businessName}.`}
-            </figcaption>
           </figure>
         ) : null}
+      </section>
 
-        <div className="service-profile-project" id="services">
-          {presentation.heroTitle ? (
-            <h2 className="service-profile-specialty">{presentation.heroTitle}</h2>
-          ) : null}
-          {presentation.heroDescription ? (
-            <p className="service-profile-intro">{presentation.heroDescription}</p>
-          ) : null}
+      <section
+        className="service-profile-project"
+        id="services"
+        aria-labelledby="service-profile-services-title"
+      >
+        <div className="service-profile-project-intro">
+          <p className="service-profile-section-label">Your project</p>
+          <h2 id="service-profile-services-title" ref={servicesHeadingRef} tabIndex={-1}>
+            {presentation.servicesTitle || "What do you have in mind?"}
+          </h2>
+          <p className="service-profile-selection-help">
+            {presentation.services.length
+              ? "Choose any services that apply, or start with a general request."
+              : "Tell us about your project."}
+          </p>
+        </div>
+        <div className="service-profile-project-actions">
           {presentation.services.length ? (
-            <div className="service-profile-services">
-              <h3>Services</h3>
-              <ul>
-                {presentation.services.map((service) => (
-                  <li key={service.title}>{service.title}</li>
+            <fieldset>
+              <legend className="sr-only">Services for your request</legend>
+              <div className="service-profile-choices">
+                {presentation.services.map((service, index) => (
+                  <label key={service.title} className="service-profile-choice">
+                    <span className="service-profile-service-number" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="service-profile-service-name">
+                      <span>{service.title}</span>
+                      {service.description ? <small>{service.description}</small> : null}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={selectedServices.includes(service.title)}
+                      onChange={() =>
+                        setSelectedServices((current) =>
+                          current.includes(service.title)
+                            ? current.filter((title) => title !== service.title)
+                            : [...current, service.title]
+                        )
+                      }
+                    />
+                  </label>
                 ))}
-              </ul>
-            </div>
+              </div>
+            </fieldset>
           ) : null}
+          <p aria-live="polite" className="service-profile-selection">
+            {selectedServices.length
+              ? `${selectedServices.length} selected: ${selectedServices.join(", ")}`
+              : ""}
+          </p>
           <div className="service-profile-request">
             <button
               type="button"
@@ -319,46 +398,6 @@ export default function ProjectServiceProfile({
               <p className="service-profile-request-note">{presentation.requestDescription}</p>
             ) : null}
           </div>
-          {presentation.services.length ? (
-            <details className="service-profile-service-picker">
-              <summary>
-                <span>
-                  {selectedServices.length
-                    ? `${selectedServices.length} services selected`
-                    : "Choose services for your request"}
-                </span>
-                <ChevronRight aria-hidden="true" />
-              </summary>
-              <fieldset>
-                <legend className="sr-only">Services for your request</legend>
-                <p className="service-profile-selection-help">Optional. Choose any that apply.</p>
-                <div className="service-profile-choices">
-                  {presentation.services.map((service) => (
-                    <label key={service.title} className="service-profile-choice">
-                      <input
-                        type="checkbox"
-                        checked={selectedServices.includes(service.title)}
-                        onChange={() =>
-                          setSelectedServices((current) =>
-                            current.includes(service.title)
-                              ? current.filter((title) => title !== service.title)
-                              : [...current, service.title]
-                          )
-                        }
-                      />
-                      <span>
-                        <span>{service.title}</span>
-                        {service.description ? <small>{service.description}</small> : null}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            </details>
-          ) : null}
-          <p aria-live="polite" className="service-profile-selection sr-only">
-            {selectedServices.length ? selectedServices.join(" · ") : ""}
-          </p>
           {canCall || presentation.websiteUrl || presentation.directionsUrl ? (
             <div className="service-profile-links">
               {canCall ? (

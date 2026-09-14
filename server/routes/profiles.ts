@@ -1,3 +1,4 @@
+import { publicRecommendationConditions } from "../storage/repositories/recommendations";
 import { Router } from "express";
 import { z } from "zod";
 import { isAuthenticated } from "../auth";
@@ -2034,6 +2035,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
           contractorSlug: contractors.slug,
         })
         .from(recommendations)
+        .innerJoin(users, eq(users.id, recommendations.userId))
         .innerJoin(contractors, eq(recommendations.contractorId, contractors.id))
         .where(
           and(
@@ -2043,8 +2045,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
                 // of recommendations the member authored about providers.
                 eq(recommendations.contractorId, ownerContractor.id)
               : eq(recommendations.userId, ownerUserId),
-            eq(recommendations.isPublic, true),
-            eq(recommendations.moderationStatus, "approved")
+            ...publicRecommendationConditions()
           )
         )
         .orderBy(desc(recommendations.createdAt))
@@ -2487,12 +2488,12 @@ async function readPublicProfileTrustActions(
       ? db
           .select({ total: sql<number>`count(*)::int` })
           .from(recommendations)
+          .innerJoin(users, eq(users.id, recommendations.userId))
           .where(
             and(
               eq(recommendations.contractorId, context.contractor.id),
               eq(recommendations.recommendationType, "positive"),
-              eq(recommendations.isPublic, true),
-              eq(recommendations.moderationStatus, "approved")
+              ...publicRecommendationConditions()
             )
           )
       : Promise.resolve([{ total: 0 }]),

@@ -77,7 +77,13 @@ describe("canonical public-profile trust actions", () => {
     );
     expect(directory).toContain("ownerContractor || !hasLinkedBusiness");
     expect(directory).not.toContain("getContractorByUserId");
-    expect(directory).toContain('eq(recommendations.moderationStatus, "approved")');
+    expect(directory).toContain("...publicRecommendationConditions()");
+    expect(directory).toContain(".innerJoin(users, eq(users.id, recommendations.userId))");
+    const publication = read("server/storage/repositories/recommendations.ts");
+    expect(publication).toContain('eq(recommendations.moderationStatus, "approved")');
+    expect(publication).toContain("eq(recommendations.isPublic, true)");
+    expect(publication).toContain("eq(recommendations.isVerified, true)");
+    expect(publication).toContain("eq(users.emailVerified, true)");
     expect(directory).toContain("customerName: recommendations.customerName");
   });
 

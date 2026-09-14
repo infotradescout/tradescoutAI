@@ -1,4 +1,5 @@
 export const frontendItems = [
+  "vendor/infinity",
   "client",
   "shared",
   "attached_assets",
@@ -14,6 +15,7 @@ export const frontendItems = [
 ];
 
 export const backendItems = [
+  "vendor/infinity",
   "server",
   "shared",
   "migrations",

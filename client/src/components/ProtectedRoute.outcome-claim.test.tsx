@@ -83,4 +83,19 @@ describe("ProtectedRoute outcome-claim continuation", () => {
       "/onboarding?next=%2Fclaim-my-business%3Fsource%3Doutcome_onboarding_match%26businessId%3Ddifferent-business"
     );
   });
+
+  it("allows an incomplete account to confirm the email for its recommendation", async () => {
+    mocks.location = "/verification?next=%2Fu%2Facme-repair%3FtrustAction%3Drecommend";
+    await renderRoute();
+    expect(container.querySelector('[data-testid="claim-page"]')).not.toBeNull();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it("does not turn verification next into an unrelated onboarding bypass", async () => {
+    mocks.location = "/verification?next=%2Fdirect-connect";
+    await renderRoute();
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      "/onboarding?next=%2Fverification%3Fnext%3D%252Fdirect-connect"
+    );
+  });
 });

@@ -30,6 +30,16 @@ describe("resolveProfileCompletionBannerMode", () => {
     expect(mode({ firstName: "Taylor", lastName: "Morgan" })).toBe("local_setup");
   });
 
+  it("keeps a saved recommendation and its confirmation free of unrelated setup prompts", () => {
+    const person = { firstName: "Taylor", lastName: "Morgan" };
+    const next = "/u/acme?trustAction=recommend";
+    expect(mode(person, next)).toBeNull();
+    expect(mode(person, "/contractors/acme?trustAction=recommend")).toBeNull();
+    expect(mode(person, `/verification?next=${encodeURIComponent(next)}`)).toBeNull();
+    expect(mode(person, "/verification")).toBe("local_setup");
+    expect(mode(person, "/direct-connect?trustAction=recommend")).toBe("local_setup");
+  });
+
   it("uses profile basics when locality exists but identity basics are missing", () => {
     expect(
       mode({ stateCode: "FL", countyFips: "12033", onboardingCompleted: true, profileVersion: 1 })

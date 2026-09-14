@@ -2,6 +2,40 @@
 
 This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, copy, or concepts.
 
+## SI execution law (mandatory)
+
+Optimize for verified forward progress per unit of context, reasoning, tool use, and validation cost.
+
+Before broad inspection, planning from scratch, or repository-wide validation, first locate the latest authoritative checkpoint/handoff, current branch/commit, and the minimum evidence needed for the assigned slice. Interrupted work resumes from the first unproven state transition; it does not restart the audit, roadmap, repository map, or already-proven work.
+
+- Resume before rediscovering. Reuse authoritative project state instead of reconstructing it from scratch.
+- Inspect the smallest relevant surface first; expand only when dependencies, ambiguity, or shared-owner impact require it.
+- Do not repeat a deep dive because a new chat, Work task, model, or agent started.
+- Prefer searches, diffs, exact ranges, and prior evidence over rereading large files.
+- During implementation, use targeted validation for the changed behavior. Full release gates belong at integration/release boundaries or after shared-contract changes invalidate broader evidence.
+- Independent lanes may move in parallel only with explicit ownership/integration boundaries; they must share authoritative state rather than independently rediscover it.
+- If capacity is constrained, preserve active implementation lanes and defer duplicate audits, non-blocking prose, repeated broad reviews, and speculative exploration.
+- Before an interrupted run yields, persist a resumable checkpoint whenever write access remains available.
+
+Every checkpoint/handoff must include:
+
+```text
+Objective:
+Base branch/commit:
+Current branch/commit:
+Verified completed work:
+Changed but unverified work:
+Files changed:
+Tests/evidence already run:
+Tests/evidence invalidated by later changes:
+Known blockers/risks:
+External side effects and retry safety:
+Next exact action:
+Actions that must NOT be repeated:
+```
+
+The next agent uses the checkpoint as the evidence index and verifies only the minimum state needed to continue safely.
+
 ## 0) Release control (read before merging to main)
 
 - Merge/push to `main` **is** the production release path. See `RELEASE_CONTROL.md`.
@@ -11,6 +45,7 @@ This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, c
 - This is a one-person development team: `main` requires a pull request, zero approving reviews, and resolution of review conversations. Do not add approval, status-check, deployment, merge-queue, or last-pusher gates that require a second actor or external runner.
 - Every pull request must record the commands run, results, known baseline failures, and any unexecuted DB/browser/production proof.
 - Do not reintroduce `.github/workflows/` without explicit owner approval.
+- Do not rerun `gate:minimum-release` after every bounded implementation edit when its evidence has not been invalidated. Run targeted checks during the slice, then run the minimum release gate against the integration/release candidate commit.
 
 ## 1) Platform law (must be preserved)
 - Visibility does not equal access: being seen never grants contact or power.

@@ -1,10 +1,15 @@
+import { lazy, Suspense } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { isFirstCutDetailStone } from "./firstCut";
 import { JwStoneShareControl } from "./JwStoneShareControl";
 import { JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
-import { firstCutShareDestination, stoneShareDestination } from "./marketplaceRoutes";
+import {
+  firstCutShareDestination,
+  stoneRoomBasePath,
+  stoneShareDestination,
+} from "./marketplaceRoutes";
 import {
   availabilityDetailLabel,
   confirmedFinishes,
@@ -12,6 +17,8 @@ import {
 } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
 import { useMomentumRail } from "./useMomentumRail";
+
+const StoneRoomLink = lazy(() => import("./StoneRoomLink"));
 
 type StoneDetailDialogProps = {
   stone: JwStoneCatalogItem | null;
@@ -61,7 +68,12 @@ export function StoneDetailDialog({
       ? "Ask JW about this First Cut"
       : "Ask JW about this stone";
   const hasConfirmedFacts = Boolean(
-    stone.materialLabel || availability || finishes.length || dimensions || stone.origin || thicknessCm
+    stone.materialLabel ||
+    availability ||
+    finishes.length ||
+    dimensions ||
+    stone.origin ||
+    thicknessCm
   );
   const shareDestination = stone.shareSlug
     ? stoneShareDestination(stone.shareSlug)
@@ -263,6 +275,17 @@ export function StoneDetailDialog({
               className="sticky bottom-0 mt-8 space-y-3 border-t border-[var(--jw-border)] bg-[var(--jw-bg)] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:mt-10 sm:px-9"
               data-testid="jw-stone-detail-actions"
             >
+              {!stone.anonymous && stone.shareSlug ? (
+                <Suspense fallback={null}>
+                  <StoneRoomLink
+                    stone={stone}
+                    imageHref={selectedImage}
+                    baseHref={stoneRoomBasePath()}
+                    className={jw.ghostOnLight}
+                    detail
+                  />
+                </Suspense>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onAsk(stone)}

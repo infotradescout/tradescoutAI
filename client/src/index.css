@@ -2429,13 +2429,13 @@ html {
     box-sizing: border-box;
   }
 
-  .max-w-7xl,
-  .max-w-6xl,
-  .max-w-5xl,
-  .max-w-4xl,
-  .max-w-3xl,
-  .max-w-2xl,
-  .max-w-xl {
+  .max-w-7xl:not([role="dialog"]),
+  .max-w-6xl:not([role="dialog"]),
+  .max-w-5xl:not([role="dialog"]),
+  .max-w-4xl:not([role="dialog"]),
+  .max-w-3xl:not([role="dialog"]),
+  .max-w-2xl:not([role="dialog"]),
+  .max-w-xl:not([role="dialog"]) {
     max-width: calc(100vw - 2rem);
   }
 
@@ -2778,13 +2778,13 @@ body {
   box-sizing: border-box;
 }
 
-.max-w-7xl,
-.max-w-6xl,
-.max-w-5xl,
-.max-w-4xl,
-.max-w-3xl,
-.max-w-2xl,
-.max-w-xl {
+.max-w-7xl:not([role="dialog"]),
+.max-w-6xl:not([role="dialog"]),
+.max-w-5xl:not([role="dialog"]),
+.max-w-4xl:not([role="dialog"]),
+.max-w-3xl:not([role="dialog"]),
+.max-w-2xl:not([role="dialog"]),
+.max-w-xl:not([role="dialog"]) {
   max-width: calc(100vw - 2rem);
 }
 

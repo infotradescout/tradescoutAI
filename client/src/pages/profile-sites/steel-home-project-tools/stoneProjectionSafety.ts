@@ -1,65 +1,178 @@
+import dominantColors from "@/data/jwStoneDominantColors.generated.json";
+import { getCatalogItemById } from "@/features/jw-stone/catalog";
 import { isHandScaleCoverImage } from "@/features/jw-stone/coverImages";
-import { resolveSlabDimensionForInventoryImage } from "@/features/jw-stone/slabDimensions";
+import {
+  resolveSlabDimensionForInventoryImage,
+  type SlabDimension,
+} from "@/features/jw-stone/slabDimensions";
+import { resolveJwStonePublicMediaAsset } from "@shared/jwStonePublicMedia";
+import { buildStoneDesignerPhotoKey } from "./stoneDesignerImages";
 
-export type StoneProjectionDecision = {
-  allowed: boolean;
+export type StoneProjectionCrop = Readonly<{
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}>;
+
+type StoneProjectionIdentity = {
   reason: string;
-  dimensions: { widthIn: number; heightIn: number } | null;
+  sourceImageHref: string | null;
+  sourcePhotoKey: string | null;
+  /** Filename evidence for the original slab photo, never the size of a cropped texture. */
+  sourceDimensions: SlabDimension | null;
 };
 
+export type StoneProjectionDecision = StoneProjectionIdentity &
+  (
+    | {
+        kind: "reference-only";
+        allowed: false;
+        projectionImageHref: null;
+        dimensions: null;
+        crop: null;
+      }
+    | {
+        kind: "illustrative";
+        allowed: true;
+        projectionImageHref: string;
+        dimensions: null;
+        /** Recorded interior of the source photo; the sliver has a further centered crop. */
+        crop: StoneProjectionCrop;
+      }
+    | {
+        kind: "physical";
+        allowed: true;
+        projectionImageHref: string;
+        /** Verified physical size of the projected asset, not of its source photograph. */
+        dimensions: SlabDimension;
+        crop: StoneProjectionCrop | null;
+      }
+  );
+
+type StoneFaceEvidence = {
+  cover?: unknown;
+  sliver?: unknown;
+  sample?: {
+    source?: unknown;
+    mode?: unknown;
+    confidence?: unknown;
+    box?: unknown;
+  } | null;
+};
+
+const STONE_FACE_EVIDENCE = (dominantColors as { stones: Record<string, StoneFaceEvidence> })
+  .stones;
+const STONE_FACE_SLIVER_PREFIX = "/images/businesses/jw-stone/color-slivers/";
+const MINIMUM_SAMPLE_CONFIDENCE = 0.79;
+
+function readCrop(value: unknown): StoneProjectionCrop | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const box = value as Record<string, unknown>;
+  const { left, top, width, height } = box;
+  if (
+    typeof left !== "number" ||
+    typeof top !== "number" ||
+    typeof width !== "number" ||
+    typeof height !== "number" ||
+    ![left, top, width, height].every(Number.isFinite) ||
+    left < 0 ||
+    top < 0 ||
+    width <= 0 ||
+    height <= 0 ||
+    left + width > 1 ||
+    top + height > 1
+  ) {
+    return null;
+  }
+  return Object.freeze({ left, top, width, height });
+}
+
+function resolveIllustrativeCrop(source: string): {
+  projectionImageHref: string;
+  crop: StoneProjectionCrop;
+} | null {
+  const matching = Object.entries(STONE_FACE_EVIDENCE).filter(
+    ([, entry]) => entry.cover === source
+  );
+  // An ambiguous source needs its evidence reconciled before it can select a texture.
+  if (matching.length !== 1) return null;
+  const [stoneId, entry] = matching[0];
+  const stone = getCatalogItemById(stoneId);
+  if (!stone || stone.anonymous || !stone.shareSlug || !stone.images.includes(source)) return null;
+
+  const sample = entry.sample;
+  if (
+    !sample ||
+    sample.source !== "inner-slab-face-only" ||
+    !["detected-slab-core", "explicit-image-crop"].includes(String(sample.mode)) ||
+    typeof sample.confidence !== "number" ||
+    !Number.isFinite(sample.confidence) ||
+    sample.confidence < MINIMUM_SAMPLE_CONFIDENCE ||
+    sample.confidence > 1
+  ) {
+    return null;
+  }
+  const crop = readCrop(sample.box);
+  const projectionImageHref = `${STONE_FACE_SLIVER_PREFIX}${stoneId}.webp`;
+  if (!crop || entry.sliver !== projectionImageHref) return null;
+  // Only the pinned derivative can become a material; aliases or guessed paths are insufficient.
+  const asset = resolveJwStonePublicMediaAsset(projectionImageHref);
+  if (
+    !resolveJwStonePublicMediaAsset(source) ||
+    !asset ||
+    asset.relativePath !== `color-slivers/${stoneId}.webp`
+  ) {
+    return null;
+  }
+  return { projectionImageHref, crop };
+}
+
 /**
- * Inventory photos are evidence first. They may include a rack, clamp, hand, label, yard, or
- * neighboring slab. Only an explicitly prepared stone-only texture asset may be projected into a
- * room. Raw catalog photos remain visible as references beside the measured model.
+ * Raw inventory photos remain references. Existing exact-photo stone-face derivatives may be
+ * previewed illustratively, but their crop has no measured physical size. A path containing
+ * "clean" or a source filename containing slab dimensions cannot establish a physical texture.
+ * No current catalog entry supplies the evidence needed to return the physical decision variant.
  */
 export function getStoneProjectionDecision(
   imageHref: string | null | undefined
 ): StoneProjectionDecision {
   const source = typeof imageHref === "string" ? imageHref.trim() : "";
-  const dimensions = source ? resolveSlabDimensionForInventoryImage(source) : null;
+  const sourcePhotoKey = source ? buildStoneDesignerPhotoKey(source) : null;
+  const handScale = source ? isHandScaleCoverImage(source) : false;
+  const identity = {
+    sourceImageHref: source || null,
+    sourcePhotoKey,
+    sourceDimensions:
+      sourcePhotoKey && !handScale ? resolveSlabDimensionForInventoryImage(source) : null,
+  };
+  const reference = (reason: string): StoneProjectionDecision => ({
+    ...identity,
+    kind: "reference-only",
+    allowed: false,
+    reason,
+    projectionImageHref: null,
+    dimensions: null,
+    crop: null,
+  });
 
-  if (!source) {
-    return {
-      allowed: false,
-      reason: "Choose an inventory photo to use as a visual reference.",
-      dimensions: null,
-    };
+  if (!source) return reference("Choose an inventory photo to use as a visual reference.");
+  if (handScale) {
+    return reference("This hand-scale image is reference-only and cannot become a room material.");
   }
-
-  if (isHandScaleCoverImage(source)) {
-    return {
-      allowed: false,
-      reason: "This hand-scale image is reference-only and cannot become a room material.",
-      dimensions: null,
-    };
+  const illustrative = sourcePhotoKey ? resolveIllustrativeCrop(source) : null;
+  if (!illustrative) {
+    return reference(
+      "This photo has no reviewed stone-only crop available for the room. Keep it beside the model as an inventory reference."
+    );
   }
-
-  if (!dimensions) {
-    return {
-      allowed: false,
-      reason: "This photo has no verified slab dimensions, so it remains reference-only.",
-      dimensions: null,
-    };
-  }
-
-  const normalized = source.replace(/\\/g, "/").toLowerCase().split(/[?#]/)[0];
-  const isPreparedStoneOnlyAsset =
-    normalized.includes("/stone-textures/clean/") ||
-    normalized.includes("/stone-designer-clean/") ||
-    normalized.includes("/projection-ready/");
-
-  if (!isPreparedStoneOnlyAsset) {
-    return {
-      allowed: false,
-      reason:
-        "The recorded dimensions are useful, but this raw inventory photo has not been approved as a stone-only crop. It stays beside the model instead of being stretched across the room.",
-      dimensions,
-    };
-  }
-
   return {
+    ...identity,
+    ...illustrative,
+    kind: "illustrative",
     allowed: true,
-    reason: "Using a verified stone-only crop with recorded slab dimensions.",
-    dimensions,
+    reason:
+      "Previewing a stone-face sample from this inventory photo. Pattern size is illustrative; the crop has no recorded physical dimensions.",
+    dimensions: null,
   };
 }

@@ -84,12 +84,30 @@ describe("progressive feature gating contracts", () => {
     expect(source).toContain("includeAdvancedHrefs");
   });
 
-  it("hard-locks advanced routes behind ProgressiveFeatureGate", () => {
+  it("keeps advanced activity gates without blocking public Exchange discovery", () => {
     const source = read("client/src/AppRoutes.tsx");
 
     expect(source).toContain("const ProgressiveFeatureGate");
     expect(source).toContain('featureId="trade_deals"');
-    expect(source).toContain('featureId="exchange"');
+    expect(source).not.toContain('featureId="exchange"');
+    for (const route of [
+      "/exchange",
+      "/exchange/building-materials",
+      "/exchange/:category/:listingId",
+    ]) {
+      const routeBody = source.split(`<Route path="${route}">`)[1]?.split("</Route>")[0];
+      expect(routeBody).toContain("<LazyPage");
+      expect(routeBody).not.toContain("ProgressiveFeatureGate");
+    }
+    for (const route of [
+      "/marketplace/new",
+      "/exchange/seller-dashboard",
+      "/profile-purchases/:id",
+    ]) {
+      expect(source.split(`<Route path="${route}">`)[1]?.split("</Route>")[0]).toContain(
+        "ProtectedRoute"
+      );
+    }
     expect(source).toContain('featureId="share"');
     expect(source).toContain('featureId="home_scout_listings"');
     expect(source).toContain('featureId="maps"');

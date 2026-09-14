@@ -98,6 +98,27 @@ export default defineConfig({
         // into shared manual chunks and preloads them from the app entry.
         onlyExplicitManualChunks: true,
         manualChunks(id) {
+          // The planner and lazy Three renderer share exact-photo crop evidence.
+          // Keep that policy in its own feature chunk, avoiding a renderer -> planner
+          // cycle and keeping the measured planner implementation independently loadable.
+          const normalizedId = id.replace(/\\/g, "/");
+          if (normalizedId.endsWith("/steel-home-project-tools/cabinetCasework.ts")) {
+            // The 3D editor and lazy schedule/library share these render-only parts.
+            // Their common geometry must not make the library import its owning editor.
+            return "cabinet-casework";
+          }
+          if (normalizedId.endsWith("/steel-home-project-tools/countertopStudioShare.ts")) {
+            // Both the editor and optional drawing view offer measured-plan sharing.
+            // Neither view should import the other's implementation to reuse this codec.
+            return "countertop-plan-sharing";
+          }
+          if (
+            normalizedId.endsWith("/steel-home-project-tools/stoneProjectionSafety.ts") ||
+            normalizedId.endsWith("/shared/jwStonePublicMedia.ts") ||
+            normalizedId.endsWith("/scripts/data/jw-stone-public-media-manifest.json")
+          ) {
+            return "stone-projection-policy";
+          }
           if (!id.includes("node_modules")) {
             return;
           }
@@ -135,8 +156,8 @@ export default defineConfig({
       "/ws": {
         target: "http://localhost:5000",
         changeOrigin: true,
-        secure: false,
         ws: true,
+        secure: false,
       },
     },
   },

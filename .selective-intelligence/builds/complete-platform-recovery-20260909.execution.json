@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout",
+    "releaseId": "complete-platform-recovery-20260909",
+    "releaseVersion": "1",
+    "buildId": "recovery-onboarding-exchange-integration",
+    "lockVersion": "20260909"
+  },
+  "phase": "continuation",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout county discovery, claims-first accounts, gated requests/contact, business profiles and remaining isolated recovery work.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": true,
+      "outcome": "Combine the reviewed platform recovery and read-only Exchange discovery into one exact-source verified local candidate.",
+      "entry": "A fresh guest browses public profile inventory in Exchange or starts a recommendation before account setup.",
+      "ending": "Read-only item discovery reaches its canonical protected request entry; recommendation and county request journeys preserve current verification and contact authority.",
+      "proof": [
+        {
+          "type": "automated_test",
+          "procedure": "Run immutable migration checks, native recommendation and recovery proofs, focused UI/security tests, typecheck/build, and exact-commit minimum release gate with current synthetic browser journeys. Run affected Exchange discovery/navigation/pagination and authority cases plus a real native read-only Exchange GET smoke; separately label the captured-public-content rendered Exchange fixture.",
+          "expected": "Immutable main history; restoration before projection; private unclassified legacy data; actor-verified and moderated publication; preserved recovery authority.",
+          "observed": "Both input commits have independent source review and prior bounded receipts. Current combined proof is pending; it must identify the resulting exact commit.",
+          "evidenceRef": "artifacts/complete-recovery-result.json"
+        }
+      ],
+      "journeySteps": [
+        "Recover and restore the immutable migration chain.",
+        "Save the recommendation through canonical account and recommendation owners.",
+        "Verify both new publication safeguards and existing recovery denial cases."
+      ],
+      "constraints": [
+        "Use existing TradeScout repository and canonical permission/storage/component owners; preserve County Map WIP and separate JW product changes."
+      ],
+      "requirementIds": [
+        "REQ-RECOVERY"
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-RECOVERY",
+          "scope": "active_deliverable",
+          "claim": "Only the local integration candidate is closed after current combined evidence. Merge, deployment, real-provider proof and broader unfinished work remain separate."
+        }
+      ],
+      "excludedFromActive": [
+        "JW presentation, unrelated product stacks, production/provider writes, release and wider unfinished portfolio work retain their existing owners."
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "outcome": "Root-owned independent review and draft PR update; main merge, deployment and external-provider proof remain separate."
+    },
+    {
+      "id": "D3",
+      "active": false,
+      "outcome": "Preserve remaining JW, County Map, membership, dependency and external-provider work for its own evidence-backed completion."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "Existing TradeScout React/Express/Postgres contracts and Render production path own the workflow.",
+    "constraintsConsidered": [
+      "Persistent requests and identity, explicit access decisions, append-only migrations and existing production repository."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": true
+    }
+  }
+}

@@ -9,6 +9,7 @@ import {
   users,
 } from "@shared/schema";
 import { INTERNAL_ADMIN_PROFILE_SLUGS } from "@shared/publicProfileIndexing";
+import { slugifyCountyName } from "@shared/tradeSeo";
 import { db, pool as neonPool } from "../db";
 import { and, asc, desc, eq, notInArray, or, sql } from "drizzle-orm";
 import {
@@ -22,6 +23,9 @@ import {
 import { getPublicationRules } from "../publicationRules";
 import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
 import { durableProfessionalProfileApprovalSql } from "../services/profileTargetAuthority";
+import { listActiveCountyTradeScopes } from "../services/seoDirectoryNavigationService";
+import { exposureAuthoritySqlPredicate } from "../services/exposureAuthority";
+import { toPublicHomeScoutListing } from "../publicHomeScoutListing";
 
 export type ProfileSitemapEligibilityCandidate = Omit<
   PublishedProfileExposureCandidate,
@@ -178,21 +182,8 @@ export class SitemapRepository {
   }
 
   async countDirectoryCountiesForSitemap(): Promise<number> {
-    const rows = await db
-      .select({ count: sql<number>`count(DISTINCT ${counties.fips})` })
-      .from(counties)
-      .innerJoin(businessCounties, eq(businessCounties.countyId, counties.id))
-      .innerJoin(businesses, eq(businesses.id, businessCounties.businessId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
-        )
-      );
-    const count = Number((rows[0] as any)?.count ?? 0);
-    return Number.isFinite(count) && count >= 0 ? count : 0;
+    // Count the same eligible county set that is actually advertised.
+    return (await this.listDirectoryCountiesForSitemap({ limit: 50_000 })).length;
   }
 
   async listDirectoryCountiesForSitemap(args?: {
@@ -223,11 +214,9 @@ export class SitemapRepository {
         )
       )
       .groupBy(counties.fips, counties.name, counties.stateCode)
-      .orderBy(asc(counties.fips))
-      .limit(limit)
-      .offset(offset);
+      .orderBy(asc(counties.fips));
 
-    return rows
+    const candidates = rows
       .map((row) => ({
         fips: String((row as any).fips || "").trim(),
         name: String((row as any).name || "").trim(),
@@ -237,6 +226,13 @@ export class SitemapRepository {
         updatedAt: (row as any).updatedAt ?? null,
       }))
       .filter((row) => row.fips.length === 5 && row.stateCode.length === 2 && row.name.length > 0);
+    // Public county HTML rejects scopes absent from this same cached snapshot.
+    // Filtering before pagination prevents empty advertised pages and count drift.
+    const eligible = await Promise.all(candidates.map(async (row) => {
+      const countySlug = slugifyCountyName(row.name.replace(/\s+County$/i, "").trim() || row.name);
+      return (await listActiveCountyTradeScopes(row.stateCode, countySlug)).length > 0;
+    }));
+    return candidates.filter((_row, index) => eligible[index]).slice(offset, offset + limit);
   }
 
   async countDirectoryCitiesForSitemap(): Promise<number> {
@@ -329,21 +325,42 @@ export class SitemapRepository {
   }): Promise<Array<{ id: string; updatedAt: Date | null }>> {
     const limitRequested = Number(args?.limit ?? 50_000) || 50_000;
     const limit = Math.max(1, Math.min(100_000, limitRequested));
-
-    const rows = await db
-      .select({
-        id: homeScoutListings.id,
-        updatedAt: homeScoutListings.updatedAt,
-      })
-      .from(homeScoutListings)
-      .where(eq(homeScoutListings.status, "active" as any))
-      .orderBy(desc(homeScoutListings.updatedAt))
-      .limit(limit);
-
-    return rows.map((row) => ({
-      id: row.id,
-      updatedAt: row.updatedAt ?? null,
-    }));
+    // Mirror contact || agent || seller, then trim, exactly as public listing
+    // HTML does. A whitespace-only contact ID must not fall back to an agent.
+    const authorityUserId = sql`btrim(coalesce(
+      nullif(${homeScoutListings.contactUserId}, ''),
+      nullif(${homeScoutListings.agentUserId}, ''),
+      ${homeScoutListings.sellerUserId}, ''
+    ))`;
+    const batchSize = Math.min(limit, 1000);
+    const included: Array<{ id: string; updatedAt: Date | null }> = [];
+    let offset = 0;
+    while (included.length < limit) {
+      const rows = await db
+        .select({
+          id: homeScoutListings.id,
+          updatedAt: homeScoutListings.updatedAt,
+          title: homeScoutListings.title,
+          countyFips: homeScoutListings.countyFips,
+          stateCode: homeScoutListings.stateCode,
+        })
+        .from(homeScoutListings)
+        .where(and(
+          eq(homeScoutListings.status, "active" as any),
+          exposureAuthoritySqlPredicate(authorityUserId)
+        ))
+        .orderBy(desc(homeScoutListings.updatedAt), asc(homeScoutListings.id))
+        .limit(batchSize)
+        .offset(offset);
+      for (const row of rows) {
+        if (!toPublicHomeScoutListing(row)) continue;
+        included.push({ id: row.id, updatedAt: row.updatedAt ?? null });
+        if (included.length === limit) break;
+      }
+      if (rows.length < batchSize) break;
+      offset += rows.length;
+    }
+    return included;
   }
 
   async listHomeScoutCountiesForSitemap(args?: {

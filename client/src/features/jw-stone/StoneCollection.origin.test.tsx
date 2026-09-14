@@ -5,13 +5,14 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { JW_STONE_NAMED_CATALOG } from "./catalog";
 import { StoneCollection } from "./StoneCollection";
+import { confirmedSlabCount } from "./stoneFacts";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
 describe("JW Stone verified-origin collection path", () => {
   it("keeps filter controls in the Filter sheet (no permanent filter boxes)", () => {
-    const sourceStone = JW_STONE_NAMED_CATALOG[0];
+    const sourceStone = JW_STONE_NAMED_CATALOG.find((stone) => confirmedSlabCount(stone) === null)!;
     if (!sourceStone.materialId) throw new Error("Expected fixture materialId");
     const fixtureStone = {
       ...sourceStone,
@@ -66,7 +67,7 @@ describe("JW Stone verified-origin collection path", () => {
     expect(container.querySelector('select[aria-label="Color"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).toBeNull();
-    expect(container.querySelector('select[aria-label="Source evidence"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Availability"]')).toBeNull();
 
     act(() => {
       inventoryToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -89,7 +90,33 @@ describe("JW Stone verified-origin collection path", () => {
     expect(container.querySelector('select[aria-label="Color"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).not.toBeNull();
-    expect(container.querySelector('select[aria-label="Source evidence"]')).not.toBeNull();
+    const availability = container.querySelector<HTMLSelectElement>(
+      'select[aria-label="Availability"]'
+    );
+    expect(availability).not.toBeNull();
+    expect(Array.from(availability!.options, (option) => option.textContent)).toEqual([
+      "Availability",
+      "Slab count known",
+    ]);
+    act(() => {
+      availability!.value = "with-count";
+      availability!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    // Refinements stay in the sheet until applied; verified origin alone does not prove a count.
+    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(1);
+    const apply = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Show 0 results"
+    );
+    expect(apply).toBeDefined();
+    act(() => apply!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(container.querySelector('[data-testid="jw-filters-sheet"]')).toBeNull();
+    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(0);
+    const clear = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Active filters"] button'
+    );
+    expect(clear?.textContent).toContain("Slab count known");
+    act(() => clear!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(1);
 
     act(() => root.unmount());
     container.remove();

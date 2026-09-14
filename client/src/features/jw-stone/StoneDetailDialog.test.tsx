@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_CATALOG } from "./catalog";
 import { firstCutPhotoAsDetailStone, JW_STONE_FIRST_CUT_PHOTO_SLOTS } from "./firstCut";
 import { StoneDetailDialog } from "./StoneDetailDialog";
+import { stoneRoomDestination } from "./StoneRoomLink";
+import { stoneRoomBasePath } from "./marketplaceRoutes";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -24,7 +26,7 @@ function click(element: Element | null) {
   act(() => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 }
 
-describe("StoneDetailDialog", () => {
+describe("StoneDetailDialog", async () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -39,7 +41,7 @@ describe("StoneDetailDialog", () => {
     container.remove();
   });
 
-  it("shows confirmed facts and Ask JW about {name} without color swatches or Pairs with", () => {
+  it("shows confirmed facts and Ask JW about {name} without color swatches or Pairs with", async () => {
     const stone =
       JW_STONE_CATALOG.find((entry) => entry.id === "blue-dunes") ||
       JW_STONE_CATALOG.find((entry) => entry.wishlistEligible);
@@ -49,7 +51,7 @@ describe("StoneDetailDialog", () => {
     const onAsk = vi.fn();
     const onToggleSaved = vi.fn();
 
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneDetailDialog
           stone={stone}
@@ -96,12 +98,12 @@ describe("StoneDetailDialog", () => {
     expect(onAsk).toHaveBeenCalledWith(stone);
   });
 
-  it("keeps a stable detail stage while photos move through a native momentum rail", () => {
+  it("keeps a stable detail stage while photos move through a native momentum rail", async () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.images.length > 1);
     expect(stone).toBeTruthy();
     if (!stone) throw new Error("Expected a multi-image stone");
 
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneDetailDialog
           stone={stone}
@@ -148,6 +150,9 @@ describe("StoneDetailDialog", () => {
         ?.getAttribute("aria-current")
     ).toBe("true");
     expect(media?.textContent).toContain(`2 / ${stone.images.length}`);
+    expect(
+      dialog?.querySelector('[data-testid="jw-stone-detail-room"]')?.getAttribute("href")
+    ).toBe(stoneRoomDestination(stone, stone.images[1]!, stoneRoomBasePath()));
 
     click(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumb-0"]') ?? null);
     expect(
@@ -157,12 +162,12 @@ describe("StoneDetailDialog", () => {
     ).toBe("true");
   });
 
-  it("omits gallery chrome for single-image stones", () => {
+  it("omits gallery chrome for single-image stones", async () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.images.length === 1);
     expect(stone).toBeTruthy();
     if (!stone) throw new Error("Expected a single-image stone");
 
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneDetailDialog
           stone={stone}
@@ -180,11 +185,11 @@ describe("StoneDetailDialog", () => {
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumbs"]')).toBeNull();
   });
 
-  it("keeps Ask and Share for First Cut photos without Save or invented specs", () => {
+  it("keeps Ask and Share for First Cut photos without Save or invented specs", async () => {
     const stone = firstCutPhotoAsDetailStone(JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!);
     const onAsk = vi.fn();
 
-    act(() =>
+    await act(async () =>
       root.render(
         <StoneDetailDialog
           stone={stone}
@@ -210,6 +215,7 @@ describe("StoneDetailDialog", () => {
     expect(ask?.textContent).toContain("Ask JW about this First Cut");
     expect(dialog?.querySelector('[data-testid="jw-stone-share"]')).not.toBeNull();
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-save"]')).toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-room"]')).toBeNull();
     expect(buttonContaining(dialog, "Save this stone")).toBeNull();
 
     click(ask ?? null);

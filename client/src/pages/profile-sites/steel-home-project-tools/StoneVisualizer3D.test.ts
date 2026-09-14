@@ -9,6 +9,40 @@ import {
 } from "./StoneVisualizer3D";
 
 describe("countertop spatial studio geometry", () => {
+  it("preserves a narrow illustrative crop's pixel aspect without assigning full-slab inches", () => {
+    const source = new THREE.Texture({ width: 100, height: 300 });
+    const material = new THREE.MeshStandardMaterial();
+    const record = { material, widthFt: 4, heightFt: 2, target: "counter" as const };
+    const design = createEmptySteelHomeProjectDraft().countertops;
+    const texture = applyStoneVisualizerTextureForTests({
+      source,
+      sourceKey: "illustrative",
+      record,
+      design,
+      dimensions: null,
+      anisotropy: 1,
+    });
+    const visibleTileAspect =
+      record.widthFt / texture.repeat.x / (record.heightFt / texture.repeat.y);
+    expect(visibleTileAspect).toBeCloseTo(100 / 300);
+    const moved = applyStoneVisualizerTextureForTests({
+      source,
+      sourceKey: "illustrative",
+      record,
+      design: { ...design, textureScale: 2, textureOffsetX: 0.5 },
+      dimensions: null,
+      anisotropy: 1,
+    });
+    expect(moved).toBe(texture);
+    expect(moved.offset.x).toBeGreaterThan(0);
+    expect(record.widthFt / moved.repeat.x / (record.heightFt / moved.repeat.y)).toBeCloseTo(
+      100 / 300
+    );
+    texture.dispose();
+    source.dispose();
+    material.dispose();
+  });
+
   it("keeps the full entered run and island dimensions instead of visually capping them", () => {
     const design = {
       ...createEmptySteelHomeProjectDraft().countertops,

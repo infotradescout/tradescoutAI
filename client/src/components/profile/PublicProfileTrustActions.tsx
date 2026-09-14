@@ -93,6 +93,7 @@ export function PublicProfileTrustActions({
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<ProfileTrustAction | null>(null);
   const [recommendationOpen, setRecommendationOpen] = useState(false);
+  const [resumeRecommendation, setResumeRecommendation] = useState(false);
   const resumedActionRef = useRef(false);
   const isLight = tone === "light";
   const isCompact = density === "compact";
@@ -200,10 +201,6 @@ export function PublicProfileTrustActions({
 
   const openRecommendation = async () => {
     if (continueOnTradeScout("recommend")) return;
-    if (!hasViewerSession) {
-      sendToSignIn("recommend");
-      return;
-    }
 
     try {
       const currentState = await resolveCurrentState();
@@ -237,10 +234,17 @@ export function PublicProfileTrustActions({
     const requestedAction = url.searchParams.get("trustAction");
     if (requestedAction !== "favorite" && requestedAction !== "recommend") return;
     resumedActionRef.current = true;
-    url.searchParams.delete("trustAction");
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    // Keep the recommendation continuation through auth refreshes and reloads.
+    // Incomplete accounts use this exact path to return to their saved action.
+    if (requestedAction === "favorite") {
+      url.searchParams.delete("trustAction");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
     if (requestedAction === "favorite") void toggleAction("favorite");
-    else void openRecommendation();
+    else {
+      setResumeRecommendation(true);
+      void openRecommendation();
+    }
   }, [platformBaseHref, profileSlug, hasViewerSession]);
 
   const likeCount = state?.likeCount || 0;
@@ -390,10 +394,7 @@ export function PublicProfileTrustActions({
 
         {publicIdentity ? (
           <div
-            className={cn(
-              "mt-2 border-t pt-2",
-              isLight ? "border-stone-200" : "border-white/10"
-            )}
+            className={cn("mt-2 border-t pt-2", isLight ? "border-stone-200" : "border-white/10")}
             data-testid="public-profile-identity"
           >
             {publicIdentity.address ? (
@@ -478,6 +479,8 @@ export function PublicProfileTrustActions({
               contractorId={state.recommendationTarget.contractorId}
               contractorName={state.recommendationTarget.contractorName}
               defaultOpen
+              resumeSaved={resumeRecommendation}
+              resumePath={`/u/${encodeURIComponent(profileSlug)}?trustAction=recommend`}
               onCancel={() => setRecommendationOpen(false)}
               onSuccess={() => {
                 setRecommendationOpen(false);

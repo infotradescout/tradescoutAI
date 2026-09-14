@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "./progressiveFeatureUnlocks";
 
 describe("evaluateFeatureUnlocks", () => {
-  it("keeps advanced features locked for first-time user with no activity", () => {
+  it("makes public Exchange browsing reachable for first-time users without unlocking other features", () => {
     const snapshot = evaluateFeatureUnlocks({
       user: {
         onboardingCompleted: false,
@@ -12,13 +12,21 @@ describe("evaluateFeatureUnlocks", () => {
     });
 
     const unlockedHrefs = getUnlockedAdvancedHrefs(snapshot);
-    expect(unlockedHrefs.size).toBe(0);
+    expect([...unlockedHrefs]).toEqual(["/exchange"]);
     expect(snapshot.unlocked.trade_deals).toBe(false);
-    expect(snapshot.unlocked.exchange).toBe(false);
+    expect(snapshot.unlocked.exchange).toBe(true);
     expect(snapshot.unlocked.foundation).toBe(false);
   });
 
-  it("unlocks trade deals and exchange from scout/action activity", () => {
+  it("includes Exchange for an anonymous visitor with no activity", () => {
+    const snapshot = evaluateFeatureUnlocks({ user: null, recentActivity: [] });
+    expect([...getUnlockedAdvancedHrefs(snapshot)]).toEqual(["/exchange"]);
+    expect(snapshot.counts.meaningful).toBe(0);
+    expect(snapshot.hasVerifiedContact).toBe(false);
+    expect(snapshot.setupComplete).toBe(false);
+  });
+
+  it("unlocks trade deals and sharing from scout/action activity", () => {
     const snapshot = evaluateFeatureUnlocks({
       user: {
         onboardingCompleted: false,

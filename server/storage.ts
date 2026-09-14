@@ -4,6 +4,10 @@ import {
 } from "./storage/repositories/oauth-identities";
 /* eslint-disable @typescript-eslint/no-explicit-any -- Storage layer interfaces with dynamic JSON blobs + 3rd-party SDKs; incremental hardening tracked separately. */
 import {
+  conversationParticipantSql,
+  conversationProviderParticipantSql,
+} from "./services/conversationParticipants";
+import {
   users,
   profiles,
   contractors,
@@ -363,6 +367,13 @@ import type {
   ProfessionalProfileEditable,
 } from "./storage/contracts";
 export type { IStorage } from "./storage/contracts";
+import {
+  createRecommendationRepository,
+  publicRecommendationConditions,
+  type RecommendationWriteInput,
+} from "./storage/repositories/recommendations";
+
+const recommendationRepository = createRecommendationRepository(db);
 
 // Helper to safely convert strings/numbers to Decimal format
 const decimal = (value: any): string => {
@@ -596,6 +607,10 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
     return this.profileRepository.getProfileBySlugPublic(slug);
+  }
+
+  async getProfileBySlugForDiscovery(slug: string): Promise<PublicProfileRecord | undefined> {
+    return this.profileRepository.getProfileBySlugForDiscovery(slug);
   }
 
   async getProfileBySlugForManagement(slug: string): Promise<PublicProfileRecord | undefined> {
@@ -1401,16 +1416,11 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
 
   // Recommendation operations
   async getRecommendations(contractorId: string): Promise<Recommendation[]> {
-    return db
-      .select()
-      .from(recommendations)
-      .where(eq(recommendations.contractorId, contractorId))
-      .orderBy(desc(recommendations.createdAt));
+    return recommendationRepository.listPublic(contractorId);
   }
 
   async createBasicRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
-    const [newRecommendation] = await db.insert(recommendations).values(recommendation).returning();
-    return newRecommendation;
+    return recommendationRepository.create(recommendation);
   }
 
   async getContractorRatings(contractorId: string): Promise<{ count: number; average: number }> {
@@ -1420,7 +1430,10 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
         average: sql<number>`avg(5.0)`, // Default to 5.0 since recommendations don't have ratings
       })
       .from(recommendations)
-      .where(eq(recommendations.contractorId, contractorId));
+      .innerJoin(users, eq(users.id, recommendations.userId))
+      .where(
+        and(eq(recommendations.contractorId, contractorId), ...publicRecommendationConditions())
+      );
 
     return {
       count: result?.count || 0,
@@ -2119,12 +2132,14 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     userId: string,
     userType: "homeowner" | "contractor"
   ): Promise<Conversation[]> {
-    const userField =
-      userType === "homeowner" ? conversations.homeownerId : conversations.contractorId;
     return await db
       .select()
       .from(conversations)
-      .where(eq(userField, userId))
+      .where(
+        userType === "homeowner"
+          ? eq(conversations.homeownerId, userId)
+          : conversationProviderParticipantSql(conversations.contractorId, userId)
+      )
       .orderBy(desc(conversations.lastMessageAt));
   }
 
@@ -2195,9 +2210,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     const convoRows = await db
       .select()
       .from(conversations)
-      .where(
-        sql`${conversations.homeownerId} = ${userId} OR ${conversations.contractorId} = ${userId}`
-      )
+      .where(conversationParticipantSql(conversations, userId))
       .orderBy(desc(conversations.lastMessageAt))
       .limit(limit)
       .offset(offset);
@@ -3700,134 +3713,36 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       .where(eq(contractorApplications.id, id));
   }
 
-  // Recommendation system methods with anti-abuse protection
-  async createRecommendation(
-    data: typeof recommendations.$inferInsert & {
-      ipAddress?: string;
-      userAgent?: string;
-    }
+  // Private saves and publication share the same authoritative repository.
+  async createRecommendation(data: RecommendationWriteInput): Promise<Recommendation> {
+    return recommendationRepository.create(data);
+  }
+
+  async getMyContractorRecommendation(contractorId: string, userId: string) {
+    return recommendationRepository.mine(contractorId, userId);
+  }
+
+  async verifyPendingRecommendationsForUser(userId: string) {
+    return recommendationRepository.verifyPendingForUser(userId);
+  }
+
+  async moderateContractorRecommendation(
+    id: string,
+    action: "approve" | "reject",
+    moderatorId: string
   ) {
-    // Check for duplicate recommendations from same USER for this contractor within 30 days
-    const existingRecommendation = await db
-      .select()
-      .from(recommendations)
-      .where(
-        and(
-          eq(recommendations.contractorId, data.contractorId),
-          eq(recommendations.userId, data.userId),
-          gte(recommendations.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // 30 days
-        )
-      )
-      .limit(1);
-
-    if (existingRecommendation.length > 0) {
-      throw new Error("You can only submit one recommendation per contractor every 30 days");
-    }
-
-    // Also check by email as additional protection
-    const existingByEmail = await db
-      .select()
-      .from(recommendations)
-      .where(
-        and(
-          eq(recommendations.contractorId, data.contractorId),
-          eq(recommendations.customerEmail, data.customerEmail),
-          gte(recommendations.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // 30 days
-        )
-      )
-      .limit(1);
-
-    if (existingByEmail.length > 0) {
-      throw new Error(
-        "This email address has already submitted a recommendation for this contractor recently"
-      );
-    }
-
-    // Check for too many recommendations from same IP in 24 hours
-    if (data.ipAddress) {
-      const recentFromIp = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(recommendations)
-        .where(
-          and(
-            eq(recommendations.ipAddress, data.ipAddress),
-            gte(recommendations.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)) // 24 hours
-          )
-        );
-
-      if (recentFromIp[0]?.count >= 5) {
-        throw new Error("Too many recommendations from this location. Please try again tomorrow.");
-      }
-    }
-
-    const result = await db
-      .insert(recommendations)
-      .values({
-        ...data,
-        moderationStatus: "pending", // All recommendations require moderation
-        isPublic: false,
-      })
-      .returning();
-
-    return result[0];
+    return recommendationRepository.moderate(id, action, moderatorId);
   }
 
   async getContractorRecommendations(
     contractorId: string,
     options?: { limit?: number; type?: "positive" | "negative" | "all" }
   ) {
-    const conditions: SQL[] = [
-      eq(recommendations.contractorId, contractorId),
-      eq(recommendations.isPublic, true),
-      eq(recommendations.moderationStatus, "approved"),
-    ];
-
-    if (options?.type && options.type !== "all") {
-      conditions.push(eq(recommendations.recommendationType, options.type));
-    }
-
-    const limit = options?.limit ?? 50;
-
-    return await db
-      .select()
-      .from(recommendations)
-      .where(and(...conditions))
-      .orderBy(desc(recommendations.createdAt))
-      .limit(limit);
+    return recommendationRepository.listPublic(contractorId, options);
   }
 
   async updateContractorRecommendationStats(contractorId: string) {
-    // Get all approved recommendations for this contractor
-    const stats = await db
-      .select({
-        positive: sql<number>`count(*) filter (where recommendation_type = 'positive')`,
-        negative: sql<number>`count(*) filter (where recommendation_type = 'negative')`,
-        total: sql<number>`count(*)`,
-      })
-      .from(recommendations)
-      .where(
-        and(
-          eq(recommendations.contractorId, contractorId),
-          eq(recommendations.moderationStatus, "approved")
-        )
-      );
-
-    const { positive, negative, total } = stats[0] || { positive: 0, negative: 0, total: 0 };
-    const netScore = positive - negative; // Net recommendation score for leaderboard
-    const percentage = total > 0 ? (positive / total) * 100 : 0;
-
-    // Update contractor recommendation stats
-    await db
-      .update(contractors)
-      .set({
-        positiveRecommendations: positive,
-        negativeRecommendations: negative,
-        totalRecommendations: total,
-        recommendationScore: netScore.toString(), // Net score (positive - negative)
-        recommendationPercentage: percentage.toFixed(2), // Percentage
-        updatedAt: new Date(),
-      })
-      .where(eq(contractors.id, contractorId));
+    return recommendationRepository.updateStats(contractorId);
   }
 
   // ===== COMMUNITY MODERATION IMPLEMENTATIONS =====
@@ -6809,7 +6724,12 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     const contractorRecommendations = await db
       .select()
       .from(recommendations)
-      .where(eq(recommendations.contractorId, contractorId));
+      .where(
+        and(
+          eq(recommendations.contractorId, contractorId),
+          inArray(recommendations.recommendationType, ["positive", "negative"])
+        )
+      );
 
     const totalRecommendations = contractorRecommendations.length;
     const positiveRecommendations = contractorRecommendations.filter(
@@ -6882,8 +6802,9 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       .select({ count: sql<number>`count(*)` })
       .from(contractors)
       .innerJoin(recommendations, eq(contractors.id, recommendations.contractorId))
-      .where(gt(sql<number>`count(${recommendations.id})`, totalRecommendations))
-      .groupBy(contractors.id);
+      .where(inArray(recommendations.recommendationType, ["positive", "negative"]))
+      .groupBy(contractors.id)
+      .having(gt(sql<number>`count(${recommendations.id})`, totalRecommendations));
 
     const competitorComparison = {
       totalContractors: allContractorsCount[0]?.count || 0,
@@ -6984,7 +6905,12 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     const currentRecommendations = await db
       .select({ count: sql<number>`count(*)` })
       .from(recommendations)
-      .where(eq(recommendations.contractorId, contractorId));
+      .where(
+        and(
+          eq(recommendations.contractorId, contractorId),
+          inArray(recommendations.recommendationType, ["positive", "negative"])
+        )
+      );
 
     const currentCount = currentRecommendations[0]?.count || 0;
 

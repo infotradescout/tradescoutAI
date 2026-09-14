@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isProfileAccountResumePath } from "@/components/profile/profileAccountClient";
-import { isSafeNextPath } from "@/lib/postOnboardingRoute";
+import { buildAuthEntryRoute, isSafeNextPath } from "@/lib/postOnboardingRoute";
 
 type VerifyState = "loading" | "success" | "error";
 
@@ -137,7 +137,9 @@ export default function VerifyEmail() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => setLocation("/pre-scout-setup?mode=signin")}
+                onClick={() =>
+                  setLocation(buildAuthEntryRoute({ mode: "signin", next: readSafeNext() }))
+                }
               >
                 Sign in
               </Button>

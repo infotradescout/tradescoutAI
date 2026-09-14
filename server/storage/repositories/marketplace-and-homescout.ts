@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Preserves legacy marketplace and HomeScout storage contracts during repository extraction. */
+import { exposureAuthoritySqlPredicate } from "../../services/exposureAuthority";
 import {
   users,
   trades,
@@ -190,6 +191,13 @@ export class MarketplaceAndHomeScoutStorageRepository {
     // Apply filters
     const conditions: SQL[] = [];
 
+    if (filters.publicExposureOnly) {
+      conditions.push(exposureAuthoritySqlPredicate(marketplaceListings.sellerId));
+      conditions.push(
+        sql`(${marketplaceListings.expiresAt} IS NULL OR ${marketplaceListings.expiresAt} > now())`
+      );
+    }
+
     if (statusFilter) {
       conditions.push(eq(marketplaceListings.status, statusFilter));
     }
@@ -295,7 +303,7 @@ export class MarketplaceAndHomeScoutStorageRepository {
       );
     }
     const whereClause: SQL = and(...conditions) ?? sql`true`;
-    const orderByClause = (() => {
+    const primaryOrderBy = (() => {
       switch (filters.sortBy) {
         case "price_asc":
           return asc(marketplaceListings.price);
@@ -308,6 +316,11 @@ export class MarketplaceAndHomeScoutStorageRepository {
           return desc(marketplaceListings.createdAt);
       }
     })();
+    // The composed discovery window puts undated/unpriced records last. Apply
+    // the same order before LIMIT so later pages cannot skip or repeat them.
+    const orderByClause = filters.publicExposureOnly
+      ? sql`${primaryOrderBy} NULLS LAST`
+      : primaryOrderBy;
 
     const preferredState = String(filters.preferredStateCode || "").trim();
     const preferredCountyFips = String(filters.preferredCountyFips || "").trim();
@@ -361,7 +374,8 @@ export class MarketplaceAndHomeScoutStorageRepository {
       .orderBy(
         ...(countyRankClause ? [countyRankClause] : []),
         ...(stateRankClause ? [stateRankClause] : []),
-        orderByClause
+        orderByClause,
+        sql`${marketplaceListings.id}::text COLLATE "C"`
       )
       .limit(limit)
       .offset(offset);

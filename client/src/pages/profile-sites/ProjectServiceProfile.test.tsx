@@ -96,6 +96,24 @@ describe("Project service profile review", () => {
     act(() => element?.click());
   };
 
+  it("moves both service links into the chooser without creating a fragment entry or opening a request", () => {
+    const onDirectConnect = vi.fn();
+    act(() => root.render(<ProjectServiceProfile {...base} onDirectConnect={onDirectConnect} />));
+    const heading = container.querySelector<HTMLHeadingElement>("#service-profile-services-title")!;
+    heading.scrollIntoView = vi.fn();
+    const previousUrl = window.location.href;
+    const previousHistoryLength = window.history.length;
+    for (const link of container.querySelectorAll<HTMLAnchorElement>('a[href="#services"]')) {
+      const navigation = new MouseEvent("click", { bubbles: true, cancelable: true });
+      act(() => link.dispatchEvent(navigation));
+      expect(navigation.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(heading);
+    }
+    expect(window.location.href).toBe(previousUrl);
+    expect(window.history.length).toBe(previousHistoryLength);
+    expect(onDirectConnect).not.toHaveBeenCalled();
+  });
+
   it("carries all chosen services into the actual request form, with no request sent on selection or opening", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -127,16 +145,12 @@ describe("Project service profile review", () => {
       );
     }
     act(() => root.render(<Journey />));
-    const servicePicker = container.querySelector<HTMLDetailsElement>("details");
-    expect(servicePicker?.open).toBe(false);
-    click(servicePicker?.querySelector("summary") || null);
-    expect(servicePicker?.open).toBe(true);
     const choices = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
     click(choices[0]);
     click(choices[1]);
-    expect(servicePicker?.querySelector("summary")?.textContent).toContain("2 services selected");
-    click(servicePicker?.querySelector("summary") || null);
-    expect(servicePicker?.open).toBe(false);
+    expect(container.querySelector('[aria-live="polite"]')?.textContent).toBe(
+      "2 selected: Countertops, Tile"
+    );
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     click(container.querySelector<HTMLButtonElement>(".service-profile-request button"));
     const dialog = container.querySelector('[role="dialog"]');
@@ -150,11 +164,8 @@ describe("Project service profile review", () => {
   it("allows correction and a general request without forcing a service selection", () => {
     const onDirectConnect = vi.fn();
     act(() => root.render(<ProjectServiceProfile {...base} onDirectConnect={onDirectConnect} />));
-    const servicePicker = container.querySelector<HTMLDetailsElement>("details");
-    expect(servicePicker?.open).toBe(false);
     click(container.querySelector<HTMLButtonElement>(".service-profile-request button"));
     expect(onDirectConnect).toHaveBeenLastCalledWith(undefined);
-    click(servicePicker?.querySelector("summary") || null);
     const first = container.querySelector<HTMLInputElement>('input[type="checkbox"]');
     click(first);
     click(first);
@@ -259,7 +270,6 @@ describe("Project service profile review", () => {
     expect(mobile?.hidden).toBe(true);
     observers[0].emit(false);
     expect(mobile?.hidden).toBe(false);
-    click(container.querySelector("details summary"));
     click(container.querySelector<HTMLInputElement>('input[type="checkbox"]'));
     click(mobile?.querySelector("button") || null);
     expect(onDirectConnect).toHaveBeenCalledExactlyOnceWith("Countertops");
@@ -287,7 +297,6 @@ describe("Project service profile review", () => {
     const observers = installVisibilityObserver();
     const onDirectConnect = vi.fn();
     act(() => root.render(<ProjectServiceProfile {...base} onDirectConnect={onDirectConnect} />));
-    click(container.querySelector("details summary"));
     click(container.querySelector<HTMLInputElement>('input[type="checkbox"]'));
     act(() =>
       root.render(
