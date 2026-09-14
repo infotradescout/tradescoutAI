@@ -186,7 +186,7 @@ async function routes(options = {}) {
     "../publicMediaStorage": { streamPublicObject: async () => "served" },
     "../services/stoneNewArrivalsService": { listPublicStoneNewArrivals: async () => { calls.push("arrivals"); return []; } },
     "@shared/stoneInventory": { STONE_CURRENT_INVENTORY_FRESHNESS_DAYS: 45 },
-    multer: { default: fakeMulter }, "express-rate-limit": { default: () => middleware }, "../auth": { isAuthenticated: middleware },
+    "../utils/multipartUpload": { default: fakeMulter }, "express-rate-limit": { default: () => middleware }, "../auth": { isAuthenticated: middleware },
     "../db": { pool: { query: async () => { throw new Error("Unexpected private SQL on public inventory route"); } } },
     "../schemaPreflight": { requireCriticalSchema: () => middleware },
     "./profiles": { getPublicProfileTrustContext: async () => options.noProfile ? null : ({ businessId: options.mismatch ? "other-business" : "jw-business" }) },
