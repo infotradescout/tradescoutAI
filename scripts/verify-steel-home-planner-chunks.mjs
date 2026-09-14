@@ -122,6 +122,7 @@ function readViteDependencyTable(builtSource) {
 
 const dependencyTable = readViteDependencyTable(steelText);
 const plannerMetrics = {};
+const plannerDependencies = {};
 const implementationIdentityByPlanner = {
   BuildingDesigner: "steel-home-building-include",
   CabinetDesigner: "steel-home-cabinet-designer",
@@ -139,6 +140,7 @@ for (const planner of planners) {
     .split(",")
     .filter(Boolean)
     .map((index) => dependencyTable[Number(index)]?.replace("/assets/", ""));
+  plannerDependencies[planner] = dependencies;
   assert.ok(
     dependencies.includes(dynamicMatch[1]),
     `${planner} graph must include its implementation`
@@ -160,9 +162,14 @@ for (const planner of planners) {
   plannerMetrics[planner] = `${chunk.length}/${gzipSync(chunk).length}`;
 }
 
-const cabinetName = ownedChunk(steelText, "CabinetDesigner-");
-const cabinetText = readFileSync(path.join(assetsDir, cabinetName), "utf8");
-const threeName = ownedChunk(cabinetText, "three.module-");
+const cabinetGraph = plannerDependencies.CabinetDesigner ?? [];
+const threeNames = cabinetGraph.filter((name) => name?.startsWith("three.module-"));
+assert.equal(
+  new Set(threeNames).size,
+  1,
+  "Cabinet planner graph must own exactly one Three/WebGL chunk"
+);
+const threeName = threeNames[0];
 const three = readFileSync(path.join(assetsDir, threeName), "utf8");
 assert.ok(
   three.includes("WebGLRenderer"),
