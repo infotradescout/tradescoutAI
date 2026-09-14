@@ -28,6 +28,10 @@ import { eq, and, or, sql, desc, asc, isNull, inArray } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { emailService, EmailDeliveryError, maskEmailForLog } from "./services/emailService";
 import webPush from "web-push";
+import {
+  buildDirectConnectProviderEmail,
+  type DirectConnectProviderEmailDetails,
+} from "./utils/directConnectProviderEmail";
 
 const EMAIL_JOB_TYPE = "notification_email_v1";
 const EMAIL_MAX_ATTEMPTS = 5;
@@ -40,6 +44,7 @@ type ProviderEmailContext = {
   event: any;
   contractor: any | null;
   business: any | null;
+  emailDetails: DirectConnectProviderEmailDetails | null;
 };
 
 function providerNotificationId(binding: ProviderEmailBinding, userId: string) {
@@ -344,7 +349,52 @@ export class NotificationService {
             )
         : [];
     if (!contractor && !business) return null;
-    return { request, assignment, event, contractor, business: business || null };
+    // Submission authorizes the bound provider, not a public share or another
+    // account. Conflicting recipient bindings must not expose requester contact.
+    if (
+      (assignment.responderUserId && assignment.responderUserId !== userId) ||
+      (Object.prototype.hasOwnProperty.call(
+        assignment.scoreSnapshot || {},
+        "submissionContactRecipientUserId"
+      ) && assignment.scoreSnapshot.submissionContactRecipientUserId !== userId)
+    )
+      return null;
+    const creationEvents = events.filter((entry: any) => entry.type === "created");
+    if (creationEvents.length > 1) return null;
+    const creationEvent = creationEvents[0];
+    let emailDetails: DirectConnectProviderEmailDetails | null = null;
+    if (Object.prototype.hasOwnProperty.call(creationEvent?.metadata || {}, "submissionContact")) {
+      const receipt = creationEvent.metadata.submissionContact;
+      if (
+        creationEvent.actorUserId !== request.createdByUserId ||
+        creationEvent.metadata.source !== "direct_connect" ||
+        creationEvent.metadata.author?.kind === "staff" ||
+        !receipt ||
+        typeof receipt !== "object" ||
+        Array.isArray(receipt) ||
+        receipt.version !== 1 ||
+        receipt.source !== "request_submission" ||
+        receipt.workRequestId !== request.id ||
+        receipt.requesterUserId !== request.createdByUserId ||
+        typeof receipt.name !== "string" ||
+        !receipt.name.trim() ||
+        receipt.name.length > 160 ||
+        typeof receipt.phone !== "string" ||
+        !/^\+?\d{10,15}$/.test(receipt.phone)
+      )
+        return null;
+      const [requester] = await db
+        .select({ id: users.id, email: users.email })
+        .from(users)
+        .where(eq(users.id, request.createdByUserId));
+      if (!requester) return null;
+      emailDetails = {
+        creationEvent,
+        requester,
+        contact: { name: receipt.name, phone: receipt.phone },
+      };
+    }
+    return { request, assignment, event, contractor, business: business || null, emailDetails };
   }
 
   async getUserNotifications(
@@ -956,6 +1006,7 @@ export class NotificationService {
     }
 
     let submissionAuthority = sql`TRUE`;
+    let assignedContent: ReturnType<typeof buildDirectConnectProviderEmail> | null = null;
     if (notification.type === "new_project_request") {
       const binding = notification.metadata?.directConnectProviderEmail as
         | ProviderEmailBinding
@@ -995,6 +1046,13 @@ export class NotificationService {
         await this.finishEmailJob(job, { status: "retry", code: "eligibility_changed" }, data);
         return;
       }
+      if (current.emailDetails) {
+        assignedContent = buildDirectConnectProviderEmail(
+          current.request,
+          current.assignment.id,
+          current.emailDetails
+        );
+      }
       // Serialize consent and invitation state with the submission transition.
       // Revocation after this transition cannot recall an already submitted email.
       submissionAuthority = sql`EXISTS (
@@ -1008,8 +1066,47 @@ export class NotificationService {
           AND request.id = ${binding!.requestId} AND request.source = 'direct_connect' AND request.status = 'routed'
           AND request.county_fips IS NOT DISTINCT FROM ${current.request.countyFips}
           AND request.trade_id IS NOT DISTINCT FROM ${current.request.tradeId}
+          AND request.created_by_user_id = ${current.request.createdByUserId}
+          AND request.title IS NOT DISTINCT FROM ${current.request.title}
+          AND request.description IS NOT DISTINCT FROM ${current.request.description}
+          AND request.category IS NOT DISTINCT FROM ${current.request.category}
+          AND request.state_code IS NOT DISTINCT FROM ${current.request.stateCode}
+          AND request.budget_min IS NOT DISTINCT FROM ${current.request.budgetMin}
+          AND request.budget_max IS NOT DISTINCT FROM ${current.request.budgetMax}
+          AND request.attachments IS NOT DISTINCT FROM ${(current.request.attachments == null ? null : JSON.stringify(current.request.attachments))}::jsonb
+          AND assignment.responder_user_id IS NOT DISTINCT FROM ${current.assignment.responderUserId}
+          AND assignment.score_snapshot IS NOT DISTINCT FROM ${(current.assignment.scoreSnapshot == null ? null : JSON.stringify(current.assignment.scoreSnapshot))}::jsonb
+          AND EXISTS (
+            SELECT 1 FROM work_request_events provider_event
+            WHERE provider_event.id = ${binding!.eventId}
+              AND provider_event.work_request_id = request.id
+              AND provider_event.actor_user_id = request.created_by_user_id
+              AND provider_event.type = ${current.event.type}
+              AND provider_event.metadata IS NOT DISTINCT FROM ${(current.event.metadata == null ? null : JSON.stringify(current.event.metadata))}::jsonb
+          )
+          AND ${current.emailDetails ? sql`EXISTS (
+            SELECT 1 FROM work_request_events creation_event
+            JOIN users requester ON requester.id = request.created_by_user_id
+            WHERE creation_event.id = ${current.emailDetails.creationEvent.id}
+              AND creation_event.work_request_id = request.id AND creation_event.type = 'created'
+              AND creation_event.actor_user_id = request.created_by_user_id
+              AND creation_event.metadata IS NOT DISTINCT FROM ${JSON.stringify(current.emailDetails.creationEvent.metadata)}::jsonb
+              AND requester.email IS NOT DISTINCT FROM ${current.emailDetails.requester.email}
+              AND (SELECT COUNT(*) FROM work_request_events duplicate_creation
+                   WHERE duplicate_creation.work_request_id = request.id AND duplicate_creation.type = 'created') = 1
+          )` : sql`TRUE`}
           AND assignment.status IN ('suggested', 'invited') AND assignment.worker_id IS NULL
           AND COALESCE(provider.user_id, assignment.responder_user_id) = recipient.id
+          AND ${current.business ? sql`EXISTS (
+            SELECT 1 FROM businesses business
+            WHERE business.id = ${current.business.id} AND business.owner_user_id = recipient.id
+          )` : sql`TRUE`}
+          AND (SELECT COUNT(*) FROM work_request_assignments owned_assignment
+               LEFT JOIN contractors owned_provider ON owned_provider.id = owned_assignment.contractor_id
+               WHERE owned_assignment.work_request_id = request.id
+                 AND CASE WHEN owned_assignment.contractor_id IS NOT NULL
+                     THEN owned_provider.user_id = recipient.id
+                     ELSE owned_assignment.responder_user_id = recipient.id END) = 1
           AND notification.user_id = recipient.id AND notification.is_archived IS NOT TRUE
           AND (notification.expires_at IS NULL OR notification.expires_at > NOW())
           AND notification.delivery_methods @> '["email"]'::jsonb
@@ -1022,20 +1119,22 @@ export class NotificationService {
       )`;
     }
 
-    // Request titles and message bodies can contain private contact details.
-    // Direct Connect mail is an inbox pointer, never a second contact surface.
+    // Assigned request content is private and resolved from its submission above.
+    // Unresolved legacy/other DC notifications retain the neutral inbox pointer.
     const isDirectConnect =
       notification.type.startsWith("dc_") ||
       ["new_project_request", "direct_connect_beta_request"].includes(notification.type);
-    const content = isDirectConnect
-      ? {
-          ...notification,
-          title: "Direct Connect update",
-          message: "You have an update in Direct Connect. Sign in to review it and respond.",
-          actionUrl: "/direct-connect/inbox",
-          actionText: "Open Direct Connect",
-        }
-      : notification;
+    const content = assignedContent
+      ? { ...notification, ...assignedContent }
+      : isDirectConnect
+        ? {
+            ...notification,
+            title: "Direct Connect update",
+            message: "You have an update in Direct Connect. Sign in to review it and respond.",
+            actionUrl: "/direct-connect/inbox",
+            actionText: "Open Direct Connect",
+          }
+        : notification;
     let outcome: { status: string; code?: string; provider?: string; messageId?: string };
     const started = await db
       .update(notificationJobs)
@@ -1063,7 +1162,9 @@ export class NotificationService {
         to: user.email,
         subject: content.title,
         html: this.generateEmailHTML(content, user),
-        text: content.message,
+        text: assignedContent
+          ? `${content.message}\n\n${content.actionText}: ${this.resolveEmailActionUrl(content)}`
+          : content.message,
         purpose: "notification",
         correlationId: notification.id,
         singleAttempt: true,
@@ -1195,11 +1296,7 @@ export class NotificationService {
     );
   }
 
-  private generateEmailHTML(notification: Notification, user: Pick<User, "firstName">): string {
-    const userName = escapeEmailHtml(user.firstName || "there");
-    const title = escapeEmailHtml(notification.title);
-    const message = escapeEmailHtml(notification.message);
-    let actionUrl = "";
+  private resolveEmailActionUrl(notification: Notification): string {
     try {
       const origin = new URL(
         process.env.APP_URL || process.env.CLIENT_ORIGIN || "https://www.thetradescout.com"
@@ -1210,9 +1307,17 @@ export class NotificationService {
         ["http:", "https:"].includes(target.protocol) &&
         target.origin === origin.origin
       ) {
-        actionUrl = escapeEmailHtml(target.href);
+        return target.href;
       }
     } catch {}
+    return "";
+  }
+
+  private generateEmailHTML(notification: Notification, user: Pick<User, "firstName">): string {
+    const userName = escapeEmailHtml(user.firstName || "there");
+    const title = escapeEmailHtml(notification.title);
+    const message = escapeEmailHtml(notification.message).replace(/\r?\n/g, "<br>");
+    const actionUrl = escapeEmailHtml(this.resolveEmailActionUrl(notification));
 
     return `
       <!DOCTYPE html>
