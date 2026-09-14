@@ -51,6 +51,9 @@ function getPackageChunkName(id: string): string | undefined {
 export default defineConfig({
   base: "/",
   experimental: {
+    // Vite otherwise stores preload dependencies as "assets/<file>" and
+    // prepends the base only at runtime. Static JavaScript crawlers can resolve
+    // those raw strings relative to the entry chunk as "/assets/assets/<file>".
     renderBuiltUrl(filename) {
       return `/${filename.replace(/^\/+/, "")}`;
     },
@@ -67,12 +70,15 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      // Force all React imports (including from linked deps) to resolve
+      // to the single root instance used by the app.
       react: path.resolve(__dirname, "node_modules", "react"),
       "react-dom": path.resolve(__dirname, "node_modules", "react-dom"),
       "@": path.resolve(__dirname, "client", "src"),
       "@shared": path.resolve(__dirname, "shared"),
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
+    // Ensure Vite never loads a second React copy, even via symlinks.
     dedupe: ["react", "react-dom"],
   },
   root: path.resolve(__dirname, "client"),
@@ -87,25 +93,40 @@ export default defineConfig({
         landing: path.resolve(__dirname, "client", "landing.html"),
       },
       output: {
+        // Keep dependencies owned only by lazy features in those feature
+        // graphs. Without this, Rollup merges their transitive dependencies
+        // into shared manual chunks and preloads them from the app entry.
         onlyExplicitManualChunks: true,
         manualChunks(id) {
+          // The planner and lazy Three renderer share exact-photo crop evidence.
+          // Keep that policy in its own feature chunk, avoiding a renderer -> planner
+          // cycle and keeping the measured planner implementation independently loadable.
           const normalizedId = id.replace(/\\/g, "/");
           if (normalizedId.endsWith("/steel-home-project-tools/BuildingThreePreview.tsx")) {
+            // The measured form can become interactive before the optional visual scene parses.
             return "steel-building-preview";
           }
           if (normalizedId.endsWith("/steel-home-project-tools/CabinetMeasuredEditor.tsx")) {
+            // Keep the measured canvas/editor inside the cabinet graph without making the
+            // cabinet shell wait for the full drawing implementation before first interaction.
             return "steel-cabinet-measured-editor";
           }
           if (normalizedId.endsWith("/steel-home-project-tools/KitchenWorkspacePanel.tsx")) {
+            // Schedule/library/review workspace chrome is only needed after opening a panel.
             return "steel-kitchen-workspace-panel";
           }
           if (normalizedId.endsWith("/steel-home-project-tools/MeasuredCountertopDesigner.tsx")) {
+            // Countertop toolbar/history can initialize separately from the measured editor body.
             return "steel-countertop-measured-editor";
           }
           if (normalizedId.endsWith("/steel-home-project-tools/cabinetCasework.ts")) {
+            // The 3D editor and lazy schedule/library share these render-only parts.
+            // Their common geometry must not make the library import its owning editor.
             return "cabinet-casework";
           }
           if (normalizedId.endsWith("/steel-home-project-tools/countertopStudioShare.ts")) {
+            // Both the editor and optional drawing view offer measured-plan sharing.
+            // Neither view should import the other's implementation to reuse this codec.
             return "countertop-plan-sharing";
           }
           if (
@@ -129,12 +150,15 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    // Reduce dev reload noise by ignoring non-client file writes
     watch: {
       ignored: [
+        // Absolute dirs outside the Vite root that can change frequently
         path.resolve(__dirname, "server", "cache", "**"),
         path.resolve(__dirname, "server", "logs"),
         path.resolve(__dirname, "data", "**"),
         path.resolve(__dirname, "dist", "**"),
+        // Workspace-level artifacts
         path.resolve(__dirname, "validation-results-*.json"),
         path.resolve(__dirname, "test-results", "**"),
         path.resolve(__dirname, "response.json"),
