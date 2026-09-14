@@ -80,8 +80,8 @@ describe("resolveProfileCompletionBannerMode", () => {
   );
 });
 
-describe("ProfileCompletionBanner taskbar clearance", () => {
-  it("stays above the shared bottom navigation and safe area", () => {
+describe("ProfileCompletionBanner navigation clearance", () => {
+  it("stays above mobile bottom navigation without requiring a desktop bottom offset", () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), "client/src/components/onboarding/ProfileCompletionBanner.tsx"),
       "utf8"
@@ -96,9 +96,8 @@ describe("ProfileCompletionBanner taskbar clearance", () => {
       '"calc(var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom, 0px) + 1rem)"'
     );
     expect(source).not.toContain("fixed left-0 right-0 bottom-4");
-    expect(shellSource).toContain(
-      'body.ts-desktop-bottom-nav-active [data-testid="profile-completion-banner"]'
-    );
-    expect(shellSource).toContain("bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 1rem) !important;");
+    expect(shellSource).toContain('data-testid="desktop-app-rail"');
+    expect(shellSource).not.toContain("ts-desktop-bottom-nav-active");
+    expect(shellSource).not.toContain("DESKTOP_BOTTOM_NAV_HEIGHT");
   });
 });

@@ -1,3 +1,5 @@
+import { cleanString } from "@tradescout-infinity/contracts/text";
+
 const PROFILE_PORTFOLIO_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_PROFILE_PORTFOLIO_SLUG_LENGTH = 120;
 const MAX_SHARE_DESCRIPTION_LENGTH = 160;
@@ -33,10 +35,6 @@ export type ProfilePortfolioItemShareMetadata = {
   imageAlt: string;
   canonical: string;
 };
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function normalizePublicImageReference(value: unknown): string | null {
   const candidate = cleanString(value);

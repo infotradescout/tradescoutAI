@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { isApplicationUiSurface } from "../../lib/applicationUiScope";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
@@ -101,7 +102,11 @@ describe("AppShell mobile taskbar contract", () => {
     );
     expect(shell).toContain('bottom: showFeatureNav && isMobile ? "var(--bottom-nav-h)" : 0');
     expect(shell).toContain('"calc(62px + env(safe-area-inset-bottom))"');
-    expect(wrapper).toContain("!isPublicProfileSurface");
+    expect(wrapper).toContain("isApplicationUiSurface(location, customDomainProfileSlug)");
+    expect(isApplicationUiSurface("/jw-stone")).toBe(false);
+    expect(isApplicationUiSurface("/issa-build/onyx")).toBe(false);
+    expect(isApplicationUiSurface("/u/example")).toBe(false);
+    expect(isApplicationUiSurface("/any-page", "custom-profile")).toBe(false);
     expect(mobileBar).toContain("pb-[env(safe-area-inset-bottom)]");
     expect(mobileBar).toContain("min-h-[44px] min-w-[44px]");
     expect(mobileBar).toContain("whitespace-normal text-center");

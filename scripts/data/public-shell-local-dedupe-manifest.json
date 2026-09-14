@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "contractId": "public-shell-local-dedupe-v4",
+  "version": 5,
+  "contractId": "public-shell-local-dedupe-v5",
   "source": {
     "repository": "infotradescout/tradescoutAI",
     "revision": "2d2ff5539bf3505fd637524609a3725409dc7dc1",
@@ -12,7 +12,7 @@
     "aliases": 6,
     "deadPinned": 4,
     "clientPublicFiles": 200,
-    "clientPublicBytes": 2801062,
+    "clientPublicBytes": 2800484,
     "entryDigestSha256": "cc384baaf127ea06cfd89e6e12f15d1a4d1eb5a0b9189aa6b26ba097ca530839"
   },
   "liveLandingOwners": {

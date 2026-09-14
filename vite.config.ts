@@ -102,6 +102,23 @@ export default defineConfig({
           // Keep that policy in its own feature chunk, avoiding a renderer -> planner
           // cycle and keeping the measured planner implementation independently loadable.
           const normalizedId = id.replace(/\\/g, "/");
+          if (normalizedId.endsWith("/steel-home-project-tools/BuildingThreePreview.tsx")) {
+            // The measured form can become interactive before the optional visual scene parses.
+            return "steel-building-preview";
+          }
+          if (normalizedId.endsWith("/steel-home-project-tools/CabinetMeasuredEditor.tsx")) {
+            // Keep the measured canvas/editor inside the cabinet graph without making the
+            // cabinet shell wait for the full drawing implementation before first interaction.
+            return "steel-cabinet-measured-editor";
+          }
+          if (normalizedId.endsWith("/steel-home-project-tools/KitchenWorkspacePanel.tsx")) {
+            // Schedule/library/review workspace chrome is only needed after opening a panel.
+            return "steel-kitchen-workspace-panel";
+          }
+          if (normalizedId.endsWith("/steel-home-project-tools/MeasuredCountertopDesigner.tsx")) {
+            // Countertop toolbar/history can initialize separately from the measured editor body.
+            return "steel-countertop-measured-editor";
+          }
           if (normalizedId.endsWith("/steel-home-project-tools/cabinetCasework.ts")) {
             // The 3D editor and lazy schedule/library share these render-only parts.
             // Their common geometry must not make the library import its owning editor.

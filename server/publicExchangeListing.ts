@@ -1,4 +1,5 @@
 import { sanitizePublicListingText } from "@shared/publicListingSafety";
+import { PRIVATE_EXCHANGE_IMPORT_FIELDS } from "./exchangeImportIdentity";
 
 const PUBLIC_EXCHANGE_ID_PATTERN = /^[a-z0-9_-]{1,160}$/i;
 const MAX_IMAGES = 16;
@@ -63,7 +64,8 @@ function sanitizeStructuredValue(value: unknown, depth = 0): unknown {
 
   const output: Record<string, unknown> = {};
   for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-    if (!key || PRIVATE_FIELD_PATTERN.test(key)) continue;
+    if (!key || PRIVATE_FIELD_PATTERN.test(key) || PRIVATE_EXCHANGE_IMPORT_FIELDS.has(key))
+      continue;
     const safe = sanitizeStructuredValue(nested, depth + 1);
     if (safe !== undefined) output[key.slice(0, 100)] = safe;
   }

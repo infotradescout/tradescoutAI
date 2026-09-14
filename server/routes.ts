@@ -128,6 +128,7 @@ import {
   normalizeHomeScoutListingId,
 } from "../shared/homeScoutListingShare";
 import { toPublicExchangeListing } from "./publicExchangeListing";
+import { restorePrivateExchangeImportIdentity } from "./exchangeImportIdentity";
 import {
   getPublicProfileCatalogExchangeItem,
   listPublicProfileCatalogExchangeItems,
@@ -2033,7 +2034,10 @@ export async function registerRoutes(app: any) {
   });
 
   const normalizeMarketplaceWritableFields = (input: any) => {
-    const sanitizedSpecifications = sanitizeContactBearingValue(input?.specifications);
+    const sanitizedSpecifications = restorePrivateExchangeImportIdentity(
+      input?.specifications,
+      sanitizeContactBearingValue(input?.specifications)
+    );
     const sanitizedBundleItems = sanitizeContactBearingValue(input?.bundleItems);
     const sanitizedShippingQuote = sanitizeContactBearingValue(input?.shippingQuote);
     const sanitizedPackageDetails = sanitizeContactBearingValue(input?.packageDetails);
@@ -14080,7 +14084,7 @@ export async function registerRoutes(app: any) {
   registerWorkerTasksRoutes(app);
 
   // Admin: bulk import business owner accounts (CSV/TSV/text)
-  const multer = (await import("multer")).default;
+  const multer = (await import("./utils/multipartUpload")).default;
   const configuredBusinessImportFileLimit = Number(
     process.env.BUSINESS_IMPORT_FILE_LIMIT_BYTES || 10 * 1024 * 1024
   );
