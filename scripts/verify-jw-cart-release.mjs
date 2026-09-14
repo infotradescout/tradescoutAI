@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
+import { finishProofCli } from './finish-proof-cli.mjs';
 
 // Explicit post-deploy mode is public GET-only smoke, never pre-merge attestation.
 if (process.env.JW_CART_DEPLOYED_SHA) {
@@ -34,11 +35,19 @@ if (!process.argv.includes('--exact-copy')) {
     exitCode = child.status ?? 1;
     await fs.mkdir(output, { recursive: true });
     await fs.cp(path.join(copy, 'test-results/jw-cart-release'), output, { recursive: true });
-  } finally { await fs.rm(temp, { recursive: true, force: true }); }
-  process.exit(exitCode);
+  } catch (error) {
+    exitCode = 1;
+    console.error('JW_CART_EXACT_COPY_FAILURE ' + String(error.stack || error));
+  } finally {
+    try { await fs.rm(temp, { recursive: true, force: true }); }
+    catch (error) { exitCode = 1; console.error('JW_CART_EXACT_COPY_CLEANUP_FAILURE ' + String(error.stack || error)); }
+    await finishProofCli(exitCode);
+  }
 }
 
-const report = { head, startedAt: new Date().toISOString(), passed: false, steps: [], productionDataUsed: false, productionPaymentsCreated: false };
+const report = { head, startedAt: new Date().toISOString(), passed: false, steps: [], productionDataUsed: false, productionPaymentsCreated: false,
+  syntheticReceivingPublicationTested: false, receivingPhonePublicationTested: false,
+  realDriveWriteAuthorityTested: false, releaseGate: { status: 'not-run' } };
 let database;
 function run(name, command, args, env = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', env: { ...process.env, ...env }, timeout: 1500000, maxBuffer: 100 * 1024 * 1024 });
@@ -52,52 +61,117 @@ try {
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'A clean exact-commit checkout is required');
   for (const key of ['DATABASE_URL', 'TEST_DATABASE_URL', 'SENDGRID_API_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY', 'SMTP_PASS', 'STRIPE_SECRET_KEY', 'JW_STONE_PRICING_APPROVED_IMPORT', 'JW_STONE_DRIVE_REFRESH_TOKEN']) assert(!process.env[key], 'Verification must not inherit live credentials: ' + key);
   run('TypeScript', 'npm', ['run', 'check']);
+  run('Cart persistence, receiving integrity, staff authority and release verifier regressions', process.execPath,
+    ['--import', 'tsx', '--experimental-vm-modules', '--test',
+      'scripts/jw-stone-cart-wishlist.test.mjs',
+      'scripts/jw-stone-saved-lots-and-cart-migration.test.mjs',
+      'scripts/jw-stone-saved-lots-ui.test.mjs',
+      'scripts/jw-stone-receiving.test.mjs',
+      'scripts/jw-stone-receiving-draft.test.mjs',
+      'scripts/jw-stone-receiving-media.test.mjs',
+      'scripts/jw-stone-receiving-service.test.mjs',
+      'scripts/jw-stone-receiving-workspace.test.mjs',
+      'scripts/jw-stone-employee-access.test.mjs',
+      'scripts/jw-stone-employee-access-ui.test.mjs',
+      'scripts/jw-stone-employee-tools-loader.test.mjs',
+      'scripts/jw-stone-drive-workflow-fixture.test.mjs',
+      'scripts/jw-stone-customer-workflow.native.test.mjs',
+      'scripts/finish-proof-cli.test.mjs',
+      'scripts/verify-jw-cart-release.test.mjs',
+      'scripts/verify-jw-cart-production.test.mjs',
+      'scripts/generate-sitemap-core.behavior.test.mjs']);
   run('Affected tests and exact inherited-main comparison', process.execPath, ['scripts/jw-cart-suite-proof.mjs']);
   const suites = JSON.parse(await fs.readFile(path.join(output, 'suites.json'), 'utf8'));
   assert.equal(suites.head, head); assert.equal(suites.passed, true);
   report.affectedTests = { passedTests: suites.candidate.passedTests, failedTests: suites.candidate.failedTests,
     inheritedFailures: suites.inheritedFailures.map(item => ({ file: item.file, name: item.name })) };
-  run('Native desktop and touch signup, cart, quote request, and revocation', process.execPath, ['scripts/jw-stone-customer-workflow.native.mjs']);
+  run('Native desktop and touch signup, cart, receiving publication, quote request, and revocation', process.execPath, ['scripts/jw-stone-customer-workflow.native.mjs']);
   const browser = JSON.parse(await fs.readFile('test-results/jw-workflow/evidence.json', 'utf8'));
   assert.equal(browser.head, head); assert.equal(browser.passed, true, 'The native workflow report must pass, not merely exit');
   assert.equal(browser.checks.filter(check => check.nativeCartQuoteSubmitted && check.privateRequestPersisted && check.selectedSupplierNotifiedInApp).length, 2);
-  run('Canonical main history', 'git', ['fetch', '--no-tags', 'origin', 'main']);
+  assert.equal(browser.syntheticReceivingPublicationTested, true, 'Synthetic employee receiving must complete before release verification');
+  const receiving = browser.checks.filter(check => check.syntheticReceivingPublicationTested === true);
+  assert.deepEqual(receiving.map(check => check.device).sort(), ['desktop', 'touch']);
+  for (const check of receiving) {
+    for (const field of ['employeeUiGrantAndRevoke', 'employeeUiSignInWithoutBuyerAccount',
+      'originalPhotoSurvivesReloadAndRetry', 'sourceManifestBeforePublication',
+      'singleReceiptAfterLostAcknowledgement', 'publicPhotoMatchesSourceAndSqlBytes',
+      'sanitizedOrientationAndMetadata', 'separateBuyerReceiptPriceAndCart']) assert.equal(check[field], true, field + ' must be proved');
+    assert.equal(check.physicalPhoneCameraTested, false);
+    assert.equal(check.realDriveWriteAuthorityTested, false);
+    assert.equal(check.externalProviderRequests, false);
+  }
+  report.syntheticReceivingPublicationTested = true;
+  run('Canonical main history', 'git', ['fetch', '--no-tags', canonicalRemote, 'refs/heads/main:refs/remotes/origin/main']);
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), head);
+  report.canonicalMain = execFileSync('git', ['rev-parse', 'origin/main'], { encoding: 'utf8' }).trim();
   database = await startCabinetLoopbackTestDatabase();
   assert.equal(new URL(database.url).hostname, '127.0.0.1');
+  report.releaseGate = { status: 'running' };
   run('Unchanged strict minimum release gate', 'npm', ['run', 'gate:minimum-release', '--',
-    '--browser-proof=manual', '--browser-note=Exact built client and actual native routes passed desktop and touch JW signup, exact-stock cart, quantity pricing, reload, native private quote submission, supplier notification, and revocation. Synthetic loopback data only.'],
-    { NODE_ENV: 'test', TEST_DATABASE_URL: database.url, DATABASE_URL: database.url, ALLOW_INSECURE_TEST_DATABASE: 'true' });
+    '--browser-proof=manual', '--browser-note=Exact built client and actual native routes passed desktop and touch JW signup, exact-stock cart, quantity pricing, reload, native private quote submission, supplier notification, employee grant/revoke, original-photo retry/publication and separate-buyer received-lot cart. Synthetic loopback database and exact-URL simulated Drive; no physical camera or real provider authority proof.'],
+    { NODE_ENV: 'test', TEST_DATABASE_URL: database.url, DATABASE_URL: database.url, ALLOW_INSECURE_TEST_DATABASE: 'true',
+      SKIP_NPM_CI: '', BASE_URL: '', APP_URL: '', BROWSER_PROOF_NOTE: '' });
+  const gate = JSON.parse(await fs.readFile(path.resolve('artifacts/release-contract', head.slice(0, 12), 'evidence.json'), 'utf8'));
+  assert.equal(gate.commit, head);
+  assert.equal(gate.mode, 'release');
+  assert.equal(gate.result, 'pass');
+  assert.equal(gate.attestable, true);
+  assert.equal(gate.initialDirtyTree, false);
+  assert.equal(gate.dirtyTree, false);
+  assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), head);
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'Verification may not alter source files');
+  await fs.mkdir(output, { recursive: true });
+  await fs.writeFile(path.join(output, 'minimum-release-evidence.json'), JSON.stringify(gate, null, 2));
+  report.releaseGate = { status: 'pass', evidenceFile: 'minimum-release-evidence.json', commit: gate.commit, attestable: true };
   report.passed = true;
 } catch (error) {
   report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]');
   console.error('JW_CART_RELEASE_FAILURE ' + report.error);
   process.exitCode = 1;
 } finally {
-  await database?.stop();
-  report.finishedAt = new Date().toISOString();
-  await fs.mkdir(output, { recursive: true });
-  try { await fs.cp('test-results/jw-workflow', path.join(output, 'browser'), { recursive: true }); } catch {}
-  // These are actual browser captures from the credential-isolated synthetic fixture.
-  // Bounded chunks permit exact image review even when the report host is inaccessible.
-  report.visualEvidence = [];
-  for (const device of ['desktop', 'touch']) {
-    try {
-      const name = device + '-synthetic-cart-review.jpg';
-      const bytes = await fs.readFile(path.join(output, 'browser', name));
-      assert(bytes.length > 0 && bytes.length <= 120000, 'Cart review capture exceeds the export bound');
-      const data = bytes.toString('base64');
-      const metadata = { head, name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), chunks: Math.ceil(data.length / 3000) };
-      report.visualEvidence.push(metadata);
-      console.log('JW_CART_IMAGE ' + JSON.stringify(metadata));
-      for (let offset = 0; offset < data.length; offset += 3000) console.log('JW_CART_IMAGE_CHUNK ' + device + ' ' + (offset / 3000) + ' ' + data.slice(offset, offset + 3000));
-    } catch (error) {
-      report.visualExportError = String(error.message || error);
-      if (report.passed) { report.passed = false; process.exitCode = 1; }
+  const finalizationErrors = [];
+  const attempt = async (phase, operation) => {
+    try { await operation(); }
+    catch (error) {
+      report.passed = false;
+      finalizationErrors.push({ phase, error: String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]') });
+      report.finalizationErrors = finalizationErrors;
     }
+  };
+  try {
+    await attempt('database cleanup', async () => database?.stop());
+    report.finishedAt = new Date().toISOString();
+    await attempt('evidence directory', async () => fs.mkdir(output, { recursive: true }));
+    await attempt('browser evidence copy', async () => fs.cp('test-results/jw-workflow', path.join(output, 'browser'), { recursive: true }));
+    // These are actual browser captures from the credential-isolated synthetic fixture.
+    // Bounded chunks permit exact image review even when the report host is inaccessible.
+    report.visualEvidence = [];
+    for (const device of ['desktop', 'touch']) {
+      try {
+        const name = device + '-synthetic-cart-review.jpg';
+        const bytes = await fs.readFile(path.join(output, 'browser', name));
+        assert(bytes.length > 0 && bytes.length <= 120000, 'Cart review capture exceeds the export bound');
+        const data = bytes.toString('base64');
+        const metadata = { head, name, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), chunks: Math.ceil(data.length / 3000) };
+        report.visualEvidence.push(metadata);
+        console.log('JW_CART_IMAGE ' + JSON.stringify(metadata));
+        for (let offset = 0; offset < data.length; offset += 3000) console.log('JW_CART_IMAGE_CHUNK ' + device + ' ' + (offset / 3000) + ' ' + data.slice(offset, offset + 3000));
+      } catch (error) {
+        report.visualExportError = String(error.message || error);
+        if (report.passed) { report.passed = false; process.exitCode = 1; }
+      }
+    }
+    await attempt('robots file', async () => fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n'));
+    await attempt('index file', async () => fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="suites.json">Affected test results and inherited failures</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>'));
+    await attempt('final evidence file', async () => fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(report, null, 2)));
+    console.log('JW_CART_RELEASE_SUMMARY ' + JSON.stringify(report));
+  } catch (error) {
+    report.passed = false;
+    console.error('JW_CART_FINALIZATION_FAILURE ' + String(error.stack || error));
+  } finally {
+    // embedded-postgres registers a beforeExit hook that calls process.exit(0).
+    // Only an explicit exit after cleanup and flushed evidence preserves verdicts.
+    await finishProofCli(report.passed ? 0 : 1);
   }
-  await fs.writeFile(path.join(output, 'evidence.json'), JSON.stringify(report, null, 2));
-  await fs.writeFile(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
-  await fs.writeFile(path.join(output, 'index.html'), '<!doctype html><meta name="robots" content="noindex,nofollow"><title>JW cart verification</title><h1>' + (report.passed ? 'Synthetic JW cart verification passed' : 'Verification failed — not release approval') + '</h1><p>No production customer data, payments, or real delivery promises.</p><a href="evidence.json">Release checks</a><br><a href="suites.json">Affected test results and inherited failures</a><br><a href="browser/evidence.json">Native workflow evidence</a><br><a href="browser/desktop-synthetic-cart-review.png">Desktop cart</a><br><a href="browser/touch-synthetic-cart-review.png">Touch cart</a>');
-  console.log('JW_CART_RELEASE_SUMMARY ' + JSON.stringify(report));
 }

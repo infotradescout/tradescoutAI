@@ -78,16 +78,14 @@ for (const name of ["desktop", "touch", "unverified"]) {
     locationCommitted: true,
   });
   if (name !== "unverified")
-    await db
-      .insert(schema.buyerVerifications)
-      .values({
-        userId: id,
-        status: "approved",
-        addressVerified: true,
-        identityVerified: true,
-        isOver18: true,
-        isOver21: true,
-      } as any);
+    await db.insert(schema.buyerVerifications).values({
+      userId: id,
+      status: "approved",
+      addressVerified: true,
+      identityVerified: true,
+      isOver18: true,
+      isOver21: true,
+    } as any);
   accounts[name] = { id, email, password };
 }
 const { storage } = await import("../server/storage");
@@ -96,13 +94,11 @@ for (const name of ["Tools & Hardware", "Furniture & Home Goods"]) {
     (category: any) => category.name === name
   );
   if (!found)
-    await db
-      .insert(schema.marketplaceCategories)
-      .values({
-        name,
-        description: "Disposable browser fixture category",
-        iconName: "tools",
-      } as any);
+    await db.insert(schema.marketplaceCategories).values({
+      name,
+      description: "Disposable browser fixture category",
+      iconName: "tools",
+    } as any);
 }
 const { runSchemaPreflight } = await import("../server/schemaPreflight");
 await runSchemaPreflight();

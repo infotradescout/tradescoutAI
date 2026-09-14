@@ -8,28 +8,77 @@ import { HOME_SECTIONS, PACKAGE_HOME_ID } from "./homeWorkspaceModel";
 import { homeOverviewQueryKeys } from "./homeOverviewQueryKeys";
 
 // Render the real component with an isolated cache. Network IO, not UI, is mocked.
-vi.mock("@/lib/queryClient", () => ({ apiRequest: vi.fn(() => { throw new Error("Unexpected render-time network request"); }) }));
+vi.mock("@/lib/queryClient", () => ({
+  apiRequest: vi.fn(() => {
+    throw new Error("Unexpected render-time network request");
+  }),
+}));
 
-function render(options: { missingAddress?: boolean; failedProjects?: boolean; wrongViewer?: boolean; noHome?: boolean } = {}) {
+function render(
+  options: {
+    missingAddress?: boolean;
+    failedProjects?: boolean;
+    wrongViewer?: boolean;
+    noHome?: boolean;
+  } = {}
+) {
   const viewer = "test-owner";
   const id = PACKAGE_HOME_ID;
   const keys = homeOverviewQueryKeys(id, viewer);
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  const home = { id, nickname: "Sample property", propertyType: "single_family", ...(options.missingAddress ? {} : { address1: "Example address", city: "Example", stateCode: "FL" }) };
-  client.setQueryData(keys.detail, { home, records: [
-    { id: "record", title: "Inspected roof", occurredAt: "2026-09-01" },
-    { id: "meta", title: "homeid:internal", occurredAt: "2026-09-02" },
-  ], documents: [{ id: "file", originalName: "roof-report.pdf", documentType: "inspection_report" }] });
-  client.setQueryData(keys.projects, [{ id: "project-a", title: "Kitchen renovation", status: "planning", description: "Replace cabinets" }]);
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  const home = {
+    id,
+    nickname: "Sample property",
+    propertyType: "single_family",
+    ...(options.missingAddress
+      ? {}
+      : { address1: "Example address", city: "Example", stateCode: "FL" }),
+  };
+  client.setQueryData(keys.detail, {
+    home,
+    records: [
+      { id: "record", title: "Inspected roof", occurredAt: "2026-09-01" },
+      { id: "meta", title: "homeid:internal", occurredAt: "2026-09-02" },
+    ],
+    documents: [{ id: "file", originalName: "roof-report.pdf", documentType: "inspection_report" }],
+  });
+  client.setQueryData(keys.projects, [
+    {
+      id: "project-a",
+      title: "Kitchen renovation",
+      status: "planning",
+      description: "Replace cabinets",
+    },
+  ]);
   client.setQueryData(keys.schedules, []);
-  client.setQueryData(keys.persistence, { propertyDetails: [{ id: "detail", status: "needs_review", note: "Check dimensions" }], components: [], requestPackets: [], evidence: [{ id: "ref" }] });
-  if (options.failedProjects) client.getQueryCache().find({ queryKey: keys.projects })!.setState({ status: "error", error: new Error("Unavailable") });
-  const markup = renderToStaticMarkup(<QueryClientProvider client={client}><Router ssrPath="/homes"><HomeOverview
-    viewerId={options.wrongViewer ? "different-owner" : viewer}
-    homeId={options.noHome ? null : id}
-    homes={[home]}
-    homesPending={false} homesError={false} retryHomes={() => {}} selectHome={() => {}}
-  /></Router></QueryClientProvider>);
+  client.setQueryData(keys.persistence, {
+    propertyDetails: [{ id: "detail", status: "needs_review", note: "Check dimensions" }],
+    components: [],
+    requestPackets: [],
+    evidence: [{ id: "ref" }],
+  });
+  if (options.failedProjects)
+    client
+      .getQueryCache()
+      .find({ queryKey: keys.projects })!
+      .setState({ status: "error", error: new Error("Unavailable") });
+  const markup = renderToStaticMarkup(
+    <QueryClientProvider client={client}>
+      <Router ssrPath="/homes">
+        <HomeOverview
+          viewerId={options.wrongViewer ? "different-owner" : viewer}
+          homeId={options.noHome ? null : id}
+          homes={[home]}
+          homesPending={false}
+          homesError={false}
+          retryHomes={() => {}}
+          selectHome={() => {}}
+        />
+      </Router>
+    </QueryClientProvider>
+  );
   client.clear();
   return markup;
 }
@@ -48,7 +97,8 @@ describe("actual HomeOverview render", () => {
   });
   it("retains every workspace section and explicit specialist tools", () => {
     const html = render();
-    for (const section of HOME_SECTIONS.filter((section) => section.id !== "overview")) expect(html).toContain(`tab=${section.id}`);
+    for (const section of HOME_SECTIONS.filter((section) => section.id !== "overview"))
+      expect(html).toContain(`tab=${section.id}`);
     expect(html).toContain("workspace=launch");
     expect(html).toContain("Prepare a work request");
     expect(html).toContain("roof-report.pdf");
@@ -90,7 +140,9 @@ describe("actual HomeOverview render", () => {
       await client.invalidateQueries({ queryKey: [key[0]] });
       expect(client.getQueryState(key)?.isInvalidated).toBe(true);
     }
-    expect(client.getQueryData(homeOverviewQueryKeys(PACKAGE_HOME_ID, "viewer-two").detail)).toBeUndefined();
+    expect(
+      client.getQueryData(homeOverviewQueryKeys(PACKAGE_HOME_ID, "viewer-two").detail)
+    ).toBeUndefined();
     client.clear();
   });
 });

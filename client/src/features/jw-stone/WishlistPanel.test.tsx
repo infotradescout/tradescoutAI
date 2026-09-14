@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_NAMED_CATALOG } from "./catalog";
@@ -21,23 +22,31 @@ function panelRoot(): HTMLElement {
 describe("WishlistPanel email copy", () => {
   let container: HTMLDivElement;
   let root: Root;
+  let queryClient: QueryClient;
   const stone = JW_STONE_NAMED_CATALOG[0];
 
   beforeEach(() => {
+    window.localStorage.clear();
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(["/api/auth/user"], null);
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({ sent: true, stoneCount: 1 }),
-      }))
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ sent: true, stoneCount: 1 }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+      )
     );
   });
 
   afterEach(() => {
     act(() => root.unmount());
+    queryClient.clear();
     container.remove();
     document.body.querySelectorAll("[data-radix-portal], [role='dialog']").forEach((node) => {
       node.parentElement?.removeChild(node);
@@ -48,29 +57,31 @@ describe("WishlistPanel email copy", () => {
   it("hides the email control when nothing is saved", () => {
     act(() => {
       root.render(
-        <WishlistPanel
-          open
-          items={[]}
-          restored
-          persisted
-          onOpenChange={vi.fn()}
-          onRemove={vi.fn()}
-          onClear={vi.fn()}
-          onOpenStone={vi.fn()}
-          onAsk={vi.fn()}
-        />
+        <QueryClientProvider client={queryClient}>
+          <WishlistPanel
+            open
+            items={[]}
+            restored
+            persisted
+            onOpenChange={vi.fn()}
+            onRemove={vi.fn()}
+            onClear={vi.fn()}
+            onOpenStone={vi.fn()}
+            onAsk={vi.fn()}
+          />
+        </QueryClientProvider>
       );
     });
 
     expect(panelRoot().textContent).toContain("Nothing saved yet");
     expect(panelRoot().textContent).toContain(
-      "Bookmark any named stone from the collection to see it here."
+      "Save an inventory lot from New Arrivals or bookmark a named catalog stone."
     );
-    expect(panelRoot().textContent).toContain("JW Stone isn’t notified until you Ask.");
+    expect(panelRoot().textContent).toContain("Saving does not notify JW Stone or reserve stock.");
     expect(panelRoot().textContent).not.toContain("Your selection is open");
     expect(
       Array.from(panelRoot().querySelectorAll("button")).find((button) =>
-        button.textContent?.includes("Email my saved stones")
+        button.textContent?.includes("Email my saved catalog stones")
       )
     ).toBeUndefined();
     expect(
@@ -83,22 +94,24 @@ describe("WishlistPanel email copy", () => {
   it("requires email before sending and posts only the saved named stones", async () => {
     act(() => {
       root.render(
-        <WishlistPanel
-          open
-          items={[stone]}
-          restored
-          persisted
-          onOpenChange={vi.fn()}
-          onRemove={vi.fn()}
-          onClear={vi.fn()}
-          onOpenStone={vi.fn()}
-          onAsk={vi.fn()}
-        />
+        <QueryClientProvider client={queryClient}>
+          <WishlistPanel
+            open
+            items={[stone]}
+            restored
+            persisted
+            onOpenChange={vi.fn()}
+            onRemove={vi.fn()}
+            onClear={vi.fn()}
+            onOpenStone={vi.fn()}
+            onAsk={vi.fn()}
+          />
+        </QueryClientProvider>
       );
     });
 
     const emailButton = Array.from(panelRoot().querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Email my saved stones")
+      button.textContent?.includes("Email my saved catalog stones")
     );
     expect(emailButton).toBeTruthy();
     expect((emailButton as HTMLButtonElement).disabled).toBe(true);
@@ -113,7 +126,7 @@ describe("WishlistPanel email copy", () => {
     });
 
     const enabledButton = Array.from(panelRoot().querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Email my saved stones")
+      button.textContent?.includes("Email my saved catalog stones")
     ) as HTMLButtonElement | undefined;
     expect(enabledButton?.disabled).toBe(false);
     await act(async () => {
@@ -136,31 +149,33 @@ describe("WishlistPanel email copy", () => {
         shareSlug: stone.shareSlug,
       },
     ]);
-    expect(panelRoot().textContent).toContain("Sent. Check your inbox for the list.");
+    expect(panelRoot().textContent).toContain("Sent. Check your inbox for the catalog list.");
   });
 
   it("prefills a known account email", () => {
     act(() => {
       root.render(
-        <WishlistPanel
-          open
-          items={[stone]}
-          restored
-          persisted
-          knownEmail="member@example.com"
-          onOpenChange={vi.fn()}
-          onRemove={vi.fn()}
-          onClear={vi.fn()}
-          onOpenStone={vi.fn()}
-          onAsk={vi.fn()}
-        />
+        <QueryClientProvider client={queryClient}>
+          <WishlistPanel
+            open
+            items={[stone]}
+            restored
+            persisted
+            knownEmail="member@example.com"
+            onOpenChange={vi.fn()}
+            onRemove={vi.fn()}
+            onClear={vi.fn()}
+            onOpenStone={vi.fn()}
+            onAsk={vi.fn()}
+          />
+        </QueryClientProvider>
       );
     });
 
     const input = panelRoot().querySelector<HTMLInputElement>("#jw-saved-stones-email");
     expect(input?.value).toBe("member@example.com");
     const emailButton = Array.from(panelRoot().querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Email my saved stones")
+      button.textContent?.includes("Email my saved catalog stones")
     );
     expect((emailButton as HTMLButtonElement).disabled).toBe(false);
   });

@@ -24,8 +24,20 @@ export function isApplicationUiSurface(location: string, customDomainProfileSlug
   const path = getUiPathname(location).toLowerCase();
   if (isOnboardingSurfacePath(path)) return false;
   return ![
-    "/admin", "/login", "/register", "/signup", "/create-account", "/pre-scout-setup",
-    "/auth", "/reset-password", "/verify-email", "/check-email", "/landing", "/lp",
-    "/r", "/bidrock", "/trade-up-for-trade-schools",
+    "/admin",
+    "/login",
+    "/register",
+    "/signup",
+    "/create-account",
+    "/pre-scout-setup",
+    "/auth",
+    "/reset-password",
+    "/verify-email",
+    "/check-email",
+    "/landing",
+    "/lp",
+    "/r",
+    "/bidrock",
+    "/trade-up-for-trade-schools",
   ].some((root) => isWithin(path, root));
 }

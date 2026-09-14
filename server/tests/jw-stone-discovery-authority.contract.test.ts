@@ -97,8 +97,13 @@ describe("JW Stone custom-domain discovery authority", () => {
     const html = buildCustomDomainHtml({ stoneSlug: "trending-selection-01" });
 
     expect(html).toContain('<meta name="robots" content="noindex, follow" />');
-    expect(html).toContain(
-      '<link rel="canonical" href="https://jwstonelogistics.com/" />'
+    const canonical = html.match(/<link rel="canonical" href="([^"]+)" \/>/)?.[1];
+    expect(canonical).toBeDefined();
+    // An origin-only URL and its trailing-slash form identify the same root.
+    // Check the destination itself so another origin/path cannot pass.
+    expect(new URL(canonical!).href).toBe("https://jwstonelogistics.com/");
+    expect(new URL(readJsonLd(html).isPartOf.url).href).toBe(
+      "https://jwstonelogistics.com/"
     );
   });
 

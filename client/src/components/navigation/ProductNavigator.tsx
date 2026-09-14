@@ -2,10 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LayoutGrid, Search } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  PRODUCT_NAV_GROUPS, getActiveProductNavItem, searchProductNavigation,
+  PRODUCT_NAV_GROUPS,
+  getActiveProductNavItem,
+  searchProductNavigation,
 } from "@/lib/productNavigation";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 
@@ -28,10 +35,13 @@ export default function ProductNavigator() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(value) => {
-      setOpenedAt(value ? location : null);
-      setQuery("");
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        setOpenedAt(value ? location : null);
+        setQuery("");
+      }}
+    >
       <DialogTrigger asChild>
         <button
           type="button"
@@ -61,9 +71,14 @@ export default function ProductNavigator() {
           </DialogDescription>
         </DialogHeader>
         <div className="shrink-0 px-5 pt-4 pb-3 sm:px-6">
-          <label htmlFor="tradescout-tool-search" className="sr-only">Search TradeScout tools</label>
+          <label htmlFor="tradescout-tool-search" className="sr-only">
+            Search TradeScout tools
+          </label>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-[color:var(--text-secondary)]" aria-hidden="true" />
+            <Search
+              className="pointer-events-none absolute left-3 top-3.5 h-5 w-5 text-[color:var(--text-secondary)]"
+              aria-hidden="true"
+            />
             <input
               ref={searchRef}
               id="tradescout-tool-search"
@@ -76,16 +91,32 @@ export default function ProductNavigator() {
               aria-controls="tradescout-tool-results"
             />
           </div>
-          <p role="status" aria-live="polite" aria-atomic="true" className="mt-2 text-xs text-[color:var(--text-secondary)]">
+          <p
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="mt-2 text-xs text-[color:var(--text-secondary)]"
+          >
             {results.length} {results.length === 1 ? "destination" : "destinations"}
           </p>
         </div>
-        <div id="tradescout-tool-results" className="ts-product-nav-results px-5 pb-5 sm:px-6 sm:pb-6">
+        <div
+          id="tradescout-tool-results"
+          className="ts-product-nav-results px-5 pb-5 sm:px-6 sm:pb-6"
+        >
           {results.length === 0 ? (
             <div className="rounded-xl bg-[color:var(--surface-intermediate)] p-6">
               <p className="font-semibold">No tools match that search.</p>
-              <p className="mt-2 text-sm text-[color:var(--text-secondary)]">Try a shorter name, or browse all tools.</p>
-              <button type="button" onClick={clearSearch} className="ts-product-nav-clear mt-4 min-h-11 rounded-lg px-4 text-sm font-semibold">Clear search</button>
+              <p className="mt-2 text-sm text-[color:var(--text-secondary)]">
+                Try a shorter name, or browse all tools.
+              </p>
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="ts-product-nav-clear mt-4 min-h-11 rounded-lg px-4 text-sm font-semibold"
+              >
+                Clear search
+              </button>
             </div>
           ) : (
             <div className="grid items-start gap-x-5 gap-y-6 sm:grid-cols-2">
@@ -94,25 +125,45 @@ export default function ProductNavigator() {
                 if (!items.length) return null;
                 return (
                   <section key={group.id} aria-labelledby={`product-group-${group.id}`}>
-                    <h3 id={`product-group-${group.id}`} className="mb-2 text-sm font-semibold text-[color:var(--text-primary)]">{group.label}</h3>
+                    <h3
+                      id={`product-group-${group.id}`}
+                      className="mb-2 text-sm font-semibold text-[color:var(--text-primary)]"
+                    >
+                      {group.label}
+                    </h3>
                     <div className="space-y-1">
                       {items.map((item) => {
                         const Icon = item.icon;
                         return (
                           <Link
                             key={item.id}
-                            href={item.id === "requests" ? DIRECT_CONNECT_TASKBAR_RESUME_HREF : item.href}
+                            href={
+                              item.id === "requests"
+                                ? DIRECT_CONNECT_TASKBAR_RESUME_HREF
+                                : item.href
+                            }
                             data-product-nav-id={item.id}
                             aria-current={active?.id === item.id ? "page" : undefined}
                             className="ts-product-nav-link flex min-h-14 items-start gap-3 rounded-lg px-3 py-3"
                             onClick={(event) => {
-                              if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) setOpenedAt(null);
+                              if (
+                                !event.metaKey &&
+                                !event.ctrlKey &&
+                                !event.shiftKey &&
+                                !event.altKey &&
+                                event.button === 0
+                              )
+                                setOpenedAt(null);
                             }}
                           >
                             <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
                             <span className="min-w-0">
-                              <span className="block text-sm font-semibold text-[color:var(--text-primary)]">{item.label}</span>
-                              <span className="mt-0.5 block text-xs leading-5 text-[color:var(--text-secondary)]">{item.description}</span>
+                              <span className="block text-sm font-semibold text-[color:var(--text-primary)]">
+                                {item.label}
+                              </span>
+                              <span className="mt-0.5 block text-xs leading-5 text-[color:var(--text-secondary)]">
+                                {item.description}
+                              </span>
                             </span>
                           </Link>
                         );

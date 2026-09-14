@@ -512,7 +512,10 @@ describe("Scout entry framing contracts", () => {
     expect(homesSource).toContain("<HomeIdWorkspace");
     expect(homeWorkspaceSource).toContain('new URLSearchParams(search).get("projectId")');
     expect(homeWorkspaceSource).toContain("selectRecordProject(projects, projectId)");
-    const projects = [{ id: "first", title: "First project" }, { id: "selected", title: "Selected project" }];
+    const projects = [
+      { id: "first", title: "First project" },
+      { id: "selected", title: "Selected project" },
+    ];
     expect(selectRecordProject(projects, "selected")).toBe(projects[1]);
     expect(selectRecordProject(projects, "missing")).toBeNull();
     expect(vehiclesSource).toContain("initialVehicleIdFromUrl");

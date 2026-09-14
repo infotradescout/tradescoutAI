@@ -36,7 +36,9 @@ describe("core-only dark surfaces", () => {
 
   it("keeps keyboard focus and readable labels instead of relying on orange text alone", () => {
     expect(css).toContain("outline: 2px solid var(--theme-accent-primary) !important");
-    expect(css).toContain('.ts-product-nav-link[aria-current="page"] {\n  color: var(--text-primary)');
+    expect(css).toContain(
+      '.ts-product-nav-link[aria-current="page"] {\n  color: var(--text-primary)'
+    );
     expect(css).toContain("prefers-reduced-motion: reduce");
     const navigator = read("client/src/components/navigation/ProductNavigator.tsx");
     expect(navigator).toContain('data-ts-core-ui="true"');

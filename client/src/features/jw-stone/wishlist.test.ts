@@ -130,16 +130,27 @@ describe("JW Stone account-free wishlist", () => {
     });
   });
 
-  it("fails safely for corrupt and unsupported storage values", () => {
+  it("uses an empty current record for malformed data and preserves future versions", () => {
     const corrupt = new MemoryStorage();
+    corrupt.setItem(
+      JW_STONE_LEGACY_WISHLIST_STORAGE_KEY,
+      JSON.stringify({ version: 1, ids: ["amazonic-green"] })
+    );
     corrupt.setItem(JW_STONE_WISHLIST_STORAGE_KEY, "{broken");
-    expect(loadWishlist(corrupt)).toEqual({ ids: [], status: "malformed", persisted: false });
-    expect(corrupt.getItem(JW_STONE_WISHLIST_STORAGE_KEY)).toBeNull();
+    expect(loadWishlist(corrupt)).toEqual({ ids: [], status: "malformed", persisted: true });
+    expect(JSON.parse(corrupt.getItem(JW_STONE_WISHLIST_STORAGE_KEY)!)).toEqual({
+      version: 1,
+      ids: [],
+    });
+    expect(loadWishlist(corrupt).ids).toEqual([]);
 
     const malformed = new MemoryStorage();
     malformed.setItem(JW_STONE_WISHLIST_STORAGE_KEY, JSON.stringify({ version: 1, ids: "bad" }));
     expect(loadWishlist(malformed).status).toBe("malformed");
-    expect(malformed.getItem(JW_STONE_WISHLIST_STORAGE_KEY)).toBeNull();
+    expect(JSON.parse(malformed.getItem(JW_STONE_WISHLIST_STORAGE_KEY)!)).toEqual({
+      version: 1,
+      ids: [],
+    });
 
     const future = new MemoryStorage();
     const futureValue = JSON.stringify({ version: 2, ids: ["amazonic-green"] });
@@ -186,7 +197,11 @@ describe("JW Stone account-free wishlist", () => {
     const storage = new MemoryStorage();
     saveWishlist(storage, ["amazonic-green"]);
     expect(clearWishlist(storage)).toEqual({ ids: [], persisted: true });
-    expect(storage.getItem(JW_STONE_WISHLIST_STORAGE_KEY)).toBeNull();
+    expect(JSON.parse(storage.getItem(JW_STONE_WISHLIST_STORAGE_KEY)!)).toEqual({
+      version: 1,
+      ids: [],
+    });
+    expect(loadWishlist(storage).ids).toEqual([]);
     expect(storage.getItem(JW_STONE_LEGACY_WISHLIST_STORAGE_KEY)).toBeNull();
   });
 });

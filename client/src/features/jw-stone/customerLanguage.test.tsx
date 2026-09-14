@@ -10,9 +10,34 @@ const queryFixture = vi.hoisted(() => ({
   data: { items: [] as PublicStoneInventoryItem[] },
 }));
 
-vi.mock("@tanstack/react-query", () => ({ useQuery: () => queryFixture }));
-vi.mock("@/lib/queryClient", () => ({ apiRequest: vi.fn() }));
-vi.mock("./JwStoneMemberPricing", () => ({ JwStoneMemberPriceDisplay: () => null }));
+// Render the public customer view: arrivals data is independent of guest auth
+// and the employee permission response. Query fixtures must retain those boundaries.
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQuery: ({ queryKey }: { queryKey: string[] }) => {
+    if (queryKey[0] === "/api/auth/user") return { data: null, isLoading: false, isError: false };
+    if (queryKey[1] === "new-arrivals") return queryFixture;
+    if (queryKey[1] === "receiving-access")
+      return {
+        data: { viewerId: "", allowed: false, enabled: false },
+        isLoading: false,
+        isError: false,
+      };
+    if (queryKey[1] === "arrival-prices")
+      return { data: { viewerId: "", prices: [] }, isLoading: false, isError: false };
+    throw new Error(`Unexpected customer-language query: ${queryKey.join("/")}`);
+  },
+}));
+vi.mock("@/lib/queryClient", () => ({
+  apiRequest: vi.fn(),
+  ApiError: class extends Error {
+    status?: number;
+  },
+}));
+vi.mock("./JwStoneMemberPricing", () => ({
+  JwStoneMemberPriceDisplay: () => null,
+  useJwStoneMemberCart: () => ({ cartEnabled: false, addToCart: vi.fn() }),
+}));
 
 function arrival(overrides: Partial<PublicStoneInventoryItem> = {}): PublicStoneInventoryItem {
   return {
@@ -33,9 +58,7 @@ function arrival(overrides: Partial<PublicStoneInventoryItem> = {}): PublicStone
 }
 
 function renderArrivals(): string {
-  return renderToStaticMarkup(
-    <NewArrivalsSection onAsk={vi.fn()} onStartRequest={vi.fn()} />
-  );
+  return renderToStaticMarkup(<NewArrivalsSection onAsk={vi.fn()} onStartRequest={vi.fn()} />);
 }
 
 describe("JW Stone customer-facing inventory language", () => {
