@@ -12,9 +12,7 @@ import SteelHomeBuilderDirectory, {
   plannerPanelId,
   type SteelHomePlanner,
 } from "./steel-home-project-tools/SteelHomeBuilderDirectory";
-import SteelHomePlannerRequest, {
-  type SteelHomeRequestSelection,
-} from "./steel-home-project-tools/SteelHomePlannerRequest";
+import type { SteelHomeRequestSelection } from "./steel-home-project-tools/SteelHomePlannerRequest";
 import {
   createEmptySteelHomeProjectDraft,
   loadSteelHomeProjectDraft,
@@ -26,6 +24,9 @@ import {
 const BuildingDesigner = lazy(() => import("./steel-home-project-tools/BuildingDesigner"));
 const CabinetDesigner = lazy(() => import("./steel-home-project-tools/CabinetDesigner"));
 const CountertopDesigner = lazy(() => import("./steel-home-project-tools/CountertopDesigner"));
+const SteelHomePlannerRequest = lazy(
+  () => import("./steel-home-project-tools/SteelHomePlannerRequest")
+);
 
 function PlannerBodyBoundary({
   children,
@@ -409,15 +410,28 @@ export default function SteelHomePackagesProfile({
       ) : null}
 
       {requestSelection && requestDraft ? (
-        <SteelHomePlannerRequest
-          request={requestSelection}
-          draft={requestDraft}
-          onChange={(nextDraft) => updateRequestDraft(requestSelection.planner, nextDraft)}
-          requestHref={requestHref}
-          laborRequestHref={laborRequestHref}
-          saved={saved && requestDetailsSaved}
-          onClose={() => setRequestSelection(null)}
-        />
+        <Suspense
+          fallback={
+            <div
+              className="fixed inset-0 z-50 grid place-items-center bg-[#f5f1e8]/95 p-8 text-center text-sm font-semibold text-[#18312f]"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              Opening request details…
+            </div>
+          }
+        >
+          <SteelHomePlannerRequest
+            request={requestSelection}
+            draft={requestDraft}
+            onChange={(nextDraft) => updateRequestDraft(requestSelection.planner, nextDraft)}
+            requestHref={requestHref}
+            laborRequestHref={laborRequestHref}
+            saved={saved && requestDetailsSaved}
+            onClose={() => setRequestSelection(null)}
+          />
+        </Suspense>
       ) : null}
     </main>
   );
