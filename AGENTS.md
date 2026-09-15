@@ -49,7 +49,7 @@ The next agent uses the checkpoint as the evidence index and verifies only the m
 
 ## 1) Platform law (must be preserved)
 - Visibility does not equal access: being seen never grants contact or power.
-- All contact is gated: Intent → Decision Card → Contact.
+- All contact is gated: Intent → Decision Card → Contact. For requester-submitted Direct Connect requests, submission is the request-scoped contact decision for the receiving providers; it must not be followed by a second requester approval. See section 1b.
 - Claims-first signup; verification is adaptive/contextual.
 - Counties are operational containers; intelligence precomputes into:
   - county_metrics (facts)
@@ -74,8 +74,19 @@ The next agent uses the checkpoint as the evidence index and verifies only the m
   - `docs/audits/LAW_REWRITE_PROPOSAL.md`
   - `docs/audits/DRIFT_GUARDS.md`
 
+## 1b) Direct Connect submission and contact (owner rule, #665)
+
+Submitting a Direct Connect request gives its legitimate matched/assigned providers permission to contact the requester about that request. Do not restore a second requester-side Approve contact / Release contact step or replace useful authorized request emails with a generic inbox pointer.
+
+- Request-related contact and accepting the job/opening its Messages conversation are distinct actions. Job acceptance is not a second requester contact decision.
+- Keep request contact scoped to the request and its actual receiving providers. Public discovery/share pages, unrelated providers, unrelated conversations and general account contact permissions are separate surfaces.
+- Preserve current recipient identity, assignment validity, eligibility, cancellation/revocation and delivery-preference checks. A requester-card presentation state is neither a provider permission grant nor evidence that an email was delivered.
+- Use the contact captured for the request where available. An Express email match must never expose another account's saved contact; invalid request snapshots must not silently fall back to that account.
+- Drafts must not appear sent. Historical denial/closure must not be erased by a display change. Previously submitted email cannot be recalled by changing a card label.
+- Track remaining legacy intake/contact paths and production acceptance explicitly. Do not infer whole-product completion from a formatter or component test pass.
+
 ## 2) Implementation constraints
-- Any change affecting contact flows MUST preserve gating invariants.
+- Any change affecting contact flows MUST preserve gating invariants, including the Direct Connect submission rule in section 1b.
 - Any change affecting county routing MUST write to the correct containers (no ad-hoc fields).
 - Any change affecting trust/exposure MUST route through Trust/CVS logic (no bypass).
 - Any production user-facing copy MUST remain TradeScout-only (no cross-product brand mentions) unless explicitly approved and documented as an exception.
