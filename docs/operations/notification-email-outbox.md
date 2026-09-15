@@ -241,3 +241,6 @@ functional check is not a clean dependency audit or release authorization.
 The production build, complete minimum-release gate, remaining in-app contact
 flow corrections and controlled production delivery remain unfinished. No
 production database, customer/provider email or main branch was modified.
+
+Resume from PR #666's existing branch. The post-test commits only update this
+runbook; the four tested email implementation/test blobs remain unchanged.
