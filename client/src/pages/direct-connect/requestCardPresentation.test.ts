@@ -112,25 +112,21 @@ describe("requestCardPresentation", () => {
     ).toBe("Choose next step");
   });
 
-  it("shows contact-gated requester next step without exposing direct contact", () => {
+  it("does not replace the actual request stage with an obsolete contact approval", () => {
     expect(
       getDisplayLatestStatus({
         status: "routed",
         latestStatus: "waiting_for_contact_gate",
         contactGateState: "contractor_requested",
       })
-    ).toBe("Review contact request");
+    ).toBe("Waiting on pros");
   });
 
-  it("maps legacy Direct Connect contact states to exact P2 primitive state names", () => {
-    expect(normalizeDirectConnectContactState()).toBe("contact_hidden");
-    expect(normalizeDirectConnectContactState("locked")).toBe("contact_hidden");
-    expect(normalizeDirectConnectContactState("review_required")).toBe("contact_hidden");
-    expect(normalizeDirectConnectContactState("request_shared")).toBe("contact_hidden");
-    expect(normalizeDirectConnectContactState("contractor_requested")).toBe(
-      "provider_requested_contact"
-    );
-    expect(normalizeDirectConnectContactState("user_approved")).toBe("requester_approved");
+  it("projects obsolete requester approval states without inventing released contact", () => {
+    for (const state of [undefined, "locked", "review_required", "request_shared",
+      "contractor_requested", "user_approved", "submission_consented", "request_submission"]) {
+      expect(normalizeDirectConnectContactState(state)).toBe("request_submission");
+    }
     expect(normalizeDirectConnectContactState("released")).toBe("contact_released");
     expect(normalizeDirectConnectContactState("denied")).toBe("denied");
     expect(normalizeDirectConnectContactState("closed")).toBe("closed");
@@ -140,7 +136,7 @@ describe("requestCardPresentation", () => {
     expect(normalizeDirectConnectContactState("mystery_state")).toBe("mystery_state");
   });
 
-  it("provides safe contact gate panel copy without raw request contact data", () => {
+  it("provides request-related contact guidance without raw request contact data", () => {
     const request = {
       title: "Roof leak",
       description: "Call 555-123-9876 or email owner@example.test",
@@ -148,18 +144,25 @@ describe("requestCardPresentation", () => {
     };
 
     expect(getDirectConnectContactGateSummary(request)).toBe(
-      "Private contact stays locked for this request until the approved release step."
+      "Submitting this request gives its assigned providers permission to contact you about this work. No additional contact approval is needed."
     );
     expect(getDirectConnectContactGateSummary(request)).not.toContain("555-123-9876");
     expect(getDirectConnectContactGateSummary(request)).not.toContain("owner@example.test");
     expect(getDirectConnectContactGateNextAction("provider_requested_contact")).toBe(
-      "Review the provider contact request and approve or decline."
+      "Review provider replies or manage this request. There is no second contact-approval step."
     );
-    expect(getDirectConnectContactGateNextActor("provider_requested_contact")).toBe("requester");
+    expect(getDirectConnectContactGateNextActor("provider_requested_contact")).toBe("none");
     expect(getDirectConnectContactGateNextAction("mystery_state")).toBe(
       "Review the request status before taking the next step."
     );
     expect(getDirectConnectContactGateNextActor("mystery_state")).toBe("none");
+  });
+
+  it("distinguishes unsent drafts and paused/completed requests from delivery", () => {
+    expect(getDirectConnectContactGateSummary({ status: "draft" })).toContain("has not been sent");
+    expect(getDirectConnectContactGateSummary({ status: "cancelled" })).toContain("already sent cannot be recalled");
+    expect(getDirectConnectContactGateSummary({ status: "completed" })).toContain("request is complete");
+    expect(getDirectConnectContactGateSummary({ status: "routed", contactGateState: "denied" })).toContain("does not remove restrictions");
   });
 
   it("only hands released contact to the panel for the exact contact_released state", () => {
@@ -168,12 +171,10 @@ describe("requestCardPresentation", () => {
       releasedContact: rawReleasedContact,
     };
 
-    expect(getDirectConnectReleasedContactForPanel(request, "provider_requested_contact")).toBe(
-      undefined
-    );
-    expect(getDirectConnectReleasedContactForPanel(request, "requester_approved")).toBe(undefined);
-    expect(getDirectConnectReleasedContactForPanel(request, "contact_hidden")).toBe(undefined);
-    expect(getDirectConnectReleasedContactForPanel(request, "mystery_state")).toBe(undefined);
+    for (const state of ["provider_requested_contact", "requester_approved", "contact_hidden",
+      "request_submission", "mystery_state"]) {
+      expect(getDirectConnectReleasedContactForPanel(request, state)).toBeUndefined();
+    }
     expect(getDirectConnectReleasedContactForPanel(request, "contact_released")).toEqual({
       name: "Jane Provider",
       phone: "555-123-9876",
@@ -206,42 +207,12 @@ describe("requestCardPresentation", () => {
       expectedNormalized: string;
       shouldExposeReleasedContact: boolean;
     }> = [
-      {
-        label: "missing state",
-        inputState: undefined,
-        expectedNormalized: "contact_hidden",
-        shouldExposeReleasedContact: false,
-      },
-      {
-        label: "contact_hidden",
-        inputState: "contact_hidden",
-        expectedNormalized: "contact_hidden",
-        shouldExposeReleasedContact: false,
-      },
-      {
-        label: "provider_requested_contact",
-        inputState: "provider_requested_contact",
-        expectedNormalized: "provider_requested_contact",
-        shouldExposeReleasedContact: false,
-      },
-      {
-        label: "requester_approved",
-        inputState: "requester_approved",
-        expectedNormalized: "requester_approved",
-        shouldExposeReleasedContact: false,
-      },
-      {
-        label: "contact_released",
-        inputState: "contact_released",
-        expectedNormalized: "contact_released",
-        shouldExposeReleasedContact: true,
-      },
-      {
-        label: "unknown state",
-        inputState: "unknown_contact_state",
-        expectedNormalized: "unknown_contact_state",
-        shouldExposeReleasedContact: false,
-      },
+      { label: "missing state", inputState: undefined, expectedNormalized: "request_submission", shouldExposeReleasedContact: false },
+      { label: "contact_hidden", inputState: "contact_hidden", expectedNormalized: "request_submission", shouldExposeReleasedContact: false },
+      { label: "provider_requested_contact", inputState: "provider_requested_contact", expectedNormalized: "request_submission", shouldExposeReleasedContact: false },
+      { label: "requester_approved", inputState: "requester_approved", expectedNormalized: "request_submission", shouldExposeReleasedContact: false },
+      { label: "contact_released", inputState: "contact_released", expectedNormalized: "contact_released", shouldExposeReleasedContact: true },
+      { label: "unknown state", inputState: "unknown_contact_state", expectedNormalized: "unknown_contact_state", shouldExposeReleasedContact: false },
     ];
 
     for (const row of matrix) {
