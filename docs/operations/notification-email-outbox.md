@@ -40,16 +40,17 @@ worker-only, ambiguous, stale or unbound contexts cannot enroll email.
 Enrollment requires a verified address and explicit global notification/email
 flags plus the enabled `new_project_request` email preference. Missing or
 malformed preferences fail closed. The normal inbox/push intent is retained
-when email context or eligibility lookups fail. If explicit consent was read
-successfully before a transient eligibility error, the record marks that
-evaluation deferred; replaying the same event after recovery can add its one
-email job without another inbox/push alert. Later opt-ins do not backfill these
-already bound notifications, and replay never resets an existing terminal/unknown job. No
-background historical recovery batch is introduced. A failure before the
-event binding or initial consent is established retains the inbox alert but
-does not establish a recoverable email intent. If the context lookup itself
-fails, that fallback inbox record is unbound; a later successful normal producer
-replay can create a distinct bound notification under then-current consent.
+when email context or eligibility lookups fail. If explicit provider email
+consent was read successfully before a transient eligibility error, the record
+marks that evaluation deferred; replaying the same event after recovery can
+add its one email job without another inbox/push alert. Later provider opt-ins
+do not backfill already bound notifications, and replay never resets an
+existing terminal/unknown job. No background historical recovery batch is
+introduced. A failure before event binding or the initial provider preference
+is established retains the inbox alert but does not establish a recoverable
+email intent. If the context lookup itself fails, that fallback inbox record is
+unbound; a later successful normal producer replay can create a distinct bound
+notification under the provider's then-current email preference.
 
 At drain, the worker revalidates the exact binding and canonical county/trade/
 trust eligibility. After asynchronous eligibility and email-content resolution,
