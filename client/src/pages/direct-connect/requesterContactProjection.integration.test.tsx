@@ -144,9 +144,9 @@ describe("requester contact projection from server payload to rendered card", ()
     }
   );
 
-  it.each([false, true, 1, [], {}, { toString: () => "released" }])(
-    "does not coerce malformed contact states into authority: %s",
-    (rawState) => {
+  it.each([false, true, 1, [], {}, { toString: () => "released" }].map((rawState) => ({ rawState })))(
+    "does not coerce malformed contact states into authority: $rawState",
+    ({ rawState }) => {
       const { payload } = renderProjectedCard(rawState);
       expect(payload.contactGateState).toBe("unavailable");
       expect(payload).not.toHaveProperty("releasedContact");
