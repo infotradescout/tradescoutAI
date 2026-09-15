@@ -44,7 +44,7 @@ function expectNoRawContact(html: string) {
 }
 
 describe("DecisionContactGatePanel", () => {
-  it("preserves the exact P2 contact state names", () => {
+  it("preserves legacy state names and adds the informational requester-submission state", () => {
     expect(DECISION_CONTACT_GATE_STATES).toEqual([
       "contact_hidden",
       "provider_requested_contact",
@@ -52,6 +52,7 @@ describe("DecisionContactGatePanel", () => {
       "contact_released",
       "denied",
       "closed",
+      "request_submission",
     ]);
 
     for (const state of DECISION_CONTACT_GATE_STATES) {
@@ -124,12 +125,37 @@ describe("DecisionContactGatePanel", () => {
       });
 
       expect(html).toContain("Contact status");
-      expect(html).toContain("Available now");
       expect(html).toContain("What happens next");
-      expect(html).toContain("Waiting on");
-      expect(html).toContain(`Next action for ${state}`);
-      expect(html).toContain("TradeScout");
+      if (state === "request_submission") {
+        expect(html).toContain("Contact permission");
+        expect(html).toContain("Additional approval");
+        expect(html).toContain("Not required");
+        expect(html).not.toContain(`Next action for ${state}`);
+        expectNoRawContact(html);
+      } else {
+        expect(html).toContain("Available now");
+        expect(html).toContain("Waiting on");
+        expect(html).toContain(`Next action for ${state}`);
+        expect(html).toContain("TradeScout");
+      }
     }
+  });
+
+  it("suppresses obsolete approval instructions without exposing a supplied contact payload", () => {
+    const html = renderPanel({
+      contactState: "request_submission",
+      viewerRole: "requester",
+      nextActor: "requester",
+      safeSummary: "Sending the request includes permission for request-related contact.",
+      nextRequiredAction: "Approve contact again",
+      actions: [{ label: "Approve contact" }, { label: "Release contact" }],
+    });
+    expect(html).toContain("Request-related contact");
+    expect(html).toContain("No additional contact approval is needed");
+    expect(html).not.toContain("Approve contact");
+    expect(html).not.toContain("Release contact");
+    expect(html).not.toContain("Private requester contact stays hidden until contact opens");
+    expectNoRawContact(html);
   });
 
   it("fails closed for an unknown state and does not render contact payload", () => {
