@@ -36,6 +36,44 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   await click(cart.getByRole('button', { name: 'Increase Honey Onyx quantity', exact: true }));
   const two = await (await pendingTwo).json(); assert.equal(two.subtotalCents, 909000); assert.equal(two.lines[0].pricingTier, 'bundle');
   await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
+
+  // Simulate an existing allocation only in the asserted disposable native fixture.
+  // This is a read-path proof, not a claim that the cart creates reservations.
+  const positions = (await database.query(`SELECT position.id,position.quantity,position.held_quantity
+    FROM stone_inventory_positions position JOIN stone_asset_passports passport ON passport.id=position.asset_passport_id
+    WHERE passport.public_id=$1 AND position.holder_business_id=$2`, [fixture.cartStockId, fixture.businessId])).rows;
+  assert.equal(positions.length, 1); assert.equal(Number(positions[0].quantity), 3); assert.equal(Number(positions[0].held_quantity), 0);
+  async function setFixtureHeld(from, to) {
+    const updated = await database.query(`UPDATE stone_inventory_positions SET held_quantity=$4,version=version+1,updated_at=NOW()
+      WHERE id=$1::uuid AND holder_business_id=$2 AND quantity=3 AND held_quantity=$3 RETURNING id`,
+      [positions[0].id, fixture.businessId, from, to]);
+    assert.equal(updated.rows.length, 1, 'Synthetic held-stock fixture changed unexpectedly');
+  }
+  await setFixtureHeld(0, 2);
+  try {
+    const pendingHeld = nextReview(2);
+    await click(cart.getByRole('button', { name: 'Recheck total', exact: true }));
+    const heldResponse = await pendingHeld; assert.equal(heldResponse.status(), 200);
+    const held = await heldResponse.json();
+    assert.equal(held.materialReady, false); assert.equal(held.subtotalCents, null);
+    assert.equal(held.lines[0].availableQuantity, 1); assert.equal(held.lines[0].status, 'insufficient_quantity');
+    assert.equal(held.inventoryReserved, false); assert.equal(held.readyForCheckout, false);
+    await cart.getByText(/1 slabs? available/).waitFor();
+    assert.equal(await cart.getByTestId('jw-cart-reviewed-subtotal').count(), 0, 'Held stock must clear the former approved total');
+    assert.equal(await cart.getByTestId('jw-cart-line-total').count(), 0, 'Held stock must clear the former line price');
+    const lastSlabResponse = await context.request.post(base + reviewPath, { data: { lines: [{ inventoryPublicId: fixture.cartStockId, quantity: 1 }] } });
+    assert.equal(lastSlabResponse.status(), 200); const lastSlab = await lastSlabResponse.json();
+    assert.equal(lastSlab.subtotalCents, 505050); assert.equal(lastSlab.lines[0].availableQuantity, 1); assert.equal(lastSlab.lines[0].pricingTier, 'slab');
+    assert.equal(Number((await database.query('SELECT held_quantity FROM stone_inventory_positions WHERE id=$1::uuid', [positions[0].id])).rows[0].held_quantity), 2, 'Review must not release the existing allocation');
+    assert(!/held_quantity|heldQuantity|position_id|allocation_id|buyer_user_id/.test(JSON.stringify(held)), 'Private allocation details must not be projected');
+  } finally { await setFixtureHeld(2, 0); }
+  const pendingReleased = nextReview(2);
+  await click(cart.getByRole('button', { name: 'Recheck total', exact: true }));
+  const released = await (await pendingReleased).json();
+  assert.equal(released.subtotalCents, 909000); assert.equal(released.lines[0].availableQuantity, 3);
+  await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
+  console.log('JW_CART_HELD_STOCK_PROOF ' + JSON.stringify({ device, heldStockExcluded: true, staleTotalCleared: true, remainingSlabPriced: true, reviewLeftCounterUntouched: true, releasedStockRechecked: true }));
+
   const duplicate = await context.request.post(base + reviewPath, { data: { lines: [
     { inventoryPublicId: fixture.cartStockId, quantity: 2 }, { inventoryPublicId: fixture.cartStockId, quantity: 2 },
   ] } });
@@ -120,6 +158,7 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   await click(dialog.getByRole('button', { name: 'Close Direct Connect', exact: true }));
   await click(page.getByTestId('jw-stone-member-cart').getByRole('button', { name: 'Close cart', exact: true }));
   return { exactStockSelection: true, serverCheckedSubtotal: true, combinedStockQuantityChecked: true, quantityRateApplied: true,
+    heldStockExcluded: true, staleTotalCleared: true, reviewLeftCounterUntouched: true, releasedStockRechecked: true,
     reloadRetainsSelectionsAndFulfillment: true, noPersistentBrowserPrices: true, nativeCartQuoteSubmitted: true,
     privateRequestPersisted: true, selectedSupplierNotifiedInApp: true, contactRemainsPending: true,
     deliveryPreferencesPersisted: true, requestedDateNotPromised: true,
