@@ -11,6 +11,7 @@ import { requireCriticalSchema } from "../schemaPreflight";
 import { getJwStonePricingSnapshot, type JwStonePricingSnapshot } from "../services/jwStoneDrivePricing";
 import { resolveJwStonePricingAccess } from "../services/jwStonePricingAccess";
 import { getStoneInventoryProfileTarget, listSellerStoneInventory } from "../services/stoneInventoryService";
+import { loadJwStoneCartAvailability } from "../services/jwStoneCartAvailability";
 
 function requestUserId(req: Request): string {
   const user = req.user as { id?: unknown; claims?: { sub?: unknown } } | undefined;
@@ -108,24 +109,32 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
         }
         const target = await getStoneInventoryProfileTarget("jw-stone");
         if (!target) { res.status(503).json({ message: "JW Stone inventory is temporarily unavailable." }); return; }
-        const [inventory, snapshot] = await Promise.all([
+        const requestedLines = combineJwStoneCartLines(parsed.data.lines);
+        const [inventory, snapshot, availabilityByPublicId] = await Promise.all([
           listSellerStoneInventory(target),
           getJwStonePricingSnapshot({ forceRefresh: true }),
+          loadJwStoneCartAvailability(target.businessId, requestedLines.map((line) => line.inventoryPublicId)),
         ]);
         const inventoryByPublicId = new Map(inventory.map((item) => [item.id, item]));
         const priceByStoneKey = new Map(snapshot.prices.map((price) => [price.stoneKey, price]));
         let subtotalCents = 0;
-        const lines = combineJwStoneCartLines(parsed.data.lines).map((requested) => {
+        const lines = requestedLines.map((requested) => {
           const base = { inventoryPublicId: requested.inventoryPublicId, requestedQuantity: requested.quantity };
           const item = inventoryByPublicId.get(requested.inventoryPublicId);
           if (!item || !item.isSaleReady) return { ...base, status: "unavailable" as const };
-          const availableQuantity = Math.max(0, Math.floor(Number(item.quantity) || 0));
-          const known = { ...base, availableQuantity, materialName: item.materialName };
           // A container, block, or a count expressed in bundles is not a count of slabs.
           if ((item.assetKind !== "slab" && item.assetKind !== "bundle") ||
               !/^slabs?$/i.test(item.unit.trim()) || !Number.isSafeInteger(Number(item.quantity))) {
-            return { ...known, status: "slab_quantity_required" as const };
+            return { ...base, availableQuantity: 0, materialName: item.materialName, status: "slab_quantity_required" as const };
           }
+          const stock = availabilityByPublicId.get(requested.inventoryPublicId);
+          // Missing, ambiguous, changed or malformed allocation facts never mean all stock is free.
+          if (!stock || stock.inventoryPositionId !== item.inventoryPositionId ||
+              stock.physicalQuantity !== Number(item.quantity) || stock.unit.toLowerCase() !== item.unit.trim().toLowerCase()) {
+            return { ...base, status: "unavailable" as const };
+          }
+          const availableQuantity = stock.availableQuantity;
+          const known = { ...base, availableQuantity, materialName: item.materialName };
           if (requested.quantity > availableQuantity) return { ...known, status: "insufficient_quantity" as const };
           const price = priceByStoneKey.get(jwStonePriceKey(item.materialName));
           if (!price) return { ...known, status: "price_unavailable" as const };
