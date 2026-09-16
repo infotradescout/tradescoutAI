@@ -24,8 +24,27 @@ export interface ScoutActionHelpers {
   userRole?: string | null;
 }
 
+/**
+ * A resolved execution promise is consumed as completion by ScoutOS. Interruptions
+ * must therefore reject, not silently resolve and trigger the caller's Saved copy.
+ * These typed outcomes carry safe text through the existing action-status surface.
+ */
+export class ScoutActionExecutionInterruptedError extends Error {
+  readonly outcome: "cancelled" | "auth_required";
+
+  constructor(outcome: "cancelled" | "auth_required", isFollowUp = false) {
+    const message = outcome === "cancelled"
+      ? "Cancelled. This action was not submitted."
+      : "Sign in to complete this action.";
+    super(isFollowUp ? `${message} The earlier action may already be complete; check its status.` : message);
+    this.name = "ScoutActionExecutionInterruptedError";
+    this.outcome = outcome;
+  }
+}
+
 type GuardedActionResponse = {
   success?: boolean;
+  executed?: boolean;
   message?: string;
   nextAction?: ScoutAction;
 };
@@ -59,6 +78,9 @@ function isSensitiveScoutAction(action: ScoutAction): boolean {
 }
 
 function isPaymentExecutionAction(action: ScoutAction): boolean {
+  // A profile's display label cannot turn its typed, server-owned save into a
+  // payment handoff which would resolve without actually saving the profile.
+  if (action.type === "SAVE_PROFILE") return false;
   // Payment safety must not depend on a model-generated label being present.
   if (
     action.type === "START_COMMUNITY_VAULT_DONATION" ||
@@ -145,6 +167,14 @@ async function executeActionViaServerGuard(action: ScoutAction): Promise<{
       return {
         blocked: true,
         message: ok.message || "This action is blocked right now.",
+      };
+    }
+    // Authorization alone is not a write receipt. The real SAVE_PROFILE endpoint
+    // sets executed only after its storage update returns successfully.
+    if (action.type === "SAVE_PROFILE" && ok.executed !== true) {
+      return {
+        blocked: true,
+        message: "Scout could not confirm that your profile was saved. Check your profile before trying again.",
       };
     }
 
@@ -608,7 +638,7 @@ export async function executeScoutActions(
     if (!commandCheck.allowed) {
       if (commandCheck.reason === "auth_required") {
         helpers.navigate("/pre-scout-setup?mode=signin&next=%2Fscout");
-        continue;
+        throw new ScoutActionExecutionInterruptedError("auth_required", isFollowUp);
       }
       throw new Error("This Scout command is not available for your current account.");
     }
@@ -620,7 +650,7 @@ export async function executeScoutActions(
     // SAVE_PROFILE is performed inside the server guard, not the local dispatcher.
     // Confirmation must precede the request so cancellation cannot save anything.
     const approved = await confirmSensitiveAction(action, helpers);
-    if (!approved) continue;
+    if (!approved) throw new ScoutActionExecutionInterruptedError("cancelled", isFollowUp);
 
     const guarded = await executeActionViaServerGuard(action);
     if (guarded.blocked) {
