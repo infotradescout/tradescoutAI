@@ -18,7 +18,7 @@ import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnec
 import { JW_STONE_BRAND_STYLE } from "./brand";
 import { JW_STONE_CATALOG } from "./catalog";
 import { JwStoneFulfillmentDetailsFields, useJwStoneFulfillmentDetails } from "./JwStoneFulfillmentDetails";
-import { fulfillmentDetailsError, fulfillmentDetailsSummary } from "./fulfillmentDetails";
+import { JW_CART_QUOTE_MESSAGE_LIMIT, fulfillmentDetailsError, fulfillmentDetailsSummary } from "./fulfillmentDetails";
 
 const stockSchema = z.object({
   id: jwStoneInventoryPublicIdSchema,
@@ -139,7 +139,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
     ...(review?.materialReady && review.subtotalCents != null ? [`Material subtotal checked ${review.reviewedAt}: ${money(review.subtotalCents)}. Delivery and tax are not included; this is not a final quote.`] : []),
     "Please confirm stock, exact slab measurements, finish, final total, and availability before payment.",
   ].join("\n");
-  const canRequest = items.length > 0 && items.length <= JW_STONE_CART_REVIEW_MAX_LINES && validDestination && !fulfillmentError && requestMessage.length <= 5000;
+  const canRequest = items.length > 0 && items.length <= JW_STONE_CART_REVIEW_MAX_LINES && validDestination && !fulfillmentError && requestMessage.length <= JW_CART_QUOTE_MESSAGE_LIMIT;
 
   return <>
     <Dialog.Root open={!requestOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -222,7 +222,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
               {parsedRequest.success ? <button type="button" disabled={reviewQuery.isFetching} onClick={() => void reviewQuery.refetch()} className="min-h-11 flex-1 border border-[var(--jw-border)] px-3 text-sm disabled:opacity-40">Recheck total</button> : null}
               <button type="button" disabled={!canRequest} onClick={() => setRequestOpen(true)} className="min-h-11 flex-1 bg-[var(--jw-accent)] px-3 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-40" data-testid="jw-cart-request-quote">Request quote</button>
             </div>
-            {requestMessage.length > 5000 ? <p className="mt-2 text-xs">Please split this cart into smaller quote requests.</p> : null}
+            {requestMessage.length > JW_CART_QUOTE_MESSAGE_LIMIT ? <p className="mt-2 text-xs">Please split this cart into smaller quote requests.</p> : null}
             <button type="button" onClick={onClose} className="mt-2 min-h-11 w-full text-sm underline">Continue shopping</button>
           </div>
         </Dialog.Content>
