@@ -48,10 +48,20 @@ describe("getDirectConnectNextStepCopy", () => {
     expect(copy.label).toBe("Confirm outcome");
     expect(copy.summary).toContain("confirming what happened");
   });
+
+  it.each(["draft", "open", "routed", "in_progress", "pending_outcome", "completed", "cancelled"])(
+    "does not tell a requester that contact permission requires another acceptance in %s",
+    (status) => {
+      for (const fields of [{}, { dcSuggestedCount: 1 }, { dcAcceptedAssignmentId: "assignment-1" }]) {
+        const copy = getDirectConnectNextStepCopy({ status, ...fields });
+        expect(copy.summary).not.toContain("Contact opens only after acceptance");
+      }
+    }
+  );
 });
 
 describe("getDirectConnectInboxNextStepCopy", () => {
-  it("shows responder action without unlocking contact before acceptance", () => {
+  it("explains acceptance as opening a conversation, not obtaining requester contact permission", () => {
     const copy = getDirectConnectInboxNextStepCopy({
       assignmentStatus: "suggested",
       requestStatus: "routed",
@@ -63,7 +73,8 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       actionHint: "Prepare response",
       contactUnlocked: false,
     });
-    expect(copy.summary).toContain("Contact opens only after acceptance");
+    expect(copy.summary).toContain("open a conversation");
+    expect(copy.summary).not.toContain("Contact opens only after acceptance");
   });
 
   it("changes the primary action once the structured response form is open", () => {
@@ -86,9 +97,11 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       submissionContactAvailable: true,
     });
     expect(copy.summary).toContain("name and phone the sender shared with this request");
+    expect(copy.summary).toContain("to contact them about the work");
     expect(copy.summary).toContain(
       "Accept with your scope and availability to open a conversation"
     );
+    expect(copy.summary).not.toContain("View the name");
     expect(copy.actionHint).toBe("Prepare response");
     expect(copy.contactUnlocked).toBe(false);
   });

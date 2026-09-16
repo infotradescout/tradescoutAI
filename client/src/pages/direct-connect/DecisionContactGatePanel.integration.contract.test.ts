@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { projectDirectConnectRequesterContactState } from "@shared/directConnectRequesterContact";
 
 function read(filePath: string): string {
   return fs.readFileSync(path.resolve(process.cwd(), filePath), "utf8");
@@ -26,22 +27,17 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
     expect(source).not.toContain("r.releasedContact?.notes");
   });
 
-  it("keeps the presentation mapping on exact P2 state names", () => {
+  it("uses the shared read-only requester policy without manufacturing contact release", () => {
     const source = read("client/src/pages/direct-connect/requestCardPresentation.ts");
-
-    for (const state of [
-      "contact_hidden",
-      "provider_requested_contact",
-      "requester_approved",
-      "contact_released",
-      "denied",
-      "closed",
-    ]) {
-      expect(source).toContain(state);
+    const server = read("server/utils/workRequestShare.ts");
+    for (const state of ["locked", "contractor_requested", "user_approved", "request_shared"]) {
+      expect(projectDirectConnectRequesterContactState(state)).toBe("request_submission");
     }
-
-    expect(source).toContain('normalized === "contractor_requested"');
-    expect(source).toContain('normalized === "user_approved"');
+    for (const state of ["denied", "closed", "unexpected_state"]) {
+      expect(projectDirectConnectRequesterContactState(state)).toBe(state);
+    }
+    expect(source).toContain("projectDirectConnectRequesterContactState(contactGateState)");
+    expect(server).toContain("projectDirectConnectRequesterContactState(contactGateState)");
     expect(source).toContain('normalized === "released"');
     expect(source).toContain('contactState !== "contact_released"');
     expect(source).toContain('return "Review the request status before taking the next step."');

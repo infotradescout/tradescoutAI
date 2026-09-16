@@ -4,6 +4,8 @@
 remains the only email provider adapter. Normal assigned-provider request
 notifications may enroll email only for verified recipients with explicit
 New Requests Email consent and current canonical provider eligibility.
+This preference belongs to the provider receiving email; it is not a second
+requester approval to be contacted.
 
 ## Queue contract
 
@@ -38,21 +40,23 @@ worker-only, ambiguous, stale or unbound contexts cannot enroll email.
 Enrollment requires a verified address and explicit global notification/email
 flags plus the enabled `new_project_request` email preference. Missing or
 malformed preferences fail closed. The normal inbox/push intent is retained
-when email context or eligibility lookups fail. If explicit consent was read
-successfully before a transient eligibility error, the record marks that
-evaluation deferred; replaying the same event after recovery can add its one
-email job without another inbox/push alert. Later opt-ins do not backfill these
-already bound notifications, and replay never resets an existing terminal/unknown job. No
-background historical recovery batch is introduced. A failure before the
-event binding or initial consent is established retains the inbox alert but
-does not establish a recoverable email intent. If the context lookup itself
-fails, that fallback inbox record is unbound; a later successful normal producer
-replay can create a distinct bound notification under then-current consent.
+when email context or eligibility lookups fail. If explicit provider email
+consent was read successfully before a transient eligibility error, the record
+marks that evaluation deferred; replaying the same event after recovery can
+add its one email job without another inbox/push alert. Later provider opt-ins
+do not backfill already bound notifications, and replay never resets an
+existing terminal/unknown job. No background historical recovery batch is
+introduced. A failure before event binding or the initial provider preference
+is established retains the inbox alert but does not establish a recoverable
+email intent. If the context lookup itself fails, that fallback inbox record is
+unbound; a later successful normal producer replay can create a distinct bound
+notification under the provider's then-current email preference.
 
 At drain, the worker revalidates the exact binding and canonical county/trade/
-trust eligibility. After asynchronous eligibility checks, it reloads the
-binding and guards the submission transition with current request/assignment,
-verified recipient address, notification state and every stored consent row.
+trust eligibility. After asynchronous eligibility and email-content resolution,
+it reloads the binding and guards the submission transition with the current
+request/assignment, the request modification timestamp, verified recipient
+address, notification state and every stored provider email-preference row.
 Withdrawal, acceptance, reassignment, opt-out or changed verification/address
 during validation cancels submission. Changed eligibility context safely
 retries validation. Lease IDs prevent a superseded worker from submitting or
@@ -60,11 +64,42 @@ overwriting the current worker's receipt.
 
 Producer delivery methods are the maximum allowed set; preferences only narrow
 it. In-app-only staff oversight stays in app. Preference mutations bind to the
-authenticated user rather than accepting a submitted owner ID. Direct Connect
-email is a neutral signed-in inbox pointer and omits request titles, messages,
-contact details and reply-to addresses. HTML is escaped and action links are
-restricted to the configured application origin. These contact and ownership
-invariants are **enforced** by service behavior and the focused tests.
+authenticated user rather than accepting a submitted owner ID.
+
+### Request submission authorizes request-related contact
+
+The owner rule in #665 is explicit: submitting a Direct Connect request gives
+its assigned providers permission to contact the requester about that request.
+There is no second requester-release decision for this assigned-provider email.
+Do not restore the former blanket rule that every Direct Connect email must
+omit the request and contact information.
+
+For a validated invitation, the email subject identifies the request. Its HTML
+and plain-text bodies contain the full stored scope, requester name/phone/email,
+category, resolved trade and county/state, supplied budget, and photo/file count.
+The exact workspace link is `/direct-connect/inbox?selected=<assignmentId>` in
+both the message and its action button. The assignment ID, not the request ID,
+owns incoming-workspace selection. HTML is escaped and preserves multiline
+scope; action URLs stay on the configured application origin.
+
+Normal authenticated requests resolve contact from the requester's account ID.
+An Express request with a valid creation snapshot instead uses the contact
+entered for that request. Invalid, ambiguous or mismatched Express snapshots
+cancel delivery rather than exposing another matched account's saved contact.
+Submitting a request does not authorize public disclosure or delivery to an
+unassigned provider. Public/share projections remain redacted.
+
+Optional job address and timing values are rendered when present in the resolved
+request. An account address is not substituted for the job site. Structured
+address/timing intake across all request creators remains to be verified.
+Photos and files are available through the exact request link; physical email
+file attachments and copying private object URLs into the message are not
+implemented. No requester reply-to header is added by this slice.
+
+The generic inbox-pointer fallback remains for unbound lifecycle notifications;
+this change repairs validated new-request invitations, not every lifecycle
+notification. Older in-app second-release controls are still unfinished work
+under the same owner rule, not a requirement that this email path reinstates.
 
 ## Delivery evidence and recovery
 
@@ -130,12 +165,13 @@ enum columns are accepted and preserved. The varchar representation does not
 enforce the enum's value list at the database layer. Server-owned producer,
 binding and recipient checks remain the authority for email eligibility.
 
-The full migration journal and verifier passed against a fresh disposable
-PostgreSQL 18.4 database. Native proof covers missing/drifted schema rejection,
-repeat migration preservation, transaction rollback, two separate Node workers
-claiming disjoint batches while skipping a locked job, expired validation and
-submission leases, and superseded receipt writes. All email adapters were
-mocked; this does not attest production schema or external provider delivery.
+The original outbox migration journal and verifier passed against a fresh
+disposable PostgreSQL 18.4 database. That historical native proof covers
+missing/drifted schema rejection, repeat migration preservation, transaction
+rollback, two separate Node workers claiming disjoint batches while skipping a
+locked job, expired validation and submission leases, and superseded receipt
+writes. All email adapters were mocked; those prior results do not attest the
+new email candidate, production schema or external provider delivery.
 
 To repeat the native proof, supply a dedicated loopback `TEST_DATABASE_URL`
 whose database name explicitly identifies it as a test database. Set
@@ -170,3 +206,41 @@ that actively dispatch the same scheduled notifications during cutover: the
 older inline sender does not participate in the durable claim. Queue draining,
 provider receipt reconciliation, and a controlled authorized external delivery
 check remain operational release evidence, not conclusions from local tests.
+
+## September 15, 2026 assigned-provider email acceptance
+
+Executed source: `fd6865c46956d4011cd9e44709b97bcb6b75f41f` in PR #666.
+Render isolated check: service `srv-dakr4ctbedkc73c73ma0`, deploy
+`dep-dakr4dtbedkc73c73s3g`, Node 24.14.1 and npm 10.8.2.
+
+A clean temporary clone was checked out from the exact Git object before
+installation. The initial attempt on the hosting checkout failed before tests
+because Render changed shell-file executable bits; that failed attempt is not
+counted as acceptance and no source-check exemption was added.
+
+The clean run completed fresh `npm ci --include=dev`, all 10 formatter tests,
+all 80 tests across the following four suites, the full application
+`npm run check`, and the final tracked-source diff check:
+
+- `server/tests/notification-email-outbox.behavior.test.ts`
+- `server/tests/direct-connect-provider-email-producers.contract.test.ts`
+- `server/tests/express-request-contact-delivery.behavior.test.ts`
+- `server/tests/work-request-social-preview.test.ts`
+
+The successful marker was emitted at `2026-09-15T21:03:33.717Z`. The outbox
+suite uses disposable PGlite and the actual service SQL/transactions with email
+and eligibility providers mocked. It proves contact/scope payloads, exact links,
+HTML/text parity, invalid Express snapshots, changed assignment/request state,
+queue recovery and no automatic resend after uncertain submission. It does not
+prove standalone PostgreSQL contention, production mailbox delivery or every
+request creation/browser path. The focused test service is not the application.
+
+Installation reported nine dependency advisories (five moderate, four high).
+They were not investigated or cleared by this email-specific run; a passing
+functional check is not a clean dependency audit or release authorization.
+The production build, complete minimum-release gate, remaining in-app contact
+flow corrections and controlled production delivery remain unfinished. No
+production database, customer/provider email or main branch was modified.
+
+Resume from PR #666's existing branch. The post-test commits only update this
+runbook; the four tested email implementation/test blobs remain unchanged.

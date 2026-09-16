@@ -1,5 +1,6 @@
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
+import { projectDirectConnectRequesterContactState } from "@shared/directConnectRequesterContact";
 import { z } from "zod";
 
 const expressRequestSubmittedContactSchema = z.object({
@@ -53,6 +54,11 @@ export function normalizeDirectConnectReleasedContact(
   return hasReleasedContact ? normalized : null;
 }
 
+/**
+ * Read-only projection for authenticated requester list/detail cards. Historical
+ * dispatch approval states must not ask the sender to approve contact a second
+ * time. This changes neither the stored dispatch nor provider/contact authority.
+ */
 export function serializeDirectConnectCardContactGatePayload(args: {
   contactGateState?: unknown;
   releasedContact?: DirectConnectReleasedContactPayload | null;
@@ -61,14 +67,16 @@ export function serializeDirectConnectCardContactGatePayload(args: {
   releasedContact?: DirectConnectReleasedContactPayload;
 } {
   const contactGateState =
-    String(args.contactGateState || "")
-      .trim()
-      .toLowerCase() || "locked";
+    typeof args.contactGateState === "string"
+      ? args.contactGateState.trim().toLowerCase()
+      : args.contactGateState;
   const payload: {
     contactGateState: string;
     releasedContact?: DirectConnectReleasedContactPayload;
-  } = { contactGateState };
+  } = { contactGateState: projectDirectConnectRequesterContactState(contactGateState) };
 
+  // Preserve only already-released historical payloads. The new informational
+  // request_submission state must never be mistaken for raw-contact authority.
   if (contactGateState === "released" || contactGateState === "contact_released") {
     const releasedContact = normalizeDirectConnectReleasedContact(args.releasedContact);
     if (releasedContact) {

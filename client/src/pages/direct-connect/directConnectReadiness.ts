@@ -100,7 +100,7 @@ export function getDirectConnectNextStepCopy(
   if (readiness.state === "has_direct_connect_reply_to_review") {
     return {
       label: "Review replies",
-      summary: "Review the response in Direct Connect. Contact opens only after acceptance.",
+      summary: "Review each provider's scope and availability. Accept a response to open its Messages conversation.",
       actionHint: "Review replies",
       contactUnlocked: false,
     };
@@ -136,8 +136,8 @@ export function getDirectConnectInboxNextStepCopy(
     return {
       label: "Respond to request",
       summary: item.submissionContactAvailable
-        ? "View the name and phone the sender shared with this request. Accept with your scope and availability to open a conversation, or archive it."
-        : "Accept with your scope and availability, or archive it. Contact opens only after acceptance.",
+        ? "Use the name and phone the sender shared with this request to contact them about the work. Accept with your scope and availability to open a conversation, or archive it."
+        : "Accept with your scope and availability to open a conversation, or archive it.",
       actionHint: item.isStructuredReplyOpen ? "Accept and open conversation" : "Prepare response",
       contactUnlocked: false,
     };

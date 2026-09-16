@@ -18,7 +18,12 @@ const fixture = vi.hoisted(() => ({
   database: null as import("@electric-sql/pglite").PGlite | null,
   sendEmail: vi.fn(),
   eligible: vi.fn(),
+  county: vi.fn(),
 }));
+vi.mock("../storage", () => ({ storage: {
+  getCountyByFips: fixture.county,
+  getTradeBySlug: async () => ({ name: "Fixture trade" }),
+} }));
 vi.mock("../db", async () => {
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
@@ -88,6 +93,7 @@ beforeEach(async () => {
     "TRUNCATE work_requests, work_request_assignments, work_request_events, contractors, businesses"
   );
   fixture.eligible.mockReset().mockResolvedValue(true);
+  fixture.county.mockReset().mockResolvedValue({ name: "Fixture County" });
   service.configureDirectConnectEmailEligibility(fixture.eligible);
   await fixture.database!.query(
     "INSERT INTO users (id, email, first_name) VALUES ('owner', 'owner@example.com', '<Owner>')"
@@ -311,6 +317,7 @@ describe("durable notification email outbox", () => {
       await service.processEmailDeliveryJobs();
       await service.processEmailDeliveryJobs();
       expect((await jobs())[0].status).toBe(disposition === "unknown" ? "unknown" : "failed");
+      expect(fixture.sendEmail).not.toHaveBeenCalledTimes(2);
       expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
     }
   );
@@ -384,6 +391,8 @@ describe("durable notification email outbox", () => {
 async function seedProviderInvitation(kind: "contractor" | "business" = "contractor") {
   await fixture.database!.exec(`
     UPDATE users SET email_verified = true;
+    INSERT INTO users (id, email, first_name, last_name, phone)
+      VALUES ('requester', 'requester@example.com', 'Request', 'Owner', '985-555-0100');
     INSERT INTO work_requests (id, created_by_user_id, source, status, title, description, attachments, county_fips)
       VALUES ('request-1', 'requester', 'direct_connect', 'routed', 'Private 555-123-4567', 'Private details', '[]', '12001');
     INSERT INTO contractors (id, user_id, company_name, slug) VALUES ('contractor-1', 'owner', 'Fixture', 'fixture');
@@ -587,11 +596,18 @@ describe("normal Direct Connect provider email activation", () => {
       });
       await service.processEmailDeliveryJobs();
       expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
-      expect(fixture.sendEmail.mock.calls[0][0]).toMatchObject({
+      const payload = fixture.sendEmail.mock.calls[0][0];
+      expect(payload).toMatchObject({
         purpose: "notification",
-        subject: "Direct Connect update",
+        subject: "Direct Connect: Private 555-123-4567",
+        to: "owner@example.com",
       });
-      expect(fixture.sendEmail.mock.calls[0][0].html).not.toMatch(/555-123-4567|buyer@example.com/);
+      for (const body of [payload.html, payload.text]) {
+        for (const detail of ["Private details", "Request Owner", "985-555-0100", "requester@example.com", "Fixture County", "selected=assignment-1"]) {
+          expect(body).toContain(detail);
+        }
+        expect(body).not.toContain("buyer@example.com");
+      }
       expect(fixture.eligible).toHaveBeenCalledTimes(3);
       expect(fixture.eligible.mock.lastCall?.[0].request.countyFips).toBe("12001");
     }
@@ -687,5 +703,60 @@ describe("normal Direct Connect provider email activation", () => {
     await service.processEmailDeliveryJobs();
     expect((await jobs())[0].status).toBe("cancelled");
     expect(fixture.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("preserves full multiline scope, budget and attachment count in the actual email payload", async () => {
+    await seedProviderInvitation();
+    await fixture.database!.query(
+      "UPDATE work_requests SET description = $1, budget_min = 4000, budget_max = 6000, attachments = $2 WHERE id = 'request-1'",
+      ['Measure 120 x 26 inches.\nKeep <all> supplied details.\nCall 985-555-0100.', JSON.stringify(['private/photo-1', 'private/plan-2'])]
+    );
+    await notifyProvider();
+    await service.processEmailDeliveryJobs();
+    const payload = fixture.sendEmail.mock.calls[0][0];
+    expect(payload.text).toContain('Measure 120 x 26 inches.\nKeep <all> supplied details.');
+    expect(payload.html).toContain('Measure 120 x 26 inches.<br>Keep &lt;all&gt; supplied details.');
+    for (const body of [payload.text, payload.html]) {
+      expect(body).toContain('$4,000-$6,000');
+      expect(body).toContain('Photos / files: 2');
+      expect(body).not.toContain('private/photo-1');
+    }
+  });
+
+  it("cancels when the request is withdrawn while its email details are being resolved", async () => {
+    await seedProviderInvitation();
+    await notifyProvider();
+    fixture.county.mockImplementationOnce(async () => {
+      await fixture.database!.exec("UPDATE work_requests SET status = 'cancelled' WHERE id = 'request-1'");
+      return { name: "Fixture County" };
+    });
+    await service.processEmailDeliveryJobs();
+    expect(fixture.sendEmail).not.toHaveBeenCalled();
+    expect((await jobs())[0].status).toBe('cancelled');
+  });
+
+  it.each([true, false])("uses only the request's Express contact snapshot; valid=%s", async (valid) => {
+    await seedProviderInvitation();
+    await fixture.database!.exec("UPDATE work_requests SET source_ref_id = 'profile-1' WHERE id = 'request-1'");
+    await fixture.database!.query(
+      "INSERT INTO work_request_events (id, work_request_id, actor_user_id, type, metadata) VALUES ('created-1', 'request-1', 'requester', 'created', $1)",
+      [JSON.stringify({ source: 'tradepartner_profile', connectionMode: 'express', profileId: 'profile-1',
+        requesterContact: { name: 'Submitted Person', email: 'submitted@example.com', phone: valid ? '985-555-0109' : 'bad', consent: 'share_with_selected_business' } })]
+    );
+    await notifyProvider();
+    await service.processEmailDeliveryJobs();
+    if (!valid) {
+      expect(fixture.sendEmail).not.toHaveBeenCalled();
+      expect((await jobs())[0].status).toBe('cancelled');
+      return;
+    }
+    const payload = fixture.sendEmail.mock.calls[0][0];
+    for (const body of [payload.text, payload.html]) {
+      expect(body).toContain('Submitted Person');
+      expect(body).toContain('submitted@example.com');
+      expect(body).toContain('985-555-0109');
+      expect(body).not.toContain('requester@example.com');
+      expect(body).not.toContain('985-555-0100');
+    }
   });
 });
