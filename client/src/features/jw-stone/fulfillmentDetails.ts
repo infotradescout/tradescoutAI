@@ -13,6 +13,8 @@ export const EMPTY_FULFILLMENT_DETAILS: JwStoneFulfillmentDetails = Object.freez
   requestedDate: "", timePreference: "flexible", destinationType: "not_specified",
   addressLine: "", city: "", stateCode: "", unloading: "not_specified", notes: "",
 });
+// Express accepts 3000 characters including its added customer-role prefix.
+export const JW_CART_QUOTE_MESSAGE_LIMIT = 2900;
 export const fulfillmentDetailsKey = (viewerId: string) =>
   `tradescout:jw-stone:delivery-details:v1:${viewerId}`;
 
@@ -29,6 +31,14 @@ export function requestedDateError(value: string, today = localCalendarDate()): 
     return "Enter a valid requested date.";
   }
   return value < today ? "Choose today or a future date, or leave the date blank for flexible timing." : null;
+}
+
+/** A written calendar date remains readable without changing phone/email redaction. */
+export function formatRequestedDate(value: string): string {
+  if (requestedDateError(value, "0000-01-01") || !value) return "Date to be confirmed";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long", day: "numeric", year: "numeric", timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00.000Z`));
 }
 
 function boundedString(value: unknown, max: number): value is string {
@@ -49,7 +59,6 @@ export function parseFulfillmentDetails(raw: string): JwStoneFulfillmentDetails 
         !["flexible", "morning", "afternoon"].includes(value.timePreference) ||
         !["not_specified", "business", "jobsite", "residential"].includes(value.destinationType) ||
         !["not_specified", "equipment_available", "needs_arrangement"].includes(value.unloading)) return null;
-    // Pick known fields: a saved draft cannot inject price, authority, or promised dates.
     return {
       requestedDate: value.requestedDate, timePreference: value.timePreference,
       destinationType: value.destinationType, addressLine: value.addressLine,
@@ -73,7 +82,7 @@ export function fulfillmentDetailsError(details: JwStoneFulfillmentDetails, meth
 export function fulfillmentDetailsSummary(details: JwStoneFulfillmentDetails, method: "pickup" | "delivery"): string[] {
   const action = method === "pickup" ? "pickup" : "delivery";
   const lines = [details.requestedDate
-    ? `Requested ${action} date: ${oneLine(details.requestedDate)} (preference only; JW Stone must confirm).`
+    ? `Requested ${action} date: ${formatRequestedDate(details.requestedDate)} (preference only; JW Stone must confirm).`
     : `Requested ${action} timing: flexible; arrange with JW Stone.`];
   if (details.timePreference !== "flexible") lines.push(`Preferred time of day: ${details.timePreference} at the ${method === "pickup" ? "pickup" : "delivery"} location; not a scheduled appointment.`);
   if (method === "delivery") {
