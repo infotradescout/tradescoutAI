@@ -20,7 +20,7 @@ export const PERSONAS = Object.freeze([
   { name: 'business-owner', role: 'business_owner' },
   // Community participation uses an ordinary personal account, not a new role.
   { name: 'community-member', role: 'homeowner' },
-  { name: 'support-agent', role: 'support_agent' },
+  { name: 'moderator', role: 'moderator' },
   { name: 'operations-admin', role: 'ops_admin' },
   { name: 'super-admin', role: 'super_admin' },
 ].map(persona => Object.freeze({ onboarding: true, emailVerified: true,

@@ -1,7 +1,7 @@
 # Scout smoke accounts and interaction coverage
 
 ## Scope
-The opt-in native extension is configured for **30 new accounts: 15 personas on desktop and mobile**. It covers new/incomplete users, unverified homeowners, separate same-county owners, another county, buyers/sellers, property managers, contractor accounts, businesses, community users, support staff, operations administrators and super administrators.
+The opt-in native extension is configured for **30 new accounts: 15 personas on desktop and mobile**. It covers new/incomplete users, unverified homeowners, separate same-county owners, another county, buyers/sellers, property managers, contractor accounts, businesses, community users, moderators, operations administrators and super administrators.
 
 These are identity fixtures, not provider approvals, JW memberships or financial entitlements. A business login cannot count as proof of supplier access.
 

@@ -11,13 +11,14 @@ const goodTarget = { base: 'https://127.0.0.1:5448',
   databaseName: 'cabinet_placement_test', serverAddress: '127.0.0.1', proofTable: true };
 const hash = '$2b$12$' + 'a'.repeat(53);
 const commit = 'a'.repeat(40);
+const fixtureRoles = ['homeowner', 'property_manager', 'contractor_user', 'business_owner', 'moderator', 'ops_admin', 'super_admin'];
 
 function fixture(options = {}) {
   const calls = [], inserted = [];
   const sql = { async query(text, values) {
     calls.push({ text, values });
     if (text.includes('current_database()')) return { rows: [{ database_name: options.databaseName || 'cabinet_placement_test', server_address: '127.0.0.1', proof_table: options.proofTable !== false }] };
-    if (text.includes('FROM pg_enum')) return { rows: (options.roles || [...new Set(PERSONAS.map(item => item.role))]).map(role => ({ role })) };
+    if (text.includes('FROM pg_enum')) return { rows: (options.roles || fixtureRoles).map(role => ({ role })) };
     if (text.startsWith('INSERT INTO users')) {
       if (options.failAt === inserted.length) throw new Error('Injected insert failure');
       const [id, email, , , , role, onboarding, , emailVerified, addressVerified, countyFips] = values;
@@ -196,4 +197,11 @@ test('unknown personas cannot contribute passing cases', () => {
 test('undeclared viewports cannot contribute passing cases', () => {
   const ledger = newLedger(commit), actor = buildAccounts(runId)[0];
   assert.throws(() => recordCase(ledger, { ...actor, viewport: { name: 'unknown' } }, IMPLEMENTED_ACCOUNT_JOURNEYS[0], 1));
+});
+
+test('community and moderation fixtures use existing roles without invented staff authority', () => {
+  assert.equal(PERSONAS.find(p => p.name === 'community-member')?.role, 'homeowner');
+  assert.equal(PERSONAS.find(p => p.name === 'moderator')?.role, 'moderator');
+  assert(PERSONAS.every(p => fixtureRoles.includes(p.role)));
+  assert(!PERSONAS.some(p => p.name === 'support-agent'));
 });
