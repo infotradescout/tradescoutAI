@@ -75,7 +75,8 @@ function statusCopy(kind: ScoutWorkKind, status: string, confirmed: boolean): {
     approved: "Approved", sourcing: "Finding materials", purchasing: "Purchasing", dispatched: "Dispatched",
     picked_up: "Picked up", out_for_delivery: "Out for delivery", delivered: "Marked delivered",
   };
-  if (activeLabels[status]) return { state: "active", statusLabel: activeLabels[status], detail: "Open this item to review its latest details and available next steps." };
+  const activeLabel = Object.prototype.hasOwnProperty.call(activeLabels, status) ? activeLabels[status] : null;
+  if (activeLabel) return { state: "active", statusLabel: activeLabel, detail: "Open this item to review its latest details and available next steps." };
   return { state: "unknown", statusLabel: "Review status", detail: "Open the owning workspace to check the current status. Scout has not marked this completed." };
 }
 
@@ -91,6 +92,7 @@ export function projectScoutWorkItem(kind: ScoutWorkKind, row: Record<string, un
     if (typeof row.county_fips === "string" && /^\d{5}$/.test(row.county_fips)) params.set("county", row.county_fips);
     to = `/direct-connect/active?${params}`; label = "Open request";
   } else if (kind === "supply_runs") {
+    if (!/^[a-zA-Z0-9:_-]+$/.test(id)) return null;
     title = `Supply run ${cleanText(row.order_number, "", 50)}`.trim();
     to = `/utilities/supply-run/${encodeURIComponent(id)}`; label = "Open supply run";
   } else if (kind === "home_projects") {
