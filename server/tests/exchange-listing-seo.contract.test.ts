@@ -349,8 +349,13 @@ describe("server/routes/profiles.ts sitemap-exchange-listings.xml", () => {
     expect(src).toContain("offer_type = 'item'");
   });
 
-  it("uses getExchangeCategorySlugFromMarketplaceCategoryName to resolve slugs", () => {
-    expect(src).toContain("getExchangeCategorySlugFromMarketplaceCategoryName");
+  it("reuses the detail renderer's persisted category policy without invented sitemap slugs", () => {
+    const marker = 'router.get("/sitemap-exchange-listings.xml"';
+    expect(src.indexOf(marker)).toBeGreaterThanOrEqual(0);
+    const sitemap = src.slice(src.indexOf(marker));
+    expect(sitemap).toContain('await import("../publicExchangeListingHtml")');
+    expect(sitemap).toContain('resolvePersistedExchangeCategorySlug({}, listing.categoryName)');
+    expect(sitemap).not.toContain('slugifyCategory(listing.categoryName)');
   });
 
   it("builds URLs in /exchange/:categorySlug/:id format", () => {
