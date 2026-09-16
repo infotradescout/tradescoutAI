@@ -93,7 +93,7 @@ try {
   child = spawn(process.execPath, ['dist/index.js'], { env: {
     PATH: process.env.PATH, HOME: temp, TMPDIR: temp, ...environment,
     SESSION_SECRET: sessionSecret, PORT: '5238', HOST: '127.0.0.1',
-    PUBLIC_WEB_URL: base, RENDER: 'false', GIT_COMMIT: head,
+    PUBLIC_WEB_URL: base, CORS_ALLOWED_ORIGINS: base, RENDER: 'false', GIT_COMMIT: head,
     NODE_OPTIONS: '--max-old-space-size=4096', EMAIL_MODE: 'account_creation_only', DISABLE_FACEBOOK_AUTH: 'true',
   }, stdio: ['ignore', serverLog.fd, serverLog.fd] });
   await waitForServer();
