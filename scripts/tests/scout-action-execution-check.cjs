@@ -26,7 +26,7 @@ function compile(relative) {
   }
   return compiled.get(relative);
 }
-const response = (body = { success: true }, status = 200) => ({
+const response = (body = { success: true, executed: true }, status = 200) => ({
   ok: status >= 200 && status < 300, status, json: async () => body,
 });
 const save = () => ({ type: "SAVE_PROFILE", payload: { profilePatch: { firstName: "Jane" } } });
@@ -110,7 +110,7 @@ for (const explicit of [false, true]) {
     const h = harness({ approved: false });
     const action = save();
     if (explicit) action.payload.requiresApproval = true;
-    await h.execute([action]);
+    await assert.rejects(h.execute([action]), { name: "ScoutActionExecutionInterruptedError", outcome: "cancelled" });
     assert.equal(h.of("confirm").length, 1);
     assert.equal(h.requests().length, 0);
   });
@@ -123,7 +123,7 @@ test("approved profile save is authenticated and confirms before the guard", asy
 });
 test("guest profile save routes to sign-in without approval or write requests", async () => {
   const h = harness({ authenticated: false });
-  await h.execute([save()]);
+  await assert.rejects(h.execute([save()]), { name: "ScoutActionExecutionInterruptedError", outcome: "auth_required" });
   assert.equal(h.requests().length, 0);
   assert.equal(h.of("confirm").length, 0);
   assert.match(h.of("navigate")[0][1], /mode=signin/);
@@ -141,7 +141,7 @@ test("pending approval cannot start a profile save", async () => {
 for (const action of [feedback(), { type: "EXTERNAL_LINK", to: "https://example.invalid" }]) {
   test(`explicit approval is respected for ${action.type}`, async () => {
     const h = harness({ approved: false });
-    await h.execute([{ ...action, payload: { ...action.payload, requiresApproval: true } }]);
+    await assert.rejects(h.execute([{ ...action, payload: { ...action.payload, requiresApproval: true } }]), { outcome: "cancelled" });
     assert.equal(h.of("confirm").length, 1);
     assert.equal(h.requests().length, 0);
     assert.equal(h.of("open").length, 0);
@@ -200,7 +200,7 @@ for (const [type, adapter] of [["FOLLOW_USER", "follow"], ["UNFOLLOW_USER", "unf
   const action = type === "SEND_ADMIN_BROADCAST" ? broadcast() : { type, payload: { userId: "user_1" } };
   test(`${type} cancellation produces no guard request or write`, async () => {
     const h = harness({ approved: false });
-    await h.execute([action]);
+    await assert.rejects(h.execute([action]), { outcome: "cancelled" });
     assert.equal(h.requests().length, 0);
     assert.equal(h.of(adapter).length, 0);
   });
@@ -272,14 +272,14 @@ test("server-provided follow-up cannot bypass admin role checks", async () => {
 });
 test("server-provided follow-up save runs only after its own confirmation and guard", async () => {
   let count = 0;
-  const h = harness({ fetch: async () => response(++count === 1 ? { success: true, nextAction: save() } : { success: true }) });
+  const h = harness({ fetch: async () => response(++count === 1 ? { success: true, nextAction: save() } : { success: true, executed: true }) });
   await h.execute([{ type: "NAVIGATE", to: "/profile-settings" }]);
   assert.deepEqual(h.calls.map((c) => c[0]), ["fetch", "navigate", "confirm", "fetch"]);
   assert.equal(JSON.parse(h.requests()[1][2].body).action.type, "SAVE_PROFILE");
 });
 test("cancelled follow-up cannot call its execution guard", async () => {
   const h = harness({ approved: false, fetch: async () => response({ success: true, nextAction: save() }) });
-  await h.execute([{ type: "NAVIGATE", to: "/profile-settings" }]);
+  await assert.rejects(h.execute([{ type: "NAVIGATE", to: "/profile-settings" }]), { outcome: "cancelled" });
   assert.equal(h.requests().length, 1);
 });
 test("follow-up guard denial prevents its local write", async () => {
