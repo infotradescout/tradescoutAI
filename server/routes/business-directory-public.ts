@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { toPublicBusinessCardDetails } from "../../shared/publicBusinessCard";
+import { enrichPublicBusinessCards } from "../services/publicBusinessCardEnrichment";
 import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
@@ -300,7 +301,7 @@ router.get("/api/businesses", async (req, res, next) => {
         }
       }
 
-      const items = Array.from(grouped.values());
+      const items = await enrichPublicBusinessCards(Array.from(grouped.values()));
       return {
         status: 200,
         body: {

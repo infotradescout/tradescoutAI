@@ -11,6 +11,15 @@ export type PublicBusinessCardDetails = {
   importedRating: { average: number; reviewCount: number } | null;
 };
 
+export type PublicBusinessProfilePreview = {
+  businessId: string;
+  profileSlug: string;
+  headline: string;
+  logoUrl: string | null;
+  coverImageUrl: string | null;
+  gallery: Array<{ imageUrl: string; title: string; path: string }>;
+};
+
 export type PublicDirectoryBusiness = {
   id: string;
   name: string;
@@ -20,7 +29,28 @@ export type PublicDirectoryBusiness = {
   claimStatus?: string;
   counties?: Array<{ fips: string; stateCode: string; name: string }>;
   card?: PublicBusinessCardDetails | null;
+  profilePreview?: PublicBusinessProfilePreview | null;
 };
+
+/** Directory previews reuse public static assets, never signed URLs or authenticated media routes. */
+export function normalizePublicBusinessPreviewImage(value: unknown): string | null {
+  if (typeof value !== "string" || /[\u0000-\u001f\u007f\\]/.test(value)) return null;
+  const candidate = value.trim();
+  if (!candidate || candidate.length > 2048 || /\s/.test(candidate)) return null;
+  try {
+    const url = new URL(candidate, "https://www.thetradescout.com");
+    if (
+      url.protocol !== "https:" || url.username || url.password || url.search || url.hash ||
+      !["www.thetradescout.com", "thetradescout.com"].includes(url.hostname) || url.port ||
+      candidate.startsWith("//") ||
+      /%(?:2e|2f|5c|00|25)/i.test(url.pathname) ||
+      !/^\/(?:images|attached_assets|assets)\/[a-z0-9_./%-]+\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(url.pathname)
+    ) return null;
+    return url.pathname;
+  } catch {
+    return null;
+  }
+}
 
 function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)

@@ -2,6 +2,7 @@ import { ArrowUpRight, Building2, ChevronDown, MapPin, Star } from "lucide-react
 import { Link } from "wouter";
 import { ShareButton } from "@/components/ShareButton";
 import {
+  normalizePublicBusinessPreviewImage,
   readPublicBusinessImportedRating,
   type PublicDirectoryBusiness,
 } from "@shared/publicBusinessCard";
@@ -11,8 +12,18 @@ import { sanitizePublicProfileText } from "@shared/publicListingSafety";
 export function PublicBusinessCard({ business }: { business: PublicDirectoryBusiness }) {
   const card = business.card;
   const name = sanitizePublicProfileText(business.name, 200) || "Business profile";
+  const preview = business.profilePreview?.businessId === business.id &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(business.profilePreview.profileSlug)
+    ? business.profilePreview : null;
+  const cover = normalizePublicBusinessPreviewImage(preview?.coverImageUrl);
+  const logo = normalizePublicBusinessPreviewImage(preview?.logoUrl);
+  const photos = Array.isArray(preview?.gallery) ? preview.gallery.slice(0, 3).filter((photo) =>
+    normalizePublicBusinessPreviewImage(photo.imageUrl) &&
+    typeof photo.path === "string" &&
+    new RegExp(`^/u/${preview.profileSlug}/[a-z0-9/-]+$`).test(photo.path)
+  ) : [];
   const category = sanitizePublicProfileText(card?.category, 100);
-  const tagline = sanitizePublicProfileText(card?.tagline, 180);
+  const tagline = sanitizePublicProfileText(card?.tagline || preview?.headline, 180);
   const description = sanitizePublicProfileText(card?.description, 1200);
   const services = Array.isArray(card?.services)
     ? [...new Set(card.services.map((value) => sanitizePublicProfileText(value, 100)).filter(Boolean))].slice(0, 12)
@@ -33,13 +44,21 @@ export function PublicBusinessCard({ business }: { business: PublicDirectoryBusi
   return (
     <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/15 bg-[linear-gradient(135deg,rgba(249,115,22,0.08),rgba(15,23,42,0.98)_48%)] text-white shadow-lg transition-colors hover:border-orange-400/50 motion-reduce:transition-none"
       data-testid="public-business-card">
+      {cover ? <Link href={destination} aria-label={`View ${name} profile photos`}
+        className="relative block aspect-[16/9] overflow-hidden bg-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-orange-300">
+        <img key={cover} src={cover} alt={`${name} profile photo`} loading="lazy" decoding="async" referrerPolicy="no-referrer"
+          onError={(event) => { event.currentTarget.hidden = true; }}
+          className="h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03] motion-reduce:transition-none" />
+      </Link> : null}
       <div className="flex min-w-0 items-start gap-4 border-b border-white/10 p-5 sm:p-6">
-        <div aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-400/25 bg-orange-400/10 text-orange-300">
-          <Building2 className="h-6 w-6" />
+        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-orange-400/25 bg-orange-400/10 text-orange-300">
+          <Building2 aria-hidden="true" className="h-6 w-6" />
+          {logo ? <img key={logo} src={logo} alt={`${name} logo`} loading="lazy" decoding="async" referrerPolicy="no-referrer"
+            onError={(event) => { event.currentTarget.hidden = true; }} className="absolute inset-0 h-full w-full bg-white object-contain p-1.5" /> : null}
         </div>
         <div className="min-w-0 flex-1">
           {category ? <p className="mb-2 break-words text-xs font-bold uppercase leading-relaxed tracking-wide text-orange-300 [overflow-wrap:anywhere]">{category}</p> : null}
-          <h3 className="text-xl font-bold leading-snug [overflow-wrap:anywhere] sm:text-2xl">
+          <h3 className="text-xl font-bold leading-snug text-white [overflow-wrap:anywhere] sm:text-2xl">
             <Link href={destination} className={`rounded-sm hover:underline underline-offset-4 ${focus}`}>{name}</Link>
           </h3>
           {location ? <p className="mt-3 flex items-start gap-1.5 text-sm text-slate-300">
@@ -59,6 +78,20 @@ export function PublicBusinessCard({ business }: { business: PublicDirectoryBusi
           <ul aria-label={`${name} services`} className="flex min-w-0 flex-wrap gap-2">
             {services.slice(0, 4).map((service) => <li key={service} className="max-w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm leading-relaxed text-slate-200 [overflow-wrap:anywhere]">{service}</li>)}
           </ul>
+        </div> : null}
+
+        {photos.length ? <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Profile photos</p>
+          <div className="grid grid-cols-3 gap-2">
+            {photos.map((photo) => <Link key={photo.imageUrl} href={photo.path}
+              aria-label={`View photo: ${sanitizePublicProfileText(photo.title, 120) || name}`}
+              className={`relative block aspect-square min-h-11 overflow-hidden rounded-xl border border-white/15 bg-slate-900 ${focus}`}>
+              <img src={normalizePublicBusinessPreviewImage(photo.imageUrl) || undefined}
+                alt={sanitizePublicProfileText(photo.title, 120) || `${name} profile photo`}
+                loading="lazy" decoding="async" referrerPolicy="no-referrer"
+                onError={(event) => { event.currentTarget.hidden = true; }} className="h-full w-full object-cover" />
+            </Link>)}
+          </div>
         </div> : null}
 
         {rating ? <div className="rounded-xl border border-white/10 bg-black/15 px-4 py-3" data-testid="public-business-imported-rating">
