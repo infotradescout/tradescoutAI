@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { redactContactDetails } from "../../../../server/utils/workRequestShare";
 import { JwStoneMemberCart } from "./JwStoneMemberCart";
 import { JwStoneFulfillmentDetailsFields, useJwStoneFulfillmentDetails } from "./JwStoneFulfillmentDetails";
 import {
@@ -44,6 +45,14 @@ describe("delivery preference semantics", () => {
     expect(text).toContain("JW Stone must confirm"); expect(text).toContain("not a scheduled appointment");
     expect(text).toContain("Jobsite"); expect(text).toContain("100 Example Lane");
     expect(text).toContain("Help arranging unloading requested"); expect(text).not.toMatch(/\$|free shipping|guaranteed/i);
+  });
+  it("preserves the calendar date through the real contact guard while hiding phone and email", () => {
+    const text = fulfillmentDetailsSummary({ ...completeDetails, notes: "Phone 2025550147; email person@example.test" }, "delivery").join("\n");
+    const guarded = redactContactDetails(text);
+    expect(guarded).toContain("June 15, 2099");
+    expect(guarded).toContain("JW Stone must confirm");
+    expect(guarded).not.toMatch(/2025550147|person@example\.test/);
+    expect(guarded.match(/\[hidden\]/g)).toHaveLength(2);
   });
   it("omits retained delivery-only details from a pickup request", () => {
     const text = fulfillmentDetailsSummary(completeDetails, "pickup").join("\n");
@@ -93,8 +102,8 @@ describe("delivery fields in the actual member cart", () => {
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
   afterEach(async () => { await act(async () => root.unmount()); client.clear(); host.remove(); vi.restoreAllMocks(); });
-  const renderCart = () => act(() => root.render(<QueryClientProvider client={client}>
-    <JwStoneMemberCart viewerId="delivery-member" items={[{ id: "honey", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: 2 }]}
+  const renderCart = (items = [{ id: "honey", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: 2 }]) => act(() => root.render(<QueryClientProvider client={client}>
+    <JwStoneMemberCart viewerId="delivery-member" items={items}
       onClose={() => {}} onQuantityChange={() => {}} onStockChange={() => {}} />
   </QueryClientProvider>));
   const seedDelivery = () => window.localStorage.setItem("tradescout:jw-stone:cart-fulfillment:v1:delivery-member", JSON.stringify({ method: "delivery", postalCode: "70401", jobReference: "Kitchen A" }));
@@ -117,8 +126,14 @@ describe("delivery fields in the actual member cart", () => {
     act(() => button.click());
     await settle(() => expect(document.querySelector('[data-testid="delivery-quote-draft"]')).not.toBeNull());
     const text = document.querySelector('[data-testid="delivery-quote-draft"]')!.textContent;
-    for (const part of ["2 slab(s)", "70401", "Kitchen A", "2099-06-15", "Jobsite", "100 Example Lane", "LA", "Help arranging unloading", "Call before arrival.", "JW Stone must confirm"]) expect(text).toContain(part);
+    for (const part of ["2 slab(s)", "70401", "Kitchen A", "June 15, 2099", "Jobsite", "100 Example Lane", "LA", "Help arranging unloading", "Call before arrival.", "JW Stone must confirm"]) expect(text).toContain(part);
     expect(api.mock.calls.some(([url]) => String(url).includes("express-request"))).toBe(false);
+  });
+  it("blocks oversized quote drafts before the form instead of exceeding the server limit", async () => {
+    renderCart(Array.from({ length: 30 }, (_, index) => ({ id: `long-${index}`, stoneName: "Stone " + "A".repeat(60), stoneKey: "stone " + "a".repeat(60), quantity: 1 })));
+    await settle(() => expect((document.querySelector('[data-testid="jw-cart-request-quote"]') as HTMLButtonElement).disabled).toBe(true));
+    expect(document.body.textContent).toContain("Please split this cart into smaller quote requests.");
+    expect(document.querySelector('[data-testid="delivery-quote-draft"]')).toBeNull();
   });
   it("blocks an expired saved date until it is cleared or replaced", async () => {
     seedDelivery(); window.localStorage.setItem(fulfillmentDetailsKey("delivery-member"), envelope({ ...completeDetails, requestedDate: "2000-01-01" }));
