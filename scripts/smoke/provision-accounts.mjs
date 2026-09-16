@@ -22,14 +22,14 @@ export async function provisionAccounts({ sql, base, environment, hashPasswords,
     for (let index = 0; index < accounts.length; index++) {
       const account = accounts[index];
       await sql.query(`INSERT INTO users
-        (id, email, password, first_name, last_name, role, active_role,
+        (id, email, password_hash, first_name, last_name, role, active_role,
          onboarding_completed, profile_version, email_verified, address_verified,
-         county_fips, state_code, city, location_committed, preferences, created_at, updated_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,$9,$10,$11,'FL',$12,$13,$14::jsonb,now(),now())`, [
+         county_fips, state_code, city, preferences, created_at, updated_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,$9,$10,$11,'FL',$12,$13::jsonb,now(),now())`, [
         account.id, account.email, hashes[index], 'Smoke', account.name, account.role,
         account.onboarding, account.onboarding ? profileVersion : 0,
         account.emailVerified, account.addressVerified, account.countyFips,
-        account.countyFips === '12001' ? 'Gainesville' : 'Pensacola', account.onboarding,
+        account.countyFips === '12001' ? 'Gainesville' : 'Pensacola',
         JSON.stringify({ smokeTest: { runId: account.runId, persona: account.name,
           disposable: true, fixtureScope: 'identity-only' } }),
       ]);

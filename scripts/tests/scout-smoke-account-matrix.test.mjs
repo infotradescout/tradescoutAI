@@ -205,3 +205,17 @@ test('community and moderation fixtures use existing roles without invented staf
   assert(PERSONAS.every(p => fixtureRoles.includes(p.role)));
   assert(!PERSONAS.some(p => p.name === 'support-agent'));
 });
+
+test('native inserts use password_hash and persisted location fields, not unmapped properties', async () => {
+  const f = fixture(); await f.run();
+  assert.equal(f.calls.filter(c => c.text.startsWith('INSERT INTO users')).length, 30);
+  for (const call of f.calls.filter(c => c.text.startsWith('INSERT INTO users'))) {
+    const columns = call.text.slice(call.text.indexOf('(') + 1, call.text.indexOf(')')).split(',').map(v => v.trim());
+    assert(columns.includes('password_hash'));
+    assert(!columns.includes('password'));
+    assert(!columns.includes('location_committed'));
+    assert(columns.includes('county_fips') && columns.includes('state_code'));
+    assert.equal(call.values.length, 13);
+    assert.equal(JSON.parse(call.values[12]).smokeTest.disposable, true);
+  }
+});
