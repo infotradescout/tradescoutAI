@@ -30,6 +30,13 @@ const USER_SAFE_PATTERNS = [
   /request timed out/i,
   /network error/i,
   /onboarding required/i,
+  // Only exact, application-owned Scout outcome copy is admitted here. Do not
+  // expose arbitrary executor errors or hide cancellation behind a generic failure.
+  /^Cancelled\. This action was not submitted\.(?: The earlier action may already be complete; check its status\.)?$/,
+  /^Sign in to complete this action\.(?: The earlier action may already be complete; check its status\.)?$/,
+  /^Scout could not confirm this action\. Check its current status before trying again\.$/,
+  /^Scout could not confirm that this action completed\.$/,
+  /^Scout could not confirm that your profile was saved\. Check your profile before trying again\.$/,
 ];
 
 export function getRawErrorMessage(error: unknown): string {
