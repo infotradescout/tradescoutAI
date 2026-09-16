@@ -9,7 +9,6 @@
 
 import {
   classifyScoutError,
-  getRecoveryStrategy,
   type ScoutError,
   type ScoutActionResult,
   type ScoutActionFailure,
@@ -38,49 +37,29 @@ export interface ScoutAction {
   payload?: Record<string, unknown>;
 }
 
-export type GuardedActionResult =
-  | ScoutActionResult
-  | ScoutActionFailure
-  | {
-      ok: true;
-      data?: unknown;
-      message?: string;
-      nextAction?: string;
-    };
+export type GuardedActionResult = ScoutActionResult | ScoutActionFailure;
 
-// ============================================================================
-// RETRY LOGIC
-// ============================================================================
-
-const MAX_RETRIES = 1;
-const BACKOFF_MS = 500;
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** A thrown error cannot establish whether an external write already committed. */
+function unconfirmedExecution(action: ScoutAction, errorType: ScoutError["type"]): ScoutActionFailure {
+  return {
+    ok: false,
+    error: {
+      type: errorType,
+      category: "GENERAL",
+      message: "Scout action execution was not confirmed",
+      userMessage:
+        "Scout could not confirm this action. Check its current status before trying again.",
+      recoverable: true,
+      // Do not return raw errors, profile data, or a runnable retry instruction.
+      context: { action: action.type, executionState: "unconfirmed", attempts: 1 },
+    },
+  };
 }
 
-async function retryOnce<T>(
-  fn: () => Promise<T>,
-  label: string
-): Promise<T> {
-  try {
-    return await fn();
-  } catch (firstError) {
-    console.log(
-      `[Scout Guard] First attempt failed for ${label}, retrying once...`
-    );
-    await sleep(BACKOFF_MS);
-
-    try {
-      return await fn();
-    } catch (secondError) {
-      console.error(`[Scout Guard] Retry also failed for ${label}`, {
-        firstError: firstError instanceof Error ? firstError.message : String(firstError),
-        secondError: secondError instanceof Error ? secondError.message : String(secondError),
-      });
-      throw secondError;
-    }
-  }
+function isNegativeAcknowledgement(result: unknown): boolean {
+  if (!result || typeof result !== "object" || Array.isArray(result)) return false;
+  const value = result as Record<string, unknown>;
+  return value.ok === false || value.success === false;
 }
 
 // ============================================================================
@@ -88,19 +67,11 @@ async function retryOnce<T>(
 // ============================================================================
 
 /**
- * runScoutAction
+ * Validate prerequisites, invoke the executor once, and report its actual outcome.
  *
- * Executes a Scout action through the guard.
- *
- * Flow:
- * 1. Validate action is allowed in context
- * 2. Execute action with retry logic
- * 3. On success: return result + optional next action
- * 4. On error: classify + determine if recoverable
- * 5. If recoverable: return recovery suggestion (never throw)
- * 6. If not: return safe error message with guidance
- *
- * Users never see stack traces or raw errors.
+ * A recovery suggestion is not successful execution. This guard cannot know
+ * whether a failed write committed, so it never retries an arbitrary executor.
+ * Any future retry belongs to an owner with durable idempotency/reconciliation.
  */
 export async function runScoutAction(
   action: ScoutAction,
@@ -108,119 +79,43 @@ export async function runScoutAction(
   executor: (action: ScoutAction) => Promise<unknown>
 ): Promise<GuardedActionResult> {
   const { userId, userProfile, sessionId, requestId } = context;
-
-  // ─────────────────────────────────────────────────────────────────────
-  // STEP 1: VALIDATE (Pre-execution checks)
-  // ─────────────────────────────────────────────────────────────────────
-
   const validationError = validateAction(action, context);
   if (validationError) {
-    console.warn(`[Scout Guard] Action validation failed`, {
-      action: action.type,
-      userId,
-      error: validationError.message,
-    });
-
-    return {
-      ok: false,
-      error: validationError,
-    };
+    return { ok: false, error: validationError };
   }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // STEP 2: EXECUTE (With retry for system errors)
-  // ─────────────────────────────────────────────────────────────────────
-
-  let result: unknown;
-  let executionError: unknown | null = null;
 
   try {
-    // Attempt execution (with one automatic retry for transient failures)
-    result = await retryOnce(
-      () => executor(action),
-      `${action.type}:${action.target}`
-    );
-  } catch (err) {
-    executionError = err;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // STEP 3: CLASSIFY ERROR (If it occurred)
-  // ─────────────────────────────────────────────────────────────────────
-
-  if (executionError) {
-    const scoutError = classifyScoutError({
-      error: executionError,
-      action: action.type,
-      context: action.payload,
-      userId,
-      userProfile,
-    });
-
-    // Log for diagnostics (sent to backend monitoring, never to user)
-    console.error(`[Scout Guard] Action failed: ${action.type}`, {
+    // Exactly one attempt: a lost acknowledgement must not duplicate a write.
+    const result = await executor(action);
+    if (isNegativeAcknowledgement(result)) {
+      return unconfirmedExecution(action, "INVALID_STATE");
+    }
+    return { ok: true, data: result };
+  } catch (error) {
+    // Handle every rejection, including throw null/undefined/false/0/"".
+    let errorType: ScoutError["type"] = "SYSTEM_ERROR";
+    try {
+      errorType = classifyScoutError({
+        error,
+        action: action.type,
+        context: action.payload,
+        userId,
+        userProfile,
+      }).type;
+    } catch {
+      // Even an unprintable rejection value must remain a safe failed outcome.
+    }
+    // The route forwards error.context to the browser. Keep diagnostics out of
+    // the returned object and avoid logging raw payloads or exception contents.
+    console.error(`[Scout Guard] Action not confirmed: ${action.type}`, {
       userId,
       sessionId,
       requestId,
-      error: scoutError.message,
-      internalMessage: executionError instanceof Error ? executionError.message : String(executionError),
-      recoverable: scoutError.recoverable,
-      context: scoutError.context,
+      errorType,
+      attempts: 1,
     });
-
-    // ─────────────────────────────────────────────────────────────────
-    // STEP 4: HANDLE RECOVERY
-    // ─────────────────────────────────────────────────────────────────
-
-    if (scoutError.recoverable) {
-      const recovery = getRecoveryStrategy(scoutError);
-
-      // If automatic, attempt recovery silently
-      if (recovery.isAutomatic) {
-        console.info(
-          `[Scout Guard] Attempting automatic recovery: ${recovery.action}`,
-          { action: action.type, userId }
-        );
-
-        // Return a success with recovery action
-        // Frontend will handle "nextAction" to retry or guide user
-        return {
-          ok: true,
-          message: scoutError.userMessage,
-          nextAction: recovery.action,
-          data: recovery.params,
-        };
-      }
-
-      // If user-interactive, return failure with guidance
-      return {
-        ok: false,
-        error: {
-          ...scoutError,
-          suggestedAction: recovery.action,
-        },
-      };
-    }
-
-    // Not recoverable: return safe error message
-    return {
-      ok: false,
-      error: {
-        ...scoutError,
-        userMessage:
-          "Something unexpected happened. Let's try a different approach.",
-      },
-    };
+    return unconfirmedExecution(action, errorType);
   }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // STEP 5: SUCCESS
-  // ─────────────────────────────────────────────────────────────────────
-
-  return {
-    ok: true,
-    data: result,
-  };
 }
 
 // ============================================================================
@@ -231,7 +126,16 @@ function validateAction(
   action: ScoutAction,
   context: ScoutActionContext
 ): ScoutError | null {
-  const { type, target } = action;
+  if (!action || typeof action.type !== "string" || !action.type.trim()) {
+    return {
+      type: "INVALID_STATE",
+      category: "GENERAL",
+      message: "Missing Scout action type",
+      userMessage: "Choose an action before continuing.",
+      recoverable: true,
+    };
+  }
+  const { type } = action;
   const { userId, userProfile } = context;
 
   // ─────────────────────────────────────────────────────────────────────
@@ -311,7 +215,7 @@ function validateAction(
 /**
  * safeExecute
  *
- * Simpler wrapper for fire-and-forget actions.
+ * Awaited wrapper that preserves the guard's success/failure result.
  * Returns a clean result or user-facing message.
  */
 export async function safeExecute(
