@@ -1,126 +1,97 @@
-# Scout execution checkpoint — 2026-09-15
-
-This is the current resume point for PR #668, not a replacement roadmap or production-readiness attestation. The first client checkpoint remains in Git history at `f8e11d3c00eb5a4a4642024c61ff647f760c406a`.
+# Scout execution checkpoint — PR #668
 
 ## Objective
-Make existing Scout actions execute predictably and report truthful results before expanding advertised abilities. Preserve existing workspaces, drafts, authentication, contact gates, county ownership, Trust/CVS, and payment handoffs.
+Prove and repair Scout's existing approval, cancellation, failure and completion paths together. Do not restart the capability audit or broaden into unrelated product lanes.
 
 ## Base branch/commit
-`main` at `bda589173ec470e5c13044492caa4b13a6b3490d`.
-This continuation resumed PR #668 at `f8e11d3c00eb5a4a4642024c61ff647f760c406a`; it did not restart the abilities audit.
+`main` at `bda589173ec470e5c13044492caa4b13a6b3490d`. The original client checkpoint is retained in Git history at `f8e11d3c00eb5a4a4642024c61ff647f760c406a`; the server continuation checkpoint is `e42de7827a1860766be71aad624d134cbb82fb42`.
 
 ## Current branch/commit
-Branch: `codex/scout-action-execution-hardening-20260915`.
-Current product/test commit: `82a192c9e473fb14ef27533dfe2e3a09030a98fb`.
-Server implementation commit: `3f1b6433260e36808f3797dbbc408a54ca661484`.
-This checkpoint update is documentation-only; resolve the branch head for its final SHA.
+`codex/scout-action-execution-hardening-20260915`.
+Latest implementation/test parent: `bb40462c12597d7c9e49c07c4c629b6616eb2469`.
+This checkpoint is documentation-only. Resolve the branch head for the exact final candidate. Subsequent Render run results belong in the PR as exact-head evidence; a live report host is not release approval.
 
 ## Verified completed work
-### Previously checked client behavior, unchanged in this continuation
-- SAVE_PROFILE authentication and approval precede the executing guard request.
-- Explicit approval flags apply across action types; sensitive/tool requests require positive acknowledgement.
-- ASK_SCOUT handles top-level and payload prompts, awaits handlers, and surfaces failures.
-- Follow/unfollow/broadcast and feedback errors propagate; feedback awaits its HTTP result.
-- Payment-start types remain navigation-only, independent of label text.
-- The existing single follow-up uses auth, role, supported-tool, approval, and server checks.
-- Direct Connect, Exchange, and Community draft handoffs remain intact.
+Previous client/server repairs are preserved: authentication and approval before profile-save requests; supported action checks; surfaced adapter failures; bounded guarded follow-ups; payment-start actions remain navigation-only; one server executor attempt without fake recovery success or generic retry; safe unconfirmed outcomes after errors.
 
-### Server continuation
-The actual `runScoutAction` implementation previously retried every rejected executor once. Selected classified errors then returned `ok: true` with a recovery instruction despite no successful execution. Falsy thrown values could also bypass the failure branch. The Scout route consumes this result to choose its success response and submission telemetry; its failure response forwards `error.context`.
+Full application inspection found an additional integration bug: ScoutOS unconditionally appended "Saved" after the execution promise resolved, while cancellation and sign-in navigation resolved without saving. The router now throws a typed interruption for cancellation/auth handoffs. The existing UI error path displays exact safe outcome copy, and never reaches its Saved acknowledgement for those outcomes.
 
-The changed guard now:
-- Invokes an executor once per guard call, with no generic automatic retry.
-- Returns failure for every thrown value, including null, undefined, false, zero, empty strings, and values the classifier cannot stringify.
-- Does not wrap an explicit `{ok: false}` or `{success: false}` acknowledgement in success.
-- Returns an unconfirmed outcome after an execution error rather than claiming rollback, successful recovery, or completion.
-- Does not emit an automatic retry instruction for an uncertain outcome.
-- Replaces execution-failure diagnostics with safe context: action, executionState, and attempt count. Raw exception contents, submitted payloads, and profile data are not copied into this result or its diagnostic log.
-- Preserves pre-execution sign-in/location/business prerequisites, successful result data, and safeExecute's success/failure behavior.
-- Rejects missing, blank, and non-string action types before calling an executor.
+SAVE_PROFILE now requires the real endpoint's boolean `executed: true`, not just authorization/success. A model-generated payment word in the save label cannot turn the typed save into a navigation-only handoff. The production error formatter admits only anchored, application-owned cancellation/uncertainty messages rather than replacing them with generic failure or admitting arbitrary diagnostics.
 
-These are guard-level guarantees, not new invoice/message/HOA capabilities. Test action names exercise the generic guard; they do not prove corresponding product endpoints exist. The production route's registered server executor remains SAVE_PROFILE. No new API, schema migration, checkout, contact exposure, or customer action was introduced.
+`ScoutActionCompletion.integration.test.ts` extracts and compiles the actual ScoutOS callback, executes it with the real router and production error formatter, and controls only component surroundings/HTTP. It covers cancellation, guest auth, actual execution acknowledgement, malformed receipts, delayed responses, HTTP failures, post-write acknowledgement loss, payment-label ambiguity, cancelled follow-ups, and error-copy redaction. This is stronger than a duplicated caller model but is not a rendered browser/native database test.
 
-## Changed but unverified work
-No HTTP/Express/session/database/browser journey or full application check was executed. The server route's consumption of the result was inspected in source, not exercised as an integrated HTTP endpoint. The existing router Vitest case was updated in the first slice but remains unexecuted. Frontend cancellation/completion telemetry and duplicate clicks across distinct requests remain to be traced and verified.
-
-## Files changed
-Relative to main:
-1. `client/src/scout/ScoutActionRouter.ts` — previous slice, unchanged now.
-2. `client/src/scout/ScoutActionRouter.test.ts` — previous slice, unchanged now.
-3. `scripts/tests/scout-action-execution-check.cjs` — previous 47-case suite, unchanged now.
-4. `server/utils/scoutActionGuard.ts` — this continuation.
-5. `scripts/tests/scout-server-execution-check.cjs` — this continuation, 49 cases.
-6. This checkpoint.
-
-`server/utils/scoutErrorMapping.ts` was read, executed by tests, and typechecked but NOT modified.
+The production sitemap generator also refreshed unchanged index timestamps on each new build date, dirtying a strict release checkout. The bounded generator repair preserves existing dates, analogous to existing URL sitemap behavior. Canonical routes, priorities and frequencies are preserved. Its new reproducibility suite tests actual generated files in private temporary directories.
 
 ## Tests/evidence already run
-### New server evidence
-Command on a checkout with the existing TypeScript dependency:
+### Full checkout at `e42de7827a1860766be71aad624d134cbb82fb42`
+- Configured router Vitest: passed.
+- Client 47-case and server 49-case behavioral suites: passed in the same full checkout.
+- Full `npm run check`: passed.
+- `npm run build`: passed with normal production settings. An earlier harness run accidentally set NODE_ENV=test and failed a bundle budget; this was corrected without weakening the budget.
 
+### Full checkout at `7857efcda3c8d481b216a2f0efd092fe02ceea16`
+Render deploy `dep-dakudmf40ujc738teku0`:
+- 36 configured application tests across 5 files: all passed, no skips.
+- 47 client behavioral cases: all passed, no skips.
+- 49 server behavioral cases: all passed, no skips.
+- Full project typecheck: passed.
+- Production build: passed.
+- Chromium installation: passed.
+
+Render deploy `dep-dakufhad0e5s73ftkl70`:
+- Production-built server booted unmodified with healthy exact-commit response.
+- Fresh native PostgreSQL 18.4, loopback-only, TLS verification enabled.
+- All 142 production-mode migrations applied; independent required schema passed.
+- Synthetic account seed passed.
+- Browser journey stopped at CORS origin denial before any action was submitted. This is recorded as a failed journey, not end-to-end success. The test-only server environment now explicitly allows its single loopback origin through the existing CORS configuration.
+- That older-source run restored only a proven date-only generated sitemap change in its private clone; built output was unchanged. It is not strict release attestation. The generator source fix removes this normalization requirement from later candidates.
+
+Commands:
 ```sh
+node node_modules/vitest/vitest.mjs run client/src/lib/userFacingError.test.ts client/src/scout/ScoutActionCompletion.integration.test.ts client/src/scout/ScoutActionRouter.test.ts server/tests/scout-action-truthfulness.contract.test.ts server/tests/scout-profile-update-assistant.test.ts --maxWorkers=2
+node --test scripts/tests/scout-action-execution-check.cjs
 node --test scripts/tests/scout-server-execution-check.cjs
+node --test scripts/tests/sitemap-build-reproducibility.test.mjs
+npm run check
+NODE_ENV=production npm run build
+node node_modules/playwright/cli.js install chromium
+node scripts/verify-scout-execution-flow.mjs
 ```
 
-Sandbox ran this command with SCOUT_TEST_ROOT selecting the pinned source snapshot and NODE_PATH selecting installed TypeScript. Node 22.16.0; TypeScript 5.8.3. Tests load the actual guard AND error-mapping modules. Executor, timer, and diagnostic sink are synthetic. No writes leave the test process.
+## Changed but unverified work
+At this checkpoint, the newest sitemap/CORS-test-environment edits and full browser journeys are being checked by deploy `dep-dakuj5740ujc738tvrd0`, pinned to `bb40462c12597d7c9e49c07c4c629b6616eb2469`. Read its terminal results before claiming success. The strict minimum-release gate and production deployment have not been completed.
 
-- Pre-continuation server source: 49 tests, 20 passed, 29 failed.
-- Changed server source: 49 tests, 49 passed, 0 failed, 0 skipped.
-- The 29 failures are failing test cases, not 29 distinct defects.
-- Passed targeted strict semantic typecheck, not just transpilation:
+## Files changed
+Relative to base: ScoutActionRouter.ts; its original Vitest suite; userFacingError.ts; ScoutActionCompletion.integration.test.ts; scoutActionGuard.ts; both standalone execution suites; verify-scout-execution-flow.mjs; generate-sitemap-core.mjs; sitemap-build-reproducibility.test.mjs; this checkpoint. ScoutOS and the actual server route were inspected and executed by tests but are not modified.
 
-```sh
-tsc --noEmit --strict --target ES2022 --module commonjs server/utils/scoutActionGuard.ts server/utils/scoutErrorMapping.ts
-```
-
-Scope is these two modules only, not the project configuration or full build.
-
-Fetched source snapshots were reconstructed byte-for-byte and checked against GitHub blob SHAs before execution. Pushed implementation and runner match tested bytes:
-
-```text
-Base guard: 4573a3d2794ae97f497e367f64152fa2a84923e5
-Changed guard: 9dcb2fd0cc656984d7c1ec42c3565fea6fd40043
-Unchanged error mapping: e6b6ee281d0b20f2abf129414cf198821c95a81e
-Server test runner: 7c7dc5d3658595164b24367b8a8a2b08a54ada25
-```
-
-### Preserved client evidence; not rerun here
-The original client slice's isolated real-router/registry checks recorded 47 cases: 12 passed/35 failed before, 47 passed/0 failed after. Browser/HTTP/write adapters were mocked. Client source and dependencies used by that suite did not change in this continuation. Preserve this evidence but do not call it a fresh combined 96-case integration run.
-
-```text
-Changed client router: 893452a194c8a679a01ff820df95aceceb602330
-Client runner: 32b8f55760a261b026caacdb4334353a29678a60
-Command registry: c0391f3f1bcf5b92caf806e9408440cd4beaed1d
-Tool registry: 2f0ae3d1d9eeb63505ba909031e7316f26e9010f
-Updated original Vitest file: fc45260d56a1ff5db9b575cd6d4d688dd04a8ec0
-```
+## Working verification environment
+GitHub reads/writes and Render isolated builds work. There is no user action required to restore access.
+- Workspace: `tea-d191jph5pdvs73drglkg`.
+- Dedicated free verification service: `srv-daku6be7bikc73dmpkvg`, `tradescout-scout-execution-668-proof`.
+- Auto-deploy is off. Updating its environment triggers a build automatically; do not trigger another duplicate deploy.
+- Its build makes a private exact-SHA clone, checks that no provider/database credentials were inherited, installs locked dependencies, and executes `SCOUT_EXECUTION_STEP`. `SCOUT_EXECUTION_EXPECTED_SHA` must equal the build commit.
+- Runtime serves inert explanatory text only. The actual TradeScout server and fresh database run on loopback during verification and are removed afterward.
+- Do not repeat remote-device/DNS probes or create another worker. Builder has no GitHub push credential; use GitHub connector writes, never search for credentials.
 
 ## Tests/evidence invalidated by later changes
-The new guard changes real server execution behavior. Prior mocked-client checks do NOT establish client/server compatibility; it needs fresh integration proof. No implementation changed after the new 49-case suite and targeted typecheck; this update changes documentation only. Any guard/mapping change invalidates the new targeted evidence.
+New product or shared contract changes require affected tests and candidate validation. Prior mocked HTTP tests do not establish native/browser behavior. Final strict release proof must name the exact clean candidate, with no generated-file restoration inside the gate.
 
-## Known blockers/risks
-- Remote Desktop Commander was retried on continuation and still returned no available device. Sandbox DNS failed for GitHub and npm; GitHub connector reads/writes succeeded.
-- Full project dependencies, existing Vitest, project typecheck/build, DB/session/browser proof, and minimum-release gate remain unavailable/unexecuted in this environment. Do not merge on isolated tests alone.
-- One attempt per guard call is NOT durable idempotency, cross-request deduplication, or exactly-once execution. Independent requests still run independently; a test explicitly records this limit.
-- An uncertain result may mean a write already committed. Reconcile actual status before another attempt; do not add blanket retries.
-- Classifier behavior outside this guard was not changed or fully audited. The guard redacts its own execution failures; this is not a platform-wide error-redaction claim.
-- The generic supported-tool registry still contains only ads.feedback; other abilities have dedicated actions/workspaces. No broad capability-completion claim is supported.
-- Route allowlist parity, durable execution receipts, task continuity, and destination completion remain follow-on work. A handoff or draft is not a completed listing, purchase, message, invoice, or project.
-- Other release/UI/JW branches were not rebased, merged, or overwritten.
+## Known risks and remaining work
+- One executor attempt is not durable idempotency or cross-request duplicate prevention.
+- Lost acknowledgement may mean the write already committed; check persisted status before retrying.
+- ScoutOS still wraps handleSend in a void-returning askScout callback; the router's generic await does not yet prove full UI follow-up continuity.
+- Assistant-message watchdog telemetry is not yet an execution receipt. Do not claim all completion metrics are repaired.
+- Generic CALL_TOOL still supports ads.feedback only; dedicated actions/workspaces provide other abilities. This slice does not complete all advertised functions.
+- Follow-up auth/role/guard and cancellation are covered by real-router/callback tests; don't call them native multi-step proof without that journey.
 
 ## External side effects and retry safety
-Only PR-branch source/tests/checkpoint commits and PR metadata were changed. No main merge, deployment, customer profile update, message, follow, broadcast, feedback, purchase, or payment occurred. Test executors are synthetic. No retry was added; generic automatic retries were removed from this guard.
+Only PR-branch code/tests/checkpoint and the isolated verification service were changed. No production deploy, main merge, real account mutation, message, broadcast, purchase or payment occurred. Native users, writes and injected failures exist only in disposable local PostgreSQL. Browser external hosts are denied. No automatic write retry was introduced.
 
 ## Next exact action
-Use an isolated full-workspace checkout of PR #668 without disturbing other lanes. Run the configured router Vitest suite and both targeted execution checks. Then prove the actual authenticated SAVE_PROFILE approve/cancel/failure path through Express and the browser, including an uncertain post-write acknowledgement and the bounded follow-up path. Check frontend completion telemetry and duplicate action handling against those real outcomes. Run `gate:minimum-release` on the exact integration/release candidate only, and merge only with that evidence.
-
-If the full workspace remains unavailable, continue only a bounded source-level slice with explicit validation limits; do not represent another isolated test as an integrated release. Trace each advertised ability to its owned read/draft/approved-write endpoint and observable result after the execution boundary is proven.
+Read the running worker's final SCOUT_FLOW_SUMMARY. Fix only the failing dependency. Once all desktop/mobile approve/cancel/failure/lost-acknowledgement/authorization-only journeys pass, run the unchanged strict minimum-release contract on the exact final integration candidate with a fresh disposable TEST_DATABASE_URL and an accurate browser-evidence note. Fetch canonical main ancestry for its readiness guard. Record result, attestable flag and candidate SHA in PR #668. Merge only after that proof and current-base compatibility; then verify the actual deployment commit and read-only health/smoke.
 
 ## Actions that must NOT be repeated
-Do not restart the Scout audit or re-fetch unchanged client modules just to reconstruct already-recorded state. Do not broaden this branch into JW inventory or unrelated UI, import another product, overwrite active branches, add GitHub Actions, introduce a generic automatic write retry, or claim this branch is deployed. Do not rerun repository-wide gates after each small edit.
+Do not restart the abilities audit, rerun isolated suites as a substitute for browser proof, label missing personal-terminal access a project blocker, overwrite other branches, add GitHub Actions/approval gates, weaken release checks, send real customer actions, or claim deployed functionality from a passing test worker.
 
 ## Law classification
-- Client approval-before-execution and payment navigation-only: enforced in changed dispatcher with prior isolated proof; integrated release proof pending.
-- No success-after-exception and no generic automatic executor retry: enforced in changed server guard with 49-case targeted proof.
-- Contact, county, and Trust/CVS authorities: existing owners preserved; not newly attested here.
-- End-to-end completion for all advertised abilities, durable duplicate protection, and production release: policy_target, not achieved by this checkpoint.
+Approval before execution, no false completion after errors, and payment navigation-only: enforced in changed owners and tests with stated scope. Contact/county/Trust authorities: existing owners preserved. All-capability completion, durable duplicate protection and production release: policy targets, not established by this checkpoint.
