@@ -24,7 +24,7 @@ function mockGuardAllowsActions() {
     vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ success: true }),
+      json: async () => ({ success: true, executed: true }),
     }) as any
   );
 }
