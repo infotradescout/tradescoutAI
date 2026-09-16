@@ -4,7 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { chromium } from 'playwright';
-import { newLedger, recordCase, finishLedger } from './account-matrix.mjs';
+import { newLedger, recordCase, finishLedger, smokeProofClientId } from './account-matrix.mjs';
 import { provisionAccounts } from './provision-accounts.mjs';
 
 /** Called inside the EXISTING fresh-database driver, never against a deployed site. */
@@ -38,7 +38,7 @@ export async function runSmokeAccountMatrix({ base, sql, environment, proof, sec
         viewport: { width: actor.viewport.width, height: actor.viewport.height },
         isMobile: actor.viewport.name === 'mobile', hasTouch: actor.viewport.name === 'mobile',
         ignoreHTTPSErrors: true, serviceWorkers: 'block',
-        extraHTTPHeaders: { 'x-scout-proof-client': String(ordinal % 11 + 1) },
+        extraHTTPHeaders: { 'x-scout-proof-client': smokeProofClientId(ordinal) },
       });
       const pageErrors = [], blockedHosts = new Set();
       const other = accounts.find(account => account.id !== actor.id && account.viewport.name === actor.viewport.name);

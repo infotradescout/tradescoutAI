@@ -71,6 +71,17 @@ export const REMAINING_JOURNEYS = Object.freeze([
   ['rate-limits', 'real throttling, safe errors and recovery without bypass'],
 ].map(([id, requirement]) => Object.freeze({ id, requirement, state: 'not_run' })));
 
+// Private loopback proxy identities; never used by application middleware.
+export function smokeProofClientId(ordinal) {
+  assert(Number.isInteger(ordinal) && ordinal >= 0 && ordinal < PERSONAS.length * VIEWPORTS.length);
+  return String(12 + ordinal); // Keep the original eleven profile/work clients separate.
+}
+export function scoutProofClientIp(value, includeMatrix = false) {
+  const maximum = 11 + (includeMatrix === true ? PERSONAS.length * VIEWPORTS.length : 0);
+  return typeof value === 'string' && /^[1-9][0-9]*$/.test(value) && Number(value) <= maximum
+    ? `192.0.2.${value}` : '127.0.0.1';
+}
+
 export function buildAccounts(runId = randomBytes(8).toString('hex')) {
   assert.match(runId, /^[a-f0-9]{16}$/, 'A fresh opaque smoke run identity is required');
   return VIEWPORTS.flatMap(viewport => PERSONAS.map(persona => ({

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildAccounts, publicAccount, validateNativeTarget, newLedger, recordCase, finishLedger,
+import { buildAccounts, publicAccount, validateNativeTarget, smokeProofClientId, scoutProofClientIp, newLedger, recordCase, finishLedger,
   PERSONAS, VIEWPORTS, IMPLEMENTED_ACCOUNT_JOURNEYS, REMAINING_JOURNEYS } from '../smoke/account-matrix.mjs';
 import { provisionAccounts } from '../smoke/provision-accounts.mjs';
 import { inventorySource } from '../smoke/interaction-inventory.mjs';
@@ -219,4 +219,14 @@ test('native inserts use password_hash and persisted location fields, not unmapp
     assert.equal(call.values.length, 13);
     assert.equal(JSON.parse(call.values[12]).smokeTest.disposable, true);
   }
+});
+
+test('each matrix account has its own synthetic client, separate from prior journeys', () => {
+  const ids = buildAccounts(runId).map((_, index) => smokeProofClientId(index));
+  assert.equal(new Set(ids).size, 30);
+  assert.equal(ids[0], '12'); assert.equal(ids.at(-1), '41');
+  for (const id of ids) { assert.equal(scoutProofClientIp(id), '127.0.0.1'); assert.equal(scoutProofClientIp(id, true), `192.0.2.${id}`); }
+  for (const id of ['0', '01', '-1', '42', '256', '1.2', '1e1', 'localhost', '']) assert.equal(scoutProofClientIp(id, true), '127.0.0.1');
+  for (const index of [-1, 30, 1.5, NaN]) assert.throws(() => smokeProofClientId(index));
+  assert.equal(scoutProofClientIp('11'), '192.0.2.11');
 });

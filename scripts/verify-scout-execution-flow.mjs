@@ -9,6 +9,7 @@ import {randomBytes, createHash} from 'node:crypto';
 import pg from 'pg';
 import {startCabinetLoopbackTestDatabase} from './start-cabinet-loopback-test-db.mjs';
 import {runScoutBrowserProof} from './scout-execution-browser-proof.mjs';
+import {scoutProofClientIp} from './smoke/account-matrix.mjs';
 
 // Actual production build, real session/auth/storage; only disposable local data.
 const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
@@ -90,10 +91,10 @@ try{
   },stdio:['ignore',serverLog.fd,serverLog.fd]});
   await waitForServer();
   proxy=https.createServer({key:await fs.readFile(key),cert:await fs.readFile(cert)},(request,response)=>{
-    // The private test proxy models eleven separate synthetic clients. This is
+    // The private test proxy keeps profile/work and smoke-account clients distinct. This is
     // not an application bypass: its real rate-limit middleware stays enabled.
     const proofClient=String(request.headers['x-scout-proof-client']||'');
-    const clientIp=/^(?:[1-9]|1[01])$/.test(proofClient)?`192.0.2.${proofClient}`:'127.0.0.1';
+    const clientIp=scoutProofClientIp(proofClient,process.argv.includes('--account-matrix'));
     const headers={...request.headers,'x-forwarded-proto':'https','x-forwarded-for':clientIp};
     delete headers['x-scout-proof-client'];
     const upstream=http.request(backend+request.url,{method:request.method,headers},incoming=>{response.writeHead(incoming.statusCode||502,incoming.headers);incoming.pipe(response);});
