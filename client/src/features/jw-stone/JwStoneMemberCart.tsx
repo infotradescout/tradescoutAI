@@ -17,6 +17,8 @@ import { apiRequest } from "@/lib/queryClient";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import { JW_STONE_BRAND_STYLE } from "./brand";
 import { JW_STONE_CATALOG } from "./catalog";
+import { JwStoneFulfillmentDetailsFields, useJwStoneFulfillmentDetails } from "./JwStoneFulfillmentDetails";
+import { fulfillmentDetailsError, fulfillmentDetailsSummary } from "./fulfillmentDetails";
 
 const stockSchema = z.object({
   id: jwStoneInventoryPublicIdSchema,
@@ -74,6 +76,8 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
   const queryClient = useQueryClient();
   const [preferences, setPreferences] = useState(() => loadPreferences(viewerId));
   const [requestOpen, setRequestOpen] = useState(false);
+  const deliveryDetails = useJwStoneFulfillmentDetails(viewerId);
+  const fulfillmentError = fulfillmentDetailsError(deliveryDetails.details, preferences.method);
   useEffect(() => {
     try { window.localStorage.setItem(preferencesKey(viewerId), JSON.stringify(preferences)); } catch { /* Keep the in-memory draft when storage is unavailable. */ }
   }, [preferences, viewerId]);
@@ -131,10 +135,11 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
     ...(preferences.jobReference.trim() ? [`Job / PO: ${preferences.jobReference.trim()}`] : []),
     ...items.map((item) => `${item.quantity} slab(s): ${item.stoneName}${item.inventoryPublicId ? ` — stock ${item.inventoryPublicId}` : " — select exact stock with JW Stone"}`),
     preferences.method === "delivery" ? `Delivery requested to ZIP ${preferences.postalCode.trim()}. Please quote freight and timing.` : "Pickup requested. Please confirm pickup readiness and timing.",
+    ...fulfillmentDetailsSummary(deliveryDetails.details, preferences.method),
     ...(review?.materialReady && review.subtotalCents != null ? [`Material subtotal checked ${review.reviewedAt}: ${money(review.subtotalCents)}. Delivery and tax are not included; this is not a final quote.`] : []),
     "Please confirm stock, exact slab measurements, finish, final total, and availability before payment.",
   ].join("\n");
-  const canRequest = items.length > 0 && items.length <= JW_STONE_CART_REVIEW_MAX_LINES && validDestination && requestMessage.length <= 5000;
+  const canRequest = items.length > 0 && items.length <= JW_STONE_CART_REVIEW_MAX_LINES && validDestination && !fulfillmentError && requestMessage.length <= 5000;
 
   return <>
     <Dialog.Root open={!requestOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -196,6 +201,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
                 <legend className="px-1 text-sm font-semibold">Pickup or delivery</legend>
                 <div className="flex gap-5">{(["pickup", "delivery"] as const).map((method) => <label key={method} className="inline-flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="jw-cart-fulfillment" value={method} checked={preferences.method === method} onChange={() => setPreferences((current) => ({ ...current, method }))} />{method === "pickup" ? "Pickup" : "Delivery"}</label>)}</div>
                 {preferences.method === "delivery" ? <label className="mt-2 block text-sm">Delivery ZIP<input autoComplete="postal-code" inputMode="numeric" maxLength={10} value={preferences.postalCode} onChange={(event) => setPreferences((current) => ({ ...current, postalCode: event.target.value }))} className="mt-1 min-h-11 w-full border border-[var(--jw-border)] bg-[var(--jw-surface)] px-3 text-[var(--jw-ink)]" /><span className="mt-2 block text-xs text-[var(--jw-muted)]">JW Stone will quote delivery cost and timing. No delivery charge has been added.</span></label> : <p className="text-xs text-[var(--jw-muted)]">Pickup timing is arranged with JW Stone.</p>}
+                <JwStoneFulfillmentDetailsFields method={preferences.method} details={deliveryDetails.details} onChange={deliveryDetails.update} storageError={deliveryDetails.storageError} />
                 <label className="mt-4 block text-sm">Job / PO reference <span className="text-[var(--jw-muted)]">(optional)</span><input maxLength={100} value={preferences.jobReference} onChange={(event) => setPreferences((current) => ({ ...current, jobReference: event.target.value }))} className="mt-1 min-h-11 w-full border border-[var(--jw-border)] bg-[var(--jw-surface)] px-3 text-[var(--jw-ink)]" /></label>
               </fieldset>
             </div>}
@@ -210,6 +216,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
                 : fullySelected && !parsedRequest.success ? "Reduce the combined quantity for a stock item to 999 or fewer."
                 : items.length ? "A full total will appear after every stock selection is checked." : null}
             </div>
+            {items.length && fulfillmentError ? <p role="alert" className="mt-2 text-xs">{fulfillmentError}</p> : null}
             {items.length ? <p className="mt-2 text-xs leading-5 text-[var(--jw-muted)]">Delivery and tax are not included. This cart does not reserve stock or charge payment.</p> : null}
             <div className="mt-3 flex gap-2">
               {parsedRequest.success ? <button type="button" disabled={reviewQuery.isFetching} onClick={() => void reviewQuery.refetch()} className="min-h-11 flex-1 border border-[var(--jw-border)] px-3 text-sm disabled:opacity-40">Recheck total</button> : null}
