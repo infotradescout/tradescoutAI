@@ -127,6 +127,9 @@ try {
       const identity = await auth.json();
       assert.equal(identity?.id ?? identity?.user?.id, user.id, 'The real session must belong to the seeded account, not a guest');
       const page = await context.newPage(); page.setDefaultTimeout(45000); page.on('pageerror', error => errors.push(error.message));
+      await page.addLocatorHandler(page.getByRole('dialog', { name: 'What do you want to get done?' }), async () => {
+        await page.getByRole('button', { name: 'Close Start here guide', exact: true }).click();
+      });
       await page.route('**/api/scout/execute-action', async route => {
         actionRequests++;
         try {
