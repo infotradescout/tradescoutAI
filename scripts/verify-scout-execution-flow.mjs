@@ -92,7 +92,7 @@ try {
   serverLog = await fs.open(path.join(temp, 'application.private.log'), 'w', 0o600);
   child = spawn(process.execPath, ['dist/index.js'], { env: {
     PATH: process.env.PATH, HOME: temp, TMPDIR: temp, ...environment,
-    SESSION_SECRET: sessionSecret, PORT: '5238', HOST: '127.0.0.1',
+    SESSION_SECRET: sessionSecret, SESSION_COOKIE_DOMAIN: '127.0.0.1', PORT: '5238', HOST: '127.0.0.1',
     PUBLIC_WEB_URL: base, CORS_ALLOWED_ORIGINS: base, RENDER: 'false', GIT_COMMIT: head,
     NODE_OPTIONS: '--max-old-space-size=4096', EMAIL_MODE: 'account_creation_only', DISABLE_FACEBOOK_AUTH: 'true',
   }, stdio: ['ignore', serverLog.fd, serverLog.fd] });
@@ -124,6 +124,8 @@ try {
       assert.equal(login.status(), 200, 'Real synthetic account login: ' + (await login.text()).slice(0, 600));
       const auth = await context.request.get(base + '/api/auth/user');
       assert.equal(auth.status(), 200, 'Real session cookie must authenticate');
+      const identity = await auth.json();
+      assert.equal(identity?.id ?? identity?.user?.id, user.id, 'The real session must belong to the seeded account, not a guest');
       const page = await context.newPage(); page.setDefaultTimeout(45000); page.on('pageerror', error => errors.push(error.message));
       await page.route('**/api/scout/execute-action', async route => {
         actionRequests++;
