@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {randomBytes, createHash} from 'node:crypto';
 import {chromium} from 'playwright';
 import {runScoutReceiptBrowserChecks} from './scout-receipt-browser-checks.mjs';
+import {runScoutWorkBrowserProof} from './scout-work-browser-proof.mjs';
 
 /** Uses only the fresh local database created by the native verification driver. */
 export async function runScoutBrowserProof({base, sql, environment, run, proof, secrets, redact}) {
@@ -85,5 +86,6 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
     const guest=await browser.newContext({ignoreHTTPSErrors:true,extraHTTPHeaders:{'x-scout-proof-client':String(++clientOrdinal)}});
     try{const response=await guest.request.post(base+'/api/scout/execute-action',{headers:{Origin:base},data:{action:{type:'SAVE_PROFILE',payload:{profilePatch:{firstName:'Unauthorized'}}}}});assert.equal(response.status(),401);proof.guestUnauthorized=true;}
     finally{await guest.close();}
+    await runScoutWorkBrowserProof({base,sql,environment,run,proof,secrets,browser});
   }finally{await browser.close();}
 }
