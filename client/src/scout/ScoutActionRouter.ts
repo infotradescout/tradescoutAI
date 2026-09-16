@@ -18,24 +18,48 @@ export interface ScoutActionHelpers {
   openAppDrawer: () => void;
   openToolsDrawer: () => void;
   prefillInput: (value: string) => void;
-  askScout?: (prompt: string) => void;
+  askScout?: (prompt: string) => void | Promise<void>;
   confirmAction?: (action: ScoutAction) => Promise<boolean> | boolean;
   isAuthenticated?: boolean;
   userRole?: string | null;
 }
 
+/**
+ * A resolved execution promise is consumed as completion by ScoutOS. Interruptions
+ * must therefore reject, not silently resolve and trigger the caller's Saved copy.
+ * These typed outcomes carry safe text through the existing action-status surface.
+ */
+export class ScoutActionExecutionInterruptedError extends Error {
+  readonly outcome: "cancelled" | "auth_required";
+
+  constructor(outcome: "cancelled" | "auth_required", isFollowUp = false) {
+    const message = outcome === "cancelled"
+      ? "Cancelled. This action was not submitted."
+      : "Sign in to complete this action.";
+    super(isFollowUp ? `${message} The earlier action may already be complete; check its status.` : message);
+    this.name = "ScoutActionExecutionInterruptedError";
+    this.outcome = outcome;
+  }
+}
+
 type GuardedActionResponse = {
   success?: boolean;
+  executed?: boolean;
   message?: string;
   nextAction?: ScoutAction;
 };
 
 function isSensitiveScoutAction(action: ScoutAction): boolean {
+  // Explicit approval requirements apply to every action type, including tools.
+  if (action.payload?.requiresApproval === true || (action as any).requiresApproval === true) {
+    return true;
+  }
   const name = String((action as any).name || action.payload?.name || "").toLowerCase();
   const label = String(action.label || "").toLowerCase();
   const text = `${name} ${label}`;
 
   switch (action.type) {
+    case "SAVE_PROFILE":
     case "SEND_ADMIN_BROADCAST":
     case "START_COMMUNITY_VAULT_DONATION":
     case "START_PLATFORM_SUPPORT":
@@ -49,14 +73,21 @@ function isSensitiveScoutAction(action: ScoutAction): boolean {
         text
       );
     default:
-      if (action.payload?.requiresApproval === true || (action as any).requiresApproval === true) {
-        return true;
-      }
       return false;
   }
 }
 
 function isPaymentExecutionAction(action: ScoutAction): boolean {
+  // A profile's display label cannot turn its typed, server-owned save into a
+  // payment handoff which would resolve without actually saving the profile.
+  if (action.type === "SAVE_PROFILE") return false;
+  // Payment safety must not depend on a model-generated label being present.
+  if (
+    action.type === "START_COMMUNITY_VAULT_DONATION" ||
+    action.type === "START_PLATFORM_SUPPORT"
+  ) {
+    return true;
+  }
   const name = getScoutToolName(action).toLowerCase();
   const label = String(action.label || "").toLowerCase();
   const target = String(action.to || action.path || "").toLowerCase();
@@ -87,6 +118,10 @@ async function confirmSensitiveAction(action: ScoutAction, helpers: ScoutActionH
   return window.confirm(`Approve this Scout action?\n\n${label}`);
 }
 
+function requiresGuardAcknowledgement(action: ScoutAction): boolean {
+  return isSensitiveScoutAction(action) || action.type === "CALL_TOOL";
+}
+
 async function executeActionViaServerGuard(action: ScoutAction): Promise<{
   blocked: boolean;
   message?: string;
@@ -104,12 +139,12 @@ async function executeActionViaServerGuard(action: ScoutAction): Promise<{
     });
 
     if (!res.ok) {
-      // Guard endpoint unavailable should never block local execution.
+      // Only low-risk local actions may proceed when the guard is unavailable.
       if (res.status >= 500) {
-        return isSensitiveScoutAction(action)
+        return requiresGuardAcknowledgement(action)
           ? {
               blocked: true,
-              message: "This action is temporarily unavailable. Please try again shortly.",
+              message: "Scout could not confirm this action. Check its current status before trying again.",
             }
           : { blocked: false };
       }
@@ -122,10 +157,24 @@ async function executeActionViaServerGuard(action: ScoutAction): Promise<{
     }
 
     const ok = (await res.json().catch(() => ({}))) as GuardedActionResponse;
+    if (requiresGuardAcknowledgement(action) && ok.success !== true) {
+      return {
+        blocked: true,
+        message: ok.message || "Scout could not confirm that this action completed.",
+      };
+    }
     if (ok.success === false) {
       return {
         blocked: true,
         message: ok.message || "This action is blocked right now.",
+      };
+    }
+    // Authorization alone is not a write receipt. The real SAVE_PROFILE endpoint
+    // sets executed only after its storage update returns successfully.
+    if (action.type === "SAVE_PROFILE" && ok.executed !== true) {
+      return {
+        blocked: true,
+        message: "Scout could not confirm that your profile was saved. Check your profile before trying again.",
       };
     }
 
@@ -138,10 +187,10 @@ async function executeActionViaServerGuard(action: ScoutAction): Promise<{
     };
   } catch {
     // Network/intermittent failures degrade gracefully for low-risk actions only.
-    return isSensitiveScoutAction(action)
+    return requiresGuardAcknowledgement(action)
       ? {
           blocked: true,
-          message: "This action is temporarily unavailable. Please try again shortly.",
+          message: "Scout could not confirm this action. Check its current status before trying again.",
         }
       : { blocked: false };
   }
@@ -311,16 +360,21 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
     case "SAVE_PROFILE":
       return;
 
-    case "ASK_SCOUT":
-      if (action.prompt && helpers.askScout) {
-        helpers.askScout(action.prompt);
+    case "ASK_SCOUT": {
+      const prompt = [action.prompt, action.payload?.prompt].find(
+        (value): value is string => typeof value === "string" && value.trim().length > 0
+      );
+      if (!prompt || !helpers.askScout) {
+        throw new Error("Scout could not start this follow-up. Please enter your request again.");
       }
+      await helpers.askScout(prompt);
       return;
+    }
 
     case "FOLLOW_USER": {
       const targetId =
         typeof action.payload?.userId === "string" ? (action.payload.userId as string) : null;
-      if (!targetId) return;
+      if (!targetId?.trim()) throw new Error("Choose a person before changing this connection.");
 
       try {
         await followUser(targetId);
@@ -328,6 +382,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
         helpers.navigate("/connections?tab=social");
       } catch (err) {
         console.error("Failed to follow user from Scout action", err);
+        throw err;
       }
 
       return;
@@ -336,13 +391,14 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
     case "UNFOLLOW_USER": {
       const targetId =
         typeof action.payload?.userId === "string" ? (action.payload.userId as string) : null;
-      if (!targetId) return;
+      if (!targetId?.trim()) throw new Error("Choose a person before changing this connection.");
 
       try {
         await unfollowUser(targetId);
         helpers.navigate("/connections?tab=social");
       } catch (err) {
         console.error("Failed to unfollow user from Scout action", err);
+        throw err;
       }
 
       return;
@@ -422,7 +478,9 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
 
       const title = typeof payload.title === "string" ? payload.title : "";
       const message = typeof payload.message === "string" ? payload.message : "";
-      if (!title.trim() || !message.trim()) return;
+      if (!title.trim() || !message.trim()) {
+        throw new Error("Add a title and message before sending this broadcast.");
+      }
 
       const rawMethods = Array.isArray((payload as any).deliveryMethods)
         ? ((payload as any).deliveryMethods as unknown[])
@@ -479,6 +537,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
         });
       } catch (err) {
         console.error("Failed to send admin broadcast from Scout action", err);
+        throw err;
       }
 
       return;
@@ -515,7 +574,10 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
         typeof window !== "undefined" &&
         window.localStorage.getItem("scout:ads-feedback-enabled") !== "0";
 
-      if (name === "ads.feedback" && feedbackEnabled) {
+      if (name === "ads.feedback") {
+        if (!feedbackEnabled) {
+          throw new Error("Feedback is currently unavailable.");
+        }
         const adId = typeof args.adId === "string" ? (args.adId as string) : undefined;
         const rating =
           args.rating === "helpful" || args.rating === "not_relevant" || args.rating === "spam"
@@ -526,12 +588,17 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
             ? (args.source as "scout" | "site_visit" | "saved")
             : "scout";
 
-        if (adId && rating) {
-          void fetch("/api/ads/feedback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ adId, rating, source }),
-          }).catch(() => undefined);
+        if (!adId?.trim() || !rating) {
+          throw new Error("Choose an ad and a feedback option before submitting.");
+        }
+        const response = await fetch("/api/ads/feedback", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ adId, rating, source }),
+        });
+        if (!response.ok) {
+          throw new Error("Scout could not save your feedback. Please try again.");
         }
       }
 
@@ -550,7 +617,10 @@ export async function executeScoutActions(
 ) {
   if (!actions || actions.length === 0) return;
 
-  for (const action of actions) {
+  // Preserve the existing one-follow-up contract without bypassing auth or approval.
+  const queue = actions.map((action) => ({ action, isFollowUp: false }));
+  for (let index = 0; index < queue.length; index += 1) {
+    const { action, isFollowUp } = queue[index];
     if (action.type === "NOOP") {
       continue;
     }
@@ -561,43 +631,36 @@ export async function executeScoutActions(
       continue;
     }
 
-    if (action.type !== "SAVE_PROFILE") {
-      const commandCheck = canExecuteScoutCommand(action, {
-        isAuthenticated: helpers.isAuthenticated === true,
-        userRole: helpers.userRole,
-      });
-      if (!commandCheck.allowed) {
-        if (commandCheck.reason === "auth_required") {
-          helpers.navigate("/pre-scout-setup?mode=signin&next=%2Fscout");
-          continue;
-        }
-        throw new Error("This Scout command is not available for your current account.");
+    const commandCheck = canExecuteScoutCommand(action, {
+      isAuthenticated: helpers.isAuthenticated === true,
+      userRole: helpers.userRole,
+    });
+    if (!commandCheck.allowed) {
+      if (commandCheck.reason === "auth_required") {
+        helpers.navigate("/pre-scout-setup?mode=signin&next=%2Fscout");
+        throw new ScoutActionExecutionInterruptedError("auth_required", isFollowUp);
       }
+      throw new Error("This Scout command is not available for your current account.");
     }
 
     if (action.type === "CALL_TOOL" && !isSupportedScoutToolName(getScoutToolName(action))) {
       throw new Error(UNSUPPORTED_SCOUT_TOOL_MESSAGE);
     }
 
+    // SAVE_PROFILE is performed inside the server guard, not the local dispatcher.
+    // Confirmation must precede the request so cancellation cannot save anything.
+    const approved = await confirmSensitiveAction(action, helpers);
+    if (!approved) throw new ScoutActionExecutionInterruptedError("cancelled", isFollowUp);
+
     const guarded = await executeActionViaServerGuard(action);
     if (guarded.blocked) {
       throw new Error(guarded.message || "This action is blocked right now.");
     }
 
-    const approved = await confirmSensitiveAction(action, helpers);
-    if (!approved) continue;
-
     await executeScoutActionLocal(action, helpers);
 
-    if (guarded.nextAction && guarded.nextAction.type !== "NOOP") {
-      if (isPaymentExecutionAction(guarded.nextAction)) {
-        const route = paymentRouteForAction(guarded.nextAction);
-        if (route) helpers.navigate(route);
-        continue;
-      }
-      const nextApproved = await confirmSensitiveAction(guarded.nextAction, helpers);
-      if (!nextApproved) continue;
-      await executeScoutActionLocal(guarded.nextAction, helpers);
+    if (!isFollowUp && guarded.nextAction && guarded.nextAction.type !== "NOOP") {
+      queue.splice(index + 1, 0, { action: guarded.nextAction, isFollowUp: true });
     }
   }
 }

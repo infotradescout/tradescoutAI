@@ -278,6 +278,10 @@ function buildAllowedActions(
   const allowedActions: ScoutAllowedActionV1[] = [];
   const ambiguityOptions: ScoutAmbiguityOptionV1[] = [];
   const seen = new Set<string>();
+  // A display-only suggestion must not create a second, same-labelled button
+  // that asks again instead of running the existing typed, guarded action.
+  const labelKey = (value: string) => cleanText(value, 160).replace(/\s+/g, " ").toLowerCase();
+  const ownedLabels = new Set(actions.map((action) => labelKey(action.label)).filter(Boolean));
 
   for (const [index, ambiguityIntent] of ambiguity.entries()) {
     const definition = INTENT_LABELS[ambiguityIntent];
@@ -313,7 +317,7 @@ function buildAllowedActions(
 
   for (const suggestion of suggestedActions) {
     const label = cleanText(suggestion, 160);
-    if (!label) continue;
+    if (!label || ownedLabels.has(labelKey(label))) continue;
     const key = `ask_scout|${label.toLowerCase()}|${label.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
