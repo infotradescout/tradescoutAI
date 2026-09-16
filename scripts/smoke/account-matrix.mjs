@@ -18,7 +18,8 @@ export const PERSONAS = Object.freeze([
   { name: 'contractor-account', role: 'contractor_user' },
   { name: 'unverified-contractor', role: 'contractor_user', addressVerified: false },
   { name: 'business-owner', role: 'business_owner' },
-  { name: 'community-member', role: 'community_member' },
+  // Community participation uses an ordinary personal account, not a new role.
+  { name: 'community-member', role: 'homeowner' },
   { name: 'support-agent', role: 'support_agent' },
   { name: 'operations-admin', role: 'ops_admin' },
   { name: 'super-admin', role: 'super_admin' },
