@@ -1,6 +1,7 @@
 import { useReducer, useCallback } from "react";
 import type { ScoutResponseFrame } from "./api";
 import type { ScoutResultContractV1 } from "@shared/types/scout";
+import { formatUserFacingErrorMessage } from "../lib/userFacingError";
 
 export type ScoutRole = "user" | "assistant" | "system";
 
@@ -228,15 +229,18 @@ export function scoutReducer(state: ScoutState, event: ScoutEvent): ScoutState {
     }
 
     case "ERROR": {
-      const errorMessage = createMessage(
-        "assistant",
+      // Preserve approved user-facing outcome copy all the way to the rendered
+      // conversation. A cancelled or uncertain write must not become a retry instruction.
+      const visibleError = formatUserFacingErrorMessage(
+        event.error,
         "That did not go through. Try again, or say it a little differently."
       );
+      const errorMessage = createMessage("assistant", visibleError);
       return {
         ...state,
         messages: [...state.messages, errorMessage],
         status: "error",
-        error: event.error,
+        error: visibleError,
         lastActions: [],
       };
     }
