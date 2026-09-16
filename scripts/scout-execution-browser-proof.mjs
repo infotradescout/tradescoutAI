@@ -51,7 +51,8 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
           const saves=answerPayload.allowed_actions?.filter(action=>action.label==='Save profile update')??[];
           assert.equal(saves.length,1,'The live result must expose exactly one real save action');
           assert.equal(saves[0].type,'SAVE_PROFILE');assert.equal(saves[0].requires_confirmation,true);
-          const saveButton=page.getByRole('button',{name:'Save profile update',exact:true}).first();await saveButton.waitFor();
+          const saveButton=page.getByTestId('scout-primary-next-action');await saveButton.waitFor();
+          assert.match(await saveButton.innerText(),/Save profile update/);
           let dialogSeen=false;page.once('dialog',async dialog=>{dialogSeen=true;scenario==='cancel'?await dialog.dismiss():await dialog.accept();});
           await saveButton.click();
           if(scenario==='approve')await page.getByText('Saved. Your profile has been updated.',{exact:true}).first().waitFor();
