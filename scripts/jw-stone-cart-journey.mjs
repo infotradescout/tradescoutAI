@@ -48,6 +48,23 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   const delivery = await (await pendingDelivery).json();
   assert.equal(delivery.deliveryFeeCents, null); assert.equal(delivery.estimatedDeliveryDate, null); assert.equal(delivery.readyForCheckout, false);
   await cart.getByLabel(/^Job \/ PO reference/).fill('Synthetic cart job ' + device);
+  const requestedDate = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const requestedDateLabel = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${requestedDate}T12:00:00.000Z`));
+  const deliveryContext = [requestedDateLabel, 'Jobsite', '100 Example Lane', 'Example City', 'LA', 'Help arranging unloading requested', 'Gate closes at 4.', 'JW Stone must confirm'];
+  const deliveryFields = cart.getByTestId('jw-cart-fulfillment-details');
+  await click(deliveryFields.locator('summary'));
+  await deliveryFields.getByLabel('Requested delivery date', { exact: true }).fill('2000-01-01');
+  assert.equal(await cart.getByTestId('jw-cart-request-quote').isDisabled(), true, 'An expired date must not silently travel into a new request');
+  await deliveryFields.getByLabel('Requested delivery date', { exact: true }).fill(requestedDate);
+  await deliveryFields.getByLabel('Preferred time of day', { exact: true }).selectOption('morning');
+  await deliveryFields.getByLabel('Delivery destination', { exact: true }).selectOption('jobsite');
+  await deliveryFields.getByLabel('Delivery street address', { exact: true }).fill('100 Example Lane');
+  await deliveryFields.getByLabel('Delivery city', { exact: true }).fill('Example City');
+  await deliveryFields.getByLabel('Delivery state', { exact: true }).fill('LA');
+  await deliveryFields.getByLabel('Unloading arrangements', { exact: true }).selectOption('needs_arrangement');
+  await deliveryFields.getByLabel('Delivery notes', { exact: true }).fill('Gate closes at 4.');
+  assert.equal(await cart.getByTestId('jw-cart-request-quote').isDisabled(), false);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
   await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
   await page.screenshot({ path: path.join(output, device + '-synthetic-cart-review.png'), fullPage: false });
   await cart.screenshot({ path: path.join(output, device + '-synthetic-cart-review.jpg'), type: 'jpeg', quality: 25 });
@@ -63,8 +80,11 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   assert.equal(await cart.getByLabel('Quantity for Honey Onyx', { exact: true }).inputValue(), '2');
   assert.equal(await cart.getByLabel('Delivery ZIP', { exact: false }).inputValue(), '70401');
   assert.equal(await cart.getByLabel(/^Job \/ PO reference/).inputValue(), 'Synthetic cart job ' + device);
+  assert.equal(await cart.getByLabel('Requested delivery date', { exact: true }).inputValue(), requestedDate);
+  assert.equal(await cart.getByLabel('Delivery street address', { exact: true }).inputValue(), '100 Example Lane');
+  assert.equal(await cart.getByLabel('Unloading arrangements', { exact: true }).inputValue(), 'needs_arrangement');
   await cart.getByTestId('jw-cart-reviewed-subtotal').getByText('$9,090.00', { exact: true }).waitFor();
-  console.log('JW_CART_JOURNEY_STAGE ' + JSON.stringify({ device, stockAndPricing: true, restoredCart: true }));
+  console.log('JW_CART_JOURNEY_STAGE ' + JSON.stringify({ device, stockAndPricing: true, restoredCart: true, deliveryPreferencesRestored: true }));
   await click(cart.getByTestId('jw-cart-request-quote'));
   const dialog = page.getByRole('dialog', { name: 'JW Stone', exact: true }); await dialog.waitFor();
   // A wrapping label can include a textarea's initial text. Match its visible label
@@ -72,7 +92,7 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   const detailsField = dialog.locator('label').filter({ has: page.locator('span').filter({ hasText: /^Details$/ }) }).locator('textarea');
   assert.equal(await detailsField.count(), 1, 'The native request must have one visibly labelled Details textarea');
   const details = await detailsField.inputValue();
-  for (const text of [fixture.cartStockId, '2 slab(s): Honey Onyx', '70401', 'Synthetic cart job ' + device, 'no order or inventory hold']) assert(details.includes(text), 'Quote draft dropped ' + text);
+  for (const text of [fixture.cartStockId, '2 slab(s): Honey Onyx', '70401', 'Synthetic cart job ' + device, 'no order or inventory hold', ...deliveryContext]) assert(details.includes(text), 'Quote draft dropped ' + text);
   assert.equal(await dialog.locator('a[href^="tel:"]').count(), 0, 'Cart handoff must not release contact');
   await dialog.getByLabel('Name', { exact: true }).fill('Synthetic Cart Customer');
   await dialog.getByLabel('Email', { exact: true }).fill(email);
@@ -86,7 +106,7 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   await dialog.getByRole('heading', { name: 'Request sent', exact: true }).waitFor();
   const [work] = (await database.query('SELECT created_by_user_id,source_ref_id,visibility,description FROM work_requests WHERE id=$1', [receipt.requestId])).rows;
   assert(work); assert.equal(work.created_by_user_id, userId); assert.equal(work.source_ref_id, fixture.profileId); assert.equal(work.visibility, 'private');
-  for (const text of [fixture.cartStockId, '2 slab(s)', '70401', 'Synthetic cart job ' + device]) assert(work.description.includes(text), 'Persisted quote request dropped ' + text);
+  for (const text of [fixture.cartStockId, '2 slab(s)', '70401', 'Synthetic cart job ' + device, ...deliveryContext]) assert(work.description.includes(text), 'Persisted quote request dropped ' + text);
   const assignments = (await database.query('SELECT responder_user_id FROM work_request_assignments WHERE work_request_id=$1', [receipt.requestId])).rows;
   assert.equal(assignments.length, 1); assert.equal(assignments[0].responder_user_id, fixture.ownerId);
   const notices = (await database.query("SELECT user_id FROM notifications WHERE metadata->>'workRequestId'=$1 AND metadata->>'kind'='express_contact_authority_request'", [receipt.requestId])).rows;
@@ -102,5 +122,6 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   return { exactStockSelection: true, serverCheckedSubtotal: true, combinedStockQuantityChecked: true, quantityRateApplied: true,
     reloadRetainsSelectionsAndFulfillment: true, noPersistentBrowserPrices: true, nativeCartQuoteSubmitted: true,
     privateRequestPersisted: true, selectedSupplierNotifiedInApp: true, contactRemainsPending: true,
+    deliveryPreferencesPersisted: true, requestedDateNotPromised: true,
     inventoryReserved: false, paymentCharged: false, deliveryCostOrDateInvented: false, externalEmailDelivery: false };
 }
