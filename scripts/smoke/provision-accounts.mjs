@@ -25,7 +25,7 @@ export async function provisionAccounts({ sql, base, environment, hashPasswords,
         (id, email, password_hash, first_name, last_name, role, active_role,
          onboarding_completed, profile_version, email_verified, address_verified,
          county_fips, state_code, city, preferences, created_at, updated_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,$9,$10,$11,'FL',$12,$13::jsonb,now(),now())`, [
+        VALUES ($1,$2,$3,$4,$5,$6::text::user_role,$6::text,$7,$8,$9,$10,$11,'FL',$12,$13::jsonb,now(),now())`, [
         account.id, account.email, hashes[index], 'Smoke', account.name, account.role,
         account.onboarding, account.onboarding ? profileVersion : 0,
         account.emailVerified, account.addressVerified, account.countyFips,

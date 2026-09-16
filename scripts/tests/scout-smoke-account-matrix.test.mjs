@@ -212,6 +212,7 @@ test('native inserts use password_hash and persisted location fields, not unmapp
   for (const call of f.calls.filter(c => c.text.startsWith('INSERT INTO users'))) {
     const columns = call.text.slice(call.text.indexOf('(') + 1, call.text.indexOf(')')).split(',').map(v => v.trim());
     assert(columns.includes('password_hash'));
+    assert(call.text.includes('$6::text::user_role,$6::text'), 'Enum and active-role text must share an explicitly typed parameter');
     assert(!columns.includes('password'));
     assert(!columns.includes('location_committed'));
     assert(columns.includes('county_fips') && columns.includes('state_code'));
