@@ -1,6 +1,5 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { normalizePublicBusinessPreviewImage, toPublicBusinessCardDetails } from "@shared/publicBusinessCard";
-import * as sitemap from "../profileSitemapDiscovery";
 
 const mocks = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[], calls: 0, fail: false }));
 vi.mock("../db", () => ({ db: {
@@ -20,8 +19,8 @@ const business = {
   card: toPublicBusinessCardDetails({ services: ["Plumbing repairs"] }),
 };
 const gallery = [{ type: "gallery", data: { title: "Project photos", images: [
-  { title: "Fixture installation", imageUrl: "/images/businesses/test/fixture.webp" },
-  { title: "Completed kitchen", imageUrl: "/images/businesses/test/kitchen.webp" },
+  { title: "Fixture installation", description: "A completed fixture installation in this synthetic test project.", imageUrl: "/images/businesses/test/fixture.webp" },
+  { title: "Completed kitchen", description: "The completed kitchen shown in this synthetic test fixture.", imageUrl: "/images/businesses/test/kitchen.webp" },
 ] } }];
 function row(overrides: Record<string, unknown> = {}) {
   return {
@@ -40,7 +39,6 @@ function row(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => { mocks.rows = []; mocks.calls = 0; mocks.fail = false; });
-afterEach(() => vi.restoreAllMocks());
 
 describe("public business preview media URLs", () => {
   it.each([
@@ -91,17 +89,28 @@ describe("published profile previews", () => {
     ]);
     expect(result.get(business.id)?.profileSlug).toBe("preview-profile");
   });
-  it("does not expose gallery children excluded by the existing publication graph", () => {
-    vi.spyOn(sitemap, "buildProfileSitemapUrls").mockReturnValue([]);
-    const result = buildPublicBusinessProfilePreviews([business], [row({ profileSeoMeta: {} })]).get(business.id);
+  it("honors an explicit gallery discovery opt-out using the actual publication graph", () => {
+    const result = buildPublicBusinessProfilePreviews([business], [row({
+      profileSeoMeta: {},
+      profileContentBlocks: [...gallery, { type: "publicDiscovery", data: { sitemap: { gallery: false } } }],
+    })]).get(business.id);
     expect(result?.gallery).toEqual([]);
     expect(result?.coverImageUrl).toBeNull();
   });
+  it("does not promote sparse gallery records into automatic public child pages", () => {
+    const result = buildPublicBusinessProfilePreviews([business], [row({
+      profileSeoMeta: {}, profileContentBlocks: [{ type: "gallery", data: { images: [
+        { title: "Fixture installation", imageUrl: "/images/businesses/test/fixture.webp" },
+      ] } }],
+    })]).get(business.id);
+    expect(result?.gallery).toEqual([]);
+  });
   it("bounds and deduplicates gallery preview images", () => {
+    const description = "Source-backed descriptive context for this synthetic test photo.";
     const blocks = [{ type: "gallery", data: { title: "Project photos", images: [
-      { title: "First", imageUrl: "/images/businesses/test/first.webp" },
-      { title: "Duplicate", imageUrl: "/images/businesses/test/first.webp" },
-      ...Array.from({ length: 8 }, (_, n) => ({ title: `Project ${n}`, imageUrl: `/images/businesses/test/work-${n}.webp` })),
+      { title: "First", description, imageUrl: "/images/businesses/test/first.webp" },
+      { title: "Duplicate", description, imageUrl: "/images/businesses/test/first.webp" },
+      ...Array.from({ length: 8 }, (_, n) => ({ title: `Project ${n}`, description, imageUrl: `/images/businesses/test/work-${n}.webp` })),
     ] } }];
     const result = buildPublicBusinessProfilePreviews([business], [row({ profileContentBlocks: blocks })]).get(business.id);
     expect(result?.gallery).toHaveLength(3);

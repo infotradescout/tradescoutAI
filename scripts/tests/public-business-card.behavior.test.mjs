@@ -183,6 +183,8 @@ function routeHarness(initialRows = []) {
     async offset() { if (failure) throw new Error("test database failure"); return rows; },
   };
   load("server/routes/business-directory-public.ts", {
+    // This suite isolates directory projection. Real media lookup/policy is exercised in the Vitest media suite.
+    "../services/publicBusinessCardEnrichment": { enrichPublicBusinessCards: async (items) => items },
     express: { Router: () => ({ get: (url, handler) => registered.set(url, handler), post: () => {} }) },
     "drizzle-orm": { ...Object.fromEntries(["and", "asc", "desc", "eq", "ilike", "or"].map((name) => [name, operation(name)])), sql },
     "../auth": { isAuthenticated: () => {} },
