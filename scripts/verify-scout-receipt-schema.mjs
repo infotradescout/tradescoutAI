@@ -53,7 +53,19 @@ try{
   const constraints=(await sql.query("SELECT conname,contype FROM pg_constraint WHERE conrelid='scout_execution_receipts'::regclass ORDER BY conname")).rows;
   for(const constraint of constraints){
     const quoted='"'+constraint.conname.replaceAll('"','""')+'"';
-    await damaged('Missing '+constraint.conname+' is rejected','ALTER TABLE scout_execution_receipts DROP CONSTRAINT '+quoted);
+    const mutation='ALTER TABLE scout_execution_receipts DROP CONSTRAINT '+quoted;
+    if(constraint.contype==='n'&&['scout_execution_receipts_execution_id_not_null','scout_execution_receipts_owner_user_id_not_null'].includes(constraint.conname)){
+      // PostgreSQL itself prevents this invalid state while the primary key
+      // remains. Prove that protection instead of claiming the fixture changed.
+      await check('Database prevents removing '+constraint.conname+' from the primary key',async()=>{
+        await sql.query('BEGIN');
+        try{await assert.rejects(sql.query(mutation),/is in a primary key/);}
+        finally{await sql.query('ROLLBACK');}
+        assert.equal((await inspectScoutReceiptSchema(sql)).contract,true);
+      });
+    }else{
+      await damaged('Missing '+constraint.conname+' is rejected',mutation);
+    }
   }
   await check('Schema checker has not repaired or changed the database during inspection',async()=>{
     const result=await inspectScoutReceiptSchema(sql);assert.equal(result.contract,true);
