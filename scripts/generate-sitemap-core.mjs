@@ -75,17 +75,17 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/compare/coordination', priority: 0.8, changefreq: 'monthly' },
   { path: '/compare/lead-generation', priority: 0.8, changefreq: 'monthly' },
   { path: '/compare/homeadvisor', priority: 0.8, changefreq: 'monthly' },
-  { path: '/about', priority: 0.8, changefreq: 'monthly' },
+  { path: '/about', priority: 0.8, changefreq: 'weekly' },
   { path: '/contact', priority: 0.7, changefreq: 'monthly' },
   { path: '/pricing', priority: 0.7, changefreq: 'monthly' },
   { path: '/terms', priority: 0.6, changefreq: 'monthly' },
-  { path: '/privacy', priority: 0.6, changefreq: 'monthly' },
+  { path: '/privacy', priority: 0.5, changefreq: 'monthly' },
   { path: '/privacy-request', priority: 0.5, changefreq: 'yearly' },
   { path: '/compliance', priority: 0.5, changefreq: 'monthly' },
   { path: '/realtor-application', priority: 0.7, changefreq: 'monthly' },
   { path: '/car-salesman-application', priority: 0.7, changefreq: 'monthly' },
   { path: '/leaderboard', priority: 0.6, changefreq: 'daily' },
-  { path: '/foundation', priority: 0.6, changefreq: 'monthly' },
+  { path: '/foundation', priority: 0.6, changefreq: 'daily' },
   { path: '/resource-center', priority: 0.7, changefreq: 'weekly' },
   { path: '/training-center', priority: 0.6, changefreq: 'weekly' },
   { path: '/trade', priority: 0.8, changefreq: 'daily' },
@@ -111,15 +111,15 @@ const PUBLIC_ROUTES = (() => {
   return merged;
 })();
 
-function extractExistingLastmodByLoc() {
-  if (!existsSync(OUTPUT_PATH)) return new Map();
+function extractExistingLastmodByLoc(outputPath = OUTPUT_PATH, entryTag = 'url') {
+  if (!existsSync(outputPath)) return new Map();
 
-  const raw = readFileSync(OUTPUT_PATH, 'utf-8');
+  const raw = readFileSync(outputPath, 'utf-8');
   const map = new Map();
-  const urlEntryRegex = /<url>[\s\S]*?<loc>([^<]+)<\/loc>[\s\S]*?<lastmod>([^<]+)<\/lastmod>[\s\S]*?<\/url>/g;
+  const entryRegex = new RegExp(`<${entryTag}>[\\s\\S]*?<loc>([^<]+)<\\/loc>[\\s\\S]*?<lastmod>([^<]+)<\\/lastmod>[\\s\\S]*?<\\/${entryTag}>`, 'g');
   let match;
 
-  while ((match = urlEntryRegex.exec(raw)) !== null) {
+  while ((match = entryRegex.exec(raw)) !== null) {
     const loc = String(match[1] || '').trim();
     const lastmod = String(match[2] || '').trim();
     if (!loc || !lastmod) continue;
@@ -132,6 +132,7 @@ function extractExistingLastmodByLoc() {
 function generateSitemap() {
   const today = new Date().toISOString().split('T')[0];
   const existingLastmodByLoc = extractExistingLastmodByLoc();
+  const existingIndexLastmodByLoc = extractExistingLastmodByLoc(OUTPUT_INDEX_PATH, 'sitemap');
 
   const urls = PUBLIC_ROUTES.map((route) => {
     const loc = `${PRODUCTION_URL}${route.path}`;
@@ -142,9 +143,13 @@ function generateSitemap() {
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>\n`;
 
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
-  const indexTargets = SUBMITTED_SITEMAP_TARGETS.map(
-    (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`
-  ).join('\n');
+  // An unchanged static index is not newly modified just because another build
+  // ran. Preserve its entry dates as we already do for the canonical URL map.
+  const indexTargets = SUBMITTED_SITEMAP_TARGETS.map((targetPath) => {
+    const loc = `${PRODUCTION_URL}${targetPath}`;
+    const lastmod = existingIndexLastmodByLoc.get(loc) || today;
+    return `  <sitemap>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>`;
+  }).join('\n');
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexTargets}\n</sitemapindex>`;
   writeFileSync(OUTPUT_INDEX_PATH, sitemapIndex, 'utf-8');
   console.log(`Sitemap generated: ${OUTPUT_PATH}`);
