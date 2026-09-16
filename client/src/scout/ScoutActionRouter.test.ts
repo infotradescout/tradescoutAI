@@ -135,6 +135,8 @@ describe("ScoutActionRouter structured prefill routing", () => {
   it("lets SAVE_PROFILE complete through the server guard without local navigation", async () => {
     mockGuardAllowsActions();
     const { helpers, navigate, prefillInput } = makeHelpers();
+    helpers.isAuthenticated = true;
+    helpers.confirmAction = vi.fn().mockResolvedValue(true);
 
     const action: ScoutAction = {
       type: "SAVE_PROFILE",
@@ -146,6 +148,7 @@ describe("ScoutActionRouter structured prefill routing", () => {
 
     await executeScoutActions([action], helpers);
 
+    expect(helpers.confirmAction).toHaveBeenCalledWith(action);
     expect(fetch).toHaveBeenCalledWith(
       "/api/scout/execute-action",
       expect.objectContaining({
