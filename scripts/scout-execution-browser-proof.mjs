@@ -8,6 +8,8 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
   assert.equal((await sql.query('SELECT current_database() AS name')).rows[0].name,'cabinet_placement_test','Require the disposable verification database');
   const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
   const cases=[['cancel','Cancelledcase'],['approve','Approvedcase'],['database-failure','Failurecase'],['lost-acknowledgement','Lostack'],['authorization-only','Unconfirmedcase']];
+  let clientOrdinal=0;
+  proof.networkIsolation='Each synthetic account is an independent TEST-NET client at the private loopback proxy. Application rate limits are unchanged.';
   try {
     for(const [device,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}]]) {
       for(const [scenario,firstName] of cases) {
@@ -16,7 +18,7 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
         run(`Seed synthetic ${device} ${scenario} user`,[process.execPath,'--import','tsx','scripts/seed-e2e-user.ts'],{...environment,E2E_EMAIL:email,E2E_PASSWORD:password});
         const user=(await sql.query('SELECT id, first_name FROM users WHERE email=$1',[email])).rows[0];assert(user?.id);
         await sql.query('DELETE FROM scout_execution_proof_writes WHERE user_id=$1',[user.id]);
-        const context=await browser.newContext({viewport,isMobile:device==='mobile',hasTouch:device==='mobile',ignoreHTTPSErrors:true,serviceWorkers:'block'});
+        const context=await browser.newContext({viewport,isMobile:device==='mobile',hasTouch:device==='mobile',ignoreHTTPSErrors:true,serviceWorkers:'block',extraHTTPHeaders:{'x-scout-proof-client':String(++clientOrdinal)}});
         const errors=[],deniedExternal=[],handlerErrors=[];let actionRequests=0,page;
         try {
           await context.route('**/*',route=>{
@@ -72,7 +74,7 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
         finally{await context.close();}
       }
     }
-    const guest=await browser.newContext({ignoreHTTPSErrors:true});
+    const guest=await browser.newContext({ignoreHTTPSErrors:true,extraHTTPHeaders:{'x-scout-proof-client':String(++clientOrdinal)}});
     try{const response=await guest.request.post(base+'/api/scout/execute-action',{headers:{Origin:base},data:{action:{type:'SAVE_PROFILE',payload:{profilePatch:{firstName:'Unauthorized'}}}}});assert.equal(response.status(),401);proof.guestUnauthorized=true;}
     finally{await guest.close();}
   }finally{await browser.close();}
