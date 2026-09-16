@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { loadScoutRequestContinuation } from "./scoutRequestContinuation";
+import type { ScoutRequestSelection } from "./scoutRequestSelection";
 
-export function ScoutRequestContinueButton({ requestId, onPromptSelect }: {
+export function ScoutRequestContinueButton({ requestId, onPromptSelect, requestSelection }: {
   requestId: string;
+  requestSelection: ScoutRequestSelection;
   onPromptSelect: (prompt: string) => void;
 }) {
   const { user, isAuthenticated } = useAuth();
@@ -21,28 +23,35 @@ export function ScoutRequestContinueButton({ requestId, onPromptSelect }: {
     setBusy(false);
     setError(false);
     return () => { mounted.current = false; inFlight.current?.abort(); inFlight.current = null; };
-  }, [ownerId, requestId]);
+  }, [ownerId, requestId, requestSelection]);
   if (!ownerId) return null;
 
   return <div className="mt-1">
     <button type="button" disabled={busy} aria-busy={busy}
       className="inline-flex min-h-11 items-center rounded-lg px-2 py-2 text-sm font-semibold text-ts-orange underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
       onClick={async () => {
-        if (inFlight.current) return;
+        if (inFlight.current && !inFlight.current.signal.aborted) return;
         const controller = new AbortController();
         inFlight.current = controller;
         setBusy(true);
         setError(false);
-        try {
-          const prompt = await loadScoutRequestContinuation(requestId, ownerId, { signal: controller.signal });
-          if (!controller.signal.aborted && mounted.current && ownerRef.current === ownerId && requestRef.current === requestId) onPromptSelect(prompt);
-        } catch {
-          if (!controller.signal.aborted && mounted.current && ownerRef.current === ownerId && requestRef.current === requestId) setError(true);
-        } finally {
+        const clearPending = () => {
           if (inFlight.current === controller) {
             inFlight.current = null;
             if (mounted.current) setBusy(false);
           }
+        };
+        controller.signal.addEventListener("abort", clearPending, { once: true });
+        try {
+          if (!requestSelection.select(controller)) return;
+          const prompt = await loadScoutRequestContinuation(requestId, ownerId, { signal: controller.signal });
+          if (requestSelection.isCurrent(controller) && !controller.signal.aborted && mounted.current && ownerRef.current === ownerId && requestRef.current === requestId) onPromptSelect(prompt);
+        } catch {
+          if (requestSelection.isCurrent(controller) && !controller.signal.aborted && mounted.current && ownerRef.current === ownerId && requestRef.current === requestId) setError(true);
+        } finally {
+          controller.signal.removeEventListener("abort", clearPending);
+          requestSelection.finish(controller);
+          clearPending();
         }
       }}>
       {busy ? "Loading request…" : "Continue with Scout"}

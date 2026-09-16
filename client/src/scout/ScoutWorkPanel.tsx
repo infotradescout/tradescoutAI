@@ -1,9 +1,10 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import type { ScoutWorkKind, ScoutWorkOverview } from "@shared/scoutWork";
 import { ScoutRequestContinueButton } from "./ScoutRequestContinueButton";
+import { createScoutRequestSelection } from "./scoutRequestSelection";
 
 const workKinds: Array<{ value: "all" | ScoutWorkKind; label: string }> = [
   { value: "all", label: "All work" },
@@ -25,6 +26,8 @@ export function ScoutWorkList({ overview, filter = "all", query = "", attentionO
   overview: ScoutWorkOverview; filter?: "all" | ScoutWorkKind; query?: string; attentionOnly?: boolean;
   onPromptSelect?: (prompt: string) => void;
 }) {
+  const requestSelection = useMemo(() => createScoutRequestSelection(), [overview.ownerId]);
+  useEffect(() => () => requestSelection.cancel(), [requestSelection]);
   const needle = query.trim().toLocaleLowerCase();
   return <div className="space-y-4" data-testid="scout-work-sections">
     {overview.sections.filter((section) => filter === "all" || section.kind === filter).map((section) => {
@@ -51,7 +54,7 @@ export function ScoutWorkList({ overview, filter = "all", query = "", attentionO
                 {displayDate(item.updatedAt) ? <time dateTime={item.updatedAt!} className="text-xs text-[color:var(--text-muted)]">Updated {displayDate(item.updatedAt)}</time> : <span className="text-xs text-[color:var(--text-muted)]">Update time unavailable</span>}
                 <Link href={item.nextAction.to} className={linkClass}>{item.nextAction.label}</Link>
               </div>
-              {item.kind === "requests" && onPromptSelect && <ScoutRequestContinueButton requestId={item.id} onPromptSelect={onPromptSelect} />}
+              {item.kind === "requests" && onPromptSelect && <ScoutRequestContinueButton requestId={item.id} onPromptSelect={onPromptSelect} requestSelection={requestSelection} />}
             </li>)}
           </ul>}
         {section.hasMore && section.availability === "ready" && <p className="mt-2 text-xs text-[color:var(--text-muted)]">More items are available in this workspace.</p>}

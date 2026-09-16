@@ -164,6 +164,7 @@ function buttonHarness(loadPrompt) {
   vm.runInNewContext(compile('exports.click = ' + click, 'click.ts'), {
     module, exports: module.exports, AbortController, requestId, ownerId: owner, ...state,
     loadScoutRequestContinuation: loadPrompt,
+    requestSelection: load('client/src/scout/scoutRequestSelection.ts').createScoutRequestSelection(),
     setBusy: value => calls.push(['busy', value]), setError: value => calls.push(['error', value]),
     onPromptSelect: prompt => calls.push(['prompt', prompt]),
   });
