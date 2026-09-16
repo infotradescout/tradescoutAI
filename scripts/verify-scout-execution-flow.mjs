@@ -90,7 +90,13 @@ try{
   },stdio:['ignore',serverLog.fd,serverLog.fd]});
   await waitForServer();
   proxy=https.createServer({key:await fs.readFile(key),cert:await fs.readFile(cert)},(request,response)=>{
-    const upstream=http.request(backend+request.url,{method:request.method,headers:{...request.headers,'x-forwarded-proto':'https','x-forwarded-for':'127.0.0.1'}},incoming=>{response.writeHead(incoming.statusCode||502,incoming.headers);incoming.pipe(response);});
+    // The private test proxy models eleven separate synthetic clients. This is
+    // not an application bypass: its real rate-limit middleware stays enabled.
+    const proofClient=String(request.headers['x-scout-proof-client']||'');
+    const clientIp=/^(?:[1-9]|1[01])$/.test(proofClient)?`192.0.2.${proofClient}`:'127.0.0.1';
+    const headers={...request.headers,'x-forwarded-proto':'https','x-forwarded-for':clientIp};
+    delete headers['x-scout-proof-client'];
+    const upstream=http.request(backend+request.url,{method:request.method,headers},incoming=>{response.writeHead(incoming.statusCode||502,incoming.headers);incoming.pipe(response);});
     upstream.on('error',()=>{if(!response.headersSent)response.writeHead(502);response.end('Loopback upstream unavailable');});request.pipe(upstream);
   });
   await new Promise((resolve,reject)=>{proxy.once('error',reject);proxy.listen(5448,'127.0.0.1',resolve);});
