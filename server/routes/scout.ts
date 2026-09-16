@@ -5341,15 +5341,20 @@ router.post("/execute-action", async (req: Request, res: Response) => {
     if (result.ok) {
       if (actionTelemetry) {
         try {
-          await storage.logEvent("scout_outcome_action_submitted", {
-            userId: userId || null,
-            requestId: (req as any).requestId || null,
-            ownerModule: actionTelemetry.ownerModule,
-            target: actionTelemetry.target,
-            confidenceBand: actionTelemetry.confidenceBand,
-            payloadCompleteness: actionTelemetry.payloadCompleteness,
-            actionType: String(action?.type || "unknown"),
-          });
+          const { getScoutExecutionTelemetry } = await import("../scout/scoutExecutionTelemetry");
+          const executionEvent = getScoutExecutionTelemetry(result.data);
+          if (executionEvent) {
+            await storage.logEvent(executionEvent.eventName, {
+              userId: userId || null,
+              requestId: (req as any).requestId || null,
+              ownerModule: actionTelemetry.ownerModule,
+              target: actionTelemetry.target,
+              confidenceBand: actionTelemetry.confidenceBand,
+              payloadCompleteness: actionTelemetry.payloadCompleteness,
+              actionType: String(action?.type || "unknown"),
+              ...(executionEvent.executionId ? { executionId: executionEvent.executionId } : {}),
+            });
+          }
         } catch (telemetryErr) {
           console.error("[Scout] failed to log outcome submission telemetry", telemetryErr);
         }

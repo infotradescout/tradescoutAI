@@ -248,6 +248,9 @@ describe("scout response contract guards", () => {
     expect(route).toContain("/what\\s+do\\s+you\\s+need\\s+done/i");
     expect(route).toContain("scout_outcome_action_generated");
     expect(route).toContain("scout_outcome_action_clicked");
-    expect(route).toContain("scout_outcome_action_submitted");
+    expect(route).toContain("getScoutExecutionTelemetry(result.data)");
+    const executionTelemetry = read("server/scout/scoutExecutionTelemetry.ts");
+    expect(executionTelemetry).toContain("scout_outcome_action_submitted");
+    expect(executionTelemetry).toContain("scout_outcome_action_replayed");
   });
 });

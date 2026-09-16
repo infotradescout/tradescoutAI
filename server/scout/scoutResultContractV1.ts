@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type {
   ScoutActionContract,
   ScoutAllowedActionV1,
@@ -303,13 +303,20 @@ function buildAllowedActions(
     const key = `${action.type.toLowerCase()}|${action.label.toLowerCase()}|${target.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    // One identity per prepared operation, not per click or per profile value.
+    // The persisted result payload carries it through re-renders and reloads.
+    // A new turn gets a fresh identity, even when it requests the same value.
+    // Never accept an LLM-provided key as this new operation's identity.
+    const payload = action.type === "SAVE_PROFILE"
+      ? { ...(action.payload || {}), executionId: randomUUID() }
+      : action.payload;
     allowedActions.push({
       action_id: `act_${actionOrdinal++}`,
       type: action.type,
       label: action.label,
       ...(action.to ? { target: action.to } : action.path ? { target: action.path } : {}),
       ...(action.prompt ? { prompt: action.prompt } : {}),
-      ...(action.payload ? { payload: action.payload } : {}),
+      ...(payload ? { payload } : {}),
       ...(typeof action.primary === "boolean" ? { primary: action.primary } : {}),
       requires_confirmation: actionRequiresConfirmation(action.type),
     });

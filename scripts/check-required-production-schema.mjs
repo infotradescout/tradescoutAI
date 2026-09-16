@@ -1199,7 +1199,11 @@ export async function verifyRequiredProductionSchema(client) {
     check.defaultPublicationRule = Boolean(rulesResult.rows?.[0]?.present);
   }
 
-  const missing = evaluateRequiredProductionSchema(check);
+  const { inspectScoutReceiptSchema } = await import("./lib/scout-receipt-schema.mjs");
+  const receiptSchema = await inspectScoutReceiptSchema(client);
+  check.scoutExecutionReceiptsContract = receiptSchema.contract;
+  check.scoutExecutionReceiptsMigrationRecorded = receiptSchema.migrationRecorded;
+  const missing = [...evaluateRequiredProductionSchema(check), ...receiptSchema.missing];
   if (missing.length > 0) {
     throw new Error(
       [

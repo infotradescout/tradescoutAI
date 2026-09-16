@@ -71,7 +71,7 @@ function isNegativeAcknowledgement(result: unknown): boolean {
  *
  * A recovery suggestion is not successful execution. This guard cannot know
  * whether a failed write committed, so it never retries an arbitrary executor.
- * Any future retry belongs to an owner with durable idempotency/reconciliation.
+ * Keyed profile actions also use a durable, authenticated-owner-scoped receipt.
  */
 export async function runScoutAction(
   action: ScoutAction,
@@ -85,8 +85,14 @@ export async function runScoutAction(
   }
 
   try {
-    // Exactly one attempt: a lost acknowledgement must not duplicate a write.
-    const result = await executor(action);
+    // Existing pre-receipt clients retain their one-attempt contract. New v1
+    // actions carry a server-issued identity in their persisted payload. Invalid
+    // supplied keys fail closed; they must never fall back to unkeyed execution.
+    const hasExecutionIdentity = action.type === "SAVE_PROFILE" &&
+      Object.prototype.hasOwnProperty.call(action.payload || {}, "executionId");
+    const result = hasExecutionIdentity
+      ? await (await import("./scoutExecutionReceipts")).executeScoutProfileOnce(action, context, executor)
+      : await executor(action);
     if (isNegativeAcknowledgement(result)) {
       return unconfirmedExecution(action, "INVALID_STATE");
     }
