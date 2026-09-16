@@ -49,7 +49,8 @@ export async function proveJwStoneCartJourney({ page, context, database, fixture
   assert.equal(delivery.deliveryFeeCents, null); assert.equal(delivery.estimatedDeliveryDate, null); assert.equal(delivery.readyForCheckout, false);
   await cart.getByLabel(/^Job \/ PO reference/).fill('Synthetic cart job ' + device);
   const requestedDate = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-  const deliveryContext = [requestedDate, 'Jobsite', '100 Example Lane', 'Example City', 'LA', 'Help arranging unloading requested', 'Gate closes at 4.', 'JW Stone must confirm'];
+  const requestedDateLabel = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${requestedDate}T12:00:00.000Z`));
+  const deliveryContext = [requestedDateLabel, 'Jobsite', '100 Example Lane', 'Example City', 'LA', 'Help arranging unloading requested', 'Gate closes at 4.', 'JW Stone must confirm'];
   const deliveryFields = cart.getByTestId('jw-cart-fulfillment-details');
   await click(deliveryFields.locator('summary'));
   await deliveryFields.getByLabel('Requested delivery date', { exact: true }).fill('2000-01-01');
