@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomBytes, createHash} from 'node:crypto';
 import {chromium} from 'playwright';
+import {runScoutReceiptBrowserChecks} from './scout-receipt-browser-checks.mjs';
 
 /** Uses only the fresh local database created by the native verification driver. */
 export async function runScoutBrowserProof({base, sql, environment, run, proof, secrets, redact}) {
@@ -19,7 +20,7 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
         const user=(await sql.query('SELECT id, first_name FROM users WHERE email=$1',[email])).rows[0];assert(user?.id);
         await sql.query('DELETE FROM scout_execution_proof_writes WHERE user_id=$1',[user.id]);
         const context=await browser.newContext({viewport,isMobile:device==='mobile',hasTouch:device==='mobile',ignoreHTTPSErrors:true,serviceWorkers:'block',extraHTTPHeaders:{'x-scout-proof-client':String(++clientOrdinal)}});
-        const errors=[],deniedExternal=[],handlerErrors=[];let actionRequests=0,page;
+        const errors=[],deniedExternal=[],handlerErrors=[];let actionRequests=0,page,submittedAction,lostAckInjected=false;
         try {
           await context.route('**/*',route=>{
             const target=new URL(route.request().url());
@@ -36,9 +37,12 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
           await page.route('**/api/scout/execute-action',async route=>{
             actionRequests++;
             try {
-              assert.equal(route.request().postDataJSON().action.type,'SAVE_PROFILE');
+              const requestAction=route.request().postDataJSON().action;
+              assert.equal(requestAction.type,'SAVE_PROFILE');
+              submittedAction ||= requestAction;
               if(scenario==='authorization-only')return await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,authorized:true,executed:false})});
-              if(scenario==='lost-acknowledgement'){
+              if(scenario==='lost-acknowledgement'&&!lostAckInjected){
+                lostAckInjected=true;
                 const actual=await route.fetch({maxRetries:0});assert.equal(actual.status(),200);assert.equal((await actual.json()).executed,true);
                 return await route.abort('failed');
               }
@@ -68,7 +72,11 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
           assert.equal(persisted,committed?firstName:user.first_name);assert.equal(writes,committed?1:0);assert.equal(actionRequests,scenario==='cancel'?0:1);
           assert.deepEqual(handlerErrors,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false);
           const screenshot=await page.screenshot({fullPage:true});
-          const entry={device,scenario,passed:true,authenticatedAccountVerified:true,realSaveActionVerified:true,actionRequests,committedWrites:writes,savedAcknowledgement:scenario==='approve',actualProfilePersisted:committed,pageErrors:errors.length,horizontalOverflow:false,blockedExternalHosts:[...new Set(deniedExternal)],screenshotSha256:createHash('sha256').update(screenshot).digest('hex')};
+          const initialActionRequests=actionRequests;
+          const receiptChecks=await runScoutReceiptBrowserChecks({page,sql,user,scenario,submittedAction,preparedAction:saves[0],base});
+          assert.equal(Number((await sql.query('SELECT count(*) AS n FROM scout_execution_proof_writes WHERE user_id=$1',[user.id])).rows[0].n),writes);
+          assert.deepEqual(handlerErrors,[]);assert.deepEqual(errors,[]);
+          const entry={device,scenario,passed:true,authenticatedAccountVerified:true,realSaveActionVerified:true,initialActionRequests,actionRequests,committedWrites:writes,savedAcknowledgement:scenario==='approve',actualProfilePersisted:committed,pageErrors:errors.length,horizontalOverflow:false,blockedExternalHosts:[...new Set(deniedExternal)],screenshotSha256:createHash('sha256').update(screenshot).digest('hex'),receiptChecks};
           proof.journeys.push(entry);console.log('SCOUT_FLOW_JOURNEY '+JSON.stringify(entry));
         }catch(error){proof.failedJourney={device,scenario,actionRequests,pageErrors:errors,handlerErrors,url:page?.url(),visibleText:page?redact((await page.locator('body').innerText().catch(()=>'')).slice(-8000)):''};throw error;}
         finally{await context.close();}
