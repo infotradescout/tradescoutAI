@@ -101,6 +101,10 @@ try{
   });
   await new Promise((resolve,reject)=>{proxy.once('error',reject);proxy.listen(5448,'127.0.0.1',resolve);});
   await runScoutBrowserProof({base,sql,environment,run,proof,secrets,redact});
+  if (process.argv.includes('--account-matrix')) {
+    const { runSmokeAccountMatrix } = await import('./smoke/run-account-matrix.mjs');
+    await runSmokeAccountMatrix({base,sql,environment,proof,secrets,redact});
+  }
   assert.equal(createHash('sha256').update(await fs.readFile('dist/index.js')).digest('hex'),proof.bundleSha256,'Production bundle must remain unmodified');
   proof.passed=true;
 }catch(error){
