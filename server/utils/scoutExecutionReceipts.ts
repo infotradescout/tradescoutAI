@@ -54,7 +54,11 @@ function completedReceipt(
     throw new Error("Scout execution was not confirmed");
   }
   const result = value as Record<string, unknown>;
-  if (result.executed !== true || result.action !== "SAVE_PROFILE" || result.userId !== userId) {
+  // A negative acknowledgement takes precedence over an executed flag. Check
+  // before projecting the receipt: projection would otherwise discard the
+  // failure flag and let the outer guard interpret the result as successful.
+  if (result.ok === false || result.success === false || result.executed !== true ||
+    result.action !== "SAVE_PROFILE" || result.userId !== userId) {
     throw new Error("Scout execution was not confirmed");
   }
   if (!Array.isArray(result.updatedFields) || result.updatedFields.length > 100 ||
