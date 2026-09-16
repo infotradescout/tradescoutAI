@@ -40,7 +40,7 @@ try {
   run('Existing shipped availability and membership HTTP regressions','npm',['run','test:run','--','server/tests/jw-stone-member-pricing-route.behavior.test.ts','server/tests/jw-stone-cart-availability.test.ts','--maxWorkers=2']);
   database=await startCabinetLoopbackTestDatabase();
   const client=new pg.Client({connectionString:database.url}); await client.connect();
-  try { await client.query('CREATE DATABASE ts_jw_hold_test'); } finally { await client.end(); }
+  try { await client.query('CREATE DATABASE ts_jw_hold_test'); await client.query('CREATE DATABASE ts_jw_hold_compat_test'); } finally { await client.end(); }
   const target=new URL(database.url); target.pathname='/ts_jw_hold_test';
   report.database=database.evidence;
   const native=run('Native hold lifecycle and competing-writer transactions',process.execPath,['--import','tsx','scripts/jw-stone-cart-holds.native.ts'],{
@@ -49,6 +49,14 @@ try {
   const line=native.split('\n').find(value=>value.startsWith('JW_HOLD_NATIVE_SUMMARY '));
   assert(line,'Native test receipt missing'); report.native=JSON.parse(line.slice('JW_HOLD_NATIVE_SUMMARY '.length));
   assert.equal(report.native.passed,true);
+  target.pathname='/ts_jw_hold_compat_test';
+  const compatibilityEnv={NODE_ENV:'test',DATABASE_URL:target.href,TEST_DATABASE_URL:target.href,ALLOW_INSECURE_TEST_DATABASE:'true',JW_HOLD_COMPAT_FIXTURE:'true'};
+  run('Canonical base migrations on a second fresh native database','npm',['run','db:migrate'],compatibilityEnv);
+  run('Independent canonical required-schema verification','npm',['run','db:verify:required'],compatibilityEnv);
+  const compatibility=run('Actual account, pricing and published-stock compatibility',process.execPath,['--import','tsx','scripts/jw-stone-cart-holds.compat.ts'],compatibilityEnv);
+  const compatibilityLine=compatibility.split('\n').find(value=>value.startsWith('JW_HOLD_COMPAT_SUMMARY '));
+  assert(compatibilityLine,'Full-schema compatibility receipt missing');
+  report.compatibility=JSON.parse(compatibilityLine.slice('JW_HOLD_COMPAT_SUMMARY '.length)); assert.equal(report.compatibility.passed,true);
   assert.equal(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim(),'');
   report.passed=true;
 } catch(error) {
