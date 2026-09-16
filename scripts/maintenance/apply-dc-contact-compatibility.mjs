@@ -45,8 +45,16 @@ replace(route, `            canApproveContact:
             canDenyContact: false,
             canReleaseContact: false,`, 2);
 replace(route,
-  'const authOwnerMatch = ownerUserId.length > 0 && ownerUserId === userId;',
-  'const authOwnerMatch = ownerUserId.length > 0 && ownerUserId === userId &&\n          String(requestRow.createdByUserId || "") === userId;');
+  `        if (!authOwnerMatch) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can update contact approval" });
+        }`,
+  `        if (!authOwnerMatch || String(requestRow.createdByUserId || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can update contact approval" });
+        }`);
 const transitionStart = `        const allowedTransitions = new Set([
           "contractor_requested->user_approved",`;
 replace(route, transitionStart, `        // Compatibility for older clients: submission already authorizes
