@@ -1,4 +1,5 @@
 import type { Router } from "express";
+import { registerScoutWorkRoutes } from "./scoutWorkRoutes";
 
 type RegisterScoutOpsRoutesOptions = {
   getKnowledgeBaseStatus: () => {
@@ -19,6 +20,7 @@ export function registerScoutOpsRoutes(
   options: RegisterScoutOpsRoutesOptions
 ): void {
   const { getKnowledgeBaseStatus, loadSystemPrompt, generateAutoPrompt } = options;
+  registerScoutWorkRoutes(router);
 
   router.get("/health", (_req, res) => {
     let knowledgeBasePresent = false;
