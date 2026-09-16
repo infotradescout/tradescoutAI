@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { DIRECT_CONNECT_REQUESTER_SUBMISSION_STATE } from "@shared/directConnectRequesterContact";
 
 export const DECISION_CONTACT_GATE_STATES = [
   "contact_hidden",
@@ -11,6 +12,7 @@ export const DECISION_CONTACT_GATE_STATES = [
   "contact_released",
   "denied",
   "closed",
+  DIRECT_CONNECT_REQUESTER_SUBMISSION_STATE,
 ] as const;
 
 export type DecisionContactGateState = (typeof DECISION_CONTACT_GATE_STATES)[number];
@@ -55,6 +57,7 @@ type ResolvedContactState = {
   canRenderReleasedContact: boolean;
   defaultAvailability: string;
   defaultNext: string;
+  emptyContactMessage?: string;
 };
 
 const STATE_LABELS: Record<DecisionContactGateState, ResolvedContactState> = {
@@ -99,6 +102,16 @@ const STATE_LABELS: Record<DecisionContactGateState, ResolvedContactState> = {
     canRenderReleasedContact: false,
     defaultAvailability: "This contact workflow is closed. Private contact details remain hidden.",
     defaultNext: "No contact action is available in the closed state.",
+  },
+  request_submission: {
+    label: "Request-related contact",
+    variant: "secondary",
+    canRenderReleasedContact: false,
+    defaultAvailability:
+      "Sending a request includes permission for its receiving providers to contact the sender about that work.",
+    defaultNext: "Review replies or manage your request. No additional contact approval is needed.",
+    emptyContactMessage:
+      "Contact details belong in the private request, not its public share page.",
   },
 };
 
@@ -147,6 +160,8 @@ export function DecisionContactGatePanel({
   className,
 }: DecisionContactGatePanelProps) {
   const resolved = resolveContactState(contactState);
+  const isRequestSubmission = contactState === DIRECT_CONNECT_REQUESTER_SUBMISSION_STATE;
+  const visibleActions = isRequestSubmission ? [] : actions;
   const canShowReleasedContact =
     resolved.canRenderReleasedContact && hasReleasedContact(releasedContact);
 
@@ -188,7 +203,7 @@ export function DecisionContactGatePanel({
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-xs font-semibold uppercase text-[color:var(--text-secondary)]">
-            Available now
+            {isRequestSubmission ? "Contact permission" : "Available now"}
           </dt>
           <dd className="mt-1 leading-relaxed">{resolved.defaultAvailability}</dd>
         </div>
@@ -196,13 +211,17 @@ export function DecisionContactGatePanel({
           <dt className="text-xs font-semibold uppercase text-[color:var(--text-secondary)]">
             What happens next
           </dt>
-          <dd className="mt-1 leading-relaxed">{nextRequiredAction || resolved.defaultNext}</dd>
+          <dd className="mt-1 leading-relaxed">
+            {isRequestSubmission ? resolved.defaultNext : nextRequiredAction || resolved.defaultNext}
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase text-[color:var(--text-secondary)]">
-            Waiting on
+            {isRequestSubmission ? "Additional approval" : "Waiting on"}
           </dt>
-          <dd className="mt-1 leading-relaxed">{formatActor(nextActor)}</dd>
+          <dd className="mt-1 leading-relaxed">
+            {isRequestSubmission ? "Not required" : formatActor(nextActor)}
+          </dd>
         </div>
       </dl>
 
@@ -223,16 +242,16 @@ export function DecisionContactGatePanel({
             </ul>
           </div>
         ) : (
-          <p>Private requester contact stays hidden until contact opens.</p>
+          <p>{resolved.emptyContactMessage || "Private requester contact stays hidden until contact opens."}</p>
         )}
       </div>
 
-      {actions.length > 0 ? (
+      {visibleActions.length > 0 ? (
         <div
           className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap"
           aria-label="Available actions"
         >
-          {actions.map((action) => (
+          {visibleActions.map((action) => (
             <div
               key={action.label}
               className="rounded-md border border-[color:var(--border-subtle)] px-3 py-2 text-sm"

@@ -3,6 +3,10 @@ import type {
   DecisionContactGateState,
   ReleasedContactPayload,
 } from "@/components/ui/DecisionContactGatePanel";
+import {
+  DIRECT_CONNECT_REQUESTER_SUBMISSION_STATE,
+  projectDirectConnectRequesterContactState,
+} from "@shared/directConnectRequesterContact";
 
 export type DirectConnectRequestCardLike = {
   id?: string | null;
@@ -109,9 +113,7 @@ export function getDisplayRequestDescription(request: DirectConnectRequestCardLi
 }
 
 export function getDisplayLatestStatus(request: DirectConnectRequestCardLike): string | null {
-  if (String(request.contactGateState || "").toLowerCase() === "contractor_requested") {
-    return "Review contact request";
-  }
+  // Old dispatch contact-approval states do not supersede the actual job stage.
   const stage = getRequestWorkflowStage(request);
   if (stage === "draft_ready") return "Draft ready";
   if (stage === "submitted") return "Submitted";
@@ -162,27 +164,26 @@ export function buildDirectConnectRequestCardView(
 export function normalizeDirectConnectContactState(
   contactGateState?: string | null
 ): DirectConnectContactPanelState {
-  const normalized = String(contactGateState || "")
-    .trim()
-    .toLowerCase();
-
-  if (!normalized || normalized === "locked" || normalized === "review_required") {
-    return "contact_hidden";
-  }
-  if (normalized === "request_shared") return "contact_hidden";
-  if (normalized === "contractor_requested") return "provider_requested_contact";
-  if (normalized === "provider_requested_contact") return "provider_requested_contact";
-  if (normalized === "user_approved") return "requester_approved";
-  if (normalized === "requester_approved") return "requester_approved";
+  const normalized = projectDirectConnectRequesterContactState(contactGateState);
   if (normalized === "released") return "contact_released";
-  if (normalized === "contact_released") return "contact_released";
-  if (normalized === "denied") return "denied";
-  if (normalized === "closed") return "closed";
-  return normalized as string & {};
+  return normalized as DirectConnectContactPanelState;
 }
 
-export function getDirectConnectContactGateSummary(_request: DirectConnectRequestCardLike): string {
-  return "Private contact stays locked for this request until the approved release step.";
+export function getDirectConnectContactGateSummary(request: DirectConnectRequestCardLike): string {
+  const status = String(request.status || "").trim().toLowerCase();
+  if (status === "draft") {
+    return "Sending this request includes permission for its receiving providers to contact you about the work. This draft has not been sent.";
+  }
+  if (status === "cancelled") {
+    return "This request is paused. Reopen it before sending it to more providers. Contact details already sent cannot be recalled.";
+  }
+  if (status === "completed") {
+    return "This request is complete. Contact shared for it is for coordination about this work, not public disclosure.";
+  }
+  if (["denied", "closed"].includes(String(request.contactGateState || "").trim().toLowerCase())) {
+    return "A contact restriction is recorded for this request. This status view does not remove restrictions or send new contact details.";
+  }
+  return "Submitting this request gives its assigned providers permission to contact you about this work. No additional contact approval is needed.";
 }
 
 export function getDirectConnectReleasedContactForPanel(
@@ -205,32 +206,26 @@ export function getDirectConnectReleasedContactForPanel(
 export function getDirectConnectContactGateNextAction(
   contactState: DirectConnectContactPanelState
 ): string {
-  if (contactState === "provider_requested_contact") {
-    return "Review the provider contact request and approve or decline.";
+  const state = normalizeDirectConnectContactState(contactState);
+  if (state === DIRECT_CONNECT_REQUESTER_SUBMISSION_STATE) {
+    return "Review provider replies or manage this request. There is no second contact-approval step.";
   }
-  if (contactState === "requester_approved") {
-    return "Release contact only through the approved TradeScout path.";
+  if (state === "contact_released") {
+    return "Use the shared contact details to coordinate this request.";
   }
-  if (contactState === "contact_released") {
-    return "Use the released contact path for coordination.";
+  if (state === "denied") {
+    return "Contact was declined. Existing contact restrictions remain in place.";
   }
-  if (contactState === "denied") {
-    return "Contact was declined. Private contact remains hidden.";
-  }
-  if (contactState === "closed") {
+  if (state === "closed") {
     return "This contact workflow is closed.";
-  }
-  if (contactState === "contact_hidden") {
-    return "Wait for a valid provider contact request or continue review.";
   }
   return "Review the request status before taking the next step.";
 }
 
 export function getDirectConnectContactGateNextActor(
-  contactState: DirectConnectContactPanelState
+  _contactState: DirectConnectContactPanelState
 ): DecisionContactGateNextActor {
-  if (contactState === "provider_requested_contact") return "requester";
-  if (contactState === "requester_approved") return "platform";
-  if (contactState === "contact_hidden") return "provider";
+  // Job responses still have their own next actor. This panel must not queue a
+  // second requester or platform approval for submission-authorized contact.
   return "none";
 }
