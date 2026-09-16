@@ -2851,8 +2851,10 @@ export default function ScoutOS() {
               },
             ]
           : [],
-        events: state.messages.slice(-8).map((message) => ({
-          type: message.role === "user" ? "message_sent" : "action_executed",
+        // Assistant prose is not execution evidence. Completed operations are
+        // recorded by their authenticated server owner, never inferred from chat.
+        events: state.messages.filter((message) => message.role === "user").slice(-8).map((message) => ({
+          type: "message_sent",
           occurredAt: message.timestamp,
         })),
       };
