@@ -52,7 +52,7 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/homescout-listings', priority: 0.6, changefreq: 'daily' },
   { path: '/handmade-marketplace', priority: 0.6, changefreq: 'daily' },
   { path: '/trade-deals', priority: 0.7, changefreq: 'daily' },
-  { path: '/groups', priority: 0.7, changefreq: 'weekly' },
+  { path: '/groups', priority: 0.7, changefreq: 'daily' },
   { path: '/county-directory', priority: 0.7, changefreq: 'weekly' },
   { path: '/county-hub', priority: 0.7, changefreq: 'weekly' },
   { path: '/maps', priority: 0.7, changefreq: 'weekly' },
