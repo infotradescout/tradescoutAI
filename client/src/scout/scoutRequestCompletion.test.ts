@@ -41,6 +41,6 @@ describe("Scout Direct Connect save receipt", () => {
     const receipt = resolveScoutRequestCompletion({ ...saved, countyFips: "x&contact=private",
       to: "https://outside.invalid", phone: "private", internalNotes: "private" }, "12001");
     expect(receipt.to).not.toMatch(/outside|private|contact|county/);
-    expect(Object.keys(receipt).sort()).toEqual(["acknowledgement", "requestId", "status", "summary", "to"]);
+    expect(Object.keys(receipt).sort()).toEqual(["acknowledgement", "replayed", "requestId", "status", "summary", "to"]);
   });
 });
