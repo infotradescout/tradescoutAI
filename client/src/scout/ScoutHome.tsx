@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { useScoutLocation } from "./hooks/useScoutLocation";
 import { useScoutHomeSnapshot, type RecentActivity } from "./hooks/useScoutHomeSnapshot";
+import { ScoutWorkPanel } from "./ScoutWorkPanel";
 
 interface ContinuityThread {
   id: string;
@@ -382,6 +383,7 @@ export function ScoutHome({
         onContinueConversation={() => onContinuationSelect(meaningfulContinuations[0].id)}
         onNavigate={navigate}
       />
+      <div className="px-4"><ScoutWorkPanel /></div>
     </div>
   );
 }
