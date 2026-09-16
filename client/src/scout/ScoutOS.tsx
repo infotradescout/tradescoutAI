@@ -2,6 +2,7 @@
   const dcCreateOperationRef = useRef<{
     fingerprint: string;
     operationId: string;
+    pending?: boolean;
   } | null>(null);
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
@@ -9,7 +10,7 @@
       <AlertDialog
         open={dcConfirmOpen}
         onOpenChange={(open) => {
-          if (dcBusy) return;
+          if (dcBusy || dcCreateOperationRef.current?.pending) return;
           setDcConfirmOpen(open);
           if (!open) {
             setDcDraft(null);
@@ -39,13 +40,14 @@
               disabled={dcBusy || !dcDraft}
               onClick={async (e) => {
                 e.preventDefault();
-                if (!dcDraft || dcBusy) return;
+                if (!dcDraft || dcBusy || dcCreateOperationRef.current?.pending) return;
 
                 setDcBusy(true);
                 try {
                   const payload: any = {
                     title: dcDraft.title,
                     description: dcDraft.description,
+                    autoRoute: false,
                     ...(dcDraft.tradeId ? { tradeId: dcDraft.tradeId } : {}),
                     ...(typeof dcDraft.budgetMin === "number"
                       ? { budgetMin: dcDraft.budgetMin }
@@ -61,7 +63,9 @@
                     dcCreateOperationRef.current?.fingerprint === fingerprint
                       ? dcCreateOperationRef.current.operationId
                       : createClientOperationId("dc-scout");
-                  dcCreateOperationRef.current = { fingerprint, operationId };
+                  // Claim synchronously; React's busy state alone cannot exclude
+                  // a second click before the next render.
+                  dcCreateOperationRef.current = { fingerprint, operationId, pending: true };
                   payload.operationId = operationId;
 
                   const res: any = await apiRequest(
@@ -106,50 +110,54 @@
                     return;
                   }
 
-                  const createdId =
-                    typeof (res as any)?.id === "string" ? String((res as any).id) : null;
+                  const { resolveScoutRequestCompletion } = await import("./scoutRequestCompletion");
+                  const completion = resolveScoutRequestCompletion(res, dcDraft.countyFips);
+                  const createdId = completion.requestId;
                   const msg: ScoutMessage = {
                     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
                     role: "assistant",
-                    content: "Saved. Want to review it before sharing?",
+                    content: completion.acknowledgement,
                     timestamp: new Date().toISOString(),
                     clusters: [
                       {
                         id: `dc-created-${Date.now()}`,
                         title: "Saved local request",
                         kind: "generic",
-                        body: createdId
-                          ? "Your request is saved. Review it before you share it locally."
-                          : "Your request is saved. Review it before you share it locally.",
+                        body: completion.summary,
                         primaryAction: {
                           type: "NAVIGATE",
-                          label: "Open local requests",
-                          to: "/direct-connect",
+                          label: "Open saved request",
+                          to: completion.to,
                         },
                       },
                     ],
                   };
 
                   applyServerResponse(msg, [
-                    { type: "NAVIGATE", label: "Open local requests", to: "/direct-connect" },
+                    { type: "NAVIGATE", label: "Open saved request", to: completion.to },
                   ]);
 
                   recordActivity({
                     type: "direct_connect_request_created",
                     ts: new Date().toISOString(),
                     path: location,
-                    meta: { workRequestId: createdId || undefined },
+                    meta: { workRequestId: createdId },
                   } as any);
+                  void import("@/lib/queryClient").then(({ queryClient }) => Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["/api/scout/work"] }),
+                    queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] }),
+                  ])).catch(() => undefined);
                   dcCreateOperationRef.current = null;
                   setDcConfirmOpen(false);
                   setDcDraft(null);
                 } catch (err: any) {
                   const message = formatUserFacingErrorMessage(
                     err,
-                    "Could not create the local request."
+                    "Scout could not confirm this action. Check its current status before trying again."
                   );
                   setError(message);
                 } finally {
+                  if (dcCreateOperationRef.current) dcCreateOperationRef.current.pending = false;
                   setDcBusy(false);
                 }
               }}
