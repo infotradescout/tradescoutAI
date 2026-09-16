@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 
 export const SCOUT_RECEIPT_MIGRATION_TAG = "0139_scout_execution_receipts";
-const migrationPath = new URL(`../../migrations/${SCOUT_RECEIPT_MIGRATION_TAG}.sql`, import.meta.url);
+const migrationPath = path.resolve(process.cwd(), `migrations/${SCOUT_RECEIPT_MIGRATION_TAG}.sql`);
 const lf = fs.readFileSync(migrationPath, "utf8").replace(/\r\n?/g, "\n");
 export const SCOUT_RECEIPT_MIGRATION_HASHES = [...new Set([lf, lf.replace(/\n/g, "\r\n")]
   .map((value) => createHash("sha256").update(value).digest("hex")))];
