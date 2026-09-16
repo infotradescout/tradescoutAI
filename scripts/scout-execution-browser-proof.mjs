@@ -46,12 +46,16 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
           const document=await page.goto(base+'/scout',{waitUntil:'domcontentloaded',timeout:60000});assert(document?.ok());
           const input=page.locator('textarea:visible').first();await input.waitFor();await input.fill(`Set my name to ${firstName} Tester`);
           const answer=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/scout'&&response.request().method()==='POST');
-          await input.press('Enter');assert.equal((await answer).status(),200);
+          await input.press('Enter');const answerResponse=await answer;assert.equal(answerResponse.status(),200);
+          const answerPayload=await answerResponse.json();
+          const saves=answerPayload.allowed_actions?.filter(action=>action.label==='Save profile update')??[];
+          assert.equal(saves.length,1,'The live result must expose exactly one real save action');
+          assert.equal(saves[0].type,'SAVE_PROFILE');assert.equal(saves[0].requires_confirmation,true);
           const saveButton=page.getByRole('button',{name:'Save profile update',exact:true}).first();await saveButton.waitFor();
           let dialogSeen=false;page.once('dialog',async dialog=>{dialogSeen=true;scenario==='cancel'?await dialog.dismiss():await dialog.accept();});
           await saveButton.click();
-          if(scenario==='approve')await page.getByText('Saved. Your profile has been updated.',{exact:true}).waitFor();
-          else if(scenario==='cancel')await page.getByText('Cancelled. This action was not submitted.',{exact:true}).waitFor();
+          if(scenario==='approve')await page.getByText('Saved. Your profile has been updated.',{exact:true}).first().waitFor();
+          else if(scenario==='cancel')await page.getByText('Cancelled. This action was not submitted.',{exact:true}).first().waitFor();
           else await page.getByText(/Scout could not confirm/).first().waitFor();
           assert.equal(dialogSeen,true);await page.waitForTimeout(1000);
           const body=await page.locator('body').innerText();assert.equal(body.includes('Saved. Your profile has been updated.'),scenario==='approve');
@@ -61,7 +65,7 @@ export async function runScoutBrowserProof({base, sql, environment, run, proof, 
           assert.equal(persisted,committed?firstName:user.first_name);assert.equal(writes,committed?1:0);assert.equal(actionRequests,scenario==='cancel'?0:1);
           assert.deepEqual(handlerErrors,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false);
           const screenshot=await page.screenshot({fullPage:true});
-          const entry={device,scenario,passed:true,authenticatedAccountVerified:true,actionRequests,committedWrites:writes,savedAcknowledgement:scenario==='approve',actualProfilePersisted:committed,pageErrors:errors.length,horizontalOverflow:false,blockedExternalHosts:[...new Set(deniedExternal)],screenshotSha256:createHash('sha256').update(screenshot).digest('hex')};
+          const entry={device,scenario,passed:true,authenticatedAccountVerified:true,realSaveActionVerified:true,actionRequests,committedWrites:writes,savedAcknowledgement:scenario==='approve',actualProfilePersisted:committed,pageErrors:errors.length,horizontalOverflow:false,blockedExternalHosts:[...new Set(deniedExternal)],screenshotSha256:createHash('sha256').update(screenshot).digest('hex')};
           proof.journeys.push(entry);console.log('SCOUT_FLOW_JOURNEY '+JSON.stringify(entry));
         }catch(error){proof.failedJourney={device,scenario,actionRequests,pageErrors:errors,handlerErrors,url:page?.url(),visibleText:page?redact((await page.locator('body').innerText().catch(()=>'')).slice(-8000)):''};throw error;}
         finally{await context.close();}
