@@ -44,9 +44,9 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
       profileOfferItems = [];
     }
 
-    // Build a categoryName → slug lookup using the shared mapping
-    const { getExchangeCategorySlugFromMarketplaceCategoryName } =
-      await import("../../shared/exchangeListingRules");
+    // Reuse the detail renderer's canonical category policy, including unknown-name fallback.
+    const { resolvePersistedExchangeCategorySlug } =
+      await import("../publicExchangeListingHtml");
 
     const exposureAuthority = await buildExposureAuthorityMap(
       [...listings, ...profileOfferItems].map((listing) => listing.sellerUserId)
@@ -59,10 +59,7 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
       .map((listing) => {
         const id = String(listing.id || "").trim();
         if (!id) return null;
-        const categorySlug =
-          getExchangeCategorySlugFromMarketplaceCategoryName(listing.categoryName) ||
-          slugifyCategory(listing.categoryName) ||
-          "other";
+        const categorySlug = resolvePersistedExchangeCategorySlug({}, listing.categoryName);
         return {
           loc: `${baseUrl}/exchange/${encodeURIComponent(categorySlug)}/${encodeURIComponent(id)}`,
           lastmod: toYmd(listing.updatedAt, today),
