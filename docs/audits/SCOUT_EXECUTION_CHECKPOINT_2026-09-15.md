@@ -1,94 +1,126 @@
 # Scout execution checkpoint — 2026-09-15
 
-This is a bounded implementation/evidence checkpoint, not a replacement roadmap or a production-readiness attestation.
+This is the current resume point for PR #668, not a replacement roadmap or production-readiness attestation. The first client checkpoint remains in Git history at `f8e11d3c00eb5a4a4642024c61ff647f760c406a`.
 
 ## Objective
-Make existing Scout actions execute predictably before expanding advertised capabilities. Preserve existing workspaces, drafts, contact gates, county ownership, Trust/CVS, and payment handoffs.
+Make existing Scout actions execute predictably and report truthful results before expanding advertised abilities. Preserve existing workspaces, drafts, authentication, contact gates, county ownership, Trust/CVS, and payment handoffs.
 
 ## Base branch/commit
 `main` at `bda589173ec470e5c13044492caa4b13a6b3490d`.
+This continuation resumed PR #668 at `f8e11d3c00eb5a4a4642024c61ff647f760c406a`; it did not restart the abilities audit.
 
 ## Current branch/commit
 Branch: `codex/scout-action-execution-hardening-20260915`.
-Product/test parent of this documentation commit: `e22839e8bb757adeea2321a1e1b733893c2b9d7e`.
-This checkpoint commit changes documentation only; resolve the branch head for the final checkpoint SHA.
+Current product/test commit: `82a192c9e473fb14ef27533dfe2e3a09030a98fb`.
+Server implementation commit: `3f1b6433260e36808f3797dbbc408a54ca661484`.
+This checkpoint update is documentation-only; resolve the branch head for its final SHA.
 
 ## Verified completed work
-The production router now:
-- Requires authentication and explicit approval for SAVE_PROFILE before its server execution request. Cancellation cannot reach the save endpoint through this dispatcher.
-- Honors explicit approval requirements for CALL_TOOL and EXTERNAL_LINK rather than losing them inside type-specific branches.
-- Rejects sensitive actions and tool calls when the guard fails or does not positively acknowledge success, while preserving low-risk navigation fallback.
-- Accepts ASK_SCOUT prompts from either the top level or payload, awaits asynchronous handlers, and reports missing prompts/handlers.
-- Propagates follow, unfollow, and broadcast adapter failures rather than swallowing them. Invalid connection/broadcast inputs also fail explicitly.
-- Awaits ad-feedback HTTP completion and exposes HTTP/network, disabled-feature, and invalid-input failures.
-- Treats the two payment-start action types as navigation-only regardless of generated label text.
-- Runs the existing single server-returned follow-up through the same authentication, role, supported-tool, confirmation, and guard checks. Follow-up chaining stays bounded.
+### Previously checked client behavior, unchanged in this continuation
+- SAVE_PROFILE authentication and approval precede the executing guard request.
+- Explicit approval flags apply across action types; sensitive/tool requests require positive acknowledgement.
+- ASK_SCOUT handles top-level and payload prompts, awaits handlers, and surfaces failures.
+- Follow/unfollow/broadcast and feedback errors propagate; feedback awaits its HTTP result.
+- Payment-start types remain navigation-only, independent of label text.
+- The existing single follow-up uses auth, role, supported-tool, approval, and server checks.
+- Direct Connect, Exchange, and Community draft handoffs remain intact.
 
-No business capability, UI surface, destination workflow, backend endpoint, or payment execution was added or removed. Existing checkout adapter code remains, but payment-start actions are intercepted before it. Dedicated draft handoffs are preserved.
+### Server continuation
+The actual `runScoutAction` implementation previously retried every rejected executor once. Selected classified errors then returned `ok: true` with a recovery instruction despite no successful execution. Falsy thrown values could also bypass the failure branch. The Scout route consumes this result to choose its success response and submission telemetry; its failure response forwards `error.context`.
+
+The changed guard now:
+- Invokes an executor once per guard call, with no generic automatic retry.
+- Returns failure for every thrown value, including null, undefined, false, zero, empty strings, and values the classifier cannot stringify.
+- Does not wrap an explicit `{ok: false}` or `{success: false}` acknowledgement in success.
+- Returns an unconfirmed outcome after an execution error rather than claiming rollback, successful recovery, or completion.
+- Does not emit an automatic retry instruction for an uncertain outcome.
+- Replaces execution-failure diagnostics with safe context: action, executionState, and attempt count. Raw exception contents, submitted payloads, and profile data are not copied into this result or its diagnostic log.
+- Preserves pre-execution sign-in/location/business prerequisites, successful result data, and safeExecute's success/failure behavior.
+- Rejects missing, blank, and non-string action types before calling an executor.
+
+These are guard-level guarantees, not new invoice/message/HOA capabilities. Test action names exercise the generic guard; they do not prove corresponding product endpoints exist. The production route's registered server executor remains SAVE_PROFILE. No new API, schema migration, checkout, contact exposure, or customer action was introduced.
 
 ## Changed but unverified work
-The changes above have isolated production-module behavioral proof, not full application proof. The original Vitest profile-save case now supplies authenticated approval and asserts confirmation; that Vitest suite itself has not been run here. The server-returned follow-up guard round trip needs actual Express/session/browser verification before release.
+No HTTP/Express/session/database/browser journey or full application check was executed. The server route's consumption of the result was inspected in source, not exercised as an integrated HTTP endpoint. The existing router Vitest case was updated in the first slice but remains unexecuted. Frontend cancellation/completion telemetry and duplicate clicks across distinct requests remain to be traced and verified.
 
 ## Files changed
-1. `client/src/scout/ScoutActionRouter.ts`
-2. `client/src/scout/ScoutActionRouter.test.ts`
-3. `scripts/tests/scout-action-execution-check.cjs`
-4. This checkpoint.
+Relative to main:
+1. `client/src/scout/ScoutActionRouter.ts` — previous slice, unchanged now.
+2. `client/src/scout/ScoutActionRouter.test.ts` — previous slice, unchanged now.
+3. `scripts/tests/scout-action-execution-check.cjs` — previous 47-case suite, unchanged now.
+4. `server/utils/scoutActionGuard.ts` — this continuation.
+5. `scripts/tests/scout-server-execution-check.cjs` — this continuation, 49 cases.
+6. This checkpoint.
+
+`server/utils/scoutErrorMapping.ts` was read, executed by tests, and typechecked but NOT modified.
 
 ## Tests/evidence already run
-The isolated runner loads and transpiles the actual production router and both real registries. It does not duplicate their implementation. HTTP, browser APIs, and write adapters are mocked; no external write is performed.
-
-Command on a complete checkout with the project TypeScript dependency:
+### New server evidence
+Command on a checkout with the existing TypeScript dependency:
 
 ```sh
-node --test scripts/tests/scout-action-execution-check.cjs
+node --test scripts/tests/scout-server-execution-check.cjs
 ```
 
-Sandbox command used the same command with `NODE_PATH` pointing to installed global TypeScript because a full dependency checkout was unavailable.
+Sandbox ran this command with SCOUT_TEST_ROOT selecting the pinned source snapshot and NODE_PATH selecting installed TypeScript. Node 22.16.0; TypeScript 5.8.3. Tests load the actual guard AND error-mapping modules. Executor, timer, and diagnostic sink are synthetic. No writes leave the test process.
 
-Results:
-- Original production-module snapshot at the base commit: **47 tests, 12 passed, 35 failed**. These are failing test cases, not 35 distinct defects.
-- Changed production-module snapshot: **47 tests, 47 passed, 0 failed, 0 skipped**.
-- Covered approvals/cancellation, profile guard outages and malformed acknowledgements, guest auth, explicit tool/link approval, prompt representations and async failure, follow/unfollow/broadcast failures, feedback completion, unlabeled payment starts, follow-up role/guard checks, bounded chaining, and preserved Direct Connect/Exchange/Community drafts.
-- Transpile diagnostics were checked. Transpilation is not a project TypeScript typecheck.
-- Original fetched source was reconstructed byte-for-byte and checked against GitHub blob SHAs before testing. Pushed router and runner blobs match the tested bytes.
+- Pre-continuation server source: 49 tests, 20 passed, 29 failed.
+- Changed server source: 49 tests, 49 passed, 0 failed, 0 skipped.
+- The 29 failures are failing test cases, not 29 distinct defects.
+- Passed targeted strict semantic typecheck, not just transpilation:
 
-Verified blob identities:
+```sh
+tsc --noEmit --strict --target ES2022 --module commonjs server/utils/scoutActionGuard.ts server/utils/scoutErrorMapping.ts
+```
+
+Scope is these two modules only, not the project configuration or full build.
+
+Fetched source snapshots were reconstructed byte-for-byte and checked against GitHub blob SHAs before execution. Pushed implementation and runner match tested bytes:
 
 ```text
-Base ScoutActionRouter.ts: 0d9f29402b78d71317eb5ec4d1769137dd771ee9
-Changed ScoutActionRouter.ts: 893452a194c8a679a01ff820df95aceceb602330
-Execution check runner: 32b8f55760a261b026caacdb4334353a29678a60
-Unchanged scoutCommandRegistry.ts: c0391f3f1bcf5b92caf806e9408440cd4beaed1d
-Unchanged shared/scoutSupportedTools.ts: 2f0ae3d1d9eeb63505ba909031e7316f26e9010f
+Base guard: 4573a3d2794ae97f497e367f64152fa2a84923e5
+Changed guard: 9dcb2fd0cc656984d7c1ec42c3565fea6fd40043
+Unchanged error mapping: e6b6ee281d0b20f2abf129414cf198821c95a81e
+Server test runner: 7c7dc5d3658595164b24367b8a8a2b08a54ada25
+```
+
+### Preserved client evidence; not rerun here
+The original client slice's isolated real-router/registry checks recorded 47 cases: 12 passed/35 failed before, 47 passed/0 failed after. Browser/HTTP/write adapters were mocked. Client source and dependencies used by that suite did not change in this continuation. Preserve this evidence but do not call it a fresh combined 96-case integration run.
+
+```text
+Changed client router: 893452a194c8a679a01ff820df95aceceb602330
+Client runner: 32b8f55760a261b026caacdb4334353a29678a60
+Command registry: c0391f3f1bcf5b92caf806e9408440cd4beaed1d
+Tool registry: 2f0ae3d1d9eeb63505ba909031e7316f26e9010f
 Updated original Vitest file: fc45260d56a1ff5db9b575cd6d4d688dd04a8ec0
 ```
 
 ## Tests/evidence invalidated by later changes
-None within this checkpoint. Changes to the router or registries require rerunning the targeted checks. Integration with other branches requires validation of the combined candidate, not reuse of these results as a full release gate.
+The new guard changes real server execution behavior. Prior mocked-client checks do NOT establish client/server compatibility; it needs fresh integration proof. No implementation changed after the new 49-case suite and targeted typecheck; this update changes documentation only. Any guard/mapping change invalidates the new targeted evidence.
 
 ## Known blockers/risks
-- Remote Desktop Commander returned no available device. Sandbox outbound GitHub DNS resolution failed. GitHub connector reads/writes succeeded.
-- Full repository dependencies, Vitest, project typecheck/build, database integration, browser journeys, and `gate:minimum-release` were NOT executed. Do not merge this checkpoint to production on isolated tests alone.
-- At the base commit, the generic `SUPPORTED_SCOUT_TOOLS` registry contains only `ads.feedback`. This is not the total Scout capability count: dedicated actions and destination workspaces exist. Broad tool execution remains unfinished.
-- Existing action validation and route allowlists still need parity checks against actual destination routes. This patch does not claim to validate every URL, payload, advertised ability, or server authorization path.
-- Payment detection still uses label/name heuristics for other action types. Typed capability policy, explicit execution receipts, durable multi-step continuity, and duplicate/retry protection remain unimplemented in this slice.
-- Actual completion depends on destination workflow/backend ownership. A workspace handoff or draft must not be described as a completed listing, purchase, message, invoice, or project.
-- Other open release/UI/JW work was not merged, rebased, or overwritten. Reconcile only overlapping owners when integrating.
+- Remote Desktop Commander was retried on continuation and still returned no available device. Sandbox DNS failed for GitHub and npm; GitHub connector reads/writes succeeded.
+- Full project dependencies, existing Vitest, project typecheck/build, DB/session/browser proof, and minimum-release gate remain unavailable/unexecuted in this environment. Do not merge on isolated tests alone.
+- One attempt per guard call is NOT durable idempotency, cross-request deduplication, or exactly-once execution. Independent requests still run independently; a test explicitly records this limit.
+- An uncertain result may mean a write already committed. Reconcile actual status before another attempt; do not add blanket retries.
+- Classifier behavior outside this guard was not changed or fully audited. The guard redacts its own execution failures; this is not a platform-wide error-redaction claim.
+- The generic supported-tool registry still contains only ads.feedback; other abilities have dedicated actions/workspaces. No broad capability-completion claim is supported.
+- Route allowlist parity, durable execution receipts, task continuity, and destination completion remain follow-on work. A handoff or draft is not a completed listing, purchase, message, invoice, or project.
+- Other release/UI/JW branches were not rebased, merged, or overwritten.
 
 ## External side effects and retry safety
-GitHub branch commits and a reviewable draft PR are the only intended external changes. No production release, customer account change, profile save, follow, broadcast, feedback submission, purchase, or payment was performed. Test inputs are synthetic. No automated mutation retry was introduced. An uncertain guard result tells the user to check current state before retrying.
+Only PR-branch source/tests/checkpoint commits and PR metadata were changed. No main merge, deployment, customer profile update, message, follow, broadcast, feedback, purchase, or payment occurred. Test executors are synthetic. No retry was added; generic automatic retries were removed from this guard.
 
 ## Next exact action
-On the authorized full workspace, fetch this branch and check out its head without disturbing other active work. Run the existing `ScoutActionRouter.test.ts` Vitest suite using the repository's configured runner plus the standalone 47-case check. Verify authenticated approve/cancel and follow-up guard behavior against the real server and browser. Run the minimum release gate only on the integration/release candidate; merge only with that evidence.
+Use an isolated full-workspace checkout of PR #668 without disturbing other lanes. Run the configured router Vitest suite and both targeted execution checks. Then prove the actual authenticated SAVE_PROFILE approve/cancel/failure path through Express and the browser, including an uncertain post-write acknowledgement and the bounded follow-up path. Check frontend completion telemetry and duplicate action handling against those real outcomes. Run `gate:minimum-release` on the exact integration/release candidate only, and merge only with that evidence.
 
-After that proof, continue the existing capability inventory by tracing each advertised action to its owned read/draft/approved-write endpoint and an observable result. Prioritize actual workflow completion over adding capability labels. No fresh repository-wide audit is needed to resume this slice.
+If the full workspace remains unavailable, continue only a bounded source-level slice with explicit validation limits; do not represent another isolated test as an integrated release. Trace each advertised ability to its owned read/draft/approved-write endpoint and observable result after the execution boundary is proven.
 
 ## Actions that must NOT be repeated
-Do not restart the Scout abilities audit, copy MealScout context into this repository, broaden this branch into JW inventory/UI lanes, overwrite active branches, re-add GitHub Actions, or claim that passing isolated tests makes Scout fully functional or deployed. Do not rerun repository-wide gates after each bounded edit.
+Do not restart the Scout audit or re-fetch unchanged client modules just to reconstruct already-recorded state. Do not broaden this branch into JW inventory or unrelated UI, import another product, overwrite active branches, add GitHub Actions, introduce a generic automatic write retry, or claim this branch is deployed. Do not rerun repository-wide gates after each small edit.
 
-## Law classification for this slice
-- Approval before SAVE_PROFILE execution: enforced in the changed dispatcher and isolated tests; full browser/server release proof pending.
-- No direct payment execution through Scout payment-start actions: enforced in the changed dispatcher and isolated tests.
-- Contact, county, and Trust/CVS authorities: preserved owners, not re-audited or newly attested by this slice.
-- End-to-end completion for every advertised capability: policy_target, not achieved by this checkpoint.
+## Law classification
+- Client approval-before-execution and payment navigation-only: enforced in changed dispatcher with prior isolated proof; integrated release proof pending.
+- No success-after-exception and no generic automatic executor retry: enforced in changed server guard with 49-case targeted proof.
+- Contact, county, and Trust/CVS authorities: existing owners preserved; not newly attested here.
+- End-to-end completion for all advertised abilities, durable duplicate protection, and production release: policy_target, not achieved by this checkpoint.
