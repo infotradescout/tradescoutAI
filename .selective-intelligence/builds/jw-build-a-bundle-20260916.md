@@ -35,3 +35,6 @@ External side effects and retry safety: Read remote main, created an isolated JW
 Next exact action: Review the focused JW-only PR/preview. Extend the native JW cart journey with mixed-material seven-to-six behavior, then run the existing strict minimum release contract against the exact release candidate. Merge to main only after the required owner GO; verify the deployed head and live member behavior afterward.
 Actions that must NOT be repeated: Do not rediscover JW pricing/cart architecture, rerun unrelated repository audits, change Drive rates, remove lower published quantity tiers, weaken membership/contact gates, bypass a release gate, or describe the feature as live before deployment proof.
 Business target: Bundle completion rate and average slabs per quote. No conversion uplift or revenue claim has been measured.
+
+## Latest continuation
+Member Make an offer intake was added on this same branch. Resume from `.selective-intelligence/builds/jw-stone-make-offer-20260916.md`; it contains the current 293-test evidence and release boundary. The earlier bundle browser screenshots do not prove the updated offer UI.

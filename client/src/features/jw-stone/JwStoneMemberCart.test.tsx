@@ -11,7 +11,7 @@ import { JW_STONE_CART_STORAGE_PREFIX, JW_STONE_LEGACY_CART_STORAGE_PREFIX, pars
 const api = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/queryClient", async (importOriginal) => ({ ...await importOriginal<typeof import("@/lib/queryClient")>(), apiRequest: api }));
 vi.mock("@/pages/profile-sites/ExpressDirectConnectPanel", () => ({
-  default: ({ open, initialMessage }: { open: boolean; initialMessage?: string }) => open ? <div data-testid="native-quote-handoff">{initialMessage}</div> : null,
+  default: ({ open, initialMessage, jwStoneOffer }: { open: boolean; initialMessage?: string; jwStoneOffer?: unknown }) => open ? jwStoneOffer ? <div data-testid="native-offer-handoff">{JSON.stringify(jwStoneOffer)}</div> : <div data-testid="native-quote-handoff">{initialMessage}</div> : null,
 }));
 const stockId = `stone_${"a".repeat(32)}`;
 const stockItem = { id: stockId, materialName: "Honey Onyx", quantity: 3, unit: "slabs", assetKind: "slab",
@@ -217,4 +217,14 @@ describe("JW Stone member cart", () => {
     expect(restoreJwStoneCart([{ id: "x", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: -1 }])).toEqual([]);
     expect(restoreJwStoneCart([{ id: "x", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: 1, landedCostCents: 55 }])).toEqual([{ id: "x", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: 1 }]);
   });
+  it("opens a full-cart offer with the displayed total without changing saved quantities", async () => {
+    render(stockId); await add();
+    await eventually(() => expect(document.querySelector('[data-testid="jw-cart-make-offer"]')).not.toBeNull());
+    const saved = window.localStorage.getItem(JW_STONE_CART_STORAGE_PREFIX + viewer);
+    click(document.querySelector('[data-testid="jw-cart-make-offer"]'));
+    await eventually(() => expect(document.querySelector('[data-testid="native-offer-handoff"]')).not.toBeNull());
+    expect(JSON.parse(document.querySelector('[data-testid="native-offer-handoff"]')!.textContent!)).toMatchObject({ scope: "cart", viewerId: viewer, displayedSubtotalCents: 15000, selection: { lines: [{ inventoryPublicId: stockId, quantity: 1 }] } });
+    expect(window.localStorage.getItem(JW_STONE_CART_STORAGE_PREFIX + viewer)).toBe(saved);
+  });
+
 });

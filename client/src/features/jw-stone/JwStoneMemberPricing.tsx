@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 import {
@@ -16,6 +16,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { parseSlabDimension, type SlabDimension } from "./slabDimensions";
 import { JwStoneMemberCart } from "./JwStoneMemberCartLoader";
 import { JW_STONE_BRAND_STYLE } from "./brand";
+import type { JwStoneOfferContext } from "@shared/jwStoneOffer";
+const JwStoneOfferPanel = lazy(() => import("@/pages/profile-sites/ExpressDirectConnectPanel"));
 
 type VisibleJwStonePrice = JwStoneMemberPrice & Readonly<{ access: JwStonePricingAccess; landedCostCents?: number | null }>;
 type JwStoneMemberPricingContextValue = Readonly<{
@@ -24,9 +26,10 @@ type JwStoneMemberPricingContextValue = Readonly<{
   cartEnabled: boolean;
   cartCount: number;
   addToCart: (item: JwStoneCartDraft) => void;
+  makeOffer: (item: JwStoneCartDraft) => void;
 }>;
 const EMPTY_CONTEXT: JwStoneMemberPricingContextValue = Object.freeze({
-  access: null, priceFor: () => null, cartEnabled: false, cartCount: 0, addToCart: () => undefined,
+  access: null, priceFor: () => null, cartEnabled: false, cartCount: 0, addToCart: () => undefined, makeOffer: () => undefined,
 });
 const JwStoneMemberPricingContext = createContext(EMPTY_CONTEXT);
 function isCents(value: unknown): value is number {
@@ -95,11 +98,13 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
   });
   const [cart, setCart] = useState<readonly JwStoneCartSelection[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [stoneOffer, setStoneOffer] = useState<JwStoneOfferContext | null>(null);
   const [loadedCartViewer, setLoadedCartViewer] = useState<string | null>(null);
   const closeCart = useCallback(() => setCartOpen(false), []);
   useEffect(() => {
     setCart(normalizedViewerId ? readMemberCart(normalizedViewerId) : []);
     setLoadedCartViewer(normalizedViewerId || null);
+    setStoneOffer(null);
     setCartOpen(false);
   }, [normalizedViewerId]);
   useEffect(() => {
@@ -116,6 +121,11 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
     onOpenCart?.();
     setCartOpen(true);
   }, [onOpenCart]);
+  const makeOffer = useCallback((item: JwStoneCartDraft) => {
+    onOpenCart?.();
+    setCartOpen(false);
+    setStoneOffer({ scope: "stone", viewerId: normalizedViewerId, stoneName: item.stoneName, inventoryPublicId: item.inventoryPublicId });
+  }, [onOpenCart, normalizedViewerId]);
   const updateCartQuantity = useCallback((id: string, quantity: number) => {
     if (!Number.isInteger(quantity) || quantity < 0 || quantity > 999) return;
     setCart((current) => quantity === 0 ? current.filter((item) => item.id !== id)
@@ -134,8 +144,8 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
     return Object.freeze({ access: response.access,
       priceFor: (stoneName: string | null | undefined) => priceMap.get(jwStonePriceKey(stoneName)) || null,
       cartEnabled, cartCount: cartEnabled ? cart.reduce((sum, item) => sum + item.quantity, 0) : 0,
-      addToCart: cartEnabled ? addToCart : () => undefined });
-  }, [addToCart, cart, loadedCartViewer, normalizedViewerId, pricingQuery.data, pricingQuery.isError]);
+      addToCart: cartEnabled ? addToCart : () => undefined, makeOffer: cartEnabled ? makeOffer : () => undefined });
+  }, [addToCart, makeOffer, cart, loadedCartViewer, normalizedViewerId, pricingQuery.data, pricingQuery.isError]);
   return <JwStoneMemberPricingContext.Provider value={value}>
     {children}
     {value.cartEnabled ? <>
@@ -147,6 +157,9 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
         {value.cartCount > 0 ? <span className="inline-flex min-w-5 justify-center rounded-full bg-[var(--jw-accent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--jw-on-accent)]">{value.cartCount}</span> : null}
       </button>
       {cartOpen ? <JwStoneMemberCart key={normalizedViewerId} viewerId={normalizedViewerId} items={cart} onClose={closeCart} onQuantityChange={updateCartQuantity} onStockChange={updateCartStock} /> : null}
+      {stoneOffer && stoneOffer.viewerId === normalizedViewerId ? <Suspense fallback={<p role="status">Loading offer form…</p>}>
+        <JwStoneOfferPanel key={normalizedViewerId} open onClose={() => setStoneOffer(null)} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} stayInProfile requestMode="materials" initialView="request" initialRequestType="make_offer" initialStoneName={stoneOffer.scope === "stone" ? stoneOffer.stoneName : undefined} jwStoneOffer={stoneOffer} />
+      </Suspense> : null}
     </> : null}
   </JwStoneMemberPricingContext.Provider>;
 }
@@ -233,6 +246,10 @@ export function JwStoneMemberPriceDisplay({ stoneName, slabDimensions, inventory
     })} className={compact ? "mt-2 inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--jw-border)] px-3 text-xs font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]" : "mt-4 inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--jw-ink)] px-4 py-2 text-sm font-semibold text-white"}>
       <ShoppingCart className="h-4 w-4" aria-hidden="true" />Add slab to cart
     </button> : null}
+    {context.cartEnabled ? <button type="button" data-testid={`jw-stone-make-offer-${presentation}`} onClick={() => context.makeOffer({
+      id: stockId.success ? `stock:${stockId.data}` : cartItemId(price.stoneKey, slabDimensions), stoneName: price.stoneName, stoneKey: price.stoneKey,
+      ...(stockId.success ? { inventoryPublicId: stockId.data } : {}),
+    })} className="ml-2 mt-2 inline-flex min-h-11 items-center justify-center border border-[var(--jw-accent)] px-3 text-xs font-semibold text-[var(--jw-ink)]">Make an offer</button> : null}
     {context.cartEnabled && price.bundlePriceCents < price.slabPriceCents && (price.bundleMinSlabs ?? 7) <= 7
       ? <p className="mt-2 text-xs text-[var(--jw-muted)]">Build a bundle: mix 7 eligible slabs for bundle pricing.</p> : null}
   </div>;

@@ -14,6 +14,7 @@ import {
 import { jwStonePriceKey } from "@shared/jwStoneMemberPricing";
 import { isJwStoneBundleEligible } from "@shared/jwStoneBundle";
 import { JwStoneBundleBuilder } from "./JwStoneBundleBuilder";
+import type { JwStoneOfferContext } from "@shared/jwStoneOffer";
 import { normalizePublicStoneInventoryImageUrls } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -78,6 +79,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
   const queryClient = useQueryClient();
   const [preferences, setPreferences] = useState(() => loadPreferences(viewerId));
   const [requestOpen, setRequestOpen] = useState(false);
+  const [offerContext, setOfferContext] = useState<JwStoneOfferContext | null>(null);
   const deliveryDetails = useJwStoneFulfillmentDetails(viewerId);
   const fulfillmentError = fulfillmentDetailsError(deliveryDetails.details, preferences.method);
   useEffect(() => {
@@ -114,9 +116,9 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
       const response = await apiRequest(JW_STONE_CART_REVIEW_PATH, { method: "POST", data: request, signal });
       return parseJwStoneCartReview(response, viewerId, request);
     },
-    enabled: parsedRequest.success && !requestOpen,
+    enabled: parsedRequest.success && !requestOpen && !offerContext,
     retry: false, staleTime: 0, gcTime: 0, refetchOnWindowFocus: "always",
-    refetchInterval: requestOpen ? false : 60_000,
+    refetchInterval: requestOpen || offerContext ? false : 60_000,
   });
   const review = parsedRequest.success && !reviewQuery.isFetching && !reviewQuery.isError
     ? reviewQuery.data : undefined;
@@ -145,7 +147,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
   const canRequest = items.length > 0 && items.length <= JW_STONE_CART_REVIEW_MAX_LINES && validDestination && !fulfillmentError && requestMessage.length <= JW_CART_QUOTE_MESSAGE_LIMIT;
 
   return <>
-    <Dialog.Root open={!requestOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog.Root open={!requestOpen && !offerContext} onOpenChange={(open) => { if (!open) onClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/40" />
         <Dialog.Content style={JW_STONE_BRAND_STYLE} data-jw-brand="true" data-testid="jw-stone-member-cart"
@@ -236,6 +238,9 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
               <div className="flex justify-between gap-3 text-[var(--jw-muted)]"><span>Slab-rate subtotal</span><span>{money(review.bundle.regularSubtotalCents!)}</span></div>
               <div className="flex justify-between gap-3 font-semibold"><span>Quantity savings</span><span>−{money(review.bundle.savingsCents!)}</span></div>
             </div> : null}
+            {review?.materialReady && review.subtotalCents != null && parsedRequest.success && !fulfillmentError ? <button type="button" data-testid="jw-cart-make-offer"
+              onClick={() => setOfferContext({ scope: "cart", viewerId, selection: parsedRequest.data, displayedSubtotalCents: review.subtotalCents! })}
+              className="mt-3 min-h-11 w-full border border-[var(--jw-accent)] px-3 text-sm font-semibold">Make an offer on this cart</button> : null}
             {items.length && fulfillmentError ? <p role="alert" className="mt-2 text-xs">{fulfillmentError}</p> : null}
             {items.length ? <p className="mt-2 text-xs leading-5 text-[var(--jw-muted)]">Delivery and tax are not included. This cart does not reserve stock or charge payment.</p> : null}
             <div className="mt-3 flex gap-2">
@@ -248,6 +253,8 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    {offerContext ? <ExpressDirectConnectPanel open onClose={() => setOfferContext(null)} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} stayInProfile requestMode="materials" initialView="request" initialRequestType="make_offer" jwStoneOffer={offerContext}
+      initialMessage={[preferences.jobReference.trim() ? "Job / PO: " + preferences.jobReference.trim() : "", ...fulfillmentDetailsSummary(deliveryDetails.details, preferences.method)].filter(Boolean).join("\n")} /> : null}
     {requestOpen ? <ExpressDirectConnectPanel open onClose={() => setRequestOpen(false)} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} stayInProfile requestMode="materials" initialView="request" initialRequestType="request_material" initialStoneSelections={requestSelections} initialMessage={requestMessage} /> : null}
   </>;
 }
