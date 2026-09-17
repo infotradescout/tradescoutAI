@@ -1,3 +1,4 @@
+import { useJwStoneFeatures } from "./useJwStoneFeatures";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
@@ -87,7 +88,8 @@ export function sanitizeJwStonePricingResponse(value: unknown, viewerId: string)
 export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }: {
   children: ReactNode; viewerId: string | null; onOpenCart?: () => void;
 }) {
-  const normalizedViewerId = String(viewerId || "").trim();
+  const { enabled: enhancementsEnabled } = useJwStoneFeatures();
+  const normalizedViewerId = enhancementsEnabled ? String(viewerId || "").trim() : "";
   const pricingQuery = useQuery({
     queryKey: ["jw-stone", "member-pricing", normalizedViewerId],
     queryFn: async () => sanitizeJwStonePricingResponse(await apiRequest("GET", "/api/u/jw-stone/member-pricing"), normalizedViewerId),

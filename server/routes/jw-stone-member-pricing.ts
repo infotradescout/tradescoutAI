@@ -7,6 +7,7 @@ import type {
 import { JW_STONE_PRICING_PROFILE_SLUG, jwStonePriceKey } from "@shared/jwStoneMemberPricing";
 import { combineJwStoneCartLines, jwStoneCartReviewRequestSchema } from "@shared/jwStoneCart";
 import { isAuthenticated } from "../auth";
+import { registerJwStoneFeatureRoutes } from "./jw-stone-features";
 import { requireCriticalSchema } from "../schemaPreflight";
 import { getJwStonePricingSnapshot, type JwStonePricingSnapshot } from "../services/jwStoneDrivePricing";
 import { resolveJwStonePricingAccess } from "../services/jwStonePricingAccess";
@@ -70,6 +71,7 @@ function privateResponse(res: Response): void {
 }
 
 export function registerJwStoneMemberPricingRoutes(app: Express): void {
+  registerJwStoneFeatureRoutes(app);
   app.use("/api/u/jw-stone/member-pricing", requireCriticalSchema("profile_accounts"));
   app.get("/api/u/jw-stone/member-pricing", isAuthenticated, async (req: Request, res: Response): Promise<void> => {
     privateResponse(res);
