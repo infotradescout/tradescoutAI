@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import { generateAIResponse as generateVertexAIResponse } from "../ai/vertexClient";
 import { generateGeminiTextWithFallback, type GeminiGenerationOptions } from "../ai/geminiFallback";
 
-export type LLMModel = "gemini" | "openai";
+export type LLMModel = "gemini" | "openai" | "neon";
 export type ScoutLlmModelTier = "fast" | "standard" | "reasoning";
 export type ScoutLlmResponseFormat = "text" | "scout_synthesis_json";
 
@@ -125,6 +125,102 @@ export class OpenAIResponsesProvider implements LLMProvider {
   }
 }
 
+export class NeonAiGatewayProvider implements LLMProvider {
+  name: LLMModel = "neon";
+  id = "neon-ai-gateway";
+  private openai: OpenAI;
+  private defaultModel: string;
+
+  constructor() {
+    const required = [
+      "NEON_AI_GATEWAY_BASE_URL",
+      "NEON_AI_GATEWAY_TOKEN",
+      "SCOUT_NEON_MODEL_DEFAULT",
+    ] as const;
+    const missing = required.filter((key) => !readEnvString(key, ""));
+    if (missing.length > 0) {
+      throw new Error(`Incomplete Neon AI Gateway configuration (missing ${missing.join(", ")})`);
+    }
+    let url: URL;
+    try {
+      url = new URL(readEnvString("NEON_AI_GATEWAY_BASE_URL", ""));
+    } catch {
+      throw new Error("NEON_AI_GATEWAY_BASE_URL must be a bare HTTPS Neon branch gateway host");
+    }
+    if (
+      url.protocol !== "https:" ||
+      !/^br-[a-z0-9-]+-api\.ai(?:\.[a-z0-9-]+)*\.aws\.neon\.tech$/.test(url.hostname) ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.pathname !== "/" ||
+      url.search ||
+      url.hash
+    ) {
+      throw new Error("NEON_AI_GATEWAY_BASE_URL must be a bare HTTPS Neon branch gateway host");
+    }
+    this.defaultModel = readEnvString("SCOUT_NEON_MODEL_DEFAULT", "");
+    this.openai = new OpenAI({
+      apiKey: readEnvString("NEON_AI_GATEWAY_TOKEN", ""),
+      baseURL: `${url.origin}/v1`,
+      // The canonical fallback loop owns retry/cooldown; avoid hidden billable retries.
+      maxRetries: 0,
+    });
+  }
+
+  isConfigured() {
+    return true; // Construction validates all settings; this provider is explicitly selected.
+  }
+
+  async generate(prompt: string, options?: LLMGenerationOptions) {
+    const tier = options?.modelTier || "standard";
+    const maxOutputTokens = readEnvNumber(
+      "SCOUT_NEON_MAX_OUTPUT_TOKENS",
+      options?.responseFormat === "scout_synthesis_json" ? 700 : 900,
+      100,
+      4000
+    );
+    const request: any = {
+      model: readEnvString(`SCOUT_NEON_MODEL_${tier.toUpperCase()}`, this.defaultModel),
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: Number.isFinite(options?.maxOutputTokens)
+        ? Math.min(4000, Math.max(100, Math.floor(options!.maxOutputTokens!)))
+        : maxOutputTokens,
+      stream: false,
+    };
+    if (options?.responseFormat === "scout_synthesis_json") {
+      request.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: "scout_synthesis_response",
+          schema: SCOUT_SYNTHESIS_RESPONSE_SCHEMA,
+          strict: false,
+        },
+      };
+    }
+    const temperature = readOptionalEnvNumber("SCOUT_NEON_TEMPERATURE", options?.temperature);
+    if (temperature !== null) request.temperature = Math.min(2, Math.max(0, temperature));
+
+    const response = await this.openai.chat.completions.create(request, {
+      timeout: readEnvNumber("SCOUT_NEON_TIMEOUT_MS", 20_000, 1000, 120_000),
+    });
+    // The unified gateway can return either a string or text content blocks.
+    const content: unknown = response.choices?.[0]?.message?.content;
+    const text = (
+      typeof content === "string"
+        ? content
+        : Array.isArray(content)
+          ? content
+              .filter((part) => part?.type === "text" && typeof part.text === "string")
+              .map((part) => part.text)
+              .join("\n")
+          : ""
+    ).trim();
+    if (!text) throw new Error("Neon AI Gateway returned empty output");
+    return text;
+  }
+}
+
 type ProviderRuntimeState = {
   consecutiveFailures: number;
   totalFailures: number;
@@ -138,7 +234,7 @@ type ProviderRuntimeState = {
 
 const providerRuntimeState = new Map<string, ProviderRuntimeState>();
 
-type ProviderOrderToken = "openai" | "vertex" | "gemini";
+type ProviderOrderToken = "openai" | "vertex" | "gemini" | "neon";
 
 const DEFAULT_PROVIDER_ORDER = ["openai", "vertex", "gemini"] as const;
 
@@ -363,6 +459,7 @@ function normalizeProviderOrderToken(token: string): ProviderOrderToken | null {
   if (normalized === "openai" || normalized === "openai-responses") return "openai";
   if (normalized === "vertex" || normalized === "vertex-gemini") return "vertex";
   if (normalized === "gemini" || normalized === "gemini-api") return "gemini";
+  if (normalized === "neon" || normalized === "neon-ai-gateway") return "neon";
   return null;
 }
 
@@ -388,6 +485,10 @@ export function buildScoutLlmProviders(): LLMProvider[] {
   const providers: LLMProvider[] = [];
   const order = readProviderOrder();
   for (const token of order) {
+    if (token === "neon") {
+      providers.push(new NeonAiGatewayProvider());
+      continue;
+    }
     if (token === "openai") {
       providers.push(new OpenAIResponsesProvider(process.env.OPENAI_API_KEY || ""));
       continue;
