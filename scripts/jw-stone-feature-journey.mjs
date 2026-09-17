@@ -24,6 +24,8 @@ export async function proveJwStoneFeatureJourney({page,context,database,fixture,
   const beforeTransactions=Number((await database.query('SELECT count(*) n FROM marketplace_transactions')).rows[0].n);
   let disabled=false, originalCommand, controller;
   try {
+    const guest=await browser.newContext(); controls.push(guest);
+    assert.equal((await guest.request.get(base+endpoint)).status(),401,'Guest cannot control access');
     assert.equal((await context.request.get(base+endpoint)).status(),403,'Member cannot control access');
     assert.equal((await owner.request.get(base+endpoint)).status(),403,'JW owner cannot control TradeScout entitlement');
     const initial=await admin.request.get(base+endpoint); assert.equal(initial.status(),200);

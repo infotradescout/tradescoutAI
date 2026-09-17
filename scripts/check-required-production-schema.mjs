@@ -1203,7 +1203,10 @@ export async function verifyRequiredProductionSchema(client) {
   const receiptSchema = await inspectScoutReceiptSchema(client);
   check.scoutExecutionReceiptsContract = receiptSchema.contract;
   check.scoutExecutionReceiptsMigrationRecorded = receiptSchema.migrationRecorded;
-  const missing = [...evaluateRequiredProductionSchema(check), ...receiptSchema.missing];
+  const { inspectJwFeatureSchema } = await import("./lib/jw-feature-schema.mjs");
+  const featureSchema = await inspectJwFeatureSchema(client);
+  check.jwStoneFeatureControlContract = featureSchema.contract;
+  const missing = [...evaluateRequiredProductionSchema(check), ...receiptSchema.missing, ...featureSchema.missing];
   if (missing.length > 0) {
     throw new Error(
       [
