@@ -8,8 +8,18 @@ assert.equal(process.env.JW_WORKFLOW_FIXTURE, "true");
 const databaseUrl = new URL(process.env.TEST_DATABASE_URL || "");
 assert.equal(databaseUrl.hostname, "127.0.0.1");
 assert.equal(databaseUrl.pathname, "/ts_jw_workflow_test");
-const output = path.resolve(process.env.JW_WORKFLOW_PRIVATE_OUTPUT || "test-results/jw-workflow-private");
-const keep = new Set(["PATH", "HOME", "TMPDIR", "NODE_ENV", "TEST_DATABASE_URL", "JW_WORKFLOW_FIXTURE"]);
+const output = path.resolve(
+  process.env.JW_WORKFLOW_PRIVATE_OUTPUT || "test-results/jw-workflow-private"
+);
+const offersOnly = process.env.JW_WORKFLOW_OFFERS === "true";
+const keep = new Set([
+  "PATH",
+  "HOME",
+  "TMPDIR",
+  "NODE_ENV",
+  "TEST_DATABASE_URL",
+  "JW_WORKFLOW_FIXTURE",
+]);
 for (const key of Object.keys(process.env)) if (!keep.has(key)) delete process.env[key];
 const { default: dotenv } = await import("dotenv");
 dotenv.config = dotenv.configDotenv = () => ({ parsed: {} });
@@ -22,47 +32,152 @@ process.env.EMAIL_MODE = "account_creation_only";
 process.env.DISABLE_FACEBOOK_AUTH = "true";
 
 // The real source validator receives invented rates, never the owner's workbook.
-const { JW_STONE_PRICING_DRIVE_FILE_ID, JW_STONE_PRICING_DRIVE_FOLDER_ID, jwStonePriceKey } = await import("../shared/jwStoneMemberPricing");
+const { JW_STONE_PRICING_DRIVE_FILE_ID, JW_STONE_PRICING_DRIVE_FOLDER_ID, jwStonePriceKey } =
+  await import("../shared/jwStoneMemberPricing");
 const now = new Date().toISOString();
 process.env.JW_STONE_PRICING_SOURCE = "approved_import";
 process.env.JW_STONE_PRICING_APPROVED_IMPORT = JSON.stringify({
-  schemaVersion: 1, fileId: JW_STONE_PRICING_DRIVE_FILE_ID, folderId: JW_STONE_PRICING_DRIVE_FOLDER_ID,
-  sourceUpdatedAt: now, sourceRetrievedAt: now,
-  prices: [{ stoneName: "Honey Onyx", stoneKey: jwStonePriceKey("Honey Onyx"), landedCostCents: 4040, slabPriceCents: 10101, bundlePriceCents: 9090, bundleMinSlabs: 2 }],
+  schemaVersion: 1,
+  fileId: JW_STONE_PRICING_DRIVE_FILE_ID,
+  folderId: JW_STONE_PRICING_DRIVE_FOLDER_ID,
+  sourceUpdatedAt: now,
+  sourceRetrievedAt: now,
+  prices: [
+    {
+      stoneName: "Honey Onyx",
+      stoneKey: jwStonePriceKey("Honey Onyx"),
+      landedCostCents: 4040,
+      slabPriceCents: 10101,
+      bundlePriceCents: 9090,
+      bundleMinSlabs: offersOnly ? 7 : 2,
+    },
+    ...(offersOnly
+      ? [
+          {
+            stoneName: "Fantasy Brown",
+            stoneKey: jwStonePriceKey("Fantasy Brown"),
+            landedCostCents: 3000,
+            slabPriceCents: 8000,
+            bundlePriceCents: 7000,
+            bundleMinSlabs: 7,
+          },
+        ]
+      : []),
+  ],
 });
 const { db, pool } = await import("../server/db");
-assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].name, "ts_jw_workflow_test");
+assert.equal(
+  (await pool.query("SELECT current_database() AS name")).rows[0].name,
+  "ts_jw_workflow_test"
+);
 const schema = await import("../shared/schema");
 const { default: bcrypt } = await import("bcrypt");
 const ownerId = "jw-fixture-owner-" + randomUUID();
 await db.insert(schema.users).values({
-  id: ownerId, email: ownerId + "@example.test", password: await bcrypt.hash(randomUUID(), 10),
-  firstName: "Synthetic", lastName: "Supplier", role: "contractor", roles: ["contractor"], activeRole: "contractor",
-  phone: "2025550147", stateCode: "FL", countyFips: "12001", addressVerified: true, emailVerified: true,
-  verificationStatus: "approved", verifiedBadge: true, onboardingCompleted: true, profileVersion: 1, locationCommitted: true,
+  id: ownerId,
+  email: ownerId + "@example.test",
+  password: await bcrypt.hash(randomUUID(), 10),
+  firstName: "Synthetic",
+  lastName: "Supplier",
+  role: "contractor",
+  roles: ["contractor"],
+  activeRole: "contractor",
+  phone: "2025550147",
+  stateCode: "FL",
+  countyFips: "12001",
+  addressVerified: true,
+  emailVerified: true,
+  verificationStatus: "approved",
+  verifiedBadge: true,
+  onboardingCompleted: true,
+  profileVersion: 1,
+  locationCommitted: true,
 });
-await db.insert(schema.states).values({ id: "FL", name: "Florida", code: "FL" }).onConflictDoNothing();
-await db.insert(schema.counties).values({ id: "jw-fixture-alachua", name: "Alachua", fips: "12001", stateCode: "FL" }).onConflictDoNothing();
-const [business] = await db.insert(schema.businesses).values({
-  name: "Synthetic JW Supplier", slug: "jw-fixture-supplier", ownerUserId: ownerId,
-  roleContext: "business_owner", type: "contractor", status: "active", claimStatus: "claimed", publicDiscoveryEnabled: true,
-}).returning();
-const [profile] = await db.insert(schema.profiles).values({
-  ownerUserId: ownerId, businessId: business.id, roleContext: "contractor", slug: "jw-stone",
-  displayName: "JW Stone Logistics", status: "published", publiclyReleased: true,
-  headline: "Synthetic isolated supplier fixture; not public stock or pricing", contentBlocks: [],
-}).returning();
+await db
+  .insert(schema.states)
+  .values({ id: "FL", name: "Florida", code: "FL" })
+  .onConflictDoNothing();
+await db
+  .insert(schema.counties)
+  .values({ id: "jw-fixture-alachua", name: "Alachua", fips: "12001", stateCode: "FL" })
+  .onConflictDoNothing();
+const [business] = await db
+  .insert(schema.businesses)
+  .values({
+    name: "Synthetic JW Supplier",
+    slug: "jw-fixture-supplier",
+    ownerUserId: ownerId,
+    roleContext: "business_owner",
+    type: "contractor",
+    status: "active",
+    claimStatus: "claimed",
+    publicDiscoveryEnabled: true,
+  })
+  .returning();
+const [profile] = await db
+  .insert(schema.profiles)
+  .values({
+    ownerUserId: ownerId,
+    businessId: business.id,
+    roleContext: "contractor",
+    slug: "jw-stone",
+    displayName: "JW Stone Logistics",
+    status: "published",
+    publiclyReleased: true,
+    headline: "Synthetic isolated supplier fixture; not public stock or pricing",
+    contentBlocks: [],
+  })
+  .returning();
 // Only the asserted disposable database receives this invented three-slab lot.
-const { getStoneInventoryProfileTarget, upsertCurrentStoneInventory, setStoneInventorySaleReady } = await import("../server/services/stoneInventoryService");
+const { getStoneInventoryProfileTarget, upsertCurrentStoneInventory, setStoneInventorySaleReady } =
+  await import("../server/services/stoneInventoryService");
 const target = await getStoneInventoryProfileTarget("jw-stone");
 assert(target && target.businessId === business.id);
 const cartStock = await upsertCurrentStoneInventory(target, {
-  materialSlug: "honey-onyx", materialName: "Honey Onyx", materialClass: "natural_stone", materialFamily: "Onyx",
-  assetKind: "slab", quantity: 3, unit: "slabs", dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" },
-  finishQuantities: [{ finish: "Polished", slabCount: 3 }], imageUrls: [],
-  lastConfirmedAt: now, confirmationExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+  materialSlug: "honey-onyx",
+  materialName: "Honey Onyx",
+  materialClass: "natural_stone",
+  materialFamily: "Onyx",
+  assetKind: "slab",
+  quantity: offersOnly ? 20 : 3,
+  unit: "slabs",
+  dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" },
+  finishQuantities: [{ finish: "Polished", slabCount: offersOnly ? 20 : 3 }],
+  imageUrls: [],
+  lastConfirmedAt: now,
+  confirmationExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
 });
-await setStoneInventorySaleReady({ target, publicId: cartStock.id, saleReady: true, actorUserId: ownerId });
+await setStoneInventorySaleReady({
+  target,
+  publicId: cartStock.id,
+  saleReady: true,
+  actorUserId: ownerId,
+});
+
+let otherStockId: string | undefined;
+if (offersOnly) {
+  const other = await upsertCurrentStoneInventory(target, {
+    materialSlug: "fantasy-brown",
+    materialName: "Fantasy Brown",
+    materialClass: "natural_stone",
+    materialFamily: "Marble",
+    assetKind: "slab",
+    quantity: 20,
+    unit: "slabs",
+    dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" },
+    finishQuantities: [{ finish: "Polished", slabCount: 20 }],
+    imageUrls: [],
+    lastConfirmedAt: now,
+    confirmationExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+  });
+  await setStoneInventorySaleReady({
+    target,
+    publicId: other.id,
+    saleReady: true,
+    actorUserId: ownerId,
+  });
+  otherStockId = other.id;
+}
 // Production runs this real schema inspection before accepting guarded requests.
 // Do not replace its middleware, set test readiness flags or bypass its result.
 const { runSchemaPreflight } = await import("../server/schemaPreflight");
@@ -70,13 +185,27 @@ await runSchemaPreflight();
 const { default: express } = await import("express");
 const { registerRoutes } = await import("../server/routes");
 const app = express();
-app.use(express.json()); app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 const server = await registerRoutes(app);
 const dist = path.resolve("dist/public");
 await fs.access(path.join(dist, "index.html"));
 app.use(express.static(dist));
-app.get("*", (req, res, next) => req.path.startsWith("/api/") ? next() : res.sendFile(path.join(dist, "index.html")));
-await new Promise<void>(resolve => server.listen(5228, "127.0.0.1", resolve));
+app.get("*", (req, res, next) =>
+  req.path.startsWith("/api/") ? next() : res.sendFile(path.join(dist, "index.html"))
+);
+await new Promise<void>((resolve) => server.listen(5228, "127.0.0.1", resolve));
 await fs.mkdir(output, { recursive: true });
-await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, businessId: business.id, profileId: profile.id, cartStockId: cartStock.id, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
+await fs.writeFile(
+  path.join(output, "fixture.json"),
+  JSON.stringify({
+    ownerId,
+    businessId: business.id,
+    profileId: profile.id,
+    cartStockId: cartStock.id,
+    otherStockId,
+    base: "http://127.0.0.1:5228",
+  }),
+  { mode: 0o600 }
+);
 console.log("JW_WORKFLOW_READY");
