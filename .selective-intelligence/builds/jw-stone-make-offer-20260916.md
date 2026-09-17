@@ -26,3 +26,8 @@ External side effects and retry safety: Local source/test/checkpoint edits and m
 Next exact action: Inspect the new offer UI and complete permitted desktop/mobile validation; run native-DB offer/quote journeys and exact-commit minimum release gate before owner GO and any merge. For commercial lifecycle work, build explicit confirmation/counteroffer and final-total authorization rather than treating the existing request/contact status as payment approval.
 Actions that must NOT be repeated: Do not restart pricing/cart discovery, change source rates, auto-approve offers, collect a card/deposit at submission, reserve stock at submission, broaden public price exposure, bypass contact gates or tool safety checks, merge main without the release gate/GO, or claim this draft is live.
 Business KPI: Track bundle completion and offer-to-confirmed-order conversion once the corresponding production flows exist; no conversion uplift is measured here.
+
+## Superseding verification checkpoint — 2026-09-17
+Resume from `.selective-intelligence/builds/jw-stone-offer-verification-20260917.md`.
+The unchanged b2c87c9c application/test source now has a passing desktop/mobile mocked-API offer browser proof and a passing complete production build. Those steps above are no longer unexecuted.
+Native preparation was blocked by a tool safety-status check and was not rerouted. Native/built-browser/release/deployment proof remains outstanding. This is not a shipped feature or proof of commercial confirmation/payment support.
