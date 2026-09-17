@@ -149,6 +149,7 @@ try {
     assert.equal(await page.getByTestId('jw-stone-member-cart-button').count(), 0);
     note(device + ': revocation and reconnect cannot recover private prices or cart access');
     if (ownedStatusMode) {
+      await page.goto(base + rootPath, { waitUntil: 'domcontentloaded' });
       await page.getByTestId('jw-owned-reservation-status').waitFor();
       await page.screenshot({path:path.join(out,device+'-owned-hold-revoked-membership.png')});
       run('Release synthetic owned hold after status acceptance', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-owned-hold.fixture.ts', '--release'], heldEnv);
