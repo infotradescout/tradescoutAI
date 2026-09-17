@@ -1,4 +1,4 @@
-/** Owner rule: seven eligible slabs form a mixed-material JW Stone bundle. */
+/** Seven eligible slabs form a bundle. Mixed-material eligibility in this draft awaits owner approval. */
 export const JW_STONE_BUNDLE_SLABS = 7 as const;
 export type JwStoneBundlePricing = Readonly<{
   slabRateCents: number;

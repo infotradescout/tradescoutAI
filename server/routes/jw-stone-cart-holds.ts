@@ -23,49 +23,162 @@ function errorResponse(res: Response, error: unknown) {
   if (error instanceof JwStoneCartHoldError) {
     res.status(error.status).json({ code: error.code, message: error.message });
   } else {
-    console.error("[jw-stone-cart-holds] request failed", { name: error instanceof Error ? error.name : "UnknownError" });
-    res.status(503).json({ code: "hold_unavailable", message: "Reservations are temporarily unavailable. Your cart is unchanged." });
+    console.error("[jw-stone-cart-holds] request failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
+    res
+      .status(503)
+      .json({
+        code: "hold_unavailable",
+        message: "Reservations are temporarily unavailable. Your cart is unchanged.",
+      });
   }
 }
 
-/** Deliberately not mounted until canonical schema, expiry worker and browser integration are release-verified. */
-export function registerJwStoneCartHoldRoutes(app: Express, deps: JwStoneCartHoldRouteDependencies): void {
+/** Mounted with the application auth, schema, same-origin and persistent rate guards. */
+export function registerJwStoneCartHoldRoutes(
+  app: Express,
+  deps: JwStoneCartHoldRouteDependencies
+): void {
   const root = JW_STONE_CART_HOLD_PATH;
-  app.use(root, (_req, res, next) => {
-    res.setHeader("Cache-Control", "private, no-store"); res.vary("Cookie"); res.vary("Authorization"); next();
-  }, deps.authenticate, deps.requireSchema);
+  app.use(
+    root,
+    (_req, res, next) => {
+      res.setHeader("Cache-Control", "private, no-store");
+      res.vary("Cookie");
+      res.vary("Authorization");
+      next();
+    },
+    deps.authenticate,
+    deps.requireSchema
+  );
   app.post(root, deps.requireWriteIntent, deps.mutationLimiter, async (req, res) => {
     try {
       const buyerUserId = buyerId(req);
-      if (!buyerUserId) { res.status(401).json({ message: "Authentication required" }); return; }
-      if (await deps.access(req) !== "member") throw new JwStoneCartHoldError(403, "jw_membership_required", "An active JW Stone business membership is required.");
+      if (!buyerUserId) {
+        res.status(401).json({ message: "Authentication required" });
+        return;
+      }
+      if ((await deps.access(req)) !== "member")
+        throw new JwStoneCartHoldError(
+          403,
+          "jw_membership_required",
+          "An active JW Stone business membership is required."
+        );
       const target = await deps.target();
-      if (!target) throw new JwStoneCartHoldError(503, "hold_unavailable", "JW Stone inventory is temporarily unavailable.");
-      const receipt = await deps.holds.reserve({ buyerUserId, sellerBusinessId: target.businessId, request: req.body, snapshot: await deps.pricing() });
+      if (!target)
+        throw new JwStoneCartHoldError(
+          503,
+          "hold_unavailable",
+          "JW Stone inventory is temporarily unavailable."
+        );
+      const receipt = await deps.holds.reserve({
+        buyerUserId,
+        sellerBusinessId: target.businessId,
+        request: req.body,
+        snapshot: await deps.pricing(),
+      });
       res.status(200).json(receipt);
-    } catch (error) { errorResponse(res, error); }
+    } catch (error) {
+      errorResponse(res, error);
+    }
   });
+  const recover = async (req: Request, res: Response) => {
+    try {
+      const buyerUserId = buyerId(req);
+      if (!buyerUserId) {
+        res.status(401).json({ message: "Authentication required" });
+        return;
+      }
+      const target = await deps.target();
+      if (!target)
+        throw new JwStoneCartHoldError(
+          503,
+          "hold_unavailable",
+          "JW Stone inventory is temporarily unavailable."
+        );
+      const hold = await deps.holds.recover({
+        buyerUserId,
+        sellerBusinessId: target.businessId,
+        operationId: req.params.operationId,
+      });
+      res.json({ viewerId: buyerUserId, hold });
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  };
+  app.get(`${root}/active`, recover);
+  app.get(`${root}/operations/:operationId`, recover);
   app.get(`${root}/:reservationId`, async (req, res) => {
     try {
       const buyerUserId = buyerId(req);
-      if (!buyerUserId) { res.status(401).json({ message: "Authentication required" }); return; }
-      if (await deps.access(req) !== "member") throw new JwStoneCartHoldError(403, "jw_membership_required", "An active JW Stone business membership is required.");
-      const target = await deps.target();
-      if (!target) throw new JwStoneCartHoldError(503, "hold_unavailable", "JW Stone inventory is temporarily unavailable.");
-      res.json(await deps.holds.get({ buyerUserId, sellerBusinessId: target.businessId, reservationId: req.params.reservationId }));
-    } catch (error) { errorResponse(res, error); }
-  });
-  app.post(`${root}/:reservationId/release`, deps.requireWriteIntent, deps.mutationLimiter, async (req, res) => {
-    try {
-      const buyerUserId = buyerId(req);
-      if (!buyerUserId) { res.status(401).json({ message: "Authentication required" }); return; }
-      if (req.body && (typeof req.body !== "object" || Array.isArray(req.body) || Object.keys(req.body).length)) {
-        throw new JwStoneCartHoldError(400, "invalid_release", "Release does not accept replacement stock or quantities.");
+      if (!buyerUserId) {
+        res.status(401).json({ message: "Authentication required" });
+        return;
       }
+      if ((await deps.access(req)) !== "member")
+        throw new JwStoneCartHoldError(
+          403,
+          "jw_membership_required",
+          "An active JW Stone business membership is required."
+        );
       const target = await deps.target();
-      if (!target) throw new JwStoneCartHoldError(503, "hold_unavailable", "JW Stone inventory is temporarily unavailable.");
-      // No member-price response here: the original owner can give stock back after revocation.
-      res.json(await deps.holds.release({ buyerUserId, sellerBusinessId: target.businessId, reservationId: req.params.reservationId }));
-    } catch (error) { errorResponse(res, error); }
+      if (!target)
+        throw new JwStoneCartHoldError(
+          503,
+          "hold_unavailable",
+          "JW Stone inventory is temporarily unavailable."
+        );
+      res.json(
+        await deps.holds.get({
+          buyerUserId,
+          sellerBusinessId: target.businessId,
+          reservationId: req.params.reservationId,
+        })
+      );
+    } catch (error) {
+      errorResponse(res, error);
+    }
   });
+  app.post(
+    `${root}/:reservationId/release`,
+    deps.requireWriteIntent,
+    deps.mutationLimiter,
+    async (req, res) => {
+      try {
+        const buyerUserId = buyerId(req);
+        if (!buyerUserId) {
+          res.status(401).json({ message: "Authentication required" });
+          return;
+        }
+        if (
+          req.body &&
+          (typeof req.body !== "object" || Array.isArray(req.body) || Object.keys(req.body).length)
+        ) {
+          throw new JwStoneCartHoldError(
+            400,
+            "invalid_release",
+            "Release does not accept replacement stock or quantities."
+          );
+        }
+        const target = await deps.target();
+        if (!target)
+          throw new JwStoneCartHoldError(
+            503,
+            "hold_unavailable",
+            "JW Stone inventory is temporarily unavailable."
+          );
+        // No member-price response here: the original owner can give stock back after revocation.
+        res.json(
+          await deps.holds.release({
+            buyerUserId,
+            sellerBusinessId: target.businessId,
+            reservationId: req.params.reservationId,
+          })
+        );
+      } catch (error) {
+        errorResponse(res, error);
+      }
+    }
+  );
 }

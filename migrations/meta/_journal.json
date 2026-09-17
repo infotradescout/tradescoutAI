@@ -1009,6 +1009,13 @@
       "when": 1789674300000,
       "tag": "0140_jw_feature_control_storage",
       "breakpoints": false
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1789674360000,
+      "tag": "0141_jw_stone_cart_holds",
+      "breakpoints": false
     }
   ]
 }

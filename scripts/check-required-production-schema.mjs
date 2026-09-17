@@ -1206,7 +1206,10 @@ export async function verifyRequiredProductionSchema(client) {
   const { inspectJwFeatureSchema } = await import("./lib/jw-feature-schema.mjs");
   const featureSchema = await inspectJwFeatureSchema(client);
   check.jwStoneFeatureControlContract = featureSchema.contract;
-  const missing = [...evaluateRequiredProductionSchema(check), ...receiptSchema.missing, ...featureSchema.missing];
+  const { inspectJwCartHoldSchema } = await import("./lib/jw-cart-hold-schema.mjs");
+  const cartHoldSchema = await inspectJwCartHoldSchema(client);
+  check.jwStoneCartHoldsContract = cartHoldSchema.contract;
+  const missing = [...evaluateRequiredProductionSchema(check), ...receiptSchema.missing, ...featureSchema.missing, ...cartHoldSchema.missing];
   if (missing.length > 0) {
     throw new Error(
       [

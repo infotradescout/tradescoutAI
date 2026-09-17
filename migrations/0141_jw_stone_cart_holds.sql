@@ -1,4 +1,4 @@
--- Candidate migration: register in the canonical journal and schema checks before release.
+-- Ordered additive cart-hold ledger. No customer stock, feature flag or source price is seeded.
 -- Cart holds have their own origin. They never create accepted BidRock offers or paid orders.
 CREATE TABLE jw_stone_cart_holds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
