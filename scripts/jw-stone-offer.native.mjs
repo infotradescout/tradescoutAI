@@ -8,6 +8,7 @@ import pg from 'pg';
 import { chromium } from 'playwright';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 import { proveJwStoneRequestJourney } from './jw-stone-request-journey.mjs';
+import { saveNativeOfferPreflight, reuseNativeOfferPreflight } from './jw-stone-native-preflight.mjs';
 import { proveJwStoneOfferJourney } from './jw-stone-offer-journey.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -37,10 +38,16 @@ async function request(context, method, pathname, data) {
 try {
   assert.equal(clean(), '', 'Fresh exact-head checkout required');
   for (const key of ['DATABASE_URL', 'TEST_DATABASE_URL', 'SENDGRID_API_KEY', 'BREVO_API_KEY', 'RESEND_API_KEY', 'SMTP_PASS', 'JW_STONE_PRICING_APPROVED_IMPORT']) assert(!process.env[key], 'No inherited data or provider credentials: ' + key);
+  if (process.argv.includes('--reuse-preflight')) {
+    report.reusedPreflight = reuseNativeOfferPreflight(head);
+    note('Unchanged compiled application and fixture preflight reused', report.reusedPreflight);
+  } else {
   run('Profile account customer-session isolation', ['npm', 'run', 'test:run', '--', 'client/src/components/profile/PublicProfileAccountDialog.session.test.tsx', '--maxWorkers=1']);
   run('Typecheck', ['npm', 'run', 'check']);
   run('Production client and server build', ['npm', 'run', 'build']);
   run('Install Chromium', [process.execPath, 'node_modules/playwright/cli.js', 'install', 'chromium']);
+  saveNativeOfferPreflight(head, report.checks);
+  }
   database = await startCabinetLoopbackTestDatabase(); report.database = database.evidence;
   client = new pg.Client({ connectionString: database.url }); await client.connect();
   await client.query('CREATE DATABASE ts_jw_workflow_test'); await client.end();

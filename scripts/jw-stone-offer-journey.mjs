@@ -19,7 +19,7 @@ export async function proveJwStoneOfferJourney({ page, context, database, fixtur
   for (const position of beforePositions) { assert.equal(Number(position.quantity), 20); assert.equal(Number(position.held_quantity), 0); }
   const transactionsBefore = (await database.query('SELECT count(*)::int AS n FROM marketplace_transactions')).rows[0].n;
   const beforeCount = await countRequests(); assert.equal(beforeCount, 0);
-  const payload = { name: 'Synthetic Offer Customer', email, phone: '2025550147', visitorType: 'fabricator', requestType: 'make_offer',
+  const payload = { name: 'Synthetic Offer Customer', email, phone: '2025550147', requestType: 'make_offer',
     message: 'Synthetic local offer verification; not a real order.', stoneOffer: { scope: 'stone', selection: { lines: [{ inventoryPublicId: fixture.cartStockId, quantity: 1 }], fulfillment: { method: 'pickup' } }, offeredTotalCents: 480025, expectedSubtotalCents: 505050, termsAcknowledged: true } };
   const send = data => context.request.post(base + endpoint, { data });
   if (device === 'desktop' && scope === 'stone') {
@@ -32,6 +32,7 @@ export async function proveJwStoneOfferJourney({ page, context, database, fixtur
   let listedTotal, offeredTotal, expectedLines;
   if (scope === 'stone') {
     await click(page.getByTestId('jw-stone-make-offer-detail'));
+    await page.getByLabel('Offer stock selection', { exact: true }).selectOption(fixture.cartStockId);
     await page.getByLabel('Offer slab quantity', { exact: true }).fill('2');
     listedTotal = 1010100; offeredTotal = 900025;
     expectedLines = [{ inventoryPublicId: fixture.cartStockId, quantity: 2 }];
