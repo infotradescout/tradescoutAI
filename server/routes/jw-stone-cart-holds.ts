@@ -26,12 +26,10 @@ function errorResponse(res: Response, error: unknown) {
     console.error("[jw-stone-cart-holds] request failed", {
       name: error instanceof Error ? error.name : "UnknownError",
     });
-    res
-      .status(503)
-      .json({
-        code: "hold_unavailable",
-        message: "Reservations are temporarily unavailable. Your cart is unchanged.",
-      });
+    res.status(503).json({
+      code: "hold_unavailable",
+      message: "Reservations are temporarily unavailable. Your cart is unchanged.",
+    });
   }
 }
 
@@ -83,32 +81,7 @@ export function registerJwStoneCartHoldRoutes(
       errorResponse(res, error);
     }
   });
-  const recover = async (req: Request, res: Response) => {
-    try {
-      const buyerUserId = buyerId(req);
-      if (!buyerUserId) {
-        res.status(401).json({ message: "Authentication required" });
-        return;
-      }
-      const target = await deps.target();
-      if (!target)
-        throw new JwStoneCartHoldError(
-          503,
-          "hold_unavailable",
-          "JW Stone inventory is temporarily unavailable."
-        );
-      const hold = await deps.holds.recover({
-        buyerUserId,
-        sellerBusinessId: target.businessId,
-        operationId: req.params.operationId,
-      });
-      res.json({ viewerId: buyerUserId, hold });
-    } catch (error) {
-      errorResponse(res, error);
-    }
-  };
-  app.get(`${root}/active`, recover);
-  app.get(`${root}/operations/:operationId`, recover);
+  registerJwStoneCartHoldRecoveryRoutes(app, deps);
   app.get(`${root}/:reservationId`, async (req, res) => {
     try {
       const buyerUserId = buyerId(req);
@@ -180,5 +153,57 @@ export function registerJwStoneCartHoldRoutes(
         errorResponse(res, error);
       }
     }
+  );
+}
+
+const recoveryApps = new WeakSet<Express>();
+/** Only existing owned receipt recovery; no reserve/release mutations or worker startup. */
+export function registerJwStoneCartHoldRecoveryRoutes(
+  app: Express,
+  deps: Pick<
+    JwStoneCartHoldRouteDependencies,
+    "holds" | "authenticate" | "requireSchema" | "target"
+  >
+): void {
+  if (recoveryApps.has(app)) return;
+  recoveryApps.add(app);
+  const root = JW_STONE_CART_HOLD_PATH;
+  const privateRecovery: RequestHandler = (_req, res, next) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
+    res.vary("Authorization");
+    next();
+  };
+  const recover = async (req: Request, res: Response) => {
+    try {
+      const buyerUserId = buyerId(req);
+      if (!buyerUserId) {
+        res.status(401).json({ message: "Authentication required" });
+        return;
+      }
+      const target = await deps.target();
+      if (!target)
+        throw new JwStoneCartHoldError(
+          503,
+          "hold_unavailable",
+          "JW Stone inventory is temporarily unavailable."
+        );
+      const hold = await deps.holds.recover({
+        buyerUserId,
+        sellerBusinessId: target.businessId,
+        operationId: req.params.operationId,
+      });
+      res.json({ viewerId: buyerUserId, hold });
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  };
+  app.get(`${root}/active`, privateRecovery, deps.authenticate, deps.requireSchema, recover);
+  app.get(
+    `${root}/operations/:operationId`,
+    privateRecovery,
+    deps.authenticate,
+    deps.requireSchema,
+    recover
   );
 }

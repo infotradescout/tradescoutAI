@@ -12,6 +12,9 @@ import {
   priceJwStoneBundleLine,
 } from "@shared/jwStoneBundle";
 import { isAuthenticated } from "../auth";
+import { pool } from "../db";
+import { JwStoneCartHolds } from "../services/jwStoneCartHolds";
+import { registerJwStoneCartHoldRecoveryRoutes } from "./jw-stone-cart-holds";
 import { registerJwStoneFeatureRoutes } from "./jw-stone-features";
 import { requireCriticalSchema } from "../schemaPreflight";
 import {
@@ -100,6 +103,12 @@ function privateResponse(res: Response): void {
 
 export function registerJwStoneMemberPricingRoutes(app: Express): void {
   registerJwStoneFeatureRoutes(app);
+  registerJwStoneCartHoldRecoveryRoutes(app, {
+    holds: new JwStoneCartHolds(pool),
+    authenticate: isAuthenticated,
+    requireSchema: requireCriticalSchema("stone_inventory"),
+    target: () => getStoneInventoryProfileTarget("jw-stone"),
+  });
   app.use("/api/u/jw-stone/member-pricing", requireCriticalSchema("profile_accounts"));
   app.get(
     "/api/u/jw-stone/member-pricing",
@@ -114,11 +123,9 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
         }
         const access = await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
         if (access === "none") {
-          res
-            .status(403)
-            .json({
-              message: "An active JW Stone business membership is required to view pricing.",
-            });
+          res.status(403).json({
+            message: "An active JW Stone business membership is required to view pricing.",
+          });
           return;
         }
         const snapshot = await getJwStonePricingSnapshot();
@@ -146,11 +153,9 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
         }
         const access = await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
         if (access !== "member") {
-          res
-            .status(403)
-            .json({
-              message: "An active JW Stone business membership is required to review an order.",
-            });
+          res.status(403).json({
+            message: "An active JW Stone business membership is required to review an order.",
+          });
           return;
         }
         const parsed = jwStoneCartReviewRequestSchema.safeParse(req.body);

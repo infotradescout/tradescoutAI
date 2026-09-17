@@ -124,8 +124,21 @@ try {
     note(device + ': real returning-user login retains member pricing');
     const offerEvidence = await proveJwStoneOfferJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath, scope: journey });
     note(device + ': native ' + journey + ' offer', offerEvidence);
+    const ownedStatusMode = process.argv.includes('--owned-hold-status');
+    const heldEnv = { ...env, JW_STATUS_BUYER: user.id, JW_STATUS_SELLER: fixture.businessId, JW_STATUS_STOCK: fixture.cartStockId };
+    let ownedReservationId;
+    if (ownedStatusMode) {
+      run('Create synthetic existing hold for status acceptance', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-owned-hold.fixture.ts', '--create'], heldEnv);
+      const recovery = await request(context, 'GET', '/api/u/jw-stone/member-pricing/holds/active');
+      assert.equal(recovery.status(),200); const result = await recovery.json(); ownedReservationId=result.hold.reservationId;
+      await page.goto(base + rootPath); await page.getByTestId('jw-owned-reservation-status').waitFor();
+      assert((await page.getByTestId('jw-owned-reservation-status').innerText()).includes(ownedReservationId));
+      await page.reload(); await page.getByTestId('jw-owned-reservation-status').waitFor();
+      await page.screenshot({path:path.join(out,device+'-owned-hold-reloaded.png')});
+      note(device+': existing owned reservation recovered in actual application', {reservationId:ownedReservationId, actualAppRecovery:true});
+    }
     if (process.argv.includes('--feature-control')) {
-      note(device + ': native feature ON-OFF-ON', await proveJwStoneFeatureJourney({ page, context, database: client, fixture, device, output: out, browser, run, env, userId: user.id, offerRequestId: offerEvidence.requestId }));
+      note(device + ': native feature ON-OFF-ON', await proveJwStoneFeatureJourney({ page, context, database: client, fixture, device, output: out, browser, run, env, userId: user.id, offerRequestId: offerEvidence.requestId, ownedReservationId }));
     }
     await client.query("UPDATE profile_account_entitlements SET status='revoked' WHERE profile_account_id=$1 AND product_key='jw_stone_member_pricing'", [memberships[0].id]);
     assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 403, 'Revoked pricing must remain denied');
@@ -135,6 +148,14 @@ try {
     assert.equal(await page.getByText('$101.01', { exact: false }).count(), 0);
     assert.equal(await page.getByTestId('jw-stone-member-cart-button').count(), 0);
     note(device + ': revocation and reconnect cannot recover private prices or cart access');
+    if (ownedStatusMode) {
+      await page.getByTestId('jw-owned-reservation-status').waitFor();
+      await page.screenshot({path:path.join(out,device+'-owned-hold-revoked-membership.png')});
+      run('Release synthetic owned hold after status acceptance', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-owned-hold.fixture.ts', '--release'], heldEnv);
+      await page.getByRole('button',{name:'Refresh reservation status',exact:true}).click();
+      await page.getByTestId('jw-owned-reservation-status').waitFor({state:'detached'});
+      note(device+': original owner retains price-free status after revocation and UI refresh follows service release', {actualRecoveryUi:true, releaseViaFixtureService:true, noCustomerReserveOrReleaseUi:true});
+    }
     assert.deepEqual(errors, [], 'Uncaught browser errors'); assert.deepEqual(failures, [], 'Unexpected server errors');
     await context.close(); activePage = undefined;
   }

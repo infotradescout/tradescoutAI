@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { expect } from '@playwright/test';
 const base='http://127.0.0.1:5228', endpoint='/api/admin/jw-stone/features';
-export async function proveJwStoneFeatureJourney({page,context,database,fixture,device,output,browser,run,env,userId,offerRequestId}) {
+export async function proveJwStoneFeatureJourney({page,context,database,fixture,device,output,browser,run,env,userId,offerRequestId,ownedReservationId}) {
   assert.equal(fixture.base,base);
   assert.equal((await database.query('SELECT current_database() AS name')).rows[0].name,'ts_jw_workflow_test');
   assert(fixture.featureAccounts?.admin && fixture.ownerPassword);
@@ -57,6 +57,12 @@ export async function proveJwStoneFeatureJourney({page,context,database,fixture,
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
     await expect(page.getByTestId('jw-stone-member-cart-button')).toHaveCount(0,{timeout:20000});
     await expect(page.getByTestId('jw-stone-make-offer-detail')).toHaveCount(0);
+    if (ownedReservationId) {
+      const status = await context.request.get(base+'/api/u/jw-stone/member-pricing/holds/active');
+      assert.equal(status.status(),200); const owned=await status.json(); assert.equal(owned.hold.reservationId,ownedReservationId);
+      await page.getByTestId('jw-owned-reservation-status').waitFor();
+      await page.screenshot({path:path.join(output,device+'-owned-hold-while-enhancements-paused.png')});
+    }
     const blocked=[
       ['GET','/api/u/jw-stone/member-pricing'],
       ['POST','/api/u/jw-stone/member-pricing/cart-review',{lines:[{inventoryPublicId:fixture.cartStockId,quantity:1}]}],
@@ -129,7 +135,7 @@ export async function proveJwStoneFeatureJourney({page,context,database,fixture,
     assert.equal(await controller.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2),false);
     await controller.screenshot({path:path.join(output,device+'-control-restored-on.png')});
     return {actualAdministratorForm:true,realPostgresSetting:true,guestAndMemberCannotControl:true,jwOwnerCannotControl:true,
-      sameOriginRequired:true,baseServicesIndependent:true,actualBaseRequestSubmitted:device==='desktop',
+      sameOriginRequired:true,baseServicesIndependent:true,ownedRecoveryWhilePaused:Boolean(ownedReservationId),actualBaseRequestSubmitted:device==='desktop',
       directConnectReadable:true,serverNewPremiumActionsBlocked:true,otherSupplierCatalogPreserved:true,
       canonicalServiceGuards:true,oldTabUpdates:true,storedCartAndOfferPreserved:true,stockUnchanged:true,
       noNewTransactions:true,replayedOldOffCannotUndoOn:true,finalEnabled:true,productionChanged:false};

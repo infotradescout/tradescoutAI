@@ -30,3 +30,6 @@ Build log: ../evidence/jw-hold-integration-20260917/build.log SHA256 1760311e664
 Recovery/schema unit log: ../evidence/jw-hold-integration-20260917/recovery-contracts.log SHA256 1ba88aefc544f52261cfe441961dd750fc8db36d46416387703b5ecfeb7aa929.
 Remaining: production hold registrar and idle-loop startup are not mounted; no reserve/release/countdown cart UI or own-held-stock browser display. The runtime composition write was rejected before execution and was not reconstructed. Remaining builder, employee, old commercial, full-channel, hosted and production acceptance still apply. This is not a usable production reservation feature.
 Next exact action: retain these verified backend/schema/recovery results; finish permitted real composition/UI integration and test actual customer reservation/reload/release/expiry with the sales switch. Keep cleanup/reconciliation accessible while OFF, never enable payment from a hold, and run the release gate only when the integrated candidate is ready.
+
+## Existing-record UI continuation
+Resume `.selective-intelligence/builds/jw-stone-owned-hold-ui-20260917.md` for the independent owned-recovery GET/status-panel slice. Reserve/release mutation routes and worker startup remain unmounted; prior backend proof is retained rather than restated as UI proof.

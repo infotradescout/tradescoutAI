@@ -16,6 +16,7 @@ import { CurrentInventorySection } from "./CurrentInventorySection";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneMemberPricingProvider } from "./JwStoneMemberPricing";
+import { JwStoneReservationStatus } from "./JwStoneReservationStatus";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
 import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
@@ -351,6 +352,7 @@ export default function JWStoneMarketplace() {
           onOpenAccount={openAccount}
           onStartRequest={() => startRequest([])}
         />
+        <JwStoneReservationStatus viewerId={viewerId} onContact={() => startRequest([])} />
         <p className="sr-only" aria-live="polite">
           {wishlist.count} {wishlist.count === 1 ? "stone" : "stones"} saved
         </p>
