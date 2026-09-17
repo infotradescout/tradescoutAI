@@ -76,10 +76,14 @@ export async function proveJwStoneFeatureJourney({page,context,database,fixture,
     const listings=(await catalog.json()).listings;
     assert(!listings.some(item=>item.sourceProfileSlug==='jw-stone'));
     assert(listings.some(item=>item.sourceProfileSlug==='jw-feature-other'),'Unrelated supplier stays available');
-    const supplierInventory=await owner.request.get(base+'/api/bidrock/seller/inventory');
+    // The supplier fixture has no BidRock entitlement; use the real authorized admin for read-only projection proof.
+    const supplierInventory=await admin.request.get(base+'/api/bidrock/seller/inventory');
     assert.equal(supplierInventory.status(),200); const rows=await supplierInventory.json();
     const inventoryRows=Array.isArray(rows)?rows:rows.items??rows.listings;
-    assert(inventoryRows?.length>0); assert(inventoryRows.every(row=>!row.sellerCapabilities.write&&!row.sellerCapabilities.publish));
+    const jwRows=inventoryRows.filter(row=>row.sourceProfileSlug==='jw-stone');
+    assert(jwRows.length>0); assert(jwRows.every(row=>!row.sellerCapabilities.write&&!row.sellerCapabilities.publish));
+    const managed=await admin.request.get(base+'/api/u/jw-stone/stone-inventory/manage');
+    assert.equal(managed.status(),200); assert.deepEqual((await managed.json()).capabilities,{write:false,publish:false});
     for(const url of ['/api/auth/user','/api/direct-connect/requests?scope=all','/api/direct-connect/inbox','/api/u/jw-stone/stone-inventory/current']) {
       assert.equal((await context.request.get(base+url)).status(),200,'Preserved base route '+url);
     }

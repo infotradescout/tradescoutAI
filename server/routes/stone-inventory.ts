@@ -1,3 +1,4 @@
+import { pausedJwStoneBusinessIds } from "../services/jwStoneFeatureAccess";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -233,6 +234,7 @@ export function registerStoneInventoryRoutes(app: Express): void {
       try {
         const target = await managedTarget(req, res, "inventory_read");
         if (!target) return;
+        const enhancementsEnabled = !(await pausedJwStoneBusinessIds()).includes(target.businessId);
         const [items, viewer] = await Promise.all([
           listSellerStoneInventory(target),
           getBidRockViewerContext(userId(req)),
@@ -241,16 +243,12 @@ export function registerStoneInventoryRoutes(app: Express): void {
         res.json({
           ...inventoryResponse(target.profileSlug, items),
           capabilities: {
-            write: canBidRockViewerMutateStoneInventory(
-              viewer,
-              target.businessId,
-              "inventory_write"
-            ),
-            publish: canBidRockViewerMutateStoneInventory(
-              viewer,
-              target.businessId,
-              "inventory_publish"
-            ),
+            write:
+              enhancementsEnabled &&
+              canBidRockViewerMutateStoneInventory(viewer, target.businessId, "inventory_write"),
+            publish:
+              enhancementsEnabled &&
+              canBidRockViewerMutateStoneInventory(viewer, target.businessId, "inventory_publish"),
           },
         });
       } catch (error) {
