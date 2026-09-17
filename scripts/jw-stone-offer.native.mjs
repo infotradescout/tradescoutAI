@@ -9,10 +9,11 @@ import { chromium } from 'playwright';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
 import { proveJwStoneRequestJourney } from './jw-stone-request-journey.mjs';
 import { saveNativeOfferPreflight, reuseNativeOfferPreflight } from './jw-stone-native-preflight.mjs';
+import { proveJwStoneFeatureJourney } from './jw-stone-feature-journey.mjs';
 import { proveJwStoneOfferJourney } from './jw-stone-offer-journey.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || 'test-results/jw-offers');
+const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || (process.argv.includes('--feature-control') ? 'test-results/jw-feature-control' : 'test-results/jw-offers'));
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'jw-workflow-'));
 const base = 'http://127.0.0.1:5228';
 const rootPath = '/u/jw-stone';
@@ -52,7 +53,7 @@ try {
   client = new pg.Client({ connectionString: database.url }); await client.connect();
   await client.query('CREATE DATABASE ts_jw_workflow_test'); await client.end();
   const target = new URL(database.url); target.pathname = '/ts_jw_workflow_test'; assert.equal(target.hostname, '127.0.0.1');
-  const env = { NODE_ENV: 'test', DATABASE_URL: target.href, TEST_DATABASE_URL: target.href, ALLOW_INSECURE_TEST_DATABASE: 'true', JW_WORKFLOW_FIXTURE: 'true', JW_WORKFLOW_OFFERS: 'true', JW_WORKFLOW_PRIVATE_OUTPUT: temp };
+  const env = { NODE_ENV: 'test', DATABASE_URL: target.href, TEST_DATABASE_URL: target.href, ALLOW_INSECURE_TEST_DATABASE: 'true', JW_WORKFLOW_FIXTURE: 'true', JW_WORKFLOW_OFFERS: 'true', JW_WORKFLOW_FEATURE_CONTROL: String(process.argv.includes('--feature-control')), JW_WORKFLOW_PRIVATE_OUTPUT: temp };
   run('Fresh migrations', ['npm', 'run', 'db:migrate'], env);
   run('Required schema', ['npm', 'run', 'db:verify:required'], env);
   client = new pg.Client({ connectionString: target.href }); await client.connect();
@@ -73,7 +74,7 @@ try {
   // Each scenario has its own browser and genuine signup. The existing one-pending-
   // contact guard must not be bypassed or reset just to send a second test request.
   for (const [device, viewport, journey] of devices.flatMap(([device, viewport]) =>
-    ['stone', 'cart'].map(journey => [device, viewport, journey]))) {
+    (process.argv.includes('--feature-control') ? ['cart'] : ['stone', 'cart']).map(journey => [device, viewport, journey]))) {
     const context = await browser.newContext({ viewport, isMobile: device === 'touch', hasTouch: device === 'touch', serviceWorkers: 'block', userAgent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version()} Safari/537.36` });
     const errors = [], failures = [];
     await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort('blockedbyclient'));
@@ -123,6 +124,9 @@ try {
     note(device + ': real returning-user login retains member pricing');
     const offerEvidence = await proveJwStoneOfferJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath, scope: journey });
     note(device + ': native ' + journey + ' offer', offerEvidence);
+    if (process.argv.includes('--feature-control')) {
+      note(device + ': native feature ON-OFF-ON', await proveJwStoneFeatureJourney({ page, context, database: client, fixture, device, output: out, browser, run, env, userId: user.id, offerRequestId: offerEvidence.requestId }));
+    }
     await client.query("UPDATE profile_account_entitlements SET status='revoked' WHERE profile_account_id=$1 AND product_key='jw_stone_member_pricing'", [memberships[0].id]);
     assert.equal((await request(context, 'GET', '/api/u/jw-stone/member-pricing')).status(), 403, 'Revoked pricing must remain denied');
     await request(context, 'POST', '/api/u/jw-stone/account', { businessName, sourcePath: rootPath });

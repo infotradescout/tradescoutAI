@@ -1,3 +1,4 @@
+import { requireJwStoneEnhancements } from "./jwStoneFeatureAccess";
 import {
   jwStoneOfferInputSchema,
   JW_STONE_OFFER_TERMS,
@@ -23,6 +24,8 @@ export async function reviewJwStoneOffer(args: {
   user: unknown;
   input: JwStoneOfferInput;
 }) {
+  await requireJwStoneEnhancements();
+
   if (args.profileSlug !== "jw-stone")
     throw new JwStoneOfferError(
       400,

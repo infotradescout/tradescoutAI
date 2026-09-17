@@ -12,6 +12,7 @@ const output = path.resolve(
   process.env.JW_WORKFLOW_PRIVATE_OUTPUT || "test-results/jw-workflow-private"
 );
 const offersOnly = process.env.JW_WORKFLOW_OFFERS === "true";
+const featureControl = process.env.JW_WORKFLOW_FEATURE_CONTROL === "true";
 const keep = new Set([
   "PATH",
   "HOME",
@@ -73,10 +74,11 @@ assert.equal(
 const schema = await import("../shared/schema");
 const { default: bcrypt } = await import("bcrypt");
 const ownerId = "jw-fixture-owner-" + randomUUID();
+const ownerPassword = randomUUID() + randomUUID();
 await db.insert(schema.users).values({
   id: ownerId,
   email: ownerId + "@example.test",
-  password: await bcrypt.hash(randomUUID(), 10),
+  password: await bcrypt.hash(ownerPassword, 10),
   firstName: "Synthetic",
   lastName: "Supplier",
   role: "contractor",
@@ -178,6 +180,9 @@ if (offersOnly) {
   });
   otherStockId = other.id;
 }
+const featureAccounts = featureControl
+  ? await (await import("./jw-stone-feature-fixture")).prepareJwStoneFeatureFixture()
+  : undefined;
 // Production runs this real schema inspection before accepting guarded requests.
 // Do not replace its middleware, set test readiness flags or bypass its result.
 const { runSchemaPreflight } = await import("../server/schemaPreflight");
@@ -204,6 +209,7 @@ await fs.writeFile(
     profileId: profile.id,
     cartStockId: cartStock.id,
     otherStockId,
+    ...(featureAccounts ? { featureAccounts, ownerPassword } : {}),
     base: "http://127.0.0.1:5228",
   }),
   { mode: 0o600 }

@@ -170,3 +170,8 @@ describe("JW Stone authoritative pending-offer intake", () => {
     ).toMatchObject({ scope: "cart", status: "pending_review", paymentAllowed: false });
   });
 });
+
+// This isolated suite assumes licensed tools are ON; real feature admission is exercised by the native feature suite.
+vi.mock("../services/jwStoneFeatureAccess", () => ({
+  requireJwStoneEnhancements: vi.fn().mockResolvedValue(undefined),
+}));

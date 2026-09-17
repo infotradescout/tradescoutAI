@@ -128,19 +128,17 @@ describe("JW Stone real offer form", () => {
     reviewUnavailable = false;
     localStorage.clear();
     api.mockReset();
-    fetchMock = vi
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        status: 201,
-        json: async () => ({
-          requestId: "fixture-offer",
-          offerStatus: "pending_review",
-          paymentAllowed: false,
-          inventoryReserved: false,
-          deliveryCustody: "business",
-        }),
-      });
+    fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        requestId: "fixture-offer",
+        offerStatus: "pending_review",
+        paymentAllowed: false,
+        inventoryReserved: false,
+        deliveryCustody: "business",
+      }),
+    });
     vi.stubGlobal("fetch", fetchMock);
     host = document.createElement("div");
     document.body.append(host);
@@ -318,3 +316,6 @@ describe("JW Stone real offer form", () => {
     }
   );
 });
+
+// This isolated suite assumes licensed tools are ON; real feature admission is exercised by the native feature suite.
+vi.mock("./useJwStoneFeatures", () => ({ useJwStoneFeatures: () => ({ enabled: true }) }));

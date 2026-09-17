@@ -1,3 +1,4 @@
+import { requireJwStoneBusinessEnhancements } from "./jwStoneFeatureAccess";
 import { randomUUID } from "node:crypto";
 import {
   STONE_CURRENT_INVENTORY_AVAILABLE_STATUS,
@@ -274,6 +275,8 @@ export async function upsertCurrentStoneInventory(
   target: StoneInventoryProfileTarget,
   mutation: StoneInventoryMutation
 ): Promise<SellerStoneInventoryItem> {
+  await requireJwStoneBusinessEnhancements(target.businessId);
+
   await ensureStoneCoreTables();
   const client = await pool.connect();
   try {
@@ -514,6 +517,8 @@ export async function setStoneInventorySaleReady(args: {
   saleReady: boolean;
   actorUserId: string;
 }): Promise<SellerStoneInventoryItem> {
+  await requireJwStoneBusinessEnhancements(args.target.businessId);
+
   const status = args.saleReady
     ? STONE_CURRENT_INVENTORY_PUBLIC_STATUS
     : STONE_CURRENT_INVENTORY_PRIVATE_STATUS;
@@ -643,6 +648,8 @@ export async function retireStoneInventory(args: {
   target: StoneInventoryProfileTarget;
   publicId: string;
 }): Promise<boolean> {
+  await requireJwStoneBusinessEnhancements(args.target.businessId);
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

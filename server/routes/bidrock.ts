@@ -1,3 +1,4 @@
+import { JwStoneFeatureError } from "@shared/jwStoneFeaturePolicy";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -92,6 +93,10 @@ function idempotencyKey(req: Request, bodyValue?: string): string {
 }
 
 function respondError(res: Response, error: unknown, fallback: string): void {
+  if (error instanceof JwStoneFeatureError) {
+    res.status(error.status).json({ code: error.code, message: error.message });
+    return;
+  }
   const message = error instanceof Error ? error.message : fallback;
   const status = /authentication|buyer access/i.test(message)
     ? 401
