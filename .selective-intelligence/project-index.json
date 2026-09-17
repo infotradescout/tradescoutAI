@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-09-17T22:17:35Z",
+  "generated_at": "2026-09-17T22:24:47Z",
   "source": {
     "kind": "git",
-    "revision": "6031a5a2e1f94b2d668035571d3f7154c0c742a0",
-    "dirty": true,
-    "inventory_sha256": "1b60f533a92425dc4595525c7d5fac282ceff3f117096f48bab5b9d0442513d9"
+    "revision": "4637c1e0ebda1e2959f487501bb3cde802638244",
+    "dirty": false,
+    "inventory_sha256": "30a45086ee4d8fbdce44633803b84f924f695a5b7fdc1a42ecfc345dcfe31dd3"
   },
   "inventory": {
     "directories": [
@@ -24,6 +24,10 @@
       },
       {
         "path": "client",
+        "source_file_count": 3
+      },
+      {
+        "path": "client/public",
         "source_file_count": 3
       },
       {
@@ -577,6 +581,24 @@
         "language": "js",
         "sha256": "190c877db466995bf1482f4a16abd06e04a89ede3119341e2a86ff96e1737b27",
         "bytes": 80
+      },
+      {
+        "path": "client/public/firebase-messaging-sw.js",
+        "language": "js",
+        "sha256": "48ac06fb93abaf536cc197c9567e9babf44713d4d184aa60ece5e08d56c4c504",
+        "bytes": 659
+      },
+      {
+        "path": "client/public/service-worker.js",
+        "language": "js",
+        "sha256": "1ca388d540b174b75861bf978d57c49224edac41596d78877b1dcf82a9c3defc",
+        "bytes": 146
+      },
+      {
+        "path": "client/public/sw.js",
+        "language": "js",
+        "sha256": "0b4bf0100401e8d5e28125e64f20904912643489a5586a1598523c9c382d90c3",
+        "bytes": 4081
       },
       {
         "path": "client/src/App.tsx",
@@ -18493,6 +18515,30 @@
         "kind": "function",
         "path": "build-server.mjs",
         "line": 38,
+        "exported": false,
+        "defaultExport": false
+      },
+      {
+        "name": "navigationNetworkOnly",
+        "kind": "function",
+        "path": "client/public/sw.js",
+        "line": 51,
+        "exported": false,
+        "defaultExport": false
+      },
+      {
+        "name": "cacheFirst",
+        "kind": "function",
+        "path": "client/public/sw.js",
+        "line": 75,
+        "exported": false,
+        "defaultExport": false
+      },
+      {
+        "name": "networkFirst",
+        "kind": "function",
+        "path": "client/public/sw.js",
+        "line": 87,
         "exported": false,
         "defaultExport": false
       },
@@ -163477,11 +163523,11 @@
     }
   ],
   "summary": {
-    "directories": 125,
-    "source_files": 2953,
-    "symbols": 15341,
+    "directories": 126,
+    "source_files": 2956,
+    "symbols": 15344,
     "components": 976,
-    "functions_and_hooks": 9551,
+    "functions_and_hooks": 9554,
     "raw_ui_elements": 4216,
     "errors": 6,
     "warnings": 5
