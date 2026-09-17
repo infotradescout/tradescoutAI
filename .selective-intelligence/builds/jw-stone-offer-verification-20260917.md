@@ -25,3 +25,6 @@ Next exact action: Complete permitted native offer and mixed-material verificati
 Actions that must NOT be repeated: No broad pricing/cart audit, account-harness rebuild, invented discounts, public pricing exposure, automatic offer confirmation, payment/stock reservation at submission, safety-check bypass, or merge/main deployment without the required gate and owner GO.
 Related Scout checkpoint: PR #677 remains at 05b7ad1c; ~/scout-verification-20260916/tradescout exists and was verified at that HEAD. No Scout code, account harness, test evidence, or branch integration was changed in this continuation.
 Business KPI: Offer-to-commercial-confirmation and confirmed-order conversion are future production measurements; no uplift is claimed.
+
+## Superseding native checkpoint
+Resume `.selective-intelligence/builds/jw-stone-native-offer-20260917.md` and PR #683. Four real built-client/native-PostgreSQL offer journeys now pass on e4b7f3f2; the older native-unexecuted boundary above is historical. Inspect the exact-HEAD strict-gate evidence before repeating any validation. No production release or commercial-confirmation/payment support is implied.
