@@ -84,7 +84,9 @@ export function classifyJwStoneFeatureRequest(request: FeatureRequest): JwStoneA
     return read ? null : "inventory_tools";
   }
   if (/^\/api\/(?:u\/)?jw-stone\/(?:builders?|designers?|studio|visualizer)(?:\/|$)/.test(path)) return "builders";
-  if (/^\/api\/u\/jw-stone\/saved-stones\/email$/.test(path)) return "sales_automation";
+  // The registered email route uses /api/jw-stone, not the profile /api/u prefix.
+  // Retain both spellings so a future profile alias cannot bypass the same control.
+  if (/^\/api\/(?:u\/)?jw-stone\/saved-stones\/email$/.test(path)) return "sales_automation";
   if (request.bidRockProfileSlug === "jw-stone" && /^\/api\/(?:admin\/)?bidrock(?:\/|$)/.test(path)) {
     // Keep already-created order/offer records and cancellation accessible to their existing
     // authorized owners. Never block settlement webhooks or scheduled expiry via this policy.
