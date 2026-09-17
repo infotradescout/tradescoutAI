@@ -1,8 +1,10 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import type { ScoutWorkKind, ScoutWorkOverview } from "@shared/scoutWork";
+import { ScoutRequestContinueButton } from "./ScoutRequestContinueButton";
+import { createScoutRequestSelection } from "./scoutRequestSelection";
 
 const workKinds: Array<{ value: "all" | ScoutWorkKind; label: string }> = [
   { value: "all", label: "All work" },
@@ -20,9 +22,12 @@ function displayDate(value: string | null): string | null {
   return Number.isFinite(date.getTime()) ? date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null;
 }
 
-export function ScoutWorkList({ overview, filter = "all", query = "", attentionOnly = false }: {
+export function ScoutWorkList({ overview, filter = "all", query = "", attentionOnly = false, onPromptSelect }: {
   overview: ScoutWorkOverview; filter?: "all" | ScoutWorkKind; query?: string; attentionOnly?: boolean;
+  onPromptSelect?: (prompt: string) => void;
 }) {
+  const requestSelection = useMemo(() => createScoutRequestSelection(), [overview.ownerId]);
+  useEffect(() => () => requestSelection.cancel(), [requestSelection]);
   const needle = query.trim().toLocaleLowerCase();
   return <div className="space-y-4" data-testid="scout-work-sections">
     {overview.sections.filter((section) => filter === "all" || section.kind === filter).map((section) => {
@@ -49,6 +54,7 @@ export function ScoutWorkList({ overview, filter = "all", query = "", attentionO
                 {displayDate(item.updatedAt) ? <time dateTime={item.updatedAt!} className="text-xs text-[color:var(--text-muted)]">Updated {displayDate(item.updatedAt)}</time> : <span className="text-xs text-[color:var(--text-muted)]">Update time unavailable</span>}
                 <Link href={item.nextAction.to} className={linkClass}>{item.nextAction.label}</Link>
               </div>
+              {item.kind === "requests" && onPromptSelect && <ScoutRequestContinueButton requestId={item.id} onPromptSelect={onPromptSelect} requestSelection={requestSelection} />}
             </li>)}
           </ul>}
         {section.hasMore && section.availability === "ready" && <p className="mt-2 text-xs text-[color:var(--text-muted)]">More items are available in this workspace.</p>}
@@ -57,7 +63,7 @@ export function ScoutWorkList({ overview, filter = "all", query = "", attentionO
   </div>;
 }
 
-export function ScoutWorkPanel() {
+export function ScoutWorkPanel({ onPromptSelect }: { onPromptSelect?: (prompt: string) => void } = {}) {
   const { user, isAuthenticated } = useAuth();
   const ownerId = isAuthenticated && typeof user?.id === "string" ? user.id : null;
   const [filter, setFilter] = useState<"all" | ScoutWorkKind>("all");
@@ -97,7 +103,7 @@ export function ScoutWorkPanel() {
       {work.isError && <p role="alert" className="text-sm text-[color:var(--text-muted)]">Your work status could not be loaded. Refresh to check again; no action has been repeated.</p>}
       {overview && <>
         {overview.partial && <p role="status" className="mb-3 text-sm text-[color:var(--text-muted)]">Some work areas are unavailable. The other areas are shown below.</p>}
-        <ScoutWorkList overview={overview} filter={filter} query={query} attentionOnly={attentionOnly} />
+        <ScoutWorkList overview={overview} filter={filter} query={query} attentionOnly={attentionOnly} onPromptSelect={onPromptSelect} />
         <p className="mt-3 text-xs text-[color:var(--text-muted)]">Showing up to eight recent items per area, not your complete history. {displayDate(overview.checkedAt) ? `Checked ${displayDate(overview.checkedAt)}.` : ""}</p>
       </>}
       <nav aria-label="Start new work" className="mt-3 flex flex-wrap gap-2 border-t border-[color:var(--border-subtle)] pt-2">
