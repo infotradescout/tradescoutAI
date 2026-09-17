@@ -6,6 +6,7 @@ import type {
 } from "@shared/jwStoneMemberPricing";
 import { JW_STONE_PRICING_PROFILE_SLUG, jwStonePriceKey } from "@shared/jwStoneMemberPricing";
 import { combineJwStoneCartLines, jwStoneCartReviewRequestSchema } from "@shared/jwStoneCart";
+import { JW_STONE_BUNDLE_SLABS, getJwStoneBundleProgress, priceJwStoneBundleLine } from "@shared/jwStoneBundle";
 import { isAuthenticated } from "../auth";
 import { requireCriticalSchema } from "../schemaPreflight";
 import { getJwStonePricingSnapshot, type JwStonePricingSnapshot } from "../services/jwStoneDrivePricing";
@@ -117,8 +118,7 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
         ]);
         const inventoryByPublicId = new Map(inventory.map((item) => [item.id, item]));
         const priceByStoneKey = new Map(snapshot.prices.map((price) => [price.stoneKey, price]));
-        let subtotalCents = 0;
-        const lines = requestedLines.map((requested) => {
+        const stagedLines = requestedLines.map((requested) => {
           const base = { inventoryPublicId: requested.inventoryPublicId, requestedQuantity: requested.quantity };
           const item = inventoryByPublicId.get(requested.inventoryPublicId);
           if (!item || !item.isSaleReady) return { ...base, status: "unavailable" as const };
@@ -138,26 +138,35 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
           if (requested.quantity > availableQuantity) return { ...known, status: "insufficient_quantity" as const };
           const price = priceByStoneKey.get(jwStonePriceKey(item.materialName));
           if (!price) return { ...known, status: "price_unavailable" as const };
-          const useBundleRate = price.bundleMinSlabs != null && requested.quantity >= price.bundleMinSlabs;
-          const unitRateCents = useBundleRate ? price.bundlePriceCents : price.slabPriceCents;
-          const oneSlabTotalCents = centsForSlabFace(unitRateCents, item.dimensions);
-          if (oneSlabTotalCents == null) return { ...known, status: "dimensions_required" as const };
-          const lineTotalCents = oneSlabTotalCents * requested.quantity;
-          if (!Number.isSafeInteger(lineTotalCents) || !Number.isSafeInteger(subtotalCents + lineTotalCents)) {
-            throw new Error("Cart amount exceeds supported precision");
-          }
-          subtotalCents += lineTotalCents;
+          const regularOneSlabCents = centsForSlabFace(price.slabPriceCents, item.dimensions);
+          const bundleOneSlabCents = centsForSlabFace(price.bundlePriceCents, item.dimensions);
+          if (regularOneSlabCents == null || bundleOneSlabCents == null)
+            return { ...known, status: "dimensions_required" as const };
+          const bundlePricing = { slabRateCents: price.slabPriceCents, bundleRateCents: price.bundlePriceCents,
+            minimumSlabs: price.bundleMinSlabs ?? JW_STONE_BUNDLE_SLABS, regularOneSlabCents, bundleOneSlabCents };
           return { ...known, materialSlug: item.materialSlug, assetKind: item.assetKind,
-            dimensions: item.dimensions, pricingTier: useBundleRate ? ("bundle" as const) : ("slab" as const),
-            unitRateCents, oneSlabTotalCents, lineTotalCents, status: "ready" as const };
+            dimensions: item.dimensions, bundlePricing, status: "ready" as const };
+
         });
+        // Count only fully checked, unheld slab selections. Blocked rows cannot unlock a discount.
+        const progress = getJwStoneBundleProgress(stagedLines);
+        const lines = stagedLines.map((line) => line.status === "ready"
+          ? { ...line, ...priceJwStoneBundleLine(line.bundlePricing, line.requestedQuantity, progress.unlocked) }
+          : line);
         const materialReady = lines.every((line) => line.status === "ready");
+        const subtotalCents = lines.reduce((sum, line) => sum + (line.status === "ready" ? line.lineTotalCents : 0), 0);
+        const regularSubtotalCents = lines.reduce((sum, line) => sum +
+          (line.status === "ready" ? line.bundlePricing.regularOneSlabCents * line.requestedQuantity : 0), 0);
+        if (!Number.isSafeInteger(subtotalCents) || !Number.isSafeInteger(regularSubtotalCents))
+          throw new Error("Cart amount exceeds supported precision");
         res.status(200).json({
           profileSlug: "jw-stone", viewerId, currency: "USD", sourceUpdatedAt: snapshot.sourceUpdatedAt,
           reviewedAt: new Date().toISOString(), materialReady,
           // This read-only review neither holds stock nor enables a payment/order path.
           readyForCheckout: false, inventoryReserved: false,
           subtotalCents: materialReady ? subtotalCents : null, lines,
+          bundle: { ...progress, regularSubtotalCents: materialReady ? regularSubtotalCents : null,
+            savingsCents: materialReady ? regularSubtotalCents - subtotalCents : null },
           fulfillment: parsed.data.fulfillment || { method: "pickup" },
           deliveryFeeCents: null, estimatedDeliveryDate: null,
         });

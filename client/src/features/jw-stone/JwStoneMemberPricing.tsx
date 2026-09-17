@@ -143,7 +143,7 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
         onClick={() => { onOpenCart?.(); setCartOpen(true); void pricingQuery.refetch(); }}
         className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-4 z-50 inline-flex min-h-12 items-center gap-2 border border-[var(--jw-border)] bg-[var(--jw-ink)] px-4 py-2 text-sm font-semibold text-white shadow-lg sm:right-6"
         aria-label={`Open JW Stone cart, ${value.cartCount} ${value.cartCount === 1 ? "slab" : "slabs"}`}>
-        <ShoppingCart className="h-4 w-4" aria-hidden="true" />Cart
+        <ShoppingCart className="h-4 w-4" aria-hidden="true" />Cart · Build a bundle
         {value.cartCount > 0 ? <span className="inline-flex min-w-5 justify-center rounded-full bg-[var(--jw-accent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--jw-on-accent)]">{value.cartCount}</span> : null}
       </button>
       {cartOpen ? <JwStoneMemberCart key={normalizedViewerId} viewerId={normalizedViewerId} items={cart} onClose={closeCart} onQuantityChange={updateCartQuantity} onStockChange={updateCartStock} /> : null}
@@ -217,7 +217,7 @@ export function JwStoneMemberPriceDisplay({ stoneName, slabDimensions, inventory
     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--jw-accent)]">{internal ? "JW Stone pricing" : "Business member pricing"}</p>
     <dl className={compact ? "mt-1.5 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs" : "mt-2 grid gap-2 text-sm sm:grid-cols-2"}>
       <div><dt className="inline text-[var(--jw-muted)]">{price.bundleMinSlabs === 2 ? "1 slab " : "Slab "}</dt><dd className="inline font-semibold text-[var(--jw-ink)]">{formatCents(price.slabPriceCents)} / sq. ft.</dd></div>
-      <div><dt className="inline text-[var(--jw-muted)]">{price.bundleMinSlabs ? `${price.bundleMinSlabs}+ slabs ` : "Bundle "}</dt><dd className="inline font-semibold text-[var(--jw-ink)]">{formatCents(price.bundlePriceCents)} / sq. ft.</dd></div>
+      <div><dt className="inline text-[var(--jw-muted)]">{price.bundleMinSlabs ? `${price.bundleMinSlabs}+ slabs ` : "7+ slabs "}</dt><dd className="inline font-semibold text-[var(--jw-ink)]">{formatCents(price.bundlePriceCents)} / sq. ft.</dd></div>
       {slabEstimate ? <div className={compact ? "basis-full" : "border-t border-[var(--jw-border)] pt-2 sm:col-span-2"}>
         <dt className="inline text-[var(--jw-muted)]">Approx. slab total </dt>
         <dd className="inline font-semibold text-[var(--jw-ink)]" data-testid="jw-stone-estimated-slab-total">{formatEstimatedSlabTotal(slabEstimate)}
@@ -233,5 +233,7 @@ export function JwStoneMemberPriceDisplay({ stoneName, slabDimensions, inventory
     })} className={compact ? "mt-2 inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--jw-border)] px-3 text-xs font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]" : "mt-4 inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--jw-ink)] px-4 py-2 text-sm font-semibold text-white"}>
       <ShoppingCart className="h-4 w-4" aria-hidden="true" />Add slab to cart
     </button> : null}
+    {context.cartEnabled && price.bundlePriceCents < price.slabPriceCents && (price.bundleMinSlabs ?? 7) <= 7
+      ? <p className="mt-2 text-xs text-[var(--jw-muted)]">Build a bundle: mix 7 eligible slabs for bundle pricing.</p> : null}
   </div>;
 }
