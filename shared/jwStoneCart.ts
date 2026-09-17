@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { jwStonePriceKey } from "./jwStoneMemberPricing";
+import { JW_STONE_BUNDLE_SLABS, getJwStoneBundleProgress, priceJwStoneBundleLine } from "./jwStoneBundle";
 
 export const JW_STONE_CART_STORAGE_PREFIX = "tradescout:jw-stone:member-cart:v2:";
 export const JW_STONE_LEGACY_CART_STORAGE_PREFIX = "tradescout:jw-stone:member-cart:v1:";
@@ -59,6 +60,19 @@ const blockedLine = z.object({
   materialName: z.string().min(1).max(160),
   availableQuantity: z.number().int().min(0),
 });
+const bundlePricingSchema = z.object({
+  slabRateCents: centsSchema, bundleRateCents: centsSchema,
+  minimumSlabs: z.number().int().min(2).max(999),
+  regularOneSlabCents: centsSchema, bundleOneSlabCents: centsSchema,
+});
+const bundleSummarySchema = z.object({
+  requiredSlabs: z.literal(JW_STONE_BUNDLE_SLABS),
+  eligibleSlabs: z.number().int().min(0).max(JW_STONE_CART_REVIEW_MAX_LINES * 999),
+  remainingSlabs: z.number().int().min(0).max(JW_STONE_BUNDLE_SLABS),
+  completeBundles: z.number().int().min(0), unlocked: z.boolean(),
+  regularSubtotalCents: centsSchema.nullable(),
+  savingsCents: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable(),
+});
 const readyLine = z.object({
   ...lineBase,
   status: z.literal("ready"),
@@ -71,6 +85,7 @@ const readyLine = z.object({
   unitRateCents: centsSchema,
   oneSlabTotalCents: centsSchema,
   lineTotalCents: centsSchema,
+  bundlePricing: bundlePricingSchema.optional(),
 });
 export const jwStoneCartReviewResponseSchema = z.object({
   profileSlug: z.literal("jw-stone"),
@@ -82,6 +97,7 @@ export const jwStoneCartReviewResponseSchema = z.object({
   readyForCheckout: z.literal(false),
   inventoryReserved: z.literal(false),
   subtotalCents: centsSchema.nullable(),
+  bundle: bundleSummarySchema.optional(),
   fulfillment: jwStoneCartFulfillmentSchema,
   deliveryFeeCents: z.null(),
   estimatedDeliveryDate: z.null(),
@@ -97,8 +113,10 @@ export function parseJwStoneCartReview(value: unknown, viewerId: string, request
       JSON.stringify(review.fulfillment) !== JSON.stringify(request.fulfillment || { method: "pickup" })) {
     throw new Error("The cart changed. Check availability again.");
   }
+  const progress = getJwStoneBundleProgress(review.lines);
   const seen = new Set<string>();
   let subtotal = 0;
+  let regularSubtotal = 0;
   for (const line of review.lines) {
     const requested = expected.find((entry) => entry.inventoryPublicId === line.inventoryPublicId);
     if (!requested || requested.quantity !== line.requestedQuantity || seen.has(line.inventoryPublicId)) {
@@ -110,6 +128,14 @@ export function parseJwStoneCartReview(value: unknown, viewerId: string, request
           line.oneSlabTotalCents * line.requestedQuantity !== line.lineTotalCents) {
         throw new Error("The cart total could not be checked.");
       }
+      if (review.bundle) {
+        if (!line.bundlePricing) throw new Error("Bundle pricing could not be checked.");
+        const expectedPrice = priceJwStoneBundleLine(line.bundlePricing, line.requestedQuantity, progress.unlocked);
+        if (line.pricingTier !== expectedPrice.pricingTier || line.unitRateCents !== expectedPrice.unitRateCents ||
+            line.oneSlabTotalCents !== expectedPrice.oneSlabTotalCents || line.lineTotalCents !== expectedPrice.lineTotalCents)
+          throw new Error("Bundle pricing could not be checked.");
+        regularSubtotal += line.bundlePricing.regularOneSlabCents * line.requestedQuantity;
+      }
       subtotal += line.lineTotalCents;
     }
   }
@@ -117,6 +143,13 @@ export function parseJwStoneCartReview(value: unknown, viewerId: string, request
   if (!Number.isSafeInteger(subtotal) || review.materialReady !== materialReady ||
       review.subtotalCents !== (materialReady ? subtotal : null)) {
     throw new Error("The cart total could not be checked.");
+  }
+  if (review.bundle && (review.bundle.eligibleSlabs !== progress.eligibleSlabs ||
+      review.bundle.remainingSlabs !== progress.remainingSlabs || review.bundle.unlocked !== progress.unlocked ||
+      review.bundle.completeBundles !== progress.completeBundles || !Number.isSafeInteger(regularSubtotal) ||
+      review.bundle.regularSubtotalCents !== (materialReady ? regularSubtotal : null) ||
+      review.bundle.savingsCents !== (materialReady ? regularSubtotal - subtotal : null))) {
+    throw new Error("Bundle savings could not be checked.");
   }
   return review;
 }
