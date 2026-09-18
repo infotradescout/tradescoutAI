@@ -4,7 +4,7 @@ import {
   JW_STONE_CART_HOLD_PATH,
   jwStoneHoldRemainingSeconds,
   parseJwStoneCartHoldRecovery,
-} from "@shared/jwStoneCartHolds";
+} from "@shared/jwStoneCartHoldRecovery";
 import { apiRequest } from "@/lib/queryClient";
 
 type Props = { viewerId: string | null; onContact: () => void };
