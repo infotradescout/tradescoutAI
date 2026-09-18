@@ -61,6 +61,10 @@ export async function proveJwStoneFeatureJourney({page,context,database,fixture,
       const status = await context.request.get(base+'/api/u/jw-stone/member-pricing/holds/active');
       assert.equal(status.status(),200); const owned=await status.json(); assert.equal(owned.hold.reservationId,ownedReservationId);
       await page.getByTestId('jw-owned-reservation-status').waitFor();
+      const countdown = page.getByRole('timer', { name: 'Estimated reservation time remaining' });
+      await expect(countdown).toHaveText(/^\d+:\d{2}$/);
+      const beforeCountdown = await countdown.innerText();
+      await expect(countdown).not.toHaveText(beforeCountdown, { timeout: 4000 });
       await page.screenshot({path:path.join(output,device+'-owned-hold-while-enhancements-paused.png')});
     }
     const blocked=[

@@ -1,18 +1,27 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { JW_STONE_CART_HOLD_PATH, parseJwStoneCartHoldRecovery } from "@shared/jwStoneCartHolds";
+import {
+  JW_STONE_CART_HOLD_PATH,
+  jwStoneHoldRemainingSeconds,
+  parseJwStoneCartHoldRecovery,
+} from "@shared/jwStoneCartHolds";
 import { apiRequest } from "@/lib/queryClient";
 
 type Props = { viewerId: string | null; onContact: () => void };
 /** Read-only, price-free ownership recovery. It does not create, renew or release stock. */
 export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
   const owner = String(viewerId || "").trim();
+  const [now, setNow] = useState(() => performance.now());
   const query = useQuery({
     queryKey: ["jw-stone", "owned-hold-status", owner],
-    queryFn: async ({ signal }) =>
-      parseJwStoneCartHoldRecovery(
+    queryFn: async ({ signal }) => {
+      const requestStartedAt = performance.now();
+      const recovery = parseJwStoneCartHoldRecovery(
         await apiRequest(`${JW_STONE_CART_HOLD_PATH}/active`, { signal }),
         owner
-      ),
+      );
+      return { ...recovery, requestStartedAt };
+    },
     enabled: Boolean(owner),
     retry: false,
     staleTime: 0,
@@ -21,6 +30,14 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
     refetchInterval: 30_000,
   });
   const hold = owner && query.data?.viewerId === owner ? query.data.hold : null;
+  useEffect(() => {
+    setNow(performance.now());
+    if (hold?.status !== "active") return;
+    const timer = window.setInterval(() => setNow(performance.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [owner, hold?.reservationId, hold?.status, query.dataUpdatedAt]);
+  const remaining =
+    hold && query.data ? jwStoneHoldRemainingSeconds(hold, query.data.requestStartedAt, now) : null;
   // An unmounted endpoint or no owned hold must not block the catalog or contact flow.
   if (!hold) return null;
   return (
@@ -33,11 +50,24 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
       <p className="mt-1 text-sm">
         {hold.totalSlabs} {hold.totalSlabs === 1 ? "slab" : "slabs"} ·{" "}
         {hold.status === "active"
-          ? "Held for you"
+          ? remaining === 0
+            ? "Deadline reached — refresh to confirm status"
+            : "Held for you"
           : hold.status === "expired"
             ? "Expired"
             : "Released"}
       </p>
+      {remaining !== null ? (
+        <p className="mt-1 text-sm">
+          Estimated time remaining:{" "}
+          <span role="timer" aria-live="off" aria-label="Estimated reservation time remaining">
+            {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
+          </span>
+          <span className="ml-2 text-xs text-[var(--jw-muted)]">
+            Based on the last server check.
+          </span>
+        </p>
+      ) : null}
       <p className="mt-1 text-sm">
         Original expiration:{" "}
         <time dateTime={hold.expiresAt}>{new Date(hold.expiresAt).toLocaleString()}</time>

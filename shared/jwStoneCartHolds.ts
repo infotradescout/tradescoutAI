@@ -94,6 +94,19 @@ export const jwStoneCartHoldStatusSchema = z
   })
   .strict();
 export type JwStoneCartHoldStatus = z.infer<typeof jwStoneCartHoldStatusSchema>;
+/** Display estimate only. Elapsed time is monotonic; the browser clock grants no stock authority. */
+export function jwStoneHoldRemainingSeconds(
+  hold: JwStoneCartHoldStatus,
+  requestStartedAt: number,
+  now: number
+): number | null {
+  if (hold.status !== "active") return null;
+  const remaining = Date.parse(hold.expiresAt) - Date.parse(hold.serverTime);
+  const elapsed = now - requestStartedAt;
+  if (!Number.isFinite(remaining) || !Number.isFinite(elapsed) || elapsed < 0) return null;
+  // Counting the request round trip is conservative: latency cannot extend the displayed deadline.
+  return Math.max(0, Math.ceil((remaining - elapsed) / 1000));
+}
 export const jwStoneCartHoldRecoverySchema = z
   .object({
     viewerId: z.string().min(1),
