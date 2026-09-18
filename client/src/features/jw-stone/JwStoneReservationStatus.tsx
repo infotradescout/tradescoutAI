@@ -63,9 +63,6 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
           <span role="timer" aria-live="off" aria-label="Estimated reservation time remaining">
             {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
           </span>
-          <span className="ml-2 text-xs text-[var(--jw-muted)]">
-            Based on the last server check.
-          </span>
         </p>
       ) : null}
       <p className="mt-1 text-sm">
