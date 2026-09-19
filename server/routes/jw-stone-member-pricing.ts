@@ -114,10 +114,9 @@ const jwStoneCartHoldMutationLimiter: RequestHandler =
         max: 30,
         standardHeaders: true,
         legacyHeaders: false,
-        keyGenerator: (req) => {
-          const viewerId = requestUserId(req);
-          return viewerId ? `u:${viewerId}` : String(req.ip || "unknown");
-        },
+        // Authentication runs before this limiter, so reservation mutation quotas
+        // are identity-bound and never depend on proxy/IP parsing.
+        keyGenerator: (req) => `u:${requestUserId(req) || "authenticated-unknown"}`,
         store: createPostgresRateLimitStore({
           pool,
           prefix: "jw_stone_cart_hold_mutation",
