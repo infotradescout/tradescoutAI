@@ -743,15 +743,19 @@ export function JwStoneMemberCart({
                 <button
                   type="button"
                   data-testid="jw-cart-reserve-stock"
-                  disabled={holdMutation.isPending || Boolean(activeHold)}
+                  disabled={
+                    holdMutation.isPending || activeHoldQuery.isFetching || Boolean(activeHold)
+                  }
                   onClick={() => holdMutation.mutate()}
                   className="mt-3 min-h-11 w-full bg-[var(--jw-accent)] px-3 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-40"
                 >
                   {holdMutation.isPending
                     ? "Reserving checked stock…"
-                    : activeHold
-                      ? "Active reservation already exists"
-                      : `Reserve stock for ${JW_STONE_CART_HOLD_MINUTES} minutes`}
+                    : activeHoldQuery.isFetching
+                      ? "Checking active reservation…"
+                      : activeHold
+                        ? "Active reservation already exists"
+                        : `Reserve stock for ${JW_STONE_CART_HOLD_MINUTES} minutes`}
                 </button>
               ) : null}
               {holdMutation.isError ? (
