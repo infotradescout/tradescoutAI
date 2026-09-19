@@ -4,7 +4,7 @@ Objective: Finish the customer-facing JW Stone temporary stock reservation lifec
 
 Source branch: `jw-stone/feature-access-control-20260917`
 Candidate before the exact-source verifier continuation: `7d033da558bb3613b286c18359c9cd5ac23b5d89`
-Current exact source at this checkpoint: `7f9437ae80aaa10176312ee958bdba94c82cebf2`
+Current exact source at this checkpoint: `8f5988fc3c77f58743875e03df5f187434d66d14`
 PR: #684 remains draft. No main merge, production deploy, production flag change, live stock write, payment, customer message or account change was performed in this continuation.
 
 ## Implemented on the live branch
@@ -52,7 +52,7 @@ PR: #684 remains draft. No main merge, production deploy, production flag change
 
 `scripts/jw-stone-cart-hold-journey.mjs` now exercises the real built client and disposable PostgreSQL through:
 
-1. real customer Reserve from the saved seven-slab cart;
+1. preserve multi-line cart/offer coverage below the seven-slab threshold, then convert the reservation cart to seven slabs of one material and Reserve through the real customer UI;
 2. exact database hold/items/held-quantity checks;
 3. no marketplace transaction, work request, checkout or payment creation;
 4. visible countdown that actually decreases;
@@ -61,7 +61,8 @@ PR: #684 remains draft. No main merge, production deploy, production flag change
 7. duplicate Reserve blocked after reopen;
 8. explicit browser Release;
 9. stock returned and terminal ledger receipt;
-10. no extra Reserve or Release network mutation.
+10. no extra Reserve or Release network mutation;
+11. machine-readable `reservationBundleScope: single_material` and `mixedMaterialBundlePolicyAsserted: false`, so this proof does not decide the still-unapproved mix-and-match bundle policy.
 
 The surrounding native driver also covers:
 - sales-suite OFF blocks new reservation creation;
