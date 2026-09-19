@@ -648,6 +648,47 @@ describe("JW Stone member cart", () => {
     expect(window.sessionStorage.length).toBe(0);
   });
 
+  it("keeps reserve disabled while the shared owned-hold query is unresolved", async () => {
+    render(stockId);
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]')).not.toBeNull()
+    );
+    let resolveHold!: (value: {
+      viewerId: string;
+      hold: null;
+      requestStartedAt: number;
+    }) => void;
+    const pendingHold = client.fetchQuery({
+      queryKey: ["jw-stone", "owned-hold-status", viewer],
+      queryFn: () =>
+        new Promise<{ viewerId: string; hold: null; requestStartedAt: number }>((resolve) => {
+          resolveHold = resolve;
+        }),
+    });
+    click(document.querySelector('[data-testid="jw-stone-add-to-cart-card"]'));
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-cart-reserve-stock"]')).not.toBeNull()
+    );
+    const reserve = document.querySelector(
+      '[data-testid="jw-cart-reserve-stock"]'
+    ) as HTMLButtonElement;
+    expect(reserve.disabled).toBe(true);
+    expect(reserve.textContent).toContain("Checking active reservation");
+
+    resolveHold({ viewerId: viewer, hold: null, requestStartedAt: performance.now() });
+    await act(async () => {
+      await pendingHold;
+    });
+    await eventually(() => {
+      const ready = document.querySelector(
+        '[data-testid="jw-cart-reserve-stock"]'
+      ) as HTMLButtonElement;
+      expect(ready.disabled).toBe(false);
+      expect(ready.textContent).toContain("Reserve stock for");
+    });
+    expect(holdRequests).toHaveLength(0);
+  });
+
   it("uses the confirmed hold cache to block a second cart reservation", async () => {
     render(stockId);
     await add();
