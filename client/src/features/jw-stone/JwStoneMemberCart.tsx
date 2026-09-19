@@ -14,6 +14,12 @@ import {
 import { jwStonePriceKey } from "@shared/jwStoneMemberPricing";
 import { isJwStoneBundleEligible } from "@shared/jwStoneBundle";
 import {
+  JW_STONE_CART_HOLD_PATH,
+  jwStoneCartHoldIdSchema,
+  jwStoneCartHoldRequestSchema,
+} from "@shared/jwStoneCartHolds";
+import { parseJwStoneCartHoldRecovery } from "@shared/jwStoneCartHoldRecovery";
+import {
   JW_STONE_CART_HOLD_MINUTES,
   JW_STONE_CART_HOLD_PATH,
   jwStoneCartHoldReceiptSchema,
@@ -65,6 +71,58 @@ const preferencesSchema = z.object({
 });
 const emptyPreferences = { method: "pickup" as const, postalCode: "", jobReference: "" };
 const preferencesKey = (viewerId: string) => `tradescout:jw-stone:cart-fulfillment:v1:${viewerId}`;
+const holdOperationKey = (viewerId: string) => `tradescout:jw-stone:cart-hold-operation:v1:${viewerId}`;
+const holdOperationSchema = z.object({
+  fingerprint: z.string().min(1),
+  idempotencyKey: z.string().uuid(),
+});
+const holdReceiptSchema = z
+  .object({
+    reservationId: jwStoneCartHoldIdSchema,
+    status: z.enum(["active", "released", "expired"]),
+    expiresAt: z.string().datetime(),
+    serverTime: z.string().datetime(),
+    materialSubtotalCents: z.number().int().positive(),
+    paymentStatus: z.literal("not_started"),
+    readyForCheckout: z.literal(false),
+    lines: z
+      .array(
+        z.object({
+          inventoryPublicId: jwStoneInventoryPublicIdSchema,
+          materialName: z.string().min(1).max(180),
+          quantity: z.number().int().positive(),
+        })
+      )
+      .min(1),
+  })
+  .passthrough();
+
+function newHoldOperationId(): string {
+  return window.crypto.randomUUID();
+}
+
+function getOrCreateHoldOperation(viewerId: string, fingerprint: string): string {
+  try {
+    const parsed = holdOperationSchema.safeParse(
+      JSON.parse(window.localStorage.getItem(holdOperationKey(viewerId)) || "null")
+    );
+    if (parsed.success && parsed.data.fingerprint === fingerprint)
+      return parsed.data.idempotencyKey;
+    const next = { fingerprint, idempotencyKey: newHoldOperationId() };
+    window.localStorage.setItem(holdOperationKey(viewerId), JSON.stringify(next));
+    return next.idempotencyKey;
+  } catch {
+    return newHoldOperationId();
+  }
+}
+
+function clearHoldOperation(viewerId: string): void {
+  try {
+    window.localStorage.removeItem(holdOperationKey(viewerId));
+  } catch {
+    /* The server receipt still proves the hold when local storage is unavailable. */
+  }
+}
 const holdOperationKey = (viewerId: string) =>
   `tradescout:jw-stone:cart-hold-operation:v1:${viewerId}`;
 const holdOperationSchema = z
@@ -185,6 +243,25 @@ export function JwStoneMemberCart({
     refetchOnWindowFocus: "always",
   });
   const stock = inventoryQuery.isError ? [] : inventoryQuery.data || [];
+  const activeHoldQuery = useQuery({
+    queryKey: ["jw-stone", "owned-hold-status", viewerId],
+    queryFn: async ({ signal }) => {
+      const requestStartedAt = performance.now();
+      const recovery = parseJwStoneCartHoldRecovery(
+        await apiRequest(`${JW_STONE_CART_HOLD_PATH}/active`, { signal }),
+        viewerId
+      );
+      return { ...recovery, requestStartedAt };
+    },
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: "always",
+  });
+  const activeHold =
+    activeHoldQuery.data?.viewerId === viewerId && activeHoldQuery.data.hold?.status === "active"
+      ? activeHoldQuery.data.hold
+      : null;
   const fulfillment =
     preferences.method === "pickup"
       ? { method: "pickup" as const }
@@ -225,6 +302,52 @@ export function JwStoneMemberCart({
     parsedRequest.success && !reviewQuery.isFetching && !reviewQuery.isError
       ? reviewQuery.data
       : undefined;
+  const reserveBase =
+    review?.materialReady &&
+    review.subtotalCents != null &&
+    parsedRequest.success &&
+    !fulfillmentError
+      ? {
+          lines: parsedRequest.data.lines,
+          expectedSubtotalCents: review.subtotalCents,
+          fulfillment,
+        }
+      : null;
+  const reserveMutation = useMutation({
+    mutationFn: async () => {
+      if (!reserveBase) throw new Error("Recheck the cart before reserving stock.");
+      const fingerprint = JSON.stringify(reserveBase);
+      const request = jwStoneCartHoldRequestSchema.parse({
+        ...reserveBase,
+        idempotencyKey: getOrCreateHoldOperation(viewerId, fingerprint),
+      });
+      const response = holdReceiptSchema.parse(
+        await apiRequest(JW_STONE_CART_HOLD_PATH, { method: "POST", data: request })
+      );
+      if (response.status !== "active")
+        throw new Error("The reservation is no longer active. Recheck the cart.");
+      return response;
+    },
+    onSuccess: (receipt) => {
+      clearHoldOperation(viewerId);
+      queryClient.setQueryData(["jw-stone", "owned-hold-status", viewerId], {
+        viewerId,
+        hold: {
+          reservationId: receipt.reservationId,
+          status: receipt.status,
+          expiresAt: receipt.expiresAt,
+          serverTime: receipt.serverTime,
+          totalSlabs: receipt.lines.reduce((sum, line) => sum + line.quantity, 0),
+          lines: receipt.lines.map((line) => ({
+            inventoryPublicId: line.inventoryPublicId,
+            materialName: line.materialName,
+            quantity: line.quantity,
+          })),
+        },
+        requestStartedAt: performance.now(),
+      });
+    },
+  });
   useEffect(() => {
     const status = (reviewQuery.error as { status?: number } | null)?.status;
     if (status !== 401 && status !== 403) return;
@@ -377,6 +500,9 @@ export function JwStoneMemberCart({
                       (line) => line.inventoryPublicId === item.inventoryPublicId
                     );
                     const image = actualStock?.imageUrls[0];
+                    const ownedReservationLine = activeHold?.lines.find(
+                      (line) => line.inventoryPublicId === item.inventoryPublicId
+                    );
                     const remaining = review?.bundle?.remainingSlabs ?? 0;
                     const canCompleteBundle =
                       review?.materialReady &&
@@ -497,7 +623,17 @@ export function JwStoneMemberCart({
                           </div>
                           <span className="text-xs text-[var(--jw-muted)]">slabs</span>
                         </div>
-                        {checked?.status === "ready" ? (
+                        {ownedReservationLine ? (
+                          <p
+                            role="status"
+                            className="mt-3 text-xs font-semibold"
+                            data-testid="jw-cart-owned-reservation-line"
+                          >
+                            {ownedReservationLine.quantity} slab
+                            {ownedReservationLine.quantity === 1 ? "" : "s"} already reserved in
+                            your active hold.
+                          </p>
+                        ) : checked?.status === "ready" ? (
                           <div className="mt-3 text-sm" data-testid="jw-cart-line-total">
                             <strong>{money(checked.oneSlabTotalCents * item.quantity)}</strong>
                             <p className="mt-1 text-xs text-[var(--jw-muted)]">
@@ -630,6 +766,32 @@ export function JwStoneMemberCart({
                   "A full total will appear after every stock selection is checked."
                 ) : null}
               </div>
+              {reserveMutation.data ? (
+                <div
+                  role="status"
+                  className="mt-3 border border-[var(--jw-accent)] p-3 text-sm"
+                  data-testid="jw-cart-reservation-confirmed"
+                >
+                  <strong>Stock reserved for 30 minutes.</strong>
+                  <p className="mt-1 text-xs">
+                    No payment was taken. Reservation {reserveMutation.data.reservationId} expires{" "}
+                    {new Date(reserveMutation.data.expiresAt).toLocaleString()}.
+                  </p>
+                </div>
+              ) : null}
+              {reserveMutation.isError ? (
+                <p role="alert" className="mt-2 text-xs">
+                  {reserveMutation.error instanceof Error
+                    ? reserveMutation.error.message
+                    : "The stock could not be reserved. Your cart is unchanged."}
+                </p>
+              ) : null}
+              {activeHold && !reserveMutation.data ? (
+                <p role="status" className="mt-2 text-xs">
+                  You already have an active JW Stone reservation. Release it above before
+                  reserving another cart.
+                </p>
+              ) : null}
               {review?.materialReady && review.bundle && (review.bundle.savingsCents ?? 0) > 0 ? (
                 <div data-testid="jw-bundle-savings" className="mt-2 space-y-1 text-xs">
                   <div className="flex justify-between gap-3 text-[var(--jw-muted)]">
@@ -664,6 +826,25 @@ export function JwStoneMemberCart({
                     ? holdMutation.error.message
                     : "The reservation could not be confirmed. Recheck and retry."}
                 </p>
+              ) : null}
+              {reserveBase ? (
+                <button
+                  type="button"
+                  disabled={
+                    reserveMutation.isPending ||
+                    Boolean(activeHold) ||
+                    reserveMutation.data?.status === "active"
+                  }
+                  onClick={() => reserveMutation.mutate()}
+                  className="mt-3 min-h-11 w-full bg-[var(--jw-accent)] px-3 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-40"
+                  data-testid="jw-cart-reserve-stock"
+                >
+                  {reserveMutation.isPending
+                    ? "Reserving stock…"
+                    : activeHold
+                      ? "Active reservation already exists"
+                      : "Reserve selected stock for 30 minutes"}
+                </button>
               ) : null}
               {review?.materialReady &&
               review.subtotalCents != null &&
