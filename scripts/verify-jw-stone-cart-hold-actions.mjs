@@ -154,6 +154,11 @@ try {
   console.error('JW_CART_ACTION_PROOF_FAILURE ' + failure);
 } finally {
   const copyErrors = detachedCheckout ? await copyOutputs() : [];
+  if (status === 0 && copyErrors.length) {
+    status = 1;
+    stage = 'final-evidence-copy';
+    failure = 'Final exact-source evidence copy failed: ' + JSON.stringify(copyErrors);
+  }
   await fs.mkdir(actionOutput, { recursive: true });
   await fs.writeFile(
     path.join(actionOutput, 'exact-source.json'),
