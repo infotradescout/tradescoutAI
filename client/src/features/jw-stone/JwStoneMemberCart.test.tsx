@@ -81,6 +81,25 @@ function makeReview(viewerId: string, quantity = 1, fulfillment: unknown = { met
     ],
   };
 }
+function makeHoldRecovery(viewerId: string) {
+  return {
+    viewerId,
+    hold: {
+      reservationId: `jwh_${"b".repeat(32)}`,
+      status: "active",
+      expiresAt: "2026-09-12T00:30:00.000Z",
+      serverTime: "2026-09-12T00:00:00.000Z",
+      totalSlabs: 1,
+      lines: [
+        {
+          inventoryPublicId: stockId,
+          materialName: "Honey Onyx",
+          quantity: 1,
+        },
+      ],
+    },
+  };
+}
 function makeHoldReceipt(data: any) {
   return {
     reservationId: `jwh_${"b".repeat(32)}`,
@@ -168,8 +187,10 @@ describe("JW Stone member cart", () => {
   let bundleMode = false,
     bundleAvailable = 20,
     bundleFailure = false,
-    holdFailures = 0;
+    holdFailures = 0,
+    recoverCreatedHold = false;
   let holdRequests: any[] = [];
+  let operationRecoveries: string[] = [];
   const render = (inventoryPublicId?: string) =>
     act(() =>
       root.render(
@@ -202,7 +223,9 @@ describe("JW Stone member cart", () => {
     bundleAvailable = 20;
     bundleFailure = false;
     holdFailures = 0;
+    recoverCreatedHold = false;
     holdRequests = [];
+    operationRecoveries = [];
     window.localStorage.clear();
     window.sessionStorage.clear();
     api.mockReset();
@@ -257,6 +280,10 @@ describe("JW Stone member cart", () => {
           ),
           second.data.fulfillment
         );
+      }
+      if (url.includes("/member-pricing/holds/operations/")) {
+        operationRecoveries.push(url);
+        return recoverCreatedHold ? makeHoldRecovery(viewer) : { viewerId: viewer, hold: null };
       }
       if (url.endsWith("/member-pricing/holds")) {
         holdRequests.push(second.data);
@@ -583,6 +610,7 @@ describe("JW Stone member cart", () => {
       expect(document.body.textContent).toContain("Reservation response was interrupted.")
     );
     expect(holdRequests).toHaveLength(1);
+    expect(operationRecoveries).toHaveLength(1);
     const firstOperationId = holdRequests[0].idempotencyKey;
     expect(firstOperationId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -599,6 +627,24 @@ describe("JW Stone member cart", () => {
     expect(holdRequests).toHaveLength(2);
     expect(holdRequests[1].idempotencyKey).toBe(firstOperationId);
     expect(JSON.stringify(holdRequests[1])).not.toMatch(/payment|card|checkout/i);
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("recovers a successful-but-lost reservation without issuing a second reserve", async () => {
+    holdFailures = 1;
+    recoverCreatedHold = true;
+    render(stockId);
+    await add();
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-cart-reserve-stock"]')).not.toBeNull()
+    );
+    click(document.querySelector('[data-testid="jw-cart-reserve-stock"]'));
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-stone-member-cart"]')).toBeNull()
+    );
+    expect(holdRequests).toHaveLength(1);
+    expect(operationRecoveries).toHaveLength(1);
+    expect(operationRecoveries[0]).toContain(holdRequests[0].idempotencyKey);
     expect(window.sessionStorage.length).toBe(0);
   });
 
