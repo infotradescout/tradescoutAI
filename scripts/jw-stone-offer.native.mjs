@@ -24,7 +24,7 @@ const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'jw-workflow-'));
 const base = 'http://127.0.0.1:5228';
 const rootPath = '/u/jw-stone';
 const itemPath = rootPath + '/stones/honey-onyx';
-const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, actualEmailDeliveryProved: false, formalPricedQuoteProved: false, customerReservationActionsProved: false, source: 'Synthetic localhost native database, actual application routes and built client' };
+const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, productionWrites: false, actualEmailDeliveryProved: false, formalPricedQuoteProved: false, customerReservationActionsProved: false, customerReservationDevices: [], source: 'Synthetic localhost native database, actual application routes and built client' };
 let database, client, server, browser, activePage, logFile;
 function clean() { return execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(); }
 function note(name, detail = {}) { report.checks.push({ name, ...detail, passed: true }); console.log('JW_WORKFLOW_CHECK ' + JSON.stringify(report.checks.at(-1))); }
@@ -172,7 +172,7 @@ try {
         output: out,
       });
       note(device + ': native customer cart reserve-recover-release', holdEvidence);
-      report.customerReservationActionsProved = true;
+      report.customerReservationDevices.push(device);
     }
     const ownedStatusMode = process.argv.includes('--owned-hold-status');
     const heldEnv = { ...env, JW_STATUS_BUYER: user.id, JW_STATUS_SELLER: fixture.businessId, JW_STATUS_STOCK: fixture.cartStockId };
@@ -241,6 +241,16 @@ try {
     }
     assert.deepEqual(errors, [], 'Uncaught browser errors'); assert.deepEqual(failures, [], 'Unexpected server errors');
     await context.close(); activePage = undefined;
+  }
+  if (process.argv.includes('--cart-hold-actions')) {
+    assert.deepEqual(
+      [...new Set(report.customerReservationDevices)].sort(),
+      ['desktop', 'touch'],
+      'Customer reservation acceptance must pass on desktop and touch'
+    );
+    assert.equal(report.backendCartHoldProof?.passed, true);
+    assert.equal(report.backendCartHoldProof?.productionWrites, false);
+    report.customerReservationActionsProved = true;
   }
   report.finalSourceStatus = clean(); assert.equal(report.finalSourceStatus, ''); report.passed = true;
 } catch (error) {
