@@ -24,6 +24,7 @@ import {
   JW_STONE_CART_HOLD_PATH,
   jwStoneCartHoldReceiptSchema,
   jwStoneCartHoldRequestSchema,
+  parseJwStoneCartHoldRecovery,
 } from "@shared/jwStoneCartHolds";
 import { JwStoneBundleBuilder } from "./JwStoneBundleBuilder";
 import type { JwStoneOfferContext } from "@shared/jwStoneOffer";
@@ -373,10 +374,25 @@ export function JwStoneMemberCart({
       const fingerprint = JSON.stringify(stableInput);
       const idempotencyKey = loadOrCreateHoldOperation(viewerId, fingerprint);
       const request = jwStoneCartHoldRequestSchema.parse({ ...stableInput, idempotencyKey });
-      const receipt = jwStoneCartHoldReceiptSchema.parse(
-        await apiRequest(JW_STONE_CART_HOLD_PATH, { method: "POST", data: request })
-      );
-      return { receipt, idempotencyKey };
+      try {
+        const receipt = jwStoneCartHoldReceiptSchema.parse(
+          await apiRequest(JW_STONE_CART_HOLD_PATH, { method: "POST", data: request })
+        );
+        return { receipt, recoveredHold: null, idempotencyKey };
+      } catch (error) {
+        // A lost POST response can still mean stock was reserved. Recover by the same
+        // stable operation identity before surfacing an uncertain retry to the member.
+        try {
+          const recovery = parseJwStoneCartHoldRecovery(
+            await apiRequest(`${JW_STONE_CART_HOLD_PATH}/operations/${idempotencyKey}`),
+            viewerId
+          );
+          if (recovery.hold) return { receipt: null, recoveredHold: recovery.hold, idempotencyKey };
+        } catch {
+          // Preserve the original mutation failure when recovery itself is unavailable.
+        }
+        throw error;
+      }
     },
     onSuccess: ({ idempotencyKey }) => {
       clearHoldOperation(viewerId, idempotencyKey);
