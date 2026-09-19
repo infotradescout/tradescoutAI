@@ -81,6 +81,30 @@ function makeReview(viewerId: string, quantity = 1, fulfillment: unknown = { met
     ],
   };
 }
+function makeHoldReceipt(data: any) {
+  return {
+    reservationId: `jwh_${"b".repeat(32)}`,
+    status: "active",
+    expiresAt: "2026-09-12T00:30:00.000Z",
+    serverTime: "2026-09-12T00:00:00.000Z",
+    currency: "USD",
+    materialSubtotalCents: data.expectedSubtotalCents,
+    paymentStatus: "not_started",
+    readyForCheckout: false,
+    fulfillment: data.fulfillment,
+    deliveryFeeCents: null,
+    estimatedDeliveryDate: null,
+    lines: data.lines.map((line: { inventoryPublicId: string; quantity: number }) => ({
+      inventoryPublicId: line.inventoryPublicId,
+      materialName: "Honey Onyx",
+      quantity: line.quantity,
+      unitRateCents: 300,
+      oneSlabTotalCents: 15000,
+      lineTotalCents: 15000 * line.quantity,
+      pricingTier: "slab",
+    })),
+  };
+}
 function makeBundleReview(
   viewerId: string,
   quantity: number,
@@ -143,7 +167,9 @@ describe("JW Stone member cart", () => {
     denied = false;
   let bundleMode = false,
     bundleAvailable = 20,
-    bundleFailure = false;
+    bundleFailure = false,
+    holdFailures = 0;
+  let holdRequests: any[] = [];
   const render = (inventoryPublicId?: string) =>
     act(() =>
       root.render(
@@ -175,7 +201,10 @@ describe("JW Stone member cart", () => {
     bundleMode = false;
     bundleAvailable = 20;
     bundleFailure = false;
+    holdFailures = 0;
+    holdRequests = [];
     window.localStorage.clear();
+    window.sessionStorage.clear();
     api.mockReset();
     host = document.createElement("div");
     document.body.append(host);
@@ -228,6 +257,14 @@ describe("JW Stone member cart", () => {
           ),
           second.data.fulfillment
         );
+      }
+      if (url.endsWith("/member-pricing/holds")) {
+        holdRequests.push(second.data);
+        if (holdFailures > 0) {
+          holdFailures--;
+          throw new Error("Reservation response was interrupted.");
+        }
+        return makeHoldReceipt(second.data);
       }
       throw new Error("Unexpected API request: " + url);
     });
@@ -534,6 +571,37 @@ describe("JW Stone member cart", () => {
       ])
     ).toEqual([{ id: "x", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: 1 }]);
   });
+  it("reuses one reservation operation id after an ambiguous response and never starts payment", async () => {
+    holdFailures = 1;
+    render(stockId);
+    await add();
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-cart-reserve-stock"]')).not.toBeNull()
+    );
+    click(document.querySelector('[data-testid="jw-cart-reserve-stock"]'));
+    await eventually(() =>
+      expect(document.body.textContent).toContain("Reservation response was interrupted.")
+    );
+    expect(holdRequests).toHaveLength(1);
+    const firstOperationId = holdRequests[0].idempotencyKey;
+    expect(firstOperationId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    );
+    expect(holdRequests[0]).toMatchObject({
+      lines: [{ inventoryPublicId: stockId, quantity: 1 }],
+      expectedSubtotalCents: 15000,
+      fulfillment: { method: "pickup" },
+    });
+    click(document.querySelector('[data-testid="jw-cart-reserve-stock"]'));
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-stone-member-cart"]')).toBeNull()
+    );
+    expect(holdRequests).toHaveLength(2);
+    expect(holdRequests[1].idempotencyKey).toBe(firstOperationId);
+    expect(JSON.stringify(holdRequests[1])).not.toMatch(/payment|card|checkout/i);
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
   it("opens a full-cart offer with the displayed total without changing saved quantities", async () => {
     render(stockId);
     await add();
