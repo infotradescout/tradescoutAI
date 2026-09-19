@@ -50,6 +50,11 @@ try {
     note('Unchanged compiled application and fixture preflight reused', report.reusedPreflight);
   } else {
   run('Profile account customer-session isolation', ['npm', 'run', 'test:run', '--', 'client/src/components/profile/PublicProfileAccountDialog.session.test.tsx', '--maxWorkers=1']);
+  if (process.argv.includes('--feature-control') || process.argv.includes('--cart-hold-actions')) {
+    run('JW Stone feature access policy contracts', [
+      process.execPath, '--test', 'scripts/tests/jw-stone-feature-control.test.cjs',
+    ]);
+  }
   if (process.argv.includes('--cart-hold-actions')) {
     run('Customer cart reservation contracts', [
       'npm', 'run', 'test:run', '--',
