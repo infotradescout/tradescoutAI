@@ -721,7 +721,7 @@ export function JwStoneMemberCart({
                 <p
                   role="status"
                   className="mt-2 text-xs"
-                  data-testid="jw-cart-owned-reservation-line"
+                  data-testid="jw-cart-active-reservation-block"
                 >
                   You already have an active JW Stone reservation. Release it above before
                   reserving another cart.
