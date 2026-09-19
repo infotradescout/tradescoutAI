@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Express, NextFunction, Request, RequestHandler, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 import type {
   JwStoneInternalPricingResponse,
   JwStoneMemberPricingResponse,
@@ -14,7 +15,9 @@ import {
 import { isAuthenticated } from "../auth";
 import { pool } from "../db";
 import { JwStoneCartHolds } from "../services/jwStoneCartHolds";
-import { registerJwStoneCartHoldRecoveryRoutes } from "./jw-stone-cart-holds";
+import { registerJwStoneCartHoldRoutes } from "./jw-stone-cart-holds";
+import { startJwStoneCartHoldExpiry } from "../services/jwStoneCartHoldWorker";
+import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { registerJwStoneFeatureRoutes } from "./jw-stone-features";
 import { requireCriticalSchema } from "../schemaPreflight";
 import {
@@ -101,14 +104,74 @@ function privateResponse(res: Response): void {
   res.vary("Authorization");
 }
 
+const jwStoneCartHolds = new JwStoneCartHolds(pool);
+let jwStoneCartHoldWorkerStarted = false;
+const passthroughMutationLimiter: RequestHandler = (_req, _res, next) => next();
+const jwStoneCartHoldMutationLimiter: RequestHandler =
+  process.env.NODE_ENV === "production"
+    ? rateLimit({
+        windowMs: 10 * 60 * 1000,
+        max: 30,
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: (req) => {
+          const viewerId = requestUserId(req);
+          return viewerId ? `u:${viewerId}` : String(req.ip || "unknown");
+        },
+        store: createPostgresRateLimitStore({
+          pool,
+          prefix: "jw_stone_cart_hold_mutation",
+          cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 600_000),
+        }),
+      })
+    : passthroughMutationLimiter;
+
+function requireJwStoneCartHoldWriteIntent(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const origin = String(req.get("Origin") || "").trim();
+  const host = String(req.get("host") || "").trim().toLowerCase();
+  try {
+    const parsed = new URL(origin);
+    if (!origin || !host || parsed.host.toLowerCase() !== host || parsed.protocol !== `${req.protocol}:`) {
+      res.status(403).json({
+        code: "same_origin_required",
+        message: "Open your JW Stone cart on this site before changing a reservation.",
+      });
+      return;
+    }
+  } catch {
+    res.status(403).json({
+      code: "same_origin_required",
+      message: "Open your JW Stone cart on this site before changing a reservation.",
+    });
+    return;
+  }
+  next();
+}
+
 export function registerJwStoneMemberPricingRoutes(app: Express): void {
   registerJwStoneFeatureRoutes(app);
-  registerJwStoneCartHoldRecoveryRoutes(app, {
-    holds: new JwStoneCartHolds(pool),
+  registerJwStoneCartHoldRoutes(app, {
+    holds: jwStoneCartHolds,
     authenticate: isAuthenticated,
     requireSchema: requireCriticalSchema("stone_inventory"),
+    requireWriteIntent: requireJwStoneCartHoldWriteIntent,
+    mutationLimiter: jwStoneCartHoldMutationLimiter,
     target: () => getStoneInventoryProfileTarget("jw-stone"),
+    access: async (req) => {
+      const viewerId = requestUserId(req);
+      if (!viewerId) return "none";
+      return resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
+    },
+    pricing: () => getJwStonePricingSnapshot({ forceRefresh: true }),
   });
+  if (process.env.NODE_ENV === "production" && !jwStoneCartHoldWorkerStarted) {
+    startJwStoneCartHoldExpiry(jwStoneCartHolds);
+    jwStoneCartHoldWorkerStarted = true;
+  }
   app.use("/api/u/jw-stone/member-pricing", requireCriticalSchema("profile_accounts"));
   app.get(
     "/api/u/jw-stone/member-pricing",
