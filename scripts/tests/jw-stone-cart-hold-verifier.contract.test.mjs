@@ -35,6 +35,10 @@ test('customer reservation verifier requires the complete desktop/touch and back
     "assert.equal(receipt.backendCartHoldProof?.head, head)",
     "assert.equal(backendReceipt.head, head)",
     "assert.equal(backendReceipt.productionWrites, false)",
+    "'exact-source.json'",
+    "nativeExitCode",
+    "verificationExitCode",
+    "failure",
   ]) {
     assert(wrapper.includes(token), 'Missing exact receipt requirement: ' + token);
   }
