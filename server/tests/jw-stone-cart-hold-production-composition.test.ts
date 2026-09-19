@@ -88,16 +88,44 @@ describe("JW Stone production cart-hold composition", () => {
       standardHeaders: true,
       legacyHeaders: false,
     });
-    expect(harness.rateLimitOptions[0].keyGenerator({
+    const mutationKey = harness.rateLimitOptions[0].keyGenerator;
+    expect(mutationKey({
       user: { id: "buyer-a" },
       ip: "127.0.0.1",
     })).toBe("u:buyer-a");
+    expect(mutationKey({
+      user: { id: "buyer-a" },
+      ip: "203.0.113.44",
+    })).toBe("u:buyer-a");
+    expect(mutationKey({
+      user: { id: "buyer-b" },
+      ip: "127.0.0.1",
+    })).toBe("u:buyer-b");
     expect(harness.storeFactory).toHaveBeenCalledWith(
       expect.objectContaining({ prefix: "jw_stone_cart_hold_mutation" })
     );
 
     expect(harness.startExpiry).toHaveBeenCalledTimes(1);
     expect(harness.startExpiry).toHaveBeenCalledWith(harness.holdInstances[0]);
+  });
+
+  it("accepts same-origin mutations on a mapped JW Stone custom domain", () => {
+    const deps = harness.registerHolds.mock.calls[0][1];
+    const next = vi.fn();
+    deps.requireWriteIntent(
+      {
+        protocol: "https",
+        get: (name: string) =>
+          name.toLowerCase() === "origin"
+            ? "https://jwstonelogistics.com"
+            : name.toLowerCase() === "host"
+              ? "jwstonelogistics.com"
+              : undefined,
+      } as any,
+      { status: vi.fn(), json: vi.fn() } as any,
+      next
+    );
+    expect(next).toHaveBeenCalledTimes(1);
   });
 
   it("uses the real production write-intent guard to reject cross-origin mutations", () => {
