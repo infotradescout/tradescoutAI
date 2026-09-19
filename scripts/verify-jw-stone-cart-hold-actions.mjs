@@ -18,6 +18,7 @@ let failure = null;
 let detachedCheckout = false;
 let freshNpmCi = false;
 let childStarted = false;
+let nativeExitCode = null;
 
 function safeError(error) {
   return String(error?.stack || error || 'Unknown verification failure')
@@ -106,7 +107,8 @@ try {
       timeout: 1_800_000,
     }
   );
-  status = result.status ?? 1;
+  nativeExitCode = result.status ?? 1;
+  status = nativeExitCode;
 
   stage = 'copy-evidence';
   const copyErrors = await copyOutputs();
@@ -165,7 +167,8 @@ try {
         detachedCheckout,
         freshNpmCi,
         childStarted,
-        childExitCode: status,
+        nativeExitCode,
+        verificationExitCode: status,
         copiedEvidenceErrors: copyErrors,
         productionWrites: false,
         generatedAt: new Date().toISOString(),
