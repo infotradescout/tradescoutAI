@@ -59,9 +59,11 @@ describe("JW Stone owned reservation status", () => {
   let host: HTMLDivElement;
   let client: QueryClient;
   let released = false;
+  let loseReleaseResponse = false;
 
   beforeEach(() => {
     released = false;
+    loseReleaseResponse = false;
     api.mockReset();
     api.mockImplementation(async (url: string, options?: any) => {
       if (url.endsWith("/active")) {
@@ -70,6 +72,7 @@ describe("JW Stone owned reservation status", () => {
       if (url.endsWith(`/${reservationId}/release`)) {
         expect(options).toMatchObject({ method: "POST", data: {} });
         released = true;
+        if (loseReleaseResponse) throw new Error("Release response was interrupted.");
         return { reservationId, status: "released" };
       }
       throw new Error("Unexpected API request: " + url);
@@ -91,6 +94,24 @@ describe("JW Stone owned reservation status", () => {
     await act(async () => root.unmount());
     client.clear();
     host.remove();
+  });
+
+  it("recovers immediately when release succeeds but its response is lost", async () => {
+    loseReleaseResponse = true;
+    await eventually(() =>
+      expect(document.body.textContent).toContain("Your temporary stock reservation")
+    );
+
+    clickByText("Release reservation");
+    clickByText("Confirm release");
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-owned-reservation-status"]')).toBeNull()
+    );
+
+    const releaseCalls = api.mock.calls.filter(([url]) => String(url).endsWith("/release"));
+    expect(releaseCalls).toHaveLength(1);
+    const activeCalls = api.mock.calls.filter(([url]) => String(url).endsWith("/active"));
+    expect(activeCalls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("requires explicit confirmation before releasing and sends no payment data", async () => {

@@ -52,6 +52,20 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
         queryClient.invalidateQueries({ queryKey: ["jw-stone", "cart-review"] }),
       ]);
     },
+    onError: async () => {
+      // A lost POST response can occur after the server has already released the stock.
+      // Recheck the owner-scoped active hold immediately so the UI does not preserve a
+      // reservation that no longer exists. Only refresh stock projections when the
+      // authoritative recovery confirms there is no active hold.
+      const refreshed = await query.refetch();
+      if (!refreshed.isError && refreshed.data?.hold == null) {
+        setReleaseConfirm(false);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["jw-stone", "cart-stock"] }),
+          queryClient.invalidateQueries({ queryKey: ["jw-stone", "cart-review"] }),
+        ]);
+      }
+    },
   });
   useEffect(() => {
     setNow(performance.now());
