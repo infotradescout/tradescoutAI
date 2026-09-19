@@ -85,10 +85,21 @@ try {
     assert.deepEqual([...receipt.customerReservationDevices].sort(), ['desktop', 'touch']);
     assert.equal(receipt.productionWrites, false);
     assert.equal(receipt.liveCustomerWrites, false);
+    assert.equal(receipt.backendCartHoldProof?.head, head);
     assert.equal(receipt.backendCartHoldProof?.passed, true);
+    assert.equal(receipt.backendCartHoldProof?.releaseApproved, false);
     assert.equal(receipt.backendCartHoldProof?.productionWrites, false);
+
+    const backendReceipt = JSON.parse(
+      await fs.readFile(path.join(root, 'test-results', 'jw-cart-holds', 'evidence.json'), 'utf8')
+    );
+    assert.equal(backendReceipt.head, head);
+    assert.equal(backendReceipt.passed, true);
+    assert.equal(backendReceipt.releaseApproved, false);
+    assert.equal(backendReceipt.productionWrites, false);
   }
 
+  await fs.mkdir(path.join(root, 'test-results', 'jw-cart-hold-actions'), { recursive: true });
   await fs.writeFile(
     path.join(root, 'test-results', 'jw-cart-hold-actions', 'exact-source.json'),
     JSON.stringify(
