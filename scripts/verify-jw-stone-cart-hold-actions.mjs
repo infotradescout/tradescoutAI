@@ -6,25 +6,64 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 const root = process.cwd();
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-const sourceStatus = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
-assert.equal(sourceStatus, '', 'Customer reservation verification requires a clean exact-head source tree');
-
-for (const key of [
-  'DATABASE_URL',
-  'TEST_DATABASE_URL',
-  'STRIPE_SECRET_KEY',
-  'JW_STONE_PRICING_APPROVED_IMPORT',
-  'JW_CART_DEPLOYED_SHA',
-]) {
-  assert(!process.env[key], 'Do not inherit production/data credentials into reservation proof: ' + key);
-}
-
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'jw-cart-actions-proof-'));
 const checkout = path.join(temporary, 'source');
+const outputRoot = path.join(root, 'test-results');
+const actionOutput = path.join(outputRoot, 'jw-cart-hold-actions');
 const outputs = ['jw-cart-hold-actions', 'jw-cart-holds'];
+
 let status = 1;
+let stage = 'preflight';
+let failure = null;
+let detachedCheckout = false;
+let freshNpmCi = false;
+let childStarted = false;
+
+function safeError(error) {
+  return String(error?.stack || error || 'Unknown verification failure')
+    .replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]')
+    .replace(/token[^\s]*[=:][^\s]+/gi, '[TOKEN]');
+}
+
+async function copyOutputs() {
+  const errors = [];
+  for (const name of outputs) {
+    const from = path.join(checkout, 'test-results', name);
+    const to = path.join(outputRoot, name);
+    try {
+      await fs.access(from);
+      await fs.rm(to, { recursive: true, force: true });
+      await fs.mkdir(path.dirname(to), { recursive: true });
+      await fs.cp(from, to, { recursive: true });
+    } catch (error) {
+      errors.push({ name, error: safeError(error) });
+    }
+  }
+  return errors;
+}
 
 try {
+  const sourceStatus = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
+  assert.equal(
+    sourceStatus,
+    '',
+    'Customer reservation verification requires a clean exact-head source tree'
+  );
+
+  for (const key of [
+    'DATABASE_URL',
+    'TEST_DATABASE_URL',
+    'STRIPE_SECRET_KEY',
+    'JW_STONE_PRICING_APPROVED_IMPORT',
+    'JW_CART_DEPLOYED_SHA',
+  ]) {
+    assert(
+      !process.env[key],
+      'Do not inherit production/data credentials into reservation proof: ' + key
+    );
+  }
+
+  stage = 'detached-checkout';
   execFileSync('git', ['clone', '--no-hardlinks', '--no-checkout', root, checkout], {
     stdio: 'inherit',
   });
@@ -37,13 +76,18 @@ try {
     execFileSync('git', ['-C', checkout, 'status', '--porcelain'], { encoding: 'utf8' }).trim(),
     ''
   );
+  detachedCheckout = true;
 
+  stage = 'npm-ci';
   execFileSync('npm', ['ci', '--include=dev'], {
     cwd: checkout,
     stdio: 'inherit',
     timeout: 600_000,
   });
+  freshNpmCi = true;
 
+  stage = 'native-reservation-proof';
+  childStarted = true;
   const result = spawnSync(
     process.execPath,
     [
@@ -64,51 +108,65 @@ try {
   );
   status = result.status ?? 1;
 
-  for (const name of outputs) {
-    const from = path.join(checkout, 'test-results', name);
-    const to = path.join(root, 'test-results', name);
-    try {
-      await fs.rm(to, { recursive: true, force: true });
-      await fs.mkdir(path.dirname(to), { recursive: true });
-      await fs.cp(from, to, { recursive: true });
-    } catch (error) {
-      if (status === 0) throw error;
-    }
+  stage = 'copy-evidence';
+  const copyErrors = await copyOutputs();
+  if (status === 0) assert.deepEqual(copyErrors, []);
+
+  if (status !== 0) {
+    throw new Error('Customer reservation native proof exited with code ' + status);
   }
 
-  const receiptPath = path.join(root, 'test-results', 'jw-cart-hold-actions', 'evidence.json');
-  if (status === 0) {
-    const receipt = JSON.parse(await fs.readFile(receiptPath, 'utf8'));
-    assert.equal(receipt.head, head);
-    assert.equal(receipt.passed, true);
-    assert.equal(receipt.customerReservationActionsProved, true);
-    assert.deepEqual([...receipt.customerReservationDevices].sort(), ['desktop', 'touch']);
-    assert.equal(receipt.productionWrites, false);
-    assert.equal(receipt.liveCustomerWrites, false);
-    assert.equal(receipt.backendCartHoldProof?.head, head);
-    assert.equal(receipt.backendCartHoldProof?.passed, true);
-    assert.equal(receipt.backendCartHoldProof?.releaseApproved, false);
-    assert.equal(receipt.backendCartHoldProof?.productionWrites, false);
+  stage = 'validate-receipts';
+  const receipt = JSON.parse(
+    await fs.readFile(path.join(actionOutput, 'evidence.json'), 'utf8')
+  );
+  assert.equal(receipt.head, head);
+  assert.equal(receipt.passed, true);
+  assert.equal(receipt.customerReservationActionsProved, true);
+  assert.deepEqual([...receipt.customerReservationDevices].sort(), ['desktop', 'touch']);
+  assert.equal(receipt.productionWrites, false);
+  assert.equal(receipt.liveCustomerWrites, false);
+  assert.equal(receipt.backendCartHoldProof?.head, head);
+  assert.equal(receipt.backendCartHoldProof?.passed, true);
+  assert.equal(receipt.backendCartHoldProof?.releaseApproved, false);
+  assert.equal(receipt.backendCartHoldProof?.productionWrites, false);
 
-    const backendReceipt = JSON.parse(
-      await fs.readFile(path.join(root, 'test-results', 'jw-cart-holds', 'evidence.json'), 'utf8')
-    );
-    assert.equal(backendReceipt.head, head);
-    assert.equal(backendReceipt.passed, true);
-    assert.equal(backendReceipt.releaseApproved, false);
-    assert.equal(backendReceipt.productionWrites, false);
-  }
+  const backendReceipt = JSON.parse(
+    await fs.readFile(path.join(outputRoot, 'jw-cart-holds', 'evidence.json'), 'utf8')
+  );
+  assert.equal(backendReceipt.head, head);
+  assert.equal(backendReceipt.passed, true);
+  assert.equal(backendReceipt.releaseApproved, false);
+  assert.equal(backendReceipt.productionWrites, false);
 
-  await fs.mkdir(path.join(root, 'test-results', 'jw-cart-hold-actions'), { recursive: true });
+  stage = 'final-source-integrity';
+  assert.equal(
+    execFileSync('git', ['-C', checkout, 'status', '--porcelain'], { encoding: 'utf8' }).trim(),
+    '',
+    'Verification changed tracked exact-source inputs'
+  );
+  status = 0;
+} catch (error) {
+  failure = safeError(error);
+  status = 1;
+  console.error('JW_CART_ACTION_PROOF_FAILURE ' + failure);
+} finally {
+  const copyErrors = detachedCheckout ? await copyOutputs() : [];
+  await fs.mkdir(actionOutput, { recursive: true });
   await fs.writeFile(
-    path.join(root, 'test-results', 'jw-cart-hold-actions', 'exact-source.json'),
+    path.join(actionOutput, 'exact-source.json'),
     JSON.stringify(
       {
         head,
-        cleanSource: true,
-        detachedCheckout: true,
-        freshNpmCi: true,
+        passed: status === 0,
+        stage,
+        failure,
+        cleanSourceRequired: true,
+        detachedCheckout,
+        freshNpmCi,
+        childStarted,
         childExitCode: status,
+        copiedEvidenceErrors: copyErrors,
         productionWrites: false,
         generatedAt: new Date().toISOString(),
       },
@@ -116,7 +174,6 @@ try {
       2
     ) + '\n'
   );
-} finally {
   await fs.rm(temporary, { recursive: true, force: true });
 }
 
