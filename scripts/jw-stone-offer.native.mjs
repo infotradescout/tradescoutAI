@@ -57,6 +57,7 @@ try {
       'client/src/features/jw-stone/JwStoneReservationStatus.test.tsx',
       'server/tests/jw-stone-cart-hold-recovery.test.ts',
       'server/tests/jw-stone-cart-hold-route.behavior.test.ts',
+      'server/tests/jw-stone-cart-hold-production-composition.test.ts',
       'server/tests/jw-stone-cart-hold-worker.test.ts',
       'server/tests/jw-stone-hold-countdown.test.ts',
       '--maxWorkers=2',
