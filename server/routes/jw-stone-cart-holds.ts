@@ -12,7 +12,7 @@ export type JwStoneCartHoldRouteDependencies = Readonly<{
   requireWriteIntent: RequestHandler;
   mutationLimiter: RequestHandler;
   target: () => Promise<{ businessId: string } | null>;
-  access: (req: Request) => Promise<JwStonePricingAccess>;
+  access: (req: Request) => Promise<JwStonePricingAccess | "none">;
   pricing: () => Promise<JwStonePricingSnapshot>;
 }>;
 const buyerId = (req: Request) => {
