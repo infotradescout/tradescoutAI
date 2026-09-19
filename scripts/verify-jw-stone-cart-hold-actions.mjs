@@ -126,6 +126,12 @@ try {
   assert.equal(receipt.passed, true);
   assert.equal(receipt.customerReservationActionsProved, true);
   assert.deepEqual([...receipt.customerReservationDevices].sort(), ['desktop', 'touch']);
+  const reservationChecks = receipt.checks.filter(check =>
+    String(check.name || '').includes('native customer cart reserve-recover-release')
+  );
+  assert.equal(reservationChecks.length, 2);
+  assert(reservationChecks.every(check => check.reservationBundleScope === 'single_material'));
+  assert(reservationChecks.every(check => check.mixedMaterialBundlePolicyAsserted === false));
   assert.equal(receipt.productionWrites, false);
   assert.equal(receipt.liveCustomerWrites, false);
   assert.equal(receipt.backendCartHoldProof?.head, head);
