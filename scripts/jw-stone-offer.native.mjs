@@ -11,6 +11,7 @@ import { proveJwStoneRequestJourney } from './jw-stone-request-journey.mjs';
 import { saveNativeOfferPreflight, reuseNativeOfferPreflight } from './jw-stone-native-preflight.mjs';
 import { proveJwStoneFeatureJourney } from './jw-stone-feature-journey.mjs';
 import { proveJwStoneOfferJourney } from './jw-stone-offer-journey.mjs';
+import { proveJwStoneCartHoldJourney } from './jw-stone-cart-hold-journey.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || (process.argv.includes('--feature-control') ? 'test-results/jw-feature-control' : 'test-results/jw-offers'));
@@ -124,6 +125,17 @@ try {
     note(device + ': real returning-user login retains member pricing');
     const offerEvidence = await proveJwStoneOfferJourney({ page, context, database: client, fixture, email, userId: user.id, device, output: out, rootPath, scope: journey });
     note(device + ': native ' + journey + ' offer', offerEvidence);
+    if (process.argv.includes('--cart-hold-actions') && journey === 'cart') {
+      const holdEvidence = await proveJwStoneCartHoldJourney({
+        page,
+        database: client,
+        fixture,
+        userId: user.id,
+        device,
+        output: out,
+      });
+      note(device + ': native customer cart reserve-recover-release', holdEvidence);
+    }
     const ownedStatusMode = process.argv.includes('--owned-hold-status');
     const heldEnv = { ...env, JW_STATUS_BUYER: user.id, JW_STATUS_SELLER: fixture.businessId, JW_STATUS_STOCK: fixture.cartStockId };
     let ownedReservationId;
