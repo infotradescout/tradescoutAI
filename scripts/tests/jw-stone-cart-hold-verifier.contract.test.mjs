@@ -37,6 +37,8 @@ test('customer reservation verifier requires the complete desktop/touch and back
     "assert.equal(receipt.backendCartHoldProof?.head, head)",
     "assert.equal(backendReceipt.head, head)",
     "assert.equal(backendReceipt.productionWrites, false)",
+    "reservationBundleScope === 'single_material'",
+    "mixedMaterialBundlePolicyAsserted === false",
     "'exact-source.json'",
     "nativeExitCode",
     "verificationExitCode",
