@@ -157,7 +157,7 @@
     "agents:builder": "cross-env AGENTS_ENABLED=true AGENT_ROLE=builder AGENT_WRITE_SCOPE=branches_only AGENT_DB_SCOPE=seed_only AGENT_INTENT_BUDGET=10 AGENT_MAX_PARALLEL=1 AGENT_HEARTBEAT_SEC=30 SCHEDULER_ENABLED=false DISABLE_CRAWLER=true node agent-runtime/agent-supervisor.js",
     "deploy:render": "node scripts/trigger-render-deploy.mjs",
     "split:workspaces": "node scripts/split-workspaces.mjs",
-    "verify:jw-stone:cart-holds": "node scripts/jw-stone-offer.native.mjs --feature-control --owned-hold-status --cart-hold-actions"
+    "verify:jw-stone:cart-holds": "cross-env JW_WORKFLOW_OUTPUT=test-results/jw-cart-hold-actions node scripts/jw-stone-offer.native.mjs --feature-control --owned-hold-status --cart-hold-actions"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
