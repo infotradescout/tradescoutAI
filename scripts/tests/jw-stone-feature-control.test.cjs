@@ -79,6 +79,9 @@ const baseRequests = [
   ['POST','/api/direct-connect/requests'], ['GET','/api/direct-connect/inbox'],
   ['POST','/api/tradepartner-profiles/jw-stone/express-request'],
   ['GET','/api/jw-stone/offers/existing/commercial'], ['POST','/api/jw-stone/holds/existing/release'],
+  ['GET','/api/u/jw-stone/member-pricing/holds/active'],
+  ['GET','/api/u/jw-stone/member-pricing/holds/operations/00000000-0000-4000-8000-000000000001'],
+  ['POST','/api/u/jw-stone/member-pricing/holds/jwh_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/release'],
   ['GET','/api/bidrock/orders/existing'], ['POST','/api/bidrock/orders/existing/cancel'],
   ['POST','/api/admin/bidrock/orders/existing/payment-settled'], ['POST','/api/admin/bidrock/orders/existing/complete'],
   ['GET','/api/u/another-business/member-pricing'], ['POST','/api/u/steel-home-packages/builder/save'],
@@ -91,6 +94,7 @@ for (const [method, url] of baseRequests) test('preserves base/history/unrelated
 });
 const premiumRequests = [
   ['GET','/api/u/jw-stone/member-pricing'], ['POST','/api/u/jw-stone/member-pricing/cart-review'],
+  ['POST','/api/u/jw-stone/member-pricing/holds', { idempotencyKey: '00000000-0000-4000-8000-000000000001' }],
   ['POST','/api/tradepartner-profiles/jw-stone/express-request', { requestType: 'make_offer' }],
   ['POST','/api/tradepartner-profiles/jw-stone/express-request', { stoneOffer: {} }],
   ['POST','/api/tradepartner-profiles/%6a%77-stone/express-request', { requestType: 'make_offer' }],
