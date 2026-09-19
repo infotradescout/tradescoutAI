@@ -292,6 +292,8 @@ export async function proveJwStoneCartHoldJourney({
       reservationId: receipt.reservationId,
       slabs: 7,
       subtotalCents: receipt.materialSubtotalCents,
+      reservationBundleScope: 'single_material',
+      mixedMaterialBundlePolicyAsserted: false,
       paymentStarted: false,
       marketplaceTransactionsAdded: 0,
       workRequestsAdded: 0,
