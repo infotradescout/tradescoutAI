@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   JW_STONE_CART_HOLD_PATH,
   jwStoneHoldRemainingSeconds,
   parseJwStoneCartHoldRecovery,
 } from "@shared/jwStoneCartHoldRecovery";
+import { jwStoneCartHoldReleaseSchema } from "@shared/jwStoneCartHolds";
 import { apiRequest } from "@/lib/queryClient";
 
 type Props = { viewerId: string | null; onContact: () => void };
@@ -12,6 +13,7 @@ type Props = { viewerId: string | null; onContact: () => void };
 export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
   const owner = String(viewerId || "").trim();
   const [now, setNow] = useState(() => performance.now());
+  const [releaseConfirm, setReleaseConfirm] = useState(false);
   const query = useQuery({
     queryKey: ["jw-stone", "owned-hold-status", owner],
     queryFn: async ({ signal }) => {
@@ -30,6 +32,21 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
     refetchInterval: 30_000,
   });
   const hold = owner && query.data?.viewerId === owner ? query.data.hold : null;
+  const releaseMutation = useMutation({
+    mutationFn: async () => {
+      if (!hold || hold.status !== "active") throw new Error("No active reservation to release.");
+      return jwStoneCartHoldReleaseSchema.parse(
+        await apiRequest(`${JW_STONE_CART_HOLD_PATH}/${hold.reservationId}/release`, {
+          method: "POST",
+          data: {},
+        })
+      );
+    },
+    onSuccess: () => {
+      setReleaseConfirm(false);
+      void query.refetch();
+    },
+  });
   useEffect(() => {
     setNow(performance.now());
     if (hold?.status !== "active") return;
@@ -87,15 +104,55 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
           This is the last confirmed status. It could not be refreshed.
         </p>
       ) : null}
+      {releaseMutation.isError ? (
+        <p role="alert" className="mt-2 text-xs">
+          {releaseMutation.error instanceof Error
+            ? releaseMutation.error.message
+            : "The reservation could not be released. Refresh and retry."}
+        </p>
+      ) : null}
+      {hold.status === "active" && releaseConfirm ? (
+        <div className="mt-3 border border-[var(--jw-border)] p-3 text-sm" role="group" aria-label="Confirm reservation release">
+          <p>Release these slabs back to available stock now?</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={releaseMutation.isPending}
+              onClick={() => releaseMutation.mutate()}
+              className="min-h-11 bg-[var(--jw-accent)] px-3 font-semibold text-[var(--jw-on-accent)] disabled:opacity-50"
+            >
+              {releaseMutation.isPending ? "Releasing…" : "Confirm release"}
+            </button>
+            <button
+              type="button"
+              disabled={releaseMutation.isPending}
+              onClick={() => setReleaseConfirm(false)}
+              className="min-h-11 border border-[var(--jw-border)] px-3 disabled:opacity-50"
+            >
+              Keep reservation
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="mt-2 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={query.isFetching}
+          disabled={query.isFetching || releaseMutation.isPending}
           onClick={() => void query.refetch()}
           className="min-h-11 border border-[var(--jw-border)] px-3 text-sm disabled:opacity-50"
         >
           {query.isFetching ? "Checking reservation…" : "Refresh reservation status"}
         </button>
+        {hold.status === "active" && !releaseConfirm ? (
+          <button
+            type="button"
+            disabled={releaseMutation.isPending}
+            onClick={() => setReleaseConfirm(true)}
+            className="min-h-11 border border-[var(--jw-border)] px-3 text-sm disabled:opacity-50"
+          >
+            Release reservation
+          </button>
+        ) : null}
         <button type="button" onClick={onContact} className="min-h-11 px-3 text-sm underline">
           Contact JW Stone
         </button>
