@@ -70,6 +70,7 @@ export async function proveJwStoneFeatureJourney({page,context,database,fixture,
     const blocked=[
       ['GET','/api/u/jw-stone/member-pricing'],
       ['POST','/api/u/jw-stone/member-pricing/cart-review',{lines:[{inventoryPublicId:fixture.cartStockId,quantity:1}]}],
+      ['POST','/api/u/jw-stone/member-pricing/holds',{idempotencyKey:randomUUID(),lines:[{inventoryPublicId:fixture.cartStockId,quantity:1}],expectedSubtotalCents:1,fulfillment:{method:'pickup'}}],
       ['POST','/api/tradepartner-profiles/jw-stone/express-request',{requestType:'make_offer'}],
       ['POST','/api/jw-stone/saved-stones/email',{email:'unused@example.invalid',stones:[{name:'Honey Onyx',shareSlug:'honey-onyx'}]}],
       ['PATCH','/api/u/jw-stone/stone-inventory/current/'+fixture.cartStockId+'/publication',{saleReady:true}],
