@@ -1,3 +1,5 @@
+import { requireJwStoneEnhancements } from "../services/jwStoneFeatureAccess";
+import { JwStoneFeatureError } from "@shared/jwStoneFeaturePolicy";
 import type { Express, NextFunction, Request, Response } from "express";
 import { resolveJwStonePublicMediaObjectKey } from "@shared/jwStonePublicMedia";
 import {
@@ -28,9 +30,20 @@ async function serveCatalogImage(
   cacheControl: string,
   stream: PublicMediaStreamer
 ): Promise<void> {
+  try {
+    await requireJwStoneEnhancements();
+  } catch (error) {
+    res.setHeader("Cache-Control", "no-store");
+    res
+      .status(error instanceof JwStoneFeatureError ? error.status : 503)
+      .send(
+        "JW Stone visualization is unavailable. Public stone photos remain available on the catalog."
+      );
+    return;
+  }
   const key = resolveJwStonePublicMediaObjectKey(imageHref);
   if (!key) return next();
-  const result = await stream({ req, res, key, cacheControl });
+  const result = await stream({ req, res, key, cacheControl: "no-store" });
   if (result === "served") return;
   if (result === "not_found" || result === "unconfigured") return next();
   if (!res.headersSent) {

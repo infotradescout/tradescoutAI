@@ -1,4 +1,5 @@
-import type { Express, Request, Response } from "express";
+import type { Express, NextFunction, Request, RequestHandler, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 import type {
   JwStoneInternalPricingResponse,
   JwStoneMemberPricingResponse,
@@ -6,11 +7,28 @@ import type {
 } from "@shared/jwStoneMemberPricing";
 import { JW_STONE_PRICING_PROFILE_SLUG, jwStonePriceKey } from "@shared/jwStoneMemberPricing";
 import { combineJwStoneCartLines, jwStoneCartReviewRequestSchema } from "@shared/jwStoneCart";
+import {
+  JW_STONE_BUNDLE_SLABS,
+  getJwStoneBundleProgress,
+  priceJwStoneBundleLine,
+} from "@shared/jwStoneBundle";
 import { isAuthenticated } from "../auth";
+import { pool } from "../db";
+import { JwStoneCartHolds } from "../services/jwStoneCartHolds";
+import { registerJwStoneCartHoldRoutes } from "./jw-stone-cart-holds";
+import { startJwStoneCartHoldExpiry } from "../services/jwStoneCartHoldWorker";
+import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { registerJwStoneFeatureRoutes } from "./jw-stone-features";
 import { requireCriticalSchema } from "../schemaPreflight";
-import { getJwStonePricingSnapshot, type JwStonePricingSnapshot } from "../services/jwStoneDrivePricing";
+import {
+  getJwStonePricingSnapshot,
+  type JwStonePricingSnapshot,
+} from "../services/jwStoneDrivePricing";
 import { resolveJwStonePricingAccess } from "../services/jwStonePricingAccess";
-import { getStoneInventoryProfileTarget, listSellerStoneInventory } from "../services/stoneInventoryService";
+import {
+  getStoneInventoryProfileTarget,
+  listSellerStoneInventory,
+} from "../services/stoneInventoryService";
 import { loadJwStoneCartAvailability } from "../services/jwStoneCartAvailability";
 
 function requestUserId(req: Request): string {
@@ -25,7 +43,8 @@ function centsForSlabFace(
   if (!dimensions || !Number.isSafeInteger(rateCents) || rateCents <= 0) return null;
   const length = Number(dimensions.length);
   const height = Number(dimensions.height);
-  if (!Number.isFinite(length) || !Number.isFinite(height) || length <= 0 || height <= 0) return null;
+  if (!Number.isFinite(length) || !Number.isFinite(height) || length <= 0 || height <= 0)
+    return null;
   const inchesPerUnit = dimensions.unit === "mm" ? 1 / 25.4 : dimensions.unit === "in" ? 1 : null;
   if (!inchesPerUnit) return null;
   const total = Math.round((length * inchesPerUnit * height * inchesPerUnit * rateCents) / 144);
@@ -45,21 +64,37 @@ export function projectJwStonePricingResponse(args: {
     sourceUpdatedAt: args.snapshot.sourceUpdatedAt,
   };
   if (args.access === "internal") {
-    return Object.freeze({ ...base, access: "internal" as const,
-      prices: Object.freeze(args.snapshot.prices.map((price) => Object.freeze({
-        stoneName: price.stoneName, stoneKey: price.stoneKey,
-        slabPriceCents: price.slabPriceCents, bundlePriceCents: price.bundlePriceCents,
-        ...(price.bundleMinSlabs == null ? {} : { bundleMinSlabs: price.bundleMinSlabs }),
-        landedCostCents: price.landedCostCents,
-      }))),
+    return Object.freeze({
+      ...base,
+      access: "internal" as const,
+      prices: Object.freeze(
+        args.snapshot.prices.map((price) =>
+          Object.freeze({
+            stoneName: price.stoneName,
+            stoneKey: price.stoneKey,
+            slabPriceCents: price.slabPriceCents,
+            bundlePriceCents: price.bundlePriceCents,
+            ...(price.bundleMinSlabs == null ? {} : { bundleMinSlabs: price.bundleMinSlabs }),
+            landedCostCents: price.landedCostCents,
+          })
+        )
+      ),
     });
   }
-  return Object.freeze({ ...base, access: "member" as const,
-    prices: Object.freeze(args.snapshot.prices.map((price) => Object.freeze({
-      stoneName: price.stoneName, stoneKey: price.stoneKey,
-      slabPriceCents: price.slabPriceCents, bundlePriceCents: price.bundlePriceCents,
-      ...(price.bundleMinSlabs == null ? {} : { bundleMinSlabs: price.bundleMinSlabs }),
-    }))),
+  return Object.freeze({
+    ...base,
+    access: "member" as const,
+    prices: Object.freeze(
+      args.snapshot.prices.map((price) =>
+        Object.freeze({
+          stoneName: price.stoneName,
+          stoneKey: price.stoneKey,
+          slabPriceCents: price.slabPriceCents,
+          bundlePriceCents: price.bundlePriceCents,
+          ...(price.bundleMinSlabs == null ? {} : { bundleMinSlabs: price.bundleMinSlabs }),
+        })
+      )
+    ),
   });
 }
 
@@ -69,37 +104,120 @@ function privateResponse(res: Response): void {
   res.vary("Authorization");
 }
 
-export function registerJwStoneMemberPricingRoutes(app: Express): void {
-  app.use("/api/u/jw-stone/member-pricing", requireCriticalSchema("profile_accounts"));
-  app.get("/api/u/jw-stone/member-pricing", isAuthenticated, async (req: Request, res: Response): Promise<void> => {
-    privateResponse(res);
-    try {
-      const viewerId = requestUserId(req);
-      if (!viewerId) { res.status(401).json({ message: "Authentication required" }); return; }
-      const access = await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
-      if (access === "none") {
-        res.status(403).json({ message: "An active JW Stone business membership is required to view pricing." });
-        return;
-      }
-      const snapshot = await getJwStonePricingSnapshot();
-      res.status(200).json(projectJwStonePricingResponse({ snapshot, access, viewerId }));
-    } catch (error) {
-      console.error("[jw-stone-member-pricing] private price source unavailable", {
-        message: error instanceof Error ? error.message : "Unknown pricing source error",
-      });
-      res.status(503).json({ message: "JW Stone member pricing is temporarily unavailable." });
-    }
-  });
+const jwStoneCartHolds = new JwStoneCartHolds(pool);
+let jwStoneCartHoldWorkerStarted = false;
+const passthroughMutationLimiter: RequestHandler = (_req, _res, next) => next();
+const jwStoneCartHoldMutationLimiter: RequestHandler =
+  process.env.NODE_ENV === "production"
+    ? rateLimit({
+        windowMs: 10 * 60 * 1000,
+        max: 30,
+        standardHeaders: true,
+        legacyHeaders: false,
+        // Authentication runs before this limiter, so reservation mutation quotas
+        // are identity-bound and never depend on proxy/IP parsing.
+        keyGenerator: (req) => `u:${requestUserId(req) || "authenticated-unknown"}`,
+        store: createPostgresRateLimitStore({
+          pool,
+          prefix: "jw_stone_cart_hold_mutation",
+          cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 600_000),
+        }),
+      })
+    : passthroughMutationLimiter;
 
-  app.post("/api/u/jw-stone/member-pricing/cart-review", isAuthenticated,
-    requireCriticalSchema("stone_inventory"), async (req: Request, res: Response): Promise<void> => {
+function requireJwStoneCartHoldWriteIntent(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  const origin = String(req.get("Origin") || "").trim();
+  const host = String(req.get("host") || "").trim().toLowerCase();
+  try {
+    const parsed = new URL(origin);
+    if (!origin || !host || parsed.host.toLowerCase() !== host || parsed.protocol !== `${req.protocol}:`) {
+      res.status(403).json({
+        code: "same_origin_required",
+        message: "Open your JW Stone cart on this site before changing a reservation.",
+      });
+      return;
+    }
+  } catch {
+    res.status(403).json({
+      code: "same_origin_required",
+      message: "Open your JW Stone cart on this site before changing a reservation.",
+    });
+    return;
+  }
+  next();
+}
+
+export function registerJwStoneMemberPricingRoutes(app: Express): void {
+  registerJwStoneFeatureRoutes(app);
+  registerJwStoneCartHoldRoutes(app, {
+    holds: jwStoneCartHolds,
+    authenticate: isAuthenticated,
+    requireSchema: requireCriticalSchema("stone_inventory"),
+    requireWriteIntent: requireJwStoneCartHoldWriteIntent,
+    mutationLimiter: jwStoneCartHoldMutationLimiter,
+    target: () => getStoneInventoryProfileTarget("jw-stone"),
+    access: async (req) => {
+      const viewerId = requestUserId(req);
+      if (!viewerId) return "none";
+      return resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
+    },
+    pricing: () => getJwStonePricingSnapshot({ forceRefresh: true }),
+  });
+  if (process.env.NODE_ENV === "production" && !jwStoneCartHoldWorkerStarted) {
+    startJwStoneCartHoldExpiry(jwStoneCartHolds);
+    jwStoneCartHoldWorkerStarted = true;
+  }
+  app.use("/api/u/jw-stone/member-pricing", requireCriticalSchema("profile_accounts"));
+  app.get(
+    "/api/u/jw-stone/member-pricing",
+    isAuthenticated,
+    async (req: Request, res: Response): Promise<void> => {
       privateResponse(res);
       try {
         const viewerId = requestUserId(req);
-        if (!viewerId) { res.status(401).json({ message: "Authentication required" }); return; }
+        if (!viewerId) {
+          res.status(401).json({ message: "Authentication required" });
+          return;
+        }
+        const access = await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
+        if (access === "none") {
+          res.status(403).json({
+            message: "An active JW Stone business membership is required to view pricing.",
+          });
+          return;
+        }
+        const snapshot = await getJwStonePricingSnapshot();
+        res.status(200).json(projectJwStonePricingResponse({ snapshot, access, viewerId }));
+      } catch (error) {
+        console.error("[jw-stone-member-pricing] private price source unavailable", {
+          message: error instanceof Error ? error.message : "Unknown pricing source error",
+        });
+        res.status(503).json({ message: "JW Stone member pricing is temporarily unavailable." });
+      }
+    }
+  );
+
+  app.post(
+    "/api/u/jw-stone/member-pricing/cart-review",
+    isAuthenticated,
+    requireCriticalSchema("stone_inventory"),
+    async (req: Request, res: Response): Promise<void> => {
+      privateResponse(res);
+      try {
+        const viewerId = requestUserId(req);
+        if (!viewerId) {
+          res.status(401).json({ message: "Authentication required" });
+          return;
+        }
         const access = await resolveJwStonePricingAccess({ userId: viewerId, user: req.user });
         if (access !== "member") {
-          res.status(403).json({ message: "An active JW Stone business membership is required to review an order." });
+          res.status(403).json({
+            message: "An active JW Stone business membership is required to review an order.",
+          });
           return;
         }
         const parsed = jwStoneCartReviewRequestSchema.safeParse(req.body);
@@ -107,65 +225,135 @@ export function registerJwStoneMemberPricingRoutes(app: Express): void {
           res.status(400).json({ message: parsed.error.issues[0]?.message || "Invalid cart" });
           return;
         }
-        const target = await getStoneInventoryProfileTarget("jw-stone");
-        if (!target) { res.status(503).json({ message: "JW Stone inventory is temporarily unavailable." }); return; }
-        const requestedLines = combineJwStoneCartLines(parsed.data.lines);
-        const [inventory, snapshot, availabilityByPublicId] = await Promise.all([
-          listSellerStoneInventory(target),
-          getJwStonePricingSnapshot({ forceRefresh: true }),
-          loadJwStoneCartAvailability(target.businessId, requestedLines.map((line) => line.inventoryPublicId)),
-        ]);
-        const inventoryByPublicId = new Map(inventory.map((item) => [item.id, item]));
-        const priceByStoneKey = new Map(snapshot.prices.map((price) => [price.stoneKey, price]));
-        let subtotalCents = 0;
-        const lines = requestedLines.map((requested) => {
-          const base = { inventoryPublicId: requested.inventoryPublicId, requestedQuantity: requested.quantity };
-          const item = inventoryByPublicId.get(requested.inventoryPublicId);
-          if (!item || !item.isSaleReady) return { ...base, status: "unavailable" as const };
-          // A container, block, or a count expressed in bundles is not a count of slabs.
-          if ((item.assetKind !== "slab" && item.assetKind !== "bundle") ||
-              !/^slabs?$/i.test(item.unit.trim()) || !Number.isSafeInteger(Number(item.quantity))) {
-            return { ...base, availableQuantity: 0, materialName: item.materialName, status: "slab_quantity_required" as const };
-          }
-          const stock = availabilityByPublicId.get(requested.inventoryPublicId);
-          // Missing, ambiguous, changed or malformed allocation facts never mean all stock is free.
-          if (!stock || stock.inventoryPositionId !== item.inventoryPositionId ||
-              stock.physicalQuantity !== Number(item.quantity) || stock.unit.toLowerCase() !== item.unit.trim().toLowerCase()) {
-            return { ...base, status: "unavailable" as const };
-          }
-          const availableQuantity = stock.availableQuantity;
-          const known = { ...base, availableQuantity, materialName: item.materialName };
-          if (requested.quantity > availableQuantity) return { ...known, status: "insufficient_quantity" as const };
-          const price = priceByStoneKey.get(jwStonePriceKey(item.materialName));
-          if (!price) return { ...known, status: "price_unavailable" as const };
-          const useBundleRate = price.bundleMinSlabs != null && requested.quantity >= price.bundleMinSlabs;
-          const unitRateCents = useBundleRate ? price.bundlePriceCents : price.slabPriceCents;
-          const oneSlabTotalCents = centsForSlabFace(unitRateCents, item.dimensions);
-          if (oneSlabTotalCents == null) return { ...known, status: "dimensions_required" as const };
-          const lineTotalCents = oneSlabTotalCents * requested.quantity;
-          if (!Number.isSafeInteger(lineTotalCents) || !Number.isSafeInteger(subtotalCents + lineTotalCents)) {
-            throw new Error("Cart amount exceeds supported precision");
-          }
-          subtotalCents += lineTotalCents;
-          return { ...known, materialSlug: item.materialSlug, assetKind: item.assetKind,
-            dimensions: item.dimensions, pricingTier: useBundleRate ? ("bundle" as const) : ("slab" as const),
-            unitRateCents, oneSlabTotalCents, lineTotalCents, status: "ready" as const };
-        });
-        const materialReady = lines.every((line) => line.status === "ready");
-        res.status(200).json({
-          profileSlug: "jw-stone", viewerId, currency: "USD", sourceUpdatedAt: snapshot.sourceUpdatedAt,
-          reviewedAt: new Date().toISOString(), materialReady,
-          // This read-only review neither holds stock nor enables a payment/order path.
-          readyForCheckout: false, inventoryReserved: false,
-          subtotalCents: materialReady ? subtotalCents : null, lines,
-          fulfillment: parsed.data.fulfillment || { method: "pickup" },
-          deliveryFeeCents: null, estimatedDeliveryDate: null,
-        });
+        res.status(200).json(await reviewJwStoneMemberCart(viewerId, parsed.data));
       } catch (error) {
         console.error("[jw-stone-member-pricing] cart review unavailable", {
           message: error instanceof Error ? error.message : "Unknown cart review error",
         });
         res.status(503).json({ message: "JW Stone order review is temporarily unavailable." });
       }
-    });
+    }
+  );
+}
+
+/** Read-only authoritative pricing shared by cart review and pending offer intake. */
+export async function reviewJwStoneMemberCart(
+  viewerId: string,
+  input: import("@shared/jwStoneCart").JwStoneCartReviewRequest
+) {
+  const target = await getStoneInventoryProfileTarget("jw-stone");
+  if (!target) throw new Error("JW Stone inventory is temporarily unavailable.");
+  const requestedLines = combineJwStoneCartLines(input.lines);
+  const [inventory, snapshot, availabilityByPublicId] = await Promise.all([
+    listSellerStoneInventory(target),
+    getJwStonePricingSnapshot({ forceRefresh: true }),
+    loadJwStoneCartAvailability(
+      target.businessId,
+      requestedLines.map((line) => line.inventoryPublicId)
+    ),
+  ]);
+  const inventoryByPublicId = new Map(inventory.map((item) => [item.id, item]));
+  const priceByStoneKey = new Map(snapshot.prices.map((price) => [price.stoneKey, price]));
+  const stagedLines = requestedLines.map((requested) => {
+    const base = {
+      inventoryPublicId: requested.inventoryPublicId,
+      requestedQuantity: requested.quantity,
+    };
+    const item = inventoryByPublicId.get(requested.inventoryPublicId);
+    if (!item || !item.isSaleReady) return { ...base, status: "unavailable" as const };
+    // A container, block, or a count expressed in bundles is not a count of slabs.
+    if (
+      (item.assetKind !== "slab" && item.assetKind !== "bundle") ||
+      !/^slabs?$/i.test(item.unit.trim()) ||
+      !Number.isSafeInteger(Number(item.quantity))
+    ) {
+      return {
+        ...base,
+        availableQuantity: 0,
+        materialName: item.materialName,
+        status: "slab_quantity_required" as const,
+      };
+    }
+    const stock = availabilityByPublicId.get(requested.inventoryPublicId);
+    // Missing, ambiguous, changed or malformed allocation facts never mean all stock is free.
+    if (
+      !stock ||
+      stock.inventoryPositionId !== item.inventoryPositionId ||
+      stock.physicalQuantity !== Number(item.quantity) ||
+      stock.unit.toLowerCase() !== item.unit.trim().toLowerCase()
+    ) {
+      return { ...base, status: "unavailable" as const };
+    }
+    const availableQuantity = stock.availableQuantity;
+    const known = { ...base, availableQuantity, materialName: item.materialName };
+    if (requested.quantity > availableQuantity)
+      return { ...known, status: "insufficient_quantity" as const };
+    const price = priceByStoneKey.get(jwStonePriceKey(item.materialName));
+    if (!price) return { ...known, status: "price_unavailable" as const };
+    const regularOneSlabCents = centsForSlabFace(price.slabPriceCents, item.dimensions);
+    const bundleOneSlabCents = centsForSlabFace(price.bundlePriceCents, item.dimensions);
+    if (regularOneSlabCents == null || bundleOneSlabCents == null)
+      return { ...known, status: "dimensions_required" as const };
+    const bundlePricing = {
+      slabRateCents: price.slabPriceCents,
+      bundleRateCents: price.bundlePriceCents,
+      minimumSlabs: price.bundleMinSlabs ?? JW_STONE_BUNDLE_SLABS,
+      regularOneSlabCents,
+      bundleOneSlabCents,
+    };
+    return {
+      ...known,
+      materialSlug: item.materialSlug,
+      assetKind: item.assetKind,
+      dimensions: item.dimensions,
+      bundlePricing,
+      status: "ready" as const,
+    };
+  });
+  // Count only fully checked, unheld slab selections. Blocked rows cannot unlock a discount.
+  const progress = getJwStoneBundleProgress(stagedLines);
+  const lines = stagedLines.map((line) =>
+    line.status === "ready"
+      ? {
+          ...line,
+          ...priceJwStoneBundleLine(line.bundlePricing, line.requestedQuantity, progress.unlocked),
+        }
+      : line
+  );
+  const materialReady = lines.every((line) => line.status === "ready");
+  const subtotalCents = lines.reduce(
+    (sum, line) => sum + (line.status === "ready" ? line.lineTotalCents : 0),
+    0
+  );
+  const regularSubtotalCents = lines.reduce(
+    (sum, line) =>
+      sum +
+      (line.status === "ready"
+        ? line.bundlePricing.regularOneSlabCents * line.requestedQuantity
+        : 0),
+    0
+  );
+  if (!Number.isSafeInteger(subtotalCents) || !Number.isSafeInteger(regularSubtotalCents))
+    throw new Error("Cart amount exceeds supported precision");
+  return {
+    profileSlug: "jw-stone",
+    viewerId,
+    currency: "USD",
+    sourceUpdatedAt: snapshot.sourceUpdatedAt,
+    reviewedAt: new Date().toISOString(),
+    materialReady,
+    // This read-only review neither holds stock nor enables a payment/order path.
+    readyForCheckout: false,
+    inventoryReserved: false,
+    subtotalCents: materialReady ? subtotalCents : null,
+    lines,
+    bundle: {
+      ...progress,
+      regularSubtotalCents: materialReady ? regularSubtotalCents : null,
+      savingsCents: materialReady ? regularSubtotalCents - subtotalCents : null,
+    },
+    fulfillment: input.fulfillment || { method: "pickup" },
+    deliveryFeeCents: null,
+    estimatedDeliveryDate: null,
+  };
 }

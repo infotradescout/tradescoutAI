@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { jwStonePriceKey } from "./jwStoneMemberPricing";
+import {
+  JW_STONE_BUNDLE_SLABS,
+  getJwStoneBundleProgress,
+  priceJwStoneBundleLine,
+} from "./jwStoneBundle";
 
 export const JW_STONE_CART_STORAGE_PREFIX = "tradescout:jw-stone:member-cart:v2:";
 export const JW_STONE_LEGACY_CART_STORAGE_PREFIX = "tradescout:jw-stone:member-cart:v1:";
@@ -12,33 +17,55 @@ const centsSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
 export const jwStoneCartFulfillmentSchema = z.discriminatedUnion("method", [
   z.object({ method: z.literal("pickup") }).strict(),
-  z.object({ method: z.literal("delivery"), postalCode: z.string().regex(/^\d{5}(?:-\d{4})?$/) }).strict(),
+  z
+    .object({ method: z.literal("delivery"), postalCode: z.string().regex(/^\d{5}(?:-\d{4})?$/) })
+    .strict(),
 ]);
 export type JwStoneCartFulfillment = z.infer<typeof jwStoneCartFulfillmentSchema>;
 
-export const jwStoneCartReviewRequestSchema = z.object({
-  lines: z.array(z.object({
-    inventoryPublicId: jwStoneInventoryPublicIdSchema,
-    quantity: quantitySchema,
-  }).strict()).min(1).max(JW_STONE_CART_REVIEW_MAX_LINES),
-  fulfillment: jwStoneCartFulfillmentSchema.optional(),
-}).strict().superRefine((value, context) => {
-  const quantities = new Map<string, number>();
-  for (const line of value.lines) {
-    const total = (quantities.get(line.inventoryPublicId) || 0) + line.quantity;
-    quantities.set(line.inventoryPublicId, total);
-    if (total > 999) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["lines"], message: "The combined quantity for one stock item cannot exceed 999 slabs." });
-      break;
+export const jwStoneCartReviewRequestSchema = z
+  .object({
+    lines: z
+      .array(
+        z
+          .object({
+            inventoryPublicId: jwStoneInventoryPublicIdSchema,
+            quantity: quantitySchema,
+          })
+          .strict()
+      )
+      .min(1)
+      .max(JW_STONE_CART_REVIEW_MAX_LINES),
+    fulfillment: jwStoneCartFulfillmentSchema.optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const quantities = new Map<string, number>();
+    for (const line of value.lines) {
+      const total = (quantities.get(line.inventoryPublicId) || 0) + line.quantity;
+      quantities.set(line.inventoryPublicId, total);
+      if (total > 999) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["lines"],
+          message: "The combined quantity for one stock item cannot exceed 999 slabs.",
+        });
+        break;
+      }
     }
-  }
-});
+  });
 export type JwStoneCartReviewRequest = z.infer<typeof jwStoneCartReviewRequestSchema>;
 
 /** Duplicate browser rows refer to the same physical quantity, never extra stock. */
-export function combineJwStoneCartLines(lines: JwStoneCartReviewRequest["lines"]): JwStoneCartReviewRequest["lines"] {
+export function combineJwStoneCartLines(
+  lines: JwStoneCartReviewRequest["lines"]
+): JwStoneCartReviewRequest["lines"] {
   const quantities = new Map<string, number>();
-  for (const line of lines) quantities.set(line.inventoryPublicId, (quantities.get(line.inventoryPublicId) || 0) + line.quantity);
+  for (const line of lines)
+    quantities.set(
+      line.inventoryPublicId,
+      (quantities.get(line.inventoryPublicId) || 0) + line.quantity
+    );
   return [...quantities].map(([inventoryPublicId, quantity]) => ({ inventoryPublicId, quantity }));
 }
 
@@ -55,9 +82,34 @@ const lineBase = {
 const unavailableLine = z.object({ ...lineBase, status: z.literal("unavailable") });
 const blockedLine = z.object({
   ...lineBase,
-  status: z.enum(["insufficient_quantity", "price_unavailable", "dimensions_required", "slab_quantity_required"]),
+  status: z.enum([
+    "insufficient_quantity",
+    "price_unavailable",
+    "dimensions_required",
+    "slab_quantity_required",
+  ]),
   materialName: z.string().min(1).max(160),
   availableQuantity: z.number().int().min(0),
+});
+const bundlePricingSchema = z.object({
+  slabRateCents: centsSchema,
+  bundleRateCents: centsSchema,
+  minimumSlabs: z.number().int().min(2).max(999),
+  regularOneSlabCents: centsSchema,
+  bundleOneSlabCents: centsSchema,
+});
+const bundleSummarySchema = z.object({
+  requiredSlabs: z.literal(JW_STONE_BUNDLE_SLABS),
+  eligibleSlabs: z
+    .number()
+    .int()
+    .min(0)
+    .max(JW_STONE_CART_REVIEW_MAX_LINES * 999),
+  remainingSlabs: z.number().int().min(0).max(JW_STONE_BUNDLE_SLABS),
+  completeBundles: z.number().int().min(0),
+  unlocked: z.boolean(),
+  regularSubtotalCents: centsSchema.nullable(),
+  savingsCents: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable(),
 });
 const readyLine = z.object({
   ...lineBase,
@@ -71,6 +123,7 @@ const readyLine = z.object({
   unitRateCents: centsSchema,
   oneSlabTotalCents: centsSchema,
   lineTotalCents: centsSchema,
+  bundlePricing: bundlePricingSchema.optional(),
 });
 export const jwStoneCartReviewResponseSchema = z.object({
   profileSlug: z.literal("jw-stone"),
@@ -82,41 +135,92 @@ export const jwStoneCartReviewResponseSchema = z.object({
   readyForCheckout: z.literal(false),
   inventoryReserved: z.literal(false),
   subtotalCents: centsSchema.nullable(),
+  bundle: bundleSummarySchema.optional(),
   fulfillment: jwStoneCartFulfillmentSchema,
   deliveryFeeCents: z.null(),
   estimatedDeliveryDate: z.null(),
-  lines: z.array(z.union([readyLine, blockedLine, unavailableLine])).min(1).max(JW_STONE_CART_REVIEW_MAX_LINES),
+  lines: z
+    .array(z.union([readyLine, blockedLine, unavailableLine]))
+    .min(1)
+    .max(JW_STONE_CART_REVIEW_MAX_LINES),
 });
 export type JwStoneCartReview = z.infer<typeof jwStoneCartReviewResponseSchema>;
 
 /** Bind a response to the exact member and request; discard any unexpected private fields. */
-export function parseJwStoneCartReview(value: unknown, viewerId: string, request: JwStoneCartReviewRequest): JwStoneCartReview {
+export function parseJwStoneCartReview(
+  value: unknown,
+  viewerId: string,
+  request: JwStoneCartReviewRequest
+): JwStoneCartReview {
   const review = jwStoneCartReviewResponseSchema.parse(value);
   const expected = combineJwStoneCartLines(request.lines);
-  if (review.viewerId !== viewerId || review.lines.length !== expected.length ||
-      JSON.stringify(review.fulfillment) !== JSON.stringify(request.fulfillment || { method: "pickup" })) {
+  if (
+    review.viewerId !== viewerId ||
+    review.lines.length !== expected.length ||
+    JSON.stringify(review.fulfillment) !==
+      JSON.stringify(request.fulfillment || { method: "pickup" })
+  ) {
     throw new Error("The cart changed. Check availability again.");
   }
+  const progress = getJwStoneBundleProgress(review.lines);
   const seen = new Set<string>();
   let subtotal = 0;
+  let regularSubtotal = 0;
   for (const line of review.lines) {
     const requested = expected.find((entry) => entry.inventoryPublicId === line.inventoryPublicId);
-    if (!requested || requested.quantity !== line.requestedQuantity || seen.has(line.inventoryPublicId)) {
+    if (
+      !requested ||
+      requested.quantity !== line.requestedQuantity ||
+      seen.has(line.inventoryPublicId)
+    ) {
       throw new Error("The cart changed. Check availability again.");
     }
     seen.add(line.inventoryPublicId);
     if (line.status === "ready") {
-      if (line.requestedQuantity > line.availableQuantity ||
-          line.oneSlabTotalCents * line.requestedQuantity !== line.lineTotalCents) {
+      if (
+        line.requestedQuantity > line.availableQuantity ||
+        line.oneSlabTotalCents * line.requestedQuantity !== line.lineTotalCents
+      ) {
         throw new Error("The cart total could not be checked.");
+      }
+      if (review.bundle) {
+        if (!line.bundlePricing) throw new Error("Bundle pricing could not be checked.");
+        const expectedPrice = priceJwStoneBundleLine(
+          line.bundlePricing,
+          line.requestedQuantity,
+          progress.unlocked
+        );
+        if (
+          line.pricingTier !== expectedPrice.pricingTier ||
+          line.unitRateCents !== expectedPrice.unitRateCents ||
+          line.oneSlabTotalCents !== expectedPrice.oneSlabTotalCents ||
+          line.lineTotalCents !== expectedPrice.lineTotalCents
+        )
+          throw new Error("Bundle pricing could not be checked.");
+        regularSubtotal += line.bundlePricing.regularOneSlabCents * line.requestedQuantity;
       }
       subtotal += line.lineTotalCents;
     }
   }
   const materialReady = review.lines.every((line) => line.status === "ready");
-  if (!Number.isSafeInteger(subtotal) || review.materialReady !== materialReady ||
-      review.subtotalCents !== (materialReady ? subtotal : null)) {
+  if (
+    !Number.isSafeInteger(subtotal) ||
+    review.materialReady !== materialReady ||
+    review.subtotalCents !== (materialReady ? subtotal : null)
+  ) {
     throw new Error("The cart total could not be checked.");
+  }
+  if (
+    review.bundle &&
+    (review.bundle.eligibleSlabs !== progress.eligibleSlabs ||
+      review.bundle.remainingSlabs !== progress.remainingSlabs ||
+      review.bundle.unlocked !== progress.unlocked ||
+      review.bundle.completeBundles !== progress.completeBundles ||
+      !Number.isSafeInteger(regularSubtotal) ||
+      review.bundle.regularSubtotalCents !== (materialReady ? regularSubtotal : null) ||
+      review.bundle.savingsCents !== (materialReady ? regularSubtotal - subtotal : null))
+  ) {
+    throw new Error("Bundle savings could not be checked.");
   }
   return review;
 }
@@ -138,14 +242,27 @@ export function restoreJwStoneCart(value: unknown): readonly JwStoneCartSelectio
   for (const raw of value) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const item = raw as Record<string, unknown>;
-    if (typeof item.id !== "string" || !item.id.trim() || item.id.length > 500 ||
-        typeof item.stoneName !== "string" || !item.stoneName.trim() || item.stoneName.length > 160 ||
-        item.stoneKey !== jwStonePriceKey(item.stoneName) ||
-        !quantitySchema.safeParse(item.quantity).success || seen.has(item.id)) continue;
+    if (
+      typeof item.id !== "string" ||
+      !item.id.trim() ||
+      item.id.length > 500 ||
+      typeof item.stoneName !== "string" ||
+      !item.stoneName.trim() ||
+      item.stoneName.length > 160 ||
+      item.stoneKey !== jwStonePriceKey(item.stoneName) ||
+      !quantitySchema.safeParse(item.quantity).success ||
+      seen.has(item.id)
+    )
+      continue;
     const publicId = jwStoneInventoryPublicIdSchema.safeParse(item.inventoryPublicId);
     seen.add(item.id);
-    result.push({ id: item.id, stoneName: item.stoneName.trim(), stoneKey: String(item.stoneKey),
-      quantity: Number(item.quantity), ...(publicId.success ? { inventoryPublicId: publicId.data } : {}) });
+    result.push({
+      id: item.id,
+      stoneName: item.stoneName.trim(),
+      stoneKey: String(item.stoneKey),
+      quantity: Number(item.quantity),
+      ...(publicId.success ? { inventoryPublicId: publicId.data } : {}),
+    });
   }
   return result;
 }

@@ -10,8 +10,15 @@ import type { DirectConnectMaterialTarget } from "./directConnectMaterial";
 import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
 import { sanitizeJwStoneDirectConnectSelections } from "@shared/jwStoneDirectConnect";
 import { isRegisteredDirectProfileSlug } from "@shared/publicProfileExposureRegistry";
+import {
+  JW_STONE_OFFER_TERMS,
+  type JwStoneOfferContext,
+  type JwStoneOfferInput,
+} from "@shared/jwStoneOffer";
+import { JwStoneOfferFields } from "@/features/jw-stone/JwStoneOfferFields";
 
 export type ExpressDirectConnectRequestType =
+  | "make_offer"
   | "request_material"
   | "match_project"
   | "ask_about_bundle"
@@ -61,6 +68,8 @@ type ExpressDirectConnectPanelProps = {
   initialServiceName?: string | null;
   /** Optional caller-provided project questions; the visitor edits these before sending. */
   initialMessage?: string | null;
+  /** Member-only offer intake; still uses the normal contact-gated request transaction. */
+  jwStoneOffer?: JwStoneOfferContext;
   /** Stable material slug (e.g. multi-green-onyx). Prefer over display name in URLs/source context. */
   initialItemId?: string | null;
   /** Optional bounded named-stone context. Existing scalar callers remain unchanged. */
@@ -138,6 +147,7 @@ export default function ExpressDirectConnectPanel({
   initialStoneName,
   initialServiceName,
   initialMessage,
+  jwStoneOffer,
   initialItemId,
   initialStoneSelections,
   initialView = "choice",
@@ -150,6 +160,12 @@ export default function ExpressDirectConnectPanel({
   const approvedCallRequestRef = useRef<AbortController | null>(null);
   const canRevealRegisteredBusinessPhone = allowCall && isRegisteredDirectProfileSlug(profileSlug);
   const config = REQUEST_MODE_CONFIG[requestMode];
+  const offerContext =
+    profileSlug === "jw-stone" && requestMode === "materials" && hasViewerSession
+      ? jwStoneOffer
+      : undefined;
+  const [offerInput, setOfferInput] = useState<JwStoneOfferInput | null>(null);
+  const requestInFlightRef = useRef(false);
   const safeStoneSelections = useMemo(
     () =>
       sanitizeJwStoneDirectConnectSelections({
@@ -171,7 +187,7 @@ export default function ExpressDirectConnectPanel({
   // selection's stable slug only in `itemId` so it never becomes public copy.
   const itemParam = displayStoneName;
   const defaultRequestType =
-    initialRequestType ||
+    (offerContext ? "make_offer" : initialRequestType) ||
     (stableItemId || itemParam || multiStoneSelections.length
       ? "request_material"
       : config.defaultType);
@@ -215,6 +231,7 @@ export default function ExpressDirectConnectPanel({
   );
   const [form, setForm] = useState(initialForm);
   const draftRef = useRef({
+    offerContext,
     profileSlug,
     requestMode,
     messageEdited: false,
@@ -278,11 +295,14 @@ export default function ExpressDirectConnectPanel({
   useEffect(() => {
     const draft = draftRef.current;
     const startNewDraft =
+      draft.offerContext !== offerContext ||
       draft.profileSlug !== profileSlug ||
       draft.requestMode !== requestMode ||
       (open && draft.submitted);
     if (startNewDraft) {
+      setOfferInput(null);
       draftRef.current = {
+        offerContext,
         profileSlug,
         requestMode,
         messageEdited: false,
@@ -316,6 +336,7 @@ export default function ExpressDirectConnectPanel({
     initialRequestType,
     initialForm,
     initialFormMessage,
+    offerContext,
     initialView,
     multiStoneSelections.length,
     open,
@@ -406,9 +427,15 @@ export default function ExpressDirectConnectPanel({
   const submitRequest = async (event: FormEvent) => {
     event.preventDefault();
     const draft = draftRef.current;
+    if (requestInFlightRef.current || draft.submitted) return;
+    requestInFlightRef.current = true;
     setBusy(true);
     setError("");
     try {
+      if (offerContext && !offerInput) {
+        setError("Check the current total, enter your offer, and acknowledge the payment terms.");
+        return;
+      }
       const phone = form.phone.trim();
       if (!phone) {
         setError("Enter a phone number so they can reach you.");
@@ -440,10 +467,13 @@ export default function ExpressDirectConnectPanel({
           };
       const roleLabel =
         MATERIALS_CUSTOMER_ROLES.find((role) => role.value === form.customerRole)?.label || "";
+      const message = offerContext
+        ? form.message.trim() || "Please review my material-price offer."
+        : form.message;
       const messageWithRole =
         requestMode === "materials" && roleLabel
-          ? `Customer type: ${roleLabel}.\n\n${form.message}`
-          : form.message;
+          ? `Customer type: ${roleLabel}.\n\n${message}`
+          : message;
       const discoveryAttribution = getStoredDiscoveryLandingAttribution(profileSlug);
       const response = await fetch(
         `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-request`,
@@ -455,7 +485,8 @@ export default function ExpressDirectConnectPanel({
             name: form.name,
             email: form.email,
             phone,
-            requestType: form.requestType,
+            requestType: offerContext ? "make_offer" : form.requestType,
+            ...(offerContext && offerInput ? { stoneOffer: offerInput } : {}),
             contactPreference: requestedContactPreference,
             message: messageWithRole,
             website: form.website,
@@ -470,9 +501,24 @@ export default function ExpressDirectConnectPanel({
       if (draftRef.current !== draft) return;
       if (!response.ok) {
         throw new Error(
-          response.status === 400
-            ? "Add your name, email, phone number, and a few details about what you need."
-            : "We couldn’t send that yet."
+          offerContext &&
+            [400, 401, 403, 409].includes(response.status) &&
+            typeof json?.message === "string"
+            ? json.message
+            : response.status === 400
+              ? "Add your name, email, phone number, and a few details about what you need."
+              : "We couldn’t send that yet."
+        );
+      }
+      if (
+        offerContext &&
+        (!json?.requestId ||
+          json.offerStatus !== "pending_review" ||
+          json.paymentAllowed !== false ||
+          json.inventoryReserved !== false)
+      ) {
+        throw new Error(
+          "The offer receipt could not be confirmed. Check My Requests before retrying."
         );
       }
       setRequestId(String(json?.requestId || ""));
@@ -489,6 +535,7 @@ export default function ExpressDirectConnectPanel({
     } catch (cause: any) {
       if (draftRef.current === draft) setError(cause?.message || "We couldn’t send that yet.");
     } finally {
+      requestInFlightRef.current = false;
       if (draftRef.current === draft) setBusy(false);
     }
   };
@@ -514,11 +561,15 @@ export default function ExpressDirectConnectPanel({
               <button
                 type="button"
                 onClick={() => {
+                  if (offerContext) {
+                    close();
+                    return;
+                  }
                   setError("");
                   setView("choice");
                 }}
                 className="rounded-full p-2 text-neutral-900 hover:bg-black/5"
-                aria-label="Back to contact options"
+                aria-label={offerContext ? "Back to selection" : "Back to contact options"}
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
@@ -612,17 +663,19 @@ export default function ExpressDirectConnectPanel({
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900">
-                  {requestedContactPreference === "call"
-                    ? `Request a call from ${operatorName}`
-                    : selectedServiceName
-                      ? `Ask about ${selectedServiceName}`
-                      : multiStoneSelections.length
-                        ? `Ask about ${multiStoneSelections.length} saved stones`
-                        : displayStoneName
-                          ? `Ask about ${displayStoneName}`
-                          : stableItemId
-                            ? "Ask about this stone selection"
-                            : config.heading}
+                  {offerContext
+                    ? "Make an offer"
+                    : requestedContactPreference === "call"
+                      ? `Request a call from ${operatorName}`
+                      : selectedServiceName
+                        ? `Ask about ${selectedServiceName}`
+                        : multiStoneSelections.length
+                          ? `Ask about ${multiStoneSelections.length} saved stones`
+                          : displayStoneName
+                            ? `Ask about ${displayStoneName}`
+                            : stableItemId
+                              ? "Ask about this stone selection"
+                              : config.heading}
                 </h3>
                 {requestedContactPreference === "call" ? (
                   <p className="mt-2 text-sm leading-6 text-stone-600">
@@ -646,6 +699,9 @@ export default function ExpressDirectConnectPanel({
                 ) : null}
               </div>
 
+              {offerContext ? (
+                <JwStoneOfferFields context={offerContext} onChange={setOfferInput} />
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Name</span>
                 <input
@@ -716,34 +772,38 @@ export default function ExpressDirectConnectPanel({
                   </select>
                 </label>
               ) : null}
+              {!offerContext ? (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
+                    What do you need?
+                  </span>
+                  <select
+                    value={form.requestType}
+                    onChange={(event) => {
+                      draftRef.current.requestTypeEdited = true;
+                      setForm({
+                        ...form,
+                        requestType: event.target.value as ExpressDirectConnectRequestType,
+                      });
+                    }}
+                    className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none focus:border-ts-orange"
+                  >
+                    {config.requestTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
-                  What do you need?
+                  {offerContext ? "Offer notes (optional)" : "Details"}
                 </span>
-                <select
-                  value={form.requestType}
-                  onChange={(event) => {
-                    draftRef.current.requestTypeEdited = true;
-                    setForm({
-                      ...form,
-                      requestType: event.target.value as ExpressDirectConnectRequestType,
-                    });
-                  }}
-                  className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none focus:border-ts-orange"
-                >
-                  {config.requestTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Details</span>
                 <textarea
-                  required
+                  required={!offerContext}
                   rows={5}
-                  minLength={10}
+                  minLength={offerContext ? undefined : 10}
                   value={form.message}
                   onChange={(event) => {
                     draftRef.current.messageEdited = true;
@@ -776,7 +836,7 @@ export default function ExpressDirectConnectPanel({
               </p>
               <button
                 type="submit"
-                disabled={busy}
+                disabled={busy || Boolean(offerContext && !offerInput)}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-ts-orange px-7 py-3.5 font-bold text-white transition-colors hover:bg-ts-orange-dark disabled:opacity-60"
               >
                 {busy ? (
@@ -786,7 +846,11 @@ export default function ExpressDirectConnectPanel({
                 ) : (
                   <MessageCircle className="h-5 w-5" />
                 )}
-                {requestedContactPreference === "call" ? "Send call request" : "Make A Request"}
+                {offerContext
+                  ? "Submit offer"
+                  : requestedContactPreference === "call"
+                    ? "Send call request"
+                    : "Make A Request"}
               </button>
             </form>
           ) : null}
@@ -819,14 +883,21 @@ export default function ExpressDirectConnectPanel({
             <div className="text-center">
               <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
               <h3 className="text-2xl font-bold text-neutral-900">
-                {requestDeliveryCustody === "tradescout_pending_owner"
-                  ? requestedContactPreference === "call"
-                    ? "Call request saved"
-                    : "Request saved"
-                  : requestedContactPreference === "call"
-                    ? "Call request sent"
-                    : "Request sent"}
+                {offerContext
+                  ? "Offer submitted — pending review"
+                  : requestDeliveryCustody === "tradescout_pending_owner"
+                    ? requestedContactPreference === "call"
+                      ? "Call request saved"
+                      : "Request saved"
+                    : requestedContactPreference === "call"
+                      ? "Call request sent"
+                      : "Request sent"}
               </h3>
+              {offerContext ? (
+                <p className="mx-auto mt-3 max-w-md text-sm text-stone-600">
+                  {JW_STONE_OFFER_TERMS}
+                </p>
+              ) : null}
               {requestDeliveryCustody !== "tradescout_pending_owner" ? (
                 <p className="mx-auto mt-2 max-w-md text-stone-600">
                   {requestedContactPreference === "call"

@@ -257,3 +257,6 @@ describe("JW Stone approximate slab cost", () => {
     expect(estimateJwStoneSlabCost(2050, { length: 133, unit: "in" })).toBeNull();
   });
 });
+
+// This isolated suite assumes licensed tools are ON; real feature admission is exercised by the native feature suite.
+vi.mock("./useJwStoneFeatures", () => ({ useJwStoneFeatures: () => ({ enabled: true }) }));

@@ -191,3 +191,6 @@ describe("StoneCard", async () => {
     expect(card?.querySelector('[data-testid="jw-stone-card-photo-next"]')).toBeNull();
   });
 });
+
+// This isolated suite assumes licensed tools are ON; real feature admission is exercised by the native feature suite.
+vi.mock("./useJwStoneFeatures", () => ({ useJwStoneFeatures: () => ({ enabled: true }) }));
