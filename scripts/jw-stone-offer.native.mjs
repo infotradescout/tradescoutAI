@@ -51,8 +51,11 @@ try {
   } else {
   run('Profile account customer-session isolation', ['npm', 'run', 'test:run', '--', 'client/src/components/profile/PublicProfileAccountDialog.session.test.tsx', '--maxWorkers=1']);
   if (process.argv.includes('--feature-control') || process.argv.includes('--cart-hold-actions')) {
-    run('JW Stone feature access policy contracts', [
-      process.execPath, '--test', 'scripts/tests/jw-stone-feature-control.test.cjs',
+    run('JW Stone feature and verifier contracts', [
+      process.execPath,
+      '--test',
+      'scripts/tests/jw-stone-feature-control.test.cjs',
+      'scripts/tests/jw-stone-cart-hold-verifier.contract.test.mjs',
     ]);
   }
   if (process.argv.includes('--cart-hold-actions')) {
