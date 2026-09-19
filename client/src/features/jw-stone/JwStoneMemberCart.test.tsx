@@ -648,6 +648,38 @@ describe("JW Stone member cart", () => {
     expect(window.sessionStorage.length).toBe(0);
   });
 
+  it("uses the confirmed hold cache to block a second cart reservation", async () => {
+    render(stockId);
+    await add();
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-cart-reserve-stock"]')).not.toBeNull()
+    );
+    click(document.querySelector('[data-testid="jw-cart-reserve-stock"]'));
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-stone-member-cart"]')).toBeNull()
+    );
+    expect(holdRequests).toHaveLength(1);
+
+    click(document.querySelector('[data-testid="jw-stone-member-cart-button"]'));
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-stone-member-cart"]')).not.toBeNull()
+    );
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-cart-owned-reservation-line"]')?.textContent)
+        .toContain("1 slab already reserved")
+    );
+    const reserve = document.querySelector(
+      '[data-testid="jw-cart-reserve-stock"]'
+    ) as HTMLButtonElement;
+    expect(reserve.disabled).toBe(true);
+    expect(reserve.textContent).toContain("Active reservation already exists");
+    act(() => reserve.click());
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(holdRequests).toHaveLength(1);
+  });
+
   it("opens a full-cart offer with the displayed total without changing saved quantities", async () => {
     render(stockId);
     await add();
