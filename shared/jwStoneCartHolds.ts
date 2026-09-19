@@ -4,6 +4,7 @@ import {
   jwStoneCartFulfillmentSchema,
   jwStoneInventoryPublicIdSchema,
 } from "./jwStoneCart";
+import { jwStoneCartHoldIdSchema } from "./jwStoneCartHoldRecovery";
 
 export const JW_STONE_CART_HOLD_MINUTES = 30;
 export {
@@ -44,28 +45,46 @@ export const jwStoneCartHoldRequestSchema = z
     }
   });
 export type JwStoneCartHoldRequest = z.infer<typeof jwStoneCartHoldRequestSchema>;
-export type JwStoneCartHoldReceipt = Readonly<{
-  reservationId: string;
-  status: "active" | "released" | "expired";
-  expiresAt: string;
-  serverTime: string;
-  currency: "USD";
-  materialSubtotalCents: number;
-  paymentStatus: "not_started";
-  readyForCheckout: false;
-  fulfillment: JwStoneCartHoldRequest["fulfillment"];
-  deliveryFeeCents: null;
-  estimatedDeliveryDate: null;
-  lines: readonly Readonly<{
-    inventoryPublicId: string;
-    materialName: string;
-    quantity: number;
-    unitRateCents: number;
-    oneSlabTotalCents: number;
-    lineTotalCents: number;
-    pricingTier: "slab" | "bundle";
-  }>[];
-}>;
+export const jwStoneCartHoldReceiptSchema = z
+  .object({
+    reservationId: jwStoneCartHoldIdSchema,
+    status: z.enum(["active", "released", "expired"]),
+    expiresAt: z.string().datetime(),
+    serverTime: z.string().datetime(),
+    currency: z.literal("USD"),
+    materialSubtotalCents: z.number().int().positive().max(2_147_483_647),
+    paymentStatus: z.literal("not_started"),
+    readyForCheckout: z.literal(false),
+    fulfillment: jwStoneCartFulfillmentSchema,
+    deliveryFeeCents: z.null(),
+    estimatedDeliveryDate: z.null(),
+    lines: z
+      .array(
+        z
+          .object({
+            inventoryPublicId: jwStoneInventoryPublicIdSchema,
+            materialName: z.string().min(1).max(180),
+            quantity: z.number().int().min(1).max(999),
+            unitRateCents: z.number().int().positive().max(2_147_483_647),
+            oneSlabTotalCents: z.number().int().positive().max(2_147_483_647),
+            lineTotalCents: z.number().int().positive().max(2_147_483_647),
+            pricingTier: z.enum(["slab", "bundle"]),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(50),
+  })
+  .strict();
+
+export type JwStoneCartHoldReceipt = z.infer<typeof jwStoneCartHoldReceiptSchema>;
+
+export const jwStoneCartHoldReleaseSchema = z
+  .object({
+    reservationId: jwStoneCartHoldIdSchema,
+    status: z.enum(["released", "expired"]),
+  })
+  .strict();
 
 export class JwStoneCartHoldError extends Error {
   constructor(
