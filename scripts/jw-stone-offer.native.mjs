@@ -176,6 +176,8 @@ try {
         device,
         output: out,
       });
+      assert.equal(holdEvidence.reservationBundleScope, 'single_material');
+      assert.equal(holdEvidence.mixedMaterialBundlePolicyAsserted, false);
       note(device + ': native customer cart reserve-recover-release', holdEvidence);
       report.customerReservationDevices.push(device);
     }
