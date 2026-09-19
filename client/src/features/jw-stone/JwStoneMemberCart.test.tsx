@@ -709,6 +709,9 @@ describe("JW Stone member cart", () => {
       expect(document.querySelector('[data-testid="jw-cart-owned-reservation-line"]')?.textContent)
         .toContain("1 slab already reserved")
     );
+    expect(
+      document.querySelector('[data-testid="jw-cart-active-reservation-block"]')?.textContent
+    ).toContain("already have an active JW Stone reservation");
     const reserve = document.querySelector(
       '[data-testid="jw-cart-reserve-stock"]'
     ) as HTMLButtonElement;
