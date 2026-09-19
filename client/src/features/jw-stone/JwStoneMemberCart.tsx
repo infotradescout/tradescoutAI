@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   JW_STONE_CART_REVIEW_PATH,
   JW_STONE_CART_REVIEW_MAX_LINES,
+  combineJwStoneCartLines,
   jwStoneCartReviewRequestSchema,
   jwStoneInventoryPublicIdSchema,
   parseJwStoneCartReview,
@@ -265,7 +266,9 @@ export function JwStoneMemberCart({
         throw new Error("Recheck current stock, pricing, and fulfillment before reserving.");
       }
       const stableInput = {
-        lines: parsedRequest.data.lines,
+        lines: combineJwStoneCartLines(parsedRequest.data.lines).sort((a, b) =>
+          a.inventoryPublicId.localeCompare(b.inventoryPublicId)
+        ),
         fulfillment: parsedRequest.data.fulfillment,
         expectedSubtotalCents: review.subtotalCents,
       };
