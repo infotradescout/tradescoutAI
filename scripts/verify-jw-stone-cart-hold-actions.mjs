@@ -82,7 +82,8 @@ try {
     assert.equal(receipt.head, head);
     assert.equal(receipt.passed, true);
     assert.equal(receipt.customerReservationActionsProved, true);
-    assert.equal(receipt.productionWrites, undefined);
+    assert.deepEqual([...receipt.customerReservationDevices].sort(), ['desktop', 'touch']);
+    assert.equal(receipt.productionWrites, false);
     assert.equal(receipt.liveCustomerWrites, false);
     assert.equal(receipt.backendCartHoldProof?.passed, true);
     assert.equal(receipt.backendCartHoldProof?.productionWrites, false);
