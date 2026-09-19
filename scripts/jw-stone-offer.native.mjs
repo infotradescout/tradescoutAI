@@ -67,7 +67,9 @@ try {
     report.backendCartHoldProof = JSON.parse(
       backendSummary.slice('JW_HOLD_PROOF_SUMMARY '.length)
     );
+    assert.equal(report.backendCartHoldProof.head, head);
     assert.equal(report.backendCartHoldProof.passed, true);
+    assert.equal(report.backendCartHoldProof.releaseApproved, false);
     assert.equal(report.backendCartHoldProof.productionWrites, false);
     run('Customer cart reservation contracts', [
       'npm', 'run', 'test:run', '--',
@@ -248,7 +250,9 @@ try {
       ['desktop', 'touch'],
       'Customer reservation acceptance must pass on desktop and touch'
     );
+    assert.equal(report.backendCartHoldProof?.head, head);
     assert.equal(report.backendCartHoldProof?.passed, true);
+    assert.equal(report.backendCartHoldProof?.releaseApproved, false);
     assert.equal(report.backendCartHoldProof?.productionWrites, false);
     report.customerReservationActionsProved = true;
   }
