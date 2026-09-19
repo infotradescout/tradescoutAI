@@ -183,10 +183,42 @@ try {
       await page.goto(base + rootPath, { waitUntil: 'domcontentloaded' });
       await page.getByTestId('jw-owned-reservation-status').waitFor();
       await page.screenshot({path:path.join(out,device+'-owned-hold-revoked-membership.png')});
-      run('Release synthetic owned hold after status acceptance', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-owned-hold.fixture.ts', '--release'], heldEnv);
-      await page.getByRole('button',{name:'Refresh reservation status',exact:true}).click();
-      await page.getByTestId('jw-owned-reservation-status').waitFor({state:'detached'});
-      note(device+': original owner retains price-free status after revocation and UI refresh follows service release', {actualRecoveryUi:true, releaseViaFixtureService:true, noCustomerReserveOrReleaseUi:true});
+      if (process.argv.includes('--cart-hold-actions')) {
+        const releaseResponse = page.waitForResponse(
+          response =>
+            new URL(response.url()).pathname ===
+              '/api/u/jw-stone/member-pricing/holds/' + ownedReservationId + '/release' &&
+            response.request().method() === 'POST'
+        );
+        await click(page.getByTestId('jw-release-reservation'));
+        await page.getByText('Release these slabs back to available stock now?', {exact:true}).waitFor();
+        await click(page.getByRole('button',{name:'Confirm release',exact:true}));
+        const released = await releaseResponse;
+        assert.equal(released.status(),200,'Original owner must be able to release after pricing revocation');
+        const releaseReceipt = await released.json();
+        assert.deepEqual(releaseReceipt,{reservationId:ownedReservationId,status:'released'});
+        await page.getByTestId('jw-owned-reservation-status').waitFor({state:'detached'});
+        const terminal=(await client.query('SELECT status,released_at FROM jw_stone_cart_holds WHERE public_id=$1',[ownedReservationId])).rows[0];
+        assert.equal(terminal.status,'released'); assert(terminal.released_at);
+        const position=(await client.query(
+          `SELECT held_quantity FROM stone_inventory_positions position
+           JOIN stone_asset_passports passport ON passport.id=position.asset_passport_id
+           WHERE position.holder_business_id=$1 AND passport.public_id=$2`,
+          [fixture.businessId,fixture.cartStockId]
+        )).rows[0];
+        assert.equal(Number(position.held_quantity),0);
+        note(device+': original owner releases owned hold through actual UI after membership revocation', {
+          actualRecoveryUi:true,
+          actualCustomerReleaseUi:true,
+          releaseAfterMembershipRevocation:true,
+          paymentStarted:false,
+        });
+      } else {
+        run('Release synthetic owned hold after status acceptance', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-owned-hold.fixture.ts', '--release'], heldEnv);
+        await page.getByRole('button',{name:'Refresh reservation status',exact:true}).click();
+        await page.getByTestId('jw-owned-reservation-status').waitFor({state:'detached'});
+        note(device+': original owner retains price-free status after revocation and UI refresh follows service release', {actualRecoveryUi:true, releaseViaFixtureService:true, noCustomerReserveOrReleaseUi:true});
+      }
     }
     assert.deepEqual(errors, [], 'Uncaught browser errors'); assert.deepEqual(failures, [], 'Unexpected server errors');
     await context.close(); activePage = undefined;
