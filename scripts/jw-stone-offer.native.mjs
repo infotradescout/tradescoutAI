@@ -14,12 +14,17 @@ import { proveJwStoneOfferJourney } from './jw-stone-offer-journey.mjs';
 import { proveJwStoneCartHoldJourney } from './jw-stone-cart-hold-journey.mjs';
 
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || (process.argv.includes('--feature-control') ? 'test-results/jw-feature-control' : 'test-results/jw-offers'));
+const defaultOutput = process.argv.includes('--cart-hold-actions')
+  ? 'test-results/jw-cart-hold-actions'
+  : process.argv.includes('--feature-control')
+    ? 'test-results/jw-feature-control'
+    : 'test-results/jw-offers';
+const out = path.resolve(process.env.JW_WORKFLOW_OUTPUT || defaultOutput);
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'jw-workflow-'));
 const base = 'http://127.0.0.1:5228';
 const rootPath = '/u/jw-stone';
 const itemPath = rootPath + '/stones/honey-onyx';
-const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, actualEmailDeliveryProved: false, formalPricedQuoteProved: false, source: 'Synthetic localhost native database, actual application routes and built client' };
+const report = { head, startedAt: new Date().toISOString(), checks: [], passed: false, liveCustomerWrites: false, actualEmailDeliveryProved: false, formalPricedQuoteProved: false, customerReservationActionsProved: false, source: 'Synthetic localhost native database, actual application routes and built client' };
 let database, client, server, browser, activePage, logFile;
 function clean() { return execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(); }
 function note(name, detail = {}) { report.checks.push({ name, ...detail, passed: true }); console.log('JW_WORKFLOW_CHECK ' + JSON.stringify(report.checks.at(-1))); }
@@ -147,6 +152,7 @@ try {
         output: out,
       });
       note(device + ': native customer cart reserve-recover-release', holdEvidence);
+      report.customerReservationActionsProved = true;
     }
     const ownedStatusMode = process.argv.includes('--owned-hold-status');
     const heldEnv = { ...env, JW_STATUS_BUYER: user.id, JW_STATUS_SELLER: fixture.businessId, JW_STATUS_STOCK: fixture.cartStockId };
