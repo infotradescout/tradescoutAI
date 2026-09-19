@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
 import { z } from "zod";
 import {
@@ -13,6 +13,12 @@ import {
 } from "@shared/jwStoneCart";
 import { jwStonePriceKey } from "@shared/jwStoneMemberPricing";
 import { isJwStoneBundleEligible } from "@shared/jwStoneBundle";
+import {
+  JW_STONE_CART_HOLD_MINUTES,
+  JW_STONE_CART_HOLD_PATH,
+  jwStoneCartHoldReceiptSchema,
+  jwStoneCartHoldRequestSchema,
+} from "@shared/jwStoneCartHolds";
 import { JwStoneBundleBuilder } from "./JwStoneBundleBuilder";
 import type { JwStoneOfferContext } from "@shared/jwStoneOffer";
 import { normalizePublicStoneInventoryImageUrls } from "@shared/stoneInventory";
@@ -59,6 +65,42 @@ const preferencesSchema = z.object({
 });
 const emptyPreferences = { method: "pickup" as const, postalCode: "", jobReference: "" };
 const preferencesKey = (viewerId: string) => `tradescout:jw-stone:cart-fulfillment:v1:${viewerId}`;
+const holdOperationKey = (viewerId: string) =>
+  `tradescout:jw-stone:cart-hold-operation:v1:${viewerId}`;
+const holdOperationSchema = z
+  .object({ fingerprint: z.string().min(1).max(20_000), operationId: z.string().uuid() })
+  .strict();
+function loadOrCreateHoldOperation(viewerId: string, fingerprint: string): string {
+  try {
+    const stored = holdOperationSchema.safeParse(
+      JSON.parse(window.sessionStorage.getItem(holdOperationKey(viewerId)) || "null")
+    );
+    if (stored.success && stored.data.fingerprint === fingerprint) return stored.data.operationId;
+  } catch {
+    /* A retry remains possible even when session storage is unavailable. */
+  }
+  const operationId = crypto.randomUUID();
+  try {
+    window.sessionStorage.setItem(
+      holdOperationKey(viewerId),
+      JSON.stringify({ fingerprint, operationId })
+    );
+  } catch {
+    /* Keep the in-memory request identity for this attempt. */
+  }
+  return operationId;
+}
+function clearHoldOperation(viewerId: string, operationId: string): void {
+  try {
+    const stored = holdOperationSchema.safeParse(
+      JSON.parse(window.sessionStorage.getItem(holdOperationKey(viewerId)) || "null")
+    );
+    if (stored.success && stored.data.operationId === operationId)
+      window.sessionStorage.removeItem(holdOperationKey(viewerId));
+  } catch {
+    /* Nothing to clear. */
+  }
+}
 function loadPreferences(viewerId: string): z.infer<typeof preferencesSchema> {
   try {
     const parsed = preferencesSchema.safeParse(
@@ -189,6 +231,38 @@ export function JwStoneMemberCart({
     queryClient.setQueryData(["jw-stone", "member-pricing", viewerId], null);
     onClose();
   }, [reviewQuery.error, queryClient, viewerId, onClose]);
+
+  const holdMutation = useMutation({
+    mutationFn: async () => {
+      if (
+        !parsedRequest.success ||
+        !review?.materialReady ||
+        review.subtotalCents == null ||
+        fulfillmentError
+      ) {
+        throw new Error("Recheck current stock, pricing, and fulfillment before reserving.");
+      }
+      const stableInput = {
+        lines: parsedRequest.data.lines,
+        fulfillment: parsedRequest.data.fulfillment,
+        expectedSubtotalCents: review.subtotalCents,
+      };
+      const fingerprint = JSON.stringify(stableInput);
+      const idempotencyKey = loadOrCreateHoldOperation(viewerId, fingerprint);
+      const request = jwStoneCartHoldRequestSchema.parse({ ...stableInput, idempotencyKey });
+      const receipt = jwStoneCartHoldReceiptSchema.parse(
+        await apiRequest(JW_STONE_CART_HOLD_PATH, { method: "POST", data: request })
+      );
+      return { receipt, idempotencyKey };
+    },
+    onSuccess: ({ idempotencyKey }) => {
+      clearHoldOperation(viewerId, idempotencyKey);
+      void queryClient.invalidateQueries({
+        queryKey: ["jw-stone", "owned-hold-status", viewerId],
+      });
+      onClose();
+    },
+  });
 
   const requestSelections = items
     .flatMap((item) => {
@@ -574,7 +648,31 @@ export function JwStoneMemberCart({
               !fulfillmentError ? (
                 <button
                   type="button"
+                  data-testid="jw-cart-reserve-stock"
+                  disabled={holdMutation.isPending}
+                  onClick={() => holdMutation.mutate()}
+                  className="mt-3 min-h-11 w-full bg-[var(--jw-accent)] px-3 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-40"
+                >
+                  {holdMutation.isPending
+                    ? "Reserving checked stock…"
+                    : `Reserve stock for ${JW_STONE_CART_HOLD_MINUTES} minutes`}
+                </button>
+              ) : null}
+              {holdMutation.isError ? (
+                <p role="alert" className="mt-2 text-xs">
+                  {holdMutation.error instanceof Error
+                    ? holdMutation.error.message
+                    : "The reservation could not be confirmed. Recheck and retry."}
+                </p>
+              ) : null}
+              {review?.materialReady &&
+              review.subtotalCents != null &&
+              parsedRequest.success &&
+              !fulfillmentError ? (
+                <button
+                  type="button"
                   data-testid="jw-cart-make-offer"
+                  disabled={holdMutation.isPending}
                   onClick={() =>
                     setOfferContext({
                       scope: "cart",
@@ -583,7 +681,7 @@ export function JwStoneMemberCart({
                       displayedSubtotalCents: review.subtotalCents!,
                     })
                   }
-                  className="mt-3 min-h-11 w-full border border-[var(--jw-accent)] px-3 text-sm font-semibold"
+                  className="mt-3 min-h-11 w-full border border-[var(--jw-accent)] px-3 text-sm font-semibold disabled:opacity-40"
                 >
                   Make an offer on this cart
                 </button>
@@ -595,8 +693,8 @@ export function JwStoneMemberCart({
               ) : null}
               {items.length ? (
                 <p className="mt-2 text-xs leading-5 text-[var(--jw-muted)]">
-                  Delivery and tax are not included. This cart does not reserve stock or charge
-                  payment.
+                  Delivery and tax are not included. A reservation is a temporary stock hold only;
+                  no payment is accepted or started.
                 </p>
               ) : null}
               <div className="mt-3 flex gap-2">
