@@ -3,7 +3,8 @@
 Objective: Finish the customer-facing JW Stone temporary stock reservation lifecycle on PR #684 without reopening the broader project. Preserve the paid base site, contact, accounts and Direct Connect. JW Stone sales enhancements remain ON unless Thomas explicitly says OFF.
 
 Source branch: `jw-stone/feature-access-control-20260917`
-Candidate before this documentation-only checkpoint: `7d033da558bb3613b286c18359c9cd5ac23b5d89`
+Candidate before the exact-source verifier continuation: `7d033da558bb3613b286c18359c9cd5ac23b5d89`
+Current exact source at this checkpoint: `f1e68151652a989b03cbfd6d74e916aa3d9bf369`
 PR: #684 remains draft. No main merge, production deploy, production flag change, live stock write, payment, customer message or account change was performed in this continuation.
 
 ## Implemented on the live branch
@@ -68,10 +69,10 @@ The surrounding native driver also covers:
 - existing hold recovery while enhancements/membership are unavailable when `--owned-hold-status` is enabled;
 - focused reservation, feature-policy and TypeScript/build preflight.
 
-Exact fresh native command intended for this candidate:
-`JW_WORKFLOW_OUTPUT=test-results/jw-cart-hold-actions node scripts/jw-stone-offer.native.mjs --feature-control --owned-hold-status --cart-hold-actions`
+Exact fresh verification command intended for this candidate:
+`npm run verify:jw-stone:cart-holds`
 
-Do not use `--reuse-preflight` for the first execution of this changed candidate.
+That command now fail-closes through `scripts/verify-jw-stone-cart-hold-actions.mjs`: it requires a clean source tree, clones the exact HEAD to a detached local checkout, runs fresh `npm ci --include=dev`, then executes the integrated browser/native driver without `--reuse-preflight`. The integrated driver reuses `scripts/verify-jw-cart-holds.mjs --exact-copy` so the same candidate must also pass the existing real-PostgreSQL ledger, two-worker expiry, concurrency and full-schema compatibility proof. Backend and browser receipts are both SHA-bound to the detached HEAD. Desktop and touch must both pass before `customerReservationActionsProved` can become true. Failure at install, native execution, evidence copy or receipt validation writes `test-results/jw-cart-hold-actions/exact-source.json` with the failed stage instead of disappearing without a receipt.
 
 ## Evidence that remains applicable
 
@@ -98,7 +99,7 @@ Fresh execution is not claimed in this checkpoint.
 
 ## Next exact actions when an execution runner is available
 
-1. Run the fresh native command above and inspect its final JSON receipt/screenshots.
+1. Run `npm run verify:jw-stone:cart-holds` and inspect both `test-results/jw-cart-hold-actions/evidence.json` and `test-results/jw-cart-holds/evidence.json`, plus `exact-source.json` and screenshots.
 2. Fix only demonstrated failures on the exact candidate.
 3. Run `npm run verify:release` with its disposable database prerequisites and retain exact-source evidence.
 4. Only after both integrated native proof and release gate are green should PR #684 be considered for merge/release handling.
