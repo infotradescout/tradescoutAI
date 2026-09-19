@@ -181,6 +181,18 @@ export async function proveJwStoneCartHoldJourney({
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByTestId('jw-owned-reservation-status').waitFor();
     await expect(page.getByTestId('jw-owned-reservation-status')).toContainText(receipt.reservationId);
+    const [reloadedHold] = (
+      await database.query(
+        'SELECT status,created_at,expires_at FROM jw_stone_cart_holds WHERE public_id=$1',
+        [receipt.reservationId]
+      )
+    ).rows;
+    assert.equal(reloadedHold.status, 'active');
+    assert.equal(
+      new Date(reloadedHold.expires_at).getTime(),
+      new Date(hold.expires_at).getTime(),
+      'Reload must not extend the immutable reservation deadline'
+    );
     assert.equal(
       (
         await database.query(
@@ -259,6 +271,7 @@ export async function proveJwStoneCartHoldJourney({
       actualBrowserReserve: true,
       actualDatabaseHold: true,
       actualBrowserReloadRecovery: true,
+      immutableDeadlineAcrossReload: true,
       visibleCountdownTicked: true,
       duplicateReserveBlocked: true,
       actualBrowserRelease: true,
