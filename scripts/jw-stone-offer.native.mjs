@@ -56,6 +56,19 @@ try {
     ]);
   }
   if (process.argv.includes('--cart-hold-actions')) {
+    const backendProof = run(
+      'Native cart-hold ledger, expiry and compatibility proof',
+      [process.execPath, 'scripts/verify-jw-cart-holds.mjs', '--exact-copy']
+    );
+    const backendSummary = backendProof
+      .split('\n')
+      .find(value => value.startsWith('JW_HOLD_PROOF_SUMMARY '));
+    assert(backendSummary, 'Native cart-hold proof receipt missing');
+    report.backendCartHoldProof = JSON.parse(
+      backendSummary.slice('JW_HOLD_PROOF_SUMMARY '.length)
+    );
+    assert.equal(report.backendCartHoldProof.passed, true);
+    assert.equal(report.backendCartHoldProof.productionWrites, false);
     run('Customer cart reservation contracts', [
       'npm', 'run', 'test:run', '--',
       'client/src/features/jw-stone/JwStoneMemberCart.test.tsx',
@@ -67,8 +80,9 @@ try {
       'server/tests/jw-stone-hold-countdown.test.ts',
       '--maxWorkers=2',
     ]);
+  } else {
+    run('Typecheck', ['npm', 'run', 'check']);
   }
-  run('Typecheck', ['npm', 'run', 'check']);
   run('Production client and server build', ['npm', 'run', 'build']);
   run('Install Chromium', [process.execPath, 'node_modules/playwright/cli.js', 'install', 'chromium']);
   saveNativeOfferPreflight(head, report.checks);
