@@ -19,6 +19,34 @@ vi.mock("@/lib/queryClient", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/queryClient")>()),
   apiRequest: api,
 }));
+// This suite exercises licensed member-cart behavior. Feature OFF/ON admission has its own
+// coverage; keep this fixture explicitly ON instead of depending on a network manifest.
+vi.mock("./useJwStoneFeatures", () => ({
+  useJwStoneFeatures: () => ({
+    profileSlug: "jw-stone",
+    enabled: true,
+    revision: 1,
+    configured: true,
+    base: {
+      website: true,
+      catalog: true,
+      contact: true,
+      directConnect: true,
+      accounts: true,
+      requestHistory: true,
+    },
+    features: {
+      builders: true,
+      bidrock: true,
+      member_pricing: true,
+      cart: true,
+      bundles: true,
+      offers: true,
+      inventory_tools: true,
+      sales_automation: true,
+    },
+  }),
+}));
 vi.mock("@/pages/profile-sites/ExpressDirectConnectPanel", () => ({
   default: ({
     open,
