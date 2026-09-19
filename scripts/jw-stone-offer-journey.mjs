@@ -37,7 +37,9 @@ export async function proveJwStoneOfferJourney({ page, context, database, fixtur
     listedTotal = 1010100; offeredTotal = 900025;
     expectedLines = [{ inventoryPublicId: fixture.cartStockId, quantity: 2 }];
   } else {
-    for (const [slug, material, stockId, quantity] of [['honey-onyx', 'Honey Onyx', fixture.cartStockId, 4], ['fantasy-brown', 'Fantasy Brown', fixture.otherStockId, 3]]) {
+    // Keep the multi-line cart offer below the seven-slab bundle threshold. Mixed-material
+    // bundle eligibility is still an owner policy decision and must not be approved by a test.
+    for (const [slug, material, stockId, quantity] of [['honey-onyx', 'Honey Onyx', fixture.cartStockId, 2], ['fantasy-brown', 'Fantasy Brown', fixture.otherStockId, 2]]) {
       await page.goto(base + rootPath + '/stones/' + slug, { waitUntil: 'domcontentloaded' });
       await click(page.getByTestId('jw-stone-add-to-cart-detail'));
       const cart = page.getByTestId('jw-stone-member-cart'); await cart.waitFor();
@@ -46,10 +48,10 @@ export async function proveJwStoneOfferJourney({ page, context, database, fixtur
       await expect(cart.getByTestId('jw-cart-reviewed-subtotal')).toBeVisible();
       if (slug === 'honey-onyx') await click(cart.getByRole('button', { name: 'Close cart', exact: true }));
     }
-    await expect(page.getByTestId('jw-cart-reviewed-subtotal')).toContainText('$28,680.00');
+    await expect(page.getByTestId('jw-cart-reviewed-subtotal')).toContainText('$18,101.00');
     await click(page.getByTestId('jw-cart-make-offer'));
-    listedTotal = 2868000; offeredTotal = 2600000;
-    expectedLines = [{ inventoryPublicId: fixture.cartStockId, quantity: 4 }, { inventoryPublicId: fixture.otherStockId, quantity: 3 }];
+    listedTotal = 1810100; offeredTotal = 1700000;
+    expectedLines = [{ inventoryPublicId: fixture.cartStockId, quantity: 2 }, { inventoryPublicId: fixture.otherStockId, quantity: 2 }];
   }
   const dialog = page.getByRole('dialog'); await expect(dialog).toHaveCount(1);
   const money = cents => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
