@@ -45,6 +45,18 @@ try {
     note('Unchanged compiled application and fixture preflight reused', report.reusedPreflight);
   } else {
   run('Profile account customer-session isolation', ['npm', 'run', 'test:run', '--', 'client/src/components/profile/PublicProfileAccountDialog.session.test.tsx', '--maxWorkers=1']);
+  if (process.argv.includes('--cart-hold-actions')) {
+    run('Customer cart reservation contracts', [
+      'npm', 'run', 'test:run', '--',
+      'client/src/features/jw-stone/JwStoneMemberCart.test.tsx',
+      'client/src/features/jw-stone/JwStoneReservationStatus.test.tsx',
+      'server/tests/jw-stone-cart-hold-recovery.test.ts',
+      'server/tests/jw-stone-cart-hold-route.behavior.test.ts',
+      'server/tests/jw-stone-cart-hold-worker.test.ts',
+      'server/tests/jw-stone-hold-countdown.test.ts',
+      '--maxWorkers=2',
+    ]);
+  }
   run('Typecheck', ['npm', 'run', 'check']);
   run('Production client and server build', ['npm', 'run', 'build']);
   run('Install Chromium', [process.execPath, 'node_modules/playwright/cli.js', 'install', 'chromium']);
