@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   JW_STONE_CART_HOLD_PATH,
@@ -12,6 +12,8 @@ type Props = { viewerId: string | null; onContact: () => void };
 /** Read-only, price-free ownership recovery. It does not create, renew or release stock. */
 export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
   const owner = String(viewerId || "").trim();
+  const queryClient = useQueryClient();
+  const deadlineRefresh = useRef<string | null>(null);
   const [now, setNow] = useState(() => performance.now());
   const [releaseConfirm, setReleaseConfirm] = useState(false);
   const query = useQuery({
@@ -55,6 +57,40 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
   }, [owner, hold?.reservationId, hold?.status, query.dataUpdatedAt]);
   const remaining =
     hold && query.data ? jwStoneHoldRemainingSeconds(hold, query.data.requestStartedAt, now) : null;
+  useEffect(() => {
+    if (
+      remaining !== 0 ||
+      hold?.status !== "active" ||
+      query.isFetching ||
+      deadlineRefresh.current === hold.reservationId
+    )
+      return;
+    deadlineRefresh.current = hold.reservationId;
+    void query.refetch();
+  }, [remaining, hold?.reservationId, hold?.status, query.isFetching, query.refetch]);
+  const releaseMutation = useMutation({
+    mutationFn: async () => {
+      if (!hold || hold.status !== "active") throw new Error("No active reservation to release.");
+      const result = await apiRequest(
+        `${JW_STONE_CART_HOLD_PATH}/${encodeURIComponent(hold.reservationId)}/release`,
+        { method: "POST", data: {} }
+      );
+      if (
+        result?.reservationId !== hold.reservationId ||
+        (result?.status !== "released" && result?.status !== "expired")
+      ) {
+        throw new Error("The reservation release could not be confirmed.");
+      }
+      return result as { reservationId: string; status: "released" | "expired" };
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        query.refetch(),
+        queryClient.invalidateQueries({ queryKey: ["jw-stone", "cart-stock"] }),
+        queryClient.invalidateQueries({ queryKey: ["jw-stone", "cart-review"] }),
+      ]);
+    },
+  });
   // An unmounted endpoint or no owned hold must not block the catalog or contact flow.
   if (!hold) return null;
   return (
@@ -108,6 +144,13 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
         <p role="alert" className="mt-2 text-xs">
           {releaseMutation.error instanceof Error
             ? releaseMutation.error.message
+            : "The reservation could not be released. Try again."}
+        </p>
+      ) : null}
+      {releaseMutation.isError ? (
+        <p role="alert" className="mt-2 text-xs">
+          {releaseMutation.error instanceof Error
+            ? releaseMutation.error.message
             : "The reservation could not be released. Refresh and retry."}
         </p>
       ) : null}
@@ -151,6 +194,24 @@ export function JwStoneReservationStatus({ viewerId, onContact }: Props) {
             className="min-h-11 border border-[var(--jw-border)] px-3 text-sm disabled:opacity-50"
           >
             Release reservation
+          </button>
+        ) : null}
+        {hold.status === "active" ? (
+          <button
+            type="button"
+            disabled={releaseMutation.isPending}
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Release this temporary reservation? The slabs will become available to other buyers."
+                )
+              )
+                releaseMutation.mutate();
+            }}
+            className="min-h-11 border border-[var(--jw-border)] px-3 text-sm disabled:opacity-50"
+            data-testid="jw-release-reservation"
+          >
+            {releaseMutation.isPending ? "Releasing…" : "Release reservation"}
           </button>
         ) : null}
         <button type="button" onClick={onContact} className="min-h-11 px-3 text-sm underline">
