@@ -86,7 +86,15 @@ export async function proveJwStoneCartHoldJourney({
 
     const cart = page.getByTestId('jw-stone-member-cart');
     await cart.waitFor();
-    await expect(cart.getByTestId('jw-cart-reviewed-subtotal')).toContainText('$28,680.00');
+    await expect(cart.getByTestId('jw-cart-reviewed-subtotal')).toContainText('$18,101.00');
+
+    // Reservation proof uses one material only. Seven slabs unlock the quantity rate without
+    // making an unapproved claim that different materials can be mixed into one bundle.
+    await cart.getByLabel('Quantity for Honey Onyx', { exact: true }).fill('7');
+    await click(cart.getByRole('button', { name: 'Remove Fantasy Brown from cart', exact: true }));
+    await expect(cart.getByTestId('jw-cart-line')).toHaveCount(1);
+    await expect(cart.getByTestId('jw-cart-reviewed-subtotal')).toContainText('$31,815.00');
+    await expect(cart.getByTestId('jw-bundle-savings')).toBeVisible();
     const reserve = cart.getByTestId('jw-cart-reserve-stock');
     await expect(reserve).toBeEnabled();
 
@@ -103,7 +111,11 @@ export async function proveJwStoneCartHoldJourney({
     assert.equal(receipt.currency, 'USD');
     assert.equal(receipt.paymentStatus, 'not_started');
     assert.equal(receipt.readyForCheckout, false);
-    assert.equal(receipt.materialSubtotalCents, 2868000);
+    assert.equal(receipt.materialSubtotalCents, 3181500);
+    assert.equal(receipt.lines.length, 1);
+    assert.equal(receipt.lines[0].inventoryPublicId, fixture.cartStockId);
+    assert.equal(receipt.lines[0].quantity, 7);
+    assert.equal(receipt.lines[0].pricingTier, 'bundle');
     assert.equal(receipt.lines.reduce((sum, line) => sum + Number(line.quantity), 0), 7);
     assert.equal(receipt.deliveryFeeCents, null);
     assert.equal(receipt.estimatedDeliveryDate, null);
@@ -134,7 +146,7 @@ export async function proveJwStoneCartHoldJourney({
     assert.equal(hold.buyer_user_id, userId);
     assert.equal(hold.seller_business_id, fixture.businessId);
     assert.equal(hold.status, 'active');
-    assert.equal(Number(hold.subtotal_cents), 2868000);
+    assert.equal(Number(hold.subtotal_cents), 3181500);
     assert.equal(hold.currency, 'USD');
     assert.equal(hold.origin, 'jw_stone_member_cart');
     assert.equal(hold.released_at, null);
@@ -151,13 +163,14 @@ export async function proveJwStoneCartHoldJourney({
       )
     ).rows;
     assert.deepEqual(
-      items.map(row => [row.inventory_public_id, Number(row.quantity)]).sort(),
-      [[fixture.cartStockId, 4], [fixture.otherStockId, 3]].sort()
+      items.map(row => [row.inventory_public_id, Number(row.quantity)]),
+      [[fixture.cartStockId, 7]]
     );
+    assert.equal(items[0].pricing_tier, 'bundle');
 
     const reservedPositions = heldByPublicId(await positions(database, fixture.businessId));
-    assert.equal(reservedPositions[fixture.cartStockId], 4);
-    assert.equal(reservedPositions[fixture.otherStockId], 3);
+    assert.equal(reservedPositions[fixture.cartStockId], 7);
+    assert.equal(reservedPositions[fixture.otherStockId], 0);
     assert.equal(
       (await database.query('SELECT count(*)::int AS n FROM marketplace_transactions')).rows[0].n,
       transactionsBefore
