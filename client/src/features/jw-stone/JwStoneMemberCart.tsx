@@ -244,6 +244,8 @@ export function JwStoneMemberCart({
     refetchOnWindowFocus: "always",
   });
   const stock = inventoryQuery.isError ? [] : inventoryQuery.data || [];
+  // Subscribe to the marketplace-level ownership query without starting a duplicate request here.
+  // The persistent reservation panel owns recovery; this observer only consumes its shared cache.
   const activeHoldQuery = useQuery({
     queryKey: ["jw-stone", "owned-hold-status", viewerId],
     queryFn: async ({ signal }) => {
@@ -254,10 +256,10 @@ export function JwStoneMemberCart({
       );
       return { ...recovery, requestStartedAt };
     },
+    enabled: false,
     retry: false,
     staleTime: 0,
     gcTime: 0,
-    refetchOnWindowFocus: "always",
   });
   const activeHold =
     activeHoldQuery.data?.viewerId === viewerId && activeHoldQuery.data.hold?.status === "active"
@@ -347,6 +349,9 @@ export function JwStoneMemberCart({
         },
         requestStartedAt: performance.now(),
       });
+      // The persistent marketplace reservation panel now owns this state.
+      // Closing prevents a stale pre-hold cart review from looking authoritative.
+      onClose();
     },
   });
   useEffect(() => {
