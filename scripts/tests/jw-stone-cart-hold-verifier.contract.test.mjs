@@ -39,6 +39,7 @@ test('customer reservation verifier requires the complete desktop/touch and back
     "nativeExitCode",
     "verificationExitCode",
     "failure",
+    "'final-evidence-copy'",
   ]) {
     assert(wrapper.includes(token), 'Missing exact receipt requirement: ' + token);
   }
