@@ -276,8 +276,10 @@ export function JwStoneMemberCart({
         const receipt = jwStoneCartHoldReceiptSchema.parse(
           await apiRequest(JW_STONE_CART_HOLD_PATH, { method: "POST", data: request })
         );
-        if (receipt.status !== "active")
+        if (receipt.status !== "active") {
+          clearHoldOperation(viewerId, idempotencyKey);
           throw new Error("The reservation is no longer active. Recheck the cart before retrying.");
+        }
         return { receipt, recoveredHold: null, idempotencyKey };
       } catch (error) {
         // A lost POST response can still mean stock was reserved. Recover by the same
@@ -289,6 +291,7 @@ export function JwStoneMemberCart({
           );
           if (recovery.hold?.status === "active")
             return { receipt: null, recoveredHold: recovery.hold, idempotencyKey };
+          if (recovery.hold) clearHoldOperation(viewerId, idempotencyKey);
         } catch {
           // Preserve the original mutation failure when recovery itself is unavailable.
         }
@@ -324,6 +327,10 @@ export function JwStoneMemberCart({
           queryKey: ["jw-stone", "owned-hold-status", viewerId],
         });
       }
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["jw-stone", "cart-stock"] }),
+        queryClient.invalidateQueries({ queryKey: ["jw-stone", "cart-review"] }),
+      ]);
       onClose();
     },
   });
@@ -708,7 +715,11 @@ export function JwStoneMemberCart({
                 ) : null}
               </div>
               {activeHold ? (
-                <p role="status" className="mt-2 text-xs">
+                <p
+                  role="status"
+                  className="mt-2 text-xs"
+                  data-testid="jw-cart-owned-reservation-line"
+                >
                   You already have an active JW Stone reservation. Release it above before
                   reserving another cart.
                 </p>
