@@ -28,6 +28,14 @@ function heldByPublicId(rows) {
   return Object.fromEntries(rows.map(row => [row.public_id, Number(row.held_quantity)]));
 }
 
+function countdownSeconds(text) {
+  const match = String(text).trim().match(/^(\d+):(\d{2})$/);
+  assert(match, 'Reservation countdown must render as m:ss: ' + text);
+  const seconds = Number(match[1]) * 60 + Number(match[2]);
+  assert(Number.isInteger(seconds) && seconds >= 0);
+  return seconds;
+}
+
 /**
  * Real built-client reservation acceptance on the disposable native database.
  * The caller must already have the verified two-line cart produced by the cart offer journey.
@@ -105,6 +113,13 @@ export async function proveJwStoneCartHoldJourney({
     await panel.waitFor();
     await expect(panel).toContainText(receipt.reservationId);
     await expect(panel).toContainText('7 slabs');
+    const countdown = panel.getByRole('timer', { name: 'Estimated reservation time remaining' });
+    await countdown.waitFor();
+    const firstCountdown = countdownSeconds(await countdown.innerText());
+    assert(firstCountdown > 0 && firstCountdown <= 30 * 60);
+    await page.waitForTimeout(1100);
+    const secondCountdown = countdownSeconds(await countdown.innerText());
+    assert(secondCountdown < firstCountdown, 'Visible reservation countdown must decrease');
     await expect(page.getByRole('button', { name: /pay now|checkout|place order/i })).toHaveCount(0);
 
     const [hold] = (
@@ -244,6 +259,7 @@ export async function proveJwStoneCartHoldJourney({
       actualBrowserReserve: true,
       actualDatabaseHold: true,
       actualBrowserReloadRecovery: true,
+      visibleCountdownTicked: true,
       duplicateReserveBlocked: true,
       actualBrowserRelease: true,
       stockReturnedAfterRelease: true,
