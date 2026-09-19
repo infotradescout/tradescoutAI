@@ -202,7 +202,9 @@ export function JwStoneMemberCart({
     enabled: false,
     retry: false,
     staleTime: 0,
-    gcTime: 0,
+    // Preserve the price-free confirmed hold across the cart close/reopen handoff.
+    // The persistent status observer still owns network recovery and refresh.
+    gcTime: 60_000,
   });
   const activeHold =
     activeHoldQuery.data?.viewerId === viewerId && activeHoldQuery.data.hold?.status === "active"
