@@ -300,6 +300,16 @@ export function JwStoneMemberCart({
         } catch {
           // Preserve the original mutation failure when recovery itself is unavailable.
         }
+        // Another tab or session may have created the buyer's one allowed active hold
+        // after this cart last observed owner status. Surface that authoritative hold now
+        // instead of waiting for the persistent panel's next polling interval.
+        if ((error as { code?: unknown })?.code === "active_hold_exists") {
+          try {
+            await activeHoldQuery.refetch();
+          } catch {
+            // Keep the original conflict as the member-visible failure.
+          }
+        }
         throw error;
       }
     },

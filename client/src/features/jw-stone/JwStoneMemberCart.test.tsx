@@ -216,9 +216,11 @@ describe("JW Stone member cart", () => {
     bundleAvailable = 20,
     bundleFailure = false,
     holdFailures = 0,
-    recoverCreatedHold = false;
+    recoverCreatedHold = false,
+    conflictingActiveHold = false;
   let holdRequests: any[] = [];
   let operationRecoveries: string[] = [];
+  let activeRecoveryRequests = 0;
   const render = (inventoryPublicId?: string) =>
     act(() =>
       root.render(
@@ -252,8 +254,10 @@ describe("JW Stone member cart", () => {
     bundleFailure = false;
     holdFailures = 0;
     recoverCreatedHold = false;
+    conflictingActiveHold = false;
     holdRequests = [];
     operationRecoveries = [];
+    activeRecoveryRequests = 0;
     window.localStorage.clear();
     window.sessionStorage.clear();
     api.mockReset();
@@ -309,12 +313,24 @@ describe("JW Stone member cart", () => {
           second.data.fulfillment
         );
       }
+      if (url.endsWith("/member-pricing/holds/active")) {
+        activeRecoveryRequests++;
+        return conflictingActiveHold
+          ? makeHoldRecovery(viewer)
+          : { viewerId: viewer, hold: null };
+      }
       if (url.includes("/member-pricing/holds/operations/")) {
         operationRecoveries.push(url);
         return recoverCreatedHold ? makeHoldRecovery(viewer) : { viewerId: viewer, hold: null };
       }
       if (url.endsWith("/member-pricing/holds")) {
         holdRequests.push(second.data);
+        if (conflictingActiveHold) {
+          throw Object.assign(
+            new Error("Release your existing reservation before reserving another cart."),
+            { code: "active_hold_exists", status: 409 }
+          );
+        }
         if (holdFailures > 0) {
           holdFailures--;
           throw new Error("Reservation response was interrupted.");
@@ -715,6 +731,31 @@ describe("JW Stone member cart", () => {
       expect(ready.textContent).toContain("Reserve stock for");
     });
     expect(holdRequests).toHaveLength(0);
+  });
+
+  it("recovers a cross-tab active hold immediately after the server rejects stale cart state", async () => {
+    conflictingActiveHold = true;
+    render(stockId);
+    await add();
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-cart-reserve-stock"]')).not.toBeNull()
+    );
+    click(document.querySelector('[data-testid="jw-cart-reserve-stock"]'));
+
+    await eventually(() =>
+      expect(document.querySelector('[data-testid="jw-cart-active-reservation-block"]')).not.toBeNull()
+    );
+    expect(holdRequests).toHaveLength(1);
+    expect(operationRecoveries).toHaveLength(1);
+    expect(activeRecoveryRequests).toBe(1);
+    const reserve = document.querySelector(
+      '[data-testid="jw-cart-reserve-stock"]'
+    ) as HTMLButtonElement;
+    expect(reserve.disabled).toBe(true);
+    expect(reserve.textContent).toContain("Active reservation already exists");
+    expect(document.body.textContent).toContain(
+      "Release your existing reservation before reserving another cart."
+    );
   });
 
   it("uses the confirmed hold cache to block a second cart reservation", async () => {
