@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { JW_STONE_CART_HOLD_PATH, parseJwStoneCartHoldRecovery } from "@shared/jwStoneCartHolds";
+import {
+  JW_STONE_CART_HOLD_PATH,
+  jwStoneCartHoldReceiptSchema,
+  jwStoneCartHoldReleaseSchema,
+  parseJwStoneCartHoldRecovery,
+} from "@shared/jwStoneCartHolds";
 import { classifyJwStoneFeatureRequest } from "@shared/jwStoneFeaturePolicy";
 import { inspectJwCartHoldSchema } from "../../scripts/lib/jw-cart-hold-schema.mjs";
 const hold = {
@@ -60,6 +65,59 @@ describe("reservation recovery contract", () => {
     }
   );
 });
+describe("reservation mutation response contracts", () => {
+  const receipt = {
+    reservationId: hold.reservationId,
+    status: "active",
+    expiresAt: hold.expiresAt,
+    serverTime: hold.serverTime,
+    currency: "USD",
+    materialSubtotalCents: 15000,
+    paymentStatus: "not_started",
+    readyForCheckout: false,
+    fulfillment: { method: "pickup" },
+    deliveryFeeCents: null,
+    estimatedDeliveryDate: null,
+    lines: [
+      {
+        inventoryPublicId: hold.lines[0].inventoryPublicId,
+        materialName: hold.lines[0].materialName,
+        quantity: 1,
+        unitRateCents: 300,
+        oneSlabTotalCents: 15000,
+        lineTotalCents: 15000,
+        pricingTier: "slab",
+      },
+    ],
+  };
+  it("accepts an exact no-payment reservation receipt", () => {
+    expect(jwStoneCartHoldReceiptSchema.parse(receipt)).toEqual(receipt);
+  });
+  it.each([
+    { paymentStatus: "authorized" },
+    { readyForCheckout: true },
+    { checkoutUrl: "https://example.invalid/pay" },
+    { landedCostCents: 1 },
+  ])("rejects payment/private authority in a reservation receipt: %j", (delta) => {
+    expect(() => jwStoneCartHoldReceiptSchema.parse({ ...receipt, ...delta })).toThrow();
+  });
+  it("accepts only the terminal release identity and status", () => {
+    expect(
+      jwStoneCartHoldReleaseSchema.parse({
+        reservationId: hold.reservationId,
+        status: "released",
+      })
+    ).toEqual({ reservationId: hold.reservationId, status: "released" });
+    expect(() =>
+      jwStoneCartHoldReleaseSchema.parse({
+        reservationId: hold.reservationId,
+        status: "released",
+        materialSubtotalCents: 15000,
+      })
+    ).toThrow();
+  });
+});
+
 describe("ordered hold schema acceptance", () => {
   const complete = {
     holds: true,
