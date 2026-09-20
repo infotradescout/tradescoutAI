@@ -2,7 +2,7 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_CART_REVIEW_PATH, parseJwStoneCartReview } from "@shared/jwStoneCart";
-import { priceJwStoneBundleLine } from "@shared/jwStoneBundle";
+import { getJwStoneBundleProgress, priceJwStoneBundleLine } from "@shared/jwStoneBundle";
 const fx = vi.hoisted(() => ({
   access: "member",
   stock: [] as any[],
@@ -74,7 +74,7 @@ beforeEach(() => {
   ];
 });
 describe("JW Stone seven-slab bundle HTTP contract", () => {
-  it("shows progress at six without applying an unpublished discount", async () => {
+  it("shows quantity progress at six without applying an unpublished discount", async () => {
     const r = await review(body(3, 3));
     expect(r.status).toBe(200);
     expect(r.body.bundle).toMatchObject({
@@ -87,27 +87,27 @@ describe("JW Stone seven-slab bundle HTTP contract", () => {
     expect(r.body.lines.map((l: any) => l.pricingTier)).toEqual(["slab", "slab"]);
     expect(r.body.subtotalCents).toBe(105000);
   });
-  it("mixes two materials at seven using each actual rate and exact dollar savings", async () => {
+  it("does not pool two materials at seven without an approved mixed-material policy", async () => {
     const input = body(3, 4);
     const r = await review(input);
     expect(r.status).toBe(200);
-    expect(r.body.subtotalCents).toBe(80000);
-    expect(r.body.lines.map((l: any) => l.unitRateCents)).toEqual([200, 250]);
+    expect(r.body.subtotalCents).toBe(125000);
+    expect(r.body.lines.map((l: any) => l.unitRateCents)).toEqual([300, 400]);
     expect(r.body.bundle).toEqual({
       requiredSlabs: 7,
       eligibleSlabs: 7,
       remainingSlabs: 0,
-      completeBundles: 1,
-      unlocked: true,
+      completeBundles: 0,
+      unlocked: false,
       regularSubtotalCents: 125000,
-      savingsCents: 45000,
+      savingsCents: 0,
     });
     expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
     expect(r.body.inventoryReserved).toBe(false);
     expect(r.body.readyForCheckout).toBe(false);
   });
   it.each([7, 8, 13, 14, 20])(
-    "keeps every eligible slab at its bundle rate for %i slabs, without stacking discounts",
+    "keeps each qualified single-material slab at its source bundle rate for %i slabs",
     async (n) => {
       const input = body(n);
       const r = await review(input);
@@ -122,11 +122,36 @@ describe("JW Stone seven-slab bundle HTTP contract", () => {
       expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
     }
   );
-  it("removes the bundle rate again when a seven-slab cart drops to six", async () => {
-    expect((await review(body(3, 4))).body.bundle.unlocked).toBe(true);
-    const r = await review(body(3, 3));
+  it("removes the bundle rate again when a single-material cart drops to six", async () => {
+    expect((await review(body(7))).body.bundle.unlocked).toBe(true);
+    const r = await review(body(6));
     expect(r.body.bundle.unlocked).toBe(false);
     expect(r.body.bundle.savingsCents).toBe(0);
+  });
+  it("combines checked lots of the same canonical material without mixing different stones", async () => {
+    fx.stock[1].materialName = "STONE-A";
+    const input = body(3, 4);
+    const r = await review(input);
+    expect(r.body.subtotalCents).toBe(70000);
+    expect(r.body.lines.map((l: any) => l.pricingTier)).toEqual(["bundle", "bundle"]);
+    expect(r.body.bundle).toMatchObject({ unlocked: true, completeBundles: 1 });
+    expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
+  });
+  it("does not extend one material's published quantity rate to another material", async () => {
+    const input = body(7, 1);
+    const r = await review(input);
+    expect(r.body.bundle.unlocked).toBe(false);
+    expect(r.body.lines.map((l: any) => l.unitRateCents)).toEqual([200, 400]);
+    expect(r.body.subtotalCents).toBe(90000);
+    expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
+  });
+  it("does not grant pooled pricing when material identity is absent", () => {
+    const bundlePricing = { slabRateCents: 300, bundleRateCents: 200, minimumSlabs: 7, regularOneSlabCents: 15000, bundleOneSlabCents: 10000 };
+    const progress = getJwStoneBundleProgress([
+      { status: "ready", requestedQuantity: 3, materialName: "Stone A", bundlePricing },
+      { status: "ready", requestedQuantity: 4, bundlePricing },
+    ]);
+    expect(progress).toMatchObject({ unlocked: false, completeBundles: 0 });
   });
   it("preserves lower published per-stock quantity tiers", async () => {
     fx.prices[0].bundleMinSlabs = 2;
@@ -208,24 +233,12 @@ describe("JW Stone seven-slab bundle HTTP contract", () => {
     const input = body(3, 4);
     const r = await review(input);
     for (const mutate of [
-      (v: any) => {
-        v.bundle.eligibleSlabs++;
-      },
-      (v: any) => {
-        v.bundle.remainingSlabs++;
-      },
-      (v: any) => {
-        v.bundle.savingsCents++;
-      },
-      (v: any) => {
-        v.bundle.unlocked = false;
-      },
-      (v: any) => {
-        v.lines[0].unitRateCents++;
-      },
-      (v: any) => {
-        delete v.lines[0].bundlePricing;
-      },
+      (v: any) => { v.bundle.eligibleSlabs++; },
+      (v: any) => { v.bundle.remainingSlabs++; },
+      (v: any) => { v.bundle.savingsCents++; },
+      (v: any) => { v.bundle.unlocked = !v.bundle.unlocked; },
+      (v: any) => { v.lines[0].unitRateCents++; },
+      (v: any) => { delete v.lines[0].bundlePricing; },
     ]) {
       const v = structuredClone(r.body);
       mutate(v);
