@@ -200,10 +200,31 @@ export async function verifyJwCartHoldRecovery(args: {
     fulfillment: { method: "pickup" as const },
   };
   const reviewed = await reviewJwStoneMemberCart(buyerId, selection);
-  assert.equal(reviewed.subtotalCents, 110000);
+  assert.equal(reviewed.subtotalCents, 130000);
+  assert.equal(reviewed.bundle.unlocked, false);
+  assert.equal(reviewed.bundle.completeBundles, 0);
+  const currentSnapshot = await getJwStonePricingSnapshot({ forceRefresh: true });
+  const unapprovedOperation = randomUUID();
+  await assert.rejects(
+    holds.reserve({
+      ...scope,
+      snapshot: currentSnapshot,
+      request: { ...selection, idempotencyKey: unapprovedOperation, expectedSubtotalCents: 110000 },
+    }),
+    (error: any) => error.code === "price_changed"
+  );
+  assert.equal(
+    Number((await pool.query("SELECT count(*) AS n FROM jw_stone_cart_holds WHERE idempotency_key=$1::uuid", [unapprovedOperation])).rows[0].n),
+    0
+  );
+  assert.equal(
+    Number((await pool.query("SELECT COALESCE(sum(held_quantity),0) AS n FROM stone_inventory_positions WHERE holder_business_id=$1", [sellerId])).rows[0].n),
+    0
+  );
+  note("unapproved pooled mixed-material total is rejected without a hold or stock allocation");
   const mixed = await holds.reserve({
     ...scope,
-    snapshot: await getJwStonePricingSnapshot({ forceRefresh: true }),
+    snapshot: currentSnapshot,
     request: {
       ...selection,
       idempotencyKey: randomUUID(),
@@ -211,11 +232,11 @@ export async function verifyJwCartHoldRecovery(args: {
     },
   });
   assert.equal(mixed.materialSubtotalCents, reviewed.subtotalCents);
-  assert(mixed.lines.every((line) => line.pricingTier === "bundle"));
+  assert.equal(mixed.lines.find((line) => line.inventoryPublicId === stockId)?.pricingTier, "bundle");
+  assert.equal(mixed.lines.find((line) => line.inventoryPublicId === other.id)?.pricingTier, "slab");
+  assert.equal(mixed.lines.find((line) => line.inventoryPublicId === other.id)?.unitRateCents, 500);
   await holds.release({ ...scope, reservationId: mixed.reservationId });
   process.env.JW_STONE_PRICING_APPROVED_IMPORT = source;
-  note(
-    "seven-slab hold uses the same server bundle total as the checked cart; synthetic mix is not owner pricing approval"
-  );
+  note("mixed-material hold matches separately priced cart lines while preserving published per-stock quantity tiers");
   assert.equal((await flags.read()).enabled, true);
 }
