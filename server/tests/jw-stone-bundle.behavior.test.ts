@@ -85,7 +85,7 @@ beforeEach(() => {
   ];
 });
 describe("JW Stone seven-slab bundle HTTP contract", () => {
-  it("shows quantity progress at six without applying an unpublished discount", async () => {
+  it("shows quantity progress at six without applying the seven-slab discount early", async () => {
     const r = await review(body(3, 3));
     expect(r.status).toBe(200);
     expect(r.body.bundle).toMatchObject({
@@ -98,20 +98,20 @@ describe("JW Stone seven-slab bundle HTTP contract", () => {
     expect(r.body.lines.map((l: any) => l.pricingTier)).toEqual(["slab", "slab"]);
     expect(r.body.subtotalCents).toBe(105000);
   });
-  it("does not pool two materials at seven without an approved mixed-material policy", async () => {
+  it("pools two eligible materials at seven using each material's own source rate", async () => {
     const input = body(3, 4);
     const r = await review(input);
     expect(r.status).toBe(200);
-    expect(r.body.subtotalCents).toBe(125000);
-    expect(r.body.lines.map((l: any) => l.unitRateCents)).toEqual([300, 400]);
+    expect(r.body.subtotalCents).toBe(80000);
+    expect(r.body.lines.map((l: any) => l.unitRateCents)).toEqual([200, 250]);
     expect(r.body.bundle).toEqual({
       requiredSlabs: 7,
       eligibleSlabs: 7,
       remainingSlabs: 0,
-      completeBundles: 0,
-      unlocked: false,
+      completeBundles: 1,
+      unlocked: true,
       regularSubtotalCents: 125000,
-      savingsCents: 0,
+      savingsCents: 45000,
     });
     expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
     expect(r.body.inventoryReserved).toBe(false);
@@ -139,7 +139,16 @@ describe("JW Stone seven-slab bundle HTTP contract", () => {
     expect(r.body.bundle.unlocked).toBe(false);
     expect(r.body.bundle.savingsCents).toBe(0);
   });
-  it("combines checked lots of the same canonical material without mixing different stones", async () => {
+  it("reprices a mixed cart when it drops below seven without leaving a stale discount", async () => {
+    expect((await review(body(3, 4))).body.bundle.unlocked).toBe(true);
+    const input = body(3, 3);
+    const r = await review(input);
+    expect(r.body.bundle).toMatchObject({ unlocked: false, remainingSlabs: 1, savingsCents: 0 });
+    expect(r.body.subtotalCents).toBe(105000);
+    expect(r.body.lines.map((l: any) => l.pricingTier)).toEqual(["slab", "slab"]);
+    expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
+  });
+  it("combines checked lots of the same canonical material", async () => {
     fx.stock[1].materialName = "STONE-A";
     const input = body(3, 4);
     const r = await review(input);
@@ -148,12 +157,21 @@ describe("JW Stone seven-slab bundle HTTP contract", () => {
     expect(r.body.bundle).toMatchObject({ unlocked: true, completeBundles: 1 });
     expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
   });
-  it("does not extend one material's published quantity rate to another material", async () => {
+  it("uses the second material's own rate, not the first material's rate, above seven", async () => {
     const input = body(7, 1);
     const r = await review(input);
-    expect(r.body.bundle.unlocked).toBe(false);
-    expect(r.body.lines.map((l: any) => l.unitRateCents)).toEqual([200, 400]);
-    expect(r.body.subtotalCents).toBe(90000);
+    expect(r.body.bundle.unlocked).toBe(true);
+    expect(r.body.lines.map((l: any) => l.unitRateCents)).toEqual([200, 250]);
+    expect(r.body.subtotalCents).toBe(82500);
+    expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
+  });
+  it.each([[2, 2, 3], [4, 5, 5]])("combines three materials without stacking discounts: %j", async (...quantities) => {
+    const input = body(...quantities);
+    const r = await review(input);
+    const count = quantities.reduce((sum, quantity) => sum + quantity, 0);
+    expect(r.body.bundle).toMatchObject({ unlocked: true, eligibleSlabs: count, completeBundles: Math.floor(count / 7) });
+    expect(r.body.lines.map((line: any) => line.unitRateCents)).toEqual([200, 250, 250]);
+    expect(r.body.subtotalCents).toBe(quantities[0] * 10000 + (quantities[1] + quantities[2]) * 12500);
     expect(() => parseJwStoneCartReview(r.body, "member", input)).not.toThrow();
   });
   it("does not grant pooled pricing when material identity is absent", () => {
