@@ -13,7 +13,7 @@ import {
   type JwStoneCartSelection,
 } from "@shared/jwStoneCart";
 import { jwStonePriceKey } from "@shared/jwStoneMemberPricing";
-import { isJwStoneBundleEligible } from "@shared/jwStoneBundle";
+import { isJwStoneBundleEligible, jwStoneBundleNeedsMaterialReview } from "@shared/jwStoneBundle";
 import {
   JW_STONE_CART_HOLD_MINUTES,
   JW_STONE_CART_HOLD_PATH,
@@ -469,6 +469,7 @@ export function JwStoneMemberCart({
                     const remaining = review?.bundle?.remainingSlabs ?? 0;
                     const canCompleteBundle =
                       review?.materialReady &&
+                      !jwStoneBundleNeedsMaterialReview(review.lines) &&
                       checked?.status === "ready" &&
                       checked.bundlePricing &&
                       isJwStoneBundleEligible(checked.bundlePricing) &&
