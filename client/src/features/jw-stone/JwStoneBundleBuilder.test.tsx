@@ -27,37 +27,43 @@ function markup(value?: JwStoneCartReview, checking = false) {
 }
 
 describe("JW Stone bundle eligibility messaging", () => {
-  it("does not show unlocked pricing or a completed progress bar for mixed materials", () => {
+  it("shows unlocked pricing and a completed progress bar for seven eligible mixed slabs", () => {
     const html = markup(review(["Stone A", "Stone B"], [3, 4]));
-    expect(html).toContain("Mixed-material bundle eligibility needs JW Stone confirmation");
-    expect(html).toContain("Materials are priced separately");
-    expect(html).not.toContain("Bundle pricing unlocked");
-    expect(html).not.toContain('role="progressbar"');
-    expect(html).not.toContain("Mix eligible materials");
+    expect(html).toContain("Bundle pricing unlocked");
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain('aria-valuenow="7"');
+    expect(html).toContain("Mix eligible materials at each stone’s listed bundle rate");
+    expect(html).not.toContain("needs JW Stone confirmation");
   });
-  it("does not encourage adding a different material to finish a mixed six-slab selection", () => {
+  it("shows one more slab needed for a mixed six-slab selection", () => {
     const html = markup(review(["Stone A", "Stone B"], [3, 3]));
-    expect(html).toContain("needs JW Stone confirmation");
-    expect(html).not.toContain("Add 1 more");
+    expect(html).toContain("Add 1 more eligible slab to unlock bundle pricing");
+    expect(html).toContain('aria-valuenow="6"');
+    expect(html).not.toContain("Bundle pricing unlocked");
   });
   it("retains the remaining quantity for one checked material", () => {
     const html = markup(review(["Stone A"], [6]));
-    expect(html).toContain("Add 1 more eligible slab of this material");
+    expect(html).toContain("Add 1 more eligible slab to unlock bundle pricing");
     expect(html).toContain('aria-valuenow="6"');
   });
   it("unlocks seven checked slabs of the same canonical material across lots", () => {
     const html = markup(review(["Stone A", "STONE-A"], [3, 4]));
     expect(html).toContain("Bundle pricing unlocked");
     expect(html).toContain('aria-valuenow="7"');
-    expect(html).not.toContain("Materials are priced separately");
   });
-  it("does not promise mix-and-match eligibility before selecting stock", () => {
+  it("explains mix-and-match eligibility and material-specific exceptions before stock selection", () => {
     const html = markup();
-    expect(html).toContain("check seven-slab bundle eligibility");
-    expect(html).toContain("Combining different materials into a");
-    expect(html).not.toContain("Mix eligible materials");
+    expect(html).toContain("Choose 7 eligible slabs");
+    expect(html).toContain("Mix eligible materials at each stone’s listed bundle rate");
+    expect(html).toContain("Special higher-minimum materials do not count");
   });
   it("shows the checking state while a changed selection is being reviewed", () => {
     expect(markup(review(["Stone A", "Stone B"], [3, 4]), true)).toContain("Checking bundle eligibility");
+  });
+  it("still requires a known material identity instead of approving unidentified stock", () => {
+    const html = markup(review(["Stone A", ""], [3, 4]));
+    expect(html).toContain("Confirm the material for each stock selection");
+    expect(html).not.toContain("Bundle pricing unlocked");
+    expect(html).not.toContain('role="progressbar"');
   });
 });
