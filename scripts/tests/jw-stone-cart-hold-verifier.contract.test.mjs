@@ -111,3 +111,39 @@ test('native command runner rejects failed children rather than recording a pass
   );
   assert.deepEqual(notes, []);
 });
+
+function accountForBackendTypecheck(proof, notes) {
+  const start = driver.indexOf('    assert.equal(report.backendCartHoldProof.head, head);');
+  const end = driver.indexOf("    run('Customer cart reservation contracts'", start);
+  assert(start >= 0 && end > start, 'Exact backend typecheck accounting was not located');
+  new Function('report', 'head', 'assert', 'note', driver.slice(start, end))(
+    { backendCartHoldProof: proof }, 'fixture-head', assert,
+    (name, detail) => notes.push({ name, ...detail })
+  );
+}
+
+test('preflight records the TypeScript execution from the matching successful backend receipt', () => {
+  const notes = [];
+  accountForBackendTypecheck({
+    head: 'fixture-head', passed: true, releaseApproved: false, productionWrites: false,
+    steps: [{ name: 'Full TypeScript', passed: true, exitCode: 0 }],
+  }, notes);
+  assert.deepEqual(notes, [{
+    name: 'Typecheck', sourceHead: 'fixture-head',
+    executedBy: 'Native cart-hold ledger, expiry and compatibility proof', exitCode: 0,
+  }]);
+});
+
+test('preflight never invents a TypeScript pass from missing, failed, duplicate or mismatched proof', () => {
+  const valid = { name: 'Full TypeScript', passed: true, exitCode: 0 };
+  const base = { head: 'fixture-head', passed: true, releaseApproved: false, productionWrites: false, steps: [valid] };
+  for (const change of [
+    { head: 'other-head' }, { passed: false }, { releaseApproved: true },
+    { productionWrites: true }, { steps: [] }, { steps: [valid, valid] },
+    { steps: [{ ...valid, passed: false }] }, { steps: [{ ...valid, exitCode: 1 }] },
+  ]) {
+    const notes = [];
+    assert.throws(() => accountForBackendTypecheck({ ...base, ...change }, notes));
+    assert.deepEqual(notes, []);
+  }
+});
