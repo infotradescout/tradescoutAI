@@ -1,4 +1,4 @@
-import type { Express, NextFunction, Request, RequestHandler, Response } from "express";
+import type { Express, Request, RequestHandler, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import type {
   JwStoneInternalPricingResponse,
@@ -18,6 +18,7 @@ import { JwStoneCartHolds } from "../services/jwStoneCartHolds";
 import { registerJwStoneCartHoldRoutes } from "./jw-stone-cart-holds";
 import { startJwStoneCartHoldExpiry } from "../services/jwStoneCartHoldWorker";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { requireJwStoneCartHoldWriteIntent } from "../utils/jwStoneCartHoldWriteIntent";
 import { registerJwStoneFeatureRoutes } from "./jw-stone-features";
 import { requireCriticalSchema } from "../schemaPreflight";
 import {
@@ -124,32 +125,6 @@ const jwStoneCartHoldMutationLimiter: RequestHandler =
         }),
       })
     : passthroughMutationLimiter;
-
-function requireJwStoneCartHoldWriteIntent(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  const origin = String(req.get("Origin") || "").trim();
-  const host = String(req.get("host") || "").trim().toLowerCase();
-  try {
-    const parsed = new URL(origin);
-    if (!origin || !host || parsed.host.toLowerCase() !== host || parsed.protocol !== `${req.protocol}:`) {
-      res.status(403).json({
-        code: "same_origin_required",
-        message: "Open your JW Stone cart on this site before changing a reservation.",
-      });
-      return;
-    }
-  } catch {
-    res.status(403).json({
-      code: "same_origin_required",
-      message: "Open your JW Stone cart on this site before changing a reservation.",
-    });
-    return;
-  }
-  next();
-}
 
 export function registerJwStoneMemberPricingRoutes(app: Express): void {
   registerJwStoneFeatureRoutes(app);
