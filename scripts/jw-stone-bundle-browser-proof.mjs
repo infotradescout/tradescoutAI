@@ -82,16 +82,28 @@ try {
     await page.getByRole("button", { name: "Close cart", exact: true }).click();
     await page.getByTestId("jw-stone-add-to-cart-card").nth(1).click();
     await page.getByLabel("Quantity for Fantasy Brown", { exact: true }).fill("3");
-    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Mixed-material bundle eligibility needs JW Stone confirmation");
-    await expect(page.getByTestId("jw-bundle-complete-line")).toHaveCount(0);
+    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Add 1 more eligible slab");
+    await expect(page.getByTestId("jw-bundle-complete-line")).toHaveCount(2);
     await expect(page.getByTestId("jw-bundle-savings")).toHaveCount(0);
     await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$1,050.00");
-    await page.getByLabel("Quantity for Fantasy Brown", { exact: true }).fill("4");
-    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$1,250.00");
-    await expect(page.getByTestId("jw-bundle-builder")).not.toContainText("Bundle pricing unlocked");
-    await expect(page.getByTestId("jw-bundle-complete-line")).toHaveCount(0);
+    await page.getByTestId("jw-bundle-complete-line").nth(1).click();
+    await expect(page.getByLabel("Quantity for Honey Onyx", { exact: true })).toHaveValue("3");
+    await expect(page.getByLabel("Quantity for Fantasy Brown", { exact: true })).toHaveValue("4");
+    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Bundle pricing unlocked");
+    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$800.00");
+    await expect(page.getByTestId("jw-bundle-savings")).toContainText("$450.00");
+    await expect(page.getByTestId("jw-cart-line-total").nth(0)).toContainText("$2.00 / sq. ft.");
+    await expect(page.getByTestId("jw-cart-line-total").nth(1)).toContainText("$2.50 / sq. ft.");
+    assert.equal(await page.getByTestId("jw-stone-member-cart").evaluate((el) => el.scrollWidth > el.clientWidth + 1), false);
+    await page.getByTestId("jw-stone-member-cart").screenshot({ path: path.join(output, viewport.name + "-mixed-unlocked.png") });
+    await page.reload();
+    await page.getByTestId("jw-stone-member-cart-button").click();
+    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$800.00");
+    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Bundle pricing unlocked");
+    await page.getByRole("button", { name: "Decrease Fantasy Brown quantity", exact: true }).click();
+    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Add 1 more eligible slab");
+    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$1,050.00");
     await expect(page.getByTestId("jw-bundle-savings")).toHaveCount(0);
-    await page.getByTestId("jw-stone-member-cart").screenshot({ path: path.join(output, viewport.name + "-mixed-unconfirmed.png") });
     await page.getByRole("button", { name: "Remove Fantasy Brown from cart", exact: true }).click();
     await expect(page.getByTestId("jw-bundle-builder")).toContainText("Add 4 more eligible slabs");
     await page.getByTestId("jw-bundle-complete-line").first().click();
@@ -109,9 +121,10 @@ try {
     await page.getByTestId("jw-stone-member-cart-button").click();
     await expect(page.getByTestId("jw-bundle-builder")).toContainText("Add 1 more eligible slab");
     assert.deepEqual(errors, []);
-    results.push({ viewport: viewport.name, threshold: true, mixedMaterialDiscountBlocked: true,
-      unapprovedCompletionHidden: true, singleMaterialBundle: true, exactSavings: true,
-      automaticRepricing: true, persistence: true, horizontalOverflow: false, pageErrors: errors });
+    results.push({ viewport: viewport.name, threshold: true, mixedMaterials: true,
+      mixedMaterialCompletion: true, perMaterialRates: true, mixedMaterialReload: true,
+      singleMaterialBundle: true, exactSavings: true, automaticRepricing: true,
+      persistence: true, horizontalOverflow: false, pageErrors: errors });
     console.log(JSON.stringify(results.at(-1))); await context.close();
   }
   await fs.writeFile(path.join(output, "result.json"), JSON.stringify({ kind: "fixture-backed real-component browser proof", results }, null, 2));
