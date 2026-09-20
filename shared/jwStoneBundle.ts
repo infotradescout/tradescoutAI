@@ -1,6 +1,6 @@
 import { jwStonePriceKey } from "./jwStoneMemberPricing";
 
-/** Seven eligible slabs form a bundle; cross-material pooling is not approved. */
+/** Seven eligible slabs may span materials. Each material keeps its source rate and minimum. */
 export const JW_STONE_BUNDLE_SLABS = 7 as const;
 export type JwStoneBundlePricing = Readonly<{
   slabRateCents: number;
@@ -20,17 +20,15 @@ export function isJwStoneBundleEligible(price: JwStoneBundlePricing): boolean {
   return price.minimumSlabs <= JW_STONE_BUNDLE_SLABS && price.bundleRateCents < price.slabRateCents;
 }
 
-/** Quantity alone cannot authorize combining different or unidentified materials. */
+/** Different known materials may pool; unidentified material must still be checked. */
 export function jwStoneBundleNeedsMaterialReview(lines: readonly JwStoneBundleCandidate[]): boolean {
-  const materials = new Set<string>();
-  for (const line of lines) {
-    if (line.status !== "ready" || !line.bundlePricing || !isJwStoneBundleEligible(line.bundlePricing))
-      continue;
-    const key = jwStonePriceKey(line.materialName);
-    if (!key) return true;
-    materials.add(key);
-  }
-  return materials.size > 1;
+  return lines.some(
+    (line) =>
+      line.status === "ready" &&
+      line.bundlePricing &&
+      isJwStoneBundleEligible(line.bundlePricing) &&
+      !jwStonePriceKey(line.materialName)
+  );
 }
 
 export function getJwStoneBundleProgress(lines: readonly JwStoneBundleCandidate[]) {
@@ -55,8 +53,8 @@ export function getJwStoneBundleProgress(lines: readonly JwStoneBundleCandidate[
       eligibleSlabs >= JW_STONE_BUNDLE_SLABS,
   };
 }
-/** Use the source rate, not a flat percent. Cart-wide pooling requires confirmed
- * same-material identity; published per-stock quantity tiers remain independent. */
+/** Use each material's source rate, not a flat percent or blended rate.
+ * Published per-stock quantity tiers remain independent of cart-wide eligibility. */
 export function priceJwStoneBundleLine(
   price: JwStoneBundlePricing,
   quantity: number,
