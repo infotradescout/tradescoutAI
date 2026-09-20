@@ -8,8 +8,18 @@ const fx = vi.hoisted(() => ({
   stock: [] as any[],
   prices: [] as any[],
   held: 0,
+  featureEnabled: true,
 }));
-vi.mock("../auth", () => ({ isAuthenticated: (_req: any, _res: any, next: any) => next() }));
+vi.mock("../auth", () => ({
+  isAuthenticated: (_req: any, _res: any, next: any) => next(),
+  isSuperAdmin: (_req: any, res: any) => res.status(403).json({ message: "Administrator required" }),
+}));
+vi.mock("../services/jwStoneFeatureStore", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../services/jwStoneFeatureStore")>()),
+  createJwStoneFeatureStore: () => ({
+    read: async () => ({ profileSlug: "jw-stone", enabled: fx.featureEnabled, revision: 1, configured: true }),
+  }),
+}));
 vi.mock("../schemaPreflight", () => ({
   requireCriticalSchema: () => (_req: any, _res: any, next: any) => next(),
 }));
@@ -55,6 +65,7 @@ const body = (...quantities: number[]) => ({
 const review = (input: unknown) => request(app).post(JW_STONE_CART_REVIEW_PATH).send(input);
 beforeEach(() => {
   fx.access = "member";
+  fx.featureEnabled = true;
   fx.held = 0;
   fx.stock = ["Stone A", "Stone B", "Stone C"].map((materialName, index) => ({
     id: id(index + 1),
@@ -225,6 +236,13 @@ describe("JW Stone seven-slab bundle HTTP contract", () => {
     const r = await review(body(7));
     expect(r.status).toBe(403);
     expect(r.body.bundle).toBeUndefined();
+  });
+  it("denies the checked cart when the real feature gateway reads a paused fixture state", async () => {
+    fx.featureEnabled = false;
+    const r = await review(body(7));
+    expect(r.status).toBe(403);
+    expect(r.body.bundle).toBeUndefined();
+    expect(r.body.subtotalCents).toBeUndefined();
   });
   it("rejects buyer-supplied discount authority", async () => {
     expect((await review({ ...body(7), bundle: { unlocked: true } })).status).toBe(400);
