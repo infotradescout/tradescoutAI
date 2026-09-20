@@ -67,7 +67,8 @@ try {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/api/**", async (route) => {
       const url = new URL(route.request().url()); let payload;
-      if (url.pathname.endsWith("/member-pricing")) payload = { profileSlug: "jw-stone", viewerId,
+      if (url.pathname === "/api/u/jw-stone/features") payload = { profileSlug: "jw-stone", enabled: true, configured: true, revision: 1 };
+      else if (url.pathname.endsWith("/member-pricing")) payload = { profileSlug: "jw-stone", viewerId,
         access: "member", currency: "USD", unit: "square_foot", sourceUpdatedAt: "2026-09-16T00:00:00.000Z", prices };
       else if (url.pathname.endsWith("/current")) payload = { profileSlug: "jw-stone", items: stock };
       else if (url.pathname.endsWith("/cart-review")) payload = reviewed(route.request().postDataJSON());
