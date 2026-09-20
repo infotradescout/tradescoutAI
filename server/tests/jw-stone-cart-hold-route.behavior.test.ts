@@ -7,7 +7,13 @@ import {
   type JwStoneCartHoldReceipt,
 } from "@shared/jwStoneCartHolds";
 import { registerJwStoneCartHoldRoutes } from "../routes/jw-stone-cart-holds";
+import { requireJwStoneCartHoldWriteIntent } from "../utils/jwStoneCartHoldWriteIntent";
 
+const sameOriginHeaders = {
+  Host: "jwstonelogistics.com",
+  "X-Forwarded-Proto": "https",
+  Origin: "https://jwstonelogistics.com",
+};
 const reservationId = `jwh_${"a".repeat(32)}`;
 const inventoryPublicId = `stone_${"b".repeat(32)}`;
 const receipt: JwStoneCartHoldReceipt = {
@@ -50,6 +56,7 @@ function fixture(access: "member" | "internal" | "none" = "member") {
     release: vi.fn(async () => ({ reservationId, status: "released" as const })),
   };
   const app = express();
+  app.set("trust proxy", true);
   app.use(express.json());
   app.use((req, _res, next) => {
     req.user = { id: req.get("x-fixture-viewer") || "buyer" } as any;
@@ -57,21 +64,18 @@ function fixture(access: "member" | "internal" | "none" = "member") {
   });
   const authenticate = (req: Request, res: Response, next: NextFunction) =>
     req.user ? next() : res.status(401).json({ message: "Authentication required" });
-  const requireWriteIntent = (req: Request, res: Response, next: NextFunction) =>
-    req.get("x-write-intent") === "same-origin"
-      ? next()
-      : res.status(403).json({ code: "same_origin_required" });
+  const mutationLimiter = vi.fn((_req: Request, _res: Response, next: NextFunction) => next());
   registerJwStoneCartHoldRoutes(app, {
     holds: holds as any,
     authenticate,
     requireSchema: (_req, _res, next) => next(),
-    requireWriteIntent,
-    mutationLimiter: (_req, _res, next) => next(),
+    requireWriteIntent: requireJwStoneCartHoldWriteIntent,
+    mutationLimiter,
     target: async () => ({ businessId: "jw-business" }),
     access: async () => access,
     pricing: async () => ({ sourceUpdatedAt: "2026-09-19T15:00:00.000Z", prices: [] }),
   });
-  return { app, holds };
+  return { app, holds, mutationLimiter };
 }
 
 describe("JW Stone cart hold HTTP mutations", () => {
@@ -92,7 +96,7 @@ describe("JW Stone cart hold HTTP mutations", () => {
 
     const allowed = await request(app)
       .post(JW_STONE_CART_HOLD_PATH)
-      .set("x-write-intent", "same-origin")
+      .set(sameOriginHeaders)
       .send(body);
     expect(allowed.status).toBe(200);
     expect(allowed.body).toEqual(receipt);
@@ -106,12 +110,44 @@ describe("JW Stone cart hold HTTP mutations", () => {
     );
   });
 
+  it.each([
+    "null",
+    "https://attacker.example",
+    "https://shop.jwstonelogistics.com",
+    "http://jwstonelogistics.com",
+    "https://jwstonelogistics.com:8443",
+    "https://jwstonelogistics.com/cart",
+    "https://jwstonelogistics.com?cart=1",
+    "https://jwstonelogistics.com#cart",
+    "https://buyer@jwstonelogistics.com",
+    "https://buyer:password@jwstonelogistics.com",
+  ])("rejects invalid Origin before either mutation: %s", async (origin) => {
+    for (const path of [
+      JW_STONE_CART_HOLD_PATH,
+      `${JW_STONE_CART_HOLD_PATH}/${reservationId}/release`,
+    ]) {
+      const { app, holds, mutationLimiter } = fixture();
+      const response = await request(app)
+        .post(path)
+        .set(sameOriginHeaders)
+        .set("Origin", origin)
+        .set("X-Forwarded-Host", "attacker.example")
+        .send({});
+      expect(response.status).toBe(403);
+      expect(response.body.code).toBe("same_origin_required");
+      expect(response.headers["cache-control"]).toBe("private, no-store");
+      expect(mutationLimiter).not.toHaveBeenCalled();
+      expect(holds.reserve).not.toHaveBeenCalled();
+      expect(holds.release).not.toHaveBeenCalled();
+    }
+  });
+
   it("does not let internal or nonmember viewers create buyer reservations", async () => {
     for (const access of ["internal", "none"] as const) {
       const { app, holds } = fixture(access);
       const response = await request(app)
         .post(JW_STONE_CART_HOLD_PATH)
-        .set("x-write-intent", "same-origin")
+        .set(sameOriginHeaders)
         .send({
           idempotencyKey: "11111111-1111-4111-8111-111111111111",
           lines: [{ inventoryPublicId, quantity: 1 }],
@@ -133,14 +169,14 @@ describe("JW Stone cart hold HTTP mutations", () => {
 
     const invalid = await request(app)
       .post(path)
-      .set("x-write-intent", "same-origin")
+      .set(sameOriginHeaders)
       .send({ quantity: 2 });
     expect(invalid.status).toBe(400);
     expect(holds.release).not.toHaveBeenCalled();
 
     const released = await request(app)
       .post(path)
-      .set("x-write-intent", "same-origin")
+      .set(sameOriginHeaders)
       .send({});
     expect(released.status).toBe(200);
     expect(released.body).toEqual({ reservationId, status: "released" });
@@ -174,6 +210,8 @@ describe("JW Stone cart hold production composition", () => {
     const source = readFileSync("server/routes/jw-stone-member-pricing.ts", "utf8");
     expect(source).toContain("registerJwStoneCartHoldRoutes(app, {");
     expect(source).toContain("requireWriteIntent: requireJwStoneCartHoldWriteIntent");
+    expect(source).toContain('from "../utils/jwStoneCartHoldWriteIntent"');
+    expect(source).not.toContain("function requireJwStoneCartHoldWriteIntent(");
     expect(source).toContain("mutationLimiter: jwStoneCartHoldMutationLimiter");
     expect(source).toContain("createPostgresRateLimitStore");
     expect(source).toContain('process.env.NODE_ENV === "production"');
