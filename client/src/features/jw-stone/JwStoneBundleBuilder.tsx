@@ -20,7 +20,7 @@ export function JwStoneBundleBuilder({
   const message = checking
     ? "Checking bundle eligibility…"
     : needsMaterialReview
-      ? "Mixed-material bundle eligibility needs JW Stone confirmation. Materials are priced separately."
+      ? "Confirm the material for each stock selection to check bundle pricing."
       : bundle?.unlocked
         ? "Bundle pricing unlocked"
         : bundle && remaining === 0
@@ -30,9 +30,9 @@ export function JwStoneBundleBuilder({
               remaining +
               " more eligible " +
               (remaining === 1 ? "slab" : "slabs") +
-              " of this material to unlock bundle pricing."
+              " to unlock bundle pricing."
             : empty
-              ? "Choose exact stock to check seven-slab bundle eligibility."
+              ? "Choose 7 eligible slabs to unlock bundle pricing."
               : "Choose exact stock to check your bundle.";
   return (
     <section
@@ -77,9 +77,8 @@ export function JwStoneBundleBuilder({
         </>
       ) : null}
       <p className="mt-3 text-xs leading-5 text-[var(--jw-muted)]">
-        Each stone’s published quantity rates still apply. Combining different materials into a
-        bundle requires confirmation from JW Stone. Special higher-minimum materials do not count
-        toward this bundle.
+        Mix eligible materials at each stone’s listed bundle rate. Lower quantity rates still apply.
+        Special higher-minimum materials do not count toward this bundle.
       </p>
       <button
         type="button"
