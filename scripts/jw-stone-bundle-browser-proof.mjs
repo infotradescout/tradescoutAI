@@ -81,11 +81,22 @@ try {
     await page.getByRole("button", { name: "Close cart", exact: true }).click();
     await page.getByTestId("jw-stone-add-to-cart-card").nth(1).click();
     await page.getByLabel("Quantity for Fantasy Brown", { exact: true }).fill("3");
-    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Add 1 more eligible slab");
+    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Mixed-material bundle eligibility needs JW Stone confirmation");
+    await expect(page.getByTestId("jw-bundle-complete-line")).toHaveCount(0);
+    await expect(page.getByTestId("jw-bundle-savings")).toHaveCount(0);
+    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$1,050.00");
+    await page.getByLabel("Quantity for Fantasy Brown", { exact: true }).fill("4");
+    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$1,250.00");
+    await expect(page.getByTestId("jw-bundle-builder")).not.toContainText("Bundle pricing unlocked");
+    await expect(page.getByTestId("jw-bundle-complete-line")).toHaveCount(0);
+    await expect(page.getByTestId("jw-bundle-savings")).toHaveCount(0);
+    await page.getByTestId("jw-stone-member-cart").screenshot({ path: path.join(output, viewport.name + "-mixed-unconfirmed.png") });
+    await page.getByRole("button", { name: "Remove Fantasy Brown from cart", exact: true }).click();
+    await expect(page.getByTestId("jw-bundle-builder")).toContainText("Add 4 more eligible slabs");
     await page.getByTestId("jw-bundle-complete-line").first().click();
     await expect(page.getByTestId("jw-bundle-builder")).toContainText("Bundle pricing unlocked");
-    await expect(page.getByTestId("jw-bundle-savings")).toContainText("$425.00");
-    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$775.00");
+    await expect(page.getByTestId("jw-bundle-savings")).toContainText("$350.00");
+    await expect(page.getByTestId("jw-cart-reviewed-subtotal")).toContainText("$700.00");
     const overflow = await page.getByTestId("jw-stone-member-cart").evaluate((el) => el.scrollWidth > el.clientWidth + 1);
     assert.equal(overflow, false, "Cart must not overflow horizontally");
     await page.getByTestId("jw-bundle-builder").scrollIntoViewIfNeeded();
@@ -97,7 +108,8 @@ try {
     await page.getByTestId("jw-stone-member-cart-button").click();
     await expect(page.getByTestId("jw-bundle-builder")).toContainText("Add 1 more eligible slab");
     assert.deepEqual(errors, []);
-    results.push({ viewport: viewport.name, threshold: true, mixedMaterials: true, exactSavings: true,
+    results.push({ viewport: viewport.name, threshold: true, mixedMaterialDiscountBlocked: true,
+      unapprovedCompletionHidden: true, singleMaterialBundle: true, exactSavings: true,
       automaticRepricing: true, persistence: true, horizontalOverflow: false, pageErrors: errors });
     console.log(JSON.stringify(results.at(-1))); await context.close();
   }
