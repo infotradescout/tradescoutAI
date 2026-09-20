@@ -29,8 +29,14 @@ function click(element: Element | null) {
 describe("StoneDetailDialog", async () => {
   let container: HTMLDivElement;
   let root: Root;
+  let featureEnabled = true;
 
   beforeEach(() => {
+    featureEnabled = true;
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url !== "/api/u/jw-stone/features") throw new Error("Unexpected fixture request: " + url);
+      return { ok: true, json: async () => ({ profileSlug: "jw-stone", enabled: featureEnabled, configured: true, revision: 1 }) };
+    }));
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -39,6 +45,7 @@ describe("StoneDetailDialog", async () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    vi.unstubAllGlobals();
   });
 
   it("shows confirmed facts and Ask JW about {name} without color swatches or Pairs with", async () => {
@@ -220,5 +227,16 @@ describe("StoneDetailDialog", async () => {
 
     click(ask ?? null);
     expect(onAsk).toHaveBeenCalledWith(stone);
+  });
+
+  it("does not reveal the room tool when the server feature manifest is OFF", async () => {
+    featureEnabled = false;
+    const stone = JW_STONE_CATALOG.find((entry) => entry.images.length > 1)!;
+    await act(async () => root.render(
+      <StoneDetailDialog stone={stone} saved={false} onOpenChange={vi.fn()} onToggleSaved={vi.fn()} onAsk={vi.fn()} />
+    ));
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-room"]')).toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-ask"]')).not.toBeNull();
   });
 });
