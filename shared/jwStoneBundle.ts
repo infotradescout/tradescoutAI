@@ -1,4 +1,6 @@
-/** Seven eligible slabs form a bundle. Mixed-material eligibility in this draft awaits owner approval. */
+import { jwStonePriceKey } from "./jwStoneMemberPricing";
+
+/** Seven eligible slabs form a bundle; cross-material pooling is not approved. */
 export const JW_STONE_BUNDLE_SLABS = 7 as const;
 export type JwStoneBundlePricing = Readonly<{
   slabRateCents: number;
@@ -10,12 +12,27 @@ export type JwStoneBundlePricing = Readonly<{
 export type JwStoneBundleCandidate = Readonly<{
   status: string;
   requestedQuantity: number;
+  materialName?: string;
   bundlePricing?: JwStoneBundlePricing;
 }>;
-/** Higher source minimums and non-discounted materials do not qualify for mixing. */
+/** Higher source minimums and non-discounted materials do not qualify for pooling. */
 export function isJwStoneBundleEligible(price: JwStoneBundlePricing): boolean {
   return price.minimumSlabs <= JW_STONE_BUNDLE_SLABS && price.bundleRateCents < price.slabRateCents;
 }
+
+/** Quantity alone cannot authorize combining different or unidentified materials. */
+export function jwStoneBundleNeedsMaterialReview(lines: readonly JwStoneBundleCandidate[]): boolean {
+  const materials = new Set<string>();
+  for (const line of lines) {
+    if (line.status !== "ready" || !line.bundlePricing || !isJwStoneBundleEligible(line.bundlePricing))
+      continue;
+    const key = jwStonePriceKey(line.materialName);
+    if (!key) return true;
+    materials.add(key);
+  }
+  return materials.size > 1;
+}
+
 export function getJwStoneBundleProgress(lines: readonly JwStoneBundleCandidate[]) {
   const eligibleSlabs = lines.reduce(
     (sum, line) =>
@@ -25,19 +42,21 @@ export function getJwStoneBundleProgress(lines: readonly JwStoneBundleCandidate[
         : 0),
     0
   );
+  const materialReviewRequired = jwStoneBundleNeedsMaterialReview(lines);
   return {
     requiredSlabs: JW_STONE_BUNDLE_SLABS,
     eligibleSlabs,
     remainingSlabs: Math.max(0, JW_STONE_BUNDLE_SLABS - eligibleSlabs),
-    completeBundles: Math.floor(eligibleSlabs / JW_STONE_BUNDLE_SLABS),
+    completeBundles: materialReviewRequired ? 0 : Math.floor(eligibleSlabs / JW_STONE_BUNDLE_SLABS),
     unlocked:
+      !materialReviewRequired &&
       lines.length > 0 &&
       lines.every((line) => line.status === "ready") &&
       eligibleSlabs >= JW_STONE_BUNDLE_SLABS,
   };
 }
-/** Use each material's real rate for every eligible slab at 7+, not a flat percent.
- * Preserve better per-stock quantity tiers; never raise a price as a discount. */
+/** Use the source rate, not a flat percent. Cart-wide pooling requires confirmed
+ * same-material identity; published per-stock quantity tiers remain independent. */
 export function priceJwStoneBundleLine(
   price: JwStoneBundlePricing,
   quantity: number,
