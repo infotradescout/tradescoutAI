@@ -1,5 +1,5 @@
 import type { JwStoneCartReview } from "@shared/jwStoneCart";
-import { JW_STONE_BUNDLE_SLABS } from "@shared/jwStoneBundle";
+import { JW_STONE_BUNDLE_SLABS, jwStoneBundleNeedsMaterialReview } from "@shared/jwStoneBundle";
 
 export function JwStoneBundleBuilder({
   review,
@@ -13,24 +13,27 @@ export function JwStoneBundleBuilder({
   onBrowse: () => void;
 }) {
   const bundle = review?.bundle;
+  const needsMaterialReview = Boolean(review && jwStoneBundleNeedsMaterialReview(review.lines));
   const count = bundle?.eligibleSlabs ?? 0;
   const remaining = bundle?.remainingSlabs ?? JW_STONE_BUNDLE_SLABS;
-  const showProgress = Boolean(bundle) || empty;
+  const showProgress = (Boolean(bundle) || empty) && !needsMaterialReview;
   const message = checking
     ? "Checking bundle eligibility…"
-    : bundle?.unlocked
-      ? "Bundle pricing unlocked"
-      : bundle && remaining === 0
-        ? "Resolve unavailable selections to confirm bundle pricing."
-        : bundle
-          ? "Add " +
-            remaining +
-            " more eligible " +
-            (remaining === 1 ? "slab" : "slabs") +
-            " to unlock bundle pricing."
-          : empty
-            ? "Choose 7 eligible slabs to unlock bundle pricing."
-            : "Choose exact stock to check your bundle.";
+    : needsMaterialReview
+      ? "Mixed-material bundle eligibility needs JW Stone confirmation. Materials are priced separately."
+      : bundle?.unlocked
+        ? "Bundle pricing unlocked"
+        : bundle && remaining === 0
+          ? "Resolve unavailable selections to confirm bundle pricing."
+          : bundle
+            ? "Add " +
+              remaining +
+              " more eligible " +
+              (remaining === 1 ? "slab" : "slabs") +
+              " of this material to unlock bundle pricing."
+            : empty
+              ? "Choose exact stock to check seven-slab bundle eligibility."
+              : "Choose exact stock to check your bundle.";
   return (
     <section
       aria-labelledby="jw-bundle-title"
@@ -74,15 +77,16 @@ export function JwStoneBundleBuilder({
         </>
       ) : null}
       <p className="mt-3 text-xs leading-5 text-[var(--jw-muted)]">
-        Mix eligible materials at each stone’s listed bundle rate. Lower quantity rates still apply.
-        Special higher-minimum materials do not count toward this bundle.
+        Each stone’s published quantity rates still apply. Combining different materials into a
+        bundle requires confirmation from JW Stone. Special higher-minimum materials do not count
+        toward this bundle.
       </p>
       <button
         type="button"
         onClick={onBrowse}
         className="mt-2 min-h-11 w-full border border-[var(--jw-border)] px-3 text-sm font-semibold"
       >
-        {bundle?.unlocked ? "Continue shopping" : "Choose more slabs"}
+        {bundle?.unlocked || needsMaterialReview ? "Continue shopping" : "Choose more slabs"}
       </button>
     </section>
   );
