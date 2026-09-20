@@ -32,6 +32,7 @@ function run(name, args, env = {}) {
   const r = spawnSync(args[0], args.slice(1), { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 900000, maxBuffer: 60 * 1024 * 1024 });
   const text = ((r.stdout || '') + (r.stderr || '')).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]');
   console.log(text); assert.equal(r.status, 0, name + ': ' + text.slice(-2500)); note(name);
+  return text;
 }
 async function stop() {
   if (!server || server.exitCode !== null || server.signalCode) return;
