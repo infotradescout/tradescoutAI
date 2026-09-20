@@ -75,6 +75,13 @@ try {
     assert.equal(report.backendCartHoldProof.passed, true);
     assert.equal(report.backendCartHoldProof.releaseApproved, false);
     assert.equal(report.backendCartHoldProof.productionWrites, false);
+    // The backend just ran full tsc on this exact checkout. Preserve that executed
+    // stage in the preflight record instead of rerunning tsc or waiving its gate.
+    const backendTypechecks = report.backendCartHoldProof.steps.filter(step => step.name === 'Full TypeScript');
+    assert.equal(backendTypechecks.length, 1, 'Exactly one backend TypeScript receipt is required');
+    assert.equal(backendTypechecks[0].passed, true);
+    assert.equal(backendTypechecks[0].exitCode, 0);
+    note('Typecheck', { sourceHead: head, executedBy: 'Native cart-hold ledger, expiry and compatibility proof', exitCode: backendTypechecks[0].exitCode });
     run('Customer cart reservation contracts', [
       'npm', 'run', 'test:run', '--',
       'client/src/features/jw-stone/JwStoneMemberCart.test.tsx',
