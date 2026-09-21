@@ -3,8 +3,9 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 
-// Keep production observations separate from exact-candidate release execution.
-if (process.env.SEARCH_SURFACE_CANDIDATE_SHA) {
+if (process.env.REQUEST_STAGES_CANDIDATE_SHA) {
+  await import('./verify-request-stage-report.mjs');
+} else if (process.env.SEARCH_SURFACE_CANDIDATE_SHA) {
   // The outer verifier owns this disposable detached checkout. A local clone
   // otherwise inherits stale/missing main history from the old audit branch,
   // which the unchanged production-readiness registry correctly rejects.
