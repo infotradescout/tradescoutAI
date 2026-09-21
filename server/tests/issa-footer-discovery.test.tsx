@@ -105,7 +105,9 @@ describe("ISSA canonical discovery without new page copy", () => {
     expect(PENSACOLA_DISCOVERY.profileHref).toBe("/issa-build");
     const links = [...doc.querySelectorAll('section[aria-label="Kitchen and bathroom services"] h2 a')];
     expect(links).toHaveLength(4);
-    expect(links.every((link) => link.getAttribute("href") === "/issa-build#profile-services")).toBe(true);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(
+      PENSACOLA_DISCOVERY.projectKinds.map((kind) => `/u/issa-build/services/${PENSACOLA_PROJECTS[kind].serviceSlug}`)
+    );
     expect(doc.querySelector('figure a')?.getAttribute('href')).toBe('/issa-build/onyx');
     expect(doc.body.textContent).not.toMatch(/Country of origin|Thickness: 2 cm/);
     expect(doc.querySelectorAll('h1')).toHaveLength(1);
