@@ -13,6 +13,7 @@ import {
 import { createJwStoneFeatureStore } from "../services/jwStoneFeatureStore";
 import { decideJwStoneFeatureAccess } from "../services/jwStoneFeatureGateway";
 import { renderJwStoneFeatureControl } from "../services/jwStoneFeatureControlPage";
+import { registerJwStoneSalesRoutes } from "./jw-stone-sales";
 const store = createJwStoneFeatureStore(pool);
 const mounted = new WeakSet<Express>();
 function noStore(res: Response) {
@@ -42,6 +43,8 @@ function requireSameOrigin(req: Request) {
 export function registerJwStoneFeatureRoutes(app: Express): void {
   if (mounted.has(app)) return;
   mounted.add(app);
+  // Order admission is enforced inside its transaction; recovery/webhooks stay available while OFF.
+  registerJwStoneSalesRoutes(app);
   app.get(JW_STONE_FEATURES_PATH, async (_req, res) => {
     noStore(res);
     try {
