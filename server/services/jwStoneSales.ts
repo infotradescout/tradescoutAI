@@ -9,10 +9,10 @@ import { StripeJwStoneCheckoutProvider, type JwStoneCheckoutProvider, type JwSto
 
 type Context = { requestId: string; buyerId: string; sellerId: string; sellerUserId: string; requestStatus: string; intake: JwStoneSaleIntake };
 type Queryable = Pick<PoolClient, "query">;
-const fail = (code: string, message: string, status = 409): never => { throw new JwStoneSaleError(status, code, message); };
+function fail(code: string, message: string, status = 409): never { throw new JwStoneSaleError(status, code, message); }
 const object = (value: unknown): Record<string, any> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : {};
 const sha = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
-const activePayment = (state: JwStoneSaleState) => Boolean(state.attempt && !["payment_failed", "payment_expired"].includes(state.status));
+const activePayment = (state: JwStoneSaleState) => state.status === "needs_review" || Boolean(state.attempt && !["payment_failed", "payment_expired"].includes(state.status));
 
 /** Orders own durable allocations; the temporary-cart expiry worker never owns these allocations. */
 export class JwStoneSales {
@@ -32,7 +32,8 @@ export class JwStoneSales {
     const original = events.rows.map(event => object(event.metadata)).filter(meta => meta.source === "tradepartner_profile" && meta.businessSlug === "jw-stone" && meta.businessId === row.seller_id && meta.profileId === row.profile_id && meta.requestType === "make_offer");
     if (original.length !== 1) fail("jw_offer_not_found", "This request does not contain a verified JW Stone offer.", 404);
     const parsed = jwStoneSaleIntakeSchema.safeParse(original[0].stoneOffer);
-    if (!parsed.success || new Set(parsed.data.lines.map(line => line.inventoryPublicId)).size !== parsed.data.lines.length) fail("jw_offer_invalid", "The original offer needs review before it can become an order.");
+    if (!parsed.success) fail("jw_offer_invalid", "The original offer needs review before it can become an order.");
+    if (new Set(parsed.data.lines.map(line => line.inventoryPublicId)).size !== parsed.data.lines.length) fail("jw_offer_invalid", "The original offer contains duplicate stock identities.");
     return { requestId, buyerId: row.buyer_id, sellerId: row.seller_id, sellerUserId: row.seller_user_id, requestStatus: row.request_status, intake: parsed.data };
   }
   private async state(db: Queryable, context: Context): Promise<JwStoneSaleState> {
@@ -40,6 +41,7 @@ export class JwStoneSales {
     if (!result.rows.length) return initialJwStoneSale();
     const row = result.rows[0];
     if (row.buyer_user_id !== context.buyerId || row.seller_business_id !== context.sellerId || row.state.revision !== row.revision) fail("jw_order_identity", "The order needs an identity review.");
+    if (row.state.quote) jwStoneFinalQuoteSchema.parse(row.state.quote);
     return row.state as JwStoneSaleState;
   }
   private async locked<T>(requestId: string, actor: string | null, action: (db: PoolClient, context: Context, state: JwStoneSaleState) => Promise<T>): Promise<T> {
@@ -48,7 +50,6 @@ export class JwStoneSales {
     try {
       await db.query("BEGIN");
       await db.query("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'");
-      // Same seller/stock lock ordering as the cart ledger, not a competing counter.
       await db.query("SELECT pg_advisory_xact_lock(891473,hashtext($1))", [initial.sellerId]);
       const context = await this.context(db, requestId, actor, true);
       if (context.sellerId !== initial.sellerId) fail("jw_seller_changed", "The seller changed. Reload this offer.");
@@ -155,14 +156,14 @@ export class JwStoneSales {
       const replay = await db.query("SELECT fingerprint,state FROM jw_stone_sale_events WHERE request_id=$1 AND actor_user_id=$2 AND operation_id=$3::uuid", [requestId, actor, command.operationId]);
       if (replay.rows.length) {
         if (replay.rows[0].fingerprint !== sha(command)) fail("jw_command_conflict", "This action ID already belongs to different terms.");
-        return { dispatch: command.action === "checkout" && state.attempt?.id === replay.rows[0].state.attempt?.id && state.attempt?.outcome === "creating" };
+        return { dispatch: command.action === "checkout" && state.attempt?.id === replay.rows[0].state.attempt?.id && state.attempt?.outcome === "creating" && state.status !== "needs_review" };
       }
       if (state.revision !== command.expectedRevision) fail("jw_order_changed", "This offer changed. Reload and review the current terms before continuing.");
       await this.admit(db, context);
       if (command.action === "quote" || command.action === "decline") {
         if (actor !== context.sellerUserId) fail("jw_seller_required", "Only the current JW Stone business owner can confirm or decline an offer.", 403);
         if (activePayment(state)) fail("jw_payment_in_progress", "An existing payment must be resolved before quote terms can change.");
-        if (command.action === "decline") { await this.append(db, context, state, { ...state, status: "declined", quote: null, note: command.notes }, actor, command); return { dispatch: false }; }
+        if (command.action === "decline") { await this.append(db, context, state, { ...state, status: "declined", quote: null, attempt: null, note: command.notes }, actor, command); return { dispatch: false }; }
         if (command.decision === "accept_offer" && command.materialCents !== context.intake.offeredTotalCents) fail("jw_offer_amount", "Accepting the offer must use the buyer's actual offered material amount. Use a counteroffer to change it.");
         if (context.intake.fulfillment.method === "pickup" && command.deliveryCents !== 0) fail("jw_pickup_freight", "Pickup cannot include a delivery charge.");
         const now = new Date((await db.query("SELECT clock_timestamp() AS now")).rows[0].now);
@@ -185,23 +186,47 @@ export class JwStoneSales {
     if (prepared.dispatch) await this.reconcile(requestId, actor);
     return this.read(requestId, actor);
   }
+  /** A callback for an earlier attempt must not be mistaken for the latest session. */
+  private async checkPriorPayments(context: Context, state: JwStoneSaleState, actor: string | null): Promise<boolean> {
+    const prior = await this.database.query(
+      `SELECT DISTINCT ON (state->'attempt'->>'id') state FROM jw_stone_sale_events
+       WHERE request_id=$1 AND state->'attempt'->>'sessionId' IS NOT NULL
+         AND ($2::text IS NULL OR state->'attempt'->>'id'<>$2)
+       ORDER BY state->'attempt'->>'id',revision DESC LIMIT 11`,
+      [context.requestId, state.quote && state.attempt ? state.attempt.id : null]);
+    let review = prior.rows.length > 10;
+    if (!review) {
+      const outcomes = await Promise.all(prior.rows.map(async row => {
+        const old = row.state as JwStoneSaleState;
+        if (!old.quote || !old.attempt?.sessionId) fail("jw_payment_history", "Payment history requires review.");
+        jwStoneFinalQuoteSchema.parse(old.quote);
+        return this.provider.retrieve({ requestId: context.requestId, buyerId: context.buyerId, quote: old.quote, attempt: old.attempt });
+      }));
+      review = outcomes.some(result => result.outcome !== "failed" && result.outcome !== "expired");
+    }
+    if (!review) return false;
+    await this.locked(context.requestId, actor, async (db, ctx, current) => {
+      if (current.status !== "needs_review") await this.append(db, ctx, current, { ...current, status: "needs_review", note: "An earlier payment attempt requires review. Do not submit another payment or fulfill this order until JW Stone reconciles it." }, null);
+    });
+    return true;
+  }
   /** Trusted webhook calls use actor=null only after provider signature/account validation. */
   async reconcile(requestId: string, actor: string | null): Promise<void> {
     const context = await this.context(this.database, requestId, actor);
     const state = await this.state(this.database, context);
+    if (state.status === "needs_review") return;
+    if (await this.checkPriorPayments(context, state, actor)) return;
     if (!state.attempt || !state.quote) return;
     const binding: JwStonePaymentBinding = { requestId, buyerId: context.buyerId, quote: state.quote, attempt: state.attempt };
-    let session: JwStoneProviderSession;
     if (!state.attempt.sessionId && Date.parse(state.attempt.expiresAt) <= Date.now()) {
       await this.locked(requestId, actor, async (db, ctx, current) => {
         if (current.attempt?.id === state.attempt!.id && !current.attempt.sessionId) await this.append(db, ctx, current, applyJwStonePaymentOutcome(current, "needs_review"), null);
       });
       return;
     }
-    // No stock transaction contains a provider call. Uncertain requests keep the same durable attempt.
-    session = state.attempt.sessionId ? await this.provider.retrieve(binding) : await this.provider.create(binding);
+    const session: JwStoneProviderSession = state.attempt.sessionId ? await this.provider.retrieve(binding) : await this.provider.create(binding);
     await this.locked(requestId, actor, async (db, ctx, current) => {
-      if (current.attempt?.id !== state.attempt!.id || current.quote?.id !== binding.quote.id) fail("jw_payment_changed", "This payment no longer matches the current order.");
+      if (!current.attempt || current.attempt.id !== state.attempt!.id || current.quote?.id !== binding.quote.id) fail("jw_payment_changed", "This payment no longer matches the current order.");
       if (current.attempt.sessionId && current.attempt.sessionId !== session.id) fail("jw_payment_identity", "Payment identity requires review.");
       let next = applyJwStonePaymentOutcome({ ...current, attempt: { ...current.attempt, sessionId: session.id, url: session.url } }, session.outcome);
       if (["payment_failed", "payment_expired"].includes(next.status) && current.allocations.length) {
