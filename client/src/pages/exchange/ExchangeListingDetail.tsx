@@ -244,6 +244,8 @@ export default function ExchangeListingDetail() {
   const submissionLock = useRef(false);
   const visibleListingId = useRef(listing?.id);
   visibleListingId.current = listing?.id;
+  const visibleActorId = useRef<string | null>(user?.id ? String(user.id) : null);
+  visibleActorId.current = user?.id ? String(user.id) : null;
 
   // ── Favorites ──────────────────────────────────────────────────────────────
   const { data: favoriteIds = [] } = useQuery<string[]>({
@@ -272,9 +274,10 @@ export default function ExchangeListingDetail() {
   // ── Inquiry ────────────────────────────────────────────────────────────────
   const sendInquiryMutation = useMutation({
     retry: false,
-    mutationFn: async (submission: { listing: ListingDetail; message: string; offer: string }) => {
+    mutationFn: async (submission: { listing: ListingDetail; message: string; offer: string; actorId: string | null }) => {
       const { listing: selected, message, offer } = submission;
       if (!isAuthenticated) throw new Error("Sign in before sending an inquiry");
+      if (submission.actorId !== visibleActorId.current) throw new Error("Your account changed. Review the request again.");
       const decisionScope = `marketplace_listing:${selected.id}`;
       const decision = await apiRequest("POST", "/api/decision-cards", {
         intent: "collaborate",
@@ -284,6 +287,7 @@ export default function ExchangeListingDetail() {
       });
       const sourceDecisionCardId = String(decision?.id || "").trim();
       if (!sourceDecisionCardId) throw new Error("Decision Card creation failed");
+      if (submission.actorId !== visibleActorId.current) throw new Error("Your account changed. Review the request again.");
 
       await apiRequest("POST", "/api/marketplace/inquiries", {
         listingId: selected.id,
@@ -296,6 +300,7 @@ export default function ExchangeListingDetail() {
       return selected.id;
     },
     onSuccess: (submittedListingId: string, submission) => {
+      if (submission.actorId !== visibleActorId.current) return;
       const retail = isStoneRetailListing(submission.listing);
       toast({
         title: retail ? "Request sent to TradeScout" : "Protected inquiry sent",
@@ -327,7 +332,7 @@ export default function ExchangeListingDetail() {
       return;
     }
     submissionLock.current = true;
-    sendInquiryMutation.mutate({ listing, message: inquiryMessage, offer: inquiryOffer });
+    sendInquiryMutation.mutate({ listing, message: inquiryMessage, offer: inquiryOffer, actorId: visibleActorId.current });
   }
 
   // ── Photo nav ──────────────────────────────────────────────────────────────
@@ -546,7 +551,7 @@ export default function ExchangeListingDetail() {
           )}
 
           {/* ── Title + price ── */}
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1 min-w-0">
               {listing.featured && (
                 <Badge className="mb-1.5 bg-ts-orange/20 text-ts-orange border-ts-orange/30 text-[10px]">
@@ -554,7 +559,7 @@ export default function ExchangeListingDetail() {
                 </Badge>
               )}
               <h1 className="text-xl font-bold text-white leading-snug">{listing.title}</h1>
-              <div className="flex items-center gap-2 mt-1 text-[12px] text-white/50">
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-white/50">
                 {isProfileCatalog ? (
                   <>
                     <Package className="h-3 w-3 shrink-0" />
@@ -579,7 +584,7 @@ export default function ExchangeListingDetail() {
                 )}
               </div>
             </div>
-            <div className="text-right shrink-0">
+            <div className="shrink-0 text-left sm:text-right">
               <p className="text-2xl font-bold text-ts-orange">
                 {isProfileCatalog ? "Request quote" : displayedPrice}
               </p>
