@@ -364,6 +364,8 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       sitemap: {
         inventory: true,
         categories: true,
+        services: true,
+        serviceAreas: true,
       },
       categories: [
         {
