@@ -71,7 +71,7 @@ export function registerPublicMetadataRoutes(
       ]);
 
       const countiesIndexed = Number((countiesRow?.[0] as any)?.n ?? 0);
-      const decisionsLast7Days = Number((decisionRows?.[0] as any)?.n ?? 0);
+      const decisionsLast7Days = Number((decisionsRow?.[0] as any)?.n ?? 0);
       const verifiedClaimsLast30Days = Number((verifiedRow?.[0] as any)?.n ?? 0);
 
       const payload: ProofMetricsResponse = {
