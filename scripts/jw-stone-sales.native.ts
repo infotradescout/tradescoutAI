@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import type { Server } from "node:http";
+import type { BrowserContext } from "@playwright/test";
 import type { JwStoneCheckoutProvider, JwStonePaymentBinding, JwStoneProviderSession } from "../server/services/jwStoneCheckoutProvider";
 import type { JwStonePaymentOutcome } from "../shared/jwStoneCheckout";
 
@@ -33,7 +34,6 @@ const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).tr
 const proof: { head: string; passed: boolean; checks: string[]; devices: any[]; [key: string]: any } = { head, startedAt: new Date().toISOString(), passed: false, checks: [], devices: [], productionWrites: false, providerNetworkUsed: false, scope: "Canonical native database and actual sale service/routes/order-page JS; isolated fixture authentication and simulated provider sessions with real Stripe signature verification. No real processor charge or full-production-auth acceptance." };
 const note = (text: string) => { proof.checks.push(text);console.log("JW_SALES_NATIVE_CHECK " + text); };
 const reject = (work: () => Promise<unknown>, code: string) => assert.rejects(work, (error: any) => error.code === code, code);
-const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 let server: Server | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
   assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].name, "ts_jw_sales_test");
@@ -68,7 +68,7 @@ try {
     const [request] = await db.insert(schema.workRequests).values({ createdByUserId: user, title: "Synthetic " + scope + " offer", description: "Synthetic native checkout acceptance only", category: "business_request", scope: "personal", source: "direct_connect", sourceRefId: profile.id, status: "routed", visibility: "private", exposureMode: "guided", competitionMode: "none" }).returning();
     const metadata = { source: "tradepartner_profile", profileId: profile.id, businessId: seller.id, businessSlug: "jw-stone", requestType: "make_offer", stoneOffer: intake };
     await db.insert(schema.workRequestEvents).values({ workRequestId: request.id, type: "created", actorUserId: user, metadata });
-    originalEvents.set(request.id, digest(metadata));return { id: request.id, intake };
+    originalEvents.set(request.id, JSON.stringify(metadata));return { id: request.id, intake };
   }
   const signingSdk = new Stripe("sk_test_isolated_signature_only"), webhookSecret = "whsec_isolated_jw_native";
   class FakeProvider implements JwStoneCheckoutProvider {
@@ -89,7 +89,7 @@ try {
     async webhookRequest(raw: Buffer, signature: string) {
       const event = signingSdk.webhooks.constructEvent(raw, signature, webhookSecret);
       assert.equal(event.account, "acct_jwfixture");assert.equal(event.livemode, false);
-      return (event.data.object as Stripe.Checkout.Session).metadata?.jwRequestId || null;
+      return (event.data.object as { metadata?: Record<string, string> }).metadata?.jwRequestId || null;
     }
     outcome(attemptId: string, outcome: JwStonePaymentOutcome) { const saved = this.sessions.get(attemptId);assert(saved);saved.session.outcome = outcome;if(outcome !== "open") saved.session.url = null; }
   }
@@ -113,7 +113,7 @@ try {
   const quoted = await state(main.id);assert(quoted.quote);assert.notEqual(quoted.quote.id, first.quote.id);
   await reject(() => sales.command(main.id, buyer, payCommand(first)), "jw_order_changed");
   await reject(() => sales.command(main.id, buyer, { ...payCommand(quoted), quoteId: first.quote.id }), "jw_quote_changed");
-  await reject(() => sales.command(main.id, buyer, { ...payCommand(quoted), totalCents: quoted.quote.totalCents - 1 }), "jw_quote_changed");
+  await reject(() => sales.command(main.id, buyer, { ...payCommand(quoted), totalCents: quoted.quote!.totalCents - 1 }), "jw_quote_changed");
   await assert.rejects(() => sales.command(main.id, buyer, { ...payCommand(quoted), acceptFinalQuote: false }));
   provider.enabled = false;await reject(() => sales.command(main.id, buyer, payCommand(quoted)), "jw_payment_unavailable");provider.enabled = true;
   assert.equal(await held(), 0);assert.equal(provider.created, 0);
@@ -137,7 +137,8 @@ try {
   await sales.reconcile(main.id, buyer);assert.equal(await held(), 7);
   await flags.change(owner, { enabled: true, expectedRevision: (await flags.read()).revision, operationId: randomUUID(), preserveBaseServices: true, note: "Restore synthetic feature state" });
   await pool.query("UPDATE profile_account_entitlements SET status='pending_verification' WHERE profile_account_id IN (SELECT id FROM profile_accounts WHERE owner_user_id=$1) AND product_key='jw_stone_member_pricing'", [buyer]);
-  await reject(() => sales.command(main.id, owner, quoteCommand(main.intake, (await state(main.id)).revision)), "jw_payment_in_progress");
+  const paidRevision = (await state(main.id)).revision;
+  await reject(() => sales.command(main.id, owner, quoteCommand(main.intake, paidRevision)), "jw_payment_in_progress");
   note("ACH remains processing until provider success; cart expiry cannot release payment stock; reconciliation survives feature pause and revoked pricing membership");
   const declined = await offer("stone");await sales.command(declined.id, owner, { action: "decline", operationId: randomUUID(), expectedRevision: 0, notes: "Synthetic decline" });assert.equal((await state(declined.id)).status, "declined");
   for (const terminal of ["failed", "expired"] as const) {
@@ -169,7 +170,7 @@ try {
   browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
   for (const [device, viewport, method] of [["desktop", { width: 1440, height: 1000 }, "ach"], ["touch", { width: 390, height: 844 }, "card"]] as const) {
     const fresh = await offer(device === "desktop" ? "cart" : "stone");
-    const contexts = [];
+    const contexts: BrowserContext[] = [];
     const errors: string[] = [];
     const context = async (actor: string) => {
       const context = await browser!.newContext({ viewport, isMobile: device === "touch", hasTouch: device === "touch", extraHTTPHeaders: { "x-jw-fixture-actor": actor } });contexts.push(context);
@@ -206,14 +207,12 @@ try {
   }
   for (const [requestId, original] of originalEvents) {
     const stored = (await pool.query("SELECT metadata FROM work_request_events WHERE work_request_id=$1 AND type='created'", [requestId])).rows[0].metadata;
-    // PostgreSQL jsonb key order is canonicalized; compare the stored original once parsed semantically.
-    assert.deepEqual(stored.stoneOffer.status, "pending_review");assert.equal(stored.stoneOffer.paymentAllowed, false);
-    assert(original);
+    assert.deepEqual(stored, JSON.parse(original));
   }
   assert.equal(process.env.JW_STONE_PRICING_APPROVED_IMPORT, originalPriceSource);
   assert.equal(Number((await pool.query("SELECT count(*) AS n FROM marketplace_transactions")).rows[0].n), 0);
   assert.equal((await flags.read()).enabled, true);
-  note("original pending-offer records, source prices, unrelated marketplace ledger and final ON state are preserved");
+  note("complete original pending-offer records, source prices, unrelated marketplace ledger and final ON state are preserved");
   proof.passed = true;
 } catch (error) { proof.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, "[DISPOSABLE_DATABASE]");process.exitCode = 1;console.error("JW_SALES_NATIVE_FAILURE " + proof.error); }
 finally {
