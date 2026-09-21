@@ -34,7 +34,7 @@ try {
     async methods() { return ["ach", "card"] as ("ach" | "card")[]; }
     async create(binding: JwStonePaymentBinding) { let result = this.sessions.get(binding.attempt.id);if(!result){result={id:"cs_test_"+binding.attempt.id.replaceAll("-",""),url:"https://checkout.stripe.com/c/pay/cs_test_"+binding.attempt.id.replaceAll("-",""),outcome:"open"};this.sessions.set(binding.attempt.id,result);this.created++;}return {...result}; }
     async retrieve(binding: JwStonePaymentBinding) { const result=this.sessions.get(binding.attempt.id);assert(result);assert.equal(result.id,binding.attempt.sessionId);return {...result}; }
-    async webhookRequest(_raw: Buffer, _signature: string) { throw new Error("This phase does not exercise webhooks; the first phase verifies signed callbacks."); }
+    async webhookRequest(_raw: Buffer, _signature: string): Promise<string | null> { throw new Error("This phase does not exercise webhooks; the first phase verifies signed callbacks."); }
     change(id: string, outcome: JwStonePaymentOutcome) { const result=this.sessions.get(id);assert(result);result.outcome=outcome;if(outcome!=="open")result.url=null; }
   }
   const provider = new Provider(), sales = new JwStoneSales(pool, provider);
