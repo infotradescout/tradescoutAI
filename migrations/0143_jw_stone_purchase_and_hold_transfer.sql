@@ -10,22 +10,21 @@ CREATE TABLE jw_stone_purchase_requests (
   UNIQUE (seller_business_id,buyer_user_id,operation_id)
 );
 CREATE INDEX jw_stone_purchase_requests_buyer ON jw_stone_purchase_requests(buyer_user_id,created_at DESC);
-
 CREATE TABLE jw_stone_sale_hold_transfers (
   hold_id UUID PRIMARY KEY REFERENCES jw_stone_cart_holds(id) ON DELETE RESTRICT,
-  request_id TEXT NOT NULL UNIQUE REFERENCES jw_stone_sales(request_id) ON DELETE RESTRICT,
+  request_id TEXT NOT NULL REFERENCES jw_stone_sales(request_id) ON DELETE RESTRICT,
   attempt_id UUID NOT NULL UNIQUE,
   buyer_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   seller_business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT,
   transferred_at TIMESTAMPTZ NOT NULL
 );
+CREATE INDEX jw_stone_sale_hold_transfers_order ON jw_stone_sale_hold_transfers(request_id,transferred_at);
 CREATE FUNCTION jw_stone_purchase_receipt_immutable() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'Purchase and reservation transfer receipts are immutable'; END $$;
 CREATE TRIGGER jw_stone_purchase_receipt_guard BEFORE UPDATE OR DELETE ON jw_stone_purchase_requests
   FOR EACH ROW EXECUTE FUNCTION jw_stone_purchase_receipt_immutable();
 CREATE TRIGGER jw_stone_hold_transfer_receipt_guard BEFORE UPDATE OR DELETE ON jw_stone_sale_hold_transfers
   FOR EACH ROW EXECUTE FUNCTION jw_stone_purchase_receipt_immutable();
-
 CREATE FUNCTION jw_stone_purchase_identity_guard() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM work_requests w JOIN profiles p ON p.id=w.source_ref_id
@@ -37,7 +36,6 @@ BEGIN
 END $$;
 CREATE TRIGGER jw_stone_purchase_identity BEFORE INSERT ON jw_stone_purchase_requests
   FOR EACH ROW EXECUTE FUNCTION jw_stone_purchase_identity_guard();
-
 -- Deferred so receipt insertion and the serialized checkout event commit together.
 CREATE FUNCTION jw_stone_hold_transfer_identity_guard() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE h jw_stone_cart_holds%ROWTYPE; s jw_stone_sales%ROWTYPE; item_count INTEGER;
