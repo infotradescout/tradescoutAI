@@ -23,8 +23,7 @@ async function receipt(file) {
 try {
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '');
   for (const key of ['DATABASE_URL', 'TEST_DATABASE_URL', 'STRIPE_SECRET_KEY', 'JW_STONE_STRIPE_WEBHOOK_SECRET', 'JW_STONE_PRICING_APPROVED_IMPORT']) assert(!process.env[key], 'Inherited credentials are forbidden: ' + key);
-  database = await startCabinetLoopbackTestDatabase();
-  report.database = database.evidence;
+  database = await startCabinetLoopbackTestDatabase();report.database = database.evidence;
   client = new pg.Client({ connectionString: database.url });
   await client.connect();await client.query('CREATE DATABASE ts_jw_sales_test');await client.end();client = null;
   const target = new URL(database.url);target.pathname = '/ts_jw_sales_test';assert.equal(target.hostname, '127.0.0.1');
@@ -38,11 +37,12 @@ try {
   run('third-process ordinary purchases and atomic reserved-stock transfer', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-purchases.native.ts'], environment);
   report.purchase = await receipt('purchase-evidence.json');
   assert.deepEqual(report.purchase.devices.map(device => device.device).sort(), ['desktop', 'touch']);
-  report.finalSourceStatus = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();assert.equal(report.finalSourceStatus, '');
-  report.passed = true;
+  report.finalSourceStatus = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();assert.equal(report.finalSourceStatus, '');report.passed = true;
 } catch (error) { report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]');process.exitCode = 1; }
 finally {
   await client?.end().catch(() => {});await database?.stop();
   report.finishedAt = new Date().toISOString();await fs.mkdir(out, { recursive: true });await fs.writeFile(path.join(out, 'runner-evidence.json'), JSON.stringify(report, null, 2));
   console.log('JW_SALES_NATIVE_RUNNER ' + JSON.stringify(report));
 }
+// Cleanup must never turn an unsuccessful database/browser run into a successful command.
+assert.equal(report.passed, true, 'Native sales verification failed; see matching source receipt');
