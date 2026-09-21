@@ -85,13 +85,18 @@ export function initialJwStoneSale(): JwStoneSaleState {
 export function assertJwStoneQuoteTotal(quote: JwStoneFinalQuote): void {
   jwStoneFinalQuoteSchema.parse(quote);
 }
-/** An unpaid checkout return is never a paid receipt. Stock stays allocated during processing/review. */
+/** Review is latched: provider replays cannot undo a stock/payment discrepancy. */
 export function applyJwStonePaymentOutcome(state: JwStoneSaleState, outcome: JwStonePaymentOutcome): JwStoneSaleState {
   if (!state.attempt || !state.quote) throw new JwStoneSaleError(409, "payment_missing", "There is no payment to reconcile.");
+  if (state.status === "needs_review") return state;
   if (state.status === "paid" && outcome !== "needs_review") return state;
+  if (state.status === "processing" && outcome === "open") return state;
   if (["payment_failed", "payment_expired"].includes(state.status)) {
-    if (outcome === "paid" || outcome === "processing") return { ...state, status: "needs_review", attempt: { ...state.attempt, outcome: "needs_review" }, note: "Payment changed after stock was released. JW Stone must reconcile this order before fulfillment." };
+    if (outcome === "paid" || outcome === "processing" || outcome === "needs_review") return { ...state, status: "needs_review", attempt: { ...state.attempt, outcome: "needs_review" }, note: "Payment changed after stock was released. JW Stone must reconcile this order before fulfillment." };
     return state;
+  }
+  if ((outcome === "paid" || outcome === "processing") && state.allocations.length === 0) {
+    return { ...state, status: "needs_review", attempt: { ...state.attempt, outcome: "needs_review" }, note: "Payment has no matching stock allocation. JW Stone must reconcile this order before fulfillment." };
   }
   const status = { open: "checkout", processing: "processing", paid: "paid", failed: "payment_failed", expired: "payment_expired", needs_review: "needs_review" } as const;
   return { ...state, status: status[outcome], attempt: { ...state.attempt, outcome }, note: outcome === "processing" ? "Payment is processing. This is not a paid receipt." : outcome === "needs_review" ? "Payment requires review. Do not submit another payment or fulfill this order yet." : null };
