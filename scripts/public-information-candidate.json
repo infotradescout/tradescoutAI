@@ -2,7 +2,7 @@
   "commit": "d31b15b3944f07fd259be4e93e5d4dbdadfa0daf",
   "blobs": {
     "server/publicInformationPages.ts": "48887f7125b3866141eb502d38632535311b8470",
-    "server/publicShellAliasRoutes.ts": "c4cdc8d23245d59cf8c0a6b0f",
+    "server/publicShellAliasRoutes.ts": "c4cdc8d232f245ec06f51e33245d59cf8c0a6b0f",
     "scripts/public-information-pages.contract.test.mjs": "0b6c4929f8c2a6386f4be987aac62b046e74b681"
   }
 }
