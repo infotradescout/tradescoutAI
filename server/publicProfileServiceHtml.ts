@@ -159,10 +159,9 @@ export function buildPublicProfileServiceHtml(args: {
   const storedServiceAreas = (args.business?.serviceAreas || [])
     .map((value) => cleanPublicText(value, 120))
     .filter(Boolean);
-  const serviceAreas = Array.from(new Set([
-    ...storedServiceAreas,
-    ...(isIssaBuildProfileSlug(args.profile.slug) ? [...ISSA_BUILD_SERVICE_AREAS] : []),
-  ])).slice(0, 12);
+  const serviceAreas = isIssaBuildProfileSlug(args.profile.slug)
+    ? Array.from(new Set([...ISSA_BUILD_SERVICE_AREAS, ...storedServiceAreas])).slice(0, 20)
+    : Array.from(new Set(storedServiceAreas)).slice(0, 12);
   const locationLabel = cleanPublicText(
     [args.business?.city, args.business?.stateCode]
       .map((value) => String(value || "").trim())
