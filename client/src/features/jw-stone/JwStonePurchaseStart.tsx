@@ -1,21 +1,24 @@
 import { useRef, useState } from "react";
 import { z } from "zod";
 import type { JwStoneCartReview } from "@shared/jwStoneCart";
+import type { JwStoneCartHoldReceipt } from "@shared/jwStoneCartHolds";
 import { JW_STONE_PURCHASE_PATH, JW_STONE_PURCHASE_TERMS, canonicalJwStonePurchase, jwStonePurchaseRequestSchema } from "@shared/jwStonePurchase";
 import { JW_STONE_ORDERS_PAGE } from "@shared/jwStoneCheckout";
 import { apiRequest } from "@/lib/queryClient";
 
 const retrySchema=z.object({fingerprint:z.string().regex(/^[a-f0-9]{64}$/),operationId:z.string().uuid(),requestId:z.string().uuid().optional()});
 const responseSchema=z.object({requestId:z.string().uuid(),role:z.literal("buyer"),intake:z.object({intent:z.literal("purchase")}),state:z.object({status:z.string()})});
-export default function JwStonePurchaseStart({review,checking}:{review?:JwStoneCartReview;checking:boolean}) {
+export default function JwStonePurchaseStart({review,reserved,checking}:{review?:JwStoneCartReview;reserved?:{viewerId:string;receipt:JwStoneCartHoldReceipt};checking:boolean}) {
   const [open,setOpen]=useState(false),[consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[saved,setSaved]=useState<string|null>(null);
-  const inFlight=useRef(false),latest=useRef(review);latest.current=review;
-  const ready=Boolean(review?.viewerId&&review.materialReady&&review.subtotalCents&&review.lines.every(line=>line.status==="ready"));
+  const terms=reserved?.receipt.status==="active"?{viewerId:reserved.viewerId,selection:{lines:reserved.receipt.lines.map(line=>({inventoryPublicId:line.inventoryPublicId,quantity:line.quantity})),fulfillment:reserved.receipt.fulfillment},expectedSubtotalCents:reserved.receipt.materialSubtotalCents}:
+    review?.viewerId&&review.materialReady&&review.subtotalCents&&review.lines.every(line=>line.status==="ready")?{viewerId:review.viewerId,selection:{lines:review.lines.map(line=>({inventoryPublicId:line.inventoryPublicId,quantity:line.requestedQuantity})),fulfillment:review.fulfillment},expectedSubtotalCents:review.subtotalCents}:null;
+  const inFlight=useRef(false),latest=useRef(terms);latest.current=terms;
+  const ready=Boolean(terms);
   const send=async()=>{
-    if(inFlight.current||!review||!ready||checking||!consent)return;
-    const snapshot=review;inFlight.current=true;setBusy(true);setError("");
+    if(inFlight.current||!terms||checking||!consent)return;
+    const snapshot=terms;inFlight.current=true;setBusy(true);setError("");
     try{
-      const candidate=jwStonePurchaseRequestSchema.parse({operationId:crypto.randomUUID(),selection:{lines:snapshot.lines.map(line=>({inventoryPublicId:line.inventoryPublicId,quantity:line.requestedQuantity})),fulfillment:snapshot.fulfillment},expectedSubtotalCents:snapshot.subtotalCents,termsAcknowledged:true});
+      const candidate=jwStonePurchaseRequestSchema.parse({operationId:crypto.randomUUID(),selection:snapshot.selection,expectedSubtotalCents:snapshot.expectedSubtotalCents,termsAcknowledged:true});
       const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(canonicalJwStonePurchase(candidate))));
       const fingerprint=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,"0")).join("");
       const key="tradescout:jw-stone:purchase-action:v1:"+snapshot.viewerId;
@@ -31,12 +34,12 @@ export default function JwStonePurchaseStart({review,checking}:{review?:JwStoneC
     }catch(cause){setError(cause instanceof Error?cause.message:"The purchase request could not be confirmed. Retry the same selection or check Offers and Orders.");}
     finally{inFlight.current=false;setBusy(false);}
   };
-  return <section className="mt-4 border-t border-[var(--jw-border)] pt-3" aria-label="Purchase at listed material prices" data-testid="jw-purchase-start">
-    <button type="button" disabled={!ready||checking||busy} onClick={()=>{setOpen(value=>!value);setError("");}} aria-expanded={open} className="min-h-11 w-full bg-[var(--jw-accent)] px-3 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-50" data-testid="jw-purchase-open">Buy at listed prices</button>
+  return <section className="mt-4 border-t border-[var(--jw-border)] pt-3" aria-label={reserved?"Purchase your reserved slabs":"Purchase at listed material prices"} data-testid="jw-purchase-start">
+    <button type="button" disabled={!ready||checking||busy} onClick={()=>{setOpen(value=>!value);setError("");}} aria-expanded={open} className="min-h-11 w-full bg-[var(--jw-accent)] px-3 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-50" data-testid="jw-purchase-open">{reserved?"Buy these reserved slabs":"Buy at listed prices"}</button>
     {!ready?<p className="mt-2 text-xs">Choose exact available slabs and check the cart total to continue. Make an Offer remains a separate option.</p>:null}
     {open?<div className="mt-3 space-y-3">
       <p className="text-sm">{JW_STONE_PURCHASE_TERMS}</p>
-      <p className="text-sm font-semibold">Material total: {new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format((review?.subtotalCents||0)/100)}</p>
+      <p className="text-sm font-semibold">Material total: {new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format((terms?.expectedSubtotalCents||0)/100)}</p>
       <p className="text-xs">Your selections stay in the cart. A matching active reservation stays protected and moves into the order only when you approve payment.</p>
       {saved?<p role="status" className="text-sm">Purchase request saved. <a className="underline" href={JW_STONE_ORDERS_PAGE+"?request="+encodeURIComponent(saved)}>Open purchase and final quote</a></p>:<>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} disabled={busy} onChange={event=>setConsent(event.target.checked)} className="mt-1 h-5 w-5 shrink-0" />Send my purchase request at these material prices; I will review the final total before paying.</label>
