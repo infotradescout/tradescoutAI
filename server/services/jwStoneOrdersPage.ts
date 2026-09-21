@@ -52,7 +52,7 @@ export const jwStoneOrdersBrowserScript = String.raw`
     const canQuote=['pending_review','quoted','declined','payment_failed','payment_expired'].includes(state.status);
     if(current.role==='seller'&&canQuote){
       const form=el('form',null,box);el('h3',purchase?'Confirm purchase total':'Confirm terms or counteroffer',form);
-      const decisionLabel=el('label','Decision',form),decision=el('select',null,decisionLabel);
+      const decisionLabel=el('label','Decision',form),decision=el('select',null,decisionLabel);decision.id='jw-sale-decision';decisionLabel.htmlFor=decision.id;decision.setAttribute('aria-label','Decision');
       const choices=purchase?[['confirm_purchase','Confirm purchase at checked material prices']]:[['accept_offer','Accept the customer’s material offer'],['counter_offer','Counteroffer with a different material amount']];
       for(const[value,text]of choices){const o=el('option',text,decision);o.value=value;}
       const material=amount('Material amount ($)',purchase?intake.listedSubtotalCents:intake.offeredTotalCents,form,true),tax=amount('Confirmed tax ($) — enter 0 if applicable',null,form),delivery=amount('Confirmed delivery ($)',intake.fulfillment.method==='pickup'?0:null,form,intake.fulfillment.method==='pickup');
