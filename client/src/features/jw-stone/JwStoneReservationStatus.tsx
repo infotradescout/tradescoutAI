@@ -27,8 +27,13 @@ export function JwStoneReservationStatus(props: Props) {
   const owner = String(props.viewerId || "").trim();
   if (!owner) return null;
   return (
-    <Suspense fallback={<p role="status" className="px-4 py-4 text-sm sm:px-9">Loading reservation status…</p>}>
-      <OwnerReservationStatus key={owner} {...props} viewerId={owner} />
-    </Suspense>
+    <>
+      <div className="mx-auto max-w-[1600px] px-4 py-2 sm:px-9">
+        <a href="/jw-stone/orders" data-testid="jw-offers-orders-link" className="inline-flex min-h-11 items-center text-sm font-semibold underline">Your offers and orders</a>
+      </div>
+      <Suspense fallback={<p role="status" className="px-4 py-4 text-sm sm:px-9">Loading reservation status…</p>}>
+        <OwnerReservationStatus key={owner} {...props} viewerId={owner} />
+      </Suspense>
+    </>
   );
 }
