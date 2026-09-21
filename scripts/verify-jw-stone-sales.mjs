@@ -29,6 +29,11 @@ try {
   const native = JSON.parse(await fs.readFile(path.join(out, 'native-evidence.json'), 'utf8'));
   assert.equal(native.head, head);assert.equal(native.passed, true);
   report.native = native;
+  run('second-process historical payment recovery and atomic failure', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-sales-recovery.native.ts'], environment);
+  const recovery = JSON.parse(await fs.readFile(path.join(out, 'recovery-evidence.json'), 'utf8'));
+  assert.equal(recovery.head, head);assert.equal(recovery.passed, true);
+  assert.equal(recovery.productionWrites, false);assert.equal(recovery.providerNetworkUsed, false);
+  report.recovery = recovery;
   report.finalSourceStatus = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();assert.equal(report.finalSourceStatus, '');
   report.passed = true;
 } catch (error) { report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]');process.exitCode = 1; }
