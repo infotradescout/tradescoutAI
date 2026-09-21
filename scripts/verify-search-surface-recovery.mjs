@@ -1,9 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execFileSync } from 'node:child_process';
 
 // Keep production observations separate from exact-candidate release execution.
 if (process.env.SEARCH_SURFACE_CANDIDATE_SHA) {
+  // The outer verifier owns this disposable detached checkout. A local clone
+  // otherwise inherits stale/missing main history from the old audit branch,
+  // which the unchanged production-readiness registry correctly rejects.
+  const git = (args) => execFileSync('git', args, { encoding: 'utf8', timeout: 120000 }).trim();
+  if (git(['branch', '--show-current']) !== '') throw new Error('Expected owned detached verifier checkout');
+  const shallow = git(['rev-parse', '--is-shallow-repository']) === 'true';
+  git(['fetch', '--no-tags', ...(shallow ? ['--unshallow'] : []), 'https://github.com/infotradescout/tradescoutAI.git', 'refs/heads/main:refs/heads/main']);
+  console.log('CANDIDATE_MAIN_AUTHORITY ' + git(['rev-parse', 'refs/heads/main']));
+
   // The observed full tsc run exhausted Node's default 2 GiB heap. This owned
   // CLI shim supplies a bounded heap to npm/tsc/build subprocesses even though
   // the candidate harness intentionally strips ambient NODE_OPTIONS.
