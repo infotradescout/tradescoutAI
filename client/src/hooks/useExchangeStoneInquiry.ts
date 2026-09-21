@@ -51,7 +51,9 @@ export function useExchangeStoneInquiry(options: Options) {
   useEffect(() => {
     // Reset before a different listing can reuse this component's previous inquiry.
     const id = listing?.id || null;
-    if (previousListingId.current !== id || previousActorId.current !== actorId) {
+    const sameListing = previousListingId.current === id;
+    const signingInHere = sameListing && previousActorId.current === null && actorId !== null;
+    if (!sameListing || (previousActorId.current !== actorId && !signingInHere)) {
       previousListingId.current = id;
       previousActorId.current = actorId;
       prepared.current = null;
@@ -61,6 +63,7 @@ export function useExchangeStoneInquiry(options: Options) {
       setWarning(null);
       setIntent("availability");
     }
+    previousActorId.current = actorId;
     if (!listing || !isRetail) return;
     const requested = readStoneInquiryIntent(new URLSearchParams(window.location.search).get("inquiry"));
     const preparationKey = `${listing.id}:${requested || ""}:${actorId || "anonymous"}`;
@@ -70,7 +73,7 @@ export function useExchangeStoneInquiry(options: Options) {
     try { restored = restoreStoneInquiryDraft(window.sessionStorage, listing.id, actorId); } catch { /* storage is optional for opening a draft */ }
     const generated = stoneInquiryMessage(listing, requested);
     setIntent(requested);
-    setMessage(restored?.intent === requested ? restored.message : generated);
+    setMessage(restored?.intent === requested ? restored.message : signingInHere && message ? message : generated);
     priorGeneratedMessage.current = generated;
     setOpen(true);
     // Consume a transferred draft once it is safely present in the signed-in form.
