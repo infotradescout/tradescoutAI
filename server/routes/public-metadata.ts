@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { registerExchangeStoneInquiryRoutes } from "./exchange-stone-inquiries";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { addressVerifications, counties, missionControlDecisions } from "@shared/schema";
@@ -20,6 +21,8 @@ export function registerPublicMetadataRoutes(
   app: Express,
   options: RegisterPublicMetadataRoutesOptions
 ) {
+  // registerRoutes mounts this after setupAuth and effective-account binding.
+  registerExchangeStoneInquiryRoutes(app);
   const { buildRevision, defaultFirstIntroAppendix } = options;
   const proofCache: { value: ProofMetricsResponse | null; expiresAt: number } = {
     value: null,
@@ -68,7 +71,7 @@ export function registerPublicMetadataRoutes(
       ]);
 
       const countiesIndexed = Number((countiesRow?.[0] as any)?.n ?? 0);
-      const decisionsLast7Days = Number((decisionsRow?.[0] as any)?.n ?? 0);
+      const decisionsLast7Days = Number((decisionRows?.[0] as any)?.n ?? 0);
       const verifiedClaimsLast30Days = Number((verifiedRow?.[0] as any)?.n ?? 0);
 
       const payload: ProofMetricsResponse = {
