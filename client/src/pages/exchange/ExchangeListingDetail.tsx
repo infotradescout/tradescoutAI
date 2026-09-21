@@ -5,7 +5,10 @@
  * Shows full specs, photo gallery, set/collection items, and contact flow.
  */
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { stonePriceLabel } from "@shared/exchangeStoneBuyerFlow";
+import { isStoneRetailListing, STONE_DRAFT_MAX_MESSAGE } from "@shared/exchangeStoneInquiryDraft";
+import { useExchangeStoneInquiry } from "@/hooks/useExchangeStoneInquiry";
 import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -164,7 +167,7 @@ function TitleStatusBadge({ status }: { status: string }) {
 export default function ExchangeListingDetail() {
   const { category, listingId } = useParams<{ category: string; listingId: string }>();
   const [, navigate] = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -229,6 +232,19 @@ export default function ExchangeListingDetail() {
     enabled: Boolean(listingId),
   });
 
+  const stoneInquiry = useExchangeStoneInquiry({
+    listing,
+    actorId: user?.id ? String(user.id) : null,
+    isAuthenticated,
+    message: inquiryMessage,
+    setMessage: setInquiryMessage,
+    setOpen: setDecisionOpen,
+    navigate,
+  });
+  const submissionLock = useRef(false);
+  const visibleListingId = useRef(listing?.id);
+  visibleListingId.current = listing?.id;
+
   // ── Favorites ──────────────────────────────────────────────────────────────
   const { data: favoriteIds = [] } = useQuery<string[]>({
     queryKey: ["/api/marketplace/favorites"],
@@ -255,44 +271,64 @@ export default function ExchangeListingDetail() {
 
   // ── Inquiry ────────────────────────────────────────────────────────────────
   const sendInquiryMutation = useMutation({
-    mutationFn: async () => {
-      if (!listing) throw new Error("No listing");
-      const decisionScope = `marketplace_listing:${listing.id}`;
+    retry: false,
+    mutationFn: async (submission: { listing: ListingDetail; message: string; offer: string }) => {
+      const { listing: selected, message, offer } = submission;
+      if (!isAuthenticated) throw new Error("Sign in before sending an inquiry");
+      const decisionScope = `marketplace_listing:${selected.id}`;
       const decision = await apiRequest("POST", "/api/decision-cards", {
         intent: "collaborate",
         decisionScope,
-        title: `Exchange inquiry: ${listing.title}`,
-        description: `Review a protected in-platform inquiry about ${listing.title}.`,
+        title: `Exchange inquiry: ${selected.title}`,
+        description: `Review a protected in-platform inquiry about ${selected.title}.`,
       });
       const sourceDecisionCardId = String(decision?.id || "").trim();
       if (!sourceDecisionCardId) throw new Error("Decision Card creation failed");
 
       await apiRequest("POST", "/api/marketplace/inquiries", {
-        listingId: listing.id,
-        message: inquiryMessage,
-        offerAmount: inquiryOffer ? Number(inquiryOffer) : undefined,
+        listingId: selected.id,
+        message,
+        offerAmount: !isStoneRetailListing(selected) && offer ? Number(offer) : undefined,
         authorityGate: "decision_card",
         sourceDecisionCardId,
         decisionScope,
       });
+      return selected.id;
     },
-    onSuccess: () => {
+    onSuccess: (submittedListingId: string, submission) => {
+      const retail = isStoneRetailListing(submission.listing);
       toast({
-        title: "Protected inquiry sent",
-        description: "Your Decision Card now authorizes this in-platform conversation.",
+        title: retail ? "Request sent to TradeScout" : "Protected inquiry sent",
+        description: retail
+          ? "Your stone request was sent. A callback request is not a confirmed call or reservation."
+          : "Your Decision Card now authorizes this in-platform conversation.",
       });
-      setDecisionOpen(false);
-      setInquiryMessage("");
-      setInquiryOffer("");
+      if (retail) stoneInquiry.finish(submittedListingId);
+      if (visibleListingId.current === submittedListingId) {
+        setDecisionOpen(false);
+        setInquiryMessage("");
+        setInquiryOffer("");
+      }
     },
     onError: (err: any) => {
       toast({
-        title: "Failed to send",
-        description: formatUserFacingErrorMessage(err, "Failed to send inquiry"),
+        title: "Could not confirm delivery",
+        description: formatUserFacingErrorMessage(err, "Your message is still here. Check your inquiries before retrying."),
         variant: "destructive",
       });
     },
+    onSettled: () => { submissionLock.current = false; },
   });
+
+  function submitInquiry() {
+    if (!listing || !inquiryMessage.trim() || submissionLock.current || sendInquiryMutation.isPending) return;
+    if (stoneInquiry.isRetail && !isAuthenticated) {
+      stoneInquiry.continueToSignIn();
+      return;
+    }
+    submissionLock.current = true;
+    sendInquiryMutation.mutate({ listing, message: inquiryMessage, offer: inquiryOffer });
+  }
 
   // ── Photo nav ──────────────────────────────────────────────────────────────
   const photos = listing?.images ?? [];
@@ -381,6 +417,9 @@ export default function ExchangeListingDetail() {
   const isProfileOffer = listing.sourceType === "profile_offer";
   const isProfileCatalog = listing.sourceType === "profile_catalog";
   const isProfileLinked = isProfileOffer || isProfileCatalog;
+  const displayedPrice = stoneInquiry.isRetail
+    ? stonePriceLabel(listing.price, listing.specifications?.priceUnit) || "Price unavailable"
+    : formatPrice(listing.price as number);
 
   return (
     <>
@@ -433,7 +472,7 @@ export default function ExchangeListingDetail() {
                   title: listing.title,
                   text: isProfileCatalog
                     ? `${listing.title} — catalog inquiry through TradeScout`
-                    : `${listing.title} — ${formatPrice(listing.price as number)}`,
+                    : `${listing.title} — ${displayedPrice}`,
                   url: `${window.location.origin}/exchange/${resolvedCategory}/${listing.id}`,
                 })
               }
@@ -507,7 +546,7 @@ export default function ExchangeListingDetail() {
           )}
 
           {/* ── Title + price ── */}
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               {listing.featured && (
                 <Badge className="mb-1.5 bg-ts-orange/20 text-ts-orange border-ts-orange/30 text-[10px]">
@@ -542,7 +581,7 @@ export default function ExchangeListingDetail() {
             </div>
             <div className="text-right shrink-0">
               <p className="text-2xl font-bold text-ts-orange">
-                {isProfileCatalog ? "Request quote" : formatPrice(listing.price as number)}
+                {isProfileCatalog ? "Request quote" : displayedPrice}
               </p>
               {isSetListing && (
                 <p className="text-[11px] text-white/50 mt-0.5">
@@ -551,6 +590,23 @@ export default function ExchangeListingDetail() {
               )}
             </div>
           </div>
+
+          {stoneInquiry.isRetail && (
+            <section aria-label="Ask TradeScout about this stone" className="space-y-2">
+              <p className="text-sm text-white/70">
+                Material price only. Confirm the selected slab, quantity, and delivery charges before purchase.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button className="min-h-12 flex-1 bg-ts-orange text-white" onClick={() => stoneInquiry.prepare("availability")}>
+                  Check availability
+                </Button>
+                <Button variant="outline" className="min-h-12 flex-1" onClick={() => stoneInquiry.prepare("callback")}>
+                  Request a callback
+                </Button>
+              </div>
+              <p className="text-xs text-white/50">Review your request before sending. No payment or reservation is made.</p>
+            </section>
+          )}
 
           {/* ── Spec badges row ── */}
           {specRows.length > 0 && (
@@ -597,7 +653,12 @@ export default function ExchangeListingDetail() {
           {/* ── Shipping / pickup ── */}
           {!isProfileCatalog && (
             <div className="flex items-center gap-2 text-sm">
-              {listing.isLocalPickupOnly ? (
+              {stoneInquiry.isRetail ? (
+                <span className="flex items-center gap-1.5 text-white/70">
+                  <Truck className="h-4 w-4" />
+                  Delivery charges confirmed before purchase
+                </span>
+              ) : listing.isLocalPickupOnly ? (
                 <span className="flex items-center gap-1.5 text-white/50">
                   <MapPin className="h-4 w-4" />
                   Local pickup only
@@ -770,6 +831,10 @@ export default function ExchangeListingDetail() {
             <Button
               className="w-full bg-ts-orange hover:bg-ts-orange/90 text-white font-semibold h-12 text-base"
               onClick={() => {
+                if (stoneInquiry.isRetail) {
+                  stoneInquiry.prepare("availability");
+                  return;
+                }
                 if (isProfileLinked) {
                   navigate(listing.publicProfilePath || `/profile/${listing.seller.id}`);
                   return;
@@ -783,7 +848,9 @@ export default function ExchangeListingDetail() {
               }}
             >
               <ShieldCheck className="h-5 w-5 mr-2" />
-              {isProfileOffer
+              {stoneInquiry.isRetail
+                ? "Ask TradeScout about this stone"
+                : isProfileOffer
                 ? "Review Purchase on Profile"
                 : isProfileCatalog
                   ? listing.specifications?.catalogKind === "inventory_item"
@@ -811,10 +878,14 @@ export default function ExchangeListingDetail() {
       </div>
 
       {/* ── Intent and Decision Card gate ── */}
-      <Dialog open={decisionOpen} onOpenChange={setDecisionOpen}>
+      <Dialog open={decisionOpen} onOpenChange={(open) => {
+        if (sendInquiryMutation.isPending) return;
+        if (!open && stoneInquiry.isRetail) stoneInquiry.finish();
+        else setDecisionOpen(open);
+      }}>
         <DialogContent className="bg-tsCard border-white/10 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Exchange Decision Card</DialogTitle>
+            <DialogTitle className="text-white">{stoneInquiry.isRetail ? "Review your stone request" : "Exchange Decision Card"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="rounded-lg border border-ts-orange/30 bg-ts-orange/10 p-3 text-sm text-white/75">
@@ -827,16 +898,17 @@ export default function ExchangeListingDetail() {
             </div>
             <div>
               <Label className="text-white/70 text-xs mb-1.5 block">
-                What do you need to know?
+                {stoneInquiry.isRetail && stoneInquiry.intent === "callback" ? "Callback request" : "What do you need to know?"}
               </Label>
               <Textarea
                 placeholder={`Hi, I'm interested in your ${listing.title}. Is it still available?`}
                 value={inquiryMessage}
+                maxLength={stoneInquiry.isRetail ? STONE_DRAFT_MAX_MESSAGE : undefined}
                 onChange={(e) => setInquiryMessage(e.target.value)}
                 className="bg-white/5 border-white/10 text-white placeholder:text-white/30 resize-none min-h-[100px]"
               />
             </div>
-            <div>
+            {!stoneInquiry.isRetail && <div>
               <Label className="text-white/70 text-xs mb-1.5 block">
                 Proposed amount (optional)
               </Label>
@@ -852,22 +924,25 @@ export default function ExchangeListingDetail() {
                   className="bg-white/5 border-white/10 text-white placeholder:text-white/30 pl-7"
                 />
               </div>
-            </div>
+            </div>}
+            {stoneInquiry.warning && <p role="alert" className="text-sm text-amber-200">{stoneInquiry.warning}</p>}
+            {stoneInquiry.isRetail && !isAuthenticated && <p className="text-sm text-white/60">Sign in to send your request. Your message will return with you.</p>}
           </div>
           <DialogFooter className="gap-2">
             <Button
               variant="ghost"
               className="text-white/60"
-              onClick={() => setDecisionOpen(false)}
+              disabled={sendInquiryMutation.isPending}
+              onClick={() => stoneInquiry.isRetail ? stoneInquiry.finish() : setDecisionOpen(false)}
             >
               Cancel
             </Button>
             <Button
               className="bg-ts-orange hover:bg-ts-orange/90 text-white"
               disabled={!inquiryMessage.trim() || sendInquiryMutation.isPending}
-              onClick={() => sendInquiryMutation.mutate()}
+              onClick={submitInquiry}
             >
-              {sendInquiryMutation.isPending ? "Creating Decision Card…" : "Confirm & Send"}
+              {sendInquiryMutation.isPending ? "Sending request…" : stoneInquiry.isRetail && !isAuthenticated ? "Sign in to send" : "Confirm & Send"}
             </Button>
           </DialogFooter>
         </DialogContent>
