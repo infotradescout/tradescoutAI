@@ -90,7 +90,10 @@ export class StripeJwStoneCheckoutProvider implements JwStoneCheckoutProvider {
       expires_at: Math.floor(Date.parse(binding.attempt.expiresAt) / 1000),
       success_url: back + "&payment=return", cancel_url: back + "&payment=return",
     }, { stripeAccount: config.accountId, idempotencyKey: "jw-stone:" + binding.requestId + ":" + binding.attempt.id });
-    return this.project(binding, session);
+    const created = this.project(binding, session);
+    // A retried idempotent POST returns its original body, not necessarily current
+    // payment status. Refresh the recovered identity before acknowledging a callback.
+    return this.retrieve({ ...binding, attempt: { ...binding.attempt, sessionId: created.id } });
   }
   async retrieve(binding: JwStonePaymentBinding): Promise<JwStoneProviderSession> {
     const { stripe, config } = this.checked(binding);
