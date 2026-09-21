@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("../storage", () => ({ storage: {} }));
-import { ISSA_BUILD_LOCAL_DISCOVERY, ISSA_BUILD_PROFILE_CONTENT_BLOCKS } from "@shared/issaBuildProfile";
+import { ISSA_BUILD_LOCAL_DISCOVERY, ISSA_BUILD_PROFILE_CONTENT_BLOCKS, ISSA_BUILD_SERVICE_AREAS, ISSA_BUILD_SERVICE_RADIUS_MILES } from "@shared/issaBuildProfile";
 import { buildIssaBuildBusinessContentBlocks, buildIssaBuildOnyxContentBlocks, ISSA_BUILD_SERVICE_SUMMARIES } from "@shared/issaBuildPageContent";
 import { listFactBearingProfileServices, resolveProfileServiceItem } from "@shared/profileServiceShare";
 import { buildPublicProfileServiceHtml } from "../publicProfileServiceHtml";
@@ -45,7 +45,8 @@ describe("ISSA service discovery after business-copy cleanup", () => {
     expect(html).toContain(service.title);
     expect(html).toContain(resolved!.description);
     expect(html).toContain('"@type":"Service"');
-    expect(html).toContain('"areaServed":["Pensacola and surrounding areas"]');
+    expect(ISSA_BUILD_SERVICE_RADIUS_MILES).toBe(20);
+    for (const area of ISSA_BUILD_SERVICE_AREAS) expect(html).toContain(JSON.stringify(area));
     expect(html).toContain('content="index, follow');
     expect(html).not.toContain('content="noindex"');
     expect(html).not.toContain('/assets/app.js');
