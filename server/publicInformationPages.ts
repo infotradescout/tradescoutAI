@@ -88,7 +88,7 @@ export function buildPublicInformationHtml(template: string, route: PublicInform
     const key = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     html = setTag(html, new RegExp(`<meta\\b[^>]*\\b${attribute}\\s*=\\s*["']${key}["'][^>]*>`, "gi"), `<meta ${attribute}="${name}" content="${escapeHtml(value)}" />`);
   }
-  const summary = `<main data-public-information-page="true" class="max-w-4xl mx-auto px-4 py-12 text-white"><nav aria-label="TradeScout"><a href="/">TradeScout</a></nav><h1>${escapeHtml(page.heading)}</h1>${page.paragraphs.map(text => `<p>${escapeHtml(text)}</p>`).join("")}<nav aria-label="Next steps">${page.links.map(([href, text]) => `<p><a href="${escapeHtml(href)}">${escapeHtml(text)}</a></p>`).join("")}</nav></main>`;
+  const summary = `<main data-public-information-page="true" class="max-w-4xl mx-auto px-4 py-12 text-white"><nav aria-label="TradeScout"><a href="/">TradeScout</a></nav><h1>${escapeHtml(page.heading)}</h1>${page.paragraphs.map(text => `<p>${escapeHtml(text)}</p>`).join("")}<nav aria-label="Next steps">${page.links.map(([href, text]: readonly [string, string]) => `<p><a href="${escapeHtml(href)}">${escapeHtml(text)}</a></p>`).join("")}</nav></main>`;
   html = html.replace(/<div\b([^>]*\bid=["']root["'][^>]*)>\s*<\/div>/i, (_match, attributes: string) => `<div${attributes}>${summary}</div>`);
   // There is now useful content even without JavaScript; remove only obsolete shell placeholders.
   html = html.replace(/\s*<div id="ts-boot-fallback"[\s\S]*?<\/section>\s*<\/div>\s*/i, "")
