@@ -60,6 +60,17 @@ describe("ISSA service discovery after business-copy cleanup", () => {
     for (const service of ISSA_BUILD_LOCAL_DISCOVERY.services) expect(items.find((item: any) => item.slug === service.slug)?.description).toBe(ISSA_BUILD_SERVICE_SUMMARIES[service.slug]);
   });
 
+  it("migrates only the exact legacy Pensacola service-area seed", () => {
+    const legacy = [{ type: "serviceAreas", data: { areas: ["Pensacola, FL"] } }];
+    const migrated = buildIssaBuildBusinessContentBlocks(legacy).find(block => block.type === "serviceAreas");
+    expect(migrated?.data?.areas).toEqual([...ISSA_BUILD_SERVICE_AREAS]);
+    expect(migrated?.data?.description).toContain("20-mile radius");
+
+    const custom = [{ type: "serviceAreas", data: { areas: ["Owner Custom Area"], description: "Owner wording" } }];
+    const preserved = buildIssaBuildBusinessContentBlocks(custom).find(block => block.type === "serviceAreas");
+    expect(preserved?.data).toEqual(custom[0].data);
+  });
+
   it("seeds descriptive services once when the existing services block is absent", () => {
     const blocks = buildIssaBuildBusinessContentBlocks([]);
     expect(listFactBearingProfileServices(blocks)).toHaveLength(4);
