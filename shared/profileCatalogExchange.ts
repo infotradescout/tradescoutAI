@@ -1,9 +1,13 @@
 export const PROFILE_CATALOG_EXCHANGE_SOURCE_TYPE = "profile_catalog" as const;
 export const PROFILE_CATALOG_EXCHANGE_CATEGORY = "building-materials" as const;
 
+/** Profile-catalog cards are third-party business discovery only. They are never TradeScout-owned retail Exchange listings. */
+export const PROFILE_CATALOG_EXCHANGE_OWNERSHIP = "third_party_profile_discovery" as const;
+
 const jwStoneSpotlight = Object.freeze({
   id: "profile-catalog-jw-stone",
   sourceType: PROFILE_CATALOG_EXCHANGE_SOURCE_TYPE,
+  ownership: PROFILE_CATALOG_EXCHANGE_OWNERSHIP,
   category: PROFILE_CATALOG_EXCHANGE_CATEGORY,
   businessName: "JW Stone LLC",
   profileSlug: "jw-stone",
@@ -22,6 +26,7 @@ const jwStoneSpotlight = Object.freeze({
 const issaBuildSpotlight = Object.freeze({
   id: "profile-catalog-issa-build",
   sourceType: PROFILE_CATALOG_EXCHANGE_SOURCE_TYPE,
+  ownership: PROFILE_CATALOG_EXCHANGE_OWNERSHIP,
   category: PROFILE_CATALOG_EXCHANGE_CATEGORY,
   businessName: "ISSA Build",
   profileSlug: "issa-build",
@@ -37,7 +42,7 @@ const issaBuildSpotlight = Object.freeze({
 } as const);
 
 /**
- * Curated discovery records, not marketplace inventory or offers. Material
+ * Curated third-party business discovery records, not TradeScout-owned marketplace inventory, retail listings, pricing or offers. Material
  * detail remains authoritative on the maintained business profile.
  */
 export const PROFILE_CATALOG_EXCHANGE_SPOTLIGHTS = Object.freeze([

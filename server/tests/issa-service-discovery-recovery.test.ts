@@ -13,6 +13,17 @@ const template = '<!doctype html><html><head><title>TradeScout</title><meta name
 const getItems = (input: unknown) => buildIssaBuildBusinessContentBlocks(input).find(block => block.type === "services")!.data!.items;
 
 describe("ISSA service discovery after business-copy cleanup", () => {
+  it("routes the owner-confirmed Pensacola remodel, fabrication and install intents to ISSA Build", () => {
+    expect(ISSA_BUILD_LOCAL_DISCOVERY.tradeServices).toEqual([
+      "Kitchen Remodeling",
+      "Bathroom Remodeling",
+      "Countertop Fabrication",
+      "Countertop Installation",
+    ]);
+    expect(ISSA_BUILD_SERVICE_SUMMARIES["countertops-fabrication"]).toMatch(/fabrication/i);
+    expect(ISSA_BUILD_SERVICE_SUMMARIES["countertops-fabrication"]).toMatch(/installation/i);
+  });
+
   it("reproduces the four missing routes from the observed title-only production shape", () => {
     expect(listFactBearingProfileServices(titleOnly)).toEqual([]);
     for (const service of ISSA_BUILD_LOCAL_DISCOVERY.services) expect(resolveProfileServiceItem(titleOnly, service.slug)).toBeNull();

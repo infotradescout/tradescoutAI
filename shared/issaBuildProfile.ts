@@ -16,7 +16,7 @@ export const ISSA_BUILD_BUSINESS_NAME = "ISSA Build";
 /** Owner-confirmed on 2026-09-06; local projects route to ISSA Build through TradeScout. */
 export const ISSA_BUILD_LOCAL_DISCOVERY = {
   primaryCategory: "Kitchen Remodeling",
-  tradeServices: ["Kitchen Remodeling", "Bathroom Remodeling"],
+  tradeServices: ["Kitchen Remodeling", "Bathroom Remodeling", "Countertop Fabrication", "Countertop Installation"],
   title: "ISSA Build | Pensacola Kitchens, Bathrooms & Countertops",
   description:
     "Pensacola-area kitchens, bathrooms, cabinets, countertops and fabrication. Start a Request.",
