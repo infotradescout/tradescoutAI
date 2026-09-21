@@ -74,14 +74,16 @@ export async function allocateJwStoneSale(db: Database, context: Context, attemp
   }
   if (!hold) return { allocations, reservationTransfer: null };
   const changed = await db.query(
-    "UPDATE jw_stone_cart_holds SET status='released',released_at=clock_timestamp() WHERE id=$1::uuid AND status='active' AND expires_at>clock_timestamp() RETURNING released_at",
+    "UPDATE jw_stone_cart_holds SET status='released',released_at=clock_timestamp() WHERE id=$1::uuid AND status='active' AND expires_at>clock_timestamp() RETURNING released_at::text AS transferred_at",
     [hold.id]
   );
   if (changed.rowCount!==1) fail("jw_cart_hold_expired","Your reservation expired before checkout was prepared. No payment was started.");
-  const transferredAt = new Date(changed.rows[0].released_at).toISOString();
+  // Keep full database microseconds in the relational receipt. JS Date is display-only.
+  const databaseTime = String(changed.rows[0].transferred_at);
+  const transferredAt = new Date(databaseTime).toISOString();
   await db.query(
     "INSERT INTO jw_stone_sale_hold_transfers(hold_id,request_id,attempt_id,buyer_user_id,seller_business_id,transferred_at) VALUES($1::uuid,$2,$3::uuid,$4,$5,$6::timestamptz)",
-    [hold.id,context.requestId,attemptId,context.buyerId,context.sellerId,transferredAt]
+    [hold.id,context.requestId,attemptId,context.buyerId,context.sellerId,databaseTime]
   );
   return { allocations, reservationTransfer: { reservationId:hold.public_id, originalExpiresAt:new Date(hold.expires_at).toISOString(), transferredAt } };
 }
