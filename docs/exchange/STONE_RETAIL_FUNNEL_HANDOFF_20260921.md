@@ -1,59 +1,74 @@
-# TradeScout stone retail continuation — actual screen integrated, not deployed
+# TradeScout stone retail continuation — atomic inquiries integrated, not deployed
 
 ## Objective
-More connected buyer calls and distinct interested buyers than matched Facebook Marketplace offers. TradeScout owns the retail listing/customer relationship; supplier pricing and portal remain separate. Retail price visibility does not depend on fabricator membership. Pensacola means Pensacola, FL city only, not county/radius/neighbors. These are release requirements, not a claim that the geographic/import layer is already deployed.
+More actual connected buyer calls and distinct interested buyers than matched Facebook Marketplace offers. TradeScout owns the listings and customer relationship; JW remains the separate supplier. Public retail prices have no fabricator-membership lock. Exclude Pensacola, Florida city only, not a county, radius, surrounding cities or all Florida. Do not infer approval of reference prices from continuation requests.
 
-## Base branch/commit
-Resumed PR #690 on `exchange/tradescout-stone-retail-20260921` from `9fcd00a436b9fa5b7ed7b24539bbc8fe154b5197`. Original main base: `f22ddff023d24d5ca1938714619f942819afc5ce`.
-
-## Current branch/commit
-Code candidate: `484d40ebfb6d881691e98e7115cf1775eaf9dea6` on the same branch. This checkpoint is a documentation-only successor. PR remains draft; no production merge.
+## Base and current source
+Repository: infotradescout/tradescoutAI
+Branch: exchange/tradescout-stone-retail-20260921
+PR: 690, draft and unmerged.
+This slice resumed from 6763059af73548f4274bced855b72719323395af, after the prior actual screen integration at 484d40ebfb6d881691e98e7115cf1775eaf9dea6.
+Current tested implementation/test commit: 15381216e1e409b981c2e0b4a91f08504a476d69.
+This checkpoint is a documentation-only successor; no runtime changes follow the tested source in this update.
+Original main base remains f22ddff023d24d5ca1938714619f942819afc5ce. Do not force-reset or merge without the release contract.
 
 ## Verified completed work
-The previous screen integration is NOW applied to the actual `client/src/pages/exchange/ExchangeListingDetail.tsx`; do not reapply the earlier source-pinned patch. Original screen blob `781d3a43f3d3f638e2cb6114c09427c3114e4d21` was reconstructed and verified before its narrow edits. Ordinary listing, profile/catalog, bundle and existing protected inquiry functionality was retained.
+The existing server/routes.ts inquiry handler (around lines 17523–17728 at the base) saved an inquiry before a best-effort seller conversation/message and separately completed the Decision Card. A message failure could therefore still return success. This new stone-only adapter is registered through public-metadata, after setupAuth and effective-account binding and before that legacy handler. Ordinary listings fall through unchanged; no giant routes.ts replacement or base-module copies were introduced.
 
-New retail behavior:
-- Explicit cents and per-sq-ft/per-slab display/share text. Missing price is unavailable, not zero.
-- Availability and callback preparation beside the price; editable review before sign-in. No send occurs when opening/canceling, following an inquiry link, or returning from sign-in.
-- Tab-local, 30-minute, listing-bound draft survives sign-in. Signed-account drafts do not transfer to a different account. Denied browser storage preserves the current form and refuses destructive navigation.
-- Actual screen still invokes Decision Card then marketplace inquiry, carrying the selected listing and protected authority fields. Retail fixed-price inquiries do not submit an unsolicited proposed price.
-- Explicit submission snapshot, immediate same-tick lock and disabled automatic mutation retries. Failed requests retain text. A previous listing/account's late response cannot erase the current draft. Account identity is rechecked before the inquiry after awaiting its Decision Card.
-- Anonymous-to-authenticated in-place refresh preserves the edited message, including the denied-storage fallback.
-- Mobile title/price stack and metadata wrap. No unverified free/available-shipping promise is added for retail stone.
+One connection and transaction now own the inquiry, protected seller conversation/message, durable in-app notification, Decision Card completion, saved-inquiry evidence, and replay receipt. A failed write rolls the whole unit back. Explicit browser request UUIDs survive lost responses/reloads; same-key changed content is a conflict. Legacy clients without durable browser storage coalesce exact same buyer/listing/seller/message/intent requests for 30 minutes. New explicit identities can represent deliberate new inquiries. Replaying returns only the authenticated buyer's previously saved receipt, not new contact authority or a current inventory promise.
 
-## Files changed and exact Git blob identities
-- `shared/exchangeStoneInquiryDraft.ts`: `382d96ddc8bed4d4e6994fd8c0296cf2feb03258` (3236 bytes)
-- `client/src/hooks/useExchangeStoneInquiry.ts`: `bfcf49b99fcbb3c5a17f6a1ff0ddf36039b0543c` (5271 bytes)
-- `client/src/pages/exchange/ExchangeListingDetail.tsx`: `efe55eafa2795ec41914b05b943f555d1e5dbf6d` (41809 bytes)
-- `scripts/exchange-stone-inquiry-draft.test.mjs`: `fd453dd8a7af071e2fd4b9f48ab252290491ea60` (6159 bytes)
-All four locally tested bytes match returned/fetched GitHub blob identities at this code candidate.
+The actual ExchangeListingDetail screen uses the new retry client for TradeScout retail stone. It retains the exact actor/listing/message/intent, does not treat Decision Card creation as successful delivery, and accepts success only with a saved inquiry and conversation receipt. The existing draft preparation/sign-in behavior and ordinary listing flow remain.
 
-## Tests/evidence already run
-- `NODE_PATH=$(npm root -g) node --experimental-strip-types --test scripts/exchange-stone-inquiry-draft.test.mjs scripts/exchange-stone-funnel-core.test.mjs`: 21 passed, 0 failed. Ten new draft/screen-contract cases and eleven existing funnel-core cases. Existing database semantics in the latter use disposable SQLite, not production PostgreSQL.
-- `tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM shared/exchangeStoneBuyerFlow.ts shared/exchangeStoneInquiryDraft.ts`: passed. Strict check is limited to these shared helpers. Screen/hook transpilation syntax checks also passed; do not call this a full application typecheck.
-- Offline Chromium execution of the actual transpiled screen/hook/shared modules with installed React 18.2.0 and ReactDOM: 16 passed, 0 failed. Cases cover mobile/desktop, callback/cancel, authority endpoint order, exact edited sign-in continuation, denied storage, in-place auth refresh, failed request retention, same-tick clicks, listing/account switches and late replies, ordinary listings, supplier catalog routing, and missing prices.
-- Browser adapters for routing, query cache, authentication, API responses, storage and UI kit are explicitly synthetic. These are component tests, not full TanStack/Wouter/Radix/backend or live-customer acceptance. Network requests were disabled. Final fixture CSS was regenerated from the final screen and screenshots reviewed.
-- Full checkout still unavailable through sandbox DNS. No new workflow, proof service or remote-desktop dependency was introduced.
+Measurement is written from saved inquiry evidence on that transaction, with a stable HMAC buyer key and server-held first acquisition. Callback requests remain callback requests, never completed calls. Client-supplied buyer, acquisition and production flags do not establish measurement authority. Missing first-touch evidence stays unattributed. Raw inquiry text, contact fields and supplier economics do not enter the funnel record.
 
-## Tests/evidence invalidated by later changes
-Earlier component counts of 14 cases were superseded by the final 16-case execution. Final 21 Node checks and browser evidence apply to the four blob identities above. This checkpoint adds no runtime change.
+The adapter requires an explicit configured TradeScout seller, current canonical seller exposure, active/unexpired correctly branded listing, positive valid price/unit, and server-held buyer market. Its exact-city guard permits adjacent towns and other US states. This is NOT completion of the national discovery-feed/SEO/geographic layer or a physical-location guarantee. Existing protected contact checks remain.
 
-## Changed but unverified work and remaining risks
-The older local catalog/geographic/media/import candidate is NOT applied by this screen integration. It includes incomplete base-alias integration; do not copy/replace large base modules to finish it. The committed landing renderer remains a component, not a proved published national catalog route.
+Seller in-app notification/inbox is durable with the inquiry. Existing push and email notices are supplementary best-effort sends after commit; delivery is not guaranteed by this slice and is not counted as a call. No external notification was sent by this implementation session.
 
-The existing funnel/store/schema primitives from code commit `577c487b64338140fd0e7a8d036e3ae34f485b63` remain available. They are NOT yet wired to actual saved inquiry/call/quote/settled-payment transaction owners; the staged SQL is not an automatic migration. A callback request is not a connected call. Same-tick UI locking does not establish durable server idempotency after a lost response or across reloads.
+## Exact files and evidence
+All seven local tested files were matched to their committed Git blob hashes:
 
-No full application build, strict application typecheck, PostgreSQL integration, actual sign-in journey, product-level crawlability, production geographic filtering or `npm run gate:minimum-release` was executed. Do not merge as a finished national sales funnel.
+| Path | Bytes | Git blob |
+|---|---:|---|
+| server/services/exchangeStoneInquiryTransaction.ts | 11908 | 1ed9fa47a203e7fad9578886c707a814ad6e8286 |
+| server/routes/exchange-stone-inquiries.ts | 11778 | 698a01a0cd1c2b856b52bffc092d11247b4343df |
+| scripts/sql/exchange-stone-inquiry.sql | 1033 | aad3564d33386c2289647cea5cfad564e22711f6 |
+| client/src/lib/exchangeStoneInquiryRequest.ts | 4535 | 50360eb7f54e25f21a07aa42b30d69d46cd79fb1 |
+| server/routes/public-metadata.ts | 3532 | bdab8d472ce0930e350b364be5a62604c93eeede |
+| client/src/pages/exchange/ExchangeListingDetail.tsx | 42498 | 2efde4e06d41b2c046801bd95d9e3843bc49309b |
+| scripts/exchange-stone-inquiry-transaction.test.mjs | 22648 | 287fdfedcc195ccb311f951f2ef20e4332324dac |
 
-Catalog remains 119 staged material references, 0 explicit retail-price approvals, 0 imported new live listings and 0 newly published photos. A continuation request does not approve the homeowner reference prices. No observed Facebook baseline or real buyer outcome was obtained.
+Node 22.16.0 command:
+`NODE_PATH=$(npm root -g) node --experimental-strip-types --test scripts/exchange-stone-inquiry-transaction.test.mjs scripts/exchange-stone-inquiry-draft.test.mjs scripts/exchange-stone-funnel-core.test.mjs`
+Result: 48 passed, 0 failed, 0 skipped; 27 new cases plus the 21 existing cases.
+
+New cases execute the actual transaction and retry modules, including rollback failures, lost COMMIT acknowledgement, 20 attempted concurrent submissions, same-key conflicts, Decision Card ownership/scope, legacy retries, callback classification and client account changes. HTTP adapter tests use explicit dependency fixtures; source fields and exact-city logic are checked. SQLite provides real commit/rollback/uniqueness through a translation adapter; PostgreSQL advisory/row locks and concurrency are NOT proved by it. The fixture serializes BEGIN and substitutes locks. Do not report these as PostgreSQL or full Express acceptance.
+
+Strict targeted TypeScript check passed for the transaction module and browser request helper (and their imported pure dependencies):
+`tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM --types node --typeRoots /opt/nvm/versions/node/v22.16.0/lib/node_modules/ts-node/node_modules/@types server/services/exchangeStoneInquiryTransaction.ts client/src/lib/exchangeStoneInquiryRequest.ts`
+The explicit typeRoots is this sandbox's global installation path, not an application requirement. Transpilation syntax checks passed on all five changed TypeScript/TSX files. This is not full application typechecking.
+
+Previous 16 offline browser-component scenarios have NOT been rerun for this changed submission path. Earlier UI evidence remains historical, not current end-to-end evidence. Full React/auth/Express/PostgreSQL and production acceptance remain open.
+
+## Changed but unverified / release requirements
+- scripts/sql/exchange-stone-funnel.sql and the new inquiry receipt schema are still staged SQL, not registered production migrations. Enroll both in the runtime ledger/required-schema checks through controlled release, with real PostgreSQL validation. No request-time DDL or live database mutation was performed.
+- Configure a stable, dedicated STONE_METRICS_SECRET (at least 24 characters) and the verified seller's site_settings value: category general, key exchange_stone_retail_seller_user_id. The adapter refuses absent/ambiguous seller identity. Do not use a supplier account or guess it. Do not derive buyer keys from rotating session secrets.
+- Verify the actual authorizeOffer/Drizzle notification adapter against the real schema and seller authority, concurrent processes and lost responses. Retest the actual screen/helper with real API responses and sign-in/session preservation.
+- National product discovery, post-auth catalog/media routes, Pensacola-only discovery filtering, source-photo identity, controlled approved-price import and release build remain unfinished. Older archive-only retail integration must not be mistaken for committed code.
+- Record connected calls, quote and payment outcomes at their real owners; this slice connects saved inquiries/callback requests only. No matched observed Facebook baseline was read, and no Facebook outperformance is established.
+- Catalog state remains 119 staged references, 0 explicit retail-price approvals, 0 new live listings and 0 newly published photos from this work. Reference homeowner prices are not approved Exchange prices.
+
+## Tests invalidated by later changes
+None after the final seven-file verification at 15381216e1e409b981c2e0b4a91f08504a476d69. Documentation does not change runtime. Broader application/build, real database and browser evidence must be produced before release; source-level fixtures do not substitute for them.
+
+## Known execution limits
+Ordinary repository checkout/download and dependency resolution failed on sandbox DNS; connected GitHub reads/writes worked. No full application build/typecheck, actual PostgreSQL run or npm run gate:minimum-release was executed. Do not merge this draft as production-ready.
 
 ## External side effects and retry safety
-Only the isolated feature branch and its checkpoint changed. No main merge/deployment, production DB write, media upload, customer contact, supplier-price change or workflow provisioning. Successful individual file writes are recorded in branch history. The older blocked bulk tree update was not repeated.
+Only the isolated feature branch, its draft PR and checkpoint changed. No main merge, deployment, live database mutation, media upload, customer contact, supplier-price change, new workflow or proof service. A metadata-copy typo was corrected before the final hash verification. The older blocked bulk tree update was not retried.
 
 ## Next exact action
-Continue after this integrated screen, not the obsolete client patch. Inspect only the current `POST /api/marketplace/inquiries` transaction and its storage write, then connect durable saved-inquiry/original-source evidence at the actual owner. Cover lost-response reconciliation and genuine callback/quote/payment confirmations without granting contact authority from analytics. Complete post-auth retail route mounting, seller/photo identity, city-only discovery and controlled approved-price import, then execute full application/release and real buyer-path verification.
+Resume after this actual saved-inquiry integration, not at the older detached helpers. Validate/enroll the staged schema and real transaction/authorization adapter, then advance the remaining catalog discovery/media/import lane and real buyer-path release checks. Existing source/test files and the current screen should be reused, not rewritten. A matching database receipt must prove the actual inquiry route creates one inbox message and one inquiry under concurrent/lost-response retries before release.
 
-The downloadable screen-integration package carries exact changed files, the original-screen diff, execution receipt, 21-case TAP output, 16-case offline component runner/results and synthetic screenshots. It is a continuation artifact, not a full repository or production build.
-
-## Actions that must NOT be repeated
-Do not restart discovery or reapply the previous client patch. Do not widen Pensacola, lock retail prices to fabricators, guess prices/stock/delivery, count clicks as calls, invent Facebook outcomes, apply incomplete base aliases, add GitHub Actions, provision another proof service or claim this draft is deployed.
+## Actions not to repeat
+No broad rediscovery, reapplication of older client patches, guessed prices, repeated price-approval questions, county/radius expansion, membership locks on retail prices, fake calls/leads, new GitHub Actions, base-module duplication or unverified production claims. The owner's standard remains calls, distinct buyers and sales, not test volume.
