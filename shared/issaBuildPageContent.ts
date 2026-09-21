@@ -3,6 +3,8 @@ import {
   ISSA_BUILD_LOCAL_DISCOVERY,
   ISSA_BUILD_LOGO,
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
+  ISSA_BUILD_SERVICE_AREAS,
+  ISSA_BUILD_SERVICE_RADIUS_MILES,
 } from "./issaBuildProfile";
 
 export type IssaBuildContentBlock = {
@@ -89,8 +91,19 @@ export function buildIssaBuildBusinessContentBlocks(input: unknown): IssaBuildCo
         return summary ? { ...value, description: summary } : value;
       });
     }
-    if (block.type === "serviceAreas" && block.data?.description === productBlock("serviceAreas")?.data?.description) {
-      delete block.data?.description;
+    if (block.type === "serviceAreas") {
+      const areas = Array.isArray(block.data?.areas) ? block.data!.areas : [];
+      const legacyAreas = areas.length === 1 && areas[0] === "Pensacola, FL";
+      const legacyDescription = block.data?.description === productBlock("serviceAreas")?.data?.description;
+      if (legacyAreas && (legacyDescription || !block.data?.description)) {
+        block.data = {
+          ...block.data,
+          areas: [...ISSA_BUILD_SERVICE_AREAS],
+          description: `ISSA Build serves a ${ISSA_BUILD_SERVICE_RADIUS_MILES}-mile radius around Pensacola plus adjacent Pensacola-area communities for kitchen and bathroom projects, cabinets, countertops, fabrication and installation. Include the actual project city or ZIP so the job location and scope can be confirmed.`,
+        };
+      } else if (legacyDescription) {
+        delete block.data?.description;
+      }
     }
     return true;
   });
