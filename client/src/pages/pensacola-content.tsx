@@ -101,7 +101,7 @@ export default function PensacolaContent({ onStartRequest }: Props = {}) {
             >
               <h2 className="text-2xl font-bold">
                 <a
-                  href={`${content.profileHref}#profile-services`}
+                  href={project.serviceSlug ? `/u/issa-build/services/${project.serviceSlug}` : `${content.profileHref}#profile-services`}
                   className="hover:text-ts-orange"
                 >
                   {project.title}
