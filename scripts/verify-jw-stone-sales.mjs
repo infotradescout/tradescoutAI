@@ -14,6 +14,12 @@ function run(name, args, environment) {
   report.steps.push({ name, exitCode: r.status, passed: r.status === 0 });
   assert.equal(r.status, 0, name + ' failed');
 }
+async function receipt(file) {
+  const value = JSON.parse(await fs.readFile(path.join(out, file), 'utf8'));
+  assert.equal(value.head, head);assert.equal(value.passed, true);
+  assert.equal(value.productionWrites, false);assert.equal(value.providerNetworkUsed, false);
+  return value;
+}
 try {
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '');
   for (const key of ['DATABASE_URL', 'TEST_DATABASE_URL', 'STRIPE_SECRET_KEY', 'JW_STONE_STRIPE_WEBHOOK_SECRET', 'JW_STONE_PRICING_APPROVED_IMPORT']) assert(!process.env[key], 'Inherited credentials are forbidden: ' + key);
@@ -26,14 +32,12 @@ try {
   run('canonical migrations', ['npm', 'run', 'db:migrate'], environment);
   run('canonical required schema', ['npm', 'run', 'db:verify:required'], environment);
   run('native offer order payment and browser acceptance', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-sales.native.ts'], environment);
-  const native = JSON.parse(await fs.readFile(path.join(out, 'native-evidence.json'), 'utf8'));
-  assert.equal(native.head, head);assert.equal(native.passed, true);
-  report.native = native;
+  report.native = await receipt('native-evidence.json');
   run('second-process historical payment recovery and atomic failure', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-sales-recovery.native.ts'], environment);
-  const recovery = JSON.parse(await fs.readFile(path.join(out, 'recovery-evidence.json'), 'utf8'));
-  assert.equal(recovery.head, head);assert.equal(recovery.passed, true);
-  assert.equal(recovery.productionWrites, false);assert.equal(recovery.providerNetworkUsed, false);
-  report.recovery = recovery;
+  report.recovery = await receipt('recovery-evidence.json');
+  run('third-process ordinary purchases and atomic reserved-stock transfer', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-purchases.native.ts'], environment);
+  report.purchase = await receipt('purchase-evidence.json');
+  assert.deepEqual(report.purchase.devices.map(device => device.device).sort(), ['desktop', 'touch']);
   report.finalSourceStatus = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();assert.equal(report.finalSourceStatus, '');
   report.passed = true;
 } catch (error) { report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]');process.exitCode = 1; }
