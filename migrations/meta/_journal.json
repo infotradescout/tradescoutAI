@@ -147,6 +147,7 @@
     {"idx":142,"version":"7","when":1789563600000,"tag":"0139_scout_execution_receipts","breakpoints":false},
     {"idx":143,"version":"7","when":1789674300000,"tag":"0140_jw_feature_control_storage","breakpoints":false},
     {"idx":144,"version":"7","when":1789674360000,"tag":"0141_jw_stone_cart_holds","breakpoints":false},
-    {"idx":145,"version":"7","when":1790006400000,"tag":"0142_jw_stone_order_payments","breakpoints":false}
+    {"idx":145,"version":"7","when":1790006400000,"tag":"0142_jw_stone_order_payments","breakpoints":false},
+    {"idx":146,"version":"7","when":1790006460000,"tag":"0143_jw_stone_purchase_and_hold_transfer","breakpoints":false}
   ]
 }
