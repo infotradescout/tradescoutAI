@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { jwStoneInventoryPublicIdSchema, jwStoneCartReviewRequestSchema } from "./jwStoneCart";
+import { jwStoneInventoryPublicIdSchema, jwStoneCartFulfillmentSchema, JW_STONE_CART_REVIEW_MAX_LINES } from "./jwStoneCart";
 
 export const JW_STONE_ORDERS_PATH = "/api/u/jw-stone/orders";
 export const JW_STONE_ORDERS_PAGE = "/jw-stone/orders";
@@ -28,9 +28,9 @@ export const jwStoneSaleIntakeSchema = z.object({
   inventoryReserved: z.literal(false),
   offeredTotalCents: cents.positive(),
   listedSubtotalCents: cents.positive(),
-  fulfillment: jwStoneCartReviewRequestSchema.shape.fulfillment,
+  fulfillment: jwStoneCartFulfillmentSchema,
   bundleApplied: z.boolean(),
-  lines: z.array(jwStoneSaleLineSchema).min(1).max(40),
+  lines: z.array(jwStoneSaleLineSchema).min(1).max(JW_STONE_CART_REVIEW_MAX_LINES),
 });
 export type JwStoneSaleIntake = z.infer<typeof jwStoneSaleIntakeSchema>;
 export const jwStoneFinalQuoteSchema = z.object({
