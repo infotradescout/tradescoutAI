@@ -45,6 +45,7 @@ describe("ISSA service discovery after business-copy cleanup", () => {
     expect(html).toContain(service.title);
     expect(html).toContain(resolved!.description);
     expect(html).toContain('"@type":"Service"');
+    expect(html).toContain('"areaServed":["Pensacola and surrounding areas"]');
     expect(html).toContain('content="index, follow');
     expect(html).not.toContain('content="noindex"');
     expect(html).not.toContain('/assets/app.js');
