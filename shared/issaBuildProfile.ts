@@ -13,6 +13,25 @@ export const ISSA_BUILD_LEGACY_PROFILE_SLUG = "honey-onyx";
 
 export const ISSA_BUILD_BUSINESS_NAME = "ISSA Build";
 
+export const ISSA_BUILD_SERVICE_RADIUS_MILES = 20;
+export const ISSA_BUILD_SERVICE_AREAS = [
+  "Pensacola, FL",
+  "Gulf Breeze, FL",
+  "Ferry Pass, FL",
+  "Bellview, FL",
+  "Brent, FL",
+  "West Pensacola, FL",
+  "Warrington, FL",
+  "Myrtle Grove, FL",
+  "Ensley, FL",
+  "Gonzalez, FL",
+  "Pace, FL",
+  "Bagdad, FL",
+  "East Milton, FL",
+  "Milton, FL",
+  "Navarre, FL",
+] as const;
+
 /** Owner-confirmed on 2026-09-06; local projects route to ISSA Build through TradeScout. */
 export const ISSA_BUILD_LOCAL_DISCOVERY = {
   primaryCategory: "Kitchen Remodeling",
@@ -131,9 +150,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "serviceAreas",
     data: {
-      areas: ["Pensacola, FL"],
+      areas: [...ISSA_BUILD_SERVICE_AREAS],
       description:
-        "ISSA Build serves Pensacola and surrounding areas for kitchen and bathroom projects, cabinets, countertops and fabrication. Include the actual project city or ZIP so the job location and scope can be confirmed.",
+        `ISSA Build serves a ${ISSA_BUILD_SERVICE_RADIUS_MILES}-mile radius around Pensacola plus adjacent Pensacola-area communities for kitchen and bathroom projects, cabinets, countertops, fabrication and installation. Include the actual project city or ZIP so the job location and scope can be confirmed.`,
     },
   },
   {
@@ -345,6 +364,8 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       sitemap: {
         inventory: true,
         categories: true,
+        services: true,
+        serviceAreas: true,
       },
       categories: [
         {

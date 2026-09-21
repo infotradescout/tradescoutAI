@@ -12,6 +12,7 @@ import {
   type ResolvedProfileServiceItem,
 } from "@shared/profileServiceShare";
 import { resolvePublicProfileRootDiscoverySlug } from "@shared/publicProfileRootDiscovery";
+import { ISSA_BUILD_SERVICE_AREAS, isIssaBuildProfileSlug } from "@shared/issaBuildProfile";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import { buildProfileSocialPreviewImageUrl } from "@shared/profileSocialPreview";
 import { storage } from "./storage";
@@ -155,10 +156,12 @@ export function buildPublicProfileServiceHtml(args: {
     args.profile.seoMeta?.faviconUrl || args.profile.seoMeta?.imageUrl,
     args.origin
   );
-  const serviceAreas = (args.business?.serviceAreas || [])
+  const storedServiceAreas = (args.business?.serviceAreas || [])
     .map((value) => cleanPublicText(value, 120))
-    .filter(Boolean)
-    .slice(0, 12);
+    .filter(Boolean);
+  const serviceAreas = isIssaBuildProfileSlug(args.profile.slug)
+    ? Array.from(new Set([...ISSA_BUILD_SERVICE_AREAS, ...storedServiceAreas])).slice(0, 20)
+    : Array.from(new Set(storedServiceAreas)).slice(0, 12);
   const locationLabel = cleanPublicText(
     [args.business?.city, args.business?.stateCode]
       .map((value) => String(value || "").trim())
