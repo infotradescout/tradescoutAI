@@ -11,7 +11,9 @@ import { chromium } from 'playwright';
 
 const candidate = String(process.env.SEARCH_SURFACE_CANDIDATE_SHA || '');
 assert.match(candidate, /^[a-f0-9]{40}$/);
-assert.equal(candidate, '07ad23d1775259699b18b1bd83271590562ab47d', 'Explicitly reviewed candidate required');
+const reviewed = JSON.parse(fs.readFileSync(new URL('./public-information-candidate.json', import.meta.url), 'utf8'));
+assert.equal(candidate, reviewed.commit, 'Explicitly reviewed candidate required');
+for (const hash of Object.values(reviewed.blobs)) assert.match(hash, /^[a-f0-9]{40}$/);
 const output = path.resolve(process.env.SEARCH_SURFACE_OUTPUT || '.search-proof');
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'tradescout-information-release-'));
 const checkout = path.join(temporary, 'repo');
@@ -46,7 +48,7 @@ try {
   run('checkout-reviewed-candidate', 'git', ['checkout', '--detach', candidate]);
   assert.equal(run('exact-head', 'git', ['rev-parse', 'HEAD']), candidate);
   assert.equal(run('clean-initial-tree', 'git', ['status', '--porcelain']), '');
-  for (const [file, hash] of Object.entries({ 'server/publicInformationPages.ts': '9778e573e93b4b285888bbef070dafd966131e5d', 'server/publicShellAliasRoutes.ts': 'c4cdc8d232f245ec06f51e33245d59cf8c0a6b0f', 'scripts/public-information-pages.contract.test.mjs': '0b6c4929f8c2a6386f4be987aac62b046e74b681' })) assert.equal(run('blob-' + path.basename(file), 'git', ['hash-object', file]), hash);
+  for (const [file, hash] of Object.entries(reviewed.blobs)) assert.equal(run('blob-' + path.basename(file), 'git', ['hash-object', file]), hash);
   run('candidate-npm-ci', 'npm', ['ci']);
   run('new-information-contract', process.execPath, ['--test', 'scripts/public-information-pages.contract.test.mjs']);
   run('candidate-typecheck', 'npm', ['run', 'check']);
