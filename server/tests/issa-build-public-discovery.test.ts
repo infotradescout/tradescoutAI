@@ -3,6 +3,7 @@ import {
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
   ISSA_BUILD_PROFILE_SLUG,
   ISSA_BUILD_LOCAL_DISCOVERY,
+  ISSA_BUILD_SERVICE_AREAS,
 } from "@shared/issaBuildProfile";
 import { JSDOM } from "jsdom";
 import { listFactBearingProfileServices } from "@shared/profileServiceShare";
@@ -68,7 +69,7 @@ describe("ISSA Build public discovery", () => {
 
   it("publishes the confirmed Pensacola area without assigning every surrounding job to Escambia", () => {
     const area = resolveProfileServiceAreaHub(ISSA_BUILD_PROFILE_CONTENT_BLOCKS);
-    expect(area?.areas).toEqual(["Pensacola, FL"]);
+    expect(area?.areas).toEqual([...ISSA_BUILD_SERVICE_AREAS]);
     expect(area?.description).toContain("actual project city or ZIP");
     const html = buildPublicProfileServiceAreaHtml({
       templateHtml,
@@ -85,6 +86,8 @@ describe("ISSA Build public discovery", () => {
       inventory: true,
       categories: true,
       gallery: false,
+      services: true,
+      serviceAreas: true,
     });
 
     const urls = buildOptInProfileSitemapUrls({
