@@ -86,8 +86,6 @@ describe("ISSA Build public discovery", () => {
       inventory: true,
       categories: true,
       gallery: false,
-      services: true,
-      serviceAreas: true,
     });
 
     const urls = buildOptInProfileSitemapUrls({
