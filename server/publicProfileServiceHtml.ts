@@ -12,7 +12,7 @@ import {
   type ResolvedProfileServiceItem,
 } from "@shared/profileServiceShare";
 import { resolvePublicProfileRootDiscoverySlug } from "@shared/publicProfileRootDiscovery";
-import { isIssaBuildProfileSlug } from "@shared/issaBuildProfile";
+import { ISSA_BUILD_SERVICE_AREAS, isIssaBuildProfileSlug } from "@shared/issaBuildProfile";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import { buildProfileSocialPreviewImageUrl } from "@shared/profileSocialPreview";
 import { storage } from "./storage";
@@ -161,7 +161,7 @@ export function buildPublicProfileServiceHtml(args: {
     .filter(Boolean);
   const serviceAreas = Array.from(new Set([
     ...storedServiceAreas,
-    ...(isIssaBuildProfileSlug(args.profile.slug) ? ["Pensacola and surrounding areas"] : []),
+    ...(isIssaBuildProfileSlug(args.profile.slug) ? [...ISSA_BUILD_SERVICE_AREAS] : []),
   ])).slice(0, 12);
   const locationLabel = cleanPublicText(
     [args.business?.city, args.business?.stateCode]
