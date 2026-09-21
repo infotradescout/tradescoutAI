@@ -15,6 +15,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { sendStoneInquiryRequest } from "@/lib/exchangeStoneInquiryRequest";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { Button } from "@/components/ui/button";
@@ -274,10 +275,19 @@ export default function ExchangeListingDetail() {
   // ── Inquiry ────────────────────────────────────────────────────────────────
   const sendInquiryMutation = useMutation({
     retry: false,
-    mutationFn: async (submission: { listing: ListingDetail; message: string; offer: string; actorId: string | null }) => {
+    mutationFn: async (submission: { listing: ListingDetail; message: string; offer: string; actorId: string | null; inquiryIntent: "availability" | "callback" }) => {
       const { listing: selected, message, offer } = submission;
       if (!isAuthenticated) throw new Error("Sign in before sending an inquiry");
       if (submission.actorId !== visibleActorId.current) throw new Error("Your account changed. Review the request again.");
+      if (isStoneRetailListing(selected)) {
+        let requestStorage: Storage | null = null;
+        try { requestStorage = window.sessionStorage; } catch { /* server-side legacy replay remains available */ }
+        await sendStoneInquiryRequest(apiRequest, requestStorage, {
+          actorId: submission.actorId || "", listingId: selected.id, title: selected.title,
+          message, inquiryIntent: submission.inquiryIntent,
+        }, () => submission.actorId === visibleActorId.current);
+        return selected.id;
+      }
       const decisionScope = `marketplace_listing:${selected.id}`;
       const decision = await apiRequest("POST", "/api/decision-cards", {
         intent: "collaborate",
@@ -332,7 +342,7 @@ export default function ExchangeListingDetail() {
       return;
     }
     submissionLock.current = true;
-    sendInquiryMutation.mutate({ listing, message: inquiryMessage, offer: inquiryOffer, actorId: visibleActorId.current });
+    sendInquiryMutation.mutate({ listing, message: inquiryMessage, offer: inquiryOffer, actorId: visibleActorId.current, inquiryIntent: stoneInquiry.intent });
   }
 
   // ── Photo nav ──────────────────────────────────────────────────────────────
