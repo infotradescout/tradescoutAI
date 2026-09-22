@@ -16,13 +16,30 @@ await fs.mkdir(output, { recursive: true });
 const report = { version: 1, head, startedAt: new Date().toISOString(), passed: false, productionPublished: false,
   scope: 'Full application check/build, targeted tests and disposable native importer/two-process buyer workflow. No production or external provider acceptance; minimum release contract remains separate.', steps: [] };
 const scrub = text => String(text).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DATABASE_REDACTED]');
-async function run(name, args, extra = {}) {
+async function run(name, args, requireNativeReceipt = false) {
   console.log('STONE_INTEGRATION_START ' + name);
-  const result = spawnSync(args[0], args.slice(1), { cwd: root, env: { ...process.env, ...extra }, encoding: 'utf8', timeout: 900000, maxBuffer: 100 * 1024 * 1024 });
+  const result = spawnSync(args[0], args.slice(1), { cwd: root, env: process.env, encoding: 'utf8', timeout: 900000, maxBuffer: 100 * 1024 * 1024 });
   const text = scrub((result.stdout || '') + (result.stderr || ''));
   const file = 'step-' + (report.steps.length + 1) + '.log';
   await fs.writeFile(path.join(output, file), text);
   const step = { name, passed: result.status === 0 && !result.error, exitCode: result.status, error: result.error?.code || null, file };
+  if (requireNativeReceipt) {
+    try {
+      const receipt = JSON.parse(await fs.readFile(path.join(output, 'native/report.json'), 'utf8'));
+      assert.equal(receipt.head, head, 'Native source mismatch');
+      assert.equal(receipt.passed, true, receipt.error || 'Native workflow failed');
+      assert.equal(receipt.checks?.length, 10, 'Incomplete native workflow');
+      assert(receipt.checks.every(check => check.passed === true));
+      assert.deepEqual(receipt.browser?.map(check => check.device), ['desktop', 'touch']);
+      assert(receipt.browser.every(check => check.passed === true));
+      assert(!receipt.error && !receipt.cleanupError, 'Native workflow or cleanup failed');
+      step.nativeReceiptVerified = true;
+    } catch (error) {
+      step.passed = false;
+      step.nativeReceiptVerified = false;
+      step.error = scrub(error.message).slice(0, 1200);
+    }
+  }
   report.steps.push(step);
   console.log(text.slice(-30000));
   console.log('STONE_INTEGRATION_STEP ' + JSON.stringify(step));
@@ -34,7 +51,7 @@ try {
     'scripts/exchange-stone-discovery.test.mjs', 'scripts/exchange-stone-query-shape.test.mjs', 'scripts/exchange-stone-import.test.mjs',
     'scripts/exchange-stone-schema.test.mjs', 'scripts/exchange-stone-inquiry-transaction.test.mjs', 'scripts/exchange-stone-inquiry-draft.test.mjs', 'scripts/exchange-stone-funnel-core.test.mjs']);
   const built = await run('Full production application and operator bundle', ['npm', 'run', 'build']);
-  if (built) await run('Native compiled import and two-process buyer workflow', [process.execPath, 'scripts/exchange-stone-native-workflow.mjs']);
+  if (built) await run('Native compiled import and two-process buyer workflow', [process.execPath, 'scripts/exchange-stone-native-workflow.mjs'], true);
   report.sourceAfter = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
   report.passed = report.steps.length === 4 && report.steps.every(step => step.passed) && report.sourceAfter === '';
 } catch (error) {
