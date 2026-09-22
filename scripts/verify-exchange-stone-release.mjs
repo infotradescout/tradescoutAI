@@ -14,7 +14,7 @@ const output = path.resolve(process.env.EXCHANGE_BATCH_OUTPUT || 'test-results/e
 assert(!output.startsWith(root + path.sep), 'Evidence must be outside the exact source checkout');
 await fs.mkdir(output, { recursive: true });
 const report = { version: 1, head, startedAt: new Date().toISOString(), passed: false, productionPublished: false,
-  scope: 'Full checked-out application typecheck/build and existing targeted tests. Not production, native application transaction or browser acceptance.', steps: [] };
+  scope: 'Full application check/build, targeted tests and disposable native importer/two-process buyer workflow. No production or external provider acceptance; minimum release contract remains separate.', steps: [] };
 const scrub = text => String(text).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DATABASE_REDACTED]');
 async function run(name, args, extra = {}) {
   console.log('STONE_INTEGRATION_START ' + name);
@@ -33,9 +33,10 @@ try {
   await run('Stone discovery/import/inquiry/schema regression tests', [process.execPath, '--experimental-strip-types', '--test',
     'scripts/exchange-stone-discovery.test.mjs', 'scripts/exchange-stone-query-shape.test.mjs', 'scripts/exchange-stone-import.test.mjs',
     'scripts/exchange-stone-schema.test.mjs', 'scripts/exchange-stone-inquiry-transaction.test.mjs', 'scripts/exchange-stone-inquiry-draft.test.mjs', 'scripts/exchange-stone-funnel-core.test.mjs']);
-  await run('Full production application and operator bundle', ['npm', 'run', 'build']);
+  const built = await run('Full production application and operator bundle', ['npm', 'run', 'build']);
+  if (built) await run('Native compiled import and two-process buyer workflow', [process.execPath, 'scripts/exchange-stone-native-workflow.mjs']);
   report.sourceAfter = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();
-  report.passed = report.steps.length === 3 && report.steps.every(step => step.passed) && report.sourceAfter === '';
+  report.passed = report.steps.length === 4 && report.steps.every(step => step.passed) && report.sourceAfter === '';
 } catch (error) {
   report.error = scrub(error.stack || error);
 } finally {
