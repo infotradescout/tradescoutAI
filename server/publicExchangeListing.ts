@@ -1,3 +1,4 @@
+import { currentPublicStone, isStoneDiscoveryRow } from "./services/exchangeStoneDiscovery";
 import { sanitizePublicListingText } from "@shared/publicListingSafety";
 
 const PUBLIC_EXCHANGE_ID_PATTERN = /^[a-z0-9_-]{1,160}$/i;
@@ -114,6 +115,7 @@ export function isPublicExchangeListingAvailable(value: any, now = new Date()): 
  */
 export function toPublicExchangeListing(value: any): Record<string, unknown> | null {
   if (!value || !isPublicExchangeListingAvailable(value)) return null;
+  if (isStoneDiscoveryRow(value)) return currentPublicStone(value.id);
   const id = normalizePublicExchangeListingId(value.id);
   const sellerId = normalizePublicExchangeListingId(value.sellerId);
   const title = cleanString(value.title, 200);

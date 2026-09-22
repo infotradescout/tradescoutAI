@@ -1,8 +1,9 @@
 import { db } from "../.././db";
+import { isStoneDiscoveryRow } from "../../services/exchangeStoneDiscovery";
 
 /**
- * Extract active marketplace listings for caching
- * Only includes public-facing data
+ * Extract active marketplace listings for caching.
+ * City-restricted retail rows belong to request-scoped discovery, never this unlocalized cache.
  */
 export async function extractMarketplace() {
   try {
@@ -10,27 +11,12 @@ export async function extractMarketplace() {
       where: (table: any, { eq }: any) => eq(table.status, "active"),
       limit: 1000,
     });
-
-    // Strip out private/admin-only data
-    const safeListings = listings.map((l: any) => ({
-      id: l.id,
-      title: l.title,
-      description: l.description,
-      price: l.price,
-      priceType: l.priceType,
-      condition: l.condition,
-      category: l.categoryId,
-      county: l.county,
-      state: l.state,
-      city: l.city,
-      isLocalPickupOnly: l.isLocalPickupOnly,
-      willShip: l.willShip,
-      brand: l.brand,
-      model: l.model,
-      createdAt: l.createdAt,
+    return listings.filter((listing: any) => !isStoneDiscoveryRow(listing)).map((l: any) => ({
+      id: l.id, title: l.title, description: l.description, price: l.price, priceType: l.priceType,
+      condition: l.condition, category: l.categoryId, county: l.county, state: l.state, city: l.city,
+      isLocalPickupOnly: l.isLocalPickupOnly, willShip: l.willShip, brand: l.brand,
+      model: l.model, createdAt: l.createdAt,
     }));
-
-    return safeListings;
   } catch (error) {
     console.error("Error extracting marketplace:", error);
     return [];
