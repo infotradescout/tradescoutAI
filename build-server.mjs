@@ -124,6 +124,7 @@ const require = createRequire(import.meta.url);
 });
 
 const releaseResult = await esbuild.build({
+  external: ['sharp'], // Native image decoder remains in the declared runtime package.
   entryPoints: {
     'run-production-predeploy': 'scripts/run-production-predeploy.mjs',
     'ensure-public-media-ready': 'scripts/ensure-public-media-ready.mjs',
@@ -134,6 +135,7 @@ const releaseResult = await esbuild.build({
     'db-baseline-drizzle': 'scripts/db-baseline-drizzle.mjs',
     'check-required-production-schema': 'scripts/check-required-production-schema.mjs',
     'check-exchange-stone-schema': 'scripts/check-exchange-stone-schema.mjs',
+    'import-exchange-stone': 'scripts/import-exchange-stone.ts',
     'seed-businesses-places-new': 'scripts/seed_businesses_places_new.mjs',
   },
   bundle: true,
