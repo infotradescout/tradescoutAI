@@ -15,6 +15,7 @@ function load(relative, dependencies = {}) {
   return module.exports;
 }
 const funnel = load('server/services/exchangeStoneFunnel.ts');
+const journey = load('server/services/exchangeStoneJourney.ts', { './exchangeStoneFunnel': funnel });
 const eventStore = load('server/services/exchangeStoneFunnelStore.ts', { './exchangeStoneFunnel': funnel });
 const engine = load('server/services/exchangeStoneInquiryTransaction.ts', { './exchangeStoneFunnel': funnel, './exchangeStoneFunnelStore': eventStore });
 const client = load('client/src/lib/exchangeStoneInquiryRequest.ts');
@@ -241,6 +242,7 @@ function routeHarness(save = async (_command, _dependencies) => ({ receipt: { id
     '../db': { pool: {} }, '../auth': { isAuthenticated: (req, res, next) => { authCalls.push(req); return req.isAuthenticated() ? next() : res.status(401).json({ message: 'Authentication required' }); } },
     '../services/exposureAuthority': { exposureAuthoritySqlPredicate: () => ({}) },
     '../services/exchangeStoneFunnel': funnel,
+    '../services/exchangeStoneJourney': journey,
     '../services/exchangeStoneInquiryTransaction': { ...engine, saveStoneInquiry: save },
     '../utils/publicOrigin': { CANONICAL_WEB_HOST: 'www.thetradescout.com', resolveMappedProfileShareSlug: req => req.mappedProfile || null },
   });
@@ -276,10 +278,10 @@ test('HTTP adapter binds actor/source/environment to server context, not claimed
 test('initial Facebook acquisition is retained on internal navigation and source-profile hosts cannot submit', async () => {
   const h = routeHarness();
   const req = { ...h.req, method: 'GET', path: '/exchange/stone', originalUrl: '/exchange/stone?utm_source=facebook&utm_medium=marketplace', get: () => 'https://l.facebook.com/' };
-  h.middleware[0](req, null, () => {});
+  h.middleware[0](req, h.response(), () => {});
   const first = req.session.exchangeStoneJourney;
   req.originalUrl = '/exchange/stone?utm_source=tradescout'; req.get = () => 'https://www.thetradescout.com/exchange';
-  h.middleware[0](req, null, () => {});
+  h.middleware[0](req, h.response(), () => {});
   assert.deepEqual(req.session.exchangeStoneJourney, first); assert.equal(first.acquisition.channel, 'facebook_marketplace');
   const res = h.response();
   await h.registrations[0].handlers[1]({ ...h.req, mappedProfile: 'supplier-profile' }, res);
@@ -291,9 +293,51 @@ test('city-only market guard accepts adjacent cities, county peers, and every ot
   assert.throws(() => h.route.stoneInquiryMarket({ state: 'Florida', city: ' Pensacola ' }), e => e.code === 'LISTING_UNAVAILABLE');
   for (const city of ['Gulf Breeze','Pace','Milton','Pensacola Beach','Cantonment'])
     assert.match(h.route.stoneInquiryMarket({ state: 'FL', city, county: 'Escambia' }), /^US\.FL\./);
-  for (const state of 'AL AK AZ AR CA CO CT DE DC GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '))
+  for (const state of 'AL AK AZ AR CA CO CT DE DC GA HI ID IL IN IA KS KY LA ME MD MA MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '))
     assert.match(h.route.stoneInquiryMarket({ state, country: 'US' }), new RegExp(`^US\\.${state}\\.`));
   assert.equal(h.route.stoneInquiryMarket({ state: 'Texas', city: 'Dallas' }), 'US.TX.Dallas');
   assert.throws(() => h.route.stoneInquiryMarket({ state: 'FL' }), e => e.code === 'MARKET_REQUIRED');
   assert.throws(() => h.route.stoneInquiryMarket({ state: 'TX', country: 'CA' }), e => e.code === 'MARKET_REQUIRED');
+});
+
+const journeySecret = 'synthetic-stone-journey-secret-123456';
+const journeyValue = () => ({ id: randomUUID(), acquisition: funnel.captureAcquisition('/?utm_source=facebook_marketplace&utm_medium=marketplace&utm_campaign=stone-test') });
+test('signed acquisition cookie rejects tampering, unknown signatures, oversized values and expiry', () => {
+  const now = Date.now(), value = journeyValue(), signed = journey.encodeStoneJourney(value, journeySecret, now);
+  assert.deepEqual(journey.decodeStoneJourney(signed, journeySecret, now + 100), value);
+  assert.equal(journey.decodeStoneJourney(signed, journeySecret, now + 86400000), null);
+  assert.equal(journey.decodeStoneJourney(signed, journeySecret, now - 1), null);
+  assert.equal(journey.decodeStoneJourney(signed, journeySecret + '-wrong'), null);
+  for (const token of [signed + '.extra', 'x'.repeat(2049), signed.slice(0,-1) + (signed.endsWith('0') ? '1' : '0')]) assert.equal(journey.decodeStoneJourney(token, journeySecret), null);
+});
+test('journey encoding allowlists acquisition without importing account or contact authority', () => {
+  const value = { ...journeyValue(), userId: 'private-buyer', passport: { user: 'admin' }, location: 'TX', phone: 'private' };
+  const encoded = journey.encodeStoneJourney(value, journeySecret);
+  const payload = JSON.parse(Buffer.from(encoded.split('.')[0], 'base64url').toString('utf8'));
+  assert.deepEqual(Object.keys(payload).sort(), ['acquisition','expiresAt','id','version']);
+  assert.deepEqual(journey.decodeStoneJourney(encoded, journeySecret), { id: value.id, acquisition: value.acquisition });
+  assert.throws(() => journey.encodeStoneJourney({ ...value, acquisition: { ...value.acquisition, referrerHost: 'https://facebook.com/?private=data' } }, journeySecret));
+});
+test('rotated authentication session restores signed first touch without authenticating a user', () => {
+  const old = process.env.SESSION_SECRET; process.env.SESSION_SECRET = journeySecret;
+  try {
+    const value = journeyValue(), signed = journey.encodeStoneJourney(value, journeySecret);
+    const req = { session: {}, headers: { cookie: `ts_stone_journey=${signed}` }, originalUrl: '/api/marketplace/inquiries?utm_source=tradescout', user: undefined };
+    journey.ensureStoneJourney(req, {}, false);
+    assert.deepEqual(req.session.exchangeStoneJourney, value); assert.equal(req.user, undefined);
+    assert.deepEqual(Object.keys(req.session), ['exchangeStoneJourney']);
+  } finally { if (old === undefined) delete process.env.SESSION_SECRET; else process.env.SESSION_SECRET = old; }
+});
+test('POST cannot invent tagged acquisition and a duplicated cookie is rejected', () => {
+  const old = process.env.SESSION_SECRET; process.env.SESSION_SECRET = journeySecret;
+  try {
+    const value = journeyValue(), signed = journey.encodeStoneJourney(value, journeySecret);
+    const req = { session: {}, headers: { cookie: `ts_stone_journey=${signed}; ts_stone_journey=${signed}` }, originalUrl: '/api/marketplace/inquiries?utm_source=tradescout', get: () => 'https://www.thetradescout.com' };
+    const cookies = [], res = { cookie: (...args) => cookies.push(args) };
+    journey.ensureStoneJourney(req, res, false);
+    assert.equal(req.session.exchangeStoneJourney.acquisition.channel, 'direct');
+    assert.equal(req.session.exchangeStoneJourney.acquisition.evidence, 'none');
+    assert.notEqual(req.session.exchangeStoneJourney.id, value.id);
+    assert.equal(cookies[0][2].httpOnly, true); assert.equal(cookies[0][2].sameSite, 'lax'); assert.equal(cookies[0][2].maxAge, 86400000);
+  } finally { if (old === undefined) delete process.env.SESSION_SECRET; else process.env.SESSION_SECRET = old; }
 });
