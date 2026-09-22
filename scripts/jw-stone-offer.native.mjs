@@ -44,7 +44,7 @@ try {
   } else {
   run('Profile account customer-session isolation', ['npm', 'run', 'test:run', '--', 'client/src/components/profile/PublicProfileAccountDialog.session.test.tsx', '--maxWorkers=1']);
   run('Typecheck', ['npm', 'run', 'check']);
-  run('Production client and server build', ['npm', 'run', 'build']);
+  run('Production client and server build', ['npm', 'run', 'build'], { NODE_ENV: 'production' });
   run('Install Chromium', [process.execPath, 'node_modules/playwright/cli.js', 'install', 'chromium']);
   saveNativeOfferPreflight(head, report.checks);
   }
