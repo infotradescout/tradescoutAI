@@ -151,6 +151,7 @@ async function main(){
   try{client=await pool.connect();console.log(JSON.stringify(await reportRequestStages(client,options.get('--from'),options.get('--to')),null,2));}
   finally{client?.release();await pool.end();}
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
+// Bundled modules share the server entry URL. Require the actual CLI filename too.
+if(process.argv[1]&&/(?:^|[\\/])report-discovery-request-stages\.mjs$/.test(process.argv[1])&&import.meta.url===pathToFileURL(process.argv[1]).href){
   main().catch(()=>{console.error('Acquisition report failed; verify the window, database access and schema. No data was modified.');process.exitCode=1;});
 }
