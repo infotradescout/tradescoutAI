@@ -7,7 +7,7 @@
 export function resolveStoneRetailSigningSecret(environment = process.env) {
   const dedicated = environment.STONE_RETAIL_SIGNING_SECRET;
   if (dedicated !== undefined) {
-    return typeof dedicated === 'string' && dedicated.length >= 32 && dedicated.length <= 1024 && dedicated.trim() === dedicated ? dedicated : '';
+    return typeof dedicated === 'string' && dedicated.length >= 32 && dedicated.length <= 1000 && dedicated.trim() === dedicated ? dedicated : '';
   }
   const legacy = environment.SESSION_SECRET;
   return typeof legacy === 'string' && legacy.length >= 24 ? legacy : '';

@@ -11,8 +11,12 @@ for (const session of [undefined, '', 'short-session', legacy]) test(`dedicated 
   assert.equal(resolveStoneRetailSigningSecret(env), dedicated);
   assert.equal(env.SESSION_SECRET, session);
 });
-for (const invalid of ['', null, false, 1234, 'x'.repeat(31), 'x'.repeat(1025), ' '.repeat(32), ' '+dedicated, dedicated+'\n']) test(`explicit invalid dedicated key fails closed (${typeof invalid}:${String(invalid).length})`, () => {
+for (const invalid of ['', null, false, 1234, 'x'.repeat(31), 'x'.repeat(1001), 'x'.repeat(1024), 'x'.repeat(1025), ' '.repeat(32), ' '+dedicated, dedicated+'\n']) test(`explicit invalid dedicated key fails closed (${typeof invalid}:${String(invalid).length})`, () => {
   assert.equal(resolveStoneRetailSigningSecret({SESSION_SECRET:legacy,STONE_RETAIL_SIGNING_SECRET:invalid}), '');
+});
+test('dedicated key accepts the importer maximum of 1000 characters', () => {
+  const maximum = 'x'.repeat(1000);
+  assert.equal(resolveStoneRetailSigningSecret({STONE_RETAIL_SIGNING_SECRET:maximum}), maximum);
 });
 test('legacy valid session key is compatible only while dedicated key is absent', () => {
   assert.equal(resolveStoneRetailSigningSecret({SESSION_SECRET:legacy}), legacy);
