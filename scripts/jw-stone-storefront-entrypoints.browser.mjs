@@ -49,7 +49,7 @@ try {
     '</main></JwStoneMemberPricingProvider></QueryClientProvider>;} createRoot(document.getElementById("root")!).render(<Fixture/>);',
   ].join('\n'));
   await fs.writeFile(html,`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/src/${name}.tsx"></script></body></html>`);
-  vite=await createServer({configFile:path.join(root,'vite.config.ts'),cacheDir:path.join(temp,'cache'),server:{host:'127.0.0.1',port:5198,strictPort:true},optimizeDeps:{entries:[entry]}});await vite.listen();
+  vite=await createServer({configFile:path.join(root,'vite.config.ts'),cacheDir:path.join(temp,'cache'),server:{host:'127.0.0.1',port:5198,strictPort:true},optimizeDeps:{entries:[entry],include:['@radix-ui/react-toast','class-variance-authority','@radix-ui/react-slot']}});await vite.listen();
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
   for(const[device,viewport]of[['desktop',{width:1440,height:1000}],['touch',{width:390,height:844}]]) {
     const context=await browser.newContext({viewport,isMobile:device==='touch',hasTouch:device==='touch'});
