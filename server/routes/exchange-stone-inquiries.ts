@@ -9,6 +9,7 @@ import { pool } from "../db";
 import { isAuthenticated } from "../auth";
 import { exposureAuthoritySqlPredicate } from "../services/exposureAuthority";
 import { captureAcquisition } from "../services/exchangeStoneFunnel";
+import { ensureStoneJourney } from "../services/exchangeStoneJourney";
 import { saveStoneInquiry, StoneInquiryError, type StoneInquiryCommand, type StoneQueryClient } from "../services/exchangeStoneInquiryTransaction";
 import { CANONICAL_WEB_HOST, resolveMappedProfileShareSlug } from "../utils/publicOrigin";
 
@@ -20,7 +21,7 @@ const canonical = (req: any) => !resolveMappedProfileShareSlug(req) &&
   );
 
 // Location is server-held account context. Never substitute Escambia County or a radius.
-// This contact adapter does not implement the pending geographic discovery-feed integration.
+// Account eligibility is evaluated again when an inquiry is saved.
 export function stoneInquiryMarket(user: Record<string, unknown>): string {
   let state = String(user.state_code || user.state || "").trim().toUpperCase();
   state = stateNames.get(state) || state;
@@ -77,12 +78,11 @@ async function authorizeOffer(tx: StoneQueryClient, command: StoneInquiryCommand
 
 /** Mounted once, after authentication/effective-account binding, before the legacy handler. */
 export function registerExchangeStoneInquiryRoutes(app: Express): void {
-  app.use((req: any, _res, next) => {
-    if (req.method === "GET" && canonical(req) && req.session && !req.session.exchangeStoneJourney &&
-        /^\/(?:exchange(?:\/|$)|api\/exchange(?:\/|$)|api\/marketplace\/listings(?:\/|$))/.test(req.path)) {
-      req.session.exchangeStoneJourney = { id: randomUUID(),
-        acquisition: captureAcquisition(req.originalUrl || req.url, req.get("referer")) };
-    }
+  app.use((req: any, res, next) => {
+    const discovery = req.method === "GET" && /^\/(?:exchange(?:\/|$)|api\/exchange(?:\/|$)|api\/marketplace\/listings(?:\/|$))/.test(req.path);
+    const submission = req.method === "POST" && req.path === "/api/marketplace/inquiries" &&
+      typeof req.body?.listingId === "string" && req.body.listingId.startsWith("tradescout-stone-");
+    if (canonical(req) && (discovery || submission)) ensureStoneJourney(req, res, discovery);
     next();
   });
 
