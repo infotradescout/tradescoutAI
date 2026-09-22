@@ -7,6 +7,8 @@ import pg from 'pg';
 import approval from './data/exchange-stone-homeowner-approval-20260921.json' with { type: 'json' };
 import { securePostgresConnectionString } from '../shared/database-url-security.mjs';
 import { STONE_LAUNCH, downloadStoneLaunch, readStoneStoredArchive, validateStoneLaunchDocuments } from './lib/exchange-stone-launch-package.mjs';
+import { inspectStoneLaunchEnvironment } from './lib/exchange-stone-launch-preflight.mjs';
+import { stoneFailureCode, readStoneImporterReceipt } from './lib/exchange-stone-failure.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const receiptMatches = value => value?.version === 1 && value?.batch === STONE_LAUNCH.batch &&
@@ -20,6 +22,8 @@ const receiptMatches = value => value?.version === 1 && value?.batch === STONE_L
 export async function applyExchangeStonePackage() {
   const mode = process.env.STONE_RETAIL_LAUNCH_MODE;
   if (!mode || mode === 'off') return { mode: 'off', changed: false };
+  // Inspect is deliberately nonmutating and does not open a database connection.
+  if (mode === 'inspect') return { mode, changed: false, ...inspectStoneLaunchEnvironment() };
   if (!['dry_run','apply'].includes(mode)) throw new Error('Unknown stone launch mode');
   if (process.env.NODE_ENV !== 'production' || process.env.RENDER_SERVICE_ID !== STONE_LAUNCH.serviceId) throw new Error('Stone launch is restricted to the verified TradeScout production service');
   if ((process.env.SESSION_SECRET || '').length < 24 || (process.env.STONE_METRICS_SECRET || '').length < 24) throw new Error('Existing publication and stable buyer-metrics signing configuration required');
@@ -55,10 +59,7 @@ export async function applyExchangeStonePackage() {
       `--expected-database=${STONE_LAUNCH.database}`, `--seller-user-id=${STONE_LAUNCH.sellerId}`, `--profile-id=${STONE_LAUNCH.profileId}`];
     function invoke(extra = []) {
       const result = spawnSync(process.execPath, [...args, ...extra], { env: process.env, encoding: 'utf8', timeout: 300000, maxBuffer: 2000000 });
-      if (result.status !== 0 || result.error) throw new Error('Canonical stone importer did not confirm this operation');
-      const start = result.stdout.indexOf('{\n');
-      if (start < 0) throw new Error('Canonical importer receipt is missing');
-      const receipt = JSON.parse(result.stdout.slice(start));
+      const receipt = readStoneImporterReceipt(result);
       if (receipt.eligible !== STONE_LAUNCH.count || receipt.items?.length !== STONE_LAUNCH.count || receipt.held?.length || !/^[a-f0-9]{64}$/.test(receipt.planHash || '')) throw new Error('Canonical importer receipt is incomplete');
       const expectedIds = documents.catalog.items.map(item => item.id).sort();
       if (JSON.stringify(receipt.items.map(item => item.id).sort()) !== JSON.stringify(expectedIds)) throw new Error('Importer receipt material set mismatch');
@@ -88,5 +89,9 @@ export async function applyExchangeStonePackage() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try { console.log('STONE_LAUNCH_RESULT ' + JSON.stringify(await applyExchangeStonePackage())); }
-  catch { console.error('STONE_LAUNCH_FAILED: publication was not confirmed; no success receipt is asserted.'); process.exitCode = 1; }
+  catch (error) {
+    // Safe booleans and bounded noncredential identities, never driver errors or secrets.
+    console.error('STONE_LAUNCH_FAILED ' + JSON.stringify({ confirmed: false, code: stoneFailureCode(error), ...inspectStoneLaunchEnvironment() }));
+    process.exitCode = 1;
+  }
 }

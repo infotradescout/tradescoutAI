@@ -12,6 +12,7 @@ import { stonePublicationSignature, validStonePublication } from '../server/serv
 import { exposureAuthoritySqlPredicate } from '../server/services/exposureAuthority';
 import { securePostgresConnectionString } from '../shared/database-url-security.mjs';
 import { executeStoneImport, selectStoneImportInputs, validateStoneMedia } from './lib/exchange-stone-import.mjs';
+import { stoneFailureCode } from './lib/exchange-stone-failure.mjs';
 
 const allowed = new Set(['catalog','approvals','media-root','expected-host','expected-database','seller-user-id','profile-id','expected-plan']);
 function argumentsFor(values: string[]) {
@@ -90,8 +91,8 @@ async function main() {
     console.log(JSON.stringify({ ...receipt, held }, null, 2));
   } finally { await client.end(); }
 }
-main().catch(() => {
+main().catch((error) => {
   // Do not dump connection strings, image bytes or approval documents from driver errors.
-  console.error('Stone import failed. No success receipt was issued. Preserve the approved plan and inspect the target/configuration before retrying.');
+  console.error('STONE_IMPORT_FAILED ' + JSON.stringify({ confirmed: false, code: stoneFailureCode(error) }));
   process.exitCode = 1;
 });
