@@ -2,12 +2,13 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import { JW_STONE_FEATURE_KEY } from "@shared/jwStoneFeaturePolicy";
 import { JW_STONE_MEMBER_PRICING_PRODUCT_KEY } from "@shared/jwStoneMemberPricing";
-import { initialJwStoneSale, applyJwStonePaymentOutcome, jwStoneSaleIntakeSchema, jwStoneSaleCommandSchema, jwStoneFinalQuoteSchema, JwStoneSaleError, type JwStoneSaleIntake, type JwStoneSaleState, type JwStoneSaleCommand } from "@shared/jwStoneCheckout";
+import { initialJwStoneSale, applyJwStonePaymentOutcome, jwStoneSaleIntakeSchema, jwStoneSaleCommandSchema, jwStoneFinalQuoteSchema, jwStoneQuoteAcceptanceSchema, JwStoneSaleError, type JwStoneSaleIntake, type JwStoneSaleState, type JwStoneSaleCommand } from "@shared/jwStoneCheckout";
 import { jwStonePurchaseIntakeSchema, type JwStonePurchaseIntake } from "@shared/jwStonePurchase";
 import { readStoredJwStoneFeatures } from "./jwStoneFeatureStore";
 import { StripeJwStoneCheckoutProvider, type JwStoneCheckoutProvider, type JwStonePaymentBinding, type JwStoneProviderSession } from "./jwStoneCheckoutProvider";
 import { allocateJwStoneSale } from "./jwStoneSaleAllocation";
 import { createJwStonePurchase } from "./jwStonePurchase";
+import { queueJwStoneSaleNotifications } from "./jwStoneSaleNotifications";
 
 type Context = { requestId: string; buyerId: string; sellerId: string; sellerUserId: string; requestStatus: string; intake: JwStoneSaleIntake | JwStonePurchaseIntake };
 type Queryable = Pick<PoolClient, "query">;
@@ -52,6 +53,14 @@ export class JwStoneSales {
     const row = result.rows[0];
     if (row.buyer_user_id !== context.buyerId || row.seller_business_id !== context.sellerId || row.state.revision !== row.revision) fail("jw_order_identity", "The order needs an identity review.");
     if (row.state.quote) jwStoneFinalQuoteSchema.parse(row.state.quote);
+    if (row.state.quoteAcceptance) {
+      const accepted = jwStoneQuoteAcceptanceSchema.parse(row.state.quoteAcceptance);
+      if (!row.state.quote || accepted.quoteId !== row.state.quote.id ||
+          accepted.quoteRevision !== row.state.quote.revision ||
+          accepted.totalCents !== row.state.quote.totalCents || accepted.acceptedBy !== context.buyerId) {
+        fail("jw_quote_acceptance_identity", "The quote confirmation needs an identity review.");
+      }
+    }
     return row.state as JwStoneSaleState;
   }
   private async locked<T>(requestId: string, actor: string | null, action: (db: PoolClient, context: Context, state: JwStoneSaleState) => Promise<T>): Promise<T> {
@@ -75,6 +84,7 @@ export class JwStoneSales {
     const changed = await db.query("UPDATE jw_stone_sales SET state=$3::jsonb,revision=$4,updated_at=clock_timestamp() WHERE request_id=$1 AND revision=$2 RETURNING request_id", [context.requestId, previous.revision, JSON.stringify(saved), saved.revision]);
     if (changed.rowCount !== 1) fail("jw_order_changed", "The order changed. Reload before continuing.");
     await db.query("INSERT INTO jw_stone_sale_events(request_id,revision,actor_user_id,operation_id,fingerprint,state) VALUES($1,$2,$3,$4::uuid,$5,$6::jsonb)", [context.requestId, saved.revision, actor, command?.operationId || null, command ? sha(command) : null, JSON.stringify(saved)]);
+    await queueJwStoneSaleNotifications(db, context, previous, saved);
     return saved;
   }
   private async admit(db: Queryable, context: Context) {
@@ -120,16 +130,21 @@ export class JwStoneSales {
     return result.rows.map(row=>({requestId:row.id,title:row.title,createdAt:row.created_at,status:row.state?.status||"pending_review",role:row.owner_user_id===actor?"seller":"buyer"}));
   }
   async read(requestId: string, actor: string) {
-    const context=await this.context(this.database,requestId,actor), state=await this.state(this.database,context), merchant=this.provider.merchant();
+    const context=await this.context(this.database,requestId,actor), state=await this.state(this.database,context);
+    let merchant: ReturnType<JwStoneCheckoutProvider["merchant"]> = null;
     let methods:("ach"|"card")[]=[];
-    if (merchant?.businessId===context.sellerId) methods=await this.provider.methods().catch(()=>[]);
+    try {
+      merchant=this.provider.merchant();
+      if (merchant?.businessId===context.sellerId) methods=await this.provider.methods();
+    } catch { methods=[]; }
     return {requestId,role:actor===context.sellerUserId?"seller" as const:"buyer" as const,intake:context.intake,
       state:{...state,allocations:undefined,attempt:state.attempt?{...state.attempt,accountId:undefined,url:actor===context.buyerId&&state.status==="checkout"?state.attempt.url:null}:null},
       methods,testMode:merchant?!merchant.live:false,paymentsConfigured:methods.length>0,
       paymentNotice:methods.length?"ACH can remain processing after checkout. Do not pay again while payment is pending.":"JW Stone online payments are not activated. Your order or offer and quote remain saved. No payment has been taken."};
   }
   async command(requestId: string, actor: string, input: unknown) {
-    const command=jwStoneSaleCommandSchema.parse(input), merchant=this.provider.merchant();
+    const command=jwStoneSaleCommandSchema.parse(input);
+    const merchant=command.action==="checkout"?this.provider.merchant():null;
     const methods=command.action==="checkout"?await this.provider.methods():[];
     const prepared=await this.locked(requestId,actor,async(db,context,state)=>{
       const replay=await db.query("SELECT fingerprint,state FROM jw_stone_sale_events WHERE request_id=$1 AND actor_user_id=$2 AND operation_id=$3::uuid",[requestId,actor,command.operationId]);
@@ -142,7 +157,7 @@ export class JwStoneSales {
       if(command.action==="quote"||command.action==="decline"){
         if(actor!==context.sellerUserId) fail("jw_seller_required","Only the current JW Stone business owner can confirm or decline an order or offer.",403);
         if(activePayment(state)) fail("jw_payment_in_progress","An existing payment must be resolved before quote terms can change.");
-        if(command.action==="decline"){await this.append(db,context,state,{...state,status:"declined",quote:null,attempt:null,note:command.notes},actor,command);return {dispatch:false};}
+        if(command.action==="decline"){await this.append(db,context,state,{...state,status:"declined",quote:null,quoteAcceptance:null,attempt:null,note:command.notes},actor,command);return {dispatch:false};}
         if("intent" in context.intake){
           if(command.decision!=="confirm_purchase"||command.materialCents!==context.intake.listedSubtotalCents) fail("jw_purchase_amount","Confirm the purchase at its checked material total. Do not turn a listed-price purchase into a negotiated offer.");
         }else{
@@ -153,17 +168,28 @@ export class JwStoneSales {
         const now=new Date((await db.query("SELECT clock_timestamp() AS now")).rows[0].now),expires=Date.parse(command.expiresAt);
         if(expires<=now.getTime()||expires>now.getTime()+30*86400000) fail("jw_quote_expiry","Quote expiration must be in the next 30 days.");
         const quote=jwStoneFinalQuoteSchema.parse({id:randomUUID(),revision:state.revision+1,materialCents:command.materialCents,taxCents:command.taxCents,deliveryCents:command.deliveryCents,totalCents:command.materialCents+command.taxCents+command.deliveryCents,expiresAt:command.expiresAt,issuedAt:now.toISOString(),issuedBy:actor,decision:command.decision,notes:command.notes});
-        await this.append(db,context,state,{...state,status:"quoted",quote,attempt:null,note:null},actor,command);return {dispatch:false};
+        await this.append(db,context,state,{...state,status:"quoted",quote,quoteAcceptance:null,attempt:null,note:null},actor,command);return {dispatch:false};
       }
-      if(actor!==context.buyerId) fail("jw_buyer_required","Only the buyer can authorize payment.",403);
+      if(actor!==context.buyerId) fail("jw_buyer_required","Only the buyer can confirm this quote or authorize payment.",403);
+      if(command.action==="accept_quote") {
+        if(activePayment(state)) fail("jw_payment_in_progress","The existing payment must be resolved before confirming new terms.");
+        if(!state.quote || command.quoteId!==state.quote.id || command.totalCents!==state.quote.totalCents) fail("jw_quote_changed","Review the current complete quote before confirming.");
+        const now=new Date((await db.query("SELECT clock_timestamp() AS now")).rows[0].now);
+        if(Date.parse(state.quote.expiresAt)<=now.getTime()) fail("jw_quote_expired","The quote expired. Request current terms from JW Stone.");
+        if(state.quoteAcceptance?.quoteId===state.quote.id) return {dispatch:false};
+        const quoteAcceptance=jwStoneQuoteAcceptanceSchema.parse({quoteId:state.quote.id,quoteRevision:state.quote.revision,totalCents:state.quote.totalCents,acceptedBy:actor,acceptedAt:now.toISOString()});
+        await this.append(db,context,state,{...state,quoteAcceptance},actor,command);
+        return {dispatch:false};
+      }
       if(!merchant||merchant.businessId!==context.sellerId||!methods.includes(command.method)) fail("jw_payment_unavailable","JW Stone online payments are not activated. No payment was taken.",503);
       if(!state.quote||command.quoteId!==state.quote.id||command.totalCents!==state.quote.totalCents) fail("jw_quote_changed","Review the latest complete quote before payment.");
       if(activePayment(state)) fail("jw_payment_in_progress","Use the existing checkout or refresh its status. Do not start another payment.");
       const now=new Date((await db.query("SELECT clock_timestamp() AS now")).rows[0].now);
       if(Date.parse(state.quote.expiresAt)<=now.getTime()) fail("jw_quote_expired","The quote expired. Ask JW Stone for current terms.");
+      const quoteAcceptance=state.quoteAcceptance || jwStoneQuoteAcceptanceSchema.parse({quoteId:state.quote.id,quoteRevision:state.quote.revision,totalCents:state.quote.totalCents,acceptedBy:actor,acceptedAt:now.toISOString()});
       const attemptId=randomUUID();
       const {allocations,reservationTransfer}=await allocateJwStoneSale(db,context,attemptId);
-      await this.append(db,context,state,{...state,status:"checkout",allocations,reservationTransfer,note:null,attempt:{id:attemptId,quoteId:state.quote.id,method:command.method,accountId:merchant.accountId,live:merchant.live,returnOrigin:merchant.returnOrigin,createdAt:now.toISOString(),expiresAt:new Date(now.getTime()+45*60000).toISOString(),sessionId:null,url:null,outcome:"creating"}},actor,command);
+      await this.append(db,context,state,{...state,status:"checkout",quoteAcceptance,allocations,reservationTransfer,note:null,attempt:{id:attemptId,quoteId:state.quote.id,method:command.method,accountId:merchant.accountId,live:merchant.live,returnOrigin:merchant.returnOrigin,createdAt:now.toISOString(),expiresAt:new Date(now.getTime()+45*60000).toISOString(),sessionId:null,url:null,outcome:"creating"}},actor,command);
       return {dispatch:true};
     });
     if(prepared.dispatch) await this.reconcile(requestId,actor);
