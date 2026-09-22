@@ -7,7 +7,7 @@ const read = (relativePath: string) =>
 
 describe("public profile request intent observatory", () => {
   it("adds the canonical panel-open event between entry and submitted request", () => {
-    const route = read("server/routes/admin-discovery-observatory.ts");
+    const route = read("server/routes/admin-discovery-evidence.ts");
 
     expect(route).toContain("addPublicProfileRequestIntent");
     expect(route).toContain("public_profile_direct_connect_opened");
@@ -15,16 +15,14 @@ describe("public profile request intent observatory", () => {
     expect(route).toContain("created_at >= $1::timestamptz");
     expect(route).toContain('stage: "request_intent"');
     expect(route).toContain('label: "Discovery sessions opening Direct Connect"');
-    expect(route).toContain(
-      'const entryIndex = funnel.findIndex((stage) => stage?.stage === "entry")'
-    );
+    expect(route).toContain('const entryIndex = funnel.findIndex((stage) => stage?.stage === "entry")');
     expect(route).toContain("const insertionIndex = entryIndex >= 0 ? entryIndex + 1");
     expect(route).toContain("funnel.splice(insertionIndex, 0");
     expect(route).toContain("res.json(await addPublicProfileRequestIntent(snapshot))");
   });
 
   it("returns and visibly summarizes the per-profile breakdown", () => {
-    const route = read("server/routes/admin-discovery-observatory.ts");
+    const route = read("server/routes/admin-discovery-evidence.ts");
 
     expect(route).toContain("profileRequestIntent");
     expect(route).toContain("openCount");
@@ -38,7 +36,7 @@ describe("public profile request intent observatory", () => {
   });
 
   it("keeps unavailable intent evidence unknown instead of reporting zero", () => {
-    const route = read("server/routes/admin-discovery-observatory.ts");
+    const route = read("server/routes/admin-discovery-evidence.ts");
 
     expect(route).toContain('status: "unavailable"');
     expect(route).toContain("was not converted into a zero");
