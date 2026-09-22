@@ -9,6 +9,7 @@ const databaseUrl = new URL(process.env.TEST_DATABASE_URL || "");
 assert.equal(databaseUrl.hostname, "127.0.0.1");
 assert.equal(databaseUrl.pathname, "/ts_jw_workflow_test");
 const output = path.resolve(process.env.JW_WORKFLOW_PRIVATE_OUTPUT || "test-results/jw-workflow-private");
+const offersOnly = process.env.JW_WORKFLOW_OFFERS === "true";
 const keep = new Set(["PATH", "HOME", "TMPDIR", "NODE_ENV", "TEST_DATABASE_URL", "JW_WORKFLOW_FIXTURE"]);
 for (const key of Object.keys(process.env)) if (!keep.has(key)) delete process.env[key];
 const { default: dotenv } = await import("dotenv");
@@ -28,7 +29,7 @@ process.env.JW_STONE_PRICING_SOURCE = "approved_import";
 process.env.JW_STONE_PRICING_APPROVED_IMPORT = JSON.stringify({
   schemaVersion: 1, fileId: JW_STONE_PRICING_DRIVE_FILE_ID, folderId: JW_STONE_PRICING_DRIVE_FOLDER_ID,
   sourceUpdatedAt: now, sourceRetrievedAt: now,
-  prices: [{ stoneName: "Honey Onyx", stoneKey: jwStonePriceKey("Honey Onyx"), landedCostCents: 4040, slabPriceCents: 10101, bundlePriceCents: 9090, bundleMinSlabs: 2 }],
+  prices: [{ stoneName: "Honey Onyx", stoneKey: jwStonePriceKey("Honey Onyx"), landedCostCents: 4040, slabPriceCents: 10101, bundlePriceCents: 9090, bundleMinSlabs: offersOnly ? 7 : 2 }, ...(offersOnly ? [{ stoneName: "Fantasy Brown", stoneKey: jwStonePriceKey("Fantasy Brown"), landedCostCents: 3000, slabPriceCents: 8000, bundlePriceCents: 7000, bundleMinSlabs: 7 }] : [])],
 });
 const { db, pool } = await import("../server/db");
 assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].name, "ts_jw_workflow_test");
@@ -58,11 +59,18 @@ const target = await getStoneInventoryProfileTarget("jw-stone");
 assert(target && target.businessId === business.id);
 const cartStock = await upsertCurrentStoneInventory(target, {
   materialSlug: "honey-onyx", materialName: "Honey Onyx", materialClass: "natural_stone", materialFamily: "Onyx",
-  assetKind: "slab", quantity: 3, unit: "slabs", dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" },
-  finishQuantities: [{ finish: "Polished", slabCount: 3 }], imageUrls: [],
+  assetKind: "slab", quantity: offersOnly ? 20 : 3, unit: "slabs", dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" },
+  finishQuantities: [{ finish: "Polished", slabCount: offersOnly ? 20 : 3 }], imageUrls: [],
   lastConfirmedAt: now, confirmationExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
 });
 await setStoneInventorySaleReady({ target, publicId: cartStock.id, saleReady: true, actorUserId: ownerId });
+
+let otherStockId: string | undefined;
+if (offersOnly) {
+  const other = await upsertCurrentStoneInventory(target, { materialSlug: "fantasy-brown", materialName: "Fantasy Brown", materialClass: "natural_stone", materialFamily: "Marble", assetKind: "slab", quantity: 20, unit: "slabs", dimensions: { length: 120, height: 60, thickness: 1.25, unit: "in" }, finishQuantities: [{ finish: "Polished", slabCount: 20 }], imageUrls: [], lastConfirmedAt: now, confirmationExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString() });
+  await setStoneInventorySaleReady({ target, publicId: other.id, saleReady: true, actorUserId: ownerId });
+  otherStockId = other.id;
+}
 // Production runs this real schema inspection before accepting guarded requests.
 // Do not replace its middleware, set test readiness flags or bypass its result.
 const { runSchemaPreflight } = await import("../server/schemaPreflight");
@@ -78,5 +86,5 @@ app.use(express.static(dist));
 app.get("*", (req, res, next) => req.path.startsWith("/api/") ? next() : res.sendFile(path.join(dist, "index.html")));
 await new Promise<void>(resolve => server.listen(5228, "127.0.0.1", resolve));
 await fs.mkdir(output, { recursive: true });
-await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, businessId: business.id, profileId: profile.id, cartStockId: cartStock.id, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
+await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify({ ownerId, businessId: business.id, profileId: profile.id, cartStockId: cartStock.id, otherStockId, base: "http://127.0.0.1:5228" }), { mode: 0o600 });
 console.log("JW_WORKFLOW_READY");
