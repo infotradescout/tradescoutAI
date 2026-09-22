@@ -58,7 +58,7 @@ try {
   await run('Stone discovery/import/inquiry/schema/publication regression tests', [process.execPath, '--experimental-strip-types', '--test',
     'scripts/exchange-stone-discovery.test.mjs', 'scripts/exchange-stone-query-shape.test.mjs', 'scripts/exchange-stone-import.test.mjs',
     'scripts/exchange-stone-schema.test.mjs', 'scripts/exchange-stone-inquiry-transaction.test.mjs', 'scripts/exchange-stone-inquiry-draft.test.mjs', 'scripts/exchange-stone-funnel-core.test.mjs',
-    'scripts/exchange-stone-launch-package.test.mjs']);
+    'scripts/exchange-stone-launch-package.test.mjs', 'scripts/exchange-stone-failure.test.mjs', 'scripts/exchange-stone-launch-preflight.test.mjs']);
   const built = await run('Full production application and operator bundle', ['npm', 'run', 'build']);
   if (built) {
     await run('Compiled publication entrypoint is off without operator authorization', [process.execPath, 'dist/release/apply-exchange-stone-package.mjs']);
