@@ -21,7 +21,7 @@ export default function JwStoneBundleWorkspace({ onClose }: { onClose: () => voi
     queryKey: ["jw-stone", "standalone-bundle-review", shopping.viewerId, selection],
     queryFn: async ({ signal }) => {
       const input = jwStoneCartReviewRequestSchema.parse(selection);
-      const value = await apiRequest(JW_STONE_CART_REVIEW_PATH, { method: "POST", body: JSON.stringify(input), signal });
+      const value = await apiRequest(JW_STONE_CART_REVIEW_PATH, { method: "POST", data: input, signal });
       return parseJwStoneCartReview(value, shopping.viewerId, input);
     },
     enabled: shopping.cartEnabled && parsed.success,
@@ -44,9 +44,7 @@ export default function JwStoneBundleWorkspace({ onClose }: { onClose: () => voi
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8">
         <div className="mx-auto grid max-w-7xl items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <section aria-label="Choose slabs" className="min-w-0">
-            <BundleStockPicker standalone review={review} checking={reviewQuery.isFetching} />
-          </section>
+          <section aria-label="Choose slabs" className="min-w-0"><BundleStockPicker standalone review={review} checking={reviewQuery.isFetching} /></section>
           <aside className="min-w-0 border border-[var(--jw-border)] bg-[var(--jw-surface)] p-4 lg:sticky lg:top-0" aria-label="Your bundle selections">
             <h2 className="text-lg font-semibold">Your bundle</h2>
             <p role="status" aria-live="polite" data-testid="jw-standalone-bundle-progress" className="mt-2 text-sm">
@@ -81,8 +79,8 @@ export default function JwStoneBundleWorkspace({ onClose }: { onClose: () => voi
       </div>
       <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[var(--jw-border)] bg-[var(--jw-surface)] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-8">
         <button type="button" onClick={onClose} className="min-h-11 px-3 text-sm underline">Continue browsing</button>
-        <button type="button" data-testid="jw-standalone-bundle-review-cart" disabled={!shopping.items.length}
-          onClick={shopping.openCart} className="min-h-12 border border-[var(--jw-accent)] bg-[var(--jw-accent)] px-5 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-50">Review selections in cart</button>
+        <button type="button" data-testid="jw-standalone-bundle-review-cart" disabled={!shopping.items.length} onClick={shopping.openCart}
+          className="min-h-12 border border-[var(--jw-accent)] bg-[var(--jw-accent)] px-5 text-sm font-semibold text-[var(--jw-on-accent)] disabled:opacity-50">Review selections in cart</button>
       </footer>
     </DialogContent>
   </Dialog>;
