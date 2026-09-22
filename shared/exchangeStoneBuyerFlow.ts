@@ -24,6 +24,14 @@ export function readStoneInquiryIntent(value: unknown): StoneInquiryIntent | nul
   return value === "availability" || value === "callback" ? value : null;
 }
 
+/** A selected stone inquiry already supplies the goal that the Start Guide asks for. */
+export function isStoneInquiryPath(value: string): boolean {
+  if (!value.startsWith("/exchange/building-materials/")) return false;
+  const url = new URL(value, "https://tradescout.invalid");
+  const id = url.pathname.slice("/exchange/building-materials/".length);
+  return stoneListingPath(id) === url.pathname && Boolean(readStoneInquiryIntent(url.searchParams.get("inquiry")));
+}
+
 export function stoneInquiryPath(id: unknown, intent: StoneInquiryIntent): string | null {
   const path = stoneListingPath(id);
   return path && readStoneInquiryIntent(intent) ? `${path}?inquiry=${intent}` : null;
