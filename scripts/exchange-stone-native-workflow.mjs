@@ -114,6 +114,9 @@ try {
     await login(ctx, device);
     await page.goto(firstBase + next, { waitUntil: 'domcontentloaded' });
     await dialog.waitFor(); assert.equal(await dialog.locator('textarea').inputValue(), exactMessage);
+    assert.equal(await page.locator('#start-guide-title').count(), 0, 'Start Guide must not interrupt a selected stone inquiry');
+    assert.equal(await page.evaluate(() => localStorage.getItem('ts:start-guide-seen-v1')), null, 'Deferring the guide must not mark it seen');
+    await dialog.evaluate(element => Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished)));
     await page.screenshot({ path: path.join(output, device + '-restored-inquiry.png'), fullPage: false });
     let savedAfterLostResponse;
     if (device === 'desktop') {

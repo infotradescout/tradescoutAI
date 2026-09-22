@@ -13,6 +13,7 @@ function load(file, deps = {}) {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', code)(id => {
     if (Object.hasOwn(deps, id)) return deps[id];
+    if (id.startsWith('.') && id.endsWith('.mjs')) return createRequire(path.join(root, file))(id);
     if (id.startsWith('.')) {
       const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), id)) + '.ts';
       if (!cache.has(target)) cache.set(target, load(target));
@@ -23,6 +24,18 @@ function load(file, deps = {}) {
   return module.exports;
 }
 const policy = load('server/services/exchangeStoneDiscovery.ts');
+test('only a selected stone inquiry defers the first-use Start Guide', () => {
+  const { isStoneInquiryPath } = load('shared/exchangeStoneBuyerFlow.ts');
+  for (const intent of ['availability', 'callback']) {
+    assert.equal(isStoneInquiryPath(`/exchange/building-materials/tradescout-stone-matrix-basalt?inquiry=${intent}`), true);
+  }
+  for (const path of ['/direct-connect', '/exchange/stone?inquiry=availability',
+    '/exchange/building-materials/tradescout-stone-matrix-basalt',
+    '/exchange/building-materials/tradescout-stone-matrix-basalt?inquiry=invalid',
+    '/exchange/building-materials/unrelated-listing?inquiry=availability']) {
+    assert.equal(isStoneInquiryPath(path), false, path);
+  }
+});
 cache.set('server/services/exchangeStoneDiscovery.ts', policy);
 const identity = load('server/data/exchangeStoneCatalogIdentity.ts');
 cache.set('server/data/exchangeStoneCatalogIdentity.ts', identity);

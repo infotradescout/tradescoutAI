@@ -11,7 +11,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 function load(relative, dependencies = {}) {
   const compiled = ts.transpileModule(fs.readFileSync(path.join(root, relative), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const module = { exports: {} };
-  new Function('require', 'module', 'exports', compiled)(id => Object.hasOwn(dependencies, id) ? dependencies[id] : require(id), module, module.exports);
+  const sourceRequire = createRequire(path.join(root, relative));
+  new Function('require', 'module', 'exports', compiled)(id => Object.hasOwn(dependencies, id) ? dependencies[id] : sourceRequire(id), module, module.exports);
   return module.exports;
 }
 const funnel = load('server/services/exchangeStoneFunnel.ts');

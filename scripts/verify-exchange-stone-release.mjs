@@ -7,7 +7,7 @@ const root = process.cwd();
 const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(head, process.env.EXCHANGE_STONE_CANDIDATE, 'Wrong integration candidate');
 assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '');
-for (const key of ['DATABASE_URL','TEST_DATABASE_URL','SESSION_SECRET','STONE_METRICS_SECRET','BREVO_API_KEY','SENDGRID_API_KEY','RESEND_API_KEY','SMTP_PASS','STRIPE_SECRET_KEY','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','STONE_RETAIL_LAUNCH_MODE','STONE_RETAIL_LAUNCH_URL']) {
+for (const key of ['DATABASE_URL','TEST_DATABASE_URL','SESSION_SECRET','STONE_RETAIL_SIGNING_SECRET','STONE_METRICS_SECRET','BREVO_API_KEY','SENDGRID_API_KEY','RESEND_API_KEY','SMTP_PASS','STRIPE_SECRET_KEY','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','STONE_RETAIL_LAUNCH_MODE','STONE_RETAIL_LAUNCH_URL']) {
   assert(!process.env[key], 'Integration executor must not inherit live credentials or publication authority: ' + key);
 }
 const output = path.resolve(process.env.EXCHANGE_BATCH_OUTPUT || 'test-results/exchange-stone-release');
@@ -58,7 +58,7 @@ try {
   await run('Stone discovery/import/inquiry/schema/publication regression tests', [process.execPath, '--experimental-strip-types', '--test',
     'scripts/exchange-stone-discovery.test.mjs', 'scripts/exchange-stone-query-shape.test.mjs', 'scripts/exchange-stone-import.test.mjs',
     'scripts/exchange-stone-schema.test.mjs', 'scripts/exchange-stone-inquiry-transaction.test.mjs', 'scripts/exchange-stone-inquiry-draft.test.mjs', 'scripts/exchange-stone-funnel-core.test.mjs',
-    'scripts/exchange-stone-launch-package.test.mjs', 'scripts/exchange-stone-failure.test.mjs', 'scripts/exchange-stone-launch-preflight.test.mjs']);
+    'scripts/exchange-stone-launch-package.test.mjs', 'scripts/exchange-stone-failure.test.mjs', 'scripts/exchange-stone-launch-preflight.test.mjs', 'scripts/exchange-stone-signing.test.mjs']);
   const built = await run('Full production application and operator bundle', ['npm', 'run', 'build']);
   if (built) {
     await run('Compiled publication entrypoint is off without operator authorization', [process.execPath, 'dist/release/apply-exchange-stone-package.mjs']);

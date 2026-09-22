@@ -7,6 +7,7 @@ import { readPublicObjectBuffer } from "../publicMediaStorage";
 import { exposureAuthoritySqlPredicate } from "./exposureAuthority";
 import { stoneCatalog } from "../data/exchangeStoneCatalogIdentity";
 import { projectPublicStone, validStonePublication, type StonePublicItem } from "./exchangeStoneDiscovery";
+import { resolveStoneRetailSigningSecret } from "../../shared/stoneRetailSigning.mjs";
 
 export function normalizeStoneDatabaseRow(row: Record<string, any>): Record<string, any> {
   return { ...row, sellerId: row.seller_id, categoryId: row.category_id, expiresAt: row.expires_at,
@@ -17,7 +18,7 @@ export type StoneCatalogRead = { items: StonePublicItem[]; assets: Map<string, s
 
 /** One bounded read for this request. No supplier query, no public cost/margin fields. */
 export async function readExchangeStoneCatalog(): Promise<StoneCatalogRead> {
-  const secret = process.env.SESSION_SECRET || "";
+  const secret = resolveStoneRetailSigningSecret();
   const empty = { items: [], assets: new Map<string, string>(), configured: false };
   if (secret.length < 24) return empty;
   const settings = await pool.query(`SELECT value FROM site_settings WHERE category = 'general'

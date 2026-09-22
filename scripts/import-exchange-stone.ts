@@ -11,6 +11,7 @@ import { stoneCatalog } from '../server/data/exchangeStoneCatalogIdentity';
 import { stonePublicationSignature, validStonePublication } from '../server/services/exchangeStoneDiscovery';
 import { exposureAuthoritySqlPredicate } from '../server/services/exposureAuthority';
 import { securePostgresConnectionString } from '../shared/database-url-security.mjs';
+import { resolveStoneRetailSigningSecret } from '../shared/stoneRetailSigning.mjs';
 import { executeStoneImport, selectStoneImportInputs, validateStoneMedia } from './lib/exchange-stone-import.mjs';
 import { stoneFailureCode } from './lib/exchange-stone-failure.mjs';
 
@@ -85,7 +86,7 @@ async function main() {
         if (user.rows.length !== 1) throw new Error('Configured TradeScout seller account is missing');
         return { sellerId: String(args['seller-user-id']), profileId: String(args['profile-id']), categoryId: category.rows[0].id,
           city: user.rows[0].city, state: user.rows[0].state_code || user.rows[0].state,
-          county: user.rows[0].county || user.rows[0].county_name, secret: process.env.SESSION_SECRET || '' };
+          county: user.rows[0].county || user.rows[0].county_name, secret: resolveStoneRetailSigningSecret() };
       },
     });
     console.log(JSON.stringify({ ...receipt, held }, null, 2));
