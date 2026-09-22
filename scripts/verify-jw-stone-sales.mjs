@@ -37,6 +37,9 @@ try {
   run('third-process ordinary purchases and atomic reserved-stock transfer', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-purchases.native.ts'], environment);
   report.purchase = await receipt('purchase-evidence.json');
   assert.deepEqual(report.purchase.devices.map(device => device.device).sort(), ['desktop', 'touch']);
+  run('fourth-process quote confirmation and transactional notifications', [process.execPath, '--import', 'tsx', 'scripts/jw-stone-quote-confirmation.native.ts'], environment);
+  report.quoteConfirmation = await receipt('quote-confirmation-evidence.json');
+  assert.deepEqual(report.quoteConfirmation.devices.map(device => device.device).sort(), ['desktop', 'touch']);
   report.finalSourceStatus = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim();assert.equal(report.finalSourceStatus, '');report.passed = true;
 } catch (error) { report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[DISPOSABLE_DATABASE]');process.exitCode = 1; }
 finally {
