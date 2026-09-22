@@ -43,7 +43,7 @@ const expanded = requested.flatMap((command) =>
 // products, substitute prices, or resurrect subsequently edited/sold listings.
 if (expanded.some(command => command.name === "check-exchange-stone-schema") &&
     process.env.STONE_RETAIL_LAUNCH_MODE && process.env.STONE_RETAIL_LAUNCH_MODE !== "off") {
-  if (!["dry_run", "apply"].includes(process.env.STONE_RETAIL_LAUNCH_MODE)) throw new Error("Unknown stone launch mode");
+  if (!["inspect", "dry_run", "apply"].includes(process.env.STONE_RETAIL_LAUNCH_MODE)) throw new Error("Unknown stone launch mode");
   expanded.push({ name: "apply-exchange-stone-package", source: "scripts/apply-exchange-stone-package.mjs", args: [] });
 }
 const root = process.cwd();
