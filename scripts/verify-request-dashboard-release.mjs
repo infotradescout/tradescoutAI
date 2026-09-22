@@ -4,10 +4,10 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { randomUUID } from 'node:crypto';
 
-// Adapt only the reviewed candidate identity, affected tests and browser scenario.
-// The original runner's native PostgreSQL, clean-install, type/build, cleanup and
-// strict minimum release execution remain intact. Candidate files are never patched.
+// Adapt only candidate identity, affected tests and the browser scenario.
+// Native PostgreSQL and the unchanged strict release gate remain mandatory.
 const candidate = process.env.REQUEST_DASHBOARD_CANDIDATE_SHA || '';
 assert.match(candidate, /^[a-f0-9]{40}$/);
 const git = (args) => execFileSync('git', args, { encoding: 'utf8', timeout: 120000 }).trim();
@@ -34,4 +34,23 @@ source = source.slice(0, browserStart) + `  const denied = await fetch(base + '/
   evidence.browser = dashboard.cases; evidence.browserScope = dashboard.scope;
 ` + source.slice(browserEnd);
 replaceOnce('Observed exact compiled candidate on desktop1440 and mobile390 for all five changed informational pages; 10 browser cases passed, app mounting and canonical preservation verified. Scope: public documents, not submitted customer actions.', 'Exact admin reporting wrapper/components with production CSS passed desktop1440/mobile390 isolated API-fixture browser scenarios: dates, switching views, loading, unavailable data, refresh/retry and malformed payloads. Compiled full server denied anonymous report access. Not a production authenticated operator session.');
-replaceOnce("scope", "scope");
+
+const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'request-dashboard-node-'));
+const executable = process.execPath.replace(/'/g, "'\\''");
+fs.writeFileSync(path.join(directory, 'node'), `#!/bin/sh\nexec '${executable}' --max-old-space-size=3072 "$@"\n`, { mode: 0o700 });
+const previousPath = process.env.PATH;
+const previousCandidate = process.env.SEARCH_SURFACE_CANDIDATE_SHA;
+const adapted = new URL(`./.request-dashboard-adapted-${randomUUID()}.mjs`, import.meta.url);
+try {
+  fs.writeFileSync(adapted, source, { flag: 'wx' });
+  execFileSync(process.execPath, ['--check', adapted.pathname], { timeout: 30000, stdio: 'inherit' });
+  process.env.PATH = directory + path.delimiter + previousPath;
+  process.env.SEARCH_SURFACE_CANDIDATE_SHA = candidate;
+  console.log('REQUEST_DASHBOARD_RELEASE_START ' + JSON.stringify({ candidate, harness: git(['rev-parse', 'HEAD']), nativeRunnerBlob: git(['hash-object', 'scripts/verify-public-information-candidate.mjs']), productionWrites: 0 }));
+  await import(pathToFileURL(adapted.pathname).href);
+} finally {
+  process.env.PATH = previousPath;
+  if (previousCandidate === undefined) delete process.env.SEARCH_SURFACE_CANDIDATE_SHA; else process.env.SEARCH_SURFACE_CANDIDATE_SHA = previousCandidate;
+  fs.rmSync(adapted, { force: true });
+  fs.rmSync(directory, { recursive: true, force: true });
+}
