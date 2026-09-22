@@ -13,6 +13,7 @@ function load(file, deps = {}) {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', code)(id => {
     if (Object.hasOwn(deps, id)) return deps[id];
+    if (id.startsWith('.') && id.endsWith('.mjs')) return createRequire(path.join(root, file))(id);
     if (id.startsWith('.')) {
       const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), id)) + '.ts';
       if (!cache.has(target)) cache.set(target, load(target));
