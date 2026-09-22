@@ -3,7 +3,9 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 
-if (process.env.REQUEST_DASHBOARD_CANDIDATE_SHA) {
+if (process.env.REQUEST_DASHBOARD_OBSERVE_SHA) {
+  await import('./observe-request-dashboard-release.mjs');
+} else if (process.env.REQUEST_DASHBOARD_CANDIDATE_SHA) {
   await import('./verify-request-dashboard-release.mjs');
 } else if (process.env.REQUEST_STAGES_CANDIDATE_SHA) {
   await import('./verify-request-stage-report.mjs');
