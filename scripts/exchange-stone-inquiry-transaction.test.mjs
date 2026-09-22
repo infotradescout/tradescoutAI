@@ -11,7 +11,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 function load(relative, dependencies = {}) {
   const compiled = ts.transpileModule(fs.readFileSync(path.join(root, relative), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const module = { exports: {} };
-  new Function('require', 'module', 'exports', compiled)(id => Object.hasOwn(dependencies, id) ? dependencies[id] : require(id), module, module.exports);
+  const sourceRequire = createRequire(path.join(root, relative));
+  new Function('require', 'module', 'exports', compiled)(id => Object.hasOwn(dependencies, id) ? dependencies[id] : sourceRequire(id), module, module.exports);
   return module.exports;
 }
 const funnel = load('server/services/exchangeStoneFunnel.ts');
@@ -133,7 +134,7 @@ for (const [name, state] of [
   ['another buyer', { buyerId: 'different-buyer' }], ['wrong scope', { scope: 'marketplace_listing:other' }],
   ['wrong intent', { intent: 'sell' }], ['completed without a receipt', { status: 'completed' }],
 ]) test(`rejects ${name} Decision Card before any inquiry or metric`, async () => {
-  const h = harness(), c = h.command(); h.card(c, state);
+  const h = harness(), c = h.command(); h.card(c);
   await assert.rejects(engine.saveStoneInquiry(c, h.deps), e => e.code === 'INVALID_DECISION_CARD');
   assert.equal(h.count('marketplace_inquiries'), 0); assert.equal(h.count('exchange_stone_funnel_events'), 0);
 });
