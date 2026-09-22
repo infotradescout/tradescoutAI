@@ -20,12 +20,15 @@ function replaceOnce(before, after) {
   assert.equal(source.split(before).length, 2, 'Reviewed runner seam changed: ' + before.slice(0, 90));
   source = source.replace(before, after);
 }
-replaceOnce("const reviewed = JSON.parse(fs.readFileSync(new URL('./public-information-candidate.json', import.meta.url), 'utf8'));", `const reviewed = {commit: candidate, blobs: ${JSON.stringify({ 'server/routes/admin-discovery-evidence.ts': '387c213374d5ffc45b63e5520f389ec5e7976493', 'client/src/pages/admin-discovery-evidence.tsx': 'e586cfb783df4f3bd2b0880a243f1f0fe8169279', 'scripts/report-discovery-request-stages.mjs': '9086efa81f834edfe7364f16c79cee616e276551' })}};`);
-replaceOnce("run('new-information-contract', process.execPath, ['--test', 'scripts/public-information-pages.contract.test.mjs']);", `run('request-dashboard-contracts', process.execPath, ['node_modules/vitest/vitest.mjs', 'run', 'server/tests/discovery-request-stages-route.test.ts', 'server/tests/discovery-observatory.contract.test.ts', 'server/tests/profile-intent-session-linkage.contract.test.ts', 'server/tests/profile-request-intent-observatory.contract.test.ts', 'client/src/admin/admin-os-v2-insight-workspaces.contract.test.ts', '--maxWorkers=2']);`);
+replaceOnce("const reviewed = JSON.parse(fs.readFileSync(new URL('./public-information-candidate.json', import.meta.url), 'utf8'));", `const reviewed = {commit: candidate, blobs: ${JSON.stringify({ 'server/routes/admin-discovery-evidence.ts': '387c213374d5ffc45b63e5520f389ec5e7976493', 'client/src/pages/admin-discovery-evidence.tsx': 'e586cfb783df4f3bd2b0880a243f1f0fe8169279', 'scripts/report-discovery-request-stages.mjs': '6bf381b7026c6d00e52da0ff28e772ede353a175' })}};`);
+replaceOnce("run('new-information-contract', process.execPath, ['--test', 'scripts/public-information-pages.contract.test.mjs']);", `run('request-dashboard-contracts', process.execPath, ['node_modules/vitest/vitest.mjs', 'run', 'server/tests/discovery-request-stages-route.test.ts', 'server/tests/discovery-observatory.contract.test.ts', 'server/tests/profile-intent-session-linkage.contract.test.ts', 'server/tests/profile-request-intent-observatory.contract.test.ts', 'client/src/admin/admin-os-v2-insight-workspaces.contract.test.ts', '--maxWorkers=2']);
+  run('request-report-bundle-contract', process.execPath, ['--test', 'scripts/report-discovery-request-stages-bundle.test.mjs']);`);
 const browserStart = source.indexOf("  browser = await chromium.launch({ channel: 'chromium'");
 const browserEnd = source.indexOf("  run('strict-minimum-release'", browserStart);
 assert(browserStart > 0 && browserEnd > browserStart, 'Reviewed browser scenario seams missing');
-source = source.slice(0, browserStart) + `  const denied = await fetch(base + '/api/admin/discovery-observatory/request-stages?from=2026-08-24T05:00:00Z&to=2026-09-21T05:00:00Z', {signal: AbortSignal.timeout(15000)});
+source = source.slice(0, browserStart) + `  assert(!appLog.includes('Acquisition report failed'), 'Bundled CLI must not execute during server startup');
+  assert.equal(app.exitCode, null, 'Compiled server must remain running');
+  const denied = await fetch(base + '/api/admin/discovery-observatory/request-stages?from=2026-08-24T05:00:00Z&to=2026-09-21T05:00:00Z', {signal: AbortSignal.timeout(15000)});
   assert([401,403].includes(denied.status), 'Actual compiled server must deny anonymous acquisition reads');
   evidence.actualAnonymousReportStatus = denied.status;
   run('compiled-dashboard-browser', process.execPath, ['scripts/discovery-request-dashboard.browser.mjs'], {env: {...runtimeEnv, REQUEST_DASHBOARD_BROWSER_OUTPUT: path.join(output, 'request-dashboard')}});
