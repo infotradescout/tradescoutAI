@@ -133,6 +133,7 @@ const releaseResult = await esbuild.build({
     'db-migrate-safe': 'scripts/db-migrate-safe.mjs',
     'db-baseline-drizzle': 'scripts/db-baseline-drizzle.mjs',
     'check-required-production-schema': 'scripts/check-required-production-schema.mjs',
+    'check-exchange-stone-schema': 'scripts/check-exchange-stone-schema.mjs',
     'seed-businesses-places-new': 'scripts/seed_businesses_places_new.mjs',
   },
   bundle: true,
