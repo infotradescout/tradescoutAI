@@ -68,7 +68,7 @@ function launch({baseExit=0,stoneExit=0,missing=false,pair=false,bundled=false,a
     fs.copyFileSync(path.join(root,'runtime/run-release.mjs'),path.join(dir,'runtime/run-release.mjs'));
     // Explicit fixture: exercise actual launcher/process sequencing, not TLS-provider behavior.
     fs.writeFileSync(path.join(dir,'shared/database-url-security.mjs'),'export const allowExplicitInsecureTestDatabase=()=>false;export const secureDatabaseEnvironment=env=>({...env});');
-    const write=(name,exit)=>fs.writeFileSync(path.join(dir,bundled?'dist/release':'scripts',name+'.mjs'),`import fs from 'node:fs';fs.appendFileSync('trace', '${name}\n');process.exit(${exit});`);
+    const write=(name,exit)=>fs.writeFileSync(path.join(dir,bundled?'dist/release':'scripts',name+'.mjs'),`import fs from 'node:fs';fs.appendFileSync('trace', ${JSON.stringify(name+String.fromCharCode(10))});process.exit(${exit});`);
     write('check-required-production-schema',baseExit);write('db-migrate-safe',0);
     if(!missing)write('check-exchange-stone-schema',stoneExit);
     const normal=pair?['db-migrate-safe','scripts/db-migrate-safe.mjs','&&','npm','run','db:verify:required']:['check-required-production-schema','scripts/check-required-production-schema.mjs'];
