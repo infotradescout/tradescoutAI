@@ -5,11 +5,15 @@ import { securePostgresConnectionString } from '../../shared/database-url-securi
  * parameter or secret length. This check does not authorize any publication. */
 export function inspectStoneLaunchEnvironment(environment = process.env) {
   let target;
+  let database = '';
   try {
     const secured = securePostgresConnectionString(environment.DATABASE_URL);
-    if (secured) target = new URL(secured);
+    if (secured) {
+      const parsed = new URL(secured);
+      database = decodeURIComponent(parsed.pathname.slice(1));
+      target = parsed;
+    }
   } catch { /* Report invalid configuration without copying the error/URL. */ }
-  const database = target ? decodeURIComponent(target.pathname.slice(1)) : '';
   const checks = {
     productionRuntime: environment.NODE_ENV === 'production',
     expectedService: environment.RENDER_SERVICE_ID === STONE_LAUNCH.serviceId,
