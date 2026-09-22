@@ -26,10 +26,16 @@ export const jwStoneFinalQuoteSchema = z.object({
   decision: z.enum(["accept_offer", "counter_offer", "confirm_purchase"]), notes: z.string().max(2000),
 }).refine(q => q.totalCents === q.materialCents + q.taxCents + q.deliveryCents, "Quote totals do not match");
 export type JwStoneFinalQuote = z.infer<typeof jwStoneFinalQuoteSchema>;
+export const jwStoneQuoteAcceptanceSchema = z.object({
+  quoteId: z.string().uuid(), quoteRevision: z.number().int().positive(),
+  totalCents: cents.positive(), acceptedBy: z.string().min(1), acceptedAt: z.string().datetime(),
+}).strict();
+export type JwStoneQuoteAcceptance = z.infer<typeof jwStoneQuoteAcceptanceSchema>;
 const commandBase = { operationId: z.string().uuid(), expectedRevision: z.number().int().nonnegative() };
 export const jwStoneSaleCommandSchema = z.discriminatedUnion("action", [
   z.object({ ...commandBase, action: z.literal("quote"), decision: z.enum(["accept_offer", "counter_offer", "confirm_purchase"]), materialCents: cents.positive(), taxCents: cents, deliveryCents: cents, expiresAt: z.string().datetime(), notes: z.string().trim().max(2000) }).strict(),
   z.object({ ...commandBase, action: z.literal("decline"), notes: z.string().trim().min(1).max(2000) }).strict(),
+  z.object({ ...commandBase, action: z.literal("accept_quote"), quoteId: z.string().uuid(), totalCents: cents.positive(), acceptFinalQuote: z.literal(true) }).strict(),
   z.object({ ...commandBase, action: z.literal("checkout"), quoteId: z.string().uuid(), totalCents: cents.positive(), method: jwStonePaymentMethodSchema, acceptFinalQuote: z.literal(true) }).strict(),
 ]);
 export type JwStoneSaleCommand = z.infer<typeof jwStoneSaleCommandSchema>;
@@ -42,6 +48,8 @@ export type JwStoneSaleState = {
   revision: number;
   status: "pending_review" | "quoted" | "declined" | "checkout" | "processing" | "paid" | "payment_failed" | "payment_expired" | "needs_review";
   quote: JwStoneFinalQuote | null; attempt: JwStoneCheckoutAttempt | null;
+  // Optional for historical stored states. A revised quote always clears prior consent.
+  quoteAcceptance?: JwStoneQuoteAcceptance | null;
   allocations: { positionId: string; inventoryPublicId: string; quantity: number }[];
   reservationTransfer?: { reservationId: string; originalExpiresAt: string; transferredAt: string } | null;
   note: string | null;
