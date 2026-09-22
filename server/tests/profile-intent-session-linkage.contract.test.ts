@@ -18,7 +18,7 @@ describe("public profile entry-to-intent session linkage", () => {
   });
 
   it("calculates conversion only from matching profile sessions observed after linkage starts", () => {
-    const observatory = read("server/routes/admin-discovery-observatory.ts");
+    const observatory = read("server/routes/admin-discovery-evidence.ts");
 
     expect(observatory).toContain("event_type = 'public_profile_direct_connect_opened'");
     expect(observatory).toContain("event_type = 'discovery_landing'");
@@ -32,13 +32,11 @@ describe("public profile entry-to-intent session linkage", () => {
   });
 
   it("keeps exact-route conversion separate from profile-level conversion", () => {
-    const observatory = read("server/routes/admin-discovery-observatory.ts");
+    const observatory = read("server/routes/admin-discovery-evidence.ts");
 
     expect(observatory).toContain("landing.route = intent.route");
     expect(observatory).toContain("split_part(coalesce(data->>'route', ''), '?', 1)");
-    expect(observatory).toContain(
-      "split_part(coalesce(data->>'canonicalRoute', ''), '?', 1)"
-    );
+    expect(observatory).toContain("split_part(coalesce(data->>'canonicalRoute', ''), '?', 1)");
     expect(observatory).toContain('grain: "tab_scoped_profile_discovery_sessions"');
     expect(observatory).toContain("Opens are intent evidence, not submitted requests or provider outcomes");
   });
