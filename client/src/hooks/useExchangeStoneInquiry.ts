@@ -115,7 +115,7 @@ export function useExchangeStoneInquiry(options: Options) {
   }
 
   function finish(submittedListingId?: string) {
-    const id = submittedListingIdIdSafe(submittedListingId, listing?.id);
+    const id = submittedListingId || listing?.id;
     if (!id) return;
     try { forgetStoneInquiryDraft(window.sessionStorage, id); } catch { /* unavailable storage */ }
     if (current.current.listing?.id !== id) return;
@@ -128,8 +128,4 @@ export function useExchangeStoneInquiry(options: Options) {
   }
 
   return { isRetail, intent, warning, prepare, continueToSignIn, finish };
-}
-
-function submittedListingIdIdSafe(submittedListingId?: string, currentListingId?: string): string | undefined {
-  return submittedListingId || currentListingId;
 }
