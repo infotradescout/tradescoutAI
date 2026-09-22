@@ -154,10 +154,11 @@ try {
   await pool.query("UPDATE profile_account_entitlements e SET status='revoked' FROM profile_accounts a WHERE e.profile_account_id=a.id AND a.owner_user_id=$1 AND e.product_key='jw_stone_member_pricing'", [buyer]);
   try { await reject(() => sales.command(faultId, buyer, acceptance(faultState)), "jw_membership_required"); }
   finally { await pool.query("UPDATE profile_account_entitlements e SET status='pending_verification' FROM profile_accounts a WHERE e.profile_account_id=a.id AND a.owner_user_id=$1 AND e.product_key='jw_stone_member_pricing'", [buyer]); }
-  const expiredId = await offer(), expiring = {...quote(), expiresAt: new Date(Date.now()+500).toISOString()};
+  const expiredId = await offer(), expiring = {...quote(), expiresAt: new Date(Date.now()+2000).toISOString()};
   await sales.command(expiredId, owner, expiring);
-  await new Promise(resolve => setTimeout(resolve, 550));
-  await reject(() => sales.command(expiredId, buyer, acceptance(await read(expiredId))), "jw_quote_expired");
+  await new Promise(resolve => setTimeout(resolve, 2100));
+  const expiredState = await read(expiredId);
+  await reject(() => sales.command(expiredId, buyer, acceptance(expiredState)), "jw_quote_expired");
   note("Closed requests, revoked memberships and expired quotes cannot gain buyer confirmation");
   failMerchant = false;
 
