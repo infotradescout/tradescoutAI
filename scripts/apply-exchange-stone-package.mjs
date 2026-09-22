@@ -7,6 +7,7 @@ import pg from 'pg';
 import approval from './data/exchange-stone-homeowner-approval-20260921.json' with { type: 'json' };
 import { securePostgresConnectionString } from '../shared/database-url-security.mjs';
 import { STONE_LAUNCH, downloadStoneLaunch, readStoneStoredArchive, validateStoneLaunchDocuments } from './lib/exchange-stone-launch-package.mjs';
+import { inspectStoneLaunchEnvironment } from './lib/exchange-stone-launch-preflight.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const receiptMatches = value => value?.version === 1 && value?.batch === STONE_LAUNCH.batch &&
@@ -20,6 +21,8 @@ const receiptMatches = value => value?.version === 1 && value?.batch === STONE_L
 export async function applyExchangeStonePackage() {
   const mode = process.env.STONE_RETAIL_LAUNCH_MODE;
   if (!mode || mode === 'off') return { mode: 'off', changed: false };
+  // Inspect is deliberately nonmutating and does not open a database connection.
+  if (mode === 'inspect') return { mode, changed: false, ...inspectStoneLaunchEnvironment() };
   if (!['dry_run','apply'].includes(mode)) throw new Error('Unknown stone launch mode');
   if (process.env.NODE_ENV !== 'production' || process.env.RENDER_SERVICE_ID !== STONE_LAUNCH.serviceId) throw new Error('Stone launch is restricted to the verified TradeScout production service');
   if ((process.env.SESSION_SECRET || '').length < 24 || (process.env.STONE_METRICS_SECRET || '').length < 24) throw new Error('Existing publication and stable buyer-metrics signing configuration required');
@@ -88,5 +91,9 @@ export async function applyExchangeStonePackage() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try { console.log('STONE_LAUNCH_RESULT ' + JSON.stringify(await applyExchangeStonePackage())); }
-  catch { console.error('STONE_LAUNCH_FAILED: publication was not confirmed; no success receipt is asserted.'); process.exitCode = 1; }
+  catch {
+    // Safe booleans and bounded noncredential identities, never driver errors or secrets.
+    console.error('STONE_LAUNCH_FAILED ' + JSON.stringify({ confirmed: false, ...inspectStoneLaunchEnvironment() }));
+    process.exitCode = 1;
+  }
 }
