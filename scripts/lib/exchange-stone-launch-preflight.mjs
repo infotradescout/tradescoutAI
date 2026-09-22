@@ -1,5 +1,6 @@
 import { STONE_LAUNCH } from './exchange-stone-launch-package.mjs';
 import { securePostgresConnectionString } from '../../shared/database-url-security.mjs';
+import { resolveStoneRetailSigningSecret } from '../../shared/stoneRetailSigning.mjs';
 
 /** Operator diagnostics only: never emit a URL, password, key, token, query
  * parameter or secret length. This check does not authorize any publication. */
@@ -17,7 +18,7 @@ export function inspectStoneLaunchEnvironment(environment = process.env) {
   const checks = {
     productionRuntime: environment.NODE_ENV === 'production',
     expectedService: environment.RENDER_SERVICE_ID === STONE_LAUNCH.serviceId,
-    publicationSecretConfigured: typeof environment.SESSION_SECRET === 'string' && environment.SESSION_SECRET.length >= 24,
+    publicationSecretConfigured: Boolean(resolveStoneRetailSigningSecret(environment)),
     metricsSecretConfigured: typeof environment.STONE_METRICS_SECRET === 'string' && environment.STONE_METRICS_SECRET.length >= 24,
     securedDatabaseUrl: Boolean(target),
     expectedDatabaseHost: Boolean(target && STONE_LAUNCH.hosts.includes(target.hostname)),

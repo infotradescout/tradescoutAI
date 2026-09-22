@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { captureAcquisition, type Acquisition } from "./exchangeStoneFunnel";
+import { resolveStoneRetailSigningSecret } from "../../shared/stoneRetailSigning.mjs";
 
 const COOKIE = "ts_stone_journey";
 const MAX_AGE = 24 * 60 * 60 * 1000;
@@ -41,7 +42,7 @@ export function decodeStoneJourney(value: unknown, secret: string, now = Date.no
  * its session normally; only this bounded, signed first-touch record is restored. */
 export function ensureStoneJourney(req: any, res: any, captureFromRequest = true): void {
   if (!req.session) return;
-  const secret = process.env.SESSION_SECRET || "";
+  const secret = resolveStoneRetailSigningSecret();
   const candidates = String(req.headers?.cookie || "").split(";").map(part => part.trim()).filter(part => part.startsWith(COOKIE + "="));
   const remembered = candidates.length === 1 ? decodeStoneJourney(candidates[0].slice(COOKIE.length + 1), secret) : null;
   const current = copyJourney(req.session.exchangeStoneJourney);
