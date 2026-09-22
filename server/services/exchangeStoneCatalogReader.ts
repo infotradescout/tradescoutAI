@@ -45,7 +45,22 @@ export async function readExchangeStoneCatalog(): Promise<StoneCatalogRead> {
 /** Only the reviewed immutable TradeScout copy is served; never redirect to a supplier/Drive URL. */
 export async function readExchangeStonePhoto(id: string, digest: string): Promise<Buffer | null> {
   if (!stoneCatalog.has(id) || !/^[a-f0-9]{64}$/.test(digest)) return null;
-  const bytes = await readPublicObjectBuffer({ key: `public-media/images/exchange/stone/${id}/${digest}.webp`, maxBytes: 12000000 });
+  // Retail publication stores the photo and listing in one PostgreSQL transaction.
+  // Do not let unrelated R2/S3 credentials change the read owner after that commit.
+  // Reuse the existing object adapter and bounded read rather than a second decoder.
+  const client = {
+    async send(command: unknown) {
+      const { createPostgresPublicMediaS3Client } = await import("../../shared/postgresPublicMediaS3Client.mjs");
+      const store = createPostgresPublicMediaS3Client({
+        query: (text: string, values: unknown[] = []) => pool.query(text, values),
+      });
+      return store.send(command);
+    },
+  };
+  const bytes = await readPublicObjectBuffer({
+    key: `public-media/images/exchange/stone/${id}/${digest}.webp`,
+    maxBytes: 12000000, client, bucketName: "postgres-public-media",
+  });
   if (!bytes || bytes.length < 12 || bytes.length > 12000000 || bytes.toString("ascii", 0, 4) !== "RIFF" || bytes.toString("ascii", 8, 12) !== "WEBP") return null;
   return createHash("sha256").update(bytes).digest("hex") === digest ? bytes : null;
 }
