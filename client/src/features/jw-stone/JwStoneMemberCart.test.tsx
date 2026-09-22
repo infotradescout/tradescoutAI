@@ -4,13 +4,14 @@ import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JwStoneMemberPricingProvider, JwStoneMemberPriceDisplay } from "./JwStoneMemberPricing";
+import { getJwStoneBundleProgress, priceJwStoneBundleLine } from "@shared/jwStoneBundle";
 import { JW_STONE_CART_STORAGE_PREFIX, JW_STONE_LEGACY_CART_STORAGE_PREFIX, parseJwStoneCartReview, restoreJwStoneCart } from "@shared/jwStoneCart";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const api = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/queryClient", async (importOriginal) => ({ ...await importOriginal<typeof import("@/lib/queryClient")>(), apiRequest: api }));
 vi.mock("@/pages/profile-sites/ExpressDirectConnectPanel", () => ({
-  default: ({ open, initialMessage }: { open: boolean; initialMessage?: string }) => open ? <div data-testid="native-quote-handoff">{initialMessage}</div> : null,
+  default: ({ open, initialMessage, jwStoneOffer }: { open: boolean; initialMessage?: string; jwStoneOffer?: unknown }) => open ? jwStoneOffer ? <div data-testid="native-offer-handoff">{JSON.stringify(jwStoneOffer)}</div> : <div data-testid="native-quote-handoff">{initialMessage}</div> : null,
 }));
 const stockId = `stone_${"a".repeat(32)}`;
 const stockItem = { id: stockId, materialName: "Honey Onyx", quantity: 3, unit: "slabs", assetKind: "slab",
@@ -24,6 +25,14 @@ function makeReview(viewerId: string, quantity = 1, fulfillment: unknown = { met
       materialSlug: "honey-onyx", assetKind: "slab", dimensions: stockItem.dimensions,
       pricingTier: quantity >= 2 ? "bundle" : "slab", unitRateCents: rate, oneSlabTotalCents: rate * 50,
       lineTotalCents: rate * 50 * quantity, status: "ready" }] };
+}
+function makeBundleReview(viewerId: string, quantity: number, fulfillment: unknown, availableQuantity: number) {
+  const bundlePricing = { slabRateCents: 300, bundleRateCents: 200, minimumSlabs: 7, regularOneSlabCents: 15000, bundleOneSlabCents: 10000 };
+  const candidate = { ...makeReview(viewerId, quantity, fulfillment).lines[0], bundlePricing, availableQuantity };
+  const progress = getJwStoneBundleProgress([candidate]);
+  const line = { ...candidate, ...priceJwStoneBundleLine(bundlePricing, quantity, progress.unlocked) };
+  return { ...makeReview(viewerId, quantity, fulfillment), lines: [line], subtotalCents: line.lineTotalCents,
+    bundle: { ...progress, regularSubtotalCents: 15000 * quantity, savingsCents: 15000 * quantity - line.lineTotalCents } };
 }
 function click(element: Element | null) {
   if (!element) throw new Error("Missing button");
@@ -42,6 +51,7 @@ const button = (label: string) => document.querySelector(`button[aria-label="${l
 describe("JW Stone member cart", () => {
   let root: Root, host: HTMLDivElement, client: QueryClient;
   let viewer = "member-a", access = "member", denied = false;
+  let bundleMode = false, bundleAvailable = 20, bundleFailure = false;
   const render = (inventoryPublicId?: string) => act(() => root.render(<QueryClientProvider client={client}>
     <JwStoneMemberPricingProvider viewerId={viewer || null}>
       <JwStoneMemberPriceDisplay stoneName="Honey Onyx" slabDimensions="120 x 60" inventoryPublicId={inventoryPublicId} />
@@ -55,6 +65,7 @@ describe("JW Stone member cart", () => {
   };
   beforeEach(() => {
     viewer = "member-a"; access = "member"; denied = false;
+    bundleMode = false; bundleAvailable = 20; bundleFailure = false;
     window.localStorage.clear(); api.mockReset();
     host = document.createElement("div"); document.body.append(host); root = createRoot(host);
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -68,6 +79,11 @@ describe("JW Stone member cart", () => {
       if (url.endsWith("/current")) return { profileSlug: "jw-stone", items: [stockItem] };
       if (url.endsWith("/cart-review")) {
         if (denied) throw Object.assign(new Error("Membership required"), { status: 403 });
+        if (bundleMode) {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          if (bundleFailure) throw new Error("Bundle review unavailable");
+          return makeBundleReview(viewer, second.data.lines.reduce((sum: number, line: { quantity: number }) => sum + line.quantity, 0), second.data.fulfillment, bundleAvailable);
+        }
         return makeReview(viewer, second.data.lines.reduce((sum: number, line: { quantity: number }) => sum + line.quantity, 0), second.data.fulfillment);
       }
       throw new Error("Unexpected API request: " + url);
@@ -155,9 +171,60 @@ describe("JW Stone member cart", () => {
     expect(() => parseJwStoneCartReview(makeReview("member-a"), "member-b", request)).toThrow();
     expect(() => parseJwStoneCartReview(makeReview("member-a", 2), "member-a", request)).toThrow();
   });
+  it("builds a seven-slab bundle in one click, then removes the discount below seven", async () => {
+    bundleMode = true; render(stockId); await add();
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-builder"]')?.textContent).toContain("Add 6 more eligible slabs"));
+    expect(document.querySelector('[role="progressbar"]')?.getAttribute("aria-valuenow")).toBe("1");
+    click(document.querySelector('[data-testid="jw-bundle-complete-line"]'));
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-builder"]')?.textContent).toContain("Bundle pricing unlocked"));
+    expect(document.querySelector('[data-testid="jw-bundle-savings"]')?.textContent).toContain("$350.00");
+    expect(document.querySelector('[data-testid="jw-cart-reviewed-subtotal"]')?.textContent).toContain("$700.00");
+    expect(document.querySelector('[role="progressbar"]')?.getAttribute("aria-valuenow")).toBe("7");
+    expect(window.localStorage.getItem(JW_STONE_CART_STORAGE_PREFIX + viewer)).toContain('"quantity":7');
+    click(button("Decrease Honey Onyx quantity"));
+    expect(document.querySelector('[data-testid="jw-bundle-savings"]')).toBeNull();
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-builder"]')?.textContent).toContain("Add 1 more eligible slab"));
+    expect(document.querySelector('[data-testid="jw-cart-reviewed-subtotal"]')?.textContent).toContain("$900.00");
+    expect(document.querySelector('[data-testid="jw-bundle-savings"]')).toBeNull();
+  });
+  it("does not offer one-click completion beyond server-checked available stock", async () => {
+    bundleMode = true; bundleAvailable = 5; render(stockId); await add();
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-builder"]')?.textContent).toContain("Add 6 more eligible slabs"));
+    expect(document.querySelector('[data-testid="jw-bundle-complete-line"]')).toBeNull();
+  });
+  it("removes stale savings and unlocked claims when rechecking fails", async () => {
+    bundleMode = true; render(stockId); await add();
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-complete-line"]')).not.toBeNull());
+    click(document.querySelector('[data-testid="jw-bundle-complete-line"]'));
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-savings"]')).not.toBeNull());
+    bundleFailure = true;
+    click([...document.querySelectorAll("button")].find((element) => element.textContent === "Recheck total") || null);
+    await eventually(() => expect(document.body.textContent).toContain("The total could not be checked"));
+    expect(document.querySelector('[data-testid="jw-bundle-savings"]')).toBeNull();
+    expect(document.querySelector('[data-testid="jw-bundle-builder"]')?.textContent).not.toContain("Bundle pricing unlocked");
+  });
+  it("carries the checked bundle quantities and savings into the quote request", async () => {
+    bundleMode = true; render(stockId); await add();
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-complete-line"]')).not.toBeNull());
+    click(document.querySelector('[data-testid="jw-bundle-complete-line"]'));
+    await eventually(() => expect(document.querySelector('[data-testid="jw-bundle-savings"]')).not.toBeNull());
+    click(document.querySelector('[data-testid="jw-cart-request-quote"]'));
+    await eventually(() => expect(document.querySelector('[data-testid="native-quote-handoff"]')?.textContent).toContain("Seven-slab bundle pricing applied to 7 eligible slabs"));
+    expect(document.querySelector('[data-testid="native-quote-handoff"]')?.textContent).toContain("$350.00");
+  });
   it("rejects malformed storage and discards price fields in otherwise valid selections", () => {
     expect(restoreJwStoneCart({})).toEqual([]);
     expect(restoreJwStoneCart([{ id: "x", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: -1 }])).toEqual([]);
     expect(restoreJwStoneCart([{ id: "x", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: 1, landedCostCents: 55 }])).toEqual([{ id: "x", stoneName: "Honey Onyx", stoneKey: "honey onyx", quantity: 1 }]);
   });
+  it("opens a full-cart offer with the displayed total without changing saved quantities", async () => {
+    render(stockId); await add();
+    await eventually(() => expect(document.querySelector('[data-testid="jw-cart-make-offer"]')).not.toBeNull());
+    const saved = window.localStorage.getItem(JW_STONE_CART_STORAGE_PREFIX + viewer);
+    click(document.querySelector('[data-testid="jw-cart-make-offer"]'));
+    await eventually(() => expect(document.querySelector('[data-testid="native-offer-handoff"]')).not.toBeNull());
+    expect(JSON.parse(document.querySelector('[data-testid="native-offer-handoff"]')!.textContent!)).toMatchObject({ scope: "cart", viewerId: viewer, displayedSubtotalCents: 15000, selection: { lines: [{ inventoryPublicId: stockId, quantity: 1 }] } });
+    expect(window.localStorage.getItem(JW_STONE_CART_STORAGE_PREFIX + viewer)).toBe(saved);
+  });
+
 });

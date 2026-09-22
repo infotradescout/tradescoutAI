@@ -12,6 +12,9 @@ import {
   type JwStoneCartSelection,
 } from "@shared/jwStoneCart";
 import { jwStonePriceKey } from "@shared/jwStoneMemberPricing";
+import { isJwStoneBundleEligible } from "@shared/jwStoneBundle";
+import { JwStoneBundleBuilder } from "./JwStoneBundleBuilder";
+import type { JwStoneOfferContext } from "@shared/jwStoneOffer";
 import { normalizePublicStoneInventoryImageUrls } from "@shared/stoneInventory";
 import { apiRequest } from "@/lib/queryClient";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -76,6 +79,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
   const queryClient = useQueryClient();
   const [preferences, setPreferences] = useState(() => loadPreferences(viewerId));
   const [requestOpen, setRequestOpen] = useState(false);
+  const [offerContext, setOfferContext] = useState<JwStoneOfferContext | null>(null);
   const deliveryDetails = useJwStoneFulfillmentDetails(viewerId);
   const fulfillmentError = fulfillmentDetailsError(deliveryDetails.details, preferences.method);
   useEffect(() => {
@@ -112,9 +116,9 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
       const response = await apiRequest(JW_STONE_CART_REVIEW_PATH, { method: "POST", data: request, signal });
       return parseJwStoneCartReview(response, viewerId, request);
     },
-    enabled: parsedRequest.success && !requestOpen,
+    enabled: parsedRequest.success && !requestOpen && !offerContext,
     retry: false, staleTime: 0, gcTime: 0, refetchOnWindowFocus: "always",
-    refetchInterval: requestOpen ? false : 60_000,
+    refetchInterval: requestOpen || offerContext ? false : 60_000,
   });
   const review = parsedRequest.success && !reviewQuery.isFetching && !reviewQuery.isError
     ? reviewQuery.data : undefined;
@@ -137,12 +141,13 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
     preferences.method === "delivery" ? `Delivery requested to ZIP ${preferences.postalCode.trim()}. Please quote freight and timing.` : "Pickup requested. Please confirm pickup readiness and timing.",
     ...fulfillmentDetailsSummary(deliveryDetails.details, preferences.method),
     ...(review?.materialReady && review.subtotalCents != null ? [`Material subtotal checked ${review.reviewedAt}: ${money(review.subtotalCents)}. Delivery and tax are not included; this is not a final quote.`] : []),
+    ...(review?.bundle?.unlocked ? ["Seven-slab bundle pricing applied to " + review.bundle.eligibleSlabs + " eligible slabs. Quantity savings versus slab rates: " + money(review.bundle.savingsCents ?? 0) + ". Please reconfirm when quoting."] : []),
     "Please confirm stock, exact slab measurements, finish, final total, and availability before payment.",
   ].join("\n");
   const canRequest = items.length > 0 && items.length <= JW_STONE_CART_REVIEW_MAX_LINES && validDestination && !fulfillmentError && requestMessage.length <= JW_CART_QUOTE_MESSAGE_LIMIT;
 
   return <>
-    <Dialog.Root open={!requestOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog.Root open={!requestOpen && !offerContext} onOpenChange={(open) => { if (!open) onClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/40" />
         <Dialog.Content style={JW_STONE_BRAND_STYLE} data-jw-brand="true" data-testid="jw-stone-member-cart"
@@ -155,6 +160,7 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
             <Dialog.Close className="inline-flex min-h-11 min-w-11 items-center justify-center" aria-label="Close cart"><X className="h-5 w-5" /></Dialog.Close>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <JwStoneBundleBuilder review={review} empty={items.length === 0} checking={reviewQuery.isFetching} onBrowse={onClose} />
             {items.length === 0 ? <div className="border border-dashed border-[var(--jw-border)] p-6 text-center">
               <ShoppingCart className="mx-auto h-6 w-6" aria-hidden="true" /><p className="mt-3 font-semibold">Your cart is empty</p>
               <p className="mt-2 text-sm text-[var(--jw-muted)]">Add stone selections to compare stock and request a quote.</p>
@@ -165,6 +171,11 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
                 const candidates = stock.filter((entry) => jwStonePriceKey(entry.materialName) === item.stoneKey);
                 const checked = review?.lines.find((line) => line.inventoryPublicId === item.inventoryPublicId);
                 const image = actualStock?.imageUrls[0];
+                const remaining = review?.bundle?.remainingSlabs ?? 0;
+                const canCompleteBundle = review?.materialReady && checked?.status === "ready" && checked.bundlePricing &&
+                  isJwStoneBundleEligible(checked.bundlePricing) && remaining > 0 &&
+                  checked.availableQuantity >= checked.requestedQuantity + remaining &&
+                  checked.requestedQuantity + remaining <= 999 && item.quantity + remaining <= 999;
                 return <article key={item.id} className="border border-[var(--jw-border)] p-4" data-testid="jw-cart-line">
                   <div className="flex items-start gap-3">
                     {image ? <img src={image} alt={actualStock.materialName} className="h-16 w-20 shrink-0 object-contain" loading="lazy" /> : null}
@@ -195,6 +206,13 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
                   </div>
                   {checked?.status === "ready" ? <div className="mt-3 text-sm" data-testid="jw-cart-line-total"><strong>{money(checked.oneSlabTotalCents * item.quantity)}</strong><p className="mt-1 text-xs text-[var(--jw-muted)]">{money(checked.unitRateCents)} / sq. ft. · {checked.pricingTier === "bundle" ? "Quantity rate applied" : "Slab rate"}</p></div>
                     : checked ? <p role="status" className="mt-3 text-xs">{lineMessage(checked.status)}{checked.status === "insufficient_quantity" ? ` ${checked.availableQuantity} slabs available for the combined selection.` : ""}</p> : null}
+                  {canCompleteBundle ? <button type="button" data-testid="jw-bundle-complete-line"
+                    onClick={() => onQuantityChange(item.id, item.quantity + remaining)}
+                    className="mt-3 min-h-11 w-full border border-[var(--jw-accent)] px-3 text-sm font-semibold">
+                    Add {remaining} more {remaining === 1 ? "slab" : "slabs"} to complete bundle
+                  </button> : null}
+                  {checked?.status === "ready" && checked.bundlePricing && !isJwStoneBundleEligible(checked.bundlePricing)
+                    ? <p className="mt-2 text-xs text-[var(--jw-muted)]">This material does not count toward the 7-slab bundle. Its listed pricing still applies.</p> : null}
                 </article>;
               })}
               <fieldset className="border border-[var(--jw-border)] p-4">
@@ -216,6 +234,13 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
                 : fullySelected && !parsedRequest.success ? "Reduce the combined quantity for a stock item to 999 or fewer."
                 : items.length ? "A full total will appear after every stock selection is checked." : null}
             </div>
+            {review?.materialReady && review.bundle && (review.bundle.savingsCents ?? 0) > 0 ? <div data-testid="jw-bundle-savings" className="mt-2 space-y-1 text-xs">
+              <div className="flex justify-between gap-3 text-[var(--jw-muted)]"><span>Slab-rate subtotal</span><span>{money(review.bundle.regularSubtotalCents!)}</span></div>
+              <div className="flex justify-between gap-3 font-semibold"><span>Quantity savings</span><span>−{money(review.bundle.savingsCents!)}</span></div>
+            </div> : null}
+            {review?.materialReady && review.subtotalCents != null && parsedRequest.success && !fulfillmentError ? <button type="button" data-testid="jw-cart-make-offer"
+              onClick={() => setOfferContext({ scope: "cart", viewerId, selection: parsedRequest.data, displayedSubtotalCents: review.subtotalCents! })}
+              className="mt-3 min-h-11 w-full border border-[var(--jw-accent)] px-3 text-sm font-semibold">Make an offer on this cart</button> : null}
             {items.length && fulfillmentError ? <p role="alert" className="mt-2 text-xs">{fulfillmentError}</p> : null}
             {items.length ? <p className="mt-2 text-xs leading-5 text-[var(--jw-muted)]">Delivery and tax are not included. This cart does not reserve stock or charge payment.</p> : null}
             <div className="mt-3 flex gap-2">
@@ -228,6 +253,8 @@ export function JwStoneMemberCart({ viewerId, items, onClose, onQuantityChange, 
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    {offerContext ? <ExpressDirectConnectPanel open onClose={() => setOfferContext(null)} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} stayInProfile requestMode="materials" initialView="request" initialRequestType="make_offer" jwStoneOffer={offerContext}
+      initialMessage={[preferences.jobReference.trim() ? "Job / PO: " + preferences.jobReference.trim() : "", ...fulfillmentDetailsSummary(deliveryDetails.details, preferences.method)].filter(Boolean).join("\n")} /> : null}
     {requestOpen ? <ExpressDirectConnectPanel open onClose={() => setRequestOpen(false)} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} stayInProfile requestMode="materials" initialView="request" initialRequestType="request_material" initialStoneSelections={requestSelections} initialMessage={requestMessage} /> : null}
   </>;
 }
