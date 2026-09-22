@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import pg from 'pg';
 import approval from './data/exchange-stone-homeowner-approval-20260921.json' with { type: 'json' };
 import { securePostgresConnectionString } from '../shared/database-url-security.mjs';
+import { resolveStoneRetailSigningSecret } from '../shared/stoneRetailSigning.mjs';
 import { STONE_LAUNCH, downloadStoneLaunch, readStoneStoredArchive, validateStoneLaunchDocuments } from './lib/exchange-stone-launch-package.mjs';
 import { inspectStoneLaunchEnvironment } from './lib/exchange-stone-launch-preflight.mjs';
 import { stoneFailureCode, readStoneImporterReceipt } from './lib/exchange-stone-failure.mjs';
@@ -26,7 +27,7 @@ export async function applyExchangeStonePackage() {
   if (mode === 'inspect') return { mode, changed: false, ...inspectStoneLaunchEnvironment() };
   if (!['dry_run','apply'].includes(mode)) throw new Error('Unknown stone launch mode');
   if (process.env.NODE_ENV !== 'production' || process.env.RENDER_SERVICE_ID !== STONE_LAUNCH.serviceId) throw new Error('Stone launch is restricted to the verified TradeScout production service');
-  if ((process.env.SESSION_SECRET || '').length < 24 || (process.env.STONE_METRICS_SECRET || '').length < 24) throw new Error('Existing publication and stable buyer-metrics signing configuration required');
+  if (!resolveStoneRetailSigningSecret() || (process.env.STONE_METRICS_SECRET || '').length < 24) throw new Error('Existing publication and stable buyer-metrics signing configuration required');
   const connectionString = securePostgresConnectionString(process.env.DATABASE_URL);
   if (!connectionString) throw new Error('Production database is missing');
   const target = new URL(connectionString);

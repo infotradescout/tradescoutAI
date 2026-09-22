@@ -26,13 +26,18 @@ dotenv.config = dotenv.configDotenv = () => ({ parsed: {} });
 const base = `http://127.0.0.1:${port}`;
 Object.assign(process.env, {
   NODE_ENV: "test", DATABASE_URL: url.href, TEST_DATABASE_URL: url.href,
-  ALLOW_INSECURE_TEST_DATABASE: "true", SESSION_SECRET: config.sessionSecret,
+  ALLOW_INSECURE_TEST_DATABASE: "true", SESSION_SECRET: "fixture-session-only",
+  STONE_RETAIL_SIGNING_SECRET: config.sessionSecret,
   STONE_METRICS_SECRET: config.metricsSecret, PORT: String(port), PUBLIC_WEB_URL: base,
   EMAIL_MODE: "account_creation_only", DISABLE_FACEBOOK_AUTH: "true",
   SCHEDULER_ENABLED: "false", DISABLE_CRAWLER: "true",
   UPLOAD_DIR: path.join(output, "uploads"), PRIVATE_UPLOAD_DIR: path.join(output, "private-uploads"),
   SCOUT_CACHE_DIR: path.join(output, "scout-cache"),
 });
+const { resolveStoneRetailSigningSecret } = await import("../shared/stoneRetailSigning.mjs");
+assert(process.env.SESSION_SECRET!.length < 24);
+assert.equal(resolveStoneRetailSigningSecret(), config.sessionSecret);
+assert(resolveStoneRetailSigningSecret().length >= 32);
 const { db, pool } = await import("../server/db");
 assert.equal((await pool.query("SELECT current_database() AS name")).rows[0].name, "ts_exchange_stone_test");
 
@@ -69,7 +74,7 @@ if (setup) {
   const examples = [
     { id: "tradescout-stone-matrix-basalt", name: "Matrix Basalt", material: "basalt", referenceSizesInches: "126x78, 127x77.5" },
     { id: "tradescout-stone-calacatta-fumo", name: "Calacatta Fumo", material: "engineered quartz", referenceSizesInches: "137.5x79" },
-    { id: "tradescout-stone-alabama-white", name: "Alabama White", material: "marble", referenceSizesInches: "123x70, 117x73, 118x72, 125.5x70, 126x71, 120x75, 121x69, 121x73, 115x57, 100x65.5, 101x65, 98x65, 118.5x71, 120x62, 120x68, 122x67, 127x74" },
+    { id: "tradescout-stone-alabama-white", name: "Alabama White", material: "marble", referenceSizesInches: "123x70, 117x73, 118x72, 125.5x70, 126x71, 120x75, 121x73, 115x57, 100x65.5, 101x65, 98x65, 118.5x71, 120x62, 120x68, 122x67, 127x74" },
   ];
   const mediaRoot = path.join(output, "synthetic-media");
   const timestamp = new Date(Date.now() - 1000).toISOString();
@@ -110,12 +115,17 @@ if (setup) {
   assert.equal(Number((await pool.query("SELECT count(*) AS n FROM public_media_objects WHERE object_key LIKE 'public-media/images/exchange/stone/%'")).rows[0].n), 3);
   const { readExchangeStoneCatalog, readExchangeStonePhoto } = await import("../server/services/exchangeStoneCatalogReader");
   const read = await readExchangeStoneCatalog(); assert.equal(read.items.length, 3);
+  const sessionBefore = process.env.SESSION_SECRET;
+  process.env.SESSION_SECRET = "different-session-key";
+  assert.equal((await readExchangeStoneCatalog()).items.length, 3, "Session changes must not invalidate dedicated retail signatures");
+  process.env.SESSION_SECRET = sessionBefore;
+  assert.equal(process.env.SESSION_SECRET, "fixture-session-only");
   // Complete but deliberately nonfunctional R2 configuration must not switch retail reads away from the importer's database.
   Object.assign(process.env, { R2_ACCOUNT_ID: "test-only-no-network", R2_ACCESS_KEY_ID: "test", R2_SECRET_ACCESS_KEY: "test", R2_BUCKET_NAME: "test" });
   for (const item of items) assert((await readExchangeStonePhoto(item.id, digest))?.equals(bytes));
   for (const key of ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME"]) delete process.env[key];
   assert.equal(await readExchangeStonePhoto(items[0].id, "0".repeat(64)), null);
-  const info = { base, accounts, ids: items.map(item => item.id), digest, importer: { dryRunEligible: plan.eligible, firstProcessExitCodes: first.map(result => result.status), replay: parse(replay.stdout), rows: 3, photos: 3, mediaProviderIsolation: true } };
+  const info = { base, accounts, ids: items.map(item => item.id), digest, importer: { dryRunEligible: plan.eligible, firstProcessExitCodes: first.map(result => result.status), replay: parse(replay.stdout), rows: 3, photos: 3, mediaProviderIsolation: true, independentRetailSigning: true, shortSessionConfigurationUnchanged: true } };
   await fs.writeFile(path.join(output, "fixture.json"), JSON.stringify(info), { mode: 0o600 });
   console.log("STONE_NATIVE_IMPORT_PASSED");
 }
