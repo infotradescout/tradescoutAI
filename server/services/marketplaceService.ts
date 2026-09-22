@@ -1,6 +1,7 @@
-import { and, desc, eq, gte, ilike, lte } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
 import { db } from "../db";
 import { marketplaceCategories, marketplaceListings } from "@shared/schema";
+import { filterStoneDiscovery, stoneDiscoveryContext } from "./exchangeStoneDiscovery";
 
 export interface ListingSearchParams {
   query?: string;
@@ -14,7 +15,8 @@ export interface ListingSearchParams {
 
 export async function searchMarketplaceListings(params: ListingSearchParams) {
   try {
-    const filters: any[] = [eq(marketplaceListings.status, "active")];
+    const filters: any[] = [eq(marketplaceListings.status, "active"),
+      sql`${marketplaceListings.id} NOT LIKE 'tradescout-stone-%' AND COALESCE(${marketplaceListings.specifications}->>'commerceChannel', '') <> 'tradescout_stone_retail'`];
 
     if (params.query?.trim()) {
       filters.push(ilike(marketplaceListings.title, `%${params.query.trim()}%`));
@@ -51,10 +53,18 @@ export async function searchMarketplaceListings(params: ListingSearchParams) {
       .where(and(...filters) as any)
       .orderBy(desc(marketplaceListings.createdAt))
       .limit(Math.min(Math.max(Number(params.limit || 20), 1), 100));
+    const context = stoneDiscoveryContext();
+    const retail = context?.audience.allowed ? filterStoneDiscovery(context.items, {
+      q: params.query, categoryId: categoryId || params.category,
+      minPrice: params.minPrice, maxPrice: params.maxPrice,
+    }) : [];
+    const time = (row: any) => { const value = row.createdAt ? new Date(row.createdAt).getTime() : 0; return Number.isFinite(value) ? value : 0; };
+    const data = [...listings, ...retail].sort((a, b) => time(b) - time(a) || String(a.id).localeCompare(String(b.id)))
+      .slice(0, Math.min(Math.max(Number(params.limit || 20), 1), 100));
 
     return {
       success: true,
-      data: listings,
+      data,
       categoryId,
       message: "Marketplace listings retrieved",
     };
@@ -67,31 +77,8 @@ export async function searchMarketplaceListings(params: ListingSearchParams) {
 }
 
 export async function getMarketplaceForCounty(county: string, state: string) {
-  try {
-    const listings = await db
-      .select()
-      .from(marketplaceListings)
-      .where(
-        and(
-          eq(marketplaceListings.county, county),
-          eq(marketplaceListings.state, state),
-          eq(marketplaceListings.status, "active")
-        )
-      )
-      .orderBy(desc(marketplaceListings.createdAt))
-      .limit(50);
-
-    return {
-      success: true,
-      data: listings,
-      message: `County listings retrieved for ${county}, ${state}`,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to get county listings",
-    };
-  }
+  const result = await searchMarketplaceListings({ county, state, limit: 50 });
+  return result.success ? { ...result, message: `County listings retrieved for ${county}, ${state}` } : result;
 }
 
 export async function createMarketplaceListing(

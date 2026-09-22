@@ -13,11 +13,13 @@ dotenv.config();
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 
-function requiredSchemaEntrypoint() {
-  const bundled = path.join(scriptDirectory, "check-required-production-schema.mjs");
-  return fs.existsSync(bundled)
+function requiredSchemaEntrypoint(name = "check-required-production-schema") {
+  const bundled = path.join(scriptDirectory, `${name}.mjs`);
+  const target = fs.existsSync(bundled)
     ? bundled
-    : path.resolve(process.cwd(), "scripts/check-required-production-schema.mjs");
+    : path.resolve(process.cwd(), `scripts/${name}.mjs`);
+  if (!fs.existsSync(target)) throw new Error(`Required schema verifier is missing: ${name}`);
+  return target;
 }
 
 async function main() {
@@ -38,9 +40,16 @@ async function main() {
     ? "runtime/drizzle.config.mjs"
     : "drizzle.config.ts";
 
+  const verifiers = [requiredSchemaEntrypoint(), requiredSchemaEntrypoint("check-exchange-stone-schema")];
   const status = await runVerifiedMigration({
     migrate: () => runCommand("npx", ["drizzle-kit", "migrate", `--config=${config}`], { stdio: "inherit", env }),
-    verify: () => runCommand(process.execPath, [requiredSchemaEntrypoint()], { stdio: "inherit", env }),
+    verify: async () => {
+      for (const target of verifiers) {
+        const result = await runCommand(process.execPath, [target], { stdio: "inherit", env });
+        if (result !== 0) return result;
+      }
+      return 0;
+    },
   });
   if (status === 0) {
     console.log("[db:migrate] Migration command and independent required-schema verification passed.");

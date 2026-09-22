@@ -1,3 +1,5 @@
+import { currentPublicStone, currentStoneFeedItems, isStoneDiscoveryRow, stoneDiscoveryContext } from "./services/exchangeStoneDiscovery";
+
 type DiscoveryItem = {
   id: string;
   sellerId?: string;
@@ -27,7 +29,8 @@ export async function readExchangeSourcePages<T>(
   const items: T[] = [];
   for (let offset = 0; ; offset += 100) {
     const page = await load(offset, 100);
-    items.push(...page.items);
+    // The separately approved national source owns retail rows. Hidden rows must not fill a page.
+    items.push(...page.items.filter(item => !isStoneDiscoveryRow(item)));
     if (page.sourceCount < 100 || (wanted != null && items.length >= wanted)) return items;
   }
 }
@@ -39,7 +42,13 @@ export function mergeExchangeDiscoveryItems<T extends DiscoveryItem>(
 ): T[] {
   const byId = new Map<string, T>();
   const profilePaths = new Set<string>();
-  for (const item of sources.flat()) {
+  const retail = currentStoneFeedItems();
+  const approved = new Set(retail.map(item => item.id));
+  for (const raw of [...sources.flat(), ...retail]) {
+    const item = (isStoneDiscoveryRow(raw)
+      ? (!stoneDiscoveryContext()?.feed || approved.has(raw.id)) && currentPublicStone(raw.id)
+      : raw) as T | null;
+    if (!item) continue;
     if (byId.has(item.id)) continue;
     const profileKey =
       item.sourceType === "profile_catalog" && item.publicProfilePath
