@@ -6,7 +6,11 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 
 const candidate = process.env.EXCHANGE_STONE_CANDIDATE;
-if (!candidate) {
+if (process.env.EXCHANGE_STONE_OBSERVE_COMMIT) {
+  assert(!candidate, 'Read-only production observation is separate from candidate execution');
+  for (const key of ['DATABASE_URL','TEST_DATABASE_URL','SESSION_SECRET','STONE_METRICS_SECRET','STRIPE_SECRET_KEY','BREVO_API_KEY','SENDGRID_API_KEY','RESEND_API_KEY','SMTP_PASS','STONE_RETAIL_LAUNCH_MODE','STONE_RETAIL_LAUNCH_URL']) assert(!process.env[key], 'Observer must not inherit live credentials or publication authority');
+  await import('./observe-stone-publication.mjs');
+} else if (!candidate) {
   await import('./verify-exchange-batch-legacy.mjs');
 } else {
   assert.match(candidate, /^[a-f0-9]{40}$/, 'Exact committed stone candidate required');
