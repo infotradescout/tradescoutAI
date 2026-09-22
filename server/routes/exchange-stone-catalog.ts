@@ -52,7 +52,7 @@ export function registerExchangeStoneCatalogRoutes(app: Express): void {
     }
     if (selected && req.session) {
       // Retain excluded selections too: a following image/detail request must not fall back to another area.
-      req.session.exchangeStoneMarket = audience.market;
+      req.session.exchangeStoneMarket = audience.reason === "location_required" ? {} : audience.market;
     }
     try {
       const catalog = await readExchangeStoneCatalog();
