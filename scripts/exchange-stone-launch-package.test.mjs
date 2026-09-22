@@ -87,6 +87,6 @@ test('unknown launch mode and failed launch cannot pass release',()=>{
 test('fixed launch is restricted to the exact confirmed service and owner schedule',()=>{
  assert.equal(STONE_LAUNCH.count,96);assert.equal(STONE_LAUNCH.fileCount,98);assert.equal(STONE_LAUNCH.database,'neondb');
  const code=fs.readFileSync('scripts/apply-exchange-stone-package.mjs','utf8');
- for(const marker of ['RENDER_SERVICE_ID','STONE_METRICS_SECRET','SESSION_SECRET','already_applied','--expected-plan=','validateStoneLaunchDocuments','INSERT INTO site_settings'])assert(code.includes(marker));
+ for(const marker of ['RENDER_SERVICE_ID','STONE_METRICS_SECRET','resolveStoneRetailSigningSecret()','already_applied','--expected-plan=','validateStoneLaunchDocuments','INSERT INTO site_settings'])assert(code.includes(marker));
  assert(!code.includes('UPDATE users'));assert(!code.includes('UPDATE marketplace_listings'));
 });
