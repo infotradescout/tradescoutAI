@@ -23,6 +23,16 @@ function reviewed(body,viewerId) {
   const subtotalCents=lines.reduce((sum,line)=>sum+line.lineTotalCents,0),regularSubtotalCents=lines.reduce((sum,line)=>sum+line.bundlePricing.regularOneSlabCents*line.requestedQuantity,0);
   return {profileSlug:'jw-stone',viewerId,currency:'USD',sourceUpdatedAt:new Date().toISOString(),reviewedAt:new Date().toISOString(),materialReady:true,readyForCheckout:false,inventoryReserved:false,fulfillment:body.fulfillment||{method:'pickup'},subtotalCents,deliveryFeeCents:null,estimatedDeliveryDate:null,lines,bundle:{...progress,regularSubtotalCents,savingsCents:regularSubtotalCents-subtotalCents}};
 }
+async function contrastRatio(locator) {
+  return locator.evaluate(element => {
+    const channels = value => value.match(/[\d.]+/g).slice(0, 3).map(Number).map(channel => { const unit = channel / 255; return unit <= .04045 ? unit / 12.92 : ((unit + .055) / 1.055) ** 2.4; });
+    const luminance = value => { const rgb = channels(value); return .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]; };
+    let background = element;
+    while (background.parentElement && getComputedStyle(background).backgroundColor === 'rgba(0, 0, 0, 0)') background = background.parentElement;
+    const foregroundLuminance = luminance(getComputedStyle(element).color), backgroundLuminance = luminance(getComputedStyle(background).backgroundColor);
+    return (Math.max(foregroundLuminance, backgroundLuminance) + .05) / (Math.min(foregroundLuminance, backgroundLuminance) + .05);
+  });
+}
 const report={head,passed:false,scope:'Actual storefront components and canonical request serialization with isolated API/session fixtures. Native application authentication/offer submission is tested separately.',devices:[],productionWrites:false};
 let vite,browser,page;
 try {
@@ -79,9 +89,10 @@ try {
     await expect(entryButton).toBeVisible();await expect(page.getByTestId('jw-stone-member-cart')).toHaveCount(0);
     await click(entryButton);const builder=page.getByTestId('jw-standalone-bundle-builder');await expect(builder).toBeVisible();
     await expect(page.getByTestId('jw-stone-member-cart')).toHaveCount(0);await expect(builder.getByRole('heading',{name:'Build a Bundle',exact:true})).toBeVisible();
+    assert(await contrastRatio(builder.getByRole('heading',{name:'Build a Bundle',exact:true})) >= 3, 'Bundle heading must remain readable against its actual background');
     const picker=builder.getByTestId('jw-bundle-stock-picker');await expect(picker.getByTestId('jw-bundle-stock-option')).toHaveCount(7);
     await click(picker.getByRole('button',{name:'Show more slab lots',exact:true}));await expect(picker.getByTestId('jw-bundle-stock-option')).toHaveCount(9);
-    const search=picker.getByRole('searchbox',{name:'Find stone for your bundle'});await search.fill('Test Stone 09');await expect(picker.getByTestId('jw-bundle-stock-option')).toHaveCount(1);await search.fill('');
+    const search=picker.getByRole('searchbox',{name:'Find stone for your bundle'});assert(await contrastRatio(search) >= 4.5, 'Bundle search text must remain readable');await search.fill('Test Stone 09');await expect(picker.getByTestId('jw-bundle-stock-option')).toHaveCount(1);await search.fill('');
     for(let index=1;index<=7;index++) {
       const option=picker.locator(`[data-stock-id="${id(index)}"]`);await click(option.getByRole('button',{name:'Add to bundle',exact:true}));
       await expect(builder.getByRole('progressbar')).toHaveAttribute('aria-valuenow',String(index));
