@@ -31,10 +31,17 @@ const requested = canonicalPair
       { name: "check-required-production-schema", source: "scripts/check-required-production-schema.mjs", args: [] },
     ]
   : [{ name: builtName, source: sourcePath, args }];
+// Extend the canonical schema gate for both pre-deploy and startup. Resolve every
+// verifier before executing a migration so missing build artifacts cannot fail open.
+const expanded = requested.flatMap((command) =>
+  command.name === "check-required-production-schema" && command.source === "scripts/check-required-production-schema.mjs"
+    ? [command, { name: "check-exchange-stone-schema", source: "scripts/check-exchange-stone-schema.mjs", args: [] }]
+    : [command]
+);
 const root = process.cwd();
 // Resolve both targets before performing any migration. A missing verifier is
 // a failed deployment, not permission to run only the first command.
-const commands = requested.map((command) => {
+const commands = expanded.map((command) => {
   const builtPath = path.join(root, "dist", "release", `${command.name}.mjs`);
   const fallbackPath = path.resolve(root, command.source);
   const target = fs.existsSync(builtPath) ? builtPath : fallbackPath;
