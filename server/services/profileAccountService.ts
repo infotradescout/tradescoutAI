@@ -5,6 +5,7 @@ import {
   type ProfileAccountPolicy,
 } from "@shared/profileAccount";
 import { pool } from "../db";
+import { queueProfileAccountSignupNotifications } from "./profileAccountSignupNotifications";
 
 type ProfileAccountTarget = {
   profileId: string;
@@ -403,6 +404,15 @@ export async function ensureProfileAccount(args: {
     const resumePath = buildProfileAccountReturnPath(target.profileSlug);
     const sourcePath = normalizeSourcePath(args.sourcePath, `/u/${target.profileSlug}`);
 
+    // The user row is already locked, serializing concurrent joins by this
+    // identity. Existing memberships must not emit another signup on login.
+    const existingAccount = target.profileSlug === "jw-stone"
+      ? await client.query(
+          `SELECT id FROM profile_accounts WHERE owner_user_id = $1 AND target_profile_id = $2`,
+          [userId, target.profileId]
+        )
+      : null;
+
     const result = await client.query(
       `INSERT INTO profile_accounts (
          owner_user_id,
@@ -459,6 +469,9 @@ export async function ensureProfileAccount(args: {
       ]
     );
 
+    if (existingAccount && existingAccount.rows.length === 0) {
+      await queueProfileAccountSignupNotifications(client, String(result.rows[0].id));
+    }
     await client.query("COMMIT");
     return {
       policy,
