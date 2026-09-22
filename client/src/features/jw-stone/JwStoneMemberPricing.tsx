@@ -1,5 +1,5 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 import {
   JW_STONE_PRICING_PROFILE_SLUG, jwStonePriceKey,
@@ -18,20 +18,31 @@ import { JwStoneMemberCart } from "./JwStoneMemberCartLoader";
 import { JW_STONE_BRAND_STYLE } from "./brand";
 import type { JwStoneOfferContext } from "@shared/jwStoneOffer";
 const JwStoneOfferPanel = lazy(() => import("@/pages/profile-sites/ExpressDirectConnectPanel"));
+const BundleWorkspace = lazy(() => import("./JwStoneBundleWorkspace"));
+const ShoppingAccess = lazy(() => import("./JwStoneShoppingAccess"));
 
 type VisibleJwStonePrice = JwStoneMemberPrice & Readonly<{ access: JwStonePricingAccess; landedCostCents?: number | null }>;
+type ShoppingIntent = { viewerId: string } & ({ kind: "bundle" } | { kind: "offer"; item: JwStoneCartDraft });
 type JwStoneMemberPricingContextValue = Readonly<{
   access: JwStonePricingAccess | null;
+  viewerId: string;
   priceFor: (stoneName: string | null | undefined) => VisibleJwStonePrice | null;
   cartEnabled: boolean;
   cartCount: number;
+  items: readonly JwStoneCartSelection[];
   addToCart: (item: JwStoneCartDraft) => void;
   makeOffer: (item: JwStoneCartDraft) => void;
+  openBundle: () => void;
+  openCart: () => void;
+  updateQuantity: (id: string, quantity: number) => void;
 }>;
 const EMPTY_CONTEXT: JwStoneMemberPricingContextValue = Object.freeze({
-  access: null, priceFor: () => null, cartEnabled: false, cartCount: 0, addToCart: () => undefined, makeOffer: () => undefined,
+  access: null, viewerId: "", priceFor: () => null, cartEnabled: false, cartCount: 0, items: [],
+  addToCart: () => undefined, makeOffer: () => undefined, openBundle: () => undefined,
+  openCart: () => undefined, updateQuantity: () => undefined,
 });
 const JwStoneMemberPricingContext = createContext(EMPTY_CONTEXT);
+export function useJwStoneShopping() { return useContext(JwStoneMemberPricingContext); }
 function isCents(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) > 0 && Number(value) <= 10_000_000;
 }
@@ -79,7 +90,6 @@ export function sanitizeJwStonePricingResponse(value: unknown, viewerId: string)
       if (price.landedCostCents !== null && !isCents(price.landedCostCents)) return null;
       prices.push({ ...memberPrice, landedCostCents: price.landedCostCents });
     } else {
-      // Member projections deliberately discard any unexpected internal field.
       prices.push(memberPrice);
     }
   }
@@ -90,6 +100,7 @@ export function sanitizeJwStonePricingResponse(value: unknown, viewerId: string)
 export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }: {
   children: ReactNode; viewerId: string | null; onOpenCart?: () => void;
 }) {
+  const queryClient = useQueryClient();
   const normalizedViewerId = String(viewerId || "").trim();
   const pricingQuery = useQuery({
     queryKey: ["jw-stone", "member-pricing", normalizedViewerId],
@@ -98,19 +109,38 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
   });
   const [cart, setCart] = useState<readonly JwStoneCartSelection[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [bundleOpen, setBundleOpen] = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<ShoppingIntent | null>(null);
   const [stoneOffer, setStoneOffer] = useState<JwStoneOfferContext | null>(null);
   const [loadedCartViewer, setLoadedCartViewer] = useState<string | null>(null);
   const closeCart = useCallback(() => setCartOpen(false), []);
+  const refreshPricing = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["jw-stone", "member-pricing"] });
+  }, [queryClient]);
   useEffect(() => {
     setCart(normalizedViewerId ? readMemberCart(normalizedViewerId) : []);
     setLoadedCartViewer(normalizedViewerId || null);
     setStoneOffer(null);
     setCartOpen(false);
+    setBundleOpen(false);
+    // Only an unauthenticated entry may continue through a new login. A former
+    // member's offer must never move into a different user's session.
+    setPendingIntent(current => current?.viewerId ? null : current);
   }, [normalizedViewerId]);
   useEffect(() => {
     if (!normalizedViewerId || loadedCartViewer !== normalizedViewerId) return;
     writeMemberCart(normalizedViewerId, cart);
   }, [cart, loadedCartViewer, normalizedViewerId]);
+  const response = !pricingQuery.isError && pricingQuery.data?.viewerId === normalizedViewerId ? pricingQuery.data : null;
+  const cartEnabled = Boolean(normalizedViewerId && response?.access === "member" && loadedCartViewer === normalizedViewerId);
+  const openCart = useCallback(() => {
+    onOpenCart?.(); setBundleOpen(false); setStoneOffer(null); setCartOpen(true); refreshPricing();
+  }, [onOpenCart, refreshPricing]);
+  const openBundle = useCallback(() => {
+    onOpenCart?.(); setCartOpen(false); setStoneOffer(null);
+    if (cartEnabled) setBundleOpen(true);
+    else setPendingIntent({ kind: "bundle", viewerId: normalizedViewerId });
+  }, [onOpenCart, cartEnabled, normalizedViewerId]);
   const addToCart = useCallback((item: JwStoneCartDraft) => {
     setCart((current) => {
       const existing = current.find((entry) => entry.id === item.id);
@@ -118,14 +148,20 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
       if (current.length >= JW_STONE_CART_MAX_LINES) return current;
       return restoreJwStoneCart([...current, { ...item, quantity: 1 }]);
     });
-    onOpenCart?.();
-    setCartOpen(true);
-  }, [onOpenCart]);
+    // Choosing slabs in the standalone builder must not replace it with a cart.
+    if (!bundleOpen) { onOpenCart?.(); setCartOpen(true); }
+  }, [onOpenCart, bundleOpen]);
   const makeOffer = useCallback((item: JwStoneCartDraft) => {
-    onOpenCart?.();
-    setCartOpen(false);
-    setStoneOffer({ scope: "stone", viewerId: normalizedViewerId, stoneName: item.stoneName, inventoryPublicId: item.inventoryPublicId });
-  }, [onOpenCart, normalizedViewerId]);
+    onOpenCart?.(); setCartOpen(false); setBundleOpen(false);
+    if (cartEnabled) setStoneOffer({ scope: "stone", viewerId: normalizedViewerId, stoneName: item.stoneName, inventoryPublicId: item.inventoryPublicId });
+    else setPendingIntent({ kind: "offer", viewerId: normalizedViewerId, item });
+  }, [onOpenCart, normalizedViewerId, cartEnabled]);
+  useEffect(() => {
+    if (!pendingIntent || !cartEnabled || (pendingIntent.viewerId && pendingIntent.viewerId !== normalizedViewerId)) return;
+    if (pendingIntent.kind === "bundle") setBundleOpen(true);
+    else setStoneOffer({ scope: "stone", viewerId: normalizedViewerId, stoneName: pendingIntent.item.stoneName, inventoryPublicId: pendingIntent.item.inventoryPublicId });
+    setPendingIntent(null);
+  }, [pendingIntent, cartEnabled, normalizedViewerId]);
   const updateCartQuantity = useCallback((id: string, quantity: number) => {
     if (!Number.isInteger(quantity) || quantity < 0 || quantity > 999) return;
     setCart((current) => quantity === 0 ? current.filter((item) => item.id !== id)
@@ -136,32 +172,53 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
     setCart((current) => current.map((item) => item.id === id ? { ...item, inventoryPublicId } : item));
   }, []);
   const value = useMemo<JwStoneMemberPricingContextValue>(() => {
-    const response = pricingQuery.data;
-    if (!normalizedViewerId || pricingQuery.isError || !response || response.viewerId !== normalizedViewerId) return EMPTY_CONTEXT;
-    const priceMap = new Map<string, VisibleJwStonePrice>(response.prices.map((price): [string, VisibleJwStonePrice] =>
-      [price.stoneKey, Object.freeze({ ...price, access: response.access }) as VisibleJwStonePrice]));
-    const cartEnabled = response.access === "member" && loadedCartViewer === normalizedViewerId;
-    return Object.freeze({ access: response.access,
+    const priceMap = new Map<string, VisibleJwStonePrice>((response?.prices || []).map((price): [string, VisibleJwStonePrice] =>
+      [price.stoneKey, Object.freeze({ ...price, access: response!.access }) as VisibleJwStonePrice]));
+    return Object.freeze({ access: response?.access ?? null, viewerId: normalizedViewerId,
       priceFor: (stoneName: string | null | undefined) => priceMap.get(jwStonePriceKey(stoneName)) || null,
       cartEnabled, cartCount: cartEnabled ? cart.reduce((sum, item) => sum + item.quantity, 0) : 0,
-      addToCart: cartEnabled ? addToCart : () => undefined, makeOffer: cartEnabled ? makeOffer : () => undefined });
-  }, [addToCart, makeOffer, cart, loadedCartViewer, normalizedViewerId, pricingQuery.data, pricingQuery.isError]);
+      items: cartEnabled ? cart : [], openBundle, openCart, makeOffer,
+      addToCart: cartEnabled ? addToCart : () => undefined,
+      updateQuantity: cartEnabled ? updateCartQuantity : () => undefined });
+  }, [response, normalizedViewerId, cartEnabled, cart, openBundle, openCart, makeOffer, addToCart, updateCartQuantity]);
   return <JwStoneMemberPricingContext.Provider value={value}>
     {children}
+    {pendingIntent ? <Suspense fallback={<p role="status">Opening business-member access…</p>}>
+      <ShoppingAccess key={pendingIntent.kind} access={response?.access ?? null} onClose={() => setPendingIntent(null)} onAccountChange={refreshPricing} />
+    </Suspense> : null}
     {value.cartEnabled ? <>
       <button type="button" style={JW_STONE_BRAND_STYLE} data-testid="jw-stone-member-cart-button"
-        onClick={() => { onOpenCart?.(); setCartOpen(true); void pricingQuery.refetch(); }}
+        onClick={openCart}
         className="fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-4 z-50 inline-flex min-h-12 items-center gap-2 border border-[var(--jw-border)] bg-[var(--jw-ink)] px-4 py-2 text-sm font-semibold text-white shadow-lg sm:right-6"
         aria-label={`Open JW Stone cart, ${value.cartCount} ${value.cartCount === 1 ? "slab" : "slabs"}`}>
-        <ShoppingCart className="h-4 w-4" aria-hidden="true" />Cart · Build a bundle
+        <ShoppingCart className="h-4 w-4" aria-hidden="true" />Cart
         {value.cartCount > 0 ? <span className="inline-flex min-w-5 justify-center rounded-full bg-[var(--jw-accent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--jw-on-accent)]">{value.cartCount}</span> : null}
       </button>
       {cartOpen ? <JwStoneMemberCart key={normalizedViewerId} viewerId={normalizedViewerId} items={cart} onClose={closeCart} onQuantityChange={updateCartQuantity} onStockChange={updateCartStock} /> : null}
+      {bundleOpen ? <Suspense fallback={<p role="status">Opening bundle builder…</p>}><BundleWorkspace key={normalizedViewerId} onClose={() => setBundleOpen(false)} /></Suspense> : null}
       {stoneOffer && stoneOffer.viewerId === normalizedViewerId ? <Suspense fallback={<p role="status">Loading offer form…</p>}>
         <JwStoneOfferPanel key={normalizedViewerId} open onClose={() => setStoneOffer(null)} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} stayInProfile requestMode="materials" initialView="request" initialRequestType="make_offer" initialStoneName={stoneOffer.scope === "stone" ? stoneOffer.stoneName : undefined} jwStoneOffer={stoneOffer} />
       </Suspense> : null}
     </> : null}
   </JwStoneMemberPricingContext.Provider>;
+}
+
+export function JwStoneBundleEntry({ className, onOpen }: { className?: string; onOpen?: () => void }) {
+  const shopping = useJwStoneShopping();
+  return <button type="button" data-testid="jw-storefront-build-bundle" onClick={() => { onOpen?.(); shopping.openBundle(); }} className={className}>Build a Bundle</button>;
+}
+
+/** One primary stone action. Guest entry opens membership, never an unrelated inquiry. */
+export function JwStoneOfferAction({ stoneName, inventoryPublicId, presentation, className }: {
+  stoneName: string; inventoryPublicId?: string; presentation: "card" | "detail" | "inventory"; className?: string;
+}) {
+  const shopping = useJwStoneShopping();
+  const stock = jwStoneInventoryPublicIdSchema.safeParse(inventoryPublicId);
+  const name = stoneName.trim();
+  return <button type="button" data-testid={`jw-stone-make-offer-${presentation}`} className={className}
+    onClick={() => shopping.makeOffer({ id: stock.success ? `stock:${stock.data}` : `offer:${jwStonePriceKey(name)}`, stoneName: name, stoneKey: jwStonePriceKey(name), ...(stock.success ? { inventoryPublicId: stock.data } : {}) })}>
+    Make an Offer
+  </button>;
 }
 
 export function useJwStoneMemberPrice(stoneName: string | null | undefined): VisibleJwStonePrice | null {
@@ -213,11 +270,12 @@ function cartItemId(stoneKey: string, dimensions: JwStoneSlabDimensionsInput): s
   return `${stoneKey}:${dimensionKey}`;
 }
 
-export function JwStoneMemberPriceDisplay({ stoneName, slabDimensions, inventoryPublicId, presentation = "card" }: {
+export function JwStoneMemberPriceDisplay({ stoneName, slabDimensions, inventoryPublicId, presentation = "card", showOfferAction = true }: {
   stoneName: string | null | undefined;
   slabDimensions?: JwStoneSlabDimensionsInput;
   inventoryPublicId?: string;
   presentation?: "card" | "detail" | "inventory";
+  showOfferAction?: boolean;
 }) {
   const context = useContext(JwStoneMemberPricingContext);
   const price = context.priceFor(stoneName);
@@ -246,10 +304,7 @@ export function JwStoneMemberPriceDisplay({ stoneName, slabDimensions, inventory
     })} className={compact ? "mt-2 inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--jw-border)] px-3 text-xs font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]" : "mt-4 inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--jw-ink)] px-4 py-2 text-sm font-semibold text-white"}>
       <ShoppingCart className="h-4 w-4" aria-hidden="true" />Add slab to cart
     </button> : null}
-    {context.cartEnabled ? <button type="button" data-testid={`jw-stone-make-offer-${presentation}`} onClick={() => context.makeOffer({
-      id: stockId.success ? `stock:${stockId.data}` : cartItemId(price.stoneKey, slabDimensions), stoneName: price.stoneName, stoneKey: price.stoneKey,
-      ...(stockId.success ? { inventoryPublicId: stockId.data } : {}),
-    })} className="ml-2 mt-2 inline-flex min-h-11 items-center justify-center border border-[var(--jw-accent)] px-3 text-xs font-semibold text-[var(--jw-ink)]">Make an offer</button> : null}
+    {context.cartEnabled && showOfferAction ? <JwStoneOfferAction stoneName={price.stoneName} inventoryPublicId={inventoryPublicId} presentation={presentation} className="ml-2 mt-2 inline-flex min-h-11 items-center justify-center border border-[var(--jw-accent)] px-3 text-xs font-semibold text-[var(--jw-ink)]" /> : null}
     {context.cartEnabled && price.bundlePriceCents < price.slabPriceCents && (price.bundleMinSlabs ?? 7) <= 7
       ? <p className="mt-2 text-xs text-[var(--jw-muted)]">Build a bundle: mix 7 eligible slabs for bundle pricing.</p> : null}
   </div>;
