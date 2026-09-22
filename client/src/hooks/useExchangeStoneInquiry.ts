@@ -69,7 +69,7 @@ export function useExchangeStoneInquiry(options: Options) {
     const preparationKey = `${listing.id}:${requested || ""}:${actorId || "anonymous"}`;
     if (!requested || prepared.current === preparationKey) return;
     prepared.current = preparationKey;
-    let restored = null;
+    let restored: ReturnType<typeof restoreStoneInquiryDraft> = null;
     try { restored = restoreStoneInquiryDraft(window.sessionStorage, listing.id, actorId); } catch { /* storage is optional for opening a draft */ }
     const generated = stoneInquiryMessage(listing, requested);
     setIntent(requested);
@@ -115,7 +115,7 @@ export function useExchangeStoneInquiry(options: Options) {
   }
 
   function finish(submittedListingId?: string) {
-    const id = submittedListingId || listing?.id;
+    const id = submittedListingIdIdSafe(submittedListingId, listing?.id);
     if (!id) return;
     try { forgetStoneInquiryDraft(window.sessionStorage, id); } catch { /* unavailable storage */ }
     if (current.current.listing?.id !== id) return;
@@ -128,4 +128,8 @@ export function useExchangeStoneInquiry(options: Options) {
   }
 
   return { isRetail, intent, warning, prepare, continueToSignIn, finish };
+}
+
+function submittedListingIdIdSafe(submittedListingId?: string, currentListingId?: string): string | undefined {
+  return submittedListingId || currentListingId;
 }
