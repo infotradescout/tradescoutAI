@@ -3,7 +3,9 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 
-if (process.env.REQUEST_STAGES_CANDIDATE_SHA) {
+if (process.env.REQUEST_DASHBOARD_CANDIDATE_SHA) {
+  await import('./verify-request-dashboard-release.mjs');
+} else if (process.env.REQUEST_STAGES_CANDIDATE_SHA) {
   await import('./verify-request-stage-report.mjs');
 } else if (process.env.SEARCH_SURFACE_CANDIDATE_SHA) {
   // The outer verifier owns this disposable detached checkout. A local clone
@@ -15,9 +17,6 @@ if (process.env.REQUEST_STAGES_CANDIDATE_SHA) {
   git(['fetch', '--no-tags', ...(shallow ? ['--unshallow'] : []), 'https://github.com/infotradescout/tradescoutAI.git', 'refs/heads/main:refs/heads/main']);
   console.log('CANDIDATE_MAIN_AUTHORITY ' + git(['rev-parse', 'refs/heads/main']));
 
-  // The observed full tsc run exhausted Node's default 2 GiB heap. This owned
-  // CLI shim supplies a bounded heap to npm/tsc/build subprocesses even though
-  // the candidate harness intentionally strips ambient NODE_OPTIONS.
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'search-candidate-node-'));
   const previousPath = process.env.PATH;
   const executable = process.execPath.replace(/'/g, "'\\''");
