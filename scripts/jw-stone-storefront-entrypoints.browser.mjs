@@ -36,6 +36,9 @@ try {
     'import {StoneCard} from "./features/jw-stone/StoneCard"; import {StoneDetailDialog} from "./features/jw-stone/StoneDetailDialog";',
     'import {NewArrivalsSection} from "./features/jw-stone/CurrentInventorySection"; import {JW_STONE_CATALOG} from "./features/jw-stone/catalog";',
     'import {JW_STONE_BRAND_STYLE} from "./features/jw-stone/brand"; import "./index.css";',
+    // Eagerly discover dependencies used by lazy panels before browser interaction.
+    // Otherwise Vite may reload the document while the first bundle is being built.
+    'import "./features/jw-stone/JwStoneBundleWorkspace"; import "./features/jw-stone/JwStoneShoppingAccess"; import "./pages/profile-sites/ExpressDirectConnectPanel";',
     'const query = new QueryClient({defaultOptions:{queries:{retry:false,queryFn:async ({queryKey})=>{const r=await fetch(String(queryKey[0]));return r.ok?r.json():null;}}}});',
     'const stone=JW_STONE_CATALOG.find(s=>s.id==="honey-onyx")!; (window as any).askCount=0;',
     'function Fixture(){ const [viewer,setViewer]=useState<string|null>("member-a"),[detail,setDetail]=useState(false); (window as any).setFixtureViewer=(v:string|null)=>{setViewer(v);query.clear();}; const ask=()=>{(window as any).askCount++};',
