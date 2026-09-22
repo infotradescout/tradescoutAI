@@ -27,7 +27,7 @@ export async function readExchangeStoneCatalog(): Promise<StoneCatalogRead> {
   const query = new PgDialect().sqlToQuery(sql`
     SELECT l.* FROM marketplace_listings l
     JOIN marketplace_categories c ON c.id = l.category_id
-    WHERE l.id = ANY(${[...stoneCatalog.keys()]}::text[]) AND l.seller_id = ${sellerId}
+    WHERE l.id IN ${[...stoneCatalog.keys()]} AND l.seller_id = ${sellerId}
       AND l.status = 'active' AND (l.expires_at IS NULL OR l.expires_at > now())
       AND c.name = 'Building Materials & Surfaces' AND c.is_active = true
       AND ${exposureAuthoritySqlPredicate(sql`l.seller_id`)}
