@@ -45,9 +45,11 @@ beforeEach(() => {
     if (sql.includes("SELECT id FROM profile_accounts")) {
       return { rows: fixture.existing ? [{ id: "account-id" }] : [] };
     }
-    if (sql.includes("FROM user_profiles")) return { rows: fixture.businessExists ? [{
-      id: "customer-business", display_name: "Sample Fabricator", verification_status: "pending",
-    }] : [] };
+    if (sql.includes("FROM user_profiles") && !sql.includes("INSERT INTO user_profiles")) {
+      return { rows: fixture.businessExists ? [{
+        id: "customer-business", display_name: "Sample Fabricator", verification_status: "pending",
+      }] : [] };
+    }
     if (sql.includes("INSERT INTO user_profiles")) return { rows: [{
       id: "customer-business", display_name: "Sample Fabricator", verification_status: "pending",
     }] };
