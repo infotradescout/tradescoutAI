@@ -1,75 +1,81 @@
-# TradeScout stone retail continuation — migrations integrated, not deployed
+# TradeScout stone retail — storefront and discovery integrated, not deployed
 
 ## Objective
-Generate real connected buyer calls and distinct interested buyers, measured against comparable Facebook Marketplace offers. TradeScout owns retail listings and the customer relationship; JW remains the separate supplier. Public retail prices have no fabricator-membership gate. Exclude Pensacola, Florida city only, not a county, radius, surrounding cities or all Florida. Continuation is not approval of reference prices.
+Generate real connected buyer calls and distinct interested buyers against comparable Facebook Marketplace offers. TradeScout is the retail seller and owns the customer relationship. JW remains the separate supplier; its portal/prices are not modified. Retail prices are public, including to fabricators. Pensacola means Pensacola, Florida city only, not county/radius/neighbors. Continuation is not approval of reference prices.
 
 ## Base branch/commit
 Repository: infotradescout/tradescoutAI
 Branch: exchange/tradescout-stone-retail-20260921
-Original main: f22ddff023d24d5ca1938714619f942819afc5ce
-This slice resumed from checkpoint 0c53860d1e7fef691af140ae402dc028ff5791f4, following inquiry implementation 15381216e1e409b981c2e0b4a91f08504a476d69.
+PR: 690, draft, not a production release.
+Original main base: f22ddff023d24d5ca1938714619f942819afc5ce.
+This continuation resumed from 385ecd68956c3beed9713423257c6ea43f006877, after registered migrations and native schema proof. Do not restart that work.
 
 ## Current branch/commit
-Tested implementation and test commit: d15b0bc8cde5d50734cebd6ecb02c6ffab571476 on the same branch. This checkpoint is a documentation-only successor. PR #690 remains draft and must not be merged as a finished sales funnel.
+Tested implementation/test commit: 2809b94f238a741902d58d1af253b6fafba9132b.
+This handoff is a checkpoint-only successor. The PR metadata records the resulting branch head.
 
 ## Verified completed work
-The existing atomic inquiry/screen work remains intact. This slice promotes its two staged SQL definitions into canonical migrations 0140 and 0141, adds the corresponding journal entries, and connects read-only stone schema verification to the existing migration/startup release paths and release bundle.
+- Bound discovery to all 119 prior staged material IDs/names. Exact identity parity passed; no prices, source-photo links or supplier economics were added to the identity catalog.
+- Added a bounded catalog reader using the existing marketplace table, the explicitly configured TradeScout seller, active Building Materials & Surfaces category, canonical exposure predicate, active/unexpired state, and signed price/copy/photo approval. Public output is an explicit allowlist, not a redacted supplier record.
+- Mounted /exchange/stone, /api/exchange/stone and /api/exchange/stone-media/:id through the existing post-auth metadata owner. The landing supports material/name search, cents and price units, stone-specific availability/callback links, and selected-market photo URLs. Browsing prices does not require sign-in or fabricator membership.
+- Added approved national retail rows to the existing Exchange merge before global sorting/pagination. Hidden retail source rows do not fill native-source page windows. Native/profile content remains in its established flow. Existing public detail projection uses the same request-approved retail record.
+- Scoped live Scout marketplace reads to the same approved source, excluding raw retail rows from ordinary queries and the unlocalized crawler cache.
+- Implemented request/account/selected-market eligibility: exact normalized Pensacola + FL is excluded; adjacent cities and other states are not. Malformed/unknown locations remain unresolved, not inferred from county or ZIP. Known excluded accounts cannot be reenabled by a search parameter. Request scopes and private/no-store responses prevent one resolved market's catalog from being reused for another.
+- Neutral photo delivery validates the expected TradeScout object key, WebP signature and approved SHA-256. It does not redirect to JW or Drive.
+- Fixed two pre-checkpoint issues: JSON-LD escaping during source transport and using a Drizzle array chunk as an ANY array value. The final query uses a parameterized IN list. Both have regression coverage.
 
-All 143 historical journal entries are unchanged. No ledger history was stamped, repaired or applied to a real application database. The new migrations create outcome evidence and buyer-scoped inquiry receipts; they do not publish listings or change supplier prices. The staged SQL files remain for compatibility; tests require their DDL bodies to equal the canonical migration files.
+These are exact-source code and bounded test results. The complete deployed application has not been accepted.
 
-The read-only verifier checks exact column types/nullability, timestamp defaults, validated CHECK definitions, immediate primary/unique keys, five correct foreign-key targets and native index direction. A same-named but weakened table does not pass. Missing verifier artifacts stop the supported canonical release path before migration execution. The existing base verifier runs first; its failure or the stone verifier's failure yields a nonzero result.
+## Files changed and exact Git blob identities
+All 12 local implementation/test files matched the GitHub write/read blob identities at the tested commit.
 
-### Native PostgreSQL evidence
-Used an existing Neon test project, not production and not newly provisioned infrastructure. Canonical DDL executed inside pg_temp with minimal temporary prerequisite tables, within a transaction rolled back to its initial SAVEPOINT. Twenty-three PostgreSQL assertions passed: duplicate request/card rejection, all five foreign keys, payload/fingerprint checks, buyer-scoped identity, legacy aliases, evidence deduplication, callback-versus-call separation, failed-write rollback and idempotent DDL replay preserving records. Native advisory and row locks executed, but lock contention was not tested.
-
-The latest full behavior run reported PostgreSQL 17.11. Initial inspection reported 17.8; use each execution's reported version rather than assuming a fixed provider patch level. Final queries confirmed temporary DDL rolled back and both public stone tables remained absent.
-
-Native metadata caught a verifier bug that synthetic fixtures missed: pg_get_indexdef(index, column, true) returns a column without its DESC flag. The verifier now reads indoption direction bits separately. A focused second native transaction executed the corrected query and confirmed the legacy index's final key is descending, then rolled back. The full behavior suite did not need repeating for this metadata-only change. SQL-literal normalization preserves whitespace/cast-looking text inside quoted values.
-
-## Files changed and exact-source identity
-All ten implementation/test files below match their locally tested bytes and committed Git blobs.
-
-| Path | Bytes | Git blob |
-|---|---:|---|
-| build-server.mjs | 5530 | f249ba441ba74a49b6d0ae3efc0ce1f530365e88 |
-| migrations/0140_exchange_stone_funnel.sql | 1228 | 7bae51409c0a21a064c4c23f57b6425becddf0f7 |
-| migrations/0141_exchange_stone_inquiry_receipts.sql | 952 | 0f6d5803837a7ebfc335b6249cc89f8842928edb |
-| migrations/meta/_journal.json | 22748 | daa68b5fd8b3d52db3b65fe51c6dad18b51ea897 |
-| runtime/run-release.mjs | 3254 | c6dc8a0008acc2758abbbedcb5efd694317f84e7 |
-| scripts/check-exchange-stone-schema.mjs | 1184 | 44a229aa09639e038afac27949046e3daca871a7 |
-| scripts/db-migrate-safe.mjs | 2592 | 03c2fcae2c29befa670be885b9600c3c8287e331 |
-| scripts/exchange-stone-schema.test.mjs | 8225 | f3995139e547c484ad35acfa7e80193ba4fcce84 |
-| scripts/exchange-stone-postgres-proof.mjs | 9354 | 6908fe9542e685a199ebd9c53f61f241e8db608d |
-| scripts/lib/exchange-stone-schema.mjs | 8601 | 829847dbdeb6d7a4aba1308189da7676920ccb24 |
-
-A transport escaping difference in the newly committed child-script test was corrected before final acceptance. The final test hash above is the verified version, not the intermediate commit. Production application logic was not changed by that correction.
+| File | Git blob SHA-1 |
+|---|---|
+| server/data/exchangeStoneCatalogIdentity.ts | a2d016020ef64b98bed85ca12ae7cbd3c5c86ee3 |
+| server/services/exchangeStoneDiscovery.ts | 3f227f59dff2babe06cba9bb04a1c75dcea620f8 |
+| server/services/exchangeStoneCatalogReader.ts | c04e1c7ca0a9c8d80e7a28be48ec13d8eac13b9c |
+| server/routes/exchange-stone-catalog.ts | 39e0f33912ea612bfd993d1a063bc71d7fe57e33 |
+| server/exchangeDiscovery.ts | d96e1af8adccd9897252befd0fe5e3eb2dc2ab27 |
+| server/publicExchangeListing.ts | 526573f57384da3ff77bd57be8805e79d797f61e |
+| server/services/marketplaceService.ts | 2013807251e954f97c4fde99913c5cf434eb14de |
+| server/crawler/extractors/marketplace.ts | fcda5dc03b423a232545934c19062d19c80419b9 |
+| server/publicExchangeStoneHtml.ts | 38cb81656260a80be810174b928b677972f31a7d |
+| server/routes/public-metadata.ts | c577c8841c46c2151e304217f559928f9652d59d |
+| scripts/exchange-stone-discovery.test.mjs | 134e9b2643c6f93ec4d648ae601a87a26237e600 |
+| scripts/exchange-stone-query-shape.test.mjs | 8b6ddff6707732a0c84e3d13d4c1e166dd982fcb |
 
 ## Tests/evidence already run
-Command: NODE_PATH=$(npm root -g) node --experimental-strip-types --test scripts/exchange-stone-schema.test.mjs scripts/exchange-stone-inquiry-transaction.test.mjs scripts/exchange-stone-inquiry-draft.test.mjs scripts/exchange-stone-funnel-core.test.mjs
-Result: 75 passed, 0 failed, 0 skipped. This is 27 new schema/release cases plus the previous 48. Prior transaction tests still use explicit SQLite/HTTP adapters; they have not become native application-transaction proof.
+1. NODE_PATH=$(npm root -g) node --test scripts/exchange-stone-discovery.test.mjs scripts/exchange-stone-query-shape.test.mjs
+   Result: 34 passed, 0 failed, 0 skipped. Actual policy, request-scope, projection, merge, renderer, reader and route modules execute; database, Drizzle, media storage, HTTP/session and exposure dependencies use explicit adapters. Includes 119 retail + one native item across three pages, 24 concurrent asynchronous request contexts, geographic/direct/photo/cache isolation, signature tampering, query filtering, unavailable responses and JSON-LD script closure. One test is an explicit query source-contract check, not native query execution.
+2. NODE_PATH=$(npm root -g) node --experimental-strip-types --test scripts/exchange-stone-schema.test.mjs scripts/exchange-stone-inquiry-transaction.test.mjs scripts/exchange-stone-inquiry-draft.test.mjs scripts/exchange-stone-funnel-core.test.mjs
+   Result: 75 passed, 0 failed, 0 skipped. These existing tests retain their previously documented SQLite/HTTP/schema-snapshot/launcher adapters. They are not 75 new PostgreSQL executions.
+3. tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution bundler --types node --typeRoots /opt/nvm/versions/node/v22.16.0/lib/node_modules/ts-node/node_modules/@types server/services/exchangeStoneDiscovery.ts server/exchangeDiscovery.ts server/data/exchangeStoneCatalogIdentity.ts server/publicExchangeStoneHtml.ts
+   Result: passed for this pure dependency closure. Syntax transpilation passed for all ten changed TypeScript files. This is not a full application typecheck/build.
+4. Exact staged source catalog parity: all 119 ID/name pairs match. Canonical pair digest SHA-256: c02d397e949362b6056b65663fb73eec1b73a02d527448518fd02e9c936d8dee.
 
-All seven changed MJS files pass node --check. The native proof generator emits SQL and source digests; it does not choose credentials/targets or execute anything itself.
+Prior 23 native PostgreSQL schema assertions remain earlier evidence; they were not repeated in this continuation. No new native application transaction/concurrency proof was executed.
 
-Actual release-launcher subprocess tests use synthetic child verifiers and an explicit security adapter. They prove command sequencing, missing-artifact refusal and failure propagation, not live TLS/database behavior. Bundle/direct-migration integration has source checks, not a full build. The metadata query ran on PostgreSQL; JavaScript shape validation/CLI was tested with local snapshots, not a live pg.Client session.
+## Changed but unverified work
+- Full application route precedence, actual Express/session persistence, authentication return, existing API-to-screen behavior, production Drizzle query generation and PostgreSQL execution, real immutable object storage and mobile/desktop browser acceptance.
+- Complete native inquiry transaction against the application schema with multiple processes, and npm run gate:minimum-release at the final integration commit.
+- Main has other ongoing work; reconcile the exact integration candidate without overwriting concurrent branches or importing their unrelated changes.
 
-The continuation package preserves the local test log, exact SQL request sets, a clearly labeled transcribed native-result summary, migration-history comparison and source SHA manifest. The corrected full generator output and the earlier full native execution differ only in the subsequently executed metadata query.
-
-## Changed but unverified work / invalidated evidence
-No full application build/typecheck, complete Express/sign-in journey, full native application-schema transaction, multi-process PostgreSQL contention or npm run gate:minimum-release has passed. The release-path changes require fresh full candidate verification before merge. Earlier 16 browser-component scenarios were not rerun after the preceding atomic submission-path changes; do not claim current full-browser acceptance.
-
-No persistent migration deployment, production database mutation or native CLI connection occurred. This schema proof is not a complete historical empty-database bootstrap or an accepted release. Canonical launcher and db:migrate paths include the new verifier; invoking the old base checker file directly still checks only its existing schema.
+## Tests/evidence invalidated by later changes
+Earlier standalone landing/browser evidence does not accept this modified search form, scoped image URLs or middleware. Earlier screen browser evidence also predates the durable submission path. Rerun the actual integrated browser journey before release. Pure inquiry/schema behavior tests were rerun above; their bounded scope is unchanged.
 
 ## Known blockers/risks
-National catalog/discovery/media/geographic/import integration remains incomplete. The existing inquiry contact guard is not proof of Pensacola discovery exclusion. Do not reuse the old incomplete base-alias copy approach. Product-level indexing and public pricing remain unaccepted.
-
-119 material references remain staged, 0 explicit retail price approvals, 0 newly published listings/photos. Exact source photos, current stock and seller identity must be verified; do not infer aliases from similar material names or invent prices/quantities. The configured TradeScout seller setting is general.exchange_stone_retail_seller_user_id; the stable dedicated metrics key is STONE_METRICS_SECRET. Neither was configured in production here. Calls/quotes/payments still require their actual authoritative evidence hooks and a matched observed Facebook baseline.
-
-Full repository/dependency checkout remained unavailable through sandbox DNS in this run; connected GitHub and Neon worked. Do not repeat broad discovery or treat that as permission to claim unexecuted full release tests.
+- 119 staged material references, zero explicit retail-price approvals, zero newly published listings or photos. This code does not insert marketplace rows or upload images.
+- Configure the verified TradeScout seller setting general.exchange_stone_retail_seller_user_id, review/copy exact source photos and run the approved-price importer. Do not substitute a supplier account, estimate stock, or infer price approval.
+- Signed publication currently uses SESSION_SECRET for compatibility with the earlier staged manifest. Session-secret rotation invalidates publication signatures until explicitly re-signed. Buyer metrics continue to require their separate stable STONE_METRICS_SECRET.
+- This is selected/account-market filtering, not proof of physical IP/city-boundary location or control of third-party search results. Unknown visitors choose a state and Florida city before products are shown. Published landing pages can be indexed, but nationwide product crawl/distribution still needs real acceptance; no crawler-only bypass was added.
+- Catalog lookups are bounded but currently repeated per scoped request/photo. Validate production latency and cache behavior without allowing cross-market or stale-publication leakage.
+- Full checkout/dependencies were not available through sandbox network resolution; this package is a partial source/evidence continuation, not a full repository build.
 
 ## External side effects and retry safety
-Only this isolated feature branch/PR is changed. Native test transactions wrote temporary synthetic fixtures and rolled them back. No new project/branch/service, no main merge/deployment, no persistent database rows, no object-store upload, no supplier-price modification or customer contact. No new GitHub workflow. The earlier blocked bulk tree request was not retried.
+Only the isolated feature branch, draft PR and local files changed. No main merge/deployment, production database changes, seller setting changes, photo uploads, supplier price changes, customer contact, workflow or new infrastructure. No caller-visible success may be represented as a completed call. Original atomic inquiry/replay behavior is retained, not replaced with a second contact endpoint.
 
 ## Next exact action
-Resume after this schema integration, not from the older detached helpers. Continue canonical national catalog/discovery and reviewed media/import integration while preserving the actual listing screen and atomic inquiry owner. Keep price publication held until explicit approved selling prices exist, but do not let that stop independent catalog wiring. Verify TradeScout seller identity and photo mapping, then test the complete authenticated inquiry route on the actual PostgreSQL application schema with concurrent processes and lost responses. Reconcile migration numbering against current main only at integration, preserve both histories, and run full exact-candidate release gates before merge.
+Resolve and inspect the actual staged catalog import/media owner and verified TradeScout seller record, then wire its approved outputs into this catalog reader. In parallel, obtain exact-candidate full application execution for the existing Exchange feed -> detail -> sign-in -> protected inquiry -> seller inbox journey, including native PostgreSQL retries. Complete real price/photo import and full release verification before merging. Missing price approval must not halt independent configuration, media and runtime work, but no price may be published without approval.
 
-Actions that must NOT be repeated: re-create migrations or re-run unchanged temporary SQL proof without a relevant code change; overwrite old journal entries; replay historic migrations blindly; broaden Pensacola; gate retail viewing by fabricator membership; invent prices, stock, leads or connected calls; create GitHub Actions/proof infrastructure; publish the private supplier workbook; or present this draft as live Facebook outperformance.
+## Actions that must NOT be repeated
+Do not recreate the catalog identity set, UI helpers, atomic inquiry transaction or migrations; do not repeat unchanged native schema proof. Do not use the older incomplete base-alias wrappers or retry the previously blocked bulk tree request. Do not create workflows/proof services, modify JW portal pricing, broaden Pensacola, or claim Facebook outperformance without observed matched outcomes.
