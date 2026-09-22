@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "recordedAt": "2026-09-22T05:33:04.592Z",
+  "owner": "thomas",
+  "ownerInstruction": "labels arent a blocker, pics can be cropped if needed",
+  "labelsAloneBlockPublication": false,
+  "cropping": "optional_when_useful",
+  "cropRequiredForPublication": false,
+  "appearanceEditsPerformed": false,
+  "cropsPerformed": 0,
+  "scope": "TradeScout Exchange retail material-reference images; not a change to JW portal pricing or seller identity.",
+  "sharedSourcePhotoNote": {
+    "ids": [
+      "tradescout-stone-matarazzo",
+      "tradescout-stone-matarazzo-zucchi"
+    ],
+    "sourceSha256": "a2544a4847507c05368fb372d31d61d3e5770fe98518bb6d1b24e6d1ec1ef85f",
+    "evidence": "Existing source asset map assigns the same bytes to both named material rows.",
+    "limitation": "Use as source-sheet material references only. Do not infer two distinct exact slabs, availability or quantity from the reused photo. Exact-slab selection still requires confirmation."
+  },
+  "cleared": [
+    {
+      "id": "tradescout-stone-aj-quartz-4",
+      "sha256": "42d54ea171d15e3281cb1a39c7df2313cb433e7d72919ea578ca00e33c16a006",
+      "sourceSha256": "6b4825b0c091baea2745100349eba7e731dd44441c37028f9c6d93c908acb3ef",
+      "file": "tradescout-stone-aj-quartz-4/42d54ea171d15e3281cb1a39c7df2313cb433e7d72919ea578ca00e33c16a006.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-aj-quartz-5",
+      "sha256": "b0bac0d971a4af919ceb36150c122e4bca1298c66e1b366306e1b0d2960f8547",
+      "sourceSha256": "d86dd74d0a6a44fe45d8091e046e8ebee68657b8451cc74e53cd608cc9a79731",
+      "file": "tradescout-stone-aj-quartz-5/b0bac0d971a4af919ceb36150c122e4bca1298c66e1b366306e1b0d2960f8547.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-matarazzo-zucchi",
+      "sha256": "93afafe6ced2463391bff4706d008389f6639c9e9d253515180a1f243e2e7dd1",
+      "sourceSha256": "a2544a4847507c05368fb372d31d61d3e5770fe98518bb6d1b24e6d1ec1ef85f",
+      "file": "tradescout-stone-matarazzo-zucchi/93afafe6ced2463391bff4706d008389f6639c9e9d253515180a1f243e2e7dd1.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-namib-carrera",
+      "sha256": "0cccaf0451c8465d09a003c363944365b92ef20f1553d283e069a0aac9ba3e74",
+      "sourceSha256": "0a0cf5e163bd2735ebe0f849d81736a9ffa4e120bcd9208b96ed1bb1fc432ec0",
+      "file": "tradescout-stone-namib-carrera/0cccaf0451c8465d09a003c363944365b92ef20f1553d283e069a0aac9ba3e74.webp",
+      "priorReason": "Bystander in marketing photo; alternate slab-only source preferred.",
+      "resolution": "Usable material-reference photo; bystander at edge does not hide the main stone surface. Crop optional.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-zucci",
+      "sha256": "d5d4f28075f350dd05fb03b2aa6d5887d4732c1856c2e99be4522919c5e78bdb",
+      "sourceSha256": "3f4e3c92383e7edac9a700ed96d24967af5d6c9d2cf9ba9297ad5c2aa886ed74",
+      "file": "tradescout-stone-zucci/d5d4f28075f350dd05fb03b2aa6d5887d4732c1856c2e99be4522919c5e78bdb.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-honey-onyx",
+      "sha256": "868fdb319cfffecb3fe18b97a13fae978ad32a90e297e85091182a631ce99927",
+      "sourceSha256": "f04f5085cb029bd4ef47c27722af5f7a67080bd0febe75c982f1d4b8702b09a2",
+      "file": "tradescout-stone-honey-onyx/868fdb319cfffecb3fe18b97a13fae978ad32a90e297e85091182a631ce99927.webp",
+      "priorReason": "Installed display image; find a slab photo or clearly distinguish an installation example.",
+      "resolution": "Prior installed-product classification corrected: source photo shows a freestanding slab on supports.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-blue-dream",
+      "sha256": "accbdbbd448438450e2206e124baf08e78b7bf441ed5d94a1742d3b45c67d6f0",
+      "sourceSha256": "916dd212d933c82726e30c3b0e0baa5ab7b7821fccaa31c1a56df0aa58c14ca5",
+      "file": "tradescout-stone-blue-dream/accbdbbd448438450e2206e124baf08e78b7bf441ed5d94a1742d3b45c67d6f0.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-calacatta-amala",
+      "sha256": "15e8028bb68af4e290e30835b3dfa8b696ebb28b39a5fcaf5eb920051a39e82d",
+      "sourceSha256": "b14edac4cb364b4c3d173758c7ca169d2fbcb85467fd596c40d44d627a9f9363",
+      "file": "tradescout-stone-calacatta-amala/15e8028bb68af4e290e30835b3dfa8b696ebb28b39a5fcaf5eb920051a39e82d.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-fusion-brown",
+      "sha256": "b7ddac535cafff6a2c63b037a3f3c77db87cacba3918f223f382ead1faf59fd0",
+      "sourceSha256": "4593d607ab630dfb68408a2ce288c01bd89e859d7d3c8403de3305736c7267d3",
+      "file": "tradescout-stone-fusion-brown/b7ddac535cafff6a2c63b037a3f3c77db87cacba3918f223f382ead1faf59fd0.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-black-dunes",
+      "sha256": "93fe7b2b71faa808f9bcd8f052db33f92e180fa72f88a64f1d91148743dac5de",
+      "sourceSha256": "0566c1b55d9661a40e28dfc6b981b909f4d241ed0a7d5fa095c5dae2ebcf0908",
+      "file": "tradescout-stone-black-dunes/93fe7b2b71faa808f9bcd8f052db33f92e180fa72f88a64f1d91148743dac5de.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    },
+    {
+      "id": "tradescout-stone-matarazzo",
+      "sha256": "93afafe6ced2463391bff4706d008389f6639c9e9d253515180a1f243e2e7dd1",
+      "sourceSha256": "a2544a4847507c05368fb372d31d61d3e5770fe98518bb6d1b24e6d1ec1ef85f",
+      "file": "tradescout-stone-matarazzo/93afafe6ced2463391bff4706d008389f6639c9e9d253515180a1f243e2e7dd1.webp",
+      "priorReason": "Visible manufacturer/supplier label needs closer review or an alternate photo.",
+      "resolution": "Owner explicitly confirmed that visible labels are not a publication blocker.",
+      "reviewedAt": "2026-09-22T05:33:04.592Z"
+    }
+  ],
+  "counts": {
+    "priceApprovals": 119,
+    "previousReadyPairs": 85,
+    "labelsCleared": 9,
+    "otherPresentationHoldsCleared": 2,
+    "readyPairs": 96,
+    "unretrievedOriginals": 23,
+    "labelHoldsRemaining": 0,
+    "newLiveListings": 0,
+    "newPublicMediaUploads": 0
+  }
+}
