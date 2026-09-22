@@ -136,6 +136,7 @@ const releaseResult = await esbuild.build({
     'check-required-production-schema': 'scripts/check-required-production-schema.mjs',
     'check-exchange-stone-schema': 'scripts/check-exchange-stone-schema.mjs',
     'import-exchange-stone': 'scripts/import-exchange-stone.ts',
+    'apply-exchange-stone-package': 'scripts/apply-exchange-stone-package.mjs',
     'seed-businesses-places-new': 'scripts/seed_businesses_places_new.mjs',
   },
   bundle: true,
