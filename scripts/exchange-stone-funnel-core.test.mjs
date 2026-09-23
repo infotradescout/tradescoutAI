@@ -34,6 +34,40 @@ test('exact product links, explicit price units and sign-in continuation', () =>
   assert.match(decodeURIComponent(buyer.stoneInquiryReturnPath(item.id, 'callback')), /inquiry=callback$/);
   assert.match(buyer.stoneInquiryMessage(item, 'callback'), /Synthetic test stone.*\$27.75 \/ sq ft.*TradeScout/s);
 });
+
+test('full slab material estimate leads from approved square-foot rate and every recorded size', () => {
+  const one = buyer.stoneSlabMaterialPrice('27.75', 'sqft', '126x78');
+  assert.equal(one.kind, 'estimated');
+  assert.equal(one.primaryPrice, '$1,893.94');
+  assert.equal(one.secondaryPrice, '$27.75 / sq ft');
+  assert.equal(one.referenceSizeCount, 1);
+  const varied = buyer.stoneSlabMaterialPrice('27.75', 'sqft', '126x78, 127x77.5');
+  assert.equal(varied.primaryPrice, '$1,893.94–$1,896.73');
+  assert.equal(varied.referenceSizeCount, 2);
+  assert.match(varied.explanation, /confirm the selected slab's dimensions and total/);
+  const card = renderer.renderExchangeStoneLanding(landing({ items: [{ ...item, specifications: {
+    priceUnit: 'sqft', referenceSizesInches: '126x78, 127x77.5',
+  } }] })).html;
+  assert.match(card, /Estimated full slab material price<\/p><p class="price">\$1,893\.94–\$1,896\.73<\/p><p class="price-secondary">\$27\.75 \/ sq ft/);
+});
+
+test('missing or malformed dimensions never invent a full slab total', () => {
+  for (const sizes of [null, '', '126x78, nonsense', '126x78,', '10x78', '126x780']) {
+    const display = buyer.stoneSlabMaterialPrice('27.75', 'sqft', sizes);
+    assert.equal(display.kind, 'size_required');
+    assert.equal(display.primaryPrice, 'Confirm slab dimensions');
+    assert.equal(display.secondaryPrice, '$27.75 / sq ft');
+  }
+  const card = renderer.renderExchangeStoneLanding(landing()).html;
+  assert.match(card, /Full slab material price<\/p><p class="price">Confirm slab dimensions<\/p><p class="price-secondary">\$27\.75 \/ sq ft/);
+  assert.equal(card.includes('Estimated full slab material price'), false);
+  assert.equal(buyer.stoneSlabMaterialPrice(1707, 'slab', null), null);
+  assert.deepEqual(buyer.stoneSlabMaterialPrice(1707, 'slab', null, 'Slab A'), {
+    kind: 'exact', primaryLabel: 'Full slab material price', primaryPrice: '$1,707.00', secondaryPrice: null,
+    referenceSizeCount: 0,
+    explanation: 'For the identified slab. Confirm availability; delivery, fabrication and installation are separate.',
+  });
+});
 test('Facebook acquisition survives internal navigation without retaining private URL queries', () => {
   const original = funnel.captureAcquisition('/exchange/stone?utm_source=facebook&utm_medium=marketplace', 'https://l.facebook.com/l.php?private=123');
   assert.equal(original.channel, 'facebook_marketplace');

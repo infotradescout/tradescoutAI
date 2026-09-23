@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef } from "react";
-import { stonePriceLabel } from "@shared/exchangeStoneBuyerFlow";
+import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing, STONE_DRAFT_MAX_MESSAGE } from "@shared/exchangeStoneInquiryDraft";
 import { useExchangeStoneInquiry } from "@/hooks/useExchangeStoneInquiry";
 import { useParams } from "wouter";
@@ -432,8 +432,12 @@ export default function ExchangeListingDetail() {
   const isProfileOffer = listing.sourceType === "profile_offer";
   const isProfileCatalog = listing.sourceType === "profile_catalog";
   const isProfileLinked = isProfileOffer || isProfileCatalog;
+  const stoneSlabPrice = stoneInquiry.isRetail
+    ? stoneSlabMaterialPrice(listing.price, listing.specifications?.priceUnit,
+        listing.specifications?.referenceSizesInches, listing.specifications?.exactSlab)
+    : null;
   const displayedPrice = stoneInquiry.isRetail
-    ? stonePriceLabel(listing.price, listing.specifications?.priceUnit) || "Price unavailable"
+    ? stoneSlabPrice?.primaryPrice || "Price unavailable"
     : formatPrice(listing.price as number);
 
   return (
@@ -595,9 +599,19 @@ export default function ExchangeListingDetail() {
               </div>
             </div>
             <div className="shrink-0 text-left sm:text-right">
-              <p className="text-2xl font-bold text-ts-orange">
+              {stoneInquiry.isRetail ? <>
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
+                  {stoneSlabPrice?.primaryLabel || "Full slab material price"}
+                </p>
+                <p className="mt-1 text-2xl font-bold text-ts-orange" data-testid="exchange-stone-slab-price">
+                  {displayedPrice}
+                </p>
+                {stoneSlabPrice?.secondaryPrice ? <p className="mt-1 text-sm text-white/70" data-testid="exchange-stone-unit-rate">
+                  {stoneSlabPrice.secondaryPrice}
+                </p> : null}
+              </> : <p className="text-2xl font-bold text-ts-orange">
                 {isProfileCatalog ? "Request quote" : displayedPrice}
-              </p>
+              </p>}
               {isSetListing && (
                 <p className="text-[11px] text-white/50 mt-0.5">
                   {listingType === "collection" ? "Collection" : "Set"} · {setItems.length} items
@@ -609,7 +623,7 @@ export default function ExchangeListingDetail() {
           {stoneInquiry.isRetail && (
             <section aria-label="Ask TradeScout about this stone" className="space-y-2">
               <p className="text-sm text-white/70">
-                Material price only. Confirm the selected slab, quantity, and delivery charges before purchase.
+                {stoneSlabPrice?.explanation || "Material price unavailable. Confirm the selected slab and charges with TradeScout."}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button className="min-h-12 flex-1 bg-ts-orange text-white" onClick={() => stoneInquiry.prepare("availability")}>
