@@ -7,39 +7,104 @@ import { JW_STONE_CART_REVIEW_PATH, parseJwStoneCartReview } from "@shared/jwSto
 import { JwStoneBundleBuilder } from "../../client/src/features/jw-stone/JwStoneBundleBuilder";
 
 const fx = vi.hoisted(() => ({ stock: [] as any[], prices: [] as any[] }));
-vi.mock("../auth", () => ({ isAuthenticated: (_q: unknown, _s: unknown, next: () => void) => next() }));
-vi.mock("../schemaPreflight", () => ({ requireCriticalSchema: () => (_q: unknown, _s: unknown, next: () => void) => next() }));
-vi.mock("../services/jwStonePricingAccess", () => ({ resolveJwStonePricingAccess: async () => "member" }));
-vi.mock("../services/jwStoneDrivePricing", () => ({ getJwStonePricingSnapshot: async () => ({ sourceUpdatedAt: "2026-09-22T00:00:00.000Z", prices: fx.prices }) }));
-vi.mock("../services/stoneInventoryService", () => ({ getStoneInventoryProfileTarget: async () => ({ businessId: "mixed-bundle-fixture" }), listSellerStoneInventory: async () => fx.stock }));
-vi.mock("../services/jwStoneCartAvailability", () => ({ loadJwStoneCartAvailability: async () => new Map(fx.stock.map(item => [item.id, { inventoryPositionId: item.inventoryPositionId, physicalQuantity: 1, availableQuantity: 1, unit: "slabs" }])) }));
+vi.mock("../auth", () => ({
+  isAuthenticated: (_q: unknown, _s: unknown, next: () => void) => next(),
+  isSuperAdmin: (_q: unknown, _s: unknown, next: () => void) => next(),
+}));
+vi.mock("../schemaPreflight", () => ({
+  requireCriticalSchema: () => (_q: unknown, _s: unknown, next: () => void) => next(),
+}));
+vi.mock("../services/jwStoneFeatureStore", () => ({
+  createJwStoneFeatureStore: () => ({ read: async () => ({ enabled: true, revision: 1 }) }),
+}));
+vi.mock("../services/jwStonePricingAccess", () => ({
+  resolveJwStonePricingAccess: async () => "member",
+}));
+vi.mock("../services/jwStoneDrivePricing", () => ({
+  getJwStonePricingSnapshot: async () => ({
+    sourceUpdatedAt: "2026-09-22T00:00:00.000Z",
+    prices: fx.prices,
+  }),
+}));
+vi.mock("../services/stoneInventoryService", () => ({
+  getStoneInventoryProfileTarget: async () => ({ businessId: "mixed-bundle-fixture" }),
+  listSellerStoneInventory: async () => fx.stock,
+}));
+vi.mock("../services/jwStoneCartAvailability", () => ({
+  loadJwStoneCartAvailability: async () =>
+    new Map(
+      fx.stock.map((item) => [
+        item.id,
+        {
+          inventoryPositionId: item.inventoryPositionId,
+          physicalQuantity: 1,
+          availableQuantity: 1,
+          unit: "slabs",
+        },
+      ])
+    ),
+}));
 import { registerJwStoneMemberPricingRoutes } from "../routes/jw-stone-member-pricing";
 const app = express();
 app.use(express.json());
-app.use((req, _res, next) => { req.user = { id: "mixed-bundle-member" } as Express.User; next(); });
+app.use((req, _res, next) => {
+  req.user = { id: "mixed-bundle-member" } as Express.User;
+  next();
+});
 registerJwStoneMemberPricingRoutes(app);
-const selection = (count: number) => ({ lines: fx.stock.slice(0, count).map(item => ({ inventoryPublicId: item.id, quantity: 1 })) });
+const selection = (count: number) => ({
+  lines: fx.stock.slice(0, count).map((item) => ({ inventoryPublicId: item.id, quantity: 1 })),
+});
 async function reviewed(count: number) {
   const input = selection(count);
   const response = await request(app).post(JW_STONE_CART_REVIEW_PATH).send(input);
-  expect(response.status).toBe(200);
+  expect(response.status, JSON.stringify(response.body)).toBe(200);
   return parseJwStoneCartReview(response.body, "mixed-bundle-member", input);
 }
 beforeEach(() => {
-  fx.stock = Array.from({ length: 8 }, (_, i) => ({ id: "stone_" + (i + 1).toString(16).padStart(32, "0"), inventoryPositionId: "mixed-position-" + i, materialName: "Fixture Stone " + (i + 1), materialSlug: "fixture-stone-" + (i + 1), assetKind: "slab", quantity: 1, unit: "slabs", isSaleReady: true, dimensions: { length: 120, height: 60, unit: "in" } }));
-  fx.prices = fx.stock.map((item, i) => ({ stoneName: item.materialName, stoneKey: item.materialName.toLowerCase(), slabPriceCents: 300 + 75 * i, bundlePriceCents: 200 + 50 * i, bundleMinSlabs: 7 }));
+  fx.stock = Array.from({ length: 8 }, (_, i) => ({
+    id: "stone_" + (i + 1).toString(16).padStart(32, "0"),
+    inventoryPositionId: "mixed-position-" + i,
+    materialName: "Fixture Stone " + (i + 1),
+    materialSlug: "fixture-stone-" + (i + 1),
+    assetKind: "slab",
+    quantity: 1,
+    unit: "slabs",
+    isSaleReady: true,
+    dimensions: { length: 120, height: 60, unit: "in" },
+  }));
+  fx.prices = fx.stock.map((item, i) => ({
+    stoneName: item.materialName,
+    stoneKey: item.materialName.toLowerCase(),
+    slabPriceCents: 300 + 75 * i,
+    bundlePriceCents: 200 + 50 * i,
+    bundleMinSlabs: 7,
+  }));
 });
 
 describe("released mixed-material bundle pricing", () => {
   it("keeps six distinct slabs at their own regular rates", async () => {
     const cart = await reviewed(6);
-    expect(cart.bundle).toMatchObject({ eligibleSlabs: 6, remainingSlabs: 1, unlocked: false, savingsCents: 0 });
-    expect(cart.lines.map(line => line.status === "ready" && line.pricingTier)).toEqual(Array(6).fill("slab"));
+    expect(cart.bundle).toMatchObject({
+      eligibleSlabs: 6,
+      remainingSlabs: 1,
+      unlocked: false,
+      savingsCents: 0,
+    });
+    expect(cart.lines.map((line) => line.status === "ready" && line.pricingTier)).toEqual(
+      Array(6).fill("slab")
+    );
   });
   it("prices seven different stones at seven respective bundle rates", async () => {
     const cart = await reviewed(7);
     expect(cart.subtotalCents).toBe(122500);
-    expect(cart.bundle).toMatchObject({ eligibleSlabs: 7, remainingSlabs: 0, unlocked: true, regularSubtotalCents: 183750, savingsCents: 61250 });
+    expect(cart.bundle).toMatchObject({
+      eligibleSlabs: 7,
+      remainingSlabs: 0,
+      unlocked: true,
+      regularSubtotalCents: 183750,
+      savingsCents: 61250,
+    });
     cart.lines.forEach((line, i) => {
       expect(line.status).toBe("ready");
       if (line.status !== "ready") throw new Error("Expected ready stock");
@@ -49,7 +114,14 @@ describe("released mixed-material bundle pricing", () => {
     });
     expect(cart.inventoryReserved).toBe(false);
     expect(cart.readyForCheckout).toBe(false);
-    const html = renderToStaticMarkup(createElement(JwStoneBundleBuilder, { review: cart, empty: false, checking: false, onBrowse: () => {} }));
+    const html = renderToStaticMarkup(
+      createElement(JwStoneBundleBuilder, {
+        review: cart,
+        empty: false,
+        checking: false,
+        onBrowse: () => {},
+      })
+    );
     expect(html).toContain("Bundle pricing unlocked");
     expect(html).toContain("Choose more slabs");
     expect(html).not.toContain("jw-purchase-open");

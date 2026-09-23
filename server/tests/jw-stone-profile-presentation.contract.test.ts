@@ -60,7 +60,7 @@ function isCloseUpLead(sourceName = "") {
 describe("JW Stone profile presentation contract", () => {
   it("uses the branded video hero with a restrained, reduced-motion-safe crop", () => {
     expect(presentation.hero.inventoryItemSlug).toBe("amazonic-green");
-    expect(presentation.hero.eyebrow).toBe("Amazonic Green · material library");
+    expect(presentation.hero.eyebrow).toBe("Amazonic Green · full inventory");
     expect(presentation.hero.videoUrl).toBe("/images/businesses/jw-stone/video/hero.mp4");
     expect(presentation.hero.posterUrl).toBe("/images/businesses/jw-stone/video/hero-poster.jpg");
     expect(presentation.hero.preserveMedia).toBe(true);
@@ -82,7 +82,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("useState(inventoryOpenByDefault)");
     expect(source).toContain("useState(inventoryPageSize)");
     expect(source).toContain("Browse full inventory");
-    expect(presentation.inventory.browseCtaEyebrow).toBe("White Rhino · material library");
+    expect(presentation.inventory.browseCtaEyebrow).toBe("White Rhino · full inventory");
     expect(source).toContain("inventoryBrowseCtaImage");
     expect(source).toContain("rgba(7,15,18,0.66)_0%");
     const ctaImage = source.indexOf("{inventoryBrowseCtaImage ?");
