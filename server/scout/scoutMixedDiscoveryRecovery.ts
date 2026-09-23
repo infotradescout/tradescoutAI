@@ -22,7 +22,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
   if (!input.countyFips) {
     return {
       message:
-        "Set your county so Scout can check nearby posts. I have not checked deals, businesses, pages, tools, or other requests yet. Nothing was sent.",
+        "Set your county to browse nearby posts. This Scout result does not verify county posts, deals, businesses, pages, tools, or requests. Nothing was sent.",
       entities: [],
       actions: [{ type: "NAVIGATE", label: "Set my local area", to: "/settings", primary: true }],
     };
@@ -53,11 +53,11 @@ export function buildScoutMixedDiscoveryRecovery(input: {
 
   const area = displayArea(input.countyLabel);
   const firstSentence = recentPosts.length
-    ? `This Scout check found ${recentPosts.length} published county ${recentPosts.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
-    : `I could not verify a county post from the last 7 days in this Scout result for ${area}.`;
+    ? `This Scout result includes ${recentPosts.length} published county ${recentPosts.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
+    : `This Scout result does not verify a county post from the last 7 days in ${area}.`;
 
   return {
-    message: `${firstSentence} I checked recent county posts only. I have not checked deals, businesses, pages, tools, or other requests yet. Open Community or Businesses to continue; nothing was sent.`,
+    message: `${firstSentence} It does not verify deals, businesses, pages, tools, or other requests. Open Community or Businesses to continue; nothing was sent.`,
     entities,
     actions: [
       {

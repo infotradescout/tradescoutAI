@@ -99,9 +99,9 @@ describe("Scout mixed county discovery route", () => {
       working_memory_update: expect.any(Object),
       metadata: { sourceUsed: "scout_mixed_discovery_recovery" },
     });
-    expect(response.body.answer).toContain("I checked recent county posts only");
+    expect(response.body.answer).toContain("This Scout result includes");
     expect(response.body.answer).toContain(
-      "I have not checked deals, businesses, pages, tools, or other requests yet"
+      "It does not verify deals, businesses, pages, tools, or other requests"
     );
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
@@ -137,7 +137,8 @@ describe("Scout mixed county discovery route", () => {
     expect(response.status).toBe(200);
     expect(response.body.contract_version).toBe("scout_result.v1");
     expect(response.body.entities).toEqual([]);
-    expect(response.body.answer).toContain("could not verify a county post");
+    expect(response.body.answer).toContain("does not verify a county post");
+    expect(response.body.answer).not.toMatch(/I checked|Scout check found/i);
     expect(response.body.answer).not.toMatch(
       /no (posts|deals|businesses)|0 (posts|deals|businesses)/i
     );

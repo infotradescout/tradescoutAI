@@ -49,9 +49,9 @@ describe("Scout county lookup", () => {
     });
 
     expect(result.message).toContain("1 published county post from the last 7 days");
-    expect(result.message).toContain("I checked recent county posts only");
+    expect(result.message).toContain("This Scout result includes");
     expect(result.message).toContain(
-      "I have not checked deals, businesses, pages, tools, or other requests yet"
+      "It does not verify deals, businesses, pages, tools, or other requests"
     );
     expect(result.entities).toEqual([
       expect.objectContaining({ name: "Neighborhood tool swap", url: "/community/posts/post_1" }),
@@ -71,7 +71,8 @@ describe("Scout county lookup", () => {
       countyLabel: "Maricopa County, AZ",
       communityPosts: [],
     });
-    expect(result.message).toContain("could not verify a county post");
+    expect(result.message).toContain("does not verify a county post");
+    expect(result.message).not.toMatch(/I checked|Scout check found/i);
     expect(result.message).not.toMatch(/no (posts|deals|businesses)|0 (posts|deals|businesses)/i);
     expect(result.entities).toEqual([]);
   });
@@ -80,7 +81,7 @@ describe("Scout county lookup", () => {
     const result = buildScoutMixedDiscoveryRecovery({ countyLabel: "Maricopa County, AZ" });
     expect(result.message).toContain("Set your county");
     expect(result.message).toContain(
-      "I have not checked deals, businesses, pages, tools, or other requests yet"
+      "does not verify county posts, deals, businesses, pages, tools, or requests"
     );
     expect(result.actions).toEqual([expect.objectContaining({ to: "/settings" })]);
   });
