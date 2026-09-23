@@ -21,6 +21,16 @@ test('ordered migration does not switch JW off or overwrite existing feature rec
   assert.match(text,/CREATE TABLE IF NOT EXISTS public\.feature_flags/);
   assert.doesNotMatch(text,/\b(?:INSERT INTO|UPDATE|DELETE FROM|DROP TABLE|TRUNCATE)\b/i);
   const journal=JSON.parse(fs.readFileSync(new URL('../../migrations/meta/_journal.json',import.meta.url),'utf8'));
-  assert.equal(journal.entries.at(-1).tag,'0140_jw_feature_control_storage');
-  assert(journal.entries.at(-1).when>journal.entries.at(-2).when);
+  const featureTag='0140_jw_feature_control_storage';
+  const featureEntries=journal.entries.filter(entry=>entry.tag===featureTag);
+  assert.equal(featureEntries.length,1,'JW feature storage must appear exactly once');
+  const featurePosition=journal.entries.findIndex(entry=>entry.tag===featureTag);
+  for(const retailTag of ['0140_exchange_stone_funnel','0141_exchange_stone_inquiry_receipts']){
+    const retailPosition=journal.entries.findIndex(entry=>entry.tag===retailTag);
+    assert(retailPosition>=0,`${retailTag} missing from journal`);
+    const retail=journal.entries[retailPosition];
+    assert(featurePosition>retailPosition,`${featureTag} must follow ${retailTag}`);
+    assert(featureEntries[0].idx>retail.idx);
+    assert(featureEntries[0].when>retail.when);
+  }
 });
