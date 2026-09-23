@@ -80,7 +80,7 @@ export function stoneSlabMaterialPrice(price: unknown, unit: unknown, referenceS
       explanation: "For the identified slab. Confirm availability; delivery, fabrication and installation are separate." };
   }
   const totals = referenceSlabTotals(cents, referenceSizesInches);
-  if (!totals) return { kind: "size_required", primaryLabel: "Full slab material price", primaryPrice: "Confirm slab dimensions",
+  if (!totals) return { kind: "size_required", primaryLabel: "Full slab material price", primaryPrice: "Slab price TBD",
     secondaryPrice: rate, referenceSizeCount: 0,
     explanation: "A full slab total needs a confirmed size. Delivery, fabrication and installation are separate." };
   const minimum = Math.min(...totals), maximum = Math.max(...totals);
