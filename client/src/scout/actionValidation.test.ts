@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveLatestScoutTurnActionTruth, validateAction } from "./actionValidation";
+import {
+  resolveLatestScoutTurnActionTruth,
+  scoutAllowedActionToAction,
+  validateAction,
+} from "./actionValidation";
 import { scoutReducer, type ScoutAction, type ScoutMessage, type ScoutState } from "./state";
 import type {
   ScoutAllowedActionV1,
@@ -87,6 +91,39 @@ describe("actionValidation", () => {
     });
 
     expect(action).toBeNull();
+  });
+
+  it("keeps Scout county discovery navigation on its two canonical internal routes", () => {
+    const community = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Open recent Community",
+        target: "/community-feed?geo=local&feed=recent",
+      })
+    );
+    const businesses = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Browse Businesses",
+        target: "/contractors",
+        primary: false,
+      })
+    );
+
+    expect(community).toMatchObject({
+      type: "NAVIGATE",
+      to: "/community-feed?geo=local&feed=recent",
+      path: "/community-feed?geo=local&feed=recent",
+    });
+    expect(businesses).toMatchObject({
+      type: "NAVIGATE",
+      to: "/contractors",
+      path: "/contractors",
+    });
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/community-feed/admin" }))
+    ).toBeNull();
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/contractors/secret/path" }))
+    ).toBeNull();
   });
 
   it("allows normal user Scout and Supply Run routes", () => {
