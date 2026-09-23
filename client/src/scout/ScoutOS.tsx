@@ -649,6 +649,16 @@ function summarizeThreadText(value: string, fallback: string): string {
   return clean.length > 72 ? `${clean.slice(0, 69)}...` : clean;
 }
 
+function titleForLocalPostsAndDealsRequest(value: string): string | null {
+  const request = String(value || "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+  return /^search tradescout and my area for posts (?:&|and) deals in my county\b/.test(request)
+    ? "Local posts & deals"
+    : null;
+}
+
 function sanitizeRelatedId(value: string | null | undefined): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim().replace(/[#?].*$/, "");
@@ -2201,9 +2211,11 @@ export default function ScoutOS() {
   );
   const currentTaskTitle = useMemo(() => {
     const firstUserMessage = firstThreadUserMessage(state.messages);
+    const request = firstUserMessage?.content || latestUserQuery;
     return (
+      titleForLocalPostsAndDealsRequest(request) ||
       activeSavedThread?.title ||
-      summarizeThreadText(firstUserMessage?.content || latestUserQuery, "Current Scout task")
+      summarizeThreadText(request, "Current Scout task")
     );
   }, [activeSavedThread?.title, latestUserQuery, state.messages]);
   const currentTaskRequest = useMemo(
