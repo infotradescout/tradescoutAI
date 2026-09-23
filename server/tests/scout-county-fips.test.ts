@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isMixedScoutDiscoveryRequest,
   normalizeScoutCountyFips,
+  resolveScoutCountyDiscoveryArea,
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
 import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
@@ -12,6 +13,64 @@ describe("Scout county lookup", () => {
     expect(normalizeScoutCountyFips("Maricopa County, AZ")).toBeNull();
     expect(normalizeScoutCountyFips("04013junk", "04013")).toBe("04013");
     expect(normalizeScoutCountyFips("04013junk")).toBeNull();
+  });
+
+  it("names the county from the selected FIPS rather than trusting request display text", () => {
+    expect(
+      resolveScoutCountyDiscoveryArea({
+        countyHint: "04013",
+        countyCode: "Maricopa County, AZ",
+        stateCode: "AZ",
+      })
+    ).toEqual({ countyFips: "04013", countyLabel: "Maricopa County, AZ" });
+
+    expect(
+      resolveScoutCountyDiscoveryArea({
+        countyHint: "04013",
+        countyCode: "Los Angeles County, CA",
+        stateCode: "CA",
+      })
+    ).toEqual({ countyFips: null, countyLabel: undefined });
+    expect(
+      resolveScoutCountyDiscoveryArea({
+        countyHint: "04013",
+        countyCode: "Los Angeles County, CA",
+      })
+    ).toEqual({ countyFips: null, countyLabel: undefined });
+    expect(
+      resolveScoutCountyDiscoveryArea({
+        countyHint: "04013",
+        countyCode: "Maricopa County, AZ",
+        stateCode: "CA",
+      })
+    ).toEqual({ countyFips: null, countyLabel: undefined });
+  });
+
+  it("resolves an explicit new county and never replaces it with an older profile county", () => {
+    expect(
+      resolveScoutCountyDiscoveryArea({
+        countyCode: "Los Angeles County, CA",
+        stateCode: "CA",
+        profileCountyFips: "04013",
+      })
+    ).toEqual({ countyFips: "06037", countyLabel: "Los Angeles County, CA" });
+    expect(
+      resolveScoutCountyDiscoveryArea({
+        countyCode: "Unknown County, CA",
+        stateCode: "CA",
+        profileCountyFips: "04013",
+      })
+    ).toEqual({ countyFips: null, countyLabel: undefined });
+    expect(
+      resolveScoutCountyDiscoveryArea({ stateCode: "CA", profileCountyFips: "04013" })
+    ).toEqual({ countyFips: null, countyLabel: undefined });
+    expect(
+      resolveScoutCountyDiscoveryArea({ countyHint: "04013bad", profileCountyFips: "06037" })
+    ).toEqual({ countyFips: null, countyLabel: undefined });
+    expect(resolveScoutCountyDiscoveryArea({ profileCountyFips: "04013" })).toEqual({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+    });
   });
 
   it("refreshes mixed county discovery requests without hijacking their answer", () => {

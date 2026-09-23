@@ -110,7 +110,7 @@ import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwne
 import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
 import {
   isMixedScoutDiscoveryRequest,
-  normalizeScoutCountyFips,
+  resolveScoutCountyDiscoveryArea,
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
 import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
@@ -2672,13 +2672,14 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const normalizedMessage = typeof message === "string" ? message : "";
     scoutTurnTelemetry.intent =
       normalizeScoutIntent(rawBody.intent, normalizedMessage) || "unknown";
-    const normalizedFips =
-      normalizeScoutCountyFips(
-        rawBody.countyHint,
-        rawBody.countyCode,
-        (requestUser as any)?.countyFips,
-        (requestUser as any)?.county_fips
-      ) || undefined;
+    const countyArea = resolveScoutCountyDiscoveryArea({
+      countyHint: rawBody.countyHint,
+      countyCode: rawBody.countyCode,
+      stateCode: rawBody.stateCode,
+      profileCountyFips: (requestUser as any)?.countyFips,
+      profileCountyFipsAlt: (requestUser as any)?.county_fips,
+    });
+    const normalizedFips = countyArea.countyFips || undefined;
 
     scoutInteractionLog = {
       userRole: normalizeScoutRole((requestUser as any)?.role),
@@ -3507,7 +3508,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     if (isMixedScoutDiscoveryRequest(message)) {
       const recovery = buildScoutMixedDiscoveryRecovery({
         countyFips: normalizedFips,
-        countyLabel: countyCode,
+        countyLabel: countyArea.countyLabel,
         communityPosts: communityPostItems,
       });
       scoutTurnTelemetry.provider = "deterministic";
