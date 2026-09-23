@@ -250,7 +250,8 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Request lifecycle");
     expect(directConnectShellFile).toContain('pros: "Businesses"');
     expect(directConnectShellFile).toContain('board: "Board"');
-    expect(directoryFile).toContain("Find and inspect businesses");
+    expect(directoryFile).toContain("Businesses in ${areaLabel}");
+    expect(directoryFile).toContain("Find local businesses");
     expect(directoryFile).toContain(
       'title={searchActive ? "Best nearby matches" : "Businesses near you"}'
     );
