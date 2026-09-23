@@ -89,9 +89,17 @@ import {
   EXCHANGE_PROHIBITED_POLICY_NOTICE,
   getCottageFoodRules,
 } from "@shared/exchangeListingRules";
+import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
 
 interface ExchangeItem {
-  specifications?: { material?: string };
+  specifications?: {
+    material?: string;
+    priceUnit?: string;
+    referenceSizesInches?: unknown;
+    exactSlab?: unknown;
+    shippingPolicy?: string;
+  };
   id: string;
   title: string;
   description: string;
@@ -112,6 +120,7 @@ interface ExchangeItem {
   views: number;
   favorites: number;
   isLocalPickupOnly?: boolean;
+  willShip?: boolean;
   shippingCost?: number | null;
   state?: string;
   county?: string;
@@ -380,6 +389,8 @@ export default function Exchange() {
   const [sortBy, setSortBy] = useState("date_desc");
   const [priceRange, setPriceRange] = useState("");
   const [conditionFilter, setConditionFilter] = useState("");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [savedOnly, setSavedOnly] = useState(false);
   const [contactItem, setContactItem] = useState<ExchangeItem | null>(null);
@@ -779,8 +790,7 @@ export default function Exchange() {
 
     const matches = items.filter((item) => !savedOnly || favoriteListingIds.has(String(item.id)));
 
-    const shippingReady = (item: ExchangeItem) =>
-      item.isLocalPickupOnly !== true || Number.isFinite(Number(item.shippingCost));
+    const shippingReady = (item: ExchangeItem) => item.willShip === true;
 
     const isStateMatch = (item: ExchangeItem) =>
       Boolean(
@@ -967,19 +977,18 @@ export default function Exchange() {
             <div>
               <h1 className="text-xl sm:text-2xl font-semibold text-white">Exchange marketplace</h1>
               <p className="mt-1 text-xs sm:text-sm text-white/70">
-                Browse listings, then switch scope to search near you, across your state, or
-                nationwide.
+                Browse near you, across your state, or nationwide.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex flex-wrap items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
+              <div className="flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/5 p-1">
                 <Button
                   size="sm"
                   variant={searchScope === "local" ? "default" : "ghost"}
                   className={
                     searchScope === "local"
-                      ? "bg-ts-orange text-black hover:bg-ts-orange/90"
-                      : "text-white/70 hover:text-white"
+                      ? "min-h-11 shrink-0 px-2 text-xs bg-ts-orange text-black hover:bg-ts-orange/90"
+                      : "min-h-11 shrink-0 px-2 text-xs text-white/70 hover:text-white"
                   }
                   disabled={!countyCommitted}
                   onClick={() => setSearchScope("local")}
@@ -991,8 +1000,8 @@ export default function Exchange() {
                   variant={searchScope === "state" ? "default" : "ghost"}
                   className={
                     searchScope === "state"
-                      ? "bg-ts-orange text-black hover:bg-ts-orange/90"
-                      : "text-white/70 hover:text-white"
+                      ? "min-h-11 shrink-0 px-2 text-xs bg-ts-orange text-black hover:bg-ts-orange/90"
+                      : "min-h-11 shrink-0 px-2 text-xs text-white/70 hover:text-white"
                   }
                   disabled={!stateCode}
                   onClick={() => setSearchScope("state")}
@@ -1004,15 +1013,19 @@ export default function Exchange() {
                   variant={searchScope === "nationwide" ? "default" : "ghost"}
                   className={
                     searchScope === "nationwide"
-                      ? "bg-ts-orange text-black hover:bg-ts-orange/90"
-                      : "text-white/70 hover:text-white"
+                      ? "min-h-11 shrink-0 px-2 text-xs bg-ts-orange text-black hover:bg-ts-orange/90"
+                      : "min-h-11 shrink-0 px-2 text-xs text-white/70 hover:text-white"
                   }
                   onClick={() => setSearchScope("nationwide")}
                 >
                   Nationwide
                 </Button>
               </div>
-              <Badge variant="outline" className="border-white/10 text-white/70" title={scopeLabel}>
+              <Badge
+                variant="outline"
+                className="hidden border-white/10 text-white/70 sm:inline-flex"
+                title={scopeLabel}
+              >
                 {scopeLabel}
               </Badge>
               {isAuthenticated && (
@@ -1031,23 +1044,23 @@ export default function Exchange() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-4 bg-tsCard border border-white/10 rounded-xl overflow-hidden text-[10px] sm:text-[11px]">
+          <TabsList className="mb-4 flex h-auto w-full flex-nowrap justify-start overflow-x-auto rounded-xl border border-white/10 bg-tsCard text-[11px] sm:grid sm:grid-cols-5 sm:overflow-visible">
             <TabsTrigger
               value="browse"
-              className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
+              className="flex min-h-11 min-w-[72px] items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10 sm:min-w-0"
             >
               Browse
             </TabsTrigger>
             <TabsTrigger
               value="promotions"
-              className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
+              className="flex min-h-11 min-w-[72px] items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10 sm:min-w-0"
             >
               <Megaphone className="h-3 w-3 mr-1" />
               <span>Promos</span>
             </TabsTrigger>
             <TabsTrigger
               value="sales"
-              className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10 relative"
+              className="relative flex min-h-11 min-w-[72px] items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10 sm:min-w-0"
             >
               <Tag className="h-3 w-3 mr-1" />
               <span>Sales</span>
@@ -1057,146 +1070,198 @@ export default function Exchange() {
             </TabsTrigger>
             <TabsTrigger
               value="categories"
-              className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
+              className="flex min-h-11 min-w-[82px] items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10 sm:min-w-0"
             >
               Categories
             </TabsTrigger>
             <TabsTrigger
               value="sell"
-              className="flex items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
+              className="flex min-h-11 min-w-[72px] items-center justify-center px-2 py-1.5 text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10 sm:min-w-0"
             >
               Sell
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="browse" className="space-y-4">
-            <Card className="bg-tsCard border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-sm">Rental Portals</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {RENTAL_PORTALS.map((portal) => {
-                    const IconComponent = portal.icon;
-                    return (
-                      <Link key={portal.id} href={portal.href}>
-                        <Card className="h-full cursor-pointer bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors">
-                          <CardContent className="flex h-full items-start gap-4 p-4">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ts-orange/15 text-ts-orange">
-                              <IconComponent className="h-5 w-5" />
+            <div className="grid grid-cols-2 gap-2 md:hidden" aria-label="Rental portals">
+              {RENTAL_PORTALS.map((portal) => (
+                <Link
+                  key={portal.id}
+                  href={portal.href}
+                  className="flex min-h-11 items-center justify-center rounded-lg border border-white/15 bg-tsCard px-2 text-center text-xs font-semibold text-white"
+                >
+                  {portal.title}
+                </Link>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full justify-between border-white/15 text-white md:hidden"
+              aria-expanded={mobileExploreOpen}
+              aria-controls="exchange-explore-sections"
+              onClick={() => setMobileExploreOpen((open) => !open)}
+            >
+              {mobileExploreOpen ? "Hide categories" : "Explore categories"}
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            <div
+              id="exchange-explore-sections"
+              className={`${mobileExploreOpen ? "space-y-4" : "hidden"} md:block md:space-y-4`}
+            >
+              <Card className="hidden bg-tsCard border-white/10 md:block">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white text-sm">Rental Portals</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {RENTAL_PORTALS.map((portal) => {
+                      const IconComponent = portal.icon;
+                      return (
+                        <Link key={portal.id} href={portal.href}>
+                          <Card className="h-full cursor-pointer bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors">
+                            <CardContent className="flex h-full items-start gap-4 p-4">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ts-orange/15 text-ts-orange">
+                                <IconComponent className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="text-base font-semibold text-white">
+                                  {portal.title}
+                                </h3>
+                                <p className="mt-1 text-sm text-white/60">{portal.description}</p>
+                                <div className="mt-3 inline-flex items-center gap-2 text-sm text-ts-orange">
+                                  <span>{portal.cta}</span>
+                                  <ArrowRight className="h-4 w-4" />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-tsCard border-white/10">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-white text-sm">Categories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* Mobile-first: avoid horizontal scrolling; wrap into a compact grid. */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    <Card
+                      className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
+                        !selectedCategory ? "border-ts-orange/30" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedCategory("");
+                        setActiveTab("browse");
+                        navigate("/exchange?tab=browse");
+                      }}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-ts-orange/15 rounded-lg flex items-center justify-center">
+                            <Package className="h-5 w-5 text-ts-orange" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-white truncate">All</div>
+                            <div className="hidden sm:block text-[11px] text-white/60 truncate">
+                              Browse everything
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="text-base font-semibold text-white">{portal.title}</h3>
-                              <p className="mt-1 text-sm text-white/60">{portal.description}</p>
-                              <div className="mt-3 inline-flex items-center gap-2 text-sm text-ts-orange">
-                                <span>{portal.cta}</span>
-                                <ArrowRight className="h-4 w-4" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {sortedExchangeCategories.map((category) => {
+                      const IconComponent = category.icon;
+                      const active = selectedCategory === category.id;
+                      return (
+                        <Card
+                          key={category.id}
+                          className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
+                            active ? "border-ts-orange/30" : ""
+                          }`}
+                          onClick={() => {
+                            setSelectedCategory(category.id);
+                            setActiveTab("browse");
+                            navigate(getCategoryHref(category.id));
+                          }}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 bg-ts-orange/15 rounded-lg flex items-center justify-center">
+                                <IconComponent className="h-5 w-5 text-ts-orange" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-semibold text-white truncate">
+                                  {category.name}
+                                </div>
+                              </div>
+                              <div className="shrink-0">
+                                <Badge
+                                  variant="outline"
+                                  className="border-white/15 text-white/70 text-[10px]"
+                                >
+                                  Browse
+                                </Badge>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-tsCard border-white/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-sm">Categories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Mobile-first: avoid horizontal scrolling; wrap into a compact grid. */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                  <Card
-                    className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
-                      !selectedCategory ? "border-ts-orange/30" : ""
-                    }`}
-                    onClick={() => {
-                      setSelectedCategory("");
-                      setActiveTab("browse");
-                      navigate("/exchange?tab=browse");
-                    }}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-ts-orange/15 rounded-lg flex items-center justify-center">
-                          <Package className="h-5 w-5 text-ts-orange" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">All</div>
-                          <div className="hidden sm:block text-[11px] text-white/60 truncate">
-                            Browse everything
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {sortedExchangeCategories.map((category) => {
-                    const IconComponent = category.icon;
-                    const active = selectedCategory === category.id;
-                    return (
-                      <Card
-                        key={category.id}
-                        className={`w-full bg-tsCard/95 border-white/10 hover:border-ts-orange/30 transition-colors cursor-pointer ${
-                          active ? "border-ts-orange/30" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedCategory(category.id);
-                          setActiveTab("browse");
-                          navigate(getCategoryHref(category.id));
-                        }}
-                      >
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-ts-orange/15 rounded-lg flex items-center justify-center">
-                              <IconComponent className="h-5 w-5 text-ts-orange" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-semibold text-white truncate">
-                                {category.name}
-                              </div>
-                            </div>
-                            <div className="shrink-0">
-                              <Badge
-                                variant="outline"
-                                className="border-white/15 text-white/70 text-[10px]"
-                              >
-                                Browse
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-                <div className="mt-2 flex items-center justify-end gap-2 text-xs text-white/60">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 border-white/10 text-white/70"
-                    onClick={() => setActiveTab("sell")}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Sell
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2 flex items-center justify-end gap-2 text-xs text-white/60">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-white/10 text-white/70"
+                      onClick={() => setActiveTab("sell")}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Sell
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[260px,1fr] gap-4">
+              <div className="relative xl:hidden">
+                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-white/60" />
+                <Input
+                  aria-label="Search Exchange listings"
+                  placeholder="Search listings"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  className="min-h-11 border-white/15 bg-tsCard pl-10 text-white"
+                />
+              </div>
               <Card className="bg-tsCard border-white/10 h-fit xl:sticky xl:top-20">
-                <CardHeader className="pb-1">
+                <CardHeader className="pb-1 flex-row items-center justify-between">
                   <CardTitle className="text-white text-sm flex items-center gap-2">
                     <Filter className="h-4 w-4 text-ts-orange" />
                     Filters
                   </CardTitle>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 border-white/20 text-white xl:hidden"
+                    aria-expanded={mobileFiltersOpen}
+                    aria-controls="exchange-browse-filters"
+                    onClick={() => setMobileFiltersOpen((open) => !open)}
+                  >
+                    {mobileFiltersOpen ? "Hide" : "Show"}
+                  </Button>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="relative">
+                <CardContent
+                  id="exchange-browse-filters"
+                  className={`space-y-2 ${mobileFiltersOpen ? "block" : "hidden"} xl:block`}
+                >
+                  <div className="relative hidden xl:block">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/60" />
                     <Input
                       placeholder="Search items"
@@ -1208,7 +1273,7 @@ export default function Exchange() {
 
                   <Select value={priceRange} onValueChange={setPriceRange}>
                     <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
-                      <SelectValue placeholder="Price Range" />
+                      <SelectValue placeholder="Listed price range" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-white/10">
                       <SelectItem value="">Any Price</SelectItem>
@@ -1219,6 +1284,11 @@ export default function Exchange() {
                       <SelectItem value="100000+">$100K+</SelectItem>
                     </SelectContent>
                   </Select>
+                  {(!selectedCategory || selectedCategory === "all" || selectedCategory === "building-materials") && (
+                    <p className="text-xs text-white/60">
+                      TradeScout stone price bands use full slab material estimates. Every recorded size must fit the band; slab price TBD is excluded and sorts last by price.
+                    </p>
+                  )}
 
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
                     <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
@@ -1269,8 +1339,8 @@ export default function Exchange() {
               </Card>
 
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-tsCard px-3 py-2">
-                  <div className="text-sm text-white/70">
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-tsCard px-3 py-2">
+                  <div className="text-xs text-white/70 sm:text-sm">
                     <span className="font-semibold text-white">{filteredItems?.length ?? 0}</span>{" "}
                     results shown
                     {activeCategoryMeta ? (
@@ -1291,11 +1361,13 @@ export default function Exchange() {
                       <Heart className="h-3 w-3 mr-1" />
                       {savedOnly ? "Saved only" : "All listings"}
                     </Button>
-                    <div className="text-xs text-white/60">Marketplace-style local board</div>
+                    <div className="hidden text-xs text-white/60 sm:block">
+                      Marketplace-style local board
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                   {isLoading ? (
                     Array.from({ length: 8 }).map((_, i) => (
                       <Card key={i} className="bg-tsCard border-white/10 animate-pulse">
@@ -1313,6 +1385,18 @@ export default function Exchange() {
                       const isProfileOffer = item.sourceType === "profile_offer";
                       const isProfileCatalog = item.sourceType === "profile_catalog";
                       const isProfileLinked = isProfileOffer || isProfileCatalog;
+                      const isRetailStone = isStoneRetailListing(item);
+                      const displayTitle = isRetailStone
+                        ? item.title.replace(/\s*\|\s*TradeScout(?:\s+Stone)?\s*$/i, "").trim() || item.title
+                        : item.title;
+                      const slabPrice = isRetailStone
+                        ? stoneSlabMaterialPrice(
+                            item.price,
+                            item.specifications?.priceUnit,
+                            item.specifications?.referenceSizesInches,
+                            item.specifications?.exactSlab
+                          )
+                        : null;
                       const detailCategory = item.category || "other";
                       const detailPath =
                         isProfileCatalog && item.profileItemSlug && item.publicProfilePath
@@ -1328,15 +1412,15 @@ export default function Exchange() {
                             onClick={() => navigate(detailPath)}
                           >
                             {item.images && item.images.length > 0 ? (
-                              <div className="aspect-square bg-tsCard overflow-hidden">
+                              <div className="aspect-video sm:aspect-square bg-tsCard overflow-hidden">
                                 <img
                                   src={item.images[0]}
-                                  alt={item.title}
+                                  alt={displayTitle}
                                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                                 />
                               </div>
                             ) : (
-                              <div className="aspect-square bg-white/5 flex items-center justify-center">
+                              <div className="aspect-video sm:aspect-square bg-white/5 flex items-center justify-center">
                                 <IconComponent className="h-12 w-12 text-white/60" />
                               </div>
                             )}
@@ -1356,17 +1440,54 @@ export default function Exchange() {
                                 {item.condition}
                               </Badge>
                             )}
+                            {isRetailStone && (
+                              <div className="absolute inset-x-2 bottom-2 rounded-lg border border-white/15 bg-black/85 px-3 py-2 text-white sm:hidden">
+                                <p className="text-[11px] text-white/75">
+                                  {slabPrice?.primaryLabel || "Full slab material price"}
+                                </p>
+                                <p className="break-words text-lg font-bold leading-tight">
+                                  {slabPrice?.primaryPrice || "Confirm material price"}
+                                </p>
+                                {slabPrice?.secondaryPrice && (
+                                  <p className="mt-0.5 text-[11px] text-white/75">
+                                    {slabPrice.secondaryPrice}
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <CardContent className="p-3">
-                            <p className="text-lg sm:text-xl font-bold text-white mb-1">
-                              {formatPrice(item.price)}
-                            </p>
                             <h3
-                              className="font-semibold text-white mb-1 line-clamp-2 leading-tight text-sm cursor-pointer hover:text-ts-orange transition-colors"
+                              className="font-semibold text-white mb-2 line-clamp-2 leading-tight text-base cursor-pointer hover:text-ts-orange transition-colors"
                               onClick={() => navigate(detailPath)}
                             >
-                              {item.title}
+                              {displayTitle}
                             </h3>
+                            {isRetailStone ? (
+                              <div className="mb-3 hidden rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2 sm:block">
+                                <p className="text-xs text-white/70">
+                                  {slabPrice?.primaryLabel || "Full slab material price"}
+                                </p>
+                                <p className="text-xl font-bold leading-tight text-white">
+                                  {slabPrice?.primaryPrice || "Confirm material price"}
+                                </p>
+                                {slabPrice?.secondaryPrice && (
+                                  <p className="mt-1 text-xs text-white/70">
+                                    {slabPrice.secondaryPrice}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-lg sm:text-xl font-bold text-white mb-1">
+                                {formatPrice(item.price)}
+                              </p>
+                            )}
+                            {isRetailStone &&
+                              item.specifications?.shippingPolicy === "quoted_separately" && (
+                                <p className="mb-2 text-xs text-white/70">
+                                  Delivery quoted separately
+                                </p>
+                              )}
                             <div className="flex items-center justify-between text-xs text-white/60 mb-2">
                               <div className="flex items-center">
                                 <MapPin className="h-3 w-3 mr-1" />
@@ -1379,25 +1500,27 @@ export default function Exchange() {
                               </span>
                             </div>
 
-                            {!isProfileCatalog && (
-                              <div className="mb-2 flex flex-wrap gap-1">
-                                {item.isLocalPickupOnly ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-white/10 text-[10px] text-white/65"
-                                  >
-                                    Local pickup
-                                  </Badge>
-                                ) : (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-emerald-500/30 text-[10px] text-emerald-300"
-                                  >
-                                    Shipping available
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
+                            {!isProfileCatalog &&
+                              !isRetailStone &&
+                              (item.isLocalPickupOnly || item.willShip === true) && (
+                                <div className="mb-2 flex flex-wrap gap-1">
+                                  {item.isLocalPickupOnly ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-white/10 text-[10px] text-white/65"
+                                    >
+                                      Local pickup
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-emerald-500/30 text-[10px] text-emerald-300"
+                                    >
+                                      Shipping available
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
 
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex items-center">
@@ -1466,34 +1589,49 @@ export default function Exchange() {
                                 >
                                   <Share2 className="h-3 w-3" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-8 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-xs"
-                                  onClick={() => {
-                                    if (isProfileLinked) {
-                                      navigate(detailPath);
-                                      return;
-                                    }
-                                    if (!isAuthenticated) {
-                                      navigate("/pre-scout-setup?mode=signin");
-                                      return;
-                                    }
-                                    setContactItem(item);
-                                    setInquiryMessage(
-                                      `Hi, I would like a quote for \"${item.title}\".`
-                                    );
-                                  }}
-                                >
-                                  {isProfileOffer
-                                    ? "Buy"
-                                    : isProfileCatalog
-                                      ? item.profileItemSlug
-                                        ? "View Item"
-                                        : "View Catalog"
-                                      : "Request Quote"}
-                                </Button>
+                                {!isRetailStone && (
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-xs"
+                                    onClick={() => {
+                                      if (isProfileLinked) {
+                                        navigate(detailPath);
+                                        return;
+                                      }
+                                      if (!isAuthenticated) {
+                                        navigate("/pre-scout-setup?mode=signin");
+                                        return;
+                                      }
+                                      setContactItem(item);
+                                      setInquiryMessage(
+                                        `Hi, I would like a quote for \"${item.title}\".`
+                                      );
+                                    }}
+                                  >
+                                    {isProfileOffer
+                                      ? "Buy"
+                                      : isProfileCatalog
+                                        ? item.profileItemSlug
+                                          ? "View Item"
+                                          : "View Catalog"
+                                        : "Request Quote"}
+                                  </Button>
+                                )}
                               </div>
                             </div>
+
+                            {isRetailStone && (
+                              <Button
+                                type="button"
+                                className="mt-3 min-h-11 w-full bg-ts-orange font-semibold text-black hover:bg-ts-orange-dark"
+                                onClick={() => {
+                                  const path = stoneInquiryPath(item.id, "availability");
+                                  if (path) navigate(path);
+                                }}
+                              >
+                                Ask TradeScout about availability
+                              </Button>
+                            )}
 
                             {!isProfileCatalog && (
                               <div className="mt-2 text-[10px] text-white/60 flex items-center gap-3">

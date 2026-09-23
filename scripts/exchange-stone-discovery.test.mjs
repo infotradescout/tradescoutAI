@@ -130,7 +130,8 @@ test('national retail and native/profile content share one stable sorted page', 
   policy.withStoneDiscovery(context({ state: 'CA' }, items, { categoryId: 'building-materials', stateCode: 'CA' }), () => {
     const pages = [0, 48, 96].flatMap(offset => merge.mergeExchangeDiscoveryItems([[native]], { sort: 'price_asc', offset, limit: 48 }));
     assert.equal(pages.length, 120); assert.equal(new Set(pages.map(item => item.id)).size, 120);
-    assert.equal(pages[0].price, 0.75); assert.equal(pages.at(-1).price, 118.75);
+    assert.equal(pages[0].id, native.id); assert.equal(pages[1].price, 0.75);
+    assert.equal(pages.at(-1).price, 118.75);
   });
 });
 test('raw unapproved retail rows cannot leak through an alternate merged source', () => {
@@ -153,9 +154,35 @@ test('source pagination continues past pages occupied only by withheld retail ro
   }, 1);
   assert.deepEqual(calls, [0, 100]); assert.deepEqual(result, [native]);
 });
-test('filters preserve material/price intent and do not substitute local inventory geography', () => {
-  assert.equal(policy.filterStoneDiscovery([publicItem()], { q: 'basalt', minPrice: '27.75', maxPrice: '27.75', material: 'basalt', state: 'NY', county: 'another county' }).length, 1);
-  for (const query of [{ q: 'marble' }, { maxPrice: 27 }, { minPrice: 28 }, { categoryId: 'vehicles' }, { hoursMax: 10 }, { material: ['basalt'] }, { minPrice: 'garbage' }]) assert.equal(policy.filterStoneDiscovery([publicItem()], query).length, 0);
+test('retail stone price bands contain the entire displayed slab total, not the square-foot rate', () => {
+  const base = publicItem();
+  const priced = (suffix, price, referenceSizesInches, priceUnit = 'sqft') => ({ ...base,
+    id: `tradescout-stone-test-${suffix}`, price,
+    specifications: { ...base.specifications, priceUnit, referenceSizesInches,
+      ...(priceUnit === 'slab' ? { exactSlab: 'Slab A' } : {}) } });
+  const exact = priced('exact', 900, null, 'slab');
+  const single = priced('single', 27.75, '126x78');
+  const multi = priced('multi', 27.75, '126x78, 127x77.5');
+  const unknown = priced('unknown', 27.75, null);
+  const items = [exact, single, multi, unknown];
+  const ids = query => policy.filterStoneDiscovery(items, query).map(item => item.id);
+  assert.deepEqual(ids({ maxPrice: 1000 }), [exact.id]);
+  assert.deepEqual(ids({ minPrice: 1000, maxPrice: 5000 }), [single.id, multi.id]);
+  assert.deepEqual(ids({ maxPrice: 1895 }), [exact.id, single.id]);
+  assert.deepEqual(ids({ minPrice: 1895 }), []);
+  assert.deepEqual(ids({}), items.map(item => item.id));
+  assert.deepEqual(ids({ maxPrice: 27.75 }), []);
+  assert.deepEqual(ids({ minPrice: '1000', maxPrice: '999' }), []);
+  for (const query of [{ q: 'marble' }, { categoryId: 'vehicles' }, { hoursMax: 10 },
+    { material: ['basalt'] }, { minPrice: 'garbage' }]) assert.deepEqual(ids(query), []);
+  assert.deepEqual(ids({ q: 'basalt', minPrice: '1893.94', maxPrice: '1893.94',
+    material: 'basalt', state: 'NY', county: 'another county' }), [single.id]);
+  policy.withStoneDiscovery(context({ state: 'TX' }, items, { categoryId: 'building-materials' }), () => {
+    const nativeMid = { ...native, price: 1500 };
+    const sorted = sort => merge.mergeExchangeDiscoveryItems([[nativeMid]], { sort, limit: 20 }).map(item => item.id);
+    assert.deepEqual(sorted('price_asc'), [exact.id, native.id, single.id, multi.id, unknown.id]);
+    assert.deepEqual(sorted('price_desc'), [multi.id, single.id, native.id, exact.id, unknown.id]);
+  });
 });
 
 let readError = false, photoError = false, returned = { items: [publicItem()], assets: new Map([[row().id, digest]]), configured: true };

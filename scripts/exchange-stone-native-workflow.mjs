@@ -101,9 +101,9 @@ try {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     const intent = device === 'touch' ? 'callback' : 'availability';
     const exactMessage = `Native ${device} buyer asks about the listed material and separate delivery charges.`;
-    await page.goto(firstBase + '/exchange/stone?audienceState=TX&utm_source=facebook_marketplace&utm_medium=marketplace', { waitUntil: 'domcontentloaded' });
+    await page.goto(firstBase + '/exchange/stone?audienceState=TX&q=Matrix%20Basalt&utm_source=facebook_marketplace&utm_medium=marketplace', { waitUntil: 'domcontentloaded' });
     const card = page.locator('article.stone-card').filter({ hasText: 'Matrix Basalt' });
-    await card.getByRole('link', { name: intent === 'callback' ? 'Request a call' : 'Check availability', exact: true }).click();
+    await card.getByRole('link', { name: intent === 'callback' ? 'Request a call' : 'Ask TradeScout about availability', exact: true }).click();
     const dialog = page.getByRole('dialog'); await dialog.waitFor();
     assert.match(await dialog.locator('textarea').inputValue(), /\$36\.00 \/ sq ft/);
     await dialog.locator('textarea').fill(exactMessage);

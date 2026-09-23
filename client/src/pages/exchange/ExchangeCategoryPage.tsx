@@ -47,6 +47,8 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
+import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,7 @@ type ExchangeItem = {
   views: number;
   favorites: number;
   isLocalPickupOnly: boolean;
+  willShip?: boolean;
   shippingCost: number | null;
   sourceType?: string;
   profileOfferId?: string;
@@ -209,14 +212,21 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
     p.set("categoryId", config.slug);
     if (searchQuery) p.set("search", searchQuery);
     if (priceRange) {
-      const [min, max] = priceRange.split("-");
-      if (min) p.set("priceMin", min);
-      if (max && max !== "+") p.set("priceMax", max);
+      if (priceRange.endsWith("+")) p.set("priceMin", priceRange.slice(0, -1));
+      else {
+        const [min, max] = priceRange.split("-");
+        if (min) p.set("priceMin", min);
+        if (max) p.set("priceMax", max);
+      }
     }
     if (conditionFilter && conditionFilter !== "any") p.set("condition", conditionFilter);
     if (sortBy) p.set("sort", sortBy);
-    if (searchScope === "local" && countyFips) p.set("filterCounty", countyFips);
-    else if (searchScope === "state" && stateCode) p.set("filterState", stateCode);
+    // Retail stone is a national TradeScout offer; these native-inventory filters
+    // would suppress it when a buyer already has a saved county or state scope.
+    if (config.slug !== "building-materials") {
+      if (searchScope === "local" && countyFips) p.set("filterCounty", countyFips);
+      else if (searchScope === "state" && stateCode) p.set("filterState", stateCode);
+    }
     if (stateCode) p.set("stateCode", stateCode);
     if (countyFips) p.set("countyFips", countyFips);
     // Pass extra filter values as server-side query params
@@ -348,7 +358,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
       )}
 
       {/* Price */}
-      {!config.catalogOnly && (
+      {(!config.catalogOnly || config.slug === "building-materials") && (
         <Select value={priceRange} onValueChange={setPriceRange}>
           <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
             <SelectValue placeholder="Price Range" />
@@ -361,6 +371,11 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
             ))}
           </SelectContent>
         </Select>
+      )}
+      {config.slug === "building-materials" && (
+        <p className="text-xs text-white/60">
+          TradeScout stone price bands use full slab material estimates. Every recorded size must fit the band; slab price TBD is excluded and sorts last by price.
+        </p>
       )}
 
       {/* Condition */}
@@ -401,7 +416,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
       ))}
 
       {/* Sort */}
-      {!config.catalogOnly && (
+      {(!config.catalogOnly || config.slug === "building-materials") && (
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
             <SelectValue placeholder="Sort" />
@@ -635,6 +650,18 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   const isProfileOffer = item.sourceType === "profile_offer";
                   const isProfileCatalog = item.sourceType === "profile_catalog";
                   const isProfileLinked = isProfileOffer || isProfileCatalog;
+                  const isRetailStone = isStoneRetailListing(item);
+                  const displayTitle = isRetailStone
+                    ? item.title.replace(/\s*\|\s*TradeScout(?:\s+Stone)?\s*$/i, "").trim() || item.title
+                    : item.title;
+                  const slabPrice = isRetailStone
+                    ? stoneSlabMaterialPrice(
+                        item.price,
+                        item.specifications?.priceUnit,
+                        item.specifications?.referenceSizesInches,
+                        item.specifications?.exactSlab
+                      )
+                    : null;
                   const detailPath =
                     isProfileCatalog && item.profileItemSlug && item.publicProfilePath
                       ? item.publicProfilePath
@@ -649,16 +676,16 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                       {/* Image — click to open detail page */}
                       <div className="cursor-pointer" onClick={() => navigate(detailPath)}>
                         {item.images.length > 0 ? (
-                          <div className="aspect-video bg-black/40 overflow-hidden">
+                          <div className="aspect-[4/3] sm:aspect-video bg-black/40 overflow-hidden">
                             <img
                               src={item.images[0]}
-                              alt={item.title}
+                              alt={displayTitle}
                               className="w-full h-full object-cover hover:opacity-90 transition-opacity"
                               loading="lazy"
                             />
                           </div>
                         ) : (
-                          <div className="aspect-video bg-white/5 flex items-center justify-center">
+                          <div className="aspect-[4/3] sm:aspect-video bg-white/5 flex items-center justify-center">
                             <IconComponent className="h-10 w-10 text-white/20" />
                           </div>
                         )}
@@ -682,12 +709,34 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             className="text-sm font-semibold text-white line-clamp-2 leading-snug flex-1 cursor-pointer hover:text-ts-orange transition-colors"
                             onClick={() => navigate(detailPath)}
                           >
-                            {item.title}
+                            {displayTitle}
                           </h3>
-                          <span className="text-sm font-bold text-ts-orange shrink-0">
-                            {formatPrice(item.price)}
-                          </span>
+                          {!isRetailStone && (
+                            <span className="text-sm font-bold text-ts-orange shrink-0">
+                              {formatPrice(item.price)}
+                            </span>
+                          )}
                         </div>
+
+                        {isRetailStone && (
+                          <div className="mb-3 rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2">
+                            <p className="text-xs text-white/70">
+                              {slabPrice?.primaryLabel || "Full slab material price"}
+                            </p>
+                            <p className="text-xl font-bold leading-tight text-white">
+                              {slabPrice?.primaryPrice || "Confirm material price"}
+                            </p>
+                            {slabPrice?.secondaryPrice && (
+                              <p className="mt-1 text-xs text-white/70">
+                                {slabPrice.secondaryPrice}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {isRetailStone &&
+                          item.specifications?.shippingPolicy === "quoted_separately" && (
+                            <p className="mb-2 text-xs text-white/70">Delivery quoted separately</p>
+                          )}
 
                         {/* Location + time */}
                         <div className="flex items-center justify-between text-[11px] text-white/50 mb-2">
@@ -777,25 +826,27 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         )}
 
                         {/* Shipping badge */}
-                        {!isProfileCatalog && (
-                          <div className="mb-2">
-                            {item.isLocalPickupOnly ? (
-                              <Badge
-                                variant="outline"
-                                className="border-white/10 text-[10px] text-white/50"
-                              >
-                                Local pickup
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="border-emerald-500/30 text-[10px] text-emerald-300"
-                              >
-                                Shipping available
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        {!isProfileCatalog &&
+                          !isRetailStone &&
+                          (item.isLocalPickupOnly || item.willShip === true) && (
+                            <div className="mb-2">
+                              {item.isLocalPickupOnly ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-white/10 text-[10px] text-white/50"
+                                >
+                                  Local pickup
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-500/30 text-[10px] text-emerald-300"
+                                >
+                                  Shipping available
+                                </Badge>
+                              )}
+                            </div>
+                          )}
 
                         {/* Seller row */}
                         <div className="flex items-center justify-between gap-2">
@@ -848,22 +899,37 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             >
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              size="sm"
-                              className="h-7 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-[11px]"
-                              onClick={() => navigate(detailPath)}
-                            >
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              {isProfileOffer
-                                ? "Buy"
-                                : isProfileCatalog
-                                  ? item.profileItemSlug
-                                    ? "View item"
-                                    : "View catalog"
-                                  : "View"}
-                            </Button>
+                            {!isRetailStone && (
+                              <Button
+                                size="sm"
+                                className="h-7 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-[11px]"
+                                onClick={() => navigate(detailPath)}
+                              >
+                                <MessageSquare className="h-3 w-3 mr-1" />
+                                {isProfileOffer
+                                  ? "Buy"
+                                  : isProfileCatalog
+                                    ? item.profileItemSlug
+                                      ? "View item"
+                                      : "View catalog"
+                                    : "View"}
+                              </Button>
+                            )}
                           </div>
                         </div>
+
+                        {isRetailStone && (
+                          <Button
+                            type="button"
+                            className="mt-3 min-h-11 w-full bg-ts-orange font-semibold text-black hover:bg-ts-orange-dark"
+                            onClick={() => {
+                              const path = stoneInquiryPath(item.id, "availability");
+                              if (path) navigate(path);
+                            }}
+                          >
+                            Ask TradeScout about availability
+                          </Button>
+                        )}
 
                         {/* Stats */}
                         {!isProfileCatalog && (
