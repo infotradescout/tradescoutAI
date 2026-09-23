@@ -999,7 +999,7 @@ function buildSavedThreadSummary(messages: ScoutMessage[]): string {
   return summarizeThreadText(source, "Saved Scout conversation");
 }
 
-function inferSavedThreadIntent(messages: ScoutMessage[]): {
+export function inferSavedThreadIntent(messages: ScoutMessage[]): {
   intent: string;
   relatedLabel: string;
   relatedPath: string;
@@ -1058,6 +1058,22 @@ function inferSavedThreadIntent(messages: ScoutMessage[]): {
         }
       }
     }
+  }
+
+  const mixedDiscovery = latestFirst.find(
+    (message) =>
+      message.role === "assistant" &&
+      message.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
+  );
+  if (mixedDiscovery) {
+    return {
+      intent: "local_help",
+      relatedLabel: "Local discovery",
+      relatedPath:
+        typeof mixedDiscovery.navTarget === "string" && mixedDiscovery.navTarget.startsWith("/")
+          ? mixedDiscovery.navTarget
+          : "/scout",
+    };
   }
 
   const text = messages

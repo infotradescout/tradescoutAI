@@ -149,10 +149,12 @@ describe("ScoutThread evidence strip", () => {
   });
 
   it("labels a mixed county discovery result as local results while rendering its post link", () => {
+    const response =
+      "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. It does not verify deals, businesses, pages, tools, or other requests. Open Community or Businesses to continue; nothing was sent.";
     const assistantMessage: ScoutMessage = {
       id: "a_county_discovery",
       role: "assistant",
-      content: "This Scout result includes 1 published county post from the last 7 days.",
+      content: response,
       timestamp: new Date().toISOString(),
       provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
       resultContract: {
@@ -169,7 +171,7 @@ describe("ScoutThread evidence strip", () => {
           },
         ],
         evidence: [],
-        answer: "This Scout result includes 1 published county post from the last 7 days.",
+        answer: response,
         allowed_actions: [],
         working_memory_update: {},
       },
@@ -181,6 +183,10 @@ describe("ScoutThread evidence strip", () => {
     expect(html).not.toContain('class="scout-assistant-bubble__badge">Provider Search</span>');
     expect(html).toContain('href="/community/posts/scout-native-published-maricopa"');
     expect(html).toContain("Neighborhood tool swap");
+    expect(html).toContain("1 recent county post in Maricopa County, AZ.");
+    expect(html).toContain("Deals, businesses, pages, tools and other requests unverified.");
+    expect(html).toContain("Nothing sent.");
+    expect(html).toContain("More detail");
   });
 
   it("renders one enabled promoted action while preserving distinct thread actions", () => {

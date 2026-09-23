@@ -117,6 +117,31 @@ function trimToSummary(content: string): string {
   return `${clean.slice(0, SUMMARY_MAX_CHARS - 3).trim()}...`;
 }
 
+function mixedDiscoverySummary(content: string): string {
+  const clean = content.replace(/\s+/g, " ").trim();
+  if (
+    !/does not verify deals, businesses, pages, tools, or other requests/i.test(clean) ||
+    !/nothing was sent/i.test(clean)
+  ) {
+    return clean;
+  }
+
+  const found = clean.match(
+    /^This Scout result includes (\d+) published county (post|posts) from the last 7 days in (.+?)\./i
+  );
+  const missing = clean.match(
+    /^This Scout result does not verify a county post from the last 7 days in (.+?)\./i
+  );
+  const finding = found
+    ? `${found[1]} recent county ${found[2]} in ${found[3]}`
+    : missing
+      ? `No verified recent county post in ${missing[1]}`
+      : null;
+  if (!finding) return clean;
+
+  return `${finding}. Deals, businesses, pages, tools and other requests unverified. Nothing sent.`;
+}
+
 function tryParseScoutEnvelope(raw: string): Record<string, unknown> | null {
   const text = String(raw || "").trim();
   if (!text || (!text.startsWith("{") && !text.startsWith("["))) return null;
@@ -173,6 +198,9 @@ function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
 }
 
 function buildAssistantSummary(msg: ScoutMessage, displayContent: string): string {
+  if (msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery") {
+    return mixedDiscoverySummary(displayContent);
+  }
   if (!shouldSummarizeAssistantMessage(msg)) return displayContent;
 
   const frame = msg.frame;
