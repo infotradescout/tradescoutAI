@@ -80,6 +80,24 @@ test('missing or malformed dimensions never invent a full slab total', () => {
   });
 });
 
+test('stone cards put one truthful price before the photo in source order while keeping inquiry links after it', () => {
+  const sized = renderer.renderExchangeStoneLanding(landing({ items: [{ ...item, specifications: {
+    priceUnit: 'sqft', referenceSizesInches: '126x78, 127x77.5',
+  } }] })).html.split('<article class="stone-card">')[1].split('</article>')[0];
+  assert.ok(sized.indexOf('class="price-block"') < sized.indexOf('class="stone-photo"'));
+  assert.ok(sized.indexOf('class="price-secondary"') < sized.indexOf('class="stone-photo"'));
+  assert.ok(sized.indexOf('class="stone-photo"') < sized.indexOf('class="actions"'));
+  assert.equal((sized.match(/class="price-block"/g) || []).length, 1);
+  assert.equal((sized.match(/\$1,893\.94–\$1,896\.73/g) || []).length, 1);
+  assert.match(sized, /class="stone-photo" href="\/exchange\/building-materials\/tradescout-stone-test\?/);
+  assert.match(sized, /inquiry=availability[^"]*"[^>]*>Ask TradeScout about availability<\/a>/);
+
+  const unsized = renderer.renderExchangeStoneLanding(landing()).html.split('<article class="stone-card">')[1].split('</article>')[0];
+  assert.ok(unsized.indexOf('Slab price TBD') < unsized.indexOf('class="stone-photo"'));
+  assert.match(unsized, /Slab price TBD<\/p><p class="price">\$27\.75 \/ sq ft<\/p>/);
+  assert.equal(unsized.includes('class="price-secondary"'), false);
+});
+
 test('phone browse keeps search and count visible while all 96 cards remain server-rendered in bounded groups', () => {
   const items = Array.from({ length: 96 }, (_, index) => {
     const id = `tradescout-stone-test-${index + 1}`;
