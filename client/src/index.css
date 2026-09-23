@@ -3043,6 +3043,8 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
 @media (max-width: 640px) {
   .scout-current-task {
     gap: 0.25rem;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
     padding: 0.65rem;
   }
 
@@ -3050,6 +3052,7 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
   }
 
   .scout-current-task__head > :first-child {
