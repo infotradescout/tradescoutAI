@@ -465,11 +465,14 @@ function DirectConnectTaskSwitcher({
             const active = section === activeSection;
             const meta = DIRECT_CONNECT_WORKDESK_META[section];
             const count = counts[section] || 0;
+            const compactLabel =
+              section === "inbox" ? "Inbox" : section === "engagements" ? "Requests" : "Start";
             return (
               <button
                 key={section}
                 type="button"
                 aria-current={active ? "page" : undefined}
+                aria-label={`${meta.label}, ${meta.role}${count > 0 ? `, ${count}` : ""}`}
                 onClick={() => onSelect(section)}
                 className={cn(
                   "flex min-h-[44px] min-w-0 flex-col items-center justify-center rounded-lg border px-1.5 py-1 text-center outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)] sm:px-3",
@@ -478,11 +481,14 @@ function DirectConnectTaskSwitcher({
                     : "border-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
                 )}
               >
-                <span className="max-w-full truncate text-xs font-semibold sm:text-sm">
+                <span className="max-w-full text-xs font-semibold min-[360px]:hidden">
+                  {compactLabel}
+                </span>
+                <span className="hidden max-w-full truncate text-xs font-semibold min-[360px]:inline sm:text-sm">
                   {meta.label}
                   {count > 0 ? ` (${count})` : ""}
                 </span>
-                <span className="max-w-full truncate text-[10px] uppercase tracking-[0.12em] opacity-75">
+                <span className="hidden max-w-full truncate text-[10px] uppercase tracking-[0.12em] opacity-75 min-[360px]:block">
                   {meta.role}
                 </span>
               </button>
