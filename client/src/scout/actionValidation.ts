@@ -116,6 +116,7 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
       /^\/exchange\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/profile\/[a-zA-Z0-9_-]+/.test(basePath) ||
       /^\/community\/[a-zA-Z0-9_-]+$/.test(basePath) ||
+      /^\/community\/posts\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/groups\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/help\/[a-zA-Z0-9_-]+$/.test(basePath);
 

@@ -93,7 +93,13 @@ describe("actionValidation", () => {
     expect(action).toBeNull();
   });
 
-  it("keeps Scout county discovery navigation on its two canonical internal routes", () => {
+  it("keeps Scout county discovery navigation on canonical internal routes", () => {
+    const matchingPost = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Open matching county post",
+        target: "/community/posts/post_123",
+      })
+    );
     const community = scoutAllowedActionToAction(
       allowedAction({
         label: "Open recent Community",
@@ -108,6 +114,11 @@ describe("actionValidation", () => {
       })
     );
 
+    expect(matchingPost).toMatchObject({
+      type: "NAVIGATE",
+      to: "/community/posts/post_123",
+      path: "/community/posts/post_123",
+    });
     expect(community).toMatchObject({
       type: "NAVIGATE",
       to: "/community-feed?geo=local&feed=recent",
@@ -120,6 +131,9 @@ describe("actionValidation", () => {
     });
     expect(
       scoutAllowedActionToAction(allowedAction({ target: "/community-feed/admin" }))
+    ).toBeNull();
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/community/posts/post_123/extra" }))
     ).toBeNull();
     expect(
       scoutAllowedActionToAction(allowedAction({ target: "/contractors/secret/path" }))

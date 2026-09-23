@@ -52,19 +52,29 @@ export function buildScoutMixedDiscoveryRecovery(input: {
   }));
 
   const area = displayArea(input.countyLabel);
-  const firstSentence = recentPosts.length
-    ? `This Scout result includes ${recentPosts.length} published county ${recentPosts.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
+  const firstSentence = entities.length
+    ? `This Scout result includes ${entities.length} published county ${entities.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
     : `This Scout result does not verify a county post from the last 7 days in ${area}.`;
 
   return {
-    message: `${firstSentence} It does not verify deals, businesses, pages, tools, or other requests. Open Community or Businesses to continue; nothing was sent.`,
+    message: `${firstSentence} It does not verify deals, businesses, pages, tools, or other requests. ${entities.length ? "Open the matching county post or browse Community or Businesses." : "Browse Community or Businesses to continue."} Nothing was sent.`,
     entities,
     actions: [
+      ...(entities.length
+        ? [
+            {
+              type: "NAVIGATE",
+              label: "Open matching county post",
+              to: entities[0].url,
+              primary: true,
+            },
+          ]
+        : []),
       {
         type: "NAVIGATE",
         label: "Open recent Community",
         to: "/community-feed?geo=local&feed=recent",
-        primary: true,
+        primary: entities.length === 0,
       },
       { type: "NAVIGATE", label: "Browse Businesses", to: "/contractors" },
     ],

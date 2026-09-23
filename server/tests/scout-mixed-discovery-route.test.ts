@@ -107,7 +107,13 @@ describe("Scout mixed county discovery route", () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: "NAVIGATE",
+          target: "/community/posts/post_123",
+          primary: true,
+        }),
+        expect.objectContaining({
+          type: "NAVIGATE",
           target: "/community-feed?geo=local&feed=recent",
+          primary: false,
         }),
         expect.objectContaining({ type: "NAVIGATE", target: "/contractors" }),
       ])
@@ -143,5 +149,45 @@ describe("Scout mixed county discovery route", () => {
       /no (posts|deals|businesses)|0 (posts|deals|businesses)/i
     );
     expect(response.body.allowed_actions.length).toBeGreaterThan(0);
+    expect(response.body.allowed_actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: "/community-feed?geo=local&feed=recent",
+          primary: true,
+        }),
+      ])
+    );
+  });
+
+  it("describes only the county post cards it actually returns", async () => {
+    resolveKnowledgeMock.mockResolvedValue({
+      answer: "Synthetic county posts",
+      sources: ["TradeScout Database (community_posts)"],
+      layer: 2,
+      confidence: "high",
+      meta: {
+        communityPosts: {
+          count: 4,
+          items: Array.from({ length: 4 }, (_, index) => ({
+            id: `post_${index + 1}`,
+            title: `County post ${index + 1}`,
+            createdAt: new Date().toISOString(),
+          })),
+        },
+      },
+    });
+
+    const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
+      message: screenshotPrompt,
+      countyCode: "Maricopa County, AZ",
+      countyHint: "04013",
+      stateCode: "AZ",
+      history: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.entities).toHaveLength(3);
+    expect(response.body.answer).toContain("includes 3 published county posts");
+    expect(response.body.answer).not.toContain("includes 4 published county posts");
   });
 });
