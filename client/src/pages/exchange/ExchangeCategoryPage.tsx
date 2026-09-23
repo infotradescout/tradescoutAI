@@ -47,6 +47,8 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
+import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -635,6 +637,15 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   const isProfileOffer = item.sourceType === "profile_offer";
                   const isProfileCatalog = item.sourceType === "profile_catalog";
                   const isProfileLinked = isProfileOffer || isProfileCatalog;
+                  const isRetailStone = isStoneRetailListing(item);
+                  const slabPrice = isRetailStone
+                    ? stoneSlabMaterialPrice(
+                        item.price,
+                        item.specifications?.priceUnit,
+                        item.specifications?.referenceSizesInches,
+                        item.specifications?.exactSlab
+                      )
+                    : null;
                   const detailPath =
                     isProfileCatalog && item.profileItemSlug && item.publicProfilePath
                       ? item.publicProfilePath
@@ -649,7 +660,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                       {/* Image — click to open detail page */}
                       <div className="cursor-pointer" onClick={() => navigate(detailPath)}>
                         {item.images.length > 0 ? (
-                          <div className="aspect-video bg-black/40 overflow-hidden">
+                          <div className="aspect-[4/3] sm:aspect-video bg-black/40 overflow-hidden">
                             <img
                               src={item.images[0]}
                               alt={item.title}
@@ -658,7 +669,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             />
                           </div>
                         ) : (
-                          <div className="aspect-video bg-white/5 flex items-center justify-center">
+                          <div className="aspect-[4/3] sm:aspect-video bg-white/5 flex items-center justify-center">
                             <IconComponent className="h-10 w-10 text-white/20" />
                           </div>
                         )}
@@ -684,10 +695,28 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                           >
                             {item.title}
                           </h3>
-                          <span className="text-sm font-bold text-ts-orange shrink-0">
-                            {formatPrice(item.price)}
-                          </span>
+                          {!isRetailStone && (
+                            <span className="text-sm font-bold text-ts-orange shrink-0">
+                              {formatPrice(item.price)}
+                            </span>
+                          )}
                         </div>
+
+                        {isRetailStone && (
+                          <div className="mb-3 rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2">
+                            <p className="text-xs text-white/70">
+                              {slabPrice?.primaryLabel || "Full slab material price"}
+                            </p>
+                            <p className="text-xl font-bold leading-tight text-white">
+                              {slabPrice?.primaryPrice || "Confirm material price"}
+                            </p>
+                            {slabPrice?.secondaryPrice && (
+                              <p className="mt-1 text-xs text-white/70">
+                                {slabPrice.secondaryPrice}
+                              </p>
+                            )}
+                          </div>
+                        )}
 
                         {/* Location + time */}
                         <div className="flex items-center justify-between text-[11px] text-white/50 mb-2">
@@ -777,7 +806,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         )}
 
                         {/* Shipping badge */}
-                        {!isProfileCatalog && (
+                        {!isProfileCatalog && !isRetailStone && (
                           <div className="mb-2">
                             {item.isLocalPickupOnly ? (
                               <Badge
@@ -848,7 +877,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             >
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
+                            {!isRetailStone && <Button
                               size="sm"
                               className="h-7 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-[11px]"
                               onClick={() => navigate(detailPath)}
@@ -861,9 +890,22 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                                     ? "View item"
                                     : "View catalog"
                                   : "View"}
-                            </Button>
+                            </Button>}
                           </div>
                         </div>
+
+                        {isRetailStone && (
+                          <Button
+                            type="button"
+                            className="mt-3 min-h-11 w-full bg-ts-orange font-semibold text-black hover:bg-ts-orange-dark"
+                            onClick={() => {
+                              const path = stoneInquiryPath(item.id, "availability");
+                              if (path) navigate(path);
+                            }}
+                          >
+                            Confirm slab availability
+                          </Button>
+                        )}
 
                         {/* Stats */}
                         {!isProfileCatalog && (
