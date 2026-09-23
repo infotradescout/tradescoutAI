@@ -119,6 +119,18 @@ test('selected market search and area change preserve each other and attribution
   assert.equal(unselected.includes('class="area-change"'), false);
   assert.match(unselected, /<form class="stone-search needs-area"[^>]*>[\s\S]*name="audienceState"/);
 });
+test('retail card omits the repeated seller suffix without changing signed product identity', () => {
+  const html = renderer.renderExchangeStoneLanding(landing({
+    items: [{ ...item, title: 'Ocean Blue | TradeScout' }],
+  })).html;
+  const card = html.split('<article class="stone-card">')[1].split('</article>')[0];
+  assert.match(card, /aria-label="View Ocean Blue"/);
+  assert.match(card, /alt="Ocean Blue"/);
+  assert.match(card, /<h2><a[^>]*>Ocean Blue<\/a><\/h2>/);
+  assert.equal(card.includes('Ocean Blue | TradeScout'), false);
+  const structured = JSON.parse(html.split('<script type="application/ld+json">')[1].split('</script>')[0]);
+  assert.equal(structured.mainEntity.itemListElement[0].name, 'Ocean Blue | TradeScout');
+});
 test('Facebook acquisition survives internal navigation without retaining private URL queries', () => {
   const original = funnel.captureAcquisition('/exchange/stone?utm_source=facebook&utm_medium=marketplace', 'https://l.facebook.com/l.php?private=123');
   assert.equal(original.channel, 'facebook_marketplace');
