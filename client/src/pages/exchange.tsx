@@ -120,6 +120,7 @@ interface ExchangeItem {
   views: number;
   favorites: number;
   isLocalPickupOnly?: boolean;
+  willShip?: boolean;
   shippingCost?: number | null;
   state?: string;
   county?: string;
@@ -1495,25 +1496,27 @@ export default function Exchange() {
                               </span>
                             </div>
 
-                            {!isProfileCatalog && !isRetailStone && (
-                              <div className="mb-2 flex flex-wrap gap-1">
-                                {item.isLocalPickupOnly ? (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-white/10 text-[10px] text-white/65"
-                                  >
-                                    Local pickup
-                                  </Badge>
-                                ) : (
-                                  <Badge
-                                    variant="outline"
-                                    className="border-emerald-500/30 text-[10px] text-emerald-300"
-                                  >
-                                    Shipping available
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
+                            {!isProfileCatalog &&
+                              !isRetailStone &&
+                              (item.isLocalPickupOnly || item.willShip === true) && (
+                                <div className="mb-2 flex flex-wrap gap-1">
+                                  {item.isLocalPickupOnly ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-white/10 text-[10px] text-white/65"
+                                    >
+                                      Local pickup
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-emerald-500/30 text-[10px] text-emerald-300"
+                                    >
+                                      Shipping available
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
 
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0 flex items-center">

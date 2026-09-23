@@ -81,6 +81,7 @@ type ListingDetail = {
   views: number;
   favorites: number;
   isLocalPickupOnly: boolean;
+  willShip?: boolean;
   shippingCost: number | null;
   year?: number;
   mileage?: number;
@@ -211,6 +212,7 @@ export default function ExchangeListingDetail() {
         views: Number(raw.views ?? raw.viewCount ?? 0),
         favorites: Number(raw.favorites ?? raw.favoriteCount ?? 0),
         isLocalPickupOnly: Boolean(raw.isLocalPickupOnly ?? raw.localPickupOnly),
+        willShip: raw.willShip === true,
         shippingCost: raw.shippingCost != null ? Number(raw.shippingCost) : null,
         year: raw.year ? Number(raw.year) : undefined,
         mileage: raw.mileage != null ? Number(raw.mileage) : undefined,
@@ -833,25 +835,27 @@ export default function ExchangeListingDetail() {
           )}
 
           {/* ── Shipping / pickup ── */}
-          {!stoneInquiry.isRetail && !isProfileCatalog && (
-            <div className="flex items-center gap-2 text-sm">
-              {listing.isLocalPickupOnly ? (
-                <span className="flex items-center gap-1.5 text-white/50">
-                  <MapPin className="h-4 w-4" />
-                  Local pickup only
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-emerald-300">
-                  <Truck className="h-4 w-4" />
-                  Shipping available
-                  {listing.shippingCost != null && listing.shippingCost > 0 && (
-                    <span className="text-white/50">· {formatPrice(listing.shippingCost)}</span>
-                  )}
-                  {listing.shippingCost === 0 && <span className="text-emerald-300">· Free</span>}
-                </span>
-              )}
-            </div>
-          )}
+          {!stoneInquiry.isRetail &&
+            !isProfileCatalog &&
+            (listing.isLocalPickupOnly || listing.willShip === true) && (
+              <div className="flex items-center gap-2 text-sm">
+                {listing.isLocalPickupOnly ? (
+                  <span className="flex items-center gap-1.5 text-white/50">
+                    <MapPin className="h-4 w-4" />
+                    Local pickup only
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-emerald-300">
+                    <Truck className="h-4 w-4" />
+                    Shipping available
+                    {listing.shippingCost != null && listing.shippingCost > 0 && (
+                      <span className="text-white/50">· {formatPrice(listing.shippingCost)}</span>
+                    )}
+                    {listing.shippingCost === 0 && <span className="text-emerald-300">· Free</span>}
+                  </span>
+                )}
+              </div>
+            )}
 
           <Separator className="bg-white/10" />
 

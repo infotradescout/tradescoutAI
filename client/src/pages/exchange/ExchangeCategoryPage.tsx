@@ -68,6 +68,7 @@ type ExchangeItem = {
   views: number;
   favorites: number;
   isLocalPickupOnly: boolean;
+  willShip?: boolean;
   shippingCost: number | null;
   sourceType?: string;
   profileOfferId?: string;
@@ -813,25 +814,27 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         )}
 
                         {/* Shipping badge */}
-                        {!isProfileCatalog && !isRetailStone && (
-                          <div className="mb-2">
-                            {item.isLocalPickupOnly ? (
-                              <Badge
-                                variant="outline"
-                                className="border-white/10 text-[10px] text-white/50"
-                              >
-                                Local pickup
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="border-emerald-500/30 text-[10px] text-emerald-300"
-                              >
-                                Shipping available
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                        {!isProfileCatalog &&
+                          !isRetailStone &&
+                          (item.isLocalPickupOnly || item.willShip === true) && (
+                            <div className="mb-2">
+                              {item.isLocalPickupOnly ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-white/10 text-[10px] text-white/50"
+                                >
+                                  Local pickup
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-500/30 text-[10px] text-emerald-300"
+                                >
+                                  Shipping available
+                                </Badge>
+                              )}
+                            </div>
+                          )}
 
                         {/* Seller row */}
                         <div className="flex items-center justify-between gap-2">
