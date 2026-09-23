@@ -638,6 +638,9 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   const isProfileCatalog = item.sourceType === "profile_catalog";
                   const isProfileLinked = isProfileOffer || isProfileCatalog;
                   const isRetailStone = isStoneRetailListing(item);
+                  const displayTitle = isRetailStone
+                    ? item.title.replace(/\s*\|\s*TradeScout\s*$/i, "").trim() || item.title
+                    : item.title;
                   const slabPrice = isRetailStone
                     ? stoneSlabMaterialPrice(
                         item.price,
@@ -663,7 +666,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                           <div className="aspect-[4/3] sm:aspect-video bg-black/40 overflow-hidden">
                             <img
                               src={item.images[0]}
-                              alt={item.title}
+                              alt={displayTitle}
                               className="w-full h-full object-cover hover:opacity-90 transition-opacity"
                               loading="lazy"
                             />
@@ -693,7 +696,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             className="text-sm font-semibold text-white line-clamp-2 leading-snug flex-1 cursor-pointer hover:text-ts-orange transition-colors"
                             onClick={() => navigate(detailPath)}
                           >
-                            {item.title}
+                            {displayTitle}
                           </h3>
                           {!isRetailStone && (
                             <span className="text-sm font-bold text-ts-orange shrink-0">
@@ -717,6 +720,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             )}
                           </div>
                         )}
+                        {isRetailStone &&
+                          item.specifications?.shippingPolicy === "quoted_separately" && (
+                            <p className="mb-2 text-xs text-white/70">Delivery quoted separately</p>
+                          )}
 
                         {/* Location + time */}
                         <div className="flex items-center justify-between text-[11px] text-white/50 mb-2">
@@ -877,20 +884,22 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             >
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
-                            {!isRetailStone && <Button
-                              size="sm"
-                              className="h-7 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-[11px]"
-                              onClick={() => navigate(detailPath)}
-                            >
-                              <MessageSquare className="h-3 w-3 mr-1" />
-                              {isProfileOffer
-                                ? "Buy"
-                                : isProfileCatalog
-                                  ? item.profileItemSlug
-                                    ? "View item"
-                                    : "View catalog"
-                                  : "View"}
-                            </Button>}
+                            {!isRetailStone && (
+                              <Button
+                                size="sm"
+                                className="h-7 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-[11px]"
+                                onClick={() => navigate(detailPath)}
+                              >
+                                <MessageSquare className="h-3 w-3 mr-1" />
+                                {isProfileOffer
+                                  ? "Buy"
+                                  : isProfileCatalog
+                                    ? item.profileItemSlug
+                                      ? "View item"
+                                      : "View catalog"
+                                    : "View"}
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -903,7 +912,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                               if (path) navigate(path);
                             }}
                           >
-                            Confirm slab availability
+                            Ask TradeScout about availability
                           </Button>
                         )}
 
