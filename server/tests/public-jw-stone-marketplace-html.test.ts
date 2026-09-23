@@ -276,6 +276,12 @@ describe("JW Stone marketplace public HTML", () => {
     const sitemap = buildJwStoneMarketplaceSitemapXml("https://jwstonelogistics.com");
 
     expect(html).toContain('<meta name="robots" content="noindex, follow" />');
+    expect(html).toContain(
+      '<link rel="canonical" href="https://jwstonelogistics.com/" />'
+    );
+    expect(html).toContain(
+      'property="og:url" content="https://jwstonelogistics.com/"'
+    );
     expect(html).not.toContain("Ask about Trending Selection");
     expect(sitemap).toContain("/materials/granite");
     expect(sitemap).toContain("/stones/blue-dunes");

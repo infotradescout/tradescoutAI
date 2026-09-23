@@ -104,7 +104,12 @@ function normalizeOrigin(origin: string | undefined): string {
 }
 
 function resolveCollectionUrl(opts: PublicJwStoneMarketplaceHtmlOptions): string {
-  if (opts.collectionUrl) return String(opts.collectionUrl).replace(/\/+$/, "") || "/";
+  if (opts.collectionUrl) {
+    const supplied = String(opts.collectionUrl);
+    // The custom-domain home is `/`; keep that canonical slash when collapsing placeholder pages.
+    if (/^https?:\/\/[^/?#]+\/+$/i.test(supplied)) return supplied.replace(/\/+$/, "/");
+    return supplied.replace(/\/+$/, "") || "/";
+  }
   const origin = normalizeOrigin(opts.origin);
   if (opts.marketplaceDomainSurface) return `${origin}/`;
   return JW_STONE_MARKETPLACE_PLATFORM_URL;
