@@ -212,14 +212,21 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
     p.set("categoryId", config.slug);
     if (searchQuery) p.set("search", searchQuery);
     if (priceRange) {
-      const [min, max] = priceRange.split("-");
-      if (min) p.set("priceMin", min);
-      if (max && max !== "+") p.set("priceMax", max);
+      if (priceRange.endsWith("+")) p.set("priceMin", priceRange.slice(0, -1));
+      else {
+        const [min, max] = priceRange.split("-");
+        if (min) p.set("priceMin", min);
+        if (max) p.set("priceMax", max);
+      }
     }
     if (conditionFilter && conditionFilter !== "any") p.set("condition", conditionFilter);
     if (sortBy) p.set("sort", sortBy);
-    if (searchScope === "local" && countyFips) p.set("filterCounty", countyFips);
-    else if (searchScope === "state" && stateCode) p.set("filterState", stateCode);
+    // Retail stone is a national TradeScout offer; these native-inventory filters
+    // would suppress it when a buyer already has a saved county or state scope.
+    if (config.slug !== "building-materials") {
+      if (searchScope === "local" && countyFips) p.set("filterCounty", countyFips);
+      else if (searchScope === "state" && stateCode) p.set("filterState", stateCode);
+    }
     if (stateCode) p.set("stateCode", stateCode);
     if (countyFips) p.set("countyFips", countyFips);
     // Pass extra filter values as server-side query params
@@ -351,7 +358,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
       )}
 
       {/* Price */}
-      {!config.catalogOnly && (
+      {(!config.catalogOnly || config.slug === "building-materials") && (
         <Select value={priceRange} onValueChange={setPriceRange}>
           <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
             <SelectValue placeholder="Price Range" />
@@ -364,6 +371,11 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
             ))}
           </SelectContent>
         </Select>
+      )}
+      {config.slug === "building-materials" && (
+        <p className="text-xs text-white/60">
+          TradeScout stone price bands use full slab material estimates. Every recorded size must fit the band; slab price TBD is excluded and sorts last by price.
+        </p>
       )}
 
       {/* Condition */}
@@ -404,7 +416,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
       ))}
 
       {/* Sort */}
-      {!config.catalogOnly && (
+      {(!config.catalogOnly || config.slug === "building-materials") && (
         <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
             <SelectValue placeholder="Sort" />
@@ -640,7 +652,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                   const isProfileLinked = isProfileOffer || isProfileCatalog;
                   const isRetailStone = isStoneRetailListing(item);
                   const displayTitle = isRetailStone
-                    ? item.title.replace(/\s*\|\s*TradeScout\s*$/i, "").trim() || item.title
+                    ? item.title.replace(/\s*\|\s*TradeScout(?:\s+Stone)?\s*$/i, "").trim() || item.title
                     : item.title;
                   const slabPrice = isRetailStone
                     ? stoneSlabMaterialPrice(

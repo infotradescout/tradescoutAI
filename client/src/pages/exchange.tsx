@@ -1284,6 +1284,11 @@ export default function Exchange() {
                       <SelectItem value="100000+">$100K+</SelectItem>
                     </SelectContent>
                   </Select>
+                  {(!selectedCategory || selectedCategory === "all" || selectedCategory === "building-materials") && (
+                    <p className="text-xs text-white/60">
+                      TradeScout stone price bands use full slab material estimates. Every recorded size must fit the band; slab price TBD is excluded and sorts last by price.
+                    </p>
+                  )}
 
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
                     <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
@@ -1382,7 +1387,7 @@ export default function Exchange() {
                       const isProfileLinked = isProfileOffer || isProfileCatalog;
                       const isRetailStone = isStoneRetailListing(item);
                       const displayTitle = isRetailStone
-                        ? item.title.replace(/\s*\|\s*TradeScout\s*$/i, "").trim() || item.title
+                        ? item.title.replace(/\s*\|\s*TradeScout(?:\s+Stone)?\s*$/i, "").trim() || item.title
                         : item.title;
                       const slabPrice = isRetailStone
                         ? stoneSlabMaterialPrice(

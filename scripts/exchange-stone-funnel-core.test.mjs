@@ -36,6 +36,12 @@ test('exact product links, explicit price units and sign-in continuation', () =>
 });
 
 test('full slab material estimate leads from approved square-foot rate and every recorded size', () => {
+  assert.deepEqual(buyer.stoneSlabMaterialPriceRange('27.75', 'sqft', '126x78'), {
+    kind: 'estimated', minimumCents: 189394, maximumCents: 189394, referenceSizeCount: 1,
+  });
+  assert.deepEqual(buyer.stoneSlabMaterialPriceRange('27.75', 'sqft', '126x78, 127x77.5'), {
+    kind: 'estimated', minimumCents: 189394, maximumCents: 189673, referenceSizeCount: 2,
+  });
   const one = buyer.stoneSlabMaterialPrice('27.75', 'sqft', '126x78');
   assert.equal(one.kind, 'estimated');
   assert.equal(one.primaryPrice, '$1,893.94');
@@ -53,6 +59,7 @@ test('full slab material estimate leads from approved square-foot rate and every
 
 test('missing or malformed dimensions never invent a full slab total', () => {
   for (const sizes of [null, '', '126x78, nonsense', '126x78,', '10x78', '126x780']) {
+    assert.equal(buyer.stoneSlabMaterialPriceRange('27.75', 'sqft', sizes), null);
     const display = buyer.stoneSlabMaterialPrice('27.75', 'sqft', sizes);
     assert.equal(display.kind, 'size_required');
     assert.equal(display.primaryLabel, 'Slab price TBD');
@@ -63,6 +70,9 @@ test('missing or malformed dimensions never invent a full slab total', () => {
   assert.match(card, /Slab price TBD<\/p><p class="price">\$27\.75 \/ sq ft<\/p>/);
   assert.equal(card.includes('Estimated full slab material price'), false);
   assert.equal(buyer.stoneSlabMaterialPrice(1707, 'slab', null), null);
+  assert.deepEqual(buyer.stoneSlabMaterialPriceRange(1707, 'slab', null, 'Slab A'), {
+    kind: 'exact', minimumCents: 170700, maximumCents: 170700, referenceSizeCount: 0,
+  });
   assert.deepEqual(buyer.stoneSlabMaterialPrice(1707, 'slab', null, 'Slab A'), {
     kind: 'exact', primaryLabel: 'Full slab material price', primaryPrice: '$1,707.00', secondaryPrice: null,
     referenceSizeCount: 0,

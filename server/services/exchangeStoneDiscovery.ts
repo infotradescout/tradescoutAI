@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { stonePriceLabel } from "../../shared/exchangeStoneBuyerFlow";
+import { stonePriceLabel, stoneSlabMaterialPriceRange } from "../../shared/exchangeStoneBuyerFlow";
 
 export const STONE_CHANNEL = "tradescout_stone_retail";
 export const STONE_AUDIENCE = "US_EXCEPT_PENSACOLA_FL_CITY";
@@ -104,6 +104,14 @@ export function projectPublicStone(row: any): StonePublicItem {
 }
 
 const FILTERS = new Set(["categoryId", "category", "q", "search", "searchQuery", "minPrice", "maxPrice", "priceMin", "priceMax", "material", "sort", "sortBy", "offset", "limit", "state", "stateCode", "county", "countyFips", "city", "audienceState", "audienceCity", "audienceCountry", "utm_source", "utm_medium", "utm_campaign", "utm_content"]);
+function priceBoundCents(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const raw = String(value);
+  if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) return NaN;
+  const [whole, fraction = ""] = raw.split(".");
+  const result = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  return Number.isSafeInteger(result) ? result : NaN;
+}
 export function filterStoneDiscovery(items: StonePublicItem[], query: Record<string, unknown>): StonePublicItem[] {
   for (const [key, value] of Object.entries(query)) {
     if (value == null || value === "") continue;
@@ -114,11 +122,22 @@ export function filterStoneDiscovery(items: StonePublicItem[], query: Record<str
   const search = scalar(query.q ?? query.search ?? query.searchQuery).toLowerCase();
   const material = scalar(query.material).toLowerCase();
   const minimum = query.minPrice ?? query.priceMin, maximum = query.maxPrice ?? query.priceMax;
-  for (const bound of [minimum, maximum]) if (bound != null && bound !== "" && (!/^\d+(?:\.\d{1,2})?$/.test(String(bound)) || !Number.isFinite(Number(bound)))) return [];
+  const minimumCents = priceBoundCents(minimum), maximumCents = priceBoundCents(maximum);
+  if (Number.isNaN(minimumCents) || Number.isNaN(maximumCents) ||
+    (minimumCents !== null && maximumCents !== null && minimumCents > maximumCents)) return [];
+  const withinTotalBand = (item: StonePublicItem): boolean => {
+    if (minimumCents === null && maximumCents === null) return true;
+    // A selected price band must contain every recorded slab total, not merely
+    // the per-square-foot rate or the cheapest size. TBD totals cannot qualify.
+    const range = stoneSlabMaterialPriceRange(item.price, item.specifications.priceUnit,
+      item.specifications.referenceSizesInches, item.specifications.exactSlab);
+    return range !== null && (minimumCents === null || range.minimumCents >= minimumCents) &&
+      (maximumCents === null || range.maximumCents <= maximumCents);
+  };
   return items.filter(item => categories.every(category => ["all", "building-materials", "Building Materials & Surfaces", item.categoryId].includes(category)) &&
     (!search || `${item.title} ${item.description} ${item.specifications.material || ""}`.toLowerCase().includes(search)) &&
     (!material || String(item.specifications.material || "").toLowerCase() === material) &&
-    (minimum == null || minimum === "" || item.price >= Number(minimum)) && (maximum == null || maximum === "" || item.price <= Number(maximum)));
+    withinTotalBand(item));
 }
 export function currentStoneFeedItems(): StonePublicItem[] {
   const context = contexts.getStore();
