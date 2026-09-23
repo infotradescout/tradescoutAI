@@ -75,6 +75,22 @@ describe("Businesses discovery states", () => {
     });
   };
 
+  const searchFor = async (value: string) => {
+    await waitFor(() =>
+      Boolean(container.querySelector('[data-testid="businesses-workspace-search"]'))
+    );
+    const input = container.querySelector<HTMLInputElement>(
+      '[data-testid="businesses-workspace-search"]'
+    );
+    if (!input) throw new Error("Businesses search input is missing");
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      if (!setter) throw new Error("Input value setter is missing");
+      setter.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  };
+
   it("shows a failed provider request as an error rather than claiming no businesses exist", async () => {
     mock.api.mockImplementation(async (_method: string, path: string) => {
       if (path === "/api/trades") return [];
@@ -121,6 +137,7 @@ describe("Businesses discovery states", () => {
     await waitFor(() => container.textContent?.includes("Acme Services") || false);
 
     expect(container.textContent).toContain("1 additional local listing");
+    expect(container.textContent).not.toContain("Not verified");
     expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
   });
 
@@ -133,17 +150,7 @@ describe("Businesses discovery states", () => {
     });
 
     await mount();
-    await waitFor(() =>
-      Boolean(container.querySelector('[data-testid="businesses-workspace-search"]'))
-    );
-    const input = container.querySelector<HTMLInputElement>(
-      '[data-testid="businesses-workspace-search"]'
-    )!;
-    await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-      setter.call(input, "plumber");
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    await searchFor("plumber");
     await waitFor(() =>
       mock.api.mock.calls.some(([, path]) => String(path).includes("trade=plumbing"))
     );
@@ -155,5 +162,89 @@ describe("Businesses discovery states", () => {
           path.startsWith("/api/business-providers/search") && path.includes("trade=plumbing")
       )!;
     expect(new URL(providerUrl, "https://example.test").searchParams.has("query")).toBe(false);
+  });
+
+  it("does not turn a partial trade word into an exclusive trade filter", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades")
+        return [{ id: "trade-2", name: "Custom Home Builder", slug: "custom-home-builder" }];
+      if (path.startsWith("/api/business-providers/search")) return [];
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await searchFor("home");
+    await waitFor(() =>
+      mock.api.mock.calls.some(([, path]) => String(path).includes("query=home"))
+    );
+
+    const providerUrl = mock.api.mock.calls
+      .map(([, path]) => String(path))
+      .find(
+        (path) => path.startsWith("/api/business-providers/search") && path.includes("query=home")
+      );
+    if (!providerUrl) throw new Error("Name search was not sent");
+    expect(new URL(providerUrl, "https://example.test").searchParams.has("trade")).toBe(false);
+  });
+
+  it("does not claim an empty trade search when the trade list failed to load", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") throw new Error("trades unavailable");
+      if (path.startsWith("/api/business-providers/search")) return [];
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await searchFor("plumber");
+    await waitFor(
+      () => container.textContent?.includes("We couldn’t check trade matches") || false
+    );
+
+    expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+  });
+
+  it("keeps the trade search pending until its trade list has loaded", async () => {
+    let finishTrades!: (value: Array<{ id: string; name: string; slug: string }>) => void;
+    const trades = new Promise<Array<{ id: string; name: string; slug: string }>>((resolve) => {
+      finishTrades = resolve;
+    });
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return trades;
+      if (path.startsWith("/api/business-providers/search")) return [];
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await searchFor("plumber");
+    await waitFor(() => container.textContent?.includes("Checking trade matches") || false);
+    expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+
+    await act(async () => finishTrades([{ id: "trade-1", name: "Plumbing", slug: "plumbing" }]));
+    await waitFor(() =>
+      mock.api.mock.calls.some(([, path]) => String(path).includes("trade=plumbing"))
+    );
+  });
+
+  it("labels the state fallback without claiming it excludes the selected county", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) return [];
+      if (path.startsWith("/api/businesses?")) {
+        const url = new URL(path, "https://example.test");
+        return url.searchParams.has("countyFips")
+          ? { items: [] }
+          : { items: [{ id: "state-1", name: "Statewide Services", slug: "statewide-services" }] };
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() => container.textContent?.includes("Statewide Services") || false);
+
+    expect(container.textContent).toContain("Additional results in AZ");
+    expect(container.textContent).not.toContain("elsewhere in the state");
   });
 });

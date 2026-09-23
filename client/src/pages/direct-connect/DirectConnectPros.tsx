@@ -428,7 +428,12 @@ export default function DirectConnectPros() {
   const localCommitted = hasLocalContext(location) || Boolean(effectiveCountyFips);
   const hasStateContext = /^[A-Z]{2}$/.test(effectiveStateCode);
 
-  const { data: trades = [] } = useQuery<TradeOption[]>({
+  const {
+    data: trades = [],
+    isLoading: tradesLoading,
+    isError: tradesLookupFailed,
+    refetch: retryTrades,
+  } = useQuery<TradeOption[]>({
     queryKey: ["/api/trades"],
     queryFn: async () => apiRequest("GET", "/api/trades"),
   });
@@ -446,11 +451,7 @@ export default function DirectConnectPros() {
     );
     if (exact) return exact.slug;
 
-    if (raw.length < 3) return "";
-    const partial = trades.find(
-      (trade) => trade.slug.toLowerCase().includes(raw) || trade.name.toLowerCase().includes(raw)
-    );
-    return partial?.slug || "";
+    return "";
   }, [tradeSlug, searchQuery, trades]);
 
   const effectiveTradeSlug = tradeSlug || inferredTradeSlug;
@@ -591,11 +592,17 @@ export default function DirectConnectPros() {
 
   const fallbackLoading =
     showEmptyState && (directoryFallbackLoading || stateDirectoryFallbackLoading);
+  const tradeMatchesPending = tradesLoading && !tradeSlug && Boolean(searchQuery.trim());
+  const tradeMatchesUnavailable = tradesLookupFailed && !tradeSlug && Boolean(searchQuery.trim());
   const searchFailed =
-    providerSearchFailed || directoryFallbackFailed || stateDirectoryFallbackFailed;
+    providerSearchFailed ||
+    directoryFallbackFailed ||
+    stateDirectoryFallbackFailed ||
+    tradeMatchesUnavailable;
   const noPublicResults =
     showEmptyState &&
     !fallbackLoading &&
+    !tradeMatchesPending &&
     !searchFailed &&
     directoryFallback.length === 0 &&
     stateDirectoryFallback.length === 0;
@@ -605,19 +612,31 @@ export default function DirectConnectPros() {
       ? "Checking local businesses…"
       : providerSearchFailed
         ? "Local profiles could not be checked. Directory listings may still appear below."
-        : `${profileCount} matching public ${profileCount === 1 ? "profile" : "profiles"}${
-            directoryFallback.length
-              ? ` · ${directoryFallback.length} additional local ${directoryFallback.length === 1 ? "listing" : "listings"}`
-              : ""
-          }${
-            stateDirectoryFallback.length
-              ? ` · ${stateDirectoryFallback.length} more in ${effectiveStateCode}`
-              : ""
-          }${fallbackLoading ? " · checking more listings…" : ""}`;
+        : tradeMatchesPending
+          ? "Checking trade matches…"
+          : tradeMatchesUnavailable
+            ? "Trade matches could not be checked. Business-name results may still appear below."
+            : `${profileCount} matching public ${profileCount === 1 ? "profile" : "profiles"}${
+                directoryFallback.length
+                  ? ` · ${directoryFallback.length} additional local ${directoryFallback.length === 1 ? "listing" : "listings"}`
+                  : ""
+              }${
+                stateDirectoryFallback.length
+                  ? ` · ${stateDirectoryFallback.length} more in ${effectiveStateCode}`
+                  : ""
+              }${fallbackLoading ? " · checking more listings…" : ""}`;
 
   useEffect(() => {
     const query = searchQuery.trim() || effectiveTradeSlug;
-    if (!query || !canQueryDirectory || isLoading || searchFailed || fallbackLoading) return;
+    if (
+      !query ||
+      !canQueryDirectory ||
+      isLoading ||
+      searchFailed ||
+      fallbackLoading ||
+      tradeMatchesPending
+    )
+      return;
 
     const resultCount =
       ((contractors as any[]) || []).length +
@@ -662,6 +681,7 @@ export default function DirectConnectPros() {
     showEmptyState,
     stateDirectoryFallback,
     stateDirectoryFallbackLoading,
+    tradeMatchesPending,
   ]);
 
   const handleStateChange = (value: string) => {
@@ -890,13 +910,20 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showEmptyState && searchFailed && (
+      {canQueryDirectory && searchFailed && (
         <Card
           className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
           data-testid="businesses-search-error"
         >
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5 text-sm text-[color:var(--text-secondary)]">
-            <p>We couldn’t finish checking local businesses. Please try again.</p>
+            <p>
+              {tradeMatchesUnavailable &&
+              !providerSearchFailed &&
+              !directoryFallbackFailed &&
+              !stateDirectoryFallbackFailed
+                ? "We couldn’t check trade matches. Business-name results may be incomplete."
+                : "We couldn’t finish checking local businesses. Please try again."}
+            </p>
             <Button
               type="button"
               size="sm"
@@ -905,6 +932,7 @@ export default function DirectConnectPros() {
                 if (providerSearchFailed) void retryProviderSearch();
                 if (directoryFallbackFailed) void retryDirectoryFallback();
                 if (stateDirectoryFallbackFailed) void retryStateDirectoryFallback();
+                if (tradeMatchesUnavailable) void retryTrades();
               }}
             >
               Retry search
@@ -971,8 +999,8 @@ export default function DirectConnectPros() {
           <CardHeader>
             <CardTitle className="text-sm">More local businesses</CardTitle>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              These businesses appear in the local directory, but they have not finished TradeScout
-              verification yet.
+              These businesses have public directory listings in this area. Review each listing for
+              service and trust details.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -1002,7 +1030,6 @@ export default function DirectConnectPros() {
                             : "Local area not specified"}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          <Badge variant="secondary">Not verified</Badge>
                           <Badge variant="outline">Local directory</Badge>
                           {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
                             <Badge variant="outline">Claimed profile</Badge>
@@ -1036,10 +1063,10 @@ export default function DirectConnectPros() {
       {showStateDirectoryFallback && stateDirectoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
-            <CardTitle className="text-sm">More businesses in {stateCode.toUpperCase()}</CardTitle>
+            <CardTitle className="text-sm">Additional results in {effectiveStateCode}</CardTitle>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              These listings are active in your state. Some may still need local assignment before
-              they appear in local-first routing.
+              These public listings are in the state. Check each service area before treating one as
+              local.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -1061,7 +1088,6 @@ export default function DirectConnectPros() {
                           : "Local assignment pending"}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <Badge variant="secondary">Not verified</Badge>
                         <Badge variant="outline">State directory</Badge>
                         {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
                           <Badge variant="outline">Claimed profile</Badge>
