@@ -189,6 +189,40 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("More detail");
   });
 
+  it("keeps no-post recovery honest and bounds an unfamiliar recovery format", () => {
+    const noPost =
+      "This Scout result does not verify a county post from the last 7 days in Maricopa County, AZ. It does not verify deals, businesses, pages, tools, or other requests. Open Community or Businesses to continue; nothing was sent.";
+    const recoveryMessage: ScoutMessage = {
+      id: "a_no_post",
+      role: "assistant",
+      content: noPost,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [],
+        evidence: [],
+        answer: noPost,
+        allowed_actions: [],
+        working_memory_update: {},
+      },
+    };
+    const noPostHtml = renderThread([recoveryMessage]);
+    expect(noPostHtml).toContain("No verified recent county post in Maricopa County, AZ.");
+    expect(noPostHtml).toContain("other requests unverified. Nothing sent.");
+
+    const unfamiliar =
+      "Scout checked a changed recovery format and has partial information " +
+      "about nearby activity, source coverage, and the next safe step. ".repeat(3) +
+      "UNIQUE_TAIL";
+    const unfamiliarHtml = renderThread([
+      { ...recoveryMessage, id: "a_unfamiliar", content: unfamiliar },
+    ]);
+    expect(unfamiliarHtml).toContain("More detail");
+    expect(unfamiliarHtml).not.toContain("UNIQUE_TAIL");
+  });
+
   it("renders one enabled promoted action while preserving distinct thread actions", () => {
     const currentPrimaryAction: ScoutAction = {
       type: "NAVIGATE",

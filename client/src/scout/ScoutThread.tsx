@@ -123,7 +123,7 @@ function mixedDiscoverySummary(content: string): string {
     !/does not verify deals, businesses, pages, tools, or other requests/i.test(clean) ||
     !/nothing was sent/i.test(clean)
   ) {
-    return clean;
+    return trimToSummary(clean);
   }
 
   const found = clean.match(
@@ -137,7 +137,7 @@ function mixedDiscoverySummary(content: string): string {
     : missing
       ? `No verified recent county post in ${missing[1]}`
       : null;
-  if (!finding) return clean;
+  if (!finding) return trimToSummary(clean);
 
   return `${finding}. Deals, businesses, pages, tools and other requests unverified. Nothing sent.`;
 }

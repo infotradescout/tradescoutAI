@@ -1005,7 +1005,15 @@ export function inferSavedThreadIntent(messages: ScoutMessage[]): {
   relatedPath: string;
   relatedTo?: SavedScoutThreadRelatedTo;
 } {
-  const latestFirst = messages.slice().reverse();
+  let latestUserIndex = -1;
+  for (let index = messages.length - 1; index >= 0; index--) {
+    if (messages[index]?.role === "user" && messages[index].content.trim()) {
+      latestUserIndex = index;
+      break;
+    }
+  }
+  const currentTurnMessages = latestUserIndex >= 0 ? messages.slice(latestUserIndex) : messages;
+  const latestFirst = currentTurnMessages.slice().reverse();
 
   for (const message of latestFirst) {
     if (typeof message.navTarget === "string" && message.navTarget.trim()) {
@@ -1076,7 +1084,7 @@ export function inferSavedThreadIntent(messages: ScoutMessage[]): {
     };
   }
 
-  const text = messages
+  const text = currentTurnMessages
     .map((message) => message.content)
     .join(" ")
     .toLowerCase();
