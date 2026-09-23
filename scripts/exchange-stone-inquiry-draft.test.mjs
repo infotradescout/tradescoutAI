@@ -26,6 +26,32 @@ function memory() {
   return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key), values };
 }
 
+test("inquiry draft leads with the recorded full slab estimate and keeps the square-foot rate second", () => {
+  const message = buyer.stoneInquiryMessage({
+    title: "AJ Quartz", price: "30.00", specifications: {
+      priceUnit: "sqft", referenceSizesInches: "128x64, 127.5x64",
+    },
+  }, "availability");
+  assert.match(message, /^Please confirm availability for AJ Quartz\. Estimated full slab material price: \$1,700\.00–\$1,706\.67\. Listed material rate: \$30\.00 \/ sq ft\./);
+  assert.match(message, /confirm the exact slab dimensions, available quantity, and delivery charges through TradeScout\.$/);
+});
+
+test("inquiry draft marks an unsized slab TBD without inventing a total", () => {
+  const message = buyer.stoneInquiryMessage({
+    title: "Unsized stone", price: "30.00", specifications: { priceUnit: "sqft" },
+  }, "callback");
+  assert.match(message, /^I would like a call about Unsized stone\. Slab price TBD\. Listed material rate: \$30\.00 \/ sq ft\./);
+  assert.equal(message.includes("Estimated full slab material price"), false);
+});
+
+test("inquiry draft quotes an identified exact slab without a square-foot rate", () => {
+  const message = buyer.stoneInquiryMessage({
+    title: "Identified slab", price: "1707.00", specifications: { priceUnit: "slab", exactSlab: "Slab A" },
+  }, "availability");
+  assert.match(message, /Full slab material price: \$1,707\.00\./);
+  assert.equal(message.includes("Listed material rate"), false);
+});
+
 test("only marked TradeScout retail listings receive this UI; profiles remain separate", () => {
   const good = { id, sourceType: "marketplace_listing", specifications: { commerceChannel: "tradescout_stone_retail" } };
   assert.equal(draft.isStoneRetailListing(good), true);
