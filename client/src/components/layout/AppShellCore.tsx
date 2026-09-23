@@ -50,6 +50,7 @@ import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation"
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import { isRecommendationActionPath } from "@shared/recommendationContinuation";
+import { isStoneInquiryPath } from "@shared/exchangeStoneBuyerFlow";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 
 export type NavItem = {
@@ -439,6 +440,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   // A captured action already supplies the user's goal. Keep its confirmation
   // screen focused and defer the Start Guide without marking it seen.
   const isRecommendationSurface = isRecommendationActionPath(getCurrentInternalPath(location));
+  const isStoneInquirySurface = isStoneInquiryPath(getCurrentInternalPath(location));
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface || isRecommendationSurface;
   const role =
     typeof (user as any)?.role === "string"
@@ -639,6 +641,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   }, [location]);
 
   useEffect(() => {
+    if (isStoneInquirySurface) {
+      setIsStartGuideOpen(false);
+      return;
+    }
     if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
     try {
       if (window.localStorage.getItem(START_GUIDE_SEEN_KEY) !== "1") {
@@ -647,7 +653,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     } catch {
       setIsStartGuideOpen(true);
     }
-  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface]);
+  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface, isStoneInquirySurface]);
 
   useEffect(() => {
     if (!isStartGuideOpen) return;
@@ -1194,7 +1200,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
 
-      {isStartGuideOpen && !isAuthOrSetupSurface && (
+      {isStartGuideOpen && !isAuthOrSetupSurface && !isStoneInquirySurface && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 sm:p-6">
           <button
             type="button"

@@ -138,6 +138,9 @@ test("production release entries are bundled with evidence and an external guard
     "db-migrate-safe",
     "db-baseline-drizzle",
     "check-required-production-schema",
+    "check-exchange-stone-schema",
+    "import-exchange-stone",
+    "apply-exchange-stone-package",
     "seed-businesses-places-new",
   ]) {
     assert.match(source, new RegExp(`['\"]${entry}['\"]\\s*:`));
@@ -176,47 +179,35 @@ test("all bundled migration workers resolve copied manifests", () => {
   }
 });
 
-test("bundled database migration launches its independent colocated verifier without baselining", () => {
+test("bundled migration resolves both independent verifiers before SQL and fails closed without baselining", () => {
   const source = read("scripts/db-migrate-safe.mjs");
-  assert.match(source, /path\.join\(scriptDirectory, "check-required-production-schema\.mjs"\)/);
+  assert.match(source, /path\.join\(scriptDirectory, `\$\{name\}\.mjs`\)/);
   assert.match(source, /fs\.existsSync\(bundled\)/);
-  assert.match(
-    source,
-    /path\.resolve\(process\.cwd\(\), "scripts\/check-required-production-schema\.mjs"\)/
-  );
-  assert.match(source, /runVerifiedMigration\(\{/);
-  assert.match(
-    source,
-    /verify:\s*\(\) => runCommand\(process\.execPath, \[requiredSchemaEntrypoint\(\)\]/
-  );
+  assert.match(source, /path\.resolve\(process\.cwd\(\), `scripts\/\$\{name\}\.mjs`\)/);
+  assert.match(source, /const verifiers = \[requiredSchemaEntrypoint\(\), requiredSchemaEntrypoint\("check-exchange-stone-schema"\)\]/);
+  assert(source.indexOf("const verifiers =") < source.indexOf("await runVerifiedMigration("));
+  assert.match(source, /for \(const target of verifiers\)/);
+  assert.match(source, /runCommand\(process\.execPath, \[target\]/);
+  assert.match(source, /if \(result !== 0\) return result/);
   assert.match(source, /DATABASE_URL: dbUrl/);
-  assert.doesNotMatch(
-    source,
-    /baselineEntrypoint|db-baseline-drizzle|insert into drizzle|mark-already-applied|Attempting baseline/
-  );
-  const resolver = source.match(/function requiredSchemaEntrypoint\(\) \{([\s\S]*?)\n\}/);
-  assert.ok(resolver, "the worker must resolve the independent verifier");
-  const resolveVerifier = new Function("fs", "path", "process", "scriptDirectory", resolver[1]);
+  assert.doesNotMatch(source, /baselineEntrypoint|db-baseline-drizzle|insert into drizzle|mark-already-applied|Attempting baseline/);
+  const resolver = source.match(/function requiredSchemaEntrypoint\(name = "check-required-production-schema"\) \{([\s\S]*?)\n\}/);
+  assert.ok(resolver, "the worker must resolve its independent default and additional verifier");
+  const resolveVerifier = new Function("name", "fs", "path", "process", "scriptDirectory", resolver[1]);
   const bundleDirectory = path.join(root, "dist", "release");
-  const bundledVerifier = path.join(bundleDirectory, "check-required-production-schema.mjs");
-  for (const exists of [true, false]) {
-    const checked = [];
-    const actual = resolveVerifier(
-      {
-        existsSync: (candidate) => {
-          checked.push(candidate);
-          return exists;
-        },
-      },
-      path,
-      { cwd: () => root },
-      bundleDirectory
-    );
-    assert.deepEqual(checked, [bundledVerifier]);
-    assert.equal(
-      actual,
-      exists ? bundledVerifier : path.join(root, "scripts", "check-required-production-schema.mjs")
-    );
+  for (const name of ["check-required-production-schema", "check-exchange-stone-schema"]) {
+    const bundledVerifier = path.join(bundleDirectory, `${name}.mjs`);
+    const sourceVerifier = path.join(root, "scripts", `${name}.mjs`);
+    for (const bundledExists of [true, false]) {
+      const checked = [];
+      const actual = resolveVerifier(name, { existsSync: candidate => {
+        checked.push(candidate);
+        return candidate === (bundledExists ? bundledVerifier : sourceVerifier);
+      } }, path, { cwd: () => root }, bundleDirectory);
+      assert.deepEqual(checked, [bundledVerifier, bundledExists ? bundledVerifier : sourceVerifier]);
+      assert.equal(actual, bundledExists ? bundledVerifier : sourceVerifier);
+    }
+    assert.throws(() => resolveVerifier(name, { existsSync: () => false }, path, { cwd: () => root }, bundleDirectory), /Required schema verifier is missing/);
   }
 });
 
@@ -232,8 +223,5 @@ test("admin seed execution resolves the stable runtime worker", () => {
   const source = read("server/routes/admin.ts");
   assert.match(source, /resolveRuntimeEntrypoint\(/);
   assert.match(source, /"seed-businesses-places-new\.mjs"/);
-  assert.doesNotMatch(
-    source,
-    /spawn\(process\.execPath, \["scripts\/seed_businesses_places_new\.mjs"\]/
-  );
+  assert.doesNotMatch(source, /spawn\(process\.execPath, \["scripts\/seed_businesses_places_new\.mjs"\]/);
 });

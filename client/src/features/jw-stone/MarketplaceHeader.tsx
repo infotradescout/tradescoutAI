@@ -3,6 +3,7 @@ import { Bookmark, Menu, UserRound, X } from "lucide-react";
 import { JW_STONE_PORTAL_COPY } from "@shared/jwStonePortalCopy";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
+import { JwStoneBundleEntry } from "./JwStoneMemberPricing";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
@@ -12,165 +13,57 @@ type MarketplaceHeaderProps = {
   onStartRequest: () => void;
 };
 
-/**
- * JW Stone site chrome. Account lives with the other customer utilities in the
- * sticky header. Direct contact remains exclusively inside Express Direct Connect.
- */
-export function MarketplaceHeader({
-  wishlistCount,
-  hasAccount,
-  onOpenWishlist,
-  onOpenAccount,
-  onStartRequest,
-}: MarketplaceHeaderProps) {
+/** Storefront navigation keeps bundle discovery separate from cart utilities. */
+export function MarketplaceHeader({ wishlistCount, hasAccount, onOpenWishlist, onOpenAccount, onStartRequest }: MarketplaceHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
   const menuRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     if (!menuOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenuOpen(false);
-    };
-    const onPointer = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
-    };
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setMenuOpen(false); };
+    const onPointer = (event: MouseEvent) => { if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false); };
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onPointer);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousedown", onPointer);
-    };
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onPointer); };
   }, [menuOpen]);
-
-  const closeAnd = (action?: () => void) => {
-    setMenuOpen(false);
-    action?.();
-  };
+  const closeAnd = (action?: () => void) => { setMenuOpen(false); action?.(); };
   const accountLabel = JW_STONE_PORTAL_COPY.label;
-  const accountAriaLabel = hasAccount
-    ? "Open your JW Stone Fabricator Portal"
-    : "Open JW Stone Fabricator Portal";
-
-  return (
-    <header
-      data-testid="jw-marketplace-header"
-      className={`sticky top-0 z-40 border-b ${jw.border} ${jw.surface}`}
-    >
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-1 px-2 min-[375px]:gap-2 min-[375px]:px-4 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
-        <a
-          href={marketplaceBasePath() || "/"}
-          aria-label="JW Stone home"
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
-        >
-          <img
-            src={JW_STONE_LOGO_URL}
-            alt="JW Stone"
-            className="h-auto w-[80px] object-contain object-left min-[375px]:w-[112px] sm:w-[180px] md:w-[200px]"
-            data-testid="jw-marketplace-logo"
-          />
-        </a>
-
-        <nav aria-label="JW Stone fabricator portal and saved stones" className="flex items-center gap-0.5 sm:gap-1.5">
-          <button
-            type="button"
-            onClick={onOpenWishlist}
-            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
-            aria-label={`Open saved stones, ${wishlistCount} saved`}
-          >
-            <Bookmark className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Saved</span>
-            {wishlistCount > 0 ? (
-              <span
-                className="inline-flex min-w-5 justify-center rounded-full bg-[var(--jw-accent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--jw-on-accent)]"
-                aria-hidden="true"
-              >
-                {wishlistCount}
-              </span>
-            ) : null}
+  const accountAriaLabel = hasAccount ? "Open your JW Stone Fabricator Portal" : "Open JW Stone Fabricator Portal";
+  return <header data-testid="jw-marketplace-header" className={`sticky top-0 z-40 border-b ${jw.border} ${jw.surface}`}>
+    <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-1 px-2 min-[375px]:gap-2 min-[375px]:px-4 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
+      <a href={marketplaceBasePath() || "/"} aria-label="JW Stone home" className="inline-flex min-h-11 min-w-11 shrink-0 items-center">
+        <img src={JW_STONE_LOGO_URL} alt="JW Stone" className="h-auto w-[80px] object-contain object-left min-[375px]:w-[112px] sm:w-[180px] md:w-[200px]" data-testid="jw-marketplace-logo" />
+      </a>
+      <nav aria-label="JW Stone fabricator portal and saved stones" className="flex items-center gap-0.5 sm:gap-1.5">
+        <button type="button" onClick={onOpenWishlist} className={`relative inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`} aria-label={`Open saved stones, ${wishlistCount} saved`}>
+          <Bookmark className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Saved</span>
+          {wishlistCount > 0 ? <span className="inline-flex min-w-5 justify-center rounded-full bg-[var(--jw-accent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--jw-on-accent)]" aria-hidden="true">{wishlistCount}</span> : null}
+        </button>
+        <button type="button" data-testid="jw-marketplace-account-button" onClick={onOpenAccount} className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`} aria-label={accountAriaLabel}>
+          <UserRound className="hidden h-4 w-4 sm:block" aria-hidden="true" />
+          <span className="flex flex-col items-start leading-tight"><span className="text-xs font-semibold sm:text-sm">{accountLabel}</span><span className="text-[10px] sm:text-xs">{JW_STONE_PORTAL_COPY.accessLabel}</span></span>
+        </button>
+        <div className="relative" ref={menuRef}>
+          <button type="button" data-testid="jw-marketplace-menu-button" aria-expanded={menuOpen} aria-controls={menuId} aria-label={menuOpen ? "Close page menu" : "Open page menu"} onClick={() => setMenuOpen(open => !open)} className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}>
+            {menuOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}<span className="hidden sm:inline">Menu</span>
           </button>
-
-          <button
-            type="button"
-            data-testid="jw-marketplace-account-button"
-            onClick={onOpenAccount}
-            className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
-            aria-label={accountAriaLabel}
-          >
-            <UserRound className="hidden h-4 w-4 sm:block" aria-hidden="true" />
-            <span className="flex flex-col items-start leading-tight">
-              <span className="text-xs font-semibold sm:text-sm">{accountLabel}</span>
-              <span className="text-[10px] sm:text-xs">{JW_STONE_PORTAL_COPY.accessLabel}</span>
-            </span>
-          </button>
-
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              data-testid="jw-marketplace-menu-button"
-              aria-expanded={menuOpen}
-              aria-controls={menuId}
-              aria-label={menuOpen ? "Close page menu" : "Open page menu"}
-              onClick={() => setMenuOpen((open) => !open)}
-              className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
-            >
-              {menuOpen ? (
-                <X className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Menu className="h-4 w-4" aria-hidden="true" />
-              )}
-              <span className="hidden sm:inline">Menu</span>
-            </button>
-
-            {menuOpen ? (
-              <div
-                id={menuId}
-                data-testid="jw-marketplace-menu-panel"
-                className={`absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[13rem] border p-1.5 ${jw.border} ${jw.surface}`}
-              >
-                <nav aria-label="JW Stone menu" className="flex flex-col gap-0.5 text-sm">
-                  <button
-                    type="button"
-                    onClick={() => closeAnd(onOpenAccount)}
-                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                  >
-                    {accountLabel}
-                    <span className="block text-xs font-normal">{JW_STONE_PORTAL_COPY.accessLabel}</span>
-                  </button>
-                  <a
-                    href="#about-jw-stone"
-                    onClick={() => closeAnd()}
-                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                  >
-                    About
-                  </a>
-                  <a
-                    href="#jw-stone-location"
-                    onClick={() => closeAnd()}
-                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                  >
-                    Visit
-                  </a>
-                  <a
-                    href="#jw-stone-socials"
-                    onClick={() => closeAnd()}
-                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                  >
-                    Socials
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => closeAnd(onStartRequest)}
-                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-accent)] hover:bg-[var(--jw-bg)]"
-                  >
-                    Start a Request
-                  </button>
-                </nav>
-              </div>
-            ) : null}
-          </div>
-        </nav>
+          {menuOpen ? <div id={menuId} data-testid="jw-marketplace-menu-panel" className={`absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[13rem] border p-1.5 ${jw.border} ${jw.surface}`}>
+            <nav aria-label="JW Stone menu" className="flex flex-col gap-0.5 text-sm">
+              <button type="button" onClick={() => closeAnd(onOpenAccount)} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">{accountLabel}<span className="block text-xs font-normal">{JW_STONE_PORTAL_COPY.accessLabel}</span></button>
+              <a href="#about-jw-stone" onClick={() => closeAnd()} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">About</a>
+              <a href="#jw-stone-location" onClick={() => closeAnd()} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">Visit</a>
+              <a href="#jw-stone-socials" onClick={() => closeAnd()} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">Socials</a>
+              <button type="button" onClick={() => closeAnd(onStartRequest)} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-accent)] hover:bg-[var(--jw-bg)]">Start a Request</button>
+            </nav>
+          </div> : null}
+        </div>
+      </nav>
+    </div>
+    <nav aria-label="JW Stone shopping" className="border-t border-[var(--jw-border)]">
+      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 sm:px-9 lg:px-12">
+        <p className="text-xs text-[var(--jw-muted)]">Mix and match 7 eligible slabs</p>
+        <JwStoneBundleEntry onOpen={() => closeAnd()} className={`inline-flex min-h-11 items-center justify-center px-5 text-sm font-semibold ${jw.accentCta}`} />
       </div>
-    </header>
-  );
+    </nav>
+  </header>;
 }

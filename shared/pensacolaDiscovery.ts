@@ -55,12 +55,12 @@ export function pensacolaProjectRequestHref(kind: PensacolaProjectKind): string 
 
 export const PENSACOLA_DISCOVERY = {
   path: "/pensacola",
-  title: "Pensacola Kitchens, Cabinets & Countertops | ISSA Build",
+  title: "Pensacola Kitchen & Bath Remodeling, Countertops | ISSA Build",
   description:
-    "Kitchen and bathroom projects in Pensacola and surrounding areas. Cabinets, stone countertops and fabrication through ISSA Build. Start a project request.",
+    "Kitchen and bathroom remodeling, stone countertop fabrication and countertop installation in Pensacola and surrounding areas through ISSA Build.",
   heading: "Kitchen and bathroom projects in Pensacola.",
   introduction:
-    "Cabinets, stone countertops, fabrication and more—with ISSA Build serving Pensacola and the surrounding areas.",
+    "Kitchen and bathroom remodeling, cabinets, stone countertop fabrication and countertop installation—with ISSA Build serving Pensacola and the surrounding areas.",
   profileSlug: ISSA_BUILD_PROFILE_SLUG,
   profileHref: ISSA_BUILD_PUBLIC_PATH,
   projectKinds: ["kitchens", "bathrooms", "cabinets", "countertops"] as const,

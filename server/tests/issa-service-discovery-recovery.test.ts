@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("../storage", () => ({ storage: {} }));
-import { ISSA_BUILD_LOCAL_DISCOVERY, ISSA_BUILD_PROFILE_CONTENT_BLOCKS } from "@shared/issaBuildProfile";
+import { ISSA_BUILD_LOCAL_DISCOVERY, ISSA_BUILD_PROFILE_CONTENT_BLOCKS, ISSA_BUILD_SERVICE_AREAS, ISSA_BUILD_SERVICE_RADIUS_MILES } from "@shared/issaBuildProfile";
 import { buildIssaBuildBusinessContentBlocks, buildIssaBuildOnyxContentBlocks, ISSA_BUILD_SERVICE_SUMMARIES } from "@shared/issaBuildPageContent";
 import { listFactBearingProfileServices, resolveProfileServiceItem } from "@shared/profileServiceShare";
 import { buildPublicProfileServiceHtml } from "../publicProfileServiceHtml";
@@ -13,6 +13,17 @@ const template = '<!doctype html><html><head><title>TradeScout</title><meta name
 const getItems = (input: unknown) => buildIssaBuildBusinessContentBlocks(input).find(block => block.type === "services")!.data!.items;
 
 describe("ISSA service discovery after business-copy cleanup", () => {
+  it("routes the owner-confirmed Pensacola remodel, fabrication and install intents to ISSA Build", () => {
+    expect(ISSA_BUILD_LOCAL_DISCOVERY.tradeServices).toEqual([
+      "Kitchen Remodeling",
+      "Bathroom Remodeling",
+      "Countertop Fabrication",
+      "Countertop Installation",
+    ]);
+    expect(ISSA_BUILD_SERVICE_SUMMARIES["countertops-fabrication"]).toMatch(/fabrication/i);
+    expect(ISSA_BUILD_SERVICE_SUMMARIES["countertops-fabrication"]).toMatch(/installation/i);
+  });
+
   it("reproduces the four missing routes from the observed title-only production shape", () => {
     expect(listFactBearingProfileServices(titleOnly)).toEqual([]);
     for (const service of ISSA_BUILD_LOCAL_DISCOVERY.services) expect(resolveProfileServiceItem(titleOnly, service.slug)).toBeNull();
@@ -34,6 +45,8 @@ describe("ISSA service discovery after business-copy cleanup", () => {
     expect(html).toContain(service.title);
     expect(html).toContain(resolved!.description);
     expect(html).toContain('"@type":"Service"');
+    expect(ISSA_BUILD_SERVICE_RADIUS_MILES).toBe(20);
+    for (const area of ISSA_BUILD_SERVICE_AREAS) expect(html).toContain(JSON.stringify(area));
     expect(html).toContain('content="index, follow');
     expect(html).not.toContain('content="noindex"');
     expect(html).not.toContain('/assets/app.js');
@@ -45,6 +58,17 @@ describe("ISSA service discovery after business-copy cleanup", () => {
     const items = getItems(ISSA_BUILD_PROFILE_CONTENT_BLOCKS);
     expect(items).toHaveLength(4);
     for (const service of ISSA_BUILD_LOCAL_DISCOVERY.services) expect(items.find((item: any) => item.slug === service.slug)?.description).toBe(ISSA_BUILD_SERVICE_SUMMARIES[service.slug]);
+  });
+
+  it("migrates only the exact legacy Pensacola service-area seed", () => {
+    const legacy = [{ type: "serviceAreas", data: { areas: ["Pensacola, FL"] } }];
+    const migrated = buildIssaBuildBusinessContentBlocks(legacy).find(block => block.type === "serviceAreas");
+    expect(migrated?.data?.areas).toEqual([...ISSA_BUILD_SERVICE_AREAS]);
+    expect(migrated?.data?.description).toContain("20-mile radius");
+
+    const custom = [{ type: "serviceAreas", data: { areas: ["Owner Custom Area"], description: "Owner wording" } }];
+    const preserved = buildIssaBuildBusinessContentBlocks(custom).find(block => block.type === "serviceAreas");
+    expect(preserved?.data).toEqual(custom[0].data);
   });
 
   it("seeds descriptive services once when the existing services block is absent", () => {
