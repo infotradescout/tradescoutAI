@@ -1251,7 +1251,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   <span className="scout-assistant-bubble__name">Scout</span>
                   {msg.resultContract && (
                     <span className="scout-assistant-bubble__badge">
-                      {humanizeToken(msg.resultContract.intent)}
+                      {msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
+                        ? "Local results"
+                        : humanizeToken(msg.resultContract.intent)}
                     </span>
                   )}
                   {msgTime && <span className="scout-assistant-bubble__time">{msgTime}</span>}

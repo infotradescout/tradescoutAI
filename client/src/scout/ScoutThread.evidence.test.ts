@@ -144,6 +144,41 @@ describe("ScoutThread evidence strip", () => {
     expect(html).not.toContain("Search with Scout");
   });
 
+  it("labels a mixed county discovery result as local results while rendering its post link", () => {
+    const assistantMessage: ScoutMessage = {
+      id: "a_county_discovery",
+      role: "assistant",
+      content: "This Scout result includes 1 published county post from the last 7 days.",
+      timestamp: new Date().toISOString(),
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [
+          {
+            id: "scout-native-published-maricopa",
+            type: "community_post",
+            name: "Neighborhood tool swap",
+            url: "/community/posts/scout-native-published-maricopa",
+            match_reasons: ["Published county post", "From the last 7 days"],
+          },
+        ],
+        evidence: [],
+        answer: "This Scout result includes 1 published county post from the last 7 days.",
+        allowed_actions: [],
+        working_memory_update: {},
+      },
+    };
+
+    const html = renderThread([assistantMessage]);
+
+    expect(html).toContain('class="scout-assistant-bubble__badge">Local results</span>');
+    expect(html).not.toContain('class="scout-assistant-bubble__badge">Provider Search</span>');
+    expect(html).toContain('href="/community/posts/scout-native-published-maricopa"');
+    expect(html).toContain("Neighborhood tool swap");
+  });
+
   it("renders one enabled promoted action while preserving distinct thread actions", () => {
     const currentPrimaryAction: ScoutAction = {
       type: "NAVIGATE",
