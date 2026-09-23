@@ -2206,6 +2206,19 @@ export default function ScoutOS() {
       summarizeThreadText(firstUserMessage?.content || latestUserQuery, "Current Scout task")
     );
   }, [activeSavedThread?.title, latestUserQuery, state.messages]);
+  const currentTaskRequest = useMemo(
+    () => firstThreadUserMessage(state.messages)?.content || "",
+    [state.messages]
+  );
+  const hasAssistantResult = useMemo(
+    () =>
+      state.messages.some(
+        (message) =>
+          message.role === "assistant" &&
+          (message.content.trim().length > 0 || Boolean(message.resultContract))
+      ),
+    [state.messages]
+  );
   const currentTaskState = useMemo(() => {
     if (state.status === "resolving_context") return "Understanding what you need.";
     if (state.status === "checking_documents") return "Checking the useful local details.";
@@ -2853,10 +2866,13 @@ export default function ScoutOS() {
           : [],
         // Assistant prose is not execution evidence. Completed operations are
         // recorded by their authenticated server owner, never inferred from chat.
-        events: state.messages.filter((message) => message.role === "user").slice(-8).map((message) => ({
-          type: "message_sent",
-          occurredAt: message.timestamp,
-        })),
+        events: state.messages
+          .filter((message) => message.role === "user")
+          .slice(-8)
+          .map((message) => ({
+            type: "message_sent",
+            occurredAt: message.timestamp,
+          })),
       };
 
       const response = await fetch("/api/scout/watchdog/evaluate", {
@@ -4670,7 +4686,7 @@ export default function ScoutOS() {
                     data-has-next-action={Boolean(primaryNextAction)}
                     aria-labelledby="scout-current-task-title"
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="scout-current-task__head flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold uppercase text-ts-orange">
                           {activeSavedThread ? "Saved task" : "Current task"}
@@ -4688,7 +4704,7 @@ export default function ScoutOS() {
                       </div>
 
                       <div
-                        className="flex w-full items-center gap-1.5 sm:w-auto"
+                        className="scout-current-task__controls flex w-full items-center gap-1.5 sm:w-auto"
                         aria-label="Thread controls"
                       >
                         <button
@@ -4725,17 +4741,34 @@ export default function ScoutOS() {
                       </div>
                     </div>
 
-                    <div className="scout-current-task__latest grid min-w-0 gap-0.5">
-                      <p className="text-[10px] font-bold uppercase text-[color:var(--text-muted)]">
-                        Latest
-                      </p>
-                      <p
-                        className="break-words text-sm leading-snug text-[color:var(--text-primary)]"
-                        data-testid="scout-latest-meaningful-state"
-                      >
-                        {currentTaskState}
-                      </p>
-                    </div>
+                    {hasAssistantResult && currentTaskRequest && (
+                      <details className="scout-current-task__request group md:hidden">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-xs font-semibold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden">
+                          View full request
+                          <ChevronDown
+                            className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                          />
+                        </summary>
+                        <p className="pb-1 text-sm leading-relaxed text-[color:var(--text-primary)]">
+                          {currentTaskRequest}
+                        </p>
+                      </details>
+                    )}
+
+                    {state.status !== "idle" && (
+                      <div className="scout-current-task__latest grid min-w-0 gap-0.5">
+                        <p className="text-[10px] font-bold uppercase text-[color:var(--text-muted)]">
+                          {state.status === "error" ? "Needs attention" : "Working"}
+                        </p>
+                        <p
+                          className="break-words text-sm leading-snug text-[color:var(--text-primary)]"
+                          data-testid="scout-latest-meaningful-state"
+                        >
+                          {currentTaskState}
+                        </p>
+                      </div>
+                    )}
 
                     {primaryNextAction && (
                       <button
@@ -4784,6 +4817,9 @@ export default function ScoutOS() {
                   <section
                     className="scout-task-work-region"
                     data-testid="scout-task-work-region"
+                    data-collapse-initial-request={
+                      hasAssistantResult && state.messages[0]?.role === "user"
+                    }
                     aria-labelledby="scout-task-work-region-title"
                   >
                     <header className="scout-task-work-region__header">
@@ -4902,7 +4938,6 @@ export default function ScoutOS() {
                   placement="fixed"
                   isBusy={isBusy}
                   prefillKey={prefillKey}
-                  forcedPrefill={scoutLaunch.prompt}
                   hasMessages={hasMessages}
                   quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                   autoDemoText=""

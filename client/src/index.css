@@ -3040,6 +3040,53 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
   scroll-margin-bottom: 1px;
 }
 
+@media (max-width: 640px) {
+  .scout-current-task {
+    gap: 0.25rem;
+    padding: 0.65rem;
+  }
+
+  .scout-current-task__head {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .scout-current-task__head > :first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .scout-current-task__head > :first-child > p,
+  #scout-current-task-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .scout-current-task__controls {
+    flex: 0 0 auto;
+    width: auto;
+    gap: 0.25rem;
+  }
+
+  .scout-current-task__controls > button,
+  .scout-current-task__controls > details {
+    flex: 0 0 44px;
+    width: 44px;
+  }
+
+  .scout-current-task__controls > details > summary {
+    width: 44px;
+    padding: 0;
+  }
+
+  .scout-task-work-region[data-collapse-initial-request="true"]
+    .scout-thread--task-loop > [data-scout-message-id]:first-child {
+    display: none;
+  }
+}
+
 .scout-task-auxiliary-region {
   display: grid;
   flex: 0 1 auto;

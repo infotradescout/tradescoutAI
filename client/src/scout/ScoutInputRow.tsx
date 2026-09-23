@@ -74,15 +74,18 @@ export function ScoutInputRow({
     const trimmed = (text ?? value).trim();
     if (!trimmed || isBusy || isSubmitting) return;
     setIsSubmitting(true);
+    // The inline input unmounts as soon as the first message enters the thread.
+    // Consume its draft before that swap so the fixed input starts empty.
+    setValue("");
+    try {
+      window.localStorage.removeItem(`scout:prefill:scout-main`);
+    } catch {
+      /* ignore */
+    }
     try {
       await Promise.resolve(onSend(trimmed));
-      setValue("");
-      try {
-        window.localStorage.removeItem(`scout:prefill:scout-main`);
-      } catch {
-        /* ignore */
-      }
     } catch (err) {
+      setValue(trimmed);
       console.error("[ScoutInputRow] send failed", err);
     } finally {
       setIsSubmitting(false);
