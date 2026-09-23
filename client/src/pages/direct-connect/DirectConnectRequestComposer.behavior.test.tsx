@@ -173,6 +173,30 @@ describe("request composer recovery behavior", () => {
     );
   }
 
+  it("lets a phone visitor describe the need before choosing a request type", async () => {
+    await mount({
+      entryLocation: "/direct-connect?source=landing_primary_cta",
+      defaultCountyFips: "22105",
+      defaultStateCode: "LA",
+    });
+
+    const titleRegion = container.querySelector('[data-testid="direct-connect-request-title"]')!;
+    const types = container.querySelector('[data-testid="direct-connect-request-types"]')!;
+    expect(
+      titleRegion.compareDocumentPosition(types) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    const titleInput = titleRegion.querySelector("input")!;
+    await change(titleInput, "Repair a roof leak");
+    const productType = Array.from(types.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("A product or material")
+    )!;
+    await act(async () => productType.click());
+
+    expect(productType.getAttribute("aria-pressed")).toBe("true");
+    expect(titleInput.value).toBe("Repair a roof leak");
+  });
+
   it("restores guest edits after sign-in and sends the edited payload to the original business and county", async () => {
     await mount();
     await change(field("Original roof"), "Repair the porch roof");

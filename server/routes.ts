@@ -12391,6 +12391,7 @@ export async function registerRoutes(app: any) {
             views: Number(listing.viewCount || 0),
             favorites: Number(listing.favoriteCount || 0),
             isLocalPickupOnly: Boolean(listing.isLocalPickupOnly),
+            willShip: Boolean(listing.willShip),
             shippingCost:
               listing.shippingCost == null
                 ? null

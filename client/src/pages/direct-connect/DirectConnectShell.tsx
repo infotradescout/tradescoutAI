@@ -465,11 +465,14 @@ function DirectConnectTaskSwitcher({
             const active = section === activeSection;
             const meta = DIRECT_CONNECT_WORKDESK_META[section];
             const count = counts[section] || 0;
+            const compactLabel =
+              section === "inbox" ? "Inbox" : section === "engagements" ? "Requests" : "Start";
             return (
               <button
                 key={section}
                 type="button"
                 aria-current={active ? "page" : undefined}
+                aria-label={`${meta.label}, ${meta.role}${count > 0 ? `, ${count}` : ""}`}
                 onClick={() => onSelect(section)}
                 className={cn(
                   "flex min-h-[44px] min-w-0 flex-col items-center justify-center rounded-lg border px-1.5 py-1 text-center outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)] sm:px-3",
@@ -478,11 +481,14 @@ function DirectConnectTaskSwitcher({
                     : "border-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
                 )}
               >
-                <span className="max-w-full truncate text-xs font-semibold sm:text-sm">
+                <span className="max-w-full text-xs font-semibold min-[360px]:hidden">
+                  {compactLabel}
+                </span>
+                <span className="hidden max-w-full truncate text-xs font-semibold min-[360px]:inline sm:text-sm">
                   {meta.label}
                   {count > 0 ? ` (${count})` : ""}
                 </span>
-                <span className="max-w-full truncate text-[10px] uppercase tracking-[0.12em] opacity-75">
+                <span className="hidden max-w-full truncate text-[10px] uppercase tracking-[0.12em] opacity-75 min-[360px]:block">
                   {meta.role}
                 </span>
               </button>
@@ -3047,15 +3053,44 @@ export function DirectConnectRequestComposer({
                   </div>
                 </div>
               ) : null}
+              {!intentConfig && (
+                <div className="space-y-2.5" data-testid="direct-connect-request-title">
+                  <label htmlFor="direct-connect-request-title" className={REQUEST_LABEL_CLASS}>
+                    What do you need?
+                  </label>
+                  <Input
+                    id="direct-connect-request-title"
+                    value={title}
+                    onChange={(event) => {
+                      markRequestStarted("title");
+                      const next = event.target.value;
+                      setTitle(next);
+                      setDetailAnswers((current) => ({ ...current, what: next }));
+                    }}
+                    placeholder={
+                      prefillSubjectType === "product" && hasEntryContext
+                        ? `What would you like to know or do with ${prefillTargetLabel}?`
+                        : activeRequestMeta.titlePlaceholder
+                    }
+                    className={REQUEST_FIELD_CLASS}
+                  />
+                  {reviewAttempted && showTitleMissingHint && (
+                    <p className="text-[11px] text-ts-orange">Add what you need.</p>
+                  )}
+                </div>
+              )}
               <div className="space-y-1">
                 <h2 className="text-base font-bold text-[color:var(--text-primary)]">
-                  What are you looking for?
+                  Choose a request type
                 </h2>
                 <p className={REQUEST_HELPER_CLASS}>
-                  Choose the closest match. You can change it before anything is sent.
+                  This helps route your request. You can change it before anything is sent.
                 </p>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                className="grid grid-cols-2 gap-2 lg:grid-cols-3"
+                data-testid="direct-connect-request-types"
+              >
                 {requestTypeOrder.map((key) => (
                   <button
                     key={key}
@@ -3066,7 +3101,7 @@ export function DirectConnectRequestComposer({
                       setRequestType(key);
                     }}
                     className={cn(
-                      "min-h-[92px] rounded-2xl border px-4 py-3 text-left transition-all",
+                      "min-h-[92px] rounded-2xl border px-3 py-3 text-left transition-all sm:px-4",
                       requestType === key
                         ? "border-ts-orange/70 border-l-[3px] border-l-ts-orange bg-ts-orange/[0.09]"
                         : "border-white/10 bg-white/[0.025] hover:border-white/25 hover:bg-white/[0.05]"
@@ -3173,27 +3208,6 @@ export function DirectConnectRequestComposer({
             ))}
             {!intentConfig && (
               <>
-                <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>What do you need?</label>
-                  <Input
-                    value={title}
-                    onChange={(event) => {
-                      markRequestStarted("title");
-                      const next = event.target.value;
-                      setTitle(next);
-                      setDetailAnswers((current) => ({ ...current, what: next }));
-                    }}
-                    placeholder={
-                      prefillSubjectType === "product" && hasEntryContext
-                        ? `What would you like to know or do with ${prefillTargetLabel}?`
-                        : activeRequestMeta.titlePlaceholder
-                    }
-                    className={REQUEST_FIELD_CLASS}
-                  />
-                  {reviewAttempted && showTitleMissingHint && (
-                    <p className="text-[11px] text-ts-orange">Add what you need.</p>
-                  )}
-                </div>
                 <div className="space-y-2.5">
                   <label className={REQUEST_LABEL_CLASS}>Details that matter</label>
                   <Textarea

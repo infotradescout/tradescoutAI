@@ -1,4 +1,5 @@
 import { currentPublicStone, currentStoneFeedItems, isStoneDiscoveryRow, stoneDiscoveryContext } from "./services/exchangeStoneDiscovery";
+import { stoneSlabMaterialPriceRange } from "../shared/exchangeStoneBuyerFlow";
 
 type DiscoveryItem = {
   id: string;
@@ -6,6 +7,7 @@ type DiscoveryItem = {
   sourceType?: string;
   publicProfilePath?: string;
   price?: number | null;
+  specifications?: Record<string, unknown>;
   createdAt?: string | Date | null;
 };
 
@@ -62,12 +64,27 @@ export function mergeExchangeDiscoveryItems<T extends DiscoveryItem>(
     const time = item.createdAt ? new Date(item.createdAt).getTime() : 0;
     return Number.isFinite(time) ? time : 0;
   };
+  const sortPrices = new Map<string, number | null>();
+  const priceForSort = (item: T): number | null => {
+    if (sortPrices.has(item.id)) return sortPrices.get(item.id)!;
+    // A range sorts by its highest displayed slab material estimate. A slab
+    // with no dimensions has no total and stays after priced items either way.
+    const retailStone = isStoneDiscoveryRow(item);
+    const range = retailStone
+      ? stoneSlabMaterialPriceRange(item.price, item.specifications?.priceUnit,
+        item.specifications?.referenceSizesInches, item.specifications?.exactSlab)
+      : null;
+    const value = retailStone ? (range ? range.maximumCents / 100 : null) : item.price ?? null;
+    sortPrices.set(item.id, value);
+    return value;
+  };
   const items = [...byId.values()].sort((a, b) => {
     // Undated and unpriced catalog content makes no publication/price claim.
     if (query.sort === "price_asc" || query.sort === "price_desc") {
-      if (a.price == null && b.price != null) return 1;
-      if (b.price == null && a.price != null) return -1;
-      const diff = a.price == null || b.price == null ? 0 : Number(a.price) - Number(b.price);
+      const aPrice = priceForSort(a), bPrice = priceForSort(b);
+      if (aPrice == null && bPrice != null) return 1;
+      if (bPrice == null && aPrice != null) return -1;
+      const diff = aPrice == null || bPrice == null ? 0 : Number(aPrice) - Number(bPrice);
       if (diff) return query.sort === "price_desc" ? -diff : diff;
     } else {
       if (!a.createdAt && b.createdAt) return 1;
