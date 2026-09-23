@@ -52,6 +52,7 @@ import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 import { isStoneInquiryPath } from "@shared/exchangeStoneBuyerFlow";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
+import { shouldAutoOpenStartGuideAtLocation } from "./startGuideVisibility";
 
 export type NavItem = {
   label: string;
@@ -645,7 +646,13 @@ export function AppShell({ children, footer }: AppShellProps) {
       setIsStartGuideOpen(false);
       return;
     }
-    if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
+    if (
+      !isLoggedIn ||
+      isAuthOrSetupSurface ||
+      isAdminSurface ||
+      !shouldAutoOpenStartGuideAtLocation(location)
+    )
+      return;
     try {
       if (window.localStorage.getItem(START_GUIDE_SEEN_KEY) !== "1") {
         setIsStartGuideOpen(true);
@@ -653,7 +660,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     } catch {
       setIsStartGuideOpen(true);
     }
-  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface, isStoneInquirySurface]);
+  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface, isStoneInquirySurface, location]);
 
   useEffect(() => {
     if (!isStartGuideOpen) return;
