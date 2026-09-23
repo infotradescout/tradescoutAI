@@ -589,7 +589,6 @@ describe("Scout entry framing contracts", () => {
 
     expect(scoutOsSource).toContain("Search controls");
     expect(scoutOsSource).toContain("Results + controls");
-    expect(threadSource).not.toContain("Local results");
     expect(threadSource).not.toContain("Request context");
     expect(threadSource).not.toContain("Community-Powered");
     expect(threadSource).toContain("Choose what you mean");

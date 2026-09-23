@@ -56,6 +56,7 @@ type ScoutThreadProps = {
 
 type ScoutThreadScrollTarget = Pick<HTMLElement, "scrollHeight" | "scrollTo">;
 type ScoutThreadViewportTarget = Pick<HTMLElement, "clientHeight" | "scrollHeight" | "scrollTop">;
+type ScoutThreadMessageTarget = Pick<HTMLElement, "getBoundingClientRect">;
 
 const SCOUT_THREAD_NEAR_LATEST_PX = 32;
 
@@ -72,6 +73,19 @@ export function isScoutThreadNearLatest(
 ): boolean {
   const remaining = thread.scrollHeight - thread.clientHeight - thread.scrollTop;
   return Math.max(0, remaining) <= threshold;
+}
+
+export function scrollScoutThreadToNewAnswerStart(
+  thread: HTMLElement,
+  message: ScoutThreadMessageTarget
+): boolean {
+  const messageBox = message.getBoundingClientRect();
+  if (messageBox.height <= thread.clientHeight) return false;
+
+  const threadBox = thread.getBoundingClientRect();
+  const top = thread.scrollTop + messageBox.top - threadBox.top;
+  thread.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+  return true;
 }
 
 function findLatestAssistantMessageId(messages: ScoutMessage[]): string | null {
@@ -1142,12 +1156,30 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const retainLatestOnResizeRef = React.useRef(true);
+  const lastPresentedMessageIdRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage) return;
+    if (lastPresentedMessageIdRef.current === lastMessage.id) return;
+    lastPresentedMessageIdRef.current = lastMessage.id;
+
+    if (lastMessage.role === "assistant" && retainLatestOnResizeRef.current) {
+      const messageNode = Array.from(node.children).find(
+        (child) => child.getAttribute("data-scout-message-id") === lastMessage.id
+      );
+      if (
+        messageNode instanceof HTMLElement &&
+        scrollScoutThreadToNewAnswerStart(node, messageNode)
+      ) {
+        retainLatestOnResizeRef.current = false;
+        return;
+      }
+    }
+
+    if (!retainLatestOnResizeRef.current && lastMessage.role !== "user") return;
     scrollScoutThreadToLatest(node, "auto");
     retainLatestOnResizeRef.current = true;
   }, [messages]);

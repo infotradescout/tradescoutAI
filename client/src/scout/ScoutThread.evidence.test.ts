@@ -4,7 +4,11 @@ import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
-import ScoutThread, { EvidenceSourceList, scrollScoutThreadToLatest } from "./ScoutThread";
+import ScoutThread, {
+  EvidenceSourceList,
+  scrollScoutThreadToLatest,
+  scrollScoutThreadToNewAnswerStart,
+} from "./ScoutThread";
 import ScoutSearchDock from "./ScoutSearchDock";
 import { ScoutInputRow } from "./ScoutInputRow";
 import { cancelScheduledScoutAutoRoute } from "./ScoutOS";
@@ -588,11 +592,16 @@ describe("Scout task work record", () => {
     const prototype = HTMLElement.prototype;
     const scrollToDescriptor = Object.getOwnPropertyDescriptor(prototype, "scrollTo");
     const scrollHeightDescriptor = Object.getOwnPropertyDescriptor(prototype, "scrollHeight");
+    const clientHeightDescriptor = Object.getOwnPropertyDescriptor(prototype, "clientHeight");
+    const scrollTopDescriptor = Object.getOwnPropertyDescriptor(prototype, "scrollTop");
     const actEnvironment = globalThis as typeof globalThis & {
       IS_REACT_ACT_ENVIRONMENT?: boolean;
     };
     const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
-    const scrollTo = vi.fn();
+    let scrollTop = 0;
+    const scrollTo = vi.fn((options: ScrollToOptions) => {
+      scrollTop = Math.min(options.top || 0, Math.max(0, scrollHeight - 300));
+    });
     let scrollHeight = 640;
 
     Object.defineProperty(prototype, "scrollTo", {
@@ -602,6 +611,17 @@ describe("Scout task work record", () => {
     Object.defineProperty(prototype, "scrollHeight", {
       configurable: true,
       get: () => scrollHeight,
+    });
+    Object.defineProperty(prototype, "clientHeight", {
+      configurable: true,
+      get: () => 300,
+    });
+    Object.defineProperty(prototype, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
     });
     actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -652,6 +672,16 @@ describe("Scout task work record", () => {
         Object.defineProperty(prototype, "scrollHeight", scrollHeightDescriptor);
       } else {
         delete (prototype as unknown as Record<string, unknown>).scrollHeight;
+      }
+      if (clientHeightDescriptor) {
+        Object.defineProperty(prototype, "clientHeight", clientHeightDescriptor);
+      } else {
+        delete (prototype as unknown as Record<string, unknown>).clientHeight;
+      }
+      if (scrollTopDescriptor) {
+        Object.defineProperty(prototype, "scrollTop", scrollTopDescriptor);
+      } else {
+        delete (prototype as unknown as Record<string, unknown>).scrollTop;
       }
       if (previousActEnvironment === undefined) {
         delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
@@ -710,6 +740,156 @@ describe("Scout task work record", () => {
     scrollScoutThreadToLatest(thread, "smooth");
 
     expect(scrollTo).toHaveBeenCalledWith({ top: 1280, behavior: "smooth" });
+  });
+
+  it("aligns a new tall answer at its opening and leaves a short answer at latest", () => {
+    const scrollTo = vi.fn();
+    const thread = {
+      clientHeight: 300,
+      scrollTop: 700,
+      getBoundingClientRect: () => ({ top: 100 }),
+      scrollTo,
+    } as unknown as HTMLElement;
+    const tallMessage = {
+      getBoundingClientRect: () => ({ top: 250, height: 460 }),
+    } as unknown as HTMLElement;
+    const shortMessage = {
+      getBoundingClientRect: () => ({ top: 250, height: 180 }),
+    } as unknown as HTMLElement;
+
+    expect(scrollScoutThreadToNewAnswerStart(thread, tallMessage)).toBe(true);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 850, behavior: "auto" });
+    scrollTo.mockClear();
+    expect(scrollScoutThreadToNewAnswerStart(thread, shortMessage)).toBe(false);
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("keeps a tall new answer's opening visible through resize without pulling a reader from history", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const prototype = HTMLElement.prototype;
+    const descriptors = {
+      clientHeight: Object.getOwnPropertyDescriptor(prototype, "clientHeight"),
+      scrollHeight: Object.getOwnPropertyDescriptor(prototype, "scrollHeight"),
+      scrollTop: Object.getOwnPropertyDescriptor(prototype, "scrollTop"),
+      scrollTo: Object.getOwnPropertyDescriptor(prototype, "scrollTo"),
+      getBoundingClientRect: Object.getOwnPropertyDescriptor(prototype, "getBoundingClientRect"),
+    };
+    const resizeObserverDescriptor = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
+    const actEnvironment = globalThis as typeof globalThis & {
+      IS_REACT_ACT_ENVIRONMENT?: boolean;
+    };
+    const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+    const scrollTo = vi.fn();
+    let resizeCallback: ResizeObserverCallback | null = null;
+    let scrollTop = 0;
+    let scrollHeight = 1000;
+    let clientHeight = 300;
+    let mounted = false;
+
+    class TestResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        resizeCallback = callback;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: TestResizeObserver,
+    });
+    Object.defineProperty(prototype, "clientHeight", {
+      configurable: true,
+      get: () => clientHeight,
+    });
+    Object.defineProperty(prototype, "scrollHeight", {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+    Object.defineProperty(prototype, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
+    });
+    Object.defineProperty(prototype, "scrollTo", {
+      configurable: true,
+      value: (options: ScrollToOptions) => {
+        scrollTo(options);
+        scrollTop = Math.min(options.top || 0, Math.max(0, scrollHeight - clientHeight));
+      },
+    });
+    Object.defineProperty(prototype, "getBoundingClientRect", {
+      configurable: true,
+      value: function (this: HTMLElement) {
+        if (this.classList.contains("scout-thread")) return { top: 100, height: clientHeight };
+        if (this.getAttribute("data-scout-message-id") === "a_tall") {
+          return { top: 100 + 850 - scrollTop, height: 460 };
+        }
+        return { top: 100, height: 40 };
+      },
+    });
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+
+    const user: ScoutMessage = { id: "u_first", role: "user", content: "Find local posts." };
+    const tall: ScoutMessage = { id: "a_tall", role: "assistant", content: "A long answer." };
+    const later: ScoutMessage = { id: "a_later", role: "assistant", content: "A short update." };
+
+    try {
+      React.act(() => {
+        root.render(React.createElement(ScoutThread, { messages: [user], status: "idle" }));
+      });
+      mounted = true;
+      expect(scrollTop).toBe(700);
+
+      scrollHeight = 1500;
+      scrollTo.mockClear();
+      React.act(() => {
+        root.render(React.createElement(ScoutThread, { messages: [user, tall], status: "idle" }));
+      });
+      expect(scrollTo).toHaveBeenLastCalledWith({ top: 850, behavior: "auto" });
+      expect(scrollTop).toBe(850);
+
+      scrollTo.mockClear();
+      clientHeight = 250;
+      React.act(() => {
+        resizeCallback?.([] as ResizeObserverEntry[], {} as ResizeObserver);
+      });
+      expect(scrollTo).not.toHaveBeenCalled();
+      expect(scrollTop).toBe(850);
+
+      const thread = container.querySelector<HTMLElement>(".scout-thread");
+      scrollTop = 300;
+      React.act(() => {
+        thread?.dispatchEvent(new Event("scroll"));
+      });
+      scrollTo.mockClear();
+      React.act(() => {
+        root.render(
+          React.createElement(ScoutThread, { messages: [user, tall, later], status: "idle" })
+        );
+      });
+      expect(scrollTo).not.toHaveBeenCalled();
+      expect(scrollTop).toBe(300);
+    } finally {
+      if (mounted) React.act(() => root.unmount());
+      container.remove();
+      for (const [property, descriptor] of Object.entries(descriptors)) {
+        if (descriptor) Object.defineProperty(prototype, property, descriptor);
+        else delete (prototype as unknown as Record<string, unknown>)[property];
+      }
+      if (resizeObserverDescriptor) {
+        Object.defineProperty(globalThis, "ResizeObserver", resizeObserverDescriptor);
+      } else {
+        delete (globalThis as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+      }
+      if (previousActEnvironment === undefined) delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+      else actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+    }
   });
 
   it("retains a near-latest viewport on resize without pulling a reader from history", () => {
