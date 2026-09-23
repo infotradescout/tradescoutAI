@@ -109,6 +109,12 @@ import { applyProviderBehaviorOwnership } from "../scout/scoutProviderBehaviorOw
 import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwner";
 import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
 import {
+  isMixedScoutDiscoveryRequest,
+  normalizeScoutCountyFips,
+  requiresFreshScoutDiscovery,
+} from "../scout/scoutCountyFips";
+import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
+import {
   buildScoutProfileUpdateResponse,
   inferScoutProfileUpdateDraft,
   sanitizeScoutProfileUpdatePayload,
@@ -2576,7 +2582,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
     const optimizationUserId = memoryUserId;
-    if (optimizationUserId && message) {
+    if (optimizationUserId && message && !requiresFreshScoutDiscovery(message)) {
       // Import optimization services
       const { generateQueryHash, checkFaqMatch, routeQuery } =
         await import("../services/scoutOptimizationEngine");
@@ -2666,15 +2672,13 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const normalizedMessage = typeof message === "string" ? message : "";
     scoutTurnTelemetry.intent =
       normalizeScoutIntent(rawBody.intent, normalizedMessage) || "unknown";
-    const countyCandidate =
-      (rawBody.countyHint as string | undefined) ||
-      (rawBody.countyCode as string | undefined) ||
-      (requestUser as any)?.countyFips ||
-      (requestUser as any)?.county_fips;
     const normalizedFips =
-      typeof countyCandidate === "string" && countyCandidate.trim().length >= 5
-        ? countyCandidate.trim().slice(0, 5)
-        : undefined;
+      normalizeScoutCountyFips(
+        rawBody.countyHint,
+        rawBody.countyCode,
+        (requestUser as any)?.countyFips,
+        (requestUser as any)?.county_fips
+      ) || undefined;
 
     scoutInteractionLog = {
       userRole: normalizeScoutRole((requestUser as any)?.role),
@@ -3487,6 +3491,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       message,
       userId,
       countyCode,
+      countyFips: normalizedFips,
       stateCode,
     };
 
@@ -3498,6 +3503,34 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const communityPostItems: any[] = Array.isArray((knowledge.meta as any)?.communityPosts?.items)
       ? ((knowledge.meta as any).communityPosts.items as any[])
       : [];
+
+    if (isMixedScoutDiscoveryRequest(message)) {
+      const recovery = buildScoutMixedDiscoveryRecovery({
+        countyFips: normalizedFips,
+        countyLabel: countyCode,
+        communityPosts: communityPostItems,
+      });
+      scoutTurnTelemetry.provider = "deterministic";
+      scoutTurnTelemetry.sourceUsed = "scout_mixed_discovery_recovery";
+      scoutTurnTelemetry.intent = "local_discovery_partial";
+      scoutTurnTelemetry.fallbackUsed = true;
+      return res.json({
+        ...recovery,
+        metadata: {
+          intent: "local_discovery_partial",
+          sourceUsed: "scout_mixed_discovery_recovery",
+          fallbackUsed: true,
+        },
+        knowledge: {
+          layer: knowledge.layer,
+          sources: recovery.entities.length > 0 ? ["TradeScout Database (community_posts)"] : [],
+          confidence: recovery.entities.length > 0 ? "medium" : "low",
+        },
+        llmProvider: "deterministic",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // If no LLM providers configured, return a structured offline response so app can be tested
     if (!llmAvailable) {

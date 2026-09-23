@@ -9,6 +9,7 @@ import { storage } from "../storage";
 import { chooseKnowledgeMode } from "../scout/brandGuard";
 import { webSearch, type WebSearchResult } from "./webSearchService";
 import { observeScoutHybridShadow, searchScoutHybridCutover } from "./scoutHybridShadowService";
+import { normalizeScoutCountyFips } from "../scout/scoutCountyFips";
 import {
   AUTOMATIC_CHAT_CORPUS_WRITES_ENABLED,
   GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED,
@@ -71,6 +72,7 @@ interface KnowledgeRequest {
   message: string;
   userId?: string;
   countyCode?: string;
+  countyFips?: string;
   stateCode?: string;
 }
 
@@ -560,7 +562,8 @@ async function queryWebsite(
   message: string,
   userId?: string,
   countyCode?: string,
-  stateCode?: string
+  stateCode?: string,
+  countyFips?: string
 ): Promise<CacheResult> {
   try {
     const messageLower = message.toLowerCase();
@@ -583,9 +586,9 @@ async function queryWebsite(
         limit: 10,
       };
 
-      if (countyCode) {
+      if (countyFips) {
         filters.scope = "county" as any;
-        filters.countyFips = countyCode;
+        filters.countyFips = countyFips;
       } else if (stateCode) {
         filters.scope = "state" as any;
         filters.stateCode = stateCode;
@@ -656,7 +659,7 @@ async function queryWebsite(
       const rows: any[] = [];
 
       // Prefer county-scoped businesses (business_counties) when available.
-      if (countyCode) {
+      if (countyFips) {
         try {
           const countyRows = await db
             .select({
@@ -675,7 +678,7 @@ async function queryWebsite(
                 eq(businesses.status, "active" as any),
                 eq(businesses.publicDiscoveryEnabled, true),
                 publicBusinessDetailExposureSqlPredicate(),
-                eq(counties.fips, countyCode)
+                eq(counties.fips, countyFips)
               )
             )
             .limit(15);
@@ -978,6 +981,7 @@ export async function resolveKnowledge(
   gemini: GoogleGenerativeAI | null
 ): Promise<KnowledgeResponse> {
   const { message, userId, countyCode, stateCode } = request;
+  const countyFips = normalizeScoutCountyFips(request.countyFips, countyCode) || undefined;
   const sources: KnowledgeSourceReference[] = [];
   const aggregatedContent: string[] = [];
   let highestLayer = 4;
@@ -1066,7 +1070,7 @@ export async function resolveKnowledge(
   }
 
   // Try live database query
-  const dbResult = await queryWebsite(message, userId, countyCode, stateCode);
+  const dbResult = await queryWebsite(message, userId, countyCode, stateCode, countyFips);
   if (dbResult.source === "database" && dbResult.data?.items?.length > 0) {
     sources.push(`TradeScout Database (${dbResult.data.category})`);
     aggregatedContent.push(
