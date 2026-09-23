@@ -55,11 +55,12 @@ test('missing or malformed dimensions never invent a full slab total', () => {
   for (const sizes of [null, '', '126x78, nonsense', '126x78,', '10x78', '126x780']) {
     const display = buyer.stoneSlabMaterialPrice('27.75', 'sqft', sizes);
     assert.equal(display.kind, 'size_required');
-    assert.equal(display.primaryPrice, 'Slab price TBD');
-    assert.equal(display.secondaryPrice, '$27.75 / sq ft');
+    assert.equal(display.primaryLabel, 'Slab price TBD');
+    assert.equal(display.primaryPrice, '$27.75 / sq ft');
+    assert.equal(display.secondaryPrice, null);
   }
   const card = renderer.renderExchangeStoneLanding(landing()).html;
-  assert.match(card, /Full slab material price<\/p><p class="price">Slab price TBD<\/p><p class="price-secondary">\$27\.75 \/ sq ft/);
+  assert.match(card, /Slab price TBD<\/p><p class="price">\$27\.75 \/ sq ft<\/p>/);
   assert.equal(card.includes('Estimated full slab material price'), false);
   assert.equal(buyer.stoneSlabMaterialPrice(1707, 'slab', null), null);
   assert.deepEqual(buyer.stoneSlabMaterialPrice(1707, 'slab', null, 'Slab A'), {

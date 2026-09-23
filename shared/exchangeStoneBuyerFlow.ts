@@ -4,6 +4,7 @@ export type StonePriceUnit = "sqft" | "slab";
 export type StoneSlabMaterialPrice = Readonly<{
   kind: "estimated" | "exact" | "size_required";
   primaryLabel: string;
+  /** Headline amount: slab material total/range, or the known rate when size is missing. */
   primaryPrice: string;
   secondaryPrice: string | null;
   explanation: string;
@@ -80,9 +81,9 @@ export function stoneSlabMaterialPrice(price: unknown, unit: unknown, referenceS
       explanation: "For the identified slab. Confirm availability; delivery, fabrication and installation are separate." };
   }
   const totals = referenceSlabTotals(cents, referenceSizesInches);
-  if (!totals) return { kind: "size_required", primaryLabel: "Full slab material price", primaryPrice: "Slab price TBD",
-    secondaryPrice: rate, referenceSizeCount: 0,
-    explanation: "A full slab total needs a confirmed size. Delivery, fabrication and installation are separate." };
+  if (!totals) return { kind: "size_required", primaryLabel: "Slab price TBD", primaryPrice: rate,
+    secondaryPrice: null, referenceSizeCount: 0,
+    explanation: "A full slab total needs confirmed dimensions. The displayed per-square-foot material rate excludes delivery, fabrication and installation." };
   const minimum = Math.min(...totals), maximum = Math.max(...totals);
   return { kind: "estimated", primaryLabel: "Estimated full slab material price",
     primaryPrice: minimum === maximum ? USD.format(minimum / 100) : `${USD.format(minimum / 100)}–${USD.format(maximum / 100)}`,
