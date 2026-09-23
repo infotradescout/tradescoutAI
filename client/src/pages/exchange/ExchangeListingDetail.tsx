@@ -26,6 +26,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -275,17 +276,36 @@ export default function ExchangeListingDetail() {
   // ── Inquiry ────────────────────────────────────────────────────────────────
   const sendInquiryMutation = useMutation({
     retry: false,
-    mutationFn: async (submission: { listing: ListingDetail; message: string; offer: string; actorId: string | null; inquiryIntent: "availability" | "callback" }) => {
+    mutationFn: async (submission: {
+      listing: ListingDetail;
+      message: string;
+      offer: string;
+      actorId: string | null;
+      inquiryIntent: "availability" | "callback";
+    }) => {
       const { listing: selected, message, offer } = submission;
       if (!isAuthenticated) throw new Error("Sign in before sending an inquiry");
-      if (submission.actorId !== visibleActorId.current) throw new Error("Your account changed. Review the request again.");
+      if (submission.actorId !== visibleActorId.current)
+        throw new Error("Your account changed. Review the request again.");
       if (isStoneRetailListing(selected)) {
         let requestStorage: Storage | null = null;
-        try { requestStorage = window.sessionStorage; } catch { /* server-side legacy replay remains available */ }
-        await sendStoneInquiryRequest(apiRequest, requestStorage, {
-          actorId: submission.actorId || "", listingId: selected.id, title: selected.title,
-          message, inquiryIntent: submission.inquiryIntent,
-        }, () => submission.actorId === visibleActorId.current);
+        try {
+          requestStorage = window.sessionStorage;
+        } catch {
+          /* server-side legacy replay remains available */
+        }
+        await sendStoneInquiryRequest(
+          apiRequest,
+          requestStorage,
+          {
+            actorId: submission.actorId || "",
+            listingId: selected.id,
+            title: selected.title,
+            message,
+            inquiryIntent: submission.inquiryIntent,
+          },
+          () => submission.actorId === visibleActorId.current
+        );
         return selected.id;
       }
       const decisionScope = `marketplace_listing:${selected.id}`;
@@ -297,7 +317,8 @@ export default function ExchangeListingDetail() {
       });
       const sourceDecisionCardId = String(decision?.id || "").trim();
       if (!sourceDecisionCardId) throw new Error("Decision Card creation failed");
-      if (submission.actorId !== visibleActorId.current) throw new Error("Your account changed. Review the request again.");
+      if (submission.actorId !== visibleActorId.current)
+        throw new Error("Your account changed. Review the request again.");
 
       await apiRequest("POST", "/api/marketplace/inquiries", {
         listingId: selected.id,
@@ -328,21 +349,38 @@ export default function ExchangeListingDetail() {
     onError: (err: any) => {
       toast({
         title: "Could not confirm delivery",
-        description: formatUserFacingErrorMessage(err, "Your message is still here. Check your inquiries before retrying."),
+        description: formatUserFacingErrorMessage(
+          err,
+          "Your message is still here. Check your inquiries before retrying."
+        ),
         variant: "destructive",
       });
     },
-    onSettled: () => { submissionLock.current = false; },
+    onSettled: () => {
+      submissionLock.current = false;
+    },
   });
 
   function submitInquiry() {
-    if (!listing || !inquiryMessage.trim() || submissionLock.current || sendInquiryMutation.isPending) return;
+    if (
+      !listing ||
+      !inquiryMessage.trim() ||
+      submissionLock.current ||
+      sendInquiryMutation.isPending
+    )
+      return;
     if (stoneInquiry.isRetail && !isAuthenticated) {
       stoneInquiry.continueToSignIn();
       return;
     }
     submissionLock.current = true;
-    sendInquiryMutation.mutate({ listing, message: inquiryMessage, offer: inquiryOffer, actorId: visibleActorId.current, inquiryIntent: stoneInquiry.intent });
+    sendInquiryMutation.mutate({
+      listing,
+      message: inquiryMessage,
+      offer: inquiryOffer,
+      actorId: visibleActorId.current,
+      inquiryIntent: stoneInquiry.intent,
+    });
   }
 
   // ── Photo nav ──────────────────────────────────────────────────────────────
@@ -433,18 +471,40 @@ export default function ExchangeListingDetail() {
   const isProfileCatalog = listing.sourceType === "profile_catalog";
   const isProfileLinked = isProfileOffer || isProfileCatalog;
   const stoneSlabPrice = stoneInquiry.isRetail
-    ? stoneSlabMaterialPrice(listing.price, listing.specifications?.priceUnit,
-        listing.specifications?.referenceSizesInches, listing.specifications?.exactSlab)
+    ? stoneSlabMaterialPrice(
+        listing.price,
+        listing.specifications?.priceUnit,
+        listing.specifications?.referenceSizesInches,
+        listing.specifications?.exactSlab
+      )
     : null;
   const displayedPrice = stoneInquiry.isRetail
     ? stoneSlabPrice?.primaryPrice || "Price unavailable"
     : formatPrice(listing.price as number);
+  const retailTitle = stoneInquiry.isRetail
+    ? listing.title.replace(/\s*\|\s*TradeScout(?: Stone)?\s*$/i, "")
+    : listing.title;
+  const retailMaterial =
+    typeof listing.specifications?.material === "string"
+      ? listing.specifications.material.trim()
+      : "";
+  const retailReferenceSizes =
+    stoneSlabPrice?.kind === "estimated" &&
+    typeof listing.specifications?.referenceSizesInches === "string"
+      ? listing.specifications.referenceSizesInches
+          .split(",")
+          .map((size: string) => `${size.trim().replace(/\s*[x×]\s*/i, " × ")} in`)
+      : [];
 
   return (
     <>
       <SEOHelmet
-        title={`${listing.title} — TradeScout Exchange`}
-        description={listing.description.slice(0, 160)}
+        title={`${retailTitle} — TradeScout Exchange`}
+        description={
+          stoneInquiry.isRetail
+            ? `${retailTitle} stone material. Review the recorded slab sizes and material price, then ask TradeScout to confirm the selected slab and delivery.`
+            : listing.description.slice(0, 160)
+        }
         canonical={`/exchange/${resolvedCategory}/${listing.id}`}
         ogImage={photos[0]}
         keywords={[categoryConfig?.name ?? "", listing.brand ?? "", listing.condition]
@@ -458,7 +518,7 @@ export default function ExchangeListingDetail() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-white/70 hover:text-white -ml-2"
+            className="min-h-11 text-white/70 hover:text-white -ml-2"
             onClick={() => navigate(backPath)}
           >
             <ArrowLeft className="h-4 w-4 mr-1.5" />
@@ -469,7 +529,8 @@ export default function ExchangeListingDetail() {
             <Button
               size="sm"
               variant="ghost"
-              className={`h-8 w-8 p-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
+              aria-label={isFaved ? "Remove from saved listings" : "Save listing"}
+              className={`h-11 w-11 p-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
               disabled={isProfileLinked}
               onClick={() => {
                 if (isProfileLinked) return;
@@ -485,7 +546,8 @@ export default function ExchangeListingDetail() {
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 w-8 p-0 text-white/50 hover:text-white"
+              aria-label="Share listing"
+              className="h-11 w-11 p-0 text-white/50 hover:text-white"
               onClick={() =>
                 share({
                   title: listing.title,
@@ -501,144 +563,235 @@ export default function ExchangeListingDetail() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
-          {/* ── Photo gallery ── */}
-          {photos.length > 0 ? (
-            <div className="relative rounded-xl overflow-hidden bg-black/40">
-              <div className="aspect-video">
-                <img
-                  src={photos[photoIndex]}
-                  alt={`${listing.title} — photo ${photoIndex + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {photos.length > 1 && (
-                <>
-                  <button
-                    onClick={prevPhoto}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 rounded-full p-1.5 text-white transition-colors"
+        <div
+          className={`${stoneInquiry.isRetail ? "max-w-6xl" : "max-w-4xl"} mx-auto px-4 py-4 space-y-4`}
+        >
+          <div
+            className={
+              stoneInquiry.isRetail
+                ? "grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-start"
+                : "space-y-4"
+            }
+          >
+            <div className="space-y-2 min-w-0">
+              {/* ── Photo gallery ── */}
+              {photos.length > 0 ? (
+                <div className="relative rounded-xl overflow-hidden bg-black/40">
+                  <div
+                    className={stoneInquiry.isRetail ? "h-56 sm:h-72 lg:h-[380px]" : "aspect-video"}
                   >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={nextPhoto}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 rounded-full p-1.5 text-white transition-colors"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                    {photos.map((_, i) => (
+                    <img
+                      src={photos[photoIndex]}
+                      alt={`${retailTitle} — photo ${photoIndex + 1}`}
+                      className={`w-full h-full ${stoneInquiry.isRetail ? "object-contain" : "object-cover"}`}
+                    />
+                  </div>
+                  {photos.length > 1 && (
+                    <>
                       <button
-                        key={i}
-                        onClick={() => setPhotoIndex(i)}
-                        className={`w-1.5 h-1.5 rounded-full transition-colors ${i === photoIndex ? "bg-white" : "bg-white/40"}`}
-                      />
-                    ))}
-                  </div>
-                  <div className="absolute top-2 right-2 bg-black/60 rounded-full px-2 py-0.5 text-[11px] text-white/80">
-                    {photoIndex + 1} / {photos.length}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="aspect-video rounded-xl bg-white/5 flex items-center justify-center">
-              <Package className="h-12 w-12 text-white/20" />
-            </div>
-          )}
-
-          {/* Thumbnail strip */}
-          {photos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {photos.map((src, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPhotoIndex(i)}
-                  className={`shrink-0 w-16 h-12 rounded-md overflow-hidden border-2 transition-colors ${
-                    i === photoIndex ? "border-ts-orange" : "border-white/10 hover:border-white/30"
-                  }`}
+                        onClick={prevPhoto}
+                        aria-label="Previous photo"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 rounded-full p-3 text-white transition-colors"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={nextPhoto}
+                        aria-label="Next photo"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 rounded-full p-3 text-white transition-colors"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                      {!stoneInquiry.isRetail && (
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                          {photos.map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setPhotoIndex(i)}
+                              aria-label={`Show photo ${i + 1} of ${photos.length}`}
+                              className={`w-1.5 h-1.5 rounded-full transition-colors ${i === photoIndex ? "bg-white" : "bg-white/40"}`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2 bg-black/60 rounded-full px-2 py-0.5 text-[11px] text-white/80">
+                        {photoIndex + 1} / {photos.length}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className={`${stoneInquiry.isRetail ? "h-56 sm:h-72 lg:h-[380px]" : "aspect-video"} rounded-xl bg-white/5 flex items-center justify-center`}
                 >
-                  <img src={src} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* ── Title + price ── */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex-1 min-w-0">
-              {listing.featured && (
-                <Badge className="mb-1.5 bg-ts-orange/20 text-ts-orange border-ts-orange/30 text-[10px]">
-                  Featured
-                </Badge>
+                  <Package className="h-12 w-12 text-white/20" />
+                </div>
               )}
-              <h1 className="text-xl font-bold text-white leading-snug">{listing.title}</h1>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-white/50">
-                {isProfileCatalog ? (
-                  <>
-                    <Package className="h-3 w-3 shrink-0" />
-                    <span>
-                      {listing.specifications?.catalogKind === "inventory_item"
-                        ? "Profile item"
-                        : "Profile catalog"}
-                    </span>
-                    <span>·</span>
-                    <span>Managed TradeScout request</span>
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="h-3 w-3 shrink-0" />
-                    <span>{listing.location}</span>
-                    <span>·</span>
-                    <Eye className="h-3 w-3 shrink-0" />
-                    <span>{listing.views} views</span>
-                    <span>·</span>
-                    <span>Listed {formatListedDate(listing.createdAt)}</span>
-                  </>
-                )}
-              </div>
+
+              {/* Thumbnail strip */}
+              {photos.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {photos.map((src, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setPhotoIndex(i)}
+                      aria-label={`Show photo ${i + 1} of ${photos.length}`}
+                      aria-current={i === photoIndex ? "true" : undefined}
+                      className={`shrink-0 w-16 h-12 rounded-md overflow-hidden border-2 transition-colors ${
+                        i === photoIndex
+                          ? "border-ts-orange"
+                          : "border-white/10 hover:border-white/30"
+                      }`}
+                    >
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="shrink-0 text-left sm:text-right">
-              {stoneInquiry.isRetail ? <>
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
-                  {stoneSlabPrice?.primaryLabel || "Full slab material price"}
-                </p>
-                <p className="mt-1 text-2xl font-bold text-ts-orange" data-testid="exchange-stone-slab-price">
-                  {displayedPrice}
-                </p>
-                {stoneSlabPrice?.secondaryPrice ? <p className="mt-1 text-sm text-white/70" data-testid="exchange-stone-unit-rate">
-                  {stoneSlabPrice.secondaryPrice}
-                </p> : null}
-              </> : <p className="text-2xl font-bold text-ts-orange">
-                {isProfileCatalog ? "Request quote" : displayedPrice}
-              </p>}
-              {isSetListing && (
-                <p className="text-[11px] text-white/50 mt-0.5">
-                  {listingType === "collection" ? "Collection" : "Set"} · {setItems.length} items
-                </p>
+
+            {/* ── Title + price ── */}
+            <div
+              className={
+                stoneInquiry.isRetail
+                  ? "min-w-0 space-y-3 rounded-xl border border-white/10 bg-white/[0.04] p-4 sm:p-5"
+                  : "space-y-3"
+              }
+            >
+              <div
+                className={
+                  stoneInquiry.isRetail
+                    ? "flex flex-col gap-3"
+                    : "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+                }
+              >
+                <div className="flex-1 min-w-0">
+                  {listing.featured && (
+                    <Badge className="mb-1.5 bg-ts-orange/20 text-ts-orange border-ts-orange/30 text-[10px]">
+                      Featured
+                    </Badge>
+                  )}
+                  <h1 className="text-xl font-bold text-white leading-snug">{retailTitle}</h1>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-white/50">
+                    {stoneInquiry.isRetail ? (
+                      <span>Stone material · Ask TradeScout to confirm the selected slab</span>
+                    ) : isProfileCatalog ? (
+                      <>
+                        <Package className="h-3 w-3 shrink-0" />
+                        <span>
+                          {listing.specifications?.catalogKind === "inventory_item"
+                            ? "Profile item"
+                            : "Profile catalog"}
+                        </span>
+                        <span>·</span>
+                        <span>Managed TradeScout request</span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span>{listing.location}</span>
+                        <span>·</span>
+                        <Eye className="h-3 w-3 shrink-0" />
+                        <span>{listing.views} views</span>
+                        <span>·</span>
+                        <span>Listed {formatListedDate(listing.createdAt)}</span>
+                      </>
+                    )}
+                  </div>
+                  {stoneInquiry.isRetail && retailMaterial && (
+                    <p className="mt-2 text-sm text-white/75">{retailMaterial}</p>
+                  )}
+                </div>
+                <div
+                  className={`shrink-0 text-left ${stoneInquiry.isRetail ? "" : "sm:text-right"}`}
+                >
+                  {stoneInquiry.isRetail ? (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
+                        {stoneSlabPrice?.primaryLabel || "Full slab material price"}
+                      </p>
+                      <p
+                        className="mt-1 text-2xl font-bold text-ts-orange"
+                        data-testid="exchange-stone-slab-price"
+                      >
+                        {displayedPrice}
+                      </p>
+                      {stoneSlabPrice?.secondaryPrice ? (
+                        <p
+                          className="mt-1 text-sm text-white/70"
+                          data-testid="exchange-stone-unit-rate"
+                        >
+                          {stoneSlabPrice.secondaryPrice}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="text-2xl font-bold text-ts-orange">
+                      {isProfileCatalog ? "Request quote" : displayedPrice}
+                    </p>
+                  )}
+                  {isSetListing && (
+                    <p className="text-[11px] text-white/50 mt-0.5">
+                      {listingType === "collection" ? "Collection" : "Set"} · {setItems.length}{" "}
+                      items
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {stoneInquiry.isRetail && retailReferenceSizes.length > 0 && (
+                <div className="text-sm text-white/70">
+                  <p className="text-xs uppercase tracking-wide text-white/50">
+                    Recorded reference slab sizes
+                  </p>
+                  <p className="mt-1">
+                    {retailReferenceSizes.slice(0, 2).join(", ")}
+                    {retailReferenceSizes.length > 2
+                      ? ` · ${retailReferenceSizes.length} sizes recorded`
+                      : ""}
+                  </p>
+                  {retailReferenceSizes.length > 2 && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer py-1 text-ts-orange">
+                        See all {retailReferenceSizes.length} reference sizes
+                      </summary>
+                      <p className="mt-1 leading-relaxed">{retailReferenceSizes.join(", ")}</p>
+                    </details>
+                  )}
+                </div>
+              )}
+
+              {stoneInquiry.isRetail && (
+                <section aria-label="Ask TradeScout about this stone" className="space-y-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button
+                      className="min-h-12 flex-1 bg-ts-orange text-white"
+                      onClick={() => stoneInquiry.prepare("availability")}
+                    >
+                      Ask TradeScout about availability
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="min-h-12 flex-1"
+                      onClick={() => stoneInquiry.prepare("callback")}
+                    >
+                      Request a callback
+                    </Button>
+                  </div>
+                  <p className="text-sm text-white/70">
+                    {stoneSlabPrice?.explanation ||
+                      "Material price unavailable. Confirm the selected slab and charges with TradeScout."}
+                  </p>
+                  <p className="text-xs text-white/50">
+                    Review your request before sending. No payment or reservation is made.
+                  </p>
+                </section>
               )}
             </div>
           </div>
 
-          {stoneInquiry.isRetail && (
-            <section aria-label="Ask TradeScout about this stone" className="space-y-2">
-              <p className="text-sm text-white/70">
-                {stoneSlabPrice?.explanation || "Material price unavailable. Confirm the selected slab and charges with TradeScout."}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button className="min-h-12 flex-1 bg-ts-orange text-white" onClick={() => stoneInquiry.prepare("availability")}>
-                  Check availability
-                </Button>
-                <Button variant="outline" className="min-h-12 flex-1" onClick={() => stoneInquiry.prepare("callback")}>
-                  Request a callback
-                </Button>
-              </div>
-              <p className="text-xs text-white/50">Review your request before sending. No payment or reservation is made.</p>
-            </section>
-          )}
-
           {/* ── Spec badges row ── */}
-          {specRows.length > 0 && (
+          {!stoneInquiry.isRetail && specRows.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {listing.specifications?.titleStatus && (
                 <TitleStatusBadge status={listing.specifications.titleStatus} />
@@ -680,14 +833,9 @@ export default function ExchangeListingDetail() {
           )}
 
           {/* ── Shipping / pickup ── */}
-          {!isProfileCatalog && (
+          {!stoneInquiry.isRetail && !isProfileCatalog && (
             <div className="flex items-center gap-2 text-sm">
-              {stoneInquiry.isRetail ? (
-                <span className="flex items-center gap-1.5 text-white/70">
-                  <Truck className="h-4 w-4" />
-                  Delivery charges confirmed before purchase
-                </span>
-              ) : listing.isLocalPickupOnly ? (
+              {listing.isLocalPickupOnly ? (
                 <span className="flex items-center gap-1.5 text-white/50">
                   <MapPin className="h-4 w-4" />
                   Local pickup only
@@ -709,58 +857,65 @@ export default function ExchangeListingDetail() {
 
           {/* ── Description ── */}
           <div>
-            <h2 className="text-sm font-semibold text-white/80 mb-2">Description</h2>
+            <h2 className="text-sm font-semibold text-white/80 mb-2">
+              {stoneInquiry.isRetail ? "About this stone" : "Description"}
+            </h2>
             <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">
-              {listing.description}
+              {stoneInquiry.isRetail
+                ? "Photos are material references. TradeScout will confirm the selected slab's appearance, dimensions, finish, quantity and availability before purchase."
+                : listing.description}
             </p>
           </div>
 
-          {(listing.valueGuidance || listing.rarityTags?.length || listing.shippingQuote) && (
-            <>
-              <Separator className="bg-white/10" />
-              <div className="grid gap-2 sm:grid-cols-3">
-                {listing.valueGuidance && (
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-white/40">Fair value</p>
-                    <p className="mt-1 text-sm font-semibold text-white">
-                      {formatPrice(listing.valueGuidance.suggestedRangeLow)} -{" "}
-                      {formatPrice(listing.valueGuidance.suggestedRangeHigh)}
-                    </p>
-                    <p className="mt-1 text-[11px] text-white/50">
-                      {listing.valueGuidance.sampleSize} comps · {listing.valueGuidance.confidence}{" "}
-                      confidence
-                    </p>
-                  </div>
-                )}
-                {listing.rarityTags?.length ? (
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-white/40">Rarity</p>
-                    <p className="mt-1 text-sm font-semibold text-white">
-                      {listing.rarityTags.slice(0, 3).join(", ")}
-                    </p>
-                    <p className="mt-1 text-[11px] text-white/50">
-                      {listing.rarityConfidence || "low"} confidence
-                    </p>
-                  </div>
-                ) : null}
-                {listing.shippingQuote && (
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                    <p className="text-[11px] uppercase tracking-wide text-white/40">Shipping</p>
-                    <p className="mt-1 text-sm font-semibold text-white">
-                      {listing.shippingQuote.serviceName}
-                    </p>
-                    <p className="mt-1 text-[11px] text-white/50">
-                      {listing.shippingQuote.buyerPays ? "Buyer pays" : "Included in price"} ·{" "}
-                      {formatPrice(listing.shippingQuote.estimatedCost)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          {!stoneInquiry.isRetail &&
+            (listing.valueGuidance || listing.rarityTags?.length || listing.shippingQuote) && (
+              <>
+                <Separator className="bg-white/10" />
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {listing.valueGuidance && (
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-white/40">
+                        Fair value
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-white">
+                        {formatPrice(listing.valueGuidance.suggestedRangeLow)} -{" "}
+                        {formatPrice(listing.valueGuidance.suggestedRangeHigh)}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/50">
+                        {listing.valueGuidance.sampleSize} comps ·{" "}
+                        {listing.valueGuidance.confidence} confidence
+                      </p>
+                    </div>
+                  )}
+                  {listing.rarityTags?.length ? (
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-white/40">Rarity</p>
+                      <p className="mt-1 text-sm font-semibold text-white">
+                        {listing.rarityTags.slice(0, 3).join(", ")}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/50">
+                        {listing.rarityConfidence || "low"} confidence
+                      </p>
+                    </div>
+                  ) : null}
+                  {listing.shippingQuote && (
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                      <p className="text-[11px] uppercase tracking-wide text-white/40">Shipping</p>
+                      <p className="mt-1 text-sm font-semibold text-white">
+                        {listing.shippingQuote.serviceName}
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/50">
+                        {listing.shippingQuote.buyerPays ? "Buyer pays" : "Included in price"} ·{" "}
+                        {formatPrice(listing.shippingQuote.estimatedCost)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
           {/* ── Spec table ── */}
-          {specRows.length > 0 && (
+          {!stoneInquiry.isRetail && specRows.length > 0 && (
             <>
               <Separator className="bg-white/10" />
               <div>
@@ -832,89 +987,94 @@ export default function ExchangeListingDetail() {
             </>
           )}
 
-          <Separator className="bg-white/10" />
-
           {/* ── Seller card ── */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
-              <span className="text-sm font-semibold text-white">{listing.seller.name[0]}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white">{listing.seller.name}</p>
-              <div className="flex items-center gap-1.5 text-[12px] text-white/50">
-                {listing.seller.verified && (
-                  <span className="text-emerald-400 flex items-center gap-0.5">
-                    <CheckCircle className="h-3 w-3" />
-                    Verified
-                  </span>
-                )}
-                {!listing.seller.verified && (
-                  <span>{isProfileCatalog ? "Business profile" : "Seller profile"}</span>
+          {!stoneInquiry.isRetail && (
+            <>
+              <Separator className="bg-white/10" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-white">{listing.seller.name[0]}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">{listing.seller.name}</p>
+                  <div className="flex items-center gap-1.5 text-[12px] text-white/50">
+                    {listing.seller.verified && (
+                      <span className="text-emerald-400 flex items-center gap-0.5">
+                        <CheckCircle className="h-3 w-3" />
+                        Verified
+                      </span>
+                    )}
+                    {!listing.seller.verified && (
+                      <span>{isProfileCatalog ? "Business profile" : "Seller profile"}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── CTA ── */}
+              <div className="pb-6">
+                <Button
+                  className="w-full bg-ts-orange hover:bg-ts-orange/90 text-white font-semibold h-12 text-base"
+                  onClick={() => {
+                    if (isProfileLinked) {
+                      navigate(listing.publicProfilePath || `/profile/${listing.seller.id}`);
+                      return;
+                    }
+                    if (!isAuthenticated) {
+                      const returnTo = `/exchange/${encodeURIComponent(category || "other")}/${encodeURIComponent(listing.id)}`;
+                      navigate(`/pre-scout-setup?mode=signin&next=${encodeURIComponent(returnTo)}`);
+                      return;
+                    }
+                    setDecisionOpen(true);
+                  }}
+                >
+                  <ShieldCheck className="h-5 w-5 mr-2" />
+                  {isProfileOffer
+                    ? "Review Purchase on Profile"
+                    : isProfileCatalog
+                      ? listing.specifications?.catalogKind === "inventory_item"
+                        ? "Open Item & Request"
+                        : "Open Catalog & Request"
+                      : "Review Protected Connection"}
+                </Button>
+                {isProfileOffer ? (
+                  <p className="mt-2 text-center text-[11px] text-white/50">
+                    Purchase, receipt, shipping, and accounting steps stay in review before anything
+                    is posted or fulfilled.
+                  </p>
+                ) : isProfileCatalog ? (
+                  <p className="mt-2 text-center text-[11px] text-white/50">
+                    The maintained profile owns the material detail. Availability, project fit, and
+                    pricing are confirmed through TradeScout before contact opens.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-center text-[11px] text-white/50">
+                    Intent and a Decision Card are required before an in-platform message is sent.
+                  </p>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* ── CTA ── */}
-          <div className="pb-6">
-            <Button
-              className="w-full bg-ts-orange hover:bg-ts-orange/90 text-white font-semibold h-12 text-base"
-              onClick={() => {
-                if (stoneInquiry.isRetail) {
-                  stoneInquiry.prepare("availability");
-                  return;
-                }
-                if (isProfileLinked) {
-                  navigate(listing.publicProfilePath || `/profile/${listing.seller.id}`);
-                  return;
-                }
-                if (!isAuthenticated) {
-                  const returnTo = `/exchange/${encodeURIComponent(category || "other")}/${encodeURIComponent(listing.id)}`;
-                  navigate(`/pre-scout-setup?mode=signin&next=${encodeURIComponent(returnTo)}`);
-                  return;
-                }
-                setDecisionOpen(true);
-              }}
-            >
-              <ShieldCheck className="h-5 w-5 mr-2" />
-              {stoneInquiry.isRetail
-                ? "Ask TradeScout about this stone"
-                : isProfileOffer
-                ? "Review Purchase on Profile"
-                : isProfileCatalog
-                  ? listing.specifications?.catalogKind === "inventory_item"
-                    ? "Open Item & Request"
-                    : "Open Catalog & Request"
-                  : "Review Protected Connection"}
-            </Button>
-            {isProfileOffer ? (
-              <p className="mt-2 text-center text-[11px] text-white/50">
-                Purchase, receipt, shipping, and accounting steps stay in review before anything is
-                posted or fulfilled.
-              </p>
-            ) : isProfileCatalog ? (
-              <p className="mt-2 text-center text-[11px] text-white/50">
-                The maintained profile owns the material detail. Availability, project fit, and
-                pricing are confirmed through TradeScout before contact opens.
-              </p>
-            ) : (
-              <p className="mt-2 text-center text-[11px] text-white/50">
-                Intent and a Decision Card are required before an in-platform message is sent.
-              </p>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* ── Intent and Decision Card gate ── */}
-      <Dialog open={decisionOpen} onOpenChange={(open) => {
-        if (sendInquiryMutation.isPending) return;
-        if (!open && stoneInquiry.isRetail) stoneInquiry.finish();
-        else setDecisionOpen(open);
-      }}>
+      <Dialog
+        open={decisionOpen}
+        onOpenChange={(open) => {
+          if (sendInquiryMutation.isPending) return;
+          if (!open && stoneInquiry.isRetail) stoneInquiry.finish();
+          else setDecisionOpen(open);
+        }}
+      >
         <DialogContent className="bg-tsCard border-white/10 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">{stoneInquiry.isRetail ? "Review your stone request" : "Exchange Decision Card"}</DialogTitle>
+            <DialogTitle className="text-white">
+              {stoneInquiry.isRetail ? "Review your stone request" : "Exchange Decision Card"}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Review your message before sending it through TradeScout.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="rounded-lg border border-ts-orange/30 bg-ts-orange/10 p-3 text-sm text-white/75">
@@ -927,7 +1087,9 @@ export default function ExchangeListingDetail() {
             </div>
             <div>
               <Label className="text-white/70 text-xs mb-1.5 block">
-                {stoneInquiry.isRetail && stoneInquiry.intent === "callback" ? "Callback request" : "What do you need to know?"}
+                {stoneInquiry.isRetail && stoneInquiry.intent === "callback"
+                  ? "Callback request"
+                  : "What do you need to know?"}
               </Label>
               <Textarea
                 placeholder={`Hi, I'm interested in your ${listing.title}. Is it still available?`}
@@ -937,32 +1099,44 @@ export default function ExchangeListingDetail() {
                 className="bg-white/5 border-white/10 text-white placeholder:text-white/30 resize-none min-h-[100px]"
               />
             </div>
-            {!stoneInquiry.isRetail && <div>
-              <Label className="text-white/70 text-xs mb-1.5 block">
-                Proposed amount (optional)
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
-                  $
-                </span>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={inquiryOffer}
-                  onChange={(e) => setInquiryOffer(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white placeholder:text-white/30 pl-7"
-                />
+            {!stoneInquiry.isRetail && (
+              <div>
+                <Label className="text-white/70 text-xs mb-1.5 block">
+                  Proposed amount (optional)
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
+                    $
+                  </span>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={inquiryOffer}
+                    onChange={(e) => setInquiryOffer(e.target.value)}
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30 pl-7"
+                  />
+                </div>
               </div>
-            </div>}
-            {stoneInquiry.warning && <p role="alert" className="text-sm text-amber-200">{stoneInquiry.warning}</p>}
-            {stoneInquiry.isRetail && !isAuthenticated && <p className="text-sm text-white/60">Sign in to send your request. Your message will return with you.</p>}
+            )}
+            {stoneInquiry.warning && (
+              <p role="alert" className="text-sm text-amber-200">
+                {stoneInquiry.warning}
+              </p>
+            )}
+            {stoneInquiry.isRetail && !isAuthenticated && (
+              <p className="text-sm text-white/60">
+                Sign in to send your request. Your message will return with you.
+              </p>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button
               variant="ghost"
               className="text-white/60"
               disabled={sendInquiryMutation.isPending}
-              onClick={() => stoneInquiry.isRetail ? stoneInquiry.finish() : setDecisionOpen(false)}
+              onClick={() =>
+                stoneInquiry.isRetail ? stoneInquiry.finish() : setDecisionOpen(false)
+              }
             >
               Cancel
             </Button>
@@ -971,7 +1145,11 @@ export default function ExchangeListingDetail() {
               disabled={!inquiryMessage.trim() || sendInquiryMutation.isPending}
               onClick={submitInquiry}
             >
-              {sendInquiryMutation.isPending ? "Sending request…" : stoneInquiry.isRetail && !isAuthenticated ? "Sign in to send" : "Confirm & Send"}
+              {sendInquiryMutation.isPending
+                ? "Sending request…"
+                : stoneInquiry.isRetail && !isAuthenticated
+                  ? "Sign in to send"
+                  : "Confirm & Send"}
             </Button>
           </DialogFooter>
         </DialogContent>

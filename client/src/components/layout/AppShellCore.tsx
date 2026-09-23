@@ -50,7 +50,7 @@ import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation"
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import { isRecommendationActionPath } from "@shared/recommendationContinuation";
-import { isStoneInquiryPath } from "@shared/exchangeStoneBuyerFlow";
+import { isStoneInquiryPath, stoneListingPath } from "@shared/exchangeStoneBuyerFlow";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 
 export type NavItem = {
@@ -120,7 +120,7 @@ const START_GUIDE_ITEMS: NavItem[] = [
   },
 ];
 
-function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null {
+export function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null {
   if (pathname.startsWith("/admin")) {
     return {
       title: "Admin controls",
@@ -203,6 +203,9 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
     };
   }
   if (pathname.startsWith("/exchange")) {
+    const detailPath = pathname.split("?")[0];
+    const stoneId = /^\/exchange\/building-materials\/([^/]+)$/.exec(detailPath)?.[1];
+    if (stoneId && stoneListingPath(stoneId) === detailPath) return null;
     return {
       title: "Exchange",
       summary: "Buy and sell listings. Switch scope to near me, state, or nationwide.",
