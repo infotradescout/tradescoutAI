@@ -790,8 +790,7 @@ export default function Exchange() {
 
     const matches = items.filter((item) => !savedOnly || favoriteListingIds.has(String(item.id)));
 
-    const shippingReady = (item: ExchangeItem) =>
-      item.isLocalPickupOnly !== true || Number.isFinite(Number(item.shippingCost));
+    const shippingReady = (item: ExchangeItem) => item.willShip === true;
 
     const isStateMatch = (item: ExchangeItem) =>
       Boolean(
