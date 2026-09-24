@@ -166,6 +166,12 @@ describe("Businesses discovery states", () => {
     expect(window.location.pathname).toBe("/contractors");
     expect(container.querySelector('[data-testid="businesses-draft-handoff-error"]')).not.toBeNull();
     expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
+
+    await searchFor("roofing");
+    await waitFor(() =>
+      Boolean(container.querySelector('[data-testid="businesses-no-results"]'))
+    );
+    expect(container.querySelector('[data-testid="businesses-draft-handoff-error"]')).toBeNull();
   });
 
   it("waits for public directory listings before declaring the county empty", async () => {

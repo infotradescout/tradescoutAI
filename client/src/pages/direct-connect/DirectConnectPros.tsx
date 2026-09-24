@@ -733,12 +733,14 @@ export default function DirectConnectPros() {
   ]);
 
   const handleStateChange = (value: string) => {
+    setDraftHandoffFailed(false);
     setStateCode(value);
     setCountyFips("");
     setSelectedProviderId("");
   };
 
   const handleCountyChange = (value: string) => {
+    setDraftHandoffFailed(false);
     if (!value) {
       setCountyFips("");
       setSelectedProviderId("");
@@ -766,11 +768,13 @@ export default function DirectConnectPros() {
   };
 
   const handleTradeChange = (value: string) => {
+    setDraftHandoffFailed(false);
     setTradeSlug(value);
     setSelectedProviderId("");
   };
 
   const handleSearchChange = (value: string) => {
+    setDraftHandoffFailed(false);
     setSearchQuery(value);
     setSelectedProviderId("");
   };
@@ -788,6 +792,7 @@ export default function DirectConnectPros() {
   };
 
   const handleClearWorkspace = () => {
+    setDraftHandoffFailed(false);
     if (typeof window !== "undefined") {
       let storage: Storage | null = null;
       try {
@@ -1030,8 +1035,8 @@ export default function DirectConnectPros() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setTradeSlug("");
-                    setSearchQuery("");
+                    handleTradeChange("");
+                    handleSearchChange("");
                   }}
                 >
                   Clear filters
