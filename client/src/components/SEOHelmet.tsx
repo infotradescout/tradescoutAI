@@ -13,6 +13,10 @@ interface SEOHelmetProps {
   ogImage?: string;
   structuredData?: Record<string, any>;
   noIndex?: boolean;
+  /** An audience-gated public page can allow link following without search indexing. */
+  robots?: "index, follow" | "noindex, follow" | "noindex, nofollow";
+  /** Do not point an audience-gated page at a canonical URL that cannot be opened. */
+  omitCanonical?: boolean;
   /** Keep a deliberately shareable query (for example ?stone=...) in canonical/OG URLs. */
   preserveCanonicalQuery?: boolean;
 }
@@ -27,6 +31,8 @@ export function SEOHelmet({
   ogImage = "/tradescout-social-preview.png?v=12",
   structuredData,
   noIndex = false,
+  robots,
+  omitCanonical = false,
   preserveCanonicalQuery = false,
 }: SEOHelmetProps) {
   const [location] = useLocation();
@@ -50,7 +56,7 @@ export function SEOHelmet({
     // Update meta tags
     updateMetaTag("description", description);
     updateMetaTag("keywords", keywords);
-    updateMetaTag("robots", noIndex ? "noindex, nofollow" : "index, follow");
+    updateMetaTag("robots", robots || (noIndex ? "noindex, nofollow" : "index, follow"));
 
     // Open Graph
     updateMetaTag("og:title", formattedSocialTitle, "property");
@@ -80,7 +86,11 @@ export function SEOHelmet({
     updateMetaTag("apple-mobile-web-app-title", TRADESCOUT_BRAND_NAME, "name");
 
     // Canonical link
-    updateCanonicalLink(finalCanonical);
+    if (omitCanonical) {
+      document.querySelectorAll('link[rel="canonical"]').forEach((link) => link.remove());
+    } else {
+      updateCanonicalLink(finalCanonical);
+    }
 
     // Structured data
     if (structuredData) {
@@ -108,6 +118,8 @@ export function SEOHelmet({
     ogImageUrl,
     structuredData,
     noIndex,
+    robots,
+    omitCanonical,
     preserveCanonicalQuery,
   ]);
 

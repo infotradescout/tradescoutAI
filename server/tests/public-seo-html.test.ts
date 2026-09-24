@@ -207,8 +207,12 @@ describe("public SEO response HTML", () => {
       expect(html).toContain('href="/county/la/tangipahoa-parish/recent"');
       expect(html).not.toContain('href="/county/la/tangipahoa/recent"');
       expect(anchors).toContainEqual({
-        href: "/direct-connect?county=22105&source=tangipahoa-launch",
+        href: "/direct-connect?source=public_discovery",
         text: "Start a Request",
+      });
+      expect(anchors).toContainEqual({
+        href: "/direct-connect?county=22105&source=tangipahoa-launch",
+        text: "Start a Tangipahoa request",
       });
       expect(html).not.toMatch(/href="(?:tel:|mailto:)/);
     }

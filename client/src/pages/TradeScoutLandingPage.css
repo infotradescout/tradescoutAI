@@ -204,6 +204,17 @@
   color: var(--ts-text);
 }
 
+.ts-button-tertiary {
+  color: var(--ts-text);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 116, 23, 0.7);
+  text-underline-offset: 5px;
+}
+
+.ts-button-tertiary:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .ts-chapter-nav {
   position: sticky;
   top: 0;
@@ -846,27 +857,29 @@
 
   .ts-hero {
     min-height: auto;
-    padding: 70px 0 76px;
+    padding: 42px 0 56px;
   }
 
   .ts-hero h1 {
-    font-size: clamp(44px, 14vw, 60px);
+    font-size: clamp(42px, 13vw, 56px);
     line-height: 0.9;
   }
 
   .ts-hero-declaration {
-    margin-top: 28px;
-    font-size: 24px;
+    margin-top: 20px;
+    font-size: 22px;
   }
 
   .ts-hero-subheadline {
-    font-size: 16px;
-    line-height: 1.55;
+    margin-top: 14px;
+    font-size: 15px;
+    line-height: 1.5;
   }
 
   .ts-hero-actions {
     width: 100%;
     flex-direction: column;
+    margin-top: 24px;
   }
 
   .ts-button {

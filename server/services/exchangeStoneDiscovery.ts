@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { stonePriceLabel, stoneSlabMaterialPriceRange } from "../../shared/exchangeStoneBuyerFlow";
+import { stoneListingPath, stonePriceLabel, stoneSlabMaterialPriceRange } from "../../shared/exchangeStoneBuyerFlow";
 
 export const STONE_CHANNEL = "tradescout_stone_retail";
 export const STONE_AUDIENCE = "US_EXCEPT_PENSACOLA_FL_CITY";
@@ -9,7 +9,7 @@ const names = "Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|D
 const stateNames = new Map(names.map((name, index) => [name.toUpperCase(), STONE_STATES[index]]));
 export type StoneMarket = { city?: unknown; state?: unknown; country?: unknown };
 export type StoneAudience = { allowed: boolean; reason: "eligible" | "pensacola" | "outside_us" | "location_required"; market: { city: string; state: string; country: string } };
-export type StonePublicItem = { id: string; sellerId: string; categoryId: string; category: string; title: string; description: string; price: number; images: string[]; specifications: Record<string, unknown>; createdAt: string | null; [key: string]: unknown };
+export type StonePublicItem = { id: string; sellerId: string; categoryId: string; category: string; title: string; description: string; price: number; images: string[]; specifications: Record<string, unknown>; createdAt: string | null; publicDetailPath?: string; [key: string]: unknown };
 export type StoneDiscoveryContext = { audience: StoneAudience; items: StonePublicItem[]; query: Record<string, unknown>; feed: boolean; publicationReady: boolean; unavailable?: boolean };
 const contexts = new AsyncLocalStorage<StoneDiscoveryContext>();
 const scalar = (value: unknown) => typeof value === "string" ? value.normalize("NFKC").trim().replace(/\s+/g, " ") : "";
@@ -32,12 +32,28 @@ export function resolveStoneAudience(viewer?: StoneMarket, selected?: StoneMarke
   if (known.reason === "pensacola" || known.reason === "outside_us") return known;
   return selected ? stoneAudience(selected) : remembered ? stoneAudience(remembered) : known;
 }
+
+/** Public links use only a validated market, never arbitrary request query or attribution tags. */
+export function audienceQualifiedStonePath(path: string, market?: StoneMarket | null): string | null {
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("?") || path.includes("#")) return null;
+  const audience = stoneAudience(market);
+  if (!audience.allowed) return null;
+  const params = new URLSearchParams();
+  params.set("audienceState", audience.market.state);
+  if (audience.market.state === "FL") params.set("audienceCity", audience.market.city);
+  params.set("audienceCountry", "US");
+  return `${path}?${params.toString()}`;
+}
 export function withStoneDiscovery<T>(context: StoneDiscoveryContext, callback: () => T): T { return contexts.run(context, callback); }
 export function stoneDiscoveryContext(): StoneDiscoveryContext | undefined { return contexts.getStore(); }
 export function isStoneDiscoveryRow(value: any): boolean { return String(value?.id || "").startsWith("tradescout-stone-") || value?.specifications?.commerceChannel === STONE_CHANNEL; }
 export function currentPublicStone(id: unknown): StonePublicItem | null {
   const context = contexts.getStore();
-  return context?.audience.allowed ? context.items.find(item => item.id === id) || null : null;
+  if (!context?.audience.allowed) return null;
+  const item = context.items.find(item => item.id === id);
+  const path = item ? stoneListingPath(item.id) : null;
+  const publicDetailPath = path ? audienceQualifiedStonePath(path, context.audience.market) : null;
+  return item && publicDetailPath ? { ...item, publicDetailPath } : null;
 }
 
 function iso(value: unknown): string | null {

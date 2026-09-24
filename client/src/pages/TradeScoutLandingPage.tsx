@@ -274,6 +274,9 @@ export default function TradeScoutLandingPage() {
     `/direct-connect?source=${LANDING_PRIMARY_REQUEST_SOURCE}`
   );
   const scoutHref = withDemandQueryParams("/scout?source=landing_scout");
+  const businessBrowseHref = withDemandQueryParams(
+    "/find-local-businesses?source=landing_business_discovery"
+  );
   const claimHref = withDemandQueryParams("/claim-my-business?source=landing_business");
 
   const trackClick = (cta: string, target: string) => {
@@ -307,9 +310,9 @@ export default function TradeScoutLandingPage() {
           <h1 id="ts-hero-title">Connection Without Compromise.</h1>
           <p className="ts-hero-declaration">Local recommendations should lead somewhere.</p>
           <p className="ts-hero-subheadline">
-            Recommendations drive TradeScout. Local experience helps a requester choose, send one
-            protected request, connect only after both sides agree, and record the outcome for the
-            next requester—without selling the lead, ranking, trust, or contact information.
+            Use local recommendations to compare businesses, send one protected request, and
+            connect only when both sides agree. TradeScout does not sell leads, ranking, trust, or
+            contact information.
           </p>
           <div className="ts-hero-actions" aria-label="Primary actions">
             <a
@@ -318,6 +321,13 @@ export default function TradeScoutLandingPage() {
               onClick={() => trackClick("make_a_request", "/direct-connect")}
             >
               Make A Request
+            </a>
+            <a
+              className="ts-button ts-button-tertiary"
+              href={businessBrowseHref}
+              onClick={() => trackClick("browse_local_businesses", "/find-local-businesses")}
+            >
+              Browse local businesses ↗
             </a>
             <a
               className="ts-button ts-button-secondary"

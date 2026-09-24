@@ -9,7 +9,7 @@ import React, { useState, useRef } from "react";
 import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing, STONE_DRAFT_MAX_MESSAGE } from "@shared/exchangeStoneInquiryDraft";
 import { useExchangeStoneInquiry } from "@/hooks/useExchangeStoneInquiry";
-import { useParams } from "wouter";
+import { useParams, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { share } from "@/utils/share";
 import { CATEGORY_CONFIGS } from "./categoryConfigs";
+import { audienceQualifiedStoneMedia, isPublicStoneId, selectedStoneAudienceSearch, verifiedStoneDetailPath } from "./stonePublicUrls";
 import { SELL_CATEGORY_FIELDS } from "@shared/exchangeListingRules";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ type ListingDetail = {
   sourceType?: string;
   profileOfferId?: string;
   publicProfilePath?: string;
+  publicDetailPath?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -170,7 +172,17 @@ function TitleStatusBadge({ status }: { status: string }) {
 export default function ExchangeListingDetail() {
   const { category, listingId } = useParams<{ category: string; listingId: string }>();
   const [, navigate] = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const isPublicStone = isPublicStoneId(listingId);
+  // Wouter's location hook tracks pathname; search changes need their own subscription.
+  const routeSearch = useSearch();
+  const selectedMarketSearch = isPublicStone ? selectedStoneAudienceSearch(routeSearch) : null;
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const stoneViewerKey = isPublicStone ? [
+    authLoading ? "auth-pending" : isAuthenticated ? String(user?.id || "authenticated") : "guest",
+    isAuthenticated ? String(user?.city || "") : "",
+    isAuthenticated ? String(user?.stateCode || user?.state_code || user?.state || "") : "",
+    isAuthenticated ? String(user?.countryCode || user?.country_code || user?.country || "") : "",
+  ] : null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -185,11 +197,19 @@ export default function ExchangeListingDetail() {
     isLoading,
     isError,
   } = useQuery<ListingDetail>({
-    queryKey: ["/api/marketplace/listings", listingId],
+    queryKey: isPublicStone
+      ? ["/api/marketplace/listings", listingId, selectedMarketSearch ?? routeSearch, stoneViewerKey]
+      : ["/api/marketplace/listings", listingId, ""],
     queryFn: async () => {
-      const res = await fetch(`/api/marketplace/listings/${encodeURIComponent(listingId ?? "")}`);
+      if (isPublicStone && authLoading) throw new Error("Viewer location is still loading");
+      if (isPublicStone && !selectedMarketSearch) throw new Error("Select a stone market first");
+      const res = await fetch(`/api/marketplace/listings/${encodeURIComponent(listingId ?? "")}${isPublicStone ? selectedMarketSearch : ""}`);
       if (!res.ok) throw new Error("Listing not found");
       const raw = await res.json();
+      const publicDetailPath = isPublicStone ? verifiedStoneDetailPath(raw.publicDetailPath, listingId!) : null;
+      if (isPublicStone && publicDetailPath !== `/exchange/building-materials/${encodeURIComponent(listingId!)}${selectedMarketSearch}`) {
+        throw new Error("Stone listing is not available in the selected area");
+      }
       // Normalise the API shape to match our type
       return {
         id: String(raw.id),
@@ -231,9 +251,11 @@ export default function ExchangeListingDetail() {
         sourceType: raw.sourceType ?? raw.specifications?.source ?? undefined,
         profileOfferId: raw.profileOfferId ?? raw.specifications?.profileOfferId ?? undefined,
         publicProfilePath: raw.publicProfilePath ?? undefined,
+        publicDetailPath: publicDetailPath ?? undefined,
       } as ListingDetail;
     },
-    enabled: Boolean(listingId),
+    enabled: Boolean(listingId) && (!isPublicStone || (selectedMarketSearch !== null && !authLoading)),
+    retry: isPublicStone ? false : undefined,
   });
 
   const stoneInquiry = useExchangeStoneInquiry({
@@ -386,7 +408,19 @@ export default function ExchangeListingDetail() {
   }
 
   // ── Photo nav ──────────────────────────────────────────────────────────────
-  const photos = listing?.images ?? [];
+  const candidateRetailPath = stoneInquiry.isRetail && listing && selectedMarketSearch
+    ? verifiedStoneDetailPath(listing.publicDetailPath, listing.id)
+    : null;
+  const retailPublicPath = candidateRetailPath === `/exchange/building-materials/${encodeURIComponent(listing?.id ?? "")}${selectedMarketSearch}`
+    ? candidateRetailPath
+    : null;
+  const photos = (listing?.images ?? []).flatMap((photo) => {
+    if (!stoneInquiry.isRetail || !photo.startsWith("/api/exchange/stone-media/")) return [photo];
+    const qualified = listing && retailPublicPath
+      ? audienceQualifiedStoneMedia(photo, retailPublicPath, listing.id)
+      : null;
+    return qualified ? [qualified] : [];
+  });
   const prevPhoto = () => setPhotoIndex((i) => (i === 0 ? photos.length - 1 : i - 1));
   const nextPhoto = () => setPhotoIndex((i) => (i === photos.length - 1 ? 0 : i + 1));
 
@@ -442,7 +476,7 @@ export default function ExchangeListingDetail() {
   const listingType: string = listing?.listingType ?? listing?.specifications?.listingType ?? "";
 
   // ── Loading / error states ─────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading || (isPublicStone && authLoading)) {
     return (
       <div className="min-h-full flex items-center justify-center">
         <div className="animate-pulse text-white/40 text-sm">Loading listing…</div>
@@ -454,7 +488,9 @@ export default function ExchangeListingDetail() {
     return (
       <div className="min-h-full flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-white/60 text-sm">
-          This listing could not be found or has been removed.
+          {isPublicStone
+            ? "This stone is unavailable in the selected area or can no longer be found."
+            : "This listing could not be found or has been removed."}
         </p>
         <Button
           variant="ghost"
@@ -497,18 +533,38 @@ export default function ExchangeListingDetail() {
           .split(",")
           .map((size: string) => `${size.trim().replace(/\s*[x×]\s*/i, " × ")} in`)
       : [];
+  const retailShareTitle = stoneInquiry.isRetail
+    ? stoneSlabPrice?.kind === "size_required"
+      ? `Slab price TBD — ${retailTitle}`
+      : stoneSlabPrice
+        ? `${stoneSlabPrice.primaryPrice} ${stoneSlabPrice.kind === "estimated" ? "estimated " : ""}full slab — ${retailTitle}`
+        : `Confirm slab material price — ${retailTitle}`
+    : `${retailTitle} — TradeScout Exchange`;
+  const retailDescription = stoneSlabPrice?.kind === "size_required"
+    ? `Slab price TBD. Published material rate ${stoneSlabPrice.primaryPrice}. Ask TradeScout to confirm the selected slab and delivery.`
+    : stoneSlabPrice
+      ? `${stoneSlabPrice.primaryLabel}: ${stoneSlabPrice.primaryPrice}.${stoneSlabPrice.secondaryPrice ? ` Material rate ${stoneSlabPrice.secondaryPrice}.` : ""} Ask TradeScout to confirm the selected slab and delivery.`
+      : `Ask TradeScout to confirm the slab material price and delivery.`;
+  const retailImage = photos[0];
 
   return (
     <>
       <SEOHelmet
-        title={`${retailTitle} — TradeScout Exchange`}
+        title={retailShareTitle}
         description={
           stoneInquiry.isRetail
-            ? `${retailTitle} stone material. Review the recorded slab sizes and material price, then ask TradeScout to confirm the selected slab and delivery.`
+            ? retailDescription
             : listing.description.slice(0, 160)
         }
-        canonical={`/exchange/${resolvedCategory}/${listing.id}`}
-        ogImage={photos[0]}
+        canonical={stoneInquiry.isRetail
+          ? new URL(retailPublicPath || "/exchange/stone", window.location.origin).toString()
+          : `/exchange/${resolvedCategory}/${listing.id}`}
+        preserveCanonicalQuery={stoneInquiry.isRetail}
+        robots={stoneInquiry.isRetail ? "noindex, follow" : undefined}
+        omitCanonical={stoneInquiry.isRetail}
+        ogImage={stoneInquiry.isRetail && retailImage
+          ? new URL(retailImage, window.location.origin).toString()
+          : retailImage}
         keywords={[categoryConfig?.name ?? "", listing.brand ?? "", listing.condition]
           .filter(Boolean)
           .join(", ")}
@@ -550,13 +606,16 @@ export default function ExchangeListingDetail() {
               variant="ghost"
               aria-label="Share listing"
               className="h-11 w-11 p-0 text-white/50 hover:text-white"
+              disabled={stoneInquiry.isRetail && !retailPublicPath}
               onClick={() =>
                 share({
-                  title: listing.title,
-                  text: isProfileCatalog
+                  title: stoneInquiry.isRetail ? retailShareTitle : listing.title,
+                  text: stoneInquiry.isRetail
+                    ? retailDescription
+                    : isProfileCatalog
                     ? `${listing.title} — catalog inquiry through TradeScout`
                     : `${listing.title} — ${displayedPrice}`,
-                  url: `${window.location.origin}/exchange/${resolvedCategory}/${listing.id}`,
+                  url: `${window.location.origin}${retailPublicPath || `/exchange/${resolvedCategory}/${listing.id}`}`,
                 })
               }
             >

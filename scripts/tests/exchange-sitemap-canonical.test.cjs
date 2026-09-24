@@ -100,6 +100,21 @@ test('profile-offer canonical categories and unknown fallback remain aligned', a
   assert.deepEqual(entries.map((entry) => entry.loc), ['real-estate', 'tools', 'other'].map((slug, index) => `https://www.thetradescout.com/exchange/${slug}/profile-offer-offer-${index}`));
 });
 
+test('audience-gated retail stones never publish bare 404 detail URLs', async () => {
+  const { entries, read } = await render({
+    listings: [
+      row('Building Materials', 'tradescout-stone-aj-quartz', 'stone-owner'),
+      row('Tools & Hardware', 'ordinary-tool', 'public-owner'),
+    ],
+    offers: [{ id: 'offer-1', seller_user_id: 'offer-owner', category_slug: 'tools', updated_at: null }],
+  });
+  assert.deepEqual(entries.map((entry) => entry.loc), [
+    'https://www.thetradescout.com/exchange/tools/ordinary-tool',
+    'https://www.thetradescout.com/exchange/tools/profile-offer-offer-1',
+  ]);
+  assert.deepEqual(read.sellers, ['public-owner', 'offer-owner']);
+});
+
 test('missing labels use other, blank ids are omitted, and ids remain encoded', async () => {
   const { entries } = await render({ listings: [row(undefined, 'a/b ?'), row('', 'blank-label'), row('tools', '  ')] });
   assert.deepEqual(entries.map((entry) => entry.loc), ['https://www.thetradescout.com/exchange/other/a%2Fb%20%3F', 'https://www.thetradescout.com/exchange/other/blank-label']);

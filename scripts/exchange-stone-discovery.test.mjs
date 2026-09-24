@@ -116,6 +116,9 @@ test('direct projection defaults closed outside a resolved eligible request', ()
   assert.equal(policy.withStoneDiscovery(context({ state: 'FL', city: 'Pensacola' }), () => projection.toPublicExchangeListing(row())), null);
   const output = policy.withStoneDiscovery(context(), () => projection.toPublicExchangeListing({ ...row(), supplierCost: 18 }));
   assert.equal(output.businessName, 'TradeScout'); assert.equal('supplierCost' in output, false);
+  assert.equal(output.publicDetailPath, `/exchange/building-materials/${row().id}?audienceState=TX&audienceCountry=US`);
+  const florida = policy.withStoneDiscovery(context({ state: 'FL', city: 'Tampa' }), () => projection.toPublicExchangeListing(row()));
+  assert.equal(florida.publicDetailPath, `/exchange/building-materials/${row().id}?audienceState=FL&audienceCity=Tampa&audienceCountry=US`);
   assert.equal(projection.toPublicExchangeListing(native).id, native.id);
 });
 test('concurrent request scopes never share eligible or excluded retail data', async () => {
@@ -207,7 +210,9 @@ test('mounted landing is public to eligible anonymous buyers and carries stone-s
   assert.equal(res.statusCode, 200); assert.match(res.body, /Matrix Basalt/); assert.match(res.body, /\$27\.75 \/ sq ft/);
   assert.match(res.body, /inquiry=availability/); assert.match(res.body, /inquiry=callback/); assert.equal(req.session.exchangeStoneMarket.state, 'TX');
   assert.match(res.body, /stone-media\/tradescout-stone-matrix-basalt\?audienceState=TX/);
-  assert.equal(res.headers['x-robots-tag'], 'index, follow');
+  assert.equal(res.headers['x-robots-tag'], 'noindex, follow');
+  assert.doesNotMatch(res.body, /<link rel="canonical"/);
+  assert.match(res.body, /tradescout-stone-matrix-basalt\?audienceState=TX&amp;audienceCountry=US/);
 });
 test('Pensacola landing reveals no product in HTML, image links or structured data', async () => {
   const { res } = await request('/exchange/stone', { query: { audienceState: 'FL', audienceCity: 'Pensacola' } });
