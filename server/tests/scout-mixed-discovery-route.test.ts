@@ -1,6 +1,6 @@
 import express from "express";
 import request from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { resolveKnowledgeMock, getOnboardingSessionMock, governMock } = vi.hoisted(() => ({
   resolveKnowledgeMock: vi.fn(),
@@ -26,6 +26,7 @@ vi.mock("../services/llmProvider", async (importOriginal) => ({
 }));
 
 import scoutRouter from "../routes/scout";
+import { storage } from "../storage";
 
 const screenshotPrompt =
   "Search TradeScout and my area for posts & deals in my county. Look in Site, Near me, Latest, assume I care about this week, and keep it simple. Include matching pages, tools, local results, posts, requests, and anything nearby that may help. Show the best matches, why they matter, and what I can safely do next before I contact anyone.";
@@ -37,6 +38,8 @@ app.use("/api/scout", scoutRouter);
 describe("Scout mixed county discovery route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(storage, "getCommunityPosts").mockResolvedValue([]);
+    vi.spyOn(storage, "listPromotions").mockResolvedValue([]);
     getOnboardingSessionMock.mockResolvedValue(undefined);
     governMock.mockResolvedValue({
       intervention: { action: "COMPLY", role: "guide", reasoning: "Read-only local discovery" },
@@ -47,25 +50,24 @@ describe("Scout mixed county discovery route", () => {
     });
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("answers the screenshot prompt with a complete client contract and only a verified post card", async () => {
-    resolveKnowledgeMock.mockResolvedValue({
-      answer: "Synthetic county post data",
-      sources: ["TradeScout Database (community_posts)"],
-      layer: 2,
-      confidence: "high",
-      meta: {
-        communityPosts: {
-          count: 1,
-          items: [
-            {
-              id: "post_123",
-              title: "Neighborhood tool swap",
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        },
+    vi.mocked(storage.getCommunityPosts).mockResolvedValue([
+      {
+        id: "post_123",
+        title: "Neighborhood tool swap",
+        content: "A neighbor is sharing tools",
+        createdAt: new Date(),
+        isPublished: true,
+        isHidden: false,
+        scope: "county",
+        countyFips: "04013",
+        hasWorkRequest: true,
       },
-    });
+    ] as any);
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
@@ -76,10 +78,13 @@ describe("Scout mixed county discovery route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(resolveKnowledgeMock).toHaveBeenCalledWith(
-      expect.objectContaining({ countyCode: "Maricopa County, AZ", countyFips: "04013" }),
-      null
-    );
+    expect(storage.getCommunityPosts).toHaveBeenCalledWith({
+      scope: "county",
+      countyFips: "04013",
+      sort: "recent",
+      limit: 10,
+    });
+    expect(resolveKnowledgeMock).not.toHaveBeenCalled();
     expect(response.body).toMatchObject({
       contract_version: "scout_result.v1",
       message: expect.any(String),
@@ -97,12 +102,10 @@ describe("Scout mixed county discovery route", () => {
       evidence: expect.any(Array),
       allowed_actions: expect.any(Array),
       working_memory_update: expect.any(Object),
-      metadata: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: { sourceUsed: "scout_mixed_discovery_recovery", postCheck: "checked" },
     });
     expect(response.body.answer).toContain("This Scout result includes");
-    expect(response.body.answer).toContain(
-      "It does not verify deals, businesses, pages, tools, or other requests"
-    );
+    expect(response.body.answer).toContain("no eligible TradeDeals were returned");
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -121,17 +124,13 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.entities.map((entity: { type: string }) => entity.type)).toEqual([
       "community_post",
     ]);
+    expect(response.body.entities[0].match_reasons).toContain(
+      "Published county post linked to a request"
+    );
+    expect(JSON.stringify(response.body.entities[0])).not.toContain("workRequestId");
   });
 
-  it("keeps empty limited discovery truthful and action-ready", async () => {
-    resolveKnowledgeMock.mockResolvedValue({
-      answer: "",
-      sources: [],
-      layer: 4,
-      confidence: "low",
-      meta: {},
-    });
-
+  it("offers a broader user-controlled next step when both county sources are checked-empty", async () => {
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
       countyCode: "Maricopa County, AZ",
@@ -143,39 +142,73 @@ describe("Scout mixed county discovery route", () => {
     expect(response.status).toBe(200);
     expect(response.body.contract_version).toBe("scout_result.v1");
     expect(response.body.entities).toEqual([]);
-    expect(response.body.answer).toContain("does not verify a county post");
-    expect(response.body.answer).not.toMatch(/I checked|Scout check found/i);
-    expect(response.body.answer).not.toMatch(
-      /no (posts|deals|businesses)|0 (posts|deals|businesses)/i
-    );
+    expect(response.body.metadata).toMatchObject({ postCheck: "checked", dealCheck: "checked" });
+    expect(response.body.answer).toContain("published county posts from the last 7 days");
+    expect(response.body.answer).toContain("none were returned");
+    expect(response.body.answer).toContain("no eligible TradeDeals were returned");
+    expect(response.body.answer).toContain("Other deal sources were not checked");
     expect(response.body.allowed_actions.length).toBeGreaterThan(0);
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          target: "/community-feed?geo=local&feed=recent",
+          label: "Browse recent Community beyond my county",
+          target: "/community-feed?geo=global&feed=recent",
           primary: true,
         }),
+        expect.objectContaining({ label: "Change my area", target: "/settings" }),
+        expect.objectContaining({ label: "Browse Businesses", target: "/contractors" }),
+      ])
+    );
+    expect(response.body.allowed_actions).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ target: "/community-feed?geo=local&feed=recent", primary: true }),
       ])
     );
   });
 
   it("describes only the county post cards it actually returns", async () => {
-    resolveKnowledgeMock.mockResolvedValue({
-      answer: "Synthetic county posts",
-      sources: ["TradeScout Database (community_posts)"],
-      layer: 2,
-      confidence: "high",
-      meta: {
-        communityPosts: {
-          count: 4,
-          items: Array.from({ length: 4 }, (_, index) => ({
-            id: `post_${index + 1}`,
-            title: `County post ${index + 1}`,
-            createdAt: new Date().toISOString(),
-          })),
-        },
+    vi.mocked(storage.getCommunityPosts).mockResolvedValue([
+      ...Array.from({ length: 4 }, (_, index) => ({
+        id: `post_${index + 1}`,
+        title: `County post ${index + 1}`,
+        content: "Published local post",
+        createdAt: new Date(),
+        isPublished: true,
+        isHidden: false,
+        scope: "county",
+        countyFips: "04013",
+      })),
+      {
+        id: "hidden",
+        title: "Hidden",
+        content: "Private",
+        createdAt: new Date(),
+        isPublished: true,
+        isHidden: true,
+        scope: "county",
+        countyFips: "04013",
       },
-    });
+      {
+        id: "unpublished",
+        title: "Unpublished",
+        content: "Draft",
+        createdAt: new Date(),
+        isPublished: false,
+        isHidden: false,
+        scope: "county",
+        countyFips: "04013",
+      },
+      {
+        id: "other_county",
+        title: "Other county",
+        content: "Elsewhere",
+        createdAt: new Date(),
+        isPublished: true,
+        isHidden: false,
+        scope: "county",
+        countyFips: "06037",
+      },
+    ] as any);
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
@@ -189,5 +222,84 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.entities).toHaveLength(3);
     expect(response.body.answer).toContain("includes 3 published county posts");
     expect(response.body.answer).not.toContain("includes 4 published county posts");
+    expect(JSON.stringify(response.body)).not.toContain("Hidden");
+    expect(JSON.stringify(response.body)).not.toContain("Unpublished");
+    expect(JSON.stringify(response.body)).not.toContain("Other county");
+  });
+
+  it("returns a partial answer with retry when the county post source fails", async () => {
+    vi.mocked(storage.getCommunityPosts).mockRejectedValue(
+      new Error("synthetic post source failure")
+    );
+
+    const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
+      message: screenshotPrompt,
+      countyCode: "Maricopa County, AZ",
+      countyHint: "04013",
+      stateCode: "AZ",
+      history: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.metadata).toMatchObject({ postCheck: "error", dealCheck: "checked" });
+    expect(response.body.knowledge.layer).toBe(2);
+    expect(response.body.entities).toEqual([]);
+    expect(response.body.answer).toContain("County posts could not be checked right now");
+    expect(response.body.answer).not.toContain("none were returned. It checked Scout promotions");
+    expect(response.body.allowed_actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "ASK_SCOUT",
+          label: "Retry local posts and deals",
+          primary: true,
+        }),
+      ])
+    );
+    expect(resolveKnowledgeMock).not.toHaveBeenCalled();
+  });
+
+  it("marks both failed county sources unavailable without pretending a database check succeeded", async () => {
+    vi.mocked(storage.getCommunityPosts).mockRejectedValue(
+      new Error("synthetic post source failure")
+    );
+    vi.mocked(storage.listPromotions).mockRejectedValue(new Error("synthetic deal source failure"));
+
+    const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
+      message: screenshotPrompt,
+      countyCode: "Maricopa County, AZ",
+      countyHint: "04013",
+      stateCode: "AZ",
+      history: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.metadata).toMatchObject({ postCheck: "error", dealCheck: "error" });
+    expect(response.body.knowledge.layer).toBe(0);
+    expect(response.body.knowledge.sources).toEqual([]);
+    expect(response.body.answer).toContain("County posts could not be checked right now");
+    expect(response.body.answer).toContain("Scout promotions could not be checked right now");
+    expect(response.body.entities).toEqual([]);
+    expect(response.body.allowed_actions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: "ASK_SCOUT", primary: true })])
+    );
+  });
+
+  it("does not query either county source before a county is set", async () => {
+    const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
+      message: screenshotPrompt,
+      history: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.metadata).toMatchObject({
+      postCheck: "not_checked",
+      dealCheck: "not_checked",
+    });
+    expect(response.body.knowledge.layer).toBe(0);
+    expect(storage.getCommunityPosts).not.toHaveBeenCalled();
+    expect(storage.listPromotions).not.toHaveBeenCalled();
+    expect(response.body.allowed_actions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ target: "/settings", primary: true })])
+    );
   });
 });

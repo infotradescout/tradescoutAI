@@ -127,6 +127,26 @@ function mixedDiscoverySummary(content: string): string {
     return "Set your county to browse nearby posts. Posts, deals, businesses, pages, tools and requests unchecked. Nothing sent.";
   }
 
+  const checkedEmptyPost =
+    /^Scout checked published county posts from the last 7 days in .+?; none were returned\./i.test(
+      clean
+    );
+  const failedPost = /^County posts could not be checked right now\./i.test(clean);
+  if (checkedEmptyPost || failedPost) {
+    const postStatus = failedPost ? "County posts unavailable" : "No recent county posts returned";
+    const postedDeals = clean.match(/\bIt also found (\d+) posted Scout TradeDeals? for /i);
+    if (postedDeals) {
+      return `${postStatus}; ${postedDeals[1]} promotional TradeDeal${postedDeals[1] === "1" ? "" : "s"}. Offer unverified; confirm when it ends. Other sources unchecked. Nothing sent.`;
+    }
+    if (/It checked Scout promotions for .+?; no eligible TradeDeals were returned/i.test(clean)) {
+      return `${postStatus}; no Scout TradeDeals returned. Other deal sources, businesses, pages, tools and requests unchecked. Nothing sent.`;
+    }
+    if (/Scout promotions could not be checked right now/i.test(clean)) {
+      return `${postStatus}; Scout promotions unavailable. Businesses, pages, tools and requests unchecked. Nothing sent.`;
+    }
+    return `${postStatus}. Deals, businesses, pages, tools and requests unchecked. Nothing sent.`;
+  }
+
   const found = clean.match(
     /^This Scout result includes (\d+) published county (post|posts) from the last 7 days in (.+?)\./i
   );

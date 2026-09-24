@@ -12,6 +12,7 @@ import ScoutThread, {
 import ScoutSearchDock from "./ScoutSearchDock";
 import { ScoutInputRow } from "./ScoutInputRow";
 import { cancelScheduledScoutAutoRoute } from "./ScoutOS";
+import { validateAction } from "./actionValidation";
 import type { ScoutAction, ScoutMessage } from "./state";
 
 function renderThread(
@@ -225,6 +226,27 @@ describe("ScoutThread evidence strip", () => {
 
   it.each([
     {
+      name: "a successful county post and deal check with no recent matches",
+      message:
+        "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned. " +
+        "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked. " +
+        "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
+      visible: [
+        "No recent county posts returned",
+        "no Scout TradeDeals returned",
+        "Other deal sources, businesses, pages, tools and requests unchecked",
+        "Nothing sent",
+      ],
+    },
+    {
+      name: "an unavailable county post source with no posted TradeDeals",
+      message:
+        "County posts could not be checked right now. " +
+        "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked. " +
+        "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
+      visible: ["County posts unavailable", "no Scout TradeDeals returned", "Nothing sent"],
+    },
+    {
       name: "a county post and a posted TradeDeal",
       message:
         "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. " +
@@ -294,6 +316,16 @@ describe("ScoutThread evidence strip", () => {
     for (const phrase of visible) expect(summary).toContain(phrase);
     expect(body?.textContent).toContain("More detail");
     expect(summary).not.toContain("This Scout result");
+  });
+
+  it("accepts the explicit broader Community browse action after a checked-empty county result", () => {
+    expect(
+      validateAction({
+        type: "NAVIGATE",
+        label: "Browse recent Community beyond my county",
+        to: "/community-feed?geo=global&feed=recent",
+      })
+    ).toMatchObject({ to: "/community-feed?geo=global&feed=recent" });
   });
 
   it("keeps the county setup action and nothing-sent truth in the collapsed answer", () => {

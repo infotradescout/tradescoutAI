@@ -3497,20 +3497,46 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       stateCode,
     };
 
-    // Use Gemini as primary, fallback to others if needed for Layer 3 (internet search)
-    const knowledge = await resolveKnowledge(knowledgeRequest, geminiClient);
-
-    const communityPostCount = knowledge.meta?.communityPosts?.count ?? 0;
-    const contractorCount = knowledge.meta?.contractors?.count ?? 0;
-    const communityPostItems: any[] = Array.isArray((knowledge.meta as any)?.communityPosts?.items)
-      ? ((knowledge.meta as any).communityPosts.items as any[])
-      : [];
-
     if (isMixedScoutDiscoveryRequest(message)) {
       const now = new Date();
+      let postCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let communityPostItems: Array<{
+        id: string;
+        title: string | null;
+        content: string;
+        createdAt: Date | null;
+        hasWorkRequest: boolean;
+      }> = [];
       let dealCheck: "not_checked" | "checked" | "error" = "not_checked";
       let scoutDeals: Awaited<ReturnType<typeof storage.listPromotions>> = [];
       if (normalizedFips) {
+        try {
+          const rows = await storage.getCommunityPosts({
+            scope: "county",
+            countyFips: normalizedFips,
+            sort: "recent",
+            limit: 10,
+          });
+          communityPostItems = rows
+            .filter(
+              (row) =>
+                row.isPublished === true &&
+                row.isHidden === false &&
+                row.scope === "county" &&
+                row.countyFips === normalizedFips
+            )
+            .map((row) => ({
+              id: row.id,
+              title: row.title,
+              content: row.content,
+              createdAt: row.createdAt,
+              hasWorkRequest: row.hasWorkRequest === true,
+            }));
+          postCheck = "checked";
+        } catch (error) {
+          console.error("Scout county post lookup unavailable:", error);
+          postCheck = "error";
+        }
         try {
           const rows = await storage.listPromotions({
             status: "active",
@@ -3536,6 +3562,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         countyFips: normalizedFips,
         countyLabel: countyArea.countyLabel,
         communityPosts: communityPostItems,
+        postCheck,
         deals: scoutDeals,
         dealCheck,
         now,
@@ -3550,10 +3577,11 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           intent: "local_discovery_partial",
           sourceUsed: "scout_mixed_discovery_recovery",
           fallbackUsed: true,
+          postCheck,
           dealCheck,
         },
         knowledge: {
-          layer: knowledge.layer,
+          layer: postCheck === "checked" || dealCheck === "checked" ? 2 : 0,
           sources: [
             ...(recovery.entities.some((entity) => entity.type === "community_post")
               ? ["TradeScout Database (community_posts)"]
@@ -3569,6 +3597,15 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         timestamp: new Date().toISOString(),
       });
     }
+
+    // Use Gemini as primary, fallback to others if needed for Layer 3 (internet search)
+    const knowledge = await resolveKnowledge(knowledgeRequest, geminiClient);
+
+    const communityPostCount = knowledge.meta?.communityPosts?.count ?? 0;
+    const contractorCount = knowledge.meta?.contractors?.count ?? 0;
+    const communityPostItems: any[] = Array.isArray((knowledge.meta as any)?.communityPosts?.items)
+      ? ((knowledge.meta as any).communityPosts.items as any[])
+      : [];
 
     // If no LLM providers configured, return a structured offline response so app can be tested
     if (!llmAvailable) {
