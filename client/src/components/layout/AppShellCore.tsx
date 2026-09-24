@@ -427,6 +427,21 @@ export function buildMobileAppTaskbarNav(items: NavItem[]): NavItem[] {
   return [...stablePrimary, ...secondaryApps];
 }
 
+export function isDirectConnectJobDeepLinkPath(path: string): boolean {
+  try {
+    const url = new URL(path, "https://www.thetradescout.com");
+    const isDirectConnectPath =
+      url.pathname === "/direct-connect" ||
+      url.pathname.startsWith("/direct-connect/");
+    return (
+      isDirectConnectPath &&
+      Boolean(url.searchParams.get("jobWorkspaceId")?.trim())
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function AppShell({ children, footer }: AppShellProps) {
   const { user, isAuthenticated } = useAuth();
   const isLoggedIn = !!user;
@@ -451,8 +466,11 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isAdminSurface = location.startsWith("/admin");
   // A captured action already supplies the user's goal. Keep its confirmation
   // screen focused and defer the Start Guide without marking it seen.
-  const isRecommendationSurface = isRecommendationActionPath(getCurrentInternalPath(location));
-  const isStoneInquirySurface = isStoneInquiryPath(getCurrentInternalPath(location));
+  const currentInternalPath = getCurrentInternalPath(location);
+  const isRecommendationSurface = isRecommendationActionPath(currentInternalPath);
+  const isStoneInquirySurface = isStoneInquiryPath(currentInternalPath);
+  const isDirectConnectJobSurface = isDirectConnectJobDeepLinkPath(currentInternalPath);
+  const isFocusedActionSurface = isStoneInquirySurface || isDirectConnectJobSurface;
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface || isRecommendationSurface;
   const role =
     typeof (user as any)?.role === "string"
@@ -653,7 +671,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   }, [location]);
 
   useEffect(() => {
-    if (isStoneInquirySurface || isAuthOrSetupSurface) {
+    if (isFocusedActionSurface || isAuthOrSetupSurface) {
       setIsStartGuideOpen(false);
       return;
     }
@@ -665,7 +683,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     } catch {
       setIsStartGuideOpen(true);
     }
-  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface, isStoneInquirySurface]);
+  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface, isFocusedActionSurface]);
 
   useEffect(() => {
     if (!isStartGuideOpen) return;
@@ -1212,7 +1230,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
 
-      {isStartGuideOpen && !isAuthOrSetupSurface && !isStoneInquirySurface && (
+      {isStartGuideOpen && !isAuthOrSetupSurface && !isFocusedActionSurface && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 sm:p-6">
           <button
             type="button"
