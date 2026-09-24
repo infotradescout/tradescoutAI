@@ -184,8 +184,10 @@ describe("ScoutThread evidence strip", () => {
     expect(html).not.toContain('class="scout-assistant-bubble__badge">Provider Search</span>');
     expect(html).toContain('href="/community/posts/scout-native-published-maricopa"');
     expect(html).toContain("Neighborhood tool swap");
-    expect(html).toContain("1 recent county post in Maricopa County, AZ.");
-    expect(html).toContain("Deals, businesses, pages, tools and other requests unverified.");
+    expect(html).toContain(
+      "Maricopa County, AZ: 1 published post in last 7 days; deals unchecked."
+    );
+    expect(html).toContain("Other sources unchecked.");
     expect(html).toContain("Nothing sent.");
     expect(html).toContain("More detail");
   });
@@ -211,8 +213,8 @@ describe("ScoutThread evidence strip", () => {
     };
     const noPostHtml = renderThread([recoveryMessage]);
     expect(noPostHtml).toContain('class="scout-assistant-bubble__badge">Scout update</span>');
-    expect(noPostHtml).toContain("No verified recent county post in Maricopa County, AZ.");
-    expect(noPostHtml).toContain("other requests unverified. Nothing sent.");
+    expect(noPostHtml).toContain("Maricopa County, AZ: no post verified in last 7 days;");
+    expect(noPostHtml).toContain("Other sources unchecked. Nothing sent.");
 
     const unfamiliar =
       "Scout checked a changed recovery format and has partial information " +
@@ -278,12 +280,15 @@ describe("ScoutThread evidence strip", () => {
         "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. " +
         "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
       visible: [
-        "1 recent county post",
+        "Maricopa County, AZ",
+        "1 published post in last 7 days",
         "1 promotional TradeDeal",
-        "Offer unverified; confirm when it ends before acting",
+        "Offer unverified; confirm end",
         "Other sources unchecked",
         "Nothing sent",
       ],
+      exact:
+        "Maricopa County, AZ: 1 published post in last 7 days; 1 promotional TradeDeal. Offer unverified; confirm end. Other sources unchecked. Nothing sent.",
     },
     {
       name: "a posted TradeDeal without a verified county post",
@@ -292,11 +297,15 @@ describe("ScoutThread evidence strip", () => {
         "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. " +
         "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
       visible: [
-        "No recent post verified",
+        "Maricopa County, AZ",
+        "no post verified in last 7 days",
         "1 promotional TradeDeal",
-        "Offer unverified; confirm when it ends before acting",
+        "Offer unverified; confirm end",
+        "Other sources unchecked",
         "Nothing sent",
       ],
+      exact:
+        "Maricopa County, AZ: no post verified in last 7 days; 1 promotional TradeDeal. Offer unverified; confirm end. Other sources unchecked. Nothing sent.",
     },
     {
       name: "a checked Scout promotion source with no eligible deals",
@@ -305,9 +314,10 @@ describe("ScoutThread evidence strip", () => {
         "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked. " +
         "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
       visible: [
-        "1 recent county post",
-        "no Scout TradeDeals returned",
-        "Other deal sources, businesses, pages and tools unchecked",
+        "Maricopa County, AZ",
+        "1 published post in last 7 days",
+        "no eligible Scout TradeDeals",
+        "Other sources unchecked",
         "Nothing sent",
       ],
     },
@@ -317,13 +327,14 @@ describe("ScoutThread evidence strip", () => {
         "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. " +
         "Scout promotions could not be checked right now. Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
       visible: [
-        "1 recent county post",
+        "Maricopa County, AZ",
+        "1 published post in last 7 days",
         "Scout promotions unavailable",
-        "Other deal sources, businesses, pages and tools unchecked",
+        "Other sources unchecked",
         "Nothing sent",
       ],
     },
-  ])("keeps the collapsed mobile truth for $name", ({ message, visible, badge }) => {
+  ])("keeps the collapsed mobile truth for $name", ({ message, visible, badge, exact }) => {
     const html = renderThread([
       {
         id: "a_deal_discovery",
@@ -351,6 +362,7 @@ describe("ScoutThread evidence strip", () => {
 
     expect(summary.length).toBeLessThanOrEqual(150);
     for (const phrase of visible) expect(summary).toContain(phrase);
+    if (exact) expect(summary).toBe(exact);
     if (badge) {
       expect(html).toContain(`class="scout-assistant-bubble__badge">${badge}</span>`);
       expect(html).not.toContain('class="scout-assistant-bubble__badge">Local results</span>');
@@ -391,6 +403,48 @@ describe("ScoutThread evidence strip", () => {
     const absentSummary = getSummary(message.replace(longArea, ""));
     expect(absentSummary).toContain("your county");
     expect(absentSummary).toContain("Nothing sent");
+  });
+
+  it("keeps positive post and deal summaries scoped when the county label is long or malformed", () => {
+    const longArea = `${"Very Long County Name ".repeat(3).trim()}, AZ`;
+    const postAndDeal =
+      `This Scout result includes 1 published county post from the last 7 days in ${longArea}. ` +
+      `It also found 1 posted Scout TradeDeal for ${longArea}. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. ` +
+      "Businesses, pages, tools, and other requests were not checked. Nothing was sent.";
+    const getSummary = (content: string) => {
+      const container = document.createElement("div");
+      container.innerHTML = renderThread([
+        {
+          id: "a_positive_long_area",
+          role: "assistant",
+          content,
+          provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+        },
+      ]);
+      return container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
+    };
+
+    const longSummary = getSummary(postAndDeal);
+    expect(longSummary.length).toBeLessThanOrEqual(150);
+    expect(longSummary).toContain("Very Long County Name");
+    expect(longSummary).toContain("..., AZ");
+    expect(longSummary).toContain("7-day");
+    expect(longSummary).toContain("Offer unverified");
+    expect(longSummary).toContain("Nothing sent");
+
+    const malformedPost = getSummary(postAndDeal.replace(longArea, "???"));
+    expect(malformedPost).toContain("your county");
+    expect(malformedPost).not.toContain("???");
+    expect(malformedPost).toContain("Offer unverified");
+
+    const dealOnly = getSummary(
+      `This Scout result does not verify a county post from the last 7 days in ???. ` +
+        `It also found 1 posted Scout TradeDeal for your county. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. ` +
+        "Businesses, pages, tools, and other requests were not checked. Nothing was sent."
+    );
+    expect(dealOnly).toContain("your county");
+    expect(dealOnly).toContain("no post verified in last 7 days");
+    expect(dealOnly).not.toContain("???");
   });
 
   it("accepts the explicit broader Community browse action after a checked-empty county result", () => {

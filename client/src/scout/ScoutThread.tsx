@@ -185,43 +185,75 @@ function mixedDiscoverySummary(content: string): string {
     return summary;
   }
 
-  const found = clean.match(
-    /^This Scout result includes (\d+) published county (post|posts) from the last 7 days in (.+?)\./i
-  );
-  const missing = clean.match(
-    /^This Scout result does not verify a county post from the last 7 days in (.+?)\./i
-  );
-  const finding = found
-    ? `${found[1]} recent county ${found[2]} in ${found[3]}`
-    : missing
-      ? `No verified recent county post in ${missing[1]}`
-      : null;
-  if (!finding || !/nothing was sent/i.test(clean)) return trimToSummary(clean);
+  // Prefer the server's validated county-label shape so periods inside a county name stay intact.
+  const found =
+    clean.match(
+      /^This Scout result includes (\d+) published county (post|posts) from the last 7 days in ([a-z .'-]+, [a-z]{2}|your county)\./i
+    ) ??
+    clean.match(
+      /^This Scout result includes (\d+) published county (post|posts) from the last 7 days in (.{0,80}?)\./i
+    );
+  const missing =
+    clean.match(
+      /^This Scout result does not verify a county post from the last 7 days in ([a-z .'-]+, [a-z]{2}|your county)\./i
+    ) ??
+    clean.match(
+      /^This Scout result does not verify a county post from the last 7 days in (.{0,80}?)\./i
+    );
+  if ((!found && !missing) || !/nothing was sent/i.test(clean)) return trimToSummary(clean);
 
-  const compactPost = found
-    ? `${found[1]} recent county ${found[2]}`
-    : "No recent county post verified";
+  const rawArea = (found?.[3] || missing?.[1] || "").trim();
+  const area =
+    (/^[a-z .'-]+, [a-z]{2}$/i.test(rawArea) && rawArea.length <= 80) || rawArea === "your county"
+      ? rawArea
+      : "your county";
   const postedDeals = clean.match(/\bIt also found (\d+) posted Scout TradeDeals? for /i);
+  const checkedNoDeals =
+    /It checked Scout promotions for .+?; no eligible TradeDeals were returned/i.test(clean);
+  const failedDeals = /Scout promotions could not be checked right now/i.test(clean);
+  const uncheckedDeals = /It does not verify deals/i.test(clean);
   if (
-    postedDeals &&
-    /These are promotional listings; terms and availability are not independently verified/i.test(
-      clean
-    )
+    (postedDeals &&
+      !/These are promotional listings; terms and availability are not independently verified/i.test(
+        clean
+      )) ||
+    (!postedDeals && !checkedNoDeals && !failedDeals && !uncheckedDeals)
   ) {
-    const dealPost = found ? compactPost : "No recent post verified";
-    return `${dealPost}; ${postedDeals[1]} promotional TradeDeal${postedDeals[1] === "1" ? "" : "s"}. Offer unverified; confirm when it ends before acting. Other sources unchecked. Nothing sent.`;
-  }
-  if (/It checked Scout promotions for .+?; no eligible TradeDeals were returned/i.test(clean)) {
-    return `${compactPost}; no Scout TradeDeals returned. Other deal sources, businesses, pages and tools unchecked. Nothing sent.`;
-  }
-  if (/Scout promotions could not be checked right now/i.test(clean)) {
-    return `${compactPost}; Scout promotions unavailable. Other deal sources, businesses, pages and tools unchecked. Nothing sent.`;
-  }
-  if (!/does not verify deals, businesses, pages, tools, or other requests/i.test(clean)) {
     return trimToSummary(clean);
   }
 
-  return `${finding}. Deals, businesses, pages, tools and other requests unverified. Nothing sent.`;
+  const formatPositiveSummary = (compact: boolean, place: string) => {
+    const postStatus = found
+      ? compact
+        ? `${found[1]} published 7-day ${found[2]}`
+        : `${found[1]} published ${found[2]} in last 7 days`
+      : compact
+        ? "no 7-day post verified"
+        : "no post verified in last 7 days";
+    const dealStatus = postedDeals
+      ? compact
+        ? `${postedDeals[1]} TradeDeal promo${postedDeals[1] === "1" ? "" : "s"}. Offer unverified; check end`
+        : `${postedDeals[1]} promotional TradeDeal${postedDeals[1] === "1" ? "" : "s"}. Offer unverified; confirm end`
+      : checkedNoDeals
+        ? "no eligible Scout TradeDeals"
+        : failedDeals
+          ? "Scout promotions unavailable"
+          : "deals unchecked";
+    return `${place}: ${postStatus}; ${dealStatus}. Other sources unchecked. Nothing sent.`;
+  };
+  let summary = formatPositiveSummary(false, area);
+  if (summary.length > SUMMARY_MAX_CHARS) summary = formatPositiveSummary(true, area);
+  if (summary.length > SUMMARY_MAX_CHARS) {
+    // Keep the state visible; the full county label remains under More detail.
+    const room = SUMMARY_MAX_CHARS - (summary.length - area.length) - 3;
+    const state = area.match(/, [a-z]{2}$/i)?.[0] || "";
+    const shortArea =
+      room > state.length + 6
+        ? `${area.slice(0, room - state.length).trimEnd()}...${state}`
+        : "your county";
+    summary = formatPositiveSummary(true, shortArea);
+  }
+  return summary;
 }
 
 function tryParseScoutEnvelope(raw: string): Record<string, unknown> | null {

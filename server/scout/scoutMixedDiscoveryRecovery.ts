@@ -38,6 +38,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
 
   const now = input.now ?? new Date();
   const weekStart = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  const area = displayArea(input.countyLabel);
   const postCheck =
     input.postCheck ?? ((input.communityPosts?.length ?? 0) > 0 ? "checked" : "not_checked");
   const recentPosts = (postCheck === "checked" ? input.communityPosts || [] : []).filter((post) => {
@@ -59,7 +60,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       post.hasWorkRequest === true
         ? "Published county post linked to a request"
         : "Published county post",
-      "From the last 7 days",
+      `From the last 7 days in ${area}`,
     ],
   }));
 
@@ -77,7 +78,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
           url,
           match_reasons: [
             "Promotional TradeDeal; terms and availability are not independently verified",
-            deal.countyFips.length === 0 ? "Listed for all counties" : "Listed for your county",
+            deal.countyFips.length === 0 ? "Listed for all counties" : `Listed for ${area}`,
             "Confirm when the offer ends before acting",
           ],
         },
@@ -91,7 +92,6 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     input.dealCheck === "checked" &&
     dealEntities.length === 0;
 
-  const area = displayArea(input.countyLabel);
   const firstSentence = postEntities.length
     ? `This Scout result includes ${postEntities.length} published county ${postEntities.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
     : postCheck === "checked"

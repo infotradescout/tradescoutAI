@@ -138,6 +138,9 @@ describe("Scout county lookup", () => {
     expect(result.entities).toEqual([
       expect.objectContaining({ name: "Neighborhood tool swap", url: "/community/posts/post_1" }),
     ]);
+    expect(result.entities[0]?.match_reasons).toContain(
+      "From the last 7 days in Maricopa County, AZ"
+    );
     expect(result.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ to: "/community-feed?geo=local&feed=recent" }),
@@ -226,7 +229,13 @@ describe("Scout county lookup", () => {
     expect(result.message).toContain("1 posted Scout TradeDeal");
     expect(result.message).toContain("terms and availability are not independently verified");
     expect(result.entities[1]?.match_reasons).toEqual(
-      expect.arrayContaining([expect.stringContaining("when the offer ends")])
+      expect.arrayContaining([
+        "Listed for Maricopa County, AZ",
+        expect.stringContaining("when the offer ends"),
+      ])
+    );
+    expect(result.entities[0]?.match_reasons).toContain(
+      "From the last 7 days in Maricopa County, AZ"
     );
     expect(JSON.stringify(result.entities[1])).not.toMatch(/2026-10-01|UTC/);
     expect(result.actions).toEqual(
@@ -237,6 +246,61 @@ describe("Scout county lookup", () => {
         }),
       ])
     );
+  });
+
+  it("keeps deal-only county cues distinct from global placement and validates long labels", () => {
+    const countyDealOnly = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      now: dealNow,
+      postCheck: "checked",
+      communityPosts: [],
+      dealCheck: "checked",
+      deals: [postedDeal],
+    });
+    expect(countyDealOnly.entities).toHaveLength(1);
+    expect(countyDealOnly.entities[0]?.match_reasons).toContain("Listed for Maricopa County, AZ");
+    expect(countyDealOnly.actions[0]).toEqual(
+      expect.objectContaining({ label: "Open promotional TradeDeal", primary: true })
+    );
+
+    const globalDealOnly = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      now: dealNow,
+      postCheck: "checked",
+      communityPosts: [],
+      dealCheck: "checked",
+      deals: [{ ...postedDeal, countyFips: [] }],
+    });
+    expect(globalDealOnly.entities[0]?.match_reasons).toContain("Listed for all counties");
+    expect(globalDealOnly.entities[0]?.match_reasons).not.toContain(
+      "Listed for Maricopa County, AZ"
+    );
+
+    const longArea = `${"Very Long County Name ".repeat(3).trim()}, AZ`;
+    const longAreaResult = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: longArea,
+      now: dealNow,
+      postCheck: "checked",
+      communityPosts: [
+        { id: "post_1", title: "Tool request", createdAt: "2026-09-22T12:00:00.000Z" },
+      ],
+    });
+    expect(longAreaResult.entities[0]?.match_reasons).toContain(
+      `From the last 7 days in ${longArea}`
+    );
+
+    const malformedResult = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County <script>, AZ",
+      now: dealNow,
+      dealCheck: "checked",
+      deals: [postedDeal],
+    });
+    expect(malformedResult.entities[0]?.match_reasons).toContain("Listed for your county");
+    expect(JSON.stringify(malformedResult)).not.toContain("<script>");
   });
 
   it("distinguishes an empty Scout placement check from a failed check", () => {
