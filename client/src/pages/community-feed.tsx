@@ -18,6 +18,7 @@ import {
   DollarSign,
   Globe,
   ChevronDown,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1785,7 +1786,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
                           {/* Image preview grid */}
                           {uploadedImages.length > 0 && (
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2 sm:grid-cols-4">
                               {uploadedImages.map((url, index) => (
                                 <div key={url} className="relative group">
                                   <img
@@ -1794,10 +1795,12 @@ const CommunityFeed = memo(function CommunityFeed() {
                                     className="w-full h-20 object-cover rounded border border-[color:var(--border-subtle)]"
                                   />
                                   <button
+                                    type="button"
                                     onClick={() => handleRemoveImage(index)}
-                                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    aria-label={`Remove attachment ${index + 1}`}
+                                    className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
                                   >
-                                    <span className="text-xs">x</span>
+                                    <X className="h-5 w-5" aria-hidden="true" />
                                   </button>
                                 </div>
                               ))}
