@@ -5,6 +5,7 @@ import {
   type ProfileAccountPolicy,
 } from "@shared/profileAccount";
 import { pool } from "../db";
+import { notificationService } from "../notification-service";
 import { queueProfileAccountSignupNotifications } from "./profileAccountSignupNotifications";
 
 type ProfileAccountTarget = {
@@ -42,6 +43,13 @@ export type ProfileAccountState = Readonly<{
   viewerBusiness: ViewerBusinessProfile | null;
   requiresBusinessSetup: boolean;
   account: ProfileAccountRecord | null;
+}>;
+
+type EnsuredProfileAccount = Readonly<{
+  policy: ProfileAccountPolicy;
+  viewerBusiness: ViewerBusinessProfile | null;
+  requiresBusinessSetup: false;
+  account: ProfileAccountRecord;
 }>;
 
 export function applyProfileAccountVerificationBypass(
@@ -366,16 +374,13 @@ export async function ensureProfileAccount(args: {
   profileSlug: string;
   businessName?: string | null;
   sourcePath?: string | null;
-}): Promise<{
-  policy: ProfileAccountPolicy;
-  viewerBusiness: ViewerBusinessProfile | null;
-  requiresBusinessSetup: false;
-  account: ProfileAccountRecord;
-}> {
+}): Promise<EnsuredProfileAccount> {
   const userId = String(args.userId || "").trim();
   if (!userId) throw new Error("Authentication required");
 
   const client = await pool.connect();
+  let emailJobIds: string[] = [];
+  let created!: EnsuredProfileAccount;
   try {
     await client.query("BEGIN");
     const target = await loadProfileAccountTarget(args.profileSlug, client);
@@ -470,19 +475,32 @@ export async function ensureProfileAccount(args: {
     );
 
     if (existingAccount && existingAccount.rows.length === 0) {
-      await queueProfileAccountSignupNotifications(client, String(result.rows[0].id));
+      emailJobIds = await queueProfileAccountSignupNotifications(client, String(result.rows[0].id));
     }
-    await client.query("COMMIT");
-    return {
+    created = {
       policy,
       viewerBusiness,
       requiresBusinessSetup: false,
       account: toAccountRecord({ target, policy, viewerBusiness, row: result.rows[0] }),
     };
+    await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
   }
+
+  // The provider must only see a committed membership. Claim this signup's
+  // durable jobs now; the scheduled worker remains the recovery path.
+  if (emailJobIds.length > 0) {
+    try {
+      await notificationService.processEmailDeliveryJobsById(emailJobIds);
+    } catch (error) {
+      // The membership and email intent are already committed. Delivery or
+      // receipt failures must not turn a successful signup into an error.
+      console.error("[profile-accounts] Immediate signup alert delivery failed", error);
+    }
+  }
+  return created;
 }

@@ -72,13 +72,14 @@ SELECT (SELECT count(*) FROM signup)::int AS matched,
        (SELECT count(*) FROM recipients)::int AS recipients,
        (SELECT count(*) FROM added)::int AS notifications,
        (SELECT count(*) FROM jobs)::int AS email_jobs,
-       (SELECT count(*) FROM receipts)::int AS in_app_receipts
+       (SELECT count(*) FROM receipts)::int AS in_app_receipts,
+       ARRAY(SELECT id FROM jobs ORDER BY id) AS email_job_ids
 `;
 
 export async function queueProfileAccountSignupNotifications(
   client: Pick<PoolClient, "query">,
   profileAccountId: string
-): Promise<void> {
+): Promise<string[]> {
   if (!profileAccountId.trim()) throw new Error("Profile account identity is required");
   const result = await client.query(PROFILE_ACCOUNT_SIGNUP_NOTIFICATION_SQL, [profileAccountId]);
   const row = result.rows[0];
@@ -90,4 +91,10 @@ export async function queueProfileAccountSignupNotifications(
       Number(row.notifications) !== Number(row.in_app_receipts)) {
     throw new Error("Signup notification channel intents are incomplete");
   }
+  if (!Array.isArray(row.email_job_ids) ||
+      row.email_job_ids.length !== Number(row.email_jobs) ||
+      !row.email_job_ids.every((id: unknown) => typeof id === "string")) {
+    throw new Error("Signup email job identities are incomplete");
+  }
+  return row.email_job_ids;
 }
