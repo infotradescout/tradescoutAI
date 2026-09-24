@@ -1196,7 +1196,7 @@ export default function ExchangeListingDetail() {
           <DialogFooter className="gap-2">
             <Button
               variant="ghost"
-              className="text-white/60"
+              className="min-h-11 text-white/60"
               disabled={sendInquiryMutation.isPending}
               onClick={() =>
                 stoneInquiry.isRetail ? stoneInquiry.finish() : setDecisionOpen(false)
@@ -1205,7 +1205,7 @@ export default function ExchangeListingDetail() {
               Cancel
             </Button>
             <Button
-              className="bg-ts-orange hover:bg-ts-orange/90 text-white"
+              className="min-h-11 bg-ts-orange hover:bg-ts-orange/90 text-white"
               disabled={!inquiryMessage.trim() || sendInquiryMutation.isPending}
               onClick={submitInquiry}
             >
