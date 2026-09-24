@@ -3062,25 +3062,15 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
     gap: 0.25rem;
   }
 
-  .scout-current-task__controls > button,
-  .scout-current-task__controls > details {
-    flex: 0 0 44px;
-    width: 44px;
-  }
-
-  .scout-current-task__controls > details > summary {
-    width: 44px;
-    padding: 0;
-  }
-
-  .scout-current-task__controls > .scout-current-task__request {
+  .scout-current-task__controls > button {
     flex: 1 1 auto;
     width: auto;
-    min-width: 84px;
   }
 
-  .scout-current-task__controls > .scout-current-task__request > summary {
-    width: 100%;
+  .scout-current-task__controls > details,
+  .scout-current-task__controls > details > summary {
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .scout-task-work-region[data-collapse-initial-request="true"]

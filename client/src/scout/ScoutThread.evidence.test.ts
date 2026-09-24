@@ -418,7 +418,7 @@ describe("ScoutThread evidence strip", () => {
 
     expect(container.textContent).toContain("Maricopa County, AZ: 1 published post in last 7 days");
     expect(container.textContent).toContain("Other sources unchecked. Nothing sent.");
-    expect(container.textContent).toContain("2 matching results");
+    expect(container.textContent).toContain("2 results from checked sources");
     expect(container.textContent).toContain("See next result");
     expect(cards).toHaveLength(2);
     expect(cards[0]?.textContent).toContain("Published county post");
@@ -702,8 +702,8 @@ describe("ScoutThread evidence strip", () => {
       deal: "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting.",
       business:
         "Scout also found 1 public business profile listed for Maricopa County, AZ. Business profiles were not filtered to this week; check current services and availability before contact.",
-      expected: ["1 post (7d)", "1 promo (verify terms/end)", "1 public business (no week filter)"],
-      excluded: ["businesses unchecked", "1 business (7d)"],
+      expected: ["1 published post (past 7 days)", "1 Scout TradeDeal promotion", "1 public business", "Offer terms and availability aren't verified", "Businesses aren't limited to this week"],
+      excluded: ["businesses were not checked", "1 business (7d)"],
     },
     {
       name: "a public business without a recent post or eligible promotion",
@@ -711,8 +711,8 @@ describe("ScoutThread evidence strip", () => {
       deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
       business:
         "Scout also found 1 public business profile listed for Maricopa County, AZ. Business profiles were not filtered to this week; check current services and availability before contact.",
-      expected: ["no published posts (7d)", "1 public business", "no week filter"],
-      excluded: ["businesses unchecked", "1 business (7d)"],
+      expected: ["no published posts (past 7 days)", "1 public business", "Businesses aren't limited to this week"],
+      excluded: ["businesses were not checked", "1 business (7d)"],
     },
     {
       name: "all three checked sources returning empty",
@@ -720,24 +720,24 @@ describe("ScoutThread evidence strip", () => {
       deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
       business:
         "Scout checked public business profiles for Maricopa County, AZ; none were returned.",
-      expected: ["no published posts (7d)", "no Scout promo deals", "no public businesses"],
-      excluded: ["businesses unchecked", "Other sources unchecked"],
+      expected: ["no published posts (past 7 days)", "no eligible Scout TradeDeal promotions", "no public business profiles"],
+      excluded: ["businesses were not checked", "Other sources unchecked"],
     },
     {
       name: "a public business source error",
       post: "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned.",
       deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
       business: "Public business profiles for Maricopa County, AZ could not be checked right now.",
-      expected: ["no published posts (7d)", "business profiles unavailable"],
-      excluded: ["businesses unchecked", "no public businesses"],
+      expected: ["no published posts (past 7 days)", "public business profiles could not be checked"],
+      excluded: ["businesses were not checked", "no public business profiles"],
     },
     {
       name: "an unchecked public business source",
       post: "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ.",
       deal: "It does not verify deals.",
       business: "Businesses were not checked.",
-      expected: ["1 published post (7d)", "deals unchecked", "businesses unchecked"],
-      excluded: ["no public businesses"],
+      expected: ["1 published post (past 7 days)", "deals were not checked", "businesses were not checked"],
+      excluded: ["no public business profiles"],
     },
   ])(
     "keeps $name distinct from the seven-day post scope",
@@ -764,12 +764,14 @@ describe("ScoutThread evidence strip", () => {
       container.innerHTML = html;
       const summary = container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
 
-      expect(summary.length).toBeLessThanOrEqual(150);
+      expect(summary.length).toBeLessThanOrEqual(260);
       expect(summary).toContain("Maricopa County, AZ");
-      expect(summary).toContain("Pages/tools/other requests unchecked. Nothing sent.");
+      expect(summary).toContain("Pages, tools and other requests weren't checked. Nothing was sent.");
       for (const phrase of expected) expect(summary).toContain(phrase);
       for (const phrase of excluded) expect(summary).not.toContain(phrase);
-      expect(container.textContent).toContain("More detail");
+      expect(container.textContent).toContain("See source checks and limits");
+      expect(container.textContent).toContain("Only published county posts from the past 7 days");
+      expect(container.textContent).not.toContain("Why this helps");
     }
   );
 
@@ -803,10 +805,10 @@ describe("ScoutThread evidence strip", () => {
       container.innerHTML = html;
       const summary = container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
 
-      expect(summary.length).toBeLessThanOrEqual(150);
+      expect(summary.length).toBeLessThanOrEqual(260);
       expect(summary).toContain("your county");
       expect(summary).toContain("1 public business");
-      expect(summary).toContain("Nothing sent.");
+      expect(summary).toContain("Nothing was sent.");
       expect(summary).not.toContain("Maricopa County");
     }
   );

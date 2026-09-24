@@ -98,6 +98,7 @@ function findLatestAssistantMessageId(messages: ScoutMessage[]): string | null {
 }
 
 const SUMMARY_MAX_CHARS = 150;
+const MIXED_DISCOVERY_SUMMARY_MAX_CHARS = 260;
 
 function firstUsefulParagraph(content: string): string {
   return (
@@ -188,42 +189,38 @@ function businessAwareMixedDiscoverySummary(clean: string): string | null {
   }
 
   const post = foundPost
-    ? `${foundPost[1]} published post${foundPost[1] === "1" ? "" : "s"} (7d)`
+    ? `${foundPost[1]} published post${foundPost[1] === "1" ? "" : "s"} (past 7 days)`
     : emptyPost
-      ? "no published posts (7d)"
+      ? "no published posts (past 7 days)"
       : failedPost
-        ? "posts unavailable (7d)"
-        : "no post verified (7d)";
+        ? "recent posts could not be checked"
+        : "recent posts were not verified";
   const deal = postedDeals
-    ? `${postedDeals[1]} promo${postedDeals[1] === "1" ? "" : "s"} (verify terms/end)`
+    ? `${postedDeals[1]} Scout TradeDeal promotion${postedDeals[1] === "1" ? "" : "s"}`
     : emptyDeals
-      ? "no Scout promo deals"
+      ? "no eligible Scout TradeDeal promotions"
       : failedDeals
-        ? "Scout promos unavailable"
-        : "deals unchecked";
+        ? "Scout promotions could not be checked"
+        : "deals were not checked";
   const business = foundBusiness
-    ? `${foundBusiness[1]} public business${foundBusiness[1] === "1" ? "" : "es"} (no week filter)`
+    ? `${foundBusiness[1]} public business${foundBusiness[1] === "1" ? "" : "es"}`
     : emptyBusiness
-      ? "no public businesses"
+      ? "no public business profiles"
       : failedBusiness
-        ? "business profiles unavailable"
-        : "businesses unchecked";
-  const format = (place: string, compact: boolean) => {
-    const postText =
-      compact && foundPost ? `${foundPost[1]} post${foundPost[1] === "1" ? "" : "s"} (7d)` : post;
-    const dealText =
-      compact && failedDeals
-        ? "promos unavailable"
-        : compact && emptyDeals
-          ? "no promo deals"
-          : deal;
-    const businessText = compact && failedBusiness ? "businesses unavailable" : business;
-    return `${place}: ${postText}, ${dealText}, ${businessText}. Pages/tools/other requests unchecked. Nothing sent.`;
-  };
-  let summary = format(area, false);
-  if (summary.length > SUMMARY_MAX_CHARS) summary = format(area, true);
-  if (summary.length > SUMMARY_MAX_CHARS) summary = format("your county", true);
-  return summary.length <= SUMMARY_MAX_CHARS ? summary : trimToSummary(clean);
+        ? "public business profiles could not be checked"
+        : "businesses were not checked";
+  const limits = [
+    postedDeals ? "Offer terms and availability aren't verified." : "",
+    foundBusiness ? "Businesses aren't limited to this week." : "",
+    "Pages, tools and other requests weren't checked. Nothing was sent.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const format = (place: string) => `${place}: ${post}; ${deal}; ${business}. ${limits}`;
+  const summary = format(area);
+  return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
+    ? summary
+    : format("your county");
 }
 
 function mixedDiscoverySummary(content: string): string {
@@ -435,6 +432,15 @@ function buildAssistantSummary(msg: ScoutMessage, displayContent: string): strin
     (Array.isArray(frame?.truthLines) ? frame?.truthLines?.find((line) => line.trim()) : "");
 
   return trimToSummary(framedSummary || displayContent);
+}
+
+function hasExplicitMixedCoverage(msg: ScoutMessage, answer: string): boolean {
+  return (
+    msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery" &&
+    /(?:^|[.!?]\s+)Pages, tools, and other requests were not checked\. Nothing was sent\.$/i.test(
+      answer.trim()
+    )
+  );
 }
 
 function AssistantMessageBubble({ summary }: { summary: string }) {
@@ -992,6 +998,7 @@ function MessageExtras({
   const hasAnswerDetails = Boolean(
     fullAnswer && answerSummary && fullAnswer.trim() !== answerSummary.trim()
   );
+  const hasMixedDiscoveryCoverage = hasExplicitMixedCoverage(msg, fullAnswer || "");
 
   const [controllerOpen, setControllerOpen] = React.useState(() => !showControllerExtras);
   const [controllerShowAll, setControllerShowAll] = React.useState(false);
@@ -1064,6 +1071,7 @@ function MessageExtras({
     Boolean(standalonePrimaryAction) ||
     hasLegacyPrimaryAction ||
     hasAnswerDetails ||
+    hasMixedDiscoveryCoverage ||
     hasActionChips ||
     hasClusters ||
     hasOverride ||
@@ -1090,7 +1098,7 @@ function MessageExtras({
         <div className="scout-result-list space-y-2" aria-label="Scout results">
           {contractEntities.length > 1 && (
             <div className="scout-result-list__guide">
-              <span>{contractEntities.length} matching results</span>
+              <span>{contractEntities.length} results from checked sources</span>
               <button
                 type="button"
                 onClick={(event) => {
@@ -1434,20 +1442,40 @@ function MessageExtras({
         </div>
       )}
 
-      {hasAnswerDetails && (
+      {(hasAnswerDetails || hasMixedDiscoveryCoverage) && (
         <div className="scout-answer-detail">
-          <button
-            type="button"
-            className="scout-message-details-toggle"
-            onClick={() => setAnswerOpen((open) => !open)}
-            aria-expanded={answerOpen}
-          >
-            {answerOpen ? "Short version" : "More detail"}
-          </button>
-          {answerOpen && (
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[color:var(--text-secondary)]">
-              {fullAnswer}
+          {hasMixedDiscoveryCoverage && (
+            <p className="text-xs leading-relaxed text-[color:var(--text-secondary)]">
+              Only published county posts from the past 7 days, eligible TradeDeal promotions
+              placed in Scout, and public business profiles are in scope. Pages, tools, and other
+              requests were not checked. Nothing was sent.
             </p>
+          )}
+          {hasAnswerDetails && (
+            <>
+              <button
+                type="button"
+                className="scout-message-details-toggle"
+                onClick={() => setAnswerOpen((open) => !open)}
+                aria-expanded={answerOpen}
+              >
+                {hasMixedDiscoveryCoverage
+                  ? answerOpen
+                    ? "Hide source checks"
+                    : "See source checks and limits"
+                  : answerOpen
+                    ? "Short version"
+                    : "More detail"}
+              </button>
+              {answerOpen && (
+                <div className="mt-2 space-y-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">
+                  <p className="whitespace-pre-line">{fullAnswer}</p>
+                  {hasMixedDiscoveryCoverage && (
+                    <EvidenceSourceList sources={msg.provenance?.sources || []} />
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -1709,7 +1737,10 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
             {!isUser && (
               <EvidenceStrip
                 msg={msg}
-                enabled={showControllerExtras || Boolean(msg.resultContract)}
+                enabled={
+                  !hasExplicitMixedCoverage(msg, displayContent) &&
+                  (showControllerExtras || Boolean(msg.resultContract))
+                }
               />
             )}
           </div>

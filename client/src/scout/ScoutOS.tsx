@@ -72,6 +72,7 @@ import { getCountyStateCode } from "@/utils/countyFipsToName";
 import { stageDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
+import { ScoutTaskControls } from "./ScoutTaskControls";
 import { canOpenScoutWorkArea } from "./scoutWorkAreas";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { inferContextRoles } from "./contextRoles";
@@ -4837,7 +4838,7 @@ export default function ScoutOS() {
                     <div className="scout-current-task__head flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold uppercase text-ts-orange">
-                          {activeSavedThread ? "Saved task" : "Current task"}
+                          {activeSavedThread ? "Saved on this device" : "Current task"}
                           {activeSavedThread?.relatedLabel
                             ? ` · ${activeSavedThread.relatedLabel}`
                             : ""}
@@ -4851,59 +4852,17 @@ export default function ScoutOS() {
                         </h1>
                       </div>
 
-                      <div
-                        className="scout-current-task__controls flex w-full items-center gap-1.5 sm:w-auto"
-                        aria-label="Thread controls"
-                      >
-                        <button
-                          type="button"
-                          className="min-h-11 flex-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] sm:flex-none"
-                          onClick={handleSaveScoutThreadNow}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          className="min-h-11 flex-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] sm:flex-none"
-                          onClick={handleStartNewScoutThread}
-                        >
-                          New
-                        </button>
-                        {activeSavedThreadId && (
-                          <details className="relative flex-1 sm:flex-none">
-                            <summary
-                              className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden"
-                              aria-label="More thread options"
-                            >
-                              More
-                            </summary>
-                            <button
-                              type="button"
-                              className="absolute right-0 top-[calc(100%+0.35rem)] z-40 min-h-11 w-max max-w-[calc(100vw-2rem)] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)]"
-                              onClick={() => handleDeleteSavedThread(activeSavedThreadId)}
-                            >
-                              Delete saved thread
-                            </button>
-                          </details>
-                        )}
-                        {hasAssistantResult && currentTaskRequest && (
-                          <details className="scout-current-task__request group relative flex-1 md:hidden">
-                            <summary
-                              className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2 text-xs font-bold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden"
-                              aria-label="View full request"
-                            >
-                              Request
-                              <ChevronDown
-                                className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
-                                aria-hidden="true"
-                              />
-                            </summary>
-                            <p className="absolute right-0 top-[calc(100%+0.35rem)] z-40 max-h-[40dvh] w-[min(21rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3 text-sm leading-relaxed text-[color:var(--text-primary)] shadow-lg">
-                              {currentTaskRequest}
-                            </p>
-                          </details>
-                        )}
-                      </div>
+                      <ScoutTaskControls
+                        saved={Boolean(activeSavedThread)}
+                        request={hasAssistantResult ? currentTaskRequest : null}
+                        onSave={handleSaveScoutThreadNow}
+                        onNew={handleStartNewScoutThread}
+                        onDelete={
+                          activeSavedThreadId
+                            ? () => handleDeleteSavedThread(activeSavedThreadId)
+                            : undefined
+                        }
+                      />
                     </div>
 
                     {state.status !== "idle" && !hasAssistantResult && (
