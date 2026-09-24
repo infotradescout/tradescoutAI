@@ -8,6 +8,8 @@ import ExchangeListingDetail from "./ExchangeListingDetail";
 const state = vi.hoisted(() => ({
   listing: null as any,
   listingId: "tradescout-stone-aj-quartz",
+  authUser: null as any,
+  authLoading: false,
   query: null as any,
   enforceKey: false,
   allowedKey: "",
@@ -17,13 +19,18 @@ const state = vi.hoisted(() => ({
   mutate: vi.fn(),
   api: vi.fn(),
 }));
-vi.mock("wouter", () => ({
-  useParams: () => ({
-    category: state.listing?.category || "building-materials",
-    listingId: state.listing?.id || state.listingId,
-  }),
-  useLocation: () => [window.location.pathname + window.location.search, state.navigate],
-}));
+vi.mock("wouter", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("wouter")>();
+  return {
+    useParams: () => ({
+      category: state.listing?.category || "building-materials",
+      listingId: state.listing?.id || state.listingId,
+    }),
+    // Mirror Wouter's pathname-only location and use the installed reactive search hook.
+    useLocation: () => [window.location.pathname, state.navigate],
+    useSearch: actual.useSearch,
+  };
+});
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: any) => {
     if (options.queryKey[0] !== "/api/marketplace/listings")
@@ -38,7 +45,11 @@ vi.mock("@tanstack/react-query", () => ({
   useMutation: () => ({ mutate: state.mutate, isPending: false }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
-vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: false, user: null }) }));
+vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({
+  isAuthenticated: Boolean(state.authUser),
+  isLoading: state.authLoading,
+  user: state.authUser,
+}) }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/lib/queryClient", () => ({ apiRequest: (...args: any[]) => state.api(...args) }));
 vi.mock("@/components/SEOHelmet", () => ({ SEOHelmet: (props: any) => { state.seo = props; return null; } }));
@@ -89,6 +100,8 @@ describe("retail stone detail", () => {
     state.api.mockReset();
     state.share.mockReset();
     state.listingId = "tradescout-stone-aj-quartz";
+    state.authUser = null;
+    state.authLoading = false;
     state.query = null;
     state.enforceKey = false;
     state.allowedKey = "";
@@ -216,8 +229,9 @@ describe("retail stone detail", () => {
         text: expect.stringContaining("Published material rate $30.00 / sq ft"),
       }));
 
-      window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}?audienceState=FL&audienceCity=Pensacola&audienceCountry=US`);
-      await renderDetail();
+      await act(async () => {
+        window.history.pushState({}, "", `/exchange/building-materials/${state.listingId}?audienceState=FL&audienceCity=Pensacola&audienceCountry=US`);
+      });
       expect(JSON.stringify(state.query.queryKey)).not.toBe(texasKey);
       expect(state.query.enabled).toBe(true);
       expect(host.querySelector("h1")).toBeNull();
@@ -243,6 +257,45 @@ describe("retail stone detail", () => {
       const result = await state.query.queryFn();
       expect(fetchMock).toHaveBeenCalledWith(`/api/marketplace/listings/${state.listingId}?audienceState=TX&audienceCountry=US`);
       expect(result.publicDetailPath).toBe(expectedPath);
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it("hides guest stone data while auth resolves and isolates an excluded account at the same URL", async () => {
+    const texas = "?audienceState=TX&audienceCountry=US";
+    window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}${texas}`);
+    state.listing = null;
+    state.enforceKey = true;
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        ...retailListing,
+        publicDetailPath: `/exchange/building-materials/${state.listingId}${texas}`,
+      }) } as Response)
+      .mockResolvedValueOnce({ ok: false, status: 404 } as Response);
+    try {
+      await renderDetail();
+      const guestKey = JSON.stringify(state.query.queryKey);
+      state.listing = await state.query.queryFn();
+      state.allowedKey = guestKey;
+      await renderDetail();
+      expect(host.querySelector("h1")?.textContent).toBe("AJ Quartz");
+
+      state.authLoading = true;
+      await renderDetail();
+      expect(state.query.enabled).toBe(false);
+      expect(host.querySelector("h1")).toBeNull();
+      expect(host.textContent).toContain("Loading listing");
+
+      state.authUser = { id: "synthetic-pensacola-viewer", city: "Pensacola", stateCode: "FL", countryCode: "US" };
+      state.authLoading = false;
+      await renderDetail();
+      expect(JSON.stringify(state.query.queryKey)).not.toBe(guestKey);
+      expect(state.query.queryKey[3]).toEqual(["synthetic-pensacola-viewer", "Pensacola", "FL", "US"]);
+      expect(host.querySelector("h1")).toBeNull();
+      expect(host.textContent).toContain("unavailable in the selected area");
+      await expect(state.query.queryFn()).rejects.toThrow("Listing not found");
+      expect(fetchMock).toHaveBeenLastCalledWith(`/api/marketplace/listings/${state.listingId}${texas}`);
     } finally {
       fetchMock.mockRestore();
     }

@@ -9,7 +9,7 @@ import React, { useState, useRef } from "react";
 import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing, STONE_DRAFT_MAX_MESSAGE } from "@shared/exchangeStoneInquiryDraft";
 import { useExchangeStoneInquiry } from "@/hooks/useExchangeStoneInquiry";
-import { useParams } from "wouter";
+import { useParams, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -171,11 +171,18 @@ function TitleStatusBadge({ status }: { status: string }) {
 
 export default function ExchangeListingDetail() {
   const { category, listingId } = useParams<{ category: string; listingId: string }>();
-  const [routeLocation, navigate] = useLocation();
+  const [, navigate] = useLocation();
   const isPublicStone = isPublicStoneId(listingId);
-  const routeSearch = routeLocation.includes("?") ? routeLocation.slice(routeLocation.indexOf("?")) : window.location.search;
+  // Wouter's location hook tracks pathname; search changes need their own subscription.
+  const routeSearch = useSearch();
   const selectedMarketSearch = isPublicStone ? selectedStoneAudienceSearch(routeSearch) : null;
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const stoneViewerKey = isPublicStone ? [
+    authLoading ? "auth-pending" : isAuthenticated ? String(user?.id || "authenticated") : "guest",
+    isAuthenticated ? String(user?.city || "") : "",
+    isAuthenticated ? String(user?.stateCode || user?.state_code || user?.state || "") : "",
+    isAuthenticated ? String(user?.countryCode || user?.country_code || user?.country || "") : "",
+  ] : null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -190,8 +197,11 @@ export default function ExchangeListingDetail() {
     isLoading,
     isError,
   } = useQuery<ListingDetail>({
-    queryKey: ["/api/marketplace/listings", listingId, isPublicStone ? selectedMarketSearch ?? routeSearch : ""],
+    queryKey: isPublicStone
+      ? ["/api/marketplace/listings", listingId, selectedMarketSearch ?? routeSearch, stoneViewerKey]
+      : ["/api/marketplace/listings", listingId, ""],
     queryFn: async () => {
+      if (isPublicStone && authLoading) throw new Error("Viewer location is still loading");
       if (isPublicStone && !selectedMarketSearch) throw new Error("Select a stone market first");
       const res = await fetch(`/api/marketplace/listings/${encodeURIComponent(listingId ?? "")}${isPublicStone ? selectedMarketSearch : ""}`);
       if (!res.ok) throw new Error("Listing not found");
@@ -244,7 +254,7 @@ export default function ExchangeListingDetail() {
         publicDetailPath: publicDetailPath ?? undefined,
       } as ListingDetail;
     },
-    enabled: Boolean(listingId) && (!isPublicStone || selectedMarketSearch !== null),
+    enabled: Boolean(listingId) && (!isPublicStone || (selectedMarketSearch !== null && !authLoading)),
     retry: isPublicStone ? false : undefined,
   });
 
@@ -466,7 +476,7 @@ export default function ExchangeListingDetail() {
   const listingType: string = listing?.listingType ?? listing?.specifications?.listingType ?? "";
 
   // ── Loading / error states ─────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading || (isPublicStone && authLoading)) {
     return (
       <div className="min-h-full flex items-center justify-center">
         <div className="animate-pulse text-white/40 text-sm">Loading listing…</div>
