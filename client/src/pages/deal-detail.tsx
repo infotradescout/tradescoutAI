@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { formatPostedDealEndTime } from "@shared/scoutDealDisplay";
 
 const DEAL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COUNTY_FIPS = /^\d{5}$/;
@@ -65,6 +66,7 @@ export default function DealDetail() {
 
   const deal = data?.deal;
   const endDate = availableDate(deal?.endsAt ?? null);
+  const postedEndTime = formatPostedDealEndTime(endDate);
   const startDate = availableDate(deal?.startsAt ?? null);
   const scopeMatches =
     deal?.scope === "global" || (deal?.scope === "county" && countyFips !== null);
@@ -141,13 +143,12 @@ export default function DealDetail() {
               <div className="mt-5 space-y-1 text-sm text-muted-foreground">
                 <p data-testid="deal-detail-scope">
                   {deal.scope === "global"
-                    ? "Not limited to one county"
-                    : "Available in the selected county"}
+                    ? "Listed for all counties"
+                    : "Listed for the selected county"}
                 </p>
-                {endDate ? (
+                {endDate && postedEndTime ? (
                   <p>
-                    Posted end date:{" "}
-                    <time dateTime={endDate.toISOString()}>{endDate.toLocaleDateString()}</time>
+                    Posted end time: <time dateTime={endDate.toISOString()}>{postedEndTime}</time>
                   </p>
                 ) : null}
               </div>

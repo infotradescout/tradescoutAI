@@ -23,7 +23,7 @@ const postedDeal: ScoutDealCandidate = {
   status: "active",
   placementScout: true,
   startsAt: new Date("2026-09-22T00:00:00.000Z"),
-  endsAt: new Date("2026-09-30T00:00:00.000Z"),
+  endsAt: new Date("2026-10-01T06:32:45.000Z"),
   countyFips: ["04013"],
   createdAt: new Date("2026-09-21T00:00:00.000Z"),
 };
@@ -181,7 +181,7 @@ describe("Scout county lookup", () => {
     );
     expect(isEligibleScoutDeal({ ...postedDeal, exclusive: false }, "04013", dealNow)).toBe(false);
     expect(isEligibleScoutDeal({ ...postedDeal, status: "paused" }, "04013", dealNow)).toBe(false);
-    expect(isEligibleScoutDeal(postedDeal, "04013", new Date("2026-10-01T00:00:00.000Z"))).toBe(
+    expect(isEligibleScoutDeal(postedDeal, "04013", new Date("2026-10-02T00:00:00.000Z"))).toBe(
       false
     );
     expect(isEligibleScoutDeal(postedDeal, "04013", new Date("2026-09-20T00:00:00.000Z"))).toBe(
@@ -225,6 +225,7 @@ describe("Scout county lookup", () => {
     );
     expect(result.message).toContain("1 posted Scout TradeDeal");
     expect(result.message).toContain("terms and availability are not independently verified");
+    expect(result.entities[1]?.match_reasons).toContain("Posted end time: 2026-10-01 06:32 UTC");
     expect(result.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

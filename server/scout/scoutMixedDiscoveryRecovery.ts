@@ -1,4 +1,5 @@
 import { buildCommunityPostPath } from "../../shared/communityPostShare";
+import { formatPostedDealEndTime } from "../../shared/scoutDealDisplay";
 import {
   buildScoutDealPath,
   isEligibleScoutDeal,
@@ -73,7 +74,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
           match_reasons: [
             "Promotional TradeDeal; terms and availability are not independently verified",
             deal.countyFips.length === 0 ? "Listed for all counties" : "Listed for your county",
-            ...(deal.endsAt ? [`Listed end date: ${deal.endsAt.toISOString().slice(0, 10)}`] : []),
+            ...(deal.endsAt ? [`Posted end time: ${formatPostedDealEndTime(deal.endsAt)}`] : []),
           ],
         },
       ];
