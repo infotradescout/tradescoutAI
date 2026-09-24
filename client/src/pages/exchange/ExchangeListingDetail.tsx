@@ -114,6 +114,7 @@ type ListingDetail = {
   sourceType?: string;
   profileOfferId?: string;
   publicProfilePath?: string;
+  publicDetailPath?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -497,18 +498,37 @@ export default function ExchangeListingDetail() {
           .split(",")
           .map((size: string) => `${size.trim().replace(/\s*[x×]\s*/i, " × ")} in`)
       : [];
+  const retailPublicPath = stoneInquiry.isRetail ? listing.publicDetailPath : null;
+  const retailShareTitle = stoneInquiry.isRetail
+    ? stoneSlabPrice?.kind === "size_required"
+      ? `Slab price TBD — ${retailTitle}`
+      : stoneSlabPrice
+        ? `${stoneSlabPrice.primaryPrice} ${stoneSlabPrice.kind === "estimated" ? "estimated " : ""}full slab — ${retailTitle}`
+        : `Confirm slab material price — ${retailTitle}`
+    : `${retailTitle} — TradeScout Exchange`;
+  const retailDescription = stoneSlabPrice?.kind === "size_required"
+    ? `Slab price TBD. Published material rate ${stoneSlabPrice.primaryPrice}. Ask TradeScout to confirm the selected slab and delivery.`
+    : stoneSlabPrice
+      ? `${stoneSlabPrice.primaryLabel}: ${stoneSlabPrice.primaryPrice}.${stoneSlabPrice.secondaryPrice ? ` Material rate ${stoneSlabPrice.secondaryPrice}.` : ""} Ask TradeScout to confirm the selected slab and delivery.`
+      : `Ask TradeScout to confirm the slab material price and delivery.`;
+  const retailImage = stoneInquiry.isRetail && retailPublicPath && photos[0]?.startsWith("/api/exchange/stone-media/")
+    ? `${photos[0]}${new URL(retailPublicPath, window.location.origin).search}`
+    : photos[0];
 
   return (
     <>
       <SEOHelmet
-        title={`${retailTitle} — TradeScout Exchange`}
+        title={retailShareTitle}
         description={
           stoneInquiry.isRetail
-            ? `${retailTitle} stone material. Review the recorded slab sizes and material price, then ask TradeScout to confirm the selected slab and delivery.`
+            ? retailDescription
             : listing.description.slice(0, 160)
         }
-        canonical={`/exchange/${resolvedCategory}/${listing.id}`}
-        ogImage={photos[0]}
+        canonical={stoneInquiry.isRetail ? retailPublicPath || "/exchange/stone" : `/exchange/${resolvedCategory}/${listing.id}`}
+        preserveCanonicalQuery={stoneInquiry.isRetail}
+        robots={stoneInquiry.isRetail ? "noindex, follow" : undefined}
+        omitCanonical={stoneInquiry.isRetail}
+        ogImage={retailImage}
         keywords={[categoryConfig?.name ?? "", listing.brand ?? "", listing.condition]
           .filter(Boolean)
           .join(", ")}
@@ -550,13 +570,14 @@ export default function ExchangeListingDetail() {
               variant="ghost"
               aria-label="Share listing"
               className="h-11 w-11 p-0 text-white/50 hover:text-white"
+              disabled={stoneInquiry.isRetail && !retailPublicPath}
               onClick={() =>
                 share({
                   title: listing.title,
                   text: isProfileCatalog
                     ? `${listing.title} — catalog inquiry through TradeScout`
                     : `${listing.title} — ${displayedPrice}`,
-                  url: `${window.location.origin}/exchange/${resolvedCategory}/${listing.id}`,
+                  url: `${window.location.origin}${retailPublicPath || `/exchange/${resolvedCategory}/${listing.id}`}`,
                 })
               }
             >

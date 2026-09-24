@@ -128,6 +128,7 @@ interface ExchangeItem {
   profileOfferId?: string;
   profileItemSlug?: string;
   publicProfilePath?: string;
+  publicDetailPath?: string;
 }
 
 interface ExchangePromotion {
@@ -1399,7 +1400,9 @@ export default function Exchange() {
                         : null;
                       const detailCategory = item.category || "other";
                       const detailPath =
-                        isProfileCatalog && item.profileItemSlug && item.publicProfilePath
+                        isRetailStone && item.publicDetailPath
+                          ? item.publicDetailPath
+                          : isProfileCatalog && item.profileItemSlug && item.publicProfilePath
                           ? item.publicProfilePath
                           : `/exchange/${detailCategory}/${encodeURIComponent(item.id)}`;
                       return (

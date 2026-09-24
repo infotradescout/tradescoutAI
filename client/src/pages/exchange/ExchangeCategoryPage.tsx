@@ -74,6 +74,7 @@ type ExchangeItem = {
   profileOfferId?: string;
   profileItemSlug?: string;
   publicProfilePath?: string;
+  publicDetailPath?: string;
   // Category-specific spec fields
   year?: number;
   mileage?: number;
@@ -663,7 +664,9 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                       )
                     : null;
                   const detailPath =
-                    isProfileCatalog && item.profileItemSlug && item.publicProfilePath
+                    isRetailStone && item.publicDetailPath
+                      ? item.publicDetailPath
+                      : isProfileCatalog && item.profileItemSlug && item.publicProfilePath
                       ? item.publicProfilePath
                       : `/exchange/${config.slug}/${encodeURIComponent(item.id)}`;
                   return (
