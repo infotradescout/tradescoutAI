@@ -7,6 +7,19 @@ import test from "node:test";
 const root = process.cwd();
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const allowedMigrationRecord = "docs/audits/DEPENDENCY_MANAGER_MIGRATION.md";
+const infinityReuseProof = "vendor/infinity/reuse-proof.json";
+const historicalInfinityInstall = "corepack pnpm install --frozen-lockfile";
+const forbiddenManager = /(?:^|[\s"'`])(?:pnpm|yarn)(?:\s|$)/m;
+
+function authorityScanContent(relative, content) {
+  if (relative !== infinityReuseProof) return content;
+  const proof = JSON.parse(content);
+  // This one field records how Infinity's source was installed, not TradeScout guidance.
+  if (proof?.checks?.sourceRepository?.install === historicalInfinityInstall) {
+    proof.checks.sourceRepository.install = "[historical source installation]";
+  }
+  return JSON.stringify(proof);
+}
 
 function trackedFiles() {
   return execFileSync("git", ["ls-files", "-co", "--exclude-standard"], {
@@ -26,6 +39,18 @@ test("npm and package-lock are the only package-manager authority", () => {
   }
 });
 
+test("Infinity's recorded source install does not exempt other package-manager guidance", () => {
+  const proof = JSON.parse(fs.readFileSync(path.join(root, infinityReuseProof), "utf8"));
+  assert.equal(proof.checks.sourceRepository.install, historicalInfinityInstall);
+  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, JSON.stringify(proof))), false);
+
+  proof.checks.sourceRepository.install = "corepack yarn install";
+  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, JSON.stringify(proof))), true);
+  proof.checks.sourceRepository.install = historicalInfinityInstall;
+  proof.consumerInstructions = "Use pnpm install";
+  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, JSON.stringify(proof))), true);
+});
+
 test("tracked commands and guidance do not reintroduce pnpm or yarn", () => {
   const violations = [];
   for (const relative of trackedFiles()) {
@@ -35,8 +60,8 @@ test("tracked commands and guidance do not reintroduce pnpm or yarn", () => {
     if (/^(?:package-lock\.json|runtime\/package-lock\.json)$/.test(relative)) continue;
     const absolute = path.join(root, relative);
     if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
-    const content = fs.readFileSync(absolute, "utf8");
-    if (/(?:^|[\s"'`])(?:pnpm|yarn)(?:\s|$)/m.test(content)) violations.push(relative);
+    const content = authorityScanContent(relative, fs.readFileSync(absolute, "utf8"));
+    if (forbiddenManager.test(content)) violations.push(relative);
   }
   assert.deepEqual(violations, []);
 });
