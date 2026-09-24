@@ -113,10 +113,18 @@ try {
     assert.equal(next, `${listingPath}?inquiry=${intent}&audienceState=TX&audienceCountry=US`);
     assert.equal(new URL(next, firstBase).origin, firstBase, 'Auth return must stay on this application');
     assert.equal(new URL(next, firstBase).searchParams.getAll('inquiry').length, 1);
-    // Authenticate through the real cookie API, then use the actual saved return URL and draft restoration.
-    await login(ctx, device);
-    await page.goto(firstBase + next, { waitUntil: 'domcontentloaded' });
+    // Use the real sign-in screen so its session refresh and redirect preserve the selected market.
+    await page.getByTestId('login-email').fill(fixture.accounts[device].email);
+    await page.getByTestId('login-password').fill(fixture.accounts[device].password);
+    const signInResponse = page.waitForResponse(response =>
+      response.url().includes('/api/auth/login') && response.request().method() === 'POST');
+    await page.getByTestId('login-submit').click();
+    assert.equal((await signInResponse).status(), 200, 'Real sign-in screen must authenticate');
+    await page.waitForURL(url => url.pathname + url.search === next);
+    assert.equal(new URL(page.url()).pathname + new URL(page.url()).search, next);
     await dialog.waitFor(); assert.equal(await dialog.locator('textarea').inputValue(), exactMessage);
+    assert.equal(Number((await client.query('SELECT count(*) AS n FROM marketplace_inquiries WHERE buyer_id=$1',
+      [fixture.accounts[device].id])).rows[0].n), 0, 'Returning from sign-in must not send an inquiry');
     assert.equal(await page.locator('#start-guide-title').count(), 0, 'Start Guide must not interrupt a selected stone inquiry');
     assert.equal(await page.evaluate(() => localStorage.getItem('ts:start-guide-seen-v1')), null, 'Deferring the guide must not mark it seen');
     await dialog.evaluate(element => Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished)));
@@ -146,7 +154,8 @@ try {
     assert.equal(Number((await client.query('SELECT count(*) AS n FROM notifications WHERE id=$1 AND user_id=$2', [receipt.notificationId, fixture.accounts.seller.id])).rows[0].n), 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2), false);
     assert.deepEqual(errors, []);
-    report.browser.push({ device, passed: true, restoredExactDraft: true, connectedToSeller: true, lostResponseReplay: device === 'desktop' });
+    report.browser.push({ device, passed: true, signedInThroughScreen: true, restoredExactDraft: true,
+      connectedToSeller: true, lostResponseReplay: device === 'desktop' });
     await ctx.close();
     record(device + ': actual built screen preserves draft through cookie sign-in and sends one saved seller inquiry');
   }
