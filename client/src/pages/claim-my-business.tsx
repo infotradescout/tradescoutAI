@@ -573,7 +573,14 @@ export default function ClaimMyBusinessPage() {
                         <Button variant="outline" className="w-full sm:w-auto" onClick={() => startSigninWithClaim(item.id)}>
                           {text("Sign in", "Iniciar sesión")}
                         </Button>
-                        <Button className="w-full bg-ts-orange text-white hover:bg-ts-orange-dark sm:w-auto" onClick={() => startSignupWithClaim(item.id)}>
+                        <Button
+                          className="w-full sm:w-auto"
+                          style={{
+                            backgroundColor: "var(--theme-accent-primary)",
+                            color: "var(--ts-text-on-accent, #2b2b2b)",
+                          }}
+                          onClick={() => startSignupWithClaim(item.id)}
+                        >
                           <ArrowRight className="h-4 w-4 mr-2" />
                           {text("Sign up", "Crear cuenta")}
                         </Button>
