@@ -654,7 +654,9 @@ export default function PreScoutSetup() {
         userIntent: "",
         acceptTerms: true,
         allowPhoneCalls: false,
-        ...(recommendationNext ? { next: recommendationNext } : {}),
+        ...(recommendationNext || postSetupNext
+          ? { next: recommendationNext || postSetupNext }
+          : {}),
         ...(claimBusinessId ? { claimBusinessId } : {}),
       });
 
@@ -662,7 +664,7 @@ export default function PreScoutSetup() {
         await refreshAuthenticatedAccount();
         void trackDemandEvent("create_success", { mode: "create", verificationRequired: true });
         const emailParam = `email=${encodeURIComponent(email)}`;
-        const nextValue = encodeURIComponent(buildAuthReturnPath("create"));
+        const nextValue = encodeURIComponent(postSetupNext);
         navigate(`/check-email?${emailParam}&next=${nextValue}`);
         return;
       }
