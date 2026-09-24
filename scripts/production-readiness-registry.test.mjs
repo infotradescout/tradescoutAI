@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  CANONICAL_OBJECTS,
   PR_RECOVERY_DISPOSITIONS,
   resolveApiRoute,
   resolveClientRoute,
@@ -63,6 +64,29 @@ test("operational business and growth tools keep their exact role boundaries", (
 
   assert.equal(routes.get("/notes")?.access, "protected");
   assert.deepEqual(routes.get("/notes")?.requiredRoles, []);
+});
+
+test("public TradeDeal detail has exact route ownership without widening exposure", () => {
+  const routes = extractLiteralClientRoutes(read("client/src/AppRoutes.tsx"));
+  const detail = routes.find((entry) => entry.path === "/deals/:id");
+  assert.equal(detail?.access, "public");
+  assert.equal(resolveClientRoute(detail.path)?.id, "exchange-deal-detail");
+  assert.equal(resolveClientRoute(detail.path)?.readiness, "public_beta");
+  assert.equal(resolveClientRoute(detail.path)?.canonicalObject, "promotion");
+  assert.deepEqual(CANONICAL_OBJECTS.promotion, {
+    owner: "exchange",
+    source: "shared/schema.ts",
+    authority: "server",
+  });
+  assert.deepEqual(validateRouteExposure({ routeEntries: [detail], policies: [] }), []);
+
+  assert.equal(
+    resolveClientRoute("/deals/11111111-2222-4333-8444-555555555555")?.id,
+    "exchange-deal-detail"
+  );
+  for (const path of ["/deals", "/deals/not-a-uuid", "/deals/:id/private"]) {
+    assert.equal(resolveClientRoute(path), null, path);
+  }
 });
 
 test("landed Release 0 recoveries retain exact main ancestry and replacement linkage", () => {
