@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "../app";
 import { storage } from "../storage";
+import { emailService, type SendEmailParams } from "../services/emailService";
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const authFlowTimeoutMs = 45_000;
@@ -20,6 +21,66 @@ if (!hasTestDb) {
   });
 
   describe("Auth: Register + Session + Verify Email", () => {
+    it(
+      "preserves a selected stone in initial and resend verification links without allowing auth-loop next paths",
+      async () => {
+        const email = `stone-buyer+${crypto.randomUUID()}@tradescout.test`;
+        const stonePath = "/exchange/building-materials/tradescout-stone-taj-mahal?inquiry=availability&audienceState=TX&audienceCountry=US";
+        const sent: SendEmailParams[] = [];
+        const sendSpy = vi.spyOn(emailService, "sendEmail").mockImplementation(async (message) => {
+          sent.push(message);
+          return { skipped: true, provider: "none" };
+        });
+        const verificationLink = (purpose: string): URL => {
+          const emailMessage = sent.filter((message) => message.to === email && message.purpose === purpose).at(-1);
+          expect(emailMessage?.text).toContain("Verify your TradeScout email: ");
+          return new URL(String(emailMessage?.text).split("Verify your TradeScout email: ")[1]);
+        };
+        try {
+          const agent = request.agent(app);
+          const registered = await agent.post("/api/auth/register").send({
+            email,
+            password: `P@ssw0rd-${crypto.randomUUID()}`,
+            firstName: "Stone",
+            lastName: "Buyer",
+            phone: "(555) 123-4567",
+            acceptTerms: true,
+            userTypes: ["homeowner"],
+            next: stonePath,
+          });
+          expect(registered.status).toBe(200);
+          expect(registered.body.emailVerificationRequired).toBe(true);
+          expect(verificationLink("account_creation").searchParams.get("next")).toBe(stonePath);
+
+          const resent = await request(app).post("/api/auth/request-email-verification").send({
+            email,
+            next: stonePath,
+          });
+          expect(resent.status).toBe(200);
+          expect(verificationLink("email_verification").searchParams.get("next")).toBe(stonePath);
+
+          const rejected = await request(app).post("/api/auth/request-email-verification").send({
+            email,
+            next: "/check-email?next=//elsewhere.example",
+          });
+          expect(rejected.status).toBe(200);
+          const recoveryLink = verificationLink("email_verification");
+          expect(recoveryLink.searchParams.get("next")).toBe("/pre-scout-setup");
+
+          const verified = await agent.post("/api/auth/verify-email").send({
+            token: recoveryLink.searchParams.get("token"),
+          });
+          expect(verified.status).toBe(200);
+          const account = await agent.get("/api/auth/user");
+          expect(account.body.authenticated).toBe(true);
+          expect(account.body.user.emailVerified).toBe(true);
+        } finally {
+          sendSpy.mockRestore();
+        }
+      },
+      authFlowTimeoutMs
+    );
+
     it(
       "registers, establishes session, and verifies email",
       async () => {
