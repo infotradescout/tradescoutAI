@@ -431,7 +431,9 @@ export function isDirectConnectJobDeepLinkPath(path: string): boolean {
   try {
     const url = new URL(path, "https://www.thetradescout.com");
     return (
-      (url.pathname === "/direct-connect/active" || url.pathname === "/direct-connect/engagements") &&
+      (url.pathname === "/direct-connect/active" ||
+        url.pathname === "/direct-connect/engagements" ||
+        url.pathname === "/direct-connect/inbox") &&
       Boolean(url.searchParams.get("jobWorkspaceId")?.trim())
     );
   } catch {
