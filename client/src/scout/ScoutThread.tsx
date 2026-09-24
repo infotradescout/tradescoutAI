@@ -119,6 +119,14 @@ function trimToSummary(content: string): string {
 
 function mixedDiscoverySummary(content: string): string {
   const clean = content.replace(/\s+/g, " ").trim();
+  if (
+    /^Set your county to browse nearby posts\./i.test(clean) &&
+    /does not verify county posts, deals, businesses, pages, tools, or requests/i.test(clean) &&
+    /nothing was sent/i.test(clean)
+  ) {
+    return "Set your county to browse nearby posts. Posts, deals, businesses, pages, tools and requests unchecked. Nothing sent.";
+  }
+
   const found = clean.match(
     /^This Scout result includes (\d+) published county (post|posts) from the last 7 days in (.+?)\./i
   );

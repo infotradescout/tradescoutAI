@@ -297,6 +297,58 @@ describe("ScoutThread evidence strip", () => {
     expect(summary).not.toContain("This Scout result");
   });
 
+  it("keeps the county setup action and nothing-sent truth in the collapsed answer", () => {
+    const response =
+      "Set your county to browse nearby posts. This Scout result does not verify county posts, deals, businesses, pages, tools, or requests. Nothing was sent.";
+    const message: ScoutMessage = {
+      id: "a_county_missing",
+      role: "assistant",
+      content: response,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [],
+        evidence: [],
+        answer: response,
+        allowed_actions: [
+          {
+            action_id: "set_local_area",
+            type: "NAVIGATE",
+            label: "Set my local area",
+            target: "/settings",
+            primary: true,
+            requires_confirmation: false,
+          },
+        ],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(
+      React.createElement(ScoutThread, {
+        messages: [message],
+        status: "idle",
+        onAction: () => undefined,
+      })
+    );
+
+    const summary = container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
+    expect(summary.length).toBeLessThanOrEqual(150);
+    expect(summary).toContain("Set your county");
+    expect(summary).toContain("deals, businesses, pages, tools and requests unchecked");
+    expect(summary).toContain("Nothing sent");
+    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain(
+      "More detail"
+    );
+    const setupAction = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Set my local area")
+    );
+    expect(setupAction).toBeDefined();
+    expect(setupAction?.disabled).toBe(false);
+  });
+
   it("renders one enabled promoted action while preserving distinct thread actions", () => {
     const currentPrimaryAction: ScoutAction = {
       type: "NAVIGATE",
