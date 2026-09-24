@@ -225,7 +225,10 @@ describe("Scout county lookup", () => {
     );
     expect(result.message).toContain("1 posted Scout TradeDeal");
     expect(result.message).toContain("terms and availability are not independently verified");
-    expect(result.entities[1]?.match_reasons).toContain("Posted end time: 2026-10-01 06:32 UTC");
+    expect(result.entities[1]?.match_reasons).toEqual(
+      expect.arrayContaining([expect.stringContaining("when the offer ends")])
+    );
+    expect(JSON.stringify(result.entities[1])).not.toMatch(/2026-10-01|UTC/);
     expect(result.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

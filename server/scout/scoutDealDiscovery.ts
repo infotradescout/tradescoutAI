@@ -67,9 +67,6 @@ export function toScoutDealPublicView(row: ScoutDealCandidate) {
     id: row.id,
     title: row.title.trim(),
     description: row.shortDescription.trim(),
-    startsAt: row.startsAt?.toISOString() ?? null,
-    endsAt: row.endsAt?.toISOString() ?? null,
-    postedAt: row.createdAt?.toISOString() ?? null,
     scope: row.countyFips.length === 0 ? "global" : "county",
     source: "TradeScout posted promotion",
   };

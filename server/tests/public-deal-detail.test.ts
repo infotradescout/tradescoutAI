@@ -43,9 +43,6 @@ describe("public Scout TradeDeal detail", () => {
       id: DEAL_ID,
       title: "County tool rental offer",
       description: "Posted offer terms for this county.",
-      startsAt: "2020-01-01T00:00:00.000Z",
-      endsAt: "2099-01-01T00:00:00.000Z",
-      postedAt: "2026-09-23T00:00:00.000Z",
       scope: "county",
       source: "TradeScout posted promotion",
     });
