@@ -2,12 +2,13 @@ import express from "express";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { resolveKnowledgeMock, getOnboardingSessionMock, governMock, publicDirectoryMock } = vi.hoisted(() => ({
-  resolveKnowledgeMock: vi.fn(),
-  getOnboardingSessionMock: vi.fn(),
-  governMock: vi.fn(),
-  publicDirectoryMock: vi.fn(),
-}));
+const { resolveKnowledgeMock, getOnboardingSessionMock, governMock, publicDirectoryMock } =
+  vi.hoisted(() => ({
+    resolveKnowledgeMock: vi.fn(),
+    getOnboardingSessionMock: vi.fn(),
+    governMock: vi.fn(),
+    publicDirectoryMock: vi.fn(),
+  }));
 
 vi.mock("../services/knowledgeService", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -169,14 +170,22 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.answer).toContain("none were returned");
     expect(response.body.answer).toContain("no eligible TradeDeals were returned");
     expect(response.body.answer).toContain("Other deal sources were not checked");
-    expect(response.body.answer).toContain("public business profiles for Maricopa County, AZ; none were returned");
+    expect(response.body.answer).toContain(
+      "public business profiles for Maricopa County, AZ; none were returned"
+    );
     expect(response.body.allowed_actions.length).toBeGreaterThan(0);
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          label: "Draft a request for my county",
+          target: "/direct-connect?source=scout",
+          payload: { countyFips: "04013" },
+          primary: true,
+        }),
+        expect.objectContaining({
           label: "Browse recent Community beyond my county",
           target: "/community-feed?geo=global&feed=recent",
-          primary: true,
+          primary: false,
         }),
         expect.objectContaining({ label: "Change my area", target: "/settings" }),
         expect.objectContaining({ label: "Browse Businesses", target: "/contractors" }),
@@ -230,7 +239,9 @@ describe("Scout mixed county discovery route", () => {
         url: "/business/maricopa-repair",
       }),
     ]);
-    expect(response.body.answer).toContain("public business profile listed for Maricopa County, AZ");
+    expect(response.body.answer).toContain(
+      "public business profile listed for Maricopa County, AZ"
+    );
     expect(response.body.answer).toContain("were not filtered to this week");
     expect(response.body.knowledge.sources).toContain("TradeScout public business directory");
     expect(JSON.stringify(response.body)).not.toMatch(/private_owner|private_phone|Other County/);
@@ -252,8 +263,20 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.answer).toContain(
       "Public business profiles for Maricopa County, AZ could not be checked right now"
     );
-    expect(response.body.answer).not.toContain("public business profiles for Maricopa County, AZ; none were returned");
+    expect(response.body.answer).not.toContain(
+      "public business profiles for Maricopa County, AZ; none were returned"
+    );
     expect(response.body.entities).toEqual([]);
+    expect(response.body.allowed_actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "ASK_SCOUT",
+          label: "Retry local search",
+          primary: true,
+        }),
+      ])
+    );
+    expect(response.body.allowed_actions[0]?.prompt).toContain("public business profiles");
   });
 
   it("describes only the county post cards it actually returns", async () => {
@@ -342,7 +365,7 @@ describe("Scout mixed county discovery route", () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: "ASK_SCOUT",
-          label: "Retry local posts and deals",
+          label: "Retry local search",
           primary: true,
         }),
       ])

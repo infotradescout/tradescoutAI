@@ -100,6 +100,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
         Boolean(business.id) &&
         Boolean(String(business.name || "").trim()) &&
         /^[a-z0-9][a-z0-9-]{0,119}$/i.test(slug) &&
+        slug.toLowerCase() !== "requests" &&
         Array.isArray(business.counties) &&
         business.counties.some(
           (county) =>
@@ -130,6 +131,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     dealEntities.length === 0 &&
     input.businessCheck === "checked" &&
     businessEntities.length === 0;
+  const canDraftCountyRequest = checkedEmpty && /^\d{5}$/.test(input.countyFips);
 
   const firstSentence = postEntities.length
     ? `This Scout result includes ${postEntities.length} published county ${postEntities.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
@@ -193,10 +195,21 @@ export function buildScoutMixedDiscoveryRecovery(input: {
         ? [
             {
               type: "ASK_SCOUT",
-              label: "Retry local posts and deals",
+              label: "Retry local search",
               prompt:
-                "Search TradeScout and my area for posts & deals. Include matching pages, tools and requests.",
+                "Search TradeScout and my area for posts & deals and public business profiles. Include matching pages, tools and requests.",
               primary: entities.length === 0,
+            },
+          ]
+        : []),
+      ...(canDraftCountyRequest
+        ? [
+            {
+              type: "NAVIGATE",
+              label: "Draft a request for my county",
+              to: "/direct-connect?source=scout",
+              payload: { countyFips: input.countyFips },
+              primary: true,
             },
           ]
         : []),
@@ -206,7 +219,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
         to: checkedEmpty
           ? "/community-feed?geo=global&feed=recent"
           : "/community-feed?geo=local&feed=recent",
-        primary: checkedEmpty,
+        primary: checkedEmpty && !canDraftCountyRequest,
       },
       { type: "NAVIGATE", label: "Browse Businesses", to: "/contractors" },
       ...(checkedEmpty ? [{ type: "NAVIGATE", label: "Change my area", to: "/settings" }] : []),

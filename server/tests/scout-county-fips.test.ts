@@ -112,6 +112,10 @@ describe("Scout county lookup", () => {
         "Search TradeScout and my area for posts & deals. Include matching pages, tools and requests."
       )
     ).toBe(true);
+    const retryPrompt =
+      "Search TradeScout and my area for posts & deals and public business profiles. Include matching pages, tools and requests.";
+    expect(isMixedScoutDiscoveryRequest(retryPrompt)).toBe(true);
+    expect(requiresFreshScoutDiscovery(retryPrompt)).toBe(true);
   });
 
   it("shows only dated, published county post evidence and working next surfaces", () => {
@@ -172,6 +176,7 @@ describe("Scout county lookup", () => {
         { id: "one", name: "Repair One", slug: "repair-one", counties: [{ fips: "04013" }] },
         { id: "other", name: "Other County", slug: "other", counties: [{ fips: "06037" }] },
         { id: "unsafe", name: "Unsafe", slug: "../unsafe", counties: [{ fips: "04013" }] },
+        { id: "reserved", name: "Requests Route", slug: "requests", counties: [{ fips: "04013" }] },
       ],
     });
 
@@ -188,7 +193,40 @@ describe("Scout county lookup", () => {
         expect.objectContaining({ to: "/business/repair-one", primary: true }),
       ])
     );
-    expect(JSON.stringify(result)).not.toMatch(/Other County|\.\.\/unsafe/);
+    expect(JSON.stringify(result)).not.toMatch(
+      /Other County|\.\.\/unsafe|Requests Route|\/business\/requests/
+    );
+  });
+
+  it("opens a county-bound private draft only after an all-source checked-empty result", () => {
+    const result = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      postCheck: "checked",
+      communityPosts: [],
+      dealCheck: "checked",
+      deals: [],
+      businessCheck: "checked",
+      businesses: [],
+    });
+
+    expect(result.entities).toEqual([]);
+    expect(result.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "NAVIGATE",
+          label: "Draft a request for my county",
+          to: "/direct-connect?source=scout",
+          payload: { countyFips: "04013" },
+          primary: true,
+        }),
+        expect.objectContaining({
+          label: "Browse recent Community beyond my county",
+          primary: false,
+        }),
+      ])
+    );
+    expect(result.actions.filter((action) => action.primary)).toHaveLength(1);
   });
 
   it("does not imply a county search when no county is set", () => {
@@ -351,7 +389,7 @@ describe("Scout county lookup", () => {
     expect(error.entities).toEqual([]);
     expect(error.actions).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local posts and deals" }),
+        expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local search" }),
       ])
     );
   });
