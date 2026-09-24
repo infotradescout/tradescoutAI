@@ -164,6 +164,7 @@ router.get("/api/businesses", async (req, res, next) => {
 
   // Only cache safe, public GETs (no user context)
   const cacheParams = {
+    public: "1",
     countyFips: req.query.countyFips ?? req.query.county ?? req.query.county_fips,
     stateCode: req.query.stateCode ?? req.query.state ?? req.query.state_code,
     claimed: req.query.claimed,
@@ -174,7 +175,19 @@ router.get("/api/businesses", async (req, res, next) => {
     offset: req.query.offset ?? 0,
   };
 
-  const result = await getCachedOrCompute("/api/businesses", cacheParams, async () => {
+  const result = await listPublicDirectoryBusinesses(cacheParams);
+  return res.status(result.status).json(result.body);
+});
+
+// Scout uses this same public-only directory query as /api/businesses?public=1.
+// Keep publication, county, and response-field gates in one place.
+export async function listPublicDirectoryBusinesses(
+  cacheParams: Record<string, unknown>
+): Promise<PublicDirectoryResponse> {
+  if (cacheParams.public !== "1") {
+    return { status: 400, body: { message: "Public directory view is required" } };
+  }
+  return getCachedOrCompute("/api/businesses", cacheParams, async () => {
     try {
       const countyFips = normalizeCountyFips(cacheParams.countyFips);
       const stateCode = normalizeStateCode(cacheParams.stateCode);
@@ -318,8 +331,7 @@ router.get("/api/businesses", async (req, res, next) => {
       return { status: 500, body: { message: "Failed to list businesses" } };
     }
   });
-  return res.status(result.status).json(result.body);
-});
+}
 
 // Public-safe directory detail by id (matches owner route path, but only handles unauth requests).
 router.get("/api/businesses/:id", async (req, res, next) => {

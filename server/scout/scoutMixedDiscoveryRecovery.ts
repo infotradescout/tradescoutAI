@@ -13,6 +13,13 @@ type CountyPost = {
   hasWorkRequest?: unknown;
 };
 
+type PublicCountyBusiness = {
+  id?: unknown;
+  name?: unknown;
+  slug?: unknown;
+  counties?: unknown;
+};
+
 function displayArea(countyLabel: string | undefined): string {
   const value = String(countyLabel || "").trim();
   return /^[a-z .'-]+, [a-z]{2}$/i.test(value) && value.length <= 80 ? value : "your county";
@@ -25,6 +32,8 @@ export function buildScoutMixedDiscoveryRecovery(input: {
   postCheck?: "not_checked" | "checked" | "error";
   deals?: ScoutDealCandidate[];
   dealCheck?: "not_checked" | "checked" | "error";
+  businesses?: PublicCountyBusiness[];
+  businessCheck?: "not_checked" | "checked" | "error";
   now?: Date;
 }) {
   if (!input.countyFips) {
@@ -84,13 +93,43 @@ export function buildScoutMixedDiscoveryRecovery(input: {
         },
       ];
     });
-  const entities = [...postEntities, ...dealEntities];
-  const sourceError = postCheck === "error" || input.dealCheck === "error";
+  const businessEntities = (input.businessCheck === "checked" ? input.businesses || [] : [])
+    .filter((business) => {
+      const slug = String(business.slug || "").trim();
+      return (
+        Boolean(business.id) &&
+        Boolean(String(business.name || "").trim()) &&
+        /^[a-z0-9][a-z0-9-]{0,119}$/i.test(slug) &&
+        Array.isArray(business.counties) &&
+        business.counties.some(
+          (county) =>
+            county &&
+            typeof county === "object" &&
+            String((county as { fips?: unknown }).fips || "") === input.countyFips
+        )
+      );
+    })
+    .slice(0, 2)
+    .map((business) => ({
+      id: String(business.id),
+      type: "business",
+      name: String(business.name).replace(/\s+/g, " ").trim().slice(0, 110),
+      url: `/business/${encodeURIComponent(String(business.slug).trim())}`,
+      match_reasons: [
+        `Public business profile listed for ${area}`,
+        "Check current services and availability before contact",
+      ],
+    }));
+  const entities = [...postEntities, ...dealEntities, ...businessEntities];
+  const sourceError =
+    postCheck === "error" || input.dealCheck === "error" || input.businessCheck === "error";
   const checkedEmpty =
     postCheck === "checked" &&
     postEntities.length === 0 &&
     input.dealCheck === "checked" &&
-    dealEntities.length === 0;
+    dealEntities.length === 0 &&
+    input.businessCheck === "checked" &&
+    businessEntities.length === 0;
 
   const firstSentence = postEntities.length
     ? `This Scout result includes ${postEntities.length} published county ${postEntities.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
@@ -107,9 +146,17 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       : input.dealCheck === "error"
         ? "Scout promotions could not be checked right now."
         : "It does not verify deals.";
+  const businessSentence =
+    input.businessCheck === "checked"
+      ? businessEntities.length
+        ? `Scout also found ${businessEntities.length} public business ${businessEntities.length === 1 ? "profile" : "profiles"} listed for ${area}. Business profiles were not filtered to this week; check current services and availability before contact.`
+        : `Scout checked public business profiles for ${area}; none were returned.`
+      : input.businessCheck === "error"
+        ? `Public business profiles for ${area} could not be checked right now.`
+        : "Businesses were not checked.";
 
   return {
-    message: `${firstSentence} ${dealSentence} Businesses, pages, tools, and other requests were not checked. Nothing was sent.`,
+    message: `${firstSentence} ${dealSentence} ${businessSentence} Pages, tools, and other requests were not checked. Nothing was sent.`,
     entities,
     actions: [
       ...(postEntities.length
@@ -129,6 +176,16 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               label: "Open promotional TradeDeal",
               to: dealEntities[0].url,
               primary: postEntities.length === 0,
+            },
+          ]
+        : []),
+      ...(businessEntities.length
+        ? [
+            {
+              type: "NAVIGATE",
+              label: "Open local business profile",
+              to: businessEntities[0].url,
+              primary: postEntities.length === 0 && dealEntities.length === 0,
             },
           ]
         : []),

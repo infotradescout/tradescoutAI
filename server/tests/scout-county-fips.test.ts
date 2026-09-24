@@ -132,9 +132,8 @@ describe("Scout county lookup", () => {
     expect(result.message).toContain("1 published county post from the last 7 days");
     expect(result.message).toContain("This Scout result includes");
     expect(result.message).toContain("It does not verify deals");
-    expect(result.message).toContain(
-      "Businesses, pages, tools, and other requests were not checked"
-    );
+    expect(result.message).toContain("Businesses were not checked");
+    expect(result.message).toContain("Pages, tools, and other requests were not checked");
     expect(result.entities).toEqual([
       expect.objectContaining({ name: "Neighborhood tool swap", url: "/community/posts/post_1" }),
     ]);
@@ -160,6 +159,36 @@ describe("Scout county lookup", () => {
     expect(result.message).not.toMatch(/I checked|Scout check found/i);
     expect(result.message).not.toMatch(/no (posts|deals|businesses)|0 (posts|deals|businesses)/i);
     expect(result.entities).toEqual([]);
+  });
+
+  it("keeps public business cards within the checked county and links only safe slugs", () => {
+    const result = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      postCheck: "checked",
+      dealCheck: "checked",
+      businessCheck: "checked",
+      businesses: [
+        { id: "one", name: "Repair One", slug: "repair-one", counties: [{ fips: "04013" }] },
+        { id: "other", name: "Other County", slug: "other", counties: [{ fips: "06037" }] },
+        { id: "unsafe", name: "Unsafe", slug: "../unsafe", counties: [{ fips: "04013" }] },
+      ],
+    });
+
+    expect(result.entities).toEqual([
+      expect.objectContaining({
+        type: "business",
+        name: "Repair One",
+        url: "/business/repair-one",
+      }),
+    ]);
+    expect(result.message).toContain("Business profiles were not filtered to this week");
+    expect(result.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ to: "/business/repair-one", primary: true }),
+      ])
+    );
+    expect(JSON.stringify(result)).not.toMatch(/Other County|\.\.\/unsafe/);
   });
 
   it("does not imply a county search when no county is set", () => {

@@ -115,6 +115,7 @@ import {
 } from "../scout/scoutCountyFips";
 import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
 import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
+import { listPublicDirectoryBusinesses } from "./business-directory-public";
 import {
   buildScoutProfileUpdateResponse,
   inferScoutProfileUpdateDraft,
@@ -3509,6 +3510,13 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       }> = [];
       let dealCheck: "not_checked" | "checked" | "error" = "not_checked";
       let scoutDeals: Awaited<ReturnType<typeof storage.listPromotions>> = [];
+      let businessCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let publicBusinesses: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        counties: Array<{ fips: string }>;
+      }> = [];
       if (normalizedFips) {
         try {
           const rows = await storage.getCommunityPosts({
@@ -3557,6 +3565,47 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           console.error("Scout promotion lookup unavailable:", error);
           dealCheck = "error";
         }
+        try {
+          // Use the same publication-gated query as /api/businesses?public=1&claimed=any.
+          // This excludes owner-only records and never supplies direct contact fields.
+          const result = await listPublicDirectoryBusinesses({
+            public: "1",
+            countyFips: normalizedFips,
+            claimed: "any",
+            limit: 10,
+            offset: 0,
+          });
+          if (result.status !== 200 || !Array.isArray(result.body.items)) {
+            throw new Error(`Public business directory returned ${result.status}`);
+          }
+          publicBusinesses = result.body.items
+            .filter((item: unknown) => {
+              if (!item || typeof item !== "object") return false;
+              const row = item as Record<string, unknown>;
+              return (
+                typeof row.id === "string" &&
+                typeof row.name === "string" &&
+                typeof row.slug === "string" &&
+                Array.isArray(row.counties) &&
+                row.counties.some(
+                  (county) =>
+                    county &&
+                    typeof county === "object" &&
+                    (county as { fips?: unknown }).fips === normalizedFips
+                )
+              );
+            })
+            .map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              slug: item.slug,
+              counties: item.counties,
+            }));
+          businessCheck = "checked";
+        } catch (error) {
+          console.error("Scout public business lookup unavailable:", error);
+          businessCheck = "error";
+        }
       }
       const recovery = buildScoutMixedDiscoveryRecovery({
         countyFips: normalizedFips,
@@ -3565,6 +3614,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         postCheck,
         deals: scoutDeals,
         dealCheck,
+        businesses: publicBusinesses,
+        businessCheck,
         now,
       });
       scoutTurnTelemetry.provider = "deterministic";
@@ -3579,15 +3630,22 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           fallbackUsed: true,
           postCheck,
           dealCheck,
+          businessCheck,
         },
         knowledge: {
-          layer: postCheck === "checked" || dealCheck === "checked" ? 2 : 0,
+          layer:
+            postCheck === "checked" || dealCheck === "checked" || businessCheck === "checked"
+              ? 2
+              : 0,
           sources: [
             ...(recovery.entities.some((entity) => entity.type === "community_post")
               ? ["TradeScout Database (community_posts)"]
               : []),
             ...(recovery.entities.some((entity) => entity.type === "trade_deal")
               ? ["TradeScout Database (promotions)"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "business")
+              ? ["TradeScout public business directory"]
               : []),
           ],
           confidence: recovery.entities.length > 0 ? "medium" : "low",

@@ -2,10 +2,11 @@ import express from "express";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { resolveKnowledgeMock, getOnboardingSessionMock, governMock } = vi.hoisted(() => ({
+const { resolveKnowledgeMock, getOnboardingSessionMock, governMock, publicDirectoryMock } = vi.hoisted(() => ({
   resolveKnowledgeMock: vi.fn(),
   getOnboardingSessionMock: vi.fn(),
   governMock: vi.fn(),
+  publicDirectoryMock: vi.fn(),
 }));
 
 vi.mock("../services/knowledgeService", async (importOriginal) => ({
@@ -24,6 +25,9 @@ vi.mock("../services/llmProvider", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   buildScoutLlmProviders: () => [],
 }));
+vi.mock("../routes/business-directory-public", () => ({
+  listPublicDirectoryBusinesses: publicDirectoryMock,
+}));
 
 import scoutRouter from "../routes/scout";
 import { storage } from "../storage";
@@ -40,6 +44,7 @@ describe("Scout mixed county discovery route", () => {
     vi.clearAllMocks();
     vi.spyOn(storage, "getCommunityPosts").mockResolvedValue([]);
     vi.spyOn(storage, "listPromotions").mockResolvedValue([]);
+    publicDirectoryMock.mockResolvedValue({ status: 200, body: { items: [] } });
     getOnboardingSessionMock.mockResolvedValue(undefined);
     governMock.mockResolvedValue({
       intervention: { action: "COMPLY", role: "guide", reasoning: "Read-only local discovery" },
@@ -84,6 +89,13 @@ describe("Scout mixed county discovery route", () => {
       sort: "recent",
       limit: 10,
     });
+    expect(publicDirectoryMock).toHaveBeenCalledWith({
+      public: "1",
+      countyFips: "04013",
+      claimed: "any",
+      limit: 10,
+      offset: 0,
+    });
     expect(resolveKnowledgeMock).not.toHaveBeenCalled();
     expect(response.body).toMatchObject({
       contract_version: "scout_result.v1",
@@ -102,7 +114,11 @@ describe("Scout mixed county discovery route", () => {
       evidence: expect.any(Array),
       allowed_actions: expect.any(Array),
       working_memory_update: expect.any(Object),
-      metadata: { sourceUsed: "scout_mixed_discovery_recovery", postCheck: "checked" },
+      metadata: {
+        sourceUsed: "scout_mixed_discovery_recovery",
+        postCheck: "checked",
+        businessCheck: "checked",
+      },
     });
     expect(response.body.answer).toContain("This Scout result includes");
     expect(response.body.answer).toContain("no eligible TradeDeals were returned");
@@ -130,7 +146,7 @@ describe("Scout mixed county discovery route", () => {
     expect(JSON.stringify(response.body.entities[0])).not.toContain("workRequestId");
   });
 
-  it("offers a broader user-controlled next step when both county sources are checked-empty", async () => {
+  it("offers a broader user-controlled next step when all three county sources are checked-empty", async () => {
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
       countyCode: "Maricopa County, AZ",
@@ -142,13 +158,18 @@ describe("Scout mixed county discovery route", () => {
     expect(response.status).toBe(200);
     expect(response.body.contract_version).toBe("scout_result.v1");
     expect(response.body.entities).toEqual([]);
-    expect(response.body.metadata).toMatchObject({ postCheck: "checked", dealCheck: "checked" });
+    expect(response.body.metadata).toMatchObject({
+      postCheck: "checked",
+      dealCheck: "checked",
+      businessCheck: "checked",
+    });
     expect(response.body.answer).toContain(
       "Scout checked published county posts from the last 7 days in Maricopa County, AZ"
     );
     expect(response.body.answer).toContain("none were returned");
     expect(response.body.answer).toContain("no eligible TradeDeals were returned");
     expect(response.body.answer).toContain("Other deal sources were not checked");
+    expect(response.body.answer).toContain("public business profiles for Maricopa County, AZ; none were returned");
     expect(response.body.allowed_actions.length).toBeGreaterThan(0);
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
@@ -166,6 +187,73 @@ describe("Scout mixed county discovery route", () => {
         expect.objectContaining({ target: "/community-feed?geo=local&feed=recent", primary: true }),
       ])
     );
+  });
+
+  it("shows only public same-county business cards and never passes directory contact fields through", async () => {
+    publicDirectoryMock.mockResolvedValue({
+      status: 200,
+      body: {
+        items: [
+          {
+            id: "business_1",
+            name: "Maricopa Repair",
+            slug: "maricopa-repair",
+            counties: [{ fips: "04013" }],
+            ownerUserId: "private_owner",
+            phone: "private_phone",
+          },
+          {
+            id: "business_other",
+            name: "Other County",
+            slug: "other-county",
+            counties: [{ fips: "06037" }],
+          },
+        ],
+      },
+    });
+
+    const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
+      message: screenshotPrompt,
+      countyCode: "Maricopa County, AZ",
+      countyHint: "04013",
+      stateCode: "AZ",
+      history: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.metadata.businessCheck).toBe("checked");
+    expect(response.body.entities).toEqual([
+      expect.objectContaining({
+        id: "business_1",
+        type: "business",
+        name: "Maricopa Repair",
+        url: "/business/maricopa-repair",
+      }),
+    ]);
+    expect(response.body.answer).toContain("public business profile listed for Maricopa County, AZ");
+    expect(response.body.answer).toContain("were not filtered to this week");
+    expect(response.body.knowledge.sources).toContain("TradeScout public business directory");
+    expect(JSON.stringify(response.body)).not.toMatch(/private_owner|private_phone|Other County/);
+  });
+
+  it("marks public Businesses unavailable when its publication-gated query fails", async () => {
+    publicDirectoryMock.mockRejectedValue(new Error("synthetic directory failure"));
+
+    const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
+      message: screenshotPrompt,
+      countyCode: "Maricopa County, AZ",
+      countyHint: "04013",
+      stateCode: "AZ",
+      history: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.metadata.businessCheck).toBe("error");
+    expect(response.body.answer).toContain(
+      "Public business profiles for Maricopa County, AZ could not be checked right now"
+    );
+    expect(response.body.answer).not.toContain("public business profiles for Maricopa County, AZ; none were returned");
+    expect(response.body.entities).toEqual([]);
   });
 
   it("describes only the county post cards it actually returns", async () => {
@@ -267,6 +355,7 @@ describe("Scout mixed county discovery route", () => {
       new Error("synthetic post source failure")
     );
     vi.mocked(storage.listPromotions).mockRejectedValue(new Error("synthetic deal source failure"));
+    publicDirectoryMock.mockRejectedValue(new Error("synthetic directory failure"));
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
@@ -277,7 +366,11 @@ describe("Scout mixed county discovery route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body.metadata).toMatchObject({ postCheck: "error", dealCheck: "error" });
+    expect(response.body.metadata).toMatchObject({
+      postCheck: "error",
+      dealCheck: "error",
+      businessCheck: "error",
+    });
     expect(response.body.knowledge.layer).toBe(0);
     expect(response.body.knowledge.sources).toEqual([]);
     expect(response.body.answer).toContain(
@@ -300,10 +393,12 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.metadata).toMatchObject({
       postCheck: "not_checked",
       dealCheck: "not_checked",
+      businessCheck: "not_checked",
     });
     expect(response.body.knowledge.layer).toBe(0);
     expect(storage.getCommunityPosts).not.toHaveBeenCalled();
     expect(storage.listPromotions).not.toHaveBeenCalled();
+    expect(publicDirectoryMock).not.toHaveBeenCalled();
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([expect.objectContaining({ target: "/settings", primary: true })])
     );
