@@ -550,17 +550,18 @@ export default function ClaimMyBusinessPage() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3"
+                  className="flex flex-col items-stretch gap-3 rounded-xl border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="min-w-0">
-                    <div className="font-semibold text-white truncate">{item.name}</div>
+                  <div className="min-w-0 sm:flex-1">
+                    <div className="break-words font-semibold text-white sm:truncate">{item.name}</div>
                     <div className="text-xs text-white/60">{countyLabel(item.counties)}</div>
-                    <div className="text-[11px] text-white/60">/business/{item.slug}</div>
+                    <div className="break-all text-[11px] text-white/60 sm:truncate">/business/{item.slug}</div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:w-auto sm:shrink-0">
                     {isAuthenticated ? (
                       <Button
                         variant="outline"
+                        className="w-full sm:w-auto"
                         disabled={claiming}
                         onClick={() => void claimNow(item.id)}
                       >
@@ -569,10 +570,17 @@ export default function ClaimMyBusinessPage() {
                       </Button>
                     ) : (
                       <>
-                        <Button variant="outline" onClick={() => startSigninWithClaim(item.id)}>
+                        <Button variant="outline" className="w-full sm:w-auto" onClick={() => startSigninWithClaim(item.id)}>
                           {text("Sign in", "Iniciar sesión")}
                         </Button>
-                        <Button onClick={() => startSignupWithClaim(item.id)}>
+                        <Button
+                          className="w-full sm:w-auto"
+                          style={{
+                            backgroundColor: "var(--theme-accent-primary)",
+                            color: "var(--ts-text-on-accent, #2b2b2b)",
+                          }}
+                          onClick={() => startSignupWithClaim(item.id)}
+                        >
                           <ArrowRight className="h-4 w-4 mr-2" />
                           {text("Sign up", "Crear cuenta")}
                         </Button>
