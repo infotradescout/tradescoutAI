@@ -6504,7 +6504,8 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     if (filters?.activeAt) {
       const at = filters.activeAt;
       conditions.push(
-        sql`(promotions.starts_at IS NULL OR promotions.starts_at <= ${at}) AND (promotions.ends_at IS NULL OR promotions.ends_at >= ${at})`
+        or(isNull(promotions.startsAt), lte(promotions.startsAt, at))!,
+        or(isNull(promotions.endsAt), gte(promotions.endsAt, at))!
       );
     }
 
