@@ -1003,7 +1003,7 @@ export default function DirectConnectPros() {
             <p className="font-semibold text-[color:var(--text-primary)]">
               {searchActive
                 ? `No public businesses match this search in ${areaLabel} yet.`
-                : `No public businesses are listed in ${areaLabel} yet.`}
+                : `No public businesses in ${areaLabel} yet.`}
             </p>
             <p>
               Change your search or describe what you need. You review a local request before
@@ -1017,12 +1017,10 @@ export default function DirectConnectPros() {
                 onClick={openCountyRequestDraft}
                 data-testid="businesses-empty-request"
               >
-                Describe what I need in {areaLabel}
+                Describe what I need
               </Button>
             )}
-            {!effectiveCountyFips && (
-              <p>Choose a county before starting a local request.</p>
-            )}
+            {!effectiveCountyFips && <p>Choose a county before starting a local request.</p>}
             {draftHandoffFailed && (
               <p role="alert" data-testid="businesses-draft-handoff-error">
                 We couldn’t open a request with this county. Choose your area and try again.
