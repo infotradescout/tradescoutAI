@@ -137,12 +137,23 @@ export function stoneInquiryMessage(
     .slice(0, 200);
   if (!name || !readStoneInquiryIntent(intent))
     throw new Error("A listing and inquiry intent are required");
-  const label = stonePriceLabel(listing.price, listing.specifications?.priceUnit);
+  const slabPrice = stoneSlabMaterialPrice(
+    listing.price,
+    listing.specifications?.priceUnit,
+    listing.specifications?.referenceSizesInches,
+    listing.specifications?.exactSlab
+  );
+  const priceMessage = slabPrice?.kind === "size_required"
+    ? ` Slab price TBD. Listed material rate: ${slabPrice.primaryPrice}.`
+    : slabPrice
+      ? ` ${slabPrice.primaryLabel}: ${slabPrice.primaryPrice}.` +
+        (slabPrice.secondaryPrice ? ` Listed material rate: ${slabPrice.secondaryPrice}.` : "")
+      : "";
   return (
     (intent === "callback"
       ? `I would like a call about ${name}.`
       : `Please confirm availability for ${name}.`) +
-    (label ? ` Listed material price: ${label}.` : "") +
+    priceMessage +
     " Please confirm the exact slab dimensions, available quantity, and delivery charges through TradeScout."
   );
 }
