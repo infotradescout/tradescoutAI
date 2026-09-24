@@ -478,7 +478,9 @@ export default function ExchangeListingDetail() {
     return (
       <div className="min-h-full flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-white/60 text-sm">
-          This listing could not be found or has been removed.
+          {isPublicStone
+            ? "This stone is unavailable in the selected area or can no longer be found."
+            : "This listing could not be found or has been removed."}
         </p>
         <Button
           variant="ghost"
@@ -544,11 +546,15 @@ export default function ExchangeListingDetail() {
             ? retailDescription
             : listing.description.slice(0, 160)
         }
-        canonical={stoneInquiry.isRetail ? retailPublicPath || "/exchange/stone" : `/exchange/${resolvedCategory}/${listing.id}`}
+        canonical={stoneInquiry.isRetail
+          ? new URL(retailPublicPath || "/exchange/stone", window.location.origin).toString()
+          : `/exchange/${resolvedCategory}/${listing.id}`}
         preserveCanonicalQuery={stoneInquiry.isRetail}
         robots={stoneInquiry.isRetail ? "noindex, follow" : undefined}
         omitCanonical={stoneInquiry.isRetail}
-        ogImage={retailImage}
+        ogImage={stoneInquiry.isRetail && retailImage
+          ? new URL(retailImage, window.location.origin).toString()
+          : retailImage}
         keywords={[categoryConfig?.name ?? "", listing.brand ?? "", listing.condition]
           .filter(Boolean)
           .join(", ")}

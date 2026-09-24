@@ -202,8 +202,10 @@ describe("retail stone detail", () => {
       state.allowedKey = texasKey;
       await renderDetail();
       expect(host.querySelector("img")?.getAttribute("src")).toBe(`/api/exchange/stone-media/${state.listingId}${texas}`);
-      expect(state.seo.ogImage).toBe(`/api/exchange/stone-media/${state.listingId}${texas}`);
-      expect(state.seo.canonical).toBe(texasPath);
+      expect(state.seo.ogImage).toBe(`${window.location.origin}/api/exchange/stone-media/${state.listingId}${texas}`);
+      expect(state.seo.canonical).toBe(`${window.location.origin}${texasPath}`);
+      expect(state.seo.omitCanonical).toBe(true);
+      expect(state.seo.robots).toBe("noindex, follow");
       await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Share listing"]')?.click());
       expect(state.share).toHaveBeenCalledWith(expect.objectContaining({ url: `${window.location.origin}${texasPath}` }));
       delete state.listing.specifications.referenceSizesInches;
@@ -219,7 +221,8 @@ describe("retail stone detail", () => {
       expect(JSON.stringify(state.query.queryKey)).not.toBe(texasKey);
       expect(state.query.enabled).toBe(true);
       expect(host.querySelector("h1")).toBeNull();
-      expect(host.textContent).toContain("could not be found");
+      expect(host.textContent).toContain("This stone is unavailable in the selected area or can no longer be found.");
+      expect(host.textContent).not.toContain("has been removed");
       await expect(state.query.queryFn()).rejects.toThrow("Listing not found");
       expect(fetchMock).toHaveBeenLastCalledWith(`/api/marketplace/listings/${state.listingId}?audienceState=FL&audienceCity=Pensacola&audienceCountry=US`);
     } finally {
@@ -243,5 +246,14 @@ describe("retail stone detail", () => {
     } finally {
       fetchMock.mockRestore();
     }
+  });
+
+  it("retains the ordinary listing error wording outside the stone channel", async () => {
+    state.listing = null;
+    state.listingId = "ordinary-listing";
+    window.history.replaceState({}, "", "/exchange/building-materials/ordinary-listing");
+    await renderDetail();
+    expect(host.textContent).toContain("This listing could not be found or has been removed.");
+    expect(host.textContent).not.toContain("selected area");
   });
 });
