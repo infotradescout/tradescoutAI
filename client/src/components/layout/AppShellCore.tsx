@@ -656,8 +656,10 @@ export function AppShell({ children, footer }: AppShellProps) {
       isAuthOrSetupSurface ||
       isAdminSurface ||
       !shouldAutoOpenStartGuideAtLocation(location, window.self === window.top)
-    )
+    ) {
+      setIsStartGuideOpen(false);
       return;
+    }
     try {
       if (window.localStorage.getItem(START_GUIDE_SEEN_KEY) !== "1") {
         setIsStartGuideOpen(true);
