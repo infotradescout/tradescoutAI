@@ -8,6 +8,14 @@ describe("automatic Start here guide", () => {
     expect(shouldAutoOpenStartGuideAtLocation("/scout/saved/thread-1", true)).toBe(false);
   });
 
+  it("does not cover an exact Scout TradeDeal on a signed-in first visit", () => {
+    const dealId = "00000000-0000-4000-8000-000000000201";
+    expect(shouldAutoOpenStartGuideAtLocation(`/deals/${dealId}?county=04013`, true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation(`/deals/${dealId}`, true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation(`/deals/${dealId}/extra`, true)).toBe(true);
+    expect(shouldAutoOpenStartGuideAtLocation("/deals/featured", true)).toBe(true);
+  });
+
   it("keeps automatic orientation on other app pages", () => {
     expect(shouldAutoOpenStartGuideAtLocation("/", true)).toBe(true);
     expect(shouldAutoOpenStartGuideAtLocation("/contractors?county=04013", true)).toBe(true);

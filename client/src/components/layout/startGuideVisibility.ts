@@ -5,5 +5,7 @@ export function shouldAutoOpenStartGuideAtLocation(
 ): boolean {
   if (!isTopLevelWindow) return false;
   const path = location.split(/[?#]/, 1)[0];
-  return path !== "/scout" && !path.startsWith("/scout/");
+  const isScoutDealDetail =
+    /^\/deals\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path);
+  return path !== "/scout" && !path.startsWith("/scout/") && !isScoutDealDetail;
 }
