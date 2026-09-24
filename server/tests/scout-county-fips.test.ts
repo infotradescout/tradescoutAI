@@ -150,6 +150,45 @@ describe("Scout county lookup", () => {
     expect(JSON.stringify(result)).not.toContain("/trade-deals");
   });
 
+  it("counts joined work-request rows once per published post and keeps their request signal", () => {
+    const result = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      now: dealNow,
+      postCheck: "checked",
+      communityPosts: [
+        {
+          id: "post_1",
+          title: "Tool request",
+          createdAt: "2026-09-22T12:00:00.000Z",
+          hasWorkRequest: false,
+        },
+        {
+          id: "post_1",
+          title: "Tool request",
+          createdAt: "2026-09-22T12:00:00.000Z",
+          hasWorkRequest: true,
+        },
+        {
+          id: "post_2",
+          title: "Neighborhood update",
+          createdAt: "2026-09-21T12:00:00.000Z",
+          hasWorkRequest: false,
+        },
+      ],
+    });
+
+    expect(result.message).toContain("2 published county posts from the last 7 days");
+    expect(result.entities.map((entity) => entity.url)).toEqual([
+      "/community/posts/post_1",
+      "/community/posts/post_2",
+    ]);
+    expect(result.entities[0]?.match_reasons).toContain(
+      "Published county post linked to a request"
+    );
+    expect(result.entities[1]?.match_reasons).toContain("Published county post");
+  });
+
   it("does not turn a limited empty result into a county-wide no-results claim", () => {
     const result = buildScoutMixedDiscoveryRecovery({
       countyFips: "04013",
