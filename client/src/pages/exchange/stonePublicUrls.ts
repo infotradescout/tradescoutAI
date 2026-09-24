@@ -12,10 +12,10 @@ export function selectedStoneAudienceSearch(search: string): string | null {
   const country = params.get("audienceCountry");
   const city = params.get("audienceCity");
   if (!state || !/^[A-Z]{2}$/.test(state) || country !== "US") return null;
-  if (city !== null && (!city.trim() || city.length > 100)) return null;
+  if (state === "FL" && (!city?.trim() || city.length > 100)) return null;
   if (["audienceState", "audienceCountry", "audienceCity"].some((key) => params.getAll(key).length > 1)) return null;
   const selected = new URLSearchParams({ audienceState: state });
-  if (city) selected.set("audienceCity", city);
+  if (state === "FL" && city) selected.set("audienceCity", city);
   selected.set("audienceCountry", country);
   return `?${selected.toString()}`;
 }

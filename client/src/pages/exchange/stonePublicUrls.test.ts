@@ -8,7 +8,10 @@ describe("public stone URLs", () => {
   it("preserves only a selected market in the listing request", () => {
     expect(selectedStoneAudienceSearch("?utm_source=test&audienceState=FL&audienceCity=Tampa&audienceCountry=US"))
       .toBe("?audienceState=FL&audienceCity=Tampa&audienceCountry=US");
+    expect(selectedStoneAudienceSearch("?audienceState=TX&audienceCity=Dallas&audienceCountry=US"))
+      .toBe("?audienceState=TX&audienceCountry=US");
     expect(selectedStoneAudienceSearch("?audienceCity=Pensacola&audienceCountry=US")).toBeNull();
+    expect(selectedStoneAudienceSearch("?audienceState=FL&audienceCountry=US")).toBeNull();
     expect(selectedStoneAudienceSearch("?audienceState=TX&audienceState=FL&audienceCountry=US")).toBeNull();
   });
 

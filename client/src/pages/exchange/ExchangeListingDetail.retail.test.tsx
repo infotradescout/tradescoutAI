@@ -226,4 +226,22 @@ describe("retail stone detail", () => {
       fetchMock.mockRestore();
     }
   });
+
+  it("normalizes a non-Florida city before fetching the server-qualified stone path", async () => {
+    window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}?audienceState=TX&audienceCity=Dallas&audienceCountry=US`);
+    state.listing = null;
+    const expectedPath = `/exchange/building-materials/${state.listingId}?audienceState=TX&audienceCountry=US`;
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...retailListing, publicDetailPath: expectedPath }),
+    } as Response);
+    try {
+      await renderDetail();
+      const result = await state.query.queryFn();
+      expect(fetchMock).toHaveBeenCalledWith(`/api/marketplace/listings/${state.listingId}?audienceState=TX&audienceCountry=US`);
+      expect(result.publicDetailPath).toBe(expectedPath);
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
 });
