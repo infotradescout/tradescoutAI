@@ -1,23 +1,11 @@
+import { selectedStoneAudienceSearch } from "@shared/exchangeStoneBuyerFlow";
+export { selectedStoneAudienceSearch } from "@shared/exchangeStoneBuyerFlow";
+
 const STONE_ID_PREFIX = "tradescout-stone-";
 const STONE_MEDIA_PREFIX = "/api/exchange/stone-media/";
 
 export function isPublicStoneId(id: string | undefined): boolean {
   return Boolean(id?.startsWith(STONE_ID_PREFIX));
-}
-
-/** Only carry a selected market, never unrelated URL parameters, into stone requests. */
-export function selectedStoneAudienceSearch(search: string): string | null {
-  const params = new URLSearchParams(search);
-  const state = params.get("audienceState");
-  const country = params.get("audienceCountry");
-  const city = params.get("audienceCity");
-  if (!state || !/^[A-Z]{2}$/.test(state) || country !== "US") return null;
-  if (state === "FL" && (!city?.trim() || city.length > 100)) return null;
-  if (["audienceState", "audienceCountry", "audienceCity"].some((key) => params.getAll(key).length > 1)) return null;
-  const selected = new URLSearchParams({ audienceState: state });
-  if (state === "FL" && city) selected.set("audienceCity", city);
-  selected.set("audienceCountry", country);
-  return `?${selected.toString()}`;
 }
 
 /** A public detail link is usable only for this stone and its selected market. */

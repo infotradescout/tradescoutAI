@@ -109,7 +109,10 @@ try {
     await dialog.locator('textarea').fill(exactMessage);
     await dialog.getByRole('button', { name: 'Sign in to send', exact: true }).click();
     await page.waitForURL('**/pre-scout-setup?**');
-    const next = new URL(page.url()).searchParams.get('next'); assert(next?.startsWith(listingPath));
+    const next = new URL(page.url()).searchParams.get('next');
+    assert.equal(next, `${listingPath}?inquiry=${intent}&audienceState=TX&audienceCountry=US`);
+    assert.equal(new URL(next, firstBase).origin, firstBase, 'Auth return must stay on this application');
+    assert.equal(new URL(next, firstBase).searchParams.getAll('inquiry').length, 1);
     // Authenticate through the real cookie API, then use the actual saved return URL and draft restoration.
     await login(ctx, device);
     await page.goto(firstBase + next, { waitUntil: 'domcontentloaded' });
