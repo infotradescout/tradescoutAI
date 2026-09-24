@@ -210,7 +210,7 @@ function businessAwareMixedDiscoverySummary(clean: string): string | null {
         ? "public business profiles could not be checked"
         : "businesses were not checked";
   const limits = [
-    postedDeals ? "Offer terms and availability aren't verified." : "",
+    postedDeals ? "Offer terms, availability and end aren't verified." : "",
     foundBusiness ? "Businesses aren't limited to this week." : "",
     "Pages, tools and other requests weren't checked. Nothing was sent.",
   ]
@@ -218,9 +218,7 @@ function businessAwareMixedDiscoverySummary(clean: string): string | null {
     .join(" ");
   const format = (place: string) => `${place}: ${post}; ${deal}; ${business}. ${limits}`;
   const summary = format(area);
-  return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
-    ? summary
-    : format("your county");
+  return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS ? summary : format("your county");
 }
 
 function mixedDiscoverySummary(content: string): string {
@@ -1446,9 +1444,9 @@ function MessageExtras({
         <div className="scout-answer-detail">
           {hasMixedDiscoveryCoverage && (
             <p className="text-xs leading-relaxed text-[color:var(--text-secondary)]">
-              Only published county posts from the past 7 days, eligible TradeDeal promotions
-              placed in Scout, and public business profiles are in scope. Pages, tools, and other
-              requests were not checked. Nothing was sent.
+              Only published county posts from the past 7 days, eligible TradeDeal promotions placed
+              in Scout, and public business profiles are in scope. Pages, tools, and other requests
+              were not checked. Nothing was sent.
             </p>
           )}
           {hasAnswerDetails && (

@@ -34,12 +34,15 @@ function renderThread(
 describe("ScoutThread evidence strip", () => {
   it("uses app navigation for validated same-origin HTTPS results only", () => {
     const dealPath = "/deals/00000000-0000-4000-8000-000000000201?county=04013";
-    expect(inAppScoutResultPath(`https://tradescout.test${dealPath}`, "https://tradescout.test"))
-      .toBe(dealPath);
-    expect(inAppScoutResultPath(`https://another.test${dealPath}`, "https://tradescout.test"))
-      .toBeNull();
-    expect(inAppScoutResultPath("https://tradescout.test/admin/private", "https://tradescout.test"))
-      .toBeNull();
+    expect(
+      inAppScoutResultPath(`https://tradescout.test${dealPath}`, "https://tradescout.test")
+    ).toBe(dealPath);
+    expect(
+      inAppScoutResultPath(`https://another.test${dealPath}`, "https://tradescout.test")
+    ).toBeNull();
+    expect(
+      inAppScoutResultPath("https://tradescout.test/admin/private", "https://tradescout.test")
+    ).toBeNull();
   });
 
   it("renders verified sources as links, context separately, and drops unsafe citations", () => {
@@ -250,7 +253,9 @@ describe("ScoutThread evidence strip", () => {
           })
         );
       });
-      const link = container.querySelector<HTMLAnchorElement>(`.scout-result-card__title[href="${postPath}"]`);
+      const link = container.querySelector<HTMLAnchorElement>(
+        `.scout-result-card__title[href="${postPath}"]`
+      );
       expect(link).not.toBeNull();
       const followedNormally = link!.dispatchEvent(
         new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
@@ -280,7 +285,9 @@ describe("ScoutThread evidence strip", () => {
         contract_version: "scout_result.v1",
         intent: "provider_search",
         ambiguity_options: [],
-        entities: [{ id: "source-1", type: "site", name: "Source", url: externalUrl, match_reasons: [] }],
+        entities: [
+          { id: "source-1", type: "site", name: "Source", url: externalUrl, match_reasons: [] },
+        ],
         evidence: [],
         answer: "A linked source is available.",
         allowed_actions: [],
@@ -312,7 +319,9 @@ describe("ScoutThread evidence strip", () => {
           })
         )
       );
-      const link = container.querySelector<HTMLAnchorElement>(`.scout-result-card__title[href="${externalUrl}"]`);
+      const link = container.querySelector<HTMLAnchorElement>(
+        `.scout-result-card__title[href="${externalUrl}"]`
+      );
       expect(link).not.toBeNull();
       link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
       expect(observedNative).toHaveBeenCalledOnce();
@@ -702,7 +711,13 @@ describe("ScoutThread evidence strip", () => {
       deal: "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting.",
       business:
         "Scout also found 1 public business profile listed for Maricopa County, AZ. Business profiles were not filtered to this week; check current services and availability before contact.",
-      expected: ["1 published post (past 7 days)", "1 Scout TradeDeal promotion", "1 public business", "Offer terms and availability aren't verified", "Businesses aren't limited to this week"],
+      expected: [
+        "1 published post (past 7 days)",
+        "1 Scout TradeDeal promotion",
+        "1 public business",
+        "Offer terms, availability and end aren't verified",
+        "Businesses aren't limited to this week",
+      ],
       excluded: ["businesses were not checked", "1 business (7d)"],
     },
     {
@@ -711,7 +726,11 @@ describe("ScoutThread evidence strip", () => {
       deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
       business:
         "Scout also found 1 public business profile listed for Maricopa County, AZ. Business profiles were not filtered to this week; check current services and availability before contact.",
-      expected: ["no published posts (past 7 days)", "1 public business", "Businesses aren't limited to this week"],
+      expected: [
+        "no published posts (past 7 days)",
+        "1 public business",
+        "Businesses aren't limited to this week",
+      ],
       excluded: ["businesses were not checked", "1 business (7d)"],
     },
     {
@@ -720,7 +739,11 @@ describe("ScoutThread evidence strip", () => {
       deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
       business:
         "Scout checked public business profiles for Maricopa County, AZ; none were returned.",
-      expected: ["no published posts (past 7 days)", "no eligible Scout TradeDeal promotions", "no public business profiles"],
+      expected: [
+        "no published posts (past 7 days)",
+        "no eligible Scout TradeDeal promotions",
+        "no public business profiles",
+      ],
       excluded: ["businesses were not checked", "Other sources unchecked"],
     },
     {
@@ -728,7 +751,10 @@ describe("ScoutThread evidence strip", () => {
       post: "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned.",
       deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
       business: "Public business profiles for Maricopa County, AZ could not be checked right now.",
-      expected: ["no published posts (past 7 days)", "public business profiles could not be checked"],
+      expected: [
+        "no published posts (past 7 days)",
+        "public business profiles could not be checked",
+      ],
       excluded: ["businesses were not checked", "no public business profiles"],
     },
     {
@@ -736,7 +762,11 @@ describe("ScoutThread evidence strip", () => {
       post: "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ.",
       deal: "It does not verify deals.",
       business: "Businesses were not checked.",
-      expected: ["1 published post (past 7 days)", "deals were not checked", "businesses were not checked"],
+      expected: [
+        "1 published post (past 7 days)",
+        "deals were not checked",
+        "businesses were not checked",
+      ],
       excluded: ["no public business profiles"],
     },
   ])(
@@ -766,7 +796,9 @@ describe("ScoutThread evidence strip", () => {
 
       expect(summary.length).toBeLessThanOrEqual(260);
       expect(summary).toContain("Maricopa County, AZ");
-      expect(summary).toContain("Pages, tools and other requests weren't checked. Nothing was sent.");
+      expect(summary).toContain(
+        "Pages, tools and other requests weren't checked. Nothing was sent."
+      );
       for (const phrase of expected) expect(summary).toContain(phrase);
       for (const phrase of excluded) expect(summary).not.toContain(phrase);
       expect(container.textContent).toContain("See source checks and limits");
