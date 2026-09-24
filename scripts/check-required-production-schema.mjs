@@ -218,6 +218,8 @@ export function evaluateRequiredProductionSchema(check) {
   if (!check.seoPruneLog) missing.push("ts_seo_prune_log");
   if (!check.publicActivity) missing.push("ts_public_activity");
   if (!check.publicDiscoveryEnabled) missing.push("businesses.public_discovery_enabled");
+  if (!check.scoutPromotionContract)
+    missing.push("promotions[canonical Scout columns and placement_scout default false]");
   if (!check.profileAccounts) missing.push("profile_accounts");
   if (check.profileAccounts && !check.profileAccountsContract) {
     missing.push("profile_accounts[canonical columns/constraints/indexes]");
@@ -1032,7 +1034,50 @@ export async function verifyRequiredProductionSchema(client) {
         where table_schema = 'public'
           and table_name = 'businesses'
           and column_name = 'public_discovery_enabled'
-      ) as public_discovery_enabled
+      ) as public_discovery_enabled,
+      (
+        to_regclass('public.promotions') is not null
+        and not exists (
+          select 1
+          from (values
+            ('id', 'varchar'),
+            ('title', 'varchar'),
+            ('short_description', 'varchar'),
+            ('image_attachment_id', 'varchar'),
+            ('cta_label', 'varchar'),
+            ('cta_url', 'text'),
+            ('type', 'varchar'),
+            ('exclusive', 'bool'),
+            ('tier', 'varchar'),
+            ('status', 'varchar'),
+            ('county_fips', '_text'),
+            ('user_type_tags', '_text'),
+            ('trade_slugs', '_text'),
+            ('placement_community_snapshot', 'bool'),
+            ('placement_community_feed', 'bool'),
+            ('placement_scout', 'bool'),
+            ('placement_marketplace', 'bool'),
+            ('starts_at', 'timestamp'),
+            ('ends_at', 'timestamp'),
+            ('created_at', 'timestamp'),
+            ('updated_at', 'timestamp')
+          ) required(column_name, udt_name)
+          left join information_schema.columns actual
+            on actual.table_schema = 'public'
+           and actual.table_name = 'promotions'
+           and actual.column_name = required.column_name
+           and actual.udt_name = required.udt_name
+          where actual.column_name is null
+        )
+        and exists (
+          select 1 from information_schema.columns
+          where table_schema = 'public'
+            and table_name = 'promotions'
+            and column_name = 'placement_scout'
+            and is_nullable = 'NO'
+            and column_default ~ '^false(::boolean)?$'
+        )
+      ) as scout_promotion_contract
   `,
     [
       PROFILE_ACCOUNT_IDENTITY_FUNCTION_BODY,
@@ -1057,6 +1102,7 @@ export async function verifyRequiredProductionSchema(client) {
     seoPruneLog: Boolean(row.seo_prune_log),
     publicActivity: Boolean(row.public_activity),
     publicDiscoveryEnabled: Boolean(row.public_discovery_enabled),
+    scoutPromotionContract: Boolean(row.scout_promotion_contract),
     profileAccounts: Boolean(row.profile_accounts),
     profileAccountsContract: Boolean(row.profile_accounts_contract),
     profileAccountEntitlements: Boolean(row.profile_account_entitlements),
