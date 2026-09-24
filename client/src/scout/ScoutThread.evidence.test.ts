@@ -191,6 +191,73 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("More detail");
   });
 
+  it("keeps an unaccompanied result link in the app so Scout can restore it on return", () => {
+    const postPath = "/community/posts/scout-native-published-maricopa";
+    const message: ScoutMessage = {
+      id: "a_result_link",
+      role: "assistant",
+      content: "One published post matches.",
+      timestamp: "2026-09-24T00:00:00Z",
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [
+          {
+            id: "scout-native-published-maricopa",
+            type: "community_post",
+            name: "Neighborhood tool swap",
+            url: postPath,
+            match_reasons: ["Published county post"],
+          },
+        ],
+        evidence: [],
+        answer: "One published post matches.",
+        allowed_actions: [],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const navigate = vi.fn();
+    const actEnvironment = globalThis as typeof globalThis & {
+      IS_REACT_ACT_ENVIRONMENT?: boolean;
+    };
+    const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+    const previousScrollTo = HTMLElement.prototype.scrollTo;
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+    HTMLElement.prototype.scrollTo = vi.fn();
+
+    try {
+      React.act(() => {
+        root.render(
+          React.createElement(ScoutThread, {
+            messages: [message],
+            status: "idle",
+            onResultLinkNavigate: navigate,
+          })
+        );
+      });
+      const link = container.querySelector<HTMLAnchorElement>(`.scout-result-card__title[href="${postPath}"]`);
+      expect(link).not.toBeNull();
+      const followedNormally = link!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
+      );
+      expect(followedNormally).toBe(false);
+      expect(navigate).toHaveBeenCalledExactlyOnceWith(postPath);
+    } finally {
+      React.act(() => root.unmount());
+      container.remove();
+      if (previousActEnvironment === undefined) {
+        delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+      } else {
+        actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+      }
+      HTMLElement.prototype.scrollTo = previousScrollTo;
+    }
+  });
+
   it("puts the verified county results and their distinct actions before the expandable explanation", () => {
     const answer =
       "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. Businesses, pages, tools, and other requests were not checked. Nothing was sent.";

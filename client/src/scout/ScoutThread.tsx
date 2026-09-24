@@ -45,6 +45,7 @@ type ScoutThreadProps = {
   showControllerExtras?: boolean;
   currentTurnPrimaryAction?: ScoutAction | null;
   onAction?: (action: ScoutAction) => void;
+  onResultLinkNavigate?: (url: string) => void;
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
   overridePendingScope?: string | null;
@@ -887,6 +888,7 @@ function MessageExtras({
   fullAnswer,
   answerSummary,
   onAction,
+  onResultLinkNavigate,
   onQuickAction,
   onOverride,
   overridePendingScope,
@@ -899,6 +901,7 @@ function MessageExtras({
   fullAnswer?: string;
   answerSummary?: string;
   onAction?: (action: ScoutAction) => void;
+  onResultLinkNavigate?: (url: string) => void;
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
   overridePendingScope?: string | null;
@@ -1116,6 +1119,20 @@ function MessageExtras({
                   <a
                     href={safeUrl}
                     className="scout-result-card__title underline underline-offset-2"
+                    onClick={(event) => {
+                      if (
+                        !onResultLinkNavigate ||
+                        event.button !== 0 ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      ) {
+                        return;
+                      }
+                      event.preventDefault();
+                      onResultLinkNavigate(safeUrl);
+                    }}
                   >
                     {entityName}
                   </a>
@@ -1491,6 +1508,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   showControllerExtras = true,
   currentTurnPrimaryAction,
   onAction,
+  onResultLinkNavigate,
   onQuickAction,
   onOverride,
   overridePendingScope,
@@ -1653,6 +1671,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               fullAnswer={displayContent}
               answerSummary={assistantSummary}
               onAction={onAction}
+              onResultLinkNavigate={onResultLinkNavigate}
               onQuickAction={onQuickAction}
               onOverride={onOverride}
               overridePendingScope={overridePendingScope}

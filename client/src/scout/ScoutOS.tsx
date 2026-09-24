@@ -8,6 +8,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { createClientOperationId } from "@/lib/clientOperationId";
 import { useIsMobile } from "../hooks/use-mobile";
 import { useScoutController } from "./useScoutController";
+import {
+  clearScoutReturnSnapshot,
+  rememberScoutForReturn,
+  takeScoutReturnSnapshot,
+} from "./scoutReturnSnapshot";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
@@ -1662,7 +1667,12 @@ function readScoutBrowserLocation(fallback: string): string {
 }
 
 export default function ScoutOS() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const scoutReturnOwner = isAuthenticated
+    ? typeof user?.id === "string" && user.id.trim()
+      ? `user:${user.id}`
+      : null
+    : "guest";
   const { toast } = useToast();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
@@ -1783,6 +1793,17 @@ export default function ScoutOS() {
     loadMessages,
     reset,
   } = useScoutController();
+  const skipAutoSaveMessagesRef = useRef<ScoutMessage[] | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const restored = takeScoutReturnSnapshot(scoutReturnOwner);
+    if (!restored) return;
+    skipAutoSaveMessagesRef.current = restored.messages;
+    setActiveSavedThreadId(restored.activeSavedThreadId);
+    setHasGuestInteracted(true);
+    loadMessages(restored.messages);
+  }, [authLoading, loadMessages, scoutReturnOwner]);
 
   // KPI: Track time-to-action from render to first action execution
   const renderStartRef = useRef<number | null>(null);
@@ -2004,6 +2025,10 @@ export default function ScoutOS() {
   );
 
   useEffect(() => {
+    // Reopening a result is navigation, not a request to save the task again.
+    // A later message creates a new messages array and resumes normal saves.
+    if (state.messages === skipAutoSaveMessagesRef.current) return;
+    skipAutoSaveMessagesRef.current = null;
     const hasUserThread = state.messages.some(
       (message) => message.role === "user" && message.content.trim().length > 0
     );
@@ -2207,6 +2232,7 @@ export default function ScoutOS() {
   );
 
   const handleStartNewScoutThread = useCallback(() => {
+    clearScoutReturnSnapshot();
     setActiveSavedThreadId(null);
     reset();
     setHasGuestInteracted(false);
@@ -3161,6 +3187,9 @@ export default function ScoutOS() {
         await executeScoutActions([action], {
           navigate: (to) => {
             if (!maybeOpenWorkAreaForRoute(to)) {
+              if (to !== "/scout" && !to.startsWith("/scout?")) {
+                rememberScoutForReturn(scoutReturnOwner, state.messages, activeSavedThreadId);
+              }
               navigate(to);
             }
           },
@@ -3212,8 +3241,19 @@ export default function ScoutOS() {
       setError,
       applyServerResponse,
       persistScoutResume,
+      scoutReturnOwner,
+      state.messages,
+      activeSavedThreadId,
       user,
     ]
+  );
+
+  const handleResultLinkNavigate = useCallback(
+    (to: string) => {
+      rememberScoutForReturn(scoutReturnOwner, state.messages, activeSavedThreadId);
+      navigate(to);
+    },
+    [activeSavedThreadId, navigate, scoutReturnOwner, state.messages]
   );
 
   const handleOverride = useCallback(
@@ -4902,6 +4942,7 @@ export default function ScoutOS() {
                         showControllerExtras
                         currentTurnPrimaryAction={primaryNextAction}
                         onAction={handleClusterAction}
+                        onResultLinkNavigate={handleResultLinkNavigate}
                         onOverride={handleOverride}
                         overridePendingScope={overridePendingScope}
                         onSendMessage={handleOnboardingMessage}
