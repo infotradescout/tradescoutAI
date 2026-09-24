@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { SEOHelmet } from "@/components/SEOHelmet";
-import { formatPostedDealEndTime } from "@shared/scoutDealDisplay";
 
 const DEAL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COUNTY_FIPS = /^\d{5}$/;
@@ -10,8 +9,6 @@ type PublicDeal = {
   id: string;
   title: string;
   description: string;
-  startsAt: string | null;
-  endsAt: string | null;
   scope: "county" | "global";
   source: string;
 };
@@ -37,12 +34,6 @@ function requestedCounty(): { countyFips: string | null; valid: boolean } {
     : { countyFips: null, valid: false };
 }
 
-function availableDate(value: string | null): Date | null {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date : null;
-}
-
 export default function DealDetail() {
   const { id = "" } = useParams<{ id: string }>();
   const { countyFips, valid: validCounty } = requestedCounty();
@@ -65,19 +56,9 @@ export default function DealDetail() {
   });
 
   const deal = data?.deal;
-  const endDate = availableDate(deal?.endsAt ?? null);
-  const postedEndTime = formatPostedDealEndTime(endDate);
-  const startDate = availableDate(deal?.startsAt ?? null);
   const scopeMatches =
     deal?.scope === "global" || (deal?.scope === "county" && countyFips !== null);
-  const readable = Boolean(
-    validId &&
-    validCounty &&
-    deal?.id === id &&
-    scopeMatches &&
-    (!endDate || endDate.getTime() >= Date.now()) &&
-    (!startDate || startDate.getTime() <= Date.now())
-  );
+  const readable = Boolean(validId && validCounty && deal?.id === id && scopeMatches);
 
   const temporaryError = isError && !(error instanceof DealRequestError && error.status === 404);
   const unavailable =
@@ -146,16 +127,11 @@ export default function DealDetail() {
                     ? "Listed for all counties"
                     : "Listed for the selected county"}
                 </p>
-                {endDate && postedEndTime ? (
-                  <p>
-                    Posted end time: <time dateTime={endDate.toISOString()}>{postedEndTime}</time>
-                  </p>
-                ) : null}
               </div>
             </article>
             <p className="text-sm text-muted-foreground">
-              This is a posted promotion. Confirm its terms and availability before you act. Viewing
-              it does not contact anyone.
+              This is a posted promotion. Confirm its terms, availability, and when the offer ends
+              before you act. Viewing it does not contact anyone.
             </p>
             <Link className="inline-block text-orange-500 underline" href="/scout">
               Back to Scout

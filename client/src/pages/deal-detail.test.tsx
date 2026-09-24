@@ -3,7 +3,6 @@ import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatPostedDealEndTime } from "@shared/scoutDealDisplay";
 
 const route = vi.hoisted(() => ({ id: "11111111-2222-4333-8444-555555555555" }));
 vi.mock("wouter", () => ({
@@ -87,8 +86,12 @@ describe("public TradeDeal detail page", () => {
     expect(container.textContent).toContain("Promotional TradeDeal");
     expect(container.textContent).toContain("County tool rental offer");
     expect(container.textContent).toContain("Listed for the selected county");
-    expect(container.textContent).toContain("Posted end time: 2099-01-01 01:32 UTC");
+    expect(container.textContent).not.toContain("Posted end time");
+    expect(container.textContent).not.toContain("2099-01-01");
     expect(container.textContent).not.toContain("Available in the selected county");
+    expect(container.textContent).toContain(
+      "Confirm its terms, availability, and when the offer ends before you act"
+    );
     expect(container.textContent).toContain("Viewing it does not contact anyone");
     expect(container.querySelectorAll("a")).toHaveLength(1);
     expect(container.querySelector("a")?.getAttribute("href")).toBe("/scout");
@@ -108,14 +111,26 @@ describe("public TradeDeal detail page", () => {
     expect(container.textContent).toContain("Listed for all counties");
   });
 
-  it("uses the UTC posted end time when the local calendar date is earlier", () => {
+  it("does not turn a near-midnight posted timestamp into a public deadline claim", async () => {
     const receiptInstant = "2026-10-01T06:32:45.000Z";
     expect(
       new Date(receiptInstant).toLocaleDateString("en-US", {
         timeZone: "America/Los_Angeles",
       })
     ).toBe("9/30/2026");
-    expect(formatPostedDealEndTime(receiptInstant)).toBe("2026-10-01 06:32 UTC");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ deal: { ...deal, endsAt: receiptInstant } }),
+      })
+    );
+
+    await mount();
+    await waitFor(() => Boolean(container.querySelector('[data-testid="deal-detail-content"]')));
+    expect(container.textContent).not.toMatch(/2026-10-01|9\/30\/2026|Posted end time|06:32|UTC/);
+    expect(container.querySelector("time")).toBeNull();
+    expect(container.textContent).toContain("when the offer ends before you act");
   });
 
   it("does not request an offer when the county query is ambiguous", async () => {
@@ -128,16 +143,9 @@ describe("public TradeDeal detail page", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("shows no offer when the API rejects it or its timing and scope are invalid", async () => {
+  it("shows no offer when the API rejects it or its scope is invalid", async () => {
     const cases = [
       { response: { ok: false, status: 404 }, county: "04013" },
-      {
-        response: {
-          ok: true,
-          json: async () => ({ deal: { ...deal, endsAt: "2020-01-01T00:00:00.000Z" } }),
-        },
-        county: "04013",
-      },
       {
         response: { ok: true, json: async () => ({ deal }) },
         county: null,

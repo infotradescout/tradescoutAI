@@ -150,7 +150,8 @@ function mixedDiscoverySummary(content: string): string {
       clean
     )
   ) {
-    return `${compactPost}; ${postedDeals[1]} posted TradeDeal${postedDeals[1] === "1" ? "" : "s"} (promotion; terms and availability unverified). Businesses, pages, tools unchecked. Nothing sent.`;
+    const dealPost = found ? compactPost : "No recent post verified";
+    return `${dealPost}; ${postedDeals[1]} promotional TradeDeal${postedDeals[1] === "1" ? "" : "s"}. Offer unverified; confirm when it ends before acting. Other sources unchecked. Nothing sent.`;
   }
   if (/It checked Scout promotions for .+?; no eligible TradeDeals were returned/i.test(clean)) {
     return `${compactPost}; no Scout TradeDeals returned. Other deal sources, businesses, pages and tools unchecked. Nothing sent.`;

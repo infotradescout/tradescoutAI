@@ -1,5 +1,4 @@
 import { buildCommunityPostPath } from "../../shared/communityPostShare";
-import { formatPostedDealEndTime } from "../../shared/scoutDealDisplay";
 import {
   buildScoutDealPath,
   isEligibleScoutDeal,
@@ -74,7 +73,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
           match_reasons: [
             "Promotional TradeDeal; terms and availability are not independently verified",
             deal.countyFips.length === 0 ? "Listed for all counties" : "Listed for your county",
-            ...(deal.endsAt ? [`Posted end time: ${formatPostedDealEndTime(deal.endsAt)}`] : []),
+            "Confirm when the offer ends before acting",
           ],
         },
       ];
@@ -88,7 +87,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
   const dealSentence =
     input.dealCheck === "checked"
       ? dealEntities.length
-        ? `It also found ${dealEntities.length} posted Scout ${dealEntities.length === 1 ? "TradeDeal" : "TradeDeals"} for ${area}. These are promotional listings; terms and availability are not independently verified.`
+        ? `It also found ${dealEntities.length} posted Scout ${dealEntities.length === 1 ? "TradeDeal" : "TradeDeals"} for ${area}. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting.`
         : `It checked Scout promotions for ${area}; no eligible TradeDeals were returned. Other deal sources were not checked.`
       : input.dealCheck === "error"
         ? "Scout promotions could not be checked right now."

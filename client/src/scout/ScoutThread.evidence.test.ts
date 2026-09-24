@@ -228,14 +228,13 @@ describe("ScoutThread evidence strip", () => {
       name: "a county post and a posted TradeDeal",
       message:
         "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. " +
-        "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. " +
+        "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. " +
         "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
       visible: [
         "1 recent county post",
-        "1 posted TradeDeal",
-        "promotion",
-        "terms and availability unverified",
-        "Businesses, pages, tools unchecked",
+        "1 promotional TradeDeal",
+        "Offer unverified; confirm when it ends before acting",
+        "Other sources unchecked",
         "Nothing sent",
       ],
     },
@@ -243,12 +242,12 @@ describe("ScoutThread evidence strip", () => {
       name: "a posted TradeDeal without a verified county post",
       message:
         "This Scout result does not verify a county post from the last 7 days in Maricopa County, AZ. " +
-        "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. " +
+        "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. " +
         "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
       visible: [
-        "No recent county post verified",
-        "1 posted TradeDeal",
-        "terms and availability unverified",
+        "No recent post verified",
+        "1 promotional TradeDeal",
+        "Offer unverified; confirm when it ends before acting",
         "Nothing sent",
       ],
     },
