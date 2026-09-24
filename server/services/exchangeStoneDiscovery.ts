@@ -32,6 +32,18 @@ export function resolveStoneAudience(viewer?: StoneMarket, selected?: StoneMarke
   if (known.reason === "pensacola" || known.reason === "outside_us") return known;
   return selected ? stoneAudience(selected) : remembered ? stoneAudience(remembered) : known;
 }
+
+/** Public links use only a validated market, never arbitrary request query or attribution tags. */
+export function audienceQualifiedStonePath(path: string, market?: StoneMarket | null): string | null {
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("?") || path.includes("#")) return null;
+  const audience = stoneAudience(market);
+  if (!audience.allowed) return null;
+  const params = new URLSearchParams();
+  params.set("audienceState", audience.market.state);
+  if (audience.market.state === "FL") params.set("audienceCity", audience.market.city);
+  params.set("audienceCountry", "US");
+  return `${path}?${params.toString()}`;
+}
 export function withStoneDiscovery<T>(context: StoneDiscoveryContext, callback: () => T): T { return contexts.run(context, callback); }
 export function stoneDiscoveryContext(): StoneDiscoveryContext | undefined { return contexts.getStore(); }
 export function isStoneDiscoveryRow(value: any): boolean { return String(value?.id || "").startsWith("tradescout-stone-") || value?.specifications?.commerceChannel === STONE_CHANNEL; }

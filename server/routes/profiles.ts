@@ -4124,10 +4124,14 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
     const { resolvePersistedExchangeCategorySlug } =
       await import("../publicExchangeListingHtml");
 
-    const exposureAuthority = await buildExposureAuthorityMap(
-      [...listings, ...profileOfferItems].map((listing) => listing.sellerUserId)
+    // Retail stone details require an eligible selected market; bare sitemap URLs return 404.
+    const sitemapListings = listings.filter(
+      (listing) => !String(listing.id || "").startsWith("tradescout-stone-")
     );
-    const urls = [...listings, ...profileOfferItems]
+    const exposureAuthority = await buildExposureAuthorityMap(
+      [...sitemapListings, ...profileOfferItems].map((listing) => listing.sellerUserId)
+    );
+    const urls = [...sitemapListings, ...profileOfferItems]
       .filter(
         (listing) =>
           listing && typeof listing === "object" && exposureAuthority[listing.sellerUserId] === true

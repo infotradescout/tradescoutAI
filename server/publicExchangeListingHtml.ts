@@ -31,6 +31,7 @@ import { hasExposureAuthority } from "./services/exposureAuthority";
 import { toPublicProfileOffer } from "./publicProfileOffer";
 import { toPublicExchangeListing } from "./publicExchangeListing";
 import { getPublicProfileCatalogExchangeItem } from "./profileCatalogExchange";
+import { audienceQualifiedStonePath, stoneDiscoveryContext } from "./services/exchangeStoneDiscovery";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -666,13 +667,19 @@ export async function buildPublicExchangeListingHtml(
   const categorySlug = await resolveListingCategorySlug(listing);
   const categoryName = EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME[categorySlug];
 
-  // Build canonical URL
+  // Resolve a public URL without dropping the audience gate for retail stone.
   const canonicalCategory = categorySlug;
-  const listingUrl = `${origin}/exchange/${encodeURIComponent(canonicalCategory)}/${encodeURIComponent(listingId)}`;
+  const listingPath = `/exchange/${encodeURIComponent(canonicalCategory)}/${encodeURIComponent(listingId)}`;
+  const retailStone = isStoneRetailListing(listing);
+  const stoneAudience = retailStone ? stoneDiscoveryContext()?.audience : null;
+  const selectedStonePath = retailStone && stoneAudience?.allowed
+    ? audienceQualifiedStonePath(listingPath, stoneAudience.market)
+    : null;
+  if (retailStone && !selectedStonePath) return null;
+  const listingUrl = `${origin}${selectedStonePath || listingPath}`;
 
   // Build title and description
   const itemTitle = sanitizePublicListingText(listing.title || "Exchange Listing", 80);
-  const retailStone = isStoneRetailListing(listing);
   const stonePrice = retailStone
     ? stoneSlabMaterialPrice(
         listing.price,
@@ -715,7 +722,14 @@ export async function buildPublicExchangeListingHtml(
     Math.min(Number(listing.primaryImageIndex ?? 0), images.length - 1)
   );
   const primaryImage = images[primaryImageIndex] || images[0] || null;
-  const productImageUrl = primaryImage ? new URL(primaryImage, origin).toString() : null;
+  const selectedStoneImagePath = retailStone && primaryImage && stoneAudience?.allowed
+    ? audienceQualifiedStonePath(primaryImage, stoneAudience.market)
+    : null;
+  const productImageUrl = primaryImage
+    ? retailStone
+      ? selectedStoneImagePath ? new URL(selectedStoneImagePath, origin).toString() : null
+      : new URL(primaryImage, origin).toString()
+    : null;
   const socialImageUrl = productImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
 
   // ── Build JSON-LD ──────────────────────────────────────────────────────────
@@ -750,11 +764,16 @@ export async function buildPublicExchangeListingHtml(
     /<meta name="description"[^>]*>/i,
     `<meta name="description" content="${escapeHtml(description)}" />`
   );
-  html = upsertTag(
-    html,
-    /<link rel="canonical"[^>]*>/i,
-    `<link rel="canonical" href="${escapeHtml(listingUrl)}" />`
-  );
+  if (retailStone) {
+    html = upsertTag(html, /<meta name="robots"[^>]*>/i, '<meta name="robots" content="noindex, follow" />');
+    html = html.replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, "");
+  } else {
+    html = upsertTag(
+      html,
+      /<link rel="canonical"[^>]*>/i,
+      `<link rel="canonical" href="${escapeHtml(listingUrl)}" />`
+    );
+  }
   html = upsertTag(
     html,
     /<meta property="og:title"[^>]*>/i,
