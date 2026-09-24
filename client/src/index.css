@@ -5137,6 +5137,18 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   font-size: 18px;
   line-height: 1;
 }
+.scout-tool-tray__btn.scout-result-secondary-action {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  text-align: left;
+}
+.scout-result-secondary-action svg {
+  flex: 0 0 auto;
+}
 /* ----------------------------------------------------------
    @reusable: scout-cluster-card (Morphic upgrade)
    Use: Replaces the legacy .scout-result-card in any context.

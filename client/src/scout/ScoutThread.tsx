@@ -491,7 +491,12 @@ export function inAppScoutResultPath(safeUrl: string, origin: string): string | 
   if (!safeUrl.startsWith("/") || safeUrl.startsWith("//")) {
     try {
       const parsed = new URL(safeUrl);
-      if (parsed.protocol !== "https:" || parsed.origin !== origin || parsed.username || parsed.password) {
+      if (
+        parsed.protocol !== "https:" ||
+        parsed.origin !== origin ||
+        parsed.username ||
+        parsed.password
+      ) {
         return null;
       }
       path = `${parsed.pathname}${parsed.search}${parsed.hash}`;
@@ -1221,7 +1226,7 @@ function MessageExtras({
                     type="button"
                     onClick={() => onAction?.(action)}
                     disabled={!onAction}
-                    className="scout-tool-tray__btn scout-tool-tray__btn--secondary"
+                    className="scout-tool-tray__btn scout-tool-tray__btn--secondary scout-result-secondary-action"
                     style={{
                       minHeight: "40px",
                       fontSize: "12px",
@@ -1249,7 +1254,7 @@ function MessageExtras({
                     onClick={() => onAction?.(action)}
                     disabled={!onAction}
                     className={clsx(
-                      "scout-tool-tray__btn",
+                      "scout-tool-tray__btn scout-result-secondary-action",
                       action.primary
                         ? "scout-tool-tray__btn--primary"
                         : "scout-tool-tray__btn--secondary"
