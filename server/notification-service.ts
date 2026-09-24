@@ -853,37 +853,75 @@ export class NotificationService {
       `);
       const batchSize = Math.min(100, Math.max(1, Math.floor(limit) || 20));
       while (processed < batchSize) {
-        const claimed = await db.execute(sql`
-          UPDATE notification_jobs AS job
-          SET status = 'validating', started_at = NOW(), updated_at = NOW(),
-              template_data = COALESCE(job.template_data, '{}'::jsonb) || jsonb_build_object('leaseId', gen_random_uuid()::text),
-              retry_count = COALESCE(job.retry_count, 0) + 1
-          WHERE job.id IN (
-            SELECT id FROM notification_jobs
-            WHERE job_type = ${EMAIL_JOB_TYPE} AND status IN ('pending', 'retry')
-              AND scheduled_for <= NOW()
-              AND (next_retry_at IS NULL OR next_retry_at <= NOW())
-              AND COALESCE(retry_count, 0) < COALESCE(max_retries, ${EMAIL_MAX_ATTEMPTS})
-            ORDER BY scheduled_for, id
-            FOR UPDATE SKIP LOCKED LIMIT 1
-          )
-          RETURNING job.id, job.template_data AS "templateData",
-            job.target_user_ids AS "targetUserIds", job.retry_count AS "retryCount",
-            job.max_retries AS "maxRetries"
-        `);
-        const job = claimed.rows[0];
+        const job = await this.claimEmailJob();
         if (!job) break;
-        try {
-          await this.deliverEmailJob(job);
-        } catch (error) {
-          if (job.providerAttemptStarted) throw error;
-          await this.finishEmailJob(job, { status: "retry", code: "validation_unavailable" });
-        }
+        await this.processClaimedEmailJob(job);
         processed += 1;
       }
       return processed;
     } finally {
       this.processingEmailJobs = false;
+    }
+  }
+
+  /** Submit the exact committed email intents from an action without waiting for the scheduler. */
+  async processEmailDeliveryJobsById(ids: string[]): Promise<number> {
+    const jobIds = [...new Set(ids)].filter((id) => id.startsWith("notification-email:"));
+    let processed = 0;
+    let firstError: unknown;
+    let failed = false;
+    // A signup has at most three distinct staff recipients. Submit those
+    // independently so one slow provider call does not delay the others.
+    for (let offset = 0; offset < jobIds.length; offset += 3) {
+      const outcomes = await Promise.allSettled(jobIds.slice(offset, offset + 3).map(async (id) => {
+        // The bulk worker may be active here or on another instance.
+        // PostgreSQL's claim, rather than the bulk pass flag, arbitrates both.
+        const job = await this.claimEmailJob(id);
+        if (!job) return 0;
+        await this.processClaimedEmailJob(job);
+        return 1;
+      }));
+      for (const outcome of outcomes) {
+        if (outcome.status === "fulfilled") processed += outcome.value;
+        else if (!failed) {
+          firstError = outcome.reason;
+          failed = true;
+        }
+      }
+    }
+    if (failed) throw firstError;
+    return processed;
+  }
+
+  private async claimEmailJob(id?: string): Promise<any | undefined> {
+    const claimed = await db.execute(sql`
+      UPDATE notification_jobs AS job
+      SET status = 'validating', started_at = NOW(), updated_at = NOW(),
+          template_data = COALESCE(job.template_data, '{}'::jsonb) || jsonb_build_object('leaseId', gen_random_uuid()::text),
+          retry_count = COALESCE(job.retry_count, 0) + 1
+      WHERE job.id IN (
+        SELECT id FROM notification_jobs
+        WHERE job_type = ${EMAIL_JOB_TYPE} AND status IN ('pending', 'retry')
+          AND ${id === undefined ? sql`TRUE` : sql`id = ${id}`}
+          AND scheduled_for <= NOW()
+          AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+          AND COALESCE(retry_count, 0) < COALESCE(max_retries, ${EMAIL_MAX_ATTEMPTS})
+        ORDER BY scheduled_for, id
+        FOR UPDATE SKIP LOCKED LIMIT 1
+      )
+      RETURNING job.id, job.template_data AS "templateData",
+        job.target_user_ids AS "targetUserIds", job.retry_count AS "retryCount",
+        job.max_retries AS "maxRetries"
+    `);
+    return claimed.rows[0];
+  }
+
+  private async processClaimedEmailJob(job: any): Promise<void> {
+    try {
+      await this.deliverEmailJob(job);
+    } catch (error) {
+      if (job.providerAttemptStarted) throw error;
+      await this.finishEmailJob(job, { status: "retry", code: "validation_unavailable" });
     }
   }
 
@@ -1027,6 +1065,13 @@ export class NotificationService {
     const isDirectConnect =
       notification.type.startsWith("dc_") ||
       ["new_project_request", "direct_connect_beta_request"].includes(notification.type);
+    const isJwStoneSignupStaff =
+      notification.type === "new_application" &&
+      notification.metadata?.source === "profile_account_signup" &&
+      notification.metadata?.profileSlug === "jw-stone" &&
+      typeof notification.metadata?.profileAccountId === "string" &&
+      notification.id ===
+        `profile-account-signup:${notification.metadata.profileAccountId}:${user.id}`;
     const content = isDirectConnect
       ? {
           ...notification,
@@ -1064,7 +1109,7 @@ export class NotificationService {
         subject: content.title,
         html: this.generateEmailHTML(content, user),
         text: content.message,
-        purpose: "notification",
+        purpose: isJwStoneSignupStaff ? "jw_stone_signup_staff" : "notification",
         correlationId: notification.id,
         singleAttempt: true,
       });

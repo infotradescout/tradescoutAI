@@ -148,6 +148,125 @@ describe("durable notification email outbox", () => {
     expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
   });
 
+  it("submits only the committed action's email ahead of an older backlog", async () => {
+    for (let index = 0; index < 25; index++) {
+      await create({ type: "system_update", title: `Older alert ${index}` });
+    }
+    const newest = await create({ type: "system_update", title: "New signup alert" });
+    const newestJobId = `notification-email:${newest.id}`;
+
+    expect(await service.processEmailDeliveryJobsById([newestJobId, newestJobId])).toBe(1);
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
+    expect(fixture.sendEmail.mock.calls[0][0].subject).toBe("New signup alert");
+    expect((await jobs()).filter((job) => job.status === "pending")).toHaveLength(25);
+    expect((await jobs()).find((job) => job.id === newestJobId).status).toBe("completed");
+    expect(await service.processEmailDeliveryJobsById([newestJobId])).toBe(0);
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("submits the action's email while the same instance drains another job", async () => {
+    await create({ type: "system_update", title: "Older alert" });
+    const newest = await create({ type: "system_update", title: "New signup alert" });
+    let releaseOlder!: () => void;
+    let markOlderStarted!: () => void;
+    const olderStarted = new Promise<void>((resolve) => { markOlderStarted = resolve; });
+    const holdOlder = new Promise<void>((resolve) => { releaseOlder = resolve; });
+    fixture.sendEmail.mockImplementation(async ({ subject }: { subject: string }) => {
+      if (subject === "Older alert") {
+        markOlderStarted();
+        await holdOlder;
+      }
+      return { skipped: false, provider: "brevo", messageId: "provider-123" };
+    });
+
+    const bulk = service.processEmailDeliveryJobs(2);
+    try {
+      await olderStarted;
+      expect(await service.processEmailDeliveryJobsById([`notification-email:${newest.id}`]))
+        .toBe(1);
+      expect(fixture.sendEmail.mock.calls.map(([message]) => message.subject))
+        .toEqual(["Older alert", "New signup alert"]);
+    } finally {
+      releaseOlder();
+      await bulk;
+    }
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it("submits independent staff emails together when one provider call is slow", async () => {
+    const first = await create({ type: "system_update", title: "Staff one" });
+    const second = await create({ type: "system_update", title: "Staff two" });
+    let releaseFirst!: () => void;
+    let markSecondStarted!: () => void;
+    const holdFirst = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const secondStarted = new Promise<void>((resolve) => { markSecondStarted = resolve; });
+    fixture.sendEmail.mockImplementation(async ({ subject }: { subject: string }) => {
+      if (subject === "Staff one") await holdFirst;
+      if (subject === "Staff two") markSecondStarted();
+      return { skipped: false, provider: "brevo", messageId: "provider-123" };
+    });
+
+    const delivery = service.processEmailDeliveryJobsById([
+      `notification-email:${first.id}`,
+      `notification-email:${second.id}`,
+    ]);
+    let secondStartedWhileFirstHeld = false;
+    try {
+      secondStartedWhileFirstHeld = await Promise.race([
+        secondStarted.then(() => true),
+        new Promise<false>((resolve) => setTimeout(() => resolve(false), 1_000)),
+      ]);
+    } finally {
+      releaseFirst();
+      await delivery;
+    }
+    expect(secondStartedWhileFirstHeld).toBe(true);
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the JW staff purpose only for a canonical signup notification", async () => {
+    const metadata = {
+      source: "profile_account_signup", profileSlug: "jw-stone", profileAccountId: "account-1",
+    };
+    const genuine = await create({
+      id: "profile-account-signup:account-1:owner",
+      type: "new_application", title: "New JW Stone account signup", metadata,
+    });
+    const mismatched = await create({
+      id: "unrelated:account-1:owner",
+      type: "new_application", title: "Other notification", metadata,
+    });
+    expect(await service.processEmailDeliveryJobsById([
+      `notification-email:${genuine.id}`,
+      `notification-email:${mismatched.id}`,
+    ])).toBe(2);
+    const purposes = fixture.sendEmail.mock.calls.map(([message]) => [message.subject, message.purpose]);
+    expect(purposes).toContainEqual(["New JW Stone account signup", "jw_stone_signup_staff"]);
+    expect(purposes).toContainEqual(["Other notification", "notification"]);
+  });
+
+  it("keeps targeted retry timing and cross-instance duplicate protection", async () => {
+    const notification = await create({ type: "system_update", title: "New signup alert" });
+    const id = `notification-email:${notification.id}`;
+    fixture.sendEmail.mockRejectedValueOnce(new EmailDeliveryError("retryable"));
+
+    expect(await service.processEmailDeliveryJobsById([id])).toBe(1);
+    expect((await jobs())[0].status).toBe("retry");
+    expect(await service.processEmailDeliveryJobsById([id])).toBe(0);
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
+
+    await fixture.database!.exec(
+      "UPDATE notification_jobs SET next_retry_at = NOW() - INTERVAL '1 minute'"
+    );
+    const claims = await Promise.all([
+      service.processEmailDeliveryJobsById([id]),
+      new NotificationService().processEmailDeliveryJobsById([id]),
+    ]);
+    expect(claims.reduce((total, claimed) => total + claimed, 0)).toBe(1);
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(2);
+    expect((await jobs())[0]).toMatchObject({ status: "completed", retry_count: 2 });
+  });
+
   it("rolls back the inbox insert when durable intent cannot be persisted", async () => {
     await fixture.database!.exec(
       "ALTER TABLE notification_jobs ADD CONSTRAINT reject_fixture CHECK (job_type <> 'notification_email_v1')"

@@ -3,12 +3,18 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const fixture = vi.hoisted(() => ({
-  query: vi.fn(), release: vi.fn(), connect: vi.fn(),
+  query: vi.fn(), release: vi.fn(), connect: vi.fn(), dispatch: vi.fn(),
   calls: [] as string[], existing: false, businessExists: true,
   slug: "jw-stone", queueFailure: false,
-  receipt: { matched: 1, recipients: 2, notifications: 2, email_jobs: 2, in_app_receipts: 2 },
+  receipt: {
+    matched: 1, recipients: 2, notifications: 2, email_jobs: 2, in_app_receipts: 2,
+    email_job_ids: ["notification-email:signup:owner", "notification-email:signup:contact"],
+  },
 }));
 vi.mock("../db", () => ({ pool: { connect: fixture.connect, query: fixture.query } }));
+vi.mock("../notification-service", () => ({
+  notificationService: { processEmailDeliveryJobsById: fixture.dispatch },
+}));
 vi.mock("@shared/profileAccount", () => ({
   buildProfileAccountReturnPath: (slug: string) => `/u/${slug}?profileAccount=1`,
   resolveProfileAccountPolicy: ({ profileSlug }: { profileSlug: string }) => ({
@@ -29,8 +35,16 @@ beforeEach(() => {
   fixture.businessExists = true;
   fixture.slug = "jw-stone";
   fixture.queueFailure = false;
-  fixture.receipt = { matched: 1, recipients: 2, notifications: 2, email_jobs: 2, in_app_receipts: 2 };
+  fixture.receipt = {
+    matched: 1, recipients: 2, notifications: 2, email_jobs: 2, in_app_receipts: 2,
+    email_job_ids: ["notification-email:signup:owner", "notification-email:signup:contact"],
+  };
   fixture.connect.mockResolvedValue({ query: fixture.query, release: fixture.release });
+  fixture.dispatch.mockImplementation(async () => {
+    fixture.calls.push("IMMEDIATE_DELIVERY");
+    return 2;
+  });
+  fixture.release.mockImplementation(() => fixture.calls.push("RELEASE"));
   fixture.query.mockImplementation(async (sql: string) => {
     fixture.calls.push(sql);
     if (sql === PROFILE_ACCOUNT_SIGNUP_NOTIFICATION_SQL) {
@@ -68,7 +82,7 @@ const join = () => ensureProfileAccount({
 const queued = () => fixture.calls.filter(sql => sql === PROFILE_ACCOUNT_SIGNUP_NOTIFICATION_SQL);
 
 describe("JW Stone staff signup notification producer", () => {
-  it("queues both channel intents before COMMIT on the same connection", async () => {
+  it("queues both channel intents before COMMIT, then sends their exact jobs", async () => {
     await join();
     expect(queued()).toHaveLength(1);
     expect(fixture.calls.indexOf(PROFILE_ACCOUNT_SIGNUP_NOTIFICATION_SQL))
@@ -76,6 +90,9 @@ describe("JW Stone staff signup notification producer", () => {
     expect(fixture.connect).toHaveBeenCalledTimes(1);
     expect(fixture.release).toHaveBeenCalledOnce();
     expect(fixture.query).toHaveBeenCalledWith(PROFILE_ACCOUNT_SIGNUP_NOTIFICATION_SQL, ["account-id"]);
+    expect(fixture.dispatch).toHaveBeenCalledWith(fixture.receipt.email_job_ids);
+    expect(fixture.calls.indexOf("COMMIT")).toBeLessThan(fixture.calls.indexOf("RELEASE"));
+    expect(fixture.calls.indexOf("RELEASE")).toBeLessThan(fixture.calls.indexOf("IMMEDIATE_DELIVERY"));
   });
   it("also notifies when registration creates a new private business identity", async () => {
     fixture.businessExists = false;
@@ -92,6 +109,7 @@ describe("JW Stone staff signup notification producer", () => {
     fixture.existing = true;
     await join();
     expect(queued()).toHaveLength(0);
+    expect(fixture.dispatch).not.toHaveBeenCalled();
     expect(fixture.calls).toContain("COMMIT");
   });
   it("does not enroll ISSA Build or other profiles in JW Stone alerts", async () => {
@@ -113,6 +131,19 @@ describe("JW Stone staff signup notification producer", () => {
     expect(fixture.calls).toContain("ROLLBACK");
     expect(fixture.calls).not.toContain("COMMIT");
     expect(fixture.release).toHaveBeenCalledOnce();
+    expect(fixture.dispatch).not.toHaveBeenCalled();
+  });
+  it("keeps the committed signup successful if immediate delivery needs the outbox retry", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    fixture.dispatch.mockRejectedValueOnce(new Error("provider unavailable"));
+    try {
+      await expect(join()).resolves.toHaveProperty("account.id", "account-id");
+      expect(fixture.calls).toContain("COMMIT");
+      expect(fixture.calls).not.toContain("ROLLBACK");
+      expect(fixture.dispatch).toHaveBeenCalledWith(fixture.receipt.email_job_ids);
+    } finally {
+      errorLog.mockRestore();
+    }
   });
   it("does not make returning members depend on the new notification producer", async () => {
     fixture.existing = true;
@@ -132,14 +163,14 @@ describe("JW Stone staff signup notification producer", () => {
     expect(PROFILE_ACCOUNT_SIGNUP_NOTIFICATION_SQL).not.toContain(identifier);
   });
   it("fails the transaction when a JW signup has no staff recipient", async () => {
-    fixture.receipt = { matched: 1, recipients: 0, notifications: 0, email_jobs: 0, in_app_receipts: 0 };
+    fixture.receipt = { matched: 1, recipients: 0, notifications: 0, email_jobs: 0, in_app_receipts: 0, email_job_ids: [] };
     await expect(join()).rejects.toThrow("recipient is unavailable");
     expect(fixture.calls).toContain("ROLLBACK");
   });
   it("accepts a deduplicated replay without resetting any prior job", async () => {
-    fixture.receipt = { matched: 1, recipients: 2, notifications: 0, email_jobs: 0, in_app_receipts: 0 };
+    fixture.receipt = { matched: 1, recipients: 2, notifications: 0, email_jobs: 0, in_app_receipts: 0, email_job_ids: [] };
     await expect(queueProfileAccountSignupNotifications({ query: fixture.query } as any, "account-id"))
-      .resolves.toBeUndefined();
+      .resolves.toEqual([]);
   });
   it("rejects incomplete channel receipts", async () => {
     fixture.receipt.email_jobs = 1;
