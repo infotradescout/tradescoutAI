@@ -68,3 +68,113 @@ test("production PostgreSQL is the persistent fallback when object credentials a
     }
   );
 });
+
+const neon = {
+  ...aws,
+  SERVER_OBJECT_STORAGE_PROVIDER: "neon-s3",
+  AWS_ENDPOINT_URL_S3: "https://br-test.storage.c-2.us-east-1.aws.neon.tech/",
+};
+
+test("explicit Neon selects the branch endpoint with path-style addressing", () => {
+  const configuration = serverObjectStorageConfiguration({ ...r2, ...neon });
+  assert.equal(configuration.provider, "neon-s3");
+  assert.equal(configuration.bucketName, aws.AWS_S3_BUCKET);
+  assert.deepEqual(serverObjectStorageClientOptions(configuration), {
+    region: aws.AWS_REGION,
+    endpoint: "https://br-test.storage.c-2.us-east-1.aws.neon.tech",
+    forcePathStyle: true,
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    credentials: { accessKeyId: aws.AWS_ACCESS_KEY_ID, secretAccessKey: aws.AWS_SECRET_ACCESS_KEY },
+  });
+});
+
+test("partial Neon settings never fall back to R2 or PostgreSQL", () => {
+  for (const key of [
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_REGION",
+    "AWS_S3_BUCKET",
+    "AWS_ENDPOINT_URL_S3",
+  ]) {
+    assert.throws(
+      () =>
+        serverObjectStorageConfiguration({
+          ...r2,
+          ...neon,
+          DATABASE_URL: "postgresql://unused/database",
+          [key]: " ",
+        }),
+      new RegExp(`missing ${key}`)
+    );
+  }
+});
+
+test("Neon endpoint injection alone and invalid provider selections fail closed", () => {
+  assert.throws(
+    () =>
+      serverObjectStorageConfiguration({
+        ...neon,
+        SERVER_OBJECT_STORAGE_PROVIDER: "",
+        DATABASE_URL: "postgresql://unused/database",
+      }),
+    /requires SERVER_OBJECT_STORAGE_PROVIDER=neon-s3/
+  );
+  assert.throws(
+    () =>
+      serverObjectStorageConfiguration({
+        ...neon,
+        SERVER_OBJECT_STORAGE_PROVIDER: "neon-typo",
+      }),
+    /Invalid SERVER_OBJECT_STORAGE_PROVIDER/
+  );
+});
+
+test("Neon requires a bare HTTPS branch endpoint", () => {
+  for (const endpoint of [
+    "not-a-url",
+    "http://br-test.storage.us-east-1.aws.neon.tech",
+    "https://br-test.storage.us-east-1.aws.neon.tech/bucket",
+    "https://br-test.storage.us-east-1.aws.neon.tech?secret=hidden",
+    "https://user:secret@br-test.storage.us-east-1.aws.neon.tech",
+    "https://br-test.storage.us-east-1.aws.neon.tech.evil.example",
+  ]) {
+    assert.throws(
+      () => serverObjectStorageConfiguration({ ...neon, AWS_ENDPOINT_URL_S3: endpoint }),
+      /AWS_ENDPOINT_URL_S3 must be a bare HTTPS Neon branch storage endpoint/
+    );
+  }
+});
+
+test("explicit legacy selection is honored without injected Neon endpoint settings", () => {
+  const configuration = serverObjectStorageConfiguration({
+    ...r2,
+    ...aws,
+    SERVER_OBJECT_STORAGE_PROVIDER: "aws-s3",
+  });
+  assert.equal(configuration.provider, "aws-s3");
+  assert.equal(serverObjectStorageClientOptions(configuration).endpoint, undefined);
+  assert.throws(
+    () =>
+      serverObjectStorageConfiguration({
+        ...neon,
+        SERVER_OBJECT_STORAGE_PROVIDER: "aws-s3",
+      }),
+    /AWS_ENDPOINT_URL_S3 requires SERVER_OBJECT_STORAGE_PROVIDER=neon-s3/
+  );
+  assert.throws(
+    () =>
+      serverObjectStorageConfiguration({
+        ...aws,
+        SERVER_OBJECT_STORAGE_PROVIDER: "cloudflare-r2",
+      }),
+    /Incomplete R2 configuration/
+  );
+  assert.throws(
+    () =>
+      serverObjectStorageConfiguration({
+        ...aws,
+        SERVER_OBJECT_STORAGE_PROVIDER: "postgres-public-media",
+      }),
+    /missing DATABASE_URL/
+  );
+});
