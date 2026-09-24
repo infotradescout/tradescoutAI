@@ -89,6 +89,37 @@ export function scrollScoutThreadToNewAnswerStart(
   return true;
 }
 
+function revealScoutSourceChecks(answer: HTMLDivElement): void {
+  const thread = answer.closest<HTMLElement>(".scout-thread");
+  const toggle = answer.parentElement?.querySelector<HTMLElement>(
+    ".scout-message-details-toggle"
+  );
+  if (!thread || !toggle) return;
+
+  const threadBox = thread.getBoundingClientRect();
+  const toggleBox = toggle.getBoundingClientRect();
+  const answerBox = answer.getBoundingClientRect();
+  const dockBox = document.querySelector<HTMLElement>(".scout-search-dock-fixed")
+    ?.getBoundingClientRect();
+  const visibleTop = Math.max(0, threadBox.top);
+  const visibleBottom = Math.min(
+    threadBox.bottom,
+    window.innerHeight,
+    dockBox && dockBox.height > 0 ? dockBox.top : Infinity
+  );
+  if (visibleBottom <= visibleTop) return;
+
+  // Keep the disclosure control in view while making its first few lines readable.
+  const firstLinesBottom = answerBox.top + Math.min(72, answerBox.height) + 12;
+  const needed = Math.max(0, firstLinesBottom - visibleBottom);
+  const toggleRoom = Math.max(0, toggleBox.top - visibleTop - 12);
+  const availableScroll = Math.max(0, thread.scrollHeight - thread.clientHeight - thread.scrollTop);
+  const delta = Math.min(needed, toggleRoom, availableScroll);
+  if (delta > 0) {
+    thread.scrollTo({ top: thread.scrollTop + delta, behavior: "instant" });
+  }
+}
+
 function findLatestAssistantMessageId(messages: ScoutMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
@@ -1002,6 +1033,9 @@ function MessageExtras({
   const [controllerShowAll, setControllerShowAll] = React.useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
   const [answerOpen, setAnswerOpen] = React.useState(false);
+  const revealSourceChecksOnMount = React.useCallback((answer: HTMLDivElement | null) => {
+    if (answer) revealScoutSourceChecks(answer);
+  }, []);
 
   const prioritizedActionChips = React.useMemo(() => {
     const chips = Array.isArray(msg.frame?.actionChips) ? msg.frame.actionChips : [];
@@ -1466,7 +1500,11 @@ function MessageExtras({
                     : "More detail"}
               </button>
               {answerOpen && (
-                <div className="mt-2 space-y-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">
+                <div
+                  ref={hasMixedDiscoveryCoverage ? revealSourceChecksOnMount : undefined}
+                  data-testid={hasMixedDiscoveryCoverage ? "scout-source-check-body" : undefined}
+                  className="mt-2 space-y-2 text-sm leading-relaxed text-[color:var(--text-secondary)]"
+                >
                   <p className="whitespace-pre-line">{fullAnswer}</p>
                   {hasMixedDiscoveryCoverage && (
                     <EvidenceSourceList sources={msg.provenance?.sources || []} />

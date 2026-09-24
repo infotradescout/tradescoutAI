@@ -807,6 +807,104 @@ describe("ScoutThread evidence strip", () => {
     }
   );
 
+  it("reveals source-check lines above the mobile composer and leaves collapse in place", () => {
+    const answer =
+      "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned. " +
+      "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. " +
+      "Scout checked public business profiles for Maricopa County, AZ; none were returned. " +
+      "Pages, tools, and other requests were not checked. Nothing was sent.";
+    const message: ScoutMessage = {
+      id: "a_source_checks",
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+    };
+    const container = document.createElement("div");
+    const dock = document.createElement("div");
+    dock.className = "scout-search-dock-fixed";
+    document.body.append(container, dock);
+    const root = createRoot(container);
+    const sendMessage = vi.fn();
+    const previousScrollTo = HTMLElement.prototype.scrollTo;
+    const previousRect = HTMLElement.prototype.getBoundingClientRect;
+    const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+    let thread: HTMLElement | null = null;
+    let scrollTop = 400;
+    const scrollTo = vi.fn((options: ScrollToOptions) => {
+      scrollTop = options.top ?? scrollTop;
+    });
+    const rect = (top: number, bottom: number) =>
+      ({ top, bottom, height: bottom - top }) as DOMRect;
+
+    HTMLElement.prototype.scrollTo = vi.fn();
+    HTMLElement.prototype.getBoundingClientRect = function () {
+      const offset = scrollTop - 400;
+      if (this === thread) return rect(100, 760);
+      if (this === dock) return rect(712, 844);
+      if (this.classList.contains("scout-message-details-toggle")) {
+        return rect(666 - offset, 696 - offset);
+      }
+      if (this.getAttribute("data-testid") === "scout-source-check-body") {
+        return rect(700 - offset, 1040 - offset);
+      }
+      return previousRect.call(this);
+    };
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+
+    try {
+      React.act(() => {
+        root.render(
+          React.createElement(ScoutThread, {
+            messages: [message],
+            status: "idle",
+            onSendMessage: sendMessage,
+          })
+        );
+      });
+      thread = container.querySelector<HTMLElement>(".scout-thread");
+      expect(thread).not.toBeNull();
+      Object.defineProperties(thread!, {
+        scrollTop: { configurable: true, get: () => scrollTop },
+        scrollHeight: { configurable: true, value: 1300 },
+        clientHeight: { configurable: true, value: 660 },
+        scrollTo: { configurable: true, value: scrollTo },
+      });
+      const toggle = container.querySelector<HTMLButtonElement>(
+        ".scout-message-details-toggle"
+      );
+      expect(toggle?.textContent).toContain("See source checks and limits");
+
+      React.act(() => toggle?.click());
+
+      const expanded = container.querySelector<HTMLElement>(
+        '[data-testid="scout-source-check-body"]'
+      );
+      expect(expanded?.textContent).toContain("Scout checked published county posts");
+      expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 472, behavior: "instant" });
+      expect(expanded!.getBoundingClientRect().top + 72 + 12).toBeLessThanOrEqual(
+        dock.getBoundingClientRect().top
+      );
+      expect(toggle!.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+        thread!.getBoundingClientRect().top
+      );
+
+      React.act(() => toggle?.click());
+      expect(container.querySelector('[data-testid="scout-source-check-body"]')).toBeNull();
+      expect(toggle?.textContent).toContain("See source checks and limits");
+      expect(scrollTo).toHaveBeenCalledTimes(1);
+      expect(sendMessage).not.toHaveBeenCalled();
+    } finally {
+      React.act(() => root.unmount());
+      container.remove();
+      dock.remove();
+      HTMLElement.prototype.scrollTo = previousScrollTo;
+      HTMLElement.prototype.getBoundingClientRect = previousRect;
+      if (previousActEnvironment === undefined) delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+      else actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+    }
+  });
+
   it.each([`${"Long County Name ".repeat(3).trim()}, AZ`, "Maricopa<script>, AZ"])(
     "uses a safe county fallback for a business-aware answer with area %s",
     (area) => {
