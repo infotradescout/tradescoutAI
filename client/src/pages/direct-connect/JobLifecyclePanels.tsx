@@ -128,7 +128,7 @@ export function ReviewSchedulePanel({
               placeholder="Optional note"
               className="min-h-[70px]"
             />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>button]:min-h-11">
               <Button
                 onClick={() => respondMutation.mutate("accept")}
                 disabled={respondMutation.isPending}
@@ -207,7 +207,7 @@ export function ReviewCompletionPanel({ jobWorkspaceId }: { jobWorkspaceId: stri
               placeholder="Optional note"
               className="min-h-[70px]"
             />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 [&>button]:min-h-11">
               <Button
                 onClick={() => respondMutation.mutate("confirm")}
                 disabled={respondMutation.isPending}
@@ -509,7 +509,7 @@ export function ReviewInvoicePanel({
               placeholder="Optional note"
               className="min-h-[70px]"
             />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>button]:min-h-11">
               <Button
                 onClick={() => respondMutation.mutate("acknowledge")}
                 disabled={respondMutation.isPending}
@@ -712,7 +712,7 @@ export function ReviewPaymentRequestPanel({
               placeholder="Optional note"
               className="min-h-[70px]"
             />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>button]:min-h-11">
               <Button
                 onClick={() => respondMutation.mutate("acknowledge")}
                 disabled={respondMutation.isPending}
@@ -906,12 +906,15 @@ export function WorkTrackingPanel({
         <div className="space-y-2">
           <p className="text-sm font-semibold">Checkpoints</p>
           {checkpoints.map((cp) => (
-            <div key={cp.checkpointId} className="flex items-center justify-between text-sm">
-              <span>{cp.title}</span>
-              <div className="flex items-center gap-2">
+            <div
+              key={cp.checkpointId}
+              className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span className="min-w-0 break-words">{cp.title}</span>
+              <div className="flex flex-col items-start gap-2 sm:shrink-0 sm:flex-row sm:items-center">
                 <StatusBadge status={cp.status} />
                 {viewerRole === "requester" && cp.status === "requester_review" && (
-                  <>
+                  <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:items-center [&>button]:min-h-11">
                     <Button
                       size="sm"
                       variant="outline"
@@ -933,7 +936,7 @@ export function WorkTrackingPanel({
                     >
                       Report issue
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -968,7 +971,7 @@ export function WorkTrackingPanel({
               </div>
               <p className="text-xs text-[color:var(--text-secondary)]">{co.scopeChangeSummary}</p>
               {viewerRole === "requester" && co.status === "sent" && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>button]:min-h-11">
                   <Button
                     size="sm"
                     onClick={() =>
@@ -1034,12 +1037,15 @@ export function WorkTrackingPanel({
         <div className="space-y-2 border-t border-[color:var(--border-subtle)] pt-4">
           <p className="text-sm font-semibold">Punch list</p>
           {punchItems.map((item) => (
-            <div key={item.punchItemId} className="flex items-center justify-between text-sm">
-              <span>{item.title}</span>
-              <div className="flex items-center gap-2">
+            <div
+              key={item.punchItemId}
+              className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span className="min-w-0 break-words">{item.title}</span>
+              <div className="flex flex-col items-start gap-2 sm:shrink-0 sm:flex-row sm:items-center">
                 <StatusBadge status={item.status} />
                 {viewerRole === "requester" && (
-                  <>
+                  <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:items-center [&>button]:min-h-11">
                     <Button
                       size="sm"
                       variant="outline"
@@ -1064,7 +1070,7 @@ export function WorkTrackingPanel({
                     >
                       Waive
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
