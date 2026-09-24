@@ -228,7 +228,7 @@ describe("Scout county lookup", () => {
     expect(result.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: "Open posted TradeDeal",
+          label: "Open promotional TradeDeal",
           to: `/deals/${postedDeal.id}?county=04013`,
         }),
       ])

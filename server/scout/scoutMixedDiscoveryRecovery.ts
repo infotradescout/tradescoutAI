@@ -71,7 +71,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
           name: deal.title.replace(/\s+/g, " ").trim().slice(0, 110),
           url,
           match_reasons: [
-            "Posted TradeDeal; terms and availability are not independently verified",
+            "Promotional TradeDeal; terms and availability are not independently verified",
             deal.countyFips.length === 0 ? "Listed for all counties" : "Listed for your county",
             ...(deal.endsAt ? [`Listed end date: ${deal.endsAt.toISOString().slice(0, 10)}`] : []),
           ],
@@ -111,7 +111,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
         ? [
             {
               type: "NAVIGATE",
-              label: "Open posted TradeDeal",
+              label: "Open promotional TradeDeal",
               to: dealEntities[0].url,
               primary: postEntities.length === 0,
             },
