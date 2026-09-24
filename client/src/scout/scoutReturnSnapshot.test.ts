@@ -60,10 +60,10 @@ describe("Scout result return", () => {
     expect(takeScoutReturnSnapshot("user:123", 2_000)).toBeNull();
   });
 
-  it("keeps a result when returning to its own launch entry", () => {
+  it("rejects a new explicit launch even when it repeats the same URL", () => {
     const launch = "/scout?source=onboarding_result";
     rememberScoutForReturn("user:123", resultMessages, null, launch, 1_000);
     clearScoutReturnForNewLaunch(launch, true);
-    expect(takeScoutReturnSnapshot("user:123", 2_000)?.messages).toEqual(resultMessages);
+    expect(takeScoutReturnSnapshot("user:123", 2_000)).toBeNull();
   });
 });

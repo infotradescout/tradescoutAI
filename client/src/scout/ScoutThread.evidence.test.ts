@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import ScoutThread, {
   EvidenceSourceList,
+  inAppScoutResultPath,
   scrollScoutThreadToLatest,
   scrollScoutThreadToNewAnswerStart,
 } from "./ScoutThread";
@@ -31,6 +32,16 @@ function renderThread(
 }
 
 describe("ScoutThread evidence strip", () => {
+  it("uses app navigation for validated same-origin HTTPS results only", () => {
+    const dealPath = "/deals/00000000-0000-4000-8000-000000000201?county=04013";
+    expect(inAppScoutResultPath(`https://tradescout.test${dealPath}`, "https://tradescout.test"))
+      .toBe(dealPath);
+    expect(inAppScoutResultPath(`https://another.test${dealPath}`, "https://tradescout.test"))
+      .toBeNull();
+    expect(inAppScoutResultPath("https://tradescout.test/admin/private", "https://tradescout.test"))
+      .toBeNull();
+  });
+
   it("renders verified sources as links, context separately, and drops unsafe citations", () => {
     const html = renderToStaticMarkup(
       React.createElement(EvidenceSourceList, {

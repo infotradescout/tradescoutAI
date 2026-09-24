@@ -486,6 +486,23 @@ function validatedEntityUrl(url: unknown): string | undefined {
   return action?.type === "NAVIGATE" && (action.to || action.path) === url ? url : undefined;
 }
 
+export function inAppScoutResultPath(safeUrl: string, origin: string): string | null {
+  let path = safeUrl;
+  if (!safeUrl.startsWith("/") || safeUrl.startsWith("//")) {
+    try {
+      const parsed = new URL(safeUrl);
+      if (parsed.protocol !== "https:" || parsed.origin !== origin || parsed.username || parsed.password) {
+        return null;
+      }
+      path = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return null;
+    }
+  }
+  const action = validateAction({ type: "NAVIGATE", to: path, label: "Open result" });
+  return action?.type === "NAVIGATE" && (action.to || action.path) === path ? path : null;
+}
+
 function frameChipToAction(chip: ScoutActionChip): ScoutAction {
   const args =
     chip.args && typeof chip.args === "object" ? (chip.args as Record<string, unknown>) : undefined;
@@ -1094,6 +1111,12 @@ function MessageExtras({
           {contractEntities.map((entity, index) => {
             const entityName = entity.name || entity.type;
             const safeUrl = validatedEntityUrl(entity.url);
+            const inAppPath = safeUrl
+              ? inAppScoutResultPath(
+                  safeUrl,
+                  typeof window === "undefined" ? "" : window.location.origin
+                )
+              : null;
             const entityAction = safeUrl
               ? contractActionEntries.find(
                   ({ action }) =>
@@ -1122,8 +1145,7 @@ function MessageExtras({
                     onClick={(event) => {
                       if (
                         !onResultLinkNavigate ||
-                        !safeUrl.startsWith("/") ||
-                        safeUrl.startsWith("//") ||
+                        !inAppPath ||
                         event.button !== 0 ||
                         event.metaKey ||
                         event.ctrlKey ||
@@ -1133,7 +1155,7 @@ function MessageExtras({
                         return;
                       }
                       event.preventDefault();
-                      onResultLinkNavigate(safeUrl);
+                      onResultLinkNavigate(inAppPath);
                     }}
                   >
                     {entityName}

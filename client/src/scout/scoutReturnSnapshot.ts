@@ -8,12 +8,27 @@ const RETURN_WINDOW_MS = 15 * 60 * 1000;
 type ScoutReturnSnapshot = {
   owner: string;
   sourceLocation: string;
+  returnedByHistory: boolean;
   expiresAt: number;
   messages: ScoutMessage[];
   activeSavedThreadId: string | null;
 };
 
 let pendingReturn: ScoutReturnSnapshot | null = null;
+
+function markScoutHistoryReturn(): void {
+  if (!pendingReturn || typeof window === "undefined") return;
+  const currentLocation = `${window.location.pathname}${window.location.search}`;
+  if (currentLocation === pendingReturn.sourceLocation) {
+    pendingReturn.returnedByHistory = true;
+  }
+}
+
+function stopWatchingHistoryReturn(): void {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("popstate", markScoutHistoryReturn);
+  }
+}
 
 export function rememberScoutForReturn(
   owner: string | null,
@@ -29,13 +44,18 @@ export function rememberScoutForReturn(
   ) {
     return false;
   }
+  stopWatchingHistoryReturn();
   pendingReturn = {
     owner,
     sourceLocation,
+    returnedByHistory: false,
     expiresAt: now + RETURN_WINDOW_MS,
     messages: messages.slice(),
     activeSavedThreadId,
   };
+  if (typeof window !== "undefined") {
+    window.addEventListener("popstate", markScoutHistoryReturn);
+  }
   return true;
 }
 
@@ -43,8 +63,11 @@ export function clearScoutReturnForNewLaunch(
   currentLocation: string,
   explicitLaunch: boolean
 ): void {
-  if (explicitLaunch && pendingReturn?.sourceLocation !== currentLocation) {
-    pendingReturn = null;
+  if (
+    explicitLaunch &&
+    (pendingReturn?.sourceLocation !== currentLocation || !pendingReturn.returnedByHistory)
+  ) {
+    clearScoutReturnSnapshot();
   }
 }
 
@@ -53,7 +76,7 @@ export function takeScoutReturnSnapshot(
   now = Date.now()
 ): Pick<ScoutReturnSnapshot, "messages" | "activeSavedThreadId"> | null {
   const snapshot = pendingReturn;
-  pendingReturn = null;
+  clearScoutReturnSnapshot();
   if (!snapshot || !owner || snapshot.owner !== owner || now > snapshot.expiresAt) {
     return null;
   }
@@ -65,4 +88,5 @@ export function takeScoutReturnSnapshot(
 
 export function clearScoutReturnSnapshot(): void {
   pendingReturn = null;
+  stopWatchingHistoryReturn();
 }
