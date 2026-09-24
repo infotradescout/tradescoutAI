@@ -171,6 +171,7 @@ export function isOnboardingExemptPath(path: string): boolean {
   const normalized = String(path || "/").replace(/\/+$/, "") || "/";
   return (
     isPublicProfileAccountPath(normalized) ||
+    /^\/deals\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized) ||
     normalized === "/pre-scout-setup" ||
     normalized === "/onboarding" ||
     normalized === "/onboarding/profile" ||

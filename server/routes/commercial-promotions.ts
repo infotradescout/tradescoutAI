@@ -26,6 +26,8 @@ export async function registerCommercialPromotionRoutes(
   // Public daily deals endpoints
   app.get("/api/daily-deals", getDailyDeals);
   app.get("/api/deals/featured", getFeaturedDeals);
+  const { getPublicScoutDealDetail } = await import("./public-deal-detail");
+  app.get("/api/deals/:id", getPublicScoutDealDetail);
 
   // Protected daily deals endpoints
   app.post("/api/daily-deals", isAuthenticated, createDailyDeal);

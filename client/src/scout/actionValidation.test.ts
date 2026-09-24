@@ -140,6 +140,27 @@ describe("actionValidation", () => {
     ).toBeNull();
   });
 
+  it("allows only a specific public TradeDeal with an optional valid county", () => {
+    const id = "11111111-2222-4333-8444-555555555555";
+    const target = `/deals/${id}?county=04013`;
+    expect(
+      scoutAllowedActionToAction(allowedAction({ label: "Open TradeDeal", target }))
+    ).toMatchObject({ type: "NAVIGATE", to: target, path: target });
+    expect(scoutAllowedActionToAction(allowedAction({ target: `/deals/${id}` }))).toMatchObject({
+      to: `/deals/${id}`,
+    });
+
+    for (const blocked of [
+      "/deals/not-a-uuid?county=04013",
+      `/deals/${id}/extra?county=04013`,
+      `/deals/${id}?county=999`,
+      `/deals/${id}?county=04013&redirect=/messages`,
+      `/deals/${id}#contact`,
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
+  });
+
   it("allows normal user Scout and Supply Run routes", () => {
     for (const to of [
       "/homes",
