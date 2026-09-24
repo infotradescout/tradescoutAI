@@ -556,6 +556,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   const appOwnsSurfaceOrientation =
     currentPath === "/scout" ||
     currentPath.startsWith("/scout/") ||
+    currentPath === "/contractors" ||
+    currentPath === "/find-local-businesses" ||
     currentPath === "/community" ||
     currentPath.startsWith("/community/") ||
     currentPath === "/community-feed" ||
