@@ -1,70 +1,55 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260924T225234Z-95de32d4",
-  "createdAt": "2026-09-24T22:52:35.099198+00:00",
-  "outcome": "Draft PR 699 Scout and Businesses UX candidate: compact county result summary and readable source checks; saved-task deletion is atomic across conversation and legacy preferences.",
+  "checkpointId": "progress-20260924T231952Z-958664b2",
+  "createdAt": "2026-09-24T23:19:53.428793+00:00",
+  "outcome": "Scout and Businesses draft PR 699 now suppresses fixed profile setup promotion on customer business search and private request editor, preserving business setup elsewhere.",
   "scope": [
-    "TradeScout Scout and Businesses PR #699 only; canonical Infinity and other products remain separate."
+    "TradeScout Scout and Businesses PR #699 only; separate from canonical Infinity and other brands."
   ],
   "prohibitions": [
-    "No invented inventory, production writes, guard weakening, main merge or deployment."
+    "No production writes, invented inventory, weakened guards, main merge or deployment."
   ],
   "progress": {
     "completedVerified": [
-      "D clone matching package lock: ScoutThread focused 54/54 passed, atomic saved-task deletion PGlite rollback/success 2/2 passed, npm run check passed; independent Objector identified and Worker repaired two mobile hierarchy issues."
+      "Prior da7 signed-in Scout, saved-delete, business-source-error, and Businesses phone/desktop browser journeys passed with disposable loopback databases; new banner route focused tests 11/11 and npm run check passed; Objector identified overlay P1."
     ],
     "changedUnverified": [
-      "New UI hierarchy and atomic delete have not yet completed integrated exact-head browser proof; PR not merged or deployed."
+      "Banner suppression exact-head 1440 review rendering and new-head four-receipt integration proof remain pending; prior da7 browser receipts are historical."
     ],
     "proof": [
-      "D:/AAATraderCorner/TradeScout/_codex_worktrees/scout-ux-final-20260924 focused Vitest 54/54 and PGlite 2/2; npm run check passed on 2026-09-24. Earlier b98/f9e receipts are historical and partial."
+      "D:/scout-ux-proof-20260924/scout-main-final-r3/receipt.json and D:/scout-business-proof-20260924/evidence/businesses-empty-da7-r1/receipt.json are prior-head PASS; da7 desktop review screenshot showed badge overlay. New resolver focused Vitest 11/11 and npm run check passed."
     ],
     "externalEffects": [
-      "Remote PR #699 currently at cd04b51c before this save; no merge, deploy, customer request, contact, payment, purchase or trade. An owned old D disposable temp folder remains after automatic review rejected its cleanup; its port is closed."
+      "Draft PR #699 at da7 before this save; no main merge or deployment; no customer request, contact, payment, purchase or trade. Old disposable temp residue remains where automatic approval review rejected cleanup, with ports closed."
     ],
     "doNotRepeat": [
-      "Do not treat old-head receipts or prepared runners as final proof. Do not bypass rejected temp cleanup. Do not run concurrent disposable PostgreSQL lanes."
+      "Do not present da7 browser/gate as exact new-head proof or bypass rejected cleanup. Keep disposable database lanes serial."
     ],
-    "nextSafeAction": "Run exact-head synthetic Windows browser receipts for Scout, saved-task deletion and faults, business-source fault, Businesses phone/desktop; then unchanged release gate and update draft PR proof."
+    "nextSafeAction": "Rerun exact-head synthetic browser journeys for Scout, saved-task deletion, Scout business source error, and Businesses phone/desktop; run unchanged release gate and update draft PR proof."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-mobile-discovery-20260923",
-    "headBefore": "cd04b51c10625df5206eb1080cef88417662566e",
+    "headBefore": "da7dc8890e49ce49407a5e5498a978ad191df44c",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "M  client/src/scout/ScoutThread.evidence.test.ts",
-      "M  client/src/scout/ScoutThread.tsx",
-      "M  server/routes.ts",
-      "A  server/services/scoutSavedTaskDeletion.ts",
-      "A  server/tests/scout-saved-task-deletion.behavior.test.ts"
+      " M client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
+      " M client/src/components/onboarding/ProfileCompletionBanner.tsx"
     ],
-    "unrelatedChangeCountExcluded": 1
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "fb33a92e0988f1864d621246ec0f666aac7bf5fc574df66ea0b9c1afdce38bb7"
+      "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
+      "sha256": "540bbc9feb97f4e32e276beaae8a7e9b414d594d85502170996579759d3ad398"
     },
     {
-      "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "022678bc5b64ff6225aa792847e992244900d9cda22ed8536c512006bb07e530"
-    },
-    {
-      "path": "server/routes.ts",
-      "sha256": "fd327a3f23ccbc5227db56e393e80e068dcdd4884353d6e6da4c04af197ebc22"
-    },
-    {
-      "path": "server/services/scoutSavedTaskDeletion.ts",
-      "sha256": "18b469222835794328132a6857765414639ea0acc44c6465afca82cdfdaa8d2c"
-    },
-    {
-      "path": "server/tests/scout-saved-task-deletion.behavior.test.ts",
-      "sha256": "ff515cd176990e3b3cf97e214dfab9c0258ea8325f87b7932a84dfaf1c09bc3e"
+      "path": "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
+      "sha256": "abc1ac5ba2e559369428734e14fcbd5465829ca918f458dcc1dcb2f505fa8801"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
