@@ -91,6 +91,7 @@ import {
 } from "@shared/exchangeListingRules";
 import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
+import { audienceQualifiedStoneMedia } from "./exchange/stonePublicUrls";
 
 interface ExchangeItem {
   specifications?: {
@@ -1405,6 +1406,9 @@ export default function Exchange() {
                           : isProfileCatalog && item.profileItemSlug && item.publicProfilePath
                           ? item.publicProfilePath
                           : `/exchange/${detailCategory}/${encodeURIComponent(item.id)}`;
+                      const displayImage = isRetailStone
+                        ? audienceQualifiedStoneMedia(item.images?.[0], item.publicDetailPath, item.id)
+                        : item.images?.[0];
                       return (
                         <Card
                           key={item.id}
@@ -1414,10 +1418,10 @@ export default function Exchange() {
                             className="relative cursor-pointer"
                             onClick={() => navigate(detailPath)}
                           >
-                            {item.images && item.images.length > 0 ? (
+                            {displayImage ? (
                               <div className="aspect-video sm:aspect-square bg-tsCard overflow-hidden">
                                 <img
-                                  src={item.images[0]}
+                                  src={displayImage}
                                   alt={displayTitle}
                                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                                 />

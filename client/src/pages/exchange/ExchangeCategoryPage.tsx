@@ -49,6 +49,7 @@ import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
 import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
+import { audienceQualifiedStoneMedia } from "./stonePublicUrls";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -669,6 +670,9 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                       : isProfileCatalog && item.profileItemSlug && item.publicProfilePath
                       ? item.publicProfilePath
                       : `/exchange/${config.slug}/${encodeURIComponent(item.id)}`;
+                  const displayImage = isRetailStone
+                    ? audienceQualifiedStoneMedia(item.images?.[0], item.publicDetailPath, item.id)
+                    : item.images?.[0];
                   return (
                     <Card
                       key={item.id}
@@ -678,10 +682,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                     >
                       {/* Image — click to open detail page */}
                       <div className="cursor-pointer" onClick={() => navigate(detailPath)}>
-                        {item.images.length > 0 ? (
+                        {displayImage ? (
                           <div className="aspect-[4/3] sm:aspect-video bg-black/40 overflow-hidden">
                             <img
-                              src={item.images[0]}
+                              src={displayImage}
                               alt={displayTitle}
                               className="w-full h-full object-cover hover:opacity-90 transition-opacity"
                               loading="lazy"

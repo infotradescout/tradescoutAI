@@ -7,6 +7,12 @@ import ExchangeListingDetail from "./ExchangeListingDetail";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const state = vi.hoisted(() => ({
   listing: null as any,
+  listingId: "tradescout-stone-aj-quartz",
+  query: null as any,
+  enforceKey: false,
+  allowedKey: "",
+  seo: null as any,
+  share: vi.fn(),
   navigate: vi.fn(),
   mutate: vi.fn(),
   api: vi.fn(),
@@ -14,22 +20,29 @@ const state = vi.hoisted(() => ({
 vi.mock("wouter", () => ({
   useParams: () => ({
     category: state.listing?.category || "building-materials",
-    listingId: state.listing?.id,
+    listingId: state.listing?.id || state.listingId,
   }),
-  useLocation: () => ["/exchange/building-materials/tradescout-stone-aj-quartz", state.navigate],
+  useLocation: () => [window.location.pathname + window.location.search, state.navigate],
 }));
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: ({ queryKey }: any) =>
-    queryKey[0] === "/api/marketplace/listings"
-      ? { data: state.listing, isLoading: false, isError: false }
-      : { data: [], isLoading: false, isError: false },
+  useQuery: (options: any) => {
+    if (options.queryKey[0] !== "/api/marketplace/listings")
+      return { data: [], isLoading: false, isError: false };
+    state.query = options;
+    return {
+      data: state.enforceKey && JSON.stringify(options.queryKey) !== state.allowedKey ? null : state.listing,
+      isLoading: false,
+      isError: false,
+    };
+  },
   useMutation: () => ({ mutate: state.mutate, isPending: false }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({ isAuthenticated: false, user: null }) }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/lib/queryClient", () => ({ apiRequest: (...args: any[]) => state.api(...args) }));
-vi.mock("@/components/SEOHelmet", () => ({ SEOHelmet: () => null }));
+vi.mock("@/components/SEOHelmet", () => ({ SEOHelmet: (props: any) => { state.seo = props; return null; } }));
+vi.mock("@/utils/share", () => ({ share: (...args: any[]) => state.share(...args) }));
 
 const retailListing = {
   id: "tradescout-stone-aj-quartz",
@@ -74,6 +87,12 @@ describe("retail stone detail", () => {
     state.navigate.mockReset();
     state.mutate.mockReset();
     state.api.mockReset();
+    state.share.mockReset();
+    state.listingId = "tradescout-stone-aj-quartz";
+    state.query = null;
+    state.enforceKey = false;
+    state.allowedKey = "";
+    state.seo = null;
     state.listing = structuredClone(retailListing);
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -157,5 +176,54 @@ describe("retail stone detail", () => {
     expect(host.textContent).toContain("Seller profile");
     expect(host.textContent).toContain("$450");
     expect(buttonContaining(host, "Review Protected Connection")).not.toBeNull();
+  });
+
+  it("keeps hydration, image, share, and cache scoped to the selected market", async () => {
+    const texas = "?audienceState=TX&audienceCountry=US";
+    const texasPath = `/exchange/building-materials/${state.listingId}${texas}`;
+    window.history.replaceState({}, "", texasPath);
+    state.listing = null;
+    state.enforceKey = true;
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        ...retailListing,
+        images: [`/api/exchange/stone-media/${state.listingId}`],
+        publicDetailPath: texasPath,
+      }) } as Response)
+      .mockResolvedValueOnce({ ok: false, status: 404 } as Response);
+    try {
+      await renderDetail();
+      const texasKey = JSON.stringify(state.query.queryKey);
+      expect(state.query.enabled).toBe(true);
+      const normalized = await state.query.queryFn();
+      expect(fetchMock).toHaveBeenCalledWith(`/api/marketplace/listings/${state.listingId}${texas}`);
+      expect(normalized.publicDetailPath).toBe(texasPath);
+      state.listing = normalized;
+      state.allowedKey = texasKey;
+      await renderDetail();
+      expect(host.querySelector("img")?.getAttribute("src")).toBe(`/api/exchange/stone-media/${state.listingId}${texas}`);
+      expect(state.seo.ogImage).toBe(`/api/exchange/stone-media/${state.listingId}${texas}`);
+      expect(state.seo.canonical).toBe(texasPath);
+      await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Share listing"]')?.click());
+      expect(state.share).toHaveBeenCalledWith(expect.objectContaining({ url: `${window.location.origin}${texasPath}` }));
+      delete state.listing.specifications.referenceSizesInches;
+      await renderDetail();
+      await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Share listing"]')?.click());
+      expect(state.share).toHaveBeenLastCalledWith(expect.objectContaining({
+        title: expect.stringContaining("Slab price TBD"),
+        text: expect.stringContaining("Published material rate $30.00 / sq ft"),
+      }));
+
+      window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}?audienceState=FL&audienceCity=Pensacola&audienceCountry=US`);
+      await renderDetail();
+      expect(JSON.stringify(state.query.queryKey)).not.toBe(texasKey);
+      expect(state.query.enabled).toBe(true);
+      expect(host.querySelector("h1")).toBeNull();
+      expect(host.textContent).toContain("could not be found");
+      await expect(state.query.queryFn()).rejects.toThrow("Listing not found");
+      expect(fetchMock).toHaveBeenLastCalledWith(`/api/marketplace/listings/${state.listingId}?audienceState=FL&audienceCity=Pensacola&audienceCountry=US`);
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 });
