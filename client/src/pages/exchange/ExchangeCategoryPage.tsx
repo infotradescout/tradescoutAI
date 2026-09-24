@@ -47,9 +47,9 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
-import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
-import { audienceQualifiedStoneMedia } from "./stonePublicUrls";
+import { audienceQualifiedStoneMedia, verifiedStoneInquiryPath } from "./stonePublicUrls";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -680,8 +680,32 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         item.featured ? "ring-1 ring-ts-orange/40" : ""
                       }`}
                     >
-                      {/* Image — click to open detail page */}
-                      <div className="cursor-pointer" onClick={() => navigate(detailPath)}>
+                      <div className="p-3 pb-2 sm:hidden">
+                        {isRetailStone ? (
+                          <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2">
+                            <p className="text-[11px] text-white/70">
+                              {slabPrice?.primaryLabel || "Full slab material price"}
+                            </p>
+                            <p className="break-words text-lg font-bold leading-tight text-white">
+                              {slabPrice?.primaryPrice || "Confirm material price"}
+                            </p>
+                            {slabPrice?.secondaryPrice && (
+                              <p className="mt-0.5 text-[11px] text-white/70">
+                                {slabPrice.secondaryPrice}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-lg font-bold text-white">{formatPrice(item.price)}</p>
+                        )}
+                        <Link
+                          href={detailPath}
+                          className="mt-2 block text-base font-semibold leading-tight text-white hover:text-ts-orange"
+                        >
+                          {displayTitle}
+                        </Link>
+                      </div>
+                      <Link href={detailPath} className="block" aria-label={`View ${displayTitle}`}>
                         {displayImage ? (
                           <div className="aspect-[4/3] sm:aspect-video bg-black/40 overflow-hidden">
                             <img
@@ -696,7 +720,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             <IconComponent className="h-10 w-10 text-white/20" />
                           </div>
                         )}
-                      </div>
+                      </Link>
 
                       <CardContent className="p-3">
                         {/* Featured badge */}
@@ -711,12 +735,11 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         ) : null}
 
                         {/* Title + price */}
-                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <h3
-                            className="text-sm font-semibold text-white line-clamp-2 leading-snug flex-1 cursor-pointer hover:text-ts-orange transition-colors"
-                            onClick={() => navigate(detailPath)}
-                          >
-                            {displayTitle}
+                        <div className="mb-1.5 hidden items-start justify-between gap-2 sm:flex">
+                          <h3 className="line-clamp-2 flex-1 text-sm font-semibold leading-snug text-white">
+                            <Link href={detailPath} className="hover:text-ts-orange">
+                              {displayTitle}
+                            </Link>
                           </h3>
                           {!isRetailStone && (
                             <span className="text-sm font-bold text-ts-orange shrink-0">
@@ -726,7 +749,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         </div>
 
                         {isRetailStone && (
-                          <div className="mb-3 rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2">
+                          <div className="mb-3 hidden rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2 sm:block">
                             <p className="text-xs text-white/70">
                               {slabPrice?.primaryLabel || "Full slab material price"}
                             </p>
@@ -856,7 +879,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                           )}
 
                         {/* Seller row */}
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center shrink-0">
                               <span className="text-[10px] text-white">{item.seller.name[0]}</span>
@@ -878,12 +901,13 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                           </div>
 
                           {/* Action buttons */}
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex w-full items-center justify-end gap-1 sm:w-auto sm:shrink-0">
                             {!isProfileLinked && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className={`h-7 w-7 p-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
+                                className={`min-h-11 min-w-11 p-0 sm:h-7 sm:w-7 sm:min-h-0 sm:min-w-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
+                                aria-label={isFaved ? "Remove saved listing" : "Save listing"}
                                 onClick={() => {
                                   if (!isAuthenticated) {
                                     navigate("/pre-scout-setup?mode=signin");
@@ -901,7 +925,8 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 p-0 text-white/50 hover:text-white"
+                              className="min-h-11 min-w-11 p-0 text-white/50 hover:text-white sm:h-7 sm:w-7 sm:min-h-0 sm:min-w-0"
+                              aria-label="Share listing"
                               onClick={() => handleShare(item)}
                             >
                               <Share2 className="h-3.5 w-3.5" />
@@ -909,7 +934,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             {!isRetailStone && (
                               <Button
                                 size="sm"
-                                className="h-7 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-[11px]"
+                                className="min-h-11 px-2.5 !bg-ts-orange !text-black text-[11px] hover:!bg-ts-orange-dark sm:h-7 sm:min-h-0"
                                 onClick={() => navigate(detailPath)}
                               >
                                 <MessageSquare className="h-3 w-3 mr-1" />
@@ -930,7 +955,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             type="button"
                             className="mt-3 min-h-11 w-full bg-ts-orange font-semibold text-black hover:bg-ts-orange-dark"
                             onClick={() => {
-                              const path = stoneInquiryPath(item.id, "availability");
+                              const path = verifiedStoneInquiryPath(item.publicDetailPath, item.id, "availability");
                               if (path) navigate(path);
                             }}
                           >
