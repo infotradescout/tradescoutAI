@@ -47,22 +47,35 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     return Number.isFinite(created) && created >= weekStart && created <= now.getTime();
   });
 
-  const postEntities = recentPosts.slice(0, 3).map((post) => ({
-    id: String(post.id),
-    type: "community_post",
-    name:
-      String(post.title || post.content || "County post")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 110) || "County post",
-    url: buildCommunityPostPath(post.id),
-    match_reasons: [
-      post.hasWorkRequest === true
-        ? "Published county post linked to a request"
-        : "Published county post",
-      `From the last 7 days in ${area}`,
-    ],
-  }));
+  const uniquePosts = new Map<string, CountyPost>();
+  for (const post of recentPosts) {
+    const path = buildCommunityPostPath(post.id);
+    const existing = uniquePosts.get(path);
+    if (!existing) {
+      uniquePosts.set(path, post);
+    } else if (post.hasWorkRequest === true && existing.hasWorkRequest !== true) {
+      uniquePosts.set(path, { ...existing, hasWorkRequest: true });
+    }
+  }
+
+  const postEntities = Array.from(uniquePosts, ([url, post]) => ({ url, post }))
+    .slice(0, 3)
+    .map(({ url, post }) => ({
+      id: String(post.id),
+      type: "community_post",
+      name:
+        String(post.title || post.content || "County post")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 110) || "County post",
+      url,
+      match_reasons: [
+        post.hasWorkRequest === true
+          ? "Published county post linked to a request"
+          : "Published county post",
+        `From the last 7 days in ${area}`,
+      ],
+    }));
 
   const dealEntities = (input.dealCheck === "checked" ? input.deals || [] : [])
     .filter((deal) => isEligibleScoutDeal(deal, input.countyFips, now))

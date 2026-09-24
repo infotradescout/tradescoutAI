@@ -114,6 +114,7 @@ import {
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
 import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
+import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
 import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
 import {
   buildScoutProfileUpdateResponse,
@@ -3511,27 +3512,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       let scoutDeals: Awaited<ReturnType<typeof storage.listPromotions>> = [];
       if (normalizedFips) {
         try {
-          const rows = await storage.getCommunityPosts({
-            scope: "county",
-            countyFips: normalizedFips,
-            sort: "recent",
-            limit: 10,
-          });
-          communityPostItems = rows
-            .filter(
-              (row) =>
-                row.isPublished === true &&
-                row.isHidden === false &&
-                row.scope === "county" &&
-                row.countyFips === normalizedFips
-            )
-            .map((row) => ({
-              id: row.id,
-              title: row.title,
-              content: row.content,
-              createdAt: row.createdAt,
-              hasWorkRequest: row.hasWorkRequest === true,
-            }));
+          communityPostItems = await listRecentScoutCountyPosts(normalizedFips, now);
           postCheck = "checked";
         } catch (error) {
           console.error("Scout county post lookup unavailable:", error);

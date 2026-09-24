@@ -24,8 +24,12 @@ vi.mock("../services/llmProvider", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   buildScoutLlmProviders: () => [],
 }));
+vi.mock("../scout/scoutCountyPostLookup", () => ({
+  listRecentScoutCountyPosts: vi.fn(),
+}));
 
 import scoutRouter from "../routes/scout";
+import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
 import { storage } from "../storage";
 
 const screenshotPrompt =
@@ -38,7 +42,7 @@ app.use("/api/scout", scoutRouter);
 describe("Scout mixed county discovery route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(storage, "getCommunityPosts").mockResolvedValue([]);
+    vi.mocked(listRecentScoutCountyPosts).mockResolvedValue([]);
     vi.spyOn(storage, "listPromotions").mockResolvedValue([]);
     getOnboardingSessionMock.mockResolvedValue(undefined);
     governMock.mockResolvedValue({
@@ -55,7 +59,7 @@ describe("Scout mixed county discovery route", () => {
   });
 
   it("answers the screenshot prompt with a complete client contract and only a verified post card", async () => {
-    vi.mocked(storage.getCommunityPosts).mockResolvedValue([
+    vi.mocked(listRecentScoutCountyPosts).mockResolvedValue([
       {
         id: "post_123",
         title: "Neighborhood tool swap",
@@ -78,12 +82,7 @@ describe("Scout mixed county discovery route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(storage.getCommunityPosts).toHaveBeenCalledWith({
-      scope: "county",
-      countyFips: "04013",
-      sort: "recent",
-      limit: 10,
-    });
+    expect(listRecentScoutCountyPosts).toHaveBeenCalledWith("04013", expect.any(Date));
     expect(resolveKnowledgeMock).not.toHaveBeenCalled();
     expect(response.body).toMatchObject({
       contract_version: "scout_result.v1",
@@ -168,48 +167,15 @@ describe("Scout mixed county discovery route", () => {
     );
   });
 
-  it("describes only the county post cards it actually returns", async () => {
-    vi.mocked(storage.getCommunityPosts).mockResolvedValue([
+  it("describes only the three county post cards it actually returns", async () => {
+    vi.mocked(listRecentScoutCountyPosts).mockResolvedValue([
       ...Array.from({ length: 4 }, (_, index) => ({
         id: `post_${index + 1}`,
         title: `County post ${index + 1}`,
         content: "Published local post",
         createdAt: new Date(),
-        isPublished: true,
-        isHidden: false,
-        scope: "county",
-        countyFips: "04013",
+        hasWorkRequest: false,
       })),
-      {
-        id: "hidden",
-        title: "Hidden",
-        content: "Private",
-        createdAt: new Date(),
-        isPublished: true,
-        isHidden: true,
-        scope: "county",
-        countyFips: "04013",
-      },
-      {
-        id: "unpublished",
-        title: "Unpublished",
-        content: "Draft",
-        createdAt: new Date(),
-        isPublished: false,
-        isHidden: false,
-        scope: "county",
-        countyFips: "04013",
-      },
-      {
-        id: "other_county",
-        title: "Other county",
-        content: "Elsewhere",
-        createdAt: new Date(),
-        isPublished: true,
-        isHidden: false,
-        scope: "county",
-        countyFips: "06037",
-      },
     ] as any);
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
@@ -224,13 +190,10 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.entities).toHaveLength(3);
     expect(response.body.answer).toContain("includes 3 published county posts");
     expect(response.body.answer).not.toContain("includes 4 published county posts");
-    expect(JSON.stringify(response.body)).not.toContain("Hidden");
-    expect(JSON.stringify(response.body)).not.toContain("Unpublished");
-    expect(JSON.stringify(response.body)).not.toContain("Other county");
   });
 
   it("returns a partial answer with retry when the county post source fails", async () => {
-    vi.mocked(storage.getCommunityPosts).mockRejectedValue(
+    vi.mocked(listRecentScoutCountyPosts).mockRejectedValue(
       new Error("synthetic post source failure")
     );
 
@@ -263,7 +226,7 @@ describe("Scout mixed county discovery route", () => {
   });
 
   it("marks both failed county sources unavailable without pretending a database check succeeded", async () => {
-    vi.mocked(storage.getCommunityPosts).mockRejectedValue(
+    vi.mocked(listRecentScoutCountyPosts).mockRejectedValue(
       new Error("synthetic post source failure")
     );
     vi.mocked(storage.listPromotions).mockRejectedValue(new Error("synthetic deal source failure"));
@@ -302,7 +265,7 @@ describe("Scout mixed county discovery route", () => {
       dealCheck: "not_checked",
     });
     expect(response.body.knowledge.layer).toBe(0);
-    expect(storage.getCommunityPosts).not.toHaveBeenCalled();
+    expect(listRecentScoutCountyPosts).not.toHaveBeenCalled();
     expect(storage.listPromotions).not.toHaveBeenCalled();
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([expect.objectContaining({ target: "/settings", primary: true })])
