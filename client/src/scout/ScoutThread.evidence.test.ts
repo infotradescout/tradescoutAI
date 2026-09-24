@@ -223,6 +223,80 @@ describe("ScoutThread evidence strip", () => {
     expect(unfamiliarHtml).not.toContain("UNIQUE_TAIL");
   });
 
+  it.each([
+    {
+      name: "a county post and a posted TradeDeal",
+      message:
+        "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. " +
+        "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. " +
+        "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
+      visible: [
+        "1 recent county post",
+        "1 posted TradeDeal",
+        "promotion",
+        "terms and availability unverified",
+        "Businesses, pages, tools unchecked",
+        "Nothing sent",
+      ],
+    },
+    {
+      name: "a posted TradeDeal without a verified county post",
+      message:
+        "This Scout result does not verify a county post from the last 7 days in Maricopa County, AZ. " +
+        "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. " +
+        "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
+      visible: [
+        "No recent county post verified",
+        "1 posted TradeDeal",
+        "terms and availability unverified",
+        "Nothing sent",
+      ],
+    },
+    {
+      name: "a checked Scout promotion source with no eligible deals",
+      message:
+        "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. " +
+        "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked. " +
+        "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
+      visible: [
+        "1 recent county post",
+        "no Scout TradeDeals returned",
+        "Other deal sources, businesses, pages and tools unchecked",
+        "Nothing sent",
+      ],
+    },
+    {
+      name: "an unavailable Scout promotion source",
+      message:
+        "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. " +
+        "Scout promotions could not be checked right now. Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
+      visible: [
+        "1 recent county post",
+        "Scout promotions unavailable",
+        "Other deal sources, businesses, pages and tools unchecked",
+        "Nothing sent",
+      ],
+    },
+  ])("keeps the collapsed mobile truth for $name", ({ message, visible }) => {
+    const html = renderThread([
+      {
+        id: "a_deal_discovery",
+        role: "assistant",
+        content: message,
+        provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      },
+    ]);
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const body = container.querySelector(".scout-assistant-bubble__body");
+    const summary = body?.querySelector("p")?.textContent ?? "";
+
+    expect(summary.length).toBeLessThanOrEqual(150);
+    for (const phrase of visible) expect(summary).toContain(phrase);
+    expect(body?.textContent).toContain("More detail");
+    expect(summary).not.toContain("This Scout result");
+  });
+
   it("renders one enabled promoted action while preserving distinct thread actions", () => {
     const currentPrimaryAction: ScoutAction = {
       type: "NAVIGATE",

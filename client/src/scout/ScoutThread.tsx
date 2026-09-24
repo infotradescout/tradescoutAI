@@ -119,13 +119,6 @@ function trimToSummary(content: string): string {
 
 function mixedDiscoverySummary(content: string): string {
   const clean = content.replace(/\s+/g, " ").trim();
-  if (
-    !/does not verify deals, businesses, pages, tools, or other requests/i.test(clean) ||
-    !/nothing was sent/i.test(clean)
-  ) {
-    return trimToSummary(clean);
-  }
-
   const found = clean.match(
     /^This Scout result includes (\d+) published county (post|posts) from the last 7 days in (.+?)\./i
   );
@@ -137,7 +130,29 @@ function mixedDiscoverySummary(content: string): string {
     : missing
       ? `No verified recent county post in ${missing[1]}`
       : null;
-  if (!finding) return trimToSummary(clean);
+  if (!finding || !/nothing was sent/i.test(clean)) return trimToSummary(clean);
+
+  const compactPost = found
+    ? `${found[1]} recent county ${found[2]}`
+    : "No recent county post verified";
+  const postedDeals = clean.match(/\bIt also found (\d+) posted Scout TradeDeals? for /i);
+  if (
+    postedDeals &&
+    /These are promotional listings; terms and availability are not independently verified/i.test(
+      clean
+    )
+  ) {
+    return `${compactPost}; ${postedDeals[1]} posted TradeDeal${postedDeals[1] === "1" ? "" : "s"} (promotion; terms and availability unverified). Businesses, pages, tools unchecked. Nothing sent.`;
+  }
+  if (/It checked Scout promotions for .+?; no eligible TradeDeals were returned/i.test(clean)) {
+    return `${compactPost}; no Scout TradeDeals returned. Other deal sources, businesses, pages and tools unchecked. Nothing sent.`;
+  }
+  if (/Scout promotions could not be checked right now/i.test(clean)) {
+    return `${compactPost}; Scout promotions unavailable. Other deal sources, businesses, pages and tools unchecked. Nothing sent.`;
+  }
+  if (!/does not verify deals, businesses, pages, tools, or other requests/i.test(clean)) {
+    return trimToSummary(clean);
+  }
 
   return `${finding}. Deals, businesses, pages, tools and other requests unverified. Nothing sent.`;
 }
