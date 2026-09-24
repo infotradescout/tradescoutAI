@@ -252,5 +252,10 @@ describe("Scout county lookup", () => {
     expect(empty.message).toContain("Other deal sources were not checked");
     expect(error.message).toContain("could not be checked right now");
     expect(error.entities).toEqual([]);
+    expect(error.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local posts and deals" }),
+      ])
+    );
   });
 });

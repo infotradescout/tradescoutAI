@@ -117,6 +117,16 @@ export function buildScoutMixedDiscoveryRecovery(input: {
             },
           ]
         : []),
+      ...(input.dealCheck === "error"
+        ? [
+            {
+              type: "ASK_SCOUT",
+              label: "Retry local posts and deals",
+              prompt:
+                "Search TradeScout and my area for posts & deals. Include matching pages, tools and requests.",
+            },
+          ]
+        : []),
       {
         type: "NAVIGATE",
         label: "Open recent Community",
