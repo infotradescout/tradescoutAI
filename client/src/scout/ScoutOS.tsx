@@ -4719,7 +4719,6 @@ export default function ScoutOS() {
                   <section
                     className="scout-current-task grid gap-2.5 rounded-xl border border-[color:var(--border-subtle)] p-3"
                     data-testid="scout-current-task"
-                    data-has-next-action={Boolean(primaryNextAction)}
                     aria-labelledby="scout-current-task-title"
                   >
                     <div className="scout-current-task__head flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -4774,25 +4773,27 @@ export default function ScoutOS() {
                             </button>
                           </details>
                         )}
+                        {hasAssistantResult && currentTaskRequest && (
+                          <details className="scout-current-task__request group relative flex-1 md:hidden">
+                            <summary
+                              className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2 text-xs font-bold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden"
+                              aria-label="View full request"
+                            >
+                              Request
+                              <ChevronDown
+                                className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
+                                aria-hidden="true"
+                              />
+                            </summary>
+                            <p className="absolute right-0 top-[calc(100%+0.35rem)] z-40 max-h-[40dvh] w-[min(21rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3 text-sm leading-relaxed text-[color:var(--text-primary)] shadow-lg">
+                              {currentTaskRequest}
+                            </p>
+                          </details>
+                        )}
                       </div>
                     </div>
 
-                    {hasAssistantResult && currentTaskRequest && (
-                      <details className="scout-current-task__request group md:hidden">
-                        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-xs font-semibold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden">
-                          View full request
-                          <ChevronDown
-                            className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
-                            aria-hidden="true"
-                          />
-                        </summary>
-                        <p className="pb-1 text-sm leading-relaxed text-[color:var(--text-primary)]">
-                          {currentTaskRequest}
-                        </p>
-                      </details>
-                    )}
-
-                    {state.status !== "idle" && (
+                    {state.status !== "idle" && !hasAssistantResult && (
                       <div className="scout-current-task__latest grid min-w-0 gap-0.5">
                         <p className="text-[10px] font-bold uppercase text-[color:var(--text-muted)]">
                           {state.status === "error" ? "Needs attention" : "Working"}
@@ -4804,31 +4805,6 @@ export default function ScoutOS() {
                           {currentTaskState}
                         </p>
                       </div>
-                    )}
-
-                    {primaryNextAction && (
-                      <button
-                        type="button"
-                        className="scout-current-task__primary flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl border border-ts-orange/50 bg-ts-orange/10 px-3 py-2 text-left text-[color:var(--text-primary)]"
-                        data-testid="scout-primary-next-action"
-                        onClick={() => {
-                          setHasGuestInteracted(true);
-                          void handleClusterAction(primaryNextAction);
-                        }}
-                      >
-                        <span className="grid gap-0.5">
-                          <span className="text-[10px] font-bold uppercase text-ts-orange">
-                            Next action
-                          </span>
-                          <strong>
-                            {primaryNextAction.label ||
-                              (primaryNextAction.type === "NAVIGATE"
-                                ? "Open next step"
-                                : "Continue")}
-                          </strong>
-                        </span>
-                        <Route className="h-4 w-4 shrink-0 text-ts-orange" aria-hidden="true" />
-                      </button>
                     )}
                   </section>
                 )}
@@ -4856,19 +4832,8 @@ export default function ScoutOS() {
                     data-collapse-initial-request={
                       hasAssistantResult && state.messages[0]?.role === "user"
                     }
-                    aria-labelledby="scout-task-work-region-title"
+                    aria-label="Scout result and conversation"
                   >
-                    <header className="scout-task-work-region__header">
-                      <h2
-                        id="scout-task-work-region-title"
-                        className="text-xs font-bold text-[color:var(--text-secondary)]"
-                      >
-                        Conversation and results
-                      </h2>
-                      <span className="text-[10px] font-semibold text-[color:var(--text-muted)]">
-                        {state.messages.length} {state.messages.length === 1 ? "update" : "updates"}
-                      </span>
-                    </header>
                     <div className="scout-task-work-region__body">
                       <ScoutThread
                         messages={state.messages}

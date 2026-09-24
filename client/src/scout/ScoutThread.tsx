@@ -326,36 +326,8 @@ function buildAssistantSummary(msg: ScoutMessage, displayContent: string): strin
   return trimToSummary(framedSummary || displayContent);
 }
 
-function AssistantMessageBubble({
-  msg,
-  displayContent,
-}: {
-  msg: ScoutMessage;
-  displayContent: string;
-}) {
-  const [expanded, setExpanded] = React.useState(false);
-  const summary = React.useMemo(
-    () => buildAssistantSummary(msg, displayContent),
-    [displayContent, msg]
-  );
-  const hasDetails = summary.trim() !== displayContent.trim();
-  const content = expanded || !hasDetails ? displayContent : summary;
-
-  return (
-    <>
-      {content && <p className="whitespace-pre-line leading-relaxed">{content}</p>}
-      {hasDetails && (
-        <button
-          type="button"
-          className="scout-message-details-toggle"
-          onClick={() => setExpanded((value) => !value)}
-          aria-expanded={expanded}
-        >
-          {expanded ? "Short version" : "More detail"}
-        </button>
-      )}
-    </>
-  );
+function AssistantMessageBubble({ summary }: { summary: string }) {
+  return summary ? <p className="whitespace-pre-line leading-relaxed">{summary}</p> : null;
 }
 
 function humanizeToken(value: string): string {
@@ -796,6 +768,8 @@ function MessageExtras({
   isUser,
   showControllerExtras,
   currentTurnPrimaryAction,
+  fullAnswer,
+  answerSummary,
   onAction,
   onQuickAction,
   onOverride,
@@ -806,6 +780,8 @@ function MessageExtras({
   isUser: boolean;
   showControllerExtras: boolean;
   currentTurnPrimaryAction?: ScoutAction | null;
+  fullAnswer?: string;
+  answerSummary?: string;
   onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
@@ -837,31 +813,48 @@ function MessageExtras({
     () => new Set((msg.resultContract?.ambiguity_options || []).map((option) => option.action_id)),
     [msg.resultContract?.ambiguity_options]
   );
+  const contractEntities = msg.resultContract?.entities || [];
+  const entityActionIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const entity of contractEntities) {
+      if (typeof entity.url !== "string" || !isSafeLinkTarget(entity.url)) continue;
+      const entry = contractActionEntries.find(
+        ({ action }) => action.type === "NAVIGATE" && (action.to || action.path) === entity.url
+      );
+      if (entry) ids.add(entry.source.action_id);
+    }
+    return ids;
+  }, [contractActionEntries, contractEntities]);
   const remainingContractActions = React.useMemo(
     () =>
       contractActionEntries.filter(
-        ({ source, action }) =>
-          !ambiguityActionIds.has(source.action_id) &&
-          !(
-            currentTurnPrimaryAction &&
-            source.primary === true &&
-            actionsMatch(action, currentTurnPrimaryAction)
-          )
+        ({ source }) =>
+          !ambiguityActionIds.has(source.action_id) && !entityActionIds.has(source.action_id)
       ),
-    [ambiguityActionIds, contractActionEntries, currentTurnPrimaryAction]
+    [ambiguityActionIds, contractActionEntries, entityActionIds]
   );
-  const hasContractActions = ambiguityActions.length > 0 || remainingContractActions.length > 0;
-  const contractEntities = msg.resultContract?.entities || [];
+  const standalonePrimaryAction = remainingContractActions.find(
+    ({ source }) => source.primary === true
+  );
+  const secondaryContractActions = remainingContractActions.filter(
+    ({ source }) => source.action_id !== standalonePrimaryAction?.source.action_id
+  );
+  const hasContractActions = ambiguityActions.length > 0 || secondaryContractActions.length > 0;
   const hasContractEntities = contractEntities.length > 0;
+  const hasLegacyPrimaryAction = !hasResultContract && Boolean(currentTurnPrimaryAction);
   const hasClusters = !hasResultContract && Boolean(msg.clusters && msg.clusters.length > 0);
   const hasOverride = !hasResultContract && Boolean(msg.overrideOption);
   const hasOnboardingPrompt = Boolean(
     msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage)
   );
+  const hasAnswerDetails = Boolean(
+    fullAnswer && answerSummary && fullAnswer.trim() !== answerSummary.trim()
+  );
 
   const [controllerOpen, setControllerOpen] = React.useState(() => !showControllerExtras);
   const [controllerShowAll, setControllerShowAll] = React.useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
+  const [answerOpen, setAnswerOpen] = React.useState(false);
 
   const prioritizedActionChips = React.useMemo(() => {
     const chips = Array.isArray(msg.frame?.actionChips) ? msg.frame.actionChips : [];
@@ -926,6 +919,9 @@ function MessageExtras({
   const hasAnything =
     hasContractEntities ||
     hasContractActions ||
+    Boolean(standalonePrimaryAction) ||
+    hasLegacyPrimaryAction ||
+    hasAnswerDetails ||
     hasActionChips ||
     hasClusters ||
     hasOverride ||
@@ -935,40 +931,106 @@ function MessageExtras({
   if (!hasAnything) return null;
 
   return (
-    <div className="mt-3 space-y-3">
+    <div className="scout-message-extras mt-3 space-y-3">
+      {hasLegacyPrimaryAction && currentTurnPrimaryAction && (
+        <button
+          type="button"
+          className="scout-result-action scout-result-action--primary"
+          onClick={() => onAction?.(currentTurnPrimaryAction)}
+          disabled={!onAction}
+          data-testid="scout-primary-next-action"
+        >
+          {currentTurnPrimaryAction.label || "Open next step"}
+          <ArrowRight size={14} aria-hidden="true" />
+        </button>
+      )}
       {hasContractEntities && (
-        <div className="space-y-2" aria-label="Scout results">
-          {contractEntities.map((entity) => {
+        <div className="scout-result-list space-y-2" aria-label="Scout results">
+          {contractEntities.length > 1 && (
+            <div className="scout-result-list__guide">
+              <span>{contractEntities.length} matching results</span>
+              <button
+                type="button"
+                onClick={(event) => {
+                  const scroller = event.currentTarget.closest<HTMLElement>(".scout-thread");
+                  const next = scroller?.querySelector<HTMLElement>(
+                    `[data-scout-result-index="${msg.id}-1"]`
+                  );
+                  if (!scroller || !next) return;
+                  scroller.scrollTo({
+                    top:
+                      scroller.scrollTop +
+                      next.getBoundingClientRect().top -
+                      scroller.getBoundingClientRect().top -
+                      8,
+                    behavior: "smooth",
+                  });
+                }}
+              >
+                See next result <ArrowRight size={12} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+          {contractEntities.map((entity, index) => {
             const entityName = entity.name || entity.type;
             const safeUrl =
               typeof entity.url === "string" && isSafeLinkTarget(entity.url)
                 ? entity.url
                 : undefined;
+            const entityAction = safeUrl
+              ? contractActionEntries.find(
+                  ({ action }) =>
+                    action.type === "NAVIGATE" && (action.to || action.path) === safeUrl
+                )
+              : undefined;
             return (
               <article
                 key={`${msg.id}-entity-${entity.id}`}
-                className="rounded-2xl p-3"
-                style={{
-                  background: "var(--surface-card)",
-                  border: "1px solid var(--border-subtle)",
-                }}
+                className="scout-result-card"
+                data-scout-result-index={`${msg.id}-${index}`}
               >
-                {safeUrl ? (
-                  <a href={safeUrl} className="text-sm font-semibold underline underline-offset-2">
+                <div className="scout-result-card__kind">
+                  {entity.type === "community_post"
+                    ? "Published county post"
+                    : entity.type === "trade_deal"
+                      ? "Promotional TradeDeal"
+                      : entity.type === "business"
+                        ? "Public business profile"
+                        : "Scout result"}
+                </div>
+                {safeUrl && !entityAction ? (
+                  <a
+                    href={safeUrl}
+                    className="scout-result-card__title underline underline-offset-2"
+                  >
                     {entityName}
                   </a>
                 ) : (
-                  <div className="text-sm font-semibold">{entityName}</div>
+                  <div className="scout-result-card__title">{entityName}</div>
                 )}
                 {Array.isArray(entity.match_reasons) && entity.match_reasons.length > 0 && (
-                  <ul
-                    className="mt-2 space-y-1 pl-4 text-xs"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
+                  <ul className="scout-result-card__reasons">
                     {entity.match_reasons.map((reason) => (
                       <li key={reason}>{reason}</li>
                     ))}
                   </ul>
+                )}
+                {entityAction && (
+                  <button
+                    type="button"
+                    className={clsx(
+                      "scout-result-action",
+                      entityAction.source.primary && "scout-result-action--primary"
+                    )}
+                    onClick={() => onAction?.(entityAction.action)}
+                    disabled={!onAction}
+                    data-testid={
+                      entityAction.source.primary ? "scout-primary-next-action" : undefined
+                    }
+                  >
+                    {entityAction.action.label}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </button>
                 )}
               </article>
             );
@@ -976,12 +1038,21 @@ function MessageExtras({
         </div>
       )}
 
-      {hasContractActions && (
-        <div
-          aria-label="Scout result actions"
-          className="rounded-2xl p-3 space-y-3"
-          style={{ background: "var(--surface-card)", border: "1px solid var(--border-subtle)" }}
+      {standalonePrimaryAction && (
+        <button
+          type="button"
+          className="scout-result-action scout-result-action--primary"
+          onClick={() => onAction?.(standalonePrimaryAction.action)}
+          disabled={!onAction}
+          data-testid="scout-primary-next-action"
         >
+          {standalonePrimaryAction.action.label}
+          <ArrowRight size={14} aria-hidden="true" />
+        </button>
+      )}
+
+      {hasContractActions && (
+        <div aria-label="Scout result actions" className="scout-result-secondary-actions">
           {ambiguityActions.length > 0 && (
             <div className="space-y-2">
               <div className="scout-section-label mb-0">
@@ -1012,14 +1083,11 @@ function MessageExtras({
             </div>
           )}
 
-          {remainingContractActions.length > 0 && (
+          {secondaryContractActions.length > 0 && (
             <div className="space-y-2">
-              <div className="scout-section-label mb-0">
-                <Sparkles size={11} className="scout-section-label__icon" />
-                Available actions
-              </div>
+              <div className="scout-section-label mb-0">More ways to browse</div>
               <div className="flex flex-wrap gap-2">
-                {remainingContractActions.map(({ source, action }) => (
+                {secondaryContractActions.map(({ source, action }) => (
                   <button
                     key={`${msg.id}-contract-action-${source.action_id}`}
                     type="button"
@@ -1202,6 +1270,24 @@ function MessageExtras({
                 </div>
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {hasAnswerDetails && (
+        <div className="scout-answer-detail">
+          <button
+            type="button"
+            className="scout-message-details-toggle"
+            onClick={() => setAnswerOpen((open) => !open)}
+            aria-expanded={answerOpen}
+          >
+            {answerOpen ? "Short version" : "More detail"}
+          </button>
+          {answerOpen && (
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[color:var(--text-secondary)]">
+              {fullAnswer}
+            </p>
           )}
         </div>
       )}
@@ -1394,6 +1480,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         if (!isUser) {
           displayContent = coerceReadableAssistantContent(displayContent);
         }
+        const assistantSummary = isUser ? "" : buildAssistantSummary(msg, displayContent);
 
         const msgTime = msg.timestamp
           ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
@@ -1436,13 +1523,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 </div>
                 {displayContent && (
                   <div className="scout-assistant-bubble__body">
-                    <AssistantMessageBubble msg={msg} displayContent={displayContent} />
+                    <AssistantMessageBubble summary={assistantSummary} />
                   </div>
                 )}
-                <EvidenceStrip
-                  msg={msg}
-                  enabled={showControllerExtras || Boolean(msg.resultContract)}
-                />
               </div>
             )}
 
@@ -1453,12 +1536,20 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               currentTurnPrimaryAction={
                 msg.id === currentTurnMessageId ? currentTurnPrimaryAction : null
               }
+              fullAnswer={displayContent}
+              answerSummary={assistantSummary}
               onAction={onAction}
               onQuickAction={onQuickAction}
               onOverride={onOverride}
               overridePendingScope={overridePendingScope}
               onSendMessage={onSendMessage}
             />
+            {!isUser && (
+              <EvidenceStrip
+                msg={msg}
+                enabled={showControllerExtras || Boolean(msg.resultContract)}
+              />
+            )}
           </div>
         );
       })}

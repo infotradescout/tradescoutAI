@@ -143,8 +143,7 @@ describe("ScoutThread evidence strip", () => {
 
     const html = renderThread([assistantMessage], false);
 
-    expect(html).toContain("Scout result actions");
-    expect(html).toContain("Available actions");
+    expect(html).toContain('data-testid="scout-primary-next-action"');
     expect(html).toContain("Review and send");
     expect(html).not.toContain("Search with Scout");
   });
@@ -190,6 +189,111 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Other sources unchecked.");
     expect(html).toContain("Nothing sent.");
     expect(html).toContain("More detail");
+  });
+
+  it("puts the verified county results and their distinct actions before the expandable explanation", () => {
+    const answer =
+      "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. Businesses, pages, tools, and other requests were not checked. Nothing was sent.";
+    const postPath = "/community/posts/scout-local-post";
+    const dealPath = "/deals/00000000-0000-4000-8000-000000000201?county=04013";
+    const message: ScoutMessage = {
+      id: "a_post_and_deal",
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [
+          {
+            id: "scout-local-post",
+            type: "community_post",
+            name: "Neighborhood tool swap",
+            url: postPath,
+            match_reasons: ["Published county post", "From the last 7 days in Maricopa County, AZ"],
+          },
+          {
+            id: "00000000-0000-4000-8000-000000000201",
+            type: "trade_deal",
+            name: "Maricopa tool discount",
+            url: dealPath,
+            match_reasons: [
+              "Promotional TradeDeal; terms and availability are not independently verified",
+              "Listed for Maricopa County, AZ",
+              "Confirm when the offer ends before acting",
+            ],
+          },
+        ],
+        evidence: [],
+        answer,
+        allowed_actions: [
+          {
+            action_id: "post",
+            type: "NAVIGATE",
+            label: "Open matching county post",
+            target: postPath,
+            primary: true,
+            requires_confirmation: false,
+          },
+          {
+            action_id: "deal",
+            type: "NAVIGATE",
+            label: "Open promotional TradeDeal",
+            target: dealPath,
+            primary: false,
+            requires_confirmation: false,
+          },
+          {
+            action_id: "browse",
+            type: "NAVIGATE",
+            label: "Open recent Community",
+            target: "/community-feed?geo=local&feed=recent",
+            primary: false,
+            requires_confirmation: false,
+          },
+        ],
+        working_memory_update: {},
+      },
+    };
+    const html = renderToStaticMarkup(
+      React.createElement(ScoutThread, {
+        messages: [message],
+        status: "idle",
+        currentTurnPrimaryAction: {
+          type: "NAVIGATE",
+          label: "Open matching county post",
+          to: postPath,
+          path: postPath,
+          primary: true,
+        },
+        onAction: () => undefined,
+      })
+    );
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const cards = Array.from(container.querySelectorAll(".scout-result-card"));
+    const labels = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).map(
+      (button) => button.textContent?.trim()
+    );
+
+    expect(container.textContent).toContain("Maricopa County, AZ: 1 published post in last 7 days");
+    expect(container.textContent).toContain("Other sources unchecked. Nothing sent.");
+    expect(container.textContent).toContain("2 matching results");
+    expect(container.textContent).toContain("See next result");
+    expect(cards).toHaveLength(2);
+    expect(cards[0]?.textContent).toContain("Published county post");
+    expect(cards[0]?.textContent).toContain("Open matching county post");
+    expect(cards[1]?.textContent).toContain("Promotional TradeDeal");
+    expect(cards[1]?.textContent).toContain("Confirm when the offer ends before acting");
+    expect(cards[1]?.textContent).toContain("Open promotional TradeDeal");
+    expect(labels.filter((label) => label === "Open matching county post")).toHaveLength(1);
+    expect(labels.filter((label) => label === "Open promotional TradeDeal")).toHaveLength(1);
+    expect(html.indexOf("scout-assistant-bubble__body")).toBeLessThan(
+      html.indexOf("scout-result-card")
+    );
+    expect(html.indexOf("scout-result-card")).toBeLessThan(html.indexOf("More detail"));
+    expect(html.indexOf("More detail")).toBeLessThan(html.indexOf("Why this helps"));
   });
 
   it("keeps no-post recovery honest and bounds an unfamiliar recovery format", () => {
@@ -367,7 +471,7 @@ describe("ScoutThread evidence strip", () => {
       expect(html).toContain(`class="scout-assistant-bubble__badge">${badge}</span>`);
       expect(html).not.toContain('class="scout-assistant-bubble__badge">Local results</span>');
     }
-    expect(body?.textContent).toContain("More detail");
+    expect(container.textContent).toContain("More detail");
     expect(summary).not.toContain("This Scout result");
   });
 
@@ -499,9 +603,7 @@ describe("ScoutThread evidence strip", () => {
     expect(summary).toContain("Set your county");
     expect(summary).toContain("deals, businesses, pages, tools and requests unchecked");
     expect(summary).toContain("Nothing sent");
-    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain(
-      "More detail"
-    );
+    expect(container.textContent).toContain("More detail");
     expect(container.innerHTML).toContain(
       'class="scout-assistant-bubble__badge">Scout update</span>'
     );
@@ -596,7 +698,6 @@ describe("ScoutThread evidence strip", () => {
       React.createElement(
         "div",
         null,
-        React.createElement("button", { type: "button" }, currentPrimaryAction.label),
         React.createElement(ScoutThread, {
           messages,
           status: "idle",
@@ -616,7 +717,7 @@ describe("ScoutThread evidence strip", () => {
     expect(enabledButtonLabels).toContain("Review earlier result");
     expect(enabledButtonLabels).toContain("Open Exchange");
     expect(currentMessage?.textContent).toContain("The local Community is ready to open.");
-    expect(currentMessage?.textContent).not.toContain("Open local Community");
+    expect(currentMessage?.textContent).toContain("Open local Community");
   });
 
   it("keeps one promoted action when a persisted system update trails the latest assistant", () => {
@@ -670,7 +771,6 @@ describe("ScoutThread evidence strip", () => {
       React.createElement(
         "div",
         null,
-        React.createElement("button", { type: "button" }, currentPrimaryAction.label),
         React.createElement(ScoutThread, {
           messages,
           status: "idle",
@@ -688,7 +788,7 @@ describe("ScoutThread evidence strip", () => {
 
     expect(enabledMatchingActions).toHaveLength(1);
     expect(assistantMessage?.textContent).toContain("The local Community is ready to open.");
-    expect(assistantMessage?.textContent).not.toContain("Open local Community");
+    expect(assistantMessage?.textContent).toContain("Open local Community");
     expect(container.textContent).toContain("Task saved.");
   });
 
@@ -722,7 +822,6 @@ describe("ScoutThread evidence strip", () => {
       React.createElement(
         "div",
         null,
-        React.createElement("button", { type: "button" }, currentPrimaryAction.label),
         React.createElement(ScoutThread, {
           messages: [
             {
@@ -820,7 +919,6 @@ describe("ScoutThread evidence strip", () => {
       React.createElement(
         "div",
         null,
-        React.createElement("button", { type: "button" }, currentPrimaryAction.label),
         React.createElement(ScoutThread, {
           messages,
           status: "idle",
@@ -842,7 +940,7 @@ describe("ScoutThread evidence strip", () => {
     expect(enabledButtonLabels).toContain("Open Exchange");
     expect(currentMessage?.textContent).toContain("Local Community result");
     expect(currentMessage?.textContent).toContain("The result record remains available here.");
-    expect(currentMessage?.textContent).not.toContain("Open local Community");
+    expect(currentMessage?.textContent).toContain("Open local Community");
   });
 
   it("does not invent default actions for legacy local help cards", () => {
