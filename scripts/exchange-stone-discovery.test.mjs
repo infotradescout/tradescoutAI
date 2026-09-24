@@ -116,6 +116,9 @@ test('direct projection defaults closed outside a resolved eligible request', ()
   assert.equal(policy.withStoneDiscovery(context({ state: 'FL', city: 'Pensacola' }), () => projection.toPublicExchangeListing(row())), null);
   const output = policy.withStoneDiscovery(context(), () => projection.toPublicExchangeListing({ ...row(), supplierCost: 18 }));
   assert.equal(output.businessName, 'TradeScout'); assert.equal('supplierCost' in output, false);
+  assert.equal(output.publicDetailPath, `/exchange/building-materials/${row().id}?audienceState=TX&audienceCountry=US`);
+  const florida = policy.withStoneDiscovery(context({ state: 'FL', city: 'Tampa' }), () => projection.toPublicExchangeListing(row()));
+  assert.equal(florida.publicDetailPath, `/exchange/building-materials/${row().id}?audienceState=FL&audienceCity=Tampa&audienceCountry=US`);
   assert.equal(projection.toPublicExchangeListing(native).id, native.id);
 });
 test('concurrent request scopes never share eligible or excluded retail data', async () => {
