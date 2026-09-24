@@ -16,10 +16,19 @@ describe("automatic Start here guide", () => {
     expect(shouldAutoOpenStartGuideAtLocation("/deals/featured", true)).toBe(true);
   });
 
-  it("keeps automatic orientation on other app pages", () => {
+  it("leaves an opened business result and county request clear for a first-time user", () => {
+    expect(shouldAutoOpenStartGuideAtLocation("/contractors?county=04013", true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation("/find-local-businesses", true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation("/business/maricopa-repair", true)).toBe(false);
+    expect(
+      shouldAutoOpenStartGuideAtLocation("/direct-connect/post?source=businesses_empty", true)
+    ).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation("/direct-connect/active", true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation("/community/posts/post-1", true)).toBe(false);
+  });
+
+  it("keeps automatic orientation on pages without a direct task", () => {
     expect(shouldAutoOpenStartGuideAtLocation("/", true)).toBe(true);
-    expect(shouldAutoOpenStartGuideAtLocation("/contractors?county=04013", true)).toBe(true);
-    expect(shouldAutoOpenStartGuideAtLocation("/direct-connect/active", true)).toBe(true);
     expect(shouldAutoOpenStartGuideAtLocation("/scouting", true)).toBe(true);
   });
 
