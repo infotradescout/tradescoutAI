@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 // Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { createClientOperationId } from "@/lib/clientOperationId";
 import { useIsMobile } from "../hooks/use-mobile";
@@ -62,6 +63,8 @@ import type { ScoutTileContext } from "./scoutActionTiles";
 import { buildScoutContextCards, type ScoutContextCardKind } from "./scoutContextCards";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { formatCityOnly } from "@/utils/locationDisplay";
+import { getCountyStateCode } from "@/utils/countyFipsToName";
+import { stageDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
 import { canOpenScoutWorkArea } from "./scoutWorkAreas";
@@ -114,6 +117,46 @@ const SCOUT_SAVED_THREAD_CONTENT_LIMIT = 4000;
 const AUTO_ROUTE_DEFAULT_ENABLED = false;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
+const SCOUT_COUNTY_DRAFT_TARGET = "/direct-connect?source=scout";
+
+export function prepareScoutCountyDraftHandoff(
+  action: ScoutAction
+): { kind: "not_applicable" } | { kind: "unavailable" } | { kind: "ready"; url: string } {
+  if (action.type !== "NAVIGATE" || (action.to ?? action.path) !== SCOUT_COUNTY_DRAFT_TARGET) {
+    return { kind: "not_applicable" };
+  }
+
+  const countyFips = action.payload?.countyFips;
+  if (typeof countyFips !== "string" || !/^\d{5}$/.test(countyFips)) {
+    return { kind: "unavailable" };
+  }
+  const stateCode = getCountyStateCode(countyFips);
+  if (!/^[A-Z]{2}$/.test(stateCode) || typeof window === "undefined") {
+    return { kind: "unavailable" };
+  }
+
+  try {
+    const url = stageDirectConnectEntryContext(
+      { countyFips, stateCode, source: "scout" },
+      SCOUT_COUNTY_DRAFT_TARGET
+    );
+    const parsed = new URL(url, window.location.origin);
+    const stagedTokens = parsed.searchParams.getAll("staged");
+    if (
+      parsed.origin !== window.location.origin ||
+      parsed.pathname !== "/direct-connect" ||
+      parsed.searchParams.get("source") !== "scout" ||
+      parsed.searchParams.has("county") ||
+      stagedTokens.length !== 1 ||
+      !/^[a-f0-9]{64}$/.test(stagedTokens[0])
+    ) {
+      return { kind: "unavailable" };
+    }
+    return { kind: "ready", url };
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
 
 export function cancelScheduledScoutAutoRoute(timerRef: { current: number | null }): void {
   if (timerRef.current === null) return;
@@ -1620,6 +1663,7 @@ function readScoutBrowserLocation(fallback: string): string {
 
 export default function ScoutOS() {
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
   const [scoutBrowserLocation, setScoutBrowserLocation] = useState(() =>
@@ -3067,6 +3111,20 @@ export default function ScoutOS() {
       }
 
       if (action.type === "NAVIGATE") {
+        const countyDraft = prepareScoutCountyDraftHandoff(action);
+        if (countyDraft.kind === "unavailable") {
+          toast({
+            title: "Couldn't open the county draft",
+            description:
+              "Scout couldn't keep your county with a private request draft. Nothing was sent. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (countyDraft.kind === "ready") {
+          openWorkArea({ url: countyDraft.url, title: action.label });
+          return;
+        }
         const target = (action.to ?? action.path) as string | undefined;
         if (maybeOpenWorkAreaForRoute(target, action.label)) {
           return;
@@ -3147,6 +3205,8 @@ export default function ScoutOS() {
     [
       location,
       maybeOpenWorkAreaForRoute,
+      openWorkArea,
+      toast,
       navigate,
       handleSend,
       setError,
