@@ -128,7 +128,7 @@ export function ReviewSchedulePanel({
               placeholder="Optional note"
               className="min-h-[70px]"
             />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>button]:min-h-11">
               <Button
                 onClick={() => respondMutation.mutate("accept")}
                 disabled={respondMutation.isPending}
@@ -509,7 +509,7 @@ export function ReviewInvoicePanel({
               placeholder="Optional note"
               className="min-h-[70px]"
             />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>button]:min-h-11">
               <Button
                 onClick={() => respondMutation.mutate("acknowledge")}
                 disabled={respondMutation.isPending}
@@ -968,7 +968,7 @@ export function WorkTrackingPanel({
               </div>
               <p className="text-xs text-[color:var(--text-secondary)]">{co.scopeChangeSummary}</p>
               {viewerRole === "requester" && co.status === "sent" && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 [&>button]:min-h-11">
                   <Button
                     size="sm"
                     onClick={() =>
