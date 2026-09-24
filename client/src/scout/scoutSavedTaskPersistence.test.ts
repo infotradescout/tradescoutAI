@@ -1,13 +1,26 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   deleteSavedTask,
   mergeSavedTasks,
+  saveSavedTaskLocally,
   withoutSavedTaskPreference,
 } from "@shared/scoutSavedTaskPersistence";
 
 const task = { id: "thread_example_123", updatedAt: "2026-09-24T00:00:00.000Z" };
 
 describe("saved Scout task deletion", () => {
+  it("does not claim a guest task was saved when device storage rejects the write", () => {
+    const local: typeof task[] = [];
+    const writeLocal = vi.fn((_next: typeof task[]) => false);
+    const saved = saveSavedTaskLocally(task, local, 8, writeLocal);
+    const activeSavedTaskId = saved?.id ?? null;
+
+    expect(writeLocal).toHaveBeenCalledWith([task]);
+    expect(local).toEqual([]);
+    expect(saved).toBeNull();
+    expect(activeSavedTaskId).toBeNull();
+  });
+
   it("keeps the saved task through a failed remote DELETE and reload", async () => {
     let local = [task];
     const server = [task];

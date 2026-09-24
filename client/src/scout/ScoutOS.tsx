@@ -73,7 +73,7 @@ import { stageDirectConnectEntryContext } from "@/pages/direct-connect/stagedDir
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
 import { ScoutTaskControls } from "./ScoutTaskControls";
-import { deleteSavedTask, mergeSavedTasks } from "@shared/scoutSavedTaskPersistence";
+import { deleteSavedTask, mergeSavedTasks, saveSavedTaskLocally } from "@shared/scoutSavedTaskPersistence";
 import { canOpenScoutWorkArea } from "./scoutWorkAreas";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { inferContextRoles } from "./contextRoles";
@@ -1371,12 +1371,12 @@ function upsertSavedScoutThread(
   const nextThread = buildSavedScoutThread(messages, existingId, location);
   if (!nextThread) return null;
   const threads = readSavedScoutThreads(userId);
-  const next = [nextThread, ...threads.filter((thread) => thread.id !== nextThread.id)].slice(
-    0,
-    SCOUT_SAVED_THREADS_LIMIT
+  return saveSavedTaskLocally(
+    nextThread,
+    threads,
+    SCOUT_SAVED_THREADS_LIMIT,
+    (next) => writeSavedScoutThreads(userId, next)
   );
-  writeSavedScoutThreads(userId, next);
-  return nextThread;
 }
 
 function mergeSavedScoutThreads(
@@ -2273,7 +2273,14 @@ export default function ScoutOS() {
       countyFips: locationCtx.countyFips,
       stateCode: locationCtx.stateCode,
     });
-    if (!saved) return;
+    if (!saved) {
+      toast({
+        title: "Task wasn't saved",
+        description: "Scout couldn't save this task on this device. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
     setActiveSavedThreadId(saved.id);
     setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
     void persistSavedScoutThreadRemote(saved);
@@ -2284,6 +2291,7 @@ export default function ScoutOS() {
     persistSavedScoutThreadRemote,
     scoutSaveUserId,
     state.messages,
+    toast,
   ]);
 
   const handleDeleteSavedThread = useCallback(
@@ -4879,7 +4887,7 @@ export default function ScoutOS() {
                     <div className="scout-current-task__head flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold uppercase text-ts-orange">
-                          {activeSavedThread ? "Saved on this device" : "Current task"}
+                          {activeSavedThread ? "Saved task" : "Current task"}
                           {activeSavedThread?.relatedLabel
                             ? ` · ${activeSavedThread.relatedLabel}`
                             : ""}

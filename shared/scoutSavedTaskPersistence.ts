@@ -1,5 +1,15 @@
 type SavedTask = { id: string; updatedAt: string };
 
+export function saveSavedTaskLocally<T extends SavedTask>(
+  task: T,
+  existing: T[],
+  limit: number,
+  writeLocal: (tasks: T[]) => boolean
+): T | null {
+  const next = [task, ...existing.filter((saved) => saved.id !== task.id)].slice(0, limit);
+  return writeLocal(next) ? task : null;
+}
+
 export function mergeSavedTasks<T extends SavedTask>(
   primary: T[],
   secondary: T[],
