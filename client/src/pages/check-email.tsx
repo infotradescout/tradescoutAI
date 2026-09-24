@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { buildAuthEntryRoute, isSafeNextPath } from "@/lib/postOnboardingRoute";
 import { isRecommendationActionPath } from "@shared/recommendationContinuation";
+import { isStoneInquiryPath } from "@shared/exchangeStoneBuyerFlow";
 
 export default function CheckEmail() {
   const { isAuthenticated, refetch } = useAuth();
@@ -67,7 +68,13 @@ export default function CheckEmail() {
         const result = await refetch();
         if (result.error) throw result.error;
         if (result.data?.emailVerified === true) {
-          navigate(safeNext || "/pre-scout-setup");
+          // The auth handoff routes incomplete accounts through onboarding before
+          // the stone page can mount and consume a tab-local inquiry draft.
+          navigate(
+            isStoneInquiryPath(safeNext)
+              ? buildAuthEntryRoute({ mode: "signin", next: safeNext, email })
+              : safeNext || "/pre-scout-setup"
+          );
         } else {
           setStatusMessage(
             "Your email is still awaiting confirmation. Open the link in your inbox or request another."
