@@ -6,6 +6,7 @@ import {
   resolveDirectConnectEntryContext,
   stageDirectConnectEntryContext,
 } from "./stagedDirectConnectEntryContext";
+import { getDirectConnectSection } from "./directConnectRoutes";
 import type { DirectConnectEntryContext } from "./directConnectEntryContext";
 
 function storedKey(): string {
@@ -85,6 +86,35 @@ describe("stagedDirectConnectEntryContext", () => {
     expect(fallbackUrl.searchParams.has("description")).toBe(false);
     expect(crossOriginPath).toBe(fallbackUrl.toString());
     expect(crossOriginPath).not.toContain("Must");
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("stages a county for the explicit post route without exposing it in the URL", () => {
+    const path = stageDirectConnectEntryContext(
+      { countyFips: "04013", stateCode: "AZ", source: "businesses_empty" },
+      "/direct-connect/post?source=businesses_empty"
+    );
+    const url = new URL(path, window.location.origin);
+
+    expect(url.pathname).toBe("/direct-connect/post");
+    expect(getDirectConnectSection(path)).toBe("post");
+    expect(url.searchParams.get("source")).toBe("businesses_empty");
+    expect(url.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
+    expect(path).not.toContain("county=");
+    expect(resolveDirectConnectEntryContext(path)).toMatchObject({
+      countyFips: "04013",
+      stateCode: "AZ",
+      source: "businesses_empty",
+    });
+  });
+
+  it("does not stage context for an unsupported destination path", () => {
+    const path = stageDirectConnectEntryContext(
+      { countyFips: "04013", stateCode: "AZ" },
+      "/community?source=businesses_empty"
+    );
+
+    expect(path).toBe("/direct-connect?source=businesses_empty");
     expect(window.sessionStorage.length).toBe(0);
   });
 

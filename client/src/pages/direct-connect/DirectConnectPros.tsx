@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Building2,
   CheckCircle2,
@@ -30,8 +31,12 @@ import {
   setSessionLocationOverride,
 } from "@/hooks/useLocationContext";
 import { StateCountySelector } from "@/components/state-county-selector";
-import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { formatCountyLabel, getCountyStateCode } from "@/utils/countyFipsToName";
 import { DirectoryListingLink } from "./DirectoryListingLink";
+import {
+  readStagedDirectConnectEntryContext,
+  stageDirectConnectEntryContext,
+} from "./stagedDirectConnectEntryContext";
 import { DISCOVERY_INTERNAL_SEARCH_EVENT } from "@shared/discoveryObservatory";
 import { getTradeSeoMatch } from "@shared/tradeSeo";
 import { useAuth } from "@/hooks/useAuth";
@@ -324,6 +329,7 @@ function BusinessesWorkspace({
 }
 
 export default function DirectConnectPros() {
+  const [, navigate] = useLocation();
   const location = useLocationContext();
   const { user, isLoading: authLoading } = useAuth();
   const [stateCode, setStateCode] = useState("");
@@ -337,6 +343,7 @@ export default function DirectConnectPros() {
   const [hydratedWorkspaceScope, setHydratedWorkspaceScope] = useState("");
   const workspaceHydrated = hydratedWorkspaceScope === currentWorkspaceScope;
   const [showOutsideArea, setShowOutsideArea] = useState(false);
+  const [draftHandoffFailed, setDraftHandoffFailed] = useState(false);
   const recordedSearches = useRef(new Set<string>());
 
   useEffect(() => {
@@ -606,6 +613,47 @@ export default function DirectConnectPros() {
     !searchFailed &&
     directoryFallback.length === 0 &&
     stateDirectoryFallback.length === 0;
+  const openCountyRequestDraft = () => {
+    const county = effectiveCountyFips;
+    const countyState = getCountyStateCode(county);
+    if (
+      typeof window === "undefined" ||
+      !/^\d{5}$/.test(county) ||
+      !countyState ||
+      (effectiveStateCode && effectiveStateCode !== countyState)
+    ) {
+      setDraftHandoffFailed(true);
+      return;
+    }
+
+    try {
+      const href = stageDirectConnectEntryContext(
+        { countyFips: county, stateCode: countyState, source: "businesses_empty" },
+        "/direct-connect/post?source=businesses_empty"
+      );
+      const destination = new URL(href, window.location.origin);
+      const stagedTokens = destination.searchParams.getAll("staged");
+      const stagedContext = readStagedDirectConnectEntryContext(href);
+      if (
+        destination.origin !== window.location.origin ||
+        destination.pathname !== "/direct-connect/post" ||
+        destination.searchParams.get("source") !== "businesses_empty" ||
+        destination.searchParams.has("county") ||
+        destination.searchParams.has("countyFips") ||
+        stagedTokens.length !== 1 ||
+        !/^[a-f0-9]{64}$/.test(stagedTokens[0]) ||
+        stagedContext?.countyFips !== county ||
+        stagedContext?.stateCode !== countyState
+      ) {
+        setDraftHandoffFailed(true);
+        return;
+      }
+      setDraftHandoffFailed(false);
+      navigate(`${destination.pathname}${destination.search}`);
+    } catch {
+      setDraftHandoffFailed(true);
+    }
+  };
   const profileCount = (contractors as ProviderCardProvider[]).length;
   const resultSummary =
     !workspaceHydrated || isLoading
@@ -947,8 +995,34 @@ export default function DirectConnectPros() {
             className="space-y-3 p-6 text-center text-sm text-[color:var(--text-secondary)]"
             data-testid="businesses-no-results"
           >
-            <p>No local businesses found for that search yet.</p>
-            <p>Try a different trade or area, or tell Scout what you need help finding.</p>
+            <p className="font-semibold text-[color:var(--text-primary)]">
+              {searchActive
+                ? `No public businesses match this search in ${areaLabel} yet.`
+                : `No public businesses are listed in ${areaLabel} yet.`}
+            </p>
+            <p>
+              Change your search or describe what you need. You review a local request before
+              anything is shared.
+            </p>
+            {effectiveCountyFips && (
+              <Button
+                type="button"
+                size="sm"
+                className="h-auto min-h-11 max-w-full whitespace-normal py-2 text-center"
+                onClick={openCountyRequestDraft}
+                data-testid="businesses-empty-request"
+              >
+                Describe what I need in {areaLabel}
+              </Button>
+            )}
+            {!effectiveCountyFips && (
+              <p>Choose a county before starting a local request.</p>
+            )}
+            {draftHandoffFailed && (
+              <p role="alert" data-testid="businesses-draft-handoff-error">
+                We couldn’t open a request with this county. Choose your area and try again.
+              </p>
+            )}
             <div className="flex flex-wrap items-center justify-center gap-2">
               {searchActive && (
                 <Button
@@ -975,9 +1049,6 @@ export default function DirectConnectPros() {
                 }}
               >
                 Change area
-              </Button>
-              <Button type="button" size="sm" asChild>
-                <a href="/scout">Ask Scout</a>
               </Button>
             </div>
           </CardContent>

@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DirectConnectPros from "./DirectConnectPros";
+import { readStagedDirectConnectEntryContext } from "./stagedDirectConnectEntryContext";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -107,6 +108,64 @@ describe("Businesses discovery states", () => {
 
     expect(container.textContent).toContain("We couldn’t finish checking local businesses");
     expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+  });
+
+  it("opens a county-scoped request draft only after a checked empty result", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) return [];
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() =>
+      Boolean(container.querySelector('[data-testid="businesses-empty-request"]'))
+    );
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="businesses-empty-request"]')?.click();
+    });
+
+    expect(window.location.pathname).toBe("/direct-connect/post");
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get("source")).toBe("businesses_empty");
+    expect(params.get("staged")).toMatch(/^[a-f0-9]{64}$/);
+    expect(params.has("county")).toBe(false);
+    expect(params.has("countyFips")).toBe(false);
+    expect(readStagedDirectConnectEntryContext(window.location.href)).toMatchObject({
+      countyFips: "04013",
+      stateCode: "AZ",
+      source: "businesses_empty",
+    });
+    expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
+  });
+
+  it("keeps the user on Businesses when the county handoff cannot be staged", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) return [];
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() =>
+      Boolean(container.querySelector('[data-testid="businesses-empty-request"]'))
+    );
+    const storageWrite = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+    try {
+      await act(async () => {
+        container.querySelector<HTMLButtonElement>('[data-testid="businesses-empty-request"]')?.click();
+      });
+    } finally {
+      storageWrite.mockRestore();
+    }
+
+    expect(window.location.pathname).toBe("/contractors");
+    expect(container.querySelector('[data-testid="businesses-draft-handoff-error"]')).not.toBeNull();
+    expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
   });
 
   it("waits for public directory listings before declaring the county empty", async () => {
