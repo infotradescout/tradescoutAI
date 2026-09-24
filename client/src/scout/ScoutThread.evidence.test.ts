@@ -210,6 +210,7 @@ describe("ScoutThread evidence strip", () => {
       },
     };
     const noPostHtml = renderThread([recoveryMessage]);
+    expect(noPostHtml).toContain('class="scout-assistant-bubble__badge">Scout update</span>');
     expect(noPostHtml).toContain("No verified recent county post in Maricopa County, AZ.");
     expect(noPostHtml).toContain("other requests unverified. Nothing sent.");
 
@@ -232,19 +233,43 @@ describe("ScoutThread evidence strip", () => {
         "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked. " +
         "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
       visible: [
-        "No recent county posts returned",
-        "no Scout TradeDeals returned",
-        "Other deal sources, businesses, pages, tools and requests unchecked",
+        "Maricopa County, AZ",
+        "no published county posts returned in last 7 days",
+        "no eligible Scout TradeDeals",
+        "Other sources unchecked",
         "Nothing sent",
       ],
+      badge: "Scout update",
     },
     {
       name: "an unavailable county post source with no posted TradeDeals",
       message:
-        "County posts could not be checked right now. " +
+        "Published county posts from the last 7 days in Maricopa County, AZ could not be checked right now. " +
         "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked. " +
         "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
-      visible: ["County posts unavailable", "no Scout TradeDeals returned", "Nothing sent"],
+      visible: [
+        "Maricopa County, AZ",
+        "published county posts from last 7 days unavailable",
+        "no eligible Scout TradeDeals",
+        "Other sources unchecked",
+        "Nothing sent",
+      ],
+      badge: "Scout update",
+    },
+    {
+      name: "an unavailable post source with a posted promotion",
+      message:
+        "Published county posts from the last 7 days in Maricopa County, AZ could not be checked right now. " +
+        "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. " +
+        "Businesses, pages, tools, and other requests were not checked. Nothing was sent.",
+      visible: [
+        "Maricopa County, AZ",
+        "published posts from last 7 days unavailable",
+        "1 TradeDeal promotion",
+        "Terms/end unverified",
+        "Other sources unchecked",
+        "Nothing sent",
+      ],
     },
     {
       name: "a county post and a posted TradeDeal",
@@ -298,13 +323,25 @@ describe("ScoutThread evidence strip", () => {
         "Nothing sent",
       ],
     },
-  ])("keeps the collapsed mobile truth for $name", ({ message, visible }) => {
+  ])("keeps the collapsed mobile truth for $name", ({ message, visible, badge }) => {
     const html = renderThread([
       {
         id: "a_deal_discovery",
         role: "assistant",
         content: message,
         provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+        resultContract: badge
+          ? {
+              contract_version: "scout_result.v1",
+              intent: "provider_search",
+              ambiguity_options: [],
+              entities: [],
+              evidence: [],
+              answer: message,
+              allowed_actions: [],
+              working_memory_update: {},
+            }
+          : undefined,
       },
     ]);
     const container = document.createElement("div");
@@ -314,8 +351,46 @@ describe("ScoutThread evidence strip", () => {
 
     expect(summary.length).toBeLessThanOrEqual(150);
     for (const phrase of visible) expect(summary).toContain(phrase);
+    if (badge) {
+      expect(html).toContain(`class="scout-assistant-bubble__badge">${badge}</span>`);
+      expect(html).not.toContain('class="scout-assistant-bubble__badge">Local results</span>');
+    }
     expect(body?.textContent).toContain("More detail");
     expect(summary).not.toContain("This Scout result");
+  });
+
+  it("bounds a long county label and never invents one from malformed recovery text", () => {
+    const longArea = `${"Long County Name ".repeat(3).trim()}, AZ`;
+    const message =
+      `Scout checked published county posts from the last 7 days in ${longArea}; none were returned. ` +
+      `It checked Scout promotions for ${longArea}; no eligible TradeDeals were returned. ` +
+      "Other deal sources were not checked. Nothing was sent.";
+    const getSummary = (content: string) => {
+      const container = document.createElement("div");
+      container.innerHTML = renderThread([
+        {
+          id: "a_long_county",
+          role: "assistant",
+          content,
+          provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+        },
+      ]);
+      return container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
+    };
+
+    const longSummary = getSummary(message);
+    expect(longSummary.length).toBeLessThanOrEqual(150);
+    expect(longSummary).toContain("last 7 days");
+    expect(longSummary).toContain("Nothing sent");
+
+    const malformedSummary = getSummary(message.replace(longArea, "???"));
+    expect(malformedSummary).toContain("your county");
+    expect(malformedSummary).not.toContain("???");
+    expect(malformedSummary).not.toContain("Maricopa");
+
+    const absentSummary = getSummary(message.replace(longArea, ""));
+    expect(absentSummary).toContain("your county");
+    expect(absentSummary).toContain("Nothing sent");
   });
 
   it("accepts the explicit broader Community browse action after a checked-empty county result", () => {
@@ -372,6 +447,9 @@ describe("ScoutThread evidence strip", () => {
     expect(summary).toContain("Nothing sent");
     expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain(
       "More detail"
+    );
+    expect(container.innerHTML).toContain(
+      'class="scout-assistant-bubble__badge">Scout update</span>'
     );
     const setupAction = [...container.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Set my local area")

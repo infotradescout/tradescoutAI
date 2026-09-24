@@ -143,7 +143,9 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.contract_version).toBe("scout_result.v1");
     expect(response.body.entities).toEqual([]);
     expect(response.body.metadata).toMatchObject({ postCheck: "checked", dealCheck: "checked" });
-    expect(response.body.answer).toContain("published county posts from the last 7 days");
+    expect(response.body.answer).toContain(
+      "Scout checked published county posts from the last 7 days in Maricopa County, AZ"
+    );
     expect(response.body.answer).toContain("none were returned");
     expect(response.body.answer).toContain("no eligible TradeDeals were returned");
     expect(response.body.answer).toContain("Other deal sources were not checked");
@@ -244,7 +246,9 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.metadata).toMatchObject({ postCheck: "error", dealCheck: "checked" });
     expect(response.body.knowledge.layer).toBe(2);
     expect(response.body.entities).toEqual([]);
-    expect(response.body.answer).toContain("County posts could not be checked right now");
+    expect(response.body.answer).toContain(
+      "Published county posts from the last 7 days in Maricopa County, AZ could not be checked right now"
+    );
     expect(response.body.answer).not.toContain("none were returned. It checked Scout promotions");
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
@@ -276,7 +280,9 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.metadata).toMatchObject({ postCheck: "error", dealCheck: "error" });
     expect(response.body.knowledge.layer).toBe(0);
     expect(response.body.knowledge.sources).toEqual([]);
-    expect(response.body.answer).toContain("County posts could not be checked right now");
+    expect(response.body.answer).toContain(
+      "Published county posts from the last 7 days in Maricopa County, AZ could not be checked right now"
+    );
     expect(response.body.answer).toContain("Scout promotions could not be checked right now");
     expect(response.body.entities).toEqual([]);
     expect(response.body.allowed_actions).toEqual(

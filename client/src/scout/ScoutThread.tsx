@@ -127,24 +127,62 @@ function mixedDiscoverySummary(content: string): string {
     return "Set your county to browse nearby posts. Posts, deals, businesses, pages, tools and requests unchecked. Nothing sent.";
   }
 
-  const checkedEmptyPost =
-    /^Scout checked published county posts from the last 7 days in .+?; none were returned\./i.test(
-      clean
-    );
-  const failedPost = /^County posts could not be checked right now\./i.test(clean);
-  if (checkedEmptyPost || failedPost) {
-    const postStatus = failedPost ? "County posts unavailable" : "No recent county posts returned";
+  const checkedEmptyPost = clean.match(
+    /^Scout checked published county posts from the last 7 days in ([^;]{0,80}); none were returned\./i
+  );
+  const failedPost = clean.match(
+    /^Published county posts from the last 7 days in (.{0,80}?) could not be checked right now\./i
+  );
+  const legacyFailedPost = /^County posts could not be checked right now\./i.test(clean);
+  if ((checkedEmptyPost || failedPost || legacyFailedPost) && /nothing was sent/i.test(clean)) {
+    // This area comes only from the exact opening sentence built by the server.
+    const rawArea = (checkedEmptyPost?.[1] || failedPost?.[1] || "").trim();
+    const area =
+      (/^[a-z .'-]+, [a-z]{2}$/i.test(rawArea) && rawArea.length <= 80) || rawArea === "your county"
+        ? rawArea
+        : "your county";
+    const postUnavailable = Boolean(failedPost || legacyFailedPost);
     const postedDeals = clean.match(/\bIt also found (\d+) posted Scout TradeDeals? for /i);
-    if (postedDeals) {
-      return `${postStatus}; ${postedDeals[1]} promotional TradeDeal${postedDeals[1] === "1" ? "" : "s"}. Offer unverified; confirm when it ends. Other sources unchecked. Nothing sent.`;
+    if (
+      postedDeals &&
+      !/These are promotional listings; terms and availability are not independently verified/i.test(
+        clean
+      )
+    ) {
+      return trimToSummary(clean);
     }
-    if (/It checked Scout promotions for .+?; no eligible TradeDeals were returned/i.test(clean)) {
-      return `${postStatus}; no Scout TradeDeals returned. Other deal sources, businesses, pages, tools and requests unchecked. Nothing sent.`;
+    const dealStatus = postedDeals
+      ? `${postedDeals[1]} promotional TradeDeal${postedDeals[1] === "1" ? "" : "s"}. Terms/end unverified`
+      : /It checked Scout promotions for .+?; no eligible TradeDeals were returned/i.test(clean)
+        ? "no eligible Scout TradeDeals"
+        : /Scout promotions could not be checked right now/i.test(clean)
+          ? "Scout promotions unavailable"
+          : "deals unchecked";
+    const formatSummary = (compact: boolean, place: string) => {
+      const postStatus = postUnavailable
+        ? compact
+          ? "published posts from last 7 days unavailable"
+          : "published county posts from last 7 days unavailable"
+        : compact
+          ? "no published posts in last 7 days"
+          : "no published county posts returned in last 7 days";
+      const visibleDealStatus =
+        compact && postedDeals
+          ? `${postedDeals[1]} TradeDeal promotion${postedDeals[1] === "1" ? "" : "s"}. Terms/end unverified`
+          : dealStatus;
+      const readablePostStatus = place
+        ? postStatus
+        : `${postStatus[0].toUpperCase()}${postStatus.slice(1)}`;
+      return `${place ? `${place}: ` : ""}${readablePostStatus}; ${visibleDealStatus}. Other sources unchecked. Nothing sent.`;
+    };
+    let summary = formatSummary(false, area);
+    if (summary.length > SUMMARY_MAX_CHARS) summary = formatSummary(true, area);
+    if (summary.length > SUMMARY_MAX_CHARS && area) {
+      // The full place name remains under More detail when an unusual label is long.
+      const room = SUMMARY_MAX_CHARS - (summary.length - area.length) - 3;
+      summary = formatSummary(true, `${area.slice(0, room).trimEnd()}...`);
     }
-    if (/Scout promotions could not be checked right now/i.test(clean)) {
-      return `${postStatus}; Scout promotions unavailable. Businesses, pages, tools and requests unchecked. Nothing sent.`;
-    }
-    return `${postStatus}. Deals, businesses, pages, tools and requests unchecked. Nothing sent.`;
+    return summary;
   }
 
   const found = clean.match(
@@ -1356,7 +1394,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   {msg.resultContract && (
                     <span className="scout-assistant-bubble__badge">
                       {msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
-                        ? "Local results"
+                        ? msg.resultContract.entities.length > 0
+                          ? "Local results"
+                          : "Scout update"
                         : humanizeToken(msg.resultContract.intent)}
                     </span>
                   )}

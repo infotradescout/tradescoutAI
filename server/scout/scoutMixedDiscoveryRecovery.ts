@@ -97,7 +97,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     : postCheck === "checked"
       ? `Scout checked published county posts from the last 7 days in ${area}; none were returned.`
       : postCheck === "error"
-        ? "County posts could not be checked right now."
+        ? `Published county posts from the last 7 days in ${area} could not be checked right now.`
         : `This Scout result does not verify a county post from the last 7 days in ${area}.`;
   const dealSentence =
     input.dealCheck === "checked"
