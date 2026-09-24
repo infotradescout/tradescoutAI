@@ -17,6 +17,7 @@ import {
   resolveBusinessesWorkspaceState,
 } from "../../client/src/pages/direct-connect/businessesWorkspaceState";
 import { getDirectConnectSection } from "../../client/src/pages/direct-connect/directConnectRoutes";
+import { parseDirectConnectEntryContext } from "../../client/src/pages/direct-connect/directConnectEntryContext";
 
 const origin = "https://www.thetradescout.com";
 const templateHtml = fs.readFileSync(path.resolve("client/index.html"), "utf8");
@@ -49,6 +50,17 @@ const links = (html: string) =>
   [...html.matchAll(/<a\b[^>]*\bhref="([^"]+)"/g)].map((match) => match[1].replace(/&amp;/g, "&"));
 
 describe("complete public discovery responses", () => {
+  it("opens the general request without assuming a launch county", () => {
+    const html = buildPublicFindLocalBusinessesHtml({ origin, templateHtml });
+    const requestHref = links(html).find((href) => href === "/direct-connect?source=public_discovery");
+    expect(requestHref).toBeDefined();
+    expect(getDirectConnectSection(requestHref!)).toBe("post");
+    expect(parseDirectConnectEntryContext(requestHref!)).toMatchObject({
+      source: "public_discovery",
+      countyFips: undefined,
+    });
+  });
+
   it.each(pages)("serves the full existing content for $path without a browser global", (page) => {
     expect(typeof window).toBe("undefined");
     const raw = page.build({ origin, templateHtml });

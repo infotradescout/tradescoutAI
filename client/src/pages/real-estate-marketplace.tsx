@@ -11,7 +11,6 @@ import {
   Square,
   PlusCircle,
   FileCheck,
-  LineChart,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,27 +59,17 @@ const HOMESCOUT_VALUE_CARDS: HomeScoutSurfaceSection[] = [
   {
     title: "Manage your home",
     items: [
-      "Keep records organized",
-      "Track maintenance context",
-      "Keep property history in one place",
+      "Keep home records together",
+      "Track repairs and maintenance",
+      "Review your property history",
     ],
     primaryAction: { label: "Open My TradeScout", href: "/my-tradescout" },
     secondaryAction: { label: "Open Homeowner Dashboard", href: "/homeowner-dashboard" },
   },
   {
-    title: "Watch your local market",
-    items: ["Browse HomeScout Listings", "Filter by county context", "Save a search for later"],
-    primaryAction: { label: "Browse Listings", href: "/homescout-listings" },
-    secondaryAction: { label: "Save Search", href: "/homescout-listings" },
-  },
-  {
     title: "Sell when you're ready",
-    items: [
-      "Activate 1-click sell when ready",
-      "HomeScout Listings live in Exchange",
-      "Stay county-first",
-    ],
-    primaryAction: { label: "Start Sell Flow", href: "/exchange?tab=sell&category=real-estate" },
+    items: ["Start a property listing", "Add property details", "Submit it for review when ready"],
+    primaryAction: { label: "Sell a property", href: "/exchange?tab=sell&category=real-estate" },
     secondaryAction: { label: "Open Property Listing", href: "/property-listing" },
   },
 ];
@@ -114,6 +103,27 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
   const [maxDom, setMaxDom] = useState<string>("all");
   const [sqftMin, setSqftMin] = useState<string>("all");
   const [priceDropsOnly, setPriceDropsOnly] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const activeFilterCount = [
+    propertyType !== "all",
+    bedrooms !== "all",
+    bathrooms !== "all",
+    priceRange !== "all",
+    maxDom !== "all",
+    sqftMin !== "all",
+    priceDropsOnly,
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setPropertyType("all");
+    setBedrooms("all");
+    setBathrooms("all");
+    setPriceRange("all");
+    setMaxDom("all");
+    setSqftMin("all");
+    setPriceDropsOnly(false);
+  };
 
   const resolvedCountyFips = typeof ctx.countyFips === "string" ? ctx.countyFips : undefined;
   const resolvedStateCode = typeof ctx.stateCode === "string" ? ctx.stateCode : undefined;
@@ -191,6 +201,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
     data: listings = [],
     isLoading,
     isError,
+    refetch,
   } = useQuery<HomeScoutListing[]>({
     queryKey,
     queryFn: async () => {
@@ -281,30 +292,30 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
       />
       <RealEstateMarketplaceShell>
         <CountyRequiredGate surface="homescout" allowBypass={allowBypass}>
-          <div className="max-w-6xl mx-auto px-4 py-5 md:py-8 space-y-4 md:space-y-6">
+          <div className="max-w-6xl mx-auto px-3 py-4 sm:px-4 md:py-8 space-y-4 md:space-y-6">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
-              <div className="space-y-0.5 md:space-y-1">
+              <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-3">
-                  <Home className="h-6 w-6 md:h-7 md:w-7 text-ts-orange" />
-                  <h1 className="text-2xl md:text-4xl font-bold text-white">HomeScout Listings</h1>
+                  <Home className="h-6 w-6 shrink-0 md:h-7 md:w-7 text-ts-orange" />
+                  <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight">Homes for sale</h1>
                 </div>
                 <p className="text-sm md:text-base text-white/70">
-                  Property management first, with HomeScout Listings separated into Exchange.
+                  Find homes and property in your county.
                 </p>
                 <div className="flex items-center gap-2 text-xs text-white/60">
-                  <MapPin className="h-3.5 w-3.5" />
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
                   <span>{ctx.label || "Your county context"}</span>
                 </div>
               </div>
-              <div className="flex w-full md:w-auto gap-2">
-                <Link href="/exchange?tab=sell&category=real-estate">
-                  <Button className="w-full md:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
+              <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
+                <Button asChild className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
+                  <Link href="/exchange?tab=sell&category=real-estate">
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    Activate 1-Click Sell
-                  </Button>
-                </Link>
+                    Sell a property
+                  </Link>
+                </Button>
                 <Button
-                  className="w-full md:w-auto"
+                  className="w-full sm:w-auto"
                   variant="secondary"
                   onClick={() => saveSearchMutation.mutate()}
                   disabled={saveSearchMutation.isPending}
@@ -314,82 +325,59 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
               </div>
             </div>
 
-            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
-              <CardContent className="p-4 md:p-6">
-                <div className="mb-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {HOMESCOUT_VALUE_CARDS.map((card, index) => {
-                    const Icon = index === 0 ? FileCheck : index === 1 ? LineChart : PlusCircle;
-                    return (
-                      <div
-                        key={card.title}
-                        className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-ts-orange/15 text-ts-orange">
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <div className="text-sm font-semibold text-white">{card.title}</div>
-                        </div>
-                        <div className="space-y-1.5">
-                          {card.items.map((item) => (
-                            <div key={`${card.title}-${item}`} className="text-sm text-white/70">
-                              {item}
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          <Link href={card.primaryAction.href}>
-                            <Button
-                              size="sm"
-                              className="h-8 bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
-                            >
-                              {card.primaryAction.label}
-                            </Button>
-                          </Link>
-                          {card.secondaryAction ? (
-                            <Link href={card.secondaryAction.href}>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 border-white/15 text-white/80"
-                              >
-                                {card.secondaryAction.label}
-                              </Button>
-                            </Link>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+            <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm" id="homes-search">
+              <CardContent className="p-3 sm:p-4 md:p-6">
+                <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-base md:text-lg font-semibold text-white">
-                      Browse HomeScout Listings
+                      Browse local listings
                     </h2>
                     <p className="mt-1 text-xs md:text-sm text-white/70">
-                      Search the Exchange-side HomeScout Listings inventory for your county.
+                      Search by title or city, then narrow the results if needed.
                     </p>
                   </div>
-                  <Badge className="bg-ts-orange/15 text-ts-orange border border-ts-orange/20">
-                    County-first visibility
-                  </Badge>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 md:gap-4 mb-3 md:mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
-                    <Input
-                      placeholder="Search title or city..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 bg-tsCard border-white/10 text-white"
-                    />
-                  </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                  <Input
+                    type="search"
+                    aria-label="Search homes by title or city"
+                    placeholder="Search homes by title or city"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-tsCard border-white/10 text-white"
+                  />
+                </div>
 
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <span className="text-white/70 text-sm" role="status" aria-live="polite">
+                    {isLoading
+                      ? "Searching homes..."
+                      : isError
+                        ? "Search unavailable"
+                        : `Showing ${listings.length} ${listings.length === 1 ? "listing" : "listings"}`}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="md:hidden shrink-0 border-white/20"
+                    aria-expanded={filtersOpen}
+                    aria-controls="homescout-secondary-filters"
+                    onClick={() => setFiltersOpen((open) => !open)}
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+                  </Button>
+                </div>
+
+                <div
+                  id="homescout-secondary-filters"
+                  className={`${filtersOpen ? "grid" : "hidden md:grid"} mt-3 grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 md:gap-4`}
+                >
                   <Select value={priceRange} onValueChange={setPriceRange}>
-                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                    <SelectTrigger aria-label="Filter by price" className="bg-tsCard border-white/10 text-white">
                       <SelectValue placeholder="Price Range" />
                     </SelectTrigger>
                     <SelectContent>
@@ -402,7 +390,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   </Select>
 
                   <Select value={propertyType} onValueChange={setPropertyType}>
-                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                    <SelectTrigger aria-label="Filter by property type" className="bg-tsCard border-white/10 text-white">
                       <SelectValue placeholder="Property Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -417,7 +405,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   </Select>
 
                   <Select value={bedrooms} onValueChange={setBedrooms}>
-                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                    <SelectTrigger aria-label="Filter by bedrooms" className="bg-tsCard border-white/10 text-white">
                       <SelectValue placeholder="Bedrooms" />
                     </SelectTrigger>
                     <SelectContent>
@@ -430,7 +418,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   </Select>
 
                   <Select value={bathrooms} onValueChange={setBathrooms}>
-                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
+                    <SelectTrigger aria-label="Filter by bathrooms" className="bg-tsCard border-white/10 text-white">
                       <SelectValue placeholder="Bathrooms" />
                     </SelectTrigger>
                     <SelectContent>
@@ -443,11 +431,11 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   </Select>
 
                   <Select value={maxDom} onValueChange={setMaxDom}>
-                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                      <SelectValue placeholder="Days on market" />
+                    <SelectTrigger aria-label="Filter by listing age" className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Listing age" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Any DOM</SelectItem>
+                      <SelectItem value="all">Any listing age</SelectItem>
                       <SelectItem value="7">7 days</SelectItem>
                       <SelectItem value="14">14 days</SelectItem>
                       <SelectItem value="30">30 days</SelectItem>
@@ -456,35 +444,39 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                   </Select>
 
                   <Select value={sqftMin} onValueChange={setSqftMin}>
-                    <SelectTrigger className="bg-tsCard border-white/10 text-white">
-                      <SelectValue placeholder="Min sqft" />
+                    <SelectTrigger aria-label="Filter by minimum size" className="bg-tsCard border-white/10 text-white">
+                      <SelectValue placeholder="Minimum size" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Any sqft</SelectItem>
-                      <SelectItem value="800">800+</SelectItem>
-                      <SelectItem value="1200">1200+</SelectItem>
-                      <SelectItem value="1600">1600+</SelectItem>
-                      <SelectItem value="2000">2000+</SelectItem>
+                      <SelectItem value="all">Any size</SelectItem>
+                      <SelectItem value="800">800+ sq ft</SelectItem>
+                      <SelectItem value="1200">1200+ sq ft</SelectItem>
+                      <SelectItem value="1600">1600+ sq ft</SelectItem>
+                      <SelectItem value="2000">2000+ sq ft</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Button
                     type="button"
                     variant={priceDropsOnly ? "default" : "secondary"}
-                    className="shrink-0"
+                    className="shrink-0 justify-start md:justify-center"
+                    aria-pressed={priceDropsOnly}
                     onClick={() => setPriceDropsOnly((v) => !v)}
                   >
                     Price drops
                   </Button>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-white/60" />
-                  <span className="text-white/60 text-sm">
-                    {isLoading ? "Searching..." : `${listings.length} active listing(s)`}
-                    {isError ? " (search failed)" : ""}
-                  </span>
-                </div>
+                {activeFilterCount > 0 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="mt-2 px-0 text-white/80"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -539,33 +531,29 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="flex items-center gap-2 text-white/70">
-                          <BedDouble className="h-4 w-4 text-white/60" />
-                          <span>{listing.beds ?? "?"} bd</span>
+                      <div className="grid grid-cols-3 gap-1 text-xs sm:gap-2 sm:text-sm">
+                        <div className="flex items-center gap-1 text-white/70 sm:gap-2">
+                          <BedDouble className="h-4 w-4 shrink-0 text-white/60" />
+                          <span className="whitespace-nowrap">{listing.beds ?? "?"} bd</span>
                         </div>
-                        <div className="flex items-center gap-2 text-white/70">
-                          <Bath className="h-4 w-4 text-white/60" />
-                          <span>{listing.baths ?? "?"} ba</span>
+                        <div className="flex items-center gap-1 text-white/70 sm:gap-2">
+                          <Bath className="h-4 w-4 shrink-0 text-white/60" />
+                          <span className="whitespace-nowrap">{listing.baths ?? "?"} ba</span>
                         </div>
-                        <div className="flex items-center gap-2 text-white/70">
-                          <Square className="h-4 w-4 text-white/60" />
-                          <span>{listing.sqft ?? "?"} sqft</span>
+                        <div className="flex items-center gap-1 text-white/70 sm:gap-2">
+                          <Square className="h-4 w-4 shrink-0 text-white/60" />
+                          <span className="whitespace-nowrap">{listing.sqft ?? "?"} sqft</span>
                         </div>
                       </div>
 
-                      <div className="pt-2 flex items-center justify-between">
-                        <div className="text-xs text-white/60">
-                          Contact requires intent confirmation (Decision Card required).
-                        </div>
-                        <Link href={`/homescout/listings/${listing.id}`}>
-                          <Button
-                            size="sm"
-                            className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
-                          >
-                            View
-                          </Button>
-                        </Link>
+                      <div className="pt-2 flex items-center justify-end">
+                        <Button
+                          asChild
+                          size="sm"
+                          className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
+                        >
+                          <Link href={`/homescout/listings/${listing.id}`}>View property</Link>
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -573,26 +561,80 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
               })}
             </div>
 
-            {!isLoading && listings.length === 0 && (
+            {!isLoading && isError && (
               <Card className="bg-black/30 border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-white">No active listings yet</CardTitle>
+                  <CardTitle className="text-white">Could not load homes</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-white/70 space-y-3">
-                  <p>
-                    No HomeScout Listings are active in this county yet. When you are ready to sell,
-                    activate the HomeScout Listings flow.
-                  </p>
-                  <div className="flex gap-2">
-                    <Link href="/exchange?tab=sell&category=real-estate">
-                      <Button className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
-                        Open HomeScout Listings
-                      </Button>
-                    </Link>
-                  </div>
+                <CardContent className="space-y-3 text-sm text-white/70">
+                  <p>Try the search again in a moment.</p>
+                  <Button type="button" variant="secondary" onClick={() => void refetch()}>
+                    Try again
+                  </Button>
                 </CardContent>
               </Card>
             )}
+
+            {!isLoading && !isError && listings.length === 0 && (
+              <Card className="bg-black/30 border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white">No homes found</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-white/70 space-y-3">
+                  <p>
+                    {searchQuery.trim() || activeFilterCount > 0
+                      ? "Try a different search or clear the filters."
+                      : "No properties are listed in your county right now."}
+                  </p>
+                  <Button asChild className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold">
+                    <Link href="/exchange?tab=sell&category=real-estate">Sell a property</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            <section aria-label="More ways to use HomeScout" className="pt-2">
+              <h2 className="mb-3 text-base font-semibold text-white">More ways to use HomeScout</h2>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {HOMESCOUT_VALUE_CARDS.map((card, index) => {
+                  const Icon = index === 0 ? FileCheck : PlusCircle;
+                  return (
+                    <div
+                      key={card.title}
+                      className="rounded-xl border border-white/10 bg-tsCard/50 p-4 space-y-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-orange/15 text-ts-orange">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div className="text-sm font-semibold text-white">{card.title}</div>
+                      </div>
+                      <div className="space-y-1.5">
+                        {card.items.map((item) => (
+                          <div key={`${card.title}-${item}`} className="text-sm text-white/70">
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap">
+                        <Button
+                          asChild
+                          size="sm"
+                          className="w-full sm:w-auto bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
+                        >
+                          <Link href={card.primaryAction.href}>{card.primaryAction.label}</Link>
+                        </Button>
+                        {card.secondaryAction ? (
+                          <Button asChild size="sm" variant="outline" className="w-full sm:w-auto border-white/15 text-white/80">
+                            <Link href={card.secondaryAction.href}>{card.secondaryAction.label}</Link>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           </div>
         </CountyRequiredGate>
       </RealEstateMarketplaceShell>

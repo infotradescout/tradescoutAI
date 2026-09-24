@@ -3041,6 +3041,10 @@ app.use(landingContractHeaders);
                     return sendPublicPageNotFound(res, "Exchange listing not found");
                   }
 
+                  if (/^tradescout-stone-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(listingId)) {
+                    res.setHeader("X-Robots-Tag", "noindex, follow");
+                  }
+
                   res.setHeader(
                     "Cache-Control",
                     "public, max-age=120, stale-while-revalidate=3600"

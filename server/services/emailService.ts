@@ -283,6 +283,10 @@ class EmailService {
     if (this.mode === "account_creation_only") {
       const allowed =
         purpose === "account_creation" ||
+        // A new JW Stone membership creates a staff alert on the same
+        // transaction; its exact notification identity is checked by the
+        // outbox worker before assigning this purpose.
+        purpose === "jw_stone_signup_staff" ||
         purpose === "email_verification" ||
         purpose === "activation" ||
         purpose === "claim_business" ||

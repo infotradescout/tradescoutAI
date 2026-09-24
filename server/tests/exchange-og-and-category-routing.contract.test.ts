@@ -66,13 +66,13 @@ describe("client/exchange.tsx getCategoryHref", () => {
   const src = readClientFile("pages/exchange.tsx");
   // Execute the current production component's initializer, not a copied routing formula.
   const declaration = /const detailPath\s*=\s*([\s\S]*?);/.exec(src);
-  const destination = (item: Record<string, unknown>, isProfileCatalog = false) => {
+  const destination = (item: Record<string, unknown>, isProfileCatalog = false, isRetailStone = false) => {
     expect(declaration).not.toBeNull();
-    return runInNewContext(`(${declaration![1]})`, { item, isProfileCatalog, detailCategory: item.category || "other", encodeURIComponent }, { timeout: 1000 });
+    return runInNewContext(`(${declaration![1]})`, { item, isProfileCatalog, isRetailStone, detailCategory: item.category || "other", encodeURIComponent }, { timeout: 1000 });
   };
   it("shares each listing's already-computed canonical detail path", () => {
     expect(declaration).not.toBeNull();
-    const block = src.slice(declaration!.index, declaration!.index + 10000);
+    const block = src.slice(declaration!.index);
     expect(block).toMatch(/shareLink\(\s*detailPath\s*,/);
     expect(block).not.toContain("`/exchange?item=${encodeURIComponent(item.id)}`");
     expect(destination({ id: "native-listing", category: "tools" })).toBe("/exchange/tools/native-listing");
@@ -82,6 +82,10 @@ describe("client/exchange.tsx getCategoryHref", () => {
   });
   it("shares an individual catalog item's exact public destination", () => {
     expect(destination({ id: "catalog:blue-dunes", category: "building-materials", profileItemSlug: "blue-dunes", publicProfilePath: "/u/jw-stone-logistics/items/blue-dunes" }, true)).toBe("/u/jw-stone-logistics/items/blue-dunes");
+  });
+  it("shares the selected market URL for a retail stone", () => {
+    const publicDetailPath = "/exchange/building-materials/tradescout-stone-aj-quartz?audienceState=TX&audienceCity=Dallas&audienceCountry=US";
+    expect(destination({ id: "tradescout-stone-aj-quartz", category: "building-materials", publicDetailPath }, false, true)).toBe(publicDetailPath);
   });
   it("retains native and incomplete-catalog fallback destinations", () => {
     expect(destination({ id: "native", publicProfilePath: "/u/unrelated", profileItemSlug: "unrelated" })).toBe("/exchange/other/native");
