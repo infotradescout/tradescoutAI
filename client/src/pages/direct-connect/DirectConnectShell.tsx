@@ -1,5 +1,6 @@
 ﻿import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useLayoutEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { WorkRequest } from "@shared/schema";
 import {
@@ -1582,6 +1583,7 @@ export function DirectConnectRequestComposer({
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
+  const reviewHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const [reviewAttempted, setReviewAttempted] = useState(false);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
@@ -2912,6 +2914,23 @@ export function DirectConnectRequestComposer({
     setDescribeStep(1);
   };
 
+  useLayoutEffect(() => {
+    if (describeStep !== 1) return;
+    const heading = reviewHeadingRef.current;
+    const scrollRoot = heading?.closest<HTMLElement>("#app-scroll-root");
+    if (!heading || !scrollRoot) return;
+
+    // AppShell scrolls this panel below its fixed header. Align the new step's
+    // heading inside that panel so the progress row and review card stay visible.
+    heading.focus({ preventScroll: true });
+    const targetTop =
+      scrollRoot.scrollTop +
+      heading.getBoundingClientRect().top -
+      scrollRoot.getBoundingClientRect().top -
+      12;
+    scrollRoot.scrollTop = Math.max(0, targetTop);
+  }, [describeStep]);
+
   const handleWherePlaceSelected = useCallback(
     (result: GooglePlaceResult) => {
       const city = String(result.city || "").trim();
@@ -2940,7 +2959,11 @@ export function DirectConnectRequestComposer({
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--theme-accent-primary)]">
           Direct Connect
         </p>
-        <h1 className="max-w-3xl text-[2rem] font-black leading-[1.04] tracking-[-0.03em] text-[color:var(--text-primary)] md:text-5xl">
+        <h1
+          ref={reviewHeadingRef}
+          tabIndex={-1}
+          className="max-w-3xl text-[2rem] font-black leading-[1.04] tracking-[-0.03em] text-[color:var(--text-primary)] md:text-5xl"
+        >
           {describeStep === 0
             ? unresolvedOwnerTarget
               ? "Choose a business for this request"

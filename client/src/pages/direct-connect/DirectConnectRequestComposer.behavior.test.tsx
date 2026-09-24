@@ -197,6 +197,30 @@ describe("request composer recovery behavior", () => {
     expect(titleInput.value).toBe("Repair a roof leak");
   });
 
+  it("brings the review heading below the fixed header without changing or sending the draft", async () => {
+    container.id = "app-scroll-root";
+    container.scrollTop = 620;
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({ top: 48 } as DOMRect);
+    await mount();
+    const heading = container.querySelector<HTMLHeadingElement>(
+      '[data-testid="direct-connect-mobile-composer"] h1'
+    )!;
+    vi.spyOn(heading, "getBoundingClientRect").mockReturnValue({ top: -152 } as DOMRect);
+
+    await click("Review request");
+
+    expect(heading.textContent).toBe("Review before anything is shared");
+    expect(document.activeElement).toBe(heading);
+    expect(container.scrollTop).toBe(408);
+    expect(container.querySelector('[aria-label="Request progress"]')?.textContent).toContain(
+      "Review"
+    );
+    expect(container.textContent).toContain("Request details review");
+    expect(container.textContent).toContain("Original roof");
+    expect(container.textContent).toContain("Original repair details");
+    expect(state.api).not.toHaveBeenCalledWith("POST", expect.anything(), expect.anything());
+  });
+
   it("restores guest edits after sign-in and sends the edited payload to the original business and county", async () => {
     await mount();
     await change(field("Original roof"), "Repair the porch roof");
