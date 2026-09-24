@@ -323,18 +323,18 @@ export default function TradeScoutLandingPage() {
               Make A Request
             </a>
             <a
-              className="ts-button ts-button-secondary"
-              href={scoutHref}
-              onClick={() => trackClick("open_scout", "/scout")}
-            >
-              Open Scout ↗
-            </a>
-            <a
               className="ts-button ts-button-tertiary"
               href={businessBrowseHref}
               onClick={() => trackClick("browse_local_businesses", "/find-local-businesses")}
             >
               Browse local businesses ↗
+            </a>
+            <a
+              className="ts-button ts-button-secondary"
+              href={scoutHref}
+              onClick={() => trackClick("open_scout", "/scout")}
+            >
+              Open Scout ↗
             </a>
           </div>
         </div>
