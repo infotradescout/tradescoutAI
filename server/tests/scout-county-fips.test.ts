@@ -6,6 +6,28 @@ import {
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
 import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
+import {
+  buildScoutDealPath,
+  isEligibleScoutDeal,
+  toScoutDealPublicView,
+  type ScoutDealCandidate,
+} from "../scout/scoutDealDiscovery";
+
+const postedDeal: ScoutDealCandidate = {
+  id: "11111111-1111-4111-8111-111111111111",
+  title: "County tool rental offer",
+  shortDescription: "Posted tool rental terms",
+  type: "trade_deal",
+  tier: "paid_campaign",
+  exclusive: true,
+  status: "active",
+  placementScout: true,
+  startsAt: new Date("2026-09-22T00:00:00.000Z"),
+  endsAt: new Date("2026-09-30T00:00:00.000Z"),
+  countyFips: ["04013"],
+  createdAt: new Date("2026-09-21T00:00:00.000Z"),
+};
+const dealNow = new Date("2026-09-23T18:00:00.000Z");
 
 describe("Scout county lookup", () => {
   it("uses a complete FIPS rather than a readable county label", () => {
@@ -109,8 +131,9 @@ describe("Scout county lookup", () => {
 
     expect(result.message).toContain("1 published county post from the last 7 days");
     expect(result.message).toContain("This Scout result includes");
+    expect(result.message).toContain("It does not verify deals");
     expect(result.message).toContain(
-      "It does not verify deals, businesses, pages, tools, or other requests"
+      "Businesses, pages, tools, and other requests were not checked"
     );
     expect(result.entities).toEqual([
       expect.objectContaining({ name: "Neighborhood tool swap", url: "/community/posts/post_1" }),
@@ -143,5 +166,91 @@ describe("Scout county lookup", () => {
       "does not verify county posts, deals, businesses, pages, tools, or requests"
     );
     expect(result.actions).toEqual([expect.objectContaining({ to: "/settings" })]);
+  });
+
+  it("uses the same strict Scout publication rule for a result and its detail path", () => {
+    expect(isEligibleScoutDeal(postedDeal, "04013", dealNow)).toBe(true);
+    expect(isEligibleScoutDeal(postedDeal, "06037", dealNow)).toBe(false);
+    expect(isEligibleScoutDeal(postedDeal, null, dealNow)).toBe(false);
+    expect(isEligibleScoutDeal({ ...postedDeal, countyFips: [] }, null, dealNow)).toBe(true);
+    expect(isEligibleScoutDeal({ ...postedDeal, placementScout: false }, "04013", dealNow)).toBe(
+      false
+    );
+    expect(isEligibleScoutDeal({ ...postedDeal, tier: "free_directory" }, "04013", dealNow)).toBe(
+      false
+    );
+    expect(isEligibleScoutDeal({ ...postedDeal, exclusive: false }, "04013", dealNow)).toBe(false);
+    expect(isEligibleScoutDeal({ ...postedDeal, status: "paused" }, "04013", dealNow)).toBe(false);
+    expect(isEligibleScoutDeal(postedDeal, "04013", new Date("2026-10-01T00:00:00.000Z"))).toBe(
+      false
+    );
+    expect(isEligibleScoutDeal(postedDeal, "04013", new Date("2026-09-20T00:00:00.000Z"))).toBe(
+      false
+    );
+    expect(buildScoutDealPath(postedDeal.id, "04013")).toBe(`/deals/${postedDeal.id}?county=04013`);
+    expect(buildScoutDealPath("not-an-id", "04013")).toBeNull();
+    expect(toScoutDealPublicView(postedDeal)).toEqual(
+      expect.objectContaining({
+        title: "County tool rental offer",
+        scope: "county",
+        source: "TradeScout posted promotion",
+      })
+    );
+    expect(JSON.stringify(toScoutDealPublicView(postedDeal))).not.toContain("ctaUrl");
+  });
+
+  it("shows checked posted deals alongside posts and opens the exact eligible deal", () => {
+    const result = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      now: dealNow,
+      dealCheck: "checked",
+      deals: [
+        postedDeal,
+        { ...postedDeal, id: "22222222-2222-4222-8222-222222222222", countyFips: ["06037"] },
+      ],
+      communityPosts: [
+        { id: "post_1", title: "Tool request", createdAt: "2026-09-22T12:00:00.000Z" },
+      ],
+    });
+    expect(result.entities).toHaveLength(2);
+    expect(result.entities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "community_post", url: "/community/posts/post_1" }),
+        expect.objectContaining({
+          type: "trade_deal",
+          url: `/deals/${postedDeal.id}?county=04013`,
+        }),
+      ])
+    );
+    expect(result.message).toContain("1 posted Scout TradeDeal");
+    expect(result.message).toContain("terms and availability are not independently verified");
+    expect(result.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: "Open posted TradeDeal",
+          to: `/deals/${postedDeal.id}?county=04013`,
+        }),
+      ])
+    );
+  });
+
+  it("distinguishes an empty Scout placement check from a failed check", () => {
+    const empty = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      dealCheck: "checked",
+      deals: [],
+    });
+    const error = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      dealCheck: "error",
+      deals: [postedDeal],
+    });
+    expect(empty.message).toContain("no eligible TradeDeals were returned");
+    expect(empty.message).toContain("Other deal sources were not checked");
+    expect(error.message).toContain("could not be checked right now");
+    expect(error.entities).toEqual([]);
   });
 });

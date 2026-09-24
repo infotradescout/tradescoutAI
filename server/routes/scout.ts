@@ -114,6 +114,7 @@ import {
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
 import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
+import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
 import {
   buildScoutProfileUpdateResponse,
   inferScoutProfileUpdateDraft,
@@ -3506,10 +3507,38 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       : [];
 
     if (isMixedScoutDiscoveryRequest(message)) {
+      const now = new Date();
+      let dealCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let scoutDeals: Awaited<ReturnType<typeof storage.listPromotions>> = [];
+      if (normalizedFips) {
+        try {
+          const rows = await storage.listPromotions({
+            status: "active",
+            type: "trade_deal",
+            tier: "paid_campaign",
+            exclusive: true,
+            placementScout: true,
+            activeAt: now,
+            countyFips: normalizedFips,
+            includeGlobalWhenCounty: true,
+            limit: 10,
+          });
+          scoutDeals = rows
+            .filter((row) => isEligibleScoutDeal(row, normalizedFips, now))
+            .slice(0, 3);
+          dealCheck = "checked";
+        } catch (error) {
+          console.error("Scout promotion lookup unavailable:", error);
+          dealCheck = "error";
+        }
+      }
       const recovery = buildScoutMixedDiscoveryRecovery({
         countyFips: normalizedFips,
         countyLabel: countyArea.countyLabel,
         communityPosts: communityPostItems,
+        deals: scoutDeals,
+        dealCheck,
+        now,
       });
       scoutTurnTelemetry.provider = "deterministic";
       scoutTurnTelemetry.sourceUsed = "scout_mixed_discovery_recovery";
@@ -3521,10 +3550,18 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           intent: "local_discovery_partial",
           sourceUsed: "scout_mixed_discovery_recovery",
           fallbackUsed: true,
+          dealCheck,
         },
         knowledge: {
           layer: knowledge.layer,
-          sources: recovery.entities.length > 0 ? ["TradeScout Database (community_posts)"] : [],
+          sources: [
+            ...(recovery.entities.some((entity) => entity.type === "community_post")
+              ? ["TradeScout Database (community_posts)"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "trade_deal")
+              ? ["TradeScout Database (promotions)"]
+              : []),
+          ],
           confidence: recovery.entities.length > 0 ? "medium" : "low",
         },
         llmProvider: "deterministic",

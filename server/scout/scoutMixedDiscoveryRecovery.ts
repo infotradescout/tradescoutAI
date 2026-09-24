@@ -1,4 +1,9 @@
 import { buildCommunityPostPath } from "../../shared/communityPostShare";
+import {
+  buildScoutDealPath,
+  isEligibleScoutDeal,
+  type ScoutDealCandidate,
+} from "./scoutDealDiscovery";
 
 type CountyPost = {
   id?: unknown;
@@ -17,6 +22,8 @@ export function buildScoutMixedDiscoveryRecovery(input: {
   countyFips?: string | null;
   countyLabel?: string;
   communityPosts?: CountyPost[];
+  deals?: ScoutDealCandidate[];
+  dealCheck?: "not_checked" | "checked" | "error";
   now?: Date;
 }) {
   if (!input.countyFips) {
@@ -36,7 +43,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     return Number.isFinite(created) && created >= weekStart && created <= now.getTime();
   });
 
-  const entities = recentPosts.slice(0, 3).map((post) => ({
+  const postEntities = recentPosts.slice(0, 3).map((post) => ({
     id: String(post.id),
     type: "community_post",
     name:
@@ -51,22 +58,62 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     ],
   }));
 
+  const dealEntities = (input.dealCheck === "checked" ? input.deals || [] : [])
+    .filter((deal) => isEligibleScoutDeal(deal, input.countyFips, now))
+    .slice(0, 3)
+    .flatMap((deal) => {
+      const url = buildScoutDealPath(deal.id, input.countyFips);
+      if (!url) return [];
+      return [
+        {
+          id: deal.id,
+          type: "trade_deal",
+          name: deal.title.replace(/\s+/g, " ").trim().slice(0, 110),
+          url,
+          match_reasons: [
+            "Posted TradeDeal; terms and availability are not independently verified",
+            deal.countyFips.length === 0 ? "Listed for all counties" : "Listed for your county",
+            ...(deal.endsAt ? [`Listed end date: ${deal.endsAt.toISOString().slice(0, 10)}`] : []),
+          ],
+        },
+      ];
+    });
+  const entities = [...postEntities, ...dealEntities];
+
   const area = displayArea(input.countyLabel);
-  const firstSentence = entities.length
-    ? `This Scout result includes ${entities.length} published county ${entities.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
+  const firstSentence = postEntities.length
+    ? `This Scout result includes ${postEntities.length} published county ${postEntities.length === 1 ? "post" : "posts"} from the last 7 days in ${area}.`
     : `This Scout result does not verify a county post from the last 7 days in ${area}.`;
+  const dealSentence =
+    input.dealCheck === "checked"
+      ? dealEntities.length
+        ? `It also found ${dealEntities.length} posted Scout ${dealEntities.length === 1 ? "TradeDeal" : "TradeDeals"} for ${area}. These are promotional listings; terms and availability are not independently verified.`
+        : `It checked Scout promotions for ${area}; no eligible TradeDeals were returned. Other deal sources were not checked.`
+      : input.dealCheck === "error"
+        ? "Scout promotions could not be checked right now."
+        : "It does not verify deals.";
 
   return {
-    message: `${firstSentence} It does not verify deals, businesses, pages, tools, or other requests. ${entities.length ? "Open the matching county post or browse Community or Businesses." : "Browse Community or Businesses to continue."} Nothing was sent.`,
+    message: `${firstSentence} ${dealSentence} Businesses, pages, tools, and other requests were not checked. Nothing was sent.`,
     entities,
     actions: [
-      ...(entities.length
+      ...(postEntities.length
         ? [
             {
               type: "NAVIGATE",
               label: "Open matching county post",
               to: entities[0].url,
               primary: true,
+            },
+          ]
+        : []),
+      ...(dealEntities.length
+        ? [
+            {
+              type: "NAVIGATE",
+              label: "Open posted TradeDeal",
+              to: dealEntities[0].url,
+              primary: postEntities.length === 0,
             },
           ]
         : []),

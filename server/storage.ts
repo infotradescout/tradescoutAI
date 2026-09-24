@@ -6463,6 +6463,7 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     type?: "trade_deal" | "sponsor" | "affiliate" | "announcement";
     exclusive?: boolean;
     placementCommunitySnapshot?: boolean;
+    placementScout?: boolean;
     activeAt?: Date;
     includeGlobalWhenCounty?: boolean;
     limit?: number;
@@ -6496,6 +6497,9 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       conditions.push(
         eq(promotions.placementCommunitySnapshot, filters.placementCommunitySnapshot)
       );
+    }
+    if (typeof filters?.placementScout === "boolean") {
+      conditions.push(eq(promotions.placementScout, filters.placementScout));
     }
     if (filters?.activeAt) {
       const at = filters.activeAt;
