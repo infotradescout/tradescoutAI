@@ -79,6 +79,7 @@ export default function FindLocalBusinessesPage() {
 
 /** Shared visible content for the app and the initial public HTML response. */
 export function FindLocalBusinessesContent() {
+  const generalRequestHref = "/direct-connect?source=public_discovery";
   const tangipahoaHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRequestHref;
   const tangipahoaCountyHref = LOCAL_BUSINESS_DISCOVERY.tangipahoaRecentHref;
   const topQueries = HOMEOWNER_POPULAR_QUERIES.slice(0, 18);
@@ -91,7 +92,7 @@ export function FindLocalBusinessesContent() {
         </h1>
         <p className="text-white/70 max-w-3xl">{LOCAL_BUSINESS_DISCOVERY.introduction}</p>
         <div className="flex flex-wrap gap-3">
-          <Link href={tangipahoaHref}>
+          <Link href={generalRequestHref}>
             <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
               Start a Request
             </Button>
