@@ -260,6 +260,7 @@ export default function ExchangeListingDetail() {
 
   const stoneInquiry = useExchangeStoneInquiry({
     listing,
+    selectedMarketSearch,
     actorId: user?.id ? String(user.id) : null,
     isAuthenticated,
     message: inquiryMessage,

@@ -21,6 +21,7 @@ type Listing = {
 };
 type Options = {
   listing?: Listing;
+  selectedMarketSearch: string | null;
   actorId: string | null;
   isAuthenticated: boolean;
   message: string;
@@ -30,7 +31,7 @@ type Options = {
 };
 
 export function useExchangeStoneInquiry(options: Options) {
-  const { listing, actorId, isAuthenticated, message, setMessage, setOpen, navigate } = options;
+  const { listing, selectedMarketSearch, actorId, isAuthenticated, message, setMessage, setOpen, navigate } = options;
   const [intent, setIntent] = useState<StoneInquiryIntent>("availability");
   const [warning, setWarning] = useState<string | null>(null);
   const [search, setSearch] = useState(() => typeof window === "undefined" ? "" : window.location.search);
@@ -104,14 +105,18 @@ export function useExchangeStoneInquiry(options: Options) {
   /** Explicit click only: no Decision Card or inquiry is sent while signing in. */
   function continueToSignIn() {
     if (!listing || !isRetail) return;
+    const path = stoneInquiryReturnPath(listing.id, intent, selectedMarketSearch);
+    if (!path) {
+      setWarning("Select an available stone area before signing in to send this request.");
+      return;
+    }
     let saved = false;
     try { saved = saveStoneInquiryDraft(window.sessionStorage, { listingId: listing.id, intent, message, actorId }); } catch { /* storage may be denied */ }
     if (!saved) {
       setWarning("Your browser could not preserve this message for sign-in. Keep this tab open and sign in in another tab, then return to send it.");
       return;
     }
-    const path = stoneInquiryReturnPath(listing.id, intent);
-    if (path) navigate(path);
+    navigate(path);
   }
 
   function finish(submittedListingId?: string) {
