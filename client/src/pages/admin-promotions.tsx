@@ -21,11 +21,13 @@ type Promotion = {
   ctaLabel?: string | null;
   ctaUrl?: string | null;
   type: "trade_deal" | "sponsor" | "affiliate" | "announcement";
+  tier: "free_directory" | "paid_campaign";
   exclusive: boolean;
   status: "draft" | "active" | "paused" | "ended";
   countyFips: string[];
   audienceScope?: "county" | "global";
   placementCommunitySnapshot: boolean;
+  placementScout?: boolean;
   createdAt: string;
 };
 
@@ -49,6 +51,7 @@ export default function AdminPromotionsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/promotions"] });
+      setDraftScoutPlacement(false);
       toast({ title: "Promotion created", description: "New promotion is now available." });
     },
     onError: (error: any) => {
@@ -84,6 +87,7 @@ export default function AdminPromotionsPage() {
   const [draftCtaLabel, setDraftCtaLabel] = useState("View TradeDeal");
   const [draftCtaUrl, setDraftCtaUrl] = useState("");
   const [draftSnapshot, setDraftSnapshot] = useState(true);
+  const [draftScoutPlacement, setDraftScoutPlacement] = useState(false);
 
   const handleCreateTradeDeal = () => {
     const countyList =
@@ -107,7 +111,7 @@ export default function AdminPromotionsPage() {
       ctaUrl: draftCtaUrl.trim(),
       placementCommunitySnapshot: draftSnapshot,
       placementCommunityFeed: false,
-      placementScout: false,
+      placementScout: draftScoutPlacement,
       placementMarketplace: false,
     } as any);
   };
@@ -121,8 +125,8 @@ export default function AdminPromotionsPage() {
             Promotions Manager
           </CardTitle>
           <CardDescription className="text-white/70">
-            Canonical promotions for TradeDeals, sponsors, and announcements. TradeDeals here feed
-            the Community Snapshot.
+            Canonical promotions for TradeDeals, sponsors, and announcements. Choose each paid
+            TradeDeal&apos;s Community Snapshot and Scout placements below.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -226,6 +230,21 @@ export default function AdminPromotionsPage() {
                       Eligible for Community Snapshot
                     </Label>
                   </div>
+                  <div className="space-y-1 mt-3">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="scout-placement"
+                        checked={draftScoutPlacement}
+                        onCheckedChange={(value) => setDraftScoutPlacement(value === true)}
+                      />
+                      <Label htmlFor="scout-placement">Place this paid TradeDeal in Scout</Label>
+                    </div>
+                    <p className="pl-6 text-xs text-white/60">
+                      Off by default. Creating this active paid TradeDeal with this choice selected
+                      makes it eligible for Scout in its counties, or everywhere when global. No
+                      message or contact is sent.
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     className="mt-4"
@@ -282,6 +301,11 @@ export default function AdminPromotionsPage() {
                               <CheckCircle2 className="w-3 h-3" /> Snapshot
                             </Badge>
                           )}
+                          {promo.placementScout && (
+                            <Badge className="bg-ts-orange/15 text-ts-orange border-ts-orange/40">
+                              Scout placement
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-white/70 max-w-xl">{promo.shortDescription}</p>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -319,7 +343,10 @@ export default function AdminPromotionsPage() {
                           onClick={() =>
                             updateMutation.mutate({
                               id: promo.id,
-                              data: { status: promo.status === "active" ? "paused" : "active" },
+                              data: {
+                                status: promo.status === "active" ? "paused" : "active",
+                                tier: promo.tier,
+                              },
                             })
                           }
                         >
