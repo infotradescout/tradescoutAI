@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import fs from "node:fs";
 import path from "node:path";
+import ScoutSearchDock from "./ScoutSearchDock";
 
 const read = (relativePath: string) => {
   const fullPath = path.resolve(process.cwd(), relativePath);
@@ -43,6 +46,34 @@ describe("Scout entry framing contracts", () => {
     expect(promptsSource).toContain("Build a realistic estimate");
     expect(promptsSource).toContain("Compare a quote");
     expect(promptsSource).toContain("Find the right professional");
+  });
+
+  it("keeps first-use guidance and gives the active phone dock one clear follow-up control", () => {
+    const renderDock = (hasMessages: boolean) =>
+      renderToStaticMarkup(
+        React.createElement(ScoutSearchDock, {
+          isMobile: true,
+          placement: hasMessages ? "fixed" : "inline",
+          isBusy: false,
+          prefillKey: 0,
+          hasMessages,
+          quickStartPrompts: [],
+          onSend: () => undefined,
+          onTyping: () => undefined,
+        })
+      );
+    const firstUse = renderDock(false);
+    const followUp = renderDock(true);
+
+    expect(firstUse).toContain(
+      'placeholder="Describe a project, permit question, estimate, or decision."'
+    );
+    expect(firstUse).toContain('aria-label="Start search"');
+    expect(followUp).toContain('placeholder="Ask a follow-up"');
+    expect(followUp).toContain('aria-label="Ask a follow-up question"');
+    expect(followUp).toContain('aria-label="Send follow-up"');
+    expect(followUp).not.toContain("Voice input");
+    expect(followUp).not.toContain("scout-command-bar__mic");
   });
 
   it("keeps the capability map in the full Scout experience while home stays compact", () => {
@@ -431,7 +462,7 @@ describe("Scout entry framing contracts", () => {
       /\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*92px;[^}]*--scout-search-dock-h:\s*var\(--scout-search-dock-min-h\);/s
     );
     expect(cssSource).toMatch(
-      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*96px;/s
+      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*76px;/s
     );
     expect(cssSource).toMatch(
       /\.scout-search-dock-fixed\s*\{[^}]*bottom:\s*var\(--bottom-nav-h, 62px\);[^}]*min-height:\s*var\(--scout-search-dock-min-h, 92px\);/s
