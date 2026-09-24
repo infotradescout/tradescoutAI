@@ -204,13 +204,6 @@ body.ts-mobile-simplified .app-page [role="button"] {
   border-radius: 0.75rem;
 }
 
-body.ts-mobile-simplified .app-page button[class*="border"],
-body.ts-mobile-simplified .app-page .button[class*="border"],
-body.ts-mobile-simplified .app-page [role="button"][class*="border"] {
-  border-color: color-mix(in oklab, var(--border-primary) 85%, transparent) !important;
-  background-color: color-mix(in oklab, var(--surface-intermediate) 86%, transparent);
-}
-
 body.ts-mobile-simplified .app-page [data-state="active"],
 body.ts-mobile-simplified .app-page [aria-current="page"],
 body.ts-mobile-simplified .app-page [aria-selected="true"] {
