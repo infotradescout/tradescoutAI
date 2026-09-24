@@ -121,13 +121,19 @@ function withRequestQuery(url: string, request: "stone" | "collection"): string 
 }
 
 function customDomainItemTitle(itemName: string, category: string | null): string {
-  const material = category ? ` ${category}` : " Natural Stone";
+  const material = category ? itemMaterialSuffix(itemName, category) : " Natural Stone";
   return `${itemName}${material} Slabs | JW Stone Pensacola`;
 }
 
 function customDomainItemDescription(itemName: string, category: string | null): string {
-  const material = category ? ` ${category}` : "";
+  const material = itemMaterialSuffix(itemName, category);
   return `View ${itemName}${material} slab photos from JW Stone Logistics in Pensacola, Florida. Ask whether it is currently available.`;
+}
+
+function itemMaterialSuffix(itemName: string, category: string | null): string {
+  return category && !itemName.toLowerCase().endsWith(category.toLowerCase())
+    ? ` ${category}`
+    : "";
 }
 
 function customDomainCategoryTitle(categoryName: string): string {
@@ -285,7 +291,7 @@ export function buildPublicJwStoneMarketplaceHtml(
     itemShare && itemShare.hasPublicName
       ? "View " +
         itemShare.itemName +
-        (itemShare.category ? " " + itemShare.category : "") +
+        itemMaterialSuffix(itemShare.itemName, itemShare.category) +
         " slab photos from JW Stone Logistics in Pensacola, Florida."
       : categoryShare
         ? "Browse " +

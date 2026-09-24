@@ -27,15 +27,14 @@ function buildPublicStoneSummary(args: {
   name: string;
   category: string;
   photoCount: number;
-  finishes: readonly string[];
 }): string {
-  const photoLabel = args.photoCount === 1 ? "material photo" : "material photos";
-  const categoryDetail =
-    args.category === "Trending at JW Stone" ? "" : `, a ${args.category} material`;
-  const finishDetail = args.finishes.length
-    ? ` Confirmed finish details: ${args.finishes.join(" / ")}.`
-    : "";
-  return `Explore ${args.name}${categoryDetail}, part of JW Stone's material library in Pensacola, Florida. Review ${args.photoCount} ${photoLabel}.${finishDetail} Ask JW Stone to confirm current pricing and availability for your project.`;
+  const categorySuffix =
+    args.category === "Trending at JW Stone" ||
+    args.name.toLowerCase().endsWith(args.category.toLowerCase())
+      ? ""
+      : ` ${args.category}`;
+  const photoLabel = args.photoCount === 1 ? "photo" : "photos";
+  return `${args.name}${categorySuffix}: ${args.photoCount} ${photoLabel}, part of JW Stone's material library. Ask JW Stone to confirm current pricing and availability.`;
 }
 
 export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGORIES.map(
@@ -68,7 +67,6 @@ export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGO
                   name: stone.displayName,
                   category: category.category,
                   photoCount: stone.images.length,
-                  finishes: stone.finishStatus === "explicit" ? stone.finishes || [] : [],
                 }),
               publicKind: "offering" as const,
             }
