@@ -10,7 +10,10 @@ import {
   listProfileInventoryItems,
 } from "@shared/profileItemShare";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../client/src/data/jwStoneProfilePresentation";
-import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "./jwStoneCanonicalInventory";
+import {
+  JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+  jwStonePublicSummariesForSlug,
+} from "./jwStoneCanonicalInventory";
 
 export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/jw-stone";
 /** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
@@ -131,9 +134,7 @@ function customDomainItemDescription(itemName: string, category: string | null):
 }
 
 function itemMaterialSuffix(itemName: string, category: string | null): string {
-  return category && !itemName.toLowerCase().endsWith(category.toLowerCase())
-    ? ` ${category}`
-    : "";
+  return category && !itemName.toLowerCase().endsWith(category.toLowerCase()) ? ` ${category}` : "";
 }
 
 function customDomainCategoryTitle(categoryName: string): string {
@@ -264,6 +265,9 @@ export function buildPublicJwStoneMarketplaceHtml(
       ? Boolean(categoryShare?.indexable)
       : true;
 
+  const itemSummaries = itemShare?.hasPublicName
+    ? jwStonePublicSummariesForSlug(itemShare.itemSlug)
+    : null;
   const resolvedTitle = itemShare
     ? opts.marketplaceDomainSurface && itemShare.hasPublicName && !itemShare.countryOfOrigin
       ? customDomainItemTitle(itemShare.itemName, itemShare.category)
@@ -278,7 +282,7 @@ export function buildPublicJwStoneMarketplaceHtml(
   const resolvedDescription = itemShare
     ? opts.marketplaceDomainSurface && itemShare.hasPublicName && !itemShare.countryOfOrigin
       ? customDomainItemDescription(itemShare.itemName, itemShare.category)
-      : itemShare.description
+      : itemSummaries?.seo || itemShare.description
     : categoryShare
       ? opts.marketplaceDomainSurface && categoryShare.categorySlug !== "onyx"
         ? customDomainCategoryDescription(categoryShare.categoryName)
@@ -303,6 +307,7 @@ export function buildPublicJwStoneMarketplaceHtml(
 
   const title = escapeHtml(resolvedTitle);
   const description = escapeHtml(resolvedDescription);
+  const itemBodyDescription = escapeHtml(itemSummaries?.detail || resolvedDescription);
   const canonicalValue =
     itemShare && !indexable
       ? collectionUrl
@@ -331,7 +336,7 @@ export function buildPublicJwStoneMarketplaceHtml(
   <article>
     <p><img src="${escapeHtml(itemShare.imageUrl)}" alt="${imageAlt}" width="640" height="480" /></p>
     <h1>${escapeHtml(itemShare.hasPublicName ? itemShare.itemName : "Stone selection")}</h1>
-    <p>${description}</p>
+    <p>${itemBodyDescription}</p>
     ${itemShare.category ? `<p><strong>Material collection:</strong> ${escapeHtml(itemShare.category)}</p>` : ""}
     ${
       itemShare.hasPublicName

@@ -161,7 +161,9 @@ describe("public profile item HTML", () => {
     expect(html).toContain('property="og:image:height" content="630"');
     expect(html).not.toContain(`property="og:image" content="${sourceImageUrl}"`);
     expect(html).toContain('data-seo-profile-item="inventory"');
+    expect(html).toContain("Confirmed finish details: Polished.");
     expect(html).toContain('"@type":"Product"');
+    expect(html).toMatch(/"description":"[^"]*Confirmed finish details: Polished\./);
     expect(html).toContain(`"image":["${sourceImageUrl}"]`);
     expect(html).toContain(`<img src="${sourceImageUrl}"`);
     expect(html).toContain('"brand":{"@id":"https://jwstonelogistics.com/#identity"}');
@@ -186,9 +188,9 @@ describe("public profile item HTML", () => {
     expect(description).not.toContain("…");
   });
 
-  it("keeps every named JW stone summary complete within the crawler description limit", () => {
+  it("keeps every named JW crawler summary complete while preserving sourced product detail", () => {
     const summaries = JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap((category) =>
-      category.stones.flatMap((stone) => (stone.publicSummary ? [stone.publicSummary] : []))
+      category.stones.flatMap((stone) => (stone.seoSummary ? [stone.seoSummary] : []))
     );
 
     expect(summaries.length).toBeGreaterThan(100);
@@ -196,6 +198,11 @@ describe("public profile item HTML", () => {
       expect(summary.length).toBeLessThanOrEqual(160);
       expect(summary).not.toContain("…");
     }
+    const blueDunes = JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap(
+      (category) => category.stones
+    ).find((stone) => stone.slug === "blue-dunes");
+    expect(blueDunes?.publicSummary).toContain("Confirmed finish details: Polished.");
+    expect(blueDunes?.seoSummary).not.toContain("Confirmed finish details");
   });
 
   it("renders ISSA Build materials as permanent offerings with owned search language", async () => {

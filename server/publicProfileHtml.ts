@@ -4,6 +4,7 @@ import {
   inventoryCategoriesForProfile,
   resolveProfileItemShareMetadata,
 } from "./profileItemShareMetadata";
+import { jwStonePublicSummariesForSlug } from "./jwStoneCanonicalInventory";
 import {
   createProfileGalleryItemShareMetadata,
   listProfileGalleryItems,
@@ -592,7 +593,8 @@ function withProfileItemJsonLd(
   baseJsonLd: Record<string, any>,
   itemShare: PublicProfileItemShareMetadata | null,
   profileUrl: string,
-  isBusinessProfile: boolean
+  isBusinessProfile: boolean,
+  profileSlug: string
 ) {
   if (!itemShare) return baseJsonLd;
   if (itemShare.itemType === "inventory" && !itemShare.hasPublicName) return baseJsonLd;
@@ -607,7 +609,12 @@ function withProfileItemJsonLd(
           "@type": "Product",
           "@id": `${itemShare.canonical}#product`,
           name: cleanPublicProfileText(itemShare.itemName, 200),
-          description: cleanPublicProfileText(itemShare.description, 500),
+          description: cleanPublicProfileText(
+            profileSlug === JW_STONE_PROFILE_SLUG
+              ? jwStonePublicSummariesForSlug(itemShare.itemSlug)?.detail || itemShare.description
+              : itemShare.description,
+            500
+          ),
           image: [itemShare.imageUrl],
           category: cleanPublicProfileText(itemShare.category, 120) || undefined,
           ...(itemShare.countryOfOrigin
@@ -810,7 +817,7 @@ function buildJsonLd(
         };
     return withProfilePublishingProvenance(
       withProfileCategoryJsonLd(
-        withProfileItemJsonLd(baseJsonLd, itemShare, profileUrl, true),
+        withProfileItemJsonLd(baseJsonLd, itemShare, profileUrl, true, profile.profile.slug),
         categoryShare,
         profileUrl,
         profile.profile.slug,
@@ -837,7 +844,8 @@ function buildJsonLd(
         },
         itemShare,
         profileUrl,
-        false
+        false,
+        profile.profile.slug
       ),
       categoryShare,
       profileUrl,
@@ -893,6 +901,10 @@ function buildMeta(
         : undefined,
   });
   const publicBrandName = presentation.brandName;
+  const jwStoneItemSummaries =
+    profile.profile.slug === JW_STONE_PROFILE_SLUG && itemShare?.itemType === "inventory"
+      ? jwStonePublicSummariesForSlug(itemShare.itemSlug)
+      : null;
   const socialTitle =
     cleanPublicProfileText(pageMetadata?.socialTitle, 240) ||
     (itemShare?.itemType === "inventory" && itemShare.countryOfOrigin
@@ -904,7 +916,8 @@ function buildMeta(
           category: itemShare?.itemType === "inventory" ? itemShare.category : null,
         }));
   const fallbackDescription = cleanPublicProfileText(
-    itemShare?.description ||
+    jwStoneItemSummaries?.seo ||
+      itemShare?.description ||
       categoryShare?.description ||
       pageMetadata?.description ||
       profile.profile.seoMeta?.description ||
@@ -1427,6 +1440,10 @@ export async function buildPublicProfileHtml({
     .filter(Boolean)
     .join("");
   const servicesSummary = cleanPublicProfileText(profileRecord.servicesDescription, 1000);
+  const itemBodyDescription =
+    profileRecord.slug === JW_STONE_PROFILE_SLUG && itemShare?.itemType === "inventory"
+      ? jwStonePublicSummariesForSlug(itemShare.itemSlug)?.detail || itemShare.description
+      : itemShare?.description;
   const profileHomeLink =
     itemShare || pageCategoryShare
       ? `<p><a data-seo-profile-home="true" href="${escapeHtml(profileUrl)}">Back to ${escapeHtml(displayName)}</a></p>`
@@ -1444,7 +1461,7 @@ export async function buildPublicProfileHtml({
             )}</h2>`
       }
       <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(itemShare.imageAlt, 240))}" />
-      <p>${escapeHtml(cleanPublicProfileText(itemShare.description, 500))}</p>
+      <p>${escapeHtml(cleanPublicProfileText(itemBodyDescription, 500))}</p>
       ${itemShare.itemType === "inventory" && itemShare.countryOfOrigin ? `<p>Country of origin: ${escapeHtml(itemShare.countryOfOrigin)}</p>` : ""}
       ${itemShare.itemType === "inventory" && itemShare.thicknessCm ? `<p>Thickness: ${itemShare.thicknessCm} cm</p>` : ""}
     </section>`

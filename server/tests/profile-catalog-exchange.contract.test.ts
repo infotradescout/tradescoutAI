@@ -228,6 +228,12 @@ describe("profile inventory Exchange discovery", () => {
       expect(item.publicProfilePath).toBe(`/u/jw-stone/stones/${original.slug}`);
     }
     expect(items.some((item) => /Trending Selection \d/.test(item.title))).toBe(false);
+    expect(items.find((item) => item.profileItemSlug === "blue-dunes")?.description).toContain(
+      "Confirmed finish details: Polished."
+    );
+    expect(items.find((item) => item.profileItemSlug === "fantasy-black")?.description).toContain(
+      "Confirmed finish details: Leathered / Polished."
+    );
   });
 
   it("keeps malformed, duplicate and nonaddressable items out; honors current lead images", () => {

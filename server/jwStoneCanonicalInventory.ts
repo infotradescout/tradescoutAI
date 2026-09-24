@@ -18,12 +18,13 @@ type JwStoneShareStone = {
   images: string[];
   shareImageOrder?: number[];
   publicSummary?: string;
+  seoSummary?: string;
   publicKind?: "offering";
   countryOfOrigin?: string;
   thicknessCm?: number;
 };
 
-function buildPublicStoneSummary(args: {
+function buildStoneSeoSummary(args: {
   name: string;
   category: string;
   photoCount: number;
@@ -35,6 +36,24 @@ function buildPublicStoneSummary(args: {
       : ` ${args.category}`;
   const photoLabel = args.photoCount === 1 ? "photo" : "photos";
   return `${args.name}${categorySuffix}: ${args.photoCount} ${photoLabel}, part of JW Stone's material library. Ask JW Stone to confirm current pricing and availability.`;
+}
+
+function buildPublicStoneSummary(args: {
+  name: string;
+  category: string;
+  photoCount: number;
+  finishes: readonly string[];
+}): string {
+  const photoLabel = args.photoCount === 1 ? "material photo" : "material photos";
+  const categoryDetail =
+    args.category === "Trending at JW Stone" ||
+    args.name.toLowerCase().endsWith(args.category.toLowerCase())
+      ? ""
+      : `, a ${args.category} material`;
+  const finishDetail = args.finishes.length
+    ? ` Confirmed finish details: ${args.finishes.join(" / ")}.`
+    : "";
+  return `Explore ${args.name}${categoryDetail}, part of JW Stone's material library in Pensacola, Florida. Review ${args.photoCount} ${photoLabel}.${finishDetail} Ask JW Stone to confirm current pricing and availability for your project.`;
 }
 
 export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGORIES.map(
@@ -67,6 +86,16 @@ export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGO
                   name: stone.displayName,
                   category: category.category,
                   photoCount: stone.images.length,
+                  finishes: stone.finishStatus === "explicit" ? stone.finishes || [] : [],
+                }),
+              seoSummary:
+                (stone.slug in JW_STONE_ONYX_ORIGINS
+                  ? `${IRANIAN_ONYX_STOCK.specification} `
+                  : "") +
+                buildStoneSeoSummary({
+                  name: stone.displayName,
+                  category: category.category,
+                  photoCount: stone.images.length,
                 }),
               publicKind: "offering" as const,
             }
@@ -75,6 +104,22 @@ export const JW_STONE_CANONICAL_INVENTORY_CATEGORIES = JW_STONE_INVENTORY_CATEGO
     ),
   })
 );
+
+const jwStoneSummaryBySlug = new Map(
+  JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap((category) =>
+    category.stones.flatMap((stone) => {
+      const detail = stone.publicSummary;
+      const seo = stone.seoSummary;
+      return detail && seo ? [[stone.slug, { detail, seo }] as const] : [];
+    })
+  )
+);
+
+export function jwStonePublicSummariesForSlug(
+  slug: string
+): { detail: string; seo: string } | null {
+  return jwStoneSummaryBySlug.get(slug) || null;
+}
 
 export const JW_STONE_CANONICAL_INVENTORY_SUMMARY = Object.freeze({
   stoneCount: JW_STONE_INVENTORY_SUMMARY.stoneCount,

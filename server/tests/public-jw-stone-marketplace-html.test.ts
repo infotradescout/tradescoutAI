@@ -82,6 +82,17 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain("View Marina Black Soapstone slab photos");
     expect(html).not.toContain("Soapstone Soapstone");
   });
+  it("keeps confirmed finishes in the body while serving concise crawler metadata", () => {
+    const html = buildPublicJwStoneMarketplaceHtml({
+      templateHtml,
+      marketplaceDomainSurface: true,
+      origin: "https://jwstonelogistics.com",
+      stoneSlug: "blue-dunes",
+    });
+    expect(html).toContain("Confirmed finish details: Polished.");
+    expect(html).toContain("Blue Dunes Granite Slabs | JW Stone Pensacola");
+    expect(html).not.toContain('name="description" content="Explore Blue Dunes');
+  });
   it("uses one stable canonical URL and the real JW Stone share image", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 
