@@ -1,4 +1,4 @@
-import { selectedStoneAudienceSearch } from "@shared/exchangeStoneBuyerFlow";
+import { selectedStoneAudienceSearch, stoneInquiryPath, type StoneInquiryIntent } from "@shared/exchangeStoneBuyerFlow";
 export { selectedStoneAudienceSearch } from "@shared/exchangeStoneBuyerFlow";
 
 const STONE_ID_PREFIX = "tradescout-stone-";
@@ -15,6 +15,15 @@ export function verifiedStoneDetailPath(path: unknown, stoneId: string): string 
   if (url.pathname !== `/exchange/building-materials/${encodeURIComponent(stoneId)}`) return null;
   const search = selectedStoneAudienceSearch(url.search);
   return search ? `${url.pathname}${search}` : null;
+}
+
+/** Keep the selected market when a listing card opens its protected inquiry. */
+export function verifiedStoneInquiryPath(path: unknown, stoneId: string, intent: StoneInquiryIntent): string | null {
+  const detail = verifiedStoneDetailPath(path, stoneId);
+  if (!detail || !stoneInquiryPath(stoneId, intent)) return null;
+  const url = new URL(detail, "https://www.thetradescout.com");
+  url.searchParams.set("inquiry", intent);
+  return `${url.pathname}${url.search}`;
 }
 
 /** Stone media needs the same selected market as the approved detail link. */
