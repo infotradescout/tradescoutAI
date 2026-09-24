@@ -73,6 +73,7 @@ import { stageDirectConnectEntryContext } from "@/pages/direct-connect/stagedDir
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
 import { ScoutTaskControls } from "./ScoutTaskControls";
+import { deleteSavedTask, mergeSavedTasks } from "@shared/scoutSavedTaskPersistence";
 import { canOpenScoutWorkArea } from "./scoutWorkAreas";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { inferContextRoles } from "./contextRoles";
@@ -1348,14 +1349,16 @@ function readSavedScoutThreads(userId?: string | null): SavedScoutThread[] {
 }
 
 function writeSavedScoutThreads(userId: string | null | undefined, threads: SavedScoutThread[]) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") return false;
   try {
     window.localStorage.setItem(
       savedScoutThreadsKey(userId),
       JSON.stringify(threads.slice(0, SCOUT_SAVED_THREADS_LIMIT))
     );
+    return true;
   } catch {
     // Local saves are a convenience layer; failing here should not block Scout.
+    return false;
   }
 }
 
@@ -1376,29 +1379,12 @@ function upsertSavedScoutThread(
   return nextThread;
 }
 
-function removeSavedScoutThread(
-  userId: string | null | undefined,
-  threadId: string
-): SavedScoutThread[] {
-  const next = readSavedScoutThreads(userId).filter((thread) => thread.id !== threadId);
-  writeSavedScoutThreads(userId, next);
-  return next;
-}
-
 function mergeSavedScoutThreads(
   primary: SavedScoutThread[],
-  secondary: SavedScoutThread[]
+  secondary: SavedScoutThread[],
+  excludedIds?: ReadonlySet<string>
 ): SavedScoutThread[] {
-  const seen = new Set<string>();
-  const merged: SavedScoutThread[] = [];
-  for (const thread of [...primary, ...secondary]) {
-    if (seen.has(thread.id)) continue;
-    seen.add(thread.id);
-    merged.push(thread);
-  }
-  return merged
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, SCOUT_SAVED_THREADS_LIMIT);
+  return mergeSavedTasks(primary, secondary, SCOUT_SAVED_THREADS_LIMIT, excludedIds);
 }
 
 function normalizeForMatch(input: string): string {
@@ -1760,6 +1746,9 @@ export default function ScoutOS() {
   } | null>(null);
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
+  const deletingSavedThreadIdsRef = useRef(new Set<string>());
+  const deletedSavedThreadIdsRef = useRef(new Set<string>());
+  const pendingSavedThreadWritesRef = useRef(new Map<string, Set<Promise<void>>>());
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
   const [savedScoutSurfaceFilter, setSavedScoutSurfaceFilter] =
     useState<SavedScoutSurfaceFilter>("all");
@@ -1924,7 +1913,11 @@ export default function ScoutOS() {
   useEffect(() => {
     let cancelled = false;
     const localThreads = readSavedScoutThreads(scoutSaveUserId);
-    const merged = mergeSavedScoutThreads(localThreads, remoteSavedScoutThreads);
+    const merged = mergeSavedScoutThreads(
+      localThreads,
+      remoteSavedScoutThreads,
+      deletedSavedThreadIdsRef.current
+    );
     writeSavedScoutThreads(scoutSaveUserId, merged);
     setSavedScoutThreads(merged);
 
@@ -1941,7 +1934,11 @@ export default function ScoutOS() {
       .then((data) => {
         if (cancelled || !data) return;
         const serverThreads = normalizeSavedScoutThreads(data.conversations);
-        const next = mergeSavedScoutThreads(serverThreads, readSavedScoutThreads(scoutSaveUserId));
+        const next = mergeSavedScoutThreads(
+          serverThreads,
+          readSavedScoutThreads(scoutSaveUserId),
+          deletedSavedThreadIdsRef.current
+        );
         writeSavedScoutThreads(scoutSaveUserId, next);
         setSavedScoutThreads(next);
       })
@@ -1972,7 +1969,8 @@ export default function ScoutOS() {
           const serverThreads = normalizeSavedScoutThreads(data.conversations);
           const next = mergeSavedScoutThreads(
             serverThreads,
-            readSavedScoutThreads(scoutSaveUserId)
+            readSavedScoutThreads(scoutSaveUserId),
+            deletedSavedThreadIdsRef.current
           );
           writeSavedScoutThreads(scoutSaveUserId, next);
           setSavedScoutThreads(next);
@@ -1987,45 +1985,61 @@ export default function ScoutOS() {
   }, [savedScoutSearch, savedScoutSurfaceFilter, scoutSaveUserId, user]);
 
   const persistSavedScoutThreadRemote = useCallback(
-    async (thread: SavedScoutThread) => {
-      if (!user) return;
-      try {
-        const response = await fetch("/api/scout/conversations", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: thread.id,
-            title: thread.title,
-            preview: thread.preview,
-            summary: thread.summary,
-            intent: thread.intent,
-            countyFips: thread.countyFips || locationCtx.countyFips || undefined,
-            stateCode: thread.stateCode || locationCtx.stateCode || undefined,
-            messageCount: thread.messageCount,
-            messages: thread.messages,
-            metadata: {
-              source: "scout_os",
-              relatedLabel: thread.relatedLabel,
-              relatedPath: thread.relatedPath,
-              relatedTo: thread.relatedTo,
-              searchText: thread.searchText,
-            },
-          }),
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        const saved = normalizeSavedScoutThreads([data?.conversation])[0];
-        if (!saved) return;
-        const next = mergeSavedScoutThreads([saved], readSavedScoutThreads(scoutSaveUserId));
-        writeSavedScoutThreads(scoutSaveUserId, next);
-        setSavedScoutThreads(next);
-        setActiveSavedThreadId((current) => (current === thread.id ? saved.id : current));
-      } catch {
-        // Remote saves are best-effort; the local saved thread remains available.
+    (thread: SavedScoutThread) => {
+      if (!scoutSaveUserId || deletingSavedThreadIdsRef.current.has(thread.id) || deletedSavedThreadIdsRef.current.has(thread.id)) {
+        return Promise.resolve();
       }
+      const operation = (async () => {
+        try {
+          const response = await fetch("/api/scout/conversations", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: thread.id,
+              title: thread.title,
+              preview: thread.preview,
+              summary: thread.summary,
+              intent: thread.intent,
+              countyFips: thread.countyFips || locationCtx.countyFips || undefined,
+              stateCode: thread.stateCode || locationCtx.stateCode || undefined,
+              messageCount: thread.messageCount,
+              messages: thread.messages,
+              metadata: {
+                source: "scout_os",
+                relatedLabel: thread.relatedLabel,
+                relatedPath: thread.relatedPath,
+                relatedTo: thread.relatedTo,
+                searchText: thread.searchText,
+              },
+            }),
+          });
+          if (!response.ok) return;
+          const data = await response.json();
+          const saved = normalizeSavedScoutThreads([data?.conversation])[0];
+          if (!saved) return;
+          const next = mergeSavedScoutThreads(
+            [saved],
+            readSavedScoutThreads(scoutSaveUserId),
+            deletedSavedThreadIdsRef.current
+          );
+          writeSavedScoutThreads(scoutSaveUserId, next);
+          setSavedScoutThreads(next);
+          setActiveSavedThreadId((current) => (current === thread.id ? saved.id : current));
+        } catch {
+          // Remote saves are best-effort; the local saved thread remains available.
+        }
+      })();
+      const pending = pendingSavedThreadWritesRef.current.get(thread.id) || new Set<Promise<void>>();
+      pending.add(operation);
+      pendingSavedThreadWritesRef.current.set(thread.id, pending);
+      void operation.finally(() => {
+        pending.delete(operation);
+        if (pending.size === 0) pendingSavedThreadWritesRef.current.delete(thread.id);
+      });
+      return operation;
     },
-    [locationCtx.countyFips, locationCtx.stateCode, scoutSaveUserId, user]
+    [locationCtx.countyFips, locationCtx.stateCode, scoutSaveUserId]
   );
 
   useEffect(() => {
@@ -2038,6 +2052,11 @@ export default function ScoutOS() {
     if (!hasUserThread) return;
 
     const timer = window.setTimeout(() => {
+      if (
+        activeSavedThreadId &&
+        (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
+          deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
+      ) return;
       const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
         countyFips: locationCtx.countyFips,
         stateCode: locationCtx.stateCode,
@@ -2245,6 +2264,11 @@ export default function ScoutOS() {
   }, [cancelAutoRoute, reset]);
 
   const handleSaveScoutThreadNow = useCallback(() => {
+    if (
+      activeSavedThreadId &&
+      (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
+        deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
+    ) return;
     const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
       countyFips: locationCtx.countyFips,
       stateCode: locationCtx.stateCode,
@@ -2263,22 +2287,39 @@ export default function ScoutOS() {
   ]);
 
   const handleDeleteSavedThread = useCallback(
-    (threadId: string) => {
-      const next = removeSavedScoutThread(scoutSaveUserId, threadId);
-      setSavedScoutThreads(next);
-
-      if (activeSavedThreadId === threadId) {
-        handleStartNewScoutThread();
-      }
-
-      if (user) {
-        void fetch(`/api/scout/conversations/${encodeURIComponent(threadId)}`, {
-          method: "DELETE",
-          credentials: "include",
-        }).catch(() => undefined);
+    async (threadId: string) => {
+      if (deletingSavedThreadIdsRef.current.has(threadId)) return;
+      deletingSavedThreadIdsRef.current.add(threadId);
+      try {
+        const next = await deleteSavedTask({
+          taskId: threadId,
+          waitForSaves: async () => {
+            await Promise.all(Array.from(pendingSavedThreadWritesRef.current.get(threadId) ?? []));
+          },
+          deleteRemote: scoutSaveUserId
+            ? () => fetch(`/api/scout/conversations/${encodeURIComponent(threadId)}`, {
+                method: "DELETE",
+                credentials: "include",
+              })
+            : undefined,
+          onRemoteDeleted: () => deletedSavedThreadIdsRef.current.add(threadId),
+          readLocal: () => readSavedScoutThreads(scoutSaveUserId),
+          writeLocal: (threads) => writeSavedScoutThreads(scoutSaveUserId, threads),
+        });
+        deletedSavedThreadIdsRef.current.add(threadId);
+        setSavedScoutThreads(next);
+        if (activeSavedThreadId === threadId) handleStartNewScoutThread();
+      } catch {
+        toast({
+          title: "Saved task wasn't deleted",
+          description: "The task is still available. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        deletingSavedThreadIdsRef.current.delete(threadId);
       }
     },
-    [activeSavedThreadId, handleStartNewScoutThread, scoutSaveUserId, user]
+    [activeSavedThreadId, handleStartNewScoutThread, scoutSaveUserId, toast]
   );
 
   // First-time guest state: controls the calm intro + auto-demo gating.

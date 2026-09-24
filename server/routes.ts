@@ -110,6 +110,7 @@ import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/rol
 import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
+import { withoutSavedTaskPreference } from "@shared/scoutSavedTaskPersistence";
 import {
   getExchangeCategorySlugFromMarketplaceCategoryName,
   validateExchangeCategoryListing,
@@ -7056,6 +7057,14 @@ export async function registerRoutes(app: any) {
         await db
           .delete(scoutConversations)
           .where(and(eq(scoutConversations.id, id), eq(scoutConversations.userId, userId)));
+
+        // Older Scout saves can also live in profile preferences. Clear that
+        // copy so a successful DELETE cannot be undone by the next client load.
+        const currentUser = await storage.getUser(userId);
+        const preferences = withoutSavedTaskPreference((currentUser as any)?.preferences, id);
+        if (preferences) {
+          await storage.updateUser(userId, { preferences, updatedAt: new Date() });
+        }
 
         res.json({ ok: true });
       } catch (error: any) {
