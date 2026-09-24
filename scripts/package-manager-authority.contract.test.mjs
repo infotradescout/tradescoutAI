@@ -13,12 +13,12 @@ const forbiddenManager = /(?:^|[\s"'`])(?:pnpm|yarn)(?:\s|$)/m;
 
 function authorityScanContent(relative, content) {
   if (relative !== infinityReuseProof) return content;
-  const proof = JSON.parse(content);
-  // This one field records how Infinity's source was installed, not TradeScout guidance.
-  if (proof?.checks?.sourceRepository?.install === historicalInfinityInstall) {
-    proof.checks.sourceRepository.install = "[historical source installation]";
-  }
-  return JSON.stringify(proof);
+  // Scan the original bytes, including duplicate JSON keys. Mask only the one flat
+  // sourceRepository install field that records Infinity's historical setup.
+  const historicalField = /("sourceRepository"\s*:\s*\{[^{}]*"install"\s*:\s*")corepack pnpm install --frozen-lockfile(")/g;
+  const matches = [...content.matchAll(historicalField)];
+  if (matches.length !== 1) return content;
+  return content.replace(historicalField, "$1[historical source installation]$2");
 }
 
 function trackedFiles() {
@@ -40,15 +40,19 @@ test("npm and package-lock are the only package-manager authority", () => {
 });
 
 test("Infinity's recorded source install does not exempt other package-manager guidance", () => {
-  const proof = JSON.parse(fs.readFileSync(path.join(root, infinityReuseProof), "utf8"));
+  const raw = fs.readFileSync(path.join(root, infinityReuseProof), "utf8");
+  const proof = JSON.parse(raw);
   assert.equal(proof.checks.sourceRepository.install, historicalInfinityInstall);
-  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, JSON.stringify(proof))), false);
+  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, raw)), false);
 
-  proof.checks.sourceRepository.install = "corepack yarn install";
-  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, JSON.stringify(proof))), true);
-  proof.checks.sourceRepository.install = historicalInfinityInstall;
-  proof.consumerInstructions = "Use pnpm install";
-  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, JSON.stringify(proof))), true);
+  const alteredInstall = raw.replace(historicalInfinityInstall, "corepack yarn install");
+  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, alteredInstall)), true);
+  const duplicateGuidance = raw.replace(
+    '"sourceRepository": {',
+    '"consumerInstructions": "Use pnpm install", "consumerInstructions": "Use npm", "sourceRepository": {'
+  );
+  assert.notEqual(duplicateGuidance, raw);
+  assert.equal(forbiddenManager.test(authorityScanContent(infinityReuseProof, duplicateGuidance)), true);
 });
 
 test("tracked commands and guidance do not reintroduce pnpm or yarn", () => {
