@@ -23,6 +23,8 @@ import {
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "@shared/profileOfferShare";
 import { sanitizePublicListingText } from "@shared/publicListingSafety";
+import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
 import { pool } from "./db";
 import { storage } from "./storage";
 import { hasExposureAuthority } from "./services/exposureAuthority";
@@ -68,6 +70,24 @@ function formatPrice(price: number | string | null | undefined, currency: string
       maximumFractionDigits: 0,
     }).format(n);
   }
+}
+
+function stonePriceSummary(listing: any): string | null {
+  if (!isStoneRetailListing(listing)) return null;
+  const specs = asRecord(listing.specifications);
+  const slabPrice = stoneSlabMaterialPrice(
+    listing.price,
+    specs.priceUnit,
+    specs.referenceSizesInches,
+    specs.exactSlab
+  );
+  if (!slabPrice) return "Confirm slab material price.";
+  if (slabPrice.kind === "size_required") {
+    return `${slabPrice.primaryLabel}. Published material rate: ${slabPrice.primaryPrice}.`;
+  }
+  return `${slabPrice.primaryLabel}: ${slabPrice.primaryPrice}${
+    slabPrice.secondaryPrice ? `; material rate ${slabPrice.secondaryPrice}` : ""
+  }.`;
 }
 
 const PROFILE_OFFER_EXCHANGE_ID_PREFIX = "profile-offer-";
@@ -408,6 +428,10 @@ function resolveShippingDetails(
 }
 
 export function buildExchangeOfferJsonLd(listing: any, listingUrl: string) {
+  // A reference-size estimate or a square-foot rate is not a fixed slab offer.
+  // Even an identified stone slab still needs availability confirmed, so no
+  // generic InStock Offer should be published for this managed-request flow.
+  if (isStoneRetailListing(listing)) return null;
   const price = Number(listing?.price);
   if (!Number.isFinite(price) || price <= 0) return null;
 
@@ -553,7 +577,12 @@ export function buildProductJsonLd(
     "@context": "https://schema.org",
     "@type": "Product",
     name: listing.title,
-    description: String(listing.description || "").slice(0, 500),
+    description: isStoneRetailListing(listing)
+      ? sanitizePublicListingText(
+          `${stonePriceSummary(listing)} ${String(listing.description || "")}`,
+          500
+        )
+      : String(listing.description || "").slice(0, 500),
     url: listingUrl,
     image: imageUrl,
   };
@@ -643,9 +672,18 @@ export async function buildPublicExchangeListingHtml(
 
   // Build title and description
   const itemTitle = sanitizePublicListingText(listing.title || "Exchange Listing", 80);
+  const retailStone = isStoneRetailListing(listing);
+  const stonePrice = retailStone
+    ? stoneSlabMaterialPrice(
+        listing.price,
+        listing.specifications?.priceUnit,
+        listing.specifications?.referenceSizesInches,
+        listing.specifications?.exactSlab
+      )
+    : null;
   const price = Number(listing.price);
   const priceStr =
-    Number.isFinite(price) && price > 0
+    !retailStone && Number.isFinite(price) && price > 0
       ? ` — ${formatPrice(price, resolveListingCurrency(listing))}`
       : "";
   const locationParts = [listing.city, listing.county, listing.state]
@@ -653,10 +691,22 @@ export async function buildPublicExchangeListingHtml(
     .filter(Boolean);
   const locationStr = locationParts.length > 0 ? ` in ${locationParts.slice(0, 2).join(", ")}` : "";
 
-  const title = formatTradeScoutTitle(`${itemTitle}${priceStr} | TradeScout Exchange`);
+  const stoneTitleName = itemTitle.replace(/\s*\|\s*TradeScout(?: Stone)?\s*$/i, "");
+  const stoneTitlePrice = stonePrice
+    ? stonePrice.kind === "size_required"
+      ? "Slab price TBD"
+      : `${stonePrice.primaryPrice} ${stonePrice.kind === "estimated" ? "estimated " : ""}full slab`
+    : "Confirm slab material price";
+  const title = retailStone
+    ? formatTradeScoutTitle(`${stoneTitlePrice} — ${stoneTitleName} | TradeScout`)
+    : formatTradeScoutTitle(`${itemTitle}${priceStr} | TradeScout Exchange`);
   const rawDescription = sanitizePublicListingText(listing.description, 160);
-  const description =
-    rawDescription || `${itemTitle}${priceStr}${locationStr} — listed on TradeScout Exchange.`;
+  const description = retailStone
+    ? sanitizePublicListingText(
+        `${stonePriceSummary(listing)} ${stoneTitleName} stone material. ${rawDescription}`,
+        160
+      )
+    : rawDescription || `${itemTitle}${priceStr}${locationStr} — listed on TradeScout Exchange.`;
 
   // Primary image
   const images = Array.isArray(listing.images) ? listing.images : [];
@@ -760,7 +810,11 @@ export async function buildPublicExchangeListingHtml(
       <article>
         <h1>${escapeHtml(itemTitle)}</h1>
         <p>${escapeHtml(description)}</p>
-        ${priceStr ? `<p>${escapeHtml(priceStr.replace(/^\s*—\s*/, ""))}</p>` : ""}
+        ${retailStone
+          ? stonePrice?.kind === "size_required"
+            ? `<p><strong>${escapeHtml(stonePrice.primaryLabel)}</strong></p><p>Published material rate: ${escapeHtml(stonePrice.primaryPrice)}</p>`
+            : `<p>${escapeHtml(stonePrice?.primaryLabel || "Slab material price")}</p><p><strong>${escapeHtml(stonePrice?.primaryPrice || "Confirm price")}</strong></p>${stonePrice?.secondaryPrice ? `<p>Material rate: ${escapeHtml(stonePrice.secondaryPrice)}</p>` : ""}`
+          : priceStr ? `<p>${escapeHtml(priceStr.replace(/^\s*—\s*/, ""))}</p>` : ""}
         ${productImageUrl ? `<img src="${escapeHtml(productImageUrl)}" alt="${escapeHtml(itemTitle)}" loading="eager" />` : ""}
         <p>${
           listing.sourceType === "profile_catalog"
