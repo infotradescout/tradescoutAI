@@ -3,10 +3,16 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 // Note: navigation is handled via AppShell top/bottom nav; ScoutOS focuses on chat.
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { createClientOperationId } from "@/lib/clientOperationId";
 import { useIsMobile } from "../hooks/use-mobile";
 import { useScoutController } from "./useScoutController";
+import { useScoutReturnRestoration } from "./useScoutReturnRestoration";
+import {
+  clearScoutReturnSnapshot,
+  rememberScoutForReturn,
+} from "./scoutReturnSnapshot";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
@@ -62,8 +68,12 @@ import type { ScoutTileContext } from "./scoutActionTiles";
 import { buildScoutContextCards, type ScoutContextCardKind } from "./scoutContextCards";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { formatCityOnly } from "@/utils/locationDisplay";
+import { getCountyStateCode } from "@/utils/countyFipsToName";
+import { stageDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
+import { ScoutTaskControls } from "./ScoutTaskControls";
+import { deleteSavedTask, mergeSavedTasks, saveSavedTaskLocally } from "@shared/scoutSavedTaskPersistence";
 import { canOpenScoutWorkArea } from "./scoutWorkAreas";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { inferContextRoles } from "./contextRoles";
@@ -114,6 +124,46 @@ const SCOUT_SAVED_THREAD_CONTENT_LIMIT = 4000;
 const AUTO_ROUTE_DEFAULT_ENABLED = false;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
+const SCOUT_COUNTY_DRAFT_TARGET = "/direct-connect?source=scout";
+
+export function prepareScoutCountyDraftHandoff(
+  action: ScoutAction
+): { kind: "not_applicable" } | { kind: "unavailable" } | { kind: "ready"; url: string } {
+  if (action.type !== "NAVIGATE" || (action.to ?? action.path) !== SCOUT_COUNTY_DRAFT_TARGET) {
+    return { kind: "not_applicable" };
+  }
+
+  const countyFips = action.payload?.countyFips;
+  if (typeof countyFips !== "string" || !/^\d{5}$/.test(countyFips)) {
+    return { kind: "unavailable" };
+  }
+  const stateCode = getCountyStateCode(countyFips);
+  if (!/^[A-Z]{2}$/.test(stateCode) || typeof window === "undefined") {
+    return { kind: "unavailable" };
+  }
+
+  try {
+    const url = stageDirectConnectEntryContext(
+      { countyFips, stateCode, source: "scout" },
+      SCOUT_COUNTY_DRAFT_TARGET
+    );
+    const parsed = new URL(url, window.location.origin);
+    const stagedTokens = parsed.searchParams.getAll("staged");
+    if (
+      parsed.origin !== window.location.origin ||
+      parsed.pathname !== "/direct-connect" ||
+      parsed.searchParams.get("source") !== "scout" ||
+      parsed.searchParams.has("county") ||
+      stagedTokens.length !== 1 ||
+      !/^[a-f0-9]{64}$/.test(stagedTokens[0])
+    ) {
+      return { kind: "unavailable" };
+    }
+    return { kind: "ready", url };
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
 
 export function cancelScheduledScoutAutoRoute(timerRef: { current: number | null }): void {
   if (timerRef.current === null) return;
@@ -649,6 +699,16 @@ function summarizeThreadText(value: string, fallback: string): string {
   return clean.length > 72 ? `${clean.slice(0, 69)}...` : clean;
 }
 
+function titleForLocalPostsAndDealsRequest(value: string): string | null {
+  const request = String(value || "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+  return /^search tradescout and my area for posts (?:&|and) deals in my county\b/.test(request)
+    ? "Local posts & deals"
+    : null;
+}
+
 function sanitizeRelatedId(value: string | null | undefined): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim().replace(/[#?].*$/, "");
@@ -989,13 +1049,21 @@ function buildSavedThreadSummary(messages: ScoutMessage[]): string {
   return summarizeThreadText(source, "Saved Scout conversation");
 }
 
-function inferSavedThreadIntent(messages: ScoutMessage[]): {
+export function inferSavedThreadIntent(messages: ScoutMessage[]): {
   intent: string;
   relatedLabel: string;
   relatedPath: string;
   relatedTo?: SavedScoutThreadRelatedTo;
 } {
-  const latestFirst = messages.slice().reverse();
+  let latestUserIndex = -1;
+  for (let index = messages.length - 1; index >= 0; index--) {
+    if (messages[index]?.role === "user" && messages[index].content.trim()) {
+      latestUserIndex = index;
+      break;
+    }
+  }
+  const currentTurnMessages = latestUserIndex >= 0 ? messages.slice(latestUserIndex) : messages;
+  const latestFirst = currentTurnMessages.slice().reverse();
 
   for (const message of latestFirst) {
     if (typeof message.navTarget === "string" && message.navTarget.trim()) {
@@ -1050,7 +1118,23 @@ function inferSavedThreadIntent(messages: ScoutMessage[]): {
     }
   }
 
-  const text = messages
+  const mixedDiscovery = latestFirst.find(
+    (message) =>
+      message.role === "assistant" &&
+      message.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
+  );
+  if (mixedDiscovery) {
+    return {
+      intent: "local_help",
+      relatedLabel: "Local discovery",
+      relatedPath:
+        typeof mixedDiscovery.navTarget === "string" && mixedDiscovery.navTarget.startsWith("/")
+          ? mixedDiscovery.navTarget
+          : "/scout",
+    };
+  }
+
+  const text = currentTurnMessages
     .map((message) => message.content)
     .join(" ")
     .toLowerCase();
@@ -1265,14 +1349,16 @@ function readSavedScoutThreads(userId?: string | null): SavedScoutThread[] {
 }
 
 function writeSavedScoutThreads(userId: string | null | undefined, threads: SavedScoutThread[]) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") return false;
   try {
     window.localStorage.setItem(
       savedScoutThreadsKey(userId),
       JSON.stringify(threads.slice(0, SCOUT_SAVED_THREADS_LIMIT))
     );
+    return true;
   } catch {
     // Local saves are a convenience layer; failing here should not block Scout.
+    return false;
   }
 }
 
@@ -1285,37 +1371,20 @@ function upsertSavedScoutThread(
   const nextThread = buildSavedScoutThread(messages, existingId, location);
   if (!nextThread) return null;
   const threads = readSavedScoutThreads(userId);
-  const next = [nextThread, ...threads.filter((thread) => thread.id !== nextThread.id)].slice(
-    0,
-    SCOUT_SAVED_THREADS_LIMIT
+  return saveSavedTaskLocally(
+    nextThread,
+    threads,
+    SCOUT_SAVED_THREADS_LIMIT,
+    (next) => writeSavedScoutThreads(userId, next)
   );
-  writeSavedScoutThreads(userId, next);
-  return nextThread;
-}
-
-function removeSavedScoutThread(
-  userId: string | null | undefined,
-  threadId: string
-): SavedScoutThread[] {
-  const next = readSavedScoutThreads(userId).filter((thread) => thread.id !== threadId);
-  writeSavedScoutThreads(userId, next);
-  return next;
 }
 
 function mergeSavedScoutThreads(
   primary: SavedScoutThread[],
-  secondary: SavedScoutThread[]
+  secondary: SavedScoutThread[],
+  excludedIds?: ReadonlySet<string>
 ): SavedScoutThread[] {
-  const seen = new Set<string>();
-  const merged: SavedScoutThread[] = [];
-  for (const thread of [...primary, ...secondary]) {
-    if (seen.has(thread.id)) continue;
-    seen.add(thread.id);
-    merged.push(thread);
-  }
-  return merged
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, SCOUT_SAVED_THREADS_LIMIT);
+  return mergeSavedTasks(primary, secondary, SCOUT_SAVED_THREADS_LIMIT, excludedIds);
 }
 
 function normalizeForMatch(input: string): string {
@@ -1585,7 +1654,13 @@ function readScoutBrowserLocation(fallback: string): string {
 }
 
 export default function ScoutOS() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, error: authError } = useAuth();
+  const scoutReturnOwner = isAuthenticated
+    ? typeof user?.id === "string" && user.id.trim()
+      ? `user:${user.id}`
+      : null
+    : "guest";
+  const { toast } = useToast();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
   const [scoutBrowserLocation, setScoutBrowserLocation] = useState(() =>
@@ -1671,6 +1746,9 @@ export default function ScoutOS() {
   } | null>(null);
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
+  const deletingSavedThreadIdsRef = useRef(new Set<string>());
+  const deletedSavedThreadIdsRef = useRef(new Set<string>());
+  const pendingSavedThreadWritesRef = useRef(new Map<string, Set<Promise<void>>>());
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
   const [savedScoutSurfaceFilter, setSavedScoutSurfaceFilter] =
     useState<SavedScoutSurfaceFilter>("all");
@@ -1705,6 +1783,20 @@ export default function ScoutOS() {
     loadMessages,
     reset,
   } = useScoutController();
+  const onRestoreScoutTask = useCallback((activeSavedThreadId: string | null) => {
+    setActiveSavedThreadId(activeSavedThreadId);
+    setHasGuestInteracted(true);
+  }, []);
+  const shouldSkipReturnAutoSave = useScoutReturnRestoration({
+    authLoading,
+    authTrusted: !authError,
+    owner: scoutReturnOwner,
+    currentLocation: scoutBrowserLocation,
+    explicitLaunch: hasExplicitScoutLaunch,
+    hasCurrentThread: state.messages.length > 0,
+    loadMessages,
+    onRestore: onRestoreScoutTask,
+  });
 
   // KPI: Track time-to-action from render to first action execution
   const renderStartRef = useRef<number | null>(null);
@@ -1821,7 +1913,11 @@ export default function ScoutOS() {
   useEffect(() => {
     let cancelled = false;
     const localThreads = readSavedScoutThreads(scoutSaveUserId);
-    const merged = mergeSavedScoutThreads(localThreads, remoteSavedScoutThreads);
+    const merged = mergeSavedScoutThreads(
+      localThreads,
+      remoteSavedScoutThreads,
+      deletedSavedThreadIdsRef.current
+    );
     writeSavedScoutThreads(scoutSaveUserId, merged);
     setSavedScoutThreads(merged);
 
@@ -1838,7 +1934,11 @@ export default function ScoutOS() {
       .then((data) => {
         if (cancelled || !data) return;
         const serverThreads = normalizeSavedScoutThreads(data.conversations);
-        const next = mergeSavedScoutThreads(serverThreads, readSavedScoutThreads(scoutSaveUserId));
+        const next = mergeSavedScoutThreads(
+          serverThreads,
+          readSavedScoutThreads(scoutSaveUserId),
+          deletedSavedThreadIdsRef.current
+        );
         writeSavedScoutThreads(scoutSaveUserId, next);
         setSavedScoutThreads(next);
       })
@@ -1869,7 +1969,8 @@ export default function ScoutOS() {
           const serverThreads = normalizeSavedScoutThreads(data.conversations);
           const next = mergeSavedScoutThreads(
             serverThreads,
-            readSavedScoutThreads(scoutSaveUserId)
+            readSavedScoutThreads(scoutSaveUserId),
+            deletedSavedThreadIdsRef.current
           );
           writeSavedScoutThreads(scoutSaveUserId, next);
           setSavedScoutThreads(next);
@@ -1884,54 +1985,78 @@ export default function ScoutOS() {
   }, [savedScoutSearch, savedScoutSurfaceFilter, scoutSaveUserId, user]);
 
   const persistSavedScoutThreadRemote = useCallback(
-    async (thread: SavedScoutThread) => {
-      if (!user) return;
-      try {
-        const response = await fetch("/api/scout/conversations", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: thread.id,
-            title: thread.title,
-            preview: thread.preview,
-            summary: thread.summary,
-            intent: thread.intent,
-            countyFips: thread.countyFips || locationCtx.countyFips || undefined,
-            stateCode: thread.stateCode || locationCtx.stateCode || undefined,
-            messageCount: thread.messageCount,
-            messages: thread.messages,
-            metadata: {
-              source: "scout_os",
-              relatedLabel: thread.relatedLabel,
-              relatedPath: thread.relatedPath,
-              relatedTo: thread.relatedTo,
-              searchText: thread.searchText,
-            },
-          }),
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        const saved = normalizeSavedScoutThreads([data?.conversation])[0];
-        if (!saved) return;
-        const next = mergeSavedScoutThreads([saved], readSavedScoutThreads(scoutSaveUserId));
-        writeSavedScoutThreads(scoutSaveUserId, next);
-        setSavedScoutThreads(next);
-        setActiveSavedThreadId((current) => (current === thread.id ? saved.id : current));
-      } catch {
-        // Remote saves are best-effort; the local saved thread remains available.
+    (thread: SavedScoutThread) => {
+      if (!scoutSaveUserId || deletingSavedThreadIdsRef.current.has(thread.id) || deletedSavedThreadIdsRef.current.has(thread.id)) {
+        return Promise.resolve();
       }
+      const operation = (async () => {
+        try {
+          const response = await fetch("/api/scout/conversations", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: thread.id,
+              title: thread.title,
+              preview: thread.preview,
+              summary: thread.summary,
+              intent: thread.intent,
+              countyFips: thread.countyFips || locationCtx.countyFips || undefined,
+              stateCode: thread.stateCode || locationCtx.stateCode || undefined,
+              messageCount: thread.messageCount,
+              messages: thread.messages,
+              metadata: {
+                source: "scout_os",
+                relatedLabel: thread.relatedLabel,
+                relatedPath: thread.relatedPath,
+                relatedTo: thread.relatedTo,
+                searchText: thread.searchText,
+              },
+            }),
+          });
+          if (!response.ok) return;
+          const data = await response.json();
+          const saved = normalizeSavedScoutThreads([data?.conversation])[0];
+          if (!saved) return;
+          const next = mergeSavedScoutThreads(
+            [saved],
+            readSavedScoutThreads(scoutSaveUserId),
+            deletedSavedThreadIdsRef.current
+          );
+          writeSavedScoutThreads(scoutSaveUserId, next);
+          setSavedScoutThreads(next);
+          setActiveSavedThreadId((current) => (current === thread.id ? saved.id : current));
+        } catch {
+          // Remote saves are best-effort; the local saved thread remains available.
+        }
+      })();
+      const pending = pendingSavedThreadWritesRef.current.get(thread.id) || new Set<Promise<void>>();
+      pending.add(operation);
+      pendingSavedThreadWritesRef.current.set(thread.id, pending);
+      void operation.finally(() => {
+        pending.delete(operation);
+        if (pending.size === 0) pendingSavedThreadWritesRef.current.delete(thread.id);
+      });
+      return operation;
     },
-    [locationCtx.countyFips, locationCtx.stateCode, scoutSaveUserId, user]
+    [locationCtx.countyFips, locationCtx.stateCode, scoutSaveUserId]
   );
 
   useEffect(() => {
+    // Reopening a result is navigation, not a request to save the task again.
+    // A later message creates a new messages array and resumes normal saves.
+    if (shouldSkipReturnAutoSave(state.messages)) return;
     const hasUserThread = state.messages.some(
       (message) => message.role === "user" && message.content.trim().length > 0
     );
     if (!hasUserThread) return;
 
     const timer = window.setTimeout(() => {
+      if (
+        activeSavedThreadId &&
+        (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
+          deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
+      ) return;
       const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
         countyFips: locationCtx.countyFips,
         stateCode: locationCtx.stateCode,
@@ -1949,6 +2074,7 @@ export default function ScoutOS() {
     locationCtx.stateCode,
     persistSavedScoutThreadRemote,
     scoutSaveUserId,
+    shouldSkipReturnAutoSave,
     state.messages,
   ]);
 
@@ -2129,6 +2255,7 @@ export default function ScoutOS() {
   );
 
   const handleStartNewScoutThread = useCallback(() => {
+    clearScoutReturnSnapshot();
     setActiveSavedThreadId(null);
     reset();
     setHasGuestInteracted(false);
@@ -2137,11 +2264,23 @@ export default function ScoutOS() {
   }, [cancelAutoRoute, reset]);
 
   const handleSaveScoutThreadNow = useCallback(() => {
+    if (
+      activeSavedThreadId &&
+      (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
+        deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
+    ) return;
     const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
       countyFips: locationCtx.countyFips,
       stateCode: locationCtx.stateCode,
     });
-    if (!saved) return;
+    if (!saved) {
+      toast({
+        title: "Task wasn't saved",
+        description: "Scout couldn't save this task on this device. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
     setActiveSavedThreadId(saved.id);
     setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
     void persistSavedScoutThreadRemote(saved);
@@ -2152,25 +2291,43 @@ export default function ScoutOS() {
     persistSavedScoutThreadRemote,
     scoutSaveUserId,
     state.messages,
+    toast,
   ]);
 
   const handleDeleteSavedThread = useCallback(
-    (threadId: string) => {
-      const next = removeSavedScoutThread(scoutSaveUserId, threadId);
-      setSavedScoutThreads(next);
-
-      if (activeSavedThreadId === threadId) {
-        handleStartNewScoutThread();
-      }
-
-      if (user) {
-        void fetch(`/api/scout/conversations/${encodeURIComponent(threadId)}`, {
-          method: "DELETE",
-          credentials: "include",
-        }).catch(() => undefined);
+    async (threadId: string) => {
+      if (deletingSavedThreadIdsRef.current.has(threadId)) return;
+      deletingSavedThreadIdsRef.current.add(threadId);
+      try {
+        const next = await deleteSavedTask({
+          taskId: threadId,
+          waitForSaves: async () => {
+            await Promise.all(Array.from(pendingSavedThreadWritesRef.current.get(threadId) ?? []));
+          },
+          deleteRemote: scoutSaveUserId
+            ? () => fetch(`/api/scout/conversations/${encodeURIComponent(threadId)}`, {
+                method: "DELETE",
+                credentials: "include",
+              })
+            : undefined,
+          onRemoteDeleted: () => deletedSavedThreadIdsRef.current.add(threadId),
+          readLocal: () => readSavedScoutThreads(scoutSaveUserId),
+          writeLocal: (threads) => writeSavedScoutThreads(scoutSaveUserId, threads),
+        });
+        deletedSavedThreadIdsRef.current.add(threadId);
+        setSavedScoutThreads(next);
+        if (activeSavedThreadId === threadId) handleStartNewScoutThread();
+      } catch {
+        toast({
+          title: "Saved task wasn't deleted",
+          description: "The task is still available. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        deletingSavedThreadIdsRef.current.delete(threadId);
       }
     },
-    [activeSavedThreadId, handleStartNewScoutThread, scoutSaveUserId, user]
+    [activeSavedThreadId, handleStartNewScoutThread, scoutSaveUserId, toast]
   );
 
   // First-time guest state: controls the calm intro + auto-demo gating.
@@ -2201,11 +2358,26 @@ export default function ScoutOS() {
   );
   const currentTaskTitle = useMemo(() => {
     const firstUserMessage = firstThreadUserMessage(state.messages);
+    const request = firstUserMessage?.content || latestUserQuery;
     return (
+      titleForLocalPostsAndDealsRequest(request) ||
       activeSavedThread?.title ||
-      summarizeThreadText(firstUserMessage?.content || latestUserQuery, "Current Scout task")
+      summarizeThreadText(request, "Current Scout task")
     );
   }, [activeSavedThread?.title, latestUserQuery, state.messages]);
+  const currentTaskRequest = useMemo(
+    () => firstThreadUserMessage(state.messages)?.content || "",
+    [state.messages]
+  );
+  const hasAssistantResult = useMemo(
+    () =>
+      state.messages.some(
+        (message) =>
+          message.role === "assistant" &&
+          (message.content.trim().length > 0 || Boolean(message.resultContract))
+      ),
+    [state.messages]
+  );
   const currentTaskState = useMemo(() => {
     if (state.status === "resolving_context") return "Understanding what you need.";
     if (state.status === "checking_documents") return "Checking the useful local details.";
@@ -2853,10 +3025,13 @@ export default function ScoutOS() {
           : [],
         // Assistant prose is not execution evidence. Completed operations are
         // recorded by their authenticated server owner, never inferred from chat.
-        events: state.messages.filter((message) => message.role === "user").slice(-8).map((message) => ({
-          type: "message_sent",
-          occurredAt: message.timestamp,
-        })),
+        events: state.messages
+          .filter((message) => message.role === "user")
+          .slice(-8)
+          .map((message) => ({
+            type: "message_sent",
+            occurredAt: message.timestamp,
+          })),
       };
 
       const response = await fetch("/api/scout/watchdog/evaluate", {
@@ -3015,6 +3190,20 @@ export default function ScoutOS() {
       }
 
       if (action.type === "NAVIGATE") {
+        const countyDraft = prepareScoutCountyDraftHandoff(action);
+        if (countyDraft.kind === "unavailable") {
+          toast({
+            title: "Couldn't open the county draft",
+            description:
+              "Scout couldn't keep your county with a private request draft. Nothing was sent. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (countyDraft.kind === "ready") {
+          openWorkArea({ url: countyDraft.url, title: action.label });
+          return;
+        }
         const target = (action.to ?? action.path) as string | undefined;
         if (maybeOpenWorkAreaForRoute(target, action.label)) {
           return;
@@ -3051,6 +3240,14 @@ export default function ScoutOS() {
         await executeScoutActions([action], {
           navigate: (to) => {
             if (!maybeOpenWorkAreaForRoute(to)) {
+              if (to !== "/scout" && !to.startsWith("/scout?")) {
+                rememberScoutForReturn(
+                  scoutReturnOwner,
+                  state.messages,
+                  activeSavedThreadId,
+                  readScoutBrowserLocation(location)
+                );
+              }
               navigate(to);
             }
           },
@@ -3095,13 +3292,31 @@ export default function ScoutOS() {
     [
       location,
       maybeOpenWorkAreaForRoute,
+      openWorkArea,
+      toast,
       navigate,
       handleSend,
       setError,
       applyServerResponse,
       persistScoutResume,
+      scoutReturnOwner,
+      state.messages,
+      activeSavedThreadId,
       user,
     ]
+  );
+
+  const handleResultLinkNavigate = useCallback(
+    (to: string) => {
+      rememberScoutForReturn(
+        scoutReturnOwner,
+        state.messages,
+        activeSavedThreadId,
+        readScoutBrowserLocation(location)
+      );
+      navigate(to);
+    },
+    [activeSavedThreadId, location, navigate, scoutReturnOwner, state.messages]
   );
 
   const handleOverride = useCallback(
@@ -4667,10 +4882,9 @@ export default function ScoutOS() {
                   <section
                     className="scout-current-task grid gap-2.5 rounded-xl border border-[color:var(--border-subtle)] p-3"
                     data-testid="scout-current-task"
-                    data-has-next-action={Boolean(primaryNextAction)}
                     aria-labelledby="scout-current-task-title"
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="scout-current-task__head flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold uppercase text-ts-orange">
                           {activeSavedThread ? "Saved task" : "Current task"}
@@ -4687,79 +4901,31 @@ export default function ScoutOS() {
                         </h1>
                       </div>
 
-                      <div
-                        className="flex w-full items-center gap-1.5 sm:w-auto"
-                        aria-label="Thread controls"
-                      >
-                        <button
-                          type="button"
-                          className="min-h-11 flex-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] sm:flex-none"
-                          onClick={handleSaveScoutThreadNow}
+                      <ScoutTaskControls
+                        saved={Boolean(activeSavedThread)}
+                        request={hasAssistantResult ? currentTaskRequest : null}
+                        onSave={handleSaveScoutThreadNow}
+                        onNew={handleStartNewScoutThread}
+                        onDelete={
+                          activeSavedThreadId
+                            ? () => handleDeleteSavedThread(activeSavedThreadId)
+                            : undefined
+                        }
+                      />
+                    </div>
+
+                    {state.status !== "idle" && !hasAssistantResult && (
+                      <div className="scout-current-task__latest grid min-w-0 gap-0.5">
+                        <p className="text-[10px] font-bold uppercase text-[color:var(--text-muted)]">
+                          {state.status === "error" ? "Needs attention" : "Working"}
+                        </p>
+                        <p
+                          className="break-words text-sm leading-snug text-[color:var(--text-primary)]"
+                          data-testid="scout-latest-meaningful-state"
                         >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          className="min-h-11 flex-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] sm:flex-none"
-                          onClick={handleStartNewScoutThread}
-                        >
-                          New
-                        </button>
-                        {activeSavedThreadId && (
-                          <details className="relative flex-1 sm:flex-none">
-                            <summary
-                              className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden"
-                              aria-label="More thread options"
-                            >
-                              More
-                            </summary>
-                            <button
-                              type="button"
-                              className="absolute right-0 top-[calc(100%+0.35rem)] z-40 min-h-11 w-max max-w-[calc(100vw-2rem)] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)]"
-                              onClick={() => handleDeleteSavedThread(activeSavedThreadId)}
-                            >
-                              Delete saved thread
-                            </button>
-                          </details>
-                        )}
+                          {currentTaskState}
+                        </p>
                       </div>
-                    </div>
-
-                    <div className="scout-current-task__latest grid min-w-0 gap-0.5">
-                      <p className="text-[10px] font-bold uppercase text-[color:var(--text-muted)]">
-                        Latest
-                      </p>
-                      <p
-                        className="break-words text-sm leading-snug text-[color:var(--text-primary)]"
-                        data-testid="scout-latest-meaningful-state"
-                      >
-                        {currentTaskState}
-                      </p>
-                    </div>
-
-                    {primaryNextAction && (
-                      <button
-                        type="button"
-                        className="scout-current-task__primary flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl border border-ts-orange/50 bg-ts-orange/10 px-3 py-2 text-left text-[color:var(--text-primary)]"
-                        data-testid="scout-primary-next-action"
-                        onClick={() => {
-                          setHasGuestInteracted(true);
-                          void handleClusterAction(primaryNextAction);
-                        }}
-                      >
-                        <span className="grid gap-0.5">
-                          <span className="text-[10px] font-bold uppercase text-ts-orange">
-                            Next action
-                          </span>
-                          <strong>
-                            {primaryNextAction.label ||
-                              (primaryNextAction.type === "NAVIGATE"
-                                ? "Open next step"
-                                : "Continue")}
-                          </strong>
-                        </span>
-                        <Route className="h-4 w-4 shrink-0 text-ts-orange" aria-hidden="true" />
-                      </button>
                     )}
                   </section>
                 )}
@@ -4784,19 +4950,11 @@ export default function ScoutOS() {
                   <section
                     className="scout-task-work-region"
                     data-testid="scout-task-work-region"
-                    aria-labelledby="scout-task-work-region-title"
+                    data-collapse-initial-request={
+                      hasAssistantResult && state.messages[0]?.role === "user"
+                    }
+                    aria-label="Scout result and conversation"
                   >
-                    <header className="scout-task-work-region__header">
-                      <h2
-                        id="scout-task-work-region-title"
-                        className="text-xs font-bold text-[color:var(--text-secondary)]"
-                      >
-                        Conversation and results
-                      </h2>
-                      <span className="text-[10px] font-semibold text-[color:var(--text-muted)]">
-                        {state.messages.length} {state.messages.length === 1 ? "update" : "updates"}
-                      </span>
-                    </header>
                     <div className="scout-task-work-region__body">
                       <ScoutThread
                         messages={state.messages}
@@ -4805,6 +4963,7 @@ export default function ScoutOS() {
                         showControllerExtras
                         currentTurnPrimaryAction={primaryNextAction}
                         onAction={handleClusterAction}
+                        onResultLinkNavigate={handleResultLinkNavigate}
                         onOverride={handleOverride}
                         overridePendingScope={overridePendingScope}
                         onSendMessage={handleOnboardingMessage}
@@ -4902,7 +5061,6 @@ export default function ScoutOS() {
                   placement="fixed"
                   isBusy={isBusy}
                   prefillKey={prefillKey}
-                  forcedPrefill={scoutLaunch.prompt}
                   hasMessages={hasMessages}
                   quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                   autoDemoText=""

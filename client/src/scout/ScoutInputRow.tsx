@@ -1,5 +1,5 @@
 import React from "react";
-import { Mic, Send, Sparkles } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 
 /* ----------------------------------------------------------
    ScoutInputRow — Morphic OS v2 Command Bar
@@ -11,7 +11,6 @@ import { Mic, Send, Sparkles } from "lucide-react";
    - Orange border glow on focus/active
    - Sparkle icon on the left (orange)
    - Auto-growing textarea (single line default, expands on input)
-   - Mic button (right, subtle circle)
    - Orange circle send arrow (right, glowing)
    ---------------------------------------------------------- */
 
@@ -21,6 +20,7 @@ interface ScoutInputRowProps {
   forcedPrefill?: string;
   onSend: (value: string) => void;
   onTyping: () => void;
+  hasMessages?: boolean;
   quickStartPrompts?: readonly string[];
   autoDemoText?: string;
   enableAutoDemo?: boolean;
@@ -39,6 +39,7 @@ export function ScoutInputRow({
   forcedPrefill,
   onSend,
   onTyping,
+  hasMessages = false,
   quickStartPrompts,
   autoDemoText,
   enableAutoDemo,
@@ -74,15 +75,18 @@ export function ScoutInputRow({
     const trimmed = (text ?? value).trim();
     if (!trimmed || isBusy || isSubmitting) return;
     setIsSubmitting(true);
+    // The inline input unmounts as soon as the first message enters the thread.
+    // Consume its draft before that swap so the fixed input starts empty.
+    setValue("");
+    try {
+      window.localStorage.removeItem(`scout:prefill:scout-main`);
+    } catch {
+      /* ignore */
+    }
     try {
       await Promise.resolve(onSend(trimmed));
-      setValue("");
-      try {
-        window.localStorage.removeItem(`scout:prefill:scout-main`);
-      } catch {
-        /* ignore */
-      }
     } catch (err) {
+      setValue(trimmed);
       console.error("[ScoutInputRow] send failed", err);
     } finally {
       setIsSubmitting(false);
@@ -243,21 +247,11 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Describe a project, permit question, estimate, or decision."
+          placeholder={hasMessages ? "Ask a follow-up" : SCOUT_INPUT_ACCESSIBLE_PROMPT}
           rows={1}
           className="scout-command-bar__input"
-          aria-label={SCOUT_INPUT_ACCESSIBLE_PROMPT}
+          aria-label={hasMessages ? "Ask a follow-up question" : SCOUT_INPUT_ACCESSIBLE_PROMPT}
         />
-
-        {/* Mic button */}
-        <button
-          type="button"
-          className="scout-command-bar__mic"
-          aria-label="Voice input"
-          tabIndex={-1}
-        >
-          <Mic size={15} />
-        </button>
 
         {/* Send button */}
         <button
@@ -265,7 +259,9 @@ export function ScoutInputRow({
           onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
           className="scout-command-bar__send"
-          aria-label={isSubmitting ? "Searching..." : "Start search"}
+          aria-label={
+            isSubmitting ? "Searching..." : hasMessages ? "Send follow-up" : "Start search"
+          }
         >
           <Send size={15} />
         </button>

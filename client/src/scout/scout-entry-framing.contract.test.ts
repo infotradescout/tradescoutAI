@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import fs from "node:fs";
 import path from "node:path";
+import ScoutSearchDock from "./ScoutSearchDock";
 
 const read = (relativePath: string) => {
   const fullPath = path.resolve(process.cwd(), relativePath);
@@ -43,6 +46,34 @@ describe("Scout entry framing contracts", () => {
     expect(promptsSource).toContain("Build a realistic estimate");
     expect(promptsSource).toContain("Compare a quote");
     expect(promptsSource).toContain("Find the right professional");
+  });
+
+  it("keeps first-use guidance and gives the active phone dock one clear follow-up control", () => {
+    const renderDock = (hasMessages: boolean) =>
+      renderToStaticMarkup(
+        React.createElement(ScoutSearchDock, {
+          isMobile: true,
+          placement: hasMessages ? "fixed" : "inline",
+          isBusy: false,
+          prefillKey: 0,
+          hasMessages,
+          quickStartPrompts: [],
+          onSend: () => undefined,
+          onTyping: () => undefined,
+        })
+      );
+    const firstUse = renderDock(false);
+    const followUp = renderDock(true);
+
+    expect(firstUse).toContain(
+      'placeholder="Describe a project, permit question, estimate, or decision."'
+    );
+    expect(firstUse).toContain('aria-label="Start search"');
+    expect(followUp).toContain('placeholder="Ask a follow-up"');
+    expect(followUp).toContain('aria-label="Ask a follow-up question"');
+    expect(followUp).toContain('aria-label="Send follow-up"');
+    expect(followUp).not.toContain("Voice input");
+    expect(followUp).not.toContain("scout-command-bar__mic");
   });
 
   it("keeps the capability map in the full Scout experience while home stays compact", () => {
@@ -293,12 +324,13 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain('className="scout-input-bottom-pin order-3"');
     expect(scoutOsSource).toContain('data-testid="scout-current-task-title"');
     expect(scoutOsSource).toContain('data-testid="scout-latest-meaningful-state"');
-    expect(scoutOsSource).toContain('data-testid="scout-primary-next-action"');
+    expect(scoutOsSource).not.toContain('data-testid="scout-primary-next-action"');
+    expect(threadSource).toContain('data-testid="scout-primary-next-action"');
     expect(scoutOsSource).toContain('data-testid="scout-task-auxiliary-region"');
     expect(scoutOsSource).toContain('aria-label="Task guidance and controls"');
     expect(scoutOsSource).toContain('data-testid="scout-task-work-region"');
-    expect(scoutOsSource).toContain('aria-labelledby="scout-task-work-region-title"');
-    expect(scoutOsSource).toContain("Conversation and results");
+    expect(scoutOsSource).toContain('aria-label="Scout result and conversation"');
+    expect(scoutOsSource).not.toContain("Conversation and results");
     expect(scoutOsSource).toContain('data-testid="scout-task-composer"');
     expect(workRegionMarkup).toContain("<section");
     expect(workRegionMarkup).not.toContain("<details");
@@ -341,7 +373,7 @@ describe("Scout entry framing contracts", () => {
     ).toContain("{!hasUserMessages ? onboardingAuxiliarySurface : null}");
     expect(activeMarkup).toContain("{!hasUserMessages ? objectiveAuxiliarySurface : null}");
     expect(activeMarkup).toContain("{!hasUserMessages ? autoRouteAuxiliarySurface : null}");
-    expect(activeMarkup.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
+    expect(activeMarkup.match(/data-testid="scout-primary-next-action"/g)).toBeNull();
     expect(activeMarkup.match(/data-testid="scout-task-auxiliary-region"/g)).toHaveLength(1);
     expect(activeMarkup.match(/data-testid="scout-task-composer"/g)).toHaveLength(1);
     expect(scoutOsSource).toContain("<ScoutHome");
@@ -394,7 +426,7 @@ describe("Scout entry framing contracts", () => {
       /body\.ts-scout-active:has\(\.scout-shell--active-task\) \.ts-bg\s*\{[^}]*overflow-y:\s*clip !important;/s
     );
     expect(cssSource).toMatch(
-      /\.scout-current-task__primary\s*\{[^}]*scroll-margin-bottom:\s*1px;/s
+      /\.scout-result-action--primary\s*\{[^}]*background:\s*var\(--ts-accent, #f97316\);/s
     );
     expect(cssSource).toMatch(
       /\.scout-active-workbench \.scout-task-auxiliary-region,\s*\.scout-active-workbench \.scout-task-work-region \.scout-thread\s*\{[^}]*overscroll-behavior-y:\s*auto;/s
@@ -414,11 +446,9 @@ describe("Scout entry framing contracts", () => {
     expect(cssSource).toMatch(
       /@media \(max-width: 767px\)[^{]*\{.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-layout\s*\{[^}]*padding-top:\s*0;[^}]*padding-bottom:\s*0 !important;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-workbench\s*\{[^}]*margin-top:\s*0;[^}]*padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.75rem \+ 1px\) !important;[^}]*scroll-padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.75rem\);.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-input-bottom-pin\s*\{[^}]*height:\s*0;[^}]*min-height:\s*0;[^}]*margin:\s*0;[^}]*padding:\s*0;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-task-auxiliary-region\s*\{[^}]*min-height:\s*64px;[^}]*max-height:\s*min\(9rem,\s*22dvh\);/s
     );
+    expect(cssSource).toContain(".scout-result-card");
     expect(cssSource).toMatch(
-      /@media \(max-width: 767px\) and \(max-height: 420px\)\s*\{[^}]*\.scout-current-task__primary strong\s*\{[^}]*display:\s*-webkit-box;[^}]*overflow:\s*hidden;[^}]*-webkit-box-orient:\s*vertical;[^}]*-webkit-line-clamp:\s*2;/s
-    );
-    expect(cssSource).toMatch(
-      /@media \(min-width: 768px\) and \(max-height: 480px\)\s*\{.*?body\.ts-scout-active\s+#app-scroll-root:has\(\.scout-shell--active-task\)\s*> \.app-page\s*\{[^}]*padding-top:\s*0;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-layout\s*\{[^}]*padding-top:\s*0;[^}]*padding-bottom:\s*0 !important;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-column\s*\{[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior-y:\s*contain;[^}]*scroll-behavior:\s*auto;[^}]*padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.375rem \+ 1px\);[^}]*scroll-padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.375rem\);.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-workbench\s*\{[^}]*flex:\s*0 0 auto;[^}]*margin-top:\s*0;[^}]*overflow:\s*visible;[^}]*overscroll-behavior-y:\s*auto;[^}]*padding-bottom:\s*0 !important;[^}]*scroll-padding-bottom:\s*auto;.*?\.scout-current-task__primary strong\s*\{[^}]*display:\s*-webkit-box;[^}]*overflow:\s*hidden;[^}]*-webkit-box-orient:\s*vertical;[^}]*-webkit-line-clamp:\s*2;/s
+      /@media \(min-width: 768px\) and \(max-height: 480px\)\s*\{.*?body\.ts-scout-active\s+#app-scroll-root:has\(\.scout-shell--active-task\)\s*> \.app-page\s*\{[^}]*padding-top:\s*0;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-layout\s*\{[^}]*padding-top:\s*0;[^}]*padding-bottom:\s*0 !important;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-column\s*\{[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior-y:\s*contain;[^}]*scroll-behavior:\s*auto;[^}]*padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.375rem \+ 1px\);[^}]*scroll-padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.375rem\);.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-workbench\s*\{[^}]*flex:\s*0 0 auto;[^}]*margin-top:\s*0;[^}]*overflow:\s*visible;[^}]*overscroll-behavior-y:\s*auto;[^}]*padding-bottom:\s*0 !important;[^}]*scroll-padding-bottom:\s*auto;/s
     );
     expect(cssSource).toMatch(/\.scout-command-bar__input\s*\{[^}]*max-height:\s*120px;/s);
     expect(cssSource).toMatch(
@@ -432,7 +462,7 @@ describe("Scout entry framing contracts", () => {
       /\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*92px;[^}]*--scout-search-dock-h:\s*var\(--scout-search-dock-min-h\);/s
     );
     expect(cssSource).toMatch(
-      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*96px;/s
+      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*76px;/s
     );
     expect(cssSource).toMatch(
       /\.scout-search-dock-fixed\s*\{[^}]*bottom:\s*var\(--bottom-nav-h, 62px\);[^}]*min-height:\s*var\(--scout-search-dock-min-h, 92px\);/s
@@ -589,10 +619,9 @@ describe("Scout entry framing contracts", () => {
 
     expect(scoutOsSource).toContain("Search controls");
     expect(scoutOsSource).toContain("Results + controls");
-    expect(threadSource).not.toContain("Local results");
     expect(threadSource).not.toContain("Request context");
     expect(threadSource).not.toContain("Community-Powered");
     expect(threadSource).toContain("Choose what you mean");
-    expect(threadSource).toContain("Available actions");
+    expect(threadSource).toContain("More ways to browse");
   });
 });

@@ -10,6 +10,7 @@ const STAGED_CONTEXT_STORAGE_PREFIX = "tradescout:direct-connect:staged:v1:";
 const STAGED_CONTEXT_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 const MAX_STORED_RECORD_LENGTH = 32_000;
 const DIRECT_CONNECT_PATH = "/direct-connect";
+const DIRECT_CONNECT_POST_PATH = `${DIRECT_CONNECT_PATH}/post`;
 
 const CONTEXT_TYPES: ReadonlySet<DirectConnectEntryContextType> = new Set([
   "provider",
@@ -176,7 +177,11 @@ function safeFallbackPath(destination: URL): string {
   if (subject) params.set("subject", subject);
 
   const query = params.toString();
-  return `${DIRECT_CONNECT_PATH}${query ? `?${query}` : ""}`;
+  const path =
+    destination.pathname === DIRECT_CONNECT_POST_PATH
+      ? DIRECT_CONNECT_POST_PATH
+      : DIRECT_CONNECT_PATH;
+  return `${path}${query ? `?${query}` : ""}`;
 }
 
 function resolveDirectConnectDestination(destinationHref: string): DirectConnectDestination {
@@ -189,6 +194,9 @@ function resolveDirectConnectDestination(destinationHref: string): DirectConnect
       return { fallbackHref: DIRECT_CONNECT_PATH, canUseCurrentSessionStorage: false };
     }
     const fallbackPath = safeFallbackPath(destination);
+    const supportedPath =
+      destination.pathname === DIRECT_CONNECT_PATH ||
+      destination.pathname === DIRECT_CONNECT_POST_PATH;
 
     if (!currentHref) {
       return {
@@ -202,7 +210,7 @@ function resolveDirectConnectDestination(destinationHref: string): DirectConnect
     const isSameOrigin = destination.origin === window.location.origin;
     return {
       fallbackHref: isSameOrigin ? fallbackPath : `${destination.origin}${fallbackPath}`,
-      canUseCurrentSessionStorage: isSameOrigin,
+      canUseCurrentSessionStorage: isSameOrigin && supportedPath,
     };
   } catch {
     return { fallbackHref: DIRECT_CONNECT_PATH, canUseCurrentSessionStorage: false };

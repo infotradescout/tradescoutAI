@@ -110,6 +110,7 @@ import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/rol
 import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
+import { deleteSavedScoutTaskAtomically } from "./services/scoutSavedTaskDeletion";
 import {
   getExchangeCategorySlugFromMarketplaceCategoryName,
   validateExchangeCategoryListing,
@@ -7053,9 +7054,7 @@ export async function registerRoutes(app: any) {
         const id = safeScoutConversationId(req.params.id);
         if (!id) return res.status(400).json({ message: "Invalid Scout conversation id" });
 
-        await db
-          .delete(scoutConversations)
-          .where(and(eq(scoutConversations.id, id), eq(scoutConversations.userId, userId)));
+        await deleteSavedScoutTaskAtomically(db, userId, id);
 
         res.json({ ok: true });
       } catch (error: any) {
