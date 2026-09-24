@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { audienceQualifiedStoneMedia, selectedStoneAudienceSearch, verifiedStoneDetailPath } from "./stonePublicUrls";
+import { audienceQualifiedStoneMedia, selectedStoneAudienceSearch, verifiedStoneDetailPath, verifiedStoneInquiryPath } from "./stonePublicUrls";
 
 const id = "tradescout-stone-aj-quartz";
 const path = `/exchange/building-materials/${id}?audienceState=FL&audienceCity=Tampa&audienceCountry=US`;
@@ -28,5 +28,16 @@ describe("public stone URLs", () => {
       .toBe(`${image}?audienceState=FL&audienceCity=Tampa&audienceCountry=US`);
     expect(audienceQualifiedStoneMedia(image, null, id)).toBeNull();
     expect(audienceQualifiedStoneMedia(`/api/exchange/stone-media/tradescout-stone-another`, path, id)).toBeNull();
+  });
+
+  it("keeps the selected market on card inquiry links and rejects unsafe detail paths", () => {
+    expect(verifiedStoneInquiryPath(path, id, "availability"))
+      .toBe(`/exchange/building-materials/${id}?audienceState=FL&audienceCity=Tampa&audienceCountry=US&inquiry=availability`);
+    expect(verifiedStoneInquiryPath(`/exchange/building-materials/${id}?audienceState=TX&audienceCountry=US`, id, "availability"))
+      .toBe(`/exchange/building-materials/${id}?audienceState=TX&audienceCountry=US&inquiry=availability`);
+    expect(verifiedStoneInquiryPath(`/exchange/building-materials/${id}`, id, "availability")).toBeNull();
+    expect(verifiedStoneInquiryPath(path, "tradescout-stone-another", "availability")).toBeNull();
+    expect(verifiedStoneInquiryPath(`//other.example/exchange/building-materials/${id}?audienceState=TX&audienceCountry=US`, id, "availability")).toBeNull();
+    expect(verifiedStoneInquiryPath(`/exchange/building-materials/${id}?audienceState=TX&audienceState=FL&audienceCountry=US`, id, "availability")).toBeNull();
   });
 });
