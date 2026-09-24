@@ -8,10 +8,10 @@ import { apiRequest } from "@/lib/queryClient";
 import { createClientOperationId } from "@/lib/clientOperationId";
 import { useIsMobile } from "../hooks/use-mobile";
 import { useScoutController } from "./useScoutController";
+import { useScoutReturnRestoration } from "./useScoutReturnRestoration";
 import {
   clearScoutReturnSnapshot,
   rememberScoutForReturn,
-  takeScoutReturnSnapshot,
 } from "./scoutReturnSnapshot";
 import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
@@ -1667,7 +1667,7 @@ function readScoutBrowserLocation(fallback: string): string {
 }
 
 export default function ScoutOS() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, error: authError } = useAuth();
   const scoutReturnOwner = isAuthenticated
     ? typeof user?.id === "string" && user.id.trim()
       ? `user:${user.id}`
@@ -1793,17 +1793,20 @@ export default function ScoutOS() {
     loadMessages,
     reset,
   } = useScoutController();
-  const skipAutoSaveMessagesRef = useRef<ScoutMessage[] | null>(null);
-
-  useEffect(() => {
-    if (authLoading) return;
-    const restored = takeScoutReturnSnapshot(scoutReturnOwner);
-    if (!restored) return;
-    skipAutoSaveMessagesRef.current = restored.messages;
-    setActiveSavedThreadId(restored.activeSavedThreadId);
+  const onRestoreScoutTask = useCallback((activeSavedThreadId: string | null) => {
+    setActiveSavedThreadId(activeSavedThreadId);
     setHasGuestInteracted(true);
-    loadMessages(restored.messages);
-  }, [authLoading, loadMessages, scoutReturnOwner]);
+  }, []);
+  const shouldSkipReturnAutoSave = useScoutReturnRestoration({
+    authLoading,
+    authTrusted: !authError,
+    owner: scoutReturnOwner,
+    currentLocation: scoutBrowserLocation,
+    explicitLaunch: hasExplicitScoutLaunch,
+    hasCurrentThread: state.messages.length > 0,
+    loadMessages,
+    onRestore: onRestoreScoutTask,
+  });
 
   // KPI: Track time-to-action from render to first action execution
   const renderStartRef = useRef<number | null>(null);
@@ -2027,8 +2030,7 @@ export default function ScoutOS() {
   useEffect(() => {
     // Reopening a result is navigation, not a request to save the task again.
     // A later message creates a new messages array and resumes normal saves.
-    if (state.messages === skipAutoSaveMessagesRef.current) return;
-    skipAutoSaveMessagesRef.current = null;
+    if (shouldSkipReturnAutoSave(state.messages)) return;
     const hasUserThread = state.messages.some(
       (message) => message.role === "user" && message.content.trim().length > 0
     );
@@ -2052,6 +2054,7 @@ export default function ScoutOS() {
     locationCtx.stateCode,
     persistSavedScoutThreadRemote,
     scoutSaveUserId,
+    shouldSkipReturnAutoSave,
     state.messages,
   ]);
 
@@ -3188,7 +3191,12 @@ export default function ScoutOS() {
           navigate: (to) => {
             if (!maybeOpenWorkAreaForRoute(to)) {
               if (to !== "/scout" && !to.startsWith("/scout?")) {
-                rememberScoutForReturn(scoutReturnOwner, state.messages, activeSavedThreadId);
+                rememberScoutForReturn(
+                  scoutReturnOwner,
+                  state.messages,
+                  activeSavedThreadId,
+                  readScoutBrowserLocation(location)
+                );
               }
               navigate(to);
             }
@@ -3250,10 +3258,15 @@ export default function ScoutOS() {
 
   const handleResultLinkNavigate = useCallback(
     (to: string) => {
-      rememberScoutForReturn(scoutReturnOwner, state.messages, activeSavedThreadId);
+      rememberScoutForReturn(
+        scoutReturnOwner,
+        state.messages,
+        activeSavedThreadId,
+        readScoutBrowserLocation(location)
+      );
       navigate(to);
     },
-    [activeSavedThreadId, navigate, scoutReturnOwner, state.messages]
+    [activeSavedThreadId, location, navigate, scoutReturnOwner, state.messages]
   );
 
   const handleOverride = useCallback(

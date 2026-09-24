@@ -7,6 +7,7 @@ const RETURN_WINDOW_MS = 15 * 60 * 1000;
 
 type ScoutReturnSnapshot = {
   owner: string;
+  sourceLocation: string;
   expiresAt: number;
   messages: ScoutMessage[];
   activeSavedThreadId: string | null;
@@ -18,18 +19,33 @@ export function rememberScoutForReturn(
   owner: string | null,
   messages: ScoutMessage[],
   activeSavedThreadId: string | null,
+  sourceLocation: string,
   now = Date.now()
 ): boolean {
-  if (!owner || !messages.some((message) => message.role === "user" && message.content.trim())) {
+  if (
+    !owner ||
+    !(sourceLocation === "/scout" || sourceLocation.startsWith("/scout?")) ||
+    !messages.some((message) => message.role === "user" && message.content.trim())
+  ) {
     return false;
   }
   pendingReturn = {
     owner,
+    sourceLocation,
     expiresAt: now + RETURN_WINDOW_MS,
     messages: messages.slice(),
     activeSavedThreadId,
   };
   return true;
+}
+
+export function clearScoutReturnForNewLaunch(
+  currentLocation: string,
+  explicitLaunch: boolean
+): void {
+  if (explicitLaunch && pendingReturn?.sourceLocation !== currentLocation) {
+    pendingReturn = null;
+  }
 }
 
 export function takeScoutReturnSnapshot(

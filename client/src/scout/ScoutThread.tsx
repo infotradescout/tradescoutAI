@@ -1122,6 +1122,8 @@ function MessageExtras({
                     onClick={(event) => {
                       if (
                         !onResultLinkNavigate ||
+                        !safeUrl.startsWith("/") ||
+                        safeUrl.startsWith("//") ||
                         event.button !== 0 ||
                         event.metaKey ||
                         event.ctrlKey ||

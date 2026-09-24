@@ -258,6 +258,67 @@ describe("ScoutThread evidence strip", () => {
     }
   });
 
+  it("leaves HTTPS result links to native browser navigation", () => {
+    const externalUrl = "https://example.com/offer";
+    const message: ScoutMessage = {
+      id: "a_external_result",
+      role: "assistant",
+      content: "A linked source is available.",
+      timestamp: "2026-09-24T00:00:00Z",
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{ id: "source-1", type: "site", name: "Source", url: externalUrl, match_reasons: [] }],
+        evidence: [],
+        answer: "A linked source is available.",
+        allowed_actions: [],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const navigate = vi.fn();
+    const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+    const previousScrollTo = HTMLElement.prototype.scrollTo;
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+    HTMLElement.prototype.scrollTo = vi.fn();
+    const observedNative = vi.fn((event: MouseEvent) => {
+      expect(event.defaultPrevented).toBe(false);
+      event.preventDefault(); // Keep JSDOM from attempting an external navigation.
+    });
+    document.addEventListener("click", observedNative);
+
+    try {
+      React.act(() =>
+        root.render(
+          React.createElement(ScoutThread, {
+            messages: [message],
+            status: "idle",
+            onResultLinkNavigate: navigate,
+          })
+        )
+      );
+      const link = container.querySelector<HTMLAnchorElement>(`.scout-result-card__title[href="${externalUrl}"]`);
+      expect(link).not.toBeNull();
+      link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+      expect(observedNative).toHaveBeenCalledOnce();
+      expect(navigate).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("click", observedNative);
+      React.act(() => root.unmount());
+      container.remove();
+      HTMLElement.prototype.scrollTo = previousScrollTo;
+      if (previousActEnvironment === undefined) {
+        delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+      } else {
+        actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+      }
+    }
+  });
+
   it("puts the verified county results and their distinct actions before the expandable explanation", () => {
     const answer =
       "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. Businesses, pages, tools, and other requests were not checked. Nothing was sent.";
