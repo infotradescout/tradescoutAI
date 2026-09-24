@@ -128,6 +128,21 @@ export function stoneInquiryPath(id: unknown, intent: StoneInquiryIntent): strin
   return path && readStoneInquiryIntent(intent) ? `${path}?inquiry=${intent}` : null;
 }
 
+/** Carry only one selected market through stone detail and auth return URLs. */
+export function selectedStoneAudienceSearch(search: string): string | null {
+  const params = new URLSearchParams(search);
+  const state = params.get("audienceState");
+  const country = params.get("audienceCountry");
+  const city = params.get("audienceCity");
+  if (!state || !/^[A-Z]{2}$/.test(state) || country !== "US") return null;
+  if (state === "FL" && (!city?.trim() || city.length > 100)) return null;
+  if (["audienceState", "audienceCountry", "audienceCity"].some((key) => params.getAll(key).length > 1)) return null;
+  const selected = new URLSearchParams({ audienceState: state });
+  if (state === "FL" && city) selected.set("audienceCity", city);
+  selected.set("audienceCountry", country);
+  return `?${selected.toString()}`;
+}
+
 export function stoneInquiryMessage(
   listing: { title: string; price: unknown; specifications?: Record<string, unknown> },
   intent: StoneInquiryIntent
@@ -158,7 +173,10 @@ export function stoneInquiryMessage(
   );
 }
 
-export function stoneInquiryReturnPath(id: unknown, intent: StoneInquiryIntent): string | null {
+export function stoneInquiryReturnPath(id: unknown, intent: StoneInquiryIntent, audienceSearch: string | null): string | null {
   const path = stoneInquiryPath(id, intent);
-  return path ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(path)}` : null;
+  const selected = typeof audienceSearch === "string" ? selectedStoneAudienceSearch(audienceSearch) : null;
+  return path && selected
+    ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(path + `&${selected.slice(1)}`)}`
+    : null;
 }

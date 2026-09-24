@@ -15,7 +15,11 @@ function load(relative, dependencies) {
   new Function('require', 'module', 'exports', compiled)(id => dependencies[id] || require(id), module, module.exports);
   return module.exports;
 }
-const renderer = load('server/publicExchangeStoneHtml.ts', { '../shared/exchangeStoneBuyerFlow': buyer });
+const discovery = load('server/services/exchangeStoneDiscovery.ts', { '../../shared/exchangeStoneBuyerFlow': buyer });
+const renderer = load('server/publicExchangeStoneHtml.ts', {
+  '../shared/exchangeStoneBuyerFlow': buyer,
+  './services/exchangeStoneDiscovery': discovery,
+});
 const store = load('server/services/exchangeStoneFunnelStore.ts', { './exchangeStoneFunnel': funnel });
 const acquisition = { channel: 'tradescout', medium: 'organic', evidence: 'referrer', referrerHost: 'www.thetradescout.com', campaign: null };
 const event = (overrides = {}) => ({ eventKey: 'inquiry:1', journeyKey: 'journey:1', buyerKey: 'a'.repeat(64), offerKey: 'offer:1', stage: 'inquiry_submitted', occurredAt: '2026-09-21T12:00:00Z', acquisition, evidence: 'saved_inquiry', evidenceId: 'inquiry:1', environment: 'production', marketKey: 'US:TX:Dallas', ...overrides });
@@ -30,8 +34,21 @@ test('exact product links, explicit price units and sign-in continuation', () =>
   assert.equal(buyer.stonePriceLabel(1707, 'slab'), '$1,707.00 / slab');
   for (const bad of [null, '', 0, -1, '1e2', '27.755', false]) assert.equal(buyer.stonePriceLabel(bad, 'sqft'), null);
   for (const id of ['../private', 'https://evil.test', 'tradescout-stone-test?x=1']) assert.equal(buyer.stoneListingPath(id), null);
-  assert.match(buyer.stoneInquiryReturnPath(item.id, 'callback'), /^\/pre-scout-setup\?mode=signin&next=/);
-  assert.match(decodeURIComponent(buyer.stoneInquiryReturnPath(item.id, 'callback')), /inquiry=callback$/);
+  const handoff = buyer.stoneInquiryReturnPath(item.id, 'callback', '?utm_source=campaign&audienceState=TX&audienceCity=Dallas&audienceCountry=US&inquiry=availability');
+  assert.match(handoff, /^\/pre-scout-setup\?mode=signin&next=/);
+  const next = new URL(handoff, 'https://tradescout.invalid').searchParams.get('next');
+  assert.equal(next, `${buyer.stoneListingPath(item.id)}?inquiry=callback&audienceState=TX&audienceCountry=US`);
+  assert.equal(new URL(next, 'https://tradescout.invalid').searchParams.getAll('inquiry').length, 1);
+  assert.equal(buyer.isStoneInquiryPath(next), true);
+  assert.equal(buyer.stoneInquiryReturnPath(item.id, 'availability', '?audienceState=FL&audienceCity=Gulf+Breeze&audienceCountry=US'),
+    `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`${buyer.stoneListingPath(item.id)}?inquiry=availability&audienceState=FL&audienceCity=Gulf+Breeze&audienceCountry=US`)}`);
+  for (const bad of [null, '', '?audienceState=TX', '?audienceState=TX&audienceCountry=CA',
+    '?audienceState=TX&audienceState=FL&audienceCountry=US',
+    '?audienceState=FL&audienceCountry=US',
+    '?audienceState=FL&audienceCity=Pensacola&audienceCity=Gulf+Breeze&audienceCountry=US']) {
+    assert.equal(buyer.stoneInquiryReturnPath(item.id, 'callback', bad), null, String(bad));
+  }
+  assert.equal(buyer.stoneInquiryReturnPath('../private', 'callback', '?audienceState=TX&audienceCountry=US'), null);
   assert.match(buyer.stoneInquiryMessage(item, 'callback'), /Synthetic test stone.*\$27.75 \/ sq ft.*TradeScout/s);
 });
 
@@ -202,9 +219,10 @@ test('unknown or excluded viewers see no product data in HTML or structured data
     assert.ok(page.html.includes('What the displayed price includes'));
   }
 });
-test('approved hub indexability, direct inquiry links, source tags and no invented availability', () => {
+test('selected-area catalog stays noindex while the approved hub stays indexable', () => {
   const page = renderer.renderExchangeStoneLanding(landing({ acquisitionTags: { utm_source: 'facebook', utm_medium: 'marketplace' } }));
-  assert.equal(page.robots, 'index, follow');
+  assert.equal(page.robots, 'noindex, follow');
+  assert.equal(renderer.renderExchangeStoneLanding(landing({ market: undefined })).robots, 'index, follow');
   assert.ok(page.html.includes('/exchange/building-materials/tradescout-stone-test?inquiry=callback'));
   assert.ok(page.html.includes('name="utm_source" value="facebook"'));
   for (const bad of ['/exchange?item=', 'InStock', 'aggregateRating', 'supplierCost']) assert.equal(page.html.includes(bad), false);
