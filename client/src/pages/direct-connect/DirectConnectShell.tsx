@@ -2920,15 +2920,25 @@ export function DirectConnectRequestComposer({
     const scrollRoot = heading?.closest<HTMLElement>("#app-scroll-root");
     if (!heading || !scrollRoot) return;
 
-    // AppShell scrolls this panel below its fixed header. Align the new step's
-    // heading inside that panel so the progress row and review card stay visible.
+    // Scout's iframe can scroll ancestors around AppShell as well as the app
+    // panel, moving the panel behind its fixed header. Reset those first.
     heading.focus({ preventScroll: true });
+    for (let ancestor = scrollRoot.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      if (ancestor.scrollTop > 0) {
+        ancestor.scrollTo({ top: 0, behavior: "instant" });
+      }
+    }
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: "instant" });
+    const headerBottom =
+      document.querySelector<HTMLElement>(".ts-shell-header-mobile")
+        ?.getBoundingClientRect().bottom ?? 0;
+    const visibleTop = Math.max(scrollRoot.getBoundingClientRect().top, headerBottom);
     const targetTop =
       scrollRoot.scrollTop +
       heading.getBoundingClientRect().top -
-      scrollRoot.getBoundingClientRect().top -
+      visibleTop -
       12;
-    scrollRoot.scrollTop = Math.max(0, targetTop);
+    scrollRoot.scrollTo({ top: Math.max(0, targetTop), behavior: "instant" });
   }, [describeStep]);
 
   const handleWherePlaceSelected = useCallback(
