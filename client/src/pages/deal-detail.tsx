@@ -132,7 +132,7 @@ export default function DealDetail() {
               data-testid="deal-detail-content"
             >
               <p className="text-sm font-semibold uppercase tracking-wide text-orange-500">
-                Posted TradeDeal
+                Promotional TradeDeal
               </p>
               <h1 className="mt-2 text-3xl font-semibold" data-testid="deal-detail-title">
                 {deal.title}

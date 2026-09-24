@@ -83,7 +83,7 @@ describe("public TradeDeal detail page", () => {
       `/api/deals/${ID}?county=04013`,
       expect.objectContaining({ cache: "no-store" })
     );
-    expect(container.textContent).toContain("Posted TradeDeal");
+    expect(container.textContent).toContain("Promotional TradeDeal");
     expect(container.textContent).toContain("County tool rental offer");
     expect(container.textContent).toContain("Available in the selected county");
     expect(container.textContent).toContain("Viewing it does not contact anyone");
