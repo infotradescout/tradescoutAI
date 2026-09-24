@@ -653,7 +653,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       !isLoggedIn ||
       isAuthOrSetupSurface ||
       isAdminSurface ||
-      !shouldAutoOpenStartGuideAtLocation(location)
+      !shouldAutoOpenStartGuideAtLocation(location, window.self === window.top)
     )
       return;
     try {

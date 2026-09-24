@@ -1,5 +1,9 @@
-/** A direct Scout visit already gives the user a place to state their goal. */
-export function shouldAutoOpenStartGuideAtLocation(location: string): boolean {
+/** A direct Scout visit or embedded work area already has its own task context. */
+export function shouldAutoOpenStartGuideAtLocation(
+  location: string,
+  isTopLevelWindow: boolean
+): boolean {
+  if (!isTopLevelWindow) return false;
   const path = location.split(/[?#]/, 1)[0];
   return path !== "/scout" && !path.startsWith("/scout/");
 }
