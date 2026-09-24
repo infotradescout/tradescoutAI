@@ -296,6 +296,53 @@ describe("ScoutThread evidence strip", () => {
     expect(html.indexOf("More detail")).toBeLessThan(html.indexOf("Why this helps"));
   });
 
+  it("does not turn a rejected business route into a fallback entity link", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const message: ScoutMessage = {
+        id: "a_business_links",
+        role: "assistant",
+        content: "Two public business profiles were listed.",
+        resultContract: {
+          contract_version: "scout_result.v1",
+          intent: "provider_search",
+          ambiguity_options: [],
+          entities: [
+            {
+              id: "reserved",
+              type: "business",
+              name: "Reserved path",
+              url: "/business/requests",
+              match_reasons: [],
+            },
+            {
+              id: "valid",
+              type: "business",
+              name: "Maricopa Repair",
+              url: "/business/maricopa-repair",
+              match_reasons: [],
+            },
+          ],
+          evidence: [],
+          answer: "Two public business profiles were listed.",
+          allowed_actions: [],
+          working_memory_update: {},
+        },
+      };
+      const html = renderThread([message]);
+      const container = document.createElement("div");
+      container.innerHTML = html;
+
+      expect(container.textContent).toContain("Reserved path");
+      expect(container.querySelector('a[href="/business/requests"]')).toBeNull();
+      expect(container.querySelector('a[href="/business/maricopa-repair"]')?.textContent).toBe(
+        "Maricopa Repair"
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("keeps no-post recovery honest and bounds an unfamiliar recovery format", () => {
     const noPost =
       "This Scout result does not verify a county post from the last 7 days in Maricopa County, AZ. It does not verify deals, businesses, pages, tools, or other requests. Open Community or Businesses to continue; nothing was sent.";
@@ -508,6 +555,122 @@ describe("ScoutThread evidence strip", () => {
     expect(absentSummary).toContain("your county");
     expect(absentSummary).toContain("Nothing sent");
   });
+
+  it.each([
+    {
+      name: "a post, promotional TradeDeal, and public business together",
+      post: "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ.",
+      deal: "It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting.",
+      business:
+        "Scout also found 1 public business profile listed for Maricopa County, AZ. Business profiles were not filtered to this week; check current services and availability before contact.",
+      expected: ["1 post (7d)", "1 promo (verify terms/end)", "1 public business (no week filter)"],
+      excluded: ["businesses unchecked", "1 business (7d)"],
+    },
+    {
+      name: "a public business without a recent post or eligible promotion",
+      post: "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned.",
+      deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
+      business:
+        "Scout also found 1 public business profile listed for Maricopa County, AZ. Business profiles were not filtered to this week; check current services and availability before contact.",
+      expected: ["no published posts (7d)", "1 public business", "no week filter"],
+      excluded: ["businesses unchecked", "1 business (7d)"],
+    },
+    {
+      name: "all three checked sources returning empty",
+      post: "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned.",
+      deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
+      business:
+        "Scout checked public business profiles for Maricopa County, AZ; none were returned.",
+      expected: ["no published posts (7d)", "no Scout promo deals", "no public businesses"],
+      excluded: ["businesses unchecked", "Other sources unchecked"],
+    },
+    {
+      name: "a public business source error",
+      post: "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned.",
+      deal: "It checked Scout promotions for Maricopa County, AZ; no eligible TradeDeals were returned. Other deal sources were not checked.",
+      business: "Public business profiles for Maricopa County, AZ could not be checked right now.",
+      expected: ["no published posts (7d)", "business profiles unavailable"],
+      excluded: ["businesses unchecked", "no public businesses"],
+    },
+    {
+      name: "an unchecked public business source",
+      post: "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ.",
+      deal: "It does not verify deals.",
+      business: "Businesses were not checked.",
+      expected: ["1 published post (7d)", "deals unchecked", "businesses unchecked"],
+      excluded: ["no public businesses"],
+    },
+  ])(
+    "keeps $name distinct from the seven-day post scope",
+    ({ post, deal, business, expected, excluded }) => {
+      const answer = `${post} ${deal} ${business} Pages, tools, and other requests were not checked. Nothing was sent.`;
+      const message: ScoutMessage = {
+        id: "a_business_scope",
+        role: "assistant",
+        content: answer,
+        provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+        resultContract: {
+          contract_version: "scout_result.v1",
+          intent: "provider_search",
+          ambiguity_options: [],
+          entities: [],
+          evidence: [],
+          answer,
+          allowed_actions: [],
+          working_memory_update: {},
+        },
+      };
+      const html = renderThread([message]);
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      const summary = container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
+
+      expect(summary.length).toBeLessThanOrEqual(150);
+      expect(summary).toContain("Maricopa County, AZ");
+      expect(summary).toContain("Pages/tools/other requests unchecked. Nothing sent.");
+      for (const phrase of expected) expect(summary).toContain(phrase);
+      for (const phrase of excluded) expect(summary).not.toContain(phrase);
+      expect(container.textContent).toContain("More detail");
+    }
+  );
+
+  it.each([`${"Long County Name ".repeat(3).trim()}, AZ`, "Maricopa<script>, AZ"])(
+    "uses a safe county fallback for a business-aware answer with area %s",
+    (area) => {
+      const answer =
+        `This Scout result includes 1 published county post from the last 7 days in ${area}. ` +
+        `It also found 1 posted Scout TradeDeal for ${area}. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. ` +
+        `Scout also found 1 public business profile listed for ${area}. Business profiles were not filtered to this week; check current services and availability before contact. ` +
+        "Pages, tools, and other requests were not checked. Nothing was sent.";
+      const html = renderThread([
+        {
+          id: "a_long_business_area",
+          role: "assistant",
+          content: answer,
+          provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+          resultContract: {
+            contract_version: "scout_result.v1",
+            intent: "provider_search",
+            ambiguity_options: [],
+            entities: [],
+            evidence: [],
+            answer,
+            allowed_actions: [],
+            working_memory_update: {},
+          },
+        },
+      ]);
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      const summary = container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
+
+      expect(summary.length).toBeLessThanOrEqual(150);
+      expect(summary).toContain("your county");
+      expect(summary).toContain("1 public business");
+      expect(summary).toContain("Nothing sent.");
+      expect(summary).not.toContain("Maricopa County");
+    }
+  );
 
   it("keeps positive post and deal summaries scoped when the county label is long or malformed", () => {
     const longArea = `${"Very Long County Name ".repeat(3).trim()}, AZ`;

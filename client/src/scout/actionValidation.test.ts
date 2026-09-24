@@ -161,6 +161,26 @@ describe("actionValidation", () => {
     }
   });
 
+  it("allows only a public business profile path for Scout business results", () => {
+    const profile = "/business/maricopa-repair";
+    expect(
+      scoutAllowedActionToAction(
+        allowedAction({ label: "Open local business profile", target: profile })
+      )
+    ).toMatchObject({ type: "NAVIGATE", to: profile, path: profile });
+
+    for (const blocked of [
+      "/business/requests",
+      "/business/Requests",
+      "/business/maricopa-repair/edit",
+      "/business/maricopa-repair?redirect=/messages",
+      "/business/maricopa-repair#contact",
+      "/business/maricopa%2Frepair",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
+  });
+
   it("allows normal user Scout and Supply Run routes", () => {
     for (const to of [
       "/homes",

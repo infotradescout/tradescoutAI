@@ -68,6 +68,8 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
 
 const PUBLIC_DEAL_PATH = /^\/deals\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const PUBLIC_BUSINESS_PROFILE_PATH = /^\/business\/[a-z0-9][a-z0-9-]{0,119}$/i;
+
 function isAllowedPublicDealPath(target: string, basePath: string): boolean {
   if (!PUBLIC_DEAL_PATH.test(basePath) || target.includes("#")) return false;
   const query = target.split("?", 2)[1];
@@ -77,6 +79,14 @@ function isAllowedPublicDealPath(target: string, basePath: string): boolean {
     params.getAll("county").length === 1 &&
     [...params.keys()].length === 1 &&
     /^\d{5}$/.test(params.get("county") || "")
+  );
+}
+
+function isAllowedPublicBusinessProfilePath(target: string, basePath: string): boolean {
+  return (
+    target === basePath &&
+    basePath.toLowerCase() !== "/business/requests" &&
+    PUBLIC_BUSINESS_PROFILE_PATH.test(basePath)
   );
 }
 
@@ -127,6 +137,7 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
     const isAllowedStatic = ALLOWED_NAVIGATION_PATHS.has(basePath);
     const isAllowedDynamic =
       isAllowedPublicDealPath(target, basePath) ||
+      isAllowedPublicBusinessProfilePath(target, basePath) ||
       /^\/contractors\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/exchange\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/profile\/[a-zA-Z0-9_-]+/.test(basePath) ||

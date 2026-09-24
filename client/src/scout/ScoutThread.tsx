@@ -117,8 +117,118 @@ function trimToSummary(content: string): string {
   return `${clean.slice(0, SUMMARY_MAX_CHARS - 3).trim()}...`;
 }
 
+function businessAwareMixedDiscoverySummary(clean: string): string | null {
+  // The message record retains the server answer, but not metadata.businessCheck.
+  // Recognize only the server's controlled sentences before describing a business check.
+  if (!/Pages, tools, and other requests were not checked\. Nothing was sent\.$/i.test(clean))
+    return null;
+
+  const firstSentence = clean.match(
+    /^(.+?)(?= (?:It also found \d+ posted Scout TradeDeals?|It checked Scout promotions|Scout promotions could not|It does not verify deals)\b)/i
+  )?.[1];
+  const foundPost = firstSentence?.match(
+    /^This Scout result includes (\d{1,4}) published county posts? from the last 7 days in (.+)\.$/i
+  );
+  const emptyPost = firstSentence?.match(
+    /^Scout checked published county posts from the last 7 days in (.+); none were returned\.$/i
+  );
+  const failedPost = firstSentence?.match(
+    /^Published county posts from the last 7 days in (.+) could not be checked right now\.$/i
+  );
+  const unverifiedPost = firstSentence?.match(
+    /^This Scout result does not verify a county post from the last 7 days in (.+)\.$/i
+  );
+  if (!foundPost && !emptyPost && !failedPost && !unverifiedPost) return null;
+
+  const rawArea = (
+    foundPost?.[2] ||
+    emptyPost?.[1] ||
+    failedPost?.[1] ||
+    unverifiedPost?.[1] ||
+    ""
+  ).trim();
+  const area =
+    (/^[a-z .'-]+, [a-z]{2}$/i.test(rawArea) && rawArea.length <= 80) || rawArea === "your county"
+      ? rawArea
+      : "your county";
+  const postedDeals = clean.match(
+    /\bIt also found (\d{1,4}) posted Scout TradeDeals? for (.+?)\. These are promotional listings; terms and availability are not independently verified\. Confirm when each offer ends before acting\./i
+  );
+  const emptyDeals = clean.match(
+    /\bIt checked Scout promotions for (.+?); no eligible TradeDeals were returned\. Other deal sources were not checked\./i
+  );
+  const failedDeals = /\bScout promotions could not be checked right now\./i.test(clean);
+  const uncheckedDeals = /\bIt does not verify deals\./i.test(clean);
+  const foundBusiness = clean.match(
+    /\bScout also found (\d{1,4}) public business profiles? listed for (.+?)\. Business profiles were not filtered to this week; check current services and availability before contact\./i
+  );
+  const emptyBusiness = clean.match(
+    /\bScout checked public business profiles for (.+?); none were returned\./i
+  );
+  const failedBusiness = clean.match(
+    /\bPublic business profiles for (.+?) could not be checked right now\./i
+  );
+  const uncheckedBusiness = /\bBusinesses were not checked\./i.test(clean);
+  if (
+    (!postedDeals && !emptyDeals && !failedDeals && !uncheckedDeals) ||
+    (!foundBusiness && !emptyBusiness && !failedBusiness && !uncheckedBusiness)
+  )
+    return null;
+
+  const scopedAreas = [
+    postedDeals?.[2],
+    emptyDeals?.[1],
+    foundBusiness?.[2],
+    emptyBusiness?.[1],
+    failedBusiness?.[1],
+  ].filter((value): value is string => Boolean(value));
+  if (scopedAreas.some((value) => value.trim().toLowerCase() !== rawArea.toLowerCase())) {
+    return trimToSummary(clean);
+  }
+
+  const post = foundPost
+    ? `${foundPost[1]} published post${foundPost[1] === "1" ? "" : "s"} (7d)`
+    : emptyPost
+      ? "no published posts (7d)"
+      : failedPost
+        ? "posts unavailable (7d)"
+        : "no post verified (7d)";
+  const deal = postedDeals
+    ? `${postedDeals[1]} promo${postedDeals[1] === "1" ? "" : "s"} (verify terms/end)`
+    : emptyDeals
+      ? "no Scout promo deals"
+      : failedDeals
+        ? "Scout promos unavailable"
+        : "deals unchecked";
+  const business = foundBusiness
+    ? `${foundBusiness[1]} public business${foundBusiness[1] === "1" ? "" : "es"} (no week filter)`
+    : emptyBusiness
+      ? "no public businesses"
+      : failedBusiness
+        ? "business profiles unavailable"
+        : "businesses unchecked";
+  const format = (place: string, compact: boolean) => {
+    const postText =
+      compact && foundPost ? `${foundPost[1]} post${foundPost[1] === "1" ? "" : "s"} (7d)` : post;
+    const dealText =
+      compact && failedDeals
+        ? "promos unavailable"
+        : compact && emptyDeals
+          ? "no promo deals"
+          : deal;
+    const businessText = compact && failedBusiness ? "businesses unavailable" : business;
+    return `${place}: ${postText}, ${dealText}, ${businessText}. Pages/tools/other requests unchecked. Nothing sent.`;
+  };
+  let summary = format(area, false);
+  if (summary.length > SUMMARY_MAX_CHARS) summary = format(area, true);
+  if (summary.length > SUMMARY_MAX_CHARS) summary = format("your county", true);
+  return summary.length <= SUMMARY_MAX_CHARS ? summary : trimToSummary(clean);
+}
+
 function mixedDiscoverySummary(content: string): string {
   const clean = content.replace(/\s+/g, " ").trim();
+  const businessAwareSummary = businessAwareMixedDiscoverySummary(clean);
+  if (businessAwareSummary) return businessAwareSummary;
   if (
     /^Set your county to browse nearby posts\./i.test(clean) &&
     /does not verify county posts, deals, businesses, pages, tools, or requests/i.test(clean) &&
@@ -367,6 +477,12 @@ function actionsMatch(left: ScoutAction, right: ScoutAction): boolean {
   };
 
   return identity(left) === identity(right);
+}
+
+function validatedEntityUrl(url: unknown): string | undefined {
+  if (typeof url !== "string" || !isSafeLinkTarget(url)) return undefined;
+  const action = validateAction({ type: "NAVIGATE", to: url, label: "Open result" });
+  return action?.type === "NAVIGATE" && (action.to || action.path) === url ? url : undefined;
 }
 
 function frameChipToAction(chip: ScoutActionChip): ScoutAction {
@@ -817,9 +933,10 @@ function MessageExtras({
   const entityActionIds = React.useMemo(() => {
     const ids = new Set<string>();
     for (const entity of contractEntities) {
-      if (typeof entity.url !== "string" || !isSafeLinkTarget(entity.url)) continue;
+      const safeUrl = validatedEntityUrl(entity.url);
+      if (!safeUrl) continue;
       const entry = contractActionEntries.find(
-        ({ action }) => action.type === "NAVIGATE" && (action.to || action.path) === entity.url
+        ({ action }) => action.type === "NAVIGATE" && (action.to || action.path) === safeUrl
       );
       if (entry) ids.add(entry.source.action_id);
     }
@@ -973,10 +1090,7 @@ function MessageExtras({
           )}
           {contractEntities.map((entity, index) => {
             const entityName = entity.name || entity.type;
-            const safeUrl =
-              typeof entity.url === "string" && isSafeLinkTarget(entity.url)
-                ? entity.url
-                : undefined;
+            const safeUrl = validatedEntityUrl(entity.url);
             const entityAction = safeUrl
               ? contractActionEntries.find(
                   ({ action }) =>
