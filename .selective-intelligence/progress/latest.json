@@ -1,44 +1,71 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260924T215332Z-fc773337",
-  "createdAt": "2026-09-24T21:53:32.896167+00:00",
-  "outcome": "Scout and Businesses draft PR 699 is locally committed at b98d9939; mobile county Review transition is visible in browser, while full Scout rerun remains partial.",
+  "checkpointId": "progress-20260924T225234Z-95de32d4",
+  "createdAt": "2026-09-24T22:52:35.099198+00:00",
+  "outcome": "Draft PR 699 Scout and Businesses UX candidate: compact county result summary and readable source checks; saved-task deletion is atomic across conversation and legacy preferences.",
   "scope": [
-    "TradeScout Scout and Businesses PR 699 only; unrelated projects and canonical Infinity remain separate."
+    "TradeScout Scout and Businesses PR #699 only; canonical Infinity and other products remain separate."
   ],
   "prohibitions": [
-    "No invented local inventory, customer contact, production writes, relaxed release guards, main merge, or deployment."
+    "No invented inventory, production writes, guard weakening, main merge or deployment."
   ],
   "progress": {
     "completedVerified": [
-      "Clean b98d9939 contains Scout return, Businesses empty-state, mobile button, Start Guide, and nested-scroll fixes; Windows 390px browser reached post, deal, business, checked-empty draft, visible Review, saved reopen, and post source-error phases."
+      "D clone matching package lock: ScoutThread focused 54/54 passed, atomic saved-task deletion PGlite rollback/success 2/2 passed, npm run check passed; independent Objector identified and Worker repaired two mobile hierarchy issues."
     ],
     "changedUnverified": [
-      "Scout fullstack r1 timed out during final business-source-error app restart; first-screen clarity improvements and exact-head strict gate remain pending."
+      "New UI hierarchy and atomic delete have not yet completed integrated exact-head browser proof; PR not merged or deployed."
     ],
     "proof": [
-      "work/scout-fullstack-win-b98d-r1/receipt.json: review heading 59.6px below 48px header, saved reopen passed, zero forbidden request writes at private review, final clean b98d; full run failed on final source-error timeout."
+      "D:/AAATraderCorner/TradeScout/_codex_worktrees/scout-ux-final-20260924 focused Vitest 54/54 and PGlite 2/2; npm run check passed on 2026-09-24. Earlier b98/f9e receipts are historical and partial."
     ],
     "externalEffects": [
-      "Draft PR 699 remote remains at 67015ad3 before this checkpoint; no merge/deploy, customer request, contact, payment, purchase, or trade."
+      "Remote PR #699 currently at cd04b51c before this save; no merge, deploy, customer request, contact, payment, purchase or trade. An owned old D disposable temp folder remains after automatic review rejected its cleanup; its port is closed."
     ],
     "doNotRepeat": [
-      "Do not report partial b98d browser receipt as full pass or old-head gates as final."
+      "Do not treat old-head receipts or prepared runners as final proof. Do not bypass rejected temp cleanup. Do not run concurrent disposable PostgreSQL lanes."
     ],
-    "nextSafeAction": "Finish first-screen clarity slice in isolated worktree; then rerun exact-head Scout and Businesses browser journeys sequentially and unchanged strict release gate."
+    "nextSafeAction": "Run exact-head synthetic Windows browser receipts for Scout, saved-task deletion and faults, business-source fault, Businesses phone/desktop; then unchanged release gate and update draft PR proof."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-mobile-discovery-20260923",
-    "headBefore": "b98d9939e65578c51c08a3cc7e2a7839783d115d",
+    "headBefore": "cd04b51c10625df5206eb1080cef88417662566e",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
-    "selectedStatusBefore": [],
-    "unrelatedChangeCountExcluded": 0
+    "selectedStatusBefore": [
+      "M  client/src/scout/ScoutThread.evidence.test.ts",
+      "M  client/src/scout/ScoutThread.tsx",
+      "M  server/routes.ts",
+      "A  server/services/scoutSavedTaskDeletion.ts",
+      "A  server/tests/scout-saved-task-deletion.behavior.test.ts"
+    ],
+    "unrelatedChangeCountExcluded": 1
   },
-  "savedFiles": [],
+  "savedFiles": [
+    {
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "fb33a92e0988f1864d621246ec0f666aac7bf5fc574df66ea0b9c1afdce38bb7"
+    },
+    {
+      "path": "client/src/scout/ScoutThread.evidence.test.ts",
+      "sha256": "022678bc5b64ff6225aa792847e992244900d9cda22ed8536c512006bb07e530"
+    },
+    {
+      "path": "server/routes.ts",
+      "sha256": "fd327a3f23ccbc5227db56e393e80e068dcdd4884353d6e6da4c04af197ebc22"
+    },
+    {
+      "path": "server/services/scoutSavedTaskDeletion.ts",
+      "sha256": "18b469222835794328132a6857765414639ea0acc44c6465afca82cdfdaa8d2c"
+    },
+    {
+      "path": "server/tests/scout-saved-task-deletion.behavior.test.ts",
+      "sha256": "ff515cd176990e3b3cf97e214dfab9c0258ea8325f87b7932a84dfaf1c09bc3e"
+    }
+  ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
 }

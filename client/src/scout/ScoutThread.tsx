@@ -129,7 +129,7 @@ function findLatestAssistantMessageId(messages: ScoutMessage[]): string | null {
 }
 
 const SUMMARY_MAX_CHARS = 150;
-const MIXED_DISCOVERY_SUMMARY_MAX_CHARS = 260;
+const MIXED_DISCOVERY_SUMMARY_MAX_CHARS = 150;
 
 function firstUsefulParagraph(content: string): string {
   return (
@@ -181,7 +181,7 @@ function businessAwareMixedDiscoverySummary(clean: string): string | null {
     ""
   ).trim();
   const area =
-    (/^[a-z .'-]+, [a-z]{2}$/i.test(rawArea) && rawArea.length <= 80) || rawArea === "your county"
+    (/^[a-z .'-]+, [a-z]{2}$/i.test(rawArea) && rawArea.length <= 45) || rawArea === "your county"
       ? rawArea
       : "your county";
   const postedDeals = clean.match(
@@ -220,34 +220,28 @@ function businessAwareMixedDiscoverySummary(clean: string): string | null {
   }
 
   const post = foundPost
-    ? `${foundPost[1]} published post${foundPost[1] === "1" ? "" : "s"} (past 7 days)`
+    ? `${foundPost[1]} post${foundPost[1] === "1" ? "" : "s"} (7 days)`
     : emptyPost
-      ? "no published posts (past 7 days)"
+      ? "no posts (7 days)"
       : failedPost
-        ? "recent posts could not be checked"
-        : "recent posts were not verified";
+        ? "posts could not be checked"
+        : "posts not verified";
   const deal = postedDeals
-    ? `${postedDeals[1]} Scout TradeDeal promotion${postedDeals[1] === "1" ? "" : "s"}`
+    ? `${postedDeals[1]} TradeDeal${postedDeals[1] === "1" ? "" : "s"}`
     : emptyDeals
-      ? "no eligible Scout TradeDeal promotions"
+      ? "no eligible TradeDeals"
       : failedDeals
-        ? "Scout promotions could not be checked"
-        : "deals were not checked";
+        ? "promotions could not be checked"
+        : "deals not checked";
   const business = foundBusiness
     ? `${foundBusiness[1]} public business${foundBusiness[1] === "1" ? "" : "es"}`
     : emptyBusiness
-      ? "no public business profiles"
+      ? "no public businesses"
       : failedBusiness
-        ? "public business profiles could not be checked"
-        : "businesses were not checked";
-  const limits = [
-    postedDeals ? "Offer terms, availability and end aren't verified." : "",
-    foundBusiness ? "Businesses aren't limited to this week." : "",
-    "Pages, tools and other requests weren't checked. Nothing was sent.",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const format = (place: string) => `${place}: ${post}; ${deal}; ${business}. ${limits}`;
+        ? "businesses could not be checked"
+        : "businesses not checked";
+  const format = (place: string) =>
+    `${place}: ${post}, ${deal}, ${business}. Other sources unchecked. Nothing was sent.`;
   const summary = format(area);
   return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS ? summary : format("your county");
 }
@@ -472,6 +466,47 @@ function hasExplicitMixedCoverage(msg: ScoutMessage, answer: string): boolean {
   );
 }
 
+function mixedDiscoverySourceChecks(answer: string): Array<{ source: string; status: string }> {
+  const clean = answer.replace(/\s+/g, " ").trim();
+  const postsChecked =
+    /(?:This Scout result includes \d+ published county posts? from the last 7 days|Scout checked published county posts from the last 7 days)/i.test(
+      clean
+    );
+  const dealsChecked =
+    /(?:It also found \d+ posted Scout TradeDeals?|It checked Scout promotions for)/i.test(clean);
+  const businessesChecked =
+    /(?:Scout also found \d+ public business profiles?|Scout checked public business profiles for)/i.test(
+      clean
+    );
+  return [
+    {
+      source: "County posts (past 7 days)",
+      status: postsChecked
+        ? "Checked"
+        : /Published county posts from the last 7 days .+ could not be checked right now\./i.test(clean)
+          ? "Could not check"
+          : "Not verified",
+    },
+    {
+      source: "Scout TradeDeals",
+      status: dealsChecked
+        ? "Checked promotions"
+        : /Scout promotions could not be checked right now\./i.test(clean)
+          ? "Could not check"
+          : "Not verified",
+    },
+    {
+      source: "Public business profiles",
+      status: businessesChecked
+        ? "Checked; not limited to this week"
+        : /Public business profiles for .+ could not be checked right now\./i.test(clean)
+          ? "Could not check"
+          : "Not checked",
+    },
+    { source: "Pages, tools and requests", status: "Not checked" },
+  ];
+}
+
 function AssistantMessageBubble({ summary }: { summary: string }) {
   return summary ? <p className="whitespace-pre-line leading-relaxed">{summary}</p> : null;
 }
@@ -658,7 +693,7 @@ export function EvidenceSourceList({ sources }: { sources: ScoutKnowledgeSource[
     });
 
   return (
-    <div className="space-y-1 text-[10px]" style={{ color: "rgba(250,250,250,0.35)" }}>
+    <div className="space-y-1 text-xs leading-relaxed text-[color:var(--text-secondary)]">
       {linkedSources.length > 0 ? <div>Sources: {renderSources(linkedSources)}</div> : null}
       {contextSources.length > 0 ? <div>Context: {renderSources(contextSources)}</div> : null}
     </div>
@@ -1476,13 +1511,6 @@ function MessageExtras({
 
       {(hasAnswerDetails || hasMixedDiscoveryCoverage) && (
         <div className="scout-answer-detail">
-          {hasMixedDiscoveryCoverage && (
-            <p className="text-xs leading-relaxed text-[color:var(--text-secondary)]">
-              Only published county posts from the past 7 days, eligible TradeDeal promotions placed
-              in Scout, and public business profiles are in scope. Pages, tools, and other requests
-              were not checked. Nothing was sent.
-            </p>
-          )}
           {hasAnswerDetails && (
             <>
               <button
@@ -1505,10 +1533,24 @@ function MessageExtras({
                   data-testid={hasMixedDiscoveryCoverage ? "scout-source-check-body" : undefined}
                   className="mt-2 space-y-2 text-sm leading-relaxed text-[color:var(--text-secondary)]"
                 >
-                  <p className="whitespace-pre-line">{fullAnswer}</p>
                   {hasMixedDiscoveryCoverage && (
-                    <EvidenceSourceList sources={msg.provenance?.sources || []} />
+                    <div className="space-y-2 text-xs" aria-label="Scout source checks">
+                      <p className="font-semibold text-[color:var(--text-primary)]">What Scout checked</p>
+                      <dl className="space-y-1.5">
+                        {mixedDiscoverySourceChecks(fullAnswer || "").map(({ source, status }) => (
+                          <div key={source} className="flex items-start justify-between gap-3">
+                            <dt>{source}</dt>
+                            <dd className="shrink-0 text-right font-semibold text-[color:var(--text-primary)]">
+                              {status}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                      <p>Nothing was sent.</p>
+                      <EvidenceSourceList sources={msg.provenance?.sources || []} />
+                    </div>
                   )}
+                  <p className="whitespace-pre-line">{fullAnswer}</p>
                 </div>
               )}
             </>
