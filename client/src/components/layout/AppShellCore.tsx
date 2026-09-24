@@ -430,10 +430,11 @@ export function buildMobileAppTaskbarNav(items: NavItem[]): NavItem[] {
 export function isDirectConnectJobDeepLinkPath(path: string): boolean {
   try {
     const url = new URL(path, "https://www.thetradescout.com");
+    const isDirectConnectPath =
+      url.pathname === "/direct-connect" ||
+      url.pathname.startsWith("/direct-connect/");
     return (
-      (url.pathname === "/direct-connect/active" ||
-        url.pathname === "/direct-connect/engagements" ||
-        url.pathname === "/direct-connect/inbox") &&
+      isDirectConnectPath &&
       Boolean(url.searchParams.get("jobWorkspaceId")?.trim())
     );
   } catch {
