@@ -716,6 +716,17 @@ function titleForLocalPostsAndDealsRequest(value: string): string | null {
 export function latestLocalSearchTitle(messages: ScoutMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
+    if (message.role === "assistant" && message.metadata?.discoveryChecks) {
+      const topic = message.metadata.discoveryTopic;
+      if (
+        typeof topic === "string" &&
+        topic.length <= 60 &&
+        /^[\p{L}\p{N}][\p{L}\p{N} &'\/-]*$/u.test(topic)
+      ) {
+        return `${topic[0].toUpperCase()}${topic.slice(1)} in my county`;
+      }
+      if (topic == null) return "Local posts & deals";
+    }
     if (message.role !== "user") continue;
     const title = titleForLocalPostsAndDealsRequest(message.content);
     if (title) return title;

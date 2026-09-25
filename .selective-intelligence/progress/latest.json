@@ -1,66 +1,61 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T012747Z-b86e125f",
-  "createdAt": "2026-09-25T01:27:47.507838+00:00",
-  "outcome": "Keep natural local trade searches and one-word county-search follow-ups on truthful topic results.",
+  "checkpointId": "progress-20260925T014052Z-03a6dd28",
+  "createdAt": "2026-09-25T01:40:52.802299+00:00",
+  "outcome": "Keep Scout task titles and Businesses status truthful during the observed phone journeys.",
   "scope": [
-    "Scout county discovery topic parsing and contextual follow-up"
+    "Saved Scout title and Businesses pending/error summary"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Natural local plumbing posts-and-deals prompts retain plumbing topic; a bare known trade immediately after a completed county result is interpreted as a read-only county lookup and still goes through the governor; unsafe or unrelated context is not rewritten."
+      "Latest checked county result now sets the saved task title after a one-word trade follow-up; Businesses no longer claims zero profiles while directory checks are pending or failed."
     ],
     "changedUnverified": [
-      "Exact-head browser Scout, Businesses stale/fault, saved-delete and unchanged release gate pending."
+      "Exact-head browser journeys and unchanged release gate pending; governor zero-unknown copy remains to repair."
     ],
     "proof": [
-      "Focused Scout county and route tests 32/32, npm run check, and git diff --check passed; cb4 diagnostic phone receipt found bare electrical governor copy and verified source row geometry."
+      "Focused Scout saved intent and Businesses discovery tests 16/16, npm run check, and git diff --check passed; 476 browser visual receipts showed stale title and contradictory 503 count."
     ],
     "externalEffects": [
       "Only draft PR branch push; no production/customer effects."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Rerun exact-head synthetic phone/browser journeys, inspect screenshots, run unchanged release gate and product delivery packet."
+    "nextSafeAction": "Repair governor empty-unknown copy, then rerun exact-head synthetic phone/browser journeys and unchanged release gate."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "cb4a9f0b71a807383a882bc9763030b23982d55a",
+    "headBefore": "47635f556adc671fb49a417b4085c68fecc02872",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M server/routes/scout.ts",
-      " M server/scout/scoutCountyFips.ts",
-      " M server/scout/scoutMixedDiscoveryRecovery.ts",
-      " M server/tests/scout-county-fips.test.ts",
-      " M server/tests/scout-mixed-discovery-route.test.ts"
+      " M client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
+      " M client/src/pages/direct-connect/DirectConnectPros.tsx",
+      " M client/src/scout/ScoutOS.saved-intent.test.ts",
+      " M client/src/scout/ScoutOS.tsx"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/routes/scout.ts",
-      "sha256": "998fc11e22cfe0df2fd3f6ac57857f02f944d5974bfbd9784396d637d3bde76d"
+      "path": "client/src/scout/ScoutOS.tsx",
+      "sha256": "dfa509c23fa1b487868bc1a3050001687472a3bb8640ce3e66a4cc32909eaa53"
     },
     {
-      "path": "server/scout/scoutCountyFips.ts",
-      "sha256": "3aa5bae2eb4faa3c64a198ebbfdd4f93bb17ed0c15a9c4168856ad552d5f8a84"
+      "path": "client/src/scout/ScoutOS.saved-intent.test.ts",
+      "sha256": "1b226d03af0413f9f8f0100a4523df5ad858e6e98f3699609472ef9f0a91d7c5"
     },
     {
-      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
-      "sha256": "246224fa804dc6ca0b617b04e297764b2e71b112bc559af557ad854ae60601ad"
+      "path": "client/src/pages/direct-connect/DirectConnectPros.tsx",
+      "sha256": "c7917e294255233f2c7adc2f3cc679925640682c7d75a541dc81d8db5615b4bf"
     },
     {
-      "path": "server/tests/scout-county-fips.test.ts",
-      "sha256": "3818be9a67cfde33671bf98975c3a2b1b8a314605b46fd08168b292b49d926e7"
-    },
-    {
-      "path": "server/tests/scout-mixed-discovery-route.test.ts",
-      "sha256": "410f91801e1efa47e4a9d74cd2e127abb7a7b99a03d80c04641d899bf9cce934"
+      "path": "client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
+      "sha256": "2d351c332f1c0d4dd0b9cf457da4158259c214eae57bd91271d4784ea3da09d8"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

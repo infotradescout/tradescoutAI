@@ -18,6 +18,21 @@ describe("saved Scout task intent", () => {
       .toBe("Local posts & deals");
   });
 
+  it("uses the checked result topic when a one-word follow-up changes the county search", () => {
+    const messages: ScoutMessage[] = [
+      { id: "first", role: "user", content: "Find TradeScout posts and deals about plumbing near me" },
+      { id: "first-answer", role: "assistant", content: "One plumbing match.", metadata: { discoveryTopic: "plumbing", discoveryChecks: {} } },
+      { id: "follow-up", role: "user", content: "electrical" },
+      { id: "follow-up-answer", role: "assistant", content: "No electrical matches.", metadata: { discoveryTopic: "electrical", discoveryChecks: {} } },
+    ];
+    expect(latestLocalSearchTitle(messages)).toBe("Electrical in my county");
+    expect(latestLocalSearchTitle([
+      ...messages,
+      { id: "broad", role: "user", content: "Find local posts and deals near me" },
+      { id: "broad-answer", role: "assistant", content: "County results.", metadata: { discoveryTopic: null, discoveryChecks: {} } },
+    ])).toBe("Local posts & deals");
+  });
+
   it("keeps a county posts and deals result in local discovery after autosave", () => {
     const messages: ScoutMessage[] = [
       {

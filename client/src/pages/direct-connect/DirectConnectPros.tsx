@@ -670,10 +670,12 @@ export default function DirectConnectPros() {
   };
   const profileCount = (contractors as ProviderCardProvider[]).length;
   const resultSummary =
-    !workspaceHydrated || providerSearchFetching
+    !workspaceHydrated || providerSearchFetching || fallbackLoading
       ? "Checking local businesses…"
       : providerSearchFailed
         ? "Local profiles could not be checked. Directory listings may still appear below."
+        : directorySearchFailed || stateDirectorySearchFailed
+          ? "Local business results are incomplete. Retry the search below."
         : tradeMatchesPending
           ? "Checking trade matches…"
           : tradeMatchesUnavailable
@@ -686,7 +688,7 @@ export default function DirectConnectPros() {
                 visibleStateDirectoryFallback.length
                   ? ` · ${visibleStateDirectoryFallback.length} more in ${effectiveStateCode}`
                   : ""
-              }${fallbackLoading ? " · checking more listings…" : ""}`;
+              }`;
 
   useEffect(() => {
     const query = searchQuery.trim() || effectiveTradeSlug;

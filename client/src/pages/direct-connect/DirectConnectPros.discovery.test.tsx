@@ -190,6 +190,8 @@ describe("Businesses discovery states", () => {
     expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
     expect(container.querySelector('[data-testid="businesses-state-fallback-loading"]')).toBeNull();
     expect(container.textContent).not.toContain("checking more listings");
+    expect(container.textContent).toContain("Local business results are incomplete");
+    expect(container.textContent).not.toContain("0 matching public profiles");
     expect(mock.api.mock.calls.some(([_method, path]) =>
       typeof path === "string" && path.startsWith("/api/businesses?") &&
       !new URL(path, "https://example.test").searchParams.has("countyFips")
@@ -287,6 +289,8 @@ describe("Businesses discovery states", () => {
       mock.api.mock.calls.some(([, path]) => String(path).startsWith("/api/businesses?"))
     );
     expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+    expect(container.textContent).toContain("Checking local businesses");
+    expect(container.textContent).not.toContain("0 matching public profiles");
 
     await act(async () =>
       finishDirectory({ items: [{ id: "local-1", name: "Acme Services", slug: "acme-services" }] })
