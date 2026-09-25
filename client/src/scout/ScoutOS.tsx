@@ -79,7 +79,7 @@ import { persistScoutLearningSignalLocally } from "./scoutLearningOptions";
 import { type ScoutSourceSignalSnapshot } from "./scoutExperience";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
-import { ScoutHome } from "./ScoutHome";
+import { getMeaningfulContinuations, ScoutContinuationList, ScoutHome } from "./ScoutHome";
 import WatchdogInterventionBanner from "./WatchdogInterventionBanner";
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
@@ -2251,7 +2251,16 @@ export default function ScoutOS() {
       return haystack.includes(query);
     });
   }, [savedScoutSearch, savedScoutSurfaceFilter, savedScoutThreads]);
-  const savedThreadPreview = savedThreadMatches.slice(0, isMobile ? 2 : 3);
+  const savedThreadPreview = savedThreadMatches.slice(0, SCOUT_SAVED_THREADS_LIMIT);
+  const savedThreadContinuations = getMeaningfulContinuations(
+    savedThreadPreview.map((thread) => ({
+      id: thread.id,
+      title: thread.title,
+      summary: thread.summary,
+      preview: thread.preview,
+      relatedLabel: thread.relatedLabel,
+    }))
+  );
 
   const handleLoadSavedThread = useCallback(
     (thread: SavedScoutThread) => {
@@ -4509,16 +4518,7 @@ export default function ScoutOS() {
                     );
                     if (thread) handleLoadSavedThread(thread);
                   }}
-                  continuationThreads={savedThreadPreview.map((thread) => ({
-                    id: thread.id,
-                    title: thread.title,
-                    summary: thread.summary,
-                    preview: thread.preview,
-                    intent: thread.intent,
-                    relatedLabel: thread.relatedLabel,
-                    messageCount: thread.messageCount,
-                    relatedTo: thread.relatedTo,
-                  }))}
+                  continuationThreads={savedThreadContinuations}
                 />
               )}
 
@@ -4949,6 +4949,22 @@ export default function ScoutOS() {
                         }
                       />
                     </div>
+
+                    {savedThreadContinuations.length > 1 ? (
+                      <details key={activeSavedThreadId ?? "current"} className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-2">
+                        <summary className="min-h-9 cursor-pointer px-1 py-2 text-xs font-semibold text-[color:var(--text-secondary)]" data-testid="scout-switch-saved-task">
+                          Switch saved task
+                        </summary>
+                        <ScoutContinuationList
+                          threads={savedThreadContinuations}
+                          activeId={activeSavedThreadId}
+                          onSelect={(threadId) => {
+                            const thread = savedThreadPreview.find((candidate) => candidate.id === threadId);
+                            if (thread) handleLoadSavedThread(thread);
+                          }}
+                        />
+                      </details>
+                    ) : null}
 
                     {state.status !== "idle" && !hasAssistantResult && (
                       <div className="scout-current-task__latest grid min-w-0 gap-0.5">
