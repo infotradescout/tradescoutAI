@@ -23,10 +23,12 @@ export type ScoutPublicToolListing = {
 
 export type ScoutPublicToolsLookup =
   | { status: "checked"; items: ScoutPublicToolListing[] }
-  | { status: "error"; items: []; reason: "source_unavailable" | "category_unavailable" | "invalid_topic" }
+  | { status: "error"; items: []; reason: "source_unavailable" | "category_unavailable" | "invalid_topic" | "scan_limit_reached" }
   | { status: "area_unavailable"; items: []; reason: "invalid_county" };
 
 const TOOL_CATEGORY_NAME = "Tools & Hardware";
+const TOOL_PAGE_SIZE = 16;
+const MAX_SCANNED_TOOLS = 256;
 const COUNTY_BY_FIPS = new Map(
   US_STATES_COUNTIES.flatMap((state) =>
     state.counties.map((county) => [county.fipsCode, { name: county.name, state: state.code }] as const)
@@ -94,44 +96,50 @@ export async function lookupScoutPublicTools(
       return { status: "error", items: [], reason: "category_unavailable" };
     }
 
-    const rows = await source.getMarketplaceListings({
-      categoryId: toolsCategory.id,
-      countyAliases: aliases,
-      state: area.state,
-      status: "active",
-      requireApproved: true,
-      publicExposureOnly: true,
-      ...(terms.length ? { publicToolTopic: terms.join(" ") } : {}),
-      sortBy: "date_desc",
-      limit,
-      offset: 0,
-    });
-
-    const items = rows.flatMap((row): ScoutPublicToolListing[] => {
-      if (
-        row.categoryId !== toolsCategory.id ||
-        !row.approvedAt ||
-        !aliases.includes(String(row.county || "").trim().toLowerCase()) ||
-        String(row.state || "").trim().toUpperCase() !== area.state
-      ) {
-        return [];
+    const items: ScoutPublicToolListing[] = [];
+    let offset = 0;
+    while (offset < MAX_SCANNED_TOOLS) {
+      const pageLimit = Math.min(TOOL_PAGE_SIZE, MAX_SCANNED_TOOLS - offset);
+      const rows = await source.getMarketplaceListings({
+        categoryId: toolsCategory.id,
+        countyAliases: aliases,
+        state: area.state,
+        status: "active",
+        requireApproved: true,
+        publicExposureOnly: true,
+        ...(terms.length ? { publicToolTopic: terms.join(" ") } : {}),
+        sortBy: "date_desc",
+        limit: pageLimit,
+        offset,
+      });
+      if (rows.length > pageLimit) {
+        return { status: "error", items: [], reason: "source_unavailable" };
       }
-      const publicListing = toPublicExchangeListing(row);
-      if (!publicListing) return [];
-      const id = String(publicListing.id || "");
-      const title = sanitizePublicDiscoveryText(publicListing.title, 200);
-      const description = publicToolDescription(publicListing.description);
-      if (!id || !title) return [];
-      const topicMatchSource = terms.length
-        ? fieldMatchesTopic(title, terms)
-          ? "title"
-          : fieldMatchesTopic(description, terms)
-            ? "description"
-            : null
-        : null;
-      if (terms.length && !topicMatchSource) return [];
-      return [
-        {
+
+      for (const row of rows) {
+        if (
+          row.categoryId !== toolsCategory.id ||
+          !row.approvedAt ||
+          !aliases.includes(String(row.county || "").trim().toLowerCase()) ||
+          String(row.state || "").trim().toUpperCase() !== area.state
+        ) {
+          continue;
+        }
+        const publicListing = toPublicExchangeListing(row);
+        if (!publicListing) continue;
+        const id = String(publicListing.id || "");
+        const title = sanitizePublicDiscoveryText(publicListing.title, 200);
+        const description = publicToolDescription(publicListing.description);
+        if (!id || !title) continue;
+        const topicMatchSource = terms.length
+          ? fieldMatchesTopic(title, terms)
+            ? "title"
+            : fieldMatchesTopic(description, terms)
+              ? "description"
+              : null
+          : null;
+        if (terms.length && !topicMatchSource) continue;
+        items.push({
           id,
           title,
           description,
@@ -145,11 +153,16 @@ export async function lookupScoutPublicTools(
             typeof publicListing.createdAt === "string" ? publicListing.createdAt : null,
           detailPath: `/exchange/tools/${encodeURIComponent(id)}`,
           ...(topicMatchSource ? { topicMatchSource } : {}),
-        },
-      ];
-    });
+        });
+        if (items.length >= limit) return { status: "checked", items };
+      }
 
-    return { status: "checked", items };
+      offset += rows.length;
+      if (rows.length < pageLimit) return { status: "checked", items };
+    }
+    // A full last page does not prove that more matches do not exist. Keep the
+    // result retryable instead of claiming a checked empty or complete result.
+    return { status: "error", items: [], reason: "scan_limit_reached" };
   } catch {
     return { status: "error", items: [], reason: "source_unavailable" };
   }

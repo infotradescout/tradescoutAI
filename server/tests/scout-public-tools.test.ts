@@ -103,6 +103,22 @@ beforeAll(async () => {
       createdAt: `2026-02-${String(index + 1).padStart(2, "0")}`,
     });
   }
+  await insertListing({
+    id: "visible-rotary",
+    title: "Rotary hammer",
+    description: "Visible public listing",
+    createdAt: "2026-03-01",
+  });
+  for (let index = 0; index < 20; index++) {
+    await insertListing({
+      id: `raw-only-rotary-${index}`,
+      title: `Decoy tool ${index}`,
+      description: index < 10
+        ? `${"filler ".repeat(90)}rotary beyond the visible excerpt`
+        : "Email help@rotary.example.com for this tool",
+      createdAt: `2026-04-${String(index + 1).padStart(2, "0")}`,
+    });
+  }
 });
 
 afterAll(async () => {
@@ -136,6 +152,68 @@ describe("Scout public Tools & Hardware source", () => {
     expect(result.items).toHaveLength(1);
     const unrelated = await lookupScoutPublicTools({ countyFips: "04013", topic: "plumbing", limit: 1 }, source);
     expect(unrelated).toEqual({ status: "checked", items: [] });
+  });
+
+  it("pages beyond newer raw-only topic hits to find an older visible sanitized match", async () => {
+    const pagedSource = {
+      ...source,
+      getMarketplaceListings: vi.fn(repository.getMarketplaceListings.bind(repository)),
+    } as unknown as Pick<IStorage, "getMarketplaceCategories" | "getMarketplaceListings">;
+
+    const result = await lookupScoutPublicTools({ countyFips: "04013", topic: "rotary", limit: 1 }, pagedSource);
+
+    expect(result).toMatchObject({
+      status: "checked",
+      items: [{ id: "visible-rotary", title: "Rotary hammer", topicMatchSource: "title" }],
+    });
+    expect(result.items).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toMatch(/raw-only-rotary|rotary\.example\.com|beyond the visible excerpt/);
+    expect(pagedSource.getMarketplaceListings).toHaveBeenCalledTimes(2);
+    expect(pagedSource.getMarketplaceListings).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      countyAliases: ["04013", "maricopa county", "maricopa"],
+      state: "AZ",
+      publicToolTopic: "rotary",
+      publicExposureOnly: true,
+      limit: 16,
+      offset: 0,
+    }));
+    expect(pagedSource.getMarketplaceListings).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      limit: 16,
+      offset: 16,
+    }));
+  });
+
+  it("reports an incomplete scan as an error instead of a checked empty result", async () => {
+    const decoy = (await repository.getMarketplaceListings({
+      categoryId: category.id,
+      countyAliases: ["04013", "maricopa county", "maricopa"],
+      state: "AZ",
+      status: "active",
+      requireApproved: true,
+      publicExposureOnly: true,
+      publicToolTopic: "rotary",
+      sortBy: "date_desc",
+      limit: 1,
+    }))[0];
+    expect(decoy).toBeDefined();
+    const repeatedPages = {
+      ...source,
+      getMarketplaceListings: vi.fn(async (filters: Parameters<IStorage["getMarketplaceListings"]>[0]) =>
+        Array.from({ length: Number(filters?.limit) || 0 }, (_, index) => ({
+          ...decoy,
+          id: `raw-only-cap-${filters?.offset ?? 0}-${index}`,
+        }))
+      ),
+    } as unknown as Pick<IStorage, "getMarketplaceCategories" | "getMarketplaceListings">;
+
+    const result = await lookupScoutPublicTools({ countyFips: "04013", topic: "rotary", limit: 1 }, repeatedPages);
+
+    expect(result).toEqual({ status: "error", items: [], reason: "scan_limit_reached" });
+    expect(repeatedPages.getMarketplaceListings).toHaveBeenCalledTimes(16);
+    expect(repeatedPages.getMarketplaceListings).toHaveBeenLastCalledWith(expect.objectContaining({
+      limit: 16,
+      offset: 240,
+    }));
   });
 
   it("distinguishes invalid area and source/category failure from a checked empty result", async () => {
