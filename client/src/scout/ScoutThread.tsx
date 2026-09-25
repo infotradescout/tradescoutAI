@@ -1210,10 +1210,18 @@ function MessageExtras({
   const topicMatchedEntities = contractEntities
     .map((entity, index) => ({ entity, index }))
     .filter(({ index }) => !topicCountyOffers.some((offer) => offer.index === index));
+  const discoverySourceFailed = Boolean(
+    discoveryChecks?.posts.status === "error" ||
+      discoveryChecks?.deals.status === "error" ||
+      discoveryChecks?.businesses.status === "error" ||
+      discoveryChecks?.tools?.status === "error"
+  );
   const noTopicMatches = Boolean(
     discoveryChecks?.topic &&
+    !discoverySourceFailed &&
     discoveryChecks.posts.status === "checked" &&
     discoveryChecks.businesses.status === "checked" &&
+    (!discoveryChecks.tools || discoveryChecks.tools.status === "checked") &&
     topicMatchedEntities.length === 0
   );
   const entityActionIds = React.useMemo(() => {
@@ -1242,10 +1250,7 @@ function MessageExtras({
   const sourceRetryPrimary = Boolean(
     standalonePrimaryAction?.action.type === "ASK_SCOUT" &&
     standalonePrimaryAction.action.label === "Retry local search" &&
-    (discoveryChecks?.posts.status === "error" ||
-      discoveryChecks?.deals.status === "error" ||
-      discoveryChecks?.businesses.status === "error" ||
-      discoveryChecks?.tools?.status === "error")
+    discoverySourceFailed
   );
   const secondaryContractActions = remainingContractActions.filter(
     ({ source }) => source.action_id !== standalonePrimaryAction?.source.action_id

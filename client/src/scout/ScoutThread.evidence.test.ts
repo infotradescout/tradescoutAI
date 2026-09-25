@@ -152,6 +152,43 @@ describe("ScoutThread evidence strip", () => {
     expect(html.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
   });
 
+  it("does not suggest drafting a request while a topic source is unavailable", () => {
+    const dealPath = "/deals/00000000-0000-4000-8000-000000000205?county=04013";
+    const message: ScoutMessage = {
+      id: "a_topic_tool_failure",
+      role: "assistant",
+      content: "Public tools could not be checked. Nothing was sent.",
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryTopic: "electrical",
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 0, topicFiltered: true },
+          deals: { status: "checked", shownCount: 1, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: true },
+          tools: { status: "error", shownCount: 0, topicFiltered: true },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{ id: "00000000-0000-4000-8000-000000000205", type: "trade_deal", name: "County offer", url: dealPath }],
+        evidence: [],
+        answer: "Public tools could not be checked.",
+        allowed_actions: [
+          { action_id: "retry", type: "ASK_SCOUT", label: "Retry local search", prompt: "Search county again", primary: true },
+          { action_id: "deal", type: "NAVIGATE", label: "Open promotional TradeDeal", target: dealPath, primary: false },
+        ],
+        working_memory_update: {},
+      },
+    };
+    const html = renderThread([message], false, { onAction: () => undefined });
+    expect(html).toContain("Retry local search");
+    expect(html).not.toContain("Try another trade or draft a request");
+    expect(html).not.toContain("scout-result-no-topic-match");
+  });
+
   it("uses app navigation for validated same-origin HTTPS results only", () => {
     const dealPath = "/deals/00000000-0000-4000-8000-000000000201?county=04013";
     expect(
