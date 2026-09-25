@@ -1,5 +1,6 @@
 import React from "react";
 import { Send, Sparkles } from "lucide-react";
+import { SCOUT_MAIN_INPUT_DRAFT_KEY } from "./scoutTaskDraftBoundary";
 
 /* ----------------------------------------------------------
    ScoutInputRow — Morphic OS v2 Command Bar
@@ -79,7 +80,7 @@ export function ScoutInputRow({
     // Consume its draft before that swap so the fixed input starts empty.
     setValue("");
     try {
-      window.localStorage.removeItem(`scout:prefill:scout-main`);
+      window.localStorage.removeItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
     } catch {
       /* ignore */
     }
@@ -133,7 +134,7 @@ export function ScoutInputRow({
       return;
     }
     try {
-      const stored = window.localStorage.getItem(`scout:prefill:scout-main`);
+      const stored = window.localStorage.getItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
       if (stored && !value) setValue(stored);
     } catch {
       /* ignore */
@@ -143,8 +144,8 @@ export function ScoutInputRow({
   // Persist draft
   React.useEffect(() => {
     try {
-      if (value) window.localStorage.setItem(`scout:prefill:scout-main`, value);
-      else window.localStorage.removeItem(`scout:prefill:scout-main`);
+      if (value) window.localStorage.setItem(SCOUT_MAIN_INPUT_DRAFT_KEY, value);
+      else window.localStorage.removeItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
     } catch {
       /* ignore */
     }
@@ -161,7 +162,7 @@ export function ScoutInputRow({
     }
     if (value.trim().length > 0) return;
     try {
-      window.localStorage.removeItem(`scout:prefill:scout-main`);
+      window.localStorage.removeItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
     } catch {
       /* ignore */
     }

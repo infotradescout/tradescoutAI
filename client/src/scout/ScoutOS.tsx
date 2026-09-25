@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { ScoutInputRow } from "./ScoutInputRow";
 import ScoutSearchDock from "./ScoutSearchDock";
+import { useScoutTaskDraftBoundary } from "./scoutTaskDraftBoundary";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
@@ -1717,6 +1718,14 @@ export default function ScoutOS() {
   const [workAreaUrl, setWorkAreaUrl] = useState<string | null>(null);
   const [workAreaTitle, setWorkAreaTitle] = useState<string | null>(null);
   const [prefillKey, setPrefillKey] = useState(0);
+  const onUnsentDraftDiscarded = useCallback(() => {
+    toast({
+      title: "Unsent Scout text cleared",
+      description: "Your previous draft was cleared when you changed tasks.",
+    });
+  }, [toast]);
+  const { version: taskDraftVersion, changeTask: clearDraftForTaskChange } =
+    useScoutTaskDraftBoundary(onUnsentDraftDiscarded);
   const [activeMissionPanel, setActiveMissionPanel] = useState<
     "nearby" | "people" | "market" | "rules"
   >("nearby");
@@ -2264,6 +2273,7 @@ export default function ScoutOS() {
 
   const handleLoadSavedThread = useCallback(
     (thread: SavedScoutThread) => {
+      if (thread.id !== activeSavedThreadId) clearDraftForTaskChange();
       setActiveSavedThreadId(thread.id);
       setHasGuestInteracted(true);
       loadMessages(thread.messages);
@@ -2274,17 +2284,18 @@ export default function ScoutOS() {
         label: "load_saved_scout_thread",
       });
     },
-    [loadMessages, location]
+    [activeSavedThreadId, clearDraftForTaskChange, loadMessages, location]
   );
 
   const handleStartNewScoutThread = useCallback(() => {
+    clearDraftForTaskChange();
     clearScoutReturnSnapshot();
     setActiveSavedThreadId(null);
     reset();
     setHasGuestInteracted(false);
     setOverridePendingScope(null);
     cancelAutoRoute();
-  }, [cancelAutoRoute, reset]);
+  }, [cancelAutoRoute, clearDraftForTaskChange, reset]);
 
   const handleSaveScoutThreadNow = useCallback(() => {
     if (
@@ -4495,6 +4506,7 @@ export default function ScoutOS() {
                 <ScoutHome
                   primaryOutcomeInput={
                     <ScoutSearchDock
+                      key={`scout-task-draft-${taskDraftVersion}`}
                       isMobile={isMobile}
                       placement="inline"
                       isBusy={isBusy}
@@ -5104,6 +5116,7 @@ export default function ScoutOS() {
             {hasUserMessages ? (
               <div className="scout-input-bottom-pin order-3" data-testid="scout-task-composer">
                 <ScoutSearchDock
+                  key={`scout-task-draft-${taskDraftVersion}`}
                   isMobile={isMobile}
                   placement="fixed"
                   isBusy={isBusy}
