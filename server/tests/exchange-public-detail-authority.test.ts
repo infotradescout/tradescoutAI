@@ -54,7 +54,7 @@ describe("public Exchange listing authority boundary", () => {
     const listing = toPublicExchangeListing(activeListing) as Record<string, any>;
 
     expect(listing.images).toEqual(["/objects/stone-set.jpg"]);
-    expect(listing.description).toContain("Continue through TradeScout");
+    expect(listing.description).toBe("");
     expect(listing.description).not.toContain("555-867-5309");
     expect(listing.description).not.toContain("stone@example.com");
     expect(listing).not.toHaveProperty("zipCode");
@@ -66,6 +66,21 @@ describe("public Exchange listing authority boundary", () => {
       mode: "decision_card_required",
       decisionScope: "marketplace_listing:listing-1",
     });
+  });
+
+  it("keeps useful listing details without redacted contact instructions", () => {
+    const listing = toPublicExchangeListing({
+      ...activeListing,
+      description: "Synthetic electrical tool listing. Email seller@example.com for pickup details.",
+    }) as Record<string, any>;
+    const inline = toPublicExchangeListing({
+      ...activeListing,
+      description: "Cordless drill with case, call 555-867-5309 for the address. Battery included.",
+    }) as Record<string, any>;
+
+    expect(listing.description).toBe("Synthetic electrical tool listing.");
+    expect(inline.description).toBe("Cordless drill with case. Battery included.");
+    expect(inline.description).not.toContain("555-867-5309");
   });
 
   it("gates public list, search, ID, slug, and profile-offer reads through Trust/CVS", () => {
