@@ -1,44 +1,56 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T023733Z-1ef1e291",
-  "createdAt": "2026-09-25T02:37:33.305213+00:00",
+  "checkpointId": "progress-20260925T024401Z-1749ee08",
+  "createdAt": "2026-09-25T02:44:01.486218+00:00",
   "outcome": "Add honest county-scoped public tools to Scout without exposing private requests or national listings as local.",
   "scope": [
-    "New isolated Scout public tools continuation from clean e448 #716 candidate"
+    "Server-owned public Tools and Hardware lookup only; no route or client edits in this slice."
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Created clean isolated worktree and branch codex/scout-public-tools-20260925 at e4485264cae5486fdf09b1a54a5e04471334d8a5; read-only source map identified native public Marketplace Tools & Hardware gate and safe detail path."
+      "Implemented canonical county alias, exact state, approval, seller exposure, expiry, category, and topic predicates before LIMIT, plus a small read-only listing whitelist."
     ],
     "changedUnverified": [
-      "No tool listing source changes yet; implementation, synthetic journey, and release proof pending."
+      "Focused lookup SQL and safety tests remain to run; source is not yet proved."
     ],
     "proof": [
-      "Parent #716 e448 passed five synthetic browser journeys and unchanged strict 16-step gate with 347/347 tests; these parent receipts do not prove new tools source."
+      "No test proof for this slice yet; clean parent e448 receipts do not prove this change."
     ],
     "externalEffects": [
-      "Local isolated branch/checkpoint only; no new PR, push, merge, deployment, customer contact, or data write."
+      "Local isolated worktree commit only; no push, PR, merge, deployment, contact, request, or purchase."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Implement server-owned public Tools & Hardware lookup with exact county/state and active approved exposure gates before limit; surface honest partial source checks, then run synthetic scoped browser proof."
+    "nextSafeAction": "Add focused disposable PostgreSQL lookup tests, run TypeScript check and targeted tests, fix any failures, then hand local commit to root."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-public-tools-20260925",
-    "headBefore": "e4485264cae5486fdf09b1a54a5e04471334d8a5",
+    "headBefore": "9ace4b78a116a7e89fcadb922f5999fcf9ee6a1b",
     "checkpointCommit": "containing_commit",
     "pushRequested": false,
     "pushRemote": null,
     "protectedBranchAuthorized": false,
-    "selectedStatusBefore": [],
-    "unrelatedChangeCountExcluded": 0
+    "selectedStatusBefore": [
+      " M server/storage/contracts.ts",
+      " M server/storage/repositories/marketplace-and-homescout.ts",
+      "?? server/scout/scoutPublicTools.ts"
+    ],
+    "unrelatedChangeCountExcluded": 3
   },
   "savedFiles": [
     {
-      "path": ".selective-intelligence/progress/latest.json",
-      "sha256": "9ab17544a72608e80c66f9259df6915066b58b49aec26374adb0f47e5a56f226"
+      "path": "server/storage/contracts.ts",
+      "sha256": "ee68fadcce941d877ba1caaf9e1e3f64dbce5311531feae34e0e3c4c2b0ebd50"
+    },
+    {
+      "path": "server/storage/repositories/marketplace-and-homescout.ts",
+      "sha256": "29c35c4210618623af81c1497b83409597346194597c3e07a1a7997c78900cee"
+    },
+    {
+      "path": "server/scout/scoutPublicTools.ts",
+      "sha256": "5c52a567e4758301028ef3eb88a48c4acd822123c945a5b8e0966e4fa43335ca"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
