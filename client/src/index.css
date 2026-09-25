@@ -3216,6 +3216,37 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
   color: var(--text-primary);
 }
 
+.scout-result-coverage {
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.scout-result-coverage summary {
+  display: list-item;
+  min-height: 44px;
+  padding: 0.75rem 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.scout-result-coverage p {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.scout-result-coverage .scout-result-tools-status {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.scout-result-coverage .scout-result-pages-status strong {
+  color: var(--text-primary);
+}
+
 .scout-county-offer {
   border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;
@@ -3250,6 +3281,21 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
   font-size: 0.75rem;
   font-weight: 700;
   text-align: left;
+}
+
+.scout-result-refine--compact {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.scout-result-refine--compact .scout-result-refine__toggle {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.scout-result-refine--compact .scout-result-refine__form {
+  padding: 0.5rem 0;
 }
 
 .scout-result-refine__form {

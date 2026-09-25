@@ -101,6 +101,9 @@ describe("ScoutThread evidence strip", () => {
     expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("Found “Pipe wrench” for plumbing in Maricopa County, AZ");
     expect(container.querySelector(".scout-result-card .scout-result-action")?.textContent).toContain("View tool listing");
     expect(isBefore(container.querySelector(".scout-result-card .scout-result-action"), container.querySelector(".scout-result-refine"))).toBe(true);
+    expect(container.querySelector(".scout-result-refine--compact .scout-result-refine__toggle")?.textContent).toContain("Search another trade");
+    expect(container.querySelector(".scout-result-coverage")?.hasAttribute("open")).toBe(false);
+    expect(container.querySelector(".scout-result-coverage summary")?.textContent).toBe("What Scout checked");
     expect(container.textContent).toContain("See source checks and limits");
   });
 
@@ -161,6 +164,7 @@ describe("ScoutThread evidence strip", () => {
     expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("1 county page shown for this topic");
     expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("not limited to this week");
     expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("Other Site pages and private requests were not checked");
+    expect(container.querySelector(".scout-result-coverage")?.hasAttribute("open")).toBe(false);
     expect(container.querySelector(".scout-result-tools-status")?.textContent).not.toContain("Pages and private requests were not checked");
     expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("Found “Mesa Plumbing” for plumbing in Maricopa County, AZ");
     expect((container.querySelector(".scout-assistant-bubble__body")?.textContent ?? "").length).toBeLessThanOrEqual(150);
@@ -223,6 +227,7 @@ describe("ScoutThread evidence strip", () => {
     const container = document.createElement("div");
     container.innerHTML = renderThread([message]);
     expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain(phrase);
+    expect(container.querySelector(".scout-result-coverage")?.hasAttribute("open")).toBe(true);
     expect(container.querySelector(".scout-result-pages-status")?.textContent).not.toContain("not limited to this week");
     expect(container.querySelector(".scout-result-no-topic-match")).toBeNull();
   });
@@ -717,7 +722,7 @@ describe("ScoutThread evidence strip", () => {
       'No recent county post or public business matched “electrical”'
     );
     expect(container.querySelector(".scout-result-refine__toggle")?.textContent).toContain(
-      "Search a different trade or job"
+      "Search another trade"
     );
     const countyOffer = container.querySelector<HTMLDetailsElement>("details.scout-county-offer");
     expect(countyOffer?.open).toBe(false);

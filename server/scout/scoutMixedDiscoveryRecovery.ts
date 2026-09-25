@@ -246,13 +246,10 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       name: String(tool.title).replace(/\s+/g, " ").trim().slice(0, 110),
       url: String(tool.detailPath),
       match_reasons: [
-        `Active public Tools & Hardware listing in ${area}`,
-        ...(topic
-          ? [
-              `${tool.topicMatchSource === "title" ? "Title" : "Description"} matches "${topic}"`,
-            ]
-          : []),
-        "Listing may be older than this week; confirm availability before contact",
+        topic
+          ? `Matches “${topic}” in the listing ${tool.topicMatchSource}; listed in ${area}`
+          : `Listed in ${area}`,
+        "Confirm availability; listing may be older than this week",
       ],
     }));
   const pageEntities = (input.pageCheck === "checked" ? input.pages || [] : [])
@@ -274,9 +271,8 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       name: String(page.displayName).replace(/\s+/g, " ").trim().slice(0, 110),
       url: String(page.detailPath),
       match_reasons: [
-        `Published public profile page for a discoverable business serving ${area}`,
-        ...(topic ? [`Page matched the search for "${topic}"`] : []),
-        "Page was not filtered to this week; check current services before contact",
+        topic ? `Serves ${area} and matches “${topic}”` : `Serves ${area}`,
+        "Check current services; page may be older than this week",
       ],
     }));
   // A county promotion is available by location, but is not a match for the

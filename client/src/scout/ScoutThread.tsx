@@ -1405,14 +1405,14 @@ function MessageExtras({
   ) : null;
 
   const refineCountyResults = canRefineCountyResults ? (
-    <div className="scout-result-refine">
+    <div className={clsx("scout-result-refine", topicMatchedEntities.length > 0 && "scout-result-refine--compact")}>
       <button
         type="button"
         className="scout-result-refine__toggle"
         aria-expanded={refineOpen}
         onClick={() => setRefineOpen((open) => !open)}
       >
-        {discoveryChecks?.topic ? "Search a different trade or job" : "Narrow by trade or job"}
+        {discoveryChecks?.topic ? "Search another trade" : "Narrow by trade or job"}
       </button>
       {refineOpen && (
         <form
@@ -1605,35 +1605,40 @@ function MessageExtras({
 
       {topicMatchedEntities.length > 0 && refineCountyResults}
 
-      {discoveryChecks?.tools && (
-        <p className="scout-result-tools-status" aria-label="Tools source status">
-          <strong>Tools &amp; Hardware:</strong>{" "}
-          {discoveryChecks.tools.status === "checked"
-            ? `${discoveryChecks.tools.shownCount} active county listing${discoveryChecks.tools.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
-            : discoveryChecks.tools.status === "error"
-              ? "could not check county listings"
-              : "not checked"}
-          {discoveryChecks.tools.status === "checked" &&
-          discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
-            ? ". Listings are not limited to this week."
-            : "."}
-          {!discoveryChecks.profilePages && <> Pages and private requests were not checked.</>}
-        </p>
-      )}
-      {discoveryChecks?.profilePages && (
-        <p className="scout-result-pages-status" aria-label="Public profile pages status">
-          <strong>Public profile pages:</strong>{" "}
-          {discoveryChecks.profilePages.status === "checked"
-            ? `${discoveryChecks.profilePages.shownCount} county page${discoveryChecks.profilePages.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
-            : discoveryChecks.profilePages.status === "error"
-              ? "could not check county pages"
-              : "not checked"}
-          {discoveryChecks.profilePages.status === "checked" &&
-          discoveryChecks.profilePages.timeWindow === "not_filtered_to_week"
-            ? ". Pages are not limited to this week."
-            : "."}
-          {" "}Other Site pages and private requests were not checked.
-        </p>
+      {(discoveryChecks?.tools || discoveryChecks?.profilePages) && (
+        <details className="scout-result-coverage" open={discoverySourceFailed || topicMatchedEntities.length === 0}>
+          <summary>{discoverySourceFailed ? "Search coverage is incomplete" : "What Scout checked"}</summary>
+          {discoveryChecks?.tools && (
+            <p className="scout-result-tools-status" aria-label="Tools source status">
+              <strong>Tools &amp; Hardware:</strong>{" "}
+              {discoveryChecks.tools.status === "checked"
+                ? `${discoveryChecks.tools.shownCount} active county listing${discoveryChecks.tools.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+                : discoveryChecks.tools.status === "error"
+                  ? "could not check county listings"
+                  : "not checked"}
+              {discoveryChecks.tools.status === "checked" &&
+              discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
+                ? ". Listings are not limited to this week."
+                : "."}
+              {!discoveryChecks.profilePages && <> Pages and private requests were not checked.</>}
+            </p>
+          )}
+          {discoveryChecks?.profilePages && (
+            <p className="scout-result-pages-status" aria-label="Public profile pages status">
+              <strong>Public profile pages:</strong>{" "}
+              {discoveryChecks.profilePages.status === "checked"
+                ? `${discoveryChecks.profilePages.shownCount} county page${discoveryChecks.profilePages.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+                : discoveryChecks.profilePages.status === "error"
+                  ? "could not check county pages"
+                  : "not checked"}
+              {discoveryChecks.profilePages.status === "checked" &&
+              discoveryChecks.profilePages.timeWindow === "not_filtered_to_week"
+                ? ". Pages are not limited to this week."
+                : "."}
+              {" "}Other Site pages and private requests were not checked.
+            </p>
+          )}
+        </details>
       )}
 
       {!sourceRetryPrimary && standalonePrimaryButton}
