@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { toPublicBusinessCardDetails } from "../../shared/publicBusinessCard";
+import { enrichPublicBusinessCards } from "../services/publicBusinessCardEnrichment";
 import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
@@ -292,13 +294,14 @@ router.get("/api/businesses", async (req, res, next) => {
             claimStatus: row.claimStatus,
             status: row.status,
             counties: county ? [county] : [],
+            card: toPublicBusinessCardDetails(row.profileData),
           });
         } else if (county && !existing.counties.some((c: any) => c?.fips === county.fips)) {
           existing.counties.push(county);
         }
       }
 
-      const items = Array.from(grouped.values());
+      const items = await enrichPublicBusinessCards(Array.from(grouped.values()));
       return {
         status: 200,
         body: {
