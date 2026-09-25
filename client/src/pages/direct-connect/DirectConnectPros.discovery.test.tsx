@@ -54,6 +54,7 @@ describe("Businesses discovery states", () => {
     window.sessionStorage.clear();
     window.history.replaceState({}, "", "/contractors");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -109,6 +110,64 @@ describe("Businesses discovery states", () => {
 
     expect(container.textContent).toContain("We couldn’t finish checking local businesses");
     expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+  });
+
+  it("shows the matched county once when a public provider has only state context", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) {
+        return [{
+          id: "provider-local",
+          name: "Synthetic Local Business",
+          stateCode: "AZ",
+          canonicalBusinessProfileUrl: "/u/synthetic-local",
+        }];
+      }
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() =>
+      Boolean(container.querySelector('[data-testid="business-result-provider-local"]'))
+    );
+    const row = container.querySelector<HTMLButtonElement>(
+      '[data-testid="business-result-provider-local"]'
+    );
+    expect(row?.textContent).toContain("Listed for Maricopa County, AZ");
+    expect(row?.textContent?.match(/Listed for Maricopa County, AZ/g)).toHaveLength(1);
+    expect(row?.textContent).not.toContain("Local service area");
+    await act(async () => row?.click());
+    expect(container.querySelector('[data-testid="business-workspace-inspector"]')?.textContent).toContain(
+      "Listed for Maricopa County, AZ"
+    );
+    expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
+  });
+
+  it("offers a working area change after a checked zero-result search", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) return [];
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() => Boolean(container.querySelector('[data-testid="businesses-no-results"]')));
+    expect(container.textContent).toContain("No public businesses in Maricopa County, AZ yet.");
+    expect(container.querySelector('[data-testid="area-selector"]')).toBeNull();
+    const changeArea = container.querySelector<HTMLButtonElement>(
+      '[data-testid="businesses-empty-change-area"]'
+    );
+    expect(changeArea?.textContent).toContain("Change area");
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    try {
+      await act(async () => changeArea?.click());
+      expect(container.querySelector('[data-testid="area-selector"]')).not.toBeNull();
+      expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
+    } finally {
+      delete (HTMLElement.prototype as any).scrollIntoView;
+    }
   });
 
   it("does not leave a previously checked provider actionable after its same-search refresh fails", async () => {

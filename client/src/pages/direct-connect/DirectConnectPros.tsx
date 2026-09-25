@@ -146,31 +146,37 @@ function getProviderLocation(provider: ProviderCardProvider): string {
   if (serviceAreas.length > 0) return serviceAreas.slice(0, 2).join(", ");
   const city = String(provider.city || "").trim();
   const state = String(provider.state || provider.stateCode || "").trim();
-  return (
-    [city, state].filter(Boolean).join(", ") ||
-    String(provider.county || provider.countyName || "").trim()
-  );
+  if (city) return [city, state].filter(Boolean).join(", ");
+  const county = String(provider.county || provider.countyName || "").trim();
+  return county ? [county, state].filter(Boolean).join(", ") : "";
 }
 
-function formatProviderDistance(provider: ProviderCardProvider): string {
+function formatProviderDistance(provider: ProviderCardProvider): string | null {
   const distance = getProviderDistance(provider);
-  if (distance === null) return "Local service area";
+  if (distance === null) return null;
   if (distance < 0.1) return "Less than 0.1 miles away";
   return `${distance < 10 ? distance.toFixed(1) : Math.round(distance)} miles away`;
 }
 
+function getProviderAreaText(provider: ProviderCardProvider, areaLabel: string): string {
+  return getProviderLocation(provider) || `Listed for ${areaLabel}`;
+}
+
 function ProviderResultRow({
   provider,
+  areaLabel,
   selected,
   onSelect,
 }: {
   provider: ProviderCardProvider;
+  areaLabel: string;
   selected: boolean;
   onSelect: () => void;
 }) {
   const name = getProviderName(provider);
   const category = getProviderCategory(provider);
-  const location = getProviderLocation(provider);
+  const areaText = getProviderAreaText(provider, areaLabel);
+  const distanceText = formatProviderDistance(provider);
   const hasTrustEvidence = Boolean(
     provider.verifiedLicensed ||
     provider.verifiedInsured ||
@@ -204,14 +210,17 @@ function ProviderResultRow({
         <span className="block truncate text-sm font-semibold text-[color:var(--text-primary)]">
           {name}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
-          {[category, location].filter(Boolean).join(" · ") || formatProviderDistance(provider)}
-        </span>
+        {category && (
+          <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
+            {category}
+          </span>
+        )}
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[color:var(--text-secondary)]">
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
-            {formatProviderDistance(provider)}
+            {areaText}
           </span>
+          {distanceText && <span>{distanceText}</span>}
           {hasTrustEvidence && (
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
@@ -235,6 +244,7 @@ function ProviderResultRow({
 function BusinessesWorkspace({
   title,
   subtitle,
+  areaLabel,
   providers,
   selectedProvider,
   selectedProviderId,
@@ -242,6 +252,7 @@ function BusinessesWorkspace({
 }: {
   title: string;
   subtitle: string;
+  areaLabel: string;
   providers: ProviderCardProvider[];
   selectedProvider: ProviderCardProvider | null;
   selectedProviderId: string;
@@ -284,6 +295,7 @@ function BusinessesWorkspace({
             >
               <ProviderResultRow
                 provider={provider}
+                areaLabel={areaLabel}
                 selected={String(provider.id) === selectedProviderId}
                 onSelect={() => onSelect(String(provider.id))}
               />
@@ -308,7 +320,10 @@ function BusinessesWorkspace({
                 <CheckCircle2 className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
                 Selected business
               </div>
-              <ProviderCard contractor={selectedProvider} compact action="connect" />
+              <p className="mb-2 text-xs text-[color:var(--text-secondary)]">
+                {getProviderAreaText(selectedProvider, areaLabel)}
+              </p>
+              <ProviderCard contractor={selectedProvider} compact action="profile" />
             </div>
           ) : (
             <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center">
@@ -317,8 +332,7 @@ function BusinessesWorkspace({
                 Choose a business to inspect
               </p>
               <p className="mt-1 max-w-sm text-xs leading-5 text-[color:var(--text-secondary)]">
-                Selection shows public profile details here. Contact still continues through Direct
-                Connect.
+                Select a business, then open its public profile to review details.
               </p>
             </div>
           )}
@@ -1025,27 +1039,25 @@ export default function DirectConnectPros() {
                 : `No public businesses in ${areaLabel} yet.`}
             </p>
             <p>
-              Change your search or describe what you need. You review a local request before
-              anything is shared.
+              {effectiveCountyFips
+                ? "Try another area or adjust the search. You can review a local request before anything is shared."
+                : "Choose a county or adjust the search to keep looking."}
             </p>
-            {effectiveCountyFips && (
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 size="sm"
-                className="h-auto min-h-11 max-w-full whitespace-normal py-2 text-center"
-                onClick={openCountyRequestDraft}
-                data-testid="businesses-empty-request"
+                className="min-h-11"
+                onClick={() => {
+                  setShowOutsideArea(true);
+                  document
+                    .getElementById("businesses-workspace-heading")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                data-testid="businesses-empty-change-area"
               >
-                Describe what I need
+                Change area
               </Button>
-            )}
-            {!effectiveCountyFips && <p>Choose a county before starting a local request.</p>}
-            {draftHandoffFailed && (
-              <p role="alert" data-testid="businesses-draft-handoff-error">
-                We couldn’t open a request with this county. Choose your area and try again.
-              </p>
-            )}
-            <div className="flex flex-wrap items-center justify-center gap-2">
               {searchActive && (
                 <Button
                   type="button"
@@ -1059,20 +1071,24 @@ export default function DirectConnectPros() {
                   Clear filters
                 </Button>
               )}
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setShowOutsideArea(true);
-                  document
-                    .getElementById("businesses-workspace-heading")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                Change area
-              </Button>
+              {effectiveCountyFips && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-auto min-h-11 max-w-full whitespace-normal py-2 text-center"
+                  onClick={openCountyRequestDraft}
+                  data-testid="businesses-empty-request"
+                >
+                  Describe what I need
+                </Button>
+              )}
             </div>
+            {draftHandoffFailed && (
+              <p role="alert" data-testid="businesses-draft-handoff-error">
+                We couldn’t open a request with this county. Choose your area and try again.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -1202,8 +1218,9 @@ export default function DirectConnectPros() {
 
       {hasResults && (
         <BusinessesWorkspace
-          title={searchActive ? "Best nearby matches" : "Businesses near you"}
-          subtitle="Select a row to inspect one public profile without losing your place."
+          title={searchActive ? "Matching businesses" : "Business results"}
+          subtitle="Select a business, then view its public profile."
+          areaLabel={areaLabel}
           providers={distanceFirstProviders}
           selectedProvider={selectedProvider}
           selectedProviderId={selectedProviderId}
