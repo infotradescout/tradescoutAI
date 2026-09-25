@@ -455,42 +455,37 @@ function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
   return { areaLabel, topic, posts, deals, businesses, tools, profilePages };
 }
 
-function toolsDiscoverySummary(checks: DiscoveryChecks): string | null {
+function toolsDiscoverySummary(msg: ScoutMessage, checks: DiscoveryChecks): string | null {
   if (!checks.tools && !checks.profilePages) return null;
-  const status = (check: DiscoveryCheck, label: string, scope = "") =>
-    check.status === "checked"
-      ? `${label} ${check.shownCount}${scope}`
-      : check.status === "error"
-        ? `${label} unavailable`
-        : `${label} unchecked`;
   const place = /^[a-z .'-]+, [a-z]{2}$/i.test(checks.areaLabel) && checks.areaLabel.length <= 45
     ? checks.areaLabel
-    : "Your county";
-  const topic = checks.topic ? `${checks.topic.slice(0, 24)}: ` : "";
-  const counts = [
-    status(checks.posts, "posts", " (7d)"),
-    status(checks.businesses, "businesses"),
-    ...(checks.tools ? [status(checks.tools, "tools", checks.tools.timeWindow ? " (active)" : "")] : []),
-    ...(checks.profilePages ? [status(checks.profilePages, "profile pages")] : []),
-    status(checks.deals, "TradeDeals", checks.topic && !checks.deals.topicFiltered ? " (topic unchecked)" : ""),
-  ].join(", ");
-  const suffix = checks.profilePages
-    ? "Other Site pages/private requests unchecked. Nothing sent."
-    : "Pages/requests unchecked. Nothing sent.";
-  const summary = `${place}: ${topic}${counts}. ${suffix}`;
-  if (summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS) return summary;
-  if (!checks.profilePages) return `${topic}${counts}. ${suffix}`;
-  const compactCounts = [
-    status(checks.posts, "posts", " (7d)"),
-    status(checks.businesses, "businesses"),
-    ...(checks.tools ? [status(checks.tools, "tools")] : []),
-    status(checks.profilePages, "profile pages"),
-    status(checks.deals, "county offers"),
-  ].join(", ");
-  const compact = `${topic}${compactCounts}. ${suffix}`;
-  return compact.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
-    ? compact
-    : "See county results and source status below. Other Site pages/private requests unchecked. Nothing sent.";
+    : "your county";
+  const checksRun = [checks.posts, checks.businesses, checks.deals, checks.tools, checks.profilePages]
+    .filter((check): check is DiscoveryCheck => Boolean(check));
+  const hasError = checksRun.some((check) => check.status === "error");
+  const hasChecked = checksRun.some((check) => check.status === "checked");
+  if (!hasChecked && !hasError) return "Set your county to search local results. No search has run yet.";
+
+  const matched = (msg.resultContract?.entities || []).filter(
+    (entity) => !(checks.topic && entity.type === "trade_deal" && !checks.deals.topicFiltered)
+  );
+  const first = matched.find((entity) => validatedEntityUrl(entity.url));
+  if (first) {
+    const name = (first.name || "").replace(/\s+/g, " ").trim().slice(0, 48).trimEnd();
+    const subject = name ? `“${name}”` : "a public result";
+    const topic = checks.topic ? ` for ${checks.topic.slice(0, 24)}` : "";
+    const lead = `Found ${subject}${topic} in ${place}.`;
+    const next = hasError
+      ? " Some sources could not be checked. Retry for more."
+      : " Open the result below to check details.";
+    return (lead + next).length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
+      ? lead + next
+      : `Found a local result in ${place}. ${hasError ? "Some sources could not be checked. Retry for more." : "Open it below to check details."}`;
+  }
+
+  if (hasError) return `The search in ${place} is incomplete. Retry to check the unavailable sources.`;
+  const topic = checks.topic ? ` for ${checks.topic.slice(0, 24)}` : "";
+  return `No public matches${topic} in ${place} from the sources checked. Try another trade or job.`;
 }
 
 function previewUserRequest(content: string): string {
@@ -596,7 +591,7 @@ function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
 function buildAssistantSummary(msg: ScoutMessage, displayContent: string): string {
   if (msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery") {
     const checks = readDiscoveryChecks(msg);
-    return (checks && toolsDiscoverySummary(checks)) ||
+    return (checks && toolsDiscoverySummary(msg, checks)) ||
       topicDiscoverySummary(msg) || mixedDiscoverySummary(displayContent);
   }
   if (!shouldSummarizeAssistantMessage(msg)) return displayContent;
@@ -1409,6 +1404,55 @@ function MessageExtras({
     </button>
   ) : null;
 
+  const refineCountyResults = canRefineCountyResults ? (
+    <div className="scout-result-refine">
+      <button
+        type="button"
+        className="scout-result-refine__toggle"
+        aria-expanded={refineOpen}
+        onClick={() => setRefineOpen((open) => !open)}
+      >
+        {discoveryChecks?.topic ? "Search a different trade or job" : "Narrow by trade or job"}
+      </button>
+      {refineOpen && (
+        <form
+          className="scout-result-refine__form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const topic = refineTopic.replace(/\s+/g, " ").trim();
+            if (topic.length < 2 || topic.length > 60) {
+              setRefineError("Enter a trade or job in 2 to 60 characters.");
+              return;
+            }
+            setRefineError("");
+            onAction?.({
+              type: "ASK_SCOUT",
+              label: `Search county results for ${topic}`,
+              prompt: `Find TradeScout posts and deals about ${topic} in my county this week. Include public posts linked to requests and local businesses.`,
+            });
+          }}
+        >
+          <label htmlFor={`scout-refine-${msg.id}`}>Trade or job</label>
+          <div className="scout-result-refine__fields">
+            <input
+              id={`scout-refine-${msg.id}`}
+              type="text"
+              maxLength={60}
+              value={refineTopic}
+              placeholder="e.g. plumbing"
+              onChange={(event) => {
+                setRefineTopic(event.target.value);
+                if (refineError) setRefineError("");
+              }}
+            />
+            <button type="submit">Search county</button>
+          </div>
+          {refineError && <p role="alert">{refineError}</p>}
+        </form>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="scout-message-extras mt-3 space-y-3">
       {hasLegacyPrimaryAction && currentTurnPrimaryAction && (
@@ -1424,54 +1468,7 @@ function MessageExtras({
         </button>
       )}
       {sourceRetryPrimary && standalonePrimaryButton}
-      {canRefineCountyResults && (
-        <div className="scout-result-refine">
-          <button
-            type="button"
-            className="scout-result-refine__toggle"
-            aria-expanded={refineOpen}
-            onClick={() => setRefineOpen((open) => !open)}
-          >
-            {discoveryChecks?.topic ? "Search a different trade or job" : "Narrow by trade or job"}
-          </button>
-          {refineOpen && (
-            <form
-              className="scout-result-refine__form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const topic = refineTopic.replace(/\s+/g, " ").trim();
-                if (topic.length < 2 || topic.length > 60) {
-                  setRefineError("Enter a trade or job in 2 to 60 characters.");
-                  return;
-                }
-                setRefineError("");
-                onAction?.({
-                  type: "ASK_SCOUT",
-                  label: `Search county results for ${topic}`,
-                  prompt: `Find TradeScout posts and deals about ${topic} in my county this week. Include public posts linked to requests and local businesses.`,
-                });
-              }}
-            >
-              <label htmlFor={`scout-refine-${msg.id}`}>Trade or job</label>
-              <div className="scout-result-refine__fields">
-                <input
-                  id={`scout-refine-${msg.id}`}
-                  type="text"
-                  maxLength={60}
-                  value={refineTopic}
-                  placeholder="e.g. plumbing"
-                  onChange={(event) => {
-                    setRefineTopic(event.target.value);
-                    if (refineError) setRefineError("");
-                  }}
-                />
-                <button type="submit">Search county</button>
-              </div>
-              {refineError && <p role="alert">{refineError}</p>}
-            </form>
-          )}
-        </div>
-      )}
+      {topicMatchedEntities.length === 0 && refineCountyResults}
       {hasContractEntities && (
         <div className="scout-result-list space-y-2" aria-label="Scout results">
           {noTopicMatches && (
@@ -1605,6 +1602,8 @@ function MessageExtras({
           })}
         </div>
       )}
+
+      {topicMatchedEntities.length > 0 && refineCountyResults}
 
       {discoveryChecks?.tools && (
         <p className="scout-result-tools-status" aria-label="Tools source status">

@@ -98,8 +98,9 @@ describe("ScoutThread evidence strip", () => {
     expect(container.querySelector(".scout-result-tools-status")?.textContent).toContain("1 active county listing shown for this topic");
     expect(container.querySelector(".scout-result-tools-status")?.textContent).toContain("not limited to this week");
     expect(container.querySelector(".scout-result-tools-status")?.textContent).toContain("Pages and private requests were not checked");
-    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("tools 1 (active)");
+    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("Found “Pipe wrench” for plumbing in Maricopa County, AZ");
     expect(container.querySelector(".scout-result-card .scout-result-action")?.textContent).toContain("View tool listing");
+    expect(isBefore(container.querySelector(".scout-result-card .scout-result-action"), container.querySelector(".scout-result-refine"))).toBe(true);
     expect(container.textContent).toContain("See source checks and limits");
   });
 
@@ -161,7 +162,7 @@ describe("ScoutThread evidence strip", () => {
     expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("not limited to this week");
     expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("Other Site pages and private requests were not checked");
     expect(container.querySelector(".scout-result-tools-status")?.textContent).not.toContain("Pages and private requests were not checked");
-    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("profile pages 1");
+    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("Found “Mesa Plumbing” for plumbing in Maricopa County, AZ");
     expect((container.querySelector(".scout-assistant-bubble__body")?.textContent ?? "").length).toBeLessThanOrEqual(150);
     expect(container.querySelector(".scout-result-no-topic-match")).toBeNull();
     const pageAction = container.querySelector(".scout-result-card .scout-result-action");
@@ -257,7 +258,7 @@ describe("ScoutThread evidence strip", () => {
       },
     };
     const html = renderThread([message], false, { onAction: () => undefined });
-    expect(html.indexOf("Retry local search")).toBeLessThan(html.indexOf("County post"));
+    expect(html).toContain("Some sources could not be checked. Retry for more.");
     expect(html).toContain("Tools &amp; Hardware:");
     expect(html).toContain("could not check county listings");
     expect(html).not.toContain("Listings are not limited to this week");
