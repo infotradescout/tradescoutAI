@@ -217,6 +217,7 @@ describe("Scout county lookup", () => {
       postCheck: "checked" as const,
       dealCheck: "checked" as const,
       businessCheck: "checked" as const,
+      toolCheck: "checked" as const,
       communityPosts: [
         { id: "post_plumbing", title: "Plumbing repair", createdAt: "2026-09-22T12:00:00.000Z" },
         { id: "post_body", title: "Question", content: "Need plumbing advice", createdAt: "2026-09-22T11:00:00.000Z" },
@@ -254,6 +255,7 @@ describe("Scout county lookup", () => {
       postCheck: "checked" as const,
       dealCheck: "checked" as const,
       businessCheck: "checked" as const,
+      toolCheck: "checked" as const,
     };
     const empty = buildScoutMixedDiscoveryRecovery(common);
     expect(empty.message).toContain('for "plumbing"; none matched this topic');
@@ -278,7 +280,7 @@ describe("Scout county lookup", () => {
       }),
     ]));
     const failed = buildScoutMixedDiscoveryRecovery({
-      ...common, postCheck: "error", businessCheck: "error", dealCheck: "error",
+      ...common, postCheck: "error", businessCheck: "error", dealCheck: "error", toolCheck: "error",
     });
     expect(failed.message).toContain("could not be checked right now");
     expect(failed.message).not.toContain("none matched this topic");
@@ -314,7 +316,8 @@ describe("Scout county lookup", () => {
     expect(result.message).toContain("This Scout result includes");
     expect(result.message).toContain("It does not verify deals");
     expect(result.message).toContain("Businesses were not checked");
-    expect(result.message).toContain("Pages, tools, and other requests were not checked");
+    expect(result.message).toContain("Public Tools & Hardware listings were not checked");
+    expect(result.message).toContain("Public site pages and private requests were not checked");
     expect(result.entities).toEqual([
       expect.objectContaining({ name: "Neighborhood tool swap", url: "/community/posts/post_1" }),
     ]);
@@ -461,6 +464,8 @@ describe("Scout county lookup", () => {
       deals: [],
       businessCheck: "checked",
       businesses: [],
+      toolCheck: "checked",
+      tools: [],
     });
 
     expect(result.entities).toEqual([]);
@@ -480,6 +485,117 @@ describe("Scout county lookup", () => {
       ])
     );
     expect(result.actions.filter((action) => action.primary)).toHaveLength(1);
+  });
+
+  it("keeps public tool cards in the selected county, on safe detail paths, and free of contact data", () => {
+    const tool = {
+      id: "tool_1",
+      title: "Cordless drill",
+      countyFips: "04013",
+      detailPath: "/exchange/tools/tool_1",
+      sellerPhone: "private_phone",
+      sellerUserId: "private_seller",
+    };
+    const result = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      toolCheck: "checked",
+      tools: [
+        tool,
+        { ...tool, id: "other", title: "Foreign County Tool", countyFips: "06037", detailPath: "/exchange/tools/other" },
+        { ...tool, id: "unsafe", title: "Unsafe Path", detailPath: "/exchange/tools/../unsafe" },
+        { ...tool, id: "bad/id", title: "Unsafe ID", detailPath: "/exchange/tools/bad%2Fid" },
+      ],
+    });
+
+    expect(result.entities).toEqual([
+      expect.objectContaining({
+        type: "public_tool",
+        name: "Cordless drill",
+        url: "/exchange/tools/tool_1",
+        match_reasons: expect.arrayContaining([
+          "Active public Tools & Hardware listing in Maricopa County, AZ",
+          expect.stringContaining("older than this week"),
+        ]),
+      }),
+    ]);
+    expect(result.actions.filter((action) => action.primary)).toEqual([
+      expect.objectContaining({ label: "Open local tool listing", to: "/exchange/tools/tool_1" }),
+    ]);
+    expect(result.message).toContain("not limited to this week");
+    expect(JSON.stringify(result)).not.toMatch(/private_phone|private_seller|Foreign County Tool|Unsafe Path|Unsafe ID/);
+
+    const failed = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      postCheck: "checked",
+      dealCheck: "checked",
+      businessCheck: "checked",
+      toolCheck: "error",
+      tools: [tool],
+    });
+    expect(failed.entities).toEqual([]);
+    expect(failed.message).toContain("Public Tools & Hardware listings for Maricopa County, AZ could not be checked right now");
+    expect(failed.message).not.toContain("active public Tools & Hardware listings in Maricopa County, AZ; none were returned");
+    expect(failed.actions.filter((action) => action.primary)).toEqual([
+      expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local search" }),
+    ]);
+    expect(failed.actions).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Draft a request for my county" }),
+    ]));
+  });
+
+  it("ranks topic business and tool matches ahead of a county promotion with one primary action", () => {
+    const result = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      topic: "drill",
+      now: dealNow,
+      postCheck: "checked",
+      dealCheck: "checked",
+      deals: [postedDeal],
+      businessCheck: "checked",
+      businesses: [{ id: "drill-shop", name: "Drill Shop", slug: "drill-shop", counties: [{ fips: "04013" }] }],
+      toolCheck: "checked",
+      tools: [{
+        id: "tool_1",
+        title: "Cordless drill",
+        countyFips: "04013",
+        detailPath: "/exchange/tools/tool_1",
+        topicMatchSource: "title",
+      }],
+    });
+
+    expect(result.entities.map((entity) => entity.type)).toEqual(["business", "public_tool", "trade_deal"]);
+    expect(result.entities[1]?.match_reasons).toContain('Title matches "drill"');
+    expect(result.entities[2]?.match_reasons).toContain("Selected by county; not matched to your topic");
+    expect(result.actions.filter((action) => action.primary)).toEqual([
+      expect.objectContaining({ label: "Open local business profile", to: "/business/drill-shop" }),
+    ]);
+
+    const partial = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      topic: "drill",
+      postCheck: "error",
+      businessCheck: "checked",
+      businesses: [{ id: "drill-shop", name: "Drill Shop", slug: "drill-shop", counties: [{ fips: "04013" }] }],
+      toolCheck: "checked",
+      tools: [{
+        id: "tool_1",
+        title: "Cordless drill",
+        countyFips: "04013",
+        detailPath: "/exchange/tools/tool_1",
+        topicMatchSource: "title",
+      }],
+    });
+    expect(partial.entities.map((entity) => entity.type)).toEqual(["business", "public_tool"]);
+    expect(partial.actions.filter((action) => action.primary)).toEqual([
+      expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local search" }),
+    ]);
+    expect(partial.actions).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Draft a request for my county" }),
+    ]));
   });
 
   it("does not imply a county search when no county is set", () => {
