@@ -20,6 +20,8 @@ const PROVIDER_NOUN =
   /\b(pros?|providers?|contractors?|businesses?|companies?|firms?|roofers?|plumbers?|electricians?|painters?|builders?|landscapers?|mechanics?)\b/i;
 const BROWSE_VERB =
   /\b(find|show(?: me)?|search(?: for)?|browse|compare|look(?:ing)? for|see)\b/i;
+const TERSE_PROVIDER_QUERY =
+  /^(?:(?:roofing|plumbing|electrical|hvac|painting|landscaping)\s+)?(?:pros?|providers?|contractors?|businesses?|companies?|firms?|roofers?|plumbers?|electricians?|painters?|builders?|landscapers?|mechanics?)\s+(?:in|near|around)\s+[a-z0-9 ,.'-]+$/i;
 
 const TRADE_TERMS: Array<{ pattern: RegExp; slug: string }> = [
   { pattern: /\b(roofers?|roofing|roof)\b/i, slug: "roofing" },
@@ -53,7 +55,9 @@ function normalizeCountyName(value: string): string {
 
 export function isExplicitProviderBrowseIntent(message: string): boolean {
   return (
-    BROWSE_VERB.test(message) &&
+    (BROWSE_VERB.test(message) ||
+      (TERSE_PROVIDER_QUERY.test(message.trim()) &&
+        !/\b(?:are|is|were|cost|charge|should|could|would|can't|do not)\b/i.test(message))) &&
     PROVIDER_NOUN.test(message) &&
     !/\b(exchange|marketplace|listings?)\b/i.test(message) &&
     !/\bmy\s+(?:business(?:es)?|contractors?|providers?|pros?)\b/i.test(message) &&

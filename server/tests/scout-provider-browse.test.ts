@@ -114,6 +114,12 @@ describe("Scout provider browsing", () => {
       countyFips: "04013",
       areaNeedsSelection: false,
     });
+    expect(resolveProviderBrowseIntent("roofers in Maricopa County", {
+      countyCode: "Orange",
+      stateCode: "FL",
+    })?.path).toBe("/direct-connect/pros?source=scout&state=AZ&county=04013&trade=roofing&q=&selected=");
+    expect(resolveProviderBrowseIntent("Roofers in Maricopa County are expensive"))
+      .toBeNull();
   });
 
   it("asks for a county when the named place cannot be uniquely resolved", () => {
