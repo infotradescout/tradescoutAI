@@ -25,6 +25,7 @@ type PublicCountyTool = {
   id?: unknown;
   title?: unknown;
   detailPath?: unknown;
+  countyFips?: unknown;
   topicMatchSource?: "title" | "description";
 };
 
@@ -223,6 +224,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       return (
         /^[a-z0-9_-]{1,100}$/i.test(id) &&
         Boolean(title) &&
+        tool.countyFips === input.countyFips &&
         tool.detailPath === `/exchange/tools/${encodeURIComponent(id)}` &&
         (!topicKey || tool.topicMatchSource === "title" || tool.topicMatchSource === "description")
       );
@@ -326,7 +328,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: topic ? "Open topic post" : "Open county post",
               to: entities[0].url,
-              primary: true,
+              primary: !sourceError,
             },
           ]
         : []),
@@ -336,7 +338,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open promotional TradeDeal",
               to: dealEntities[0].url,
-              primary: !topic && postEntities.length === 0 && toolEntities.length === 0,
+              primary: !sourceError && !topic && postEntities.length === 0 && toolEntities.length === 0,
             },
           ]
         : []),
@@ -346,7 +348,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open local business profile",
               to: businessEntities[0].url,
-              primary: postEntities.length === 0 && toolEntities.length === 0 && (Boolean(topic) || dealEntities.length === 0),
+              primary: !sourceError && postEntities.length === 0 && (Boolean(topic) || (toolEntities.length === 0 && dealEntities.length === 0)),
             },
           ]
         : []),
@@ -356,7 +358,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open local tool listing",
               to: toolEntities[0].url,
-              primary: postEntities.length === 0 && (Boolean(topic) ? businessEntities.length === 0 : true),
+              primary: !sourceError && postEntities.length === 0 && (Boolean(topic) ? businessEntities.length === 0 : true),
             },
           ]
         : []),
@@ -368,7 +370,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               prompt: topic
                 ? `Find TradeScout posts and deals about ${topic} in my county this week. Include public posts linked to requests and local businesses.`
                 : "Search TradeScout and my area for posts & deals and public business profiles. Include matching pages, tools and requests.",
-              primary: entities.length === 0,
+              primary: true,
             },
           ]
         : []),
