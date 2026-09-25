@@ -3029,12 +3029,20 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
   box-shadow: inset 0 1px 0 color-mix(in oklab, white 3%, transparent);
 }
 
+.scout-current-task__request {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .scout-current-task {
     gap: 0.25rem;
     grid-template-columns: minmax(0, 1fr);
     min-width: 0;
     padding: 0.5rem 0.65rem;
+  }
+
+  .scout-current-task__request {
+    display: block;
   }
 
   .scout-current-task__head {

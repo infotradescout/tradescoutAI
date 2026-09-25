@@ -242,3 +242,88 @@ describe("saved Scout task heading", () => {
     }
   });
 });
+
+describe("mobile Scout task request", () => {
+  it.each([
+    {
+      label: "resumed saved task",
+      title: "Fence estimate task B",
+      request: "Find local fence estimate guidance this week. Include county posts and deals, explain which results matter, and show safe next steps before I contact anyone.",
+    },
+    {
+      label: "normal structured county result",
+      title: "Local posts & deals",
+      request: "Search TradeScout and my area for posts and deals in my county this week. Include matching pages, tools, local results, posts, and requests; show the best matches and why they matter.",
+    },
+  ])("shows and expands the original request for a $label at 390px", async ({ title, request }) => {
+    const previousWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    try {
+      await act(async () => root.render(
+        React.createElement(ScoutCurrentTaskHeading, { title, request })
+      ));
+      expect(container.querySelector('[data-testid="scout-current-task-title"]')?.textContent)
+        .toBe(title);
+      const disclosure = container.querySelector<HTMLDetailsElement>(
+        '[data-testid="scout-current-task-request"]'
+      )!;
+      expect(disclosure.open).toBe(false);
+      expect(disclosure.querySelector("summary")?.textContent).toContain("Your request");
+      const preview = disclosure.querySelector('[data-testid="scout-current-task-request-preview"]')!;
+      expect(preview.textContent?.length).toBeLessThanOrEqual(96);
+      expect(request.startsWith((preview.textContent || "").slice(0, 32))).toBe(true);
+
+      await act(async () => disclosure.querySelector("summary")!.click());
+      expect(disclosure.open).toBe(true);
+      expect(disclosure.querySelector('[data-testid="scout-current-task-request-full"]')?.textContent)
+        .toBe(request);
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+      if (previousWidth) Object.defineProperty(window, "innerWidth", previousWidth);
+    }
+  });
+
+  it("does not show a request disclosure before a result is available", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(
+        React.createElement(ScoutCurrentTaskHeading, { title: "Local posts & deals" })
+      ));
+      expect(container.querySelector('[data-testid="scout-current-task-request"]')).toBeNull();
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
+  });
+
+  it("closes task A's expanded request when a saved task B is selected", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(React.createElement(ScoutCurrentTaskHeading, {
+        title: "Roof inspection task A", request: "Check roof inspection guidance this week.",
+      })));
+      await act(async () => container.querySelector("summary")!.click());
+      expect(container.querySelector<HTMLDetailsElement>("details")?.open).toBe(true);
+
+      await act(async () => root.render(React.createElement(ScoutCurrentTaskHeading, {
+        title: "Fence estimate task B", request: "Find local fence estimate guidance this week.",
+      })));
+      const disclosure = container.querySelector<HTMLDetailsElement>("details")!;
+      expect(disclosure.open).toBe(false);
+      expect(disclosure.querySelector('[data-testid="scout-current-task-request-full"]')?.textContent)
+        .toBe("Find local fence estimate guidance this week.");
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
+  });
+});

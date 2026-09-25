@@ -789,15 +789,50 @@ export function scheduleScoutSavedTaskAutoSave(args: {
   return () => window.clearTimeout(timer);
 }
 
-export function ScoutCurrentTaskHeading({ title }: { title: string }) {
+export function ScoutCurrentTaskHeading({
+  title,
+  request,
+}: {
+  title: string;
+  request?: string | null;
+}) {
+  const fullRequest = request?.trim() || "";
+  const compactRequest = fullRequest.replace(/\s+/g, " ");
+  const requestPreview = compactRequest.length > 96
+    ? `${compactRequest.slice(0, 93).trimEnd()}…`
+    : compactRequest;
+
   return (
-    <h1
-      id="scout-current-task-title"
-      className="mt-0.5 break-words text-base font-bold leading-tight text-[color:var(--text-primary)]"
-      data-testid="scout-current-task-title"
-    >
-      {title}
-    </h1>
+    <>
+      <h1
+        id="scout-current-task-title"
+        className="mt-0.5 break-words text-base font-bold leading-tight text-[color:var(--text-primary)]"
+        data-testid="scout-current-task-title"
+      >
+        {title}
+      </h1>
+      {fullRequest ? (
+        <details
+          key={fullRequest}
+          className="scout-current-task__request group mt-1 min-w-0 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-xs text-[color:var(--text-secondary)]"
+          data-testid="scout-current-task-request"
+        >
+          <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 [&::-webkit-details-marker]:hidden">
+            <span className="shrink-0 font-bold text-[color:var(--text-primary)]">Your request</span>
+            <span className="min-w-0 flex-1 truncate" data-testid="scout-current-task-request-preview">
+              {requestPreview}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <p
+            className="whitespace-pre-wrap break-words border-t border-[color:var(--border-subtle)] px-2.5 py-2 leading-relaxed"
+            data-testid="scout-current-task-request-full"
+          >
+            {fullRequest}
+          </p>
+        </details>
+      ) : null}
+    </>
   );
 }
 
@@ -5016,7 +5051,14 @@ export default function ScoutOS() {
                             ? ` · ${activeSavedThread.relatedLabel}`
                             : ""}
                         </p>
-                        <ScoutCurrentTaskHeading title={currentTaskTitle} />
+                        <ScoutCurrentTaskHeading
+                          title={currentTaskTitle}
+                          request={
+                            hasAssistantResult && state.messages[0]?.role === "user"
+                              ? currentTaskRequest
+                              : null
+                          }
+                        />
                       </div>
 
                       <ScoutTaskControls
