@@ -496,8 +496,8 @@ export default function DirectConnectPros() {
 
   const {
     data: contractors = [],
-    isLoading,
     isFetching: providerSearchFetching,
+    isSuccess: providerSearchSucceeded,
     isError: providerSearchFailed,
     refetch: retryProviderSearch,
   } = useQuery({
@@ -547,9 +547,24 @@ export default function DirectConnectPros() {
   );
 
   useEffect(() => {
-    if (!workspaceHydrated || isLoading) return;
+    // An unavailable or in-flight source cannot prove that a saved selection is gone.
+    if (
+      !workspaceHydrated ||
+      !canQueryDirectory ||
+      providerSearchFetching ||
+      providerSearchFailed ||
+      !providerSearchSucceeded
+    ) return;
     if (selectedProviderId && !selectedProvider) setSelectedProviderId("");
-  }, [isLoading, selectedProvider, selectedProviderId, workspaceHydrated]);
+  }, [
+    canQueryDirectory,
+    providerSearchFailed,
+    providerSearchFetching,
+    providerSearchSucceeded,
+    selectedProvider,
+    selectedProviderId,
+    workspaceHydrated,
+  ]);
 
   const {
     data: directoryFallback = [],

@@ -220,6 +220,76 @@ describe("Businesses discovery states", () => {
     }
   });
 
+  it("keeps a selected public profile through a source error and restores it after Retry", async () => {
+    window.history.replaceState({}, "", "/contractors?selected=provider-1");
+    let providerChecks = 0;
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) {
+        providerChecks += 1;
+        if (providerChecks === 1) throw new Error("500: provider search unavailable");
+        return [{
+          id: "provider-1",
+          name: "Selected Public Business",
+          canonicalBusinessProfileUrl: "/u/selected-public-business",
+        }];
+      }
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() => Boolean(container.querySelector('[data-testid="businesses-search-error"]')));
+    expect(providerChecks).toBe(1);
+    expect(new URLSearchParams(window.location.search).get("selected")).toBe("provider-1");
+    expect(container.querySelector('[data-testid="business-workspace-inspector"]')).toBeNull();
+    expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+
+    const retry = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Retry search")
+    );
+    if (!retry) throw new Error("The failed search has no retry button");
+    await act(async () => retry.click());
+    await waitFor(() => Boolean(container.querySelector(
+      '[data-testid="business-workspace-inspector"] a[href="/u/selected-public-business"]'
+    )));
+    const inspector = container.querySelector('[data-testid="business-workspace-inspector"]');
+    expect(Array.from(inspector?.querySelectorAll('a[href="/u/selected-public-business"]') || [])
+      .some((link) => link.textContent?.includes("View profile"))).toBe(true);
+    expect(container.querySelector('[data-testid="business-result-provider-1"]')?.getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector('[data-testid="business-results-list"]')?.classList.contains("hidden")).toBe(true);
+    expect(new URLSearchParams(window.location.search).get("selected")).toBe("provider-1");
+    expect(container.querySelector('[data-testid="businesses-search-error"]')).toBeNull();
+    expect(providerChecks).toBe(2);
+    expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
+  });
+
+  it("clears a saved selection after a successful search no longer includes that provider", async () => {
+    window.history.replaceState({}, "", "/contractors?selected=provider-1");
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) {
+        return [{
+          id: "provider-2",
+          name: "Still Public Business",
+          canonicalBusinessProfileUrl: "/u/still-public-business",
+        }];
+      }
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() => Boolean(container.querySelector('[data-testid="business-result-provider-2"]')));
+    await waitFor(() => !new URLSearchParams(window.location.search).has("selected"));
+    expect(container.querySelector('[data-testid="business-result-provider-2"]')?.getAttribute("aria-pressed")).toBe("false");
+    expect(container.querySelector('[data-testid="business-workspace-inspector"]')?.textContent).toContain("Choose a business to inspect");
+    expect(container.querySelector('[data-testid="business-workspace-inspector"] a[href="/u/still-public-business"]')).toBeNull();
+    expect(container.querySelector('[data-testid="business-results-list"]')?.classList.contains("hidden")).toBe(false);
+    expect(container.querySelector('[data-testid="businesses-search-error"]')).toBeNull();
+    expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
+  });
+
   it("does not leave a previously checked provider actionable after its same-search refresh fails", async () => {
     let providerChecks = 0;
     let failRefresh: (reason: Error) => void = () => {};
