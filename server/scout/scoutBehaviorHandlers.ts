@@ -1,3 +1,5 @@
+import { resolveProviderBrowseIntent } from "./scoutProviderBrowseIntent";
+
 export type DecisionPipelineBehaviorKey =
   | "provider_routing"
   | "community_routing"
@@ -111,6 +113,37 @@ export function buildDecisionPipelineBehaviorResponse(
   }
 
   if (input.behaviorKey === "contractor_search_routing") {
+    const browse = resolveProviderBrowseIntent(input.message, {
+      countyCode: input.countyCode,
+      stateCode: input.stateCode,
+    });
+    if (browse) {
+      const subject = browse.tradeSlug
+        ? `${browse.tradeSlug.replace(/-/g, " ")} providers`
+        : "local providers";
+      const label = browse.areaNeedsSelection
+        ? `Choose area and compare ${subject}`
+        : `Compare ${subject}`;
+      return {
+        message: browse.areaNeedsSelection
+          ? `Choose the county for ${browse.requestedArea || "this search"}, then compare ${subject}. I could not narrow that place to one county yet.`
+          : `Open ${subject}${browse.areaLabel ? ` in ${browse.areaLabel}` : ""}. Review profiles before choosing whether to start a request.`,
+        suggestedActions: [],
+        actions: [
+          {
+            type: "NAVIGATE",
+            label,
+            to: browse.path,
+            path: browse.path,
+            primary: true,
+            subtitle: "Search local profiles",
+            why: "You asked to browse and compare providers.",
+          },
+        ],
+        metadata: { ...baseMetadata, intent: "provider_search" },
+      };
+    }
+
     return {
       message:
         "I will route this through Direct Connect so contractor discovery and contact gating stay trusted.",

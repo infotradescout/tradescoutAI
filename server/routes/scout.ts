@@ -75,6 +75,7 @@ import { ensureFollowUpQuestion } from "../scout/responseShape";
 import { finalizeScoutResponse } from "../scout/scoutResponseContract";
 import { normalizeScoutRequest } from "../scout/scoutRequestNormalizer";
 import { runScoutDecisionPipeline } from "../scout/scoutDecisionPipeline";
+import { isExplicitProviderBrowseIntent } from "../scout/scoutProviderBrowseIntent";
 import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 import {
   sanitizeScoutActionsForPolicy,
@@ -2576,7 +2577,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
     const optimizationUserId = memoryUserId;
-    if (optimizationUserId && message) {
+    if (optimizationUserId && message && !isExplicitProviderBrowseIntent(message)) {
       // Import optimization services
       const { generateQueryHash, checkFaqMatch, routeQuery } =
         await import("../services/scoutOptimizationEngine");
