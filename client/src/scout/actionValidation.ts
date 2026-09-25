@@ -70,6 +70,8 @@ const PUBLIC_DEAL_PATH = /^\/deals\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 
 const PUBLIC_BUSINESS_PROFILE_PATH = /^\/business\/[a-z0-9][a-z0-9-]{0,119}$/i;
 
+const PUBLIC_PROFILE_PAGE_PATH = /^\/u\/[a-z0-9][a-z0-9-]{0,119}$/i;
+
 const PUBLIC_TOOL_DETAIL_PATH = /^\/exchange\/tools\/[a-z0-9_-]{1,100}$/i;
 
 function isAllowedPublicDealPath(target: string, basePath: string): boolean {
@@ -90,6 +92,10 @@ function isAllowedPublicBusinessProfilePath(target: string, basePath: string): b
     basePath.toLowerCase() !== "/business/requests" &&
     PUBLIC_BUSINESS_PROFILE_PATH.test(basePath)
   );
+}
+
+function isAllowedPublicProfilePagePath(target: string, basePath: string): boolean {
+  return target === basePath && PUBLIC_PROFILE_PAGE_PATH.test(basePath);
 }
 
 function isAllowedPublicToolDetailPath(target: string, basePath: string): boolean {
@@ -144,6 +150,7 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
     const isAllowedDynamic =
       isAllowedPublicDealPath(target, basePath) ||
       isAllowedPublicBusinessProfilePath(target, basePath) ||
+      isAllowedPublicProfilePagePath(target, basePath) ||
       isAllowedPublicToolDetailPath(target, basePath) ||
       /^\/contractors\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/exchange\/[a-zA-Z0-9_-]+$/.test(basePath) ||

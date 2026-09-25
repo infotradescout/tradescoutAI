@@ -181,6 +181,29 @@ describe("actionValidation", () => {
     }
   });
 
+  it("allows only an exact public profile page path for Scout page results", () => {
+    const profile = "/u/mesa-plumbing";
+    expect(
+      scoutAllowedActionToAction(
+        allowedAction({ label: "Open public profile page", target: profile })
+      )
+    ).toMatchObject({ type: "NAVIGATE", to: profile, path: profile });
+
+    for (const blocked of [
+      "/u",
+      "/u/",
+      `${profile}/edit`,
+      `${profile}/services/plumbing`,
+      `${profile}?redirect=/messages`,
+      `${profile}#contact`,
+      "/u/mesa%2Fplumbing",
+      "/u/../admin",
+      `/u/${"x".repeat(121)}`,
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
+  });
+
   it("allows normal user Scout and Supply Run routes", () => {
     for (const to of [
       "/homes",
