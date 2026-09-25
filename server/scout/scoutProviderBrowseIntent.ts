@@ -63,7 +63,8 @@ export function isExplicitProviderBrowseIntent(message: string): boolean {
     !/\bmy\s+(?:business(?:es)?|contractors?|providers?|pros?)\b/i.test(message) &&
     !/\b(?:contractor|provider)\s+(?:requests?|jobs?|inbox)\b/i.test(message) &&
     !/\bmy\s+(?:requests?|jobs?|projects?|inbox|messages?|conversations?)\b/i.test(message) &&
-    !/\b(?:replied|responded|messaged)\s+(?:to\s+)?me\b/i.test(message)
+    !/\b(?:replied|responded|messaged|quoted|bid)\s+(?:to\s+)?me\b/i.test(message) &&
+    !/\bsent\s+me\s+(?:a\s+)?(?:quote|bid|estimate|message)\b/i.test(message)
   );
 }
 
@@ -100,12 +101,19 @@ export function resolveProviderBrowseIntent(
     stateCodeFor(cityStateMention?.[2]) ||
     stateCodeFor(stateOnly?.[1]) ||
     namedStateOnly?.code;
+  const otherPlaceMention = countyMention || cityStateMention || requestedState
+    ? null
+    : message.match(/\b(?:in|near|around)\s+([A-Za-z][A-Za-z .'-]{1,60})\s*$/i);
+  const otherPlace = otherPlaceMention?.[1]?.trim() || "";
+  const unresolvedPlace = Boolean(
+    otherPlace && !/^(?:me|here|my area|my county|my location|the area)$/i.test(otherPlace)
+  );
   let stateCode = requestedState || stateCodeFor(context.stateCode);
 
   const countyName = countyMention?.[1]?.trim() || "";
   const contextCounty = String(context.countyCode || "").trim();
   const mayUseContextCounty =
-    !countyMention && !cityStateMention && !requestedState;
+    !countyMention && !cityStateMention && !requestedState && !unresolvedPlace;
   const countyToResolve = countyName || (mayUseContextCounty ? contextCounty : "");
   let matchingCounty =
     countyToResolve && stateCode
@@ -127,8 +135,9 @@ export function resolveProviderBrowseIntent(
     }
   }
   if (cityStateMention && !requestedState) stateCode = null;
+  if (unresolvedPlace) stateCode = null;
   const countyFips = matchingCounty?.fipsCode || null;
-  const areaNeedsSelection = Boolean((countyName && !matchingCounty) || cityStateMention);
+  const areaNeedsSelection = Boolean((countyName && !matchingCounty) || cityStateMention || unresolvedPlace);
 
   const tradeSlug = TRADE_TERMS.find((entry) => entry.pattern.test(message))?.slug || null;
   const params = new URLSearchParams();
@@ -157,6 +166,6 @@ export function resolveProviderBrowseIntent(
       ? `${countyName} ${countyMention?.[2]}${requestedState ? `, ${requestedState}` : ""}`
       : cityStateMention
         ? `${cityStateMention[1].trim()}${requestedState ? `, ${requestedState}` : ""}`
-        : null,
+        : unresolvedPlace ? otherPlace : null,
   };
 }

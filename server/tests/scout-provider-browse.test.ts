@@ -142,6 +142,13 @@ describe("Scout provider browsing", () => {
     })?.countyFips).toBeNull();
     expect(resolveProviderBrowseIntent("Show me roofers in Phoenix, AZ", savedFloridaArea)?.path)
       .toBe("/direct-connect/pros?source=scout&state=AZ&county=&trade=roofing&q=&selected=&require_area=1");
+    for (const message of ["roofers in Phoenix", "Find roofers near Boston"]) {
+      expect(resolveProviderBrowseIntent(message, savedFloridaArea)).toMatchObject({
+        stateCode: null,
+        countyFips: null,
+        areaNeedsSelection: true,
+      });
+    }
   });
 
   it("recognizes companies as providers while leaving private request replies alone", () => {
@@ -154,6 +161,10 @@ describe("Scout provider browsing", () => {
     expect(resolveProviderBrowseIntent("Show me the contractors who replied to my requests"))
       .toBeNull();
     expect(resolveProviderBrowseIntent("Show me the contractors who responded to my jobs"))
+      .toBeNull();
+    expect(resolveProviderBrowseIntent("roofers in Maricopa County who quoted me"))
+      .toBeNull();
+    expect(resolveProviderBrowseIntent("roofers in Maricopa County who sent me a bid"))
       .toBeNull();
   });
 
