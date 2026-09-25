@@ -19,7 +19,10 @@ import type { ScoutAction, ScoutMessage } from "./state";
 function renderThread(
   messages: ScoutMessage[],
   showControllerExtras = false,
-  options?: { status?: "idle" | "resolving_context" | "checking_documents" | "ready" }
+  options?: {
+    status?: "idle" | "resolving_context" | "checking_documents" | "ready";
+    onAction?: (action: ScoutAction) => void;
+  }
 ): string {
   return renderToStaticMarkup(
     React.createElement(ScoutThread, {
@@ -27,6 +30,7 @@ function renderThread(
       status: options?.status ?? "idle",
       showControllerExtras,
       onPrefill: () => undefined,
+      onAction: options?.onAction,
     })
   );
 }
@@ -268,11 +272,11 @@ describe("ScoutThread evidence strip", () => {
     }
   });
 
-  it("describes topic filtered posts and business names without calling county deals topic matches", () => {
+  it("describes topic filtered posts and public businesses without calling county deals topic matches", () => {
     const answer =
       'Scout checked published county posts from the last 7 days in Maricopa County, AZ for "plumbing"; none matched this topic. ' +
       'It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. ' +
-      'Scout also found 1 public business profile listed for Maricopa County, AZ with "plumbing" in the name. Business profiles were not filtered to this week; check current services and availability before contact. ' +
+      'Scout also found 1 public business profile listed for Maricopa County, AZ by name, category, or listed service for "plumbing". Business profiles were not filtered to this week; check current services and availability before contact. ' +
       "Pages, tools, and other requests were not checked. Nothing was sent.";
     const message: ScoutMessage = {
       id: "a_topic_county",
@@ -305,7 +309,7 @@ describe("ScoutThread evidence strip", () => {
     const summary = container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
     expect(summary).toContain("plumbing");
     expect(summary).toContain("0 post matches (7 days)");
-    expect(summary).toContain("1 business name match");
+    expect(summary).toContain("1 business match");
     expect(summary).toContain("1 county TradeDeal (topic unchecked)");
     expect(summary).not.toContain("no posts in Maricopa County");
   });
@@ -314,8 +318,8 @@ describe("ScoutThread evidence strip", () => {
     const dealPath = "/deals/00000000-0000-4000-8000-000000000205?county=04013";
     const answer =
       'Scout checked published county posts for "electrical"; none matched this topic. ' +
-      'Scout checked public business names for "electrical"; none matched this topic. ' +
-      'One county TradeDeal was not matched to your topic. Nothing was sent.';
+      'Scout checked public business names, categories, and listed services for "electrical"; none matched this topic. ' +
+      'One county TradeDeal was not matched to your topic. Pages, tools, and other requests were not checked. Nothing was sent.';
     const message: ScoutMessage = {
       id: "a_topic_miss",
       role: "assistant",
@@ -351,11 +355,14 @@ describe("ScoutThread evidence strip", () => {
       },
     };
     const container = document.createElement("div");
-    container.innerHTML = renderThread([message]);
+    container.innerHTML = renderThread([message], false, { onAction: () => undefined });
 
     expect(container.querySelector(".scout-assistant-bubble__badge")?.textContent).toBe("County search");
     expect(container.querySelector(".scout-result-no-topic-match")?.textContent).toContain(
-      'No published county post or public business name matched “electrical”'
+      'No recent county post or public business matched “electrical”'
+    );
+    expect(container.querySelector(".scout-result-refine__toggle")?.textContent).toContain(
+      "Search a different trade or job"
     );
     const countyOffer = container.querySelector<HTMLDetailsElement>("details.scout-county-offer");
     expect(countyOffer?.open).toBe(false);

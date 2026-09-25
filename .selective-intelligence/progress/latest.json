@@ -1,68 +1,58 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T004940Z-6d27b7ad",
-  "createdAt": "2026-09-25T00:49:40.383175+00:00",
-  "outcome": "Return publication-gated county businesses that match a trade in their public name, category, or listed services.",
+  "checkpointId": "progress-20260925T005425Z-28aedb85",
+  "createdAt": "2026-09-25T00:54:25.320385+00:00",
+  "outcome": "Make Scout phone result language and saved title reflect topic matches from names or declared services.",
   "scope": [
-    "Scout public business topic lookup"
+    "Scout topic result presentation and saved task title"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Added internal Scout topic predicate to public directory with name/category/service matching, preserved public and county gates, and labeled matched field in Scout result."
+      "Removed name-only claims from summary and source details, clarified follow-up trade control, and use latest trade refinement as saved/current task title."
     ],
     "changedUnverified": [
-      "Rendered phone copy still says business name; exact-head database/browser journeys and unchanged release gate require rerun."
+      "Exact-head rendered phone and database journeys still need rerun; unchanged release gate pending."
     ],
     "proof": [
-      "Focused Scout tests 88/88, npm run check, and git diff --check passed on source slice."
+      "Client Scout focused tests 60/60, npm run check, and git diff --check passed."
     ],
     "externalEffects": [
       "Only draft PR source branch push; no production or customer writes."
     ],
     "doNotRepeat": [
-      "39f browser receipts are diagnostic after this source change."
+      "4ab server-slice test proof is valid but earlier browser receipts do not verify this final UI head."
     ],
-    "nextSafeAction": "Update topic result phone copy and test it, then prove neutral-name public plumber and exclusion cases in an exact-head disposable database/browser journey."
+    "nextSafeAction": "Run final exact-head neutral-name plumber Scout and Businesses browser journeys, saved-delete, unchanged release gate, and delivery acceptance."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "39f1dd7c0aaf223ac32fb2fc687ff3fc558c3dac",
+    "headBefore": "4ab9c6e5695f35cd9fdb3c96894c828c1e1f5809",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M server/routes/business-directory-public.ts",
-      " M server/routes/scout.ts",
-      " M server/scout/scoutMixedDiscoveryRecovery.ts",
-      " M server/tests/scout-county-fips.test.ts",
-      " M server/tests/scout-mixed-discovery-route.test.ts"
+      " M client/src/scout/ScoutOS.tsx",
+      " M client/src/scout/ScoutThread.evidence.test.ts",
+      " M client/src/scout/ScoutThread.tsx"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/routes/business-directory-public.ts",
-      "sha256": "63a42b74e6d074948ba15a0f412a5a258f9d88220d3d589470b2fee5fff99ac6"
+      "path": "client/src/scout/ScoutOS.tsx",
+      "sha256": "2e15782a310a9cf6b7a6ea08d49c547c3d4c33405eebde1fc6effcb3395a1d19"
     },
     {
-      "path": "server/routes/scout.ts",
-      "sha256": "a4fc2ffd1c63a590641aa5a00e393d5368fdd76b5902ad994f1b471f41f1f6f2"
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "8788b5f204ce9c6528b240e470ef4165de649272c65f347bc3d00b5a2399bcb5"
     },
     {
-      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
-      "sha256": "ed1e23f14537de18cf20c75e8f188e31f7be2c7a92bd7efd11f6529e1a818721"
-    },
-    {
-      "path": "server/tests/scout-county-fips.test.ts",
-      "sha256": "d800209dd3ffb7ff26da62d9a50447ffb8183e3e6e8549ab971e96a0f543c87f"
-    },
-    {
-      "path": "server/tests/scout-mixed-discovery-route.test.ts",
-      "sha256": "3758b33419aba3b7c1dfb0a1640f6cf8dbc7b342e9b5f3d8c8e627ecb4e4d850"
+      "path": "client/src/scout/ScoutThread.evidence.test.ts",
+      "sha256": "7b9f681cc959e9cc4b7db37d1a6360942512528641e783620c1716703d57f517"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

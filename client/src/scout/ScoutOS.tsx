@@ -713,6 +713,16 @@ function titleForLocalPostsAndDealsRequest(value: string): string | null {
     : null;
 }
 
+function latestLocalSearchTitle(messages: ScoutMessage[]): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role !== "user") continue;
+    const title = titleForLocalPostsAndDealsRequest(message.content);
+    if (title && title !== "Local posts & deals") return title;
+  }
+  return null;
+}
+
 function sanitizeRelatedId(value: string | null | undefined): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim().replace(/[#?].*$/, "");
@@ -1231,6 +1241,7 @@ function buildSavedScoutThread(
   return {
     id: existingId || `thread_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     title:
+      latestLocalSearchTitle(messages) ||
       titleForLocalPostsAndDealsRequest(firstUserMessage.content) ||
       summarizeThreadText(firstUserMessage.content, "Scout conversation"),
     preview: summarizeThreadText(
@@ -2366,8 +2377,9 @@ export default function ScoutOS() {
     const firstUserMessage = firstThreadUserMessage(state.messages);
     const request = firstUserMessage?.content || latestUserQuery;
     return (
-      titleForLocalPostsAndDealsRequest(request) ||
+      latestLocalSearchTitle(state.messages) ||
       activeSavedThread?.title ||
+      titleForLocalPostsAndDealsRequest(request) ||
       summarizeThreadText(request, "Current Scout task")
     );
   }, [activeSavedThread?.title, latestUserQuery, state.messages]);

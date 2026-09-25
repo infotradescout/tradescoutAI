@@ -460,7 +460,7 @@ function topicDiscoverySummary(msg: ScoutMessage): string | null {
         : "posts unchecked";
   const businesses =
     checks.businesses.status === "checked"
-      ? `${checks.businesses.shownCount} business name match${checks.businesses.shownCount === 1 ? "" : "es"}`
+      ? `${checks.businesses.shownCount} business match${checks.businesses.shownCount === 1 ? "" : "es"}`
       : checks.businesses.status === "error"
         ? "businesses unavailable"
         : "businesses unchecked";
@@ -587,7 +587,7 @@ function mixedDiscoverySourceChecks(msg: ScoutMessage, answer: string): Array<{ 
         source: "Public business profiles",
         status: status(
           checks.businesses,
-          checks.topic ? "Checked names for topic; not this week" : "Checked; not this week"
+          checks.topic ? "Checked names, categories & services for topic; no week filter" : "Checked; not this week"
         ),
       },
       { source: "Pages, tools and requests", status: "Not checked" },
@@ -1315,7 +1315,7 @@ function MessageExtras({
             aria-expanded={refineOpen}
             onClick={() => setRefineOpen((open) => !open)}
           >
-            Narrow by trade or job
+            {discoveryChecks?.topic ? "Search a different trade or job" : "Narrow by trade or job"}
           </button>
           {refineOpen && (
             <form
@@ -1359,7 +1359,7 @@ function MessageExtras({
         <div className="scout-result-list space-y-2" aria-label="Scout results">
           {noTopicMatches && (
             <p className="scout-result-no-topic-match">
-              No published county post or public business name matched “{discoveryChecks?.topic}”.
+              No recent county post or public business matched “{discoveryChecks?.topic}”.
               Try another trade or draft a request for your county.
             </p>
           )}
