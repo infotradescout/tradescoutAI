@@ -108,6 +108,7 @@ describe("Scout task draft boundary", () => {
 
   beforeEach(async () => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -120,6 +121,7 @@ describe("Scout task draft boundary", () => {
     act(() => root.unmount());
     container.remove();
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   it("keeps same-task typing but clears A before loading B, including a composer reload", async () => {
@@ -230,9 +232,9 @@ describe("Scout task draft boundary", () => {
     expect(window.localStorage.getItem(SCOUT_HELP_INTENT_KEY)).toBeNull();
   });
 
-  it("hides an existing URL launch prompt after A switches to B and accepts a new B launch", async () => {
-    function Launch() {
-      const [owner, setOwner] = useState("user:A");
+  it("rejects A's URL prompt after B switches and reloads, then accepts a distinct B launch", async () => {
+    function Launch({ startOwner }: { startOwner: string }) {
+      const [owner, setOwner] = useState(startOwner);
       const [prompt, setPrompt] = useState("A's private URL prompt");
       const accepted = useScoutAccountBoundLaunchPrompt(
         JSON.stringify({ prompt }),
@@ -245,6 +247,9 @@ describe("Scout task draft boundary", () => {
           <button type="button" onClick={() => setOwner("user:B")}>Switch URL account B</button>
           <button type="button" onClick={() => setPrompt("B's new deliberate launch")}>
             Open new B launch
+          </button>
+          <button type="button" onClick={() => setPrompt("A's private URL prompt")}>
+            Reopen old A URL
           </button>
           <ScoutSearchDock
             key={owner}
@@ -262,12 +267,17 @@ describe("Scout task draft boundary", () => {
         </div>
       );
     }
-    await act(async () => root.render(<Launch />));
+    await act(async () => root.render(<Launch startOwner="user:A" />));
     expect(container.querySelector('[data-testid="accepted-launch"]')?.textContent).toBe(
       "A's private URL prompt"
     );
     expect(textArea().value).toBe("A's private URL prompt");
     await act(async () => click("Switch URL account B"));
+    expect(container.querySelector('[data-testid="accepted-launch"]')?.textContent).toBe("");
+    expect(textArea().value).toBe("");
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await act(async () => root.render(<Launch startOwner="user:B" />));
     expect(container.querySelector('[data-testid="accepted-launch"]')?.textContent).toBe("");
     expect(textArea().value).toBe("");
     await act(async () => click("Open new B launch"));
@@ -277,5 +287,8 @@ describe("Scout task draft boundary", () => {
     expect(textArea().value).toBe("B's new deliberate launch");
     await act(async () => click("Start search"));
     expect(sent).toHaveBeenCalledExactlyOnceWith("user:B", "URL", "B's new deliberate launch");
+    await act(async () => click("Reopen old A URL"));
+    expect(container.querySelector('[data-testid="accepted-launch"]')?.textContent).toBe("");
+    expect(textArea().value).toBe("");
   });
 });

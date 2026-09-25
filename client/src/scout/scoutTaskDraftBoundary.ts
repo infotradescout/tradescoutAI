@@ -5,6 +5,16 @@ export const SCOUT_MAIN_INPUT_DRAFT_KEY = "scout:prefill:scout-main";
 export const SCOUT_MAIN_INPUT_OWNER_KEY = "scout:draft-owner:scout-main";
 const SCOUT_MAIN_INPUT_HANDOFF_KEY = "scout:external-handoff-owner:scout-main";
 export const SCOUT_HELP_INTENT_KEY = "scout:help-intent";
+const SCOUT_LAUNCH_OWNER_KEY_PREFIX = "scout:launch-owner:scout-main:";
+
+function launchSignatureFingerprint(signature: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < signature.length; index += 1) {
+    hash = Math.imul(hash ^ signature.charCodeAt(index), 16777619) >>> 0;
+  }
+  // A collision can reject a fresh launch, but cannot admit the same launch for another owner.
+  return `${signature.length}:${hash.toString(16)}`;
+}
 
 export function clearScoutInputDraft(): void {
   if (typeof window === "undefined") return;
@@ -72,20 +82,32 @@ export function takeScoutHelpIntentForOwner(owner: string | null): string | null
   }
 }
 
-/** A URL prompt belongs to the account that first accepts this launch. */
+/** A URL prompt belongs to the first account that accepted it in this browser tab. */
 export function useScoutAccountBoundLaunchPrompt(
   signature: string,
   prompt: string | undefined,
   owner: string | null
 ): string | undefined {
-  const [accepted, setAccepted] = useState<{ signature: string; owner: string } | null>(null);
+  const [accepted, setAccepted] = useState<{ fingerprint: string; owner: string } | null>(null);
+  const fingerprint = launchSignatureFingerprint(signature);
   useEffect(() => {
     if (!prompt || !owner) return;
-    setAccepted((current) =>
-      current?.signature === signature ? current : { signature, owner }
-    );
-  }, [signature, prompt, owner]);
-  return accepted?.signature === signature && accepted.owner === owner ? prompt : undefined;
+    try {
+      const launchKey = `${SCOUT_LAUNCH_OWNER_KEY_PREFIX}${fingerprint}`;
+      const existingOwner = window.sessionStorage.getItem(launchKey);
+      if (existingOwner) {
+        setAccepted(existingOwner === owner ? { fingerprint, owner } : null);
+        return;
+      }
+      const next = { fingerprint, owner };
+      window.sessionStorage.setItem(launchKey, owner);
+      setAccepted(next);
+    } catch {
+      // Without tab-scoped ownership, reloading under another account must fail closed.
+      setAccepted(null);
+    }
+  }, [fingerprint, prompt, owner]);
+  return accepted?.fingerprint === fingerprint && accepted.owner === owner ? prompt : undefined;
 }
 
 export function discardScoutDraftForTaskChange(): boolean {
