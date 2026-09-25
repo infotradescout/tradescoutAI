@@ -1,71 +1,71 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T000221Z-033e17a2",
-  "createdAt": "2026-09-25T00:02:21.778521+00:00",
-  "outcome": "Scout county discovery distinguishes broad county results from topic matches",
+  "checkpointId": "progress-20260925T000238Z-67d8b97d",
+  "createdAt": "2026-09-25T00:02:38.367404+00:00",
+  "outcome": "Scout phone results invite a natural trade or job refinement and retain source-status truth",
   "scope": [
-    "Scout mixed discovery server and focused tests"
+    "Scout result presentation and topic follow-up UI"
   ],
   "prohibitions": [
-    "Never expose private requests or call county promotions topic matches"
+    "Do not claim all-site search, near-me GPS, current supply, or user acceptance"
   ],
   "progress": {
     "completedVerified": [
-      "Natural topic requests filter published seven-day county posts and public business names; county TradeDeals remain eligible promotions with topic caveat; topic misses preserve private draft option without submitting"
+      "County result badge, compact refine form, topic-aware short summary, structured source statuses and saved-message metadata"
     ],
-    "changedUnverified": [],
+    "changedUnverified": [
+      "New exact-head local browser loop and production release gate remain to be run"
+    ],
     "proof": [
-      "Server focused tests 26/26, executed disposable PostgreSQL lookup tests 2/2, integrated focused tests 93/93, TypeScript and diff check passed; DB stopped"
+      "ScoutThread interactive/render tests 56/56; integrated four-suite tests 93/93; TypeScript and diff check pass"
     ],
-    "externalEffects": [
-      "Disposable local PostgreSQL proof closed; automatic approval review blocked cleanup of owned npm/node cache with blocked by policy, no retry"
-    ],
+    "externalEffects": [],
     "doNotRepeat": [],
-    "nextSafeAction": "Preserve phone refinement and source-check metadata; run exact-head browser and release gate"
+    "nextSafeAction": "Run synthetic local browser no-topic to topic, stale Businesses refresh, and unchanged exact-head release gate"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "13bfdb45a8d8ac992b9130ab62943fd3db5b9f49",
+    "headBefore": "5f062e3548e10a87a6dd503870f3141e108fe389",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M server/routes/scout.ts",
-      " M server/scout/scoutCountyPostLookup.ts",
-      " M server/scout/scoutMixedDiscoveryRecovery.ts",
-      " M server/tests/scout-county-fips.test.ts",
-      " M server/tests/scout-county-post-lookup.db.test.ts",
-      " M server/tests/scout-mixed-discovery-route.test.ts"
+      " M client/src/index.css",
+      " M client/src/scout/ScoutOS.tsx",
+      " M client/src/scout/ScoutThread.evidence.test.ts",
+      " M client/src/scout/ScoutThread.tsx",
+      " M client/src/scout/api.ts",
+      " M client/src/scout/state.ts"
     ],
-    "unrelatedChangeCountExcluded": 6
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/routes/scout.ts",
-      "sha256": "0b625441e19b28b0ab824733e22317825bfa0076dc1bca3175e535219cb9a95b"
+      "path": "client/src/index.css",
+      "sha256": "9b7f225a3301b2e8dd0110b71a3af94cc7253d848287b3c173a8e4fb7bdcef8d"
     },
     {
-      "path": "server/scout/scoutCountyPostLookup.ts",
-      "sha256": "fb603538bf09de4a682ddd69190e780931c9a57c8c7887fdb1a7329c1884e537"
+      "path": "client/src/scout/ScoutOS.tsx",
+      "sha256": "9f07a10fec46f44ef3d4ca6450ef76a360cd10e4f6007117a5c44d309e33a93c"
     },
     {
-      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
-      "sha256": "c4767e61c9a32841f7efb8e003103923befb9ce142f31248477de364f5c36616"
+      "path": "client/src/scout/ScoutThread.evidence.test.ts",
+      "sha256": "a9e0165862b3af05dffafe578ed02d0219e77211d5f08f55b2e587db72c945d8"
     },
     {
-      "path": "server/tests/scout-county-fips.test.ts",
-      "sha256": "b33902423de3d035169accf16d9d462779fc24262a04e5c498a0227e076cccbf"
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "c9ee1fd4cfd365dd8aecc3926ab2eab69acd67afd0f0e212bd3469619ea82c1b"
     },
     {
-      "path": "server/tests/scout-county-post-lookup.db.test.ts",
-      "sha256": "fe773f4922499b57315df3968f221dc780bb1791808076624f555ff9fb34ca8d"
+      "path": "client/src/scout/api.ts",
+      "sha256": "c72de172c6d650cd58d873045f5a186c723b2d75a4f343e541bad98a44bdbb93"
     },
     {
-      "path": "server/tests/scout-mixed-discovery-route.test.ts",
-      "sha256": "8588ece6206f0558da5859193f6cdfe58ad9480389cd4913d36524b89cdb3c0e"
+      "path": "client/src/scout/state.ts",
+      "sha256": "186816e7c9ce9755e3dcf8e61963a40f6c7661c979ae30c5b5025e8c2643e4fb"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

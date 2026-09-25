@@ -2754,6 +2754,13 @@ export default function ScoutOS() {
           navTarget:
             (primaryNavigation?.to as string) || (primaryNavigation?.path as string) || undefined,
           provenance,
+          metadata:
+            res.metadata?.sourceUsed === "scout_mixed_discovery_recovery"
+              ? {
+                  discoveryTopic: res.metadata.discoveryTopic,
+                  discoveryChecks: res.metadata.discoveryChecks,
+                }
+              : undefined,
           resultContract: {
             contract_version: res.contract_version,
             intent: res.intent,

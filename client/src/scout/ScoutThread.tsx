@@ -387,6 +387,102 @@ function mixedDiscoverySummary(content: string): string {
   return summary;
 }
 
+type DiscoveryCheckStatus = "checked" | "error" | "not_checked";
+
+type DiscoveryCheck = {
+  status: DiscoveryCheckStatus;
+  shownCount: number;
+  topicFiltered: boolean;
+};
+
+type DiscoveryChecks = {
+  areaLabel: string;
+  topic: string | null;
+  posts: DiscoveryCheck;
+  deals: DiscoveryCheck;
+  businesses: DiscoveryCheck;
+};
+
+function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
+  if (msg.provenance?.sourceUsed !== "scout_mixed_discovery_recovery") return null;
+  const metadata = msg.metadata;
+  const raw = metadata?.discoveryChecks;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const values = raw as Record<string, unknown>;
+  const readCheck = (value: unknown): DiscoveryCheck | null => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const check = value as Record<string, unknown>;
+    if (
+      check.status !== "checked" &&
+      check.status !== "error" &&
+      check.status !== "not_checked"
+    )
+      return null;
+    if (
+      typeof check.shownCount !== "number" ||
+      !Number.isInteger(check.shownCount) ||
+      check.shownCount < 0 ||
+      check.shownCount > 100
+    )
+      return null;
+    return {
+      status: check.status,
+      shownCount: check.shownCount,
+      topicFiltered: check.topicFiltered === true,
+    };
+  };
+  const posts = readCheck(values.posts);
+  const deals = readCheck(values.deals);
+  const businesses = readCheck(values.businesses);
+  if (!posts || !deals || !businesses) return null;
+  const areaLabel =
+    typeof values.areaLabel === "string" && values.areaLabel.trim().length <= 80
+      ? values.areaLabel.trim()
+      : "your county";
+  const rawTopic = metadata?.discoveryTopic;
+  const topic =
+    typeof rawTopic === "string" && rawTopic.trim().length > 0 && rawTopic.trim().length <= 60
+      ? rawTopic.trim()
+      : null;
+  return { areaLabel, topic, posts, deals, businesses };
+}
+
+function topicDiscoverySummary(msg: ScoutMessage): string | null {
+  const checks = readDiscoveryChecks(msg);
+  if (!checks?.topic || !checks.posts.topicFiltered || !checks.businesses.topicFiltered)
+    return null;
+  const topic = checks.topic.length <= 24 ? checks.topic : `${checks.topic.slice(0, 21).trimEnd()}...`;
+  const posts =
+    checks.posts.status === "checked"
+      ? `${checks.posts.shownCount} post match${checks.posts.shownCount === 1 ? "" : "es"} (7 days)`
+      : checks.posts.status === "error"
+        ? "posts unavailable"
+        : "posts unchecked";
+  const businesses =
+    checks.businesses.status === "checked"
+      ? `${checks.businesses.shownCount} business name match${checks.businesses.shownCount === 1 ? "" : "es"}`
+      : checks.businesses.status === "error"
+        ? "businesses unavailable"
+        : "businesses unchecked";
+  const deals =
+    checks.deals.status === "checked"
+      ? `${checks.deals.shownCount} county TradeDeal${checks.deals.shownCount === 1 ? "" : "s"} (topic unchecked)`
+      : checks.deals.status === "error"
+        ? "deals unavailable"
+        : "deals unchecked";
+  const format = (place: string) =>
+    `${place}: ${topic}: ${posts}, ${businesses}; ${deals}. Other sources unchecked. Nothing sent.`;
+  const area =
+    /^[a-z .'-]+, [a-z]{2}$/i.test(checks.areaLabel) && checks.areaLabel.length <= 45
+      ? checks.areaLabel
+      : "Your county";
+  const summary = format(area);
+  if (summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS) return summary;
+  const countySummary = format("Your county");
+  if (countySummary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS) return countySummary;
+  return `${topic}: ${posts}, ${businesses}; ${deals}. More sources unchecked. Nothing sent.`;
+}
+
 function tryParseScoutEnvelope(raw: string): Record<string, unknown> | null {
   const text = String(raw || "").trim();
   if (!text || (!text.startsWith("{") && !text.startsWith("["))) return null;
@@ -444,7 +540,7 @@ function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
 
 function buildAssistantSummary(msg: ScoutMessage, displayContent: string): string {
   if (msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery") {
-    return mixedDiscoverySummary(displayContent);
+    return topicDiscoverySummary(msg) || mixedDiscoverySummary(displayContent);
   }
   if (!shouldSummarizeAssistantMessage(msg)) return displayContent;
 
@@ -466,7 +562,37 @@ function hasExplicitMixedCoverage(msg: ScoutMessage, answer: string): boolean {
   );
 }
 
-function mixedDiscoverySourceChecks(answer: string): Array<{ source: string; status: string }> {
+function mixedDiscoverySourceChecks(msg: ScoutMessage, answer: string): Array<{ source: string; status: string }> {
+  const checks = readDiscoveryChecks(msg);
+  if (checks) {
+    const status = (check: DiscoveryCheck, checked: string) =>
+      check.status === "checked"
+        ? checked
+        : check.status === "error"
+          ? "Could not check"
+          : "Not checked";
+    return [
+      {
+        source: "County posts (past 7 days)",
+        status: status(checks.posts, checks.topic ? "Checked for topic" : "Checked"),
+      },
+      {
+        source: "Scout TradeDeals",
+        status: status(
+          checks.deals,
+          checks.topic ? "Checked county offers; not topic matched" : "Checked promotions"
+        ),
+      },
+      {
+        source: "Public business profiles",
+        status: status(
+          checks.businesses,
+          checks.topic ? "Checked names for topic; not this week" : "Checked; not this week"
+        ),
+      },
+      { source: "Pages, tools and requests", status: "Not checked" },
+    ];
+  }
   const clean = answer.replace(/\s+/g, " ").trim();
   const postsChecked =
     /(?:This Scout result includes \d+ published county posts? from the last 7 days|Scout checked published county posts from the last 7 days)/i.test(
@@ -1068,6 +1194,13 @@ function MessageExtras({
   const [controllerShowAll, setControllerShowAll] = React.useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
   const [answerOpen, setAnswerOpen] = React.useState(false);
+  const [refineOpen, setRefineOpen] = React.useState(false);
+  const [refineTopic, setRefineTopic] = React.useState("");
+  const [refineError, setRefineError] = React.useState("");
+  const canRefineCountyResults =
+    hasMixedDiscoveryCoverage &&
+    Boolean(onAction) &&
+    !/^Set your county to browse nearby posts\./i.test(fullAnswer || "");
   const revealSourceChecksOnMount = React.useCallback((answer: HTMLDivElement | null) => {
     if (answer) revealScoutSourceChecks(answer);
   }, []);
@@ -1160,6 +1293,54 @@ function MessageExtras({
           {currentTurnPrimaryAction.label || "Open next step"}
           <ArrowRight size={14} aria-hidden="true" />
         </button>
+      )}
+      {canRefineCountyResults && (
+        <div className="scout-result-refine">
+          <button
+            type="button"
+            className="scout-result-refine__toggle"
+            aria-expanded={refineOpen}
+            onClick={() => setRefineOpen((open) => !open)}
+          >
+            Narrow by trade or job
+          </button>
+          {refineOpen && (
+            <form
+              className="scout-result-refine__form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const topic = refineTopic.replace(/\s+/g, " ").trim();
+                if (topic.length < 2 || topic.length > 60) {
+                  setRefineError("Enter a trade or job in 2 to 60 characters.");
+                  return;
+                }
+                setRefineError("");
+                onAction?.({
+                  type: "ASK_SCOUT",
+                  label: `Search county results for ${topic}`,
+                  prompt: `Find TradeScout posts and deals about ${topic} in my county this week. Include public posts linked to requests and local businesses.`,
+                });
+              }}
+            >
+              <label htmlFor={`scout-refine-${msg.id}`}>Trade or job</label>
+              <div className="scout-result-refine__fields">
+                <input
+                  id={`scout-refine-${msg.id}`}
+                  type="text"
+                  maxLength={60}
+                  value={refineTopic}
+                  placeholder="e.g. plumbing"
+                  onChange={(event) => {
+                    setRefineTopic(event.target.value);
+                    if (refineError) setRefineError("");
+                  }}
+                />
+                <button type="submit">Search county</button>
+              </div>
+              {refineError && <p role="alert">{refineError}</p>}
+            </form>
+          )}
+        </div>
       )}
       {hasContractEntities && (
         <div className="scout-result-list space-y-2" aria-label="Scout results">
@@ -1537,7 +1718,7 @@ function MessageExtras({
                     <div className="space-y-2 text-xs" aria-label="Scout source checks">
                       <p className="font-semibold text-[color:var(--text-primary)]">What Scout checked</p>
                       <dl className="space-y-1.5">
-                        {mixedDiscoverySourceChecks(fullAnswer || "").map(({ source, status }) => (
+                        {mixedDiscoverySourceChecks(msg, fullAnswer || "").map(({ source, status }) => (
                           <div key={source} className="flex items-start justify-between gap-3">
                             <dt>{source}</dt>
                             <dd className="shrink-0 text-right font-semibold text-[color:var(--text-primary)]">
@@ -1781,7 +1962,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     <span className="scout-assistant-bubble__badge">
                       {msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
                         ? msg.resultContract.entities.length > 0
-                          ? "Local results"
+                          ? "County results"
                           : "Scout update"
                         : humanizeToken(msg.resultContract.intent)}
                     </span>

@@ -3191,6 +3191,60 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
   text-underline-offset: 2px;
 }
 
+.scout-result-refine {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--surface-card);
+  padding: 0.25rem 0.75rem;
+}
+
+.scout-result-refine__toggle {
+  min-height: 40px;
+  color: var(--ts-accent, #f97316);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.scout-result-refine__form {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.25rem 0 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.scout-result-refine__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.scout-result-refine__fields input {
+  flex: 1 1 11rem;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  background: var(--surface-intermediate);
+  color: var(--text-primary);
+  padding: 0 0.7rem;
+}
+
+.scout-result-refine__fields button {
+  min-height: 40px;
+  border-radius: 0.5rem;
+  background: var(--ts-accent, #f97316);
+  color: #161616;
+  font-weight: 700;
+  padding: 0 0.8rem;
+}
+
+.scout-result-refine__form p[role="alert"] {
+  color: var(--text-primary);
+}
+
 .scout-result-card {
   display: grid;
   gap: 0.4rem;

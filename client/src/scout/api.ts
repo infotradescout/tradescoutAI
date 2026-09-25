@@ -140,6 +140,8 @@ export interface ScoutBackendResponse {
   };
   timestamp?: string;
   metadata?: {
+    discoveryTopic?: string | null;
+    discoveryChecks?: unknown;
     intent?: string;
     redirect?: string;
     sourceUsed?: string;

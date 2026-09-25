@@ -162,7 +162,7 @@ describe("ScoutThread evidence strip", () => {
     expect(html).not.toContain("Search with Scout");
   });
 
-  it("labels a mixed county discovery result as local results while rendering its post link", () => {
+  it("labels a mixed county discovery result as county results while rendering its post link", () => {
     const response =
       "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. It does not verify deals, businesses, pages, tools, or other requests. Open Community or Businesses to continue; nothing was sent.";
     const assistantMessage: ScoutMessage = {
@@ -193,7 +193,7 @@ describe("ScoutThread evidence strip", () => {
 
     const html = renderThread([assistantMessage]);
 
-    expect(html).toContain('class="scout-assistant-bubble__badge">Local results</span>');
+    expect(html).toContain('class="scout-assistant-bubble__badge">County results</span>');
     expect(html).not.toContain('class="scout-assistant-bubble__badge">Provider Search</span>');
     expect(html).toContain('href="/community/posts/scout-native-published-maricopa"');
     expect(html).toContain("Neighborhood tool swap");
@@ -203,6 +203,111 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Other sources unchecked.");
     expect(html).toContain("Nothing sent.");
     expect(html).toContain("More detail");
+  });
+
+  it("asks for a trade in plain language and sends a county refinement", () => {
+    const answer =
+      "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned. " +
+      "Pages, tools, and other requests were not checked. Nothing was sent.";
+    const message: ScoutMessage = {
+      id: "a_refine_county",
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+    };
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const onAction = vi.fn();
+    const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+    const previousScrollTo = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollTo");
+    Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+      configurable: true,
+      value: vi.fn(),
+    });
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+    try {
+      React.act(() => {
+        root.render(
+          React.createElement(ScoutThread, { messages: [message], status: "idle", onAction })
+        );
+      });
+      const toggle = container.querySelector<HTMLButtonElement>(".scout-result-refine__toggle");
+      expect(toggle?.textContent).toContain("Narrow by trade or job");
+      expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+      expect(container.querySelector(".scout-result-refine__form")).toBeNull();
+
+      React.act(() => toggle?.click());
+      expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+      const input = container.querySelector<HTMLInputElement>(".scout-result-refine__fields input");
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      expect(valueSetter).toBeTypeOf("function");
+      React.act(() => {
+        valueSetter?.call(input, "plumbing");
+        input?.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      React.act(() => {
+        container.querySelector<HTMLButtonElement>(".scout-result-refine__fields button")?.click();
+      });
+      expect(onAction).toHaveBeenCalledWith({
+        type: "ASK_SCOUT",
+        label: "Search county results for plumbing",
+        prompt:
+          "Find TradeScout posts and deals about plumbing in my county this week. Include public posts linked to requests and local businesses.",
+      });
+    } finally {
+      React.act(() => root.unmount());
+      container.remove();
+      actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+      if (previousScrollTo) {
+        Object.defineProperty(HTMLElement.prototype, "scrollTo", previousScrollTo);
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollTo");
+      }
+    }
+  });
+
+  it("describes topic filtered posts and business names without calling county deals topic matches", () => {
+    const answer =
+      'Scout checked published county posts from the last 7 days in Maricopa County, AZ for "plumbing"; none matched this topic. ' +
+      'It also found 1 posted Scout TradeDeal for Maricopa County, AZ. These are promotional listings; terms and availability are not independently verified. Confirm when each offer ends before acting. ' +
+      'Scout also found 1 public business profile listed for Maricopa County, AZ with "plumbing" in the name. Business profiles were not filtered to this week; check current services and availability before contact. ' +
+      "Pages, tools, and other requests were not checked. Nothing was sent.";
+    const message: ScoutMessage = {
+      id: "a_topic_county",
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryTopic: "plumbing",
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 0, topicFiltered: true },
+          deals: { status: "checked", shownCount: 1, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 1, topicFiltered: true },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [],
+        evidence: [],
+        answer,
+        allowed_actions: [],
+        working_memory_update: {},
+      },
+    };
+    const html = renderThread([message]);
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const summary = container.querySelector(".scout-assistant-bubble__body p")?.textContent ?? "";
+    expect(summary).toContain("plumbing");
+    expect(summary).toContain("0 post matches (7 days)");
+    expect(summary).toContain("1 business name match");
+    expect(summary).toContain("1 county TradeDeal (topic unchecked)");
+    expect(summary).not.toContain("no posts in Maricopa County");
   });
 
   it("keeps an unaccompanied result link in the app so Scout can restore it on return", () => {
@@ -664,7 +769,7 @@ describe("ScoutThread evidence strip", () => {
     if (exact) expect(summary).toBe(exact);
     if (badge) {
       expect(html).toContain(`class="scout-assistant-bubble__badge">${badge}</span>`);
-      expect(html).not.toContain('class="scout-assistant-bubble__badge">Local results</span>');
+      expect(html).not.toContain('class="scout-assistant-bubble__badge">County results</span>');
     }
     expect(container.textContent).toContain("More detail");
     expect(summary).not.toContain("This Scout result");
