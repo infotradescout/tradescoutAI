@@ -108,3 +108,18 @@ export function isMixedScoutDiscoveryRequest(message: string): boolean {
     /\b(pages?|tools?|requests?)\b/.test(value)
   );
 }
+
+/**
+ * The refinement control asks for public records only. A bare trade name in
+ * this exact request is a search subject, not a request for physical work.
+ * Extra instructions, urgent conditions, or sensitive details do not match.
+ */
+export function isReadOnlyScoutTradeLookup(message: string): boolean {
+  const text = String(message || "").replace(/\s+/g, " ").trim();
+  const match = text.match(
+    /^find tradescout posts? (?:&|and) deals? about ([a-z][a-z-]{1,29}) in my county this week\. include public posts linked to requests and local businesses\.?$/i
+  );
+  return Boolean(
+    match && /^(?:electrical|wiring|gas|structural|foundation|load-bearing)$/i.test(match[1])
+  );
+}

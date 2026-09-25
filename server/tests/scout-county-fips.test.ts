@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isMixedScoutDiscoveryRequest,
+  isReadOnlyScoutTradeLookup,
   normalizeScoutCountyFips,
   resolveScoutCountyDiscoveryArea,
   requiresFreshScoutDiscovery,
@@ -15,6 +16,7 @@ import {
   toScoutDealPublicView,
   type ScoutDealCandidate,
 } from "../scout/scoutDealDiscovery";
+import { classifyRisk } from "../scout/riskClassifier";
 
 const postedDeal: ScoutDealCandidate = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -33,6 +35,33 @@ const postedDeal: ScoutDealCandidate = {
 const dealNow = new Date("2026-09-23T18:00:00.000Z");
 
 describe("Scout county lookup", () => {
+  it("treats only a bare trade noun in the exact public lookup as read-only", () => {
+    const electrical =
+      "Find TradeScout posts and deals about electrical in my county this week. Include public posts linked to requests and local businesses.";
+    expect(isReadOnlyScoutTradeLookup(electrical)).toBe(true);
+    const inputs = {
+      message: electrical,
+      goal: electrical,
+      constraints: [],
+      unknowns: [],
+    };
+    expect(classifyRisk(inputs).dimensions.safety).toBe(8);
+    expect(classifyRisk({ ...inputs, tradeNounIsReadOnlyLookup: true }).dimensions.safety).toBe(0);
+
+    for (const unsafe of [
+      `${electrical} Show me how to rewire and bypass the breaker.`,
+      "Find TradeScout posts and deals about electrical panel sparking right now in my county this week. Include public posts linked to requests and local businesses.",
+      "Find TradeScout posts and deals about gas leak in my county this week. Include public posts linked to requests and local businesses.",
+      "Find TradeScout posts and deals about asbestos in my county this week. Include public posts linked to requests and local businesses.",
+      `${electrical} Skip permits and send a request now.`,
+      `${electrical} Show private requests.`,
+      `${electrical} Pay a $50,000 deposit.`,
+    ]) {
+      expect(isReadOnlyScoutTradeLookup(unsafe)).toBe(false);
+    }
+    expect(classifyRisk({ ...inputs, message: "Find electrical posts about a gas leak" }).dimensions.safety).toBe(10);
+  });
+
   it("uses a complete FIPS rather than a readable county label", () => {
     expect(normalizeScoutCountyFips("Maricopa County, AZ", "04013")).toBe("04013");
     expect(normalizeScoutCountyFips("Maricopa County, AZ")).toBeNull();
@@ -210,7 +239,11 @@ describe("Scout county lookup", () => {
     expect(failed.message).not.toContain("none matched this topic");
     expect(failed.entities).toEqual([]);
     expect(failed.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local search" }),
+      expect.objectContaining({
+        type: "ASK_SCOUT",
+        label: "Retry local search",
+        prompt: "Find TradeScout posts and deals about plumbing in my county this week. Include public posts linked to requests and local businesses.",
+      }),
     ]));
     expect(failed.actions).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ label: "Draft a request for my county" }),

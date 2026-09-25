@@ -213,13 +213,13 @@ describe("Scout mixed county discovery route", () => {
     expect(resolveKnowledgeMock).not.toHaveBeenCalled();
   });
 
-  it("keeps a read-only county topic search on the discovery route when the governor defers with no missing information", async () => {
+  it("honors a governor safeguard deferral even when it reports no missing information", async () => {
     governMock.mockResolvedValue({
       intervention: {
         action: "DEFER",
         role: "SAFEGUARD",
         reasoning: "Synthetic risk classification",
-        userMessage: "I need to understand 0 pieces of critical information.",
+        userMessage: "Please pause before acting.",
       },
       situation: { goal: "Find electrical posts", risks: [{ severity: "critical" }], unknowns: [], confidence: "low" },
       outcomeGraph: null,
@@ -236,14 +236,9 @@ describe("Scout mixed county discovery route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body.metadata).toMatchObject({
-      sourceUsed: "scout_mixed_discovery_recovery",
-      discoveryTopic: "electrical",
-      postCheck: "checked",
-      businessCheck: "checked",
-    });
-    expect(response.body.answer).toContain('none matched this topic');
-    expect(response.body.answer).not.toContain("0 pieces of critical information");
+    expect(response.body.metadata.governorAction).toBe("DEFER");
+    expect(response.body.message).toContain("Please pause before acting.");
+    expect(listRecentScoutCountyPosts).not.toHaveBeenCalled();
   });
 
   it("keeps a governor block in force for a mixed county request", async () => {

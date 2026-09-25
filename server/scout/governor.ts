@@ -21,6 +21,7 @@ import { db } from "../db";
 import { toolProposals } from "../../shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { toolDiscovery } from "./toolDiscovery";
+import { isReadOnlyScoutTradeLookup } from "./scoutCountyFips";
 
 // Import admin control state
 import {
@@ -326,7 +327,8 @@ export async function inferSituation(args: {
     lower,
     situation.goal,
     situation.constraints,
-    situation.unknowns
+    situation.unknowns,
+    isReadOnlyScoutTradeLookup(message)
   );
 
   // Confidence scope: bound authority to a context fingerprint
@@ -438,7 +440,8 @@ async function assessRisks(
   lower: string,
   goal: string,
   constraints: string[],
-  unknowns: string[]
+  unknowns: string[],
+  tradeNounIsReadOnlyLookup: boolean
 ): Promise<Risk[]> {
   // Use domain-agnostic risk classifier
   const riskAssessment = classifyRisk({
@@ -446,6 +449,7 @@ async function assessRisks(
     goal,
     constraints,
     unknowns,
+    tradeNounIsReadOnlyLookup,
   });
 
   const risks: Risk[] = [];

@@ -1,71 +1,78 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T002956Z-bd3c576d",
-  "createdAt": "2026-09-25T00:29:57.058093+00:00",
-  "outcome": "Make a zero-match trade search readable: show organic topic matches first, collapse county-only promotions with their real scope, prioritize the editable county draft, and use short task titles and county-search labels.",
+  "checkpointId": "progress-20260925T004100Z-ae6bc6d5",
+  "createdAt": "2026-09-25T00:41:00.718432+00:00",
+  "outcome": "Preserve Scout governor safeguards for mixed discovery and retain the trade topic when retrying a failed county source.",
   "scope": [
-    "Scout topic-miss UX"
+    "Scout governor and topic retry"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Observed c015 phone screenshot where an unrelated promotion dominated electrical zero-match results; corrected response action priority and client grouping."
+      "Removed route-level bypass for all zero-unknown governor deferrals; narrowed classifier exception to an exact read-only public trade lookup; topic retry preserves its trade."
     ],
-    "changedUnverified": [],
+    "changedUnverified": [
+      "Browser journeys and unchanged release gate still need rerun on this exact head."
+    ],
     "proof": [
-      "Scout county, route, and rendered UI focused tests 86/86; npm run check passed; git diff --check passed."
+      "Focused county, mixed-route, and rendered Scout tests 87/87 passed; npm run check and git diff --check passed before checkpoint."
     ],
     "externalEffects": [
-      "No production or customer side effects; only source branch push."
+      "No production or customer side effects; only draft PR source branch push."
     ],
     "doNotRepeat": [
-      "c015 synthetic browser receipts are diagnostic for this new head; do not relabel them as current proof."
+      "4b58 synthetic browser receipts are diagnostic for the new head and must not be relabeled as current proof."
     ],
-    "nextSafeAction": "Rerun exact-head Scout, source-fault, Businesses stale-refresh, and saved-delete synthetic browser journeys, then the unchanged 16-step gate and acceptance packet."
+    "nextSafeAction": "Rerun exact-head Scout, source-fault, Businesses stale-refresh, and saved-delete synthetic browser journeys, then unchanged release gate and acceptance packet."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "c0159ca342056d1069c532a31d13464b6343542e",
+    "headBefore": "4b58aa8b2ee5b0b7e33bb8ec29b0103c3ccfb116",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/index.css",
-      " M client/src/scout/ScoutOS.tsx",
-      " M client/src/scout/ScoutThread.evidence.test.ts",
-      " M client/src/scout/ScoutThread.tsx",
+      " M server/routes/scout.ts",
+      " M server/scout/governor.ts",
+      " M server/scout/riskClassifier.ts",
+      " M server/scout/scoutCountyFips.ts",
       " M server/scout/scoutMixedDiscoveryRecovery.ts",
-      " M server/tests/scout-county-fips.test.ts"
+      " M server/tests/scout-county-fips.test.ts",
+      " M server/tests/scout-mixed-discovery-route.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/index.css",
-      "sha256": "0ad31b2d35edec7f41cffa66b8df52f55f3121801ae88699fdf8fb402585895a"
+      "path": "server/routes/scout.ts",
+      "sha256": "4f52a7b0a42ba0548efa754ba84cce2371af76eb7c54e27e132d1d1474a6d10b"
     },
     {
-      "path": "client/src/scout/ScoutOS.tsx",
-      "sha256": "4b75478bce398c857b93275b741663c8ef3e6661de93b5666f3a4b4311442cd9"
+      "path": "server/scout/governor.ts",
+      "sha256": "5dac5ba50cd3eb59d15b7c68525e2537d6d6adc38876af5e493049b1552f22d5"
     },
     {
-      "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "7b3260024d3d848a2834ff22f86ff5978b434047cb922aaa59aad32dcf7ad110"
+      "path": "server/scout/riskClassifier.ts",
+      "sha256": "8dd02b51ede88f5f0da2f916ebaa25fbd909a9f96061d5cc12eecc0277246447"
     },
     {
-      "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "7f59cc4fe489a56e2a729992caae7ab92da6e751b2ce485a1ba4f25a325c0125"
+      "path": "server/scout/scoutCountyFips.ts",
+      "sha256": "ad91a443d3367ada68dcc82ae05217b20ad0cd9923ce03599da6119b93b0d66d"
     },
     {
       "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
-      "sha256": "9cfc4c60780f6c11b919a7911af3e632cc70023fc7a511fba6d2cbdb53243228"
+      "sha256": "b3615700525e6855746a73855c663e7554f8ac68ff9d2d0f969e6212fd7304b9"
     },
     {
       "path": "server/tests/scout-county-fips.test.ts",
-      "sha256": "cd122db485c69510bafddc9e896ebccc7dc18cd05e4d510967dc48f8d96166d4"
+      "sha256": "c41e056d65df13d9d557fd7b2c4aed57ff577acf128a2d69e3a88b7cbab66444"
+    },
+    {
+      "path": "server/tests/scout-mixed-discovery-route.test.ts",
+      "sha256": "f2cec1ec0da3649b582d332a946008cdf177e8171a21f3b177d49a61c7529797"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

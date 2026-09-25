@@ -280,8 +280,9 @@ export function buildScoutMixedDiscoveryRecovery(input: {
             {
               type: "ASK_SCOUT",
               label: "Retry local search",
-              prompt:
-                "Search TradeScout and my area for posts & deals and public business profiles. Include matching pages, tools and requests.",
+              prompt: topic
+                ? `Find TradeScout posts and deals about ${topic} in my county this week. Include public posts linked to requests and local businesses.`
+                : "Search TradeScout and my area for posts & deals and public business profiles. Include matching pages, tools and requests.",
               primary: entities.length === 0,
             },
           ]

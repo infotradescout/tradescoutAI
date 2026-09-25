@@ -3209,22 +3209,9 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       });
     }
 
-    // A county discovery turn only reads public sources and offers navigation. A
-    // risk classifier can defer a trade keyword such as "electrical" even when
-    // it has no missing information. Keep actual blocks, redirects and deferrals
-    // with missing information in force; let this narrow read-only case reach
-    // the publication-gated county lookup below.
-    const continueReadOnlyCountyDiscovery =
-      governorDecision.intervention.action === "DEFER" &&
-      governorDecision.situation.unknowns.length === 0 &&
-      isMixedScoutDiscoveryRequest(message);
-
     // If governor decided to DEFER, REDIRECT, or BLOCK, return immediately
     // with structured intervention (no LLM needed for these)
-    if (
-      ["DEFER", "REDIRECT", "BLOCK"].includes(governorDecision.intervention.action) &&
-      !continueReadOnlyCountyDiscovery
-    ) {
+    if (["DEFER", "REDIRECT", "BLOCK"].includes(governorDecision.intervention.action)) {
       const intervention = governorDecision.intervention;
       if (scoutInteractionLog) {
         if (intervention.action === "BLOCK") {
