@@ -713,12 +713,12 @@ function titleForLocalPostsAndDealsRequest(value: string): string | null {
     : null;
 }
 
-function latestLocalSearchTitle(messages: ScoutMessage[]): string | null {
+export function latestLocalSearchTitle(messages: ScoutMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message.role !== "user") continue;
     const title = titleForLocalPostsAndDealsRequest(message.content);
-    if (title && title !== "Local posts & deals") return title;
+    if (title) return title;
   }
   return null;
 }

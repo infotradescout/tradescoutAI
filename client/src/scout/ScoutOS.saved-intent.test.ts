@@ -1,10 +1,23 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from "vitest";
-import { inferSavedThreadIntent } from "./ScoutOS";
+import { inferSavedThreadIntent, latestLocalSearchTitle } from "./ScoutOS";
 import type { ScoutMessage } from "./state";
 
 describe("saved Scout task intent", () => {
+  it("titles the task from the latest local search, including a return to broad county browsing", () => {
+    const broad = "Search TradeScout and my area for posts & deals in my county this week.";
+    const plumbing =
+      "Find TradeScout posts and deals about plumbing in my county this week. Include public posts linked to requests and local businesses.";
+    const messages: ScoutMessage[] = [
+      { id: "broad", role: "user", content: broad },
+      { id: "topic", role: "user", content: plumbing },
+    ];
+    expect(latestLocalSearchTitle(messages)).toBe("Plumbing in my county");
+    expect(latestLocalSearchTitle([...messages, { id: "broad-again", role: "user", content: broad }]))
+      .toBe("Local posts & deals");
+  });
+
   it("keeps a county posts and deals result in local discovery after autosave", () => {
     const messages: ScoutMessage[] = [
       {

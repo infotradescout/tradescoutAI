@@ -1,58 +1,53 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T005425Z-28aedb85",
-  "createdAt": "2026-09-25T00:54:25.320385+00:00",
-  "outcome": "Make Scout phone result language and saved title reflect topic matches from names or declared services.",
+  "checkpointId": "progress-20260925T005759Z-a85e5149",
+  "createdAt": "2026-09-25T00:57:59.897727+00:00",
+  "outcome": "Keep Scout task title aligned with the latest broad or trade-focused county search.",
   "scope": [
-    "Scout topic result presentation and saved task title"
+    "Saved Scout task title correction"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Removed name-only claims from summary and source details, clarified follow-up trade control, and use latest trade refinement as saved/current task title."
+      "A subsequent broad county search now supersedes an earlier trade title in current and saved task state."
     ],
     "changedUnverified": [
-      "Exact-head rendered phone and database journeys still need rerun; unchanged release gate pending."
+      "Final exact-head browser journeys, unchanged release gate, and delivery acceptance still pending."
     ],
     "proof": [
-      "Client Scout focused tests 60/60, npm run check, and git diff --check passed."
+      "Focused client tests 61/61, npm run check, and git diff --check passed."
     ],
     "externalEffects": [
       "Only draft PR source branch push; no production or customer writes."
     ],
     "doNotRepeat": [
-      "4ab server-slice test proof is valid but earlier browser receipts do not verify this final UI head."
+      "Earlier browser receipts are diagnostic because title logic changed."
     ],
-    "nextSafeAction": "Run final exact-head neutral-name plumber Scout and Businesses browser journeys, saved-delete, unchanged release gate, and delivery acceptance."
+    "nextSafeAction": "Run final exact-head synthetic browser journeys and unchanged release gate, then update draft PR and delivery packet."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "4ab9c6e5695f35cd9fdb3c96894c828c1e1f5809",
+    "headBefore": "55fb36a4b21d6855431699050f5ca2572ba8bccf",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/scout/ScoutOS.tsx",
-      " M client/src/scout/ScoutThread.evidence.test.ts",
-      " M client/src/scout/ScoutThread.tsx"
+      " M client/src/scout/ScoutOS.saved-intent.test.ts",
+      " M client/src/scout/ScoutOS.tsx"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
       "path": "client/src/scout/ScoutOS.tsx",
-      "sha256": "2e15782a310a9cf6b7a6ea08d49c547c3d4c33405eebde1fc6effcb3395a1d19"
+      "sha256": "fae0ff4420a826efc4bd12d6c709af148d7cee14c304c47dd383bf45e5964104"
     },
     {
-      "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "8788b5f204ce9c6528b240e470ef4165de649272c65f347bc3d00b5a2399bcb5"
-    },
-    {
-      "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "7b9f681cc959e9cc4b7db37d1a6360942512528641e783620c1716703d57f517"
+      "path": "client/src/scout/ScoutOS.saved-intent.test.ts",
+      "sha256": "2f3d83c18842e6f7b76b16a2de27dd930919b05090acdcf02787f12c78552ed3"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
