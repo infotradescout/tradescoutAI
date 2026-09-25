@@ -521,10 +521,11 @@ describe("Scout entry framing contracts", () => {
 
     expect(scoutOsSource).toContain("readScoutBrowserLocation");
     expect(scoutOsSource).toContain("parseScoutLaunchLocation");
-    expect(scoutOsSource).toContain("launchContext: scoutLaunch.context || undefined");
-    expect(scoutOsSource).toMatch(
-      /const acceptedLaunchPrompt = useScoutAccountBoundLaunchPrompt\(\s*scoutLaunch\.signature,\s*scoutLaunch\.prompt,\s*scoutReturnOwner\s*\)/
-    );
+    expect(scoutOsSource).toContain("launchContext: acceptedLaunchContext || undefined");
+    expect(scoutOsSource).toContain("const launchAcceptance = useScoutAccountBoundLaunch(");
+    expect(scoutOsSource).toContain("Boolean(scoutLaunch.context || scoutLaunch.prompt)");
+    expect(scoutOsSource).toContain('launchAcceptance === "accepted" ? scoutLaunch.context : null');
+    expect(scoutOsSource).toContain('launchAcceptance === "accepted" ? scoutLaunch.returnPath : undefined');
     expect(scoutOsSource).toContain("forcedPrefill={acceptedLaunchPrompt}");
     expect(scoutOsSource).toContain("<ScoutLaunchContextCard");
     expect(inputSource).toContain("if (forcedPrefill)");
