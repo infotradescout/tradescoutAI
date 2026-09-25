@@ -4,6 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicProfileAccountDialog } from "./PublicProfileAccountDialog";
 
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+
 const fixture = vi.hoisted(() => ({
   viewer: { id: "member-a" } as { id: string } | null,
   authenticated: true,
@@ -49,6 +51,34 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
 describe("Profile account session isolation", () => {
+  it("waits for a signed-in viewer to submit business setup before connecting the profile account", async () => {
+    fixture.load.mockResolvedValue(unconnected);
+    fixture.create.mockResolvedValue(connected("Viewer Plumbing", "viewer"));
+    await render("maricopa-plumbing");
+
+    const businessName = host.querySelector<HTMLInputElement>('[data-testid="profile-account-business-name"]');
+    expect(businessName).not.toBeNull();
+    expect(fixture.create).not.toHaveBeenCalled();
+    expect(fixture.register).not.toHaveBeenCalled();
+
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(businessName, "Viewer Plumbing");
+      businessName!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(fixture.create).not.toHaveBeenCalled();
+
+    await act(async () => {
+      host.querySelector<HTMLButtonElement>('[data-testid="profile-account-submit"]')?.click();
+    });
+    expect(fixture.create).toHaveBeenCalledOnce();
+    expect(fixture.create).toHaveBeenCalledWith({
+      profileSlug: "maricopa-plumbing",
+      businessName: "Viewer Plumbing",
+      sourcePath: "/u/maricopa-plumbing",
+    });
+    expect(fixture.register).not.toHaveBeenCalled();
+  });
+
   it("clears a former member's connected state immediately when another customer signs in", async () => {
     await render(); expect(host.textContent).toContain("Synthetic Business A is connected");
     fixture.changed.mockClear();
