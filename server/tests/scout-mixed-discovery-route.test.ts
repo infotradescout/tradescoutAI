@@ -429,7 +429,8 @@ describe("Scout mixed county discovery route", () => {
       status: "checked",
       items: [
         {
-          id: "profile_1", slug: "mesa-plumbing", displayName: "Mesa Plumbing",
+          id: "profile_1", slug: "mesa-plumbing", displayName: "Mesa Plumbing Page",
+          businessName: "Mesa Service Co",
           headline: "Plumbing service", roleContext: "business_owner",
           countyFips: "04013", detailPath: "/u/mesa-plumbing", ownerEmail: "private_email",
         },
@@ -473,8 +474,9 @@ describe("Scout mixed county discovery route", () => {
     });
     expect(response.body.entities).toEqual([
       expect.objectContaining({
-        id: "profile_1", type: "public_profile", name: "Mesa Plumbing",
+        id: "profile_1", type: "public_profile", name: "Mesa Service Co",
         url: "/u/mesa-plumbing",
+        match_reasons: expect.arrayContaining(["Page: Mesa Plumbing Page"]),
       }),
       expect.objectContaining({
         id: "tool_1",

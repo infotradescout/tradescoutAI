@@ -1975,7 +1975,7 @@ describe("ScoutThread evidence strip", () => {
 });
 
 describe("Scout task work record", () => {
-  it("runs the bounded latest-turn effect on mount and rerender", () => {
+  it("keeps the user turn at latest and aligns the new result at its opening", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -1984,6 +1984,7 @@ describe("Scout task work record", () => {
     const scrollHeightDescriptor = Object.getOwnPropertyDescriptor(prototype, "scrollHeight");
     const clientHeightDescriptor = Object.getOwnPropertyDescriptor(prototype, "clientHeight");
     const scrollTopDescriptor = Object.getOwnPropertyDescriptor(prototype, "scrollTop");
+    const boundsDescriptor = Object.getOwnPropertyDescriptor(prototype, "getBoundingClientRect");
     const actEnvironment = globalThis as typeof globalThis & {
       IS_REACT_ACT_ENVIRONMENT?: boolean;
     };
@@ -2011,6 +2012,12 @@ describe("Scout task work record", () => {
       get: () => scrollTop,
       set: (value: number) => {
         scrollTop = value;
+      },
+    });
+    Object.defineProperty(prototype, "getBoundingClientRect", {
+      configurable: true,
+      value: function (this: HTMLElement) {
+        return { top: this.classList.contains("scout-thread") ? 100 : 250, height: 180 };
       },
     });
     actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
@@ -2048,7 +2055,7 @@ describe("Scout task work record", () => {
           })
         );
       });
-      expect(scrollTo).toHaveBeenLastCalledWith({ top: 1280, behavior: "auto" });
+      expect(scrollTo).toHaveBeenLastCalledWith({ top: 490, behavior: "auto" });
       expect(scrollTo).toHaveBeenCalledTimes(2);
     } finally {
       React.act(() => root.unmount());
@@ -2072,6 +2079,11 @@ describe("Scout task work record", () => {
         Object.defineProperty(prototype, "scrollTop", scrollTopDescriptor);
       } else {
         delete (prototype as unknown as Record<string, unknown>).scrollTop;
+      }
+      if (boundsDescriptor) {
+        Object.defineProperty(prototype, "getBoundingClientRect", boundsDescriptor);
+      } else {
+        delete (prototype as unknown as Record<string, unknown>).getBoundingClientRect;
       }
       if (previousActEnvironment === undefined) {
         delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
@@ -2132,7 +2144,7 @@ describe("Scout task work record", () => {
     expect(scrollTo).toHaveBeenCalledWith({ top: 1280, behavior: "smooth" });
   });
 
-  it("aligns a new tall answer at its opening and leaves a short answer at latest", () => {
+  it("aligns new tall and short answers at their opening", () => {
     const scrollTo = vi.fn();
     const thread = {
       clientHeight: 300,
@@ -2150,8 +2162,8 @@ describe("Scout task work record", () => {
     expect(scrollScoutThreadToNewAnswerStart(thread, tallMessage)).toBe(true);
     expect(scrollTo).toHaveBeenCalledWith({ top: 850, behavior: "auto" });
     scrollTo.mockClear();
-    expect(scrollScoutThreadToNewAnswerStart(thread, shortMessage)).toBe(false);
-    expect(scrollTo).not.toHaveBeenCalled();
+    expect(scrollScoutThreadToNewAnswerStart(thread, shortMessage)).toBe(true);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 850, behavior: "auto" });
   });
 
   it("keeps a tall new answer's opening visible through resize without pulling a reader from history", () => {
@@ -2236,7 +2248,9 @@ describe("Scout task work record", () => {
       mounted = true;
       expect(scrollTop).toBe(700);
 
-      scrollHeight = 1500;
+      // The answer nearly fills the viewport, leaving 25px to the end. That
+      // is inside the ordinary "near latest" threshold but its heading must stay visible.
+      scrollHeight = 1175;
       scrollTo.mockClear();
       React.act(() => {
         root.render(React.createElement(ScoutThread, { messages: [user, tall], status: "idle" }));
@@ -2245,6 +2259,10 @@ describe("Scout task work record", () => {
       expect(scrollTop).toBe(850);
 
       scrollTo.mockClear();
+      const thread = container.querySelector<HTMLElement>(".scout-thread");
+      React.act(() => {
+        thread?.dispatchEvent(new Event("scroll"));
+      });
       clientHeight = 250;
       React.act(() => {
         resizeCallback?.([] as ResizeObserverEntry[], {} as ResizeObserver);
@@ -2252,7 +2270,6 @@ describe("Scout task work record", () => {
       expect(scrollTo).not.toHaveBeenCalled();
       expect(scrollTop).toBe(850);
 
-      const thread = container.querySelector<HTMLElement>(".scout-thread");
       scrollTop = 300;
       React.act(() => {
         thread?.dispatchEvent(new Event("scroll"));

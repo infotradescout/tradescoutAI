@@ -61,6 +61,7 @@ afterAll(async () => {
 
 type SeedOptions = {
   countyId?: "maricopa" | "pinal" | "wrong-state" | null;
+  businessName?: string;
   headline?: string;
   updatedAt?: string;
   verificationStatus?: string;
@@ -78,6 +79,7 @@ async function seed(slug: string, options: SeedOptions = {}) {
   const businessId = `business-${slug}`;
   const {
     countyId = "maricopa",
+    businessName = slug.replaceAll("-", " "),
     headline = "Local service page",
     updatedAt = "2026-09-01",
     verificationStatus = "approved",
@@ -95,8 +97,8 @@ async function seed(slug: string, options: SeedOptions = {}) {
   );
   if (linked) {
     await fixture.client!.query(
-      "INSERT INTO businesses (id, owner_user_id, status, public_discovery_enabled, sources, profile_data) VALUES ($1, $2, $3, $4, '[]'::jsonb, '{}'::jsonb)",
-      [businessId, businessOwnerMismatch ? "someone-else" : ownerId, businessStatus, discoveryEnabled]
+      "INSERT INTO businesses (id, name, owner_user_id, status, public_discovery_enabled, sources, profile_data) VALUES ($1, $2, $3, $4, $5, '[]'::jsonb, '{}'::jsonb)",
+      [businessId, businessName, businessOwnerMismatch ? "someone-else" : ownerId, businessStatus, discoveryEnabled]
     );
     if (countyId) {
       await fixture.client!.query(
@@ -128,6 +130,7 @@ describe("Scout public profile pages lookup", () => {
         id: "maricopa-plumbing",
         slug: "maricopa-plumbing",
         displayName: "maricopa plumbing",
+        businessName: "maricopa plumbing",
         headline: "Local service page",
         roleContext: "business_owner",
         countyFips: "04013",
@@ -170,6 +173,24 @@ describe("Scout public profile pages lookup", () => {
     expect(await lookupScoutPublicProfiles({ countyFips: "04013", topic: "!!!" })).toEqual({
       status: "error", items: [], reason: "invalid_topic",
     });
+  });
+
+  it("finds a page by the business name shown at its public detail", async () => {
+    await seed("plain-services", {
+      businessName: "Cactus Plumbing Group",
+      headline: "General local work",
+    });
+
+    const result = await lookupScoutPublicProfiles({ countyFips: "04013", topic: "plumbing" });
+    expect(result.status).toBe("checked");
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        slug: "plain-services",
+        businessName: "Cactus Plumbing Group",
+        displayName: "plain services",
+        detailPath: "/u/plain-services",
+      }),
+    ]);
   });
 
   it("reports source failure as unchecked and does not write analytics", async () => {

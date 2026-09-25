@@ -103,6 +103,29 @@ describe("Scout county lookup", () => {
     ])).toBeNull();
   });
 
+  it("recognizes a bare trade after the current county discovery answer", () => {
+    const answer = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      postCheck: "checked",
+      dealCheck: "checked",
+      businessCheck: "checked",
+      toolCheck: "checked",
+      pageCheck: "checked",
+    }).message;
+    const history = [
+      { role: "user", content: "Find local posts and deals near me" },
+      { role: "assistant", content: answer },
+    ];
+    expect(resolveScoutMixedDiscoveryFollowUp("electrical", history)).toBe(
+      "Find TradeScout posts and deals about electrical near me"
+    );
+    expect(resolveScoutMixedDiscoveryFollowUp("electrical", [
+      history[0],
+      { role: "assistant", content: "Nothing was sent." },
+    ])).toBeNull();
+  });
+
   it("uses a complete FIPS rather than a readable county label", () => {
     expect(normalizeScoutCountyFips("Maricopa County, AZ", "04013")).toBe("04013");
     expect(normalizeScoutCountyFips("Maricopa County, AZ")).toBeNull();

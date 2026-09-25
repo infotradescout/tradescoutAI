@@ -64,7 +64,11 @@ export type PublicProfileSearchRecord = {
   roleContext: any;
 };
 
-export type ScoutPublicProfile = PublicProfileSearchRecord & { countyFips: string; detailPath: string };
+export type ScoutPublicProfile = PublicProfileSearchRecord & {
+  businessName: string;
+  countyFips: string;
+  detailPath: string;
+};
 
 export type ScoutPublicProfilesLookup =
   | { status: "checked"; items: ScoutPublicProfile[] }
@@ -223,6 +227,7 @@ export async function lookupScoutPublicProfiles(input: {
         id: profiles.id,
         slug: profiles.slug,
         displayName: profiles.displayName,
+        businessName: businesses.name,
         headline: profiles.headline,
         roleContext: profiles.roleContext,
       })
@@ -249,7 +254,7 @@ export async function lookupScoutPublicProfiles(input: {
               )
           ),
           topic
-            ? sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle} OR ${profiles.headline} ILIKE ${needle})`
+            ? sql`(${businesses.name} ILIKE ${needle} OR ${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle} OR ${profiles.headline} ILIKE ${needle})`
             : undefined
         )
       )

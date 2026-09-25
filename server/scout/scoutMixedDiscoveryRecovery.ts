@@ -1,4 +1,5 @@
 import { buildCommunityPostPath } from "../../shared/communityPostShare";
+import { sanitizePublicDiscoveryText } from "../../shared/publicListingSafety";
 import {
   buildScoutDealPath,
   isEligibleScoutDeal,
@@ -33,6 +34,7 @@ type PublicCountyPage = {
   id?: unknown;
   slug?: unknown;
   displayName?: unknown;
+  businessName?: unknown;
   countyFips?: unknown;
   detailPath?: unknown;
 };
@@ -258,23 +260,33 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       const slug = String(page.slug || "").trim();
       return (
         Boolean(id) &&
-        Boolean(String(page.displayName || "").trim()) &&
+        typeof page.displayName === "string" &&
+        Boolean(page.displayName.trim()) &&
         page.countyFips === input.countyFips &&
         /^[a-z0-9][a-z0-9-]{0,119}$/i.test(slug) &&
         page.detailPath === `/u/${encodeURIComponent(slug)}`
       );
     })
     .slice(0, 2)
-    .map((page) => ({
-      id: String(page.id),
-      type: "public_profile",
-      name: String(page.displayName).replace(/\s+/g, " ").trim().slice(0, 110),
-      url: String(page.detailPath),
-      match_reasons: [
-        topic ? `Serves ${area} and matches “${topic}”` : `Serves ${area}`,
-        "Check current services; page may be older than this week",
-      ],
-    }));
+    .map((page) => {
+      const pageTitle = sanitizePublicDiscoveryText(page.displayName, 200);
+      const businessName = typeof page.businessName === "string"
+        ? sanitizePublicDiscoveryText(page.businessName, 200)
+        : "";
+      return {
+        id: String(page.id),
+        type: "public_profile",
+        name: businessName || pageTitle || "TradeScout public profile",
+        url: String(page.detailPath),
+        match_reasons: [
+          ...(businessName && pageTitle && businessName.toLowerCase() !== pageTitle.toLowerCase()
+            ? [`Page: ${pageTitle}`]
+            : []),
+          topic ? `Serves ${area} and matches “${topic}”` : `Serves ${area}`,
+          "Check current services; page may be older than this week",
+        ],
+      };
+    });
   // A county promotion is available by location, but is not a match for the
   // user's topic. Put public topic matches ahead of it in the result contract.
   const entities = topic

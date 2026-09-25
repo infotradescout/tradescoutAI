@@ -81,8 +81,6 @@ export function scrollScoutThreadToNewAnswerStart(
   message: ScoutThreadMessageTarget
 ): boolean {
   const messageBox = message.getBoundingClientRect();
-  if (messageBox.height <= thread.clientHeight) return false;
-
   const threadBox = thread.getBoundingClientRect();
   const top = thread.scrollTop + messageBox.top - threadBox.top;
   thread.scrollTo({ top: Math.max(0, top), behavior: "auto" });
@@ -2009,6 +2007,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const retainLatestOnResizeRef = React.useRef(true);
   const lastPresentedMessageIdRef = React.useRef<string | null>(null);
+  const newAnswerOpeningRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
     const node = containerRef.current;
@@ -2022,16 +2021,16 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       const messageNode = Array.from(node.children).find(
         (child) => child.getAttribute("data-scout-message-id") === lastMessage.id
       );
-      if (
-        messageNode instanceof HTMLElement &&
-        scrollScoutThreadToNewAnswerStart(node, messageNode)
-      ) {
+      if (messageNode instanceof HTMLElement) {
+        newAnswerOpeningRef.current = messageNode;
+        scrollScoutThreadToNewAnswerStart(node, messageNode);
         retainLatestOnResizeRef.current = false;
         return;
       }
     }
 
     if (!retainLatestOnResizeRef.current && lastMessage.role !== "user") return;
+    newAnswerOpeningRef.current = null;
     scrollScoutThreadToLatest(node, "auto");
     retainLatestOnResizeRef.current = true;
   }, [messages]);
@@ -2041,6 +2040,15 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     if (!node) return;
 
     const rememberReaderPosition = () => {
+      const opening = newAnswerOpeningRef.current;
+      if (opening) {
+        const offset = opening.getBoundingClientRect().top - node.getBoundingClientRect().top;
+        if (Math.abs(offset) <= 2) {
+          retainLatestOnResizeRef.current = false;
+          return;
+        }
+        newAnswerOpeningRef.current = null;
+      }
       retainLatestOnResizeRef.current = isScoutThreadNearLatest(node);
     };
     rememberReaderPosition();

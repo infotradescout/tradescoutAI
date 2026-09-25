@@ -118,6 +118,11 @@ export function readBareScoutTrade(message: string): string | null {
   return BARE_DISCOVERY_TRADES.has(topic) ? topic : null;
 }
 
+const COMPLETED_COUNTY_DISCOVERY_ENDINGS = [
+  "Pages, tools, and other requests were not checked. Nothing was sent.",
+  "Other Site pages and private requests were not checked. Nothing was sent.",
+] as const;
+
 /** Interpret a single trade word only in the immediately preceding county-search context. */
 export function resolveScoutMixedDiscoveryFollowUp(
   message: string,
@@ -131,7 +136,9 @@ export function resolveScoutMixedDiscoveryFollowUp(
     previousAnswer?.role !== "assistant" ||
     previousRequest?.role !== "user" ||
     !isMixedScoutDiscoveryRequest(previousRequest.content) ||
-    !previousAnswer.content.includes("Pages, tools, and other requests were not checked. Nothing was sent.")
+    !COMPLETED_COUNTY_DISCOVERY_ENDINGS.some((ending) =>
+      previousAnswer.content.trimEnd().endsWith(ending)
+    )
   ) {
     return null;
   }
