@@ -1,71 +1,51 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T000238Z-67d8b97d",
-  "createdAt": "2026-09-25T00:02:38.367404+00:00",
-  "outcome": "Scout phone results invite a natural trade or job refinement and retain source-status truth",
+  "checkpointId": "progress-20260925T001625Z-76aa3a8f",
+  "createdAt": "2026-09-25T00:16:25.839243+00:00",
+  "outcome": "Route explicit read-only mixed county Scout searches through publication-gated discovery when a governor DEFER has no missing information; preserve BLOCK, REDIRECT, and DEFER with missing information.",
   "scope": [
-    "Scout result presentation and topic follow-up UI"
+    "Scout county discovery continuation"
   ],
-  "prohibitions": [
-    "Do not claim all-site search, near-me GPS, current supply, or user acceptance"
-  ],
+  "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "County result badge, compact refine form, topic-aware short summary, structured source statuses and saved-message metadata"
+      "Added failing-then-passing route regression with governor interception and safety control tests."
     ],
-    "changedUnverified": [
-      "New exact-head local browser loop and production release gate remain to be run"
-    ],
+    "changedUnverified": [],
     "proof": [
-      "ScoutThread interactive/render tests 56/56; integrated four-suite tests 93/93; TypeScript and diff check pass"
+      "scout-mixed-discovery-route.test.ts 12/12 passed; npm run check passed; 793 browser diagnostic confirmed DEFER with zero unknowns before fix."
     ],
-    "externalEffects": [],
-    "doNotRepeat": [],
-    "nextSafeAction": "Run synthetic local browser no-topic to topic, stale Businesses refresh, and unchanged exact-head release gate"
+    "externalEffects": [
+      "No production or customer side effects; only source branch push."
+    ],
+    "doNotRepeat": [
+      "Do not treat 793 browser proof as current-head proof after this commit."
+    ],
+    "nextSafeAction": "Run exact-head synthetic browser journeys for county topic miss, checked-empty, source failure, stale Businesses refresh, and saved deletion, then the unchanged 16-step release gate."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "5f062e3548e10a87a6dd503870f3141e108fe389",
+    "headBefore": "793073bcdf722b6d98220d094ee8bcf4d7de9acc",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/index.css",
-      " M client/src/scout/ScoutOS.tsx",
-      " M client/src/scout/ScoutThread.evidence.test.ts",
-      " M client/src/scout/ScoutThread.tsx",
-      " M client/src/scout/api.ts",
-      " M client/src/scout/state.ts"
+      " M server/routes/scout.ts",
+      " M server/tests/scout-mixed-discovery-route.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/index.css",
-      "sha256": "9b7f225a3301b2e8dd0110b71a3af94cc7253d848287b3c173a8e4fb7bdcef8d"
+      "path": "server/routes/scout.ts",
+      "sha256": "e52aeb539bb3f7245d035b7e4c5a4506ef34a5f4e4f8265884aecdb7ddc5cb9c"
     },
     {
-      "path": "client/src/scout/ScoutOS.tsx",
-      "sha256": "9f07a10fec46f44ef3d4ca6450ef76a360cd10e4f6007117a5c44d309e33a93c"
-    },
-    {
-      "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "a9e0165862b3af05dffafe578ed02d0219e77211d5f08f55b2e587db72c945d8"
-    },
-    {
-      "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "c9ee1fd4cfd365dd8aecc3926ab2eab69acd67afd0f0e212bd3469619ea82c1b"
-    },
-    {
-      "path": "client/src/scout/api.ts",
-      "sha256": "c72de172c6d650cd58d873045f5a186c723b2d75a4f343e541bad98a44bdbb93"
-    },
-    {
-      "path": "client/src/scout/state.ts",
-      "sha256": "186816e7c9ce9755e3dcf8e61963a40f6c7661c979ae30c5b5025e8c2643e4fb"
+      "path": "server/tests/scout-mixed-discovery-route.test.ts",
+      "sha256": "bf3fcf1395a47339d8fd1b2b2a6b0b3d62b03cf6d3143609b2e95cb179eec501"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
