@@ -35,6 +35,10 @@ function renderThread(
   );
 }
 
+function isBefore(first: Element | null, second: Element | null): boolean {
+  return Boolean(first && second && first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+}
+
 describe("ScoutThread evidence strip", () => {
   it("keeps a long phone request short until the user opens the full text", () => {
     const request =
@@ -160,6 +164,11 @@ describe("ScoutThread evidence strip", () => {
     expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("profile pages 1");
     expect((container.querySelector(".scout-assistant-bubble__body")?.textContent ?? "").length).toBeLessThanOrEqual(150);
     expect(container.querySelector(".scout-result-no-topic-match")).toBeNull();
+    const pageAction = container.querySelector(".scout-result-card .scout-result-action");
+    const toolStatus = container.querySelector(".scout-result-tools-status");
+    const pageStatus = container.querySelector(".scout-result-pages-status");
+    expect(isBefore(pageAction, toolStatus)).toBe(true);
+    expect(isBefore(pageAction, pageStatus)).toBe(true);
 
     const mounted = document.createElement("div");
     const root = createRoot(mounted);
@@ -253,6 +262,13 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("could not check county listings");
     expect(html).not.toContain("Listings are not limited to this week");
     expect(html.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const retry = container.querySelector('[data-testid="scout-primary-next-action"]');
+    const card = container.querySelector(".scout-result-card");
+    const status = container.querySelector(".scout-result-tools-status");
+    expect(isBefore(retry, card)).toBe(true);
+    expect(isBefore(card, status)).toBe(true);
   });
 
   it("does not suggest drafting a request while a topic source is unavailable", () => {

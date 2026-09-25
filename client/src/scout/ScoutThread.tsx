@@ -1472,36 +1472,6 @@ function MessageExtras({
           )}
         </div>
       )}
-      {discoveryChecks?.tools && (
-        <p className="scout-result-tools-status" aria-label="Tools source status">
-          <strong>Tools &amp; Hardware:</strong>{" "}
-          {discoveryChecks.tools.status === "checked"
-            ? `${discoveryChecks.tools.shownCount} active county listing${discoveryChecks.tools.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
-            : discoveryChecks.tools.status === "error"
-              ? "could not check county listings"
-              : "not checked"}
-          {discoveryChecks.tools.status === "checked" &&
-          discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
-            ? ". Listings are not limited to this week."
-            : "."}
-          {!discoveryChecks.profilePages && <> Pages and private requests were not checked.</>}
-        </p>
-      )}
-      {discoveryChecks?.profilePages && (
-        <p className="scout-result-pages-status" aria-label="Public profile pages status">
-          <strong>Public profile pages:</strong>{" "}
-          {discoveryChecks.profilePages.status === "checked"
-            ? `${discoveryChecks.profilePages.shownCount} county page${discoveryChecks.profilePages.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
-            : discoveryChecks.profilePages.status === "error"
-              ? "could not check county pages"
-              : "not checked"}
-          {discoveryChecks.profilePages.status === "checked" &&
-          discoveryChecks.profilePages.timeWindow === "not_filtered_to_week"
-            ? ". Pages are not limited to this week."
-            : "."}
-          {" "}Other Site pages and private requests were not checked.
-        </p>
-      )}
       {hasContractEntities && (
         <div className="scout-result-list space-y-2" aria-label="Scout results">
           {noTopicMatches && (
@@ -1634,6 +1604,37 @@ function MessageExtras({
             ) : card;
           })}
         </div>
+      )}
+
+      {discoveryChecks?.tools && (
+        <p className="scout-result-tools-status" aria-label="Tools source status">
+          <strong>Tools &amp; Hardware:</strong>{" "}
+          {discoveryChecks.tools.status === "checked"
+            ? `${discoveryChecks.tools.shownCount} active county listing${discoveryChecks.tools.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+            : discoveryChecks.tools.status === "error"
+              ? "could not check county listings"
+              : "not checked"}
+          {discoveryChecks.tools.status === "checked" &&
+          discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
+            ? ". Listings are not limited to this week."
+            : "."}
+          {!discoveryChecks.profilePages && <> Pages and private requests were not checked.</>}
+        </p>
+      )}
+      {discoveryChecks?.profilePages && (
+        <p className="scout-result-pages-status" aria-label="Public profile pages status">
+          <strong>Public profile pages:</strong>{" "}
+          {discoveryChecks.profilePages.status === "checked"
+            ? `${discoveryChecks.profilePages.shownCount} county page${discoveryChecks.profilePages.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+            : discoveryChecks.profilePages.status === "error"
+              ? "could not check county pages"
+              : "not checked"}
+          {discoveryChecks.profilePages.status === "checked" &&
+          discoveryChecks.profilePages.timeWindow === "not_filtered_to_week"
+            ? ". Pages are not limited to this week."
+            : "."}
+          {" "}Other Site pages and private requests were not checked.
+        </p>
       )}
 
       {!sourceRetryPrimary && standalonePrimaryButton}
