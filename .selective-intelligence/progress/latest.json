@@ -1,51 +1,44 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T021449Z-67cb81f1",
-  "createdAt": "2026-09-25T02:14:49.240445+00:00",
-  "outcome": "Make partial-source recovery visible before checked result cards on the phone.",
+  "checkpointId": "progress-20260925T023733Z-1ef1e291",
+  "createdAt": "2026-09-25T02:37:33.305213+00:00",
+  "outcome": "Add honest county-scoped public tools to Scout without exposing private requests or national listings as local.",
   "scope": [
-    "Scout partial county source failure result ordering"
+    "New isolated Scout public tools continuation from clean e448 #716 candidate"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Retry local search now renders directly below partial summary and before retained post/deal cards when source checks report an error; checked card actions no longer compete as primary. Focused ScoutThread render test 59/59, npm run check, git diff --check passed."
+      "Created clean isolated worktree and branch codex/scout-public-tools-20260925 at e4485264cae5486fdf09b1a54a5e04471334d8a5; read-only source map identified native public Marketplace Tools & Hardware gate and safe detail path."
     ],
     "changedUnverified": [
-      "Exact-head browser journeys and unchanged full release gate pending for final candidate."
+      "No tool listing source changes yet; implementation, synthetic journey, and release proof pending."
     ],
     "proof": [
-      "e38 business-error synthetic phone receipt and screenshot identified Retry at y789 below composer y712 while first card began y424; new focused render test asserts retry precedes card and only one primary action."
+      "Parent #716 e448 passed five synthetic browser journeys and unchanged strict 16-step gate with 347/347 tests; these parent receipts do not prove new tools source."
     ],
     "externalEffects": [
-      "Draft PR #716 branch push only; no merge, production deployment, customer contact, or work request."
+      "Local isolated branch/checkpoint only; no new PR, push, merge, deployment, customer contact, or data write."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Rerun four exact-head synthetic phone journeys and no-page source-read probe, review screenshots, run unchanged strict release gate, assemble product acceptance packet and update PR."
+    "nextSafeAction": "Implement server-owned public Tools & Hardware lookup with exact county/state and active approved exposure gates before limit; surface honest partial source checks, then run synthetic scoped browser proof."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "codex/scout-next-20260924",
-    "headBefore": "e38f24f40d5cef78a8c19e49d0176ecec660510b",
+    "branch": "codex/scout-public-tools-20260925",
+    "headBefore": "e4485264cae5486fdf09b1a54a5e04471334d8a5",
     "checkpointCommit": "containing_commit",
-    "pushRequested": true,
-    "pushRemote": "origin",
+    "pushRequested": false,
+    "pushRemote": null,
     "protectedBranchAuthorized": false,
-    "selectedStatusBefore": [
-      " M client/src/scout/ScoutThread.evidence.test.ts",
-      " M client/src/scout/ScoutThread.tsx"
-    ],
+    "selectedStatusBefore": [],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "cc020ac0dfa86a417f4f19e375a821b3ca5b5dde2fd904c70ba2385ca46a0c2a"
-    },
-    {
-      "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "95c19f3c12a811f7b9b7f4157dffca9ec466f35db09a740efa8ce64f91fd7be1"
+      "path": ".selective-intelligence/progress/latest.json",
+      "sha256": "9ab17544a72608e80c66f9259df6915066b58b49aec26374adb0f47e5a56f226"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
