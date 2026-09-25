@@ -36,6 +36,121 @@ function renderThread(
 }
 
 describe("ScoutThread evidence strip", () => {
+  it("keeps a long phone request short until the user opens the full text", () => {
+    const request =
+      "Search TradeScout and my area for posts and deals in my county. " +
+      "Look in Site, Near me, Latest, pages, tools, local results, posts, requests, and anything nearby that may help. " +
+      "Show the best matches, why they matter, and what I can safely do next before I contact anyone.";
+    const container = document.createElement("div");
+    container.innerHTML = renderThread([{ id: "long_request", role: "user", content: request }]);
+    const disclosure = container.querySelector<HTMLDetailsElement>(".scout-user-bubble__request");
+
+    expect(disclosure?.open).toBe(false);
+    expect(disclosure?.querySelector("summary")?.textContent).toContain(
+      "Search TradeScout and my area for posts and deals in my county."
+    );
+    expect(disclosure?.querySelector("summary")?.textContent).toContain("Show full request");
+    expect(disclosure?.querySelector(".scout-user-bubble__body")?.textContent).toBe(request);
+    disclosure?.querySelector("summary")?.click();
+    expect(disclosure?.open).toBe(true);
+  });
+
+  it("labels active county tools and keeps unsearched sources visible", () => {
+    const path = "/exchange/tools/00000000-0000-4000-8000-000000000221";
+    const answer =
+      "One public Tools & Hardware listing was found in Maricopa County. " +
+      "Public site pages and private requests were not checked. Nothing was sent.";
+    const message: ScoutMessage = {
+      id: "a_county_tool",
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryTopic: "plumbing",
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 0, topicFiltered: true },
+          deals: { status: "checked", shownCount: 0, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: true },
+          tools: { status: "checked", shownCount: 1, topicFiltered: true, timeWindow: "active_now_not_week_filtered" },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{ id: "00000000-0000-4000-8000-000000000221", type: "public_tool", name: "Pipe wrench", url: path, match_reasons: ["Approved active listing in Maricopa County"] }],
+        evidence: [],
+        answer,
+        allowed_actions: [{ action_id: "open_tool", type: "NAVIGATE", label: "View tool listing", target: path, primary: true }],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    container.innerHTML = renderThread([message], false, { onAction: () => undefined });
+
+    expect(container.querySelector(".scout-assistant-bubble__badge")?.textContent).toBe("County results");
+    expect(container.querySelector(".scout-result-card__kind")?.textContent).toBe("Public Tools & Hardware listing");
+    expect(container.querySelector(".scout-result-tools-status")?.textContent).toContain("1 active county listing shown for this topic");
+    expect(container.querySelector(".scout-result-tools-status")?.textContent).toContain("not limited to this week");
+    expect(container.querySelector(".scout-result-tools-status")?.textContent).toContain("Pages and private requests were not checked");
+    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("tools 1 (active)");
+    expect(container.querySelector(".scout-result-card .scout-result-action")?.textContent).toContain("View tool listing");
+    expect(container.textContent).toContain("See source checks and limits");
+  });
+
+  it("opens only a bounded public Tools & Hardware detail path", () => {
+    const detail = "/exchange/tools/00000000-0000-4000-8000-000000000221";
+    expect(validateAction({ type: "NAVIGATE", label: "View tool", to: detail })?.to).toBe(detail);
+    expect(inAppScoutResultPath(detail, "https://tradescout.test")).toBe(detail);
+    for (const blocked of [
+      `${detail}/edit`,
+      `${detail}?redirect=/messages`,
+      `${detail}#contact`,
+      "/exchange/tools/%2e%2e",
+      `/exchange/tools/${"x".repeat(101)}`,
+    ]) {
+      expect(validateAction({ type: "NAVIGATE", label: "View tool", to: blocked })).toBeNull();
+    }
+  });
+
+  it("puts an unavailable tools retry before retained county results", () => {
+    const postPath = "/community/posts/tool-source-partial-post";
+    const message: ScoutMessage = {
+      id: "a_tool_failure",
+      role: "assistant",
+      content: "A published county post was found. Tools could not be checked. Public pages and private requests were not checked. Nothing was sent.",
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 1, topicFiltered: false },
+          deals: { status: "checked", shownCount: 0, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: false },
+          tools: { status: "error", shownCount: 0, topicFiltered: false, timeWindow: "active_now_not_week_filtered" },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{ id: "tool-source-partial-post", type: "community_post", name: "County post", url: postPath, match_reasons: ["Published in county"] }],
+        evidence: [],
+        answer: "A published county post was found. Tools could not be checked.",
+        allowed_actions: [
+          { action_id: "open_post", type: "NAVIGATE", label: "Open county post", target: postPath, primary: true },
+          { action_id: "retry_tools", type: "ASK_SCOUT", label: "Retry local search", prompt: "Search county results again", primary: true },
+        ],
+        working_memory_update: {},
+      },
+    };
+    const html = renderThread([message], false, { onAction: () => undefined });
+    expect(html.indexOf("Retry local search")).toBeLessThan(html.indexOf("County post"));
+    expect(html).toContain("Tools &amp; Hardware:");
+    expect(html).toContain("could not check county listings");
+    expect(html.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
+  });
+
   it("uses app navigation for validated same-origin HTTPS results only", () => {
     const dealPath = "/deals/00000000-0000-4000-8000-000000000201?county=04013";
     expect(

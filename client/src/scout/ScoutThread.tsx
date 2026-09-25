@@ -393,6 +393,7 @@ type DiscoveryCheck = {
   status: DiscoveryCheckStatus;
   shownCount: number;
   topicFiltered: boolean;
+  timeWindow?: "active_now_not_week_filtered";
 };
 
 type DiscoveryChecks = {
@@ -401,6 +402,7 @@ type DiscoveryChecks = {
   posts: DiscoveryCheck;
   deals: DiscoveryCheck;
   businesses: DiscoveryCheck;
+  tools: DiscoveryCheck | null;
 };
 
 function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
@@ -429,11 +431,15 @@ function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
       status: check.status,
       shownCount: check.shownCount,
       topicFiltered: check.topicFiltered === true,
+      timeWindow: check.timeWindow === "active_now_not_week_filtered"
+        ? check.timeWindow
+        : undefined,
     };
   };
   const posts = readCheck(values.posts);
   const deals = readCheck(values.deals);
   const businesses = readCheck(values.businesses);
+  const tools = values.tools === undefined ? null : readCheck(values.tools);
   if (!posts || !deals || !businesses) return null;
   const areaLabel =
     typeof values.areaLabel === "string" && values.areaLabel.trim().length <= 80
@@ -444,7 +450,41 @@ function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
     typeof rawTopic === "string" && rawTopic.trim().length > 0 && rawTopic.trim().length <= 60
       ? rawTopic.trim()
       : null;
-  return { areaLabel, topic, posts, deals, businesses };
+  return { areaLabel, topic, posts, deals, businesses, tools };
+}
+
+function toolsDiscoverySummary(checks: DiscoveryChecks): string | null {
+  if (!checks.tools) return null;
+  const status = (check: DiscoveryCheck, label: string, scope = "") =>
+    check.status === "checked"
+      ? `${label} ${check.shownCount}${scope}`
+      : check.status === "error"
+        ? `${label} unavailable`
+        : `${label} unchecked`;
+  const place = /^[a-z .'-]+, [a-z]{2}$/i.test(checks.areaLabel) && checks.areaLabel.length <= 45
+    ? checks.areaLabel
+    : "Your county";
+  const topic = checks.topic ? `${checks.topic.slice(0, 24)}: ` : "";
+  const counts = [
+    status(checks.posts, "posts", " (7d)"),
+    status(checks.businesses, "businesses"),
+    status(checks.tools, "tools", checks.tools.timeWindow ? " (active)" : ""),
+    status(checks.deals, "TradeDeals", checks.topic && !checks.deals.topicFiltered ? " (topic unchecked)" : ""),
+  ].join(", ");
+  const suffix = "Pages/requests unchecked. Nothing sent.";
+  const summary = `${place}: ${topic}${counts}. ${suffix}`;
+  return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
+    ? summary
+    : `${topic}${counts}. ${suffix}`;
+}
+
+function previewUserRequest(content: string): string {
+  const clean = content.replace(/\s+/g, " ").trim();
+  const firstSentence = clean.match(/^.{1,110}?[.!?](?=\s|$)/)?.[0];
+  if (firstSentence) return firstSentence;
+  const prefix = clean.slice(0, 110);
+  const lastSpace = prefix.lastIndexOf(" ");
+  return `${(lastSpace > 70 ? prefix.slice(0, lastSpace) : prefix).trimEnd()}…`;
 }
 
 function topicDiscoverySummary(msg: ScoutMessage): string | null {
@@ -540,7 +580,9 @@ function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
 
 function buildAssistantSummary(msg: ScoutMessage, displayContent: string): string {
   if (msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery") {
-    return topicDiscoverySummary(msg) || mixedDiscoverySummary(displayContent);
+    const checks = readDiscoveryChecks(msg);
+    return (checks && toolsDiscoverySummary(checks)) ||
+      topicDiscoverySummary(msg) || mixedDiscoverySummary(displayContent);
   }
   if (!shouldSummarizeAssistantMessage(msg)) return displayContent;
 
@@ -556,9 +598,10 @@ function buildAssistantSummary(msg: ScoutMessage, displayContent: string): strin
 function hasExplicitMixedCoverage(msg: ScoutMessage, answer: string): boolean {
   return (
     msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery" &&
-    /(?:^|[.!?]\s+)Pages, tools, and other requests were not checked\. Nothing was sent\.$/i.test(
-      answer.trim()
-    )
+    (Boolean(readDiscoveryChecks(msg)) ||
+      /(?:^|[.!?]\s+)Pages, tools, and other requests were not checked\. Nothing was sent\.$/i.test(
+        answer.trim()
+      ))
   );
 }
 
@@ -590,7 +633,16 @@ function mixedDiscoverySourceChecks(msg: ScoutMessage, answer: string): Array<{ 
           checks.topic ? "Checked names, categories & services for topic; no week filter" : "Checked; not this week"
         ),
       },
-      { source: "Pages, tools and requests", status: "Not checked" },
+      ...(checks.tools ? [{
+        source: "Public Tools & Hardware listings",
+        status: status(
+          checks.tools,
+          checks.tools.timeWindow === "active_now_not_week_filtered"
+            ? checks.topic ? "Checked for topic and county; active now, not week filtered" : "Checked county listings; active now, not week filtered"
+            : "Checked county listings"
+        ),
+      }] : []),
+      { source: checks.tools ? "Pages and requests" : "Pages, tools and requests", status: "Not checked" },
     ];
   }
   const clean = answer.replace(/\s+/g, " ").trim();
@@ -1192,7 +1244,8 @@ function MessageExtras({
     standalonePrimaryAction.action.label === "Retry local search" &&
     (discoveryChecks?.posts.status === "error" ||
       discoveryChecks?.deals.status === "error" ||
-      discoveryChecks?.businesses.status === "error")
+      discoveryChecks?.businesses.status === "error" ||
+      discoveryChecks?.tools?.status === "error")
   );
   const secondaryContractActions = remainingContractActions.filter(
     ({ source }) => source.action_id !== standalonePrimaryAction?.source.action_id
@@ -1376,6 +1429,20 @@ function MessageExtras({
           )}
         </div>
       )}
+      {discoveryChecks?.tools && (
+        <p className="scout-result-tools-status" aria-label="Tools source status">
+          <strong>Tools &amp; Hardware:</strong>{" "}
+          {discoveryChecks.tools.status === "checked"
+            ? `${discoveryChecks.tools.shownCount} active county listing${discoveryChecks.tools.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+            : discoveryChecks.tools.status === "error"
+              ? "could not check county listings"
+              : "not checked"}
+          {discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
+            ? ". Listings are not limited to this week."
+            : "."}
+          {" "}Pages and private requests were not checked.
+        </p>
+      )}
       {hasContractEntities && (
         <div className="scout-result-list space-y-2" aria-label="Scout results">
           {noTopicMatches && (
@@ -1445,6 +1512,8 @@ function MessageExtras({
                       ? "Promotional TradeDeal"
                       : entity.type === "business"
                         ? "Public business profile"
+                        : entity.type === "public_tool"
+                          ? "Public Tools & Hardware listing"
                         : "Scout result"}
                 </div>
                 {safeUrl && !entityAction ? (
@@ -1988,7 +2057,17 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     U
                   </div>
                 </div>
-                <div className="scout-user-bubble__body">{displayContent}</div>
+                {displayContent.replace(/\s+/g, " ").trim().length > 180 ? (
+                  <details className="scout-user-bubble__request">
+                    <summary className="scout-user-bubble__request-summary">
+                      <span>{previewUserRequest(displayContent)}</span>
+                      <span className="scout-user-bubble__request-expand">Show full request</span>
+                    </summary>
+                    <div className="scout-user-bubble__body">{displayContent}</div>
+                  </details>
+                ) : (
+                  <div className="scout-user-bubble__body">{displayContent}</div>
+                )}
               </div>
             ) : (
               /* ---- ASSISTANT BUBBLE ---- */
@@ -2006,7 +2085,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                         : msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
                         ? msg.resultContract.entities.some((entity) =>
                             readDiscoveryChecks(msg)?.topic
-                              ? entity.type === "community_post" || entity.type === "business"
+                              ? entity.type === "community_post" || entity.type === "business" || entity.type === "public_tool"
                               : true
                           )
                           ? "County results"

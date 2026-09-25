@@ -1,52 +1,59 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T024910Z-d2ec1098",
-  "createdAt": "2026-09-25T02:49:10.412106+00:00",
-  "outcome": "Add honest county-scoped public tools to Scout without exposing private requests or national listings as local.",
+  "checkpointId": "progress-20260925T024946Z-c0b24222",
+  "createdAt": "2026-09-25T02:49:46.150097+00:00",
+  "outcome": "Render concise Scout phone requests and truthful county public tools results with working detail navigation.",
   "scope": [
-    "Public Tools lookup card copy only; own module and focused test."
+    "Client ScoutThread, focused client tests and styles, and narrow public tool route allowlist."
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Removed awkward redacted direct-contact instruction from card description while retaining the substantive tool sentence.",
-      "Focused disposable PGlite lookup tests passed 3/3; npm run check passed; git diff --check passed."
+      "Long user requests now collapse to an accessible preview; typed tool source status and listing scope are visible; tool detail action is navigable."
     ],
-    "changedUnverified": [
-      "Combined Scout route/UI and exact-head synthetic browser journey remain for root to verify."
-    ],
+    "changedUnverified": [],
     "proof": [
-      "npx vitest run server/tests/scout-public-tools.test.ts: 3 passed; npm run check: tsc exit 0; git diff --check: exit 0."
+      "ScoutThread and actionValidation targeted suites passed 79/79; TypeScript check passed; git diff --check passed."
     ],
     "externalEffects": [
-      "Local isolated worktree commit only; no push, PR, merge, deployment, contact, request, or purchase."
+      "Local commit only; no push, PR, merge, deployment, contact, request, or purchase."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Root reruns exact-head Scout synthetic journey and unchanged release gate before PR."
+    "nextSafeAction": "Root runs exact-HEAD synthetic phone journey and unchanged release gate for public tools source."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-public-tools-20260925",
-    "headBefore": "f0c03aa5c2ba0f4c0af815ef68f3e536d11ab7b3",
+    "headBefore": "a25c8e68eb8678a4551a77744a75c416384e2eb6",
     "checkpointCommit": "containing_commit",
     "pushRequested": false,
     "pushRemote": null,
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M server/scout/scoutPublicTools.ts",
-      " M server/tests/scout-public-tools.test.ts"
+      " M client/src/index.css",
+      " M client/src/scout/ScoutThread.evidence.test.ts",
+      " M client/src/scout/ScoutThread.tsx",
+      " M client/src/scout/actionValidation.ts"
     ],
-    "unrelatedChangeCountExcluded": 6
+    "unrelatedChangeCountExcluded": 2
   },
   "savedFiles": [
     {
-      "path": "server/scout/scoutPublicTools.ts",
-      "sha256": "66e31fd7cfb9010d49fb7b47b41da96c97f56924c327e7c0f8e8748efff8fefd"
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "9209e13637b28ceb4dc934bb1ca3371e8a7af932b27920354c158501fcd28163"
     },
     {
-      "path": "server/tests/scout-public-tools.test.ts",
-      "sha256": "a1c303917b96bdfb79cbe33d43a404bddf2818ba14058d08f1a608d660e2215c"
+      "path": "client/src/scout/ScoutThread.evidence.test.ts",
+      "sha256": "0140d94de6c2b54e48d77ccecd4516bc56c5a643231f3fc91d36e9fa21f9726c"
+    },
+    {
+      "path": "client/src/scout/actionValidation.ts",
+      "sha256": "cf1cb101b36b39a294ff953156cfb415086b5964dc1d0e0113695732ac4f9da3"
+    },
+    {
+      "path": "client/src/index.css",
+      "sha256": "3e38265366910d55a8b311363dea9e40a7694113e6613472492b6a5acf007d16"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
