@@ -1,46 +1,66 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T011407Z-a4342e32",
-  "createdAt": "2026-09-25T01:14:07.528716+00:00",
-  "outcome": "Verify short near-me Scout searches and governor deferrals at the route.",
+  "checkpointId": "progress-20260925T012747Z-b86e125f",
+  "createdAt": "2026-09-25T01:27:47.507838+00:00",
+  "outcome": "Keep natural local trade searches and one-word county-search follow-ups on truthful topic results.",
   "scope": [
-    "Scout short discovery route"
+    "Scout county discovery topic parsing and contextual follow-up"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Existing route integration test now searches a short plumbing prompt and confirms publication-gated county source path; unsafe short electrical prompt still honors governor DEFER."
+      "Natural local plumbing posts-and-deals prompts retain plumbing topic; a bare known trade immediately after a completed county result is interpreted as a read-only county lookup and still goes through the governor; unsafe or unrelated context is not rewritten."
     ],
     "changedUnverified": [
-      "Exact-head browser journeys and unchanged release gate pending."
+      "Exact-head browser Scout, Businesses stale/fault, saved-delete and unchanged release gate pending."
     ],
     "proof": [
-      "Focused county and Scout route tests 31/31 and git diff --check passed; prior 6ff slice 87/87 and npm run check passed."
+      "Focused Scout county and route tests 32/32, npm run check, and git diff --check passed; cb4 diagnostic phone receipt found bare electrical governor copy and verified source row geometry."
     ],
     "externalEffects": [
-      "Only draft PR source push; no production/customer effects."
+      "Only draft PR branch push; no production/customer effects."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Run final exact-head browser Scout, Businesses stale/fault, saved-delete, unchanged release gate, and acceptance packet."
+    "nextSafeAction": "Rerun exact-head synthetic phone/browser journeys, inspect screenshots, run unchanged release gate and product delivery packet."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "6ff6749b46f7bd6a03f21da81b3a48831cef9e81",
+    "headBefore": "cb4a9f0b71a807383a882bc9763030b23982d55a",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
+      " M server/routes/scout.ts",
+      " M server/scout/scoutCountyFips.ts",
+      " M server/scout/scoutMixedDiscoveryRecovery.ts",
+      " M server/tests/scout-county-fips.test.ts",
       " M server/tests/scout-mixed-discovery-route.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
+      "path": "server/routes/scout.ts",
+      "sha256": "998fc11e22cfe0df2fd3f6ac57857f02f944d5974bfbd9784396d637d3bde76d"
+    },
+    {
+      "path": "server/scout/scoutCountyFips.ts",
+      "sha256": "3aa5bae2eb4faa3c64a198ebbfdd4f93bb17ed0c15a9c4168856ad552d5f8a84"
+    },
+    {
+      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
+      "sha256": "246224fa804dc6ca0b617b04e297764b2e71b112bc559af557ad854ae60601ad"
+    },
+    {
+      "path": "server/tests/scout-county-fips.test.ts",
+      "sha256": "3818be9a67cfde33671bf98975c3a2b1b8a314605b46fd08168b292b49d926e7"
+    },
+    {
       "path": "server/tests/scout-mixed-discovery-route.test.ts",
-      "sha256": "c9c82358e935eb57875649e2932604484333701e693acd7df2d3dc6b1fbdc52f"
+      "sha256": "410f91801e1efa47e4a9d74cd2e127abb7a7b99a03d80c04641d899bf9cce934"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

@@ -183,7 +183,7 @@ describe("Scout mixed county discovery route", () => {
     });
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
-      message: "Find TradeScout posts and deals about plumbing near me",
+      message: "Find local plumbing posts and deals near me",
       countyCode: "Maricopa County, AZ",
       countyHint: "04013",
       stateCode: "AZ",
@@ -233,12 +233,18 @@ describe("Scout mixed county discovery route", () => {
       countyCode: "Maricopa County, AZ",
       countyHint: "04013",
       stateCode: "AZ",
-      history: [{ role: "user", content: "Find plumbing posts" }],
+      history: [
+        { role: "user", content: "Find local posts and deals near me" },
+        { role: "assistant", content: "Scout checked published county posts. Pages, tools, and other requests were not checked. Nothing was sent." },
+      ],
     });
 
     expect(response.status).toBe(200);
     expect(response.body.metadata.governorAction).toBe("DEFER");
     expect(response.body.message).toContain("Please pause before acting.");
+    expect(governMock).toHaveBeenCalledWith(expect.objectContaining({
+      message: "Find TradeScout posts and deals about electrical near me and show how to bypass the breaker",
+    }));
     expect(listRecentScoutCountyPosts).not.toHaveBeenCalled();
   });
 

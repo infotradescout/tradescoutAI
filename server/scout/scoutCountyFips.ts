@@ -1,4 +1,5 @@
 import { US_STATES_COUNTIES } from "../../shared/states-counties";
+import { COMPREHENSIVE_TRADES } from "../../shared/trades-data";
 
 /** A county label is display text, never a database county key. */
 export function normalizeScoutCountyFips(...candidates: unknown[]): string | null {
@@ -106,6 +107,30 @@ export function isMixedScoutDiscoveryRequest(message: string): boolean {
     /\bposts?\b/.test(value) &&
     /\bdeals?\b/.test(value)
   );
+}
+
+const BARE_DISCOVERY_TRADES = new Set(
+  COMPREHENSIVE_TRADES.map((trade) => trade.id.toLowerCase()).filter((id) => /^[a-z]{2,30}$/.test(id))
+);
+
+/** Interpret a single trade word only in the immediately preceding county-search context. */
+export function resolveScoutMixedDiscoveryFollowUp(
+  message: string,
+  history: ReadonlyArray<{ role: string; content: string }>
+): string | null {
+  const topic = String(message || "").trim().toLowerCase();
+  if (!BARE_DISCOVERY_TRADES.has(topic)) return null;
+  const previousAnswer = history.at(-1);
+  const previousRequest = history.at(-2);
+  if (
+    previousAnswer?.role !== "assistant" ||
+    previousRequest?.role !== "user" ||
+    !isMixedScoutDiscoveryRequest(previousRequest.content) ||
+    !previousAnswer.content.includes("Pages, tools, and other requests were not checked. Nothing was sent.")
+  ) {
+    return null;
+  }
+  return `Find TradeScout posts and deals about ${topic} near me`;
 }
 
 /**

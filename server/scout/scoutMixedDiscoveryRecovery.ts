@@ -67,6 +67,8 @@ export function extractScoutMixedDiscoveryTopic(message: string): string | null 
   const text = String(message || "").replace(/\s+/g, " ").trim();
   const patterns = [
     /\bposts?\s*(?:&|and)\s*deals?\s+about\s+(.+?)(?=\s+(?:in|near|around)\b|[.,;!?]|$)/i,
+    /\bposts?\s*(?:&|and)\s*deals?\s+for\s+(.+?)(?=\s+(?:in|near|around)\b|[.,;!?]|$)/i,
+    /\b(?:find|search|show)\s+local\s+(.+?)\s+posts?\s*(?:&|and)\s*deals?\b(?=\s+(?:in|near|around)\b|[.,;!?]|$)/i,
     /\bfor\s+(.+?)\s+posts?\s*(?:&|and)\s*deals?\b/i,
   ];
   for (const pattern of patterns) {

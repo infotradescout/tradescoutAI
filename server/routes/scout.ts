@@ -110,6 +110,7 @@ import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwne
 import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
 import {
   isMixedScoutDiscoveryRequest,
+  resolveScoutMixedDiscoveryFollowUp,
   resolveScoutCountyDiscoveryArea,
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
@@ -2551,6 +2552,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const message = typeof rawBody.message === "string" ? rawBody.message : "";
     const launchContext = normalizeScoutLaunchContext(rawBody.launchContext);
     const boundedHistory = buildBoundedScoutHistory(rawBody.history, message);
+    const discoveryFollowUp = resolveScoutMixedDiscoveryFollowUp(message, boundedHistory.messages);
+    const effectiveDiscoveryMessage = discoveryFollowUp || message;
     const memoryUserIdCandidate =
       (requestUser as any)?.id ?? (requestUser as any)?.claims?.sub ?? null;
     const memoryUserId =
@@ -2588,7 +2591,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
     const optimizationUserId = memoryUserId;
-    if (optimizationUserId && message && !requiresFreshScoutDiscovery(message)) {
+    if (optimizationUserId && message && !requiresFreshScoutDiscovery(effectiveDiscoveryMessage)) {
       // Import optimization services
       const { generateQueryHash, checkFaqMatch, routeQuery } =
         await import("../services/scoutOptimizationEngine");
@@ -3179,7 +3182,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     // Scout assesses the situation and decides whether to comply, defer,
     // redirect, or block BEFORE generating a response.
     const governorDecision = await govern({
-      message,
+      message: effectiveDiscoveryMessage,
       user,
       history,
       recentActivity: recentActivity.map((a) => ({ type: a.type, timestamp: a.ts })),
@@ -3502,9 +3505,9 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       stateCode,
     };
 
-    if (isMixedScoutDiscoveryRequest(message)) {
+    if (isMixedScoutDiscoveryRequest(effectiveDiscoveryMessage)) {
       const now = new Date();
-      const discoveryTopic = extractScoutMixedDiscoveryTopic(message);
+      const discoveryTopic = extractScoutMixedDiscoveryTopic(effectiveDiscoveryMessage);
       let postCheck: "not_checked" | "checked" | "error" = "not_checked";
       let communityPostItems: Array<{
         id: string;

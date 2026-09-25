@@ -4,6 +4,7 @@ import {
   isReadOnlyScoutTradeLookup,
   normalizeScoutCountyFips,
   resolveScoutCountyDiscoveryArea,
+  resolveScoutMixedDiscoveryFollowUp,
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
 import {
@@ -62,6 +63,36 @@ describe("Scout county lookup", () => {
       expect(isReadOnlyScoutTradeLookup(unsafe)).toBe(false);
     }
     expect(classifyRisk({ ...inputs, message: "Find electrical posts about a gas leak" }).dimensions.safety).toBe(10);
+  });
+
+  it("interprets a bare trade only after a completed county discovery answer", () => {
+    const previousRequest = { role: "user", content: "Find local posts and deals near me" };
+    const previousAnswer = {
+      role: "assistant",
+      content:
+        "Scout checked published county posts in Maricopa County, AZ. Pages, tools, and other requests were not checked. Nothing was sent.",
+    };
+    const history = [previousRequest, previousAnswer];
+    expect(resolveScoutMixedDiscoveryFollowUp("electrical", history)).toBe(
+      "Find TradeScout posts and deals about electrical near me"
+    );
+    expect(resolveScoutMixedDiscoveryFollowUp("plumbing", history)).toBe(
+      "Find TradeScout posts and deals about plumbing near me"
+    );
+    for (const unsafe of ["electrical panel", "electrical bypass", "urgent electrical", "gas leak", "electrical?"]) {
+      expect(resolveScoutMixedDiscoveryFollowUp(unsafe, history)).toBeNull();
+    }
+    expect(resolveScoutMixedDiscoveryFollowUp("electrical", [previousRequest])).toBeNull();
+    expect(resolveScoutMixedDiscoveryFollowUp("electrical", [
+      previousRequest,
+      { role: "assistant", content: "I need 0 pieces of critical information." },
+    ])).toBeNull();
+    expect(resolveScoutMixedDiscoveryFollowUp("electrical", [
+      previousRequest,
+      previousAnswer,
+      { role: "user", content: "What is my balance?" },
+      previousAnswer,
+    ])).toBeNull();
   });
 
   it("uses a complete FIPS rather than a readable county label", () => {
@@ -163,6 +194,8 @@ describe("Scout county lookup", () => {
     expect(isMixedScoutDiscoveryRequest(refined)).toBe(true);
     expect(extractScoutMixedDiscoveryTopic(refined)).toBe("plumbing");
     expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about plumbing near me")).toBe("plumbing");
+    expect(extractScoutMixedDiscoveryTopic("Find local plumbing posts and deals near me")).toBe("plumbing");
+    expect(extractScoutMixedDiscoveryTopic("Find local posts and deals for plumbing near me")).toBe("plumbing");
     expect(extractScoutMixedDiscoveryTopic("Search TradeScout for roofing posts and deals near me. Include requests.")).toBe("roofing");
     expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about this week in my county. Include requests.")).toBeNull();
     expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about % in my county. Include requests.")).toBeNull();
