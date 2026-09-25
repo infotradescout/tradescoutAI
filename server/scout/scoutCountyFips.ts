@@ -113,13 +113,18 @@ const BARE_DISCOVERY_TRADES = new Set(
   COMPREHENSIVE_TRADES.map((trade) => trade.id.toLowerCase()).filter((id) => /^[a-z]{2,30}$/.test(id))
 );
 
+export function readBareScoutTrade(message: string): string | null {
+  const topic = String(message || "").trim().toLowerCase();
+  return BARE_DISCOVERY_TRADES.has(topic) ? topic : null;
+}
+
 /** Interpret a single trade word only in the immediately preceding county-search context. */
 export function resolveScoutMixedDiscoveryFollowUp(
   message: string,
   history: ReadonlyArray<{ role: string; content: string }>
 ): string | null {
-  const topic = String(message || "").trim().toLowerCase();
-  if (!BARE_DISCOVERY_TRADES.has(topic)) return null;
+  const topic = readBareScoutTrade(message);
+  if (!topic) return null;
   const previousAnswer = history.at(-1);
   const previousRequest = history.at(-2);
   if (

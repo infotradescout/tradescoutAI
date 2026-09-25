@@ -143,7 +143,7 @@ export interface ScoutMessage {
   // The server is the sole owner of result interpretation and permitted actions.
   resultContract?: ScoutResultContractV1;
   // Bounded source-check metadata kept with this answer for honest saved-task rendering.
-  metadata?: { discoveryTopic?: unknown; discoveryChecks?: unknown };
+  metadata?: { discoveryTopic?: unknown; discoveryChecks?: unknown; clarificationKind?: "bare_trade" };
   // Structured agent outputs
   toolCall?: ScoutToolCall;
   toolResult?: ScoutToolResult;

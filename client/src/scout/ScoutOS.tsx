@@ -2789,6 +2789,8 @@ export default function ScoutOS() {
                   discoveryTopic: res.metadata.discoveryTopic,
                   discoveryChecks: res.metadata.discoveryChecks,
                 }
+              : res.metadata?.clarificationKind === "bare_trade"
+                ? { clarificationKind: "bare_trade" }
               : undefined,
           resultContract: {
             contract_version: res.contract_version,

@@ -110,6 +110,7 @@ import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwne
 import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
 import {
   isMixedScoutDiscoveryRequest,
+  readBareScoutTrade,
   resolveScoutMixedDiscoveryFollowUp,
   resolveScoutCountyDiscoveryArea,
   requiresFreshScoutDiscovery,
@@ -3216,6 +3217,12 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     // with structured intervention (no LLM needed for these)
     if (["DEFER", "REDIRECT", "BLOCK"].includes(governorDecision.intervention.action)) {
       const intervention = governorDecision.intervention;
+      const bareTradeClarification =
+        intervention.action === "DEFER" &&
+        governorDecision.situation.unknowns.length === 0 &&
+        !discoveryFollowUp
+          ? readBareScoutTrade(message)
+          : null;
       if (scoutInteractionLog) {
         if (intervention.action === "BLOCK") {
           scoutInteractionLog.outcome = "blocked";
@@ -3239,7 +3246,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       let fullMessage = intervention.userMessage;
 
       // Add next steps if present
-      if (intervention.nextSteps && intervention.nextSteps.length > 0) {
+      if (!bareTradeClarification && intervention.nextSteps && intervention.nextSteps.length > 0) {
         fullMessage +=
           "\n\n" +
           intervention.nextSteps
@@ -3249,20 +3256,32 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       }
 
       // Build suggested actions from next steps
-      const suggestedActions =
-        intervention.nextSteps
-          ?.filter((s) => s.userFacing)
-          .map((s) => s.action)
-          .slice(0, 3) || [];
+      const suggestedActions = bareTradeClarification
+        ? []
+        : intervention.nextSteps
+            ?.filter((s) => s.userFacing)
+            .map((s) => s.action)
+            .slice(0, 3) || [];
 
       const aiResponse: ScoutResponse = {
         message: trimResponseToScreenFit(fullMessage),
         suggestedActions,
-        actions: shapeActionsByConfidence([], {
-          confidence: normalizeConfidenceLabel(governorDecision.confidence),
-          hasLocality: Boolean(countyCode || stateCode),
-          communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
-        }),
+        actions: bareTradeClarification
+          ? normalizedFips
+            ? [
+                {
+                  type: "ASK_SCOUT",
+                  label: "Search county posts & deals",
+                  prompt: `Find TradeScout posts and deals about ${bareTradeClarification} near me`,
+                },
+                { type: "NAVIGATE", label: "Browse public businesses", to: "/contractors" },
+              ]
+            : [{ type: "NAVIGATE", label: "Set my local area", to: "/settings" }]
+          : shapeActionsByConfidence([], {
+              confidence: normalizeConfidenceLabel(governorDecision.confidence),
+              hasLocality: Boolean(countyCode || stateCode),
+              communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+            }),
         sponsored: null,
         overrideOption: intervention.overrideOption
           ? {
@@ -3272,6 +3291,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
             }
           : undefined,
         metadata: {
+          ...(bareTradeClarification ? { clarificationKind: "bare_trade" } : {}),
           governorAction: intervention.action,
           governorRole: intervention.role,
           governorReasoning: intervention.reasoning,

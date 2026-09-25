@@ -1990,7 +1990,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   <span className="scout-assistant-bubble__name">Scout</span>
                   {msg.resultContract && (
                     <span className="scout-assistant-bubble__badge">
-                      {msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
+                      {msg.metadata?.clarificationKind === "bare_trade"
+                        ? "Clarify request"
+                        : msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
                         ? msg.resultContract.entities.some((entity) =>
                             readDiscoveryChecks(msg)?.topic
                               ? entity.type === "community_post" || entity.type === "business"
