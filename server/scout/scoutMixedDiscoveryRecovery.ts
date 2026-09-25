@@ -29,6 +29,14 @@ type PublicCountyTool = {
   topicMatchSource?: "title" | "description";
 };
 
+type PublicCountyPage = {
+  id?: unknown;
+  slug?: unknown;
+  displayName?: unknown;
+  countyFips?: unknown;
+  detailPath?: unknown;
+};
+
 function businessTopicMatchSource(
   business: PublicCountyBusiness,
   topicKey: string | null
@@ -98,6 +106,8 @@ export function buildScoutMixedDiscoveryRecovery(input: {
   businessCheck?: "not_checked" | "checked" | "error";
   tools?: PublicCountyTool[];
   toolCheck?: "not_checked" | "checked" | "error";
+  pages?: PublicCountyPage[];
+  pageCheck?: "not_checked" | "checked" | "error";
   now?: Date;
 }) {
   if (!input.countyFips) {
@@ -245,14 +255,38 @@ export function buildScoutMixedDiscoveryRecovery(input: {
         "Listing may be older than this week; confirm availability before contact",
       ],
     }));
+  const pageEntities = (input.pageCheck === "checked" ? input.pages || [] : [])
+    .filter((page) => {
+      const id = String(page.id || "").trim();
+      const slug = String(page.slug || "").trim();
+      return (
+        Boolean(id) &&
+        Boolean(String(page.displayName || "").trim()) &&
+        page.countyFips === input.countyFips &&
+        /^[a-z0-9][a-z0-9-]{0,119}$/i.test(slug) &&
+        page.detailPath === `/u/${encodeURIComponent(slug)}`
+      );
+    })
+    .slice(0, 2)
+    .map((page) => ({
+      id: String(page.id),
+      type: "public_profile",
+      name: String(page.displayName).replace(/\s+/g, " ").trim().slice(0, 110),
+      url: String(page.detailPath),
+      match_reasons: [
+        `Published public profile page for a discoverable business serving ${area}`,
+        ...(topic ? [`Page matched the search for "${topic}"`] : []),
+        "Page was not filtered to this week; check current services before contact",
+      ],
+    }));
   // A county promotion is available by location, but is not a match for the
   // user's topic. Put public topic matches ahead of it in the result contract.
   const entities = topic
-    ? [...postEntities, ...businessEntities, ...toolEntities, ...dealEntities]
-    : [...postEntities, ...toolEntities, ...dealEntities, ...businessEntities];
+    ? [...postEntities, ...pageEntities, ...businessEntities, ...toolEntities, ...dealEntities]
+    : [...postEntities, ...pageEntities, ...toolEntities, ...dealEntities, ...businessEntities];
   const sourceError =
     postCheck === "error" || input.dealCheck === "error" ||
-    input.businessCheck === "error" || input.toolCheck === "error";
+    input.businessCheck === "error" || input.toolCheck === "error" || input.pageCheck === "error";
   const checkedEmpty =
     postCheck === "checked" &&
     postEntities.length === 0 &&
@@ -261,7 +295,9 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     input.businessCheck === "checked" &&
     businessEntities.length === 0 &&
     input.toolCheck === "checked" &&
-    toolEntities.length === 0;
+    toolEntities.length === 0 &&
+    input.pageCheck === "checked" &&
+    pageEntities.length === 0;
   const checkedNoTopicMatches =
     Boolean(topic) &&
     postCheck === "checked" &&
@@ -269,7 +305,9 @@ export function buildScoutMixedDiscoveryRecovery(input: {
     input.businessCheck === "checked" &&
     businessEntities.length === 0 &&
     input.toolCheck === "checked" &&
-    toolEntities.length === 0;
+    toolEntities.length === 0 &&
+    input.pageCheck === "checked" &&
+    pageEntities.length === 0;
   const canDraftCountyRequest =
     !sourceError && (checkedEmpty || checkedNoTopicMatches) && /^\d{5}$/.test(input.countyFips);
 
@@ -310,6 +348,16 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       : input.toolCheck === "error"
         ? `Public Tools & Hardware listings for ${area} could not be checked right now.`
         : "Public Tools & Hardware listings were not checked.";
+  const pageSentence =
+    input.pageCheck === "checked"
+      ? pageEntities.length
+        ? `Scout found ${pageEntities.length} public business profile ${pageEntities.length === 1 ? "page" : "pages"} for ${area}${topic ? ` matching "${topic}"` : ""}. Pages were not limited to this week; check current services before contact.`
+        : topic
+          ? `Scout checked public business profile pages for ${area} for "${topic}"; none matched this topic.`
+          : `Scout checked public business profile pages for ${area}; none were returned.`
+      : input.pageCheck === "error"
+        ? `Public business profile pages for ${area} could not be checked right now.`
+        : "Public business profile pages were not checked.";
   const nextStepSentence = topic
     ? sourceError
       ? "Some local sources could not be checked. Retry this search before relying on an empty result. Scout promotions are county offers, not topic matches."
@@ -319,7 +367,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       : "These are county results, not matches for a specific topic. What kind of work or item should Scout look for?";
 
   return {
-    message: `${firstSentence} ${dealSentence} ${businessSentence} ${toolSentence} ${nextStepSentence} Public site pages and private requests were not checked. Nothing was sent.`,
+    message: `${firstSentence} ${dealSentence} ${businessSentence} ${toolSentence} ${pageSentence} ${nextStepSentence} Other Site pages and private requests were not checked. Nothing was sent.`,
     entities,
     actions: [
       ...(postEntities.length
@@ -338,7 +386,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open promotional TradeDeal",
               to: dealEntities[0].url,
-              primary: !sourceError && !topic && postEntities.length === 0 && toolEntities.length === 0,
+              primary: !sourceError && !topic && postEntities.length === 0 && pageEntities.length === 0 && toolEntities.length === 0,
             },
           ]
         : []),
@@ -348,7 +396,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open local business profile",
               to: businessEntities[0].url,
-              primary: !sourceError && postEntities.length === 0 && (Boolean(topic) || (toolEntities.length === 0 && dealEntities.length === 0)),
+              primary: !sourceError && postEntities.length === 0 && pageEntities.length === 0 && (Boolean(topic) || (toolEntities.length === 0 && dealEntities.length === 0)),
             },
           ]
         : []),
@@ -358,7 +406,17 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open local tool listing",
               to: toolEntities[0].url,
-              primary: !sourceError && postEntities.length === 0 && (Boolean(topic) ? businessEntities.length === 0 : true),
+              primary: !sourceError && postEntities.length === 0 && pageEntities.length === 0 && (Boolean(topic) ? businessEntities.length === 0 : true),
+            },
+          ]
+        : []),
+      ...(pageEntities.length
+        ? [
+            {
+              type: "NAVIGATE",
+              label: "Open public profile page",
+              to: pageEntities[0].url,
+              primary: !sourceError && postEntities.length === 0,
             },
           ]
         : []),
@@ -381,7 +439,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               label: "Draft a request for my county",
               to: "/direct-connect?source=scout",
               payload: { countyFips: input.countyFips },
-              primary: entities.length === 0 || (Boolean(topic) && postEntities.length === 0 && businessEntities.length === 0 && toolEntities.length === 0),
+              primary: entities.length === 0 || (Boolean(topic) && postEntities.length === 0 && pageEntities.length === 0 && businessEntities.length === 0 && toolEntities.length === 0),
             },
           ]
         : []),

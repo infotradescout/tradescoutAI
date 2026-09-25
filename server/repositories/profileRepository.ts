@@ -1,5 +1,7 @@
 import {
   businesses,
+  businessCounties,
+  counties,
   profiles,
   searchAnalytics,
   users,
@@ -8,7 +10,7 @@ import {
   type User,
 } from "@shared/schema";
 import { db } from "../db";
-import { and, desc, eq, inArray, like, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, like, notInArray, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
 import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig";
@@ -29,6 +31,7 @@ import {
   MOULDING_MILLWORK_PROFILE_SLUG,
 } from "@shared/mouldingMillworkProfile";
 import { DIRECT_PROFILE_AUTHORITIES } from "@shared/publicProfileExposureRegistry";
+import { US_STATES_COUNTIES } from "@shared/states-counties";
 
 export type PublicProfileRecord = {
   id: string;
@@ -60,6 +63,19 @@ export type PublicProfileSearchRecord = {
   headline: string | null;
   roleContext: any;
 };
+
+export type ScoutPublicProfile = PublicProfileSearchRecord & { countyFips: string; detailPath: string };
+
+export type ScoutPublicProfilesLookup =
+  | { status: "checked"; items: ScoutPublicProfile[] }
+  | { status: "area_unavailable"; items: []; reason: "invalid_county" }
+  | { status: "error"; items: []; reason: "invalid_topic" | "source_unavailable" };
+
+const SCOUT_COUNTY_STATE_BY_FIPS = new Map(
+  US_STATES_COUNTIES.flatMap((state) =>
+    state.counties.map((county) => [county.fipsCode, state.code] as const)
+  )
+);
 
 export async function loadCanonicalPublicMapProfileUrls(
   providerIds: string[]
@@ -175,6 +191,82 @@ function publicProfileReleaseExposurePredicate() {
     discoverableSlug,
     sql`${profiles.slug} <> ${STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug}`
   );
+}
+
+/**
+ * Scout's page lookup is a read-only public search. The linked business must
+ * explicitly serve the exact canonical county in its canonical state; a
+ * missing business_counties row must never be inferred from an owner's city.
+ */
+export async function lookupScoutPublicProfiles(input: {
+  countyFips: string;
+  topic?: string;
+  limit?: number;
+}): Promise<ScoutPublicProfilesLookup> {
+  const countyFips = String(input.countyFips || "").trim();
+  const stateCode = /^\d{5}$/.test(countyFips)
+    ? SCOUT_COUNTY_STATE_BY_FIPS.get(countyFips)
+    : undefined;
+  if (!stateCode) return { status: "area_unavailable", items: [], reason: "invalid_county" };
+
+  const topic = String(input.topic || "").trim().slice(0, 120);
+  if (topic && !/[a-z0-9]/i.test(topic)) {
+    return { status: "error", items: [], reason: "invalid_topic" };
+  }
+  const limitValue = Number(input.limit);
+  const limit = Number.isFinite(limitValue) ? Math.max(1, Math.min(8, Math.floor(limitValue))) : 6;
+  const needle = `%${topic.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
+
+  try {
+    const rows = await db
+      .select({
+        id: profiles.id,
+        slug: profiles.slug,
+        displayName: profiles.displayName,
+        headline: profiles.headline,
+        roleContext: profiles.roleContext,
+      })
+      .from(profiles)
+      .innerJoin(users, eq(profiles.ownerUserId, users.id))
+      .innerJoin(businesses, eq(profiles.businessId, businesses.id))
+      .where(
+        and(
+          eq(profiles.status, "published" as any),
+          publicProfileVisibilityPredicate(),
+          publicProfileReleaseExposurePredicate(),
+          publicProfileSearchExposurePredicate(),
+          exists(
+            db
+              .select({ one: sql`1` })
+              .from(businessCounties)
+              .innerJoin(counties, eq(businessCounties.countyId, counties.id))
+              .where(
+                and(
+                  eq(businessCounties.businessId, businesses.id),
+                  eq(counties.fips, countyFips),
+                  eq(counties.stateCode, stateCode)
+                )
+              )
+          ),
+          topic
+            ? sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle} OR ${profiles.headline} ILIKE ${needle})`
+            : undefined
+        )
+      )
+      .orderBy(desc(profiles.updatedAt))
+      .limit(limit);
+
+    return {
+      status: "checked",
+      items: rows.map((row) => ({
+        ...row,
+        countyFips,
+        detailPath: `/u/${encodeURIComponent(row.slug)}`,
+      })),
+    };
+  } catch {
+    return { status: "error", items: [], reason: "source_unavailable" };
+  }
 }
 
 export class ProfileRepository {

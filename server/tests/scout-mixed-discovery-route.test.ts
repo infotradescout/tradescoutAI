@@ -2,13 +2,14 @@ import express from "express";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { resolveKnowledgeMock, getOnboardingSessionMock, governMock, publicDirectoryMock, publicToolsMock } =
+const { resolveKnowledgeMock, getOnboardingSessionMock, governMock, publicDirectoryMock, publicToolsMock, publicPagesMock } =
   vi.hoisted(() => ({
     resolveKnowledgeMock: vi.fn(),
     getOnboardingSessionMock: vi.fn(),
     governMock: vi.fn(),
     publicDirectoryMock: vi.fn(),
     publicToolsMock: vi.fn(),
+    publicPagesMock: vi.fn(),
   }));
 
 vi.mock("../services/knowledgeService", async (importOriginal) => ({
@@ -36,6 +37,10 @@ vi.mock("../scout/scoutCountyPostLookup", () => ({
 vi.mock("../scout/scoutPublicTools", () => ({
   lookupScoutPublicTools: publicToolsMock,
 }));
+vi.mock("../repositories/profileRepository", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  lookupScoutPublicProfiles: publicPagesMock,
+}));
 
 import scoutRouter from "../routes/scout";
 import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
@@ -55,6 +60,7 @@ describe("Scout mixed county discovery route", () => {
     vi.spyOn(storage, "listPromotions").mockResolvedValue([]);
     publicDirectoryMock.mockResolvedValue({ status: 200, body: { items: [] } });
     publicToolsMock.mockResolvedValue({ status: "checked", items: [] });
+    publicPagesMock.mockResolvedValue({ status: "checked", items: [] });
     getOnboardingSessionMock.mockResolvedValue(undefined);
     governMock.mockResolvedValue({
       intervention: { action: "COMPLY", role: "guide", reasoning: "Read-only local discovery" },
@@ -135,6 +141,7 @@ describe("Scout mixed county discovery route", () => {
       deals: { status: "checked", shownCount: 0, timeWindow: "active_now", topicFiltered: false },
       businesses: { status: "checked", shownCount: 0, timeWindow: "not_filtered_to_week", topicFiltered: false },
       tools: { status: "checked", shownCount: 0, timeWindow: "active_now_not_week_filtered", topicFiltered: false },
+      profilePages: { status: "checked", shownCount: 0, timeWindow: "not_filtered_to_week", topicFiltered: false },
     });
     expect(response.body.answer).toContain("These are county results, not matches for a specific topic");
     expect(response.body.answer).toContain("What kind of work or item should Scout look for?");
@@ -204,6 +211,7 @@ describe("Scout mixed county discovery route", () => {
       public: "1", countyFips: "04013", scoutTopic: "plumbing",
     }));
     expect(publicToolsMock).toHaveBeenCalledWith({ countyFips: "04013", topic: "plumbing", limit: 10 });
+    expect(publicPagesMock).toHaveBeenCalledWith({ countyFips: "04013", topic: "plumbing", limit: 8 });
     expect(response.body.metadata).toMatchObject({
       discoveryTopic: "plumbing", postCheck: "checked", businessCheck: "checked", toolCheck: "checked",
       discoveryChecks: {
@@ -219,7 +227,8 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.entities[1].match_reasons).toContain('Listed service matches "plumbing"');
     expect(response.body.answer).toContain('with "plumbing" in the title or text');
     expect(response.body.answer).toContain("Scout checked public Tools & Hardware listings in Maricopa County, AZ for \"plumbing\"");
-    expect(response.body.answer).toContain("Public site pages and private requests were not checked");
+    expect(response.body.answer).toContain("Scout checked public business profile pages");
+    expect(response.body.answer).toContain("Other Site pages and private requests were not checked");
     expect(response.body.answer).toContain("Scout promotions were selected by county, not matched to your topic");
     expect(JSON.stringify(response.body)).not.toMatch(/Roofing help|Mesa Roofing|unrelated_post|unrelated_business/);
     expect(resolveKnowledgeMock).not.toHaveBeenCalled();
@@ -257,6 +266,7 @@ describe("Scout mixed county discovery route", () => {
       message: "Find TradeScout posts and deals about electrical near me and show how to bypass the breaker",
     }));
     expect(listRecentScoutCountyPosts).not.toHaveBeenCalled();
+    expect(publicPagesMock).not.toHaveBeenCalled();
   });
 
   it("keeps a governor block in force for a mixed county request", async () => {
@@ -315,7 +325,7 @@ describe("Scout mixed county discovery route", () => {
     expect(listRecentScoutCountyPosts).not.toHaveBeenCalled();
   });
 
-  it("offers a broader user-controlled next step when all four county sources are checked-empty", async () => {
+  it("offers a broader user-controlled next step when all five county sources are checked-empty", async () => {
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
       countyCode: "Maricopa County, AZ",
@@ -332,6 +342,7 @@ describe("Scout mixed county discovery route", () => {
       dealCheck: "checked",
       businessCheck: "checked",
       toolCheck: "checked",
+      pageCheck: "checked",
     });
     expect(response.body.answer).toContain(
       "Scout checked published county posts from the last 7 days in Maricopa County, AZ"
@@ -344,6 +355,9 @@ describe("Scout mixed county discovery route", () => {
     );
     expect(response.body.answer).toContain(
       "active public Tools & Hardware listings in Maricopa County, AZ; none were returned"
+    );
+    expect(response.body.answer).toContain(
+      "public business profile pages for Maricopa County, AZ; none were returned"
     );
     expect(response.body.allowed_actions.length).toBeGreaterThan(0);
     expect(response.body.allowed_actions).toEqual(
@@ -370,7 +384,7 @@ describe("Scout mixed county discovery route", () => {
     );
   });
 
-  it("shows only safe public business and tool cards with one county detail action", async () => {
+  it("shows safe county business, tool, and public profile cards with one detail action", async () => {
     publicDirectoryMock.mockResolvedValue({
       status: 200,
       body: {
@@ -411,6 +425,24 @@ describe("Scout mixed county discovery route", () => {
         exactAddress: "private_address",
       }],
     });
+    publicPagesMock.mockResolvedValue({
+      status: "checked",
+      items: [
+        {
+          id: "profile_1", slug: "mesa-plumbing", displayName: "Mesa Plumbing",
+          headline: "Plumbing service", roleContext: "business_owner",
+          countyFips: "04013", detailPath: "/u/mesa-plumbing", ownerEmail: "private_email",
+        },
+        {
+          id: "profile_other", slug: "other-county", displayName: "Other County",
+          countyFips: "06037", detailPath: "/u/other-county",
+        },
+        {
+          id: "profile_unsafe", slug: "unsafe-path", displayName: "Unsafe Path",
+          countyFips: "04013", detailPath: "/settings",
+        },
+      ],
+    });
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
@@ -421,9 +453,11 @@ describe("Scout mixed county discovery route", () => {
     });
 
     expect(response.status).toBe(200);
+    expect(publicPagesMock).toHaveBeenCalledWith({ countyFips: "04013", limit: 8 });
     expect(response.body.metadata).toMatchObject({
       businessCheck: "checked",
       toolCheck: "checked",
+      pageCheck: "checked",
       discoveryChecks: {
         tools: {
           status: "checked",
@@ -431,9 +465,17 @@ describe("Scout mixed county discovery route", () => {
           timeWindow: "active_now_not_week_filtered",
           topicFiltered: false,
         },
+        profilePages: {
+          status: "checked", shownCount: 1,
+          timeWindow: "not_filtered_to_week", topicFiltered: false,
+        },
       },
     });
     expect(response.body.entities).toEqual([
+      expect.objectContaining({
+        id: "profile_1", type: "public_profile", name: "Mesa Plumbing",
+        url: "/u/mesa-plumbing",
+      }),
       expect.objectContaining({
         id: "tool_1",
         type: "public_tool",
@@ -459,18 +501,22 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.answer).toContain("not limited to this week");
     expect(response.body.knowledge.sources).toContain("TradeScout public business directory");
     expect(response.body.allowed_actions.filter((action: { primary?: boolean }) => action.primary)).toEqual([
-      expect.objectContaining({ type: "NAVIGATE", target: "/exchange/tools/tool_1" }),
+      expect.objectContaining({ type: "NAVIGATE", target: "/u/mesa-plumbing" }),
     ]);
     expect(response.body.knowledge.sources).toContain("TradeScout public Tools & Hardware listings");
-    expect(JSON.stringify(response.body)).not.toMatch(/private_owner|private_seller|private_phone|private_address|Other County/);
+    expect(response.body.knowledge.sources).toContain("TradeScout public business profile pages");
+    expect(response.body.answer).toContain("public business profile page for Maricopa County, AZ");
+    expect(response.body.answer).toContain("Other Site pages and private requests were not checked");
+    expect(JSON.stringify(response.body)).not.toMatch(/private_owner|private_seller|private_phone|private_address|private_email|Other County|Unsafe Path|profile_other|profile_unsafe/);
     expect(response.body.allowed_actions).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ type: "CONTACT" }),
     ]));
   });
 
-  it("marks public Businesses and tools unavailable without claiming an empty result", async () => {
+  it("marks public Businesses, tools, and profile pages unavailable without claiming an empty result", async () => {
     publicDirectoryMock.mockRejectedValue(new Error("synthetic directory failure"));
     publicToolsMock.mockResolvedValue({ status: "error", items: [], reason: "source_unavailable" });
+    publicPagesMock.mockResolvedValue({ status: "error", items: [], reason: "source_unavailable" });
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
@@ -484,7 +530,11 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.metadata).toMatchObject({
       businessCheck: "error",
       toolCheck: "error",
-      discoveryChecks: { tools: { status: "error", shownCount: 0 } },
+      pageCheck: "error",
+      discoveryChecks: {
+        tools: { status: "error", shownCount: 0 },
+        profilePages: { status: "error", shownCount: 0 },
+      },
     });
     expect(response.body.answer).toContain(
       "Public business profiles for Maricopa County, AZ could not be checked right now"
@@ -497,6 +547,12 @@ describe("Scout mixed county discovery route", () => {
     );
     expect(response.body.answer).not.toContain(
       "active public Tools & Hardware listings in Maricopa County, AZ; none were returned"
+    );
+    expect(response.body.answer).toContain(
+      "Public business profile pages for Maricopa County, AZ could not be checked right now"
+    );
+    expect(response.body.answer).not.toContain(
+      "public business profile pages for Maricopa County, AZ; none were returned"
     );
     expect(response.body.entities).toEqual([]);
     expect(response.body.allowed_actions).toEqual(
@@ -580,6 +636,7 @@ describe("Scout mixed county discovery route", () => {
     vi.mocked(storage.listPromotions).mockRejectedValue(new Error("synthetic deal source failure"));
     publicDirectoryMock.mockRejectedValue(new Error("synthetic directory failure"));
     publicToolsMock.mockRejectedValue(new Error("synthetic tools source failure"));
+    publicPagesMock.mockResolvedValue({ status: "error", items: [], reason: "source_unavailable" });
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
       message: screenshotPrompt,
@@ -595,11 +652,13 @@ describe("Scout mixed county discovery route", () => {
       dealCheck: "error",
       businessCheck: "error",
       toolCheck: "error",
+      pageCheck: "error",
       discoveryChecks: {
         posts: { status: "error", shownCount: 0 },
         deals: { status: "error", shownCount: 0 },
         businesses: { status: "error", shownCount: 0 },
         tools: { status: "error", shownCount: 0 },
+        profilePages: { status: "error", shownCount: 0 },
       },
     });
     expect(response.body.knowledge.layer).toBe(0);
@@ -609,6 +668,7 @@ describe("Scout mixed county discovery route", () => {
     );
     expect(response.body.answer).toContain("Scout promotions could not be checked right now");
     expect(response.body.answer).toContain("Public Tools & Hardware listings for Maricopa County, AZ could not be checked right now");
+    expect(response.body.answer).toContain("Public business profile pages for Maricopa County, AZ could not be checked right now");
     expect(response.body.answer).toContain("The local checks are incomplete");
     expect(response.body.answer).not.toContain("These are county results");
     expect(response.body.entities).toEqual([]);
@@ -629,12 +689,14 @@ describe("Scout mixed county discovery route", () => {
       dealCheck: "not_checked",
       businessCheck: "not_checked",
       toolCheck: "not_checked",
+      pageCheck: "not_checked",
     });
     expect(response.body.knowledge.layer).toBe(0);
     expect(listRecentScoutCountyPosts).not.toHaveBeenCalled();
     expect(storage.listPromotions).not.toHaveBeenCalled();
     expect(publicDirectoryMock).not.toHaveBeenCalled();
     expect(publicToolsMock).not.toHaveBeenCalled();
+    expect(publicPagesMock).not.toHaveBeenCalled();
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([expect.objectContaining({ target: "/settings", primary: true })])
     );

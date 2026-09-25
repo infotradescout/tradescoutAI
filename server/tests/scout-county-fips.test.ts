@@ -218,6 +218,7 @@ describe("Scout county lookup", () => {
       dealCheck: "checked" as const,
       businessCheck: "checked" as const,
       toolCheck: "checked" as const,
+      pageCheck: "checked" as const,
       communityPosts: [
         { id: "post_plumbing", title: "Plumbing repair", createdAt: "2026-09-22T12:00:00.000Z" },
         { id: "post_body", title: "Question", content: "Need plumbing advice", createdAt: "2026-09-22T11:00:00.000Z" },
@@ -256,6 +257,7 @@ describe("Scout county lookup", () => {
       dealCheck: "checked" as const,
       businessCheck: "checked" as const,
       toolCheck: "checked" as const,
+      pageCheck: "checked" as const,
     };
     const empty = buildScoutMixedDiscoveryRecovery(common);
     expect(empty.message).toContain('for "plumbing"; none matched this topic');
@@ -280,7 +282,7 @@ describe("Scout county lookup", () => {
       }),
     ]));
     const failed = buildScoutMixedDiscoveryRecovery({
-      ...common, postCheck: "error", businessCheck: "error", dealCheck: "error", toolCheck: "error",
+      ...common, postCheck: "error", businessCheck: "error", dealCheck: "error", toolCheck: "error", pageCheck: "error",
     });
     expect(failed.message).toContain("could not be checked right now");
     expect(failed.message).not.toContain("none matched this topic");
@@ -317,7 +319,8 @@ describe("Scout county lookup", () => {
     expect(result.message).toContain("It does not verify deals");
     expect(result.message).toContain("Businesses were not checked");
     expect(result.message).toContain("Public Tools & Hardware listings were not checked");
-    expect(result.message).toContain("Public site pages and private requests were not checked");
+    expect(result.message).toContain("Public business profile pages were not checked");
+    expect(result.message).toContain("Other Site pages and private requests were not checked");
     expect(result.entities).toEqual([
       expect.objectContaining({ name: "Neighborhood tool swap", url: "/community/posts/post_1" }),
     ]);
@@ -466,6 +469,8 @@ describe("Scout county lookup", () => {
       businesses: [],
       toolCheck: "checked",
       tools: [],
+      pageCheck: "checked",
+      pages: [],
     });
 
     expect(result.entities).toEqual([]);

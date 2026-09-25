@@ -121,6 +121,7 @@ import {
 } from "../scout/scoutMixedDiscoveryRecovery";
 import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
 import { lookupScoutPublicTools, type ScoutPublicToolListing } from "../scout/scoutPublicTools";
+import { lookupScoutPublicProfiles, type ScoutPublicProfile } from "../repositories/profileRepository";
 import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
 import { listPublicDirectoryBusinesses } from "./business-directory-public";
 import {
@@ -3554,6 +3555,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       }> = [];
       let toolCheck: "not_checked" | "checked" | "error" = "not_checked";
       let publicTools: ScoutPublicToolListing[] = [];
+      let pageCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let publicPages: ScoutPublicProfile[] = [];
       if (normalizedFips) {
         try {
           communityPostItems = discoveryTopic
@@ -3640,6 +3643,19 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           console.error("Scout public tool lookup unavailable:", error);
           toolCheck = "error";
         }
+        try {
+          const pages = await lookupScoutPublicProfiles({
+            countyFips: normalizedFips,
+            ...(discoveryTopic ? { topic: discoveryTopic } : {}),
+            limit: 8,
+          });
+          pageCheck = pages.status === "checked" ? "checked" :
+            pages.status === "error" ? "error" : "not_checked";
+          publicPages = pages.status === "checked" ? pages.items : [];
+        } catch (error) {
+          console.error("Scout public page lookup unavailable:", error);
+          pageCheck = "error";
+        }
       }
       const recovery = buildScoutMixedDiscoveryRecovery({
         countyFips: normalizedFips,
@@ -3653,6 +3669,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         businessCheck,
         tools: publicTools,
         toolCheck,
+        pages: publicPages,
+        pageCheck,
         now,
       });
       scoutTurnTelemetry.provider = "deterministic";
@@ -3669,6 +3687,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           dealCheck,
           businessCheck,
           toolCheck,
+          pageCheck,
           discoveryTopic,
           discoveryChecks: {
             areaLabel: countyArea.countyLabel || "your county",
@@ -3696,11 +3715,17 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
               timeWindow: "active_now_not_week_filtered",
               topicFiltered: Boolean(discoveryTopic),
             },
+            profilePages: {
+              status: pageCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "public_profile").length,
+              timeWindow: "not_filtered_to_week",
+              topicFiltered: Boolean(discoveryTopic),
+            },
           },
         },
         knowledge: {
           layer:
-            postCheck === "checked" || dealCheck === "checked" || businessCheck === "checked" || toolCheck === "checked"
+            postCheck === "checked" || dealCheck === "checked" || businessCheck === "checked" || toolCheck === "checked" || pageCheck === "checked"
               ? 2
               : 0,
           sources: [
@@ -3715,6 +3740,9 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
               : []),
             ...(recovery.entities.some((entity) => entity.type === "public_tool")
               ? ["TradeScout public Tools & Hardware listings"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "public_profile")
+              ? ["TradeScout public business profile pages"]
               : []),
           ],
           confidence: recovery.entities.length > 0 ? "medium" : "low",
