@@ -49,6 +49,16 @@ function fieldMatchesTopic(value: string, terms: string[]): boolean {
   return terms.every((term) => new RegExp(`(^|[^a-z0-9])${term}([^a-z0-9]|$)`).test(normalized));
 }
 
+function publicToolDescription(value: unknown): string {
+  return sanitizePublicDiscoveryText(value, 500)
+    .replace(
+      /\b(?:email|call|text|contact)\s+Continue through TradeScout(?:\s+or\s+(?:email|call|text|contact)\s+Continue through TradeScout)*\.?/gi,
+      ""
+    )
+    .replace(/\s+([.!?])/g, "$1")
+    .trim();
+}
+
 /**
  * Read only native public Marketplace tools. The repository applies all area,
  * topic, approval, expiry, and seller exposure predicates before LIMIT.
@@ -110,7 +120,7 @@ export async function lookupScoutPublicTools(
       if (!publicListing) return [];
       const id = String(publicListing.id || "");
       const title = sanitizePublicDiscoveryText(publicListing.title, 200);
-      const description = sanitizePublicDiscoveryText(publicListing.description, 500);
+      const description = publicToolDescription(publicListing.description);
       if (!id || !title) return [];
       const topicMatchSource = terms.length
         ? fieldMatchesTopic(title, terms)

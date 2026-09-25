@@ -126,7 +126,7 @@ describe("Scout public Tools & Hardware source", () => {
       createdAt: "2025-03-01T00:00:00.000Z",
     });
     expect(JSON.stringify(result.items[0])).not.toMatch(/seller@example\.com|602-555-0123|sellerId|latitude|zipCode/i);
-    expect(result.items[0].description).toContain("Continue through TradeScout");
+    expect(result.items[0].description).toBe("Electrical driver.");
     expect(JSON.stringify(result.items)).not.toContain("this week");
   });
 
