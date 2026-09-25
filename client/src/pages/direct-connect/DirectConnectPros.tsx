@@ -259,6 +259,7 @@ function BusinessesWorkspace({
   onSelect: (providerId: string) => void;
 }) {
   if (providers.length === 0) return null;
+  const soleResultSelected = providers.length === 1 && Boolean(selectedProvider);
 
   return (
     <section
@@ -274,7 +275,14 @@ function BusinessesWorkspace({
           >
             {title}
           </h3>
-          <p className="text-xs text-[color:var(--text-secondary)]">{subtitle}</p>
+          <p className="text-xs text-[color:var(--text-secondary)]">
+            {soleResultSelected ? (
+              <>
+                <span className="lg:hidden">View this business’s public profile.</span>
+                <span className="hidden lg:inline">{subtitle}</span>
+              </>
+            ) : subtitle}
+          </p>
         </div>
         <Badge variant="outline" className="shrink-0 border-[color:var(--border-subtle)]">
           {providers.length} {providers.length === 1 ? "result" : "results"}
@@ -284,6 +292,8 @@ function BusinessesWorkspace({
         <ul
           aria-label="Business results"
           className={`max-h-[22rem] min-w-0 overflow-y-auto border-b border-[color:var(--border-subtle)] lg:order-1 lg:max-h-[38rem] lg:border-b-0 lg:border-r ${
+            soleResultSelected ? "hidden lg:block" : ""
+          } ${
             selectedProvider ? "order-2" : "order-1"
           }`}
           data-testid="business-results-list"

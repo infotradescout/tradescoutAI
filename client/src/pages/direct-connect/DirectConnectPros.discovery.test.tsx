@@ -28,7 +28,6 @@ vi.mock("@/hooks/useLocationContext", () => ({
 vi.mock("@/components/state-county-selector", () => ({
   StateCountySelector: () => <div data-testid="area-selector" />,
 }));
-vi.mock("@/components/contractor-card", () => ({ ProviderCard: () => null }));
 vi.mock("./DirectoryListingLink", () => ({
   DirectoryListingLink: ({ businessName }: { businessName: string }) => (
     <span>Open {businessName}</span>
@@ -138,9 +137,60 @@ describe("Businesses discovery states", () => {
     expect(row?.textContent?.match(/Listed for Maricopa County, AZ/g)).toHaveLength(1);
     expect(row?.textContent).not.toContain("Local service area");
     await act(async () => row?.click());
-    expect(container.querySelector('[data-testid="business-workspace-inspector"]')?.textContent).toContain(
+    const inspector = container.querySelector('[data-testid="business-workspace-inspector"]');
+    const resultsList = container.querySelector('[data-testid="business-results-list"]');
+    expect(inspector?.textContent).toContain(
       "Listed for Maricopa County, AZ"
     );
+    expect(Array.from(inspector?.querySelectorAll('a[href="/u/synthetic-local"]') || [])
+      .some((link) => link.textContent?.includes("View profile"))).toBe(true);
+    expect(resultsList?.classList.contains("hidden")).toBe(true);
+    expect(resultsList?.classList.contains("lg:block")).toBe(true);
+    expect(resultsList?.querySelectorAll("li")).toHaveLength(1);
+    const mobileSubtitle = Array.from(
+      container.querySelectorAll<HTMLSpanElement>("span")
+    ).find((span) => span.textContent === "View this business’s public profile.");
+    expect(mobileSubtitle?.classList.contains("lg:hidden")).toBe(true);
+    const desktopSubtitle = Array.from(
+      container.querySelectorAll<HTMLSpanElement>("span")
+    ).find((span) => span.textContent === "Select a business, then view its public profile.");
+    expect(desktopSubtitle?.classList.contains("hidden")).toBe(true);
+    expect(desktopSubtitle?.classList.contains("lg:inline")).toBe(true);
+    expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
+  });
+
+  it("keeps the mobile selection list when more than one public business can be chosen", async () => {
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) {
+        return [
+          { id: "provider-one", name: "First Business", canonicalBusinessProfileUrl: "/u/first" },
+          { id: "provider-two", name: "Second Business", canonicalBusinessProfileUrl: "/u/second" },
+        ];
+      }
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await mount();
+    await waitFor(() => Boolean(container.querySelector('[data-testid="business-result-provider-two"]')));
+    const resultsList = container.querySelector('[data-testid="business-results-list"]');
+    expect(resultsList?.classList.contains("hidden")).toBe(false);
+    expect(resultsList?.querySelectorAll("li")).toHaveLength(2);
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="business-result-provider-one"]')?.click();
+    });
+    expect(resultsList?.classList.contains("hidden")).toBe(false);
+    expect(Array.from(container.querySelectorAll('[data-testid="business-workspace-inspector"] a[href="/u/first"]'))
+      .some((link) => link.textContent?.includes("View profile"))).toBe(true);
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="business-result-provider-two"]')?.click();
+    });
+    expect(resultsList?.classList.contains("hidden")).toBe(false);
+    expect(Array.from(container.querySelectorAll('[data-testid="business-workspace-inspector"] a[href="/u/second"]'))
+      .some((link) => link.textContent?.includes("View profile"))).toBe(true);
     expect(mock.api.mock.calls.some(([method]) => method === "POST")).toBe(false);
   });
 
