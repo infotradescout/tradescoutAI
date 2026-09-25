@@ -1,55 +1,49 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260924T231952Z-958664b2",
-  "createdAt": "2026-09-24T23:19:53.428793+00:00",
-  "outcome": "Scout and Businesses draft PR 699 now suppresses fixed profile setup promotion on customer business search and private request editor, preserving business setup elsewhere.",
+  "checkpointId": "progress-20260925T000202Z-19432d1a",
+  "createdAt": "2026-09-25T00:02:02.725875+00:00",
+  "outcome": "Businesses hides stale cards after a failed or pending same-query refresh",
   "scope": [
-    "TradeScout Scout and Businesses PR #699 only; separate from canonical Infinity and other brands."
+    "Businesses public search UI and its focused behavior tests"
   ],
   "prohibitions": [
-    "No production writes, invented inventory, weakened guards, main merge or deployment."
+    "Do not expose stale cards as current or submit customer requests during verification"
   ],
   "progress": {
     "completedVerified": [
-      "Prior da7 signed-in Scout, saved-delete, business-source-error, and Businesses phone/desktop browser journeys passed with disposable loopback databases; new banner route focused tests 11/11 and npm run check passed; Objector identified overlay P1."
+      "Reproduced retained actionable provider and directory cards, then fixed the pending and error states"
     ],
-    "changedUnverified": [
-      "Banner suppression exact-head 1440 review rendering and new-head four-receipt integration proof remain pending; prior da7 browser receipts are historical."
-    ],
+    "changedUnverified": [],
     "proof": [
-      "D:/scout-ux-proof-20260924/scout-main-final-r3/receipt.json and D:/scout-business-proof-20260924/evidence/businesses-empty-da7-r1/receipt.json are prior-head PASS; da7 desktop review screenshot showed badge overlay. New resolver focused Vitest 11/11 and npm run check passed."
+      "Focused DirectConnectPros React tests 11/11, integrated focused tests 93/93, TypeScript and diff check passed; synthetic local only"
     ],
-    "externalEffects": [
-      "Draft PR #699 at da7 before this save; no main merge or deployment; no customer request, contact, payment, purchase or trade. Old disposable temp residue remains where automatic approval review rejected cleanup, with ports closed."
-    ],
-    "doNotRepeat": [
-      "Do not present da7 browser/gate as exact new-head proof or bypass rejected cleanup. Keep disposable database lanes serial."
-    ],
-    "nextSafeAction": "Rerun exact-head synthetic browser journeys for Scout, saved-task deletion, Scout business source error, and Businesses phone/desktop; run unchanged release gate and update draft PR proof."
+    "externalEffects": [],
+    "doNotRepeat": [],
+    "nextSafeAction": "Preserve the Scout topic source and phone refinement slice, then run exact-head browser and release checks"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "codex/scout-mobile-discovery-20260923",
-    "headBefore": "da7dc8890e49ce49407a5e5498a978ad191df44c",
+    "branch": "codex/scout-next-20260924",
+    "headBefore": "f8d6da89e2d5fcfc7bfb76916f80584e127559b2",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
-      " M client/src/components/onboarding/ProfileCompletionBanner.tsx"
+      " M client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
+      " M client/src/pages/direct-connect/DirectConnectPros.tsx"
     ],
-    "unrelatedChangeCountExcluded": 0
+    "unrelatedChangeCountExcluded": 12
   },
   "savedFiles": [
     {
-      "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-      "sha256": "540bbc9feb97f4e32e276beaae8a7e9b414d594d85502170996579759d3ad398"
+      "path": "client/src/pages/direct-connect/DirectConnectPros.tsx",
+      "sha256": "992a59a25308e5e3fc462466f6fccca5e359044204a45e98671bdbe7f413204e"
     },
     {
-      "path": "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
-      "sha256": "abc1ac5ba2e559369428734e14fcbd5465829ca918f458dcc1dcb2f505fa8801"
+      "path": "client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
+      "sha256": "a34858d5cf7297319565d95df26f88f13c7e927e145ecbdd4952b5f630de87d5"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

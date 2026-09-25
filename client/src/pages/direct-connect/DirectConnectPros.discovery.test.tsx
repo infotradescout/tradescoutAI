@@ -74,6 +74,7 @@ describe("Businesses discovery states", () => {
         </QueryClientProvider>
       );
     });
+    return client;
   };
 
   const searchFor = async (value: string) => {
@@ -108,6 +109,91 @@ describe("Businesses discovery states", () => {
 
     expect(container.textContent).toContain("We couldn’t finish checking local businesses");
     expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+  });
+
+  it("does not leave a previously checked provider actionable after its same-search refresh fails", async () => {
+    let providerChecks = 0;
+    let failRefresh: (reason: Error) => void = () => {};
+    const pendingRefresh = new Promise<never>((_resolve, reject) => {
+      failRefresh = reject;
+    });
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) {
+        providerChecks += 1;
+        if (providerChecks === 1) return [{ id: "provider-1", name: "Previously Checked Co" }];
+        if (providerChecks === 2) return pendingRefresh;
+        return [{ id: "provider-2", name: "Rechecked Co" }];
+      }
+      if (path.startsWith("/api/businesses?")) return { items: [] };
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    const client = await mount();
+    await waitFor(() => Boolean(container.querySelector('[data-testid="business-result-provider-1"]')));
+    let refetch: Promise<void> | undefined;
+    await act(async () => {
+      refetch = client.invalidateQueries({ queryKey: ["/api/business-providers/search"] });
+    });
+    await waitFor(() => providerChecks === 2);
+    expect(container.textContent).toContain("Checking local businesses");
+    expect(container.querySelector('[data-testid="business-result-provider-1"]')).toBeNull();
+
+    await act(async () => {
+      failRefresh(new Error("provider refresh unavailable"));
+      await refetch;
+    });
+    await waitFor(() => Boolean(container.querySelector('[data-testid="businesses-search-error"]')));
+
+    expect(providerChecks).toBe(2);
+    expect(container.querySelector('[data-testid="business-result-provider-1"]')).toBeNull();
+    expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+
+    const retry = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Retry search")
+    );
+    if (!retry) throw new Error("The failed search has no retry button");
+    await act(async () => retry.click());
+    await waitFor(() => Boolean(container.querySelector('[data-testid="business-result-provider-2"]')));
+    expect(providerChecks).toBe(3);
+  });
+
+  it("does not show a cached directory listing after its same-search refresh fails", async () => {
+    let directoryChecks = 0;
+    let providerChecks = 0;
+    mock.api.mockImplementation(async (_method: string, path: string) => {
+      if (path === "/api/trades") return [];
+      if (path.startsWith("/api/business-providers/search")) {
+        providerChecks += 1;
+        return providerChecks === 1 ? [] : [{ id: "provider-3", name: "Fresh Provider Co" }];
+      }
+      if (path.startsWith("/api/businesses?")) {
+        const url = new URL(path, "https://example.test");
+        if (!url.searchParams.has("countyFips")) return { items: [] };
+        directoryChecks += 1;
+        if (directoryChecks === 1)
+          return { items: [{ id: "listing-1", name: "Previously Listed Co", slug: "previously-listed" }] };
+        throw new Error("directory refresh unavailable");
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    const client = await mount();
+    await waitFor(() => container.textContent?.includes("Previously Listed Co") || false);
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ["/api/businesses", "public-directory-fallback"] });
+    });
+    await waitFor(() => Boolean(container.querySelector('[data-testid="businesses-search-error"]')));
+
+    expect(directoryChecks).toBe(2);
+    expect(container.textContent).not.toContain("Previously Listed Co");
+    expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ["/api/business-providers/search"] });
+    });
+    await waitFor(() => Boolean(container.querySelector('[data-testid="business-result-provider-3"]')));
+    expect(container.querySelector('[data-testid="businesses-search-error"]')).toBeNull();
   });
 
   it("opens a county-scoped request draft only after a checked empty result", async () => {

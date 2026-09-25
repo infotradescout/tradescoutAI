@@ -473,6 +473,7 @@ export default function DirectConnectPros() {
   const {
     data: contractors = [],
     isLoading,
+    isFetching: providerSearchFetching,
     isError: providerSearchFailed,
     refetch: retryProviderSearch,
   } = useQuery({
@@ -502,8 +503,9 @@ export default function DirectConnectPros() {
     },
   });
 
-  const hasResults = (contractors as any[])?.length > 0;
-  const showEmptyState = canQueryDirectory && !isLoading && !hasResults;
+  const hasResults =
+    !providerSearchFetching && !providerSearchFailed && (contractors as any[])?.length > 0;
+  const showEmptyState = canQueryDirectory && !providerSearchFetching && !hasResults;
   const areaLabel = effectiveCountyFips
     ? formatCountyLabel(effectiveCountyFips, effectiveStateCode)
     : effectiveStateCode || "your area";
@@ -527,7 +529,7 @@ export default function DirectConnectPros() {
 
   const {
     data: directoryFallback = [],
-    isLoading: directoryFallbackLoading,
+    isFetching: directoryFallbackFetching,
     isError: directoryFallbackFailed,
     refetch: retryDirectoryFallback,
   } = useQuery<DirectoryBusinessFallback[]>({
@@ -559,15 +561,20 @@ export default function DirectConnectPros() {
     },
   });
 
+  // A failed or pending refresh can retain data from an earlier successful query.
+  // Keep those old listings out of the actionable search result surface.
+  const visibleDirectoryFallback =
+    directoryFallbackFailed || directoryFallbackFetching ? [] : directoryFallback;
+
   const showStateDirectoryFallback =
     showEmptyState &&
-    !directoryFallbackLoading &&
-    directoryFallback.length === 0 &&
+    !directoryFallbackFetching &&
+    visibleDirectoryFallback.length === 0 &&
     hasStateContext;
 
   const {
     data: stateDirectoryFallback = [],
-    isLoading: stateDirectoryFallbackLoading,
+    isFetching: stateDirectoryFallbackFetching,
     isError: stateDirectoryFallbackFailed,
     refetch: retryStateDirectoryFallback,
   } = useQuery<DirectoryBusinessFallback[]>({
@@ -597,22 +604,27 @@ export default function DirectConnectPros() {
     },
   });
 
+  const visibleStateDirectoryFallback =
+    stateDirectoryFallbackFailed || stateDirectoryFallbackFetching ? [] : stateDirectoryFallback;
+
   const fallbackLoading =
-    showEmptyState && (directoryFallbackLoading || stateDirectoryFallbackLoading);
+    showEmptyState && (directoryFallbackFetching || stateDirectoryFallbackFetching);
   const tradeMatchesPending = tradesLoading && !tradeSlug && Boolean(searchQuery.trim());
   const tradeMatchesUnavailable = tradesLookupFailed && !tradeSlug && Boolean(searchQuery.trim());
+  const directorySearchFailed = showEmptyState && directoryFallbackFailed;
+  const stateDirectorySearchFailed = showStateDirectoryFallback && stateDirectoryFallbackFailed;
   const searchFailed =
     providerSearchFailed ||
-    directoryFallbackFailed ||
-    stateDirectoryFallbackFailed ||
+    directorySearchFailed ||
+    stateDirectorySearchFailed ||
     tradeMatchesUnavailable;
   const noPublicResults =
     showEmptyState &&
     !fallbackLoading &&
     !tradeMatchesPending &&
     !searchFailed &&
-    directoryFallback.length === 0 &&
-    stateDirectoryFallback.length === 0;
+    visibleDirectoryFallback.length === 0 &&
+    visibleStateDirectoryFallback.length === 0;
   const openCountyRequestDraft = () => {
     const county = effectiveCountyFips;
     const countyState = getCountyStateCode(county);
@@ -656,7 +668,7 @@ export default function DirectConnectPros() {
   };
   const profileCount = (contractors as ProviderCardProvider[]).length;
   const resultSummary =
-    !workspaceHydrated || isLoading
+    !workspaceHydrated || providerSearchFetching
       ? "Checking local businesses…"
       : providerSearchFailed
         ? "Local profiles could not be checked. Directory listings may still appear below."
@@ -665,12 +677,12 @@ export default function DirectConnectPros() {
           : tradeMatchesUnavailable
             ? "Trade matches could not be checked. Business-name results may still appear below."
             : `${profileCount} matching public ${profileCount === 1 ? "profile" : "profiles"}${
-                directoryFallback.length
-                  ? ` · ${directoryFallback.length} additional local ${directoryFallback.length === 1 ? "listing" : "listings"}`
+                visibleDirectoryFallback.length
+                  ? ` · ${visibleDirectoryFallback.length} additional local ${visibleDirectoryFallback.length === 1 ? "listing" : "listings"}`
                   : ""
               }${
-                stateDirectoryFallback.length
-                  ? ` · ${stateDirectoryFallback.length} more in ${effectiveStateCode}`
+                visibleStateDirectoryFallback.length
+                  ? ` · ${visibleStateDirectoryFallback.length} more in ${effectiveStateCode}`
                   : ""
               }${fallbackLoading ? " · checking more listings…" : ""}`;
 
@@ -679,7 +691,7 @@ export default function DirectConnectPros() {
     if (
       !query ||
       !canQueryDirectory ||
-      isLoading ||
+      providerSearchFetching ||
       searchFailed ||
       fallbackLoading ||
       tradeMatchesPending
@@ -687,9 +699,9 @@ export default function DirectConnectPros() {
       return;
 
     const resultCount =
-      ((contractors as any[]) || []).length +
-      directoryFallback.length +
-      stateDirectoryFallback.length;
+      (hasResults ? ((contractors as any[]) || []).length : 0) +
+      visibleDirectoryFallback.length +
+      visibleStateDirectoryFallback.length;
     const key = JSON.stringify([
       query.toLowerCase(),
       effectiveStateCode,
@@ -718,18 +730,21 @@ export default function DirectConnectPros() {
     canQueryDirectory,
     contractors,
     directoryFallback,
-    directoryFallbackLoading,
+    directoryFallbackFetching,
     effectiveCountyFips,
     effectiveStateCode,
     effectiveTradeSlug,
     fallbackLoading,
-    isLoading,
+    hasResults,
+    providerSearchFetching,
     searchQuery,
     searchFailed,
     showEmptyState,
     stateDirectoryFallback,
-    stateDirectoryFallbackLoading,
+    stateDirectoryFallbackFetching,
     tradeMatchesPending,
+    visibleDirectoryFallback,
+    visibleStateDirectoryFallback,
   ]);
 
   const handleStateChange = (value: string) => {
@@ -953,7 +968,7 @@ export default function DirectConnectPros() {
         </div>
       </section>
 
-      {(!workspaceHydrated || isLoading) && (
+      {(!workspaceHydrated || providerSearchFetching) && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-40 rounded bg-[color:var(--surface-intermediate)]" />
@@ -972,8 +987,8 @@ export default function DirectConnectPros() {
             <p>
               {tradeMatchesUnavailable &&
               !providerSearchFailed &&
-              !directoryFallbackFailed &&
-              !stateDirectoryFallbackFailed
+              !directorySearchFailed &&
+              !stateDirectorySearchFailed
                 ? "We couldn’t check trade matches. Business-name results may be incomplete."
                 : "We couldn’t finish checking local businesses. Please try again."}
             </p>
@@ -983,8 +998,8 @@ export default function DirectConnectPros() {
               variant="outline"
               onClick={() => {
                 if (providerSearchFailed) void retryProviderSearch();
-                if (directoryFallbackFailed) void retryDirectoryFallback();
-                if (stateDirectoryFallbackFailed) void retryStateDirectoryFallback();
+                if (directorySearchFailed) void retryDirectoryFallback();
+                if (stateDirectorySearchFailed) void retryStateDirectoryFallback();
                 if (tradeMatchesUnavailable) void retryTrades();
               }}
             >
@@ -1058,7 +1073,7 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showEmptyState && directoryFallbackLoading && (
+      {showEmptyState && directoryFallbackFetching && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
@@ -1068,7 +1083,7 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showEmptyState && directoryFallback.length > 0 && (
+      {showEmptyState && visibleDirectoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
             <CardTitle className="text-sm">More local businesses</CardTitle>
@@ -1078,7 +1093,7 @@ export default function DirectConnectPros() {
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {directoryFallback.map((business) => {
+            {visibleDirectoryFallback.map((business) => {
               const county = business.counties?.[0];
               return (
                 <div
@@ -1124,7 +1139,7 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showStateDirectoryFallback && stateDirectoryFallbackLoading && (
+      {showStateDirectoryFallback && stateDirectoryFallbackFetching && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
@@ -1134,7 +1149,7 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showStateDirectoryFallback && stateDirectoryFallback.length > 0 && (
+      {showStateDirectoryFallback && visibleStateDirectoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
             <CardTitle className="text-sm">Additional results in {effectiveStateCode}</CardTitle>
@@ -1144,7 +1159,7 @@ export default function DirectConnectPros() {
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {stateDirectoryFallback.map((business) => {
+            {visibleStateDirectoryFallback.map((business) => {
               const county = business.counties?.[0];
               return (
                 <div
