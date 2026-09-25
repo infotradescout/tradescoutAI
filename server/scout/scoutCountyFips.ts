@@ -98,14 +98,13 @@ export function requiresFreshScoutDiscovery(message: string): boolean {
   );
 }
 
-/** The partial recovery is only for explicit, multi-surface local discovery. */
+/** County posts and deals are an explicit read-only local discovery request. */
 export function isMixedScoutDiscoveryRequest(message: string): boolean {
   const value = String(message || "").toLowerCase();
   return (
     requiresFreshScoutDiscovery(value) &&
     /\bposts?\b/.test(value) &&
-    /\bdeals?\b/.test(value) &&
-    /\b(pages?|tools?|requests?)\b/.test(value)
+    /\bdeals?\b/.test(value)
   );
 }
 
@@ -116,10 +115,14 @@ export function isMixedScoutDiscoveryRequest(message: string): boolean {
  */
 export function isReadOnlyScoutTradeLookup(message: string): boolean {
   const text = String(message || "").replace(/\s+/g, " ").trim();
-  const match = text.match(
+  const detailed = text.match(
     /^find tradescout posts? (?:&|and) deals? about ([a-z][a-z-]{1,29}) in my county this week\. include public posts linked to requests and local businesses\.?$/i
   );
+  const short = text.match(
+    /^find (?:tradescout|local) posts? (?:&|and) deals? about ([a-z][a-z-]{1,29}) near me\.?$/i
+  );
+  const subject = detailed?.[1] || short?.[1];
   return Boolean(
-    match && /^(?:electrical|wiring|gas|structural|foundation|load-bearing)$/i.test(match[1])
+    subject && /^(?:electrical|wiring|gas|structural|foundation|load-bearing)$/i.test(subject)
   );
 }

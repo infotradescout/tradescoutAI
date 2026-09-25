@@ -1749,9 +1749,9 @@ function MessageExtras({
                       <p className="font-semibold text-[color:var(--text-primary)]">What Scout checked</p>
                       <dl className="space-y-1.5">
                         {mixedDiscoverySourceChecks(msg, fullAnswer || "").map(({ source, status }) => (
-                          <div key={source} className="flex items-start justify-between gap-3">
-                            <dt>{source}</dt>
-                            <dd className="shrink-0 text-right font-semibold text-[color:var(--text-primary)]">
+                          <div key={source} className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                            <dt className="min-w-0">{source}</dt>
+                            <dd className="min-w-0 break-words text-left font-semibold text-[color:var(--text-primary)] sm:max-w-[60%] sm:text-right">
                               {status}
                             </dd>
                           </div>

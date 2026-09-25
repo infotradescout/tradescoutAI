@@ -1,53 +1,68 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T005759Z-a85e5149",
-  "createdAt": "2026-09-25T00:57:59.897727+00:00",
-  "outcome": "Keep Scout task title aligned with the latest broad or trade-focused county search.",
+  "checkpointId": "progress-20260925T011024Z-fa9c41a3",
+  "createdAt": "2026-09-25T01:10:24.298819+00:00",
+  "outcome": "Keep narrow Scout evidence readable, stop Businesses state loading after county failure, and route short county posts-and-deals searches.",
   "scope": [
-    "Saved Scout task title correction"
+    "Scout phone source details and Businesses failure state"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "A subsequent broad county search now supersedes an earlier trade title in current and saved task state."
+      "Stacked source-check rows on phone; prevented state fallback when county directory failed; short local posts+deals prompts now reach publication-gated county lookup after governor."
     ],
     "changedUnverified": [
-      "Final exact-head browser journeys, unchanged release gate, and delivery acceptance still pending."
+      "Route-level short-prompt proof and exact-head browser journeys still pending; release gate not run."
     ],
     "proof": [
-      "Focused client tests 61/61, npm run check, and git diff --check passed."
+      "Focused county, Businesses, and Scout UI tests 87/87, npm run check, and git diff --check passed."
     ],
     "externalEffects": [
-      "Only draft PR source branch push; no production or customer writes."
+      "Only draft PR branch push; no production or customer side effects."
     ],
     "doNotRepeat": [
-      "Earlier browser receipts are diagnostic because title logic changed."
+      "b8b browser receipts are diagnostic after this UI and routing change."
     ],
-    "nextSafeAction": "Run final exact-head synthetic browser journeys and unchanged release gate, then update draft PR and delivery packet."
+    "nextSafeAction": "Add route-level short prompt and safeguard test, then rerun exact-head Scout and Businesses synthetic browser journeys and unchanged gate."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "55fb36a4b21d6855431699050f5ca2572ba8bccf",
+    "headBefore": "b8b842fe141d6949770244306ea19d99a6e907ae",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/scout/ScoutOS.saved-intent.test.ts",
-      " M client/src/scout/ScoutOS.tsx"
+      " M client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
+      " M client/src/pages/direct-connect/DirectConnectPros.tsx",
+      " M client/src/scout/ScoutThread.tsx",
+      " M server/scout/scoutCountyFips.ts",
+      " M server/tests/scout-county-fips.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/scout/ScoutOS.tsx",
-      "sha256": "fae0ff4420a826efc4bd12d6c709af148d7cee14c304c47dd383bf45e5964104"
+      "path": "client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
+      "sha256": "1d9a88cedd1e78141e7efa15069f5b929f9b60da900db7e730ce4dd3beecfcf6"
     },
     {
-      "path": "client/src/scout/ScoutOS.saved-intent.test.ts",
-      "sha256": "2f3d83c18842e6f7b76b16a2de27dd930919b05090acdcf02787f12c78552ed3"
+      "path": "client/src/pages/direct-connect/DirectConnectPros.tsx",
+      "sha256": "b2b6c2e4ab6ef2f6c3d3a07f5ddb1fa453f91deb3ac1d0e6432903e1b77afde6"
+    },
+    {
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "84db77a4badf3855d31e556267f1691998f79dd966b25ace0dd0147babd8ba37"
+    },
+    {
+      "path": "server/scout/scoutCountyFips.ts",
+      "sha256": "1b2bb31d906bc7b0fd6c13e87a3b6668f28261dadf1e16358cec348f4631b853"
+    },
+    {
+      "path": "server/tests/scout-county-fips.test.ts",
+      "sha256": "7eb0a5cf1355c12b5935953599c7e9451f0c86d1f51654b688fa5cb2e75f8d72"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

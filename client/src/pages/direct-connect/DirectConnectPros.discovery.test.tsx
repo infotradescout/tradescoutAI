@@ -188,6 +188,12 @@ describe("Businesses discovery states", () => {
     expect(directoryChecks).toBe(2);
     expect(container.textContent).not.toContain("Previously Listed Co");
     expect(container.querySelector('[data-testid="businesses-no-results"]')).toBeNull();
+    expect(container.querySelector('[data-testid="businesses-state-fallback-loading"]')).toBeNull();
+    expect(container.textContent).not.toContain("checking more listings");
+    expect(mock.api.mock.calls.some(([_method, path]) =>
+      typeof path === "string" && path.startsWith("/api/businesses?") &&
+      !new URL(path, "https://example.test").searchParams.has("countyFips")
+    )).toBe(false);
 
     await act(async () => {
       await client.invalidateQueries({ queryKey: ["/api/business-providers/search"] });

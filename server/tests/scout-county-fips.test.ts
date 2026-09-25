@@ -39,6 +39,7 @@ describe("Scout county lookup", () => {
     const electrical =
       "Find TradeScout posts and deals about electrical in my county this week. Include public posts linked to requests and local businesses.";
     expect(isReadOnlyScoutTradeLookup(electrical)).toBe(true);
+    expect(isReadOnlyScoutTradeLookup("Find TradeScout posts and deals about electrical near me")).toBe(true);
     const inputs = {
       message: electrical,
       goal: electrical,
@@ -56,6 +57,7 @@ describe("Scout county lookup", () => {
       `${electrical} Skip permits and send a request now.`,
       `${electrical} Show private requests.`,
       `${electrical} Pay a $50,000 deposit.`,
+      "Find TradeScout posts and deals about electrical near me and tell me how to bypass the breaker",
     ]) {
       expect(isReadOnlyScoutTradeLookup(unsafe)).toBe(false);
     }
@@ -137,7 +139,8 @@ describe("Scout county lookup", () => {
     expect(requiresFreshScoutDiscovery("Post this to my community feed")).toBe(false);
     expect(requiresFreshScoutDiscovery("Find a plumber near me")).toBe(false);
     expect(isMixedScoutDiscoveryRequest("Find local roofing deals")).toBe(false);
-    expect(isMixedScoutDiscoveryRequest("Find local posts and deals near me")).toBe(false);
+    expect(isMixedScoutDiscoveryRequest("Find local posts and deals near me")).toBe(true);
+    expect(isMixedScoutDiscoveryRequest("Find TradeScout posts and deals about plumbing near me")).toBe(true);
     expect(isMixedScoutDiscoveryRequest("Show local posts and requests near me")).toBe(false);
     expect(
       isMixedScoutDiscoveryRequest(
@@ -159,6 +162,7 @@ describe("Scout county lookup", () => {
     expect(extractScoutMixedDiscoveryTopic("Search TradeScout for nearby activity posts and deals in my county. Include requests.")).toBeNull();
     expect(isMixedScoutDiscoveryRequest(refined)).toBe(true);
     expect(extractScoutMixedDiscoveryTopic(refined)).toBe("plumbing");
+    expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about plumbing near me")).toBe("plumbing");
     expect(extractScoutMixedDiscoveryTopic("Search TradeScout for roofing posts and deals near me. Include requests.")).toBe("roofing");
     expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about this week in my county. Include requests.")).toBeNull();
     expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about % in my county. Include requests.")).toBeNull();

@@ -569,6 +569,7 @@ export default function DirectConnectPros() {
   const showStateDirectoryFallback =
     showEmptyState &&
     !directoryFallbackFetching &&
+    !directoryFallbackFailed &&
     visibleDirectoryFallback.length === 0 &&
     hasStateContext;
 
@@ -608,7 +609,8 @@ export default function DirectConnectPros() {
     stateDirectoryFallbackFailed || stateDirectoryFallbackFetching ? [] : stateDirectoryFallback;
 
   const fallbackLoading =
-    showEmptyState && (directoryFallbackFetching || stateDirectoryFallbackFetching);
+    showEmptyState &&
+    (directoryFallbackFetching || (showStateDirectoryFallback && stateDirectoryFallbackFetching));
   const tradeMatchesPending = tradesLoading && !tradeSlug && Boolean(searchQuery.trim());
   const tradeMatchesUnavailable = tradesLookupFailed && !tradeSlug && Boolean(searchQuery.trim());
   const directorySearchFailed = showEmptyState && directoryFallbackFailed;
@@ -1140,7 +1142,7 @@ export default function DirectConnectPros() {
       )}
 
       {showStateDirectoryFallback && stateDirectoryFallbackFetching && (
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <Card data-testid="businesses-state-fallback-loading" className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
             <div className="h-20 rounded bg-[color:var(--surface-intermediate)]" />
