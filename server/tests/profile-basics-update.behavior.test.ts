@@ -73,4 +73,33 @@ describe("profile basics update preserves location", () => {
       })
     );
   });
+
+  it("rejects a stale tab before it can update another account's location", async () => {
+    const updateUser = vi.fn();
+    const handler = new Function(
+      "storage",
+      "sanitizeUserForResponse",
+      "CURRENT_PROFILE_VERSION",
+      `${compiled}; return handler;`
+    )({ updateUser }, (value: any) => value, 1);
+    const res: any = { json: vi.fn(), status: vi.fn() };
+    res.status.mockReturnValue(res);
+
+    await handler(
+      {
+        user: { id: "buyer-b" },
+        body: {
+          expectedActorId: "buyer-a",
+          stateCode: "TX",
+          countyFips: "48113",
+          city: "Dallas",
+        },
+      },
+      res
+    );
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ reasonCode: "ACTOR_CHANGED" }));
+    expect(updateUser).not.toHaveBeenCalled();
+  });
 });

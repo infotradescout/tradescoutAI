@@ -541,6 +541,7 @@ import { callAIInference } from "./services/aiInference.js";
 import { localityTrackingMiddleware } from "./localityTracking";
 import passport from "passport";
 import { oauthPostLoginPath, safeOAuthReturnPath } from "./utils/oauthIdentityPolicy";
+import { isSafeNextPath } from "@shared/safeNextPath";
 import { db, pool } from "./db";
 import type { Request, Response, NextFunction } from "express";
 import {
@@ -1265,10 +1266,7 @@ const STAFF_SHAREABLE_AUDIENCE_TRADE_TEMPLATES: StaffShareableTemplate[] =
 
 const sanitizeNextPath = (value: unknown): string => {
   const raw = typeof value === "string" ? value.trim() : "";
-  if (!raw) return "";
-  if (!raw.startsWith("/")) return "";
-  if (raw.startsWith("//")) return "";
-  return raw;
+  return isSafeNextPath(raw) ? raw : "";
 };
 
 const maybeSendEmailVerificationForUser = async (
@@ -3147,6 +3145,7 @@ export async function registerRoutes(app: any) {
       const recommendationNext = isRecommendationContinuationPath(body.next)
         ? body.next.trim()
         : "";
+      const requestedNext = sanitizeNextPath(body.next);
       const emailVerificationRequired =
         Boolean(recommendationNext) ||
         (await getGeneralSetting<boolean>("email_verification_required", true));
@@ -3472,7 +3471,7 @@ export async function registerRoutes(app: any) {
       if (emailVerificationRequired && !user.emailVerified) {
         const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
-        const next = recommendationNext || "/pre-scout-setup";
+        const next = recommendationNext || requestedNext || "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
 
         try {
@@ -6006,6 +6005,14 @@ export async function registerRoutes(app: any) {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
     try {
+      const expectedActorId = (req.body as any)?.expectedActorId;
+      if (expectedActorId !== undefined &&
+          (typeof expectedActorId !== "string" || expectedActorId !== String(userId || ""))) {
+        return res.status(409).json({
+          message: "Your account changed. Review the request again.",
+          reasonCode: "ACTOR_CHANGED",
+        });
+      }
       const {
         firstName,
         lastName,

@@ -17,6 +17,12 @@ const state = vi.hoisted(() => ({
   share: vi.fn(),
   navigate: vi.fn(),
   mutate: vi.fn(),
+  executeMutations: false,
+  authRefetch: vi.fn(),
+  counties: [] as any[],
+  simulateViewerRefetch: false,
+  lastListingKey: "",
+  listingQueryPhase: "ready" as "ready" | "loading" | "error",
   api: vi.fn(),
 }));
 vi.mock("wouter", async (importOriginal) => {
@@ -33,22 +39,45 @@ vi.mock("wouter", async (importOriginal) => {
 });
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: any) => {
+    if (options.queryKey[0] === "/api/counties")
+      return { data: state.counties, isLoading: false, isError: false, refetch: vi.fn() };
     if (options.queryKey[0] !== "/api/marketplace/listings")
       return { data: [], isLoading: false, isError: false };
     state.query = options;
+    const key = JSON.stringify(options.queryKey);
+    if (state.simulateViewerRefetch && state.lastListingKey && key !== state.lastListingKey) {
+      state.listingQueryPhase = "loading";
+    }
+    state.lastListingKey = key;
+    if (state.listingQueryPhase === "loading")
+      return { data: undefined, isLoading: true, isError: false };
+    if (state.listingQueryPhase === "error")
+      return { data: undefined, isLoading: false, isError: true };
     return {
       data: state.enforceKey && JSON.stringify(options.queryKey) !== state.allowedKey ? null : state.listing,
       isLoading: false,
       isError: false,
     };
   },
-  useMutation: () => ({ mutate: state.mutate, isPending: false }),
+  useMutation: (options: any) => ({
+    mutate: (input: any) => {
+      state.mutate(input);
+      if (state.executeMutations) {
+        void Promise.resolve(options.mutationFn(input))
+          .then((result) => options.onSuccess?.(result, input))
+          .catch((error) => options.onError?.(error))
+          .finally(() => options.onSettled?.());
+      }
+    },
+    isPending: false,
+  }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 vi.mock("@/hooks/useAuth", () => ({ useAuth: () => ({
   isAuthenticated: Boolean(state.authUser),
   isLoading: state.authLoading,
   user: state.authUser,
+  refetch: state.authRefetch,
 }) }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/lib/queryClient", () => ({ apiRequest: (...args: any[]) => state.api(...args) }));
@@ -89,6 +118,14 @@ function buttonContaining(scope: ParentNode, label: string): HTMLButtonElement |
   );
 }
 
+async function changeControl(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(Object.getPrototypeOf(control), "value")?.set?.call(control, value);
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
 describe("retail stone detail", () => {
   let host: HTMLDivElement;
   let root: Root;
@@ -97,6 +134,12 @@ describe("retail stone detail", () => {
     window.sessionStorage.clear();
     state.navigate.mockReset();
     state.mutate.mockReset();
+    state.executeMutations = false;
+    state.authRefetch.mockReset();
+    state.counties = [];
+    state.simulateViewerRefetch = false;
+    state.lastListingKey = "";
+    state.listingQueryPhase = "ready";
     state.api.mockReset();
     state.share.mockReset();
     state.listingId = "tradescout-stone-aj-quartz";
@@ -171,6 +214,79 @@ describe("retail stone detail", () => {
         (price.compareDocumentPosition(sizes) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
     ).toBe(true);
     expect(sizes?.querySelector("summary")?.textContent).toContain("17 reference sizes");
+  });
+
+  it("saves a fresh buyer's explicit home area before a separate stone inquiry send", async () => {
+    window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}?audienceState=TX&audienceCountry=US`);
+    state.simulateViewerRefetch = true;
+    state.authUser = { id: "new-stone-buyer", email: "buyer@example.test", countryCode: "US", stateCode: null, city: "Dallas", countyFips: null };
+    state.counties = [{ fips: "48113", name: "Dallas", stateCode: "TX" }];
+    state.api.mockImplementation(async (method: string, path: string, body: any) => {
+      if (method === "PUT" && path === "/api/user/profile") return { ...state.authUser, ...body };
+      if (method === "POST" && path === "/api/decision-cards") return { id: "stone-home-area-decision" };
+      if (method === "POST" && path === "/api/marketplace/inquiries")
+        return { id: "stone-home-area-inquiry", listingId: state.listingId, conversationId: "stone-home-area-thread" };
+      throw new Error(`Unexpected API call: ${method} ${path}`);
+    });
+    state.authRefetch.mockImplementation(async () => {
+      state.authUser = { ...state.authUser, state: "TX", stateCode: "TX", city: "Dallas", countyFips: "48113", locationCommitted: true };
+      return { data: state.authUser, error: null };
+    });
+
+    await renderDetail();
+    await act(async () => buttonContaining(host, "Ask TradeScout about availability")?.click());
+    let dialog = document.body.querySelector('[role="dialog"]') as HTMLElement;
+    const draft = "Please confirm stock for my kitchen project next month.";
+    await changeControl(dialog.querySelector("textarea") as HTMLTextAreaElement, draft);
+    expect(dialog.querySelector("textarea")?.value).toBe(draft);
+    expect(dialog.textContent).toContain("Confirm your home area");
+    expect(buttonContaining(dialog, "Confirm & Send")).toBeNull();
+    expect(state.api).not.toHaveBeenCalled();
+
+    await changeControl(dialog.querySelector('[data-testid="stone-home-state"]') as HTMLSelectElement, "TX");
+    await changeControl(dialog.querySelector('[data-testid="stone-home-county"]') as HTMLSelectElement, "48113");
+    expect((dialog.querySelector('[data-testid="stone-home-city"]') as HTMLInputElement).value).toBe("Dallas");
+    await act(async () => buttonContaining(dialog, "Save home area")?.click());
+    expect(state.api).toHaveBeenCalledWith("PUT", "/api/user/profile", expect.objectContaining({
+      stateCode: "TX", city: "Dallas", countyFips: "48113",
+    }));
+    expect(state.authRefetch).toHaveBeenCalledTimes(1);
+    expect(state.api.mock.calls.some(([method, path]) => method === "POST" && path === "/api/marketplace/inquiries")).toBe(false);
+
+    expect(state.listingQueryPhase).toBe("loading");
+    expect(host.textContent).toContain("Loading listing");
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+    state.listingQueryPhase = "ready";
+    await renderDetail();
+    dialog = document.body.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog).toBeTruthy();
+    expect(dialog.querySelector("textarea")?.value).toBe(draft);
+    expect(buttonContaining(dialog, "Confirm & Send")).not.toBeNull();
+    state.executeMutations = true;
+    await act(async () => buttonContaining(dialog, "Confirm & Send")?.click());
+    await vi.waitFor(() => expect(state.api).toHaveBeenCalledWith("POST", "/api/marketplace/inquiries", expect.objectContaining({
+      listingId: state.listingId,
+      authorityGate: "decision_card",
+    })));
+  });
+
+  it("drops the retained draft when a changed viewer location makes the stone unavailable", async () => {
+    window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}?audienceState=TX&audienceCountry=US`);
+    state.simulateViewerRefetch = true;
+    state.authUser = { id: "stone-buyer", countryCode: "US", stateCode: "TX", city: "Dallas", countyFips: "48113" };
+    await renderDetail();
+    await act(async () => buttonContaining(host, "Ask TradeScout about availability")?.click());
+    const dialog = document.body.querySelector('[role="dialog"]') as HTMLElement;
+    await changeControl(dialog.querySelector("textarea") as HTMLTextAreaElement, "Please hold one slab for Tuesday.");
+
+    state.authUser = { ...state.authUser, city: "Austin" };
+    await renderDetail();
+    expect(host.textContent).toContain("Loading listing");
+    state.listingQueryPhase = "error";
+    await renderDetail();
+    expect(host.textContent).toContain("unavailable in the selected area");
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+    expect(state.api).not.toHaveBeenCalled();
   });
 
   it("keeps ordinary Exchange listing detail behavior outside the retail channel", async () => {

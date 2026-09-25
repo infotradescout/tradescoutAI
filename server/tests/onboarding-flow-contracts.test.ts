@@ -62,10 +62,13 @@ describe("onboarding flow contracts", () => {
 
   it("keeps exact same-origin handoffs and removes business module forcing", () => {
     const helperSource = read("client/src/lib/postOnboardingRoute.ts");
+    const safeNextPathSource = read("shared/safeNextPath.ts");
 
     // Must export the main resolver
     expect(helperSource).toContain("export function resolvePostOnboardingRoute");
-    expect(helperSource).toContain("export function isSafeNextPath");
+    expect(helperSource).toContain('import { isSafeNextPath } from "@shared/safeNextPath"');
+    expect(helperSource).toContain('export { isSafeNextPath } from "@shared/safeNextPath"');
+    expect(safeNextPathSource).toContain("export function isSafeNextPath");
     expect(helperSource).toContain("export function storeOnboardingNext");
     expect(helperSource).toContain("export function consumeOnboardingNext");
     expect(helperSource).toContain("export function getBusinessOnboardingRoute");

@@ -5,9 +5,10 @@
  * Shows full specs, photo gallery, set/collection items, and contact flow.
  */
 
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing, STONE_DRAFT_MAX_MESSAGE } from "@shared/exchangeStoneInquiryDraft";
+import { US_STATES } from "@shared/us-states-counties";
 import { useExchangeStoneInquiry } from "@/hooks/useExchangeStoneInquiry";
 import { useParams, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -144,6 +145,18 @@ function formatListedDate(createdAt: string): string {
   }
 }
 
+const STONE_MARKET_STATE_CODES = new Set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" "));
+const STONE_MARKET_STATES = US_STATES.filter((state) => STONE_MARKET_STATE_CODES.has(state.code));
+
+function stoneHomeArea(user: Record<string, any> | null | undefined) {
+  const rawState = String(user?.stateCode || user?.state_code || user?.state || "").trim().toUpperCase();
+  const stateCode = STONE_MARKET_STATES.find((state) => state.code === rawState || state.name.toUpperCase() === rawState)?.code || "";
+  const city = String(user?.city || "").trim();
+  const country = String(user?.countryCode || user?.country_code || user?.country || "").trim().toUpperCase();
+  const usCountry = !country || ["US", "USA", "UNITED STATES", "UNITED STATES OF AMERICA"].includes(country);
+  return { stateCode, city, usCountry, valid: usCountry && Boolean(stateCode) && (stateCode !== "FL" || Boolean(city)) };
+}
+
 function TitleStatusBadge({ status }: { status: string }) {
   if (status === "clean")
     return (
@@ -176,7 +189,7 @@ export default function ExchangeListingDetail() {
   // Wouter's location hook tracks pathname; search changes need their own subscription.
   const routeSearch = useSearch();
   const selectedMarketSearch = isPublicStone ? selectedStoneAudienceSearch(routeSearch) : null;
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, refetch: refetchAuthUser } = useAuth();
   const stoneViewerKey = isPublicStone ? [
     authLoading ? "auth-pending" : isAuthenticated ? String(user?.id || "authenticated") : "guest",
     isAuthenticated ? String(user?.city || "") : "",
@@ -190,6 +203,20 @@ export default function ExchangeListingDetail() {
   const [decisionOpen, setDecisionOpen] = useState(false);
   const [inquiryMessage, setInquiryMessage] = useState("");
   const [inquiryOffer, setInquiryOffer] = useState("");
+  const [homeState, setHomeState] = useState("");
+  const [homeCity, setHomeCity] = useState("");
+  const [homeCountyFips, setHomeCountyFips] = useState("");
+  const [homeAreaSaving, setHomeAreaSaving] = useState(false);
+  const [homeAreaError, setHomeAreaError] = useState("");
+  const [homeAreaSaved, setHomeAreaSaved] = useState(false);
+
+  useEffect(() => {
+    setHomeState(stoneHomeArea(user).stateCode);
+    setHomeCity(String(user?.city || "").trim());
+    setHomeCountyFips(String(user?.countyFips || user?.county_fips || "").trim());
+    setHomeAreaError("");
+    setHomeAreaSaved(false);
+  }, [user?.id]);
 
   // ── Fetch listing ──────────────────────────────────────────────────────────
   const {
@@ -258,15 +285,47 @@ export default function ExchangeListingDetail() {
     retry: isPublicStone ? false : undefined,
   });
 
+  // A same-account location update changes the listing query key. Keep the
+  // inquiry hook tied to this stone while that fresh availability check loads;
+  // the loading screen still prevents sending, and denial drops the draft.
+  const inquiryActorId = user?.id ? String(user.id) : null;
+  const lastStoneForInquiry = useRef<{
+    listing: ListingDetail;
+    routeId: string;
+    market: string;
+    actorId: string | null;
+  } | null>(null);
+  const previousStone = lastStoneForInquiry.current;
+  if (previousStone && (isError || previousStone.routeId !== listingId ||
+      previousStone.market !== selectedMarketSearch || previousStone.actorId !== inquiryActorId)) {
+    lastStoneForInquiry.current = null;
+  }
+  if (isPublicStone && listing && !isError && listingId && selectedMarketSearch) {
+    lastStoneForInquiry.current = { listing, routeId: listingId, market: selectedMarketSearch, actorId: inquiryActorId };
+  }
+  const inquiryListing = listing ?? (isPublicStone && isLoading && !isError ? lastStoneForInquiry.current?.listing : undefined);
+
   const stoneInquiry = useExchangeStoneInquiry({
-    listing,
+    listing: inquiryListing,
     selectedMarketSearch,
-    actorId: user?.id ? String(user.id) : null,
+    actorId: inquiryActorId,
     isAuthenticated,
     message: inquiryMessage,
     setMessage: setInquiryMessage,
     setOpen: setDecisionOpen,
     navigate,
+  });
+  const accountHomeArea = stoneHomeArea(user);
+  const needsStoneHomeArea = stoneInquiry.isRetail && isAuthenticated && !accountHomeArea.valid;
+  const {
+    data: homeCounties = [],
+    isLoading: homeCountiesLoading,
+    isError: homeCountiesError,
+    refetch: refetchHomeCounties,
+  } = useQuery<Array<{ fips: string; name: string; stateCode: string }>>({
+    queryKey: ["/api/counties", homeState],
+    queryFn: async () => apiRequest("GET", `/api/counties?state=${encodeURIComponent(homeState)}`),
+    enabled: decisionOpen && needsStoneHomeArea && accountHomeArea.usCountry && Boolean(homeState),
   });
   const submissionLock = useRef(false);
   const visibleListingId = useRef(listing?.id);
@@ -398,6 +457,10 @@ export default function ExchangeListingDetail() {
       stoneInquiry.continueToSignIn();
       return;
     }
+    if (stoneInquiry.isRetail && (needsStoneHomeArea || homeAreaSaving)) {
+      setHomeAreaError("Confirm your US home area before sending this stone request.");
+      return;
+    }
     submissionLock.current = true;
     sendInquiryMutation.mutate({
       listing,
@@ -406,6 +469,43 @@ export default function ExchangeListingDetail() {
       actorId: visibleActorId.current,
       inquiryIntent: stoneInquiry.intent,
     });
+  }
+
+  async function saveStoneHomeArea() {
+    if (!stoneInquiry.isRetail || !isAuthenticated || !user?.id || homeAreaSaving || !needsStoneHomeArea) return;
+    setHomeAreaError("");
+    setHomeAreaSaved(false);
+    if (!accountHomeArea.usCountry) {
+      setHomeAreaError("Stone requests currently require a US account. This account's country cannot be changed here.");
+      return;
+    }
+    const stateCode = homeState;
+    const city = homeCity.trim();
+    const county = homeCounties.find((item) => item.fips === homeCountyFips && item.stateCode === stateCode);
+    if (!STONE_MARKET_STATES.some((state) => state.code === stateCode) || !city || !county) {
+      setHomeAreaError("Choose your state and county, then enter your home city.");
+      return;
+    }
+    const actorId = String(user.id);
+    setHomeAreaSaving(true);
+    try {
+      await apiRequest("PUT", "/api/user/profile", {
+        expectedActorId: actorId, state: stateCode, stateCode, city,
+        countyFips: county.fips, county: county.name, countyName: county.name,
+      });
+      const refreshed = await refetchAuthUser();
+      if (refreshed.error || String(refreshed.data?.id || "") !== actorId ||
+          !stoneHomeArea(refreshed.data).valid ||
+          String(refreshed.data?.countyFips || "") !== county.fips ||
+          refreshed.data?.locationCommitted !== true) {
+        throw new Error("Your home area was saved, but we could not confirm it for this account. Try again.");
+      }
+      setHomeAreaSaved(true);
+    } catch (error) {
+      setHomeAreaError(formatUserFacingErrorMessage(error, "We could not save your home area. Try again."));
+    } finally {
+      setHomeAreaSaving(false);
+    }
   }
 
   // ── Photo nav ──────────────────────────────────────────────────────────────
@@ -1126,12 +1226,14 @@ export default function ExchangeListingDetail() {
       <Dialog
         open={decisionOpen}
         onOpenChange={(open) => {
-          if (sendInquiryMutation.isPending) return;
+          if (sendInquiryMutation.isPending || (stoneInquiry.isRetail && homeAreaSaving)) return;
           if (!open && stoneInquiry.isRetail) stoneInquiry.finish();
           else setDecisionOpen(open);
         }}
       >
-        <DialogContent className="bg-tsCard border-white/10 text-white max-w-md">
+        <DialogContent className={stoneInquiry.isRetail
+          ? "max-h-[calc(100dvh-1rem)] overflow-y-auto bg-tsCard border-white/10 text-white max-w-md"
+          : "bg-tsCard border-white/10 text-white max-w-md"}>
           <DialogHeader>
             <DialogTitle className="text-white">
               {stoneInquiry.isRetail ? "Review your stone request" : "Exchange Decision Card"}
@@ -1192,29 +1294,104 @@ export default function ExchangeListingDetail() {
                 Sign in to send your request. Your message will return with you.
               </p>
             )}
+            {needsStoneHomeArea && (
+              <div className="space-y-3 rounded-lg border border-white/15 bg-white/5 p-3" data-testid="stone-home-area-step">
+                <div>
+                  <p className="font-medium text-white">Confirm your home area</p>
+                  <p className="mt-1 text-sm text-white/65">Your selected browsing area does not set your account location. Save your US state and city, then review your message and send it separately.</p>
+                </div>
+                {!accountHomeArea.usCountry ? (
+                  <p role="alert" className="text-sm text-amber-200">Stone requests currently require a US account. This account's country cannot be changed here.</p>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="stone-home-state" className="mb-1.5 block text-sm text-white/80">Home state</Label>
+                      <select
+                        id="stone-home-state"
+                        data-testid="stone-home-state"
+                        value={homeState}
+                        onChange={(event) => { if (homeState) setHomeCity(""); setHomeState(event.target.value); setHomeCountyFips(""); setHomeAreaError(""); }}
+                        disabled={homeAreaSaving}
+                        className="min-h-11 w-full rounded-md border border-white/20 bg-tsCard px-3 text-base text-white"
+                        autoComplete="address-level1"
+                      >
+                        <option value="">Select state</option>
+                        {STONE_MARKET_STATES.map((state) => <option key={state.code} value={state.code}>{state.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="stone-home-county" className="mb-1.5 block text-sm text-white/80">County or local district</Label>
+                      <select
+                        id="stone-home-county"
+                        data-testid="stone-home-county"
+                        value={homeCountyFips}
+                        onChange={(event) => { setHomeCountyFips(event.target.value); setHomeAreaError(""); }}
+                        disabled={homeAreaSaving || !homeState || homeCountiesLoading || homeCountiesError}
+                        className="min-h-11 w-full rounded-md border border-white/20 bg-tsCard px-3 text-base text-white"
+                      >
+                        <option value="">{homeCountiesLoading ? "Loading counties…" : "Select county or district"}</option>
+                        {homeCounties.filter((county) => county.stateCode === homeState).map((county) =>
+                          <option key={county.fips} value={county.fips}>{county.name}</option>
+                        )}
+                      </select>
+                      {homeCountiesError && (
+                        <button type="button" className="min-h-11 text-sm text-amber-200 underline" onClick={() => void refetchHomeCounties()}>Could not load counties. Retry</button>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="stone-home-city" className="mb-1.5 block text-sm text-white/80">Home city</Label>
+                      <Input
+                        id="stone-home-city"
+                        data-testid="stone-home-city"
+                        value={homeCity}
+                        onChange={(event) => { setHomeCity(event.target.value); setHomeAreaError(""); }}
+                        disabled={homeAreaSaving}
+                        maxLength={120}
+                        autoComplete="address-level2"
+                        className="min-h-11 bg-white/5 border-white/20 text-base text-white"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {homeAreaSaved && !needsStoneHomeArea && (
+              <p role="status" className="text-sm text-emerald-200">Home area saved. Review your message, then choose Confirm &amp; Send.</p>
+            )}
+            {homeAreaError && <p role="alert" className="text-sm text-amber-200">{homeAreaError}</p>}
           </div>
           <DialogFooter className="gap-2">
             <Button
               variant="ghost"
-              className="text-white/60"
-              disabled={sendInquiryMutation.isPending}
+              className="min-h-11 text-white/60"
+              disabled={sendInquiryMutation.isPending || homeAreaSaving}
               onClick={() =>
                 stoneInquiry.isRetail ? stoneInquiry.finish() : setDecisionOpen(false)
               }
             >
               Cancel
             </Button>
-            <Button
-              className="bg-ts-orange hover:bg-ts-orange/90 text-white"
-              disabled={!inquiryMessage.trim() || sendInquiryMutation.isPending}
-              onClick={submitInquiry}
-            >
-              {sendInquiryMutation.isPending
-                ? "Sending request…"
-                : stoneInquiry.isRetail && !isAuthenticated
-                  ? "Sign in to send"
-                  : "Confirm & Send"}
-            </Button>
+            {needsStoneHomeArea ? (
+              <Button
+                className="min-h-11 bg-ts-orange hover:bg-ts-orange/90 text-white"
+                disabled={homeAreaSaving || !accountHomeArea.usCountry || !homeState || homeCountiesLoading || homeCountiesError}
+                onClick={() => void saveStoneHomeArea()}
+              >
+                {homeAreaSaving ? "Saving home area…" : "Save home area"}
+              </Button>
+            ) : (
+              <Button
+                className="min-h-11 bg-ts-orange hover:bg-ts-orange/90 text-white"
+                disabled={!inquiryMessage.trim() || sendInquiryMutation.isPending || (stoneInquiry.isRetail && homeAreaSaving)}
+                onClick={submitInquiry}
+              >
+                {sendInquiryMutation.isPending
+                  ? "Sending request…"
+                  : stoneInquiry.isRetail && !isAuthenticated
+                    ? "Sign in to send"
+                    : "Confirm & Send"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
