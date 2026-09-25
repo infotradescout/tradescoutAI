@@ -1,8 +1,22 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from "vitest";
-import { inferSavedThreadIntent, latestLocalSearchTitle } from "./ScoutOS";
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
+import { describe, expect, it, vi } from "vitest";
+import {
+  buildSavedScoutThread,
+  inferSavedThreadIntent,
+  isUnchangedLoadedSavedTask,
+  latestLocalSearchTitle,
+  resolveScoutCurrentTaskTitle,
+  scheduleScoutSavedTaskAutoSave,
+  ScoutCurrentTaskHeading,
+  type SavedScoutThread,
+} from "./ScoutOS";
 import type { ScoutMessage } from "./state";
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
+  true;
 
 describe("saved Scout task intent", () => {
   it("titles the task from the latest local search, including a return to broad county browsing", () => {
@@ -104,5 +118,127 @@ describe("saved Scout task intent", () => {
       relatedLabel: "Vehicle",
       relatedPath: "/vehicles",
     });
+  });
+});
+
+describe("saved Scout task heading", () => {
+  it("settles on task B's saved title and updates only for a subsequent local search", async () => {
+    const taskA: SavedScoutThread = {
+      id: "A",
+      title: "Roof inspection task A",
+      preview: "Roof result",
+      updatedAt: "2026-09-25T00:00:00.000Z",
+      messageCount: 2,
+      messages: [
+        { id: "a-user", role: "user", content: "Find TradeScout posts and deals about roofing in my county this week." },
+        { id: "a-result", role: "assistant", content: "Roof result." },
+      ],
+    };
+    const taskB: SavedScoutThread = {
+      id: "B",
+      title: "Fence estimate task B",
+      preview: "Fence result",
+      updatedAt: "2026-09-25T00:00:00.000Z",
+      messageCount: 2,
+      messages: [
+        { id: "b-user", role: "user", content: "Find TradeScout posts and deals about fencing in my county this week." },
+        { id: "b-result", role: "assistant", content: "Fence result." },
+      ],
+    };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const show = async (thread: SavedScoutThread, messages: ScoutMessage[]) => {
+      await act(async () => root.render(
+        React.createElement(ScoutCurrentTaskHeading, {
+          title: resolveScoutCurrentTaskTitle(messages, thread),
+        })
+      ));
+      return container.querySelector('[data-testid="scout-current-task-title"]')?.textContent;
+    };
+
+    try {
+      expect(await show(taskA, taskA.messages)).toBe("Roof inspection task A");
+      expect(await show(taskB, taskB.messages)).toBe("Fence estimate task B");
+      expect(isUnchangedLoadedSavedTask("B", taskB.messages, { id: "B", messages: taskB.messages }))
+        .toBe(true);
+      expect(buildSavedScoutThread(taskB.messages, "B", undefined, taskB)?.title)
+        .toBe("Fence estimate task B");
+
+      const genericFollowUp: ScoutMessage[] = [
+        ...taskB.messages,
+        { id: "b-followup", role: "user", content: "What should I check next?" },
+      ];
+      expect(await show(taskB, genericFollowUp)).toBe("Fence estimate task B");
+      expect(buildSavedScoutThread(genericFollowUp, "B", undefined, taskB)?.title)
+        .toBe("Fence estimate task B");
+
+      const newSearch: ScoutMessage[] = [
+        ...taskB.messages,
+        { id: "b-new-search", role: "user", content: "Find TradeScout posts and deals about plumbing in my county this week." },
+        { id: "b-new-result", role: "assistant", content: "Plumbing results checked.", metadata: { discoveryTopic: "plumbing", discoveryChecks: {} } },
+      ];
+      expect(isUnchangedLoadedSavedTask("B", newSearch, { id: "B", messages: taskB.messages }))
+        .toBe(false);
+      expect(await show(taskB, newSearch)).toBe("Plumbing in my county");
+      const savedAfterSearch = buildSavedScoutThread(newSearch, "B", undefined, taskB);
+      expect(savedAfterSearch?.title).toBe("Plumbing in my county");
+      expect(await show(savedAfterSearch!, newSearch)).toBe("Plumbing in my county");
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
+  });
+
+  it("does not schedule local or remote save for loaded B, then saves a new checked search", () => {
+    vi.useFakeTimers();
+    try {
+      const savedMessages: ScoutMessage[] = [
+        { id: "b-user", role: "user", content: "Find local fence estimate guidance this week." },
+        { id: "b-result", role: "assistant", content: "Fence result." },
+      ];
+      const existing: SavedScoutThread = {
+        id: "B",
+        title: "Fence estimate task B",
+        preview: "Fence result",
+        updatedAt: "2026-09-25T00:00:00.000Z",
+        messageCount: 2,
+        messages: savedMessages,
+      };
+      const loaded = { id: "B", messages: savedMessages };
+      const localSave = vi.fn<(messages: ScoutMessage[]) => SavedScoutThread | null>(
+        (messages) => buildSavedScoutThread(messages, "B", undefined, existing)
+      );
+      const remoteSave = vi.fn<(thread: SavedScoutThread) => void>();
+      const schedule = (messages: ScoutMessage[]) => scheduleScoutSavedTaskAutoSave({
+        messages,
+        activeSavedThreadId: "B",
+        loadedTask: loaded,
+        shouldSkipReturnAutoSave: () => false,
+        onSave: () => {
+          const saved = localSave(messages);
+          if (saved) remoteSave(saved);
+        },
+      });
+
+      schedule(savedMessages);
+      vi.advanceTimersByTime(500);
+      expect(localSave).not.toHaveBeenCalled();
+      expect(remoteSave).not.toHaveBeenCalled();
+
+      const newSearch: ScoutMessage[] = [
+        ...savedMessages,
+        { id: "new-user", role: "user", content: "Find TradeScout posts and deals about plumbing in my county this week." },
+        { id: "new-result", role: "assistant", content: "Plumbing checked.", metadata: { discoveryTopic: "plumbing", discoveryChecks: {} } },
+      ];
+      const cancel = schedule(newSearch);
+      vi.advanceTimersByTime(500);
+      expect(localSave).toHaveBeenCalledTimes(1);
+      expect(remoteSave).toHaveBeenCalledTimes(1);
+      expect(remoteSave.mock.calls[0]?.[0].title).toBe("Plumbing in my county");
+      cancel?.();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

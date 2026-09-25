@@ -209,7 +209,7 @@ type SavedScoutThreadRelatedTo = {
   surface?: "home_project" | "commercial_project";
 };
 
-type SavedScoutThread = {
+export type SavedScoutThread = {
   id: string;
   title: string;
   preview: string;
@@ -743,6 +743,64 @@ export function latestLocalSearchTitle(messages: ScoutMessage[]): string | null 
   return null;
 }
 
+type SavedTaskTitleSource = Pick<SavedScoutThread, "title" | "messages">;
+
+function messagesAfterSavedTask(messages: ScoutMessage[], savedThread: SavedTaskTitleSource): ScoutMessage[] {
+  const lastSavedId = savedThread.messages.at(-1)?.id;
+  if (!lastSavedId) return messages;
+  const savedIndex = messages.findIndex((message) => message.id === lastSavedId);
+  // If the saved boundary is absent, keep its existing title rather than infer from old turns.
+  return savedIndex < 0 ? [] : messages.slice(savedIndex + 1);
+}
+
+export function resolveScoutCurrentTaskTitle(
+  messages: ScoutMessage[],
+  savedThread: SavedTaskTitleSource | null,
+  fallback = "Current Scout task"
+): string {
+  const titleFromNewWork = latestLocalSearchTitle(
+    savedThread ? messagesAfterSavedTask(messages, savedThread) : messages
+  );
+  if (titleFromNewWork) return titleFromNewWork;
+  if (savedThread?.title.trim()) return savedThread.title;
+  const firstUserMessage = firstThreadUserMessage(messages);
+  return summarizeThreadText(firstUserMessage?.content || "", fallback);
+}
+
+export function isUnchangedLoadedSavedTask(
+  activeSavedThreadId: string | null,
+  messages: ScoutMessage[],
+  loaded: { id: string; messages: ScoutMessage[] } | null
+): boolean {
+  return Boolean(loaded && activeSavedThreadId === loaded.id && messages === loaded.messages);
+}
+
+export function scheduleScoutSavedTaskAutoSave(args: {
+  messages: ScoutMessage[];
+  activeSavedThreadId: string | null;
+  loadedTask: { id: string; messages: ScoutMessage[] } | null;
+  shouldSkipReturnAutoSave: (messages: ScoutMessage[]) => boolean;
+  onSave: () => void;
+}): (() => void) | undefined {
+  if (args.shouldSkipReturnAutoSave(args.messages)) return;
+  if (isUnchangedLoadedSavedTask(args.activeSavedThreadId, args.messages, args.loadedTask)) return;
+  if (!args.messages.some((message) => message.role === "user" && message.content.trim())) return;
+  const timer = window.setTimeout(args.onSave, 450);
+  return () => window.clearTimeout(timer);
+}
+
+export function ScoutCurrentTaskHeading({ title }: { title: string }) {
+  return (
+    <h1
+      id="scout-current-task-title"
+      className="mt-0.5 break-words text-base font-bold leading-tight text-[color:var(--text-primary)]"
+      data-testid="scout-current-task-title"
+    >
+      {title}
+    </h1>
+  );
+}
+
 function sanitizeRelatedId(value: string | null | undefined): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim().replace(/[#?].*$/, "");
@@ -1234,10 +1292,11 @@ function compactSavedScoutMessages(messages: ScoutMessage[]): ScoutMessage[] {
   }));
 }
 
-function buildSavedScoutThread(
+export function buildSavedScoutThread(
   messages: ScoutMessage[],
   existingId?: string | null,
-  location?: { countyFips?: string | null; stateCode?: string | null }
+  location?: { countyFips?: string | null; stateCode?: string | null },
+  existingThread?: SavedScoutThread | null
 ): SavedScoutThread | null {
   const firstUserMessage = firstThreadUserMessage(messages);
   if (!firstUserMessage) return null;
@@ -1260,10 +1319,7 @@ function buildSavedScoutThread(
 
   return {
     id: existingId || `thread_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    title:
-      latestLocalSearchTitle(messages) ||
-      titleForLocalPostsAndDealsRequest(firstUserMessage.content) ||
-      summarizeThreadText(firstUserMessage.content, "Scout conversation"),
+    title: resolveScoutCurrentTaskTitle(messages, existingThread || null, "Scout conversation"),
     preview: summarizeThreadText(
       lastMessage?.content || firstUserMessage.content,
       "Saved Scout conversation"
@@ -1405,9 +1461,10 @@ function upsertSavedScoutThread(
   existingId?: string | null,
   location?: { countyFips?: string | null; stateCode?: string | null }
 ): SavedScoutThread | null {
-  const nextThread = buildSavedScoutThread(messages, existingId, location);
-  if (!nextThread) return null;
   const threads = readSavedScoutThreads(userId);
+  const existingThread = existingId ? threads.find((thread) => thread.id === existingId) : null;
+  const nextThread = buildSavedScoutThread(messages, existingId, location, existingThread);
+  if (!nextThread) return null;
   return saveSavedTaskLocally(
     nextThread,
     threads,
@@ -1787,6 +1844,7 @@ export default function ScoutOS() {
 
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
+  const loadedSavedTaskRef = useRef<{ id: string; messages: ScoutMessage[] } | null>(null);
   const deletingSavedThreadIdsRef = useRef(new Set<string>());
   const deletedSavedThreadIdsRef = useRef(new Set<string>());
   const failedDeleteToastIdsRef = useRef(new Map<string, string>());
@@ -2087,29 +2145,27 @@ export default function ScoutOS() {
   useEffect(() => {
     // Reopening a result is navigation, not a request to save the task again.
     // A later message creates a new messages array and resumes normal saves.
-    if (shouldSkipReturnAutoSave(state.messages)) return;
-    const hasUserThread = state.messages.some(
-      (message) => message.role === "user" && message.content.trim().length > 0
-    );
-    if (!hasUserThread) return;
-
-    const timer = window.setTimeout(() => {
-      if (
-        activeSavedThreadId &&
-        (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
-          deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
-      ) return;
-      const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
-        countyFips: locationCtx.countyFips,
-        stateCode: locationCtx.stateCode,
-      });
-      if (!saved) return;
-      setActiveSavedThreadId(saved.id);
-      setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
-      void persistSavedScoutThreadRemote(saved);
-    }, 450);
-
-    return () => window.clearTimeout(timer);
+    return scheduleScoutSavedTaskAutoSave({
+      messages: state.messages,
+      activeSavedThreadId,
+      loadedTask: loadedSavedTaskRef.current,
+      shouldSkipReturnAutoSave,
+      onSave: () => {
+        if (
+          activeSavedThreadId &&
+          (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
+            deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
+        ) return;
+        const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
+          countyFips: locationCtx.countyFips,
+          stateCode: locationCtx.stateCode,
+        });
+        if (!saved) return;
+        setActiveSavedThreadId(saved.id);
+        setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
+        void persistSavedScoutThreadRemote(saved);
+      },
+    });
   }, [
     activeSavedThreadId,
     locationCtx.countyFips,
@@ -2293,6 +2349,7 @@ export default function ScoutOS() {
   const handleLoadSavedThread = useCallback(
     (thread: SavedScoutThread) => {
       if (thread.id !== activeSavedThreadId) clearDraftForTaskChange();
+      loadedSavedTaskRef.current = { id: thread.id, messages: thread.messages };
       setActiveSavedThreadId(thread.id);
       setHasGuestInteracted(true);
       loadMessages(thread.messages);
@@ -2308,6 +2365,7 @@ export default function ScoutOS() {
 
   const handleStartNewScoutThread = useCallback(() => {
     clearDraftForTaskChange();
+    loadedSavedTaskRef.current = null;
     clearScoutReturnSnapshot();
     setActiveSavedThreadId(null);
     reset();
@@ -2418,15 +2476,8 @@ export default function ScoutOS() {
     [activeSavedThreadId, savedScoutThreads]
   );
   const currentTaskTitle = useMemo(() => {
-    const firstUserMessage = firstThreadUserMessage(state.messages);
-    const request = firstUserMessage?.content || latestUserQuery;
-    return (
-      latestLocalSearchTitle(state.messages) ||
-      activeSavedThread?.title ||
-      titleForLocalPostsAndDealsRequest(request) ||
-      summarizeThreadText(request, "Current Scout task")
-    );
-  }, [activeSavedThread?.title, latestUserQuery, state.messages]);
+    return resolveScoutCurrentTaskTitle(state.messages, activeSavedThread);
+  }, [activeSavedThread, state.messages]);
   const currentTaskRequest = useMemo(
     () => firstThreadUserMessage(state.messages)?.content || "",
     [state.messages]
@@ -4957,13 +5008,7 @@ export default function ScoutOS() {
                             ? ` · ${activeSavedThread.relatedLabel}`
                             : ""}
                         </p>
-                        <h1
-                          id="scout-current-task-title"
-                          className="mt-0.5 break-words text-base font-bold leading-tight text-[color:var(--text-primary)]"
-                          data-testid="scout-current-task-title"
-                        >
-                          {currentTaskTitle}
-                        </h1>
+                        <ScoutCurrentTaskHeading title={currentTaskTitle} />
                       </div>
 
                       <ScoutTaskControls
