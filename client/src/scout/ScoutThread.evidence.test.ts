@@ -59,6 +59,43 @@ describe("ScoutThread evidence strip", () => {
     expect(disclosure?.open).toBe(true);
   });
 
+  it("leads with the missing posts and deals when a broad county search only finds tools", () => {
+    const toolPath = "/exchange/tools/00000000-0000-4000-8000-000000000221";
+    const message: ScoutMessage = {
+      id: "a_broad_county_tools",
+      role: "assistant",
+      content: "County search completed.",
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 0, topicFiltered: false },
+          deals: { status: "checked", shownCount: 0, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: false },
+          tools: { status: "checked", shownCount: 1, topicFiltered: false },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{ id: "00000000-0000-4000-8000-000000000221", type: "public_tool", name: "Pipe wrench", url: toolPath, match_reasons: ["Listed in Maricopa County"] }],
+        evidence: [],
+        answer: "County search completed.",
+        allowed_actions: [{ action_id: "open_tool", type: "NAVIGATE", label: "Open local tool listing", target: toolPath, primary: true }],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    container.innerHTML = renderThread([message]);
+
+    const summary = container.querySelector(".scout-assistant-bubble__body")?.textContent ?? "";
+    expect(summary).toContain("No posts from the past 7 days or active TradeDeals found in Maricopa County, AZ");
+    expect(summary).toContain("Other public results are below");
+    expect(summary).not.toContain("Found “Pipe wrench”");
+    expect(container.querySelector(".scout-result-card")?.textContent).toContain("Pipe wrench");
+  });
+
   it("labels active county tools and keeps unsearched sources visible", () => {
     const path = "/exchange/tools/00000000-0000-4000-8000-000000000221";
     const answer =

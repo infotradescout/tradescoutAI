@@ -469,6 +469,16 @@ function toolsDiscoverySummary(msg: ScoutMessage, checks: DiscoveryChecks): stri
   );
   const first = matched.find((entity) => validatedEntityUrl(entity.url));
   if (first) {
+    if (
+      !checks.topic &&
+      checks.posts.status === "checked" && checks.posts.shownCount === 0 &&
+      checks.deals.status === "checked" && checks.deals.shownCount === 0
+    ) {
+      const explain = (area: string) =>
+        `No posts from the past 7 days or active TradeDeals found in ${area}. ${hasError ? "Some other sources were unavailable." : "Other public results are below."}`;
+      const summary = explain(place);
+      return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS ? summary : explain("your county");
+    }
     const name = (first.name || "").replace(/\s+/g, " ").trim().slice(0, 48).trimEnd();
     const subject = name ? `“${name}”` : "a public result";
     const topic = checks.topic ? ` for ${checks.topic.slice(0, 24)}` : "";
