@@ -6005,6 +6005,14 @@ export async function registerRoutes(app: any) {
     const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
     try {
+      const expectedActorId = (req.body as any)?.expectedActorId;
+      if (expectedActorId !== undefined &&
+          (typeof expectedActorId !== "string" || expectedActorId !== String(userId || ""))) {
+        return res.status(409).json({
+          message: "Your account changed. Review the request again.",
+          reasonCode: "ACTOR_CHANGED",
+        });
+      }
       const {
         firstName,
         lastName,
