@@ -75,6 +75,19 @@ const PUBLIC_PROFILE_PAGE_PATH = /^\/u\/[a-z0-9][a-z0-9-]{0,119}$/i;
 
 const PUBLIC_TOOL_DETAIL_PATH = /^\/exchange\/tools\/[a-z0-9_-]{1,100}$/i;
 
+const SCOUT_REQUEST_REVIEW_TARGET = "/direct-connect/post?source=scout";
+const LEGACY_SCOUT_REQUEST_REVIEW_TARGET = "/direct-connect?source=scout";
+
+function isAllowedDirectConnectTarget(target: string, basePath: string): boolean {
+  if (basePath === "/direct-connect/post") {
+    return target === SCOUT_REQUEST_REVIEW_TARGET;
+  }
+  if (basePath === "/direct-connect") {
+    return target === "/direct-connect" || target === LEGACY_SCOUT_REQUEST_REVIEW_TARGET;
+  }
+  return true;
+}
+
 function isAllowedPublicDealPath(target: string, basePath: string): boolean {
   if (!PUBLIC_DEAL_PATH.test(basePath) || target.includes("#")) return false;
   const query = target.split("?", 2)[1];
@@ -147,6 +160,10 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
 
     // Internal routes must match allowlist or dynamic patterns
     const basePath = target.split("?")[0].split("#")[0];
+    if (!isAllowedDirectConnectTarget(target, basePath)) {
+      console.warn("[Scout] Direct Connect navigation target not allowlisted:", basePath);
+      return null;
+    }
     const isAllowedStatic = ALLOWED_NAVIGATION_PATHS.has(basePath);
     const isAllowedDynamic =
       isAllowedPublicDealPath(target, basePath) ||

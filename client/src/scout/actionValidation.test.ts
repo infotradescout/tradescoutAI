@@ -140,6 +140,36 @@ describe("actionValidation", () => {
     ).toBeNull();
   });
 
+  it("only allows private Direct Connect review through canonical Scout targets", () => {
+    for (const target of [
+      "/direct-connect",
+      "/direct-connect?source=scout",
+      "/direct-connect/post?source=scout",
+      "/direct-connect/pros?trade=supplier",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toMatchObject({
+        type: "NAVIGATE",
+        to: target,
+        path: target,
+      });
+    }
+
+    for (const target of [
+      "/direct-connect/post",
+      "/direct-connect/post?source=scout&title=Private%20roof%20repair",
+      "/direct-connect/post?source=scout&description=Private%20roof%20repair",
+      "/direct-connect/post?source=scout&source=scout",
+      "/direct-connect/post?source=scout#review",
+      "/direct-connect?source=scout&title=Private%20roof%20repair",
+      "/direct-connect?source=scout&description=Private%20roof%20repair",
+      "/direct-connect?source=scout&source=scout",
+      "/direct-connect?source=scout#review",
+      "/direct-connect#review",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toBeNull();
+    }
+  });
+
   it("allows only a specific public TradeDeal with an optional valid county", () => {
     const id = "11111111-2222-4333-8444-555555555555";
     const target = `/deals/${id}?county=04013`;

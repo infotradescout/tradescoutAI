@@ -47,19 +47,45 @@ describe("Scout county draft handoff", () => {
     }
   });
 
-  it("does not stage other Scout actions or nearby Direct Connect URLs", () => {
+  it("keeps ordinary Direct Connect destinations outside the county handoff", () => {
     expect(
-      prepareScoutCountyDraftHandoff({ ...countyDraftAction, to: "/direct-connect/pros" })
+      prepareScoutCountyDraftHandoff({ ...countyDraftAction, to: "/direct-connect" })
     ).toEqual({ kind: "not_applicable" });
     expect(
       prepareScoutCountyDraftHandoff({
         ...countyDraftAction,
-        to: "/direct-connect?source=scout&county=04013",
+        to: "/direct-connect/pros?trade=supplier",
       })
     ).toEqual({ kind: "not_applicable" });
     expect(
       prepareScoutCountyDraftHandoff({ ...countyDraftAction, type: "NOOP" })
     ).toEqual({ kind: "not_applicable" });
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("fails closed before work-area fallback for near-match review URLs", () => {
+    for (const to of [
+      "/direct-connect/post",
+      "/direct-connect/post?source=scout&title=Private%20roof%20repair",
+      "/direct-connect/post?source=scout&description=Private%20roof%20repair",
+      "/direct-connect/post?source=scout&source=scout",
+      "/direct-connect/post?source=scout#review",
+      "/direct-connect/post/extra?source=scout",
+      "/direct-connect?source=scout&description=Private%20roof%20repair",
+      "/direct-connect?source=scout&source=scout",
+      "/direct-connect?source=scout#review",
+      "/direct-connect#review",
+    ]) {
+      expect(prepareScoutCountyDraftHandoff({ ...countyDraftAction, to })).toEqual({
+        kind: "unavailable",
+      });
+    }
+    expect(
+      prepareScoutCountyDraftHandoff({
+        ...countyDraftAction,
+        to: "/direct-connect?source=scout&county=04013",
+      })
+    ).toEqual({ kind: "unavailable" });
     expect(window.sessionStorage.length).toBe(0);
   });
 

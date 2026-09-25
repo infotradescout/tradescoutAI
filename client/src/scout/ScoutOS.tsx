@@ -119,11 +119,18 @@ const SCOUT_REQUEST_REVIEW_TARGET = "/direct-connect/post?source=scout";
 export function prepareScoutCountyDraftHandoff(
   action: ScoutAction
 ): { kind: "not_applicable" } | { kind: "unavailable" } | { kind: "ready"; url: string } {
-  if (
-    action.type !== "NAVIGATE" ||
-    ![SCOUT_COUNTY_DRAFT_TARGET, SCOUT_REQUEST_REVIEW_TARGET].includes(action.to ?? action.path ?? "")
-  ) {
+  if (action.type !== "NAVIGATE") {
     return { kind: "not_applicable" };
+  }
+
+  const target = action.to ?? action.path ?? "";
+  if (target === "/direct-connect") return { kind: "not_applicable" };
+  if (![SCOUT_COUNTY_DRAFT_TARGET, SCOUT_REQUEST_REVIEW_TARGET].includes(target)) {
+    // A near-match must not bypass private staging and open in the work-area iframe.
+    return target.startsWith("/direct-connect/post") ||
+      target.split(/[?#]/, 1)[0] === "/direct-connect"
+      ? { kind: "unavailable" }
+      : { kind: "not_applicable" };
   }
 
   const countyFips = action.payload?.countyFips;
