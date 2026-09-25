@@ -55,7 +55,7 @@ import {
   clearScoutInputDraft,
   readScoutDraftForOwner,
   takeScoutHelpIntentForOwner,
-  useScoutAccountBoundLaunchPrompt,
+  useScoutAccountBoundLaunch,
   useScoutTaskDraftBoundary,
   writeScoutExternalPrefill,
   writeScoutOwnedDraft,
@@ -1766,19 +1766,27 @@ export default function ScoutOS() {
     () => parseScoutLaunchLocation(scoutBrowserLocation),
     [scoutBrowserLocation]
   );
-  const acceptedLaunchPrompt = useScoutAccountBoundLaunchPrompt(
+  const launchAcceptance = useScoutAccountBoundLaunch(
     scoutLaunch.signature,
-    scoutLaunch.prompt,
-    scoutReturnOwner
+    Boolean(scoutLaunch.context || scoutLaunch.prompt),
+    scoutReturnOwner,
+    scoutLaunch.context && scoutLaunch.prompt
+      ? JSON.stringify({ context: scoutLaunch.context, prompt: null })
+      : undefined
   );
+  const acceptedLaunchContext = launchAcceptance === "accepted" ? scoutLaunch.context : null;
+  const acceptedLaunchPrompt = launchAcceptance === "accepted" ? scoutLaunch.prompt : undefined;
+  const acceptedLaunchReturnPath =
+    launchAcceptance === "accepted" ? scoutLaunch.returnPath : undefined;
   const onboardingOutcomePrompt = useMemo(
     () =>
-      scoutLaunch.context?.source === "onboarding_result"
+      acceptedLaunchContext?.source === "onboarding_result"
         ? readOnboardingResultPrompt(scoutReturnOwner)
         : "",
-    [scoutLaunch.context?.source, scoutReturnOwner]
+    [acceptedLaunchContext?.source, scoutReturnOwner]
   );
-  const hasExplicitScoutLaunch = Boolean(scoutLaunch.context || scoutLaunch.prompt);
+  const hasExplicitScoutLaunch =
+    launchAcceptance === "pending" || launchAcceptance === "accepted";
   const appliedLaunchPromptRef = useRef<string | null>(null);
   const consumedOutcomeLaunchRef = useRef<string | null>(null);
 
@@ -2590,7 +2598,7 @@ export default function ScoutOS() {
   // searches, follows an explicit handoff, or opens a destination.
   const shouldPlayIntroDemo = false;
 
-  const urlIntent = scoutLaunch.context?.intent;
+  const urlIntent = acceptedLaunchContext?.intent;
 
   useEffect(() => {
     if (!urlIntent) return;
@@ -2598,8 +2606,8 @@ export default function ScoutOS() {
     try {
       const search = typeof window === "undefined" ? "" : window.location.search;
       const params = new URLSearchParams(search);
-      const source = scoutLaunch.context?.source;
-      const prompt = scoutLaunch.prompt;
+      const source = acceptedLaunchContext?.source;
+      const prompt = acceptedLaunchPrompt;
       const signature = [
         urlIntent,
         source || "",
@@ -2619,7 +2627,7 @@ export default function ScoutOS() {
     } catch {
       // fail-soft: analytics must never impact scout flow
     }
-  }, [location, scoutLaunch.context?.source, scoutLaunch.prompt, urlIntent]);
+  }, [acceptedLaunchContext?.source, acceptedLaunchPrompt, location, urlIntent]);
 
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
@@ -2690,13 +2698,13 @@ export default function ScoutOS() {
   // Remove only the one-time prompt after it becomes a real user message.
   // The structured launch context stays in the URL for the rest of the conversation.
   useEffect(() => {
-    if (!scoutLaunch.prompt || !hasUserMessages) return;
+    if (!acceptedLaunchPrompt || !hasUserMessages) return;
     const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
     params.delete("prompt");
     const nextLocation = params.toString() ? `/scout?${params.toString()}` : "/scout";
     navigate(nextLocation, { replace: true });
     setScoutBrowserLocation(nextLocation);
-  }, [hasUserMessages, location, navigate, scoutLaunch.prompt]);
+  }, [acceptedLaunchPrompt, hasUserMessages, location, navigate]);
 
   // Clear stale drafts on a plain first guest visit, but never erase an explicit handoff.
   useEffect(() => {
@@ -2830,7 +2838,7 @@ export default function ScoutOS() {
           locality,
           mode,
           intent: urlIntent,
-          launchContext: scoutLaunch.context || undefined,
+          launchContext: acceptedLaunchContext || undefined,
           knowledgeMode: "local-first",
           filters: {
             collectionSurface: "scout-summary-thread",
@@ -2969,7 +2977,7 @@ export default function ScoutOS() {
       recordUserMessage,
       sessionRole,
       setPrefillKey,
-      scoutLaunch.context,
+      acceptedLaunchContext,
       scoutReturnOwner,
       state.messages,
       refreshObjective,
@@ -3222,7 +3230,7 @@ export default function ScoutOS() {
   // the result they asked for instead of another form or a prefilled draft.
   // The signature guard makes refreshes and React re-renders idempotent.
   useEffect(() => {
-    if (scoutLaunch.context?.source !== "onboarding_result") return;
+    if (acceptedLaunchContext?.source !== "onboarding_result") return;
     const confirmedPrompt = acceptedLaunchPrompt || onboardingOutcomePrompt;
     if (!confirmedPrompt) return;
     const outcomeSignature = `${scoutLaunch.signature}:${confirmedPrompt}`;
@@ -3244,7 +3252,7 @@ export default function ScoutOS() {
     handleSend,
     acceptedLaunchPrompt,
     onboardingOutcomePrompt,
-    scoutLaunch.context?.source,
+    acceptedLaunchContext?.source,
     scoutLaunch.signature,
     shouldPlayIntroDemo,
     state.messages,
@@ -4209,13 +4217,13 @@ export default function ScoutOS() {
     setScoutBrowserLocation("/scout");
   }, [navigate]);
   const openScoutLaunchSource = useCallback(() => {
-    if (scoutLaunch.returnPath) navigate(scoutLaunch.returnPath);
-  }, [navigate, scoutLaunch.returnPath]);
+    if (acceptedLaunchReturnPath) navigate(acceptedLaunchReturnPath);
+  }, [acceptedLaunchReturnPath, navigate]);
 
-  const launchContextSurface = scoutLaunch.context ? (
+  const launchContextSurface = acceptedLaunchContext ? (
     <ScoutLaunchContextCard
-      context={scoutLaunch.context}
-      returnPath={scoutLaunch.returnPath}
+      context={acceptedLaunchContext}
+      returnPath={acceptedLaunchReturnPath}
       onOpenOriginal={openScoutLaunchSource}
       onClear={clearScoutLaunchContext}
     />
@@ -4472,7 +4480,7 @@ export default function ScoutOS() {
   ) : null;
 
   const hasActiveTaskAuxiliaryContent = Boolean(
-    scoutLaunch.context ||
+    acceptedLaunchContext ||
     (onboarding.flowState.phase === "confirming" && onboarding.flowState.confirmationCard) ||
     onboarding.flowState.phase === "inferring" ||
     onboarding.flowState.phase === "writing" ||

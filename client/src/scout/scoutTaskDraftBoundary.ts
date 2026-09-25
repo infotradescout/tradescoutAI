@@ -82,32 +82,61 @@ export function takeScoutHelpIntentForOwner(owner: string | null): string | null
   }
 }
 
-/** A URL prompt belongs to the first account that accepted it in this browser tab. */
+export type ScoutLaunchAcceptance = "none" | "pending" | "accepted" | "blocked";
+
+/** A whole URL launch belongs to the first account that accepted it in this tab. */
+export function useScoutAccountBoundLaunch(
+  signature: string,
+  hasLaunch: boolean,
+  owner: string | null,
+  continuationSignature?: string
+): ScoutLaunchAcceptance {
+  const [binding, setBinding] = useState<{
+    fingerprint: string;
+    owner: string;
+    accepted: boolean;
+  } | null>(null);
+  const fingerprint = launchSignatureFingerprint(signature);
+  const continuationFingerprint = continuationSignature
+    ? launchSignatureFingerprint(continuationSignature)
+    : null;
+  useEffect(() => {
+    if (!hasLaunch || !owner) return;
+    try {
+      const launchKey = `${SCOUT_LAUNCH_OWNER_KEY_PREFIX}${fingerprint}`;
+      const existingOwner = window.sessionStorage.getItem(launchKey);
+      if (existingOwner && existingOwner !== owner) {
+        setBinding({ fingerprint, owner, accepted: false });
+        return;
+      }
+      // Consuming a URL prompt leaves its context in place. Reserve that exact
+      // context-only continuation before the prompt disappears from the URL.
+      if (continuationFingerprint && continuationFingerprint !== fingerprint) {
+        const continuationKey = `${SCOUT_LAUNCH_OWNER_KEY_PREFIX}${continuationFingerprint}`;
+        if (!window.sessionStorage.getItem(continuationKey)) {
+          window.sessionStorage.setItem(continuationKey, owner);
+        }
+      }
+      window.sessionStorage.setItem(launchKey, owner);
+      setBinding({ fingerprint, owner, accepted: true });
+    } catch {
+      // Without tab-scoped ownership, reloading under another account must fail closed.
+      setBinding({ fingerprint, owner, accepted: false });
+    }
+  }, [continuationFingerprint, fingerprint, hasLaunch, owner]);
+  if (!hasLaunch) return "none";
+  if (!owner || binding?.fingerprint !== fingerprint || binding.owner !== owner) return "pending";
+  return binding.accepted ? "accepted" : "blocked";
+}
+
+/** Kept for callers that only need the prompt part of an accepted launch. */
 export function useScoutAccountBoundLaunchPrompt(
   signature: string,
   prompt: string | undefined,
   owner: string | null
 ): string | undefined {
-  const [accepted, setAccepted] = useState<{ fingerprint: string; owner: string } | null>(null);
-  const fingerprint = launchSignatureFingerprint(signature);
-  useEffect(() => {
-    if (!prompt || !owner) return;
-    try {
-      const launchKey = `${SCOUT_LAUNCH_OWNER_KEY_PREFIX}${fingerprint}`;
-      const existingOwner = window.sessionStorage.getItem(launchKey);
-      if (existingOwner) {
-        setAccepted(existingOwner === owner ? { fingerprint, owner } : null);
-        return;
-      }
-      const next = { fingerprint, owner };
-      window.sessionStorage.setItem(launchKey, owner);
-      setAccepted(next);
-    } catch {
-      // Without tab-scoped ownership, reloading under another account must fail closed.
-      setAccepted(null);
-    }
-  }, [fingerprint, prompt, owner]);
-  return accepted?.fingerprint === fingerprint && accepted.owner === owner ? prompt : undefined;
+  const acceptance = useScoutAccountBoundLaunch(signature, Boolean(prompt), owner);
+  return acceptance === "accepted" ? prompt : undefined;
 }
 
 export function discardScoutDraftForTaskChange(): boolean {
