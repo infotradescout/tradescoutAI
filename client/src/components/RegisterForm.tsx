@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { FacebookBrandIcon } from "@/components/icons/BrandIcons";
 import { formatUserFacingErrorMessage, getRawErrorMessage } from "@/lib/userFacingError";
+import { writeScoutExternalPrefill } from "@/scout/scoutTaskDraftBoundary";
 
 const roleOptions = ["homeowner", "contractor", "realtor", "car_dealer"] as const;
 type RoleOption = (typeof roleOptions)[number];
@@ -122,7 +123,11 @@ export function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFormProps) 
         // Seed Scout with a one-time onboarding marker so the first
         // visit to /scout can offer the "What are you here to do today?"
         // chooser without asking the user to type.
-        window.localStorage.setItem("scout:prefill:scout-main", "__SCOUT_ONBOARDING__");
+        const registeredId = (data as any)?.user?.id;
+        writeScoutExternalPrefill(
+          "__SCOUT_ONBOARDING__",
+          typeof registeredId === "string" && registeredId.trim() ? `user:${registeredId}` : null
+        );
       } catch {
         // ignore storage errors
       }

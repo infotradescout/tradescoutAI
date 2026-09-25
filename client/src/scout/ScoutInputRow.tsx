@@ -1,6 +1,10 @@
 import React from "react";
 import { Send, Sparkles } from "lucide-react";
-import { SCOUT_MAIN_INPUT_DRAFT_KEY } from "./scoutTaskDraftBoundary";
+import {
+  clearScoutInputDraft,
+  readScoutDraftForOwner,
+  writeScoutOwnedDraft,
+} from "./scoutTaskDraftBoundary";
 
 /* ----------------------------------------------------------
    ScoutInputRow — Morphic OS v2 Command Bar
@@ -19,6 +23,7 @@ interface ScoutInputRowProps {
   isBusy: boolean;
   prefillKey: number;
   forcedPrefill?: string;
+  draftOwner?: string | null;
   onSend: (value: string) => void;
   onTyping: () => void;
   hasMessages?: boolean;
@@ -38,6 +43,7 @@ export function ScoutInputRow({
   isBusy,
   prefillKey,
   forcedPrefill,
+  draftOwner = "guest",
   onSend,
   onTyping,
   hasMessages = false,
@@ -55,6 +61,7 @@ export function ScoutInputRow({
   const demoTimeoutRef = React.useRef<number | null>(null);
   const demoIntervalRef = React.useRef<number | null>(null);
   const sendTimeoutRef = React.useRef<number | null>(null);
+  const skipPersistForValueRef = React.useRef<string | null>(null);
 
   const clearDemoTimers = () => {
     if (typeof window === "undefined") return;
@@ -79,11 +86,7 @@ export function ScoutInputRow({
     // The inline input unmounts as soon as the first message enters the thread.
     // Consume its draft before that swap so the fixed input starts empty.
     setValue("");
-    try {
-      window.localStorage.removeItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
-    } catch {
-      /* ignore */
-    }
+    clearScoutInputDraft();
     try {
       await Promise.resolve(onSend(trimmed));
     } catch (err) {
@@ -127,29 +130,30 @@ export function ScoutInputRow({
     }
   };
 
-  // Load draft
+  // Load only this account's draft or a deliberate external handoff.
   React.useEffect(() => {
+    skipPersistForValueRef.current = value;
+    if (!draftOwner) {
+      setValue("");
+      return;
+    }
     if (forcedPrefill) {
       setValue(forcedPrefill);
       return;
     }
-    try {
-      const stored = window.localStorage.getItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
-      if (stored && !value) setValue(stored);
-    } catch {
-      /* ignore */
-    }
-  }, [forcedPrefill, prefillKey]);
+    setValue(readScoutDraftForOwner(draftOwner) || "");
+  }, [draftOwner, forcedPrefill, prefillKey]);
 
   // Persist draft
   React.useEffect(() => {
-    try {
-      if (value) window.localStorage.setItem(SCOUT_MAIN_INPUT_DRAFT_KEY, value);
-      else window.localStorage.removeItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
-    } catch {
-      /* ignore */
+    // The load effect runs first; do not erase its pending handoff on mount.
+    if (skipPersistForValueRef.current === value) {
+      skipPersistForValueRef.current = null;
+      return;
     }
-  }, [value]);
+    skipPersistForValueRef.current = null;
+    writeScoutOwnedDraft(value, draftOwner);
+  }, [draftOwner, value]);
 
   // Auto-demo
   React.useEffect(() => {
@@ -161,11 +165,7 @@ export function ScoutInputRow({
       /* ignore */
     }
     if (value.trim().length > 0) return;
-    try {
-      window.localStorage.removeItem(SCOUT_MAIN_INPUT_DRAFT_KEY);
-    } catch {
-      /* ignore */
-    }
+    clearScoutInputDraft();
     setIsTypingDemo(true);
     demoIndexRef.current = 0;
     demoTimeoutRef.current = window.setTimeout(() => {

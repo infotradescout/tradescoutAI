@@ -51,7 +51,15 @@ import {
 } from "lucide-react";
 import { ScoutInputRow } from "./ScoutInputRow";
 import ScoutSearchDock from "./ScoutSearchDock";
-import { useScoutTaskDraftBoundary } from "./scoutTaskDraftBoundary";
+import {
+  clearScoutInputDraft,
+  readScoutDraftForOwner,
+  takeScoutHelpIntentForOwner,
+  useScoutAccountBoundLaunchPrompt,
+  useScoutTaskDraftBoundary,
+  writeScoutExternalPrefill,
+  writeScoutOwnedDraft,
+} from "./scoutTaskDraftBoundary";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
@@ -1684,11 +1692,13 @@ function readScoutBrowserLocation(fallback: string): string {
 
 export default function ScoutOS() {
   const { user, isAuthenticated, isLoading: authLoading, error: authError } = useAuth();
-  const scoutReturnOwner = isAuthenticated
-    ? typeof user?.id === "string" && user.id.trim()
-      ? `user:${user.id}`
-      : null
-    : "guest";
+  const scoutReturnOwner = authLoading
+    ? null
+    : isAuthenticated
+      ? typeof user?.id === "string" && user.id.trim()
+        ? `user:${user.id}`
+        : null
+      : "guest";
   const { toast, dismiss } = useToast();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
@@ -1699,8 +1709,17 @@ export default function ScoutOS() {
     () => parseScoutLaunchLocation(scoutBrowserLocation),
     [scoutBrowserLocation]
   );
-  const [onboardingOutcomePrompt] = useState(() =>
-    scoutLaunch.context?.source === "onboarding_result" ? readOnboardingResultPrompt() : ""
+  const acceptedLaunchPrompt = useScoutAccountBoundLaunchPrompt(
+    scoutLaunch.signature,
+    scoutLaunch.prompt,
+    scoutReturnOwner
+  );
+  const onboardingOutcomePrompt = useMemo(
+    () =>
+      scoutLaunch.context?.source === "onboarding_result"
+        ? readOnboardingResultPrompt(scoutReturnOwner)
+        : "",
+    [scoutLaunch.context?.source, scoutReturnOwner]
   );
   const hasExplicitScoutLaunch = Boolean(scoutLaunch.context || scoutLaunch.prompt);
   const appliedLaunchPromptRef = useRef<string | null>(null);
@@ -2604,18 +2623,18 @@ export default function ScoutOS() {
 
   // Keep an explicit classic-to-Scout handoff as a user-reviewed draft.
   useEffect(() => {
-    if (!scoutLaunch.prompt) return;
+    if (!acceptedLaunchPrompt || !scoutReturnOwner) return;
     if (appliedLaunchPromptRef.current === scoutLaunch.signature) return;
 
     appliedLaunchPromptRef.current = scoutLaunch.signature;
     try {
-      window.localStorage.setItem("scout:prefill:scout-main", scoutLaunch.prompt);
+      writeScoutExternalPrefill(acceptedLaunchPrompt, scoutReturnOwner);
     } catch {
       // fail-soft: the visible context still survives without local storage
     }
     setHasGuestInteracted(true);
     setPrefillKey((key) => key + 1);
-  }, [scoutLaunch.prompt, scoutLaunch.signature]);
+  }, [acceptedLaunchPrompt, scoutLaunch.signature, scoutReturnOwner]);
 
   // Remove only the one-time prompt after it becomes a real user message.
   // The structured launch context stays in the URL for the rest of the conversation.
@@ -2630,15 +2649,16 @@ export default function ScoutOS() {
 
   // Clear stale drafts on a plain first guest visit, but never erase an explicit handoff.
   useEffect(() => {
+    if (authLoading) return;
     if (isFirstGuestVisit && !hasExplicitScoutLaunch && !appliedLaunchPromptRef.current) {
       try {
-        window.localStorage.removeItem("scout:prefill:scout-main");
+        clearScoutInputDraft();
       } catch {
         // ignore storage errors
       }
       setPrefillKey((k) => k + 1);
     }
-  }, [hasExplicitScoutLaunch, isFirstGuestVisit]);
+  }, [authLoading, hasExplicitScoutLaunch, isFirstGuestVisit]);
 
   const hasAdminAccess = hasAdminUiAccess(user);
   const showEvolutionSurfaces = SCOUT_EVOLUTION_SURFACES_ENABLED && hasAdminAccess;
@@ -2658,7 +2678,7 @@ export default function ScoutOS() {
 
         // Keep a censored draft in the input so the user can quickly edit.
         try {
-          window.localStorage.setItem("scout:prefill:scout-main", censorProfanity(value));
+          writeScoutOwnedDraft(censorProfanity(value), scoutReturnOwner);
         } catch {
           // ignore
         }
@@ -2899,6 +2919,7 @@ export default function ScoutOS() {
       sessionRole,
       setPrefillKey,
       scoutLaunch.context,
+      scoutReturnOwner,
       state.messages,
       refreshObjective,
       user,
@@ -3151,7 +3172,7 @@ export default function ScoutOS() {
   // The signature guard makes refreshes and React re-renders idempotent.
   useEffect(() => {
     if (scoutLaunch.context?.source !== "onboarding_result") return;
-    const confirmedPrompt = scoutLaunch.prompt || onboardingOutcomePrompt;
+    const confirmedPrompt = acceptedLaunchPrompt || onboardingOutcomePrompt;
     if (!confirmedPrompt) return;
     const outcomeSignature = `${scoutLaunch.signature}:${confirmedPrompt}`;
     if (consumedOutcomeLaunchRef.current === outcomeSignature) return;
@@ -3161,7 +3182,7 @@ export default function ScoutOS() {
     consumedOutcomeLaunchRef.current = outcomeSignature;
     clearOnboardingResultPrompt();
     try {
-      window.localStorage.removeItem("scout:prefill:scout-main");
+      clearScoutInputDraft();
     } catch {
       // fail-soft: the confirmed launch still submits without local storage
     }
@@ -3170,9 +3191,9 @@ export default function ScoutOS() {
     void handleSend(confirmedPrompt);
   }, [
     handleSend,
+    acceptedLaunchPrompt,
     onboardingOutcomePrompt,
     scoutLaunch.context?.source,
-    scoutLaunch.prompt,
     scoutLaunch.signature,
     shouldPlayIntroDemo,
     state.messages,
@@ -3207,22 +3228,23 @@ export default function ScoutOS() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!location.startsWith("/scout")) return;
+    if (!scoutReturnOwner) return;
 
     const hasUserMsgs = state.messages.some((m) => m.role === "user");
     if (hasUserMsgs) return;
     if (shouldPlayIntroDemo) return;
 
     try {
-      const marker = window.localStorage.getItem("scout:prefill:scout-main");
+      const marker = readScoutDraftForOwner(scoutReturnOwner);
       if (marker === "__SCOUT_ONBOARDING__") {
-        window.localStorage.removeItem("scout:prefill:scout-main");
+        clearScoutInputDraft();
         setPrefillKey((k) => k + 1);
         void handleSend("__SCOUT_ONBOARDING__");
       }
     } catch {
       // ignore storage errors
     }
-  }, [location, state.messages, shouldPlayIntroDemo, handleSend, setPrefillKey]);
+  }, [location, state.messages, shouldPlayIntroDemo, handleSend, scoutReturnOwner, setPrefillKey]);
 
   const handleClusterAction = useCallback(
     async (action: ScoutAction) => {
@@ -3309,7 +3331,7 @@ export default function ScoutOS() {
           openToolsDrawer: () => setToolsOpen(true),
           prefillInput: (text) => {
             try {
-              window.localStorage.setItem("scout:prefill:scout-main", text);
+              writeScoutExternalPrefill(text, scoutReturnOwner);
             } catch {
               // ignore
             }
@@ -3421,6 +3443,7 @@ export default function ScoutOS() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!location.startsWith("/scout")) return;
+    if (!scoutReturnOwner) return;
 
     const hasUserMsgs = state.messages.some((m) => m.role === "user");
     if (hasUserMsgs) return;
@@ -3428,31 +3451,24 @@ export default function ScoutOS() {
     if (shouldPlayIntroDemo) return;
 
     try {
-      const raw = window.localStorage.getItem("scout:help-intent");
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as { prompt?: string } | null;
-      if (!parsed || typeof parsed.prompt !== "string" || !parsed.prompt.trim()) {
-        window.localStorage.removeItem("scout:help-intent");
-        return;
-      }
+      const prompt = takeScoutHelpIntentForOwner(scoutReturnOwner);
+      if (!prompt) return;
 
       // Clear any stored prefill so the input is blank when the
       // help-center intent is auto-sent.
       try {
-        window.localStorage.removeItem("scout:prefill:scout-main");
+        clearScoutInputDraft();
       } catch {
         // ignore
       }
       setPrefillKey((k) => k + 1);
 
-      window.localStorage.removeItem("scout:help-intent");
       setHasGuestInteracted(true);
-      void handleSend(parsed.prompt);
+      void handleSend(prompt);
     } catch {
       // ignore storage/JSON errors
     }
-  }, [location, state.messages, handleSend, setPrefillKey, shouldPlayIntroDemo]);
+  }, [location, state.messages, handleSend, scoutReturnOwner, setPrefillKey, shouldPlayIntroDemo]);
 
   const heroLocationLabel = formatCityOnly({ label: locationCtx.label });
 
@@ -4029,13 +4045,13 @@ export default function ScoutOS() {
 
   const prefillScoutMission = useCallback((prompt: string) => {
     try {
-      window.localStorage.setItem("scout:prefill:scout-main", prompt);
+      writeScoutExternalPrefill(prompt, scoutReturnOwner);
     } catch {
       // ignore storage errors
     }
     setHasGuestInteracted(true);
     setPrefillKey((k) => k + 1);
-  }, []);
+  }, [scoutReturnOwner]);
 
   const applyMissionDraft = useCallback(
     (overrides?: Parameters<typeof composeMissionDraft>[0]) => {
@@ -4506,12 +4522,13 @@ export default function ScoutOS() {
                 <ScoutHome
                   primaryOutcomeInput={
                     <ScoutSearchDock
-                      key={`scout-task-draft-${taskDraftVersion}`}
+                      key={`scout-task-draft-${scoutReturnOwner ?? "unresolved"}:${taskDraftVersion}`}
                       isMobile={isMobile}
                       placement="inline"
                       isBusy={isBusy}
                       prefillKey={prefillKey}
-                      forcedPrefill={scoutLaunch.prompt}
+                      forcedPrefill={acceptedLaunchPrompt}
+                      draftOwner={scoutReturnOwner}
                       hasMessages={hasMessages}
                       quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                       autoDemoText=""
@@ -5116,11 +5133,12 @@ export default function ScoutOS() {
             {hasUserMessages ? (
               <div className="scout-input-bottom-pin order-3" data-testid="scout-task-composer">
                 <ScoutSearchDock
-                  key={`scout-task-draft-${taskDraftVersion}`}
+                  key={`scout-task-draft-${scoutReturnOwner ?? "unresolved"}:${taskDraftVersion}`}
                   isMobile={isMobile}
                   placement="fixed"
                   isBusy={isBusy}
                   prefillKey={prefillKey}
+                  draftOwner={scoutReturnOwner}
                   hasMessages={hasMessages}
                   quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                   autoDemoText=""

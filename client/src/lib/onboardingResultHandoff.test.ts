@@ -12,17 +12,18 @@ describe("private onboarding result handoff", () => {
   beforeEach(() => window.sessionStorage.clear());
 
   it("keeps the confirmed goal in session storage and consumes it once", () => {
-    storeOnboardingResultPrompt("  Find a mobile mechanic today  ");
+    storeOnboardingResultPrompt("  Find a mobile mechanic today  ", "user:A");
 
-    expect(window.sessionStorage.getItem(ONBOARDING_RESULT_PROMPT_KEY)).toBe(
-      "Find a mobile mechanic today"
-    );
-    expect(consumeOnboardingResultPrompt()).toBe("Find a mobile mechanic today");
-    expect(consumeOnboardingResultPrompt()).toBe("");
+    expect(JSON.parse(window.sessionStorage.getItem(ONBOARDING_RESULT_PROMPT_KEY) || "null")).toEqual({
+      owner: "user:A",
+      prompt: "Find a mobile mechanic today",
+    });
+    expect(consumeOnboardingResultPrompt("user:A")).toBe("Find a mobile mechanic today");
+    expect(consumeOnboardingResultPrompt("user:A")).toBe("");
   });
 
   it("does not persist an empty prompt", () => {
-    storeOnboardingResultPrompt("   ");
+    storeOnboardingResultPrompt("   ", "user:A");
     expect(window.sessionStorage.getItem(ONBOARDING_RESULT_PROMPT_KEY)).toBeNull();
   });
 
@@ -37,12 +38,22 @@ describe("private onboarding result handoff", () => {
       throw new DOMException("denied", "SecurityError");
     });
 
-    storeOnboardingResultPrompt("Find a mobile mechanic today");
-    expect(consumeOnboardingResultPrompt()).toBe("Find a mobile mechanic today");
-    expect(consumeOnboardingResultPrompt()).toBe("");
+    storeOnboardingResultPrompt("Find a mobile mechanic today", "user:A");
+    expect(consumeOnboardingResultPrompt("user:A")).toBe("Find a mobile mechanic today");
+    expect(consumeOnboardingResultPrompt("user:A")).toBe("");
 
     setItem.mockRestore();
     getItem.mockRestore();
     removeItem.mockRestore();
+  });
+
+  it("does not release A's confirmed result to B or accept an unmarked legacy prompt", () => {
+    storeOnboardingResultPrompt("A's private outcome", "user:A");
+    expect(consumeOnboardingResultPrompt("user:B")).toBe("");
+    expect(window.sessionStorage.getItem(ONBOARDING_RESULT_PROMPT_KEY)).toBeNull();
+
+    window.sessionStorage.setItem(ONBOARDING_RESULT_PROMPT_KEY, "Legacy private outcome");
+    expect(consumeOnboardingResultPrompt("user:B")).toBe("");
+    expect(window.sessionStorage.getItem(ONBOARDING_RESULT_PROMPT_KEY)).toBeNull();
   });
 });
