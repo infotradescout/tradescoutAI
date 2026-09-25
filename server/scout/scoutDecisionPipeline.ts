@@ -1,4 +1,5 @@
 import type { NormalizedScoutRequest, ScoutDecision } from "../../shared/types/scout";
+import { isExplicitProviderBrowseIntent } from "./scoutProviderBrowseIntent";
 
 export function runScoutDecisionPipeline(request: NormalizedScoutRequest): ScoutDecision {
   const raw = typeof request.message === "string" ? request.message.trim() : "";
@@ -9,6 +10,16 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
       type: "blocked",
       reason: "missing_message",
       requiresAuth: false,
+      metadata: { stage: "decision_pipeline" },
+    };
+  }
+
+  // A request to inspect providers is a search, even when the same sentence
+  // describes a repair. Keep it ahead of project intake and generic navigation.
+  if (isExplicitProviderBrowseIntent(raw)) {
+    return {
+      type: "server_behavior_handler",
+      behaviorKey: "contractor_search_routing",
       metadata: { stage: "decision_pipeline" },
     };
   }
