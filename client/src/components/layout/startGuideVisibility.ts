@@ -7,6 +7,7 @@ export function shouldAutoOpenStartGuideAtLocation(
   const path = location.split(/[?#]/, 1)[0];
   const isScoutDealDetail =
     /^\/deals\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path);
+  const isToolListingDetail = /^\/exchange\/tools\/[a-z0-9_-]{1,160}\/?$/i.test(path);
   const ownsTask =
     path === "/scout" ||
     path.startsWith("/scout/") ||
@@ -16,5 +17,5 @@ export function shouldAutoOpenStartGuideAtLocation(
     path.startsWith("/direct-connect/") ||
     /^\/business\/[^/]+$/i.test(path) ||
     /^\/community\/posts\/[^/]+$/i.test(path);
-  return !ownsTask && !isScoutDealDetail;
+  return !ownsTask && !isScoutDealDetail && !isToolListingDetail;
 }

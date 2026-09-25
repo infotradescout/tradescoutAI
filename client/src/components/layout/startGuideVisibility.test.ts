@@ -16,6 +16,16 @@ describe("automatic Start here guide", () => {
     expect(shouldAutoOpenStartGuideAtLocation("/deals/featured", true)).toBe(true);
   });
 
+  it("leaves an opened tool listing clear while keeping Exchange browsing orientation", () => {
+    const listing = "/exchange/tools/scout-tools-9a4739af9d-public";
+    expect(shouldAutoOpenStartGuideAtLocation(listing, true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation(`${listing}?from=scout`, true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation(`${listing}/`, true)).toBe(false);
+    expect(shouldAutoOpenStartGuideAtLocation("/exchange/tools", true)).toBe(true);
+    expect(shouldAutoOpenStartGuideAtLocation("/exchange/tools/", true)).toBe(true);
+    expect(shouldAutoOpenStartGuideAtLocation(`${listing}/extra`, true)).toBe(true);
+  });
+
   it("leaves an opened business result and county request clear for a first-time user", () => {
     expect(shouldAutoOpenStartGuideAtLocation("/contractors?county=04013", true)).toBe(false);
     expect(shouldAutoOpenStartGuideAtLocation("/find-local-businesses", true)).toBe(false);
