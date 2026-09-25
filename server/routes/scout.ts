@@ -3243,7 +3243,11 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           );
         }
       }
-      let fullMessage = intervention.userMessage;
+      let fullMessage = bareTradeClarification
+        ? normalizedFips
+          ? `Want me to look for public posts and businesses about ${bareTradeClarification} in your county? County TradeDeals may also appear. Nothing will be sent.`
+          : `Set your local area to look for public posts and businesses about ${bareTradeClarification}, or tell Scout what you need. Nothing will be sent.`
+        : intervention.userMessage;
 
       // Add next steps if present
       if (!bareTradeClarification && intervention.nextSteps && intervention.nextSteps.length > 0) {
@@ -3273,6 +3277,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
                   type: "ASK_SCOUT",
                   label: "Search county posts & deals",
                   prompt: `Find TradeScout posts and deals about ${bareTradeClarification} near me`,
+                  primary: true,
                 },
                 { type: "NAVIGATE", label: "Browse public businesses", to: "/contractors" },
               ]
@@ -3283,7 +3288,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
               communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
             }),
         sponsored: null,
-        overrideOption: intervention.overrideOption
+        overrideOption: !bareTradeClarification && intervention.overrideOption
           ? {
               ...intervention.overrideOption,
               contextType: "general",

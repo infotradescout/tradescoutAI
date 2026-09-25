@@ -1688,7 +1688,7 @@ export default function ScoutOS() {
       ? `user:${user.id}`
       : null
     : "guest";
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
   const [scoutBrowserLocation, setScoutBrowserLocation] = useState(() =>
@@ -1776,6 +1776,7 @@ export default function ScoutOS() {
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
   const deletingSavedThreadIdsRef = useRef(new Set<string>());
   const deletedSavedThreadIdsRef = useRef(new Set<string>());
+  const failedDeleteToastIdsRef = useRef(new Map<string, string>());
   const pendingSavedThreadWritesRef = useRef(new Map<string, Set<Promise<void>>>());
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
   const [savedScoutSurfaceFilter, setSavedScoutSurfaceFilter] =
@@ -2343,19 +2344,27 @@ export default function ScoutOS() {
           writeLocal: (threads) => writeSavedScoutThreads(scoutSaveUserId, threads),
         });
         deletedSavedThreadIdsRef.current.add(threadId);
+        const previousFailureToastId = failedDeleteToastIdsRef.current.get(threadId);
+        if (previousFailureToastId) {
+          dismiss(previousFailureToastId);
+          failedDeleteToastIdsRef.current.delete(threadId);
+        }
         setSavedScoutThreads(next);
         if (activeSavedThreadId === threadId) handleStartNewScoutThread();
       } catch {
-        toast({
+        const previousFailureToastId = failedDeleteToastIdsRef.current.get(threadId);
+        if (previousFailureToastId) dismiss(previousFailureToastId);
+        const failureToast = toast({
           title: "Saved task wasn't deleted",
           description: "The task is still available. Please try again.",
           variant: "destructive",
         });
+        failedDeleteToastIdsRef.current.set(threadId, failureToast.id);
       } finally {
         deletingSavedThreadIdsRef.current.delete(threadId);
       }
     },
-    [activeSavedThreadId, handleStartNewScoutThread, scoutSaveUserId, toast]
+    [activeSavedThreadId, dismiss, handleStartNewScoutThread, scoutSaveUserId, toast]
   );
 
   // First-time guest state: controls the calm intro + auto-demo gating.

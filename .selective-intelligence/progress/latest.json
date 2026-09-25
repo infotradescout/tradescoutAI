@@ -1,56 +1,66 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T015446Z-a991390e",
-  "createdAt": "2026-09-25T01:54:46.714839+00:00",
-  "outcome": "Present fresh bare-trade governor deferrals as a clear clarification with safe public search choices.",
+  "checkpointId": "progress-20260925T020605Z-4607419b",
+  "createdAt": "2026-09-25T02:06:05.684587+00:00",
+  "outcome": "Remove contradictory Scout status and expose the safe recovery action on phone.",
   "scope": [
-    "Scout bare-trade clarification completion"
+    "Scout bare-trade clarification, partial source retry, and saved-task delete toast"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Typed response metadata and focused parser/UI tests complete; 79/79 targeted tests, npm run check and git diff --check passed."
+      "Fresh bare-trade DEFER retains governor decision but shows concise source scope, primary governed public lookup, and no empty evidence chrome; partial source failure makes retry primary; saved-task success dismisses prior same-task failure toast. 95/95 focused tests, npm run check, git diff --check passed."
     ],
     "changedUnverified": [
-      "Exact-head browser journeys and unchanged full release gate pending for this final slice."
+      "Exact-head synthetic browser journeys, visual review, no-page source-read probe, and unchanged full release gate pending for this candidate."
     ],
     "proof": [
-      "npx vitest run client/src/scout/ScoutThread.evidence.test.ts server/tests/scout-county-fips.test.ts: 79 passed; npm run check: tsc passed; git diff --check passed."
+      "npx vitest run four Scout test files --silent: 95 passed; npm run check: tsc passed; git diff --check passed. 87e browser screenshots exposed the toast and retry defects; these are historical diagnostic evidence."
     ],
     "externalEffects": [
-      "Draft PR #716 source branch push only; no merge, production deployment, customer contact, or work request."
+      "Draft PR #716 branch push only; no merge, production deployment, customer contact, or work request."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Run all four synthetic exact-head browser journeys, inspect the clarification screen, then run the unchanged strict release gate and update draft PR evidence."
+    "nextSafeAction": "Run four synthetic exact-head browser journeys and isolated no-page fresh trade source-read probe, inspect immediate delete success and partial-error screens, then run unchanged strict release gate."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "3b8eeec171ef05dac3e6690072c2d4d5cdc4e8df",
+    "headBefore": "87e3f58610987ca55a4817ea883a142f4aaed6ad",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
+      " M client/src/scout/ScoutOS.tsx",
       " M client/src/scout/ScoutThread.evidence.test.ts",
-      " M client/src/scout/api.ts",
-      " M server/tests/scout-county-fips.test.ts"
+      " M client/src/scout/ScoutThread.tsx",
+      " M server/routes/scout.ts",
+      " M server/scout/scoutMixedDiscoveryRecovery.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/scout/api.ts",
-      "sha256": "c61af841ca848afe2f1d88af71a8e9960e4d432275611b2d2b438f5beda110d8"
+      "path": "client/src/scout/ScoutOS.tsx",
+      "sha256": "6f1fc197f43fa483ef98ed1b77dd7abb7d97b6be4a20576bdce5530496053075"
+    },
+    {
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "c0f1a4f7e5c973b5055ef8fa0fbb81ab6cc1d13fc0c9f05cba1afb3a41a1612d"
     },
     {
       "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "824ef7e97f9e2c98855b539287b4fe71dd99e0fd21c7f01b04e628f5343ad9ca"
+      "sha256": "b27cd9fb4de97ded1fa30b6d81e23f79be3b309a12bd5be40773396949b214c4"
     },
     {
-      "path": "server/tests/scout-county-fips.test.ts",
-      "sha256": "7da796720a33f5369c6de542f6b23454038430efe99850ee1b64b6227ae54c0c"
+      "path": "server/routes/scout.ts",
+      "sha256": "25ab4d62708d1a3326d53d0fdc3d0496407efc4869abd95585a0cc6123f87e1b"
+    },
+    {
+      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
+      "sha256": "612f0bb9d6b3fd951fa741ff5674806a54cd6c932fab7c9749722df7f220f9d6"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

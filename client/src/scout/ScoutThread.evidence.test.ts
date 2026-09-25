@@ -171,6 +171,7 @@ describe("ScoutThread evidence strip", () => {
       id: "a_bare_trade",
       role: "assistant",
       content: "What would you like to find about electrical?",
+      provenance: { sourceUsed: "governor" },
       resultContract: {
         contract_version: "scout_result.v1",
         intent: "code_query",
@@ -178,15 +179,31 @@ describe("ScoutThread evidence strip", () => {
         entities: [],
         evidence: [],
         answer: "What would you like to find about electrical?",
-        allowed_actions: [],
+        allowed_actions: [{
+          action_id: "act_1",
+          type: "ASK_SCOUT",
+          label: "Search county posts & deals",
+          prompt: "Find TradeScout posts and deals about electrical near me",
+          primary: true,
+          requires_confirmation: false,
+        }],
         working_memory_update: {},
       },
     };
 
-    expect(renderThread([{ ...baseMessage, metadata: { clarificationKind: "bare_trade" } }]))
+    const clarificationHtml = renderThread([{
+      ...baseMessage,
+      metadata: { clarificationKind: "bare_trade" },
+    }]);
+    expect(clarificationHtml)
       .toContain('class="scout-assistant-bubble__badge">Clarify request</span>');
+    expect(clarificationHtml).toContain('data-testid="scout-primary-next-action"');
+    expect(clarificationHtml).toContain("Search county posts &amp; deals");
+    expect(clarificationHtml).not.toContain("More ways to browse");
+    expect(clarificationHtml).not.toContain("Why this helps");
     expect(renderThread([baseMessage]))
       .toContain('class="scout-assistant-bubble__badge">Code Query</span>');
+    expect(renderThread([baseMessage])).toContain("Why this helps");
   });
 
   it("labels a mixed county discovery result as county results while rendering its post link", () => {

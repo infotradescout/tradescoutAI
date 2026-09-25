@@ -2033,6 +2033,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               <EvidenceStrip
                 msg={msg}
                 enabled={
+                  msg.metadata?.clarificationKind !== "bare_trade" &&
                   !hasExplicitMixedCoverage(msg, displayContent) &&
                   (showControllerExtras || Boolean(msg.resultContract))
                 }
