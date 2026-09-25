@@ -119,7 +119,10 @@ const SCOUT_REQUEST_REVIEW_TARGET = "/direct-connect/post?source=scout";
 export function prepareScoutCountyDraftHandoff(
   action: ScoutAction
 ): { kind: "not_applicable" } | { kind: "unavailable" } | { kind: "ready"; url: string } {
-  if (action.type !== "NAVIGATE" || (action.to ?? action.path) !== SCOUT_COUNTY_DRAFT_TARGET) {
+  if (
+    action.type !== "NAVIGATE" ||
+    ![SCOUT_COUNTY_DRAFT_TARGET, SCOUT_REQUEST_REVIEW_TARGET].includes(action.to ?? action.path ?? "")
+  ) {
     return { kind: "not_applicable" };
   }
 
@@ -135,13 +138,13 @@ export function prepareScoutCountyDraftHandoff(
   try {
     const url = stageDirectConnectEntryContext(
       { countyFips, stateCode, source: "scout" },
-      SCOUT_COUNTY_DRAFT_TARGET
+      SCOUT_REQUEST_REVIEW_TARGET
     );
     const parsed = new URL(url, window.location.origin);
     const stagedTokens = parsed.searchParams.getAll("staged");
     if (
       parsed.origin !== window.location.origin ||
-      parsed.pathname !== "/direct-connect" ||
+      parsed.pathname !== "/direct-connect/post" ||
       parsed.searchParams.get("source") !== "scout" ||
       parsed.searchParams.has("county") ||
       stagedTokens.length !== 1 ||
@@ -3215,9 +3218,9 @@ export default function ScoutOS() {
         const countyDraft = prepareScoutCountyDraftHandoff(action);
         if (countyDraft.kind === "unavailable") {
           toast({
-            title: "Couldn't open the county draft",
+            title: "Couldn't open request review",
             description:
-              "Scout couldn't keep your county with a private request draft. Nothing was sent. Please try again.",
+              "Scout couldn't keep your county for private request review. Nothing was sent. Please try again.",
             variant: "destructive",
           });
           return;

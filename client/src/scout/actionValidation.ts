@@ -35,6 +35,7 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/marketplace",
   "/notes",
   "/direct-connect",
+  "/direct-connect/post",
   "/direct-connect/pros",
   "/utilities/supply-run",
   "/utilities/supply-run/new",

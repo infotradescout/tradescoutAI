@@ -12,7 +12,7 @@ import ScoutThread, {
 } from "./ScoutThread";
 import ScoutSearchDock from "./ScoutSearchDock";
 import { ScoutInputRow } from "./ScoutInputRow";
-import { cancelScheduledScoutAutoRoute } from "./ScoutOS";
+import { cancelScheduledScoutAutoRoute, prepareScoutCountyDraftHandoff } from "./ScoutOS";
 import { validateAction } from "./actionValidation";
 import type { ScoutAction, ScoutMessage } from "./state";
 
@@ -746,7 +746,7 @@ describe("ScoutThread evidence strip", () => {
         answer,
         allowed_actions: [
           { action_id: "deal", type: "NAVIGATE", label: "Open promotional TradeDeal", target: dealPath, primary: false },
-          { action_id: "draft", type: "NAVIGATE", label: "Draft a request for my county", target: "/direct-connect?source=scout", primary: true },
+          { action_id: "draft", type: "NAVIGATE", label: "Review a local request privately", target: "/direct-connect/post?source=scout", payload: { countyFips: "04013" }, primary: true },
         ],
         working_memory_update: {},
       },
@@ -768,8 +768,9 @@ describe("ScoutThread evidence strip", () => {
     );
     expect(countyOffer?.querySelector("[data-testid='scout-primary-next-action']")).toBeNull();
     expect(container.querySelector("[data-testid='scout-primary-next-action']")?.textContent).toContain(
-      "Draft a request for my county"
+      "Review a local request privately"
     );
+    expect(container.querySelector("[data-testid='scout-request-review-action']")).toBeNull();
 
     const allPublicSourcesChecked: ScoutMessage = {
       ...message,
@@ -787,6 +788,97 @@ describe("ScoutThread evidence strip", () => {
     expect(checkedContainer.querySelector(".scout-result-no-topic-match")?.textContent).toContain(
       'No recent county post, public business, public tool listing, or public profile page matched “electrical”'
     );
+  });
+
+  it("shows one private request review action with normal county results and opens only the staged composer", () => {
+    const postPath = "/community/posts/scout-native-published-maricopa";
+    const message: ScoutMessage = {
+      id: "county_results_with_review",
+      role: "assistant",
+      content: "One published county post was found. Private requests were not checked. Nothing was sent.",
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 1, topicFiltered: false },
+          deals: { status: "checked", shownCount: 0, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: false },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{
+          id: "scout-native-published-maricopa",
+          type: "community_post",
+          name: "Published county post",
+          url: postPath,
+          match_reasons: ["Published in county"],
+        }],
+        evidence: [],
+        answer: "One published county post was found.",
+        allowed_actions: [
+          { action_id: "post", type: "NAVIGATE", label: "Open county post", target: postPath, primary: true },
+          { action_id: "review", type: "NAVIGATE", label: "Review a local request privately", target: "/direct-connect/post?source=scout", payload: { countyFips: "04013" }, primary: false },
+          { action_id: "community", type: "NAVIGATE", label: "Open recent Community", target: "/community-feed?geo=local&feed=recent" },
+        ],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const onAction = vi.fn();
+    const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+    const previousScrollTo = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollTo");
+    Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+      configurable: true,
+      value: vi.fn(),
+    });
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+    vi.stubGlobal("fetch", vi.fn());
+    try {
+      React.act(() => {
+        root.render(React.createElement(ScoutThread, { messages: [message], status: "idle", onAction }));
+      });
+      const buttons = container.querySelectorAll<HTMLButtonElement>("[data-testid='scout-request-review-action']");
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0].closest("details")).toBeNull();
+      expect(buttons[0].textContent).toContain("Review a local request privately");
+      expect(container.querySelector(".scout-result-request-review p")?.textContent).toContain("Nothing is sent");
+      expect(container.querySelector(".scout-result-secondary-actions")?.textContent).not.toContain("Review a local request privately");
+
+      React.act(() => buttons[0].click());
+      expect(onAction).toHaveBeenCalledTimes(1);
+      const action = onAction.mock.calls[0][0] as ScoutAction;
+      expect(action).toMatchObject({
+        type: "NAVIGATE",
+        to: "/direct-connect/post?source=scout",
+        payload: { countyFips: "04013" },
+      });
+      const handoff = prepareScoutCountyDraftHandoff(action);
+      expect(handoff.kind).toBe("ready");
+      if (handoff.kind === "ready") {
+        const destination = new URL(handoff.url, window.location.origin);
+        expect(destination.pathname).toBe("/direct-connect/post");
+        expect(destination.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
+        expect(handoff.url).not.toContain("04013");
+      }
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      React.act(() => root.unmount());
+      container.remove();
+      window.sessionStorage.clear();
+      vi.unstubAllGlobals();
+      actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+      if (previousScrollTo) {
+        Object.defineProperty(HTMLElement.prototype, "scrollTo", previousScrollTo);
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollTo");
+      }
+    }
   });
 
   it("gives a second county result a clear Open action and preserves Scout return navigation", () => {

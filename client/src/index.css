@@ -3795,6 +3795,26 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
   color: color-mix(in oklab, var(--theme-accent-primary) 82%, var(--text-primary));
 }
 
+.scout-result-request-review {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface-card);
+  padding: 10px;
+}
+
+.scout-result-request-review__action {
+  width: 100%;
+  min-height: 44px;
+  justify-content: space-between;
+}
+
+.scout-result-request-review p {
+  margin: 7px 1px 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .scout-result-action__icon {
   display: inline-flex;
   flex: 0 0 auto;

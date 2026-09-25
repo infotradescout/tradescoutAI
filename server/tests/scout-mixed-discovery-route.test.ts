@@ -159,6 +159,13 @@ describe("Scout mixed county discovery route", () => {
           primary: false,
         }),
         expect.objectContaining({ type: "NAVIGATE", target: "/contractors" }),
+        expect.objectContaining({
+          type: "NAVIGATE",
+          label: "Review a local request privately",
+          target: "/direct-connect/post?source=scout",
+          payload: { countyFips: "04013" },
+          primary: false,
+        }),
       ])
     );
     expect(response.body.entities.map((entity: { type: string }) => entity.type)).toEqual([
@@ -363,8 +370,8 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: "Draft a request for my county",
-          target: "/direct-connect?source=scout",
+          label: "Review a local request privately",
+          target: "/direct-connect/post?source=scout",
           payload: { countyFips: "04013" },
           primary: true,
         }),
@@ -569,7 +576,7 @@ describe("Scout mixed county discovery route", () => {
     expect(response.body.allowed_actions[0]?.prompt).toContain("public business profiles");
     expect(response.body.allowed_actions.filter((action: { primary?: boolean }) => action.primary)).toHaveLength(1);
     expect(response.body.allowed_actions).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Draft a request for my county" }),
+      expect.objectContaining({ label: "Review a local request privately" }),
     ]));
   });
 

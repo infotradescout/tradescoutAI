@@ -298,8 +298,8 @@ describe("Scout county lookup", () => {
     expect(promotionalOnly.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: "Open promotional TradeDeal", primary: false }),
       expect.objectContaining({
-        label: "Draft a request for my county",
-        to: "/direct-connect?source=scout",
+        label: "Review a local request privately",
+        to: "/direct-connect/post?source=scout",
         payload: { countyFips: "04013" },
         primary: true,
       }),
@@ -318,7 +318,7 @@ describe("Scout county lookup", () => {
       }),
     ]));
     expect(failed.actions).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Draft a request for my county" }),
+      expect.objectContaining({ label: "Review a local request privately" }),
     ]));
   });
 
@@ -480,7 +480,7 @@ describe("Scout county lookup", () => {
     expect(result.message).not.toContain('"plumbing" in the name');
   });
 
-  it("opens a county-bound private draft only after an all-source checked-empty result", () => {
+  it("offers county-bound private review after an all-source checked-empty result", () => {
     const result = buildScoutMixedDiscoveryRecovery({
       countyFips: "04013",
       countyLabel: "Maricopa County, AZ",
@@ -501,8 +501,8 @@ describe("Scout county lookup", () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: "NAVIGATE",
-          label: "Draft a request for my county",
-          to: "/direct-connect?source=scout",
+          label: "Review a local request privately",
+          to: "/direct-connect/post?source=scout",
           payload: { countyFips: "04013" },
           primary: true,
         }),
@@ -569,7 +569,7 @@ describe("Scout county lookup", () => {
       expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local search" }),
     ]);
     expect(failed.actions).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Draft a request for my county" }),
+      expect.objectContaining({ label: "Review a local request privately" }),
     ]));
   });
 
@@ -622,7 +622,7 @@ describe("Scout county lookup", () => {
       expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local search" }),
     ]);
     expect(partial.actions).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Draft a request for my county" }),
+      expect.objectContaining({ label: "Review a local request privately" }),
     ]));
   });
 

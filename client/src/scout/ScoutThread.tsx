@@ -1288,13 +1288,25 @@ function MessageExtras({
   const standalonePrimaryAction = remainingContractActions.find(
     ({ source }) => source.primary === true
   );
+  const requestReviewAction = remainingContractActions.find(
+    ({ source, action }) =>
+      source.action_id !== standalonePrimaryAction?.source.action_id &&
+      action.type === "NAVIGATE" &&
+      ["/direct-connect/post?source=scout", "/direct-connect?source=scout"].includes(
+        action.to ?? action.path ?? ""
+      ) &&
+      typeof action.payload?.countyFips === "string" &&
+      /^\d{5}$/.test(action.payload.countyFips)
+  );
   const sourceRetryPrimary = Boolean(
     standalonePrimaryAction?.action.type === "ASK_SCOUT" &&
     standalonePrimaryAction.action.label === "Retry local search" &&
     discoverySourceFailed
   );
   const secondaryContractActions = remainingContractActions.filter(
-    ({ source }) => source.action_id !== standalonePrimaryAction?.source.action_id
+    ({ source }) =>
+      source.action_id !== standalonePrimaryAction?.source.action_id &&
+      source.action_id !== requestReviewAction?.source.action_id
   );
   const hasContractActions = ambiguityActions.length > 0 || secondaryContractActions.length > 0;
   const hasContractEntities = contractEntities.length > 0;
@@ -1388,6 +1400,7 @@ function MessageExtras({
     hasContractEntities ||
     hasContractActions ||
     Boolean(standalonePrimaryAction) ||
+    Boolean(requestReviewAction) ||
     hasLegacyPrimaryAction ||
     hasAnswerDetails ||
     hasMixedDiscoveryCoverage ||
@@ -1482,7 +1495,7 @@ function MessageExtras({
           {noTopicMatches && (
             <p className="scout-result-no-topic-match">
               No {noTopicMatchSourceText} matched “{discoveryChecks?.topic}”.
-              Try another trade or draft a request for your county.
+              Try another trade or review a local request privately.
             </p>
           )}
           {topicMatchedEntities.length > 1 && (
@@ -1658,6 +1671,22 @@ function MessageExtras({
             </p>
           )}
         </details>
+      )}
+
+      {requestReviewAction && (
+        <div className="scout-result-request-review" aria-label="Private request review">
+          <button
+            type="button"
+            className="scout-result-action scout-result-request-review__action"
+            onClick={() => onAction?.(requestReviewAction.action)}
+            disabled={!onAction}
+            data-testid="scout-request-review-action"
+          >
+            {requestReviewAction.action.label}
+            <ArrowRight size={14} aria-hidden="true" />
+          </button>
+          <p>Edit the details before choosing whether to share. Nothing is sent from Scout.</p>
+        </div>
       )}
 
       {!sourceRetryPrimary && standalonePrimaryButton}
