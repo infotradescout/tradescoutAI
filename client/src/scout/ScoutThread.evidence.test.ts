@@ -166,6 +166,29 @@ describe("ScoutThread evidence strip", () => {
     expect(html).not.toContain("Search with Scout");
   });
 
+  it("labels a bare-trade governor clarification without relabeling other code queries", () => {
+    const baseMessage: ScoutMessage = {
+      id: "a_bare_trade",
+      role: "assistant",
+      content: "What would you like to find about electrical?",
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "code_query",
+        ambiguity_options: [],
+        entities: [],
+        evidence: [],
+        answer: "What would you like to find about electrical?",
+        allowed_actions: [],
+        working_memory_update: {},
+      },
+    };
+
+    expect(renderThread([{ ...baseMessage, metadata: { clarificationKind: "bare_trade" } }]))
+      .toContain('class="scout-assistant-bubble__badge">Clarify request</span>');
+    expect(renderThread([baseMessage]))
+      .toContain('class="scout-assistant-bubble__badge">Code Query</span>');
+  });
+
   it("labels a mixed county discovery result as county results while rendering its post link", () => {
     const response =
       "This Scout result includes 1 published county post from the last 7 days in Maricopa County, AZ. It does not verify deals, businesses, pages, tools, or other requests. Open Community or Businesses to continue; nothing was sent.";

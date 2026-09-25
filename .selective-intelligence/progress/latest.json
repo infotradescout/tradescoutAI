@@ -1,66 +1,56 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T015144Z-4e91bf45",
-  "createdAt": "2026-09-25T01:51:44.724120+00:00",
-  "outcome": "Present fresh bare-trade deferrals as a clarification with safe choices.",
+  "checkpointId": "progress-20260925T015446Z-a991390e",
+  "createdAt": "2026-09-25T01:54:46.714839+00:00",
+  "outcome": "Present fresh bare-trade governor deferrals as a clear clarification with safe public search choices.",
   "scope": [
-    "Scout bare-trade clarification source slice"
+    "Scout bare-trade clarification completion"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Fresh known-trade DEFER preserves governor action, suppresses generic next-step prose and navigation, offers an explicit public county lookup or area setup, and marks the response for a Clarify request badge."
+      "Typed response metadata and focused parser/UI tests complete; 79/79 targeted tests, npm run check and git diff --check passed."
     ],
     "changedUnverified": [
-      "Backend response metadata type and focused proof pending; npm run check currently fails on missing client response type; browser and release gate not run for this local slice."
+      "Exact-head browser journeys and unchanged full release gate pending for this final slice."
     ],
     "proof": [
-      "Existing ScoutThread and mixed route tests 69/69 passed, git diff --check passed. Source has one known TypeScript contract error to resolve next."
+      "npx vitest run client/src/scout/ScoutThread.evidence.test.ts server/tests/scout-county-fips.test.ts: 79 passed; npm run check: tsc passed; git diff --check passed."
     ],
     "externalEffects": [
-      "Local checkpoint commit only; not pushed, no production/customer effect."
+      "Draft PR #716 source branch push only; no merge, production deployment, customer contact, or work request."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Add typed clarificationKind to client response contract, focused tests, TypeScript check; push complete slice before browser proof."
+    "nextSafeAction": "Run all four synthetic exact-head browser journeys, inspect the clarification screen, then run the unchanged strict release gate and update draft PR evidence."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "1e14f97c6f9613f313d125d18ae70621acaef98c",
+    "headBefore": "3b8eeec171ef05dac3e6690072c2d4d5cdc4e8df",
     "checkpointCommit": "containing_commit",
-    "pushRequested": false,
-    "pushRemote": null,
+    "pushRequested": true,
+    "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/scout/ScoutOS.tsx",
-      " M client/src/scout/ScoutThread.tsx",
-      " M client/src/scout/state.ts",
-      " M server/routes/scout.ts",
-      " M server/scout/scoutCountyFips.ts"
+      " M client/src/scout/ScoutThread.evidence.test.ts",
+      " M client/src/scout/api.ts",
+      " M server/tests/scout-county-fips.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/scout/ScoutOS.tsx",
-      "sha256": "84f0dcbfdf6910ae49b0b386ae12058346299ce67a0bcd6751144903e8603ace"
+      "path": "client/src/scout/api.ts",
+      "sha256": "c61af841ca848afe2f1d88af71a8e9960e4d432275611b2d2b438f5beda110d8"
     },
     {
-      "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "4d052b05c51617d5b8798671ceb020856a8b9c89b755552dbae13746fbc8b2d2"
+      "path": "client/src/scout/ScoutThread.evidence.test.ts",
+      "sha256": "824ef7e97f9e2c98855b539287b4fe71dd99e0fd21c7f01b04e628f5343ad9ca"
     },
     {
-      "path": "client/src/scout/state.ts",
-      "sha256": "c45db146aa88c4af42b766d52a2449797224b2a3577f5d39b0ff1a6fe21728c9"
-    },
-    {
-      "path": "server/routes/scout.ts",
-      "sha256": "5b3c05a9100f3f4cdf928e49bd96113ff66e53e098f44a4b1bea1e4ab5f8eacc"
-    },
-    {
-      "path": "server/scout/scoutCountyFips.ts",
-      "sha256": "d896acbf9dd92e3b283c5dd34ebd86e9f89c2c4d1996e628c075a874d9468c57"
+      "path": "server/tests/scout-county-fips.test.ts",
+      "sha256": "7da796720a33f5369c6de542f6b23454038430efe99850ee1b64b6227ae54c0c"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

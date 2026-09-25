@@ -140,6 +140,7 @@ export interface ScoutBackendResponse {
   };
   timestamp?: string;
   metadata?: {
+    clarificationKind?: "bare_trade";
     discoveryTopic?: string | null;
     discoveryChecks?: unknown;
     intent?: string;

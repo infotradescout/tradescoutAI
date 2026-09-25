@@ -3,6 +3,7 @@ import {
   isMixedScoutDiscoveryRequest,
   isReadOnlyScoutTradeLookup,
   normalizeScoutCountyFips,
+  readBareScoutTrade,
   resolveScoutCountyDiscoveryArea,
   resolveScoutMixedDiscoveryFollowUp,
   requiresFreshScoutDiscovery,
@@ -36,6 +37,13 @@ const postedDeal: ScoutDealCandidate = {
 const dealNow = new Date("2026-09-23T18:00:00.000Z");
 
 describe("Scout county lookup", () => {
+  it("recognizes only a known bare trade for a clarification choice", () => {
+    expect(readBareScoutTrade(" electrical ")).toBe("electrical");
+    expect(readBareScoutTrade("electrical panel")).toBeNull();
+    expect(readBareScoutTrade("gas leak")).toBeNull();
+    expect(readBareScoutTrade("bypass")).toBeNull();
+  });
+
   it("treats only a bare trade noun in the exact public lookup as read-only", () => {
     const electrical =
       "Find TradeScout posts and deals about electrical in my county this week. Include public posts linked to requests and local businesses.";
