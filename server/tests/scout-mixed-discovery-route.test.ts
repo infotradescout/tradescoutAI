@@ -121,6 +121,15 @@ describe("Scout mixed county discovery route", () => {
       },
     });
     expect(response.body.answer).toContain("This Scout result includes");
+    expect(response.body.metadata.discoveryTopic).toBeNull();
+    expect(response.body.metadata.discoveryChecks).toEqual({
+      areaLabel: "Maricopa County, AZ",
+      posts: { status: "checked", shownCount: 1, timeWindow: "past_7_days", topicFiltered: false },
+      deals: { status: "checked", shownCount: 0, timeWindow: "active_now", topicFiltered: false },
+      businesses: { status: "checked", shownCount: 0, timeWindow: "not_filtered_to_week", topicFiltered: false },
+    });
+    expect(response.body.answer).toContain("These are county results, not matches for a specific topic");
+    expect(response.body.answer).toContain("What kind of work or item should Scout look for?");
     expect(response.body.answer).toContain("no eligible TradeDeals were returned");
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([
@@ -144,6 +153,64 @@ describe("Scout mixed county discovery route", () => {
       "Published county post linked to a request"
     );
     expect(JSON.stringify(response.body.entities[0])).not.toContain("workRequestId");
+  });
+
+  it("uses a natural topic follow-up to search public county posts and business names", async () => {
+    vi.mocked(listRecentScoutCountyPosts).mockResolvedValue([
+      {
+        id: "plumbing_post",
+        title: "Plumbing repair",
+        content: "Published request post",
+        createdAt: new Date(),
+        hasWorkRequest: true,
+      },
+      {
+        id: "unrelated_post",
+        title: "Roofing help",
+        content: "Published roofing post",
+        createdAt: new Date(),
+        hasWorkRequest: false,
+      },
+    ] as any);
+    publicDirectoryMock.mockResolvedValue({
+      status: 200,
+      body: {
+        items: [
+          { id: "plumbing_business", name: "Mesa Plumbing", slug: "mesa-plumbing", counties: [{ fips: "04013" }] },
+          { id: "unrelated_business", name: "Mesa Roofing", slug: "mesa-roofing", counties: [{ fips: "04013" }] },
+        ],
+      },
+    });
+
+    const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
+      message:
+        "Find TradeScout posts and deals about plumbing in my county this week. Include public posts linked to requests and local businesses.",
+      countyCode: "Maricopa County, AZ",
+      countyHint: "04013",
+      stateCode: "AZ",
+      history: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(listRecentScoutCountyPosts).toHaveBeenCalledWith("04013", expect.any(Date), "plumbing");
+    expect(publicDirectoryMock).toHaveBeenCalledWith(expect.objectContaining({
+      public: "1", countyFips: "04013", q: "plumbing",
+    }));
+    expect(response.body.metadata).toMatchObject({
+      discoveryTopic: "plumbing", postCheck: "checked", businessCheck: "checked",
+      discoveryChecks: {
+        posts: { status: "checked", shownCount: 1, topicFiltered: true },
+        deals: { status: "checked", shownCount: 0, topicFiltered: false },
+        businesses: { status: "checked", shownCount: 1, topicFiltered: true },
+      },
+    });
+    expect(response.body.entities.map((entity: { name: string }) => entity.name)).toEqual([
+      "Plumbing repair", "Mesa Plumbing",
+    ]);
+    expect(response.body.answer).toContain('with "plumbing" in the title or text');
+    expect(response.body.answer).toContain("Scout promotions were selected by county, not matched to your topic");
+    expect(JSON.stringify(response.body)).not.toMatch(/Roofing help|Mesa Roofing|unrelated_post|unrelated_business/);
+    expect(resolveKnowledgeMock).not.toHaveBeenCalled();
   });
 
   it("offers a broader user-controlled next step when all three county sources are checked-empty", async () => {
@@ -356,6 +423,11 @@ describe("Scout mixed county discovery route", () => {
       postCheck: "error",
       dealCheck: "error",
       businessCheck: "error",
+      discoveryChecks: {
+        posts: { status: "error", shownCount: 0 },
+        deals: { status: "error", shownCount: 0 },
+        businesses: { status: "error", shownCount: 0 },
+      },
     });
     expect(response.body.knowledge.layer).toBe(0);
     expect(response.body.knowledge.sources).toEqual([]);
@@ -363,6 +435,8 @@ describe("Scout mixed county discovery route", () => {
       "Published county posts from the last 7 days in Maricopa County, AZ could not be checked right now"
     );
     expect(response.body.answer).toContain("Scout promotions could not be checked right now");
+    expect(response.body.answer).toContain("The local checks are incomplete");
+    expect(response.body.answer).not.toContain("These are county results");
     expect(response.body.entities).toEqual([]);
     expect(response.body.allowed_actions).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: "ASK_SCOUT", primary: true })])

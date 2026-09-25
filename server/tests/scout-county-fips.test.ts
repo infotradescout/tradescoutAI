@@ -5,7 +5,10 @@ import {
   resolveScoutCountyDiscoveryArea,
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
-import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
+import {
+  buildScoutMixedDiscoveryRecovery,
+  extractScoutMixedDiscoveryTopic,
+} from "../scout/scoutMixedDiscoveryRecovery";
 import {
   buildScoutDealPath,
   isEligibleScoutDeal,
@@ -116,6 +119,102 @@ describe("Scout county lookup", () => {
       "Search TradeScout and my area for posts & deals and public business profiles. Include matching pages, tools and requests.";
     expect(isMixedScoutDiscoveryRequest(retryPrompt)).toBe(true);
     expect(requiresFreshScoutDiscovery(retryPrompt)).toBe(true);
+  });
+
+  it("keeps the screenshot's broad request topic-free and recognizes a plain-language refinement", () => {
+    const broad =
+      "Search TradeScout and my area for posts & deals in my county. Look in Site, Near me, Latest, assume I care about this week, and keep it simple. Include matching pages, tools, local results, posts, requests, and anything nearby that may help.";
+    const refined =
+      "Find TradeScout posts and deals about plumbing in my county this week. Include public posts linked to requests and local businesses.";
+    expect(extractScoutMixedDiscoveryTopic(broad)).toBeNull();
+    expect(extractScoutMixedDiscoveryTopic("Search TradeScout for nearby activity posts and deals in my county. Include requests.")).toBeNull();
+    expect(isMixedScoutDiscoveryRequest(refined)).toBe(true);
+    expect(extractScoutMixedDiscoveryTopic(refined)).toBe("plumbing");
+    expect(extractScoutMixedDiscoveryTopic("Search TradeScout for roofing posts and deals near me. Include requests.")).toBe("roofing");
+    expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about this week in my county. Include requests.")).toBeNull();
+    expect(extractScoutMixedDiscoveryTopic("Find TradeScout posts and deals about % in my county. Include requests.")).toBeNull();
+  });
+
+  it("labels untargeted items as county results and narrows only public post text and business names", () => {
+    const common = {
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      now: dealNow,
+      postCheck: "checked" as const,
+      dealCheck: "checked" as const,
+      businessCheck: "checked" as const,
+      communityPosts: [
+        { id: "post_plumbing", title: "Plumbing repair", createdAt: "2026-09-22T12:00:00.000Z" },
+        { id: "post_body", title: "Question", content: "Need plumbing advice", createdAt: "2026-09-22T11:00:00.000Z" },
+        { id: "post_unrelated", title: "Roofing request", createdAt: "2026-09-22T10:00:00.000Z" },
+      ],
+      deals: [postedDeal],
+      businesses: [
+        { id: "plumbing", name: "Mesa Plumbing", slug: "mesa-plumbing", counties: [{ fips: "04013" }] },
+        { id: "roofing", name: "Mesa Roofing", slug: "mesa-roofing", counties: [{ fips: "04013" }] },
+      ],
+    };
+    const county = buildScoutMixedDiscoveryRecovery(common);
+    expect(county.message).toContain("These are county results, not matches for a specific topic");
+    expect(county.actions).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Open county post" })]));
+    expect(county.entities).toHaveLength(6);
+
+    const plumbing = buildScoutMixedDiscoveryRecovery({ ...common, topic: "plumbing" });
+    expect(plumbing.entities.map((entity) => entity.name)).toEqual([
+      "Plumbing repair", "Question", "County tool rental offer", "Mesa Plumbing",
+    ]);
+    expect(plumbing.entities[0]?.match_reasons).toContain('Title or text includes "plumbing"');
+    expect(plumbing.entities[2]?.match_reasons).toContain("Selected by county; not matched to your topic");
+    expect(plumbing.entities[3]?.match_reasons).toContain('Business name includes "plumbing"');
+    expect(plumbing.message).toContain("Scout promotions were selected by county, not matched to your topic");
+    expect(plumbing.actions).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Open topic post" })]));
+    expect(JSON.stringify(plumbing)).not.toContain("Mesa Roofing");
+  });
+
+  it("does not mistake a topic miss or unavailable source for empty county inventory", () => {
+    const common = {
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      topic: "plumbing",
+      now: dealNow,
+      postCheck: "checked" as const,
+      dealCheck: "checked" as const,
+      businessCheck: "checked" as const,
+    };
+    const empty = buildScoutMixedDiscoveryRecovery(common);
+    expect(empty.message).toContain('for "plumbing"; none matched this topic');
+    expect(empty.message).toContain('public business names for "plumbing"');
+    expect(empty.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ to: "/community-feed?geo=local&feed=recent" }),
+    ]));
+    expect(empty.actions).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Change my area" }),
+    ]));
+    const promotionalOnly = buildScoutMixedDiscoveryRecovery({ ...common, deals: [postedDeal] });
+    expect(promotionalOnly.entities).toEqual([
+      expect.objectContaining({ type: "trade_deal" }),
+    ]);
+    expect(promotionalOnly.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Open promotional TradeDeal", primary: true }),
+      expect.objectContaining({
+        label: "Draft a request for my county",
+        to: "/direct-connect?source=scout",
+        payload: { countyFips: "04013" },
+        primary: false,
+      }),
+    ]));
+    const failed = buildScoutMixedDiscoveryRecovery({
+      ...common, postCheck: "error", businessCheck: "error", dealCheck: "error",
+    });
+    expect(failed.message).toContain("could not be checked right now");
+    expect(failed.message).not.toContain("none matched this topic");
+    expect(failed.entities).toEqual([]);
+    expect(failed.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "ASK_SCOUT", label: "Retry local search" }),
+    ]));
+    expect(failed.actions).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Draft a request for my county" }),
+    ]));
   });
 
   it("shows only dated, published county post evidence and working next surfaces", () => {

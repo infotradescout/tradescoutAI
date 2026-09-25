@@ -113,7 +113,10 @@ import {
   resolveScoutCountyDiscoveryArea,
   requiresFreshScoutDiscovery,
 } from "../scout/scoutCountyFips";
-import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
+import {
+  buildScoutMixedDiscoveryRecovery,
+  extractScoutMixedDiscoveryTopic,
+} from "../scout/scoutMixedDiscoveryRecovery";
 import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
 import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
 import { listPublicDirectoryBusinesses } from "./business-directory-public";
@@ -3501,6 +3504,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
     if (isMixedScoutDiscoveryRequest(message)) {
       const now = new Date();
+      const discoveryTopic = extractScoutMixedDiscoveryTopic(message);
       let postCheck: "not_checked" | "checked" | "error" = "not_checked";
       let communityPostItems: Array<{
         id: string;
@@ -3520,7 +3524,9 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       }> = [];
       if (normalizedFips) {
         try {
-          communityPostItems = await listRecentScoutCountyPosts(normalizedFips, now);
+          communityPostItems = discoveryTopic
+            ? await listRecentScoutCountyPosts(normalizedFips, now, discoveryTopic)
+            : await listRecentScoutCountyPosts(normalizedFips, now);
           postCheck = "checked";
         } catch (error) {
           console.error("Scout county post lookup unavailable:", error);
@@ -3553,6 +3559,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
             public: "1",
             countyFips: normalizedFips,
             claimed: "any",
+            ...(discoveryTopic ? { q: discoveryTopic } : {}),
             limit: 10,
             offset: 0,
           });
@@ -3591,6 +3598,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       const recovery = buildScoutMixedDiscoveryRecovery({
         countyFips: normalizedFips,
         countyLabel: countyArea.countyLabel,
+        topic: discoveryTopic,
         communityPosts: communityPostItems,
         postCheck,
         deals: scoutDeals,
@@ -3612,6 +3620,28 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           postCheck,
           dealCheck,
           businessCheck,
+          discoveryTopic,
+          discoveryChecks: {
+            areaLabel: countyArea.countyLabel || "your county",
+            posts: {
+              status: postCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "community_post").length,
+              timeWindow: "past_7_days",
+              topicFiltered: Boolean(discoveryTopic),
+            },
+            deals: {
+              status: dealCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "trade_deal").length,
+              timeWindow: "active_now",
+              topicFiltered: false,
+            },
+            businesses: {
+              status: businessCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "business").length,
+              timeWindow: "not_filtered_to_week",
+              topicFiltered: Boolean(discoveryTopic),
+            },
+          },
         },
         knowledge: {
           layer:

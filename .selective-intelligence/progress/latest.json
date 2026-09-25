@@ -1,49 +1,71 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T000202Z-19432d1a",
-  "createdAt": "2026-09-25T00:02:02.725875+00:00",
-  "outcome": "Businesses hides stale cards after a failed or pending same-query refresh",
+  "checkpointId": "progress-20260925T000221Z-033e17a2",
+  "createdAt": "2026-09-25T00:02:21.778521+00:00",
+  "outcome": "Scout county discovery distinguishes broad county results from topic matches",
   "scope": [
-    "Businesses public search UI and its focused behavior tests"
+    "Scout mixed discovery server and focused tests"
   ],
   "prohibitions": [
-    "Do not expose stale cards as current or submit customer requests during verification"
+    "Never expose private requests or call county promotions topic matches"
   ],
   "progress": {
     "completedVerified": [
-      "Reproduced retained actionable provider and directory cards, then fixed the pending and error states"
+      "Natural topic requests filter published seven-day county posts and public business names; county TradeDeals remain eligible promotions with topic caveat; topic misses preserve private draft option without submitting"
     ],
     "changedUnverified": [],
     "proof": [
-      "Focused DirectConnectPros React tests 11/11, integrated focused tests 93/93, TypeScript and diff check passed; synthetic local only"
+      "Server focused tests 26/26, executed disposable PostgreSQL lookup tests 2/2, integrated focused tests 93/93, TypeScript and diff check passed; DB stopped"
     ],
-    "externalEffects": [],
+    "externalEffects": [
+      "Disposable local PostgreSQL proof closed; automatic approval review blocked cleanup of owned npm/node cache with blocked by policy, no retry"
+    ],
     "doNotRepeat": [],
-    "nextSafeAction": "Preserve the Scout topic source and phone refinement slice, then run exact-head browser and release checks"
+    "nextSafeAction": "Preserve phone refinement and source-check metadata; run exact-head browser and release gate"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "f8d6da89e2d5fcfc7bfb76916f80584e127559b2",
+    "headBefore": "13bfdb45a8d8ac992b9130ab62943fd3db5b9f49",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
-      " M client/src/pages/direct-connect/DirectConnectPros.tsx"
+      " M server/routes/scout.ts",
+      " M server/scout/scoutCountyPostLookup.ts",
+      " M server/scout/scoutMixedDiscoveryRecovery.ts",
+      " M server/tests/scout-county-fips.test.ts",
+      " M server/tests/scout-county-post-lookup.db.test.ts",
+      " M server/tests/scout-mixed-discovery-route.test.ts"
     ],
-    "unrelatedChangeCountExcluded": 12
+    "unrelatedChangeCountExcluded": 6
   },
   "savedFiles": [
     {
-      "path": "client/src/pages/direct-connect/DirectConnectPros.tsx",
-      "sha256": "992a59a25308e5e3fc462466f6fccca5e359044204a45e98671bdbe7f413204e"
+      "path": "server/routes/scout.ts",
+      "sha256": "0b625441e19b28b0ab824733e22317825bfa0076dc1bca3175e535219cb9a95b"
     },
     {
-      "path": "client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
-      "sha256": "a34858d5cf7297319565d95df26f88f13c7e927e145ecbdd4952b5f630de87d5"
+      "path": "server/scout/scoutCountyPostLookup.ts",
+      "sha256": "fb603538bf09de4a682ddd69190e780931c9a57c8c7887fdb1a7329c1884e537"
+    },
+    {
+      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
+      "sha256": "c4767e61c9a32841f7efb8e003103923befb9ce142f31248477de364f5c36616"
+    },
+    {
+      "path": "server/tests/scout-county-fips.test.ts",
+      "sha256": "b33902423de3d035169accf16d9d462779fc24262a04e5c498a0227e076cccbf"
+    },
+    {
+      "path": "server/tests/scout-county-post-lookup.db.test.ts",
+      "sha256": "fe773f4922499b57315df3968f221dc780bb1791808076624f555ff9fb34ca8d"
+    },
+    {
+      "path": "server/tests/scout-mixed-discovery-route.test.ts",
+      "sha256": "8588ece6206f0558da5859193f6cdfe58ad9480389cd4913d36524b89cdb3c0e"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
