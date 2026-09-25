@@ -1151,6 +1151,19 @@ function MessageExtras({
     [msg.resultContract?.ambiguity_options]
   );
   const contractEntities = msg.resultContract?.entities || [];
+  const discoveryChecks = readDiscoveryChecks(msg);
+  const topicCountyOffers = discoveryChecks?.topic && !discoveryChecks.deals.topicFiltered
+    ? contractEntities.map((entity, index) => ({ entity, index })).filter(({ entity }) => entity.type === "trade_deal")
+    : [];
+  const topicMatchedEntities = contractEntities
+    .map((entity, index) => ({ entity, index }))
+    .filter(({ index }) => !topicCountyOffers.some((offer) => offer.index === index));
+  const noTopicMatches = Boolean(
+    discoveryChecks?.topic &&
+    discoveryChecks.posts.status === "checked" &&
+    discoveryChecks.businesses.status === "checked" &&
+    topicMatchedEntities.length === 0
+  );
   const entityActionIds = React.useMemo(() => {
     const ids = new Set<string>();
     for (const entity of contractEntities) {
@@ -1344,9 +1357,17 @@ function MessageExtras({
       )}
       {hasContractEntities && (
         <div className="scout-result-list space-y-2" aria-label="Scout results">
-          {contractEntities.length > 1 && (
+          {noTopicMatches && (
+            <p className="scout-result-no-topic-match">
+              No published county post or public business name matched “{discoveryChecks?.topic}”.
+              Try another trade or draft a request for your county.
+            </p>
+          )}
+          {topicMatchedEntities.length > 1 && (
             <div className="scout-result-list__guide">
-              <span>{contractEntities.length} results from checked sources</span>
+              <span>
+                {topicMatchedEntities.length} {discoveryChecks?.topic ? "topic matches" : "results from checked sources"}
+              </span>
               <button
                 type="button"
                 onClick={(event) => {
@@ -1371,6 +1392,9 @@ function MessageExtras({
           )}
           {contractEntities.map((entity, index) => {
             const entityName = entity.name || entity.type;
+            const countyOnlyOffer = Boolean(
+              discoveryChecks?.topic && entity.type === "trade_deal" && !discoveryChecks.deals.topicFiltered
+            );
             const safeUrl = validatedEntityUrl(entity.url);
             const inAppPath = safeUrl
               ? inAppScoutResultPath(
@@ -1384,7 +1408,7 @@ function MessageExtras({
                     action.type === "NAVIGATE" && (action.to || action.path) === safeUrl
                 )
               : undefined;
-            return (
+            const card = (
               <article
                 key={`${msg.id}-entity-${entity.id}`}
                 className="scout-result-card"
@@ -1436,12 +1460,12 @@ function MessageExtras({
                     type="button"
                     className={clsx(
                       "scout-result-action",
-                      entityAction.source.primary && "scout-result-action--primary"
+                      entityAction.source.primary && !countyOnlyOffer && "scout-result-action--primary"
                     )}
                     onClick={() => onAction?.(entityAction.action)}
                     disabled={!onAction}
                     data-testid={
-                      entityAction.source.primary ? "scout-primary-next-action" : undefined
+                      entityAction.source.primary && !countyOnlyOffer ? "scout-primary-next-action" : undefined
                     }
                   >
                     {entityAction.action.label}
@@ -1450,6 +1474,12 @@ function MessageExtras({
                 )}
               </article>
             );
+            return countyOnlyOffer ? (
+              <details key={`${msg.id}-county-offer-${entity.id}`} className="scout-county-offer">
+                <summary>County offer, not matched to {discoveryChecks?.topic}: {entityName}</summary>
+                {card}
+              </details>
+            ) : card;
           })}
         </div>
       )}
@@ -1961,9 +1991,13 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   {msg.resultContract && (
                     <span className="scout-assistant-bubble__badge">
                       {msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
-                        ? msg.resultContract.entities.length > 0
+                        ? msg.resultContract.entities.some((entity) =>
+                            readDiscoveryChecks(msg)?.topic
+                              ? entity.type === "community_post" || entity.type === "business"
+                              : true
+                          )
                           ? "County results"
-                          : "Scout update"
+                          : "County search"
                         : humanizeToken(msg.resultContract.intent)}
                     </span>
                   )}

@@ -1,51 +1,71 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T001625Z-76aa3a8f",
-  "createdAt": "2026-09-25T00:16:25.839243+00:00",
-  "outcome": "Route explicit read-only mixed county Scout searches through publication-gated discovery when a governor DEFER has no missing information; preserve BLOCK, REDIRECT, and DEFER with missing information.",
+  "checkpointId": "progress-20260925T002956Z-bd3c576d",
+  "createdAt": "2026-09-25T00:29:57.058093+00:00",
+  "outcome": "Make a zero-match trade search readable: show organic topic matches first, collapse county-only promotions with their real scope, prioritize the editable county draft, and use short task titles and county-search labels.",
   "scope": [
-    "Scout county discovery continuation"
+    "Scout topic-miss UX"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Added failing-then-passing route regression with governor interception and safety control tests."
+      "Observed c015 phone screenshot where an unrelated promotion dominated electrical zero-match results; corrected response action priority and client grouping."
     ],
     "changedUnverified": [],
     "proof": [
-      "scout-mixed-discovery-route.test.ts 12/12 passed; npm run check passed; 793 browser diagnostic confirmed DEFER with zero unknowns before fix."
+      "Scout county, route, and rendered UI focused tests 86/86; npm run check passed; git diff --check passed."
     ],
     "externalEffects": [
       "No production or customer side effects; only source branch push."
     ],
     "doNotRepeat": [
-      "Do not treat 793 browser proof as current-head proof after this commit."
+      "c015 synthetic browser receipts are diagnostic for this new head; do not relabel them as current proof."
     ],
-    "nextSafeAction": "Run exact-head synthetic browser journeys for county topic miss, checked-empty, source failure, stale Businesses refresh, and saved deletion, then the unchanged 16-step release gate."
+    "nextSafeAction": "Rerun exact-head Scout, source-fault, Businesses stale-refresh, and saved-delete synthetic browser journeys, then the unchanged 16-step gate and acceptance packet."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "793073bcdf722b6d98220d094ee8bcf4d7de9acc",
+    "headBefore": "c0159ca342056d1069c532a31d13464b6343542e",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M server/routes/scout.ts",
-      " M server/tests/scout-mixed-discovery-route.test.ts"
+      " M client/src/index.css",
+      " M client/src/scout/ScoutOS.tsx",
+      " M client/src/scout/ScoutThread.evidence.test.ts",
+      " M client/src/scout/ScoutThread.tsx",
+      " M server/scout/scoutMixedDiscoveryRecovery.ts",
+      " M server/tests/scout-county-fips.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/routes/scout.ts",
-      "sha256": "e52aeb539bb3f7245d035b7e4c5a4506ef34a5f4e4f8265884aecdb7ddc5cb9c"
+      "path": "client/src/index.css",
+      "sha256": "0ad31b2d35edec7f41cffa66b8df52f55f3121801ae88699fdf8fb402585895a"
     },
     {
-      "path": "server/tests/scout-mixed-discovery-route.test.ts",
-      "sha256": "bf3fcf1395a47339d8fd1b2b2a6b0b3d62b03cf6d3143609b2e95cb179eec501"
+      "path": "client/src/scout/ScoutOS.tsx",
+      "sha256": "4b75478bce398c857b93275b741663c8ef3e6661de93b5666f3a4b4311442cd9"
+    },
+    {
+      "path": "client/src/scout/ScoutThread.evidence.test.ts",
+      "sha256": "7b3260024d3d848a2834ff22f86ff5978b434047cb922aaa59aad32dcf7ad110"
+    },
+    {
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "7f59cc4fe489a56e2a729992caae7ab92da6e751b2ce485a1ba4f25a325c0125"
+    },
+    {
+      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
+      "sha256": "9cfc4c60780f6c11b919a7911af3e632cc70023fc7a511fba6d2cbdb53243228"
+    },
+    {
+      "path": "server/tests/scout-county-fips.test.ts",
+      "sha256": "cd122db485c69510bafddc9e896ebccc7dc18cd05e4d510967dc48f8d96166d4"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

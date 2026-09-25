@@ -3191,6 +3191,37 @@ body.ts-scout-active .scout-shell.scout-shell--active-task {
   text-underline-offset: 2px;
 }
 
+.scout-result-no-topic-match {
+  margin: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.scout-county-offer {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--surface-card);
+  padding: 0 0.75rem;
+}
+
+.scout-county-offer summary {
+  min-height: 44px;
+  padding: 0.65rem 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.scout-county-offer .scout-result-card {
+  margin: 0.25rem 0 0.75rem;
+}
+
 .scout-result-refine {
   border: 1px solid var(--border-subtle);
   border-radius: 0.75rem;

@@ -185,7 +185,11 @@ export function buildScoutMixedDiscoveryRecovery(input: {
         "Check current services and availability before contact",
       ],
     }));
-  const entities = [...postEntities, ...dealEntities, ...businessEntities];
+  // A county promotion is available by location, but is not a match for the
+  // user's topic. Put public topic matches ahead of it in the result contract.
+  const entities = topic
+    ? [...postEntities, ...businessEntities, ...dealEntities]
+    : [...postEntities, ...dealEntities, ...businessEntities];
   const sourceError =
     postCheck === "error" || input.dealCheck === "error" || input.businessCheck === "error";
   const checkedEmpty =
@@ -257,7 +261,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open promotional TradeDeal",
               to: dealEntities[0].url,
-              primary: postEntities.length === 0,
+              primary: !topic && postEntities.length === 0,
             },
           ]
         : []),
@@ -267,7 +271,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               type: "NAVIGATE",
               label: "Open local business profile",
               to: businessEntities[0].url,
-              primary: postEntities.length === 0 && dealEntities.length === 0,
+              primary: postEntities.length === 0 && (Boolean(topic) || dealEntities.length === 0),
             },
           ]
         : []),
@@ -289,7 +293,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
               label: "Draft a request for my county",
               to: "/direct-connect?source=scout",
               payload: { countyFips: input.countyFips },
-              primary: checkedEmpty,
+              primary: !sourceError && (checkedEmpty || checkedNoTopicMatches),
             },
           ]
         : []),

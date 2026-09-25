@@ -704,6 +704,10 @@ function titleForLocalPostsAndDealsRequest(value: string): string | null {
     .replace(/\s+/g, " ")
     .toLowerCase()
     .trim();
+  const topic = request.match(/^find tradescout posts?\s*(?:&|and)\s*deals? about (.+?) in my county\b/)?.[1];
+  if (topic && topic.length <= 60 && /^[\p{L}\p{N}][\p{L}\p{N} &'\/-]*$/u.test(topic)) {
+    return `${topic[0].toUpperCase()}${topic.slice(1)} in my county`;
+  }
   return /^search tradescout and my area for posts (?:&|and) deals in my county\b/.test(request)
     ? "Local posts & deals"
     : null;
@@ -1226,7 +1230,9 @@ function buildSavedScoutThread(
 
   return {
     id: existingId || `thread_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    title: summarizeThreadText(firstUserMessage.content, "Scout conversation"),
+    title:
+      titleForLocalPostsAndDealsRequest(firstUserMessage.content) ||
+      summarizeThreadText(firstUserMessage.content, "Scout conversation"),
     preview: summarizeThreadText(
       lastMessage?.content || firstUserMessage.content,
       "Saved Scout conversation"

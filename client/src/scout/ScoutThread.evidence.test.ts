@@ -310,6 +310,64 @@ describe("ScoutThread evidence strip", () => {
     expect(summary).not.toContain("no posts in Maricopa County");
   });
 
+  it("keeps a county-only promotion secondary when no public topic source matched", () => {
+    const dealPath = "/deals/00000000-0000-4000-8000-000000000205?county=04013";
+    const answer =
+      'Scout checked published county posts for "electrical"; none matched this topic. ' +
+      'Scout checked public business names for "electrical"; none matched this topic. ' +
+      'One county TradeDeal was not matched to your topic. Nothing was sent.';
+    const message: ScoutMessage = {
+      id: "a_topic_miss",
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryTopic: "electrical",
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 0, topicFiltered: true },
+          deals: { status: "checked", shownCount: 1, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: true },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{
+          id: "00000000-0000-4000-8000-000000000205",
+          type: "trade_deal",
+          name: "Maricopa tool discount",
+          url: dealPath,
+          match_reasons: ["Selected by county; not matched to your topic"],
+        }],
+        evidence: [],
+        answer,
+        allowed_actions: [
+          { action_id: "deal", type: "NAVIGATE", label: "Open promotional TradeDeal", target: dealPath, primary: false },
+          { action_id: "draft", type: "NAVIGATE", label: "Draft a request for my county", target: "/direct-connect?source=scout", primary: true },
+        ],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    container.innerHTML = renderThread([message]);
+
+    expect(container.querySelector(".scout-assistant-bubble__badge")?.textContent).toBe("County search");
+    expect(container.querySelector(".scout-result-no-topic-match")?.textContent).toContain(
+      'No published county post or public business name matched “electrical”'
+    );
+    const countyOffer = container.querySelector<HTMLDetailsElement>("details.scout-county-offer");
+    expect(countyOffer?.open).toBe(false);
+    expect(countyOffer?.querySelector("summary")?.textContent).toContain(
+      "County offer, not matched to electrical: Maricopa tool discount"
+    );
+    expect(countyOffer?.querySelector("[data-testid='scout-primary-next-action']")).toBeNull();
+    expect(container.querySelector("[data-testid='scout-primary-next-action']")?.textContent).toContain(
+      "Draft a request for my county"
+    );
+  });
+
   it("keeps an unaccompanied result link in the app so Scout can restore it on return", () => {
     const postPath = "/community/posts/scout-native-published-maricopa";
     const message: ScoutMessage = {
@@ -616,7 +674,7 @@ describe("ScoutThread evidence strip", () => {
       },
     };
     const noPostHtml = renderThread([recoveryMessage]);
-    expect(noPostHtml).toContain('class="scout-assistant-bubble__badge">Scout update</span>');
+    expect(noPostHtml).toContain('class="scout-assistant-bubble__badge">County search</span>');
     expect(noPostHtml).toContain("Maricopa County, AZ: no post verified in last 7 days;");
     expect(noPostHtml).toContain("Other sources unchecked. Nothing sent.");
 
@@ -645,7 +703,7 @@ describe("ScoutThread evidence strip", () => {
         "Other sources unchecked",
         "Nothing sent",
       ],
-      badge: "Scout update",
+      badge: "County search",
     },
     {
       name: "an unavailable county post source with no posted TradeDeals",
@@ -660,7 +718,7 @@ describe("ScoutThread evidence strip", () => {
         "Other sources unchecked",
         "Nothing sent",
       ],
-      badge: "Scout update",
+      badge: "County search",
     },
     {
       name: "an unavailable post source with a posted promotion",
@@ -1126,7 +1184,7 @@ describe("ScoutThread evidence strip", () => {
     expect(summary).toContain("Nothing sent");
     expect(container.textContent).toContain("More detail");
     expect(container.innerHTML).toContain(
-      'class="scout-assistant-bubble__badge">Scout update</span>'
+      'class="scout-assistant-bubble__badge">County search</span>'
     );
     const setupAction = [...container.querySelectorAll("button")].find((button) =>
       button.textContent?.includes("Set my local area")

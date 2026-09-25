@@ -161,11 +161,11 @@ describe("Scout county lookup", () => {
 
     const plumbing = buildScoutMixedDiscoveryRecovery({ ...common, topic: "plumbing" });
     expect(plumbing.entities.map((entity) => entity.name)).toEqual([
-      "Plumbing repair", "Question", "County tool rental offer", "Mesa Plumbing",
+      "Plumbing repair", "Question", "Mesa Plumbing", "County tool rental offer",
     ]);
     expect(plumbing.entities[0]?.match_reasons).toContain('Title or text includes "plumbing"');
-    expect(plumbing.entities[2]?.match_reasons).toContain("Selected by county; not matched to your topic");
-    expect(plumbing.entities[3]?.match_reasons).toContain('Business name includes "plumbing"');
+    expect(plumbing.entities[2]?.match_reasons).toContain('Business name includes "plumbing"');
+    expect(plumbing.entities[3]?.match_reasons).toContain("Selected by county; not matched to your topic");
     expect(plumbing.message).toContain("Scout promotions were selected by county, not matched to your topic");
     expect(plumbing.actions).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Open topic post" })]));
     expect(JSON.stringify(plumbing)).not.toContain("Mesa Roofing");
@@ -195,12 +195,12 @@ describe("Scout county lookup", () => {
       expect.objectContaining({ type: "trade_deal" }),
     ]);
     expect(promotionalOnly.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: "Open promotional TradeDeal", primary: true }),
+      expect.objectContaining({ label: "Open promotional TradeDeal", primary: false }),
       expect.objectContaining({
         label: "Draft a request for my county",
         to: "/direct-connect?source=scout",
         payload: { countyFips: "04013" },
-        primary: false,
+        primary: true,
       }),
     ]));
     const failed = buildScoutMixedDiscoveryRecovery({
