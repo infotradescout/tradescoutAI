@@ -146,31 +146,37 @@ function getProviderLocation(provider: ProviderCardProvider): string {
   if (serviceAreas.length > 0) return serviceAreas.slice(0, 2).join(", ");
   const city = String(provider.city || "").trim();
   const state = String(provider.state || provider.stateCode || "").trim();
-  return (
-    [city, state].filter(Boolean).join(", ") ||
-    String(provider.county || provider.countyName || "").trim()
-  );
+  if (city) return [city, state].filter(Boolean).join(", ");
+  const county = String(provider.county || provider.countyName || "").trim();
+  return county ? [county, state].filter(Boolean).join(", ") : "";
 }
 
-function formatProviderDistance(provider: ProviderCardProvider): string {
+function formatProviderDistance(provider: ProviderCardProvider): string | null {
   const distance = getProviderDistance(provider);
-  if (distance === null) return "Local service area";
+  if (distance === null) return null;
   if (distance < 0.1) return "Less than 0.1 miles away";
   return `${distance < 10 ? distance.toFixed(1) : Math.round(distance)} miles away`;
 }
 
+function getProviderAreaText(provider: ProviderCardProvider, areaLabel: string): string {
+  return getProviderLocation(provider) || `Listed for ${areaLabel}`;
+}
+
 function ProviderResultRow({
   provider,
+  areaLabel,
   selected,
   onSelect,
 }: {
   provider: ProviderCardProvider;
+  areaLabel: string;
   selected: boolean;
   onSelect: () => void;
 }) {
   const name = getProviderName(provider);
   const category = getProviderCategory(provider);
-  const location = getProviderLocation(provider);
+  const areaText = getProviderAreaText(provider, areaLabel);
+  const distanceText = formatProviderDistance(provider);
   const hasTrustEvidence = Boolean(
     provider.verifiedLicensed ||
     provider.verifiedInsured ||
@@ -204,14 +210,17 @@ function ProviderResultRow({
         <span className="block truncate text-sm font-semibold text-[color:var(--text-primary)]">
           {name}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
-          {[category, location].filter(Boolean).join(" · ") || formatProviderDistance(provider)}
-        </span>
+        {category && (
+          <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
+            {category}
+          </span>
+        )}
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[color:var(--text-secondary)]">
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
-            {formatProviderDistance(provider)}
+            {areaText}
           </span>
+          {distanceText && <span>{distanceText}</span>}
           {hasTrustEvidence && (
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
@@ -235,6 +244,7 @@ function ProviderResultRow({
 function BusinessesWorkspace({
   title,
   subtitle,
+  areaLabel,
   providers,
   selectedProvider,
   selectedProviderId,
@@ -242,12 +252,14 @@ function BusinessesWorkspace({
 }: {
   title: string;
   subtitle: string;
+  areaLabel: string;
   providers: ProviderCardProvider[];
   selectedProvider: ProviderCardProvider | null;
   selectedProviderId: string;
   onSelect: (providerId: string) => void;
 }) {
   if (providers.length === 0) return null;
+  const soleResultSelected = providers.length === 1 && Boolean(selectedProvider);
 
   return (
     <section
@@ -263,7 +275,14 @@ function BusinessesWorkspace({
           >
             {title}
           </h3>
-          <p className="text-xs text-[color:var(--text-secondary)]">{subtitle}</p>
+          <p className="text-xs text-[color:var(--text-secondary)]">
+            {soleResultSelected ? (
+              <>
+                <span className="lg:hidden">View this business’s public profile.</span>
+                <span className="hidden lg:inline">{subtitle}</span>
+              </>
+            ) : subtitle}
+          </p>
         </div>
         <Badge variant="outline" className="shrink-0 border-[color:var(--border-subtle)]">
           {providers.length} {providers.length === 1 ? "result" : "results"}
@@ -273,6 +292,8 @@ function BusinessesWorkspace({
         <ul
           aria-label="Business results"
           className={`max-h-[22rem] min-w-0 overflow-y-auto border-b border-[color:var(--border-subtle)] lg:order-1 lg:max-h-[38rem] lg:border-b-0 lg:border-r ${
+            soleResultSelected ? "hidden lg:block" : ""
+          } ${
             selectedProvider ? "order-2" : "order-1"
           }`}
           data-testid="business-results-list"
@@ -284,6 +305,7 @@ function BusinessesWorkspace({
             >
               <ProviderResultRow
                 provider={provider}
+                areaLabel={areaLabel}
                 selected={String(provider.id) === selectedProviderId}
                 onSelect={() => onSelect(String(provider.id))}
               />
@@ -308,7 +330,10 @@ function BusinessesWorkspace({
                 <CheckCircle2 className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
                 Selected business
               </div>
-              <ProviderCard contractor={selectedProvider} compact action="connect" />
+              <p className="mb-2 text-xs text-[color:var(--text-secondary)]">
+                {getProviderAreaText(selectedProvider, areaLabel)}
+              </p>
+              <ProviderCard contractor={selectedProvider} compact action="profile" />
             </div>
           ) : (
             <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center">
@@ -317,8 +342,7 @@ function BusinessesWorkspace({
                 Choose a business to inspect
               </p>
               <p className="mt-1 max-w-sm text-xs leading-5 text-[color:var(--text-secondary)]">
-                Selection shows public profile details here. Contact still continues through Direct
-                Connect.
+                Select a business, then open its public profile to review details.
               </p>
             </div>
           )}
@@ -472,7 +496,8 @@ export default function DirectConnectPros() {
 
   const {
     data: contractors = [],
-    isLoading,
+    isFetching: providerSearchFetching,
+    isSuccess: providerSearchSucceeded,
     isError: providerSearchFailed,
     refetch: retryProviderSearch,
   } = useQuery({
@@ -502,8 +527,9 @@ export default function DirectConnectPros() {
     },
   });
 
-  const hasResults = (contractors as any[])?.length > 0;
-  const showEmptyState = canQueryDirectory && !isLoading && !hasResults;
+  const hasResults =
+    !providerSearchFetching && !providerSearchFailed && (contractors as any[])?.length > 0;
+  const showEmptyState = canQueryDirectory && !providerSearchFetching && !hasResults;
   const areaLabel = effectiveCountyFips
     ? formatCountyLabel(effectiveCountyFips, effectiveStateCode)
     : effectiveStateCode || "your area";
@@ -521,13 +547,28 @@ export default function DirectConnectPros() {
   );
 
   useEffect(() => {
-    if (!workspaceHydrated || isLoading) return;
+    // An unavailable or in-flight source cannot prove that a saved selection is gone.
+    if (
+      !workspaceHydrated ||
+      !canQueryDirectory ||
+      providerSearchFetching ||
+      providerSearchFailed ||
+      !providerSearchSucceeded
+    ) return;
     if (selectedProviderId && !selectedProvider) setSelectedProviderId("");
-  }, [isLoading, selectedProvider, selectedProviderId, workspaceHydrated]);
+  }, [
+    canQueryDirectory,
+    providerSearchFailed,
+    providerSearchFetching,
+    providerSearchSucceeded,
+    selectedProvider,
+    selectedProviderId,
+    workspaceHydrated,
+  ]);
 
   const {
     data: directoryFallback = [],
-    isLoading: directoryFallbackLoading,
+    isFetching: directoryFallbackFetching,
     isError: directoryFallbackFailed,
     refetch: retryDirectoryFallback,
   } = useQuery<DirectoryBusinessFallback[]>({
@@ -559,15 +600,21 @@ export default function DirectConnectPros() {
     },
   });
 
+  // A failed or pending refresh can retain data from an earlier successful query.
+  // Keep those old listings out of the actionable search result surface.
+  const visibleDirectoryFallback =
+    directoryFallbackFailed || directoryFallbackFetching ? [] : directoryFallback;
+
   const showStateDirectoryFallback =
     showEmptyState &&
-    !directoryFallbackLoading &&
-    directoryFallback.length === 0 &&
+    !directoryFallbackFetching &&
+    !directoryFallbackFailed &&
+    visibleDirectoryFallback.length === 0 &&
     hasStateContext;
 
   const {
     data: stateDirectoryFallback = [],
-    isLoading: stateDirectoryFallbackLoading,
+    isFetching: stateDirectoryFallbackFetching,
     isError: stateDirectoryFallbackFailed,
     refetch: retryStateDirectoryFallback,
   } = useQuery<DirectoryBusinessFallback[]>({
@@ -597,22 +644,28 @@ export default function DirectConnectPros() {
     },
   });
 
+  const visibleStateDirectoryFallback =
+    stateDirectoryFallbackFailed || stateDirectoryFallbackFetching ? [] : stateDirectoryFallback;
+
   const fallbackLoading =
-    showEmptyState && (directoryFallbackLoading || stateDirectoryFallbackLoading);
+    showEmptyState &&
+    (directoryFallbackFetching || (showStateDirectoryFallback && stateDirectoryFallbackFetching));
   const tradeMatchesPending = tradesLoading && !tradeSlug && Boolean(searchQuery.trim());
   const tradeMatchesUnavailable = tradesLookupFailed && !tradeSlug && Boolean(searchQuery.trim());
+  const directorySearchFailed = showEmptyState && directoryFallbackFailed;
+  const stateDirectorySearchFailed = showStateDirectoryFallback && stateDirectoryFallbackFailed;
   const searchFailed =
     providerSearchFailed ||
-    directoryFallbackFailed ||
-    stateDirectoryFallbackFailed ||
+    directorySearchFailed ||
+    stateDirectorySearchFailed ||
     tradeMatchesUnavailable;
   const noPublicResults =
     showEmptyState &&
     !fallbackLoading &&
     !tradeMatchesPending &&
     !searchFailed &&
-    directoryFallback.length === 0 &&
-    stateDirectoryFallback.length === 0;
+    visibleDirectoryFallback.length === 0 &&
+    visibleStateDirectoryFallback.length === 0;
   const openCountyRequestDraft = () => {
     const county = effectiveCountyFips;
     const countyState = getCountyStateCode(county);
@@ -656,30 +709,32 @@ export default function DirectConnectPros() {
   };
   const profileCount = (contractors as ProviderCardProvider[]).length;
   const resultSummary =
-    !workspaceHydrated || isLoading
+    !workspaceHydrated || providerSearchFetching || fallbackLoading
       ? "Checking local businesses…"
       : providerSearchFailed
         ? "Local profiles could not be checked. Directory listings may still appear below."
+        : directorySearchFailed || stateDirectorySearchFailed
+          ? "Local business results are incomplete. Retry the search below."
         : tradeMatchesPending
           ? "Checking trade matches…"
           : tradeMatchesUnavailable
             ? "Trade matches could not be checked. Business-name results may still appear below."
             : `${profileCount} matching public ${profileCount === 1 ? "profile" : "profiles"}${
-                directoryFallback.length
-                  ? ` · ${directoryFallback.length} additional local ${directoryFallback.length === 1 ? "listing" : "listings"}`
+                visibleDirectoryFallback.length
+                  ? ` · ${visibleDirectoryFallback.length} additional local ${visibleDirectoryFallback.length === 1 ? "listing" : "listings"}`
                   : ""
               }${
-                stateDirectoryFallback.length
-                  ? ` · ${stateDirectoryFallback.length} more in ${effectiveStateCode}`
+                visibleStateDirectoryFallback.length
+                  ? ` · ${visibleStateDirectoryFallback.length} more in ${effectiveStateCode}`
                   : ""
-              }${fallbackLoading ? " · checking more listings…" : ""}`;
+              }`;
 
   useEffect(() => {
     const query = searchQuery.trim() || effectiveTradeSlug;
     if (
       !query ||
       !canQueryDirectory ||
-      isLoading ||
+      providerSearchFetching ||
       searchFailed ||
       fallbackLoading ||
       tradeMatchesPending
@@ -687,9 +742,9 @@ export default function DirectConnectPros() {
       return;
 
     const resultCount =
-      ((contractors as any[]) || []).length +
-      directoryFallback.length +
-      stateDirectoryFallback.length;
+      (hasResults ? ((contractors as any[]) || []).length : 0) +
+      visibleDirectoryFallback.length +
+      visibleStateDirectoryFallback.length;
     const key = JSON.stringify([
       query.toLowerCase(),
       effectiveStateCode,
@@ -718,18 +773,21 @@ export default function DirectConnectPros() {
     canQueryDirectory,
     contractors,
     directoryFallback,
-    directoryFallbackLoading,
+    directoryFallbackFetching,
     effectiveCountyFips,
     effectiveStateCode,
     effectiveTradeSlug,
     fallbackLoading,
-    isLoading,
+    hasResults,
+    providerSearchFetching,
     searchQuery,
     searchFailed,
     showEmptyState,
     stateDirectoryFallback,
-    stateDirectoryFallbackLoading,
+    stateDirectoryFallbackFetching,
     tradeMatchesPending,
+    visibleDirectoryFallback,
+    visibleStateDirectoryFallback,
   ]);
 
   const handleStateChange = (value: string) => {
@@ -953,7 +1011,7 @@ export default function DirectConnectPros() {
         </div>
       </section>
 
-      {(!workspaceHydrated || isLoading) && (
+      {(!workspaceHydrated || providerSearchFetching) && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-40 rounded bg-[color:var(--surface-intermediate)]" />
@@ -972,8 +1030,8 @@ export default function DirectConnectPros() {
             <p>
               {tradeMatchesUnavailable &&
               !providerSearchFailed &&
-              !directoryFallbackFailed &&
-              !stateDirectoryFallbackFailed
+              !directorySearchFailed &&
+              !stateDirectorySearchFailed
                 ? "We couldn’t check trade matches. Business-name results may be incomplete."
                 : "We couldn’t finish checking local businesses. Please try again."}
             </p>
@@ -983,8 +1041,8 @@ export default function DirectConnectPros() {
               variant="outline"
               onClick={() => {
                 if (providerSearchFailed) void retryProviderSearch();
-                if (directoryFallbackFailed) void retryDirectoryFallback();
-                if (stateDirectoryFallbackFailed) void retryStateDirectoryFallback();
+                if (directorySearchFailed) void retryDirectoryFallback();
+                if (stateDirectorySearchFailed) void retryStateDirectoryFallback();
                 if (tradeMatchesUnavailable) void retryTrades();
               }}
             >
@@ -1006,27 +1064,25 @@ export default function DirectConnectPros() {
                 : `No public businesses in ${areaLabel} yet.`}
             </p>
             <p>
-              Change your search or describe what you need. You review a local request before
-              anything is shared.
+              {effectiveCountyFips
+                ? "Try another area or adjust the search. You can review a local request before anything is shared."
+                : "Choose a county or adjust the search to keep looking."}
             </p>
-            {effectiveCountyFips && (
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 type="button"
                 size="sm"
-                className="h-auto min-h-11 max-w-full whitespace-normal py-2 text-center"
-                onClick={openCountyRequestDraft}
-                data-testid="businesses-empty-request"
+                className="min-h-11"
+                onClick={() => {
+                  setShowOutsideArea(true);
+                  document
+                    .getElementById("businesses-workspace-heading")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                data-testid="businesses-empty-change-area"
               >
-                Describe what I need
+                Change area
               </Button>
-            )}
-            {!effectiveCountyFips && <p>Choose a county before starting a local request.</p>}
-            {draftHandoffFailed && (
-              <p role="alert" data-testid="businesses-draft-handoff-error">
-                We couldn’t open a request with this county. Choose your area and try again.
-              </p>
-            )}
-            <div className="flex flex-wrap items-center justify-center gap-2">
               {searchActive && (
                 <Button
                   type="button"
@@ -1040,25 +1096,29 @@ export default function DirectConnectPros() {
                   Clear filters
                 </Button>
               )}
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setShowOutsideArea(true);
-                  document
-                    .getElementById("businesses-workspace-heading")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                Change area
-              </Button>
+              {effectiveCountyFips && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-auto min-h-11 max-w-full whitespace-normal py-2 text-center"
+                  onClick={openCountyRequestDraft}
+                  data-testid="businesses-empty-request"
+                >
+                  Describe what I need
+                </Button>
+              )}
             </div>
+            {draftHandoffFailed && (
+              <p role="alert" data-testid="businesses-draft-handoff-error">
+                We couldn’t open a request with this county. Choose your area and try again.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {showEmptyState && directoryFallbackLoading && (
+      {showEmptyState && directoryFallbackFetching && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
@@ -1068,7 +1128,7 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showEmptyState && directoryFallback.length > 0 && (
+      {showEmptyState && visibleDirectoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
             <CardTitle className="text-sm">More local businesses</CardTitle>
@@ -1078,7 +1138,7 @@ export default function DirectConnectPros() {
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {directoryFallback.map((business) => {
+            {visibleDirectoryFallback.map((business) => {
               const county = business.counties?.[0];
               return (
                 <div
@@ -1124,8 +1184,8 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showStateDirectoryFallback && stateDirectoryFallbackLoading && (
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+      {showStateDirectoryFallback && stateDirectoryFallbackFetching && (
+        <Card data-testid="businesses-state-fallback-loading" className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
             <div className="h-20 rounded bg-[color:var(--surface-intermediate)]" />
@@ -1134,7 +1194,7 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showStateDirectoryFallback && stateDirectoryFallback.length > 0 && (
+      {showStateDirectoryFallback && visibleStateDirectoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
             <CardTitle className="text-sm">Additional results in {effectiveStateCode}</CardTitle>
@@ -1144,7 +1204,7 @@ export default function DirectConnectPros() {
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {stateDirectoryFallback.map((business) => {
+            {visibleStateDirectoryFallback.map((business) => {
               const county = business.counties?.[0];
               return (
                 <div
@@ -1183,8 +1243,9 @@ export default function DirectConnectPros() {
 
       {hasResults && (
         <BusinessesWorkspace
-          title={searchActive ? "Best nearby matches" : "Businesses near you"}
-          subtitle="Select a row to inspect one public profile without losing your place."
+          title={searchActive ? "Matching businesses" : "Business results"}
+          subtitle="Select a business, then view its public profile."
+          areaLabel={areaLabel}
           providers={distanceFirstProviders}
           selectedProvider={selectedProvider}
           selectedProviderId={selectedProviderId}

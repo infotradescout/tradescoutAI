@@ -53,6 +53,7 @@ import { isRecommendationActionPath } from "@shared/recommendationContinuation";
 import { isStoneInquiryPath, stoneListingPath } from "@shared/exchangeStoneBuyerFlow";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 import { shouldAutoOpenStartGuideAtLocation } from "./startGuideVisibility";
+import { isEmbeddedScoutRequestReview } from "./scoutRequestReviewEmbed";
 
 export type NavItem = {
   label: string;
@@ -552,7 +553,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   );
 
   const currentPath = location.split("?")[0].split("#")[0];
-  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
+  const embeddedRequestReview = isEmbeddedScoutRequestReview(location);
+  const showFeatureNav = !embeddedRequestReview && !isAuthOrSetupSurface && !isAdminSurface;
   const appOwnsSurfaceOrientation =
     currentPath === "/scout" ||
     currentPath.startsWith("/scout/") ||
@@ -565,7 +567,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     currentPath.startsWith("/community-post/") ||
     currentPath.startsWith("/direct-connect/opportunities") ||
     currentPath.startsWith("/direct-connect/employment");
-  const showSurfaceOrientation = !appOwnsSurfaceOrientation;
+  const showSurfaceOrientation = !embeddedRequestReview && !appOwnsSurfaceOrientation;
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const publicProfileContinuation = useMemo(
     () => parsePublicProfileContinuation(location),
@@ -735,13 +737,17 @@ export function AppShell({ children, footer }: AppShellProps) {
   // Set CSS variables for nav sizing (Step 2)
   useEffect(() => {
     const root = document.documentElement;
-    const topNavHeight = isMobile ? "calc(48px + env(safe-area-inset-top))" : "56px";
-    const bottomNavHeight = isMobile ? "calc(62px + env(safe-area-inset-bottom))" : "0px";
+    const topNavHeight = embeddedRequestReview
+      ? "0px"
+      : isMobile ? "calc(48px + env(safe-area-inset-top))" : "56px";
+    const bottomNavHeight = embeddedRequestReview
+      ? "0px"
+      : isMobile ? "calc(62px + env(safe-area-inset-bottom))" : "0px";
 
     root.style.setProperty("--top-nav-h", topNavHeight);
     root.style.setProperty("--bottom-nav-h", bottomNavHeight);
     root.style.setProperty("--right-nav-w", "256px");
-  }, [isMobile]);
+  }, [embeddedRequestReview, isMobile]);
 
   // Rehydrate canonical location into the session layer on boot so that
   // useLocationContext can resolve a single authoritative source. Server
@@ -819,7 +825,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
       {/* TOP APP NAV HEADER (MOBILE/COMPACT) */}
-      {!isAdminSurface && isMobile ? (
+      {!isAdminSurface && !embeddedRequestReview && isMobile ? (
         <header
           className="ts-shell-header-mobile fixed top-0 inset-x-0 z-50 flex items-center px-3 md:hidden"
           style={{
@@ -935,7 +941,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             )}
           </div>
         </header>
-      ) : !isAdminSurface ? (
+      ) : !isAdminSurface && !embeddedRequestReview ? (
         <header
           className={`ts-shell-header fixed top-0 inset-x-0 z-40 glass-header flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
@@ -1102,7 +1108,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           touch-pan-y
         `}
         style={{
-          top: isAdminSurface ? 0 : "var(--top-nav-h)",
+          top: isAdminSurface || embeddedRequestReview ? 0 : "var(--top-nav-h)",
           bottom: showFeatureNav && isMobile ? "var(--bottom-nav-h)" : 0,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
           background: "transparent",
@@ -1341,7 +1347,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       )}
 
       {/* Desktop-only legal footer, used by standalone content pages when supplied. */}
-      {!isMobile && footer && (
+      {!isMobile && !embeddedRequestReview && footer && (
         <div
           className="border-t"
           style={{ borderColor: "var(--border-secondary)", background: "var(--surface-app-bg)" }}

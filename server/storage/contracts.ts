@@ -779,8 +779,12 @@ export interface IStorage {
   // Listings
   getMarketplaceListings(filters?: {
     publicExposureOnly?: boolean;
+    /** Scout's local tools lookup only: require the completed listing approval gate. */
+    requireApproved?: boolean;
     categoryId?: string;
     county?: string;
+    /** Exact canonical FIPS, county name, and short-name aliases; scoped before LIMIT. */
+    countyAliases?: string[];
     state?: string;
     preferredCountyFips?: string;
     preferredCountyName?: string;
@@ -789,6 +793,8 @@ export interface IStorage {
     priceMax?: number;
     condition?: string;
     searchQuery?: string;
+    /** Whole-word topic tokens within title or description; scoped before LIMIT. */
+    publicToolTopic?: string;
     sortBy?: "price_asc" | "price_desc" | "date_desc" | "date_asc";
     limit?: number;
     offset?: number;

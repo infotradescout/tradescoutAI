@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { writeScoutExternalPrefill } from "@/scout/scoutTaskDraftBoundary";
 
 export function ScoutContinueBanner({ className }: { className?: string }) {
   const { user, isAuthenticated } = useAuth();
@@ -19,7 +20,10 @@ export function ScoutContinueBanner({ className }: { className?: string }) {
   const prompt = resume.prompt as string;
   const onContinue = () => {
     try {
-      window.localStorage.setItem("scout:prefill:scout-main", prompt);
+      writeScoutExternalPrefill(
+        prompt,
+        typeof user?.id === "string" && user.id.trim() ? `user:${user.id}` : null
+      );
     } catch {
       // Scout still opens even when local draft storage is unavailable.
     }

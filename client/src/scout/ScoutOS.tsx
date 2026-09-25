@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { createClientOperationId } from "@/lib/clientOperationId";
 import { useIsMobile } from "../hooks/use-mobile";
 import { useScoutController } from "./useScoutController";
 import { useScoutReturnRestoration } from "./useScoutReturnRestoration";
@@ -17,16 +16,6 @@ import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import { apiBase, sendToScout, logScoutInsight, type ScoutLocality, type ScoutMode } from "./api";
 import { executeScoutActions } from "./ScoutActionRouter";
@@ -62,6 +51,16 @@ import {
 } from "lucide-react";
 import { ScoutInputRow } from "./ScoutInputRow";
 import ScoutSearchDock from "./ScoutSearchDock";
+import {
+  clearScoutInputDraft,
+  prepareScoutLaunchContinuationPath,
+  readScoutDraftForOwner,
+  takeScoutHelpIntentForOwner,
+  useScoutAccountBoundLaunch,
+  useScoutTaskDraftBoundary,
+  writeScoutExternalPrefill,
+  writeScoutOwnedDraft,
+} from "./scoutTaskDraftBoundary";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
@@ -90,7 +89,7 @@ import { persistScoutLearningSignalLocally } from "./scoutLearningOptions";
 import { type ScoutSourceSignalSnapshot } from "./scoutExperience";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
-import { ScoutHome } from "./ScoutHome";
+import { getMeaningfulContinuations, ScoutContinuationList, ScoutHome } from "./ScoutHome";
 import WatchdogInterventionBanner from "./WatchdogInterventionBanner";
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
@@ -125,12 +124,23 @@ const AUTO_ROUTE_DEFAULT_ENABLED = false;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
 const SCOUT_COUNTY_DRAFT_TARGET = "/direct-connect?source=scout";
+const SCOUT_REQUEST_REVIEW_TARGET = "/direct-connect/post?source=scout";
 
 export function prepareScoutCountyDraftHandoff(
   action: ScoutAction
 ): { kind: "not_applicable" } | { kind: "unavailable" } | { kind: "ready"; url: string } {
-  if (action.type !== "NAVIGATE" || (action.to ?? action.path) !== SCOUT_COUNTY_DRAFT_TARGET) {
+  if (action.type !== "NAVIGATE") {
     return { kind: "not_applicable" };
+  }
+
+  const target = action.to ?? action.path ?? "";
+  if (target === "/direct-connect") return { kind: "not_applicable" };
+  if (![SCOUT_COUNTY_DRAFT_TARGET, SCOUT_REQUEST_REVIEW_TARGET].includes(target)) {
+    // A near-match must not bypass private staging and open in the work-area iframe.
+    return target.startsWith("/direct-connect/post") ||
+      target.split(/[?#]/, 1)[0] === "/direct-connect"
+      ? { kind: "unavailable" }
+      : { kind: "not_applicable" };
   }
 
   const countyFips = action.payload?.countyFips;
@@ -145,13 +155,13 @@ export function prepareScoutCountyDraftHandoff(
   try {
     const url = stageDirectConnectEntryContext(
       { countyFips, stateCode, source: "scout" },
-      SCOUT_COUNTY_DRAFT_TARGET
+      SCOUT_REQUEST_REVIEW_TARGET
     );
     const parsed = new URL(url, window.location.origin);
     const stagedTokens = parsed.searchParams.getAll("staged");
     if (
       parsed.origin !== window.location.origin ||
-      parsed.pathname !== "/direct-connect" ||
+      parsed.pathname !== "/direct-connect/post" ||
       parsed.searchParams.get("source") !== "scout" ||
       parsed.searchParams.has("county") ||
       stagedTokens.length !== 1 ||
@@ -200,7 +210,7 @@ type SavedScoutThreadRelatedTo = {
   surface?: "home_project" | "commercial_project";
 };
 
-type SavedScoutThread = {
+export type SavedScoutThread = {
   id: string;
   title: string;
   preview: string;
@@ -704,9 +714,127 @@ function titleForLocalPostsAndDealsRequest(value: string): string | null {
     .replace(/\s+/g, " ")
     .toLowerCase()
     .trim();
+  const topic = request.match(/^find tradescout posts?\s*(?:&|and)\s*deals? about (.+?) in my county\b/)?.[1];
+  if (topic && topic.length <= 60 && /^[\p{L}\p{N}][\p{L}\p{N} &'\/-]*$/u.test(topic)) {
+    return `${topic[0].toUpperCase()}${topic.slice(1)} in my county`;
+  }
   return /^search tradescout and my area for posts (?:&|and) deals in my county\b/.test(request)
     ? "Local posts & deals"
     : null;
+}
+
+export function latestLocalSearchTitle(messages: ScoutMessage[]): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role === "assistant" && message.metadata?.discoveryChecks) {
+      const topic = message.metadata.discoveryTopic;
+      if (
+        typeof topic === "string" &&
+        topic.length <= 60 &&
+        /^[\p{L}\p{N}][\p{L}\p{N} &'\/-]*$/u.test(topic)
+      ) {
+        return `${topic[0].toUpperCase()}${topic.slice(1)} in my county`;
+      }
+      if (topic == null) return "Local posts & deals";
+    }
+    if (message.role !== "user") continue;
+    const title = titleForLocalPostsAndDealsRequest(message.content);
+    if (title) return title;
+  }
+  return null;
+}
+
+type SavedTaskTitleSource = Pick<SavedScoutThread, "title" | "messages">;
+
+function messagesAfterSavedTask(messages: ScoutMessage[], savedThread: SavedTaskTitleSource): ScoutMessage[] {
+  const lastSavedId = savedThread.messages.at(-1)?.id;
+  if (!lastSavedId) return messages;
+  const savedIndex = messages.findIndex((message) => message.id === lastSavedId);
+  // If the saved boundary is absent, keep its existing title rather than infer from old turns.
+  return savedIndex < 0 ? [] : messages.slice(savedIndex + 1);
+}
+
+export function resolveScoutCurrentTaskTitle(
+  messages: ScoutMessage[],
+  savedThread: SavedTaskTitleSource | null,
+  fallback = "Current Scout task"
+): string {
+  const titleFromNewWork = latestLocalSearchTitle(
+    savedThread ? messagesAfterSavedTask(messages, savedThread) : messages
+  );
+  if (titleFromNewWork) return titleFromNewWork;
+  if (savedThread?.title.trim()) return savedThread.title;
+  const firstUserMessage = firstThreadUserMessage(messages);
+  return summarizeThreadText(firstUserMessage?.content || "", fallback);
+}
+
+export function isUnchangedLoadedSavedTask(
+  activeSavedThreadId: string | null,
+  messages: ScoutMessage[],
+  loaded: { id: string; messages: ScoutMessage[] } | null
+): boolean {
+  return Boolean(loaded && activeSavedThreadId === loaded.id && messages === loaded.messages);
+}
+
+export function scheduleScoutSavedTaskAutoSave(args: {
+  messages: ScoutMessage[];
+  activeSavedThreadId: string | null;
+  loadedTask: { id: string; messages: ScoutMessage[] } | null;
+  shouldSkipReturnAutoSave: (messages: ScoutMessage[]) => boolean;
+  onSave: () => void;
+}): (() => void) | undefined {
+  if (args.shouldSkipReturnAutoSave(args.messages)) return;
+  if (isUnchangedLoadedSavedTask(args.activeSavedThreadId, args.messages, args.loadedTask)) return;
+  if (!args.messages.some((message) => message.role === "user" && message.content.trim())) return;
+  const timer = window.setTimeout(args.onSave, 450);
+  return () => window.clearTimeout(timer);
+}
+
+export function ScoutCurrentTaskHeading({
+  title,
+  request,
+}: {
+  title: string;
+  request?: string | null;
+}) {
+  const fullRequest = request?.trim() || "";
+  const compactRequest = fullRequest.replace(/\s+/g, " ");
+  const requestPreview = compactRequest.length > 96
+    ? `${compactRequest.slice(0, 93).trimEnd()}…`
+    : compactRequest;
+
+  return (
+    <>
+      <h1
+        id="scout-current-task-title"
+        className="mt-0.5 break-words text-base font-bold leading-tight text-[color:var(--text-primary)]"
+        data-testid="scout-current-task-title"
+      >
+        {title}
+      </h1>
+      {fullRequest ? (
+        <details
+          key={fullRequest}
+          className="scout-current-task__request group mt-1 min-w-0 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-xs text-[color:var(--text-secondary)]"
+          data-testid="scout-current-task-request"
+        >
+          <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 [&::-webkit-details-marker]:hidden">
+            <span className="shrink-0 font-bold text-[color:var(--text-primary)]">Your request</span>
+            <span className="min-w-0 flex-1 truncate" data-testid="scout-current-task-request-preview">
+              {requestPreview}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <p
+            className="whitespace-pre-wrap break-words border-t border-[color:var(--border-subtle)] px-2.5 py-2 leading-relaxed"
+            data-testid="scout-current-task-request-full"
+          >
+            {fullRequest}
+          </p>
+        </details>
+      ) : null}
+    </>
+  );
 }
 
 function sanitizeRelatedId(value: string | null | undefined): string | undefined {
@@ -1200,10 +1328,11 @@ function compactSavedScoutMessages(messages: ScoutMessage[]): ScoutMessage[] {
   }));
 }
 
-function buildSavedScoutThread(
+export function buildSavedScoutThread(
   messages: ScoutMessage[],
   existingId?: string | null,
-  location?: { countyFips?: string | null; stateCode?: string | null }
+  location?: { countyFips?: string | null; stateCode?: string | null },
+  existingThread?: SavedScoutThread | null
 ): SavedScoutThread | null {
   const firstUserMessage = firstThreadUserMessage(messages);
   if (!firstUserMessage) return null;
@@ -1226,7 +1355,7 @@ function buildSavedScoutThread(
 
   return {
     id: existingId || `thread_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    title: summarizeThreadText(firstUserMessage.content, "Scout conversation"),
+    title: resolveScoutCurrentTaskTitle(messages, existingThread || null, "Scout conversation"),
     preview: summarizeThreadText(
       lastMessage?.content || firstUserMessage.content,
       "Saved Scout conversation"
@@ -1368,9 +1497,10 @@ function upsertSavedScoutThread(
   existingId?: string | null,
   location?: { countyFips?: string | null; stateCode?: string | null }
 ): SavedScoutThread | null {
-  const nextThread = buildSavedScoutThread(messages, existingId, location);
-  if (!nextThread) return null;
   const threads = readSavedScoutThreads(userId);
+  const existingThread = existingId ? threads.find((thread) => thread.id === existingId) : null;
+  const nextThread = buildSavedScoutThread(messages, existingId, location, existingThread);
+  if (!nextThread) return null;
   return saveSavedTaskLocally(
     nextThread,
     threads,
@@ -1655,12 +1785,14 @@ function readScoutBrowserLocation(fallback: string): string {
 
 export default function ScoutOS() {
   const { user, isAuthenticated, isLoading: authLoading, error: authError } = useAuth();
-  const scoutReturnOwner = isAuthenticated
-    ? typeof user?.id === "string" && user.id.trim()
-      ? `user:${user.id}`
-      : null
-    : "guest";
-  const { toast } = useToast();
+  const scoutReturnOwner = authLoading
+    ? null
+    : isAuthenticated
+      ? typeof user?.id === "string" && user.id.trim()
+        ? `user:${user.id}`
+        : null
+      : "guest";
+  const { toast, dismiss } = useToast();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
   const [scoutBrowserLocation, setScoutBrowserLocation] = useState(() =>
@@ -1670,10 +1802,25 @@ export default function ScoutOS() {
     () => parseScoutLaunchLocation(scoutBrowserLocation),
     [scoutBrowserLocation]
   );
-  const [onboardingOutcomePrompt] = useState(() =>
-    scoutLaunch.context?.source === "onboarding_result" ? readOnboardingResultPrompt() : ""
+  const launchAcceptance = useScoutAccountBoundLaunch(
+    scoutLaunch.signature,
+    Boolean(scoutLaunch.context || scoutLaunch.prompt),
+    scoutReturnOwner,
+    Boolean(scoutLaunch.continuationToken)
   );
-  const hasExplicitScoutLaunch = Boolean(scoutLaunch.context || scoutLaunch.prompt);
+  const acceptedLaunchContext = launchAcceptance === "accepted" ? scoutLaunch.context : null;
+  const acceptedLaunchPrompt = launchAcceptance === "accepted" ? scoutLaunch.prompt : undefined;
+  const acceptedLaunchReturnPath =
+    launchAcceptance === "accepted" ? scoutLaunch.returnPath : undefined;
+  const onboardingOutcomePrompt = useMemo(
+    () =>
+      acceptedLaunchContext?.source === "onboarding_result"
+        ? readOnboardingResultPrompt(scoutReturnOwner)
+        : "",
+    [acceptedLaunchContext?.source, scoutReturnOwner]
+  );
+  const hasExplicitScoutLaunch =
+    launchAcceptance === "pending" || launchAcceptance === "accepted";
   const appliedLaunchPromptRef = useRef<string | null>(null);
   const consumedOutcomeLaunchRef = useRef<string | null>(null);
 
@@ -1689,6 +1836,14 @@ export default function ScoutOS() {
   const [workAreaUrl, setWorkAreaUrl] = useState<string | null>(null);
   const [workAreaTitle, setWorkAreaTitle] = useState<string | null>(null);
   const [prefillKey, setPrefillKey] = useState(0);
+  const onUnsentDraftDiscarded = useCallback(() => {
+    toast({
+      title: "Unsent Scout text cleared",
+      description: "Your previous draft was cleared when you changed tasks.",
+    });
+  }, [toast]);
+  const { version: taskDraftVersion, changeTask: clearDraftForTaskChange } =
+    useScoutTaskDraftBoundary(onUnsentDraftDiscarded);
   const [activeMissionPanel, setActiveMissionPanel] = useState<
     "nearby" | "people" | "market" | "rules"
   >("nearby");
@@ -1729,25 +1884,12 @@ export default function ScoutOS() {
   const [watchdogResult, setWatchdogResult] = useState<any | null>(null);
   const [dismissedWatchdogId, setDismissedWatchdogId] = useState<string | null>(null);
 
-  const [dcConfirmOpen, setDcConfirmOpen] = useState(false);
-  const [dcDraft, setDcDraft] = useState<null | {
-    title: string;
-    description: string;
-    countyFips?: string;
-    stateCode?: string;
-    tradeId?: string;
-    budgetMin?: number;
-    budgetMax?: number;
-  }>(null);
-  const [dcBusy, setDcBusy] = useState(false);
-  const dcCreateOperationRef = useRef<{
-    fingerprint: string;
-    operationId: string;
-  } | null>(null);
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
+  const loadedSavedTaskRef = useRef<{ id: string; messages: ScoutMessage[] } | null>(null);
   const deletingSavedThreadIdsRef = useRef(new Set<string>());
   const deletedSavedThreadIdsRef = useRef(new Set<string>());
+  const failedDeleteToastIdsRef = useRef(new Map<string, string>());
   const pendingSavedThreadWritesRef = useRef(new Map<string, Set<Promise<void>>>());
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
   const [savedScoutSurfaceFilter, setSavedScoutSurfaceFilter] =
@@ -2045,29 +2187,27 @@ export default function ScoutOS() {
   useEffect(() => {
     // Reopening a result is navigation, not a request to save the task again.
     // A later message creates a new messages array and resumes normal saves.
-    if (shouldSkipReturnAutoSave(state.messages)) return;
-    const hasUserThread = state.messages.some(
-      (message) => message.role === "user" && message.content.trim().length > 0
-    );
-    if (!hasUserThread) return;
-
-    const timer = window.setTimeout(() => {
-      if (
-        activeSavedThreadId &&
-        (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
-          deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
-      ) return;
-      const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
-        countyFips: locationCtx.countyFips,
-        stateCode: locationCtx.stateCode,
-      });
-      if (!saved) return;
-      setActiveSavedThreadId(saved.id);
-      setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
-      void persistSavedScoutThreadRemote(saved);
-    }, 450);
-
-    return () => window.clearTimeout(timer);
+    return scheduleScoutSavedTaskAutoSave({
+      messages: state.messages,
+      activeSavedThreadId,
+      loadedTask: loadedSavedTaskRef.current,
+      shouldSkipReturnAutoSave,
+      onSave: () => {
+        if (
+          activeSavedThreadId &&
+          (deletingSavedThreadIdsRef.current.has(activeSavedThreadId) ||
+            deletedSavedThreadIdsRef.current.has(activeSavedThreadId))
+        ) return;
+        const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
+          countyFips: locationCtx.countyFips,
+          stateCode: locationCtx.stateCode,
+        });
+        if (!saved) return;
+        setActiveSavedThreadId(saved.id);
+        setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
+        void persistSavedScoutThreadRemote(saved);
+      },
+    });
   }, [
     activeSavedThreadId,
     locationCtx.countyFips,
@@ -2237,10 +2377,21 @@ export default function ScoutOS() {
       return haystack.includes(query);
     });
   }, [savedScoutSearch, savedScoutSurfaceFilter, savedScoutThreads]);
-  const savedThreadPreview = savedThreadMatches.slice(0, isMobile ? 2 : 3);
+  const savedThreadPreview = savedThreadMatches.slice(0, SCOUT_SAVED_THREADS_LIMIT);
+  const savedThreadContinuations = getMeaningfulContinuations(
+    savedThreadPreview.map((thread) => ({
+      id: thread.id,
+      title: thread.title,
+      summary: thread.summary,
+      preview: thread.preview,
+      relatedLabel: thread.relatedLabel,
+    }))
+  );
 
   const handleLoadSavedThread = useCallback(
     (thread: SavedScoutThread) => {
+      if (thread.id !== activeSavedThreadId) clearDraftForTaskChange();
+      loadedSavedTaskRef.current = { id: thread.id, messages: thread.messages };
       setActiveSavedThreadId(thread.id);
       setHasGuestInteracted(true);
       loadMessages(thread.messages);
@@ -2251,17 +2402,19 @@ export default function ScoutOS() {
         label: "load_saved_scout_thread",
       });
     },
-    [loadMessages, location]
+    [activeSavedThreadId, clearDraftForTaskChange, loadMessages, location]
   );
 
   const handleStartNewScoutThread = useCallback(() => {
+    clearDraftForTaskChange();
+    loadedSavedTaskRef.current = null;
     clearScoutReturnSnapshot();
     setActiveSavedThreadId(null);
     reset();
     setHasGuestInteracted(false);
     setOverridePendingScope(null);
     cancelAutoRoute();
-  }, [cancelAutoRoute, reset]);
+  }, [cancelAutoRoute, clearDraftForTaskChange, reset]);
 
   const handleSaveScoutThreadNow = useCallback(() => {
     if (
@@ -2315,19 +2468,27 @@ export default function ScoutOS() {
           writeLocal: (threads) => writeSavedScoutThreads(scoutSaveUserId, threads),
         });
         deletedSavedThreadIdsRef.current.add(threadId);
+        const previousFailureToastId = failedDeleteToastIdsRef.current.get(threadId);
+        if (previousFailureToastId) {
+          dismiss(previousFailureToastId);
+          failedDeleteToastIdsRef.current.delete(threadId);
+        }
         setSavedScoutThreads(next);
         if (activeSavedThreadId === threadId) handleStartNewScoutThread();
       } catch {
-        toast({
+        const previousFailureToastId = failedDeleteToastIdsRef.current.get(threadId);
+        if (previousFailureToastId) dismiss(previousFailureToastId);
+        const failureToast = toast({
           title: "Saved task wasn't deleted",
           description: "The task is still available. Please try again.",
           variant: "destructive",
         });
+        failedDeleteToastIdsRef.current.set(threadId, failureToast.id);
       } finally {
         deletingSavedThreadIdsRef.current.delete(threadId);
       }
     },
-    [activeSavedThreadId, handleStartNewScoutThread, scoutSaveUserId, toast]
+    [activeSavedThreadId, dismiss, handleStartNewScoutThread, scoutSaveUserId, toast]
   );
 
   // First-time guest state: controls the calm intro + auto-demo gating.
@@ -2357,14 +2518,8 @@ export default function ScoutOS() {
     [activeSavedThreadId, savedScoutThreads]
   );
   const currentTaskTitle = useMemo(() => {
-    const firstUserMessage = firstThreadUserMessage(state.messages);
-    const request = firstUserMessage?.content || latestUserQuery;
-    return (
-      titleForLocalPostsAndDealsRequest(request) ||
-      activeSavedThread?.title ||
-      summarizeThreadText(request, "Current Scout task")
-    );
-  }, [activeSavedThread?.title, latestUserQuery, state.messages]);
+    return resolveScoutCurrentTaskTitle(state.messages, activeSavedThread);
+  }, [activeSavedThread, state.messages]);
   const currentTaskRequest = useMemo(
     () => firstThreadUserMessage(state.messages)?.content || "",
     [state.messages]
@@ -2477,7 +2632,7 @@ export default function ScoutOS() {
   // searches, follows an explicit handoff, or opens a destination.
   const shouldPlayIntroDemo = false;
 
-  const urlIntent = scoutLaunch.context?.intent;
+  const urlIntent = acceptedLaunchContext?.intent;
 
   useEffect(() => {
     if (!urlIntent) return;
@@ -2485,8 +2640,8 @@ export default function ScoutOS() {
     try {
       const search = typeof window === "undefined" ? "" : window.location.search;
       const params = new URLSearchParams(search);
-      const source = scoutLaunch.context?.source;
-      const prompt = scoutLaunch.prompt;
+      const source = acceptedLaunchContext?.source;
+      const prompt = acceptedLaunchPrompt;
       const signature = [
         urlIntent,
         source || "",
@@ -2506,7 +2661,7 @@ export default function ScoutOS() {
     } catch {
       // fail-soft: analytics must never impact scout flow
     }
-  }, [location, scoutLaunch.context?.source, scoutLaunch.prompt, urlIntent]);
+  }, [acceptedLaunchContext?.source, acceptedLaunchPrompt, location, urlIntent]);
 
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
@@ -2561,41 +2716,42 @@ export default function ScoutOS() {
 
   // Keep an explicit classic-to-Scout handoff as a user-reviewed draft.
   useEffect(() => {
-    if (!scoutLaunch.prompt) return;
+    if (!acceptedLaunchPrompt || !scoutReturnOwner) return;
     if (appliedLaunchPromptRef.current === scoutLaunch.signature) return;
 
     appliedLaunchPromptRef.current = scoutLaunch.signature;
     try {
-      window.localStorage.setItem("scout:prefill:scout-main", scoutLaunch.prompt);
+      writeScoutExternalPrefill(acceptedLaunchPrompt, scoutReturnOwner);
     } catch {
       // fail-soft: the visible context still survives without local storage
     }
     setHasGuestInteracted(true);
     setPrefillKey((key) => key + 1);
-  }, [scoutLaunch.prompt, scoutLaunch.signature]);
+  }, [acceptedLaunchPrompt, scoutLaunch.signature, scoutReturnOwner]);
 
   // Remove only the one-time prompt after it becomes a real user message.
   // The structured launch context stays in the URL for the rest of the conversation.
   useEffect(() => {
-    if (!scoutLaunch.prompt || !hasUserMessages) return;
-    const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
-    params.delete("prompt");
-    const nextLocation = params.toString() ? `/scout?${params.toString()}` : "/scout";
+    if (!acceptedLaunchPrompt || !hasUserMessages) return;
+    const currentLocation = readScoutBrowserLocation(location);
+    if (parseScoutLaunchLocation(currentLocation).signature !== scoutLaunch.signature) return;
+    const nextLocation = prepareScoutLaunchContinuationPath(currentLocation, scoutReturnOwner);
     navigate(nextLocation, { replace: true });
     setScoutBrowserLocation(nextLocation);
-  }, [hasUserMessages, location, navigate, scoutLaunch.prompt]);
+  }, [acceptedLaunchPrompt, hasUserMessages, location, navigate, scoutLaunch.signature, scoutReturnOwner]);
 
   // Clear stale drafts on a plain first guest visit, but never erase an explicit handoff.
   useEffect(() => {
+    if (authLoading) return;
     if (isFirstGuestVisit && !hasExplicitScoutLaunch && !appliedLaunchPromptRef.current) {
       try {
-        window.localStorage.removeItem("scout:prefill:scout-main");
+        clearScoutInputDraft();
       } catch {
         // ignore storage errors
       }
       setPrefillKey((k) => k + 1);
     }
-  }, [hasExplicitScoutLaunch, isFirstGuestVisit]);
+  }, [authLoading, hasExplicitScoutLaunch, isFirstGuestVisit]);
 
   const hasAdminAccess = hasAdminUiAccess(user);
   const showEvolutionSurfaces = SCOUT_EVOLUTION_SURFACES_ENABLED && hasAdminAccess;
@@ -2615,7 +2771,7 @@ export default function ScoutOS() {
 
         // Keep a censored draft in the input so the user can quickly edit.
         try {
-          window.localStorage.setItem("scout:prefill:scout-main", censorProfanity(value));
+          writeScoutOwnedDraft(censorProfanity(value), scoutReturnOwner);
         } catch {
           // ignore
         }
@@ -2716,7 +2872,7 @@ export default function ScoutOS() {
           locality,
           mode,
           intent: urlIntent,
-          launchContext: scoutLaunch.context || undefined,
+          launchContext: acceptedLaunchContext || undefined,
           knowledgeMode: "local-first",
           filters: {
             collectionSurface: "scout-summary-thread",
@@ -2754,6 +2910,15 @@ export default function ScoutOS() {
           navTarget:
             (primaryNavigation?.to as string) || (primaryNavigation?.path as string) || undefined,
           provenance,
+          metadata:
+            res.metadata?.sourceUsed === "scout_mixed_discovery_recovery"
+              ? {
+                  discoveryTopic: res.metadata.discoveryTopic,
+                  discoveryChecks: res.metadata.discoveryChecks,
+                }
+              : res.metadata?.clarificationKind === "bare_trade"
+                ? { clarificationKind: "bare_trade" }
+              : undefined,
           resultContract: {
             contract_version: res.contract_version,
             intent: res.intent,
@@ -2846,7 +3011,8 @@ export default function ScoutOS() {
       recordUserMessage,
       sessionRole,
       setPrefillKey,
-      scoutLaunch.context,
+      acceptedLaunchContext,
+      scoutReturnOwner,
       state.messages,
       refreshObjective,
       user,
@@ -3098,8 +3264,8 @@ export default function ScoutOS() {
   // the result they asked for instead of another form or a prefilled draft.
   // The signature guard makes refreshes and React re-renders idempotent.
   useEffect(() => {
-    if (scoutLaunch.context?.source !== "onboarding_result") return;
-    const confirmedPrompt = scoutLaunch.prompt || onboardingOutcomePrompt;
+    if (acceptedLaunchContext?.source !== "onboarding_result") return;
+    const confirmedPrompt = acceptedLaunchPrompt || onboardingOutcomePrompt;
     if (!confirmedPrompt) return;
     const outcomeSignature = `${scoutLaunch.signature}:${confirmedPrompt}`;
     if (consumedOutcomeLaunchRef.current === outcomeSignature) return;
@@ -3109,7 +3275,7 @@ export default function ScoutOS() {
     consumedOutcomeLaunchRef.current = outcomeSignature;
     clearOnboardingResultPrompt();
     try {
-      window.localStorage.removeItem("scout:prefill:scout-main");
+      clearScoutInputDraft();
     } catch {
       // fail-soft: the confirmed launch still submits without local storage
     }
@@ -3118,9 +3284,9 @@ export default function ScoutOS() {
     void handleSend(confirmedPrompt);
   }, [
     handleSend,
+    acceptedLaunchPrompt,
     onboardingOutcomePrompt,
-    scoutLaunch.context?.source,
-    scoutLaunch.prompt,
+    acceptedLaunchContext?.source,
     scoutLaunch.signature,
     shouldPlayIntroDemo,
     state.messages,
@@ -3155,22 +3321,23 @@ export default function ScoutOS() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!location.startsWith("/scout")) return;
+    if (!scoutReturnOwner) return;
 
     const hasUserMsgs = state.messages.some((m) => m.role === "user");
     if (hasUserMsgs) return;
     if (shouldPlayIntroDemo) return;
 
     try {
-      const marker = window.localStorage.getItem("scout:prefill:scout-main");
+      const marker = readScoutDraftForOwner(scoutReturnOwner);
       if (marker === "__SCOUT_ONBOARDING__") {
-        window.localStorage.removeItem("scout:prefill:scout-main");
+        clearScoutInputDraft();
         setPrefillKey((k) => k + 1);
         void handleSend("__SCOUT_ONBOARDING__");
       }
     } catch {
       // ignore storage errors
     }
-  }, [location, state.messages, shouldPlayIntroDemo, handleSend, setPrefillKey]);
+  }, [location, state.messages, shouldPlayIntroDemo, handleSend, scoutReturnOwner, setPrefillKey]);
 
   const handleClusterAction = useCallback(
     async (action: ScoutAction) => {
@@ -3193,9 +3360,9 @@ export default function ScoutOS() {
         const countyDraft = prepareScoutCountyDraftHandoff(action);
         if (countyDraft.kind === "unavailable") {
           toast({
-            title: "Couldn't open the county draft",
+            title: "Couldn't open request review",
             description:
-              "Scout couldn't keep your county with a private request draft. Nothing was sent. Please try again.",
+              "Scout couldn't keep your county for private request review. Nothing was sent. Please try again.",
             variant: "destructive",
           });
           return;
@@ -3245,7 +3412,9 @@ export default function ScoutOS() {
                   scoutReturnOwner,
                   state.messages,
                   activeSavedThreadId,
-                  readScoutBrowserLocation(location)
+                  readScoutBrowserLocation(location),
+                  Date.now(),
+                  to
                 );
               }
               navigate(to);
@@ -3255,7 +3424,7 @@ export default function ScoutOS() {
           openToolsDrawer: () => setToolsOpen(true),
           prefillInput: (text) => {
             try {
-              window.localStorage.setItem("scout:prefill:scout-main", text);
+              writeScoutExternalPrefill(text, scoutReturnOwner);
             } catch {
               // ignore
             }
@@ -3312,7 +3481,9 @@ export default function ScoutOS() {
         scoutReturnOwner,
         state.messages,
         activeSavedThreadId,
-        readScoutBrowserLocation(location)
+        readScoutBrowserLocation(location),
+        Date.now(),
+        to
       );
       navigate(to);
     },
@@ -3365,6 +3536,7 @@ export default function ScoutOS() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!location.startsWith("/scout")) return;
+    if (!scoutReturnOwner) return;
 
     const hasUserMsgs = state.messages.some((m) => m.role === "user");
     if (hasUserMsgs) return;
@@ -3372,31 +3544,24 @@ export default function ScoutOS() {
     if (shouldPlayIntroDemo) return;
 
     try {
-      const raw = window.localStorage.getItem("scout:help-intent");
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as { prompt?: string } | null;
-      if (!parsed || typeof parsed.prompt !== "string" || !parsed.prompt.trim()) {
-        window.localStorage.removeItem("scout:help-intent");
-        return;
-      }
+      const prompt = takeScoutHelpIntentForOwner(scoutReturnOwner);
+      if (!prompt) return;
 
       // Clear any stored prefill so the input is blank when the
       // help-center intent is auto-sent.
       try {
-        window.localStorage.removeItem("scout:prefill:scout-main");
+        clearScoutInputDraft();
       } catch {
         // ignore
       }
       setPrefillKey((k) => k + 1);
 
-      window.localStorage.removeItem("scout:help-intent");
       setHasGuestInteracted(true);
-      void handleSend(parsed.prompt);
+      void handleSend(prompt);
     } catch {
       // ignore storage/JSON errors
     }
-  }, [location, state.messages, handleSend, setPrefillKey, shouldPlayIntroDemo]);
+  }, [location, state.messages, handleSend, scoutReturnOwner, setPrefillKey, shouldPlayIntroDemo]);
 
   const heroLocationLabel = formatCityOnly({ label: locationCtx.label });
 
@@ -3973,13 +4138,13 @@ export default function ScoutOS() {
 
   const prefillScoutMission = useCallback((prompt: string) => {
     try {
-      window.localStorage.setItem("scout:prefill:scout-main", prompt);
+      writeScoutExternalPrefill(prompt, scoutReturnOwner);
     } catch {
       // ignore storage errors
     }
     setHasGuestInteracted(true);
     setPrefillKey((k) => k + 1);
-  }, []);
+  }, [scoutReturnOwner]);
 
   const applyMissionDraft = useCallback(
     (overrides?: Parameters<typeof composeMissionDraft>[0]) => {
@@ -4086,13 +4251,13 @@ export default function ScoutOS() {
     setScoutBrowserLocation("/scout");
   }, [navigate]);
   const openScoutLaunchSource = useCallback(() => {
-    if (scoutLaunch.returnPath) navigate(scoutLaunch.returnPath);
-  }, [navigate, scoutLaunch.returnPath]);
+    if (acceptedLaunchReturnPath) navigate(acceptedLaunchReturnPath);
+  }, [acceptedLaunchReturnPath, navigate]);
 
-  const launchContextSurface = scoutLaunch.context ? (
+  const launchContextSurface = acceptedLaunchContext ? (
     <ScoutLaunchContextCard
-      context={scoutLaunch.context}
-      returnPath={scoutLaunch.returnPath}
+      context={acceptedLaunchContext}
+      returnPath={acceptedLaunchReturnPath}
       onOpenOriginal={openScoutLaunchSource}
       onClear={clearScoutLaunchContext}
     />
@@ -4349,7 +4514,7 @@ export default function ScoutOS() {
   ) : null;
 
   const hasActiveTaskAuxiliaryContent = Boolean(
-    scoutLaunch.context ||
+    acceptedLaunchContext ||
     (onboarding.flowState.phase === "confirming" && onboarding.flowState.confirmationCard) ||
     onboarding.flowState.phase === "inferring" ||
     onboarding.flowState.phase === "writing" ||
@@ -4450,11 +4615,13 @@ export default function ScoutOS() {
                 <ScoutHome
                   primaryOutcomeInput={
                     <ScoutSearchDock
+                      key={`scout-task-draft-${scoutReturnOwner ?? "unresolved"}:${taskDraftVersion}`}
                       isMobile={isMobile}
                       placement="inline"
                       isBusy={isBusy}
                       prefillKey={prefillKey}
-                      forcedPrefill={scoutLaunch.prompt}
+                      forcedPrefill={acceptedLaunchPrompt}
+                      draftOwner={scoutReturnOwner}
                       hasMessages={hasMessages}
                       quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                       autoDemoText=""
@@ -4473,16 +4640,7 @@ export default function ScoutOS() {
                     );
                     if (thread) handleLoadSavedThread(thread);
                   }}
-                  continuationThreads={savedThreadPreview.map((thread) => ({
-                    id: thread.id,
-                    title: thread.title,
-                    summary: thread.summary,
-                    preview: thread.preview,
-                    intent: thread.intent,
-                    relatedLabel: thread.relatedLabel,
-                    messageCount: thread.messageCount,
-                    relatedTo: thread.relatedTo,
-                  }))}
+                  continuationThreads={savedThreadContinuations}
                 />
               )}
 
@@ -4892,13 +5050,14 @@ export default function ScoutOS() {
                             ? ` · ${activeSavedThread.relatedLabel}`
                             : ""}
                         </p>
-                        <h1
-                          id="scout-current-task-title"
-                          className="mt-0.5 break-words text-base font-bold leading-tight text-[color:var(--text-primary)]"
-                          data-testid="scout-current-task-title"
-                        >
-                          {currentTaskTitle}
-                        </h1>
+                        <ScoutCurrentTaskHeading
+                          title={currentTaskTitle}
+                          request={
+                            hasAssistantResult && state.messages[0]?.role === "user"
+                              ? currentTaskRequest
+                              : null
+                          }
+                        />
                       </div>
 
                       <ScoutTaskControls
@@ -4913,6 +5072,22 @@ export default function ScoutOS() {
                         }
                       />
                     </div>
+
+                    {savedThreadContinuations.length > 1 ? (
+                      <details key={activeSavedThreadId ?? "current"} className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-2">
+                        <summary className="min-h-9 cursor-pointer px-1 py-2 text-xs font-semibold text-[color:var(--text-secondary)]" data-testid="scout-switch-saved-task">
+                          Switch saved task
+                        </summary>
+                        <ScoutContinuationList
+                          threads={savedThreadContinuations}
+                          activeId={activeSavedThreadId}
+                          onSelect={(threadId) => {
+                            const thread = savedThreadPreview.find((candidate) => candidate.id === threadId);
+                            if (thread) handleLoadSavedThread(thread);
+                          }}
+                        />
+                      </details>
+                    ) : null}
 
                     {state.status !== "idle" && !hasAssistantResult && (
                       <div className="scout-current-task__latest grid min-w-0 gap-0.5">
@@ -4975,11 +5150,6 @@ export default function ScoutOS() {
                           const localAction = resolveQuickActionIntent(trimmed);
 
                           if (localAction?.kind === "direct_connect_request") {
-                            if (!isAuthenticated) {
-                              navigate("/pre-scout-setup?mode=signin");
-                              return;
-                            }
-
                             const lastUserMsg = [...state.messages]
                               .reverse()
                               .find(
@@ -4988,13 +5158,6 @@ export default function ScoutOS() {
                             const raw = String(lastUserMsg || "")
                               .replace(/\s+/g, " ")
                               .trim();
-
-                            if (!raw) {
-                              navigate("/direct-connect");
-                              return;
-                            }
-
-                            const title = raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
                             const countyFips =
                               typeof (user as any)?.countyFips === "string"
                                 ? String((user as any).countyFips)
@@ -5008,13 +5171,20 @@ export default function ScoutOS() {
                                   ? String((user as any).state_code)
                                   : undefined;
 
-                            setDcDraft({
-                              title,
-                              description: raw,
-                              countyFips,
-                              stateCode,
-                            });
-                            setDcConfirmOpen(true);
+                            // The Direct Connect composer owns the explicit review and send steps.
+                            // Scout only carries context into that private form; it never creates
+                            // or routes a request from a discovery quick action.
+                            navigate(
+                              stageDirectConnectEntryContext(
+                                {
+                                  source: "scout",
+                                  ...(raw ? { title: raw.slice(0, 160), description: raw } : {}),
+                                  ...(countyFips ? { countyFips } : {}),
+                                  ...(stateCode ? { stateCode } : {}),
+                                },
+                                SCOUT_REQUEST_REVIEW_TARGET
+                              )
+                            );
                             return;
                           }
 
@@ -5057,10 +5227,12 @@ export default function ScoutOS() {
             {hasUserMessages ? (
               <div className="scout-input-bottom-pin order-3" data-testid="scout-task-composer">
                 <ScoutSearchDock
+                  key={`scout-task-draft-${scoutReturnOwner ?? "unresolved"}:${taskDraftVersion}`}
                   isMobile={isMobile}
                   placement="fixed"
                   isBusy={isBusy}
                   prefillKey={prefillKey}
+                  draftOwner={scoutReturnOwner}
                   hasMessages={hasMessages}
                   quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                   autoDemoText=""
@@ -5756,160 +5928,6 @@ export default function ScoutOS() {
           </div>
         </div>
       </div>
-
-      <AlertDialog
-        open={dcConfirmOpen}
-        onOpenChange={(open) => {
-          if (dcBusy) return;
-          setDcConfirmOpen(open);
-          if (!open) {
-            setDcDraft(null);
-            dcCreateOperationRef.current = null;
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create this local request?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This request stays in review until you choose to share it with local pros.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <div className="mt-3 rounded-md border p-3 text-sm">
-            <div className="font-medium">{dcDraft?.title || "New request"}</div>
-            <div className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">
-              {dcDraft?.description ? String(dcDraft.description).slice(0, 600) : ""}
-              {dcDraft?.description && String(dcDraft.description).length > 600 ? "..." : ""}
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={dcBusy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={dcBusy || !dcDraft}
-              onClick={async (e) => {
-                e.preventDefault();
-                if (!dcDraft || dcBusy) return;
-
-                setDcBusy(true);
-                try {
-                  const payload: any = {
-                    title: dcDraft.title,
-                    description: dcDraft.description,
-                    ...(dcDraft.tradeId ? { tradeId: dcDraft.tradeId } : {}),
-                    ...(typeof dcDraft.budgetMin === "number"
-                      ? { budgetMin: dcDraft.budgetMin }
-                      : {}),
-                    ...(typeof dcDraft.budgetMax === "number"
-                      ? { budgetMax: dcDraft.budgetMax }
-                      : {}),
-                    ...(dcDraft.countyFips ? { countyFips: dcDraft.countyFips } : {}),
-                    ...(dcDraft.stateCode ? { stateCode: dcDraft.stateCode } : {}),
-                  };
-                  const fingerprint = JSON.stringify(payload);
-                  const operationId =
-                    dcCreateOperationRef.current?.fingerprint === fingerprint
-                      ? dcCreateOperationRef.current.operationId
-                      : createClientOperationId("dc-scout");
-                  dcCreateOperationRef.current = { fingerprint, operationId };
-                  payload.operationId = operationId;
-
-                  const res: any = await apiRequest(
-                    "POST",
-                    "/api/direct-connect/requests",
-                    payload
-                  );
-
-                  // Verification gate returns HTTP 200 with actions + retry metadata.
-                  if (res && typeof res === "object" && (res as any).verificationRequired) {
-                    const msg: ScoutMessage = {
-                      id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-                      role: "assistant",
-                      content:
-                        typeof (res as any).message === "string" && (res as any).message.trim()
-                          ? String((res as any).message)
-                          : "Before I can post that request, you need to verify a requirement.",
-                      timestamp: new Date().toISOString(),
-                      clusters: [
-                        {
-                          id: `dc-verify-${Date.now()}`,
-                          title: "Next step",
-                          kind: "generic",
-                          body: "Complete verification, then retry posting the request.",
-                          primaryAction:
-                            Array.isArray((res as any).actions) && (res as any).actions.length > 0
-                              ? ((res as any).actions[0] as any)
-                              : {
-                                  type: "NAVIGATE",
-                                  label: "Open verification",
-                                  to: "/verification",
-                                },
-                        } as any,
-                      ],
-                    };
-
-                    applyServerResponse(
-                      msg,
-                      Array.isArray((res as any).actions) ? (res as any).actions : []
-                    );
-                    setDcConfirmOpen(false);
-                    return;
-                  }
-
-                  const createdId =
-                    typeof (res as any)?.id === "string" ? String((res as any).id) : null;
-                  const msg: ScoutMessage = {
-                    id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-                    role: "assistant",
-                    content: "Saved. Want to review it before sharing?",
-                    timestamp: new Date().toISOString(),
-                    clusters: [
-                      {
-                        id: `dc-created-${Date.now()}`,
-                        title: "Saved local request",
-                        kind: "generic",
-                        body: createdId
-                          ? "Your request is saved. Review it before you share it locally."
-                          : "Your request is saved. Review it before you share it locally.",
-                        primaryAction: {
-                          type: "NAVIGATE",
-                          label: "Open local requests",
-                          to: "/direct-connect",
-                        },
-                      },
-                    ],
-                  };
-
-                  applyServerResponse(msg, [
-                    { type: "NAVIGATE", label: "Open local requests", to: "/direct-connect" },
-                  ]);
-
-                  recordActivity({
-                    type: "direct_connect_request_created",
-                    ts: new Date().toISOString(),
-                    path: location,
-                    meta: { workRequestId: createdId || undefined },
-                  } as any);
-                  dcCreateOperationRef.current = null;
-                  setDcConfirmOpen(false);
-                  setDcDraft(null);
-                } catch (err: any) {
-                  const message = formatUserFacingErrorMessage(
-                    err,
-                    "Could not create the local request."
-                  );
-                  setError(message);
-                } finally {
-                  setDcBusy(false);
-                }
-              }}
-            >
-              {dcBusy ? "Saving..." : "Create request"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Tools & App drawer */}
       <ScoutToolsDrawer

@@ -364,7 +364,8 @@ describe("Scout entry framing contracts", () => {
     );
     expect(startNewDefinition).toContain("cancelAutoRoute();");
     expect(startNewDefinition).not.toContain("setAutoRoutePending(null)");
-    expect(startNewDefinition).toContain("[cancelAutoRoute, reset]");
+    expect(startNewDefinition).toContain("clearDraftForTaskChange();");
+    expect(startNewDefinition).toContain("[cancelAutoRoute, clearDraftForTaskChange, reset]");
     expect(
       scoutOsSource.slice(0, scoutOsSource.indexOf('data-testid="scout-current-task"'))
     ).toContain("{!hasUserMessages ? launchContextSurface : null}");
@@ -520,8 +521,12 @@ describe("Scout entry framing contracts", () => {
 
     expect(scoutOsSource).toContain("readScoutBrowserLocation");
     expect(scoutOsSource).toContain("parseScoutLaunchLocation");
-    expect(scoutOsSource).toContain("launchContext: scoutLaunch.context || undefined");
-    expect(scoutOsSource).toContain("forcedPrefill={scoutLaunch.prompt}");
+    expect(scoutOsSource).toContain("launchContext: acceptedLaunchContext || undefined");
+    expect(scoutOsSource).toContain("const launchAcceptance = useScoutAccountBoundLaunch(");
+    expect(scoutOsSource).toContain("Boolean(scoutLaunch.context || scoutLaunch.prompt)");
+    expect(scoutOsSource).toContain('launchAcceptance === "accepted" ? scoutLaunch.context : null');
+    expect(scoutOsSource).toContain('launchAcceptance === "accepted" ? scoutLaunch.returnPath : undefined');
+    expect(scoutOsSource).toContain("forcedPrefill={acceptedLaunchPrompt}");
     expect(scoutOsSource).toContain("<ScoutLaunchContextCard");
     expect(inputSource).toContain("if (forcedPrefill)");
     expect(inputSource).toContain("setValue(forcedPrefill)");

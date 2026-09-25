@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { trackShellEvent } from "@/lib/analytics";
 import { OrientationCard } from "@/components/orientation/OrientationCard";
 import { isSuperAdminLike } from "@/lib/roleChecks";
+import { SCOUT_HELP_INTENT_KEY, writeScoutExternalPrefill } from "@/scout/scoutTaskDraftBoundary";
 
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const AdminShell = lazy(() => import("@/pages/admin"));
@@ -131,15 +132,20 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
             roleLabel={String(user?.role || "participant")}
             sendToScout={(prompt, options) => {
               try {
-                window.localStorage.setItem("scout:prefill:scout-main", prompt);
-                window.localStorage.setItem(
-                  "scout:help-intent",
-                  JSON.stringify({
-                    prompt,
-                    source: options?.source || "dashboard-orientation",
-                    ts: new Date().toISOString(),
-                  })
-                );
+                const owner =
+                  typeof user?.id === "string" && user.id.trim() ? `user:${user.id}` : null;
+                writeScoutExternalPrefill(prompt, owner);
+                if (owner) {
+                  window.localStorage.setItem(
+                    SCOUT_HELP_INTENT_KEY,
+                    JSON.stringify({
+                      owner,
+                      prompt,
+                      source: options?.source || "dashboard-orientation",
+                      ts: new Date().toISOString(),
+                    })
+                  );
+                }
               } catch {
                 // ignore
               }

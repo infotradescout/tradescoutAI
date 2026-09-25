@@ -1,4 +1,5 @@
 import { US_STATES_COUNTIES } from "../../shared/states-counties";
+import { COMPREHENSIVE_TRADES } from "../../shared/trades-data";
 
 /** A county label is display text, never a database county key. */
 export function normalizeScoutCountyFips(...candidates: unknown[]): string | null {
@@ -98,13 +99,67 @@ export function requiresFreshScoutDiscovery(message: string): boolean {
   );
 }
 
-/** The partial recovery is only for explicit, multi-surface local discovery. */
+/** County posts and deals are an explicit read-only local discovery request. */
 export function isMixedScoutDiscoveryRequest(message: string): boolean {
   const value = String(message || "").toLowerCase();
   return (
     requiresFreshScoutDiscovery(value) &&
     /\bposts?\b/.test(value) &&
-    /\bdeals?\b/.test(value) &&
-    /\b(pages?|tools?|requests?)\b/.test(value)
+    /\bdeals?\b/.test(value)
+  );
+}
+
+const BARE_DISCOVERY_TRADES = new Set(
+  COMPREHENSIVE_TRADES.map((trade) => trade.id.toLowerCase()).filter((id) => /^[a-z]{2,30}$/.test(id))
+);
+
+export function readBareScoutTrade(message: string): string | null {
+  const topic = String(message || "").trim().toLowerCase();
+  return BARE_DISCOVERY_TRADES.has(topic) ? topic : null;
+}
+
+const COMPLETED_COUNTY_DISCOVERY_ENDINGS = [
+  "Pages, tools, and other requests were not checked. Nothing was sent.",
+  "Other Site pages and private requests were not checked. Nothing was sent.",
+] as const;
+
+/** Interpret a single trade word only in the immediately preceding county-search context. */
+export function resolveScoutMixedDiscoveryFollowUp(
+  message: string,
+  history: ReadonlyArray<{ role: string; content: string }>
+): string | null {
+  const topic = readBareScoutTrade(message);
+  if (!topic) return null;
+  const previousAnswer = history.at(-1);
+  const previousRequest = history.at(-2);
+  if (
+    previousAnswer?.role !== "assistant" ||
+    previousRequest?.role !== "user" ||
+    !isMixedScoutDiscoveryRequest(previousRequest.content) ||
+    !COMPLETED_COUNTY_DISCOVERY_ENDINGS.some((ending) =>
+      previousAnswer.content.trimEnd().endsWith(ending)
+    )
+  ) {
+    return null;
+  }
+  return `Find TradeScout posts and deals about ${topic} near me`;
+}
+
+/**
+ * The refinement control asks for public records only. A bare trade name in
+ * this exact request is a search subject, not a request for physical work.
+ * Extra instructions, urgent conditions, or sensitive details do not match.
+ */
+export function isReadOnlyScoutTradeLookup(message: string): boolean {
+  const text = String(message || "").replace(/\s+/g, " ").trim();
+  const detailed = text.match(
+    /^find tradescout posts? (?:&|and) deals? about ([a-z][a-z-]{1,29}) in my county this week\. include public posts linked to requests and local businesses\.?$/i
+  );
+  const short = text.match(
+    /^find (?:tradescout|local) posts? (?:&|and) deals? about ([a-z][a-z-]{1,29}) near me\.?$/i
+  );
+  const subject = detailed?.[1] || short?.[1];
+  return Boolean(
+    subject && /^(?:electrical|wiring|gas|structural|foundation|load-bearing)$/i.test(subject)
   );
 }

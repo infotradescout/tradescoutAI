@@ -44,6 +44,14 @@ describe("Scout work areas", () => {
     expect(resolveScoutWorkAreaAction({ type: "ASK_SCOUT", prompt: "hello" })).toBeNull();
   });
 
+  it("opens a public tool detail as one full page with Scout return navigation", () => {
+    const detail = "/exchange/tools/00000000-0000-4000-8000-000000000221";
+    expect(canOpenScoutWorkArea("/exchange/tools")).toBe(true);
+    expect(canOpenScoutWorkArea(detail)).toBe(false);
+    expect(canOpenScoutWorkArea(`${detail}?source=scout`)).toBe(false);
+    expect(resolveScoutWorkAreaAction({ type: "NAVIGATE", label: "Open local tool listing", to: detail })).toBeNull();
+  });
+
   it("uses public titles for embedded pages", () => {
     expect(titleFromScoutWorkAreaUrl("/utilities/supply-run?draft=1")).toBe("Supply Run");
     expect(titleFromScoutWorkAreaUrl("/homes")).toBe("Homes");

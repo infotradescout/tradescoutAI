@@ -8,6 +8,7 @@ const RETURN_WINDOW_MS = 15 * 60 * 1000;
 type ScoutReturnSnapshot = {
   owner: string;
   sourceLocation: string;
+  destinationPath: string | null;
   returnedByHistory: boolean;
   expiresAt: number;
   messages: ScoutMessage[];
@@ -35,7 +36,8 @@ export function rememberScoutForReturn(
   messages: ScoutMessage[],
   activeSavedThreadId: string | null,
   sourceLocation: string,
-  now = Date.now()
+  now = Date.now(),
+  destinationPath: string | null = null
 ): boolean {
   if (
     !owner ||
@@ -48,6 +50,7 @@ export function rememberScoutForReturn(
   pendingReturn = {
     owner,
     sourceLocation,
+    destinationPath,
     returnedByHistory: false,
     expiresAt: now + RETURN_WINDOW_MS,
     messages: messages.slice(),
@@ -57,6 +60,14 @@ export function rememberScoutForReturn(
     window.addEventListener("popstate", markScoutHistoryReturn);
   }
   return true;
+}
+
+export function hasPendingScoutResultReturnForPath(path: string, now = Date.now()): boolean {
+  return Boolean(
+    pendingReturn &&
+    pendingReturn.destinationPath === path &&
+    now <= pendingReturn.expiresAt
+  );
 }
 
 export function clearScoutReturnForNewLaunch(

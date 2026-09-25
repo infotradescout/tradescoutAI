@@ -920,16 +920,18 @@ export default function ExchangeListingDetail() {
           <Separator className="bg-white/10" />
 
           {/* ── Description ── */}
-          <div>
-            <h2 className="text-sm font-semibold text-white/80 mb-2">
-              {stoneInquiry.isRetail ? "About this stone" : "Description"}
-            </h2>
-            <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">
-              {stoneInquiry.isRetail
-                ? "Photos are material references. TradeScout will confirm the selected slab's appearance, dimensions, finish, quantity and availability before purchase."
-                : listing.description}
-            </p>
-          </div>
+          {(stoneInquiry.isRetail || Boolean(listing.description)) && (
+            <div>
+              <h2 className="text-sm font-semibold text-white/80 mb-2">
+                {stoneInquiry.isRetail ? "About this stone" : "Description"}
+              </h2>
+              <p className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap">
+                {stoneInquiry.isRetail
+                  ? "Photos are material references. TradeScout will confirm the selected slab's appearance, dimensions, finish, quantity and availability before purchase."
+                  : listing.description}
+              </p>
+            </div>
+          )}
 
           {!stoneInquiry.isRetail &&
             (listing.valueGuidance || listing.rarityTags?.length || listing.shippingQuote) && (

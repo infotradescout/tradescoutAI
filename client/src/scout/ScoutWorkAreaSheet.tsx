@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { titleFromScoutWorkAreaUrl } from "./scoutWorkAreas";
+import { isScoutRequestReviewWorkAreaUrl } from "@/components/layout/scoutRequestReviewEmbed";
 
 export function ScoutWorkAreaSheet({
   open,
@@ -19,6 +20,7 @@ export function ScoutWorkAreaSheet({
     () => title?.trim() || titleFromScoutWorkAreaUrl(String(url || "")),
     [title, url]
   );
+  const embeddedRequestReview = isScoutRequestReviewWorkAreaUrl(url);
 
   // Avoid background scroll while the work area is open (mobile ergonomics).
   useEffect(() => {
@@ -74,6 +76,7 @@ export function ScoutWorkAreaSheet({
               <iframe
                 key={url}
                 src={url}
+                data-scout-request-review={embeddedRequestReview ? "true" : undefined}
                 className="h-full w-full"
                 style={{ border: "none" }}
                 // Same-origin embed; keep permissive so existing pages work.

@@ -253,10 +253,10 @@ describe("direct-connect gate regressions", () => {
     expect(directoryFile).toContain("Businesses in ${areaLabel}");
     expect(directoryFile).toContain("Find local businesses");
     expect(directoryFile).toContain(
-      'title={searchActive ? "Best nearby matches" : "Businesses near you"}'
+      'title={searchActive ? "Matching businesses" : "Business results"}'
     );
     expect(directoryFile).toContain(
-      "Select a row to inspect one public profile without losing your place."
+      "Select a business, then view its public profile."
     );
     expect(directoryFile).toContain("No public businesses in ${areaLabel} yet.");
     expect(directoryFile.match(/<ProviderCard\b/g)).toHaveLength(1);

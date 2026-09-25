@@ -4,6 +4,7 @@ import { scoutReducer } from "./state";
 import {
   clearScoutReturnSnapshot,
   clearScoutReturnForNewLaunch,
+  hasPendingScoutResultReturnForPath,
   rememberScoutForReturn,
   takeScoutReturnSnapshot,
 } from "./scoutReturnSnapshot";
@@ -39,6 +40,15 @@ describe("Scout result return", () => {
     expect(returned.messages).toEqual(resultMessages);
     expect(returned.messages[1].clusters?.[0].primaryAction?.to).toBe("/community/post/post-1");
     expect(takeScoutReturnSnapshot("user:123", 3_000)).toBeNull();
+  });
+
+  it("preserves ordinary Back only for the public profile opened from this Scout result", () => {
+    expect(rememberScoutForReturn("user:123", resultMessages, null, "/scout", 1_000, "/u/local-plumber")).toBe(true);
+    expect(hasPendingScoutResultReturnForPath("/u/local-plumber", 2_000)).toBe(true);
+    expect(hasPendingScoutResultReturnForPath("/u/another-profile", 2_000)).toBe(false);
+    expect(hasPendingScoutResultReturnForPath("/u/local-plumber", 16 * 60 * 1_000)).toBe(false);
+    expect(takeScoutReturnSnapshot("user:123", 2_000)?.messages).toEqual(resultMessages);
+    expect(hasPendingScoutResultReturnForPath("/u/local-plumber", 2_000)).toBe(false);
   });
 
   it("does not show a prior account's result after an account switch", () => {

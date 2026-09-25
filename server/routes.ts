@@ -12219,6 +12219,7 @@ export async function registerRoutes(app: any) {
           const rows = await storage.getMarketplaceListings({
             categoryId: resolvedCategoryId,
             status: "active",
+            requireApproved: true,
             // Keep explicit county/state filters available for callers that truly want filtering.
             county:
               typeof req.query.filterCounty === "string"
@@ -16646,6 +16647,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         limit: req.query.limit ? Number(req.query.limit) : 20,
         offset: req.query.offset ? Number(req.query.offset) : 0,
         status: "active", // Only show approved/active listings to public
+        requireApproved: true,
+        publicExposureOnly: true,
       };
 
       const listings = await storage.getMarketplaceListings(filters);
@@ -16718,7 +16721,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       const listing = await storage.getMarketplaceListing(id);
 
-      if (!listing || String(listing.status || "") !== "active") {
+      if (!listing || String(listing.status || "") !== "active" || !listing.approvedAt) {
         return res.status(404).json({ message: "Listing not found" });
       }
       const authority = await buildExposureAuthorityMap([String(listing.sellerId || "")]);
@@ -16743,7 +16746,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const { slug } = req.params;
       const listing = await storage.getMarketplaceListingBySlug(slug);
 
-      if (!listing || String(listing.status || "") !== "active") {
+      if (!listing || String(listing.status || "") !== "active" || !listing.approvedAt) {
         return res.status(404).json({ message: "Listing not found" });
       }
       const authority = await buildExposureAuthorityMap([String(listing.sellerId || "")]);
@@ -17850,7 +17853,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           .filter(
             (listing: any) =>
               authority[String(listing?.sellerId || "").trim()] === true &&
-              String(listing?.status || "") === "active"
+              String(listing?.status || "") === "active" &&
+              Boolean(listing?.approvedAt)
           )
           .map((listing: any) => toPublicExchangeListing(listing))
           .filter(Boolean)
@@ -21441,6 +21445,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const searchResults = await storage.getMarketplaceListings({
         searchQuery: query as string,
         status: "active",
+        requireApproved: true,
+        publicExposureOnly: true,
         categoryId: category as string,
         priceMin: minPrice ? parseInt(minPrice as string) : undefined,
         priceMax: maxPrice ? parseInt(maxPrice as string) : undefined,

@@ -33,6 +33,8 @@ export function classifyRisk(args: {
   goal: string;
   constraints: string[];
   unknowns: string[];
+  /** Only set for an exact read-only public-source lookup of a bare trade noun. */
+  tradeNounIsReadOnlyLookup?: boolean;
 }): RiskAssessment {
   const lower = args.message.toLowerCase();
   const goalLower = args.goal.toLowerCase();
@@ -87,7 +89,7 @@ export function classifyRisk(args: {
   // ==========================================================================
   
   // Life-safety systems
-  if (/electrical|wiring|gas|structural|foundation|load.?bearing/i.test(lower)) {
+  if (!args.tradeNounIsReadOnlyLookup && /electrical|wiring|gas|structural|foundation|load.?bearing/i.test(lower)) {
     dimensions.safety = 8;
   }
   

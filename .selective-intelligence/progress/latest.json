@@ -1,55 +1,49 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260924T231952Z-958664b2",
-  "createdAt": "2026-09-24T23:19:53.428793+00:00",
-  "outcome": "Scout and Businesses draft PR 699 now suppresses fixed profile setup promotion on customer business search and private request editor, preserving business setup elsewhere.",
+  "checkpointId": "progress-20260925T025217Z-f0441896",
+  "createdAt": "2026-09-25T02:52:17.273284+00:00",
+  "outcome": "Keep Scout tools source error copy truthful on phones.",
   "scope": [
-    "TradeScout Scout and Businesses PR #699 only; separate from canonical Infinity and other brands."
+    "Client Scout public tools status copy and focused test only."
   ],
-  "prohibitions": [
-    "No production writes, invented inventory, weakened guards, main merge or deployment."
-  ],
+  "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Prior da7 signed-in Scout, saved-delete, business-source-error, and Businesses phone/desktop browser journeys passed with disposable loopback databases; new banner route focused tests 11/11 and npm run check passed; Objector identified overlay P1."
+      "Source time-window note now appears only after a checked Tools and Hardware lookup, not a failed lookup."
     ],
-    "changedUnverified": [
-      "Banner suppression exact-head 1440 review rendering and new-head four-receipt integration proof remain pending; prior da7 browser receipts are historical."
-    ],
+    "changedUnverified": [],
     "proof": [
-      "D:/scout-ux-proof-20260924/scout-main-final-r3/receipt.json and D:/scout-business-proof-20260924/evidence/businesses-empty-da7-r1/receipt.json are prior-head PASS; da7 desktop review screenshot showed badge overlay. New resolver focused Vitest 11/11 and npm run check passed."
+      "ScoutThread focused suite passed 63/63; git diff --check passed."
     ],
     "externalEffects": [
-      "Draft PR #699 at da7 before this save; no main merge or deployment; no customer request, contact, payment, purchase or trade. Old disposable temp residue remains where automatic approval review rejected cleanup, with ports closed."
+      "Local commit only; no push, PR, merge, deployment, contact, request, or purchase."
     ],
-    "doNotRepeat": [
-      "Do not present da7 browser/gate as exact new-head proof or bypass rejected cleanup. Keep disposable database lanes serial."
-    ],
-    "nextSafeAction": "Rerun exact-head synthetic browser journeys for Scout, saved-task deletion, Scout business source error, and Businesses phone/desktop; run unchanged release gate and update draft PR proof."
+    "doNotRepeat": [],
+    "nextSafeAction": "Root runs exact-HEAD synthetic phone journey and unchanged release gate before draft PR."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "codex/scout-mobile-discovery-20260923",
-    "headBefore": "da7dc8890e49ce49407a5e5498a978ad191df44c",
+    "branch": "codex/scout-public-tools-20260925",
+    "headBefore": "eb734f1772b1ee80814ab8f871ecdf210de7c0b1",
     "checkpointCommit": "containing_commit",
-    "pushRequested": true,
-    "pushRemote": "origin",
+    "pushRequested": false,
+    "pushRemote": null,
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
-      " M client/src/components/onboarding/ProfileCompletionBanner.tsx"
+      " M client/src/scout/ScoutThread.evidence.test.ts",
+      " M client/src/scout/ScoutThread.tsx"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-      "sha256": "540bbc9feb97f4e32e276beaae8a7e9b414d594d85502170996579759d3ad398"
+      "path": "client/src/scout/ScoutThread.tsx",
+      "sha256": "bc6484f54bb2a64b4477f17e8184607c3ec3c50bc57cba61e152057a667291bc"
     },
     {
-      "path": "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
-      "sha256": "abc1ac5ba2e559369428734e14fcbd5465829ca918f458dcc1dcb2f505fa8801"
+      "path": "client/src/scout/ScoutThread.evidence.test.ts",
+      "sha256": "20eef36b5da048c5e3e885ccbc8be407724e45a5eb75f5275caa25fd3fc437bc"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

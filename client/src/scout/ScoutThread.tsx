@@ -81,8 +81,6 @@ export function scrollScoutThreadToNewAnswerStart(
   message: ScoutThreadMessageTarget
 ): boolean {
   const messageBox = message.getBoundingClientRect();
-  if (messageBox.height <= thread.clientHeight) return false;
-
   const threadBox = thread.getBoundingClientRect();
   const top = thread.scrollTop + messageBox.top - threadBox.top;
   thread.scrollTo({ top: Math.max(0, top), behavior: "auto" });
@@ -387,6 +385,162 @@ function mixedDiscoverySummary(content: string): string {
   return summary;
 }
 
+type DiscoveryCheckStatus = "checked" | "error" | "not_checked";
+
+type DiscoveryCheck = {
+  status: DiscoveryCheckStatus;
+  shownCount: number;
+  topicFiltered: boolean;
+  timeWindow?: "active_now_not_week_filtered" | "not_filtered_to_week";
+};
+
+type DiscoveryChecks = {
+  areaLabel: string;
+  topic: string | null;
+  posts: DiscoveryCheck;
+  deals: DiscoveryCheck;
+  businesses: DiscoveryCheck;
+  tools: DiscoveryCheck | null;
+  profilePages: DiscoveryCheck | null;
+};
+
+function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
+  if (msg.provenance?.sourceUsed !== "scout_mixed_discovery_recovery") return null;
+  const metadata = msg.metadata;
+  const raw = metadata?.discoveryChecks;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const values = raw as Record<string, unknown>;
+  const readCheck = (value: unknown): DiscoveryCheck | null => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const check = value as Record<string, unknown>;
+    if (
+      check.status !== "checked" &&
+      check.status !== "error" &&
+      check.status !== "not_checked"
+    )
+      return null;
+    if (
+      typeof check.shownCount !== "number" ||
+      !Number.isInteger(check.shownCount) ||
+      check.shownCount < 0 ||
+      check.shownCount > 100
+    )
+      return null;
+    return {
+      status: check.status,
+      shownCount: check.shownCount,
+      topicFiltered: check.topicFiltered === true,
+      timeWindow: check.timeWindow === "active_now_not_week_filtered" || check.timeWindow === "not_filtered_to_week"
+        ? check.timeWindow
+        : undefined,
+    };
+  };
+  const posts = readCheck(values.posts);
+  const deals = readCheck(values.deals);
+  const businesses = readCheck(values.businesses);
+  const tools = values.tools === undefined ? null : readCheck(values.tools);
+  const profilePages = values.profilePages === undefined ? null : readCheck(values.profilePages);
+  if (!posts || !deals || !businesses) return null;
+  const areaLabel =
+    typeof values.areaLabel === "string" && values.areaLabel.trim().length <= 80
+      ? values.areaLabel.trim()
+      : "your county";
+  const rawTopic = metadata?.discoveryTopic;
+  const topic =
+    typeof rawTopic === "string" && rawTopic.trim().length > 0 && rawTopic.trim().length <= 60
+      ? rawTopic.trim()
+      : null;
+  return { areaLabel, topic, posts, deals, businesses, tools, profilePages };
+}
+
+function toolsDiscoverySummary(msg: ScoutMessage, checks: DiscoveryChecks): string | null {
+  if (!checks.tools && !checks.profilePages) return null;
+  const place = /^[a-z .'-]+, [a-z]{2}$/i.test(checks.areaLabel) && checks.areaLabel.length <= 45
+    ? checks.areaLabel
+    : "your county";
+  const checksRun = [checks.posts, checks.businesses, checks.deals, checks.tools, checks.profilePages]
+    .filter((check): check is DiscoveryCheck => Boolean(check));
+  const hasError = checksRun.some((check) => check.status === "error");
+  const hasChecked = checksRun.some((check) => check.status === "checked");
+  if (!hasChecked && !hasError) return "Set your county to search local results. No search has run yet.";
+
+  const matched = (msg.resultContract?.entities || []).filter(
+    (entity) => !(checks.topic && entity.type === "trade_deal" && !checks.deals.topicFiltered)
+  );
+  const first = matched.find((entity) => validatedEntityUrl(entity.url));
+  if (first) {
+    if (
+      !checks.topic &&
+      checks.posts.status === "checked" && checks.posts.shownCount === 0 &&
+      checks.deals.status === "checked" && checks.deals.shownCount === 0
+    ) {
+      const explain = (area: string) =>
+        `No posts from the past 7 days or active TradeDeals found in ${area}. ${hasError ? "Some other sources were unavailable." : "Other public results are below."}`;
+      const summary = explain(place);
+      return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS ? summary : explain("your county");
+    }
+    const name = (first.name || "").replace(/\s+/g, " ").trim().slice(0, 48).trimEnd();
+    const subject = name ? `“${name}”` : "a public result";
+    const topic = checks.topic ? ` for ${checks.topic.slice(0, 24)}` : "";
+    const lead = `Found ${subject}${topic} in ${place}.`;
+    const next = hasError
+      ? " Some sources could not be checked. Retry for more."
+      : " Open the result below to check details.";
+    return (lead + next).length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
+      ? lead + next
+      : `Found a local result in ${place}. ${hasError ? "Some sources could not be checked. Retry for more." : "Open it below to check details."}`;
+  }
+
+  if (hasError) return `The search in ${place} is incomplete. Retry to check the unavailable sources.`;
+  const topic = checks.topic ? ` for ${checks.topic.slice(0, 24)}` : "";
+  return `No public matches${topic} in ${place} from the sources checked. Try another trade or job.`;
+}
+
+function previewUserRequest(content: string): string {
+  const clean = content.replace(/\s+/g, " ").trim();
+  const firstSentence = clean.match(/^.{1,110}?[.!?](?=\s|$)/)?.[0];
+  if (firstSentence) return firstSentence;
+  const prefix = clean.slice(0, 110);
+  const lastSpace = prefix.lastIndexOf(" ");
+  return `${(lastSpace > 70 ? prefix.slice(0, lastSpace) : prefix).trimEnd()}…`;
+}
+
+function topicDiscoverySummary(msg: ScoutMessage): string | null {
+  const checks = readDiscoveryChecks(msg);
+  if (!checks?.topic || !checks.posts.topicFiltered || !checks.businesses.topicFiltered)
+    return null;
+  const topic = checks.topic.length <= 24 ? checks.topic : `${checks.topic.slice(0, 21).trimEnd()}...`;
+  const posts =
+    checks.posts.status === "checked"
+      ? `${checks.posts.shownCount} post match${checks.posts.shownCount === 1 ? "" : "es"} (7 days)`
+      : checks.posts.status === "error"
+        ? "posts unavailable"
+        : "posts unchecked";
+  const businesses =
+    checks.businesses.status === "checked"
+      ? `${checks.businesses.shownCount} business match${checks.businesses.shownCount === 1 ? "" : "es"}`
+      : checks.businesses.status === "error"
+        ? "businesses unavailable"
+        : "businesses unchecked";
+  const deals =
+    checks.deals.status === "checked"
+      ? `${checks.deals.shownCount} county TradeDeal${checks.deals.shownCount === 1 ? "" : "s"} (topic unchecked)`
+      : checks.deals.status === "error"
+        ? "deals unavailable"
+        : "deals unchecked";
+  const format = (place: string) =>
+    `${place}: ${topic}: ${posts}, ${businesses}; ${deals}. Other sources unchecked. Nothing sent.`;
+  const area =
+    /^[a-z .'-]+, [a-z]{2}$/i.test(checks.areaLabel) && checks.areaLabel.length <= 45
+      ? checks.areaLabel
+      : "Your county";
+  const summary = format(area);
+  if (summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS) return summary;
+  const countySummary = format("Your county");
+  if (countySummary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS) return countySummary;
+  return `${topic}: ${posts}, ${businesses}; ${deals}. More sources unchecked. Nothing sent.`;
+}
+
 function tryParseScoutEnvelope(raw: string): Record<string, unknown> | null {
   const text = String(raw || "").trim();
   if (!text || (!text.startsWith("{") && !text.startsWith("["))) return null;
@@ -444,7 +598,9 @@ function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
 
 function buildAssistantSummary(msg: ScoutMessage, displayContent: string): string {
   if (msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery") {
-    return mixedDiscoverySummary(displayContent);
+    const checks = readDiscoveryChecks(msg);
+    return (checks && toolsDiscoverySummary(msg, checks)) ||
+      topicDiscoverySummary(msg) || mixedDiscoverySummary(displayContent);
   }
   if (!shouldSummarizeAssistantMessage(msg)) return displayContent;
 
@@ -460,13 +616,67 @@ function buildAssistantSummary(msg: ScoutMessage, displayContent: string): strin
 function hasExplicitMixedCoverage(msg: ScoutMessage, answer: string): boolean {
   return (
     msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery" &&
-    /(?:^|[.!?]\s+)Pages, tools, and other requests were not checked\. Nothing was sent\.$/i.test(
-      answer.trim()
-    )
+    (Boolean(readDiscoveryChecks(msg)) ||
+      /(?:^|[.!?]\s+)Pages, tools, and other requests were not checked\. Nothing was sent\.$/i.test(
+        answer.trim()
+      ))
   );
 }
 
-function mixedDiscoverySourceChecks(answer: string): Array<{ source: string; status: string }> {
+function mixedDiscoverySourceChecks(msg: ScoutMessage, answer: string): Array<{ source: string; status: string }> {
+  const checks = readDiscoveryChecks(msg);
+  if (checks) {
+    const status = (check: DiscoveryCheck, checked: string) =>
+      check.status === "checked"
+        ? checked
+        : check.status === "error"
+          ? "Could not check"
+          : "Not checked";
+    return [
+      {
+        source: "County posts (past 7 days)",
+        status: status(checks.posts, checks.topic ? "Checked for topic" : "Checked"),
+      },
+      {
+        source: "Scout TradeDeals",
+        status: status(
+          checks.deals,
+          checks.topic ? "Checked county offers; not topic matched" : "Checked promotions"
+        ),
+      },
+      {
+        source: "Public business profiles",
+        status: status(
+          checks.businesses,
+          checks.topic ? "Checked names, categories & services for topic; no week filter" : "Checked; not this week"
+        ),
+      },
+      ...(checks.tools ? [{
+        source: "Public Tools & Hardware listings",
+        status: status(
+          checks.tools,
+          checks.tools.timeWindow === "active_now_not_week_filtered"
+            ? checks.topic ? "Checked for topic and county; active now, not week filtered" : "Checked county listings; active now, not week filtered"
+            : "Checked county listings"
+        ),
+      }] : []),
+      ...(checks.profilePages ? [{
+        source: "Public business profile pages",
+        status: status(
+          checks.profilePages,
+          checks.topic
+            ? "Checked for topic and county; not limited to this week"
+            : "Checked county pages; not limited to this week"
+        ),
+      }] : []),
+      {
+        source: checks.profilePages
+          ? "Other Site pages and private requests"
+          : checks.tools ? "Pages and requests" : "Pages, tools and requests",
+        status: "Not checked",
+      },
+    ];
+  }
   const clean = answer.replace(/\s+/g, " ").trim();
   const postsChecked =
     /(?:This Scout result includes \d+ published county posts? from the last 7 days|Scout checked published county posts from the last 7 days)/i.test(
@@ -1025,6 +1235,36 @@ function MessageExtras({
     [msg.resultContract?.ambiguity_options]
   );
   const contractEntities = msg.resultContract?.entities || [];
+  const discoveryChecks = readDiscoveryChecks(msg);
+  const topicCountyOffers = discoveryChecks?.topic && !discoveryChecks.deals.topicFiltered
+    ? contractEntities.map((entity, index) => ({ entity, index })).filter(({ entity }) => entity.type === "trade_deal")
+    : [];
+  const topicMatchedEntities = contractEntities
+    .map((entity, index) => ({ entity, index }))
+    .filter(({ index }) => !topicCountyOffers.some((offer) => offer.index === index));
+  const discoverySourceFailed = Boolean(
+    discoveryChecks?.posts.status === "error" ||
+      discoveryChecks?.deals.status === "error" ||
+      discoveryChecks?.businesses.status === "error" ||
+      discoveryChecks?.tools?.status === "error" ||
+      discoveryChecks?.profilePages?.status === "error"
+  );
+  const noTopicMatches = Boolean(
+    discoveryChecks?.topic &&
+    !discoverySourceFailed &&
+    discoveryChecks.posts.status === "checked" &&
+    discoveryChecks.businesses.status === "checked" &&
+    (!discoveryChecks.tools || discoveryChecks.tools.status === "checked") &&
+    (!discoveryChecks.profilePages || discoveryChecks.profilePages.status === "checked") &&
+    topicMatchedEntities.length === 0
+  );
+  const noTopicMatchSources = [
+    "recent county post",
+    "public business",
+    ...(discoveryChecks?.tools ? ["public tool listing"] : []),
+    ...(discoveryChecks?.profilePages ? ["public profile page"] : []),
+  ];
+  const noTopicMatchSourceText = `${noTopicMatchSources.slice(0, -1).join(", ")}${noTopicMatchSources.length > 2 ? "," : ""} or ${noTopicMatchSources[noTopicMatchSources.length - 1]}`;
   const entityActionIds = React.useMemo(() => {
     const ids = new Set<string>();
     for (const entity of contractEntities) {
@@ -1048,8 +1288,25 @@ function MessageExtras({
   const standalonePrimaryAction = remainingContractActions.find(
     ({ source }) => source.primary === true
   );
+  const requestReviewAction = remainingContractActions.find(
+    ({ source, action }) =>
+      source.action_id !== standalonePrimaryAction?.source.action_id &&
+      action.type === "NAVIGATE" &&
+      ["/direct-connect/post?source=scout", "/direct-connect?source=scout"].includes(
+        action.to ?? action.path ?? ""
+      ) &&
+      typeof action.payload?.countyFips === "string" &&
+      /^\d{5}$/.test(action.payload.countyFips)
+  );
+  const sourceRetryPrimary = Boolean(
+    standalonePrimaryAction?.action.type === "ASK_SCOUT" &&
+    standalonePrimaryAction.action.label === "Retry local search" &&
+    discoverySourceFailed
+  );
   const secondaryContractActions = remainingContractActions.filter(
-    ({ source }) => source.action_id !== standalonePrimaryAction?.source.action_id
+    ({ source }) =>
+      source.action_id !== standalonePrimaryAction?.source.action_id &&
+      source.action_id !== requestReviewAction?.source.action_id
   );
   const hasContractActions = ambiguityActions.length > 0 || secondaryContractActions.length > 0;
   const hasContractEntities = contractEntities.length > 0;
@@ -1068,6 +1325,13 @@ function MessageExtras({
   const [controllerShowAll, setControllerShowAll] = React.useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = React.useState(false);
   const [answerOpen, setAnswerOpen] = React.useState(false);
+  const [refineOpen, setRefineOpen] = React.useState(false);
+  const [refineTopic, setRefineTopic] = React.useState("");
+  const [refineError, setRefineError] = React.useState("");
+  const canRefineCountyResults =
+    hasMixedDiscoveryCoverage &&
+    Boolean(onAction) &&
+    !/^Set your county to browse nearby posts\./i.test(fullAnswer || "");
   const revealSourceChecksOnMount = React.useCallback((answer: HTMLDivElement | null) => {
     if (answer) revealScoutSourceChecks(answer);
   }, []);
@@ -1136,6 +1400,7 @@ function MessageExtras({
     hasContractEntities ||
     hasContractActions ||
     Boolean(standalonePrimaryAction) ||
+    Boolean(requestReviewAction) ||
     hasLegacyPrimaryAction ||
     hasAnswerDetails ||
     hasMixedDiscoveryCoverage ||
@@ -1146,6 +1411,68 @@ function MessageExtras({
     hasOnboardingPrompt;
 
   if (!hasAnything) return null;
+
+  const standalonePrimaryButton = standalonePrimaryAction ? (
+    <button
+      type="button"
+      className="scout-result-action scout-result-action--primary"
+      onClick={() => onAction?.(standalonePrimaryAction.action)}
+      disabled={!onAction}
+      data-testid="scout-primary-next-action"
+    >
+      {standalonePrimaryAction.action.label}
+      <ArrowRight size={14} aria-hidden="true" />
+    </button>
+  ) : null;
+
+  const refineCountyResults = canRefineCountyResults ? (
+    <div className={clsx("scout-result-refine", topicMatchedEntities.length > 0 && "scout-result-refine--compact")}>
+      <button
+        type="button"
+        className="scout-result-refine__toggle"
+        aria-expanded={refineOpen}
+        onClick={() => setRefineOpen((open) => !open)}
+      >
+        {discoveryChecks?.topic ? "Search another trade" : "Narrow by trade or job"}
+      </button>
+      {refineOpen && (
+        <form
+          className="scout-result-refine__form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const topic = refineTopic.replace(/\s+/g, " ").trim();
+            if (topic.length < 2 || topic.length > 60) {
+              setRefineError("Enter a trade or job in 2 to 60 characters.");
+              return;
+            }
+            setRefineError("");
+            onAction?.({
+              type: "ASK_SCOUT",
+              label: `Search county results for ${topic}`,
+              prompt: `Find TradeScout posts and deals about ${topic} in my county this week. Include public posts linked to requests and local businesses.`,
+            });
+          }}
+        >
+          <label htmlFor={`scout-refine-${msg.id}`}>Trade or job</label>
+          <div className="scout-result-refine__fields">
+            <input
+              id={`scout-refine-${msg.id}`}
+              type="text"
+              maxLength={60}
+              value={refineTopic}
+              placeholder="e.g. plumbing"
+              onChange={(event) => {
+                setRefineTopic(event.target.value);
+                if (refineError) setRefineError("");
+              }}
+            />
+            <button type="submit">Search county</button>
+          </div>
+          {refineError && <p role="alert">{refineError}</p>}
+        </form>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="scout-message-extras mt-3 space-y-3">
@@ -1161,11 +1488,21 @@ function MessageExtras({
           <ArrowRight size={14} aria-hidden="true" />
         </button>
       )}
+      {sourceRetryPrimary && standalonePrimaryButton}
+      {topicMatchedEntities.length === 0 && refineCountyResults}
       {hasContractEntities && (
         <div className="scout-result-list space-y-2" aria-label="Scout results">
-          {contractEntities.length > 1 && (
+          {noTopicMatches && (
+            <p className="scout-result-no-topic-match">
+              No {noTopicMatchSourceText} matched “{discoveryChecks?.topic}”.
+              Try another trade or review a local request privately.
+            </p>
+          )}
+          {topicMatchedEntities.length > 1 && (
             <div className="scout-result-list__guide">
-              <span>{contractEntities.length} results from checked sources</span>
+              <span>
+                {topicMatchedEntities.length} {discoveryChecks?.topic ? "topic matches" : "results from checked sources"}
+              </span>
               <button
                 type="button"
                 onClick={(event) => {
@@ -1190,6 +1527,9 @@ function MessageExtras({
           )}
           {contractEntities.map((entity, index) => {
             const entityName = entity.name || entity.type;
+            const countyOnlyOffer = Boolean(
+              discoveryChecks?.topic && entity.type === "trade_deal" && !discoveryChecks.deals.topicFiltered
+            );
             const safeUrl = validatedEntityUrl(entity.url);
             const inAppPath = safeUrl
               ? inAppScoutResultPath(
@@ -1203,7 +1543,21 @@ function MessageExtras({
                     action.type === "NAVIGATE" && (action.to || action.path) === safeUrl
                 )
               : undefined;
-            return (
+            const entityActionIsPrimary = Boolean(
+              entityAction?.source.primary && !countyOnlyOffer && !sourceRetryPrimary
+            );
+            const linkedOpenLabel = entity.type === "community_post"
+              ? "Open county post"
+              : entity.type === "trade_deal"
+                ? "Open promotional TradeDeal"
+                : entity.type === "business"
+                  ? "Open local business profile"
+                  : entity.type === "public_tool"
+                    ? "Open local tool listing"
+                    : entity.type === "public_profile"
+                      ? "Open public profile page"
+                      : "Open result";
+            const card = (
               <article
                 key={`${msg.id}-entity-${entity.id}`}
                 className="scout-result-card"
@@ -1216,12 +1570,39 @@ function MessageExtras({
                       ? "Promotional TradeDeal"
                       : entity.type === "business"
                         ? "Public business profile"
+                        : entity.type === "public_tool"
+                          ? "Public Tools & Hardware listing"
+                        : entity.type === "public_profile"
+                          ? "Public profile page"
                         : "Scout result"}
                 </div>
-                {safeUrl && !entityAction ? (
+                <div className="scout-result-card__title">{entityName}</div>
+                {Array.isArray(entity.match_reasons) && entity.match_reasons.length > 0 && (
+                  <ul className="scout-result-card__reasons">
+                    {entity.match_reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+                {entityAction && (
+                  <button
+                    type="button"
+                    className={clsx(
+                      "scout-result-action",
+                      entityActionIsPrimary && "scout-result-action--primary"
+                    )}
+                    onClick={() => onAction?.(entityAction.action)}
+                    disabled={!onAction}
+                    data-testid={entityActionIsPrimary ? "scout-primary-next-action" : undefined}
+                  >
+                    {entityAction.action.label}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </button>
+                )}
+                {safeUrl && !entityAction && (
                   <a
                     href={safeUrl}
-                    className="scout-result-card__title underline underline-offset-2"
+                    className="scout-result-action no-underline"
                     onClick={(event) => {
                       if (
                         !onResultLinkNavigate ||
@@ -1238,53 +1619,77 @@ function MessageExtras({
                       onResultLinkNavigate(inAppPath);
                     }}
                   >
-                    {entityName}
-                  </a>
-                ) : (
-                  <div className="scout-result-card__title">{entityName}</div>
-                )}
-                {Array.isArray(entity.match_reasons) && entity.match_reasons.length > 0 && (
-                  <ul className="scout-result-card__reasons">
-                    {entity.match_reasons.map((reason) => (
-                      <li key={reason}>{reason}</li>
-                    ))}
-                  </ul>
-                )}
-                {entityAction && (
-                  <button
-                    type="button"
-                    className={clsx(
-                      "scout-result-action",
-                      entityAction.source.primary && "scout-result-action--primary"
-                    )}
-                    onClick={() => onAction?.(entityAction.action)}
-                    disabled={!onAction}
-                    data-testid={
-                      entityAction.source.primary ? "scout-primary-next-action" : undefined
-                    }
-                  >
-                    {entityAction.action.label}
+                    {linkedOpenLabel}
                     <ArrowRight size={14} aria-hidden="true" />
-                  </button>
+                  </a>
                 )}
               </article>
             );
+            return countyOnlyOffer ? (
+              <details key={`${msg.id}-county-offer-${entity.id}`} className="scout-county-offer">
+                <summary>County offer, not matched to {discoveryChecks?.topic}: {entityName}</summary>
+                {card}
+              </details>
+            ) : card;
           })}
         </div>
       )}
 
-      {standalonePrimaryAction && (
-        <button
-          type="button"
-          className="scout-result-action scout-result-action--primary"
-          onClick={() => onAction?.(standalonePrimaryAction.action)}
-          disabled={!onAction}
-          data-testid="scout-primary-next-action"
-        >
-          {standalonePrimaryAction.action.label}
-          <ArrowRight size={14} aria-hidden="true" />
-        </button>
+      {topicMatchedEntities.length > 0 && refineCountyResults}
+
+      {(discoveryChecks?.tools || discoveryChecks?.profilePages) && (
+        <details className="scout-result-coverage" open={discoverySourceFailed || topicMatchedEntities.length === 0}>
+          <summary>{discoverySourceFailed ? "Search coverage is incomplete" : "What Scout checked"}</summary>
+          {discoveryChecks?.tools && (
+            <p className="scout-result-tools-status" aria-label="Tools source status">
+              <strong>Tools &amp; Hardware:</strong>{" "}
+              {discoveryChecks.tools.status === "checked"
+                ? `${discoveryChecks.tools.shownCount} active county listing${discoveryChecks.tools.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+                : discoveryChecks.tools.status === "error"
+                  ? "could not check county listings"
+                  : "not checked"}
+              {discoveryChecks.tools.status === "checked" &&
+              discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
+                ? ". Listings are not limited to this week."
+                : "."}
+              {!discoveryChecks.profilePages && <> Pages and private requests were not checked.</>}
+            </p>
+          )}
+          {discoveryChecks?.profilePages && (
+            <p className="scout-result-pages-status" aria-label="Public profile pages status">
+              <strong>Public profile pages:</strong>{" "}
+              {discoveryChecks.profilePages.status === "checked"
+                ? `${discoveryChecks.profilePages.shownCount} county page${discoveryChecks.profilePages.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+                : discoveryChecks.profilePages.status === "error"
+                  ? "could not check county pages"
+                  : "not checked"}
+              {discoveryChecks.profilePages.status === "checked" &&
+              discoveryChecks.profilePages.timeWindow === "not_filtered_to_week"
+                ? ". Pages are not limited to this week."
+                : "."}
+              {" "}Other Site pages and private requests were not checked.
+            </p>
+          )}
+        </details>
       )}
+
+      {requestReviewAction && (
+        <div className="scout-result-request-review" aria-label="Private request review">
+          <button
+            type="button"
+            className="scout-result-action scout-result-request-review__action"
+            onClick={() => onAction?.(requestReviewAction.action)}
+            disabled={!onAction}
+            data-testid="scout-request-review-action"
+          >
+            {requestReviewAction.action.label}
+            <ArrowRight size={14} aria-hidden="true" />
+          </button>
+          <p>Edit the details before choosing whether to share. Nothing is sent from Scout.</p>
+        </div>
+      )}
+
+      {!sourceRetryPrimary && standalonePrimaryButton}
 
       {hasContractActions && (
         <div aria-label="Scout result actions" className="scout-result-secondary-actions">
@@ -1537,10 +1942,10 @@ function MessageExtras({
                     <div className="space-y-2 text-xs" aria-label="Scout source checks">
                       <p className="font-semibold text-[color:var(--text-primary)]">What Scout checked</p>
                       <dl className="space-y-1.5">
-                        {mixedDiscoverySourceChecks(fullAnswer || "").map(({ source, status }) => (
-                          <div key={source} className="flex items-start justify-between gap-3">
-                            <dt>{source}</dt>
-                            <dd className="shrink-0 text-right font-semibold text-[color:var(--text-primary)]">
+                        {mixedDiscoverySourceChecks(msg, fullAnswer || "").map(({ source, status }) => (
+                          <div key={source} className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                            <dt className="min-w-0">{source}</dt>
+                            <dd className="min-w-0 break-words text-left font-semibold text-[color:var(--text-primary)] sm:max-w-[60%] sm:text-right">
                               {status}
                             </dd>
                           </div>
@@ -1652,6 +2057,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const retainLatestOnResizeRef = React.useRef(true);
   const lastPresentedMessageIdRef = React.useRef<string | null>(null);
+  const newAnswerOpeningRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
     const node = containerRef.current;
@@ -1665,16 +2071,16 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       const messageNode = Array.from(node.children).find(
         (child) => child.getAttribute("data-scout-message-id") === lastMessage.id
       );
-      if (
-        messageNode instanceof HTMLElement &&
-        scrollScoutThreadToNewAnswerStart(node, messageNode)
-      ) {
+      if (messageNode instanceof HTMLElement) {
+        newAnswerOpeningRef.current = messageNode;
+        scrollScoutThreadToNewAnswerStart(node, messageNode);
         retainLatestOnResizeRef.current = false;
         return;
       }
     }
 
     if (!retainLatestOnResizeRef.current && lastMessage.role !== "user") return;
+    newAnswerOpeningRef.current = null;
     scrollScoutThreadToLatest(node, "auto");
     retainLatestOnResizeRef.current = true;
   }, [messages]);
@@ -1684,6 +2090,15 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     if (!node) return;
 
     const rememberReaderPosition = () => {
+      const opening = newAnswerOpeningRef.current;
+      if (opening) {
+        const offset = opening.getBoundingClientRect().top - node.getBoundingClientRect().top;
+        if (Math.abs(offset) <= 2) {
+          retainLatestOnResizeRef.current = false;
+          return;
+        }
+        newAnswerOpeningRef.current = null;
+      }
       retainLatestOnResizeRef.current = isScoutThreadNearLatest(node);
     };
     rememberReaderPosition();
@@ -1766,7 +2181,17 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     U
                   </div>
                 </div>
-                <div className="scout-user-bubble__body">{displayContent}</div>
+                {displayContent.replace(/\s+/g, " ").trim().length > 180 ? (
+                  <details className="scout-user-bubble__request">
+                    <summary className="scout-user-bubble__request-summary">
+                      <span>{previewUserRequest(displayContent)}</span>
+                      <span className="scout-user-bubble__request-expand">Show full request</span>
+                    </summary>
+                    <div className="scout-user-bubble__body">{displayContent}</div>
+                  </details>
+                ) : (
+                  <div className="scout-user-bubble__body">{displayContent}</div>
+                )}
               </div>
             ) : (
               /* ---- ASSISTANT BUBBLE ---- */
@@ -1779,10 +2204,16 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   <span className="scout-assistant-bubble__name">Scout</span>
                   {msg.resultContract && (
                     <span className="scout-assistant-bubble__badge">
-                      {msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
-                        ? msg.resultContract.entities.length > 0
-                          ? "Local results"
-                          : "Scout update"
+                      {msg.metadata?.clarificationKind === "bare_trade"
+                        ? "Clarify request"
+                        : msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
+                        ? msg.resultContract.entities.some((entity) =>
+                            readDiscoveryChecks(msg)?.topic
+                              ? entity.type === "community_post" || entity.type === "business" || entity.type === "public_tool" || entity.type === "public_profile"
+                              : true
+                          )
+                          ? "County results"
+                          : "County search"
                         : humanizeToken(msg.resultContract.intent)}
                     </span>
                   )}
@@ -1816,6 +2247,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               <EvidenceStrip
                 msg={msg}
                 enabled={
+                  msg.metadata?.clarificationKind !== "bare_trade" &&
                   !hasExplicitMixedCoverage(msg, displayContent) &&
                   (showControllerExtras || Boolean(msg.resultContract))
                 }
