@@ -53,6 +53,7 @@ import { ScoutInputRow } from "./ScoutInputRow";
 import ScoutSearchDock from "./ScoutSearchDock";
 import {
   clearScoutInputDraft,
+  prepareScoutLaunchContinuationPath,
   readScoutDraftForOwner,
   takeScoutHelpIntentForOwner,
   useScoutAccountBoundLaunch,
@@ -1805,9 +1806,7 @@ export default function ScoutOS() {
     scoutLaunch.signature,
     Boolean(scoutLaunch.context || scoutLaunch.prompt),
     scoutReturnOwner,
-    scoutLaunch.context && scoutLaunch.prompt
-      ? JSON.stringify({ context: scoutLaunch.context, prompt: null })
-      : undefined
+    Boolean(scoutLaunch.continuationToken)
   );
   const acceptedLaunchContext = launchAcceptance === "accepted" ? scoutLaunch.context : null;
   const acceptedLaunchPrompt = launchAcceptance === "accepted" ? scoutLaunch.prompt : undefined;
@@ -2734,12 +2733,12 @@ export default function ScoutOS() {
   // The structured launch context stays in the URL for the rest of the conversation.
   useEffect(() => {
     if (!acceptedLaunchPrompt || !hasUserMessages) return;
-    const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
-    params.delete("prompt");
-    const nextLocation = params.toString() ? `/scout?${params.toString()}` : "/scout";
+    const currentLocation = readScoutBrowserLocation(location);
+    if (parseScoutLaunchLocation(currentLocation).signature !== scoutLaunch.signature) return;
+    const nextLocation = prepareScoutLaunchContinuationPath(currentLocation, scoutReturnOwner);
     navigate(nextLocation, { replace: true });
     setScoutBrowserLocation(nextLocation);
-  }, [acceptedLaunchPrompt, hasUserMessages, location, navigate]);
+  }, [acceptedLaunchPrompt, hasUserMessages, location, navigate, scoutLaunch.signature, scoutReturnOwner]);
 
   // Clear stale drafts on a plain first guest visit, but never erase an explicit handoff.
   useEffect(() => {

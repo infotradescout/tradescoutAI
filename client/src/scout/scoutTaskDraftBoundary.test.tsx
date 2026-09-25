@@ -9,6 +9,7 @@ import {
   SCOUT_MAIN_INPUT_DRAFT_KEY,
   SCOUT_MAIN_INPUT_OWNER_KEY,
   SCOUT_HELP_INTENT_KEY,
+  prepareScoutLaunchContinuationPath,
   takeScoutHelpIntentForOwner,
   useScoutAccountBoundLaunch,
   useScoutAccountBoundLaunchPrompt,
@@ -295,23 +296,24 @@ describe("Scout task draft boundary", () => {
     expect(textArea().value).toBe("");
   });
 
-  it("keeps a shared launch context with its first account through a switch and remount", async () => {
-    const aRoute = "/scout?source=scout_resume&intent=local-search&prompt=A%20private%20launch";
-    const aContextOnlyRoute = "/scout?source=scout_resume&intent=local-search";
-    const bRoute = "/scout?source=business_profile_call&businessSlug=b-plumbing&intent=estimate&prompt=B%20deliberate%20launch";
+  it("keeps each accepted same-context prompt with its account after prompt removal and reload", async () => {
+    const aRoute = "/scout?source=business_profile_call&businessSlug=shared-plumbing&intent=estimate&prompt=A%20private%20launch";
+    const bRoute = "/scout?source=business_profile_call&businessSlug=shared-plumbing&intent=estimate&prompt=B%20deliberate%20launch";
+    const unmarkedRoute = "/scout?source=business_profile_call&businessSlug=shared-plumbing&intent=estimate";
     const contextEffects = vi.fn<(owner: string, intent: string) => void>();
+    const sentWithContext = vi.fn<(owner: string, text: string, intent: string, returnPath: string) => void>();
+    let aMarkedRoute = "";
+    let bMarkedRoute = "";
 
-    function Launch({ startOwner }: { startOwner: string }) {
+    function Launch({ startOwner, startRoute = aRoute }: { startOwner: string; startRoute?: string }) {
       const [owner, setOwner] = useState(startOwner);
-      const [route, setRoute] = useState(aRoute);
+      const [route, setRoute] = useState(startRoute);
       const launch = parseScoutLaunchLocation(route);
       const acceptance = useScoutAccountBoundLaunch(
         launch.signature,
         Boolean(launch.context || launch.prompt),
         owner,
-        launch.context && launch.prompt
-          ? JSON.stringify({ context: launch.context, prompt: null })
-          : undefined
+        Boolean(launch.continuationToken)
       );
       const context = acceptance === "accepted" ? launch.context : null;
       const prompt = acceptance === "accepted" ? launch.prompt : undefined;
@@ -325,10 +327,12 @@ describe("Scout task draft boundary", () => {
           <span data-testid="launch-acceptance">{acceptance}</span>
           <span data-testid="launch-intent">{context?.intent || ""}</span>
           <span data-testid="launch-return-path">{returnPath || ""}</span>
+          <span data-testid="launch-route">{route}</span>
           <button type="button" onClick={() => setOwner("user:B")}>Switch context account B</button>
-          <button type="button" onClick={() => setRoute(aContextOnlyRoute)}>Consume A URL prompt</button>
+          <button type="button" onClick={() => setRoute(unmarkedRoute)}>Open fresh unmarked context</button>
           <button type="button" onClick={() => setRoute(bRoute)}>Open B context launch</button>
           <button type="button" onClick={() => setRoute(aRoute)}>Reopen A context launch</button>
+          <button type="button" onClick={() => setRoute(aMarkedRoute)}>Reopen A marked URL</button>
           {context ? (
             <ScoutLaunchContextCard
               context={context}
@@ -347,7 +351,16 @@ describe("Scout task draft boundary", () => {
             draftOwner={owner}
             hasMessages={false}
             quickStartPrompts={[]}
-            onSend={(text) => sent(owner, "URL", text)}
+            onSend={(text) => {
+              sent(owner, "URL", text);
+              sentWithContext(owner, text, context?.intent || "", returnPath || "");
+              if (launch.prompt) {
+                const marked = prepareScoutLaunchContinuationPath(route, owner);
+                if (owner === "user:A") aMarkedRoute = marked;
+                if (owner === "user:B") bMarkedRoute = marked;
+                setRoute(marked);
+              }
+            }}
             onTyping={() => undefined}
           />
         </div>
@@ -356,14 +369,20 @@ describe("Scout task draft boundary", () => {
 
     await act(async () => root.render(<Launch startOwner="user:A" />));
     expect(container.querySelector('[aria-label="Shared context from your previous view"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="launch-intent"]')?.textContent).toBe("local-search");
+    expect(container.querySelector('[data-testid="launch-intent"]')?.textContent).toBe("estimate");
     expect(textArea().value).toBe("A private launch");
-    expect(contextEffects).toHaveBeenCalledExactlyOnceWith("user:A", "local-search");
+    expect(contextEffects).toHaveBeenCalledExactlyOnceWith("user:A", "estimate");
 
-    await act(async () => click("Consume A URL prompt"));
+    await act(async () => click("Open fresh unmarked context"));
+    expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("accepted");
+    await act(async () => click("Reopen A context launch"));
+    expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("accepted");
+    await act(async () => click("Start search"));
+    expect(aMarkedRoute).toMatch(/^\/scout\?[^#]*scoutContinue=[a-f0-9]{32}/);
+    expect(aMarkedRoute).not.toContain("A%20private%20launch");
+    expect(aMarkedRoute).not.toContain("user%3AA");
     expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("accepted");
     expect(container.querySelector('[aria-label="Shared context from your previous view"]')).not.toBeNull();
-    await act(async () => click("Reopen A context launch"));
 
     contextEffects.mockClear();
     await act(async () => click("Switch context account B"));
@@ -375,38 +394,54 @@ describe("Scout task draft boundary", () => {
 
     await act(async () => root.unmount());
     root = createRoot(container);
-    await act(async () => root.render(<Launch startOwner="user:B" />));
+    await act(async () => root.render(<Launch startOwner="user:B" startRoute={aMarkedRoute} />));
     expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("blocked");
     expect(container.querySelector('[aria-label="Shared context from your previous view"]')).toBeNull();
     expect(container.querySelector('[data-testid="launch-intent"]')?.textContent).toBe("");
     expect(textArea().value).toBe("");
     expect(contextEffects).not.toHaveBeenCalled();
 
+    await act(async () => click("Open fresh unmarked context"));
+    expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("blocked");
+    expect(container.querySelector('[data-testid="launch-return-path"]')?.textContent).toBe("");
+    contextEffects.mockClear();
+
     await act(async () => click("Open B context launch"));
     expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("accepted");
     expect(container.querySelector('[aria-label="Shared context from your previous view"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="launch-intent"]')?.textContent).toBe("estimate");
-    expect(container.querySelector('[data-testid="launch-return-path"]')?.textContent).toBe("/u/b-plumbing");
+    expect(container.querySelector('[data-testid="launch-return-path"]')?.textContent).toBe("/u/shared-plumbing");
     expect(textArea().value).toBe("B deliberate launch");
     expect(contextEffects).toHaveBeenCalledExactlyOnceWith("user:B", "estimate");
 
-    contextEffects.mockClear();
-    await act(async () => click("Consume A URL prompt"));
-    expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("blocked");
-    expect(container.querySelector('[aria-label="Shared context from your previous view"]')).toBeNull();
-    expect(container.querySelector('[data-testid="launch-intent"]')?.textContent).toBe("");
-    expect(textArea().value).toBe("B deliberate launch");
-    expect(textArea().value).not.toContain("A private launch");
-    expect(contextEffects).not.toHaveBeenCalled();
-    expect(sent).not.toHaveBeenCalled();
+    await act(async () => click("Start search"));
+    expect(sentWithContext).toHaveBeenCalledWith("user:B", "B deliberate launch", "estimate", "/u/shared-plumbing");
+    expect(bMarkedRoute).toMatch(/^\/scout\?[^#]*scoutContinue=[a-f0-9]{32}/);
+    expect(bMarkedRoute).not.toBe(aMarkedRoute);
+    expect(bMarkedRoute).not.toContain("B%20deliberate%20launch");
+    expect(bMarkedRoute).not.toContain("user%3AB");
+    expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("accepted");
+    expect(container.querySelector('[data-testid="launch-intent"]')?.textContent).toBe("estimate");
+    expect(container.querySelector('[data-testid="launch-return-path"]')?.textContent).toBe("/u/shared-plumbing");
 
     await act(async () => root.unmount());
     root = createRoot(container);
-    await act(async () => root.render(<Launch startOwner="user:B" />));
-    await act(async () => click("Consume A URL prompt"));
+    await act(async () => root.render(<Launch startOwner="user:B" startRoute={bMarkedRoute} />));
+    expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("accepted");
+    expect(container.querySelector('[aria-label="Shared context from your previous view"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="launch-intent"]')?.textContent).toBe("estimate");
+    expect(container.querySelector('[data-testid="launch-return-path"]')?.textContent).toBe("/u/shared-plumbing");
+    await act(async () => type("B follow-up after reload"));
+    await act(async () => click("Start search"));
+    expect(sentWithContext).toHaveBeenCalledWith("user:B", "B follow-up after reload", "estimate", "/u/shared-plumbing");
+
+    contextEffects.mockClear();
+    await act(async () => click("Reopen A marked URL"));
     expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("blocked");
     expect(container.querySelector('[aria-label="Shared context from your previous view"]')).toBeNull();
     expect(contextEffects).not.toHaveBeenCalled();
+    await act(async () => click("Reopen A context launch"));
+    expect(container.querySelector('[data-testid="launch-acceptance"]')?.textContent).toBe("blocked");
   });
 
   it("blocks an old account's context-only URL after a fresh account remount", async () => {
@@ -452,5 +487,58 @@ describe("Scout task draft boundary", () => {
     expect(container.querySelector('[aria-label="Shared context from your previous view"]')).toBeNull();
     expect(container.querySelector('[data-testid="context-only-intent"]')?.textContent).toBe("");
     expect(contextEffects).not.toHaveBeenCalled();
+  });
+
+  it("does not preclaim an unmarked context-only URL from a different prompt launch", async () => {
+    const base = "/scout?source=scout_resume&intent=local-search";
+    function Launch({ owner, route }: { owner: string; route: string }) {
+      const launch = parseScoutLaunchLocation(route);
+      const acceptance = useScoutAccountBoundLaunch(
+        launch.signature,
+        Boolean(launch.context || launch.prompt),
+        owner,
+        Boolean(launch.continuationToken)
+      );
+      return <span data-testid="unmarked-ownership">{acceptance}</span>;
+    }
+    await act(async () => root.render(
+      <Launch owner="user:A" route={`${base}&prompt=A%20private%20launch`} />
+    ));
+    expect(container.querySelector('[data-testid="unmarked-ownership"]')?.textContent).toBe("accepted");
+    await act(async () => root.render(<Launch owner="user:B" route={base} />));
+    expect(container.querySelector('[data-testid="unmarked-ownership"]')?.textContent).toBe("accepted");
+  });
+
+  it("does not let a direct unbound continuation marker claim an account", async () => {
+    const route = "/scout?source=business_profile_call&businessSlug=shared-plumbing&intent=estimate&scoutContinue=0123456789abcdef0123456789abcdef";
+    function MarkedLaunch({ owner }: { owner: string }) {
+      const launch = parseScoutLaunchLocation(route);
+      const acceptance = useScoutAccountBoundLaunch(
+        launch.signature,
+        Boolean(launch.context || launch.prompt),
+        owner,
+        Boolean(launch.continuationToken)
+      );
+      return (
+        <div>
+          <span data-testid="unbound-marker-acceptance">{acceptance}</span>
+          {acceptance === "accepted" && launch.context ? (
+            <ScoutLaunchContextCard
+              context={launch.context}
+              onOpenOriginal={() => undefined}
+              onClear={() => undefined}
+            />
+          ) : null}
+        </div>
+      );
+    }
+    await act(async () => root.render(<MarkedLaunch owner="user:A" />));
+    expect(container.querySelector('[data-testid="unbound-marker-acceptance"]')?.textContent).toBe("blocked");
+    expect(container.querySelector('[aria-label="Shared context from your previous view"]')).toBeNull();
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await act(async () => root.render(<MarkedLaunch owner="user:B" />));
+    expect(container.querySelector('[data-testid="unbound-marker-acceptance"]')?.textContent).toBe("blocked");
+    expect(container.querySelector('[aria-label="Shared context from your previous view"]')).toBeNull();
   });
 });

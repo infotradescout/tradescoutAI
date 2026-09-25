@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  parseScoutLaunchLocation,
+  SCOUT_LAUNCH_CONTINUATION_PARAM,
+} from "@shared/scoutLaunchContext";
 
 // External Scout handoffs and the active composer use this one-time draft slot.
 export const SCOUT_MAIN_INPUT_DRAFT_KEY = "scout:prefill:scout-main";
@@ -89,7 +93,7 @@ export function useScoutAccountBoundLaunch(
   signature: string,
   hasLaunch: boolean,
   owner: string | null,
-  continuationSignature?: string
+  requireExistingBinding = false
 ): ScoutLaunchAcceptance {
   const [binding, setBinding] = useState<{
     fingerprint: string;
@@ -97,25 +101,18 @@ export function useScoutAccountBoundLaunch(
     accepted: boolean;
   } | null>(null);
   const fingerprint = launchSignatureFingerprint(signature);
-  const continuationFingerprint = continuationSignature
-    ? launchSignatureFingerprint(continuationSignature)
-    : null;
   useEffect(() => {
     if (!hasLaunch || !owner) return;
     try {
       const launchKey = `${SCOUT_LAUNCH_OWNER_KEY_PREFIX}${fingerprint}`;
       const existingOwner = window.sessionStorage.getItem(launchKey);
-      if (existingOwner && existingOwner !== owner) {
+      if (!existingOwner && requireExistingBinding) {
         setBinding({ fingerprint, owner, accepted: false });
         return;
       }
-      // Consuming a URL prompt leaves its context in place. Reserve that exact
-      // context-only continuation before the prompt disappears from the URL.
-      if (continuationFingerprint && continuationFingerprint !== fingerprint) {
-        const continuationKey = `${SCOUT_LAUNCH_OWNER_KEY_PREFIX}${continuationFingerprint}`;
-        if (!window.sessionStorage.getItem(continuationKey)) {
-          window.sessionStorage.setItem(continuationKey, owner);
-        }
+      if (existingOwner && existingOwner !== owner) {
+        setBinding({ fingerprint, owner, accepted: false });
+        return;
       }
       window.sessionStorage.setItem(launchKey, owner);
       setBinding({ fingerprint, owner, accepted: true });
@@ -123,10 +120,62 @@ export function useScoutAccountBoundLaunch(
       // Without tab-scoped ownership, reloading under another account must fail closed.
       setBinding({ fingerprint, owner, accepted: false });
     }
-  }, [continuationFingerprint, fingerprint, hasLaunch, owner]);
+  }, [fingerprint, hasLaunch, owner, requireExistingBinding]);
   if (!hasLaunch) return "none";
   if (!owner || binding?.fingerprint !== fingerprint || binding.owner !== owner) return "pending";
   return binding.accepted ? "accepted" : "blocked";
+}
+
+function newScoutContinuationToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const crypto = window.crypto;
+  if (!crypto) return null;
+  try {
+    const uuid = crypto.randomUUID?.().replace(/-/g, "").toLowerCase();
+    if (uuid && /^[a-f0-9]{32}$/.test(uuid)) return uuid;
+  } catch {
+    // Some environments expose randomUUID but refuse to use it.
+  }
+  try {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return null;
+  }
+}
+
+/** Bind an opaque continuation to this account before removing private URL text. */
+export function prepareScoutLaunchContinuationPath(
+  currentLocation: string,
+  owner: string | null
+): string {
+  const launch = parseScoutLaunchLocation(currentLocation);
+  if (!launch.prompt || !currentLocation.startsWith("/scout?")) return "/scout";
+  const params = new URLSearchParams(currentLocation.slice(currentLocation.indexOf("?") + 1));
+  params.delete("prompt");
+  params.delete(SCOUT_LAUNCH_CONTINUATION_PARAM);
+  if (!launch.context) return params.toString() ? `/scout?${params.toString()}` : "/scout";
+  if (!owner || typeof window === "undefined") return "/scout";
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const token = newScoutContinuationToken();
+    if (!token) break;
+    params.set(SCOUT_LAUNCH_CONTINUATION_PARAM, token);
+    const path = `/scout?${params.toString()}`;
+    const continuation = parseScoutLaunchLocation(path);
+    if (continuation.continuationToken !== token) break;
+    try {
+      const key = `${SCOUT_LAUNCH_OWNER_KEY_PREFIX}${launchSignatureFingerprint(continuation.signature)}`;
+      if (window.sessionStorage.getItem(key)) continue;
+      window.sessionStorage.setItem(key, owner);
+      if (window.sessionStorage.getItem(key) === owner) return path;
+    } catch {
+      break;
+    }
+  }
+  // Never leave a private prompt in the URL when secure continuation cannot be bound.
+  return "/scout";
 }
 
 /** Kept for callers that only need the prompt part of an accepted launch. */
