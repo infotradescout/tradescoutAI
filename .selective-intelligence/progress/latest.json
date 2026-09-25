@@ -1,61 +1,51 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T014052Z-03a6dd28",
-  "createdAt": "2026-09-25T01:40:52.802299+00:00",
-  "outcome": "Keep Scout task titles and Businesses status truthful during the observed phone journeys.",
+  "checkpointId": "progress-20260925T014234Z-5c2b78d6",
+  "createdAt": "2026-09-25T01:42:34.470860+00:00",
+  "outcome": "Remove nonsensical zero-unknown governor copy without changing its safety decision.",
   "scope": [
-    "Saved Scout title and Businesses pending/error summary"
+    "Scout governor DEFER copy"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Latest checked county result now sets the saved task title after a one-word trade follow-up; Businesses no longer claims zero profiles while directory checks are pending or failed."
+      "A DEFER with no identified unknowns now asks what the user wants to find or decide, reports no fabricated missing information, and uses plain language for the optional verification note."
     ],
     "changedUnverified": [
-      "Exact-head browser journeys and unchanged release gate pending; governor zero-unknown copy remains to repair."
+      "Exact-head phone/browser journeys and unchanged release gate pending."
     ],
     "proof": [
-      "Focused Scout saved intent and Businesses discovery tests 16/16, npm run check, and git diff --check passed; 476 browser visual receipts showed stale title and contradictory 503 count."
+      "Focused governor copy test 1/1, npm run check, and git diff --check passed; 476 real same-thread county follow-up passed; 476 history-zero fresh query exposed the old zero-pieces copy."
     ],
     "externalEffects": [
       "Only draft PR branch push; no production/customer effects."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Repair governor empty-unknown copy, then rerun exact-head synthetic phone/browser journeys and unchanged release gate."
+    "nextSafeAction": "Rerun exact-head phone/browser Scout, Businesses stale/fault, saved delete, unchanged release gate, product packet."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "47635f556adc671fb49a417b4085c68fecc02872",
+    "headBefore": "aea9f66c0903a04ee4ca18b97ad065d67c170573",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
-      " M client/src/pages/direct-connect/DirectConnectPros.tsx",
-      " M client/src/scout/ScoutOS.saved-intent.test.ts",
-      " M client/src/scout/ScoutOS.tsx"
+      " M server/scout/governor.ts",
+      "?? server/tests/scout-governor-defer-copy.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/scout/ScoutOS.tsx",
-      "sha256": "dfa509c23fa1b487868bc1a3050001687472a3bb8640ce3e66a4cc32909eaa53"
+      "path": "server/scout/governor.ts",
+      "sha256": "a83affcf1168053c2356e1487501129df33e194a156354cfc51a4fe12a86de19"
     },
     {
-      "path": "client/src/scout/ScoutOS.saved-intent.test.ts",
-      "sha256": "1b226d03af0413f9f8f0100a4523df5ad858e6e98f3699609472ef9f0a91d7c5"
-    },
-    {
-      "path": "client/src/pages/direct-connect/DirectConnectPros.tsx",
-      "sha256": "c7917e294255233f2c7adc2f3cc679925640682c7d75a541dc81d8db5615b4bf"
-    },
-    {
-      "path": "client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
-      "sha256": "2d351c332f1c0d4dd0b9cf457da4158259c214eae57bd91271d4784ea3da09d8"
+      "path": "server/tests/scout-governor-defer-copy.test.ts",
+      "sha256": "0874836b4950f7b333c482c70737edc3841fe1097e47aa0682c844755fb093bc"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
