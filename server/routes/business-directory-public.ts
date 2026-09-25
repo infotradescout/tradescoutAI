@@ -157,6 +157,38 @@ function buildTradeWhereClause(tradeRaw: unknown) {
   return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
 }
 
+type ScoutTopicMatchSource = "name" | "category" | "service";
+
+function scoutTopicNeedles(topic: string): string[] {
+  const trade = getTradeSeoMatch(topic);
+  return Array.from(new Set([topic, ...(trade?.keywords || [])].map((value) => value.trim().toLowerCase()).filter(Boolean)));
+}
+
+function scoutTopicMatchSource(
+  name: string,
+  profileData: Business["profileData"] | null | undefined,
+  needles: string[]
+): ScoutTopicMatchSource | null {
+  const includesNeedle = (value: unknown) =>
+    typeof value === "string" && needles.some((needle) => value.toLowerCase().includes(needle));
+  if (includesNeedle(name)) return "name";
+  const profile = profileData && typeof profileData === "object" ? profileData as any : {};
+  if (includesNeedle(profile.category)) return "category";
+  if (Array.isArray(profile.services) && profile.services.some(includesNeedle)) return "service";
+  return null;
+}
+
+function buildScoutTopicWhereClause(needles: string[]) {
+  const patterns = needles.slice(0, 8).map((needle) =>
+    `%${needle.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`
+  );
+  return or(...patterns.flatMap((pattern) => [
+    ilike(businesses.name, pattern),
+    sql`coalesce(${businesses.profileData} ->> 'category', '') ILIKE ${pattern}`,
+    sql`coalesce((${businesses.profileData} -> 'services')::text, '') ILIKE ${pattern}`,
+  ]));
+}
+
 // Public-safe directory list. Never exposes direct contact vectors.
 router.get("/api/businesses", async (req, res, next) => {
   const forcePublicView = String(req.query.public || "") === "1";
@@ -194,6 +226,14 @@ export async function listPublicDirectoryBusinesses(
       const claimed = normalizeClaimed(cacheParams.claimed);
       const q = coerceString(cacheParams.q);
       const trade = coerceString(cacheParams.trade);
+      // Internal Scout search: one public, county-bound query across the name
+      // and declared category/services. The public q and trade APIs keep their
+      // existing meanings.
+      const scoutTopic = coerceString(cacheParams.scoutTopic);
+      if (scoutTopic.length > 60) {
+        return { status: 400, body: { message: "Scout topic is too long" } };
+      }
+      const scoutNeedles = scoutTopic ? scoutTopicNeedles(scoutTopic) : [];
       const city = coerceString(cacheParams.city);
       const limitRaw = Number(cacheParams.limit);
       const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, limitRaw)) : 25;
@@ -221,6 +261,7 @@ export async function listPublicDirectoryBusinesses(
       if (stateCode) whereClauses.push(eq(counties.stateCode, stateCode));
       if (claimed !== "any") whereClauses.push(eq(businesses.claimStatus, claimed));
       if (q) whereClauses.push(ilike(businesses.name, `%${q}%`));
+      if (scoutNeedles.length) whereClauses.push(buildScoutTopicWhereClause(scoutNeedles));
 
       const tradeClause = trade ? buildTradeWhereClause(trade) : null;
       if (tradeClause) whereClauses.push(tradeClause);
@@ -296,6 +337,10 @@ export async function listPublicDirectoryBusinesses(
           if (!canServePublicBusinessDetail({ publication: pub, tier })) {
             continue;
           }
+          const topicMatchSource = scoutNeedles.length
+            ? scoutTopicMatchSource(String(row.name), profileData, scoutNeedles)
+            : null;
+          if (scoutNeedles.length && !topicMatchSource) continue;
           grouped.set(key, {
             id: row.id,
             name: row.name,
@@ -304,6 +349,7 @@ export async function listPublicDirectoryBusinesses(
             roleContext: row.roleContext,
             claimStatus: row.claimStatus,
             status: row.status,
+            ...(topicMatchSource ? { topicMatchSource } : {}),
             counties: county ? [county] : [],
           });
         } else if (county && !existing.counties.some((c: any) => c?.fips === county.fips)) {

@@ -3521,6 +3521,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         name: string;
         slug: string;
         counties: Array<{ fips: string }>;
+        topicMatchSource?: "name" | "category" | "service";
       }> = [];
       if (normalizedFips) {
         try {
@@ -3559,7 +3560,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
             public: "1",
             countyFips: normalizedFips,
             claimed: "any",
-            ...(discoveryTopic ? { q: discoveryTopic } : {}),
+            ...(discoveryTopic ? { scoutTopic: discoveryTopic } : {}),
             limit: 10,
             offset: 0,
           });
@@ -3588,6 +3589,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
               name: item.name,
               slug: item.slug,
               counties: item.counties,
+              topicMatchSource: item.topicMatchSource,
             }));
           businessCheck = "checked";
         } catch (error) {

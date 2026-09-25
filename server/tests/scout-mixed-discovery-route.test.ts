@@ -176,7 +176,7 @@ describe("Scout mixed county discovery route", () => {
       status: 200,
       body: {
         items: [
-          { id: "plumbing_business", name: "Mesa Plumbing", slug: "mesa-plumbing", counties: [{ fips: "04013" }] },
+          { id: "plumbing_business", name: "Acme Home Services", slug: "acme-home-services", counties: [{ fips: "04013" }], topicMatchSource: "service" },
           { id: "unrelated_business", name: "Mesa Roofing", slug: "mesa-roofing", counties: [{ fips: "04013" }] },
         ],
       },
@@ -194,7 +194,7 @@ describe("Scout mixed county discovery route", () => {
     expect(response.status).toBe(200);
     expect(listRecentScoutCountyPosts).toHaveBeenCalledWith("04013", expect.any(Date), "plumbing");
     expect(publicDirectoryMock).toHaveBeenCalledWith(expect.objectContaining({
-      public: "1", countyFips: "04013", q: "plumbing",
+      public: "1", countyFips: "04013", scoutTopic: "plumbing",
     }));
     expect(response.body.metadata).toMatchObject({
       discoveryTopic: "plumbing", postCheck: "checked", businessCheck: "checked",
@@ -205,8 +205,9 @@ describe("Scout mixed county discovery route", () => {
       },
     });
     expect(response.body.entities.map((entity: { name: string }) => entity.name)).toEqual([
-      "Plumbing repair", "Mesa Plumbing",
+      "Plumbing repair", "Acme Home Services",
     ]);
+    expect(response.body.entities[1].match_reasons).toContain('Listed service matches "plumbing"');
     expect(response.body.answer).toContain('with "plumbing" in the title or text');
     expect(response.body.answer).toContain("Scout promotions were selected by county, not matched to your topic");
     expect(JSON.stringify(response.body)).not.toMatch(/Roofing help|Mesa Roofing|unrelated_post|unrelated_business/);

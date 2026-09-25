@@ -18,7 +18,21 @@ type PublicCountyBusiness = {
   name?: unknown;
   slug?: unknown;
   counties?: unknown;
+  topicMatchSource?: unknown;
 };
+
+function businessTopicMatchSource(
+  business: PublicCountyBusiness,
+  topicKey: string | null
+): "name" | "category" | "service" | null {
+  if (!topicKey) return null;
+  if (String(business.name || "").toLowerCase().includes(topicKey)) return "name";
+  return business.topicMatchSource === "name" ||
+    business.topicMatchSource === "category" ||
+    business.topicMatchSource === "service"
+    ? business.topicMatchSource
+    : null;
+}
 
 function displayArea(countyLabel: string | undefined): string {
   const value = String(countyLabel || "").trim();
@@ -161,7 +175,7 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       return (
         Boolean(business.id) &&
         Boolean(String(business.name || "").trim()) &&
-        (!topicKey || String(business.name).toLowerCase().includes(topicKey)) &&
+        (!topicKey || Boolean(businessTopicMatchSource(business, topicKey))) &&
         /^[a-z0-9][a-z0-9-]{0,119}$/i.test(slug) &&
         slug.toLowerCase() !== "requests" &&
         Array.isArray(business.counties) &&
@@ -181,7 +195,13 @@ export function buildScoutMixedDiscoveryRecovery(input: {
       url: `/business/${encodeURIComponent(String(business.slug).trim())}`,
       match_reasons: [
         `Public business profile listed for ${area}`,
-        ...(topic ? [`Business name includes "${topic}"`] : []),
+        ...(topic ? [
+          businessTopicMatchSource(business, topicKey) === "name"
+            ? `Business name matches "${topic}"`
+            : businessTopicMatchSource(business, topicKey) === "category"
+              ? `Listed category matches "${topic}"`
+              : `Listed service matches "${topic}"`,
+        ] : []),
         "Check current services and availability before contact",
       ],
     }));
@@ -228,9 +248,9 @@ export function buildScoutMixedDiscoveryRecovery(input: {
   const businessSentence =
     input.businessCheck === "checked"
       ? businessEntities.length
-        ? `Scout also found ${businessEntities.length} public business ${businessEntities.length === 1 ? "profile" : "profiles"} listed for ${area}${topic ? ` with "${topic}" in the name` : ""}. Business profiles were not filtered to this week; check current services and availability before contact.`
+        ? `Scout also found ${businessEntities.length} public business ${businessEntities.length === 1 ? "profile" : "profiles"} listed for ${area}${topic ? ` by name, category, or listed service for "${topic}"` : ""}. Business profiles were not filtered to this week; check current services and availability before contact.`
         : topic
-          ? `Scout checked public business names for "${topic}" in ${area}; none matched this topic.`
+          ? `Scout checked public business names, categories, and listed services for "${topic}" in ${area}; none matched this topic.`
           : `Scout checked public business profiles for ${area}; none were returned.`
       : input.businessCheck === "error"
         ? `Public business profiles for ${area} could not be checked right now.`

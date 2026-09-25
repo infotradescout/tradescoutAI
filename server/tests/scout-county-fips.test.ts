@@ -193,7 +193,7 @@ describe("Scout county lookup", () => {
       "Plumbing repair", "Question", "Mesa Plumbing", "County tool rental offer",
     ]);
     expect(plumbing.entities[0]?.match_reasons).toContain('Title or text includes "plumbing"');
-    expect(plumbing.entities[2]?.match_reasons).toContain('Business name includes "plumbing"');
+    expect(plumbing.entities[2]?.match_reasons).toContain('Business name matches "plumbing"');
     expect(plumbing.entities[3]?.match_reasons).toContain("Selected by county; not matched to your topic");
     expect(plumbing.message).toContain("Scout promotions were selected by county, not matched to your topic");
     expect(plumbing.actions).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Open topic post" })]));
@@ -212,7 +212,7 @@ describe("Scout county lookup", () => {
     };
     const empty = buildScoutMixedDiscoveryRecovery(common);
     expect(empty.message).toContain('for "plumbing"; none matched this topic');
-    expect(empty.message).toContain('public business names for "plumbing"');
+    expect(empty.message).toContain('public business names, categories, and listed services for "plumbing"');
     expect(empty.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ to: "/community-feed?geo=local&feed=recent" }),
     ]));
@@ -367,6 +367,43 @@ describe("Scout county lookup", () => {
     expect(JSON.stringify(result)).not.toMatch(
       /Other County|\.\.\/unsafe|Requests Route|\/business\/requests/
     );
+  });
+
+  it("shows a public business matched by its listed service without claiming a name match", () => {
+    const result = buildScoutMixedDiscoveryRecovery({
+      countyFips: "04013",
+      countyLabel: "Maricopa County, AZ",
+      topic: "plumbing",
+      postCheck: "checked",
+      dealCheck: "checked",
+      businessCheck: "checked",
+      businesses: [
+        {
+          id: "neutral-name",
+          name: "Acme Home Services",
+          slug: "acme-home-services",
+          counties: [{ fips: "04013" }],
+          topicMatchSource: "service",
+        },
+        {
+          id: "no-evidence",
+          name: "Acme Roof Repair",
+          slug: "acme-roof-repair",
+          counties: [{ fips: "04013" }],
+        },
+      ],
+    });
+
+    expect(result.entities).toEqual([
+      expect.objectContaining({
+        type: "business",
+        name: "Acme Home Services",
+        url: "/business/acme-home-services",
+        match_reasons: expect.arrayContaining(['Listed service matches "plumbing"']),
+      }),
+    ]);
+    expect(result.message).toContain('by name, category, or listed service for "plumbing"');
+    expect(result.message).not.toContain('"plumbing" in the name');
   });
 
   it("opens a county-bound private draft only after an all-source checked-empty result", () => {
