@@ -1533,6 +1533,17 @@ function MessageExtras({
             const entityActionIsPrimary = Boolean(
               entityAction?.source.primary && !countyOnlyOffer && !sourceRetryPrimary
             );
+            const linkedOpenLabel = entity.type === "community_post"
+              ? "Open county post"
+              : entity.type === "trade_deal"
+                ? "Open promotional TradeDeal"
+                : entity.type === "business"
+                  ? "Open local business profile"
+                  : entity.type === "public_tool"
+                    ? "Open local tool listing"
+                    : entity.type === "public_profile"
+                      ? "Open public profile page"
+                      : "Open result";
             const card = (
               <article
                 key={`${msg.id}-entity-${entity.id}`}
@@ -1552,31 +1563,7 @@ function MessageExtras({
                           ? "Public profile page"
                         : "Scout result"}
                 </div>
-                {safeUrl && !entityAction ? (
-                  <a
-                    href={safeUrl}
-                    className="scout-result-card__title underline underline-offset-2"
-                    onClick={(event) => {
-                      if (
-                        !onResultLinkNavigate ||
-                        !inAppPath ||
-                        event.button !== 0 ||
-                        event.metaKey ||
-                        event.ctrlKey ||
-                        event.shiftKey ||
-                        event.altKey
-                      ) {
-                        return;
-                      }
-                      event.preventDefault();
-                      onResultLinkNavigate(inAppPath);
-                    }}
-                  >
-                    {entityName}
-                  </a>
-                ) : (
-                  <div className="scout-result-card__title">{entityName}</div>
-                )}
+                <div className="scout-result-card__title">{entityName}</div>
                 {Array.isArray(entity.match_reasons) && entity.match_reasons.length > 0 && (
                   <ul className="scout-result-card__reasons">
                     {entity.match_reasons.map((reason) => (
@@ -1598,6 +1585,30 @@ function MessageExtras({
                     {entityAction.action.label}
                     <ArrowRight size={14} aria-hidden="true" />
                   </button>
+                )}
+                {safeUrl && !entityAction && (
+                  <a
+                    href={safeUrl}
+                    className="scout-result-action no-underline"
+                    onClick={(event) => {
+                      if (
+                        !onResultLinkNavigate ||
+                        !inAppPath ||
+                        event.button !== 0 ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      ) {
+                        return;
+                      }
+                      event.preventDefault();
+                      onResultLinkNavigate(inAppPath);
+                    }}
+                  >
+                    {linkedOpenLabel}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </a>
                 )}
               </article>
             );

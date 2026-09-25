@@ -789,12 +789,13 @@ describe("ScoutThread evidence strip", () => {
     );
   });
 
-  it("keeps an unaccompanied result link in the app so Scout can restore it on return", () => {
-    const postPath = "/community/posts/scout-native-published-maricopa";
+  it("gives a second county result a clear Open action and preserves Scout return navigation", () => {
+    const firstPath = "/community/posts/scout-first-maricopa";
+    const secondPath = "/community/posts/scout-second-maricopa";
     const message: ScoutMessage = {
       id: "a_result_link",
       role: "assistant",
-      content: "One published post matches.",
+      content: "Two published posts match.",
       timestamp: "2026-09-24T00:00:00Z",
       resultContract: {
         contract_version: "scout_result.v1",
@@ -802,16 +803,23 @@ describe("ScoutThread evidence strip", () => {
         ambiguity_options: [],
         entities: [
           {
-            id: "scout-native-published-maricopa",
+            id: "scout-first-maricopa",
+            type: "community_post",
+            name: "First county post",
+            url: firstPath,
+            match_reasons: ["Published county post"],
+          },
+          {
+            id: "scout-second-maricopa",
             type: "community_post",
             name: "Neighborhood tool swap",
-            url: postPath,
+            url: secondPath,
             match_reasons: ["Published county post"],
           },
         ],
         evidence: [],
-        answer: "One published post matches.",
-        allowed_actions: [],
+        answer: "Two published posts match.",
+        allowed_actions: [{ action_id: "open_first", type: "NAVIGATE", label: "Open first county post", target: firstPath }],
         working_memory_update: {},
       },
     };
@@ -837,15 +845,19 @@ describe("ScoutThread evidence strip", () => {
           })
         );
       });
-      const link = container.querySelector<HTMLAnchorElement>(
-        `.scout-result-card__title[href="${postPath}"]`
-      );
+      const cards = container.querySelectorAll(".scout-result-card");
+      expect(cards).toHaveLength(2);
+      expect(cards[0]?.querySelector("button.scout-result-action")?.textContent).toContain("Open first county post");
+      expect(cards[1]?.querySelector(".scout-result-card__title")?.textContent).toBe("Neighborhood tool swap");
+      expect(cards[1]?.querySelector(".scout-result-card__title[href]")).toBeNull();
+      const link = cards[1]?.querySelector<HTMLAnchorElement>(`.scout-result-action[href="${secondPath}"]`);
       expect(link).not.toBeNull();
+      expect(link?.textContent).toContain("Open county post");
       const followedNormally = link!.dispatchEvent(
         new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
       );
       expect(followedNormally).toBe(false);
-      expect(navigate).toHaveBeenCalledExactlyOnceWith(postPath);
+      expect(navigate).toHaveBeenCalledExactlyOnceWith(secondPath);
     } finally {
       React.act(() => root.unmount());
       container.remove();
@@ -904,9 +916,10 @@ describe("ScoutThread evidence strip", () => {
         )
       );
       const link = container.querySelector<HTMLAnchorElement>(
-        `.scout-result-card__title[href="${externalUrl}"]`
+        `.scout-result-action[href="${externalUrl}"]`
       );
       expect(link).not.toBeNull();
+      expect(link?.textContent).toContain("Open result");
       link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
       expect(observedNative).toHaveBeenCalledOnce();
       expect(navigate).not.toHaveBeenCalled();
@@ -1067,9 +1080,8 @@ describe("ScoutThread evidence strip", () => {
 
       expect(container.textContent).toContain("Reserved path");
       expect(container.querySelector('a[href="/business/requests"]')).toBeNull();
-      expect(container.querySelector('a[href="/business/maricopa-repair"]')?.textContent).toBe(
-        "Maricopa Repair"
-      );
+      expect(container.querySelectorAll(".scout-result-card")[1]?.querySelector(".scout-result-card__title")?.textContent).toBe("Maricopa Repair");
+      expect(container.querySelector('a[href="/business/maricopa-repair"]')?.textContent).toContain("Open local business profile");
     } finally {
       warn.mockRestore();
     }
