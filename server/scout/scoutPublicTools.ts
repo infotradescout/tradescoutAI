@@ -13,6 +13,7 @@ export type ScoutPublicToolListing = {
   price: number;
   currency: string;
   condition: string;
+  countyFips: string;
   county: string;
   state: string;
   createdAt: string | null;
@@ -127,6 +128,7 @@ export async function lookupScoutPublicTools(
           price: Number(publicListing.price) || 0,
           currency: String(publicListing.currency || "USD"),
           condition: String(publicListing.condition || ""),
+          countyFips,
           county: area.name,
           state: area.state,
           createdAt:

@@ -1,56 +1,52 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T024401Z-1749ee08",
-  "createdAt": "2026-09-25T02:44:01.486218+00:00",
+  "checkpointId": "progress-20260925T024746Z-90f4533a",
+  "createdAt": "2026-09-25T02:47:46.829196+00:00",
   "outcome": "Add honest county-scoped public tools to Scout without exposing private requests or national listings as local.",
   "scope": [
-    "Server-owned public Tools and Hardware lookup only; no route or client edits in this slice."
+    "Server-owned public Tools and Hardware source and focused synthetic PostgreSQL tests; no route or client edits in this slice."
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Implemented canonical county alias, exact state, approval, seller exposure, expiry, category, and topic predicates before LIMIT, plus a small read-only listing whitelist."
+      "Implemented exact county FIPS/name/short-name and state, whole-word topic, active/approved/unexpired/exposed seller/category predicates before LIMIT; whitelisted safe card with countyFips and detail path.",
+      "Focused PGlite tests passed 3/3; npm run check passed; git diff --check passed."
     ],
     "changedUnverified": [
-      "Focused lookup SQL and safety tests remain to run; source is not yet proved."
+      "Combined Scout route/UI and synthetic browser journey remain for root to verify."
     ],
     "proof": [
-      "No test proof for this slice yet; clean parent e448 receipts do not prove this change."
+      "npx vitest run server/tests/scout-public-tools.test.ts: 3 passed; npm run check: tsc exit 0; git diff --check: exit 0."
     ],
     "externalEffects": [
       "Local isolated worktree commit only; no push, PR, merge, deployment, contact, request, or purchase."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Add focused disposable PostgreSQL lookup tests, run TypeScript check and targeted tests, fix any failures, then hand local commit to root."
+    "nextSafeAction": "Root integrates Scout response and phone UI, reruns exact-head synthetic journey and unchanged release gate before PR."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-public-tools-20260925",
-    "headBefore": "9ace4b78a116a7e89fcadb922f5999fcf9ee6a1b",
+    "headBefore": "7fa3eb464f549ab76ea70501661e76296ac6f41e",
     "checkpointCommit": "containing_commit",
     "pushRequested": false,
     "pushRemote": null,
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M server/storage/contracts.ts",
-      " M server/storage/repositories/marketplace-and-homescout.ts",
-      "?? server/scout/scoutPublicTools.ts"
+      " M server/scout/scoutPublicTools.ts",
+      "?? server/tests/scout-public-tools.test.ts"
     ],
-    "unrelatedChangeCountExcluded": 3
+    "unrelatedChangeCountExcluded": 4
   },
   "savedFiles": [
     {
-      "path": "server/storage/contracts.ts",
-      "sha256": "ee68fadcce941d877ba1caaf9e1e3f64dbce5311531feae34e0e3c4c2b0ebd50"
-    },
-    {
-      "path": "server/storage/repositories/marketplace-and-homescout.ts",
-      "sha256": "29c35c4210618623af81c1497b83409597346194597c3e07a1a7997c78900cee"
-    },
-    {
       "path": "server/scout/scoutPublicTools.ts",
-      "sha256": "5c52a567e4758301028ef3eb88a48c4acd822123c945a5b8e0966e4fa43335ca"
+      "sha256": "474d99c654d5743a37755cc57b819151673c1b1718cf9197997336925865cc01"
+    },
+    {
+      "path": "server/tests/scout-public-tools.test.ts",
+      "sha256": "56c8242826887910d4e958091da87ad2c5f3431e1e28915c9304e1f270496f24"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
