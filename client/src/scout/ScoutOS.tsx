@@ -3292,7 +3292,9 @@ export default function ScoutOS() {
                   scoutReturnOwner,
                   state.messages,
                   activeSavedThreadId,
-                  readScoutBrowserLocation(location)
+                  readScoutBrowserLocation(location),
+                  Date.now(),
+                  to
                 );
               }
               navigate(to);
@@ -3359,7 +3361,9 @@ export default function ScoutOS() {
         scoutReturnOwner,
         state.messages,
         activeSavedThreadId,
-        readScoutBrowserLocation(location)
+        readScoutBrowserLocation(location),
+        Date.now(),
+        to
       );
       navigate(to);
     },

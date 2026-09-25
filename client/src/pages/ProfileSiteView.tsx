@@ -96,6 +96,7 @@ import {
   buildPublicProfileAppManifestPath,
 } from "@shared/publicProfileApp";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
+import { hasPendingScoutResultReturnForPath } from "@/scout/scoutReturnSnapshot";
 import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
   buildProfileSocialDescription,
@@ -764,6 +765,11 @@ export default function ProfileSiteView() {
   // onto an unrelated external app or site.
   useEffect(() => {
     if (!slug || typeof window === "undefined") return;
+
+    // A Scout result already has a same-tab return path and an unsaved task
+    // snapshot. Let browser Back reach that Scout entry directly. The public
+    // profile boundary below still protects visitors arriving from elsewhere.
+    if (hasPendingScoutResultReturnForPath(window.location.pathname)) return;
 
     const currentState = (window.history.state || {}) as Record<string, unknown>;
     // getSafeTradeScoutHome() already resolves to the current domain's own
