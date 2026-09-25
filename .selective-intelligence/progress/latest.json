@@ -1,59 +1,49 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T024946Z-c0b24222",
-  "createdAt": "2026-09-25T02:49:46.150097+00:00",
-  "outcome": "Render concise Scout phone requests and truthful county public tools results with working detail navigation.",
+  "checkpointId": "progress-20260925T025217Z-f0441896",
+  "createdAt": "2026-09-25T02:52:17.273284+00:00",
+  "outcome": "Keep Scout tools source error copy truthful on phones.",
   "scope": [
-    "Client ScoutThread, focused client tests and styles, and narrow public tool route allowlist."
+    "Client Scout public tools status copy and focused test only."
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Long user requests now collapse to an accessible preview; typed tool source status and listing scope are visible; tool detail action is navigable."
+      "Source time-window note now appears only after a checked Tools and Hardware lookup, not a failed lookup."
     ],
     "changedUnverified": [],
     "proof": [
-      "ScoutThread and actionValidation targeted suites passed 79/79; TypeScript check passed; git diff --check passed."
+      "ScoutThread focused suite passed 63/63; git diff --check passed."
     ],
     "externalEffects": [
       "Local commit only; no push, PR, merge, deployment, contact, request, or purchase."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Root runs exact-HEAD synthetic phone journey and unchanged release gate for public tools source."
+    "nextSafeAction": "Root runs exact-HEAD synthetic phone journey and unchanged release gate before draft PR."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-public-tools-20260925",
-    "headBefore": "a25c8e68eb8678a4551a77744a75c416384e2eb6",
+    "headBefore": "eb734f1772b1ee80814ab8f871ecdf210de7c0b1",
     "checkpointCommit": "containing_commit",
     "pushRequested": false,
     "pushRemote": null,
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/index.css",
       " M client/src/scout/ScoutThread.evidence.test.ts",
-      " M client/src/scout/ScoutThread.tsx",
-      " M client/src/scout/actionValidation.ts"
+      " M client/src/scout/ScoutThread.tsx"
     ],
-    "unrelatedChangeCountExcluded": 2
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
       "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "9209e13637b28ceb4dc934bb1ca3371e8a7af932b27920354c158501fcd28163"
+      "sha256": "bc6484f54bb2a64b4477f17e8184607c3ec3c50bc57cba61e152057a667291bc"
     },
     {
       "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "0140d94de6c2b54e48d77ccecd4516bc56c5a643231f3fc91d36e9fa21f9726c"
-    },
-    {
-      "path": "client/src/scout/actionValidation.ts",
-      "sha256": "cf1cb101b36b39a294ff953156cfb415086b5964dc1d0e0113695732ac4f9da3"
-    },
-    {
-      "path": "client/src/index.css",
-      "sha256": "3e38265366910d55a8b311363dea9e40a7694113e6613472492b6a5acf007d16"
+      "sha256": "20eef36b5da048c5e3e885ccbc8be407724e45a5eb75f5275caa25fd3fc437bc"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

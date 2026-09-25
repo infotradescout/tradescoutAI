@@ -1437,7 +1437,8 @@ function MessageExtras({
             : discoveryChecks.tools.status === "error"
               ? "could not check county listings"
               : "not checked"}
-          {discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
+          {discoveryChecks.tools.status === "checked" &&
+          discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
             ? ". Listings are not limited to this week."
             : "."}
           {" "}Pages and private requests were not checked.

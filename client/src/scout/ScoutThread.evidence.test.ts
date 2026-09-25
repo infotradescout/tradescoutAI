@@ -148,6 +148,7 @@ describe("ScoutThread evidence strip", () => {
     expect(html.indexOf("Retry local search")).toBeLessThan(html.indexOf("County post"));
     expect(html).toContain("Tools &amp; Hardware:");
     expect(html).toContain("could not check county listings");
+    expect(html).not.toContain("Listings are not limited to this week");
     expect(html.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
   });
 
