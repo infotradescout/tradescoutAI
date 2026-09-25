@@ -519,7 +519,7 @@ describe("Scout county lookup", () => {
         name: "Cordless drill",
         url: "/exchange/tools/tool_1",
         match_reasons: expect.arrayContaining([
-          "Active public Tools & Hardware listing in Maricopa County, AZ",
+          "Listed in Maricopa County, AZ",
           expect.stringContaining("older than this week"),
         ]),
       }),
@@ -572,7 +572,7 @@ describe("Scout county lookup", () => {
     });
 
     expect(result.entities.map((entity) => entity.type)).toEqual(["business", "public_tool", "trade_deal"]);
-    expect(result.entities[1]?.match_reasons).toContain('Title matches "drill"');
+    expect(result.entities[1]?.match_reasons).toContain('Matches “drill” in the listing title; listed in Maricopa County, AZ');
     expect(result.entities[2]?.match_reasons).toContain("Selected by county; not matched to your topic");
     expect(result.actions.filter((action) => action.primary)).toEqual([
       expect.objectContaining({ label: "Open local business profile", to: "/business/drill-shop" }),

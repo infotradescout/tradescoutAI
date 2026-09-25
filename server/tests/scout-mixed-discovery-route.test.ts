@@ -482,7 +482,7 @@ describe("Scout mixed county discovery route", () => {
         name: "Cordless drill",
         url: "/exchange/tools/tool_1",
         match_reasons: expect.arrayContaining([
-          "Active public Tools & Hardware listing in Maricopa County, AZ",
+          "Listed in Maricopa County, AZ",
           expect.stringContaining("older than this week"),
         ]),
       }),
