@@ -31,6 +31,7 @@ import { ShareButton } from "@/components/ShareButton";
 import DefaultProfileTheme from "@/pages/profile-sites/DefaultProfileTheme";
 import {
   createProfileHistoryBoundaryState,
+  hasRecentInAppProfileNavigation,
   isProfileHistoryBoundaryState,
 } from "@/pages/profileHistoryBoundary";
 import type { PublicCommunityVerification } from "@/pages/profile-sites/LocalServiceProfileTheme";
@@ -766,10 +767,13 @@ export default function ProfileSiteView() {
   useEffect(() => {
     if (!slug || typeof window === "undefined") return;
 
-    // A Scout result already has a same-tab return path and an unsaved task
-    // snapshot. Let browser Back reach that Scout entry directly. The public
-    // profile boundary below still protects visitors arriving from elsewhere.
-    if (hasPendingScoutResultReturnForPath(window.location.pathname)) return;
+    // Scout results and in-app profile links already have a same-tab history
+    // entry. Let browser Back reach it directly. The boundary below still
+    // protects visitors arriving from external links.
+    if (
+      hasPendingScoutResultReturnForPath(window.location.pathname) ||
+      hasRecentInAppProfileNavigation(window.location.pathname)
+    ) return;
 
     const currentState = (window.history.state || {}) as Record<string, unknown>;
     // getSafeTradeScoutHome() already resolves to the current domain's own

@@ -1,6 +1,8 @@
 import { Link } from "wouter";
+import type { MouseEvent } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { rememberInAppProfileNavigation } from "@/pages/profileHistoryBoundary";
 import { ArrowUpRight, MapPin, MessageSquare, CheckCircle, Shield, Users } from "lucide-react";
 import type { Contractor } from "@shared/schema";
 
@@ -104,6 +106,10 @@ export function ProviderCard({
   const connectHref = `/direct-connect?${connectParams.toString()}`;
   const actionHref = action === "connect" ? connectHref : profileHref;
   const showAction = action !== "none" && Boolean(actionHref);
+  const rememberProfileReturn = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (profileHref) rememberInAppProfileNavigation(profileHref);
+  };
 
   const title = (
     <h3
@@ -154,6 +160,7 @@ export function ProviderCard({
           {profileHref ? (
             <Link
               href={profileHref}
+              onClickCapture={rememberProfileReturn}
               className="rounded-sm outline-none hover:text-[color:var(--theme-accent-primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)]"
               aria-label={`View ${businessName} profile`}
             >
@@ -201,7 +208,7 @@ export function ProviderCard({
                     : "w-full border-[color:var(--border-subtle)]"
                 }
               >
-                <Link href={actionHref}>
+                <Link href={actionHref} onClickCapture={action === "profile" ? rememberProfileReturn : undefined}>
                   {action === "connect" ? (
                     <MessageSquare className="mr-1 h-4 w-4" />
                   ) : (
