@@ -393,7 +393,7 @@ type DiscoveryCheck = {
   status: DiscoveryCheckStatus;
   shownCount: number;
   topicFiltered: boolean;
-  timeWindow?: "active_now_not_week_filtered";
+  timeWindow?: "active_now_not_week_filtered" | "not_filtered_to_week";
 };
 
 type DiscoveryChecks = {
@@ -403,6 +403,7 @@ type DiscoveryChecks = {
   deals: DiscoveryCheck;
   businesses: DiscoveryCheck;
   tools: DiscoveryCheck | null;
+  profilePages: DiscoveryCheck | null;
 };
 
 function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
@@ -431,7 +432,7 @@ function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
       status: check.status,
       shownCount: check.shownCount,
       topicFiltered: check.topicFiltered === true,
-      timeWindow: check.timeWindow === "active_now_not_week_filtered"
+      timeWindow: check.timeWindow === "active_now_not_week_filtered" || check.timeWindow === "not_filtered_to_week"
         ? check.timeWindow
         : undefined,
     };
@@ -440,6 +441,7 @@ function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
   const deals = readCheck(values.deals);
   const businesses = readCheck(values.businesses);
   const tools = values.tools === undefined ? null : readCheck(values.tools);
+  const profilePages = values.profilePages === undefined ? null : readCheck(values.profilePages);
   if (!posts || !deals || !businesses) return null;
   const areaLabel =
     typeof values.areaLabel === "string" && values.areaLabel.trim().length <= 80
@@ -450,11 +452,11 @@ function readDiscoveryChecks(msg: ScoutMessage): DiscoveryChecks | null {
     typeof rawTopic === "string" && rawTopic.trim().length > 0 && rawTopic.trim().length <= 60
       ? rawTopic.trim()
       : null;
-  return { areaLabel, topic, posts, deals, businesses, tools };
+  return { areaLabel, topic, posts, deals, businesses, tools, profilePages };
 }
 
 function toolsDiscoverySummary(checks: DiscoveryChecks): string | null {
-  if (!checks.tools) return null;
+  if (!checks.tools && !checks.profilePages) return null;
   const status = (check: DiscoveryCheck, label: string, scope = "") =>
     check.status === "checked"
       ? `${label} ${check.shownCount}${scope}`
@@ -468,14 +470,27 @@ function toolsDiscoverySummary(checks: DiscoveryChecks): string | null {
   const counts = [
     status(checks.posts, "posts", " (7d)"),
     status(checks.businesses, "businesses"),
-    status(checks.tools, "tools", checks.tools.timeWindow ? " (active)" : ""),
+    ...(checks.tools ? [status(checks.tools, "tools", checks.tools.timeWindow ? " (active)" : "")] : []),
+    ...(checks.profilePages ? [status(checks.profilePages, "profile pages")] : []),
     status(checks.deals, "TradeDeals", checks.topic && !checks.deals.topicFiltered ? " (topic unchecked)" : ""),
   ].join(", ");
-  const suffix = "Pages/requests unchecked. Nothing sent.";
+  const suffix = checks.profilePages
+    ? "Other Site pages/private requests unchecked. Nothing sent."
+    : "Pages/requests unchecked. Nothing sent.";
   const summary = `${place}: ${topic}${counts}. ${suffix}`;
-  return summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
-    ? summary
-    : `${topic}${counts}. ${suffix}`;
+  if (summary.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS) return summary;
+  if (!checks.profilePages) return `${topic}${counts}. ${suffix}`;
+  const compactCounts = [
+    status(checks.posts, "posts", " (7d)"),
+    status(checks.businesses, "businesses"),
+    ...(checks.tools ? [status(checks.tools, "tools")] : []),
+    status(checks.profilePages, "profile pages"),
+    status(checks.deals, "county offers"),
+  ].join(", ");
+  const compact = `${topic}${compactCounts}. ${suffix}`;
+  return compact.length <= MIXED_DISCOVERY_SUMMARY_MAX_CHARS
+    ? compact
+    : "See county results and source status below. Other Site pages/private requests unchecked. Nothing sent.";
 }
 
 function previewUserRequest(content: string): string {
@@ -642,7 +657,21 @@ function mixedDiscoverySourceChecks(msg: ScoutMessage, answer: string): Array<{ 
             : "Checked county listings"
         ),
       }] : []),
-      { source: checks.tools ? "Pages and requests" : "Pages, tools and requests", status: "Not checked" },
+      ...(checks.profilePages ? [{
+        source: "Public business profile pages",
+        status: status(
+          checks.profilePages,
+          checks.topic
+            ? "Checked for topic and county; not limited to this week"
+            : "Checked county pages; not limited to this week"
+        ),
+      }] : []),
+      {
+        source: checks.profilePages
+          ? "Other Site pages and private requests"
+          : checks.tools ? "Pages and requests" : "Pages, tools and requests",
+        status: "Not checked",
+      },
     ];
   }
   const clean = answer.replace(/\s+/g, " ").trim();
@@ -1214,7 +1243,8 @@ function MessageExtras({
     discoveryChecks?.posts.status === "error" ||
       discoveryChecks?.deals.status === "error" ||
       discoveryChecks?.businesses.status === "error" ||
-      discoveryChecks?.tools?.status === "error"
+      discoveryChecks?.tools?.status === "error" ||
+      discoveryChecks?.profilePages?.status === "error"
   );
   const noTopicMatches = Boolean(
     discoveryChecks?.topic &&
@@ -1222,8 +1252,16 @@ function MessageExtras({
     discoveryChecks.posts.status === "checked" &&
     discoveryChecks.businesses.status === "checked" &&
     (!discoveryChecks.tools || discoveryChecks.tools.status === "checked") &&
+    (!discoveryChecks.profilePages || discoveryChecks.profilePages.status === "checked") &&
     topicMatchedEntities.length === 0
   );
+  const noTopicMatchSources = [
+    "recent county post",
+    "public business",
+    ...(discoveryChecks?.tools ? ["public tool listing"] : []),
+    ...(discoveryChecks?.profilePages ? ["public profile page"] : []),
+  ];
+  const noTopicMatchSourceText = `${noTopicMatchSources.slice(0, -1).join(", ")}${noTopicMatchSources.length > 2 ? "," : ""} or ${noTopicMatchSources[noTopicMatchSources.length - 1]}`;
   const entityActionIds = React.useMemo(() => {
     const ids = new Set<string>();
     for (const entity of contractEntities) {
@@ -1446,14 +1484,29 @@ function MessageExtras({
           discoveryChecks.tools.timeWindow === "active_now_not_week_filtered"
             ? ". Listings are not limited to this week."
             : "."}
-          {" "}Pages and private requests were not checked.
+          {!discoveryChecks.profilePages && <> Pages and private requests were not checked.</>}
+        </p>
+      )}
+      {discoveryChecks?.profilePages && (
+        <p className="scout-result-pages-status" aria-label="Public profile pages status">
+          <strong>Public profile pages:</strong>{" "}
+          {discoveryChecks.profilePages.status === "checked"
+            ? `${discoveryChecks.profilePages.shownCount} county page${discoveryChecks.profilePages.shownCount === 1 ? "" : "s"} shown${discoveryChecks.topic ? " for this topic" : ""}`
+            : discoveryChecks.profilePages.status === "error"
+              ? "could not check county pages"
+              : "not checked"}
+          {discoveryChecks.profilePages.status === "checked" &&
+          discoveryChecks.profilePages.timeWindow === "not_filtered_to_week"
+            ? ". Pages are not limited to this week."
+            : "."}
+          {" "}Other Site pages and private requests were not checked.
         </p>
       )}
       {hasContractEntities && (
         <div className="scout-result-list space-y-2" aria-label="Scout results">
           {noTopicMatches && (
             <p className="scout-result-no-topic-match">
-              No recent county post or public business matched “{discoveryChecks?.topic}”.
+              No {noTopicMatchSourceText} matched “{discoveryChecks?.topic}”.
               Try another trade or draft a request for your county.
             </p>
           )}
@@ -1520,6 +1573,8 @@ function MessageExtras({
                         ? "Public business profile"
                         : entity.type === "public_tool"
                           ? "Public Tools & Hardware listing"
+                        : entity.type === "public_profile"
+                          ? "Public profile page"
                         : "Scout result"}
                 </div>
                 {safeUrl && !entityAction ? (
@@ -2091,7 +2146,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                         : msg.provenance?.sourceUsed === "scout_mixed_discovery_recovery"
                         ? msg.resultContract.entities.some((entity) =>
                             readDiscoveryChecks(msg)?.topic
-                              ? entity.type === "community_post" || entity.type === "business" || entity.type === "public_tool"
+                              ? entity.type === "community_post" || entity.type === "business" || entity.type === "public_tool" || entity.type === "public_profile"
                               : true
                           )
                           ? "County results"

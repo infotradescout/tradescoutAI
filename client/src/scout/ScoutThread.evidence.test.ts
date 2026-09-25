@@ -114,6 +114,109 @@ describe("ScoutThread evidence strip", () => {
     }
   });
 
+  it("shows a checked public profile page as a county result without claiming other Site pages", () => {
+    const path = "/u/mesa-plumbing";
+    const answer =
+      "Scout found one public business profile page for Maricopa County, AZ matching plumbing. " +
+      "Pages were not limited to this week; check current services before contact. " +
+      "Other Site pages and private requests were not checked. Nothing was sent.";
+    const message: ScoutMessage = {
+      id: "a_public_profile_page",
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryTopic: "plumbing",
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 0, topicFiltered: true },
+          deals: { status: "checked", shownCount: 0, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: true },
+          tools: { status: "checked", shownCount: 0, topicFiltered: true, timeWindow: "active_now_not_week_filtered" },
+          profilePages: { status: "checked", shownCount: 1, topicFiltered: true, timeWindow: "not_filtered_to_week" },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{ id: "profile_1", type: "public_profile", name: "Mesa Plumbing", url: path, match_reasons: ["Published public profile page in Maricopa County"] }],
+        evidence: [],
+        answer,
+        allowed_actions: [{ action_id: "open_page", type: "NAVIGATE", label: "Open public profile page", target: path, primary: true }],
+        working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    container.innerHTML = renderThread([message], false, { onAction: () => undefined });
+
+    expect(container.querySelector(".scout-assistant-bubble__badge")?.textContent).toBe("County results");
+    expect(container.querySelector(".scout-result-card__kind")?.textContent).toBe("Public profile page");
+    expect(container.querySelector(".scout-result-card .scout-result-action")?.textContent).toContain("Open public profile page");
+    expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("1 county page shown for this topic");
+    expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("not limited to this week");
+    expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain("Other Site pages and private requests were not checked");
+    expect(container.querySelector(".scout-result-tools-status")?.textContent).not.toContain("Pages and private requests were not checked");
+    expect(container.querySelector(".scout-assistant-bubble__body")?.textContent).toContain("profile pages 1");
+    expect((container.querySelector(".scout-assistant-bubble__body")?.textContent ?? "").length).toBeLessThanOrEqual(150);
+    expect(container.querySelector(".scout-result-no-topic-match")).toBeNull();
+
+    const mounted = document.createElement("div");
+    const root = createRoot(mounted);
+    const previousScrollTo = HTMLElement.prototype.scrollTo;
+    const actEnvironment = globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    const previousActEnvironment = actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+    HTMLElement.prototype.scrollTo = vi.fn();
+    actEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
+    try {
+      React.act(() => root.render(React.createElement(ScoutThread, {
+        messages: [message], status: "idle", onAction: () => undefined,
+      })));
+      React.act(() => mounted.querySelector<HTMLButtonElement>(".scout-message-details-toggle")?.click());
+      const checks = mounted.querySelector<HTMLElement>('[aria-label="Scout source checks"]');
+      expect(checks?.textContent).toContain("Public business profile pagesChecked for topic and county; not limited to this week");
+      expect(checks?.textContent).toContain("Other Site pages and private requestsNot checked");
+    } finally {
+      React.act(() => root.unmount());
+      HTMLElement.prototype.scrollTo = previousScrollTo;
+      if (previousActEnvironment === undefined) delete actEnvironment.IS_REACT_ACT_ENVIRONMENT;
+      else actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+    }
+  });
+
+  it.each([
+    { status: "error", phrase: "could not check county pages" },
+    { status: "not_checked", phrase: "not checked" },
+  ] as const)("shows public profile pages source status $status without a false empty claim", ({ status, phrase }) => {
+    const answer = "The county search is incomplete. Other Site pages and private requests were not checked. Nothing was sent.";
+    const message: ScoutMessage = {
+      id: `a_profile_pages_${status}`,
+      role: "assistant",
+      content: answer,
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryTopic: "plumbing",
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 0, topicFiltered: true },
+          deals: { status: "checked", shownCount: 0, topicFiltered: false },
+          businesses: { status: "checked", shownCount: 0, topicFiltered: true },
+          tools: { status: "checked", shownCount: 0, topicFiltered: true },
+          profilePages: { status, shownCount: 0, topicFiltered: true, timeWindow: "not_filtered_to_week" },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1", intent: "provider_search", ambiguity_options: [],
+        entities: [], evidence: [], answer, allowed_actions: [], working_memory_update: {},
+      },
+    };
+    const container = document.createElement("div");
+    container.innerHTML = renderThread([message]);
+    expect(container.querySelector(".scout-result-pages-status")?.textContent).toContain(phrase);
+    expect(container.querySelector(".scout-result-pages-status")?.textContent).not.toContain("not limited to this week");
+    expect(container.querySelector(".scout-result-no-topic-match")).toBeNull();
+  });
+
   it("puts an unavailable tools retry before retained county results", () => {
     const postPath = "/community/posts/tool-source-partial-post";
     const message: ScoutMessage = {
@@ -607,6 +710,23 @@ describe("ScoutThread evidence strip", () => {
     expect(countyOffer?.querySelector("[data-testid='scout-primary-next-action']")).toBeNull();
     expect(container.querySelector("[data-testid='scout-primary-next-action']")?.textContent).toContain(
       "Draft a request for my county"
+    );
+
+    const allPublicSourcesChecked: ScoutMessage = {
+      ...message,
+      metadata: {
+        ...message.metadata,
+        discoveryChecks: {
+          ...(message.metadata?.discoveryChecks as Record<string, unknown>),
+          tools: { status: "checked", shownCount: 0, topicFiltered: true, timeWindow: "active_now_not_week_filtered" },
+          profilePages: { status: "checked", shownCount: 0, topicFiltered: true, timeWindow: "not_filtered_to_week" },
+        },
+      },
+    };
+    const checkedContainer = document.createElement("div");
+    checkedContainer.innerHTML = renderThread([allPublicSourcesChecked], false, { onAction: () => undefined });
+    expect(checkedContainer.querySelector(".scout-result-no-topic-match")?.textContent).toContain(
+      'No recent county post, public business, public tool listing, or public profile page matched “electrical”'
     );
   });
 
