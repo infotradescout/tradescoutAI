@@ -140,7 +140,8 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
           sql`${contractors.lastVerified} desc nulls last`,
           desc(contractors.recommendationScore),
           desc(contractors.totalRecommendations),
-          asc(contractors.companyName)
+          asc(contractors.companyName),
+          asc(contractors.id)
         ) as any;
         break;
       case "years":
@@ -148,7 +149,8 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
           sql`${contractors.yearsInBusiness} desc nulls last`,
           desc(contractors.recommendationScore),
           desc(contractors.totalRecommendations),
-          asc(contractors.companyName)
+          asc(contractors.companyName),
+          asc(contractors.id)
         ) as any;
         break;
       case "rating":
@@ -156,7 +158,8 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
           desc(contractors.recommendationPercentage),
           desc(contractors.totalRecommendations),
           desc(contractors.recommendationScore),
-          asc(contractors.companyName)
+          asc(contractors.companyName),
+          asc(contractors.id)
         ) as any;
         break;
       case "recommended":
@@ -165,7 +168,8 @@ export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeSco
           desc(contractors.recommendationScore),
           desc(contractors.totalRecommendations),
           desc(contractors.recommendationPercentage),
-          asc(contractors.companyName)
+          asc(contractors.companyName),
+          asc(contractors.id)
         ) as any;
         break;
     }
