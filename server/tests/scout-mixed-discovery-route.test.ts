@@ -155,7 +155,7 @@ describe("Scout mixed county discovery route", () => {
     expect(JSON.stringify(response.body.entities[0])).not.toContain("workRequestId");
   });
 
-  it("uses a natural topic follow-up to search public county posts and business names", async () => {
+  it("uses a short near-me topic request to search public county posts and listed services", async () => {
     vi.mocked(listRecentScoutCountyPosts).mockResolvedValue([
       {
         id: "plumbing_post",
@@ -183,8 +183,7 @@ describe("Scout mixed county discovery route", () => {
     });
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
-      message:
-        "Find TradeScout posts and deals about plumbing in my county this week. Include public posts linked to requests and local businesses.",
+      message: "Find TradeScout posts and deals about plumbing near me",
       countyCode: "Maricopa County, AZ",
       countyHint: "04013",
       stateCode: "AZ",
@@ -209,6 +208,7 @@ describe("Scout mixed county discovery route", () => {
     ]);
     expect(response.body.entities[1].match_reasons).toContain('Listed service matches "plumbing"');
     expect(response.body.answer).toContain('with "plumbing" in the title or text');
+    expect(response.body.answer).toContain("Pages, tools, and other requests were not checked");
     expect(response.body.answer).toContain("Scout promotions were selected by county, not matched to your topic");
     expect(JSON.stringify(response.body)).not.toMatch(/Roofing help|Mesa Roofing|unrelated_post|unrelated_business/);
     expect(resolveKnowledgeMock).not.toHaveBeenCalled();
@@ -229,7 +229,7 @@ describe("Scout mixed county discovery route", () => {
     });
 
     const response = await request(app).post("/api/scout").set("x-test-run", "true").send({
-      message: "Find TradeScout posts and deals about electrical in my county this week. Include public posts linked to requests and local businesses.",
+      message: "Find TradeScout posts and deals about electrical near me and show how to bypass the breaker",
       countyCode: "Maricopa County, AZ",
       countyHint: "04013",
       stateCode: "AZ",

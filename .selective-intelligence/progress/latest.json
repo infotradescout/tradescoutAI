@@ -1,68 +1,46 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T011024Z-fa9c41a3",
-  "createdAt": "2026-09-25T01:10:24.298819+00:00",
-  "outcome": "Keep narrow Scout evidence readable, stop Businesses state loading after county failure, and route short county posts-and-deals searches.",
+  "checkpointId": "progress-20260925T011407Z-a4342e32",
+  "createdAt": "2026-09-25T01:14:07.528716+00:00",
+  "outcome": "Verify short near-me Scout searches and governor deferrals at the route.",
   "scope": [
-    "Scout phone source details and Businesses failure state"
+    "Scout short discovery route"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Stacked source-check rows on phone; prevented state fallback when county directory failed; short local posts+deals prompts now reach publication-gated county lookup after governor."
+      "Existing route integration test now searches a short plumbing prompt and confirms publication-gated county source path; unsafe short electrical prompt still honors governor DEFER."
     ],
     "changedUnverified": [
-      "Route-level short-prompt proof and exact-head browser journeys still pending; release gate not run."
+      "Exact-head browser journeys and unchanged release gate pending."
     ],
     "proof": [
-      "Focused county, Businesses, and Scout UI tests 87/87, npm run check, and git diff --check passed."
+      "Focused county and Scout route tests 31/31 and git diff --check passed; prior 6ff slice 87/87 and npm run check passed."
     ],
     "externalEffects": [
-      "Only draft PR branch push; no production or customer side effects."
+      "Only draft PR source push; no production/customer effects."
     ],
-    "doNotRepeat": [
-      "b8b browser receipts are diagnostic after this UI and routing change."
-    ],
-    "nextSafeAction": "Add route-level short prompt and safeguard test, then rerun exact-head Scout and Businesses synthetic browser journeys and unchanged gate."
+    "doNotRepeat": [],
+    "nextSafeAction": "Run final exact-head browser Scout, Businesses stale/fault, saved-delete, unchanged release gate, and acceptance packet."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "b8b842fe141d6949770244306ea19d99a6e907ae",
+    "headBefore": "6ff6749b46f7bd6a03f21da81b3a48831cef9e81",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
-      " M client/src/pages/direct-connect/DirectConnectPros.tsx",
-      " M client/src/scout/ScoutThread.tsx",
-      " M server/scout/scoutCountyFips.ts",
-      " M server/tests/scout-county-fips.test.ts"
+      " M server/tests/scout-mixed-discovery-route.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/pages/direct-connect/DirectConnectPros.discovery.test.tsx",
-      "sha256": "1d9a88cedd1e78141e7efa15069f5b929f9b60da900db7e730ce4dd3beecfcf6"
-    },
-    {
-      "path": "client/src/pages/direct-connect/DirectConnectPros.tsx",
-      "sha256": "b2b6c2e4ab6ef2f6c3d3a07f5ddb1fa453f91deb3ac1d0e6432903e1b77afde6"
-    },
-    {
-      "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "84db77a4badf3855d31e556267f1691998f79dd966b25ace0dd0147babd8ba37"
-    },
-    {
-      "path": "server/scout/scoutCountyFips.ts",
-      "sha256": "1b2bb31d906bc7b0fd6c13e87a3b6668f28261dadf1e16358cec348f4631b853"
-    },
-    {
-      "path": "server/tests/scout-county-fips.test.ts",
-      "sha256": "7eb0a5cf1355c12b5935953599c7e9451f0c86d1f51654b688fa5cb2e75f8d72"
+      "path": "server/tests/scout-mixed-discovery-route.test.ts",
+      "sha256": "c9c82358e935eb57875649e2932604484333701e693acd7df2d3dc6b1fbdc52f"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
