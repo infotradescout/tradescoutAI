@@ -1187,6 +1187,13 @@ function MessageExtras({
   const standalonePrimaryAction = remainingContractActions.find(
     ({ source }) => source.primary === true
   );
+  const sourceRetryPrimary = Boolean(
+    standalonePrimaryAction?.action.type === "ASK_SCOUT" &&
+    standalonePrimaryAction.action.label === "Retry local search" &&
+    (discoveryChecks?.posts.status === "error" ||
+      discoveryChecks?.deals.status === "error" ||
+      discoveryChecks?.businesses.status === "error")
+  );
   const secondaryContractActions = remainingContractActions.filter(
     ({ source }) => source.action_id !== standalonePrimaryAction?.source.action_id
   );
@@ -1293,6 +1300,19 @@ function MessageExtras({
 
   if (!hasAnything) return null;
 
+  const standalonePrimaryButton = standalonePrimaryAction ? (
+    <button
+      type="button"
+      className="scout-result-action scout-result-action--primary"
+      onClick={() => onAction?.(standalonePrimaryAction.action)}
+      disabled={!onAction}
+      data-testid="scout-primary-next-action"
+    >
+      {standalonePrimaryAction.action.label}
+      <ArrowRight size={14} aria-hidden="true" />
+    </button>
+  ) : null;
+
   return (
     <div className="scout-message-extras mt-3 space-y-3">
       {hasLegacyPrimaryAction && currentTurnPrimaryAction && (
@@ -1307,6 +1327,7 @@ function MessageExtras({
           <ArrowRight size={14} aria-hidden="true" />
         </button>
       )}
+      {sourceRetryPrimary && standalonePrimaryButton}
       {canRefineCountyResults && (
         <div className="scout-result-refine">
           <button
@@ -1408,6 +1429,9 @@ function MessageExtras({
                     action.type === "NAVIGATE" && (action.to || action.path) === safeUrl
                 )
               : undefined;
+            const entityActionIsPrimary = Boolean(
+              entityAction?.source.primary && !countyOnlyOffer && !sourceRetryPrimary
+            );
             const card = (
               <article
                 key={`${msg.id}-entity-${entity.id}`}
@@ -1460,13 +1484,11 @@ function MessageExtras({
                     type="button"
                     className={clsx(
                       "scout-result-action",
-                      entityAction.source.primary && !countyOnlyOffer && "scout-result-action--primary"
+                      entityActionIsPrimary && "scout-result-action--primary"
                     )}
                     onClick={() => onAction?.(entityAction.action)}
                     disabled={!onAction}
-                    data-testid={
-                      entityAction.source.primary && !countyOnlyOffer ? "scout-primary-next-action" : undefined
-                    }
+                    data-testid={entityActionIsPrimary ? "scout-primary-next-action" : undefined}
                   >
                     {entityAction.action.label}
                     <ArrowRight size={14} aria-hidden="true" />
@@ -1484,18 +1506,7 @@ function MessageExtras({
         </div>
       )}
 
-      {standalonePrimaryAction && (
-        <button
-          type="button"
-          className="scout-result-action scout-result-action--primary"
-          onClick={() => onAction?.(standalonePrimaryAction.action)}
-          disabled={!onAction}
-          data-testid="scout-primary-next-action"
-        >
-          {standalonePrimaryAction.action.label}
-          <ArrowRight size={14} aria-hidden="true" />
-        </button>
-      )}
+      {!sourceRetryPrimary && standalonePrimaryButton}
 
       {hasContractActions && (
         <div aria-label="Scout result actions" className="scout-result-secondary-actions">

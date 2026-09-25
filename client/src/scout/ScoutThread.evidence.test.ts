@@ -249,6 +249,48 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("More detail");
   });
 
+  it("puts a failed county source retry before retained checked result cards", () => {
+    const postPath = "/community/posts/scout-source-partial-post";
+    const message: ScoutMessage = {
+      id: "a_partial_source",
+      role: "assistant",
+      content: "One county post was checked; public businesses could not be checked. Nothing was sent.",
+      provenance: { sourceUsed: "scout_mixed_discovery_recovery" },
+      metadata: {
+        discoveryChecks: {
+          areaLabel: "Maricopa County, AZ",
+          posts: { status: "checked", shownCount: 1, topicFiltered: false },
+          deals: { status: "checked", shownCount: 0, topicFiltered: false },
+          businesses: { status: "error", shownCount: 0, topicFiltered: false },
+        },
+      },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [{
+          id: "scout-source-partial-post",
+          type: "community_post",
+          name: "Synthetic county post",
+          url: postPath,
+          match_reasons: ["Published county post"],
+        }],
+        evidence: [],
+        answer: "One county post was checked; public businesses could not be checked. Nothing was sent.",
+        allowed_actions: [
+          { action_id: "act_post", type: "NAVIGATE", label: "Open county post", target: postPath, primary: true, requires_confirmation: false },
+          { action_id: "act_retry", type: "ASK_SCOUT", label: "Retry local search", prompt: "Search county posts and public businesses again", primary: true, requires_confirmation: false },
+        ],
+        working_memory_update: {},
+      },
+    };
+
+    const html = renderThread([message]);
+    expect(html.indexOf("Retry local search")).toBeGreaterThan(-1);
+    expect(html.indexOf("Retry local search")).toBeLessThan(html.indexOf("Synthetic county post"));
+    expect(html.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
+  });
+
   it("asks for a trade in plain language and sends a county refinement", () => {
     const answer =
       "Scout checked published county posts from the last 7 days in Maricopa County, AZ; none were returned. " +

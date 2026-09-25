@@ -1,66 +1,51 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260925T020605Z-4607419b",
-  "createdAt": "2026-09-25T02:06:05.684587+00:00",
-  "outcome": "Remove contradictory Scout status and expose the safe recovery action on phone.",
+  "checkpointId": "progress-20260925T021449Z-67cb81f1",
+  "createdAt": "2026-09-25T02:14:49.240445+00:00",
+  "outcome": "Make partial-source recovery visible before checked result cards on the phone.",
   "scope": [
-    "Scout bare-trade clarification, partial source retry, and saved-task delete toast"
+    "Scout partial county source failure result ordering"
   ],
   "prohibitions": [],
   "progress": {
     "completedVerified": [
-      "Fresh bare-trade DEFER retains governor decision but shows concise source scope, primary governed public lookup, and no empty evidence chrome; partial source failure makes retry primary; saved-task success dismisses prior same-task failure toast. 95/95 focused tests, npm run check, git diff --check passed."
+      "Retry local search now renders directly below partial summary and before retained post/deal cards when source checks report an error; checked card actions no longer compete as primary. Focused ScoutThread render test 59/59, npm run check, git diff --check passed."
     ],
     "changedUnverified": [
-      "Exact-head synthetic browser journeys, visual review, no-page source-read probe, and unchanged full release gate pending for this candidate."
+      "Exact-head browser journeys and unchanged full release gate pending for final candidate."
     ],
     "proof": [
-      "npx vitest run four Scout test files --silent: 95 passed; npm run check: tsc passed; git diff --check passed. 87e browser screenshots exposed the toast and retry defects; these are historical diagnostic evidence."
+      "e38 business-error synthetic phone receipt and screenshot identified Retry at y789 below composer y712 while first card began y424; new focused render test asserts retry precedes card and only one primary action."
     ],
     "externalEffects": [
       "Draft PR #716 branch push only; no merge, production deployment, customer contact, or work request."
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Run four synthetic exact-head browser journeys and isolated no-page fresh trade source-read probe, inspect immediate delete success and partial-error screens, then run unchanged strict release gate."
+    "nextSafeAction": "Rerun four exact-head synthetic phone journeys and no-page source-read probe, review screenshots, run unchanged strict release gate, assemble product acceptance packet and update PR."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/scout-next-20260924",
-    "headBefore": "87e3f58610987ca55a4817ea883a142f4aaed6ad",
+    "headBefore": "e38f24f40d5cef78a8c19e49d0176ecec660510b",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M client/src/scout/ScoutOS.tsx",
       " M client/src/scout/ScoutThread.evidence.test.ts",
-      " M client/src/scout/ScoutThread.tsx",
-      " M server/routes/scout.ts",
-      " M server/scout/scoutMixedDiscoveryRecovery.ts"
+      " M client/src/scout/ScoutThread.tsx"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/scout/ScoutOS.tsx",
-      "sha256": "6f1fc197f43fa483ef98ed1b77dd7abb7d97b6be4a20576bdce5530496053075"
-    },
-    {
       "path": "client/src/scout/ScoutThread.tsx",
-      "sha256": "c0f1a4f7e5c973b5055ef8fa0fbb81ab6cc1d13fc0c9f05cba1afb3a41a1612d"
+      "sha256": "cc020ac0dfa86a417f4f19e375a821b3ca5b5dde2fd904c70ba2385ca46a0c2a"
     },
     {
       "path": "client/src/scout/ScoutThread.evidence.test.ts",
-      "sha256": "b27cd9fb4de97ded1fa30b6d81e23f79be3b309a12bd5be40773396949b214c4"
-    },
-    {
-      "path": "server/routes/scout.ts",
-      "sha256": "25ab4d62708d1a3326d53d0fdc3d0496407efc4869abd95585a0cc6123f87e1b"
-    },
-    {
-      "path": "server/scout/scoutMixedDiscoveryRecovery.ts",
-      "sha256": "612f0bb9d6b3fd951fa741ff5674806a54cd6c932fab7c9749722df7f220f9d6"
+      "sha256": "95c19f3c12a811f7b9b7f4157dffca9ec466f35db09a740efa8ce64f91fd7be1"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
