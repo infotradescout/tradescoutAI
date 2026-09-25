@@ -120,6 +120,7 @@ import {
   extractScoutMixedDiscoveryTopic,
 } from "../scout/scoutMixedDiscoveryRecovery";
 import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
+import { lookupScoutPublicTools, type ScoutPublicToolListing } from "../scout/scoutPublicTools";
 import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
 import { listPublicDirectoryBusinesses } from "./business-directory-public";
 import {
@@ -3551,6 +3552,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         counties: Array<{ fips: string }>;
         topicMatchSource?: "name" | "category" | "service";
       }> = [];
+      let toolCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let publicTools: ScoutPublicToolListing[] = [];
       if (normalizedFips) {
         try {
           communityPostItems = discoveryTopic
@@ -3624,6 +3627,19 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           console.error("Scout public business lookup unavailable:", error);
           businessCheck = "error";
         }
+        try {
+          const tools = await lookupScoutPublicTools({
+            countyFips: normalizedFips,
+            ...(discoveryTopic ? { topic: discoveryTopic } : {}),
+            limit: 10,
+          });
+          toolCheck = tools.status === "checked" ? "checked" :
+            tools.status === "error" ? "error" : "not_checked";
+          publicTools = tools.status === "checked" ? tools.items : [];
+        } catch (error) {
+          console.error("Scout public tool lookup unavailable:", error);
+          toolCheck = "error";
+        }
       }
       const recovery = buildScoutMixedDiscoveryRecovery({
         countyFips: normalizedFips,
@@ -3635,6 +3651,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         dealCheck,
         businesses: publicBusinesses,
         businessCheck,
+        tools: publicTools,
+        toolCheck,
         now,
       });
       scoutTurnTelemetry.provider = "deterministic";
@@ -3650,6 +3668,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           postCheck,
           dealCheck,
           businessCheck,
+          toolCheck,
           discoveryTopic,
           discoveryChecks: {
             areaLabel: countyArea.countyLabel || "your county",
@@ -3671,11 +3690,17 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
               timeWindow: "not_filtered_to_week",
               topicFiltered: Boolean(discoveryTopic),
             },
+            tools: {
+              status: toolCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "public_tool").length,
+              timeWindow: "active_now_not_week_filtered",
+              topicFiltered: Boolean(discoveryTopic),
+            },
           },
         },
         knowledge: {
           layer:
-            postCheck === "checked" || dealCheck === "checked" || businessCheck === "checked"
+            postCheck === "checked" || dealCheck === "checked" || businessCheck === "checked" || toolCheck === "checked"
               ? 2
               : 0,
           sources: [
@@ -3687,6 +3712,9 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
               : []),
             ...(recovery.entities.some((entity) => entity.type === "business")
               ? ["TradeScout public business directory"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "public_tool")
+              ? ["TradeScout public Tools & Hardware listings"]
               : []),
           ],
           confidence: recovery.entities.length > 0 ? "medium" : "low",
