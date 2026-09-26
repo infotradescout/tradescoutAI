@@ -7,6 +7,7 @@ import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
 import { ISSA_BUILD_PROFILE_CONTENT_BLOCKS } from "@shared/issaBuildProfile";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
 import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
+import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "../jwStoneCanonicalInventory";
 import {
   isProfileGalleryItemPubliclyAddressable,
   isProfileInventoryItemPubliclyAddressable,
@@ -144,7 +145,7 @@ describe("public profile item HTML", () => {
 
     expect(html).toContain('property="og:title" content="Blue Dunes Granite | JW Stone Logistics"');
     expect(html).toContain(
-      'property="og:description" content="Explore Blue Dunes, a Granite material, part of JW Stone&#39;s material library in Pensacola, Florida.'
+      'property="og:description" content="Blue Dunes Granite: 3 photos, part of JW Stone&#39;s material library. Ask JW Stone to confirm current pricing and availability.'
     );
     expect(html).toMatch(
       /property="og:image" content="https:\/\/www\.thetradescout\.com\/images\/social\/profile\/jw-stone\/inventory\/blue-dunes\.png\?photo=2&amp;v=4-[a-z0-9]+"/
@@ -160,11 +161,48 @@ describe("public profile item HTML", () => {
     expect(html).toContain('property="og:image:height" content="630"');
     expect(html).not.toContain(`property="og:image" content="${sourceImageUrl}"`);
     expect(html).toContain('data-seo-profile-item="inventory"');
+    expect(html).toContain("Confirmed finish details: Polished.");
     expect(html).toContain('"@type":"Product"');
+    expect(html).toMatch(/"description":"[^"]*Confirmed finish details: Polished\./);
     expect(html).toContain(`"image":["${sourceImageUrl}"]`);
     expect(html).toContain(`<img src="${sourceImageUrl}"`);
     expect(html).toContain('"brand":{"@id":"https://jwstonelogistics.com/#identity"}');
     expect(html).not.toContain('"brand":{"@type":"Organization"');
+  });
+
+  it("serves a complete, factual Honey Onyx description to crawlers", async () => {
+    const html = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+      itemSlug: "honey-onyx",
+    });
+    const description = html.match(/<meta name="description" content="([^"]+)"/i)?.[1];
+
+    expect(description).toBe(
+      "Country of origin: Iran. Thickness: 2 cm. Honey Onyx: 6 photos, part of JW Stone&#39;s material library. Ask JW Stone to confirm current pricing and availability."
+    );
+    expect(description?.replace("&#39;", "'").length).toBeLessThanOrEqual(160);
+    expect(html).toContain(`property="og:description" content="${description}"`);
+    expect(html).not.toContain("a Onyx material");
+    expect(description).not.toContain("…");
+  });
+
+  it("keeps every named JW crawler summary complete while preserving sourced product detail", () => {
+    const summaries = JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap((category) =>
+      category.stones.flatMap((stone) => (stone.seoSummary ? [stone.seoSummary] : []))
+    );
+
+    expect(summaries.length).toBeGreaterThan(100);
+    for (const summary of summaries) {
+      expect(summary.length).toBeLessThanOrEqual(160);
+      expect(summary).not.toContain("…");
+    }
+    const blueDunes = JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap(
+      (category) => category.stones
+    ).find((stone) => stone.slug === "blue-dunes");
+    expect(blueDunes?.publicSummary).toContain("Confirmed finish details: Polished.");
+    expect(blueDunes?.seoSummary).not.toContain("Confirmed finish details");
   });
 
   it("renders ISSA Build materials as permanent offerings with owned search language", async () => {

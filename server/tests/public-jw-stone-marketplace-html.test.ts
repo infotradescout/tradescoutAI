@@ -43,6 +43,10 @@ describe("JW Stone marketplace public HTML", () => {
       const product = buildPublicJwStoneMarketplaceHtml({ ...options, stoneSlug: "honey-onyx" });
       expect(product).toContain("Country of origin: Iran");
       expect(product).toContain("Honey Onyx from Iran");
+      expect(product).toContain(
+        'name="description" content="Country of origin: Iran. Thickness: 2 cm. Honey Onyx: 6 photos, part of JW Stone&#39;s material library. Ask JW Stone to confirm current pricing and availability."'
+      );
+      expect(product).not.toMatch(/Honey Onyx Onyx|material pho…|a Onyx material/);
       expect(product).toContain('"countryOfOrigin":{"@type":"Country","name":"Iran"}');
       expect(product).toContain("Thickness: 2 cm");
       expect(product).toContain('"name":"Thickness","value":2,"unitText":"cm"');
@@ -66,6 +70,29 @@ describe("JW Stone marketplace public HTML", () => {
       expect(unrelated).not.toContain('"name":"Thickness"');
     }
   );
+  it("does not repeat a material already present in a stone name", () => {
+    const html = buildPublicJwStoneMarketplaceHtml({
+      templateHtml,
+      marketplaceDomainSurface: true,
+      origin: "https://jwstonelogistics.com",
+      stoneSlug: "marina-black-soapstone",
+    });
+
+    expect(html).toContain("Marina Black Soapstone Slabs | JW Stone Pensacola");
+    expect(html).toContain("View Marina Black Soapstone slab photos");
+    expect(html).not.toContain("Soapstone Soapstone");
+  });
+  it("keeps confirmed finishes in the body while serving concise crawler metadata", () => {
+    const html = buildPublicJwStoneMarketplaceHtml({
+      templateHtml,
+      marketplaceDomainSurface: true,
+      origin: "https://jwstonelogistics.com",
+      stoneSlug: "blue-dunes",
+    });
+    expect(html).toContain("Confirmed finish details: Polished.");
+    expect(html).toContain("Blue Dunes Granite Slabs | JW Stone Pensacola");
+    expect(html).not.toContain('name="description" content="Explore Blue Dunes');
+  });
   it("uses one stable canonical URL and the real JW Stone share image", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 

@@ -111,6 +111,11 @@ const PUBLIC_ROUTES = (() => {
   return merged;
 })();
 
+function writeFileIfChanged(outputPath, content) {
+  if (existsSync(outputPath) && readFileSync(outputPath, 'utf-8') === content) return;
+  writeFileSync(outputPath, content, 'utf-8');
+}
+
 function extractExistingLastmodByLoc(outputPath = OUTPUT_PATH, entryTag = 'url') {
   if (!existsSync(outputPath)) return new Map();
 
@@ -142,7 +147,7 @@ function generateSitemap() {
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>\n`;
 
-  writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
+  writeFileIfChanged(OUTPUT_PATH, sitemap);
   // An unchanged static index is not newly modified just because another build
   // ran. Preserve its entry dates as we already do for the canonical URL map.
   const indexTargets = SUBMITTED_SITEMAP_TARGETS.map((targetPath) => {
@@ -151,7 +156,7 @@ function generateSitemap() {
     return `  <sitemap>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </sitemap>`;
   }).join('\n');
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexTargets}\n</sitemapindex>`;
-  writeFileSync(OUTPUT_INDEX_PATH, sitemapIndex, 'utf-8');
+  writeFileIfChanged(OUTPUT_INDEX_PATH, sitemapIndex);
   console.log(`Sitemap generated: ${OUTPUT_PATH}`);
   console.log(`Sitemap index generated: ${OUTPUT_INDEX_PATH}`);
   console.log(`${PUBLIC_ROUTES.length} static URLs included`);
