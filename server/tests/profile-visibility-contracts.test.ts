@@ -21,6 +21,7 @@ describe("profile visibility contract guards", () => {
     const profileSettings = read("client/src/pages/ProfileSettings.tsx");
     const profileSiteEditor = read("client/src/pages/ProfileSiteEditor.tsx");
     const settings = read("client/src/pages/settings.tsx");
+    const profileRoutes = read("server/routes/profiles.ts");
 
     expect(profileSettings).toContain("Open editor to manage publishing");
     expect(profileSettings).not.toContain("profile-settings-switch-visibility");
