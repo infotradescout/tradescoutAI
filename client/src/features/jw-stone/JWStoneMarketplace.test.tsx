@@ -467,7 +467,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(new URLSearchParams(window.location.search).has("request")).toBe(false);
   });
 
-  it("shows editorial collection chrome: search + Filter sheet, Save/Ask/View on cards", () => {
+  it("shows editorial collection chrome: search + Filter sheet, Save/Offer/View on cards", () => {
     expect(container.textContent).toContain("Browse Full Inventory");
     expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-material-rail"]')).not.toBeNull();
@@ -489,7 +489,7 @@ describe("JW Stone marketplace luxury layout", () => {
     const firstCard = container.querySelector<HTMLElement>("[data-stone-card]");
     expect(firstCard).not.toBeNull();
     if (!firstCard) throw new Error("Expected a stone card");
-    expect(buttonContaining(firstCard, "Ask")).not.toBeNull();
+    expect(buttonContaining(firstCard, "Make an Offer")).not.toBeNull();
     expect(buttonContaining(firstCard, "View gallery")).toBeNull();
     expect(buttonContaining(firstCard, "View stone")).not.toBeNull();
     expect(firstCard.className).not.toMatch(/\bborder\b/);
@@ -512,8 +512,6 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(firstCard.querySelector("img")?.className).not.toMatch(/h-auto|object-cover/);
 
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
-    click(buttonContaining(firstCard, "Ask"));
-    expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
 
     const inventory = container.querySelector('[data-testid="jw-inventory-grid"]');
     expect(inventory?.querySelector("ul")?.className).toMatch(/\bgrid\b/);
@@ -544,10 +542,7 @@ describe("JW Stone marketplace luxury layout", () => {
     if (!secondPageFirstCard || !secondPageStoneName) {
       throw new Error("Expected a named stone on inventory page two");
     }
-    click(buttonContaining(secondPageFirstCard, "Ask"));
-    expect(container.querySelector('[data-testid="direct-connect-panel"]')?.textContent).toContain(
-      secondPageStoneName
-    );
+    expect(buttonContaining(secondPageFirstCard, "Make an Offer")).not.toBeNull();
     click(container.querySelector('[data-testid="jw-inventory-page-prev-top"]'));
     expect(
       container.querySelector('[data-testid="jw-inventory-page-status-top"]')?.textContent
@@ -956,7 +951,7 @@ describe("JW Stone marketplace luxury layout", () => {
       expect(dialog.querySelector('[data-testid="jw-stone-detail-save"]')).toBeNull();
       expect(dialog.querySelector('[data-testid="jw-stone-detail-room"]')).toBeNull();
       expect(dialog.querySelector("dl")).toBeNull();
-      expect(dialog.querySelector('[data-testid="jw-stone-detail-ask"]')).not.toBeNull();
+      expect(dialog.querySelector('[data-testid="jw-stone-detail-request-details"]')).not.toBeNull();
       expect(dialog.querySelector('[data-testid="jw-stone-share"]')).not.toBeNull();
       click(buttonContaining(dialog, "Close"));
       expect(document.querySelector('[role="dialog"]')).toBeNull();
@@ -964,7 +959,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
   });
 
-  it("opens First Cut photo tiles into stone detail with Ask and Share", () => {
+  it("opens First Cut photo tiles into stone detail with Request details and Share", () => {
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     click(container.querySelector('[data-testid="jw-first-cut-photo-first-cut-1"]'));
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
@@ -972,13 +967,13 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(dialog?.textContent).toContain("First Cut");
     expect(dialog?.querySelector("img")?.getAttribute("src")).toContain("/first-cut/05.jpg");
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-actions"]')).not.toBeNull();
-    expect(dialog?.querySelector('[data-testid="jw-stone-detail-ask"]')?.textContent).toContain(
-      "Ask JW about this First Cut"
-    );
+    expect(
+      dialog?.querySelector('[data-testid="jw-stone-detail-request-details"]')?.textContent
+    ).toContain("Request details");
     expect(dialog?.querySelector('[data-testid="jw-stone-share"]')).not.toBeNull();
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-save"]')).toBeNull();
 
-    click(dialog?.querySelector('[data-testid="jw-stone-detail-ask"]') ?? null);
+    click(dialog?.querySelector('[data-testid="jw-stone-detail-request-details"]') ?? null);
     expect(container.querySelector('[data-testid="direct-connect-panel"]')?.textContent).toContain(
       "General request"
     );

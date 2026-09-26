@@ -1,3 +1,7 @@
+import {
+  requireBidRockResourceEnhancements,
+  pausedJwStoneBusinessIds,
+} from "./jwStoneFeatureAccess";
 /* eslint-disable @typescript-eslint/no-explicit-any -- BidRock reads flexible Stone Core JSON evidence. */
 import { createHash } from "node:crypto";
 import {
@@ -979,9 +983,11 @@ export async function refreshBidRockListingProjection(
 
 /** Project physical inventory positions only. Photo-library records never enter BidRock here. */
 export async function syncBidRockStoneInventory(): Promise<number> {
+  const pausedBusinesses = await pausedJwStoneBusinessIds();
+
   await ensureBidRockTables();
   const candidates = await pool.query(
-    `SELECT ip.id AS inventory_position_id
+    `SELECT ip.id AS inventory_position_id, ip.holder_business_id
        FROM stone_inventory_positions ip
        INNER JOIN stone_asset_passports ap ON ap.id = ip.asset_passport_id
       WHERE ip.lifecycle_status = $1
@@ -992,6 +998,7 @@ export async function syncBidRockStoneInventory(): Promise<number> {
   );
   let projected = 0;
   for (const row of candidates.rows) {
+    if (pausedBusinesses.includes(String(row.holder_business_id))) continue;
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -1046,15 +1053,18 @@ export async function syncBidRockStoneInventory(): Promise<number> {
 function mapListing(
   row: any,
   viewer: BidRockViewerContext,
-  options: Readonly<{ includeLegacyPrice?: boolean }> = {}
+  options: Readonly<{ includeLegacyPrice?: boolean; enhancementsEnabled?: boolean }> = {}
 ): BidRockListing | null {
   const lastConfirmedAt = normalizeIso(row.last_confirmed_at);
   const confirmationExpiresAt = normalizeIso(row.confirmation_expires_at);
   if (!lastConfirmedAt || !confirmationExpiresAt) return null;
   const dimensions = recordValue(row.dimensions_json);
   const canRead = viewerCanManageListing(viewer, row, "inventory_read");
-  const canWrite = viewerCanManageListing(viewer, row, "inventory_write");
-  const canPublish = viewerCanManageListing(viewer, row, "inventory_publish");
+  const canWrite =
+    options.enhancementsEnabled !== false && viewerCanManageListing(viewer, row, "inventory_write");
+  const canPublish =
+    options.enhancementsEnabled !== false &&
+    viewerCanManageListing(viewer, row, "inventory_publish");
   const canManage = canRead || canWrite || canPublish;
   const fresh = isStoneInventoryConfirmationFresh({ lastConfirmedAt, confirmationExpiresAt });
   const status = normalizeText(row.status, 40) as BidRockListingStatus;
@@ -1093,7 +1103,11 @@ function mapListing(
     canManage,
     sellerCapabilities: { read: canRead, write: canWrite, publish: canPublish },
     canOffer:
-      !auction && viewer.verifiedBusiness && saleReady && !viewerIsListingSellerAgent(viewer, row),
+      options.enhancementsEnabled !== false &&
+      !auction &&
+      viewer.verifiedBusiness &&
+      saleReady &&
+      !viewerIsListingSellerAgent(viewer, row),
     ...(auction ? { auction } : {}),
   };
   if (
@@ -1203,6 +1217,8 @@ async function listingRows(
 }
 
 export async function listBidRockCatalog(userId?: string | null): Promise<BidRockCatalogResponse> {
+  const pausedBusinesses = await pausedJwStoneBusinessIds();
+
   const viewer = await getBidRockViewerContext(userId);
   const rows = await listingRows(
     viewer.userId,
@@ -1210,6 +1226,7 @@ export async function listBidRockCatalog(userId?: string | null): Promise<BidRoc
     []
   );
   const listings = rows.rows
+    .filter((row) => !pausedBusinesses.includes(String(row.seller_business_id)))
     .map((row) => mapListing(row, viewer))
     .filter((listing): listing is BidRockListing =>
       Boolean(listing && (listing.saleReady || listing.auction))
@@ -1235,6 +1252,8 @@ export async function listBidRockCatalog(userId?: string | null): Promise<BidRoc
 export async function listBidRockSellerInventory(
   userId: string
 ): Promise<readonly BidRockListing[]> {
+  const pausedBusinesses = await pausedJwStoneBusinessIds();
+
   const viewer = await getBidRockViewerContext(userId);
   const managedBusinessIds = new Set([
     ...viewer.readableInventoryBusinessIds,
@@ -1251,7 +1270,12 @@ export async function listBidRockSellerInventory(
     "inventory"
   );
   return rows.rows
-    .map((row) => mapListing(row, viewer, { includeLegacyPrice: true }))
+    .map((row) =>
+      mapListing(row, viewer, {
+        includeLegacyPrice: true,
+        enhancementsEnabled: !pausedBusinesses.includes(String(row.seller_business_id)),
+      })
+    )
     .filter((listing): listing is BidRockListing => Boolean(listing));
 }
 
@@ -1264,6 +1288,8 @@ export async function setBidRockListingPrice(args: {
   id: string;
   price: { unit: BidRockPriceUnit; amountCents: number; currency: "USD" };
 }> {
+  await requireBidRockResourceEnhancements(args);
+
   await ensureBidRockTables();
   if (!Number.isInteger(args.amountCents) || args.amountCents <= 0) {
     throw new Error("A positive price is required");
@@ -1434,6 +1460,8 @@ export async function setBidRockListingSaleReady(args: {
   listingId: string;
   saleReady: boolean;
 }): Promise<{ id: string; status: "active" | "draft"; saleReady: boolean }> {
+  await requireBidRockResourceEnhancements(args);
+
   const viewer = await getBidRockViewerContext(args.userId);
   const status = args.saleReady ? "active" : "draft";
   const inventoryStatus = args.saleReady
@@ -1553,6 +1581,8 @@ export async function setBidRockSavedListing(args: {
   listingId: string;
   saved: boolean;
 }): Promise<{ id: string; saved: boolean }> {
+  await requireBidRockResourceEnhancements(args);
+
   await ensureBidRockTables();
   const exists = await pool.query(
     `SELECT id, public_id FROM bidrock_listings WHERE public_id = $1 AND status = 'active' LIMIT 1`,
@@ -1687,6 +1717,8 @@ export async function getBidRockAuction(
   publicAuctionId: string,
   userId?: string | null
 ): Promise<BidRockAuction> {
+  await requireBidRockResourceEnhancements({ auctionId: publicAuctionId });
+
   await ensureBidRockTables();
   const viewer = await getBidRockViewerContext(userId);
   const result = await readBidRockAuctionRow(pool, publicAuctionId);
@@ -1739,6 +1771,8 @@ export async function configureBidRockAuction(args: {
   pickupTerms: string;
   freightTerms: string;
 }): Promise<BidRockAuction> {
+  await requireBidRockResourceEnhancements(args);
+
   await ensureBidRockTables();
   const openingBidCents = Math.trunc(args.openingBidCents);
   const reserveBidCents =
@@ -1863,6 +1897,8 @@ export async function placeBidRockMaximumBid(args: {
   maxAmountCents: number;
   idempotencyKey: string;
 }): Promise<BidRockAuction> {
+  await requireBidRockResourceEnhancements(args);
+
   await ensureBidRockTables();
   if (!Number.isInteger(args.maxAmountCents) || args.maxAmountCents <= 0) {
     throw new Error("A positive maximum bid is required");
@@ -2250,6 +2286,8 @@ export async function createBidRockOffer(args: {
   message?: string | null;
   idempotencyKey: string;
 }): Promise<BidRockOfferRecord> {
+  await requireBidRockResourceEnhancements(args);
+
   const viewer = await getBidRockViewerContext(args.userId);
   if (!viewer.verifiedBusiness || !viewer.businessProfileId) {
     throw new Error("Verified business access is required to submit an offer");
@@ -2389,6 +2427,8 @@ export async function respondToBidRockOffer(args: {
   message?: string | null;
   idempotencyKey?: string;
 }): Promise<BidRockOfferRecord> {
+  if (args.action === "counter") await requireBidRockResourceEnhancements(args);
+
   const viewer = await getBidRockViewerContext(args.userId);
   const client = await pool.connect();
   try {
@@ -2411,7 +2451,8 @@ export async function respondToBidRockOffer(args: {
       : viewer.admin || (viewer.verifiedBusiness && String(offer.buyer_user_id) === viewer.userId);
     if (!viewerIsRecipient) throw new Error("BidRock offer response access required");
     let counterContext:
-      Readonly<{ idempotencyKey: string; message: string | null; fingerprint: string }> | undefined;
+      | Readonly<{ idempotencyKey: string; message: string | null; fingerprint: string }>
+      | undefined;
     if (args.action === "counter") {
       if (!Number.isInteger(args.totalAmountCents) || Number(args.totalAmountCents) <= 0) {
         throw new Error("A positive counteroffer total is required");
@@ -2635,6 +2676,8 @@ export async function acceptBidRockOffer(args: {
   userId: string;
   offerId: string;
 }): Promise<BidRockOrderRecord> {
+  await requireBidRockResourceEnhancements(args);
+
   await releaseExpiredBidRockReservations();
   const viewer = await getBidRockViewerContext(args.userId);
   const client = await pool.connect();
@@ -3083,6 +3126,8 @@ export async function markBidRockOrderPaymentReady(args: {
     canonicalAchConfirmationRequired: true;
   };
 }> {
+  await requireBidRockResourceEnhancements(args);
+
   await releaseExpiredBidRockReservations();
   const viewer = await getBidRockViewerContext(args.userId);
   const client = await pool.connect();

@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
@@ -34,6 +34,10 @@ import { WishlistPanel } from "./WishlistPanel";
 import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
+
+const JwStoneReservationStatus = lazy(() =>
+  import("./JwStoneReservationStatus").then((module) => ({ default: module.JwStoneReservationStatus }))
+);
 
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
@@ -351,6 +355,11 @@ export default function JWStoneMarketplace() {
           onOpenAccount={openAccount}
           onStartRequest={() => startRequest([])}
         />
+        {viewerId ? (
+          <Suspense fallback={<p role="status" className="px-4 py-4 text-sm sm:px-9">Loading reservation status…</p>}>
+            <JwStoneReservationStatus viewerId={viewerId} onContact={() => startRequest([])} />
+          </Suspense>
+        ) : null}
         <p className="sr-only" aria-live="polite">
           {wishlist.count} {wishlist.count === 1 ? "stone" : "stones"} saved
         </p>

@@ -44,7 +44,11 @@ import {
 } from "@shared/jwStoneDirectConnect";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { jwStoneOfferInputSchema } from "@shared/jwStoneOffer";
-import { JwStoneOfferError, reviewJwStoneOffer, summarizeJwStoneOffer } from "../services/jwStoneOfferReview";
+import {
+  JwStoneOfferError,
+  reviewJwStoneOffer,
+  summarizeJwStoneOffer,
+} from "../services/jwStoneOfferReview";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -648,9 +652,13 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (!target) return res.status(404).json({ message: "Profile not found." });
 
         const body = parsed.data;
-        if ((body.requestType === "make_offer") !== Boolean(body.stoneOffer) ||
-            (body.stoneOffer && (body.serviceName || body.contactPreference === "call"))) {
-          return res.status(400).json({ message: "Use the stone offer form to submit a material-price offer." });
+        if (
+          (body.requestType === "make_offer") !== Boolean(body.stoneOffer) ||
+          (body.stoneOffer && (body.serviceName || body.contactPreference === "call"))
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Use the stone offer form to submit a material-price offer." });
         }
         const verifiedDiscoveryAttribution = body.discoveryAttributionToken
           ? verifyDiscoveryAttributionToken(body.discoveryAttributionToken, {
@@ -682,9 +690,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         const email = normalizeEmail(body.email);
         const { firstName, lastName } = splitName(body.name);
         const viewerId = String(req.user?.id || req.user?.claims?.sub || "").trim();
-        const stoneOffer = body.stoneOffer ? await reviewJwStoneOffer({
-          profileSlug: target.profileSlug, viewerId, user: req.user, input: body.stoneOffer,
-        }) : null;
+        const stoneOffer = body.stoneOffer
+          ? await reviewJwStoneOffer({
+              profileSlug: target.profileSlug,
+              viewerId,
+              user: req.user,
+              input: body.stoneOffer,
+            })
+          : null;
         if (!viewerId && isReservedSignupIdentityEmail(email)) {
           // Use the same response as any logged-out existing account. Reserved
           // recovery identifiers must never enter guest onboarding, but the
@@ -731,7 +744,12 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         const requesterWasCreated = !requester;
         const authenticatedRequester = requester;
         const updatesOptIn = body.updatesOptIn === true;
-        const sanitizedMessage = [stoneOffer ? summarizeJwStoneOffer(stoneOffer) : null, redactContactDetails(body.message).trim()].filter(Boolean).join("\n\n");
+        const sanitizedMessage = [
+          stoneOffer ? summarizeJwStoneOffer(stoneOffer) : null,
+          redactContactDetails(body.message).trim(),
+        ]
+          .filter(Boolean)
+          .join("\n\n");
         const title =
           body.contactPreference === "call"
             ? `Call request for ${target.businessName}`.slice(0, 180)
@@ -1137,7 +1155,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
                   : "",
                 `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
-                ...(stoneOffer ? ["<pre>" + escapeHtml(summarizeJwStoneOffer(stoneOffer)) + "</pre>"] : []),
+                ...(stoneOffer
+                  ? ["<pre>" + escapeHtml(summarizeJwStoneOffer(stoneOffer)) + "</pre>"]
+                  : []),
                 `<p>The sender shared their name and phone with this request so you can respond.</p>`,
                 `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
               ]
@@ -1429,7 +1449,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         return res.status(201).json({
           requestId: created.id,
           status: created.status,
-          ...(stoneOffer ? { offerStatus: stoneOffer.status, paymentAllowed: false, inventoryReserved: false } : {}),
+          ...(stoneOffer
+            ? { offerStatus: stoneOffer.status, paymentAllowed: false, inventoryReserved: false }
+            : {}),
           businessName: target.businessName,
           contactPreference: body.contactPreference,
           contactGateState: authority.contactGateState,

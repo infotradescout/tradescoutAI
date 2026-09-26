@@ -4,7 +4,7 @@ import type Stripe from "stripe";
 export const LEGACY_PAYMENT_WEBHOOK_PATH = "/api/payments/webhook";
 export const STRIPE_PAYMENT_WEBHOOK_PATH = "/api/payments/stripe/webhook";
 
-type StripeWebhookRequest = Request & {
+ type StripeWebhookRequest = Request & {
   rawBody?: Buffer;
 };
 
@@ -37,7 +37,7 @@ export type PaymentWebhookDependencies = {
  */
 export function preserveStripeWebhookRawBody(req: Request, _res: Response, body: Buffer): void {
   const requestPath = String(req.originalUrl || req.url || "").split("?", 1)[0];
-  if (requestPath === STRIPE_PAYMENT_WEBHOOK_PATH) {
+  if (requestPath === STRIPE_PAYMENT_WEBHOOK_PATH || requestPath === "/api/u/jw-stone/orders/stripe/webhook") {
     (req as StripeWebhookRequest).rawBody = Buffer.from(body);
   }
 }

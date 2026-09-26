@@ -1,3 +1,4 @@
+import { useJwStoneFeatures } from "./useJwStoneFeatures";
 import {
   buildStoneDesignerPhotoKey,
   STONE_DESIGNER_SELECTION_PARAM,
@@ -34,7 +35,8 @@ export default function StoneRoomLink({
   className: string;
   detail?: boolean;
 }) {
-  const href = stoneRoomDestination(stone, imageHref, baseHref);
+  const { enabled } = useJwStoneFeatures();
+  const href = enabled ? stoneRoomDestination(stone, imageHref, baseHref) : null;
   return href ? (
     <a
       href={href}

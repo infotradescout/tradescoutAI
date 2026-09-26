@@ -15,8 +15,12 @@ const mocks = vi.hoisted(() => ({
   offerAccess: vi.fn(),
   offerReview: vi.fn(),
 }));
-vi.mock("../services/jwStonePricingAccess", () => ({ resolveJwStonePricingAccess: mocks.offerAccess }));
-vi.mock("../routes/jw-stone-member-pricing", () => ({ reviewJwStoneMemberCart: mocks.offerReview }));
+vi.mock("../services/jwStonePricingAccess", () => ({
+  resolveJwStonePricingAccess: mocks.offerAccess,
+}));
+vi.mock("../routes/jw-stone-member-pricing", () => ({
+  reviewJwStoneMemberCart: mocks.offerReview,
+}));
 vi.mock("../db", async () => {
   const { getTableName } = await import("drizzle-orm");
   const { PgDialect } = await import("drizzle-orm/pg-core");
@@ -289,47 +293,142 @@ describe("Express request callback details at the email provider boundary", () =
     expect(response.text).not.toContain(submittedContact.phone);
   });
   const offerStockId = "stone_" + "c".repeat(32);
-  const offerSelection = { lines: [{ inventoryPublicId: offerStockId, quantity: 1 }], fulfillment: { method: "pickup" } };
-  const offerBody = { name: "Submitted Visitor", email: "visitor@example.invalid", phone: "(225) 555-0102", requestType: "make_offer", message: "Please review my offer.",
-    stoneOffer: { scope: "cart", selection: offerSelection, offeredTotalCents: 12000, expectedSubtotalCents: 15000, termsAcknowledged: true } };
-  async function sendOffer({ access = "member", signedIn = true, body = offerBody, slug = "jw-stone" }: { access?: string; signedIn?: boolean; body?: any; slug?: string } = {}) {
+  const offerSelection = {
+    lines: [{ inventoryPublicId: offerStockId, quantity: 1 }],
+    fulfillment: { method: "pickup" },
+  };
+  const offerBody = {
+    name: "Submitted Visitor",
+    email: "visitor@example.invalid",
+    phone: "(225) 555-0102",
+    requestType: "make_offer",
+    message: "Please review my offer.",
+    stoneOffer: {
+      scope: "cart",
+      selection: offerSelection,
+      offeredTotalCents: 12000,
+      expectedSubtotalCents: 15000,
+      termsAcknowledged: true,
+    },
+  };
+  async function sendOffer({
+    access = "member",
+    signedIn = true,
+    body = offerBody,
+    slug = "jw-stone",
+  }: { access?: string; signedIn?: boolean; body?: any; slug?: string } = {}) {
     setReleasedTarget();
-    mocks.target!.profileSlug = slug; mocks.target!.businessName = "JW Stone";
-    if (slug === "jw-stone") { mocks.target!.ownerVerifiedBadge = true; mocks.target!.ownerVerificationStatus = "approved"; mocks.target!.publicDiscoveryEnabled = true; }
+    mocks.target!.profileSlug = slug;
+    mocks.target!.businessName = "JW Stone";
+    if (slug === "jw-stone") {
+      mocks.target!.ownerVerifiedBadge = true;
+      mocks.target!.ownerVerificationStatus = "approved";
+      mocks.target!.publicDiscoveryEnabled = true;
+    }
     mocks.offerAccess.mockResolvedValue(access);
-    mocks.offerReview.mockResolvedValue({ profileSlug: "jw-stone", viewerId: "synthetic-matched-account", currency: "USD", sourceUpdatedAt: "2026-09-16T00:00:00.000Z", reviewedAt: "2026-09-16T00:00:00.000Z",
-      materialReady: true, readyForCheckout: false, inventoryReserved: false, subtotalCents: 15000, fulfillment: offerSelection.fulfillment, deliveryFeeCents: null, estimatedDeliveryDate: null,
-      lines: [{ inventoryPublicId: offerStockId, requestedQuantity: 1, availableQuantity: 7, materialName: "Honey Onyx", materialSlug: "honey-onyx", assetKind: "slab", dimensions: { length: 120, height: 60, unit: "in" }, pricingTier: "slab", unitRateCents: 300, oneSlabTotalCents: 15000, lineTotalCents: 15000, status: "ready" }] });
-    mocks.getUser.mockResolvedValue({ id: "synthetic-matched-account", firstName: "Saved", email: submittedContact.email, phone: "2255550199" });
+    mocks.offerReview.mockResolvedValue({
+      profileSlug: "jw-stone",
+      viewerId: "synthetic-matched-account",
+      currency: "USD",
+      sourceUpdatedAt: "2026-09-16T00:00:00.000Z",
+      reviewedAt: "2026-09-16T00:00:00.000Z",
+      materialReady: true,
+      readyForCheckout: false,
+      inventoryReserved: false,
+      subtotalCents: 15000,
+      fulfillment: offerSelection.fulfillment,
+      deliveryFeeCents: null,
+      estimatedDeliveryDate: null,
+      lines: [
+        {
+          inventoryPublicId: offerStockId,
+          requestedQuantity: 1,
+          availableQuantity: 7,
+          materialName: "Honey Onyx",
+          materialSlug: "honey-onyx",
+          assetKind: "slab",
+          dimensions: { length: 120, height: 60, unit: "in" },
+          pricingTier: "slab",
+          unitRateCents: 300,
+          oneSlabTotalCents: 15000,
+          lineTotalCents: 15000,
+          status: "ready",
+        },
+      ],
+    });
+    mocks.getUser.mockResolvedValue({
+      id: "synthetic-matched-account",
+      firstName: "Saved",
+      email: submittedContact.email,
+      phone: "2255550199",
+    });
     const { registerTradePartnerExpressRoutes } = await import("../routes/tradepartner-express");
-    const app = express(); app.use(express.json());
-    if (signedIn) app.use((req: any, _res, next) => { req.user = { id: "synthetic-matched-account" }; next(); });
+    const app = express();
+    app.use(express.json());
+    if (signedIn)
+      app.use((req: any, _res, next) => {
+        req.user = { id: "synthetic-matched-account" };
+        next();
+      });
     registerTradePartnerExpressRoutes(app);
-    return request(app).post("/api/tradepartner-profiles/" + slug + "/express-request").send(body);
+    return request(app)
+      .post("/api/tradepartner-profiles/" + slug + "/express-request")
+      .send(body);
   }
   it("saves a private pending offer through the existing contact transaction, without a charge", async () => {
     const response = await sendOffer();
     expect(response.status).toBe(201);
-    expect(response.body).toMatchObject({ offerStatus: "pending_review", paymentAllowed: false, inventoryReserved: false });
+    expect(response.body).toMatchObject({
+      offerStatus: "pending_review",
+      paymentAllowed: false,
+      inventoryReserved: false,
+    });
     const event = mocks.inserted.work_request_events.find((row) => row.type === "created");
-    expect(event.metadata.stoneOffer).toMatchObject({ offeredTotalCents: 12000, listedSubtotalCents: 15000, status: "pending_review", paymentAllowed: false, confirmedAt: null, finalPayableTotalCents: null });
-    expect(event.metadata.sourceDecisionCardId).toBeTruthy(); expect(event.metadata.contactPermissionId).toBeTruthy();
-    expect(mocks.inserted.work_requests[0]).toMatchObject({ visibility: "private", title: "Stone offer for JW Stone" });
-    expect(mocks.inserted.work_requests[0].description).toContain("Offered material total: $120.00");
-    const businessPayload = fetchMock.mock.calls.map((call) => JSON.parse(call[1].body)).find((payload) => payload.to[0].email === "selected-business@example.invalid");
+    expect(event.metadata.stoneOffer).toMatchObject({
+      offeredTotalCents: 12000,
+      listedSubtotalCents: 15000,
+      status: "pending_review",
+      paymentAllowed: false,
+      confirmedAt: null,
+      finalPayableTotalCents: null,
+    });
+    expect(event.metadata.sourceDecisionCardId).toBeTruthy();
+    expect(event.metadata.contactPermissionId).toBeTruthy();
+    expect(mocks.inserted.work_requests[0]).toMatchObject({
+      visibility: "private",
+      title: "Stone offer for JW Stone",
+    });
+    expect(mocks.inserted.work_requests[0].description).toContain(
+      "Offered material total: $120.00"
+    );
+    const businessPayload = fetchMock.mock.calls
+      .map((call) => JSON.parse(call[1].body))
+      .find((payload) => payload.to[0].email === "selected-business@example.invalid");
     expect(businessPayload.textContent).toContain("Offered material total: $120.00");
-    expect(fetchMock.mock.calls.map((call) => call[0]).join(" ")).not.toMatch(/stripe|checkout|payment_intents/i);
+    expect(fetchMock.mock.calls.map((call) => call[0]).join(" ")).not.toMatch(
+      /stripe|checkout|payment_intents/i
+    );
     expect(Object.keys(mocks.inserted)).not.toContain("orders");
   });
   it.each([
-    { access: "none", expected: 403 }, { access: "internal", expected: 403 }, { signedIn: false, expected: 401 },
+    { access: "none", expected: 403 },
+    { access: "internal", expected: 403 },
+    { signedIn: false, expected: 401 },
     { slug: "louisiana-stone-solutions", expected: 400 },
     { body: { ...offerBody, requestType: "request_material" }, expected: 400 },
     { body: { ...offerBody, stoneOffer: undefined }, expected: 400 },
-    { body: { ...offerBody, stoneOffer: { ...offerBody.stoneOffer, paymentAllowed: true } }, expected: 400 },
-    { body: { ...offerBody, stoneOffer: { ...offerBody.stoneOffer, expectedSubtotalCents: 14999 } }, expected: 409 },
+    {
+      body: { ...offerBody, stoneOffer: { ...offerBody.stoneOffer, paymentAllowed: true } },
+      expected: 400,
+    },
+    {
+      body: { ...offerBody, stoneOffer: { ...offerBody.stoneOffer, expectedSubtotalCents: 14999 } },
+      expected: 409,
+    },
   ])("rejects invalid offer requests before any write (%j)", async ({ expected, ...options }) => {
-    const response = await sendOffer(options); expect(response.status).toBe(expected); expect(mocks.inserted).toEqual({}); expect(fetchMock).not.toHaveBeenCalled();
+    const response = await sendOffer(options);
+    expect(response.status).toBe(expected);
+    expect(mocks.inserted).toEqual({});
+    expect(fetchMock).not.toHaveBeenCalled();
   });
-
 });

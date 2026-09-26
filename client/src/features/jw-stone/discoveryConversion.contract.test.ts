@@ -52,8 +52,8 @@ describe("JW Stone discovery and request conversion", () => {
 
     expect(marketplace).toContain('initialView="request"');
     expect(marketplace).toContain("allowCall");
-    expect(panel).toContain('aria-label="Back to contact options"');
-    expect(panel).toContain('setView("choice")');
+    expect(panel).toContain('aria-label={offerContext ? "Back to selection" : "Back to contact options"}');
+    expect(panel).toMatch(/if \(offerContext\) \{\s*close\(\);\s*return;\s*\}\s*setError\(""\);\s*setView\("choice"\)/);
   });
 
   it("keeps hydrated deep metadata local while keeping schema descriptions factual", () => {

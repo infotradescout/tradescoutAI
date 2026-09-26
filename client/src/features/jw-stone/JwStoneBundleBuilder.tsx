@@ -7,8 +7,12 @@ const BundleStockPicker = lazy(() => import("./JwStoneBundleStockPicker").catch(
     return <p role="alert" className="mt-3 text-sm">The slab picker could not be loaded. Your cart is saved. Refresh the page to retry, or browse the full collection below.</p>;
   },
 })));
+const PurchaseStart = lazy(() => import("./JwStonePurchaseStart").catch(() => ({
+  default: function UnavailablePurchase() {
+    return <p role="alert" className="mt-3 text-sm">Purchase controls could not be loaded. Your cart is saved. Refresh to retry; no payment has been taken.</p>;
+  },
+})));
 
-/** Payment-free bundle selection. Checkout is a separate merchant-verified workflow. */
 export function JwStoneBundleBuilder({review,empty,checking,onBrowse}:{review?:JwStoneCartReview;empty:boolean;checking:boolean;onBrowse:()=>void}) {
   const [picking,setPicking]=useState(false);
   const bundle=review?.bundle;
@@ -16,6 +20,7 @@ export function JwStoneBundleBuilder({review,empty,checking,onBrowse}:{review?:J
   const count=bundle?.eligibleSlabs??0,remaining=bundle?.remainingSlabs??JW_STONE_BUNDLE_SLABS;
   const showProgress=(Boolean(bundle)||empty)&&!needsMaterialReview;
   const message=checking?"Checking bundle eligibility…":needsMaterialReview?"Confirm the material for each stock selection to check bundle pricing.":bundle?.unlocked?"Bundle pricing unlocked":bundle&&remaining===0?"Resolve unavailable selections to confirm bundle pricing.":bundle?"Add "+remaining+" more eligible "+(remaining===1?"slab":"slabs")+" to unlock bundle pricing.":empty?"Choose 7 eligible slabs to unlock bundle pricing.":"Choose exact stock to check your bundle.";
+  const purchaseKey=review?JSON.stringify([review.viewerId,review.lines.map(line=>[line.inventoryPublicId,line.requestedQuantity]),review.subtotalCents,review.fulfillment]):"empty";
   return <section aria-labelledby="jw-bundle-title" data-testid="jw-bundle-builder" className="mb-4 border border-[var(--jw-accent)] bg-[var(--jw-bg)] p-4">
     <div className="flex items-center justify-between gap-3"><h2 id="jw-bundle-title" className="text-base font-semibold">Build a bundle</h2><span className="text-xs text-[var(--jw-muted)]">7 slabs = 1 bundle</span></div>
     <p role="status" aria-live="polite" className="mt-2 text-sm font-medium">{message}</p>
@@ -29,5 +34,6 @@ export function JwStoneBundleBuilder({review,empty,checking,onBrowse}:{review?:J
     <button type="button" onClick={()=>setPicking(current=>!current)} aria-expanded={picking} aria-controls="jw-bundle-stock-selection" data-testid="jw-bundle-open-picker" className="mt-3 min-h-11 w-full border border-[var(--jw-accent)] px-3 text-sm font-semibold">{picking?"Done choosing slabs":empty?"Choose slabs for your bundle":"Choose more slabs"}</button>
     {picking?<div id="jw-bundle-stock-selection"><Suspense fallback={<p role="status" className="mt-3 text-sm">Opening slab selector…</p>}><BundleStockPicker review={review} checking={checking}/></Suspense></div>:null}
     <button type="button" onClick={onBrowse} className="mt-2 min-h-11 w-full px-3 text-sm underline">Browse the full collection</button>
+    {review?.materialReady?<Suspense fallback={<p role="status" className="mt-3 text-sm">Loading purchase controls…</p>}><PurchaseStart key={purchaseKey} review={review} checking={checking}/></Suspense>:null}
   </section>;
 }

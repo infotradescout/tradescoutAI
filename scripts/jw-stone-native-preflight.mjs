@@ -19,7 +19,7 @@ export function saveNativeOfferPreflight(head, checks) {
 export function reuseNativeOfferPreflight(head) {
   const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
   const changed = execFileSync('git', ['diff', '--name-only', receipt.head, head], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
-  const allowed = new Set(['scripts/jw-stone-offer.native.mjs', 'scripts/jw-stone-offer-journey.mjs', 'scripts/jw-stone-native-preflight.mjs']);
+  const allowed = new Set(['scripts/jw-stone-offer.native.mjs', 'scripts/jw-stone-offer-journey.mjs', 'scripts/jw-stone-native-preflight.mjs', 'scripts/jw-stone-feature-journey.mjs']);
   assert(changed.every(file => allowed.has(file) || file.startsWith('.selective-intelligence/builds/')), 'Application, fixture, dependency or build configuration changes require fresh preflight');
   assert.equal(builtFingerprint(), receipt.fingerprint, 'Previously built assets were modified');
   return { fromHead: receipt.head, buildFingerprint: receipt.fingerprint, unchangedApplicationAndFixture: true, testOnlyChanges: changed, fullReleaseGateStillRequired: true };

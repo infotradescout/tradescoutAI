@@ -21,18 +21,25 @@ function panelRoot(): HTMLElement {
 describe("WishlistPanel email copy", () => {
   let container: HTMLDivElement;
   let root: Root;
+  let featureEnabled = true;
   const stone = JW_STONE_NAMED_CATALOG[0];
 
   beforeEach(() => {
+    featureEnabled = true;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({ sent: true, stoneCount: 1 }),
-      }))
+      vi.fn(async (url: string) => {
+        if (url === "/api/u/jw-stone/features") {
+          return { ok: true, json: async () => ({ profileSlug: "jw-stone", enabled: featureEnabled, configured: true, revision: 1 }) };
+        }
+        if (url === "/api/jw-stone/saved-stones/email") {
+          return { ok: true, json: async () => ({ sent: true, stoneCount: 1 }) };
+        }
+        throw new Error("Unexpected fixture request: " + url);
+      })
     );
   });
 
@@ -81,7 +88,7 @@ describe("WishlistPanel email copy", () => {
   });
 
   it("requires email before sending and posts only the saved named stones", async () => {
-    act(() => {
+    await act(async () => {
       root.render(
         <WishlistPanel
           open
@@ -129,7 +136,8 @@ describe("WishlistPanel email copy", () => {
         body: expect.stringContaining("collector@example.com"),
       })
     );
-    const body = JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    const send = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]) => url === "/api/jw-stone/saved-stones/email");
+    const body = JSON.parse(send![1].body);
     expect(body.stones).toEqual([
       {
         name: stone.displayName || stone.publicLabel,
@@ -139,8 +147,8 @@ describe("WishlistPanel email copy", () => {
     expect(panelRoot().textContent).toContain("Sent. Check your inbox for the list.");
   });
 
-  it("prefills a known account email", () => {
-    act(() => {
+  it("prefills a known account email after checking the feature manifest", async () => {
+    await act(async () => {
       root.render(
         <WishlistPanel
           open
@@ -163,5 +171,20 @@ describe("WishlistPanel email copy", () => {
       button.textContent?.includes("Email my saved stones")
     );
     expect((emailButton as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("keeps a known email from authorizing a send while the feature manifest is OFF", async () => {
+    featureEnabled = false;
+    await act(async () => {
+      root.render(
+        <WishlistPanel open items={[stone]} restored persisted knownEmail="member@example.com"
+          onOpenChange={vi.fn()} onRemove={vi.fn()} onClear={vi.fn()} onOpenStone={vi.fn()} onAsk={vi.fn()} />
+      );
+    });
+    const button = Array.from(panelRoot().querySelectorAll("button")).find((entry) => entry.textContent?.includes("Email my saved stones"));
+    expect(button).toBeTruthy();
+    expect(button!.disabled).toBe(true);
+    click(button!);
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.some(([url]) => url === "/api/jw-stone/saved-stones/email")).toBe(false);
   });
 });

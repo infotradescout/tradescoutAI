@@ -23,6 +23,8 @@ type WishlistPanelProps = {
   onAsk: (stones: readonly JwStoneCatalogItem[]) => void;
 };
 
+import { useJwStoneFeatures } from "./useJwStoneFeatures";
+
 type EmailStatus = "idle" | "sending" | "sent" | "error";
 
 function isValidEmail(value: string): boolean {
@@ -43,6 +45,7 @@ export function WishlistPanel({
   onAsk,
 }: WishlistPanelProps) {
   const [confirmClear, setConfirmClear] = useState(false);
+  const { enabled: enhancementsEnabled } = useJwStoneFeatures();
   const [email, setEmail] = useState(knownEmail?.trim() || "");
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -59,7 +62,8 @@ export function WishlistPanel({
     }
   }, [open, knownEmail]);
 
-  const canEmail = items.length > 0 && isValidEmail(email) && emailStatus !== "sending";
+  const canEmail =
+    enhancementsEnabled && items.length > 0 && isValidEmail(email) && emailStatus !== "sending";
 
   const sendSavedList = async () => {
     if (!canEmail) {
