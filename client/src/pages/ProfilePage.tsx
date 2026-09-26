@@ -99,6 +99,7 @@ export default function ProfilePage() {
   const [profileStatus, setProfileStatus] = useState<OwnedProfile["status"]>(undefined);
   const [profileExposure, setProfileExposure] = useState<OwnedProfile["publicExposure"]>(undefined);
   const [businessSlug, setBusinessSlug] = useState<string | null>(null);
+  const [businessPagePublic, setBusinessPagePublic] = useState(false);
   const [activatingPublic, setActivatingPublic] = useState(false);
 
   useEffect(() => {
@@ -117,14 +118,17 @@ export default function ProfilePage() {
             };
             if (!cancelled && business?.slug) {
               setBusinessSlug(String(business.slug));
+              setBusinessPagePublic(business.visibility === "public");
             }
           } catch {
             if (!cancelled) {
               setBusinessSlug(null);
+              setBusinessPagePublic(false);
             }
           }
         } else if (!cancelled) {
           setBusinessSlug(null);
+          setBusinessPagePublic(false);
         }
 
         const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
@@ -243,15 +247,17 @@ export default function ProfilePage() {
         : `${getCanonicalAppOrigin()}/profile/${user.id}`;
   const legacyIsPublic = user.preferences?.profileVisibility === "public";
   const exposureMode = profileExposure?.mode;
-  const isDiscoverablePublic = exposureMode
-    ? exposureMode === "public"
-    : legacyIsPublic;
+  const isDiscoverablePublic =
+    Boolean(businessSlug && businessPagePublic) ||
+    (exposureMode ? exposureMode === "public" : legacyIsPublic);
   const canSharePublicRoute =
+    Boolean(businessSlug && businessPagePublic) ||
     exposureMode === "public" ||
     exposureMode === "direct_only" ||
     exposureMode === "unlisted_review" ||
     (!exposureMode && legacyIsPublic);
   const exposureReason =
+    !businessPagePublic &&
     profileExposure?.reason && profileExposure.reason !== "public"
       ? formatActivityReason(profileExposure.reason)
       : null;
