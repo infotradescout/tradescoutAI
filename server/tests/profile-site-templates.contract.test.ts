@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  PROFILE_SITE_DISCOVERY_PARITY,
   applyInventoryLeadImageOverrides,
   getProfileSiteTemplateMeta,
   listSelectableProfileSiteTemplates,
@@ -30,6 +31,19 @@ describe("profile site templates", () => {
         tradePartner: true,
       })
     ).toBe("electrician-solo");
+  });
+
+  it("keeps discovery authority identical across default and specialized presentations", () => {
+    expect(PROFILE_SITE_DISCOVERY_PARITY).toEqual({
+      defaultProfileIsBaseline: true,
+      paidTierRequiredForDiscovery: false,
+      templateAffectsCanonicalIdentity: false,
+      templateAffectsIndexEligibility: false,
+      templateAffectsSearchEligibility: false,
+    });
+    const defaultMeta = getProfileSiteTemplateMeta("default");
+    expect(defaultMeta?.description.toLowerCase()).not.toContain("premium");
+    expect(defaultMeta?.description.toLowerCase()).not.toContain("upgrade");
   });
 
   it("treats default as the canonical launch profile without selling it as an upgrade", () => {

@@ -35,6 +35,7 @@ import {
 } from "../utils/profileManageBridge";
 import {
   canExposePublishedProfilePublicly,
+  derivePublishedProfileExposure,
   hasTradeScoutPendingOwnerCustody,
   isOwnerConfirmedDirectProfile,
   isPubliclyVerifiedProfileOwner,
@@ -91,7 +92,10 @@ import {
 } from "../services/indexNowPublicationEvents";
 import { shouldIndexPublicProfileSlug } from "../../shared/publicProfileIndexing";
 import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
-import { validateProfileTargetAuthority } from "../services/profileTargetAuthority";
+import {
+  durableProfessionalProfileApprovalSql,
+  validateProfileTargetAuthority,
+} from "../services/profileTargetAuthority";
 import { mutateExactProfileVisibilityAtomically } from "../services/profileVisibilityMutation";
 
 const router = Router();
@@ -206,6 +210,80 @@ type PublicBusinessPresenceSitemapRow = {
 
 function databaseBoolean(value: unknown): boolean {
   return value === true || value === "true" || value === "t";
+}
+
+function recordObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+async function loadOwnedProfileExposureDecisions(ownerUserId: string) {
+  const rows = await db
+    .select({
+      profileId: profiles.id,
+      profileSlug: profiles.slug,
+      profileStatus: profiles.status,
+      profilePubliclyReleased: profiles.publiclyReleased,
+      profileRoleContext: profiles.roleContext,
+      profileHeadline: profiles.headline,
+      profileContentBlocks: profiles.contentBlocks,
+      businessId: profiles.businessId,
+      profileOwnerUserId: profiles.ownerUserId,
+      ownerRole: users.role,
+      ownerRoles: users.roles,
+      ownerVerifiedBadge: users.verifiedBadge,
+      ownerVerificationStatus: users.verificationStatus,
+      ownerEmailVerified: users.emailVerified,
+      ownerProvider: users.provider,
+      ownerPreferences: users.preferences,
+      profileServicesDescription: sql<string | null>`(${users.preferences} ->> 'servicesDescription')`,
+      businessStatus: businesses.status,
+      businessOwnerUserId: businesses.ownerUserId,
+      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+      businessSources: businesses.sources,
+      businessClaimStatus: businesses.claimStatus,
+      businessProfileData: businesses.profileData,
+      professionalRoleApproved: durableProfessionalProfileApprovalSql,
+    })
+    .from(profiles)
+    .innerJoin(users, eq(profiles.ownerUserId, users.id))
+    .leftJoin(businesses, eq(profiles.businessId, businesses.id))
+    .where(eq(profiles.ownerUserId, ownerUserId));
+
+  return new Map(
+    rows.map((row) => [
+      String(row.profileId),
+      derivePublishedProfileExposure({
+        profileId: row.profileId,
+        profilePubliclyReleased: row.profilePubliclyReleased,
+        profileSlug: row.profileSlug,
+        profileStatus: row.profileStatus,
+        profileRoleContext: row.profileRoleContext,
+        profileHeadline: row.profileHeadline,
+        profileServicesDescription:
+          row.profileServicesDescription ??
+          recordObject(row.ownerPreferences).servicesDescription,
+        profileContentBlocks: row.profileContentBlocks,
+        businessId: row.businessId,
+        profileOwnerUserId: row.profileOwnerUserId,
+        ownerRole: row.ownerRole,
+        ownerRoles: row.ownerRoles,
+        ownerVerifiedBadge: row.ownerVerifiedBadge,
+        ownerVerificationStatus: row.ownerVerificationStatus,
+        ownerEmailVerified: row.ownerEmailVerified,
+        ownerProvider: row.ownerProvider,
+        ownerPreferences: row.ownerPreferences,
+        businessStatus: row.businessStatus,
+        businessOwnerUserId: row.businessOwnerUserId,
+        publicDiscoveryEnabled: row.publicDiscoveryEnabled,
+        businessSources: row.businessSources,
+        businessClaimStatus: row.businessClaimStatus,
+        businessProfileData: row.businessProfileData,
+        professionalRoleApproved: row.professionalRoleApproved,
+      }),
+    ]),
+  );
 }
 
 export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>): boolean {
@@ -840,8 +918,22 @@ router.get("/api/profiles", isAuthenticated, async (req, res) => {
     const userId = getAuthedUserId(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
-    const list = await storage.listProfilesByOwner(userId);
-    res.json(list);
+    const [list, exposureByProfileId] = await Promise.all([
+      storage.listProfilesByOwner(userId),
+      loadOwnedProfileExposureDecisions(userId),
+    ]);
+    res.json(
+      list.map((profile: any) => ({
+        ...profile,
+        publicExposure:
+          exposureByProfileId.get(String(profile.id)) ??
+          ({ mode: "private", reason: "unpublished" } as const),
+        discoveryParity: {
+          tierNeutral: true,
+          paidTierRequired: false,
+        },
+      })),
+    );
   } catch (error: any) {
     console.error("Error listing profiles:", error);
     res.status(500).json({ message: "Failed to list profiles" });

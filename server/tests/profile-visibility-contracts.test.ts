@@ -21,6 +21,8 @@ describe("profile visibility contract guards", () => {
     const profileSettings = read("client/src/pages/ProfileSettings.tsx");
     const profileSiteEditor = read("client/src/pages/ProfileSiteEditor.tsx");
     const settings = read("client/src/pages/settings.tsx");
+    const profileRoutes = read("server/routes/profiles.ts");
+    const profilePage = read("client/src/pages/ProfilePage.tsx");
 
     expect(profileSettings).toContain("Open editor to manage publishing");
     expect(profileSettings).not.toContain("profile-settings-switch-visibility");
@@ -32,6 +34,20 @@ describe("profile visibility contract guards", () => {
     expect(settings).toContain('queryKey: ["/api/profiles"]');
     expect(settings).toContain("Edit public profile site");
     expect(settings).toContain("View public profile");
+    expect(profileRoutes).toContain("loadOwnedProfileExposureDecisions");
+    expect(profileRoutes).toContain("derivePublishedProfileExposure");
+    expect(profileRoutes).toContain("publicExposure:");
+    expect(profileRoutes).toContain("tierNeutral: true");
+    expect(profileRoutes).toContain("paidTierRequired: false");
+    const exposureSource = profileRoutes.slice(
+      profileRoutes.indexOf("async function loadOwnedProfileExposureDecisions"),
+      profileRoutes.indexOf("function xmlEscape"),
+    );
+    expect(exposureSource).not.toMatch(/subscription|premium|membership|payment|billing/i);
+    expect(profilePage).toContain("profile-public-exposure-reason");
+    expect(profilePage).toContain("Direct-link only");
+    expect(profilePage).toContain("Unlisted review");
+    expect(profilePage).toContain("Payment tier is not a discovery requirement.");
   });
 
   it("admin profile editor defaults unknown visibility to private", () => {
