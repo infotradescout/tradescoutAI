@@ -1,68 +1,56 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260906T044801Z-f84a9bfd",
-  "createdAt": "2026-09-06T04:48:01.937452+00:00",
-  "outcome": "Repair JW Stone active-membership pricing access defects and prove the live release",
+  "checkpointId": "progress-20260926T235849Z-337d46d8",
+  "createdAt": "2026-09-26T23:58:49.612497+00:00",
+  "outcome": "TradeScout public profiles share product-agnostic search discovery and real service links without promoting tools through banners",
   "scope": [
-    "JW Stone pricing entitlement lifecycle only."
+    "Public profile server HTML discovery and one owner profile typecheck fix"
   ],
   "prohibitions": [
-    "No customer Drive access; no public prices; no access for rejected, suspended, revoked, closed, or nonmember identities."
+    "Do not alter JW Stone private pricing, original free-tool inventory, or current domain/provider settings"
   ],
   "progress": {
     "completedVerified": [
-      "Active JW memberships keep pricing through pending, under-review, approved, and expired verification states; rejected/suspended identities and closed/suspended memberships remain blocked; explicit entitlement suspension/revocation survives account retries and verification synchronization."
+      "Generic profiles use source-backed material terminology only when their public taxonomy identifies materials; profile search HTML links fact-bearing service pages; JW Stone language preserved; owner public-profile CTA uses the active discovery status variable"
     ],
     "changedUnverified": [],
     "proof": [
-      "49 focused access, database, migration-chain, and pricing tests pass; git diff validation passes."
+      "25 focused profile tests passed; npm run check passed; git diff --check passed at base 5a6286132"
     ],
     "externalEffects": [
-      "None yet; no production or database mutation."
+      "No production, DNS, database, payment, or customer mutation"
     ],
-    "doNotRepeat": [
-      "Do not restore revoked pricing through ordinary account retry or general verification synchronization."
-    ],
-    "nextSafeAction": "Run typecheck, production build, minimum release contract, review, merge, migration, and post-deploy proof."
+    "doNotRepeat": [],
+    "nextSafeAction": "Assess existing hosted-profile domain activation and implement the next safe URL routing slice with exact DNS/TLS boundary"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "jw-stone/pricing-entitlement-state-hardening",
-    "headBefore": "b47dba08adc241dd41f180e936d78078e852788c",
+    "branch": "codex/platform-hosted-discovery-20260926",
+    "headBefore": "5a6286132538a6b2cf1dab559fc5e4a134e4108a",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "A  migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "M  migrations/meta/_journal.json",
-      "M  server/services/jwStonePricingAccess.ts",
-      "M  server/services/profileAccountEntitlementService.ts",
-      "M  server/tests/jw-stone-membership-activation.behavior.test.ts"
+      " M client/src/pages/ProfilePage.tsx",
+      " M server/publicProfileHtml.ts",
+      " M server/tests/profile-root-complete-inventory-links.behavior.test.ts"
     ],
-    "unrelatedChangeCountExcluded": 1
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/services/profileAccountEntitlementService.ts",
-      "sha256": "5bd12a232deb1a604ece75bc05a104e24ec662bf810a29a2f964b95886ff22ec"
+      "path": "server/publicProfileHtml.ts",
+      "sha256": "64e0412338bfcd7a6bb75a54134446dfbed74e034acbda4fd121120568a4765a"
     },
     {
-      "path": "server/services/jwStonePricingAccess.ts",
-      "sha256": "d3fca47bdc8caaa3da84c155533728f6c541fb7acaec25ee771276a627c4c508"
+      "path": "server/tests/profile-root-complete-inventory-links.behavior.test.ts",
+      "sha256": "f92d34d30f652b47f9d38ccedfdccec691555fd91cc9eb71340737d2a9d969a2"
     },
     {
-      "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
-      "sha256": "21aaafa45f2a0c8a8808bd9b767171d7f45451035fd555ce9c68f810c1cb4b57"
-    },
-    {
-      "path": "migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "sha256": "e1269cfeb98d0abfacd40f1d5848ba9296605a4a2046de83a8ee3b8dc6988490"
-    },
-    {
-      "path": "migrations/meta/_journal.json",
-      "sha256": "137544f3e476bacdce2f5921958b447dd60be5a408cbefa26f1b04e78465f906"
+      "path": "client/src/pages/ProfilePage.tsx",
+      "sha256": "108b44ef2d66a87488199473dbb4c4061e88251d2c90c1d557d4e819511f94e7"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

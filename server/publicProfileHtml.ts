@@ -36,6 +36,10 @@ import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingPro
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
 import { resolveProfileServiceAreaHub } from "@shared/profileServiceAreaShare";
 import {
+  buildProfileServiceUrl,
+  listFactBearingProfileServices,
+} from "@shared/profileServiceShare";
+import {
   buildPublicProfileAppIconPath,
   buildPublicProfileAppManifestPath,
 } from "@shared/publicProfileApp";
@@ -1334,6 +1338,22 @@ export async function buildPublicProfileHtml({
       category
     )
   );
+  const isJwStoneProfile = data.profile.slug === JW_STONE_PROFILE_SLUG;
+  const isMaterialInventory =
+    isJwStoneProfile ||
+    [...(businessRecord?.categories || []), ...inventoryCategories.map((category) => category.name)]
+      .some((value) => /\b(?:stone|onyx|granite|marble|quartz(?:ite)?|slabs?|tiles?|materials?)\b/i.test(value));
+  const servicePageLinks = showProfileServices
+    ? listFactBearingProfileServices(data.profile.contentBlocks)
+        .map((service) => {
+          const url = buildProfileServiceUrl({ profileUrl, serviceSlug: service.slug });
+          return url
+            ? `<li><a href="${escapeHtml(url)}">${escapeHtml(service.title)}</a></li>`
+            : "";
+        })
+        .filter(Boolean)
+        .join("")
+    : "";
   const galleryItems = listProfileGalleryItems(data.profile.contentBlocks).filter((item) =>
     isProfileGalleryItemPubliclyAddressable(data.profile.contentBlocks, item)
   );
@@ -1349,17 +1369,22 @@ export async function buildPublicProfileHtml({
       ).length;
       return url
         ? category.collectionKind === "offerings"
-          ? `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} materials</a> — ${publicItemCount} ${publicItemCount === 1 ? "offering" : "offerings"}</li>`
-          : `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} inventory</a> — ${publicItemCount} current ${publicItemCount === 1 ? "selection" : "selections"}</li>`
+          ? `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)}${isMaterialInventory ? " materials" : ""}</a> — ${publicItemCount} ${publicItemCount === 1 ? "offering" : "offerings"}</li>`
+          : `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)}${isJwStoneProfile ? " inventory" : ""}</a> — ${publicItemCount} current ${publicItemCount === 1 ? "selection" : "selections"}</li>`
         : "";
     })
     .filter(Boolean)
     .join("");
-  const categorySectionHeading =
+  const allCategoriesAreOfferings =
     inventoryCategories.length > 0 &&
-    inventoryCategories.every((category) => category.collectionKind === "offerings")
+    inventoryCategories.every((category) => category.collectionKind === "offerings");
+  const categorySectionHeading = isJwStoneProfile
+    ? allCategoriesAreOfferings
       ? "Explore materials"
-      : "Shop natural stone by material";
+      : "Shop natural stone by material"
+    : isMaterialInventory
+      ? "Explore materials"
+      : "Explore products by category";
   const priorityItemSlugs =
     data.profile.slug === "jw-stone"
       ? ["taj-mahal", "cristallo", "blue-goias", "blue-dunes", "rhino-white", "titanium-leathered"]
@@ -1379,22 +1404,25 @@ export async function buildPublicProfileHtml({
         contentBlocks: data.profile.contentBlocks,
       });
       const location = data.profile.slug === "jw-stone" ? " in Pensacola, FL" : "";
-      const linkLabel = item.hasPublicName ? `${item.name}${location}` : "View stone selection";
+      const linkLabel = item.hasPublicName
+        ? `${item.name}${location}`
+        : isJwStoneProfile
+          ? "View stone selection"
+          : "View selection";
       return url
         ? `<li><a href="${escapeHtml(url)}">${escapeHtml(linkLabel)}</a>${item.category ? ` — ${escapeHtml(item.category)}` : ""}</li>`
         : "";
     })
     .filter(Boolean)
     .join("");
-  const inventorySectionHeading =
+  const allItemsAreOfferings =
     featuredInventoryItems.length > 0 &&
-    featuredInventoryItems.every((item) => item.publicKind === "offering")
-      ? inventoryItems.length > 12
-        ? "Published materials"
-        : "Featured materials"
-      : inventoryItems.length > 12
-        ? "Published inventory"
-        : "Featured stone inventory";
+    featuredInventoryItems.every((item) => item.publicKind === "offering");
+  const inventorySectionHeading = isJwStoneProfile && !allItemsAreOfferings
+    ? inventoryItems.length > 12 ? "Published inventory" : "Featured stone inventory"
+    : inventoryItems.length > 12
+      ? isMaterialInventory ? "Published materials" : "Published products"
+      : isMaterialInventory ? "Featured materials" : "Featured products";
   const categoryInventoryItems = pageCategoryShare
     ? pageCategoryShare.itemSlugs
         .map((itemSlug) => inventoryItemsBySlug.get(itemSlug))
@@ -1457,8 +1485,8 @@ export async function buildPublicProfileHtml({
       <p>${categoryInventoryItems.length} ${
         pageCategoryShare.collectionKind === "offerings"
           ? categoryInventoryItems.length === 1
-            ? "published material"
-            : "published materials"
+            ? isMaterialInventory ? "published material" : "published offering"
+            : isMaterialInventory ? "published materials" : "published offerings"
           : categoryInventoryItems.length === 1
             ? "current selection"
             : "current selections"
@@ -1478,6 +1506,7 @@ export async function buildPublicProfileHtml({
     ${areasSummary ? `<p data-seo-profile-service-areas="true"><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}
     ${publishedServiceItems.length ? `<section data-seo-profile-services="true"><h2>Services</h2><ul>${publishedServiceItems.map((service) => `<li>${escapeHtml(service)}</li>`).join("")}</ul></section>` : ""}
+    ${servicePageLinks ? `<section data-seo-profile-service-links="true"><h2>Explore services</h2><ul>${servicePageLinks}</ul></section>` : ""}
     ${categoryLinks ? `<section><h2>${categorySectionHeading}</h2><ul>${categoryLinks}</ul></section>` : ""}
     ${inventoryLinks ? `<section><h2>${inventorySectionHeading}</h2><ul>${inventoryLinks}</ul></section>` : ""}
     ${galleryLinks ? `<section data-seo-profile-gallery-links="true"><h2>Published projects and work</h2><ul>${galleryLinks}</ul></section>` : ""}

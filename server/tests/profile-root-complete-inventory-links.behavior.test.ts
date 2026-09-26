@@ -23,6 +23,17 @@ const profileRecord = {
   profileBooking: null,
   contentBlocks: [
     {
+      type: "services",
+      data: {
+        items: [
+          {
+            title: "On-site equipment repair",
+            description: "Maintenance and repairs for contractor equipment at the customer's job site.",
+          },
+        ],
+      },
+    },
+    {
       type: "inventoryCatalog",
       data: {
         categories: [
@@ -72,5 +83,12 @@ describe("complete public profile inventory link graph", () => {
     }
     expect(html).toContain("Published inventory");
     expect(html?.match(/\/inventory\/published-item-/g)).toHaveLength(14);
+    expect(html).toContain("Published products");
+    expect(html).toContain(
+      'href="https://www.thetradescout.com/u/complete-inventory-profile/services/on-site-equipment-repair"'
+    );
+    expect(html).toContain("Explore services");
+    expect(html).not.toContain("Shop natural stone by material");
+    expect(html).not.toContain("Featured stone inventory");
   });
 });
