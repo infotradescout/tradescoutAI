@@ -31,6 +31,15 @@ export const PROFILE_SITE_LAW_INVARIANTS = [
   "direct_connect_only_contact",
 ] as const;
 
+/** Presentation tier/template never changes baseline public discovery authority. */
+export const PROFILE_SITE_DISCOVERY_PARITY = {
+  defaultProfileIsBaseline: true,
+  paidTierRequiredForDiscovery: false,
+  templateAffectsCanonicalIdentity: false,
+  templateAffectsIndexEligibility: false,
+  templateAffectsSearchEligibility: false,
+} as const;
+
 export type ProfileSiteLawInvariant = (typeof PROFILE_SITE_LAW_INVARIANTS)[number];
 
 export const PROFILE_SITE_TEMPLATE_IDS = [
@@ -128,7 +137,7 @@ export const PROFILE_SITE_TEMPLATES: ProfileSiteTemplateMeta[] = [
     id: "default",
     label: "Default profile",
     description:
-      "Premium landing page personalized with the business's colors, media, services, and sections.",
+      "Complete landing page personalized with the business's colors, media, services, and sections.",
     bestFor: "Every new business before an optional specialized theme upgrade",
     family: "generic",
     selectable: false,
