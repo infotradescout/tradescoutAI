@@ -50,6 +50,14 @@ type OwnedProfile = {
   id: string;
   slug: string;
   status?: "draft" | "published";
+  publicExposure?: {
+    mode: "private" | "direct_only" | "unlisted_review" | "public";
+    reason: string;
+  };
+  discoveryParity?: {
+    tierNeutral: boolean;
+    paidTierRequired: boolean;
+  };
 };
 
 type XpLedgerEntry = {
@@ -89,6 +97,7 @@ export default function ProfilePage() {
   const [copied, setCopied] = useState(false);
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
   const [profileStatus, setProfileStatus] = useState<OwnedProfile["status"]>(undefined);
+  const [profileExposure, setProfileExposure] = useState<OwnedProfile["publicExposure"]>(undefined);
   const [businessSlug, setBusinessSlug] = useState<string | null>(null);
   const [activatingPublic, setActivatingPublic] = useState(false);
 
@@ -135,6 +144,7 @@ export default function ProfilePage() {
         if (!cancelled) {
           setProfileSlug(active.slug);
           setProfileStatus(active.status);
+          setProfileExposure(active.publicExposure);
         }
       } catch (error) {
         console.error("Error loading profile site slug for share URL:", error);
@@ -231,7 +241,20 @@ export default function ProfilePage() {
       : businessSlug
         ? `${getCanonicalAppOrigin()}/business/${encodeURIComponent(businessSlug)}`
         : `${getCanonicalAppOrigin()}/profile/${user.id}`;
-  const isPublic = user.preferences?.profileVisibility === "public";
+  const legacyIsPublic = user.preferences?.profileVisibility === "public";
+  const exposureMode = profileExposure?.mode;
+  const isDiscoverablePublic = exposureMode
+    ? exposureMode === "public"
+    : legacyIsPublic;
+  const canSharePublicRoute =
+    exposureMode === "public" ||
+    exposureMode === "direct_only" ||
+    exposureMode === "unlisted_review" ||
+    (!exposureMode && legacyIsPublic);
+  const exposureReason =
+    profileExposure?.reason && profileExposure.reason !== "public"
+      ? formatActivityReason(profileExposure.reason)
+      : null;
 
   const copyProfileUrl = async () => {
     await share({
@@ -335,12 +358,22 @@ export default function ProfilePage() {
                       </div>
                     )}
                     <div className="flex items-center gap-1">
-                      {isPublic ? (
+                      {isDiscoverablePublic ? (
                         <>
                           <Globe className="h-4 w-4 text-green-400" />
                           <span className="text-green-400">
                             {businessSlug ? "Public Business Page" : "Public Profile"}
                           </span>
+                        </>
+                      ) : exposureMode === "direct_only" ? (
+                        <>
+                          <Eye className="h-4 w-4 text-amber-300" />
+                          <span className="text-amber-300">Direct-link only</span>
+                        </>
+                      ) : exposureMode === "unlisted_review" ? (
+                        <>
+                          <Eye className="h-4 w-4 text-amber-300" />
+                          <span className="text-amber-300">Unlisted review</span>
                         </>
                       ) : (
                         <>
@@ -350,6 +383,11 @@ export default function ProfilePage() {
                       )}
                     </div>
                   </div>
+                  {exposureReason ? (
+                    <p className="mt-2 text-xs text-white/60" data-testid="profile-public-exposure-reason">
+                      Not publicly discoverable: {exposureReason}. Payment tier is not a discovery requirement.
+                    </p>
+                  ) : null}
                 </div>
 
                 <Button
@@ -379,7 +417,7 @@ export default function ProfilePage() {
               {/* Roles are used for capabilities and layout only; no public-facing chips here. */}
 
               {/* Share Profile */}
-              {isPublic && (
+              {canSharePublicRoute && (
                 <div
                   className="border rounded-lg p-4"
                   style={{
