@@ -32,6 +32,16 @@ describe("profile visibility contract guards", () => {
     expect(settings).toContain('queryKey: ["/api/profiles"]');
     expect(settings).toContain("Edit public profile site");
     expect(settings).toContain("View public profile");
+    expect(profileRoutes).toContain("loadOwnedProfileExposureDecisions");
+    expect(profileRoutes).toContain("derivePublishedProfileExposure");
+    expect(profileRoutes).toContain("publicExposure:");
+    expect(profileRoutes).toContain("tierNeutral: true");
+    expect(profileRoutes).toContain("paidTierRequired: false");
+    const exposureSource = profileRoutes.slice(
+      profileRoutes.indexOf("async function loadOwnedProfileExposureDecisions"),
+      profileRoutes.indexOf("function xmlEscape"),
+    );
+    expect(exposureSource).not.toMatch(/subscription|premium|membership|payment|billing/i);
   });
 
   it("admin profile editor defaults unknown visibility to private", () => {
