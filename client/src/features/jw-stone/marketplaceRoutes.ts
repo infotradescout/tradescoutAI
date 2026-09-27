@@ -44,6 +44,14 @@ export function marketplaceBasePath(): string {
   return isJwStoneMarketplaceDomainSurface() ? "" : JW_STONE_PLATFORM_PROFILE_BASE;
 }
 
+/** Resolve a TradeScout-owned tool path correctly from either TradeScout or a supplier custom domain. */
+export function tradeScoutOwnedPath(pathname: string): string {
+  const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  return isJwStoneMarketplaceDomainSurface()
+    ? `https://www.thetradescout.com${normalized}`
+    : normalized;
+}
+
 export function toPublicMaterialSlug(sourceSlug: string | null | undefined): string | null {
   if (!sourceSlug) return null;
   return SOURCE_TO_PUBLIC_MATERIAL.get(sourceSlug) ?? sourceSlug;
@@ -104,7 +112,7 @@ export function stoneShareDestination(shareSlug: string): string {
 /** Custom-domain profiles must return to the existing TradeScout planner. */
 export function stoneRoomBasePath(): string {
   const path = buildSteelHomeBuilderPath("countertops");
-  return isJwStoneMarketplaceDomainSurface() ? `https://www.thetradescout.com${path}` : path;
+  return tradeScoutOwnedPath(path);
 }
 
 /** Guest-safe share target for First Cut photos (no named stone slug). */
