@@ -18,6 +18,7 @@ import { JwStoneMemberCart } from "./JwStoneMemberCartLoader";
 import { JW_STONE_BRAND_STYLE } from "./brand";
 import type { JwStoneOfferContext } from "@shared/jwStoneOffer";
 const JwStoneOfferPanel = lazy(() => import("@/pages/profile-sites/ExpressDirectConnectPanel"));
+// Supplier adapter: the workspace uses JW inventory/pricing, but the Bundle Builder product is TradeScout-owned.
 const BundleWorkspace = lazy(() => import("./JwStoneBundleWorkspace"));
 const ShoppingAccess = lazy(() => import("./JwStoneShoppingAccess"));
 
@@ -195,17 +196,17 @@ export function JwStoneMemberPricingProvider({ children, viewerId, onOpenCart }:
         {value.cartCount > 0 ? <span className="inline-flex min-w-5 justify-center rounded-full bg-[var(--jw-accent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--jw-on-accent)]">{value.cartCount}</span> : null}
       </button>
       {cartOpen ? <JwStoneMemberCart key={normalizedViewerId} viewerId={normalizedViewerId} items={cart} onClose={closeCart} onQuantityChange={updateCartQuantity} onStockChange={updateCartStock} /> : null}
-      {bundleOpen ? <Suspense fallback={<p role="status">Opening bundle builder…</p>}><BundleWorkspace key={normalizedViewerId} onClose={() => setBundleOpen(false)} /></Suspense> : null}
-      {stoneOffer && stoneOffer.viewerId === normalizedViewerId ? <Suspense fallback={<p role="status">Loading offer form…</p>}>
+      {bundleOpen ? <div data-service-owner="tradescout"><Suspense fallback={<p role="status">Opening TradeScout Bundle Builder…</p>}><BundleWorkspace key={normalizedViewerId} onClose={() => setBundleOpen(false)} /></Suspense></div> : null}
+      {stoneOffer && stoneOffer.viewerId === normalizedViewerId ? <div data-service-owner="tradescout"><Suspense fallback={<p role="status">Loading TradeScout offer form…</p>}>
         <JwStoneOfferPanel key={normalizedViewerId} open onClose={() => setStoneOffer(null)} profileSlug="jw-stone" businessName="JW Stone" hasViewerSession allowCall={false} stayInProfile requestMode="materials" initialView="request" initialRequestType="make_offer" initialStoneName={stoneOffer.scope === "stone" ? stoneOffer.stoneName : undefined} jwStoneOffer={stoneOffer} />
-      </Suspense> : null}
+      </Suspense></div> : null}
     </> : null}
   </JwStoneMemberPricingContext.Provider>;
 }
 
 export function JwStoneBundleEntry({ className, onOpen }: { className?: string; onOpen?: () => void }) {
   const shopping = useJwStoneShopping();
-  return <button type="button" data-testid="jw-storefront-build-bundle" onClick={() => { onOpen?.(); shopping.openBundle(); }} className={className}>Build a Bundle</button>;
+  return <button type="button" data-testid="jw-storefront-build-bundle" data-service-owner="tradescout" onClick={() => { onOpen?.(); shopping.openBundle(); }} className={className}>Build a Bundle with TradeScout</button>;
 }
 
 /** One primary stone action. Guest entry opens membership, never an unrelated inquiry. */
@@ -215,9 +216,9 @@ export function JwStoneOfferAction({ stoneName, inventoryPublicId, presentation,
   const shopping = useJwStoneShopping();
   const stock = jwStoneInventoryPublicIdSchema.safeParse(inventoryPublicId);
   const name = stoneName.trim();
-  return <button type="button" data-testid={`jw-stone-make-offer-${presentation}`} className={className}
+  return <button type="button" data-testid={`jw-stone-make-offer-${presentation}`} data-service-owner="tradescout" className={className}
     onClick={() => shopping.makeOffer({ id: stock.success ? `stock:${stock.data}` : `offer:${jwStonePriceKey(name)}`, stoneName: name, stoneKey: jwStonePriceKey(name), ...(stock.success ? { inventoryPublicId: stock.data } : {}) })}>
-    Make an Offer
+    Make an Offer with TradeScout
   </button>;
 }
 
@@ -306,6 +307,6 @@ export function JwStoneMemberPriceDisplay({ stoneName, slabDimensions, inventory
     </button> : null}
     {context.cartEnabled && showOfferAction ? <JwStoneOfferAction stoneName={price.stoneName} inventoryPublicId={inventoryPublicId} presentation={presentation} className="ml-2 mt-2 inline-flex min-h-11 items-center justify-center border border-[var(--jw-accent)] px-3 text-xs font-semibold text-[var(--jw-ink)]" /> : null}
     {context.cartEnabled && price.bundlePriceCents < price.slabPriceCents && (price.bundleMinSlabs ?? 7) <= 7
-      ? <p className="mt-2 text-xs text-[var(--jw-muted)]">Build a bundle: mix 7 eligible slabs for bundle pricing.</p> : null}
+      ? <p className="mt-2 text-xs text-[var(--jw-muted)]">TradeScout Bundle Builder: mix 7 eligible slabs for bundle pricing.</p> : null}
   </div>;
 }
