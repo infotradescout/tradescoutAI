@@ -351,6 +351,14 @@ describe("tradepartner Express requester identity gate", () => {
         text: expect.stringContaining("Guest Requester"),
       })
     );
+    expect(mocks.emailService.sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "provider@example.com",
+        purpose: "tradepartner_request_notification",
+        html: expect.stringContaining(validBody.message),
+        text: expect.stringContaining(`Request details: ${validBody.message}`),
+      })
+    );
   });
 
   it("rolls guest provisioning back when durable authority creation fails", async () => {
