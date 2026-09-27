@@ -13,7 +13,7 @@ type MarketplaceHeaderProps = {
   onStartRequest: () => void;
 };
 
-/** Storefront navigation keeps bundle discovery separate from cart utilities. */
+/** JW Stone owns this supplier/profile surface. Extended commerce tools are TradeScout-owned links/adapters. */
 export function MarketplaceHeader({ wishlistCount, hasAccount, onOpenWishlist, onOpenAccount, onStartRequest }: MarketplaceHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
@@ -59,9 +59,9 @@ export function MarketplaceHeader({ wishlistCount, hasAccount, onOpenWishlist, o
         </div>
       </nav>
     </div>
-    <nav aria-label="JW Stone shopping" className="border-t border-[var(--jw-border)]">
+    <nav aria-label="TradeScout tools available from JW Stone" className="border-t border-[var(--jw-border)]" data-service-owner="tradescout">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 sm:px-9 lg:px-12">
-        <p className="text-xs text-[var(--jw-muted)]">Mix and match 7 eligible slabs</p>
+        <p className="text-xs text-[var(--jw-muted)]"><span className="font-semibold text-[var(--jw-ink)]">TradeScout tools</span> · Mix and match 7 eligible JW Stone slabs</p>
         <JwStoneBundleEntry onOpen={() => closeAnd()} className={`inline-flex min-h-11 items-center justify-center px-5 text-sm font-semibold ${jw.accentCta}`} />
       </div>
     </nav>
