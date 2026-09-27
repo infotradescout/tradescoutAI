@@ -17,17 +17,18 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
     };
   }
 
+  const publicSitePage = resolvePublicSitePageQuery(raw);
+
   // A request to inspect providers is a search, even when the same sentence
   // describes a repair. Keep it ahead of project intake and generic navigation.
-  if (!isMixedDiscovery && isExplicitProviderBrowseIntent(raw)) {
+  // An exact page request keeps its page destination, even when the topic is a trade.
+  if (!publicSitePage && !isMixedDiscovery && isExplicitProviderBrowseIntent(raw)) {
     return {
       type: "server_behavior_handler",
       behaviorKey: "contractor_search_routing",
       metadata: { stage: "decision_pipeline" },
     };
   }
-
-  const publicSitePage = resolvePublicSitePageQuery(raw);
 
   const explicitNavVerbs = /\b(open|go to|take me to|navigate|show me|bring me to)\b/i;
   const listingSearch = /\b(for sale|to buy|to sell|buying|selling|marketplace|exchange|listings?)\b/i.test(raw);

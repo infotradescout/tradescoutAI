@@ -25,6 +25,8 @@ describe("Scout public Site-page search", () => {
   it.each([
     ["Find TradeScout's remote notary page", "/services/remote-notary"],
     ["Search TradeScout for public datasets", "/datasets"],
+    ["Find TradeScout's public datasets page for contractors", "/datasets"],
+    ["Find TradeScout's remote notary page for contractors", "/services/remote-notary"],
     ["Open the county datasets page", "/datasets/counties"],
     ["Show me the mobile notary page", "/services/mobile-notary"],
     ["Open the Scout help page", "/help/scout"],
@@ -70,8 +72,10 @@ describe("Scout public Site-page search", () => {
     expect(runScoutDecisionPipeline(guestRequest(message)).behaviorKey).not.toBe("public_site_page_search");
   });
 
-  it("keeps private Messages navigation ahead of a matching public page topic", () => {
-    const message = "Open my messages page about remote notary";
+  it.each([
+    "Open my messages page about remote notary",
+    "Open my messages page about remote notary contractors",
+  ])("keeps private Messages navigation ahead of a matching public page topic: %s", (message) => {
     expect(runScoutDecisionPipeline(guestRequest(message))).toMatchObject({
       type: "blocked",
       reason: "auth_required",
@@ -81,6 +85,15 @@ describe("Scout public Site-page search", () => {
       type: "deterministic_route",
       behaviorKey: "explicit_navigation",
       metadata: { route: "/messages" },
+    });
+  });
+
+  it("keeps provider browsing when no public page is requested", () => {
+    const message = "Find contractors in Maricopa County";
+    expect(resolvePublicSitePageQuery(message)).toBeNull();
+    expect(runScoutDecisionPipeline(guestRequest(message))).toMatchObject({
+      type: "server_behavior_handler",
+      behaviorKey: "contractor_search_routing",
     });
   });
 });
