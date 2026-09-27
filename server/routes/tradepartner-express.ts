@@ -1137,6 +1137,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
                   : "",
                 `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
+                `<p><strong>Request details:</strong></p><p>${escapeHtml(body.message).replace(/\\n/g, "<br />")}</p>`,
                 ...(stoneOffer ? ["<pre>" + escapeHtml(summarizeJwStoneOffer(stoneOffer)) + "</pre>"] : []),
                 `<p>The sender shared their name and phone with this request so you can respond.</p>`,
                 `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
@@ -1155,6 +1156,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   : null,
                 body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
+                `Request details: ${body.message}`,
                 ...(stoneOffer ? [summarizeJwStoneOffer(stoneOffer)] : []),
                 "The sender shared their name and phone with this request so you can respond.",
                 `Open Direct Connect inbox: ${inboxUrl}`,
