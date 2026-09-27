@@ -167,11 +167,13 @@ test('retail stone price bands contain the entire displayed slab total, not the 
   const single = priced('single', 27.75, '126x78');
   const multi = priced('multi', 27.75, '126x78, 127x77.5');
   const unknown = priced('unknown', 27.75, null);
+  const aj = priced('aj', 30, '128x64, 127.5x64');
+  assert.deepEqual(policy.filterStoneDiscovery([aj], { maxPrice: 1700 }), [aj]);
   const items = [exact, single, multi, unknown];
   const ids = query => policy.filterStoneDiscovery(items, query).map(item => item.id);
   assert.deepEqual(ids({ maxPrice: 1000 }), [exact.id]);
   assert.deepEqual(ids({ minPrice: 1000, maxPrice: 5000 }), [single.id, multi.id]);
-  assert.deepEqual(ids({ maxPrice: 1895 }), [exact.id, single.id]);
+  assert.deepEqual(ids({ maxPrice: 1895 }), [exact.id, single.id, multi.id]);
   assert.deepEqual(ids({ minPrice: 1895 }), []);
   assert.deepEqual(ids({}), items.map(item => item.id));
   assert.deepEqual(ids({ maxPrice: 27.75 }), []);
@@ -179,11 +181,11 @@ test('retail stone price bands contain the entire displayed slab total, not the 
   for (const query of [{ q: 'marble' }, { categoryId: 'vehicles' }, { hoursMax: 10 },
     { material: ['basalt'] }, { minPrice: 'garbage' }]) assert.deepEqual(ids(query), []);
   assert.deepEqual(ids({ q: 'basalt', minPrice: '1893.94', maxPrice: '1893.94',
-    material: 'basalt', state: 'NY', county: 'another county' }), [single.id]);
+    material: 'basalt', state: 'NY', county: 'another county' }), [single.id, multi.id]);
   policy.withStoneDiscovery(context({ state: 'TX' }, items, { categoryId: 'building-materials' }), () => {
     const nativeMid = { ...native, price: 1500 };
     const sorted = sort => merge.mergeExchangeDiscoveryItems([[nativeMid]], { sort, limit: 20 }).map(item => item.id);
-    assert.deepEqual(sorted('price_asc'), [exact.id, native.id, single.id, multi.id, unknown.id]);
+    assert.deepEqual(sorted('price_asc'), [exact.id, native.id, multi.id, single.id, unknown.id]);
     assert.deepEqual(sorted('price_desc'), [multi.id, single.id, native.id, exact.id, unknown.id]);
   });
 });

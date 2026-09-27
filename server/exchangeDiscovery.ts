@@ -1,5 +1,5 @@
 import { currentPublicStone, currentStoneFeedItems, isStoneDiscoveryRow, stoneDiscoveryContext } from "./services/exchangeStoneDiscovery";
-import { stoneSlabMaterialPriceRange } from "../shared/exchangeStoneBuyerFlow";
+import { stoneSlabMaterialPublishedPriceRange } from "../shared/exchangeStoneBuyerFlow";
 
 type DiscoveryItem = {
   id: string;
@@ -71,7 +71,7 @@ export function mergeExchangeDiscoveryItems<T extends DiscoveryItem>(
     // with no dimensions has no total and stays after priced items either way.
     const retailStone = isStoneDiscoveryRow(item);
     const range = retailStone
-      ? stoneSlabMaterialPriceRange(item.price, item.specifications?.priceUnit,
+      ? stoneSlabMaterialPublishedPriceRange(item.price, item.specifications?.priceUnit,
         item.specifications?.referenceSizesInches, item.specifications?.exactSlab)
       : null;
     const value = retailStone ? (range ? range.maximumCents / 100 : null) : item.price ?? null;

@@ -47,7 +47,7 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
-import { stoneInquiryPath, stoneSlabMaterialCardPrice } from "@shared/exchangeStoneBuyerFlow";
+import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
 import { audienceQualifiedStoneMedia } from "./stonePublicUrls";
 
@@ -657,7 +657,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                     ? item.title.replace(/\s*\|\s*TradeScout(?:\s+Stone)?\s*$/i, "").trim() || item.title
                     : item.title;
                   const slabPrice = isRetailStone
-                    ? stoneSlabMaterialCardPrice(
+                    ? stoneSlabMaterialPrice(
                         item.price,
                         item.specifications?.priceUnit,
                         item.specifications?.referenceSizesInches,

@@ -65,13 +65,18 @@ test('full slab material estimate leads from approved square-foot rate and every
   assert.equal(one.secondaryPrice, '$27.75 / sq ft');
   assert.equal(one.referenceSizeCount, 1);
   const varied = buyer.stoneSlabMaterialPrice('27.75', 'sqft', '126x78, 127x77.5');
-  assert.equal(varied.primaryPrice, '$1,893.94–$1,896.73');
+  assert.equal(varied.primaryPrice, '$1,893.94');
   assert.equal(varied.referenceSizeCount, 2);
-  assert.match(varied.explanation, /confirm the selected slab's dimensions and total/);
+  assert.match(varied.explanation, /small size variation is included.*Confirm the selected slab's dimensions and total/);
   const card = renderer.renderExchangeStoneLanding(landing({ items: [{ ...item, specifications: {
     priceUnit: 'sqft', referenceSizesInches: '126x78, 127x77.5',
   } }] })).html;
-  assert.match(card, /Estimated full slab material price<\/p><p class="price">\$1,893\.94–\$1,896\.73<\/p><p class="price-secondary">\$27\.75 \/ sq ft/);
+  assert.match(card, /Estimated full slab material price<\/p><p class="price">\$1,893\.94<\/p><p class="price-secondary">\$27\.75 \/ sq ft/);
+  const ajCard = renderer.renderExchangeStoneLanding(landing({ items: [{ ...item, price: '30.00', specifications: {
+    priceUnit: 'sqft', referenceSizesInches: '128x64, 127.5x64',
+  } }] })).html;
+  assert.match(ajCard, /Estimated full slab material price<\/p><p class="price">\$1,700<\/p><p class="price-secondary">\$30\.00 \/ sq ft/);
+  assert.equal(ajCard.includes('$1,706.67'), false);
 });
 
 test('missing or malformed dimensions never invent a full slab total', () => {
@@ -105,7 +110,7 @@ test('stone cards put one truthful price before the photo in source order while 
   assert.ok(sized.indexOf('class="price-secondary"') < sized.indexOf('class="stone-photo"'));
   assert.ok(sized.indexOf('class="stone-photo"') < sized.indexOf('class="actions"'));
   assert.equal((sized.match(/class="price-block"/g) || []).length, 1);
-  assert.equal((sized.match(/\$1,893\.94–\$1,896\.73/g) || []).length, 1);
+  assert.equal((sized.match(/\$1,893\.94/g) || []).length, 1);
   assert.match(sized, /class="stone-photo" href="\/exchange\/building-materials\/tradescout-stone-test\?/);
   assert.match(sized, /inquiry=availability[^"]*"[^>]*>Ask TradeScout about availability<\/a>/);
 
