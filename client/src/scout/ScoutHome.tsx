@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { useScoutLocation } from "./hooks/useScoutLocation";
 import { useScoutHomeSnapshot, type RecentActivity } from "./hooks/useScoutHomeSnapshot";
 import { ScoutWorkPanel } from "./ScoutWorkPanel";
+import "./ScoutHome.css";
 
 interface ContinuityThread {
   id: string;
@@ -199,20 +200,33 @@ function buildLocalCommandSnapshot(args: {
 function ScoutHero({ locationLabel }: { locationLabel?: string }) {
   const { t } = useI18n();
   return (
-    <section className="px-4 pt-3 pb-1">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-4xl font-black tracking-tight text-[var(--text-primary)]">
-          {t("scout.title")}
-        </h1>
+    <section className="scout-home-hero" aria-labelledby="scout-home-title">
+      <div className="scout-home-hero__topline">
+        <span className="scout-home-hero__eyebrow">
+          <Hammer aria-hidden="true" size={15} /> Your project, in focus
+        </span>
         <LanguageSwitcher />
       </div>
+      <img
+        className="scout-home-hero__mark"
+        src="/tradescout-logo-circle.png?v=13"
+        alt=""
+        aria-hidden="true"
+      />
+      <div className="scout-home-hero__copy">
+        <h1 id="scout-home-title">
+          {t("scout.title")}
+          <span aria-hidden="true">.</span>
+        </h1>
+        <p className="scout-home-hero__lead">Know your next move.</p>
+      </div>
       {locationLabel ? (
-        <div className="mt-1.5 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-          <MapPin className="h-4 w-4 text-ts-orange" />
+        <div className="scout-home-hero__location">
+          <MapPin className="h-4 w-4" aria-hidden="true" />
           {locationLabel}
         </div>
       ) : null}
-      <p className="mt-2 max-w-[620px] text-sm leading-relaxed text-[var(--text-secondary)]">
+      <p className="scout-home-hero__description">
         Plan the job, understand codes and permits, price the work, compare options, and keep the
         project moving. You review every next step.
       </p>
@@ -374,16 +388,28 @@ export function ScoutHome({
   );
 
   return (
-    <div className="scout-home-surface pb-8 md:pb-10">
-      <ScoutHero locationLabel={location.label} />
-      {primaryOutcomeInput}
+    <div className="scout-home-surface">
+      <div className="scout-home-entry">
+        <ScoutHero locationLabel={location.label} />
+        <section className="scout-home-start" aria-labelledby="scout-home-start-title">
+          <div className="scout-home-start__heading">
+            <span>Start with Scout</span>
+            <h2 id="scout-home-start-title">What are you working on?</h2>
+            <p>Describe it in your words, or choose a place to begin.</p>
+          </div>
+          {primaryOutcomeInput}
+          <p className="scout-home-start__assurance">
+            Scout finds options and next steps. You decide what happens next.
+          </p>
+        </section>
+      </div>
       <ScoutControlSnapshot
         snapshot={localCommandSnapshot}
         onPromptSelect={onPromptSelect}
         onContinueConversation={() => onContinuationSelect(meaningfulContinuations[0].id)}
         onNavigate={navigate}
       />
-      <div className="px-4"><ScoutWorkPanel /></div>
+      <ScoutWorkPanel />
     </div>
   );
 }

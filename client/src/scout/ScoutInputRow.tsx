@@ -1,5 +1,5 @@
 import React from "react";
-import { Mic, Send, Sparkles } from "lucide-react";
+import { ArrowRight, Mic, Send, Sparkles } from "lucide-react";
 
 /* ----------------------------------------------------------
    ScoutInputRow — Morphic OS v2 Command Bar
@@ -33,6 +33,26 @@ const AUTO_DEMO_SEND_DELAY_MS = 400;
 const SCOUT_INPUT_ACTION_HINT = "Search • Compare • Choose";
 const SCOUT_INPUT_ACCESSIBLE_PROMPT = "Describe a project, permit question, estimate, or decision.";
 
+type VoiceResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type VoiceRecognition = {
+  lang: string;
+  interimResults: boolean;
+  onresult: ((event: VoiceResultEvent) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+function voiceRecognitionConstructor(): (new () => VoiceRecognition) | null {
+  if (typeof window === "undefined") return null;
+  const browser = window as unknown as {
+    SpeechRecognition?: new () => VoiceRecognition;
+    webkitSpeechRecognition?: new () => VoiceRecognition;
+  };
+  return browser.SpeechRecognition ?? browser.webkitSpeechRecognition ?? null;
+}
+
 export function ScoutInputRow({
   isBusy,
   prefillKey,
@@ -47,12 +67,58 @@ export function ScoutInputRow({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isTypingDemo, setIsTypingDemo] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
+  const [voiceAvailable, setVoiceAvailable] = React.useState(false);
+  const [isListening, setIsListening] = React.useState(false);
+  const [voiceError, setVoiceError] = React.useState("");
 
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const demoIndexRef = React.useRef(0);
   const demoTimeoutRef = React.useRef<number | null>(null);
   const demoIntervalRef = React.useRef<number | null>(null);
   const sendTimeoutRef = React.useRef<number | null>(null);
+  const voiceRef = React.useRef<VoiceRecognition | null>(null);
+
+  React.useEffect(() => {
+    setVoiceAvailable(Boolean(voiceRecognitionConstructor()));
+    return () => voiceRef.current?.stop();
+  }, []);
+
+  const handleVoiceClick = () => {
+    if (voiceRef.current) {
+      voiceRef.current.stop();
+      return;
+    }
+    const Recognition = voiceRecognitionConstructor();
+    if (!Recognition) return;
+    const recognition = new Recognition();
+    recognition.lang = document.documentElement.lang || navigator.language || "en-US";
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript || "")
+        .join(" ")
+        .trim();
+      if (!transcript) return;
+      onTyping();
+      setValue((current) => `${current.trim()} ${transcript}`.trim());
+      setVoiceError("");
+    };
+    recognition.onerror = () => {
+      setVoiceError("Voice input was unavailable. Type your request instead.");
+    };
+    recognition.onend = () => {
+      voiceRef.current = null;
+      setIsListening(false);
+    };
+    try {
+      recognition.start();
+      voiceRef.current = recognition;
+      setIsListening(true);
+      setVoiceError("");
+    } catch {
+      setVoiceError("Voice input was unavailable. Type your request instead.");
+    }
+  };
 
   const clearDemoTimers = () => {
     if (typeof window === "undefined") return;
@@ -189,32 +255,7 @@ export function ScoutInputRow({
   const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts : [];
 
   return (
-    <div className="space-y-2">
-      {/* Quick-start prompts — shown only when no messages yet */}
-      {promptList.length > 0 && (
-        <div
-          className="flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label={SCOUT_INPUT_ACTION_HINT}
-        >
-          {promptList.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              onClick={() => onSend(prompt)}
-              disabled={isBusy}
-              className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
-              style={{
-                background: "var(--surface-intermediate)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "rgba(250,250,250,0.6)",
-              }}
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-      )}
-
+    <div className="scout-input-row space-y-2">
       {/* Command bar — @reusable: scout-command-bar (see index.css) */}
       <div
         className="scout-command-bar"
@@ -243,21 +284,24 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Describe a project, permit question, estimate, or decision."
+          placeholder="Describe the job or decision..."
           rows={1}
           className="scout-command-bar__input"
           aria-label={SCOUT_INPUT_ACCESSIBLE_PROMPT}
         />
 
         {/* Mic button */}
-        <button
-          type="button"
-          className="scout-command-bar__mic"
-          aria-label="Voice input"
-          tabIndex={-1}
-        >
-          <Mic size={15} />
-        </button>
+        {voiceAvailable ? (
+          <button
+            type="button"
+            className="scout-command-bar__mic"
+            aria-label={isListening ? "Stop voice input" : "Voice input"}
+            aria-pressed={isListening}
+            onClick={handleVoiceClick}
+          >
+            <Mic size={15} />
+          </button>
+        ) : null}
 
         {/* Send button */}
         <button
@@ -270,6 +314,34 @@ export function ScoutInputRow({
           <Send size={15} />
         </button>
       </div>
+      {voiceError ? (
+        <p role="status" className="text-xs text-[var(--text-secondary)]">
+          {voiceError}
+        </p>
+      ) : null}
+      {/* Real starting actions, kept visible at phone widths. */}
+      {promptList.length > 0 && (
+        <div className="scout-quickstarts" aria-label={SCOUT_INPUT_ACTION_HINT}>
+          <p className="scout-quickstarts__label">Or start with</p>
+          <div className="scout-quickstarts__grid">
+            {promptList.map((prompt, index) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => onSend(prompt)}
+                disabled={isBusy}
+                className="scout-quickstarts__item"
+              >
+                <span className="scout-quickstarts__number" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span>{prompt}</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
