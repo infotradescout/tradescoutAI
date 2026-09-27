@@ -5,6 +5,7 @@ import {
   isStoneInventoryConfirmationFresh,
 } from "@shared/stoneInventory";
 import { pool } from "../db";
+import { unheldStoneUnitCount } from "./tradeScoutStoneAvailability";
 
 export type JwStoneCartAvailability = Readonly<{
   inventoryPositionId: string;
@@ -15,20 +16,8 @@ export type JwStoneCartAvailability = Readonly<{
 
 type AvailabilityRow = Record<string, unknown>;
 
-function slabCount(value: unknown): number | null {
-  // PostgreSQL numeric values arrive as strings. Null/empty/boolean is not zero.
-  if (typeof value !== "number" && typeof value !== "string") return null;
-  if (typeof value === "string" && !/^\d+(?:\.0+)?$/.test(value.trim())) return null;
-  const number = Number(value);
-  return Number.isSafeInteger(number) && number >= 0 ? number : null;
-}
-
-export function unheldJwStoneSlabCount(quantity: unknown, heldQuantity: unknown): number | null {
-  const physical = slabCount(quantity);
-  const held = slabCount(heldQuantity);
-  if (physical === null || held === null || held > physical) return null;
-  return physical - held;
-}
+/** JW compatibility export; generic counting semantics are owned by TradeScout. */
+export const unheldJwStoneSlabCount = unheldStoneUnitCount;
 
 /**
  * Bounded, read-only cart check against the existing allocation counter.
