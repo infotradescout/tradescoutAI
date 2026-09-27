@@ -20,6 +20,9 @@ const PROVIDER_NOUN =
   /\b(pros?|providers?|contractors?|businesses?|companies?|firms?|roofers?|plumbers?|electricians?|painters?|builders?|landscapers?|mechanics?)\b/i;
 const BROWSE_VERB =
   /\b(find|show(?: me)?|search(?: for)?|browse|compare|look(?:ing)? for|see)\b/i;
+const OPEN_PROVIDER_WITH_AREA = /\bopen\b.*\b(?:in|near|around)\b/i;
+const PRIVATE_WORK_AREA_NOUN =
+  /\b(?:notifications?|finances|supply\s+runs?|(?:profile|account)\s+settings|my\s+(?:invoices?|payments?|homes|vehicles)|home\s*(?:vault|id)|vehicle\s+vault)\b/i;
 const TERSE_PROVIDER_QUERY =
   /^(?:(?:roofing|plumbing|electrical|hvac|painting|landscaping)\s+)?(?:pros?|providers?|contractors?|businesses?|companies?|firms?|roofers?|plumbers?|electricians?|painters?|builders?|landscapers?|mechanics?)\s+(?:in|near|around)\s+[a-z0-9 ,.'-]+$/i;
 
@@ -56,6 +59,7 @@ function normalizeCountyName(value: string): string {
 export function isExplicitProviderBrowseIntent(message: string): boolean {
   return (
     (BROWSE_VERB.test(message) ||
+      OPEN_PROVIDER_WITH_AREA.test(message) ||
       (TERSE_PROVIDER_QUERY.test(message.trim()) &&
         !/\b(?:are|is|were|cost|charge|should|could|would|can't|do not)\b/i.test(message))) &&
     PROVIDER_NOUN.test(message) &&
@@ -63,6 +67,8 @@ export function isExplicitProviderBrowseIntent(message: string): boolean {
     !/\bmy\s+(?:business(?:es)?|contractors?|providers?|pros?)\b/i.test(message) &&
     !/\b(?:contractor|provider)\s+(?:requests?|jobs?|inbox)\b/i.test(message) &&
     !/\bmy\s+(?:requests?|jobs?|projects?|inbox|messages?|conversations?)\b/i.test(message) &&
+    !PRIVATE_WORK_AREA_NOUN.test(message) &&
+    !/\b(?:messages?|conversations?)\s+(?:from|with|to)\b|\b(?:contractor|provider|business|roofer|plumber|electrician|painter)\s+(?:messages?|conversations?)\b/i.test(message) &&
     !/\b(?:replied|responded|messaged|quoted|bid)\s+(?:to\s+)?me\b/i.test(message) &&
     !/\bsent\s+me\s+(?:a\s+)?(?:quote|bid|estimate|message)\b/i.test(message)
   );

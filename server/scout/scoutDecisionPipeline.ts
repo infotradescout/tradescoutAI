@@ -24,8 +24,28 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
     };
   }
 
-  const explicitNavVerbs = /(open|go to|take me to|navigate|show me|bring me to)/i;
-  const explicitNavTargets: Array<{ route: string; label: string; pattern: RegExp }> = [
+  const explicitNavVerbs = /\b(open|go to|take me to|navigate|show me|bring me to)\b/i;
+  const listingSearch = /\b(for sale|to buy|to sell|buying|selling|marketplace|exchange|listings?)\b/i.test(raw);
+  const explicitNavTargets: Array<{
+    route: string;
+    label: string;
+    pattern: RegExp;
+    requiresAuth?: boolean;
+    excludeListingSearch?: boolean;
+  }> = [
+    {
+      route: "/direct-connect/pros",
+      label: "Open Businesses",
+      pattern: /\b(?:business(?:es)?|providers?|contractors?|pros?)\s+director(?:y|ies)\b|\bbusinesses(?:\s+(?:page|tab))?\b/i,
+      excludeListingSearch: true,
+    },
+    { route: "/messages", label: "Open Messages", pattern: /\b(?:my\s+)?(?:messages?|inbox|conversations?)\b/i, requiresAuth: true },
+    { route: "/notifications", label: "Open Notifications", pattern: /\b(?:my\s+)?notifications?\b/i, requiresAuth: true },
+    { route: "/profile-settings", label: "Open Profile Settings", pattern: /\b(?:(?:my\s+)?(?:profile|account)\s+settings|my\s+settings)\b/i, requiresAuth: true },
+    { route: "/utilities/supply-run", label: "Open Supply Run", pattern: /\b(?:my\s+)?supply\s+runs?\b/i, requiresAuth: true },
+    { route: "/finances", label: "Open Finances", pattern: /\b(?:my\s+finances|finance(?:s)?\s+(?:page|dashboard|workspace)|my\s+(?:invoices|payments))\b/i, requiresAuth: true },
+    { route: "/homes", label: "Open My Homes", pattern: /\b(?:my\s+homes|home\s*(?:vault|id))\b/i, requiresAuth: true, excludeListingSearch: true },
+    { route: "/vehicles", label: "Open My Vehicles", pattern: /\b(?:my\s+vehicles|vehicle\s+vault)\b/i, requiresAuth: true, excludeListingSearch: true },
     { route: "/help", label: "Open Help Center", pattern: /support tickets?/i },
     { route: "/help", label: "Open Help", pattern: /help( center)?/i },
     { route: "/exchange", label: "Open Exchange", pattern: /exchange|marketplace/i },
@@ -43,8 +63,24 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
   ];
 
   if (explicitNavVerbs.test(raw)) {
-    const matchedTarget = explicitNavTargets.find((target) => target.pattern.test(raw));
+    const matchedTarget = explicitNavTargets.find(
+      (target) =>
+        target.pattern.test(raw) &&
+        !(target.excludeListingSearch && listingSearch) &&
+        !(target.route === "/direct-connect/pros" && /\bmy\s+business(?:es)?\b/i.test(raw))
+    );
     if (matchedTarget) {
+      if (matchedTarget.requiresAuth && !request.isAuthenticated) {
+        return {
+          type: "blocked",
+          reason: "auth_required",
+          requiresAuth: true,
+          metadata: {
+            stage: "decision_pipeline",
+            redirect: `/pre-scout-setup?mode=signin&next=${encodeURIComponent(matchedTarget.route)}`,
+          },
+        };
+      }
       return {
         type: "deterministic_route",
         behaviorKey: "explicit_navigation",
@@ -103,7 +139,7 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
   }
 
   if (
-    /(exchange listing|marketplace|for sale|buying|selling|post listing|list this)/i.test(lower)
+    /(exchange listing|marketplace|for sale|buying|selling|post listing|list this|\blistings?\b)/i.test(lower)
   ) {
     return {
       type: "server_behavior_handler",
