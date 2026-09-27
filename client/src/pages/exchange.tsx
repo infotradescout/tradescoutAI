@@ -89,7 +89,7 @@ import {
   EXCHANGE_PROHIBITED_POLICY_NOTICE,
   getCottageFoodRules,
 } from "@shared/exchangeListingRules";
-import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { stoneInquiryPath, stoneSlabMaterialCardPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
 import { audienceQualifiedStoneMedia } from "./exchange/stonePublicUrls";
 
@@ -1392,7 +1392,7 @@ export default function Exchange() {
                         ? item.title.replace(/\s*\|\s*TradeScout(?:\s+Stone)?\s*$/i, "").trim() || item.title
                         : item.title;
                       const slabPrice = isRetailStone
-                        ? stoneSlabMaterialPrice(
+                        ? stoneSlabMaterialCardPrice(
                             item.price,
                             item.specifications?.priceUnit,
                             item.specifications?.referenceSizesInches,

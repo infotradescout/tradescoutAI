@@ -21,6 +21,9 @@ const text = (value: unknown): string => (typeof value === "string" ? value.trim
 const USD = new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2,
 });
+const USD_WHOLE = new Intl.NumberFormat("en-US", {
+  style: "currency", currency: "USD", maximumFractionDigits: 0,
+});
 
 function stonePriceCents(price: unknown): number | null {
   if (typeof price !== "number" && typeof price !== "string") return null;
@@ -106,6 +109,23 @@ export function stoneSlabMaterialPrice(price: unknown, unit: unknown, referenceS
     primaryPrice: range.minimumCents === range.maximumCents ? USD.format(range.minimumCents / 100) : `${USD.format(range.minimumCents / 100)}–${USD.format(range.maximumCents / 100)}`,
     secondaryPrice: rate, referenceSizeCount: range.referenceSizeCount,
     explanation: `From ${range.referenceSizeCount === 1 ? "a recorded reference size" : `${range.referenceSizeCount} recorded reference sizes`}; confirm the selected slab's dimensions and total. Delivery, fabrication and installation are separate.` };
+}
+
+/** Compact cards need a readable estimate; details and inquiries retain the full range. */
+export function stoneSlabMaterialCardPrice(price: unknown, unit: unknown, referenceSizesInches: unknown, exactSlab?: unknown): StoneSlabMaterialPrice | null {
+  const display = stoneSlabMaterialPrice(price, unit, referenceSizesInches, exactSlab);
+  if (display?.kind !== "estimated") return display;
+  const range = stoneSlabMaterialPriceRange(price, unit, referenceSizesInches, exactSlab);
+  if (!range || range.minimumCents === range.maximumCents) return display;
+
+  const midpointCents = Math.round((range.minimumCents + range.maximumCents) / 2);
+  const spreadCents = range.maximumCents - range.minimumCents;
+  // Show a range when either its dollar amount or its share of the estimate matters.
+  if (spreadCents > 2_500 || spreadCents * 100 > midpointCents) return display;
+
+  const roundingCents = midpointCents >= 100_000 ? 1_000 : midpointCents >= 1_000 ? 100 : midpointCents >= 100 ? 10 : 1;
+  const roundedCents = Math.round(midpointCents / roundingCents) * roundingCents;
+  return { ...display, primaryPrice: `About ${roundingCents >= 100 ? USD_WHOLE.format(roundedCents / 100) : USD.format(roundedCents / 100)}` };
 }
 
 export function readStoneInquiryIntent(value: unknown): StoneInquiryIntent | null {
