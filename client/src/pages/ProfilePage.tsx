@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,6 +80,19 @@ type BadgesMeResponse = {
   awarded?: Array<{ badgeId: string; awardedAt: string; source?: string | null }>;
 };
 
+type ProfileSiteState = {
+  userId: string;
+  slug: string | null;
+  status?: OwnedProfile["status"];
+  exposure?: OwnedProfile["publicExposure"];
+};
+
+type BusinessSiteState = {
+  userId: string;
+  slug: string | null;
+  isPublic: boolean;
+};
+
 const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
 
 function formatActivityReason(reason: string) {
@@ -95,18 +108,30 @@ export default function ProfilePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [profileSlug, setProfileSlug] = useState<string | null>(null);
-  const [profileStatus, setProfileStatus] = useState<OwnedProfile["status"]>(undefined);
-  const [profileExposure, setProfileExposure] = useState<OwnedProfile["publicExposure"]>(undefined);
-  const [businessSlug, setBusinessSlug] = useState<string | null>(null);
-  const [businessPagePublic, setBusinessPagePublic] = useState(false);
-  const [activatingPublic, setActivatingPublic] = useState(false);
+  const [profileSite, setProfileSite] = useState<ProfileSiteState | null>(null);
+  const [businessSite, setBusinessSite] = useState<BusinessSiteState | null>(null);
+  const [activatingUserId, setActivatingUserId] = useState<string | null>(null);
+  const currentUserId = useRef(user?.id);
+  useLayoutEffect(() => {
+    currentUserId.current = user?.id;
+  }, [user?.id]);
+
+  // An account change must hide the former account's site before effects run.
+  const currentProfileSite = profileSite?.userId === user?.id ? profileSite : null;
+  const currentBusinessSite = businessSite?.userId === user?.id ? businessSite : null;
+  const profileSlug = currentProfileSite?.slug ?? null;
+  const profileStatus = currentProfileSite?.status;
+  const profileExposure = currentProfileSite?.exposure;
+  const businessSlug = currentBusinessSite?.slug ?? null;
+  const businessPagePublic = currentBusinessSite?.isPublic ?? false;
+  const activatingPublic = activatingUserId === user?.id;
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       if (!user?.id) return;
+      const userId = user.id;
 
       try {
         const shouldAttemptBusinessProfile = isBusinessUser(user as any, null);
@@ -116,42 +141,44 @@ export default function ProfilePage() {
               slug?: string | null;
               visibility?: "public" | "private";
             };
-            if (!cancelled && business?.slug) {
-              setBusinessSlug(String(business.slug));
-              setBusinessPagePublic(business.visibility === "public");
+            if (!cancelled) {
+              setBusinessSite({
+                userId,
+                slug: business?.slug ? String(business.slug) : null,
+                isPublic: Boolean(business?.slug && business.visibility === "public"),
+              });
             }
           } catch {
             if (!cancelled) {
-              setBusinessSlug(null);
-              setBusinessPagePublic(false);
+              setBusinessSite({ userId, slug: null, isPublic: false });
             }
           }
         } else if (!cancelled) {
-          setBusinessSlug(null);
-          setBusinessPagePublic(false);
+          setBusinessSite({ userId, slug: null, isPublic: false });
         }
 
         const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
-
-        if (!Array.isArray(list) || list.length === 0) return;
-
         const activeProfileId = (user as any).activeProfileId as string | undefined;
-
-        let active = activeProfileId ? list.find((p) => p.id === activeProfileId) : undefined;
-
-        if (!active) {
-          active = list.find((p) => (p as any).status === "published") || list[0];
-        }
-
-        if (!active?.slug) return;
+        const active =
+          Array.isArray(list) && list.length > 0
+            ? (activeProfileId ? list.find((p) => p.id === activeProfileId) : undefined) ||
+              list.find((p) => p.status === "published") ||
+              list[0]
+            : undefined;
 
         if (!cancelled) {
-          setProfileSlug(active.slug);
-          setProfileStatus(active.status);
-          setProfileExposure(active.publicExposure);
+          setProfileSite({
+            userId,
+            slug: active?.slug || null,
+            status: active?.slug ? active.status : undefined,
+            exposure: active?.slug ? active.publicExposure : undefined,
+          });
         }
       } catch (error) {
-        console.error("Error loading profile site slug for share URL:", error);
+        if (!cancelled) {
+          setProfileSite({ userId, slug: null });
+          console.error("Error loading profile site slug for share URL:", error);
+        }
       }
     };
 
@@ -167,7 +194,7 @@ export default function ProfilePage() {
     isLoading: xpLoading,
     error: xpError,
   } = useQuery<XpMeResponse>({
-    queryKey: ["/api/xp/me"],
+    queryKey: ["/api/xp/me", user?.id],
     enabled: Boolean(user?.id),
     queryFn: async () => {
       return (await apiRequest("GET", "/api/xp/me")) as XpMeResponse;
@@ -176,7 +203,7 @@ export default function ProfilePage() {
   });
 
   const { data: badgesData } = useQuery<BadgesMeResponse>({
-    queryKey: ["/api/badges/me"],
+    queryKey: ["/api/badges/me", user?.id],
     enabled: Boolean(user?.id),
     queryFn: async () => {
       return (await apiRequest("GET", "/api/badges/me")) as BadgesMeResponse;
@@ -192,6 +219,9 @@ export default function ProfilePage() {
     );
   }
 
+  const currentXpData = xpData?.userId === user.id ? xpData : undefined;
+  const currentBadgesData = badgesData?.userId === user.id ? badgesData : undefined;
+
   const displayName =
     user.firstName && user.lastName
       ? `${user.firstName} ${user.lastName}`
@@ -203,8 +233,8 @@ export default function ProfilePage() {
       : user.city || user.state || "Location not set";
 
   const badges =
-    Array.isArray(badgesData?.labels) && badgesData.labels.length > 0
-      ? badgesData.labels
+    Array.isArray(currentBadgesData?.labels) && currentBadgesData.labels.length > 0
+      ? currentBadgesData.labels
       : user.badges || [];
   let distinctBadges = badges.filter((b: string) => b !== COMMUNITY_BUILDER_BADGE_LABEL);
 
@@ -257,8 +287,7 @@ export default function ProfilePage() {
     exposureMode === "unlisted_review" ||
     (!exposureMode && legacyIsPublic);
   const exposureReason =
-    !businessPagePublic &&
-    profileExposure?.reason && profileExposure.reason !== "public"
+    !businessPagePublic && profileExposure?.reason && profileExposure.reason !== "public"
       ? formatActivityReason(profileExposure.reason)
       : null;
 
@@ -277,7 +306,8 @@ export default function ProfilePage() {
 
   const enablePublicProfile = async () => {
     if (activatingPublic) return;
-    setActivatingPublic(true);
+    const userId = user.id;
+    setActivatingUserId(userId);
 
     try {
       const result = (await apiRequest("PATCH", "/api/users/profile-visibility", {
@@ -285,12 +315,20 @@ export default function ProfilePage() {
         proceedUnverified: true,
       })) as { profileSlug?: string | null };
 
+      if (currentUserId.current !== userId) return;
+
       const newSlug = result?.profileSlug ? String(result.profileSlug) : null;
       if (newSlug) {
-        setProfileSlug(newSlug);
+        setProfileSite((current) => ({
+          userId,
+          slug: newSlug,
+          status: current?.userId === userId ? current.status : undefined,
+          exposure: current?.userId === userId ? current.exposure : undefined,
+        }));
       }
 
       await refetch();
+      if (currentUserId.current !== userId) return;
       toast({
         title: "Profile is now public",
         description: "Your public profile is live. Customize it to make it yours.",
@@ -300,13 +338,14 @@ export default function ProfilePage() {
         setLocation(`/u/${newSlug}/edit`);
       }
     } catch (error) {
+      if (currentUserId.current !== userId) return;
       toast({
         title: "Could not make profile public",
         description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     } finally {
-      setActivatingPublic(false);
+      setActivatingUserId((current) => (current === userId ? null : current));
     }
   };
 
@@ -390,8 +429,12 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {exposureReason ? (
-                    <p className="mt-2 text-xs text-white/60" data-testid="profile-public-exposure-reason">
-                      Not publicly discoverable: {exposureReason}. Payment tier is not a discovery requirement.
+                    <p
+                      className="mt-2 text-xs text-white/60"
+                      data-testid="profile-public-exposure-reason"
+                    >
+                      Not publicly discoverable: {exposureReason}. Payment tier is not a discovery
+                      requirement.
                     </p>
                   ) : null}
                 </div>
@@ -616,8 +659,8 @@ export default function ProfilePage() {
                       <div className="text-2xl font-bold text-ts-orange flex items-center justify-center gap-1">
                         {xpLoading ? (
                           <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : typeof xpData?.xpTotal === "number" ? (
-                          xpData.xpTotal
+                        ) : typeof currentXpData?.xpTotal === "number" ? (
+                          currentXpData.xpTotal
                         ) : (
                           "—"
                         )}
@@ -654,9 +697,9 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-center py-8 text-white/60">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading activity...
                   </div>
-                ) : xpData?.recentLedger && xpData.recentLedger.length > 0 ? (
+                ) : currentXpData?.recentLedger && currentXpData.recentLedger.length > 0 ? (
                   <div className="space-y-3">
-                    {xpData.recentLedger.slice(0, 12).map((entry) => {
+                    {currentXpData.recentLedger.slice(0, 12).map((entry) => {
                       const createdAt = new Date(entry.createdAt);
                       const isValidDate = !Number.isNaN(createdAt.getTime());
                       return (
@@ -727,7 +770,7 @@ export default function ProfilePage() {
         </Tabs>
 
         {/* Call to Action */}
-        {!isPublic && (
+        {!legacyIsPublic && (
           <Card className="bg-gradient-to-r from-ts-orange/20 to-ts-orange/10 border-ts-orange">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
