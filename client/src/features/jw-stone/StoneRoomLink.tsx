@@ -5,7 +5,7 @@ import {
 } from "@/pages/profile-sites/steel-home-project-tools/stoneDesignerImages";
 import type { JwStoneCatalogItem } from "./types";
 
-/** Carry one exact named inventory photograph to the existing planner, never a starter plan. */
+/** Carry one exact supplier photograph into the TradeScout-owned planner, never a starter plan. */
 export function stoneRoomDestination(
   stone: JwStoneCatalogItem,
   imageHref: string,
@@ -38,10 +38,10 @@ export default function StoneRoomLink({
   return href ? (
     <a
       href={href}
-      data-testid={detail ? "jw-stone-detail-room" : `jw-stone-room-${stone.id}`}
+      data-testid={detail ? "jw-stone-detail-room" : `jw-stone-room-${stone.id}`} data-service-owner="tradescout"
       className={`inline-flex items-center justify-center ${detail ? "min-h-12 w-full px-5" : "min-h-10 px-4 text-[11px] font-semibold uppercase tracking-[0.18em]"} ${className}`}
     >
-      View in room
+      Plan with TradeScout
     </a>
   ) : null;
 }
