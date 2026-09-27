@@ -69,4 +69,18 @@ describe("Scout public Site-page search", () => {
     expect(resolvePublicSitePageQuery(message)).toBeNull();
     expect(runScoutDecisionPipeline(guestRequest(message)).behaviorKey).not.toBe("public_site_page_search");
   });
+
+  it("keeps private Messages navigation ahead of a matching public page topic", () => {
+    const message = "Open my messages page about remote notary";
+    expect(runScoutDecisionPipeline(guestRequest(message))).toMatchObject({
+      type: "blocked",
+      reason: "auth_required",
+      requiresAuth: true,
+    });
+    expect(runScoutDecisionPipeline({ ...guestRequest(message), isAuthenticated: true })).toMatchObject({
+      type: "deterministic_route",
+      behaviorKey: "explicit_navigation",
+      metadata: { route: "/messages" },
+    });
+  });
 });

@@ -17,15 +17,6 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
     };
   }
 
-  // Explicit public page lookup stays distinct from provider and work searches.
-  if (resolvePublicSitePageQuery(raw)) {
-    return {
-      type: "server_behavior_handler",
-      behaviorKey: "public_site_page_search",
-      metadata: { stage: "decision_pipeline" },
-    };
-  }
-
   // A request to inspect providers is a search, even when the same sentence
   // describes a repair. Keep it ahead of project intake and generic navigation.
   if (!isMixedDiscovery && isExplicitProviderBrowseIntent(raw)) {
@@ -35,6 +26,8 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
       metadata: { stage: "decision_pipeline" },
     };
   }
+
+  const publicSitePage = resolvePublicSitePageQuery(raw);
 
   const explicitNavVerbs = /\b(open|go to|take me to|navigate|show me|bring me to)\b/i;
   const listingSearch = /\b(for sale|to buy|to sell|buying|selling|marketplace|exchange|listings?)\b/i.test(raw);
@@ -94,6 +87,14 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
           },
         };
       }
+      // The generic Help target must not hide the more specific Scout guide.
+      if (matchedTarget.route === "/help" && publicSitePage) {
+        return {
+          type: "server_behavior_handler",
+          behaviorKey: "public_site_page_search",
+          metadata: { stage: "decision_pipeline" },
+        };
+      }
       return {
         type: "deterministic_route",
         behaviorKey: "explicit_navigation",
@@ -104,6 +105,15 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
         },
       };
     }
+  }
+
+  // Public page lookup follows explicit private navigation and its auth gate.
+  if (publicSitePage) {
+    return {
+      type: "server_behavior_handler",
+      behaviorKey: "public_site_page_search",
+      metadata: { stage: "decision_pipeline" },
+    };
   }
 
   const authRequiredPattern =
