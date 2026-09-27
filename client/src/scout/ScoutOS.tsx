@@ -105,6 +105,7 @@ import {
 } from "./scoutQuickStartPrompts";
 import { ScoutLaunchContextCard } from "./ScoutLaunchContextCard";
 import { parseScoutLaunchLocation } from "@shared/scoutLaunchContext";
+import { takeScoutSearchEntryDraft } from "@/routing/scoutSearchEntry";
 import {
   clearOnboardingResultPrompt,
   readOnboardingResultPrompt,
@@ -1802,6 +1803,10 @@ export default function ScoutOS() {
     () => parseScoutLaunchLocation(scoutBrowserLocation),
     [scoutBrowserLocation]
   );
+  const searchEntryRequested = useMemo(
+    () => new URLSearchParams(scoutBrowserLocation.split("?")[1] || "").get("entry") === "search",
+    [scoutBrowserLocation]
+  );
   const launchAcceptance = useScoutAccountBoundLaunch(
     scoutLaunch.signature,
     Boolean(scoutLaunch.context || scoutLaunch.prompt),
@@ -1819,8 +1824,11 @@ export default function ScoutOS() {
         : "",
     [acceptedLaunchContext?.source, scoutReturnOwner]
   );
+  const [searchEntry, setSearchEntry] = useState<{ owner: string; draft: string } | null>(null);
+  const searchEntryDraft = searchEntry?.owner === scoutReturnOwner ? searchEntry.draft : "";
+  const searchEntryMode = Boolean(searchEntryDraft);
   const hasExplicitScoutLaunch =
-    launchAcceptance === "pending" || launchAcceptance === "accepted";
+    launchAcceptance === "pending" || launchAcceptance === "accepted" || searchEntryRequested || searchEntryMode;
   const appliedLaunchPromptRef = useRef<string | null>(null);
   const consumedOutcomeLaunchRef = useRef<string | null>(null);
 
@@ -2729,6 +2737,30 @@ export default function ScoutOS() {
     setPrefillKey((key) => key + 1);
   }, [acceptedLaunchPrompt, scoutLaunch.signature, scoutReturnOwner]);
 
+  useEffect(() => {
+    if (!searchEntryRequested || !scoutReturnOwner) return;
+    let draft = "";
+    try {
+      draft = takeScoutSearchEntryDraft(scoutReturnOwner, window.sessionStorage);
+    } catch {
+      // Storage denial leaves Scout open with a blank command bar.
+    }
+    if (draft) {
+      setSearchEntry({ owner: scoutReturnOwner, draft });
+      setHasGuestInteracted(true);
+      setPrefillKey((key) => key + 1);
+    }
+    // The owner-bound draft has been consumed; remove the entry marker.
+    navigate("/scout", { replace: true });
+    setScoutBrowserLocation("/scout");
+  }, [navigate, scoutReturnOwner, searchEntryRequested]);
+
+  useEffect(() => {
+    if (searchEntry && scoutReturnOwner && searchEntry.owner !== scoutReturnOwner) {
+      setSearchEntry(null);
+    }
+  }, [scoutReturnOwner, searchEntry]);
+
   // Remove only the one-time prompt after it becomes a real user message.
   // The structured launch context stays in the URL for the rest of the conversation.
   useEffect(() => {
@@ -2770,10 +2802,16 @@ export default function ScoutOS() {
         };
 
         // Keep a censored draft in the input so the user can quickly edit.
-        try {
-          writeScoutOwnedDraft(censorProfanity(value), scoutReturnOwner);
-        } catch {
-          // ignore
+        if (searchEntryMode) {
+          setSearchEntry((current) => current && current.owner === scoutReturnOwner
+            ? { ...current, draft: censorProfanity(value) }
+            : current);
+        } else {
+          try {
+            writeScoutOwnedDraft(censorProfanity(value), scoutReturnOwner);
+          } catch {
+            // ignore
+          }
         }
         setPrefillKey((k) => k + 1);
         applyServerResponse(blocked, []);
@@ -3009,6 +3047,7 @@ export default function ScoutOS() {
       locality,
       location,
       recordUserMessage,
+      searchEntryMode,
       sessionRole,
       setPrefillKey,
       acceptedLaunchContext,
@@ -4620,13 +4659,18 @@ export default function ScoutOS() {
                       placement="inline"
                       isBusy={isBusy}
                       prefillKey={prefillKey}
-                      forcedPrefill={acceptedLaunchPrompt}
+                      forcedPrefill={searchEntryDraft || acceptedLaunchPrompt}
                       draftOwner={scoutReturnOwner}
+                      persistDraft={!searchEntryMode}
                       hasMessages={hasMessages}
                       quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                       autoDemoText=""
                       enableAutoDemo={shouldPlayIntroDemo}
-                      onSend={(value) => handleSend(value)}
+                      onSend={async (value) => {
+                        if (searchEntryMode && !containsProfanity(value)) clearDraftForTaskChange();
+                        await handleSend(value);
+                        if (searchEntryMode && !containsProfanity(value)) setSearchEntry(null);
+                      }}
                       onTyping={handleScoutTyping}
                     />
                   }
@@ -5233,11 +5277,16 @@ export default function ScoutOS() {
                   isBusy={isBusy}
                   prefillKey={prefillKey}
                   draftOwner={scoutReturnOwner}
+                  persistDraft={!searchEntryMode}
                   hasMessages={hasMessages}
                   quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
                   autoDemoText=""
                   enableAutoDemo={shouldPlayIntroDemo}
-                  onSend={(value) => handleSend(value)}
+                  onSend={async (value) => {
+                    if (searchEntryMode && !containsProfanity(value)) clearDraftForTaskChange();
+                    await handleSend(value);
+                    if (searchEntryMode && !containsProfanity(value)) setSearchEntry(null);
+                  }}
                   onTyping={handleScoutTyping}
                 />
               </div>

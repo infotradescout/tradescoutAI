@@ -24,6 +24,7 @@ interface ScoutInputRowProps {
   prefillKey: number;
   forcedPrefill?: string;
   draftOwner?: string | null;
+  persistDraft?: boolean;
   onSend: (value: string) => void;
   onTyping: () => void;
   hasMessages?: boolean;
@@ -44,6 +45,7 @@ export function ScoutInputRow({
   prefillKey,
   forcedPrefill,
   draftOwner = "guest",
+  persistDraft = true,
   onSend,
   onTyping,
   hasMessages = false,
@@ -86,7 +88,7 @@ export function ScoutInputRow({
     // The inline input unmounts as soon as the first message enters the thread.
     // Consume its draft before that swap so the fixed input starts empty.
     setValue("");
-    clearScoutInputDraft();
+    if (persistDraft) clearScoutInputDraft();
     try {
       await Promise.resolve(onSend(trimmed));
     } catch (err) {
@@ -141,8 +143,8 @@ export function ScoutInputRow({
       setValue(forcedPrefill);
       return;
     }
-    setValue(readScoutDraftForOwner(draftOwner) || "");
-  }, [draftOwner, forcedPrefill, prefillKey]);
+    setValue(persistDraft ? readScoutDraftForOwner(draftOwner) || "" : "");
+  }, [draftOwner, forcedPrefill, persistDraft, prefillKey]);
 
   // Persist draft
   React.useEffect(() => {
@@ -152,12 +154,13 @@ export function ScoutInputRow({
       return;
     }
     skipPersistForValueRef.current = null;
-    writeScoutOwnedDraft(value, draftOwner);
-  }, [draftOwner, value]);
+    if (persistDraft) writeScoutOwnedDraft(value, draftOwner);
+  }, [draftOwner, persistDraft, value]);
 
   // Auto-demo
   React.useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!persistDraft) return;
     if (!enableAutoDemo || !autoDemoText) return;
     try {
       if (window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY)) return;
@@ -188,7 +191,7 @@ export function ScoutInputRow({
       }, AUTO_DEMO_TYPE_DELAY_MS);
     }, AUTO_DEMO_START_DELAY_MS) as unknown as number;
     return () => clearDemoTimers();
-  }, [enableAutoDemo, autoDemoText, prefillKey]);
+  }, [enableAutoDemo, autoDemoText, persistDraft, prefillKey]);
 
   const isButtonDisabled = isBusy || isSubmitting || (!value.trim() && !isTypingDemo);
   const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts : [];

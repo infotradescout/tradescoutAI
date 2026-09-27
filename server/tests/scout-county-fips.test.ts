@@ -3,6 +3,7 @@ import {
   isMixedScoutDiscoveryRequest,
   isReadOnlyScoutTradeLookup,
   normalizeScoutCountyFips,
+  readScoutNamedCountyArea,
   readBareScoutTrade,
   resolveScoutCountyDiscoveryArea,
   resolveScoutMixedDiscoveryFollowUp,
@@ -37,6 +38,20 @@ const postedDeal: ScoutDealCandidate = {
 const dealNow = new Date("2026-09-23T18:00:00.000Z");
 
 describe("Scout county lookup", () => {
+  it("recognizes a named-county mixed search without borrowing a stale saved county", () => {
+    const message = "Show me posts, deals, and businesses in Maricopa County";
+    expect(readScoutNamedCountyArea(message)).toEqual({ countyCode: "Maricopa County" });
+    expect(requiresFreshScoutDiscovery(message)).toBe(true);
+    expect(isMixedScoutDiscoveryRequest(message)).toBe(true);
+    expect(resolveScoutCountyDiscoveryArea({
+      ...readScoutNamedCountyArea(message)!,
+    })).toEqual({ countyFips: "04013", countyLabel: "Maricopa County, AZ" });
+    expect(isMixedScoutDiscoveryRequest("Find roofers with deals in Maricopa County")).toBe(false);
+    expect(isMixedScoutDiscoveryRequest("Find roofers posting deals in Maricopa County")).toBe(false);
+    expect(isMixedScoutDiscoveryRequest("Find roofers who post deals in Maricopa County")).toBe(false);
+    expect(isMixedScoutDiscoveryRequest("Open businesses in Maricopa County")).toBe(false);
+  });
+
   it("recognizes only a known bare trade for a clarification choice", () => {
     expect(readBareScoutTrade(" electrical ")).toBe("electrical");
     expect(readBareScoutTrade("electrical panel")).toBeNull();

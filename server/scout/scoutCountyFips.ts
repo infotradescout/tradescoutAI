@@ -89,12 +89,27 @@ export function resolveScoutCountyDiscoveryArea(input: {
   return { countyFips: county.fips, countyLabel: county.label };
 }
 
+/** A county named in the request takes precedence over a saved or supplied area. */
+export function readScoutNamedCountyArea(message: string): { countyCode: string; stateCode?: string } | null {
+  const match = String(message || "").match(
+    /\b(?:in|near|around|for)\s+([A-Za-z][A-Za-z .'-]{1,60}?)\s+(County|Parish|Borough)\b(?:,\s*([A-Za-z]{2}))?/i
+  );
+  if (!match) return null;
+  const countyName = match[1].split(/\b(?:in|near|around|for)\s+/i).at(-1)?.trim();
+  if (!countyName || /^(?:my|your|the|this)$/i.test(countyName)) return null;
+  return {
+    countyCode: `${countyName} ${match[2]}`,
+    ...(match[3] ? { stateCode: match[3].toUpperCase() } : {}),
+  };
+}
+
 /** Local discovery results change; replaying a cached narrative can hide new posts. */
 export function requiresFreshScoutDiscovery(message: string): boolean {
   const text = String(message || "").toLowerCase();
   return (
     /\b(search|find|show|look)\b/.test(text) &&
-    /\b(tradescout|site|local|near me|my area|my county)\b/.test(text) &&
+    (/\b(tradescout|site|local|near me|my area|my county)\b/.test(text) ||
+      Boolean(readScoutNamedCountyArea(text))) &&
     /\b(posts?|deals?|requests?|activity)\b/.test(text)
   );
 }
@@ -104,7 +119,7 @@ export function isMixedScoutDiscoveryRequest(message: string): boolean {
   const value = String(message || "").toLowerCase();
   return (
     requiresFreshScoutDiscovery(value) &&
-    /\bposts?\b/.test(value) &&
+    /\bposts\b|\b(?:a|one|public|community)\s+post\b/.test(value) &&
     /\bdeals?\b/.test(value)
   );
 }

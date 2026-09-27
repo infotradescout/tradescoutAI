@@ -75,6 +75,7 @@ import { ensureFollowUpQuestion } from "../scout/responseShape";
 import { finalizeScoutResponse } from "../scout/scoutResponseContract";
 import { normalizeScoutRequest } from "../scout/scoutRequestNormalizer";
 import { runScoutDecisionPipeline } from "../scout/scoutDecisionPipeline";
+import { isExplicitProviderBrowseIntent } from "../scout/scoutProviderBrowseIntent";
 import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 import {
   sanitizeScoutActionsForPolicy,
@@ -110,6 +111,7 @@ import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwne
 import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
 import {
   isMixedScoutDiscoveryRequest,
+  readScoutNamedCountyArea,
   readBareScoutTrade,
   resolveScoutMixedDiscoveryFollowUp,
   resolveScoutCountyDiscoveryArea,
@@ -2594,7 +2596,12 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
     const optimizationUserId = memoryUserId;
-    if (optimizationUserId && message && !requiresFreshScoutDiscovery(effectiveDiscoveryMessage)) {
+    if (
+      optimizationUserId &&
+      message &&
+      !requiresFreshScoutDiscovery(effectiveDiscoveryMessage) &&
+      !isExplicitProviderBrowseIntent(message)
+    ) {
       // Import optimization services
       const { generateQueryHash, checkFaqMatch, routeQuery } =
         await import("../services/scoutOptimizationEngine");
@@ -2684,10 +2691,13 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const normalizedMessage = typeof message === "string" ? message : "";
     scoutTurnTelemetry.intent =
       normalizeScoutIntent(rawBody.intent, normalizedMessage) || "unknown";
+    const namedDiscoveryArea = isMixedScoutDiscoveryRequest(effectiveDiscoveryMessage)
+      ? readScoutNamedCountyArea(effectiveDiscoveryMessage)
+      : null;
     const countyArea = resolveScoutCountyDiscoveryArea({
-      countyHint: rawBody.countyHint,
-      countyCode: rawBody.countyCode,
-      stateCode: rawBody.stateCode,
+      countyHint: namedDiscoveryArea ? undefined : rawBody.countyHint,
+      countyCode: namedDiscoveryArea?.countyCode ?? rawBody.countyCode,
+      stateCode: namedDiscoveryArea ? namedDiscoveryArea.stateCode : rawBody.stateCode,
       profileCountyFips: (requestUser as any)?.countyFips,
       profileCountyFipsAlt: (requestUser as any)?.county_fips,
     });

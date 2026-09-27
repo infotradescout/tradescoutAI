@@ -369,6 +369,10 @@ export default function DirectConnectPros() {
   const [showOutsideArea, setShowOutsideArea] = useState(false);
   const [draftHandoffFailed, setDraftHandoffFailed] = useState(false);
   const recordedSearches = useRef(new Set<string>());
+  const scrolledToScoutSearch = useRef(false);
+  const requireAreaSelection =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("require_area") === "1";
 
   useEffect(() => {
     if (typeof window === "undefined" || authLoading) return;
@@ -440,23 +444,24 @@ export default function DirectConnectPros() {
   const effectiveArea = resolveBusinessesWorkspaceEffectiveArea({
     workspaceStateCode: stateCode,
     workspaceCountyFips: countyFips,
-    locationStateCode: location.stateCode,
-    locationCountyFips: location.countyFips,
+    locationStateCode: requireAreaSelection ? null : location.stateCode,
+    locationCountyFips: requireAreaSelection ? null : location.countyFips,
   });
   const effectiveStateCode = effectiveArea.stateCode;
   const effectiveCountyFips = effectiveArea.countyFips;
   const viewerCoordinates = resolveBusinessesWorkspaceViewerCoordinates({
     workspaceStateCode: stateCode,
     workspaceCountyFips: countyFips,
-    locationStateCode: location.stateCode,
-    locationCountyFips: location.countyFips,
-    locationLat: location.lat,
-    locationLng: location.lng,
+    locationStateCode: requireAreaSelection ? null : location.stateCode,
+    locationCountyFips: requireAreaSelection ? null : location.countyFips,
+    locationLat: requireAreaSelection ? null : location.lat,
+    locationLng: requireAreaSelection ? null : location.lng,
   });
   const viewerLat = viewerCoordinates.lat;
   const viewerLng = viewerCoordinates.lng;
 
-  const localCommitted = hasLocalContext(location) || Boolean(effectiveCountyFips);
+  const localCommitted =
+    Boolean(effectiveCountyFips) || (!requireAreaSelection && hasLocalContext(location));
   const hasStateContext = /^[A-Z]{2}$/.test(effectiveStateCode);
 
   const {
@@ -492,7 +497,9 @@ export default function DirectConnectPros() {
   const nameQuery = !tradeSlug && inferredTradeSlug ? "" : searchQuery.trim();
   const hasDirectoryIntent = Boolean((effectiveTradeSlug || "").trim() || searchQuery.trim());
   const canQueryDirectory =
-    workspaceHydrated && (localCommitted || (hasStateContext && hasDirectoryIntent));
+    workspaceHydrated &&
+    (!requireAreaSelection || Boolean(effectiveCountyFips)) &&
+    (localCommitted || (hasStateContext && hasDirectoryIntent));
 
   const {
     data: contractors = [],
@@ -530,6 +537,26 @@ export default function DirectConnectPros() {
   const hasResults =
     !providerSearchFetching && !providerSearchFailed && (contractors as any[])?.length > 0;
   const showEmptyState = canQueryDirectory && !providerSearchFetching && !hasResults;
+  useEffect(() => {
+    if (
+      scrolledToScoutSearch.current ||
+      !workspaceHydrated ||
+      (!requireAreaSelection && (providerSearchFetching || !canQueryDirectory))
+    ) {
+      return;
+    }
+    if (
+      typeof window === "undefined" ||
+      new URLSearchParams(window.location.search).get("source") !== "scout"
+    ) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("businesses-workspace-heading")?.scrollIntoView({ block: "start" });
+      scrolledToScoutSearch.current = true;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [canQueryDirectory, providerSearchFetching, requireAreaSelection, workspaceHydrated]);
   const areaLabel = effectiveCountyFips
     ? formatCountyLabel(effectiveCountyFips, effectiveStateCode)
     : effectiveStateCode || "your area";
@@ -907,9 +934,11 @@ export default function DirectConnectPros() {
               {localCommitted ? `Businesses in ${areaLabel}` : "Find local businesses"}
             </h2>
             <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-              {localCommitted
-                ? resultSummary
-                : "Set an area once, then TradeScout keeps this workspace local by default."}
+              {requireAreaSelection && !effectiveCountyFips
+                ? "Choose a county to see matching providers for the place you named."
+                : localCommitted
+                  ? resultSummary
+                  : "Set an area once, then TradeScout keeps this workspace local by default."}
             </p>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -1004,8 +1033,9 @@ export default function DirectConnectPros() {
           )}
           {!localCommitted && (
             <p className="text-[11px] text-[color:var(--text-secondary)]">
-              TradeScout will use your saved local area when available. Pick a county only when you
-              want to browse somewhere else.
+              {requireAreaSelection
+                ? "Choose a county for the place you named to see matching providers."
+                : "TradeScout will use your saved local area when available. Pick a county only when you want to browse somewhere else."}
             </p>
           )}
         </div>
