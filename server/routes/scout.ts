@@ -3478,6 +3478,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         stateCode,
       });
       if (handler) {
+        const isPublicSitePage = scaffoldDecision.behaviorKey === "public_site_page_search";
+        const pageAction = isPublicSitePage ? handler.actions[0] : undefined;
         const aiResponse: ScoutResponse = {
           message: trimResponseToScreenFit(handler.message),
           suggestedActions: handler.suggestedActions,
@@ -3492,13 +3494,24 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
         await syncObjectiveBestEffort({ intent });
         scoutTurnTelemetry.provider = "deterministic";
-        scoutTurnTelemetry.sourceUsed = "decision_pipeline_behavior_handler";
+        scoutTurnTelemetry.sourceUsed = isPublicSitePage
+          ? "scout_public_site_page_catalog"
+          : "decision_pipeline_behavior_handler";
         scoutTurnTelemetry.fallbackUsed = false;
         return res.json({
           ...aiResponse,
+          ...(pageAction ? {
+            evidence: [{
+              source_id: `site_page_${pageAction.path.replace(/[^a-z0-9]+/gi, "_")}`,
+              title: pageAction.label,
+              url: pageAction.path,
+              type: "site_page",
+              match_reason: "Exact public page catalog entry checked against the guest route policy.",
+            }],
+          } : {}),
           knowledge: {
             layer: 0,
-            sources: ["Decision pipeline behavior handler"],
+            sources: isPublicSitePage ? [] : ["Decision pipeline behavior handler"],
             confidence: "high",
           },
           llmProvider: "deterministic",

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildDecisionPipelineBehaviorResponse } from "../scout/scoutBehaviorHandlers";
 import { runScoutDecisionPipeline } from "../scout/scoutDecisionPipeline";
 import { resolvePublicSitePageQuery } from "../scout/scoutPublicSitePages";
+import { inferScoutResultIntentV1 } from "../scout/scoutResultContractV1";
 
 const guestRequest = (message: string) => ({
   message,
@@ -44,6 +45,7 @@ describe("Scout public Site-page search", () => {
         privateWorkChecked: false,
       },
     });
+    expect(inferScoutResultIntentV1(message, response?.metadata.intent).intent).toBe("site_page_search");
   });
 
   it.each([
