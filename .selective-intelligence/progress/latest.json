@@ -1,46 +1,60 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260927T000638Z-fcaac9d0",
-  "createdAt": "2026-09-27T00:06:38.463973+00:00",
-  "outcome": "Verify staff hosted-profile domain activation route before release gate",
+  "checkpointId": "progress-20260927T004312Z-92653dd7",
+  "createdAt": "2026-09-27T00:43:13.412623+00:00",
+  "outcome": "Published business profile HTML now offers contextual Direct Connect and authority-checked active Exchange links without banners or private pricing.",
   "scope": [
-    "Hosted profile domain activation test only"
+    "TradeScout hosted public profiles and contextual shared-system discovery."
   ],
   "prohibitions": [
-    "No production domain activation until wildcard DNS/TLS proof; no JW private data or original free-tool changes"
+    "No JW Stone private pricing; no automatic system banners; no domain activation or production merge."
   ],
   "progress": {
     "completedVerified": [
-      "Synthetic HTTP route tests cover staff-only access, readiness hold, unreleased profile, existing customer domain, conflicting host, activation, and release"
+      "Added public-safe backend Exchange link graph, protected request link, and durable free-system taxonomy."
     ],
-    "changedUnverified": [],
+    "changedUnverified": [
+      "The new commit still needs its own full minimum release gate and browser proof."
+    ],
     "proof": [
-      "37 targeted domain tests passed; npm run check passed; git diff --check passed"
+      "13 focused profile HTML tests passed; npm run check passed; previous exact commit 54e8eed6 passed full minimum release gate with a disposable 145-migration database and desktop/mobile Chromium path."
     ],
     "externalEffects": [
-      "No production, DNS, TLS, database, or customer mutation"
+      "Local WSL PostgreSQL 16 and two disposable test databases were prepared; no customer database or provider settings changed."
     ],
-    "doNotRepeat": [],
-    "nextSafeAction": "Run exact-commit minimum release gate and open a draft PR with DNS/TLS activation boundary"
+    "doNotRepeat": [
+      "Do not replay migrations on the full-sync fixture or treat prior exact-commit gate as proof for this new commit."
+    ],
+    "nextSafeAction": "Run the unchanged minimum release gate at the new exact commit, then open a draft PR with proof boundaries."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/platform-hosted-discovery-20260926",
-    "headBefore": "3c4615610131f27870dab3e65cbbb1ea7d94e0f2",
+    "headBefore": "54e8eed6ffa54d1d601115d4a09f82d6db5fa854",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "?? server/tests/tradeScoutHostedProfileDomain.routes.test.ts"
+      " M server/publicProfileHtml.ts",
+      "?? docs/architecture/TRADE_SCOUT_FREE_SYSTEMS_AND_HOSTED_SURFACES.md",
+      "?? server/tests/profile-contextual-exchange-links.behavior.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/tests/tradeScoutHostedProfileDomain.routes.test.ts",
-      "sha256": "1e2ed7dbdde25fa3f02976524a02ac380e99cdbb654dba39fce606e5765b7c8c"
+      "path": "server/publicProfileHtml.ts",
+      "sha256": "6dd0f81ffb3b38811d1bd5d0cf9a4f9b99d7f946c94ff537587f1f9af80f6303"
+    },
+    {
+      "path": "server/tests/profile-contextual-exchange-links.behavior.test.ts",
+      "sha256": "8d2e190710ed13b982277283539a1de6da46b634ee07f282e21d7dbbb06a695f"
+    },
+    {
+      "path": "docs/architecture/TRADE_SCOUT_FREE_SYSTEMS_AND_HOSTED_SURFACES.md",
+      "sha256": "9214473c3d51a6f0486332e07c1044fa1f6f101d1555d5d561168ce5efe80cd6"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

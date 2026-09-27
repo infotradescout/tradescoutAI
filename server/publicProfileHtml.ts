@@ -1,5 +1,8 @@
 import { storage } from "./storage";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { eq } from "drizzle-orm";
+import { profiles } from "@shared/schema";
+import { db } from "./db";
 import {
   inventoryCategoriesForProfile,
   resolveProfileItemShareMetadata,
@@ -21,6 +24,7 @@ import {
   type ProfileInventoryCategoryShareMetadata,
 } from "@shared/profileCategoryShare";
 import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import { buildPublicBusinessListingCards } from "@shared/publicBusinessListing";
 import {
   buildProfileSocialDescription,
   buildProfileSocialPreviewImageUrl,
@@ -49,6 +53,7 @@ import {
   isProfileInventoryCategoryPubliclyAddressable,
   isProfileInventoryItemPubliclyAddressable,
 } from "./profileSitemapDiscovery";
+import { buildExposureAuthorityMap } from "./services/exposureAuthority";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -1341,8 +1346,12 @@ export async function buildPublicProfileHtml({
   const isJwStoneProfile = data.profile.slug === JW_STONE_PROFILE_SLUG;
   const isMaterialInventory =
     isJwStoneProfile ||
-    [...(businessRecord?.categories || []), ...inventoryCategories.map((category) => category.name)]
-      .some((value) => /\b(?:stone|onyx|granite|marble|quartz(?:ite)?|slabs?|tiles?|materials?)\b/i.test(value));
+    [
+      ...(businessRecord?.categories || []),
+      ...inventoryCategories.map((category) => category.name),
+    ].some((value) =>
+      /\b(?:stone|onyx|granite|marble|quartz(?:ite)?|slabs?|tiles?|materials?)\b/i.test(value)
+    );
   const servicePageLinks = showProfileServices
     ? listFactBearingProfileServices(data.profile.contentBlocks)
         .map((service) => {
@@ -1354,6 +1363,48 @@ export async function buildPublicProfileHtml({
         .filter(Boolean)
         .join("")
     : "";
+  let exchangeListingLinks = "";
+  if (
+    !itemShare &&
+    !pageCategoryShare &&
+    businessRecord &&
+    profileRecord.profileSections?.marketplaceListings !== false
+  ) {
+    try {
+      const [owner] = await db
+        .select({ ownerUserId: profiles.ownerUserId })
+        .from(profiles)
+        .where(eq(profiles.id, profileRecord.id))
+        .limit(1);
+      const ownerUserId = String(owner?.ownerUserId || "").trim();
+      const exposureAuthority = ownerUserId ? await buildExposureAuthorityMap([ownerUserId]) : {};
+      if (ownerUserId && exposureAuthority[ownerUserId] === true) {
+        const [listings, categories] = await Promise.all([
+          storage.getMarketplaceListings({
+            sellerId: ownerUserId,
+            status: "active",
+            sortBy: "date_desc",
+            limit: 6,
+            offset: 0,
+          }),
+          storage.getMarketplaceCategories(),
+        ]);
+        exchangeListingLinks = buildPublicBusinessListingCards({ listings, categories })
+          .map((listing) => {
+            const href = new URL(listing.detailPath, "https://www.thetradescout.com").toString();
+            return `<li><a href="${escapeHtml(href)}">${escapeHtml(listing.title)}</a></li>`;
+          })
+          .join("");
+      }
+    } catch (error) {
+      // A profile stays public when the separate Exchange backend is unavailable.
+      console.error("[public-profile-html] Failed loading public Exchange links:", { slug, error });
+    }
+  }
+  const directConnectHref =
+    businessRecord && !itemShare && !pageCategoryShare
+      ? `https://www.thetradescout.com/direct-connect?profile=${encodeURIComponent(profileRecord.slug)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`
+      : "";
   const galleryItems = listProfileGalleryItems(data.profile.contentBlocks).filter((item) =>
     isProfileGalleryItemPubliclyAddressable(data.profile.contentBlocks, item)
   );
@@ -1418,11 +1469,18 @@ export async function buildPublicProfileHtml({
   const allItemsAreOfferings =
     featuredInventoryItems.length > 0 &&
     featuredInventoryItems.every((item) => item.publicKind === "offering");
-  const inventorySectionHeading = isJwStoneProfile && !allItemsAreOfferings
-    ? inventoryItems.length > 12 ? "Published inventory" : "Featured stone inventory"
-    : inventoryItems.length > 12
-      ? isMaterialInventory ? "Published materials" : "Published products"
-      : isMaterialInventory ? "Featured materials" : "Featured products";
+  const inventorySectionHeading =
+    isJwStoneProfile && !allItemsAreOfferings
+      ? inventoryItems.length > 12
+        ? "Published inventory"
+        : "Featured stone inventory"
+      : inventoryItems.length > 12
+        ? isMaterialInventory
+          ? "Published materials"
+          : "Published products"
+        : isMaterialInventory
+          ? "Featured materials"
+          : "Featured products";
   const categoryInventoryItems = pageCategoryShare
     ? pageCategoryShare.itemSlugs
         .map((itemSlug) => inventoryItemsBySlug.get(itemSlug))
@@ -1485,8 +1543,12 @@ export async function buildPublicProfileHtml({
       <p>${categoryInventoryItems.length} ${
         pageCategoryShare.collectionKind === "offerings"
           ? categoryInventoryItems.length === 1
-            ? isMaterialInventory ? "published material" : "published offering"
-            : isMaterialInventory ? "published materials" : "published offerings"
+            ? isMaterialInventory
+              ? "published material"
+              : "published offering"
+            : isMaterialInventory
+              ? "published materials"
+              : "published offerings"
           : categoryInventoryItems.length === 1
             ? "current selection"
             : "current selections"
@@ -1507,6 +1569,8 @@ export async function buildPublicProfileHtml({
     ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}
     ${publishedServiceItems.length ? `<section data-seo-profile-services="true"><h2>Services</h2><ul>${publishedServiceItems.map((service) => `<li>${escapeHtml(service)}</li>`).join("")}</ul></section>` : ""}
     ${servicePageLinks ? `<section data-seo-profile-service-links="true"><h2>Explore services</h2><ul>${servicePageLinks}</ul></section>` : ""}
+    ${directConnectHref ? `<p data-seo-profile-connect="true"><a href="${escapeHtml(directConnectHref)}">Send a request through Direct Connect</a></p>` : ""}
+    ${exchangeListingLinks ? `<section data-seo-profile-exchange-links="true"><h2>Available on TradeScout Exchange</h2><ul>${exchangeListingLinks}</ul></section>` : ""}
     ${categoryLinks ? `<section><h2>${categorySectionHeading}</h2><ul>${categoryLinks}</ul></section>` : ""}
     ${inventoryLinks ? `<section><h2>${inventorySectionHeading}</h2><ul>${inventoryLinks}</ul></section>` : ""}
     ${galleryLinks ? `<section data-seo-profile-gallery-links="true"><h2>Published projects and work</h2><ul>${galleryLinks}</ul></section>` : ""}
