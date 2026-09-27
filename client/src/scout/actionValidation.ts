@@ -67,6 +67,19 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/vehicles",
 ]);
 
+// Exact guest pages returned by Scout's public Site-page catalog. Do not
+// allow a whole route family: /services and /datasets can contain other paths.
+const PUBLIC_SITE_PAGE_NAVIGATION_PATHS = new Set([
+  "/datasets",
+  "/datasets/trades",
+  "/datasets/counties",
+  "/datasets/cities",
+  "/services/remote-notary",
+  "/services/mobile-notary",
+  "/help/scout",
+  "/trust-model",
+]);
+
 const PUBLIC_DEAL_PATH = /^\/deals\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const PUBLIC_BUSINESS_PROFILE_PATH = /^\/business\/[a-z0-9][a-z0-9-]{0,119}$/i;
@@ -164,7 +177,8 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
       console.warn("[Scout] Direct Connect navigation target not allowlisted:", basePath);
       return null;
     }
-    const isAllowedStatic = ALLOWED_NAVIGATION_PATHS.has(basePath);
+    const isAllowedStatic =
+      ALLOWED_NAVIGATION_PATHS.has(basePath) || PUBLIC_SITE_PAGE_NAVIGATION_PATHS.has(target);
     const isAllowedDynamic =
       isAllowedPublicDealPath(target, basePath) ||
       isAllowedPublicBusinessProfilePath(target, basePath) ||

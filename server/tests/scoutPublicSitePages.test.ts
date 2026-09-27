@@ -12,6 +12,16 @@ const guestRequest = (message: string) => ({
 });
 
 describe("Scout public Site-page search", () => {
+  it("renders notary pages before the generic service offer route", () => {
+    const appRoutes = readFileSync("client/src/AppRoutes.tsx", "utf8");
+    const serviceOffer = appRoutes.indexOf('<Route path="/services/:offerId">');
+    for (const path of ["/services/remote-notary", "/services/mobile-notary"]) {
+      const publicPage = appRoutes.indexOf(`<Route path="${path}">`);
+      expect(publicPage).toBeGreaterThan(-1);
+      expect(publicPage).toBeLessThan(serviceOffer);
+    }
+  });
+
   it.each([
     ["Find TradeScout's remote notary page", "/services/remote-notary"],
     ["Search TradeScout for public datasets", "/datasets"],

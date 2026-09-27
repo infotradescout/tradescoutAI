@@ -93,6 +93,33 @@ describe("actionValidation", () => {
     expect(action).toBeNull();
   });
 
+  it("opens only exact catalogued public Site pages", () => {
+    for (const target of [
+      "/datasets",
+      "/datasets/trades",
+      "/datasets/counties",
+      "/datasets/cities",
+      "/services/remote-notary",
+      "/services/mobile-notary",
+      "/help/scout",
+      "/trust-model",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toMatchObject({
+        type: "NAVIGATE",
+        to: target,
+      });
+    }
+    for (const target of [
+      "/datasets/private",
+      "/services/remote-notary/extra",
+      "/services/remote-notary?submit=1",
+      "/payments/history",
+      "/r/signed-share-token",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toBeNull();
+    }
+  });
+
   it("keeps Scout county discovery navigation on canonical internal routes", () => {
     const matchingPost = scoutAllowedActionToAction(
       allowedAction({

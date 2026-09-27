@@ -1152,6 +1152,12 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/handmade/products/:id">
                 <LazyPage Component={HandmadeProductDetail} />
               </Route>
+              <Route path="/services/remote-notary">
+                <LazyPage Component={RemoteNotary} />
+              </Route>
+              <Route path="/services/mobile-notary">
+                <LazyPage Component={RemoteNotary} />
+              </Route>
               <Route path="/services/:offerId">
                 <LazyPage Component={ProfileServiceOfferDetail} />
               </Route>
@@ -2013,13 +2019,7 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/legal/remote-notary">
                 <LazyPage Component={RemoteNotary} />
               </Route>
-              <Route path="/services/remote-notary">
-                <LazyPage Component={RemoteNotary} />
-              </Route>
               <Route path="/legal/mobile-notary">
-                <LazyPage Component={RemoteNotary} />
-              </Route>
-              <Route path="/services/mobile-notary">
                 <LazyPage Component={RemoteNotary} />
               </Route>
               <Route path="/about">
