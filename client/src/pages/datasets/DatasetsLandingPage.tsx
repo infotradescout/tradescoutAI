@@ -24,20 +24,14 @@ const DatasetsLandingPage = memo(function DatasetsLandingPage() {
           </CardHeader>
           <CardContent className="p-6 pt-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              <Link href="/datasets/trades">
-                <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                  Trades dataset
-                </a>
+              <Link href="/datasets/trades" className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
+                Trades dataset
               </Link>
-              <Link href="/datasets/counties">
-                <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                  Counties dataset
-                </a>
+              <Link href="/datasets/counties" className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
+                Counties dataset
               </Link>
-              <Link href="/datasets/cities">
-                <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                  Cities dataset
-                </a>
+              <Link href="/datasets/cities" className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
+                Cities dataset
               </Link>
             </div>
 

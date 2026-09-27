@@ -52,10 +52,9 @@ const DatasetsCitiesPage = memo(function DatasetsCitiesPage() {
                     href={`/city/${encodeURIComponent(c.stateCode.toLowerCase())}/${encodeURIComponent(
                       c.citySlug
                     )}`}
+                    className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
                   >
-                    <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                      {c.citySlug}, {c.stateCode}
-                    </a>
+                    {c.citySlug}, {c.stateCode}
                   </Link>
                 ))}
               </div>

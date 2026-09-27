@@ -62,10 +62,9 @@ const DatasetsCountiesPage = memo(function DatasetsCountiesPage() {
                     href={`/county/${encodeURIComponent(c.stateCode.toLowerCase())}/${encodeURIComponent(
                       slugifyCounty(c.name)
                     )}`}
+                    className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
                   >
-                    <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                      {c.name}, {c.stateCode}
-                    </a>
+                    {c.name}, {c.stateCode}
                   </Link>
                 ))}
               </div>
