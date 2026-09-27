@@ -1,55 +1,50 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260927T053420Z-6d179da0",
-  "createdAt": "2026-09-27T05:34:20.515233+00:00",
-  "outcome": "Repair merged ProfilePage account carryover and undeclared CTA condition in an isolated task branch",
+  "checkpointId": "progress-20260927T054706Z-a2c3f72f",
+  "createdAt": "2026-09-27T05:47:06.474760+00:00",
+  "outcome": "Complete exact-source synthetic profile account isolation and CTA activation validation for draft PR 724",
   "scope": [
-    "Merged PR 718 ProfilePage account switch state and CTA render bug"
+    "ProfilePage account switch carryover and preference-specific public CTA on merged PR 718 base"
   ],
   "prohibitions": [
-    "No production merge, deploy, customer data, or foreground browser journey in this slice"
+    "No production merge, deploy, customer data, or live account action"
   ],
   "progress": {
     "completedVerified": [
-      "Owner-keyed profile and business site state, account-keyed XP and badge queries, late activation guard, and CTA condition tied to profile visibility; synthetic regression added for four account-switch cases"
+      "Focused synthetic ProfilePage session suite passed 4 of 4 including business-page CTA PATCH payload; npm run check TypeScript exited 0; only one test file changed after prior PR head"
     ],
     "changedUnverified": [
-      "Final one-line CTA condition and business CTA assertion are formatted and source-reviewed but not rerun after the initial 4/4 and tsc pass; browser and live account acceptance remain unproved"
+      "Full unchanged release gate, browser account switch, production, and live customer behavior remain unproved"
     ],
     "proof": [
-      "npm ci succeeded with 1306 packages; focused synthetic Vitest 4/4 passed before final CTA assertion; npm run check exited 0 before final CTA condition; ESLint 0 errors 34 warnings; Prettier and git diff --check passed"
+      "On source blob e044d939be22d60e340bd0304ca7535c4183dc23 and test blob 1bb0d1ffc09307b95721a6b027a663572d139f78: npm run test:run -- client/src/pages/ProfilePage.session.test.tsx passed 4/4; npm run check exited 0; git diff --check passed"
     ],
     "externalEffects": [
-      "Only isolated local dependency install and task branch preservation; no customer request, production merge, or deployment"
+      "Existing draft PR 724 only; task branch push as preservation, no production merge, deployment or customer action"
     ],
     "doNotRepeat": [
-      "Do not edit hosted PR 720 worktree or dirty primary checkout; revalidate this exact branch after slot release"
+      "Do not recreate PR 724 or rerun npm ci; inspect hook blob identity before claiming final-head proof"
     ],
-    "nextSafeAction": "When shared slot returns, run exact-head ProfilePage.session.test.tsx and npm run check after final CTA assertion; inspect PR checks and only then report exact-head proof"
+    "nextSafeAction": "Verify pushed commit preserves tested test blob 1bb0d1ffc09307b95721a6b027a663572d139f78 and product blob e044d939be22d60e340bd0304ca7535c4183dc23; inspect PR status, then hand off full release/browser boundary"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/profile-account-switch-20260927",
-    "headBefore": "5a6286132538a6b2cf1dab559fc5e4a134e4108a",
+    "headBefore": "030655572660b81b887962b918c2ac92236a6fd6",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " A client/src/pages/ProfilePage.session.test.tsx",
-      " M client/src/pages/ProfilePage.tsx"
+      " M client/src/pages/ProfilePage.session.test.tsx"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "client/src/pages/ProfilePage.tsx",
-      "sha256": "4aa59d65c6fa8adbf73464897831bbf12b512dc8d6c99dc89ed70ed1e7624bde"
-    },
-    {
       "path": "client/src/pages/ProfilePage.session.test.tsx",
-      "sha256": "0bb4bce636af3b26a6ac4a9ac112262c4b1bfe22f80a4b20c1a1644f91b8d9be"
+      "sha256": "8498bd032e6562c2495c55f04c3abc3e307d78985c1fcb7eb503e83659851a36"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

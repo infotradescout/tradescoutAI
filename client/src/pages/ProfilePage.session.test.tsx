@@ -143,7 +143,9 @@ describe("ProfilePage account session isolation", () => {
 
   it("hides the former business page when the next member has no business", async () => {
     fixture.user = user("member-a", true);
-    fixture.request.mockImplementation(async (_method: string, path: string) => {
+    fixture.request.mockImplementation(async (method: string, path: string) => {
+      if (method === "PATCH" && path === "/api/users/profile-visibility")
+        return { profileSlug: null };
       if (path === "/api/business-profile/me")
         return { slug: "former-business-a", visibility: "public" };
       if (path === "/api/profiles") return [];
@@ -154,6 +156,17 @@ describe("ProfilePage account session isolation", () => {
     await render();
     expect(host.textContent).toContain("former-business-a");
     expect(host.textContent).toContain("Enable Public Profile");
+    const enableButton = Array.from(host.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Enable Public Profile")
+    );
+    expect(enableButton).toBeDefined();
+    await act(async () => {
+      enableButton?.click();
+    });
+    expect(fixture.request).toHaveBeenCalledWith("PATCH", "/api/users/profile-visibility", {
+      profileVisibility: "public",
+      proceedUnverified: true,
+    });
     fixture.user = user("member-b");
     await render();
     expect(host.textContent).not.toContain("former-business-a");
