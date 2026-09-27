@@ -8,8 +8,8 @@ export default function JwStoneShoppingAccess({ access, onClose, onAccountChange
 }) {
   if (access === "internal") return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
     <DialogContent style={JW_STONE_BRAND_STYLE}>
-      <DialogTitle>Business-member shopping</DialogTitle>
-      <DialogDescription>Offers and bundles are submitted from a JW Stone business-member account. This account has internal pricing access, not customer purchasing authority.</DialogDescription>
+      <DialogTitle>TradeScout stone tools</DialogTitle>
+      <DialogDescription>Bundle Builder and Make an Offer are TradeScout services linked to JW Stone inventory and pricing. This internal JW Stone account has pricing access, not customer purchasing authority.</DialogDescription>
       <button type="button" className="min-h-11 px-4 underline" onClick={onClose}>Return to the storefront</button>
     </DialogContent>
   </Dialog>;
