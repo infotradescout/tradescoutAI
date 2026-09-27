@@ -257,8 +257,7 @@ export default function ProfilePage() {
     exposureMode === "unlisted_review" ||
     (!exposureMode && legacyIsPublic);
   const exposureReason =
-    !businessPagePublic &&
-    profileExposure?.reason && profileExposure.reason !== "public"
+    !businessPagePublic && profileExposure?.reason && profileExposure.reason !== "public"
       ? formatActivityReason(profileExposure.reason)
       : null;
 
@@ -390,8 +389,12 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   {exposureReason ? (
-                    <p className="mt-2 text-xs text-white/60" data-testid="profile-public-exposure-reason">
-                      Not publicly discoverable: {exposureReason}. Payment tier is not a discovery requirement.
+                    <p
+                      className="mt-2 text-xs text-white/60"
+                      data-testid="profile-public-exposure-reason"
+                    >
+                      Not publicly discoverable: {exposureReason}. Payment tier is not a discovery
+                      requirement.
                     </p>
                   ) : null}
                 </div>
@@ -727,7 +730,7 @@ export default function ProfilePage() {
         </Tabs>
 
         {/* Call to Action */}
-        {!isPublic && (
+        {!isDiscoverablePublic && (
           <Card className="bg-gradient-to-r from-ts-orange/20 to-ts-orange/10 border-ts-orange">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
