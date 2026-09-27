@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Bookmark, Menu, UserRound, X } from "lucide-react";
 import { JW_STONE_PORTAL_COPY } from "@shared/jwStonePortalCopy";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
-import { marketplaceBasePath } from "./marketplaceRoutes";
+import { marketplaceBasePath, stoneRoomBasePath } from "./marketplaceRoutes";
 import { JwStoneBundleEntry } from "./JwStoneMemberPricing";
 
 type MarketplaceHeaderProps = {
@@ -53,6 +53,10 @@ export function MarketplaceHeader({ wishlistCount, hasAccount, onOpenWishlist, o
               <a href="#about-jw-stone" onClick={() => closeAnd()} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">About</a>
               <a href="#jw-stone-location" onClick={() => closeAnd()} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">Visit</a>
               <a href="#jw-stone-socials" onClick={() => closeAnd()} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">Socials</a>
+              <div className="my-1 border-t border-[var(--jw-border)]" role="separator" />
+              <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--jw-muted)]">TradeScout tools</p>
+              <a href="/bidrock" data-service-owner="tradescout" className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">StoneBid</a>
+              <a href={stoneRoomBasePath()} data-service-owner="tradescout" className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]">Project planners</a>
               <button type="button" onClick={() => closeAnd(onStartRequest)} className="px-3 py-2.5 text-left font-semibold text-[var(--jw-accent)] hover:bg-[var(--jw-bg)]">Start a Request</button>
             </nav>
           </div> : null}
