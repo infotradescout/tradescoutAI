@@ -22,7 +22,7 @@ const state = vi.hoisted(() => ({
   counties: [] as any[],
   simulateViewerRefetch: false,
   lastListingKey: "",
-  listingQueryPhase: "ready" as "ready" | "loading" | "error",
+  listingQueryPhase: "ready" as "ready" | "loading" | "paused" | "error",
   api: vi.fn(),
 }));
 vi.mock("wouter", async (importOriginal) => {
@@ -51,6 +51,8 @@ vi.mock("@tanstack/react-query", () => ({
     state.lastListingKey = key;
     if (state.listingQueryPhase === "loading")
       return { data: undefined, isLoading: true, isError: false };
+    if (state.listingQueryPhase === "paused")
+      return { data: undefined, isLoading: false, isError: false };
     if (state.listingQueryPhase === "error")
       return { data: undefined, isLoading: false, isError: true };
     return {
@@ -268,6 +270,53 @@ describe("retail stone detail", () => {
       listingId: state.listingId,
       authorityGate: "decision_card",
     })));
+  });
+
+  it("keeps an edited stone inquiry while auth refetch temporarily disables listing fetch", async () => {
+    window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}?inquiry=availability&audienceState=TX&audienceCountry=US`);
+    state.authUser = { id: "stone-buyer", countryCode: "US", stateCode: null, city: "Dallas", countyFips: null };
+    await renderDetail();
+    let dialog = document.body.querySelector('[role="dialog"]') as HTMLElement;
+    const draft = "Please confirm stock for my kitchen project next month.";
+    await changeControl(dialog.querySelector("textarea") as HTMLTextAreaElement, draft);
+
+    state.authLoading = true;
+    state.listingQueryPhase = "paused";
+    await renderDetail();
+    expect(state.query.enabled).toBe(false);
+    expect(host.textContent).toContain("Loading listing");
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+
+    state.authLoading = false;
+    state.listingQueryPhase = "ready";
+    await renderDetail();
+    dialog = document.body.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog).toBeTruthy();
+    expect(dialog.querySelector("textarea")?.value).toBe(draft);
+    expect(state.api).not.toHaveBeenCalled();
+    expect(state.mutate).not.toHaveBeenCalled();
+  });
+
+  it("does not carry an edited stone inquiry to another account during auth refetch", async () => {
+    window.history.replaceState({}, "", `/exchange/building-materials/${state.listingId}?inquiry=availability&audienceState=TX&audienceCountry=US`);
+    state.authUser = { id: "first-buyer", countryCode: "US", stateCode: null, city: "Dallas", countyFips: null };
+    await renderDetail();
+    const firstDialog = document.body.querySelector('[role="dialog"]') as HTMLElement;
+    const firstDraft = "Please reserve this slab for my project.";
+    await changeControl(firstDialog.querySelector("textarea") as HTMLTextAreaElement, firstDraft);
+
+    state.authLoading = true;
+    state.listingQueryPhase = "paused";
+    await renderDetail();
+    expect(state.query.enabled).toBe(false);
+
+    state.authUser = { id: "second-buyer", countryCode: "US", stateCode: "TX", city: "Austin", countyFips: "48453" };
+    state.authLoading = false;
+    state.listingQueryPhase = "ready";
+    await renderDetail();
+    expect(document.body.textContent).not.toContain(firstDraft);
+    expect(state.api).not.toHaveBeenCalled();
+    expect(state.mutate).not.toHaveBeenCalled();
   });
 
   it("drops the retained draft when a changed viewer location makes the stone unavailable", async () => {

@@ -303,7 +303,8 @@ export default function ExchangeListingDetail() {
   if (isPublicStone && listing && !isError && listingId && selectedMarketSearch) {
     lastStoneForInquiry.current = { listing, routeId: listingId, market: selectedMarketSearch, actorId: inquiryActorId };
   }
-  const inquiryListing = listing ?? (isPublicStone && isLoading && !isError ? lastStoneForInquiry.current?.listing : undefined);
+  const inquiryListing = listing ?? (isPublicStone && (isLoading || authLoading) && !isError
+    ? lastStoneForInquiry.current?.listing : undefined);
 
   const stoneInquiry = useExchangeStoneInquiry({
     listing: inquiryListing,
