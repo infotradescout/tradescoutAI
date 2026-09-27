@@ -28,9 +28,10 @@ export type TradeScoutStoneCartReview = Readonly<{
   materialReady: boolean;
   subtotalCents: number | null;
   reviewedAt: string;
-  fulfillment: unknown;
+  fulfillment: { method: "pickup" } | { method: "delivery"; postalCode: string };
   bundle?: { unlocked?: boolean } | null;
   lines: readonly TradeScoutStoneOfferLine[];
+  [key: string]: unknown;
 }>;
 
 export async function reviewTradeScoutStoneOffer<TInput extends {
