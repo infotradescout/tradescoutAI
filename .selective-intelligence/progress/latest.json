@@ -1,73 +1,46 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260927T000438Z-b1604f61",
-  "createdAt": "2026-09-27T00:04:39.193177+00:00",
-  "outcome": "Stage TradeScout-owned profile subdomain activation through existing custom-domain rendering without changing DNS or customer domains",
+  "checkpointId": "progress-20260927T000638Z-fcaac9d0",
+  "createdAt": "2026-09-27T00:06:38.463973+00:00",
+  "outcome": "Verify staff hosted-profile domain activation route before release gate",
   "scope": [
-    "Hosted public-profile domain source contract only"
+    "Hosted profile domain activation test only"
   ],
   "prohibitions": [
-    "Do not classify named systems as original 70 free tools; do not activate a host before wildcard DNS and TLS proof; do not change JW private pricing or existing customer domains"
+    "No production domain activation until wildcard DNS/TLS proof; no JW private data or original free-tool changes"
   ],
   "progress": {
     "completedVerified": [
-      "Hosted profile hostname derives from an eligible slug; platform and separate-system names are reserved; customer TXT flow rejects TradeScout-owned domains; staff activation route uses the existing custom-domain canonical renderer and checks public release plus namespace collisions; activation defaults off"
+      "Synthetic HTTP route tests cover staff-only access, readiness hold, unreleased profile, existing customer domain, conflicting host, activation, and release"
     ],
-    "changedUnverified": [
-      "Staff activation route has not had a full authenticated HTTP or native database rehearsal; no wildcard DNS/TLS proof or production host activation"
-    ],
+    "changedUnverified": [],
     "proof": [
-      "30 targeted host/domain tests passed; npm run check passed; git diff --check passed at parent eb7936cb1"
+      "37 targeted domain tests passed; npm run check passed; git diff --check passed"
     ],
     "externalEffects": [
-      "No DNS, TLS, production, customer profile, or database mutation"
+      "No production, DNS, TLS, database, or customer mutation"
     ],
     "doNotRepeat": [],
-    "nextSafeAction": "Run authenticated HTTP route tests for staff readiness and collision behavior; then verify DNS/TLS prerequisite before any activation"
+    "nextSafeAction": "Run exact-commit minimum release gate and open a draft PR with DNS/TLS activation boundary"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/platform-hosted-discovery-20260926",
-    "headBefore": "eb7936cb1f225cf18f5bc654caae91f6a25c9078",
+    "headBefore": "3c4615610131f27870dab3e65cbbb1ea7d94e0f2",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M .env.example",
-      " M server/routes/business-profile.ts",
-      " M server/routes/profiles.ts",
-      " M server/tests/profile-custom-domain.routes.test.ts",
-      "?? server/tests/tradeScoutHostedProfileDomain.test.ts",
-      "?? shared/tradeScoutHostedProfileDomain.ts"
+      "?? server/tests/tradeScoutHostedProfileDomain.routes.test.ts"
     ],
     "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": ".env.example",
-      "sha256": "a2a9eb493f6c00a15a3e7bf22af7f0efb40ce2f13b38224aaeb94ea7f235cf17"
-    },
-    {
-      "path": "shared/tradeScoutHostedProfileDomain.ts",
-      "sha256": "78203095723665e9387b05b4458afebb675745a992ee22bbf6cac2fd320426df"
-    },
-    {
-      "path": "server/tests/tradeScoutHostedProfileDomain.test.ts",
-      "sha256": "5cbce0cf925a9afab73bb59e9baac6efaed92f8996fbb43554b7eeff21fa4cd1"
-    },
-    {
-      "path": "server/routes/business-profile.ts",
-      "sha256": "f512857194add82e6007d99da0b8c1022c5c4f060b4cb9d2c6f37404d9444721"
-    },
-    {
-      "path": "server/tests/profile-custom-domain.routes.test.ts",
-      "sha256": "c4328e2de81b19c907ddd1b47d70e3ce311f41d7f65a6d2bbf701449828a10e6"
-    },
-    {
-      "path": "server/routes/profiles.ts",
-      "sha256": "6585d91d92fa2d0ab545693eb03e60c1eab7b87468e845f34ce116d9e6e54ef3"
+      "path": "server/tests/tradeScoutHostedProfileDomain.routes.test.ts",
+      "sha256": "1e2ed7dbdde25fa3f02976524a02ac380e99cdbb654dba39fce606e5765b7c8c"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
