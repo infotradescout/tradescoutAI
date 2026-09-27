@@ -1,6 +1,7 @@
 import type { NormalizedScoutRequest, ScoutDecision } from "../../shared/types/scout";
 import { isExplicitProviderBrowseIntent } from "./scoutProviderBrowseIntent";
 import { isMixedScoutDiscoveryRequest } from "./scoutCountyFips";
+import { resolvePublicSitePageQuery } from "./scoutPublicSitePages";
 
 export function runScoutDecisionPipeline(request: NormalizedScoutRequest): ScoutDecision {
   const raw = typeof request.message === "string" ? request.message.trim() : "";
@@ -12,6 +13,15 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
       type: "blocked",
       reason: "missing_message",
       requiresAuth: false,
+      metadata: { stage: "decision_pipeline" },
+    };
+  }
+
+  // Explicit public page lookup stays distinct from provider and work searches.
+  if (resolvePublicSitePageQuery(raw)) {
+    return {
+      type: "server_behavior_handler",
+      behaviorKey: "public_site_page_search",
       metadata: { stage: "decision_pipeline" },
     };
   }
