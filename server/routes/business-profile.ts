@@ -24,6 +24,7 @@ import type {
 } from "../../shared/businessProfile";
 import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
 import { resolveCanonicalBusinessProfileRoute } from "../services/canonicalBusinessProfileRoute";
+import { isTradeScoutOwnedDomain } from "../../shared/tradeScoutHostedProfileDomain";
 import { isPubliclyVerifiedProfileOwner } from "../services/ownerConfirmedDirectProfile";
 import { notifyIndexNow } from "../services/indexNowService";
 import {
@@ -154,7 +155,7 @@ function normalizeDomainInput(input: unknown): string | null {
     return null;
   }
 
-  if (!DOMAIN_REGEX.test(value)) {
+  if (!DOMAIN_REGEX.test(value) || isTradeScoutOwnedDomain(value)) {
     return null;
   }
 

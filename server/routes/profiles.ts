@@ -11,6 +11,7 @@ import { and, asc, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import {
   businessVerifications,
   businesses,
+  affiliateAccounts,
   contractors,
   homeScoutListings,
   profiles,
@@ -91,6 +92,7 @@ import {
   combineIndexNowChangeUrls,
 } from "../services/indexNowPublicationEvents";
 import { shouldIndexPublicProfileSlug } from "../../shared/publicProfileIndexing";
+import { buildTradeScoutHostedProfileDomain } from "../../shared/tradeScoutHostedProfileDomain";
 import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
 import {
   durableProfessionalProfileApprovalSql,
@@ -1327,6 +1329,102 @@ router.get("/api/profiles/:id/manage-bridge-token", isAuthenticated, async (req,
   } catch (error: any) {
     console.error("Error issuing profile manage bridge token:", error);
     res.status(500).json({ message: "Failed to issue manage token" });
+  }
+});
+
+// A TradeScout-owned subdomain uses the same canonical rendering, sitemap,
+// robots, LLM guidance, and public-trust checks as a verified custom domain.
+// Activation is an operator action after wildcard DNS and TLS are proven.
+router.patch("/api/profiles/:id/tradescout-domain", isAuthenticated, async (req, res) => {
+  if (!isStaffProfileManager(req)) {
+    return res.status(403).json({ message: "Profile domain activation requires staff access" });
+  }
+
+  const parsed = z.object({ enabled: z.boolean() }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ message: "Invalid hosted domain request" });
+
+  const profileId = String(req.params.id || "").trim();
+  try {
+    const profile = await storage.getProfileById(profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    const host = buildTradeScoutHostedProfileDomain(profile.slug);
+    if (!host || !shouldIndexPublicProfileSlug(profile.slug)) {
+      return res.status(400).json({ message: "Profile slug cannot use a hosted domain" });
+    }
+    if (parsed.data.enabled) {
+      if (process.env.TRADESCOUT_HOSTED_PROFILE_DOMAINS_READY !== "true") {
+        return res.status(503).json({ message: "TradeScout hosted domains are not ready" });
+      }
+      const publicProfile = await storage.getProfileBySlugPublic(profile.slug);
+      if (!publicProfile || String(publicProfile.id) !== profileId) {
+        return res.status(409).json({ message: "Profile is not publicly released" });
+      }
+    }
+
+    const beforeUrls = await collectEligibleProfileIndexNowUrls(profile);
+    const updated = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${host}))`);
+      const [fresh] = await tx
+        .select({ id: profiles.id, slug: profiles.slug, seoMeta: profiles.seoMeta })
+        .from(profiles)
+        .where(eq(profiles.id, profileId))
+        .limit(1);
+      if (!fresh || buildTradeScoutHostedProfileDomain(fresh.slug) !== host) {
+        throw Object.assign(new Error("Profile changed during domain activation"), { statusCode: 409 });
+      }
+
+      const seoMeta = { ...(fresh.seoMeta || {}) };
+      const activeDomain = String(seoMeta.customDomain || "").trim().toLowerCase();
+      if (activeDomain && activeDomain !== host) {
+        throw Object.assign(new Error("Profile already has a custom domain"), { statusCode: 409 });
+      }
+      if (parsed.data.enabled) {
+        const alias = `www.${host}`;
+        const profileClaims = await tx
+          .select({ id: profiles.id })
+          .from(profiles)
+          .where(and(
+            sql`${profiles.id} <> ${profileId}`,
+            sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) IN (${host}, ${alias})`
+          ))
+          .limit(1);
+        const businessClaims = await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(sql`lower(COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' ->> 'customDomain')), '')) IN (${host}, ${alias})`)
+          .limit(1);
+        const affiliateClaims = await tx
+          .select({ id: affiliateAccounts.id })
+          .from(affiliateAccounts)
+          .where(sql`lower(COALESCE(${affiliateAccounts.customDomain}, '')) IN (${host}, ${alias})`)
+          .limit(1);
+        if (profileClaims.length || businessClaims.length || affiliateClaims.length) {
+          throw Object.assign(new Error("Hosted domain is already claimed"), { statusCode: 409 });
+        }
+        seoMeta.customDomain = host;
+      } else {
+        delete seoMeta.customDomain;
+      }
+
+      const [saved] = await tx
+        .update(profiles)
+        .set({ seoMeta, updatedAt: new Date() })
+        .where(eq(profiles.id, profileId))
+        .returning();
+      return saved;
+    });
+    if (!updated) throw new Error("Hosted domain update returned no profile");
+    const afterUrls = await collectEligibleProfileIndexNowUrls(updated);
+    notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
+    return res.json({
+      profileId,
+      enabled: parsed.data.enabled,
+      domain: parsed.data.enabled ? host : null,
+    });
+  } catch (error: any) {
+    const status = error?.statusCode === 409 ? 409 : 500;
+    if (status === 500) console.error("Failed updating TradeScout hosted profile domain:", error);
+    return res.status(status).json({ message: status === 409 ? error.message : "Failed to update hosted domain" });
   }
 });
 
