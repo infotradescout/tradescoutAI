@@ -78,7 +78,9 @@ export function ScoutSearchDock({
           forcedPrefill={forcedPrefill}
           onSend={onSend}
           onTyping={onTyping}
-          quickStartPrompts={!hasMessages ? quickStartPrompts : []}
+          quickStartPrompts={
+            !hasMessages ? (isMobile ? quickStartPrompts.slice(0, 2) : [...quickStartPrompts]) : []
+          }
           autoDemoText={autoDemoText}
           enableAutoDemo={enableAutoDemo}
         />
