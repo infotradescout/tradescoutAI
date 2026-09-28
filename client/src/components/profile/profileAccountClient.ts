@@ -120,11 +120,38 @@ function toError(
   payload: Record<string, unknown>,
   fallback: string
 ): ProfileAccountError {
-  const error = new Error(String(payload.message || fallback)) as ProfileAccountError;
+  const error = new Error(String(payload?.message || fallback)) as ProfileAccountError;
   error.status = response.status;
-  error.code = typeof payload.code === "string" ? payload.code : undefined;
-  error.requiresBusinessSetup = payload.requiresBusinessSetup === true;
+  error.code = typeof payload?.code === "string" ? payload.code : undefined;
+  error.requiresBusinessSetup = payload?.requiresBusinessSetup === true;
   return error;
+}
+
+/** Validate the state consumed by the company form. An HTML/error page is not an account. */
+export function parseProfileAccountResponse(value: unknown, profileSlug: string): ProfileAccountResponse {
+  const object = (candidate: unknown): candidate is Record<string, unknown> =>
+    Boolean(candidate && typeof candidate === "object" && !Array.isArray(candidate));
+  const id = (candidate: unknown): boolean => typeof candidate === "string" && candidate.trim().length > 0;
+  const invalid = () => {
+    const error = new Error("Your company account could not be checked. Please try again.") as ProfileAccountError;
+    error.code = "PROFILE_ACCOUNT_INVALID_RESPONSE";
+    return error;
+  };
+  if (!object(value) || !object(value.policy) || value.policy.profileSlug !== profileSlug ||
+      typeof value.policy.enabled !== "boolean" ||
+      !["user", "business"].includes(String(value.policy.requiredIdentity)) ||
+      typeof value.requiresBusinessSetup !== "boolean" || !Array.isArray(value.entitlements)) throw invalid();
+  if (value.viewerBusiness !== null && (!object(value.viewerBusiness) || !id(value.viewerBusiness.id) ||
+      typeof value.viewerBusiness.name !== "string" ||
+      !["pending", "approved", "rejected"].includes(String(value.viewerBusiness.verificationStatus)))) throw invalid();
+  if (value.account !== null && (!object(value.account) || !id(value.account.id) ||
+      value.account.profileSlug !== profileSlug ||
+      !["user", "business"].includes(String(value.account.identityKind)) ||
+      !["active", "suspended", "closed"].includes(String(value.account.status)) ||
+      !["not_required", "pending", "approved", "rejected"].includes(String(value.account.verificationStatus)))) throw invalid();
+  if (value.entitlements.some(entitlement => !object(entitlement) || !id(entitlement.productKey) ||
+      !["pending_verification", "active", "suspended", "revoked"].includes(String(entitlement.status)))) throw invalid();
+  return value as unknown as ProfileAccountResponse;
 }
 
 export async function loadProfileAccountState(
@@ -132,11 +159,13 @@ export async function loadProfileAccountState(
 ): Promise<ProfileAccountResponse> {
   const response = await fetch(buildApiUrl(`/api/u/${encodeURIComponent(profileSlug)}/account`), {
     credentials: "include",
+    cache: "no-store",
+    redirect: "error",
     headers: { Accept: "application/json" },
   });
   const payload = await readProfileAccountJson(response);
   if (!response.ok) throw toError(response, payload, "Account is temporarily unavailable.");
-  return payload as ProfileAccountResponse;
+  return parseProfileAccountResponse(payload, profileSlug);
 }
 
 export async function createProfileAccount(args: {
@@ -149,6 +178,8 @@ export async function createProfileAccount(args: {
     {
       method: "POST",
       credentials: "include",
+      cache: "no-store",
+      redirect: "error",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
@@ -161,7 +192,7 @@ export async function createProfileAccount(args: {
   );
   const payload = await readProfileAccountJson(response);
   if (!response.ok) throw toError(response, payload, "Account could not be created.");
-  return payload as ProfileAccountResponse;
+  return parseProfileAccountResponse(payload, args.profileSlug);
 }
 
 export async function registerProfileAccount(args: {
@@ -179,6 +210,8 @@ export async function registerProfileAccount(args: {
   const response = await fetch(buildApiUrl("/api/profile-accounts/register"), {
     method: "POST",
     credentials: "include",
+    cache: "no-store",
+    redirect: "error",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -187,7 +220,7 @@ export async function registerProfileAccount(args: {
   });
   const payload = await readProfileAccountJson(response);
   if (!response.ok) throw toError(response, payload, "Account could not be created.");
-  return payload as ProfileAccountRegistrationResponse;
+  return parseProfileAccountResponse(payload, args.profileSlug) as ProfileAccountRegistrationResponse;
 }
 
 export async function requestProfileAccountPasswordReset(args: {
