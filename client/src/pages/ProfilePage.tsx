@@ -727,7 +727,7 @@ export default function ProfilePage() {
         </Tabs>
 
         {/* Call to Action */}
-        {!isPublic && (
+        {!isDiscoverablePublic && (
           <Card className="bg-gradient-to-r from-ts-orange/20 to-ts-orange/10 border-ts-orange">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
