@@ -60,7 +60,7 @@ describe("getDirectConnectInboxNextStepCopy", () => {
 
     expect(copy).toMatchObject({
       label: "Respond to request",
-      actionHint: "Prepare response",
+      actionHint: "Accept request",
       contactUnlocked: false,
     });
     expect(copy.summary).toContain("Contact opens only after acceptance");
@@ -85,11 +85,11 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       actionableAssignment: true,
       submissionContactAvailable: true,
     });
-    expect(copy.summary).toContain("name and phone the sender shared with this request");
+    expect(copy.summary).toContain("contact the sender shared with this request");
     expect(copy.summary).toContain(
       "Accept with your scope and availability to open a conversation"
     );
-    expect(copy.actionHint).toBe("Prepare response");
+    expect(copy.actionHint).toBe("Accept request");
     expect(copy.contactUnlocked).toBe(false);
   });
 
@@ -119,6 +119,21 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       actionHint: "Review details",
       contactUnlocked: false,
     });
+  });
+
+  it("does not reopen a declined response through another request's conversation", () => {
+    const copy = getDirectConnectInboxNextStepCopy({
+      assignmentStatus: "declined",
+      requestStatus: "routed",
+      conversationThreadId: "other-request-thread",
+    });
+
+    expect(copy).toMatchObject({
+      label: "Response archived",
+      actionHint: "Review details",
+      contactUnlocked: false,
+    });
+    expect(copy.summary).toContain("no contact path is open");
   });
 
   it("keeps saved request follow-up pointed at Messages without unlocking contact", () => {

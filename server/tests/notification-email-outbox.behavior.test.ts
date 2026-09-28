@@ -169,8 +169,12 @@ describe("durable notification email outbox", () => {
     const newest = await create({ type: "system_update", title: "New signup alert" });
     let releaseOlder!: () => void;
     let markOlderStarted!: () => void;
-    const olderStarted = new Promise<void>((resolve) => { markOlderStarted = resolve; });
-    const holdOlder = new Promise<void>((resolve) => { releaseOlder = resolve; });
+    const olderStarted = new Promise<void>((resolve) => {
+      markOlderStarted = resolve;
+    });
+    const holdOlder = new Promise<void>((resolve) => {
+      releaseOlder = resolve;
+    });
     fixture.sendEmail.mockImplementation(async ({ subject }: { subject: string }) => {
       if (subject === "Older alert") {
         markOlderStarted();
@@ -182,10 +186,13 @@ describe("durable notification email outbox", () => {
     const bulk = service.processEmailDeliveryJobs(2);
     try {
       await olderStarted;
-      expect(await service.processEmailDeliveryJobsById([`notification-email:${newest.id}`]))
-        .toBe(1);
-      expect(fixture.sendEmail.mock.calls.map(([message]) => message.subject))
-        .toEqual(["Older alert", "New signup alert"]);
+      expect(await service.processEmailDeliveryJobsById([`notification-email:${newest.id}`])).toBe(
+        1
+      );
+      expect(fixture.sendEmail.mock.calls.map(([message]) => message.subject)).toEqual([
+        "Older alert",
+        "New signup alert",
+      ]);
     } finally {
       releaseOlder();
       await bulk;
@@ -198,8 +205,12 @@ describe("durable notification email outbox", () => {
     const second = await create({ type: "system_update", title: "Staff two" });
     let releaseFirst!: () => void;
     let markSecondStarted!: () => void;
-    const holdFirst = new Promise<void>((resolve) => { releaseFirst = resolve; });
-    const secondStarted = new Promise<void>((resolve) => { markSecondStarted = resolve; });
+    const holdFirst = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const secondStarted = new Promise<void>((resolve) => {
+      markSecondStarted = resolve;
+    });
     fixture.sendEmail.mockImplementation(async ({ subject }: { subject: string }) => {
       if (subject === "Staff one") await holdFirst;
       if (subject === "Staff two") markSecondStarted();
@@ -226,21 +237,32 @@ describe("durable notification email outbox", () => {
 
   it("uses the JW staff purpose only for a canonical signup notification", async () => {
     const metadata = {
-      source: "profile_account_signup", profileSlug: "jw-stone", profileAccountId: "account-1",
+      source: "profile_account_signup",
+      profileSlug: "jw-stone",
+      profileAccountId: "account-1",
     };
     const genuine = await create({
       id: "profile-account-signup:account-1:owner",
-      type: "new_application", title: "New JW Stone account signup", metadata,
+      type: "new_application",
+      title: "New JW Stone account signup",
+      metadata,
     });
     const mismatched = await create({
       id: "unrelated:account-1:owner",
-      type: "new_application", title: "Other notification", metadata,
+      type: "new_application",
+      title: "Other notification",
+      metadata,
     });
-    expect(await service.processEmailDeliveryJobsById([
-      `notification-email:${genuine.id}`,
-      `notification-email:${mismatched.id}`,
-    ])).toBe(2);
-    const purposes = fixture.sendEmail.mock.calls.map(([message]) => [message.subject, message.purpose]);
+    expect(
+      await service.processEmailDeliveryJobsById([
+        `notification-email:${genuine.id}`,
+        `notification-email:${mismatched.id}`,
+      ])
+    ).toBe(2);
+    const purposes = fixture.sendEmail.mock.calls.map(([message]) => [
+      message.subject,
+      message.purpose,
+    ]);
     expect(purposes).toContainEqual(["New JW Stone account signup", "jw_stone_signup_staff"]);
     expect(purposes).toContainEqual(["Other notification", "notification"]);
   });
@@ -300,6 +322,15 @@ describe("durable notification email outbox", () => {
     expect(payload.html).not.toContain("buyer@example.com");
     expect(payload.text).not.toContain("buyer@example.com");
     expect(payload).not.toHaveProperty("replyTo");
+  });
+
+  it("ignores caller metadata that claims the bound provider email purpose", async () => {
+    await create({
+      metadata: { purpose: "direct_connect_provider_request" },
+    });
+    await service.processEmailDeliveryJobs();
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
+    expect(fixture.sendEmail.mock.calls[0][0].purpose).toBe("notification");
   });
 
   it("keeps in-app-only oversight in app despite broad type preferences", async () => {
@@ -503,8 +534,8 @@ describe("durable notification email outbox", () => {
 async function seedProviderInvitation(kind: "contractor" | "business" = "contractor") {
   await fixture.database!.exec(`
     UPDATE users SET email_verified = true;
-    INSERT INTO work_requests (id, created_by_user_id, source, status, title, description, attachments, county_fips)
-      VALUES ('request-1', 'requester', 'direct_connect', 'routed', 'Private 555-123-4567', 'Private details', '[]', '12001');
+    INSERT INTO work_requests (id, created_by_user_id, source, status, title, description, attachments, county_fips, state_code, budget_min, budget_max)
+      VALUES ('request-1', 'requester', 'direct_connect', 'routed', 'Kitchen tile 555-123-4567', 'Replace the <tile> backsplash. Email buyer@example.com or visit 42 Main St.', '["private/photo-a"]', '12001', 'FL', '500', '1200');
     INSERT INTO contractors (id, user_id, company_name, slug) VALUES ('contractor-1', 'owner', 'Fixture', 'fixture');
     INSERT INTO businesses (id, owner_user_id, name, slug, role_context) VALUES ('business-1', 'owner', 'Fixture', 'fixture', 'business_owner');
     INSERT INTO notification_preferences (user_id, enable_notifications, enable_email_notifications, type_preferences)
@@ -707,14 +738,53 @@ describe("normal Direct Connect provider email activation", () => {
       await service.processEmailDeliveryJobs();
       expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
       expect(fixture.sendEmail.mock.calls[0][0]).toMatchObject({
-        purpose: "notification",
-        subject: "Direct Connect update",
+        purpose: "direct_connect_provider_request",
+        subject: "New Direct Connect request: Kitchen tile Continue through TradeScout",
       });
-      expect(fixture.sendEmail.mock.calls[0][0].html).not.toMatch(/555-123-4567|buyer@example.com/);
+      const sent = fixture.sendEmail.mock.calls[0][0];
+      expect(sent.to).toBe("owner@example.com");
+      expect(sent.text).toContain("Replace the <tile> backsplash.");
+      expect(sent.html).toContain("Replace the &lt;tile&gt; backsplash.");
+      expect(sent.html).not.toContain("<tile>");
+      expect(sent.text).toContain("Service area: Alachua County, FL");
+      expect(sent.text).toContain("Budget: $500-$1,200");
+      expect(sent.text).toContain("Attachments: 1");
+      expect(sent.text).toContain(
+        "https://www.thetradescout.com/direct-connect/inbox?filter=all&selected=assignment-1"
+      );
+      expect(sent.html).toContain("Review and respond");
+      expect(sent.html).toContain("selected=assignment-1");
+      expect(`${sent.subject} ${sent.text} ${sent.html}`).not.toMatch(
+        /555-123-4567|buyer@example.com|42 Main St|private\/photo-a/
+      );
       expect(fixture.eligible).toHaveBeenCalledTimes(3);
       expect(fixture.eligible.mock.lastCall?.[0].request.countyFips).toBe("12001");
     }
   );
+
+  it("does not email or reveal a selected request to another provider", async () => {
+    await seedProviderInvitation();
+    await fixture.database!.exec(`
+      INSERT INTO users (id, email, first_name, email_verified)
+        VALUES ('other-provider', 'other@example.com', 'Other', true);
+      INSERT INTO notification_preferences (user_id, enable_notifications, enable_email_notifications, type_preferences)
+        VALUES ('other-provider', true, true, '{"new_project_request":{"enabled":true,"delivery_methods":["in_app","email"]}}');
+    `);
+    const otherNotification = await service.createAssignedProviderNotification(
+      {
+        userId: "other-provider",
+        type: "new_project_request",
+        title: "Another business request",
+        message: "Another business request",
+        deliveryMethods: ["in_app", "push"],
+        actionUrl: "/direct-connect/inbox",
+      },
+      "request-1"
+    );
+    expect(otherNotification.deliveryMethods).not.toContain("email");
+    await service.processEmailDeliveryJobs();
+    expect(fixture.sendEmail).not.toHaveBeenCalled();
+  });
 
   it.each([
     "UPDATE users SET email_verified = false",
@@ -802,6 +872,7 @@ describe("normal Direct Connect provider email activation", () => {
       title: "Unbound",
       message: "Unbound",
       deliveryMethods: ["email"],
+      metadata: { purpose: "direct_connect_provider_request" },
     });
     await service.processEmailDeliveryJobs();
     expect((await jobs())[0].status).toBe("cancelled");

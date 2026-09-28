@@ -294,6 +294,9 @@ class EmailService {
         purpose === "tradepartner_rsvp_admin" ||
         purpose === "tradepartner_rsvp_confirmation" ||
         purpose === "tradepartner_request_notification" ||
+        // Only the bound provider-request outbox send site assigns this purpose.
+        // Generic Direct Connect notifications retain the restricted-mode gate.
+        purpose === "direct_connect_provider_request" ||
         // Requester confirmation for Express Direct Connect. Existing-account
         // matches previously used purpose "notification", which EMAIL_MODE
         // account_creation_only silently suppressed in production.

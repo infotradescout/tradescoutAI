@@ -4478,7 +4478,11 @@ export function registerDirectConnectRoutes(app: Express) {
         if (!viewerIsRequester && !viewerIsProvider) {
           return res.status(403).json({ message: "Thread not available for this user" });
         }
-        const accepted = await loadAcceptedJobForConversation({ threadId, requesterUserId, providerKey });
+        const accepted = await loadAcceptedJobForConversation({
+          threadId,
+          requesterUserId,
+          providerKey,
+        });
         if (!accepted) {
           return res.status(404).json({ message: "No accepted Direct Connect job for thread" });
         }
@@ -7434,14 +7438,18 @@ export function registerDirectConnectRoutes(app: Express) {
           .orderBy(asc(workRequestAssignments.createdAt));
 
         const providerKeys = [
-          ...new Set<string>(assignments
-            .flatMap((a) => [a.contractorId, a.responderUserId])
-            .filter((id: unknown): id is string => typeof id === "string" && Boolean(id))),
+          ...new Set<string>(
+            assignments
+              .flatMap((a) => [a.contractorId, a.responderUserId])
+              .filter((id: unknown): id is string => typeof id === "string" && Boolean(id))
+          ),
         ];
         const responderByKey = new Map(
-          await Promise.all(providerKeys.map(async (key) =>
-            [key, await resolveConversationProviderIdentity(key)] as const
-          ))
+          await Promise.all(
+            providerKeys.map(
+              async (key) => [key, await resolveConversationProviderIdentity(key)] as const
+            )
+          )
         );
 
         const events = await db
@@ -7506,7 +7514,9 @@ export function registerDirectConnectRoutes(app: Express) {
           originatingProfile,
           assignments: assignments.map((a) => {
             const provider = responderByKey.get(a.contractorId || a.responderUserId || "");
-            const conflictingIdentity = a.contractorId && a.responderUserId &&
+            const conflictingIdentity =
+              a.contractorId &&
+              a.responderUserId &&
               provider?.userId !== responderByKey.get(a.responderUserId)?.userId;
             const responder = conflictingIdentity ? null : provider;
             return {
@@ -7593,11 +7603,47 @@ export function registerDirectConnectRoutes(app: Express) {
           return preferences;
         };
 
+        // A conversation may be shared by several requests between the same people.
+        // Only an acceptance event binds that thread to this exact assignment.
+        const loadAcceptedConversationByAssignment = async (assignments: any[]) => {
+          const acceptedById = new Map(
+            assignments
+              .filter((assignment: any) => String(assignment.status) === "accepted")
+              .map((assignment: any) => [String(assignment.id), String(assignment.workRequestId)])
+          );
+          const conversationByAssignment = new Map<string, string>();
+          if (!acceptedById.size) return conversationByAssignment;
+          const events = await db
+            .select({
+              workRequestId: workRequestEvents.workRequestId,
+              metadata: workRequestEvents.metadata,
+            })
+            .from(workRequestEvents)
+            .where(
+              and(
+                inArray(workRequestEvents.workRequestId, Array.from(acceptedById.values())),
+                eq(workRequestEvents.type, "provider_accepted")
+              )
+            )
+            .orderBy(desc(workRequestEvents.createdAt), desc(workRequestEvents.id));
+          for (const event of events as any[]) {
+            const metadata = authorityRecord(event.metadata);
+            const assignmentId = String(metadata?.assignmentId || "");
+            const conversationId = String(metadata?.conversationId || "");
+            if (
+              !conversationId ||
+              acceptedById.get(assignmentId) !== String(event.workRequestId) ||
+              conversationByAssignment.has(assignmentId)
+            ) {
+              continue;
+            }
+            conversationByAssignment.set(assignmentId, conversationId);
+          }
+          return conversationByAssignment;
+        };
+
         // Helper to build provider inbox items from a set of assignments
-        const buildProviderInboxItems = async (
-          assignments: any[],
-          providerUserId?: string
-        ): Promise<any[]> => {
+        const buildProviderInboxItems = async (assignments: any[]): Promise<any[]> => {
           if (!assignments.length) return [];
           const workRequestIds = assignments.map((a: any) => a.workRequestId);
           const requests = await db
@@ -7608,48 +7654,7 @@ export function registerDirectConnectRoutes(app: Express) {
           const contactPreferenceByRequest = await loadExpressContactPreferenceByRequest(
             workRequestIds.map(String)
           );
-          // Resolve conversation threads for accepted assignments.
-          // Business/worker providers are stored in conversations using userId as contractorId.
-          const conversationByHomeowner = new Map<string, string>();
-          if (providerUserId) {
-            const acceptedAssignments = assignments.filter((a: any) => a.status === "accepted");
-            if (acceptedAssignments.length) {
-              const homeownerIds = Array.from(
-                new Set(
-                  acceptedAssignments
-                    .map((a: any) => {
-                      const req = requestById.get(a.workRequestId) as any;
-                      return req?.createdByUserId ? String(req.createdByUserId) : null;
-                    })
-                    .filter((id): id is string => Boolean(id))
-                )
-              );
-              if (homeownerIds.length) {
-                try {
-                  const convRows = await db
-                    .select()
-                    .from(conversations)
-                    .where(
-                      and(
-                        eq(conversations.contractorId, providerUserId),
-                        inArray(conversations.homeownerId, homeownerIds)
-                      )
-                    )
-                    .orderBy(desc(conversations.createdAt));
-                  for (const convo of convRows as any[]) {
-                    const homeownerId = String((convo as any).homeownerId || "");
-                    if (!homeownerId || conversationByHomeowner.has(homeownerId)) continue;
-                    conversationByHomeowner.set(homeownerId, String((convo as any).id));
-                  }
-                } catch (e) {
-                  console.warn(
-                    "[direct-connect] Failed to resolve conversation threads for business/worker inbox",
-                    e
-                  );
-                }
-              }
-            }
-          }
+          const conversationByAssignment = await loadAcceptedConversationByAssignment(assignments);
           return assignments.map((a: any) => ({
             assignment: {
               ...a,
@@ -7675,12 +7680,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 attachmentCount: getAttachmentCount(requestRow),
               };
             })(),
-            conversationThreadId: (() => {
-              if (!providerUserId) return null;
-              const reqRow = requestById.get(a.workRequestId) as any;
-              if (!reqRow?.createdByUserId) return null;
-              return conversationByHomeowner.get(String(reqRow.createdByUserId)) || null;
-            })(),
+            conversationThreadId: conversationByAssignment.get(String(a.id)) || null,
           }));
         };
 
@@ -7703,34 +7703,8 @@ export function registerDirectConnectRoutes(app: Express) {
               workRequestIds.map(String)
             );
 
-            const homeownerIds = Array.from(
-              new Set(
-                (requests as any[])
-                  .map((r: any) => String(r.createdByUserId || ""))
-                  .filter((id: string) => id.length > 0)
-              )
-            );
-
-            const candidateConversations =
-              homeownerIds.length > 0
-                ? await db
-                    .select()
-                    .from(conversations)
-                    .where(
-                      and(
-                        eq(conversations.contractorId, contractor.id),
-                        inArray(conversations.homeownerId, homeownerIds)
-                      )
-                    )
-                    .orderBy(desc(conversations.createdAt))
-                : [];
-
-            const conversationByHomeowner = new Map<string, string>();
-            for (const convo of candidateConversations as any[]) {
-              const homeownerId = String((convo as any).homeownerId || "");
-              if (!homeownerId || conversationByHomeowner.has(homeownerId)) continue;
-              conversationByHomeowner.set(homeownerId, String((convo as any).id));
-            }
+            const conversationByAssignment =
+              await loadAcceptedConversationByAssignment(assignments);
 
             const providerItems = assignments.map((a: any) => ({
               assignment: {
@@ -7757,11 +7731,7 @@ export function registerDirectConnectRoutes(app: Express) {
                   attachmentCount: getAttachmentCount(requestRow),
                 };
               })(),
-              conversationThreadId: (() => {
-                const reqRow = requestById.get(a.workRequestId) as any;
-                if (!reqRow?.createdByUserId) return null;
-                return conversationByHomeowner.get(String(reqRow.createdByUserId)) || null;
-              })(),
+              conversationThreadId: conversationByAssignment.get(String(a.id)) || null,
             }));
             inboxItems.push(...providerItems);
           }
@@ -7776,7 +7746,7 @@ export function registerDirectConnectRoutes(app: Express) {
             .where(eq((workRequestAssignments as any).responderUserId, String(userId)))
             .orderBy(desc(workRequestAssignments.createdAt));
           if (bizAssignments.length) {
-            const bizItems = await buildProviderInboxItems(bizAssignments, String(userId));
+            const bizItems = await buildProviderInboxItems(bizAssignments);
             inboxItems.push(...bizItems);
           }
         } catch (e) {
@@ -7806,7 +7776,7 @@ export function registerDirectConnectRoutes(app: Express) {
               )
               .orderBy(desc(workRequestAssignments.createdAt));
             if (workerAssignments.length) {
-              const workerItems = await buildProviderInboxItems(workerAssignments, String(userId));
+              const workerItems = await buildProviderInboxItems(workerAssignments);
               inboxItems.push(...workerItems);
             }
           }
@@ -9469,16 +9439,16 @@ export function registerDirectConnectRoutes(app: Express) {
               throw new Error("Direct Connect acceptance did not update the work request");
             }
 
-             await tx.insert(workRequestEvents).values({
-               workRequestId: requestRow.id,
-               type: "provider_accepted",
-               actorUserId: String(userId),
-               metadata: {
-                 contractorId: isContractorAssignment ? contractor!.id : null,
-                 responderUserId: isBusinessAssignment ? String(userId) : null,
-                 conversationId,
-                 responseSummary,
-                 assignmentId: String(updatedAssignment.id),
+            await tx.insert(workRequestEvents).values({
+              workRequestId: requestRow.id,
+              type: "provider_accepted",
+              actorUserId: String(userId),
+              metadata: {
+                contractorId: isContractorAssignment ? contractor!.id : null,
+                responderUserId: isBusinessAssignment ? String(userId) : null,
+                conversationId,
+                responseSummary,
+                assignmentId: String(updatedAssignment.id),
                 ...(authorityTransition
                   ? {
                       sourceDecisionCardId: authorityTransition.sourceDecisionCardId,

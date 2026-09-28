@@ -27,9 +27,11 @@ import {
 import { eq, and, or, sql, desc, asc, isNull, inArray } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { emailService, EmailDeliveryError, maskEmailForLog } from "./services/emailService";
+import { buildAssignedProviderEmailContent } from "./services/directConnectProviderEmailContent";
 import webPush from "web-push";
 
 const EMAIL_JOB_TYPE = "notification_email_v1";
+const DIRECT_CONNECT_PROVIDER_REQUEST_EMAIL_PURPOSE = "direct_connect_provider_request";
 const EMAIL_MAX_ATTEMPTS = 5;
 const EMAIL_LEASE_MS = 10 * 60_000;
 
@@ -873,14 +875,16 @@ export class NotificationService {
     // A signup has at most three distinct staff recipients. Submit those
     // independently so one slow provider call does not delay the others.
     for (let offset = 0; offset < jobIds.length; offset += 3) {
-      const outcomes = await Promise.allSettled(jobIds.slice(offset, offset + 3).map(async (id) => {
-        // The bulk worker may be active here or on another instance.
-        // PostgreSQL's claim, rather than the bulk pass flag, arbitrates both.
-        const job = await this.claimEmailJob(id);
-        if (!job) return 0;
-        await this.processClaimedEmailJob(job);
-        return 1;
-      }));
+      const outcomes = await Promise.allSettled(
+        jobIds.slice(offset, offset + 3).map(async (id) => {
+          // The bulk worker may be active here or on another instance.
+          // PostgreSQL's claim, rather than the bulk pass flag, arbitrates both.
+          const job = await this.claimEmailJob(id);
+          if (!job) return 0;
+          await this.processClaimedEmailJob(job);
+          return 1;
+        })
+      );
       for (const outcome of outcomes) {
         if (outcome.status === "fulfilled") processed += outcome.value;
         else if (!failed) {
@@ -994,6 +998,7 @@ export class NotificationService {
     }
 
     let submissionAuthority = sql`TRUE`;
+    let providerEmailContext: ProviderEmailContext | null = null;
     if (notification.type === "new_project_request") {
       const binding = notification.metadata?.directConnectProviderEmail as
         | ProviderEmailBinding
@@ -1033,6 +1038,7 @@ export class NotificationService {
         await this.finishEmailJob(job, { status: "retry", code: "eligibility_changed" }, data);
         return;
       }
+      providerEmailContext = current;
       // Serialize consent and invitation state with the submission transition.
       // Revocation after this transition cannot recall an already submitted email.
       submissionAuthority = sql`EXISTS (
@@ -1060,8 +1066,8 @@ export class NotificationService {
       )`;
     }
 
-    // Request titles and message bodies can contain private contact details.
-    // Direct Connect mail is an inbox pointer, never a second contact surface.
+    // Only a verified, bound provider invitation receives request details.
+    // Other Direct Connect mail remains a generic inbox pointer.
     const isDirectConnect =
       notification.type.startsWith("dc_") ||
       ["new_project_request", "direct_connect_beta_request"].includes(notification.type);
@@ -1072,15 +1078,24 @@ export class NotificationService {
       typeof notification.metadata?.profileAccountId === "string" &&
       notification.id ===
         `profile-account-signup:${notification.metadata.profileAccountId}:${user.id}`;
-    const content = isDirectConnect
+    const content = providerEmailContext
       ? {
           ...notification,
-          title: "Direct Connect update",
-          message: "You have an update in Direct Connect. Sign in to review it and respond.",
-          actionUrl: "/direct-connect/inbox",
-          actionText: "Open Direct Connect",
+          ...buildAssignedProviderEmailContent(
+            providerEmailContext.request,
+            providerEmailContext.assignment.id,
+            process.env.APP_URL || process.env.CLIENT_ORIGIN || "https://www.thetradescout.com"
+          ),
         }
-      : notification;
+      : isDirectConnect
+        ? {
+            ...notification,
+            title: "Direct Connect update",
+            message: "You have an update in Direct Connect. Sign in to review it and respond.",
+            actionUrl: "/direct-connect/inbox",
+            actionText: "Open Direct Connect",
+          }
+        : notification;
     let outcome: { status: string; code?: string; provider?: string; messageId?: string };
     const started = await db
       .update(notificationJobs)
@@ -1109,7 +1124,11 @@ export class NotificationService {
         subject: content.title,
         html: this.generateEmailHTML(content, user),
         text: content.message,
-        purpose: isJwStoneSignupStaff ? "jw_stone_signup_staff" : "notification",
+        purpose: providerEmailContext
+          ? DIRECT_CONNECT_PROVIDER_REQUEST_EMAIL_PURPOSE
+          : isJwStoneSignupStaff
+            ? "jw_stone_signup_staff"
+            : "notification",
         correlationId: notification.id,
         singleAttempt: true,
       });

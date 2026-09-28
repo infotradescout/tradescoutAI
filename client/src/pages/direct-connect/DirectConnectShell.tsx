@@ -151,12 +151,14 @@ import {
 import {
   DIRECT_CONNECT_INCOMING_PATH,
   DIRECT_CONNECT_REQUESTS_PATH,
+  buildDirectConnectIncomingSignInHref,
   buildCanonicalDirectConnectWorkspaceHref,
   canonicalizeDirectConnectWorkspacePathname,
   getDirectConnectComposerDraftSessionKey,
   getDirectConnectWorkspaceTask,
   hasDirectConnectTaskbarResumeSignal,
   isRealDirectConnectAssignmentId,
+  parseDirectConnectWorkspaceRoute,
   resolveDirectConnectTaskbarResumeHref,
   resolveDirectConnectComposerLocation,
   resolveDirectConnectComposerReturnPath,
@@ -555,6 +557,10 @@ function useDirectConnectWorkdeskState({
         previousScope: hydratedScope,
         currentScope,
         task,
+        preserveExplicitSelection:
+          task === "incoming" &&
+          Boolean(authenticatedUserId) &&
+          parseDirectConnectWorkspaceRoute(window.location.search, task).explicit.selectedId,
       })
     );
     setHydratedScope(currentScope);
@@ -4233,7 +4239,14 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in to view Direct Connect messages.
+          <p>Sign in to review your Direct Connect requests and respond.</p>
+          <Button
+            type="button"
+            className="mt-4"
+            onClick={() => navigate(buildDirectConnectIncomingSignInHref(window.location.search))}
+          >
+            Sign in to review requests
+          </Button>
         </CardContent>
       </Card>
     );
@@ -4759,16 +4772,17 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
                                 await respondMutation.mutateAsync({
                                   id: assignment.id,
                                   decision: "decline",
-                                  reason: "Archived from inbox",
+                                  reason: "Declined by provider",
                                 });
                               } catch {
                                 return;
                               }
+                              return;
                             }
                             setArchivedAssignmentIds((current) => [...current, assignment.id]);
                           }}
                         >
-                          Archive
+                          {actionableAssignment ? "Decline request" : "Archive"}
                         </Button>
                       </div>
                     </div>

@@ -5,6 +5,7 @@ import {
   DIRECT_CONNECT_REQUESTS_PATH,
   DIRECT_CONNECT_START_PATH,
   DIRECT_CONNECT_TASKBAR_RESUME_HREF,
+  buildDirectConnectIncomingSignInHref,
   buildCanonicalDirectConnectWorkspaceHref,
   canonicalizeDirectConnectWorkspacePathname,
   getDirectConnectComposerDraftSessionKey,
@@ -327,6 +328,56 @@ describe("Direct Connect work-desk state", () => {
       updateDirectConnectWorkspaceState(storedRequestsState, { countyFips: "12091" }, "requests")
         .selectedId
     ).toBe("");
+  });
+
+  it("restores an explicit incoming email link after sign-in only for a visible assignment", () => {
+    const assignmentId = "synthetic-assignment-1";
+    const signInHref = buildDirectConnectIncomingSignInHref(`?filter=all&selected=${assignmentId}`);
+    expect(signInHref).toBe(
+      `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`${DIRECT_CONNECT_INCOMING_PATH}?filter=all&selected=${assignmentId}`)}`
+    );
+    const returnPath = new URLSearchParams(signInHref.split("?")[1]).get("next") || "";
+    expect(returnPath).toBe(`${DIRECT_CONNECT_INCOMING_PATH}?filter=all&selected=${assignmentId}`);
+    const restoredState = resolveDirectConnectWorkspaceState({
+      search: new URL(returnPath, "https://example.invalid").search,
+      storage: window.sessionStorage,
+      authenticatedUserId: "recipient-1",
+      pathname: DIRECT_CONNECT_INCOMING_PATH,
+    });
+    const hydrated = resolveDirectConnectWorkspaceScopeHydration({
+      restoredState,
+      previousScope: `guest:${DIRECT_CONNECT_INCOMING_PATH}:no-county`,
+      currentScope: `recipient-1:${DIRECT_CONNECT_INCOMING_PATH}:no-county`,
+      task: "incoming",
+      preserveExplicitSelection: true,
+    });
+    expect(hydrated.selectedId).toBe(assignmentId);
+    const recipientItems = [{ assignment: { id: assignmentId } }];
+    const otherRecipientItems = [{ assignment: { id: "synthetic-assignment-2" } }];
+    expect(
+      resolveSelectedDirectConnectWorkspaceItem(
+        recipientItems,
+        hydrated.selectedId,
+        (item) => item.assignment.id
+      )
+    ).toEqual(recipientItems[0]);
+    expect(
+      resolveSelectedDirectConnectWorkspaceItem(
+        otherRecipientItems,
+        hydrated.selectedId,
+        (item) => item.assignment.id
+      )
+    ).toBeNull();
+    expect(
+      shouldInvalidateDirectConnectWorkspaceSelection({
+        workspaceHydrated: true,
+        selectedId: hydrated.selectedId,
+        selectionResolved: false,
+        queryIsSuccess: true,
+        queryIsFetching: false,
+        queryFetchedAfterMount: true,
+      })
+    ).toBe(true);
   });
 
   it("isolates role storage and resolves selection only from current results", () => {

@@ -3,6 +3,11 @@ export const DIRECT_CONNECT_INCOMING_PATH = "/direct-connect/inbox";
 export const DIRECT_CONNECT_REQUESTS_PATH = "/direct-connect/active";
 export const DIRECT_CONNECT_TASKBAR_RESUME_HREF = "/direct-connect?resume=last-task";
 
+export function buildDirectConnectIncomingSignInHref(search: string): string {
+  const query = search.startsWith("?") ? search : "";
+  return `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`${DIRECT_CONNECT_INCOMING_PATH}${query}`)}`;
+}
+
 const DIRECT_CONNECT_WORKSPACE_STORAGE_PREFIX = "tradescout:direct-connect-workspace:v1:";
 const DIRECT_CONNECT_COMPOSER_DRAFT_STORAGE_PREFIX = "tradescout:direct-connect-composer-draft:v1:";
 const DIRECT_CONNECT_LAST_TASK_STORAGE_PREFIX = "tradescout:direct-connect-last-task:v1:";
@@ -340,14 +345,16 @@ export function resolveDirectConnectWorkspaceScopeHydration({
   previousScope,
   currentScope,
   task,
+  preserveExplicitSelection = false,
 }: {
   restoredState: DirectConnectWorkspaceState;
   previousScope: string;
   currentScope: string;
   task: DirectConnectWorkspaceTask;
+  preserveExplicitSelection?: boolean;
 }): DirectConnectWorkspaceState {
   const restored = sanitizeDirectConnectWorkspaceState(restoredState, task);
-  if (previousScope && previousScope !== currentScope) {
+  if (previousScope && previousScope !== currentScope && !preserveExplicitSelection) {
     return { ...restored, selectedId: "" };
   }
   return restored;

@@ -136,9 +136,20 @@ export function getDirectConnectInboxNextStepCopy(
     return {
       label: "Respond to request",
       summary: item.submissionContactAvailable
-        ? "View the name and phone the sender shared with this request. Accept with your scope and availability to open a conversation, or archive it."
-        : "Accept with your scope and availability, or archive it. Contact opens only after acceptance.",
-      actionHint: item.isStructuredReplyOpen ? "Accept and open conversation" : "Prepare response",
+        ? "View the contact the sender shared with this request. Accept with your scope and availability to open a conversation, or decline the request."
+        : "Accept with your scope and availability, or decline the request. Contact opens only after acceptance.",
+      actionHint: item.isStructuredReplyOpen ? "Accept and open conversation" : "Accept request",
+      contactUnlocked: false,
+    };
+  }
+
+  // A thread shared with another request must never turn a declined assignment
+  // into an active coordination path.
+  if (assignmentStatus === "declined") {
+    return {
+      label: "Response archived",
+      summary: "You declined or archived this request, so no contact path is open.",
+      actionHint: "Review details",
       contactUnlocked: false,
     };
   }
@@ -149,15 +160,6 @@ export function getDirectConnectInboxNextStepCopy(
       summary: "This accepted request is ready for its Messages conversation.",
       actionHint: "Open conversation",
       contactUnlocked,
-    };
-  }
-
-  if (assignmentStatus === "declined") {
-    return {
-      label: "Response archived",
-      summary: "You declined or archived this request, so no contact path is open.",
-      actionHint: "Review details",
-      contactUnlocked: false,
     };
   }
 
