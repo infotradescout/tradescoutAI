@@ -98,6 +98,11 @@ export default function ProfilePage() {
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
   const [profileStatus, setProfileStatus] = useState<OwnedProfile["status"]>(undefined);
   const [profileExposure, setProfileExposure] = useState<OwnedProfile["publicExposure"]>(undefined);
+  const [ownedProfileLookup, setOwnedProfileLookup] = useState<{
+    ownerId: string;
+    state: "loading" | "empty" | "ready" | "error";
+    profileId?: string;
+  } | null>(null);
   const [businessSlug, setBusinessSlug] = useState<string | null>(null);
   const [businessPagePublic, setBusinessPagePublic] = useState(false);
   const [activatingPublic, setActivatingPublic] = useState(false);
@@ -107,6 +112,13 @@ export default function ProfilePage() {
 
     const load = async () => {
       if (!user?.id) return;
+
+      setOwnedProfileLookup({ ownerId: user.id, state: "loading" });
+      setProfileSlug(null);
+      setProfileStatus(undefined);
+      setProfileExposure(undefined);
+      setBusinessSlug(null);
+      setBusinessPagePublic(false);
 
       try {
         const shouldAttemptBusinessProfile = isBusinessUser(user as any, null);
@@ -133,7 +145,10 @@ export default function ProfilePage() {
 
         const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
 
-        if (!Array.isArray(list) || list.length === 0) return;
+        if (!Array.isArray(list) || list.length === 0) {
+          if (!cancelled) setOwnedProfileLookup({ ownerId: user.id, state: "empty" });
+          return;
+        }
 
         const activeProfileId = (user as any).activeProfileId as string | undefined;
 
@@ -143,15 +158,20 @@ export default function ProfilePage() {
           active = list.find((p) => (p as any).status === "published") || list[0];
         }
 
-        if (!active?.slug) return;
+        if (!active?.id || !active.slug) {
+          if (!cancelled) setOwnedProfileLookup({ ownerId: user.id, state: "error" });
+          return;
+        }
 
         if (!cancelled) {
           setProfileSlug(active.slug);
           setProfileStatus(active.status);
           setProfileExposure(active.publicExposure);
+          setOwnedProfileLookup({ ownerId: user.id, state: "ready", profileId: active.id });
         }
       } catch (error) {
         console.error("Error loading profile site slug for share URL:", error);
+        if (!cancelled) setOwnedProfileLookup({ ownerId: user.id, state: "error" });
       }
     };
 
@@ -246,16 +266,24 @@ export default function ProfilePage() {
         ? `${getCanonicalAppOrigin()}/business/${encodeURIComponent(businessSlug)}`
         : `${getCanonicalAppOrigin()}/profile/${user.id}`;
   const legacyIsPublic = user.preferences?.profileVisibility === "public";
+  const lookupState = ownedProfileLookup?.ownerId === user.id ? ownedProfileLookup.state : "loading";
+  const selectedProfileId =
+    lookupState === "ready" && ownedProfileLookup?.ownerId === user.id
+      ? ownedProfileLookup.profileId
+      : undefined;
   const exposureMode = profileExposure?.mode;
   const isDiscoverablePublic =
     Boolean(businessSlug && businessPagePublic) ||
-    (exposureMode ? exposureMode === "public" : legacyIsPublic);
+    Boolean(selectedProfileId && (exposureMode ? exposureMode === "public" : legacyIsPublic));
   const canSharePublicRoute =
     Boolean(businessSlug && businessPagePublic) ||
-    exposureMode === "public" ||
-    exposureMode === "direct_only" ||
-    exposureMode === "unlisted_review" ||
-    (!exposureMode && legacyIsPublic);
+    Boolean(
+      selectedProfileId &&
+        (exposureMode === "public" ||
+          exposureMode === "direct_only" ||
+          exposureMode === "unlisted_review" ||
+          (!exposureMode && legacyIsPublic))
+    );
   const exposureReason =
     !businessPagePublic &&
     profileExposure?.reason && profileExposure.reason !== "public"
@@ -276,24 +304,39 @@ export default function ProfilePage() {
   };
 
   const enablePublicProfile = async () => {
-    if (activatingPublic) return;
+    if (activatingPublic || !selectedProfileId) return;
     setActivatingPublic(true);
 
     try {
       const result = (await apiRequest("PATCH", "/api/users/profile-visibility", {
+        profileId: selectedProfileId,
         profileVisibility: "public",
         proceedUnverified: true,
-      })) as { profileSlug?: string | null };
+      })) as { profileId: string; profileSlug?: string | null; profileStatus?: OwnedProfile["status"] };
 
       const newSlug = result?.profileSlug ? String(result.profileSlug) : null;
       if (newSlug) {
         setProfileSlug(newSlug);
       }
 
+      setProfileStatus(result.profileStatus);
+      try {
+        const profiles = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
+        const refreshed = Array.isArray(profiles)
+          ? profiles.find((profile) => profile.id === selectedProfileId)
+          : undefined;
+        if (refreshed) {
+          setProfileStatus(refreshed.status);
+          setProfileExposure(refreshed.publicExposure);
+        }
+      } catch (refreshError) {
+        console.error("Profile published, but visibility refresh failed:", refreshError);
+      }
+
       await refetch();
       toast({
-        title: "Profile is now public",
-        description: "Your public profile is live. Customize it to make it yours.",
+        title: "Profile page published",
+        description: "Open the editor to review its visibility and content.",
       });
       // Navigate to the profile editor so the user can customize their new public page
       if (newSlug) {
@@ -727,7 +770,7 @@ export default function ProfilePage() {
         </Tabs>
 
         {/* Call to Action */}
-        {!isDiscoverablePublic && (
+        {!isDiscoverablePublic && lookupState === "ready" && (
           <Card className="bg-gradient-to-r from-ts-orange/20 to-ts-orange/10 border-ts-orange">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
@@ -751,6 +794,20 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+        {!isDiscoverablePublic && lookupState === "empty" && (
+          <Card className="bg-tsCard border-white/10" data-testid="profile-page-setup-guidance">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-2">Set up a business page</h3>
+              <p className="text-sm text-white/60 mb-4">
+                You do not have a profile page to publish yet. Business profile setup creates a
+                page you can review and share.
+              </p>
+              <Button onClick={() => setLocation("/onboarding")} variant="outline">
+                Start business profile setup
+              </Button>
             </CardContent>
           </Card>
         )}
