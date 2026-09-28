@@ -1,3 +1,5 @@
+import { getOperationalRequestContext } from './operationalRequestContext.ts';
+
 // Keep operational context readable without serializing credentials. In particular,
 // JSON.stringify(Error) drops the non-enumerable message, stack and cause fields.
 const secretFields = new Set([
@@ -58,7 +60,13 @@ function logValue(value: unknown, ancestors: Set<object>, depth = 0): unknown {
 
 function safeStringify(value: unknown): string {
   try {
-    return JSON.stringify(logValue(value, new Set())) ?? '[Undefined]';
+    const metadata = logValue(value, new Set());
+    const requestContext = getOperationalRequestContext();
+    if (!requestContext) return JSON.stringify(metadata) ?? '[Undefined]';
+    // Preserve existing object fields; caller metadata cannot overwrite our context.
+    const fields = metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? metadata : value === undefined ? {} : { value: metadata };
+    return JSON.stringify({ ...fields, requestContext });
   } catch {
     return '[Unserializable log metadata]';
   }
@@ -68,10 +76,15 @@ function formatMessage(message: unknown): string {
   try { return redactText(String(message)); } catch { return '[Unserializable log message]'; }
 }
 
+function formatMetadata(meta: unknown): string {
+  try { return meta !== undefined || getOperationalRequestContext() ? safeStringify(meta) : ''; }
+  catch { return '[Request context unavailable]'; }
+}
+
 // Preserve the existing human-readable prefixes and severity-specific console sinks.
 export const logger = {
-  info: (message: string, meta?: unknown) => console.log(`[INFO] ${formatMessage(message)}`, meta !== undefined ? safeStringify(meta) : ''),
-  warn: (message: string, meta?: unknown) => console.warn(`[WARN] ${formatMessage(message)}`, meta !== undefined ? safeStringify(meta) : ''),
-  error: (message: string, meta?: unknown) => console.error(`[ERROR] ${formatMessage(message)}`, meta !== undefined ? safeStringify(meta) : ''),
-  debug: (message: string, meta?: unknown) => console.debug(`[DEBUG] ${formatMessage(message)}`, meta !== undefined ? safeStringify(meta) : ''),
+  info: (message: string, meta?: unknown) => console.log(`[INFO] ${formatMessage(message)}`, formatMetadata(meta)),
+  warn: (message: string, meta?: unknown) => console.warn(`[WARN] ${formatMessage(message)}`, formatMetadata(meta)),
+  error: (message: string, meta?: unknown) => console.error(`[ERROR] ${formatMessage(message)}`, formatMetadata(meta)),
+  debug: (message: string, meta?: unknown) => console.debug(`[DEBUG] ${formatMessage(message)}`, formatMetadata(meta)),
 };

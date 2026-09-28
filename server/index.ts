@@ -110,7 +110,7 @@ import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
 import { and, eq, or, sql } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { createOperationalRequestDiagnostics, observeOperationalError } from "./services/operationalRequestContext";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
 import { provisionLaPlumbingProfile } from "./services/laPlumbingProfileProvisioning";
@@ -225,14 +225,7 @@ app.disable("x-powered-by");
 
 let viteSetupPromise: Promise<void> | null = null;
 
-app.use((req, res, next) => {
-  const incoming = req.headers["x-request-id"];
-  const requestId =
-    typeof incoming === "string" && incoming.trim().length > 0 ? incoming.trim() : randomUUID();
-  (req as any).requestId = requestId;
-  res.setHeader("X-Request-Id", requestId);
-  next();
-});
+app.use(createOperationalRequestDiagnostics(logger));
 
 app.use((req, res, next) => {
   const originalSend = res.send.bind(res);
@@ -1062,13 +1055,8 @@ app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 // Serve uploads with resilient fallback (disk + R2 + extension compatibility).
 registerUploadsFallback(app);
 
-const apiSlowLogMs = Number(process.env.API_SLOW_LOG_MS || 750);
-const logAllApiRequests =
-  process.env.API_LOG_ALL === "true" || process.env.NODE_ENV !== "production";
-
 app.use((req, res, next) => {
   const start = Date.now();
-  const requestPath = req.path;
 
   res.on("finish", () => {
     const duration = Date.now() - start;
@@ -1087,13 +1075,6 @@ app.use((req, res, next) => {
       responseBytes,
     });
 
-    if (requestPath.startsWith("/api")) {
-      const isError = res.statusCode >= 400;
-      const isSlow = Number.isFinite(apiSlowLogMs) ? duration >= apiSlowLogMs : duration >= 750;
-      if (logAllApiRequests || isError || isSlow) {
-        log(`${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`);
-      }
-    }
   });
 
   next();
@@ -1340,6 +1321,7 @@ app.use(landingContractHeaders);
       app.use(Sentry.Handlers.errorHandler());
     }
 
+    app.use(observeOperationalError);
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err?.message || "Internal Server Error";

@@ -1,4 +1,6 @@
 import type { Express, Request, Response } from "express";
+import { recordOperationalOutcome, recordOperationalValidation } from "../services/operationalRequestContext";
+import { logger } from "../services/logger";
 import { rateLimit } from "express-rate-limit";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -639,17 +641,24 @@ export function registerTradePartnerExpressRoutes(app: Express) {
       try {
         const parsed = requestSchema.safeParse(req.body ?? {});
         if (!parsed.success) {
+          recordOperationalOutcome(res, { code: "EXPRESS_REQUEST_VALIDATION_FAILED" });
+          recordOperationalValidation(res, parsed.error.issues);
           return res.status(400).json({
             message: "Enter your name, email, phone number, and request details.",
             issues: parsed.error.flatten(),
           });
         }
         const target = await resolveTradePartnerTarget(req.params.slug);
-        if (!target) return res.status(404).json({ message: "Profile not found." });
+        if (!target) {
+          recordOperationalOutcome(res, { code: "EXPRESS_PROFILE_NOT_FOUND" });
+          return res.status(404).json({ message: "Profile not found." });
+        }
+        recordOperationalOutcome(res, { profileSlug: target.profileSlug });
 
         const body = parsed.data;
         if ((body.requestType === "make_offer") !== Boolean(body.stoneOffer) ||
             (body.stoneOffer && (body.serviceName || body.contactPreference === "call"))) {
+          recordOperationalOutcome(res, { code: "EXPRESS_OFFER_CONTEXT_INVALID" });
           return res.status(400).json({ message: "Use the stone offer form to submit a material-price offer." });
         }
         const verifiedDiscoveryAttribution = body.discoveryAttributionToken
@@ -658,9 +667,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             })
           : null;
         if (body.discoveryAttributionToken && !verifiedDiscoveryAttribution) {
+          recordOperationalOutcome(res, { code: "DISCOVERY_ATTRIBUTION_INVALID" });
           return res.status(400).json({ message: "This discovery link is no longer valid." });
         }
         if (body.stoneSelections && (body.itemId || body.stoneName)) {
+          recordOperationalOutcome(res, { code: "EXPRESS_SELECTION_CONFLICT" });
           return res.status(400).json({
             message: "Use either one stone or a saved-stone selection, not both.",
           });
@@ -675,6 +686,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           selections: body.stoneSelections,
         });
         if (body.stoneSelections && publicStoneSelections.length < 2) {
+          recordOperationalOutcome(res, { code: "EXPRESS_SELECTION_INCOMPLETE" });
           return res.status(400).json({
             message: "Choose at least two named stones for a saved-selection request.",
           });
@@ -977,7 +989,6 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             "The requester account was not committed with this request."
           );
         }
-
         if (requesterWasCreated) {
           try {
             await ensureSuperAdminConnectionForUser(String(requester.id));
@@ -1428,6 +1439,18 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             error: observatoryError,
           });
         }
+        recordOperationalOutcome(res, {
+          workRequestId: String(created.id),
+          profileSlug: target.profileSlug,
+          businessStatus: created.status,
+          ownerNotificationStatus,
+          businessNotificationEmailStatus,
+          businessNotificationEmailReason,
+          businessNotificationMessageId,
+          onboardingEmailStatus,
+          onboardingEmailReason,
+          onboardingEmailMessageId,
+        });
         return res.status(201).json({
           requestId: created.id,
           status: created.status,
@@ -1449,7 +1472,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (error instanceof ExpressContactAuthorityError || error instanceof JwStoneOfferError) {
           return res.status(error.status).json({ code: error.code, message: error.message });
         }
-        console.error("[tradepartner-express] request creation failed", error);
+        recordOperationalOutcome(res, { code: "EXPRESS_REQUEST_CREATE_FAILED" });
+        logger.error("[tradepartner-express] request creation failed", error);
         return res.status(500).json({ message: "The request could not be sent." });
       }
     }

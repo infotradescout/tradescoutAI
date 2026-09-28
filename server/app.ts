@@ -26,7 +26,8 @@ import {
 } from "./http/publicRequestGuards";
 import path from "path";
 import { fileURLToPath } from "url";
-import { randomUUID } from "crypto";
+import { logger } from "./services/logger";
+import { createOperationalRequestDiagnostics, observeOperationalError } from "./services/operationalRequestContext";
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -40,16 +41,6 @@ function getForwardedProto(req: Request): string {
     .toLowerCase();
 }
 
-function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
-
 export async function createApp() {
   await assertStartupInvariants();
 
@@ -57,14 +48,7 @@ export async function createApp() {
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
 
-  app.use((req, res, next) => {
-    const incoming = req.headers["x-request-id"];
-    const requestId =
-      typeof incoming === "string" && incoming.trim().length > 0 ? incoming.trim() : randomUUID();
-    (req as any).requestId = requestId;
-    res.setHeader("X-Request-Id", requestId);
-    next();
-  });
+  app.use(createOperationalRequestDiagnostics(logger));
 
   // Basic hardening + perf
   app.use(
@@ -190,13 +174,8 @@ export async function createApp() {
 
   // Request logging (skip in test)
   if (process.env.NODE_ENV !== "test") {
-    const apiSlowLogMs = Number(process.env.API_SLOW_LOG_MS || 750);
-    const logAllApiRequests =
-      process.env.API_LOG_ALL === "true" || process.env.NODE_ENV !== "production";
-
     app.use((req, res, next) => {
       const start = Date.now();
-      const requestPath = req.path;
 
       res.on("finish", () => {
         const duration = Date.now() - start;
@@ -213,13 +192,6 @@ export async function createApp() {
           responseBytes,
         });
 
-        if (requestPath.startsWith("/api")) {
-          const isError = res.statusCode >= 400;
-          const isSlow = Number.isFinite(apiSlowLogMs) ? duration >= apiSlowLogMs : duration >= 750;
-          if (logAllApiRequests || isError || isSlow) {
-            log(`${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`);
-          }
-        }
       });
 
       next();
@@ -236,6 +208,8 @@ export async function createApp() {
     app.use(Sentry.Handlers.errorHandler());
   }
 
+  // Record safe error type/code before the existing response handler.
+  app.use(observeOperationalError);
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.statusCode || err.status || 500;
