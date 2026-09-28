@@ -1,9 +1,13 @@
+import { resolveProviderBrowseIntent } from "./scoutProviderBrowseIntent";
+import { resolvePublicSitePageQuery } from "./scoutPublicSitePages";
+
 export type DecisionPipelineBehaviorKey =
   | "provider_routing"
   | "community_routing"
   | "marketplace_routing"
   | "contractor_search_routing"
-  | "support_routing";
+  | "support_routing"
+  | "public_site_page_search";
 
 type BuildDecisionPipelineBehaviorResponseInput = {
   behaviorKey: string;
@@ -44,6 +48,36 @@ export function buildDecisionPipelineBehaviorResponse(
     behaviorKey: input.behaviorKey,
     sourceUsed: "decision_pipeline_behavior_handler",
   };
+
+  if (input.behaviorKey === "public_site_page_search") {
+    const page = resolvePublicSitePageQuery(input.message);
+    if (!page) return null;
+    return {
+      message: `I found ${page.title}. ${page.summary} I checked selected public page destinations; I did not search live page content or private work.`,
+      suggestedActions: [],
+      actions: [{
+        type: "NAVIGATE",
+        label: `Open ${page.title}`,
+        to: page.path,
+        path: page.path,
+        primary: true,
+        subtitle: "Public TradeScout page",
+        why: "The exact guest page is in the public page catalog and route policy.",
+      }],
+      metadata: {
+        ...baseMetadata,
+        intent: "public_site_page_search",
+        sourceUsed: "scout_public_site_page_catalog",
+        sitePageSearch: {
+          coverage: "selected_public_pages",
+          checked: true,
+          liveContentChecked: false,
+          privateWorkChecked: false,
+          resultCount: 1,
+        },
+      },
+    };
+  }
 
   if (input.behaviorKey === "provider_routing") {
     return {
@@ -111,6 +145,37 @@ export function buildDecisionPipelineBehaviorResponse(
   }
 
   if (input.behaviorKey === "contractor_search_routing") {
+    const browse = resolveProviderBrowseIntent(input.message, {
+      countyCode: input.countyCode,
+      stateCode: input.stateCode,
+    });
+    if (browse) {
+      const subject = browse.tradeSlug
+        ? `${browse.tradeSlug.replace(/-/g, " ")} providers`
+        : "local providers";
+      const label = browse.areaNeedsSelection
+        ? `Choose area and compare ${subject}`
+        : `Compare ${subject}`;
+      return {
+        message: browse.areaNeedsSelection
+          ? `Choose the county for ${browse.requestedArea || "this search"}, then compare ${subject}. I could not narrow that place to one county yet.`
+          : `Open ${subject}${browse.areaLabel ? ` in ${browse.areaLabel}` : ""}. Review profiles before choosing whether to start a request.`,
+        suggestedActions: [],
+        actions: [
+          {
+            type: "NAVIGATE",
+            label,
+            to: browse.path,
+            path: browse.path,
+            primary: true,
+            subtitle: "Search local profiles",
+            why: "You asked to browse and compare providers.",
+          },
+        ],
+        metadata: { ...baseMetadata, intent: "provider_search" },
+      };
+    }
+
     return {
       message:
         "I will route this through Direct Connect so contractor discovery and contact gating stay trusted.",

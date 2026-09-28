@@ -7,6 +7,7 @@ import { ROUTES } from "@/lib/routes";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
 import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
+import { isEmbeddedScoutRequestReview } from "./scoutRequestReviewEmbed";
 import AppShellCore from "./AppShellCore";
 import type { NavItem } from "./AppShellCore";
 
@@ -91,6 +92,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isMobile = useIsMobile();
   const [location] = useLocation();
   const pathOnly = location.split("?")[0].split("#")[0] || "/";
+  const embeddedRequestReview = isEmbeddedScoutRequestReview(location);
 
   const customDomainProfileSlug =
     typeof window !== "undefined"
@@ -115,7 +117,8 @@ export function AppShell({ children, footer }: AppShellProps) {
     !isMobile &&
     !isAuthOrSetupSurface &&
     !isAdminSurface &&
-    !isPublicProfileSurface;
+    !isPublicProfileSurface &&
+    !embeddedRequestReview;
 
   const desktopBottomNavItems = useMemo(() => buildDesktopBottomNav(), []);
 

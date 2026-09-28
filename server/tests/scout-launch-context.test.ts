@@ -3,6 +3,7 @@ import {
   buildScoutLaunchContextCacheKey,
   normalizeScoutLaunchContext,
   parseScoutLaunchLocation,
+  SCOUT_LAUNCH_CONTINUATION_PARAM,
 } from "../../shared/scoutLaunchContext";
 import { normalizeScoutRequest } from "../scout/scoutRequestNormalizer";
 import { buildScoutMissionCacheKey } from "../services/scoutOptimizationEngine";
@@ -131,5 +132,37 @@ describe("Scout classic-to-conversation launch context", () => {
 
     expect(launch.context?.contextType).toBe("business_profile");
     expect(launch.returnPath).toBe("/u/la-plumbing-solutions");
+  });
+
+  it("distinguishes an opaque context-only continuation without changing unmarked signatures", () => {
+    const base = "/scout?source=business_profile_call&businessSlug=shared-plumbing&intent=estimate";
+    const token = "0123456789abcdef0123456789abcdef";
+    const unmarked = parseScoutLaunchLocation(base);
+    const marked = parseScoutLaunchLocation(`${base}&${SCOUT_LAUNCH_CONTINUATION_PARAM}=${token}`);
+    const withPrompt = parseScoutLaunchLocation(`${base}&prompt=Private%20job%20details`);
+    const withPromptAndMarker = parseScoutLaunchLocation(
+      `${base}&prompt=Private%20job%20details&${SCOUT_LAUNCH_CONTINUATION_PARAM}=${token}`
+    );
+
+    expect(unmarked.signature).toBe(JSON.stringify({ context: unmarked.context, prompt: null }));
+    expect(marked.context).toEqual(unmarked.context);
+    expect(marked.returnPath).toBe("/u/shared-plumbing");
+    expect(marked.continuationToken).toBe(token);
+    expect(marked.signature).not.toBe(unmarked.signature);
+    expect(withPromptAndMarker.signature).toBe(withPrompt.signature);
+    expect(withPromptAndMarker.continuationToken).toBeUndefined();
+  });
+
+  it("drops malformed or duplicate continuation markers before they reach Scout", () => {
+    const base = "/scout?source=scout_resume&intent=local-search";
+    for (const suffix of [
+      `&${SCOUT_LAUNCH_CONTINUATION_PARAM}=not-a-token`,
+      `&${SCOUT_LAUNCH_CONTINUATION_PARAM}=0123456789abcdef0123456789abcdef&${SCOUT_LAUNCH_CONTINUATION_PARAM}=fedcba9876543210fedcba9876543210`,
+    ]) {
+      const launch = parseScoutLaunchLocation(`${base}${suffix}`);
+      expect(launch.context).toBeNull();
+      expect(launch.prompt).toBeUndefined();
+      expect(launch.continuationToken).toBeUndefined();
+    }
   });
 });

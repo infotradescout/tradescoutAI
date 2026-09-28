@@ -114,6 +114,8 @@ function readSafeNext(location: string): string | undefined {
 
 export default function Onboarding() {
   const { user, refetch } = useAuth();
+  const onboardingPromptOwner =
+    typeof user?.id === "string" && user.id.trim() ? `user:${user.id}` : null;
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
@@ -171,9 +173,9 @@ export default function Onboarding() {
     const recovery = readPersistedOnboardingOutcomeRecovery(user);
     if (!recovery) return;
     completionResponseHandledRef.current = true;
-    if (recovery.resultPrompt) storeOnboardingResultPrompt(recovery.resultPrompt);
+    if (recovery.resultPrompt) storeOnboardingResultPrompt(recovery.resultPrompt, onboardingPromptOwner);
     navigate(recovery.resultRoute);
-  }, [navigate, user]);
+  }, [navigate, onboardingPromptOwner, user]);
 
   useEffect(() => {
     photosRef.current = photos;
@@ -301,7 +303,7 @@ export default function Onboarding() {
 
       const resultRoute = String(response?.result?.resultRoute || "").trim();
       if (response?.result?.kind === "express_result" && response.result.resultPrompt) {
-        storeOnboardingResultPrompt(response.result.resultPrompt);
+        storeOnboardingResultPrompt(response.result.resultPrompt, onboardingPromptOwner);
       }
       navigate(isSafeNextPath(resultRoute) ? resultRoute : "/scout");
     },

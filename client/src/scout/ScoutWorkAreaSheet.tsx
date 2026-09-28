@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { titleFromScoutWorkAreaUrl } from "./scoutWorkAreas";
+import { isScoutRequestReviewWorkAreaUrl } from "@/components/layout/scoutRequestReviewEmbed";
 
 export function ScoutWorkAreaSheet({
   open,
@@ -19,6 +20,7 @@ export function ScoutWorkAreaSheet({
     () => title?.trim() || titleFromScoutWorkAreaUrl(String(url || "")),
     [title, url]
   );
+  const embeddedRequestReview = isScoutRequestReviewWorkAreaUrl(url);
 
   // Avoid background scroll while the work area is open (mobile ergonomics).
   useEffect(() => {
@@ -41,24 +43,25 @@ export function ScoutWorkAreaSheet({
       >
         <div className="flex h-full flex-col bg-[var(--surface-card)]">
           <SheetHeader
-            className="border-b px-4 py-3"
+            className="border-b py-3 pl-4 pr-16"
             style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--surface-card)" }}
           >
-            <div className="flex items-center justify-between gap-2">
-              <SheetTitle className="text-sm font-semibold text-[var(--text-primary)]">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <SheetTitle className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-[var(--text-primary)]">
                 {resolvedTitle}
               </SheetTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 {url ? (
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-8 px-2.5"
+                    className="h-10 w-10 p-0"
                     style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
                     onClick={() => {
                       window.location.href = url;
                     }}
+                    aria-label="Open full page"
                     title="Open full page"
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -73,6 +76,7 @@ export function ScoutWorkAreaSheet({
               <iframe
                 key={url}
                 src={url}
+                data-scout-request-review={embeddedRequestReview ? "true" : undefined}
                 className="h-full w-full"
                 style={{ border: "none" }}
                 // Same-origin embed; keep permissive so existing pages work.

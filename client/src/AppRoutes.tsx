@@ -30,6 +30,7 @@ import {
   mergeCompatibilityRedirectTarget,
   type CompatibilityRedirectSlot,
 } from "@/routing/compatibilityRedirects";
+import { scoutSearchEntryDraft, writeScoutSearchEntryDraft } from "@/routing/scoutSearchEntry";
 
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
@@ -59,6 +60,33 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
     const target = mergeCompatibilityRedirectTarget(to, raw);
     if (raw !== target) navigate(target);
   }, [location, navigate, to]);
+
+  return null;
+});
+
+const RedirectSearchToScout = memo(function RedirectSearchToScout() {
+  const [location, navigate] = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const raw = typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+      : String(location || "");
+    const draft = scoutSearchEntryDraft(raw);
+    const owner = isAuthenticated
+      ? typeof user?.id === "string" && user.id.trim() ? `user:${user.id}` : null
+      : "guest";
+    let hasBoundDraft = false;
+    try {
+      hasBoundDraft = writeScoutSearchEntryDraft(draft, owner, window.sessionStorage);
+    } catch {
+      // Storage denial still opens Scout without placing the query in its URL.
+    }
+    // Do not carry source/intent metadata into Scout. A caller-supplied
+    // onboarding_result source would otherwise submit the draft automatically.
+    navigate(hasBoundDraft ? "/scout?entry=search" : "/scout", { replace: true });
+  }, [isAuthenticated, isLoading, location, navigate, user?.id]);
 
   return null;
 });
@@ -241,6 +269,7 @@ const SupplierProcurementQuote = React.lazy(() => import("./pages/supplier-procu
 const ContractorProfile = React.lazy(() => import("./pages/contractor-profile"));
 const DailyDeals = React.lazy(() => import("./pages/daily-deals"));
 const TradeDealsPage = React.lazy(() => import("./pages/trade-deals-lucky"));
+const DealDetail = React.lazy(() => import("./pages/deal-detail"));
 const HelpDemo = React.lazy(() => import("./pages/help-demo"));
 const TestPage = React.lazy(() => import("./pages/test-page"));
 const Profile = React.lazy(() => import("./pages/ProfilePage"));
@@ -961,6 +990,9 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={TradeDealsPage} />
                 </ProgressiveFeatureGate>
               </Route>
+              <Route path="/deals/:id">
+                <LazyPage Component={DealDetail} />
+              </Route>
               <Route path="/daily-deals/:rest*">
                 <LazyPage Component={DailyDeals} />
               </Route>
@@ -1119,6 +1151,12 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/handmade/products/:id">
                 <LazyPage Component={HandmadeProductDetail} />
+              </Route>
+              <Route path="/services/remote-notary">
+                <LazyPage Component={RemoteNotary} />
+              </Route>
+              <Route path="/services/mobile-notary">
+                <LazyPage Component={RemoteNotary} />
               </Route>
               <Route path="/services/:offerId">
                 <LazyPage Component={ProfileServiceOfferDetail} />
@@ -1676,10 +1714,10 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/advanced-search">
-                <RedirectTo to="/direct-connect" />
+                <RedirectSearchToScout />
               </Route>
               <Route path="/search">
-                <RedirectTo to="/direct-connect" />
+                <RedirectSearchToScout />
               </Route>
 
               {/* Applications */}
@@ -1981,13 +2019,7 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/legal/remote-notary">
                 <LazyPage Component={RemoteNotary} />
               </Route>
-              <Route path="/services/remote-notary">
-                <LazyPage Component={RemoteNotary} />
-              </Route>
               <Route path="/legal/mobile-notary">
-                <LazyPage Component={RemoteNotary} />
-              </Route>
-              <Route path="/services/mobile-notary">
                 <LazyPage Component={RemoteNotary} />
               </Route>
               <Route path="/about">

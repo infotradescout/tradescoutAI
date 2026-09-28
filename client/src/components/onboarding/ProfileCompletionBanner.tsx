@@ -37,6 +37,14 @@ export function resolveProfileCompletionBannerMode(params: {
   if (hasAdminUiAccess(user)) return null;
   if (isRecommendationActionPath(path)) return null;
 
+  const pathOnly = path.split(/[?#]/, 1)[0];
+  const isFocusedCustomerRoute =
+    pathOnly === "/contractors" ||
+    pathOnly.startsWith("/contractors/") ||
+    pathOnly === "/direct-connect/post" ||
+    pathOnly.startsWith("/direct-connect/post/");
+  if (isFocusedCustomerRoute) return null;
+
   const isSetupRoute =
     path.startsWith("/pre-scout-setup") ||
     isOnboardingSurfacePath(path) ||

@@ -23,6 +23,9 @@ export const SCOUT_WORK_AREA_PREFIXES = [
 export function canOpenScoutWorkArea(to: string | null | undefined): boolean {
   const raw = typeof to === "string" ? to.trim() : "";
   if (!raw.startsWith("/")) return false;
+  // A listing detail already has its own app shell. Open it as a full page so
+  // Scout's work-area sheet does not render a second header and bottom nav.
+  if (/^\/exchange\/tools\/[^/?#]+\/?(?:[?#]|$)/.test(raw)) return false;
   return SCOUT_WORK_AREA_PREFIXES.some((prefix) => raw.startsWith(prefix));
 }
 

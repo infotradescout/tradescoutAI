@@ -1,6 +1,6 @@
 import { Calendar, Hammer, Home, MapPin, MessageCircle, UsersRound } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +9,7 @@ import { useScoutLocation } from "./hooks/useScoutLocation";
 import { useScoutHomeSnapshot, type RecentActivity } from "./hooks/useScoutHomeSnapshot";
 import { ScoutWorkPanel } from "./ScoutWorkPanel";
 
-interface ContinuityThread {
+export interface ContinuityThread {
   id: string;
   title: string;
   summary?: string | null;
@@ -132,8 +132,36 @@ export function getMeaningfulContinuations(threads: ContinuityThread[]): Continu
       }
       const detail = thread.preview || thread.summary;
       return detail ? !isGenericContinuityLabel(detail) : true;
-    })
-    .slice(0, 6);
+    });
+}
+
+export function ScoutContinuationList({
+  threads,
+  activeId,
+  onSelect,
+}: {
+  threads: ContinuityThread[];
+  activeId?: string | null;
+  onSelect: (threadId: string) => void;
+}) {
+  return (
+    <div className="grid max-h-[42dvh] gap-2 overflow-y-auto" role="group" aria-label="Saved Scout tasks" data-testid="scout-continuations-list">
+      {threads.map((thread) => (
+        <button
+          key={thread.id}
+          type="button"
+          data-testid="scout-continuation"
+          data-scout-thread-id={thread.id}
+          onClick={() => onSelect(thread.id)}
+          className="min-h-11 rounded-xl border border-[var(--border-primary)] bg-[var(--surface-intermediate)] px-3 py-2.5 text-left text-[var(--text-primary)] hover:border-ts-orange/40"
+        >
+          <span className="block line-clamp-2 text-sm font-semibold">{thread.title}</span>
+          {thread.relatedLabel ? <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{thread.relatedLabel}</span> : null}
+          {activeId === thread.id ? <span className="mt-0.5 block text-xs text-ts-orange">Current task</span> : null}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function formatCount(value: number): string {
@@ -225,11 +253,13 @@ function ScoutControlSnapshot({
   onNavigate,
   onPromptSelect,
   onContinueConversation,
+  conversationPickerOpen,
 }: {
   snapshot: LocalCommandSnapshot;
   onNavigate: (route: string) => void;
   onPromptSelect: (prompt: string) => void;
   onContinueConversation: () => void;
+  conversationPickerOpen: boolean;
 }) {
   const items = [
     snapshot.openRequestCount > 0
@@ -244,7 +274,7 @@ function ScoutControlSnapshot({
     snapshot.conversationCount > 0
       ? {
           id: "conversations",
-          label: "Conversations",
+          label: "Saved tasks",
           detail: `${snapshot.conversationCount} to continue`,
           icon: MessageCircle,
           onClick: onContinueConversation,
@@ -304,6 +334,8 @@ function ScoutControlSnapshot({
                 key={item.id}
                 type="button"
                 onClick={item.onClick}
+                aria-expanded={item.id === "conversations" && snapshot.conversationCount > 1 ? conversationPickerOpen : undefined}
+                aria-controls={item.id === "conversations" && snapshot.conversationCount > 1 ? "scout-saved-task-choices" : undefined}
                 className="flex items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--surface-intermediate)] px-3 py-2.5 text-left transition hover:border-ts-orange/40"
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ts-orange/10 text-ts-orange">
@@ -330,6 +362,7 @@ export function ScoutHome({
   onContinuationSelect,
   continuationThreads = [],
 }: ScoutHomeProps) {
+  const [showContinuations, setShowContinuations] = useState(false);
   const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const { location } = useScoutLocation();
@@ -380,9 +413,27 @@ export function ScoutHome({
       <ScoutControlSnapshot
         snapshot={localCommandSnapshot}
         onPromptSelect={onPromptSelect}
-        onContinueConversation={() => onContinuationSelect(meaningfulContinuations[0].id)}
+        onContinueConversation={() => {
+          if (meaningfulContinuations.length === 1) {
+            onContinuationSelect(meaningfulContinuations[0].id);
+            return;
+          }
+          setShowContinuations((open) => !open);
+        }}
+        conversationPickerOpen={showContinuations}
         onNavigate={navigate}
       />
+      {showContinuations && meaningfulContinuations.length > 1 ? (
+        <section id="scout-saved-task-choices" className="px-4 pt-2" aria-label="Choose a saved Scout task">
+          <ScoutContinuationList
+            threads={meaningfulContinuations}
+            onSelect={(threadId) => {
+              setShowContinuations(false);
+              onContinuationSelect(threadId);
+            }}
+          />
+        </section>
+      ) : null}
       <div className="px-4"><ScoutWorkPanel /></div>
     </div>
   );

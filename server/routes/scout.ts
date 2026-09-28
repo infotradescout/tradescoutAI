@@ -75,6 +75,7 @@ import { ensureFollowUpQuestion } from "../scout/responseShape";
 import { finalizeScoutResponse } from "../scout/scoutResponseContract";
 import { normalizeScoutRequest } from "../scout/scoutRequestNormalizer";
 import { runScoutDecisionPipeline } from "../scout/scoutDecisionPipeline";
+import { isExplicitProviderBrowseIntent } from "../scout/scoutProviderBrowseIntent";
 import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 import {
   sanitizeScoutActionsForPolicy,
@@ -108,6 +109,23 @@ import {
 import { applyProviderBehaviorOwnership } from "../scout/scoutProviderBehaviorOwner";
 import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwner";
 import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
+import {
+  isMixedScoutDiscoveryRequest,
+  readScoutNamedCountyArea,
+  readBareScoutTrade,
+  resolveScoutMixedDiscoveryFollowUp,
+  resolveScoutCountyDiscoveryArea,
+  requiresFreshScoutDiscovery,
+} from "../scout/scoutCountyFips";
+import {
+  buildScoutMixedDiscoveryRecovery,
+  extractScoutMixedDiscoveryTopic,
+} from "../scout/scoutMixedDiscoveryRecovery";
+import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
+import { lookupScoutPublicTools, type ScoutPublicToolListing } from "../scout/scoutPublicTools";
+import { lookupScoutPublicProfiles, type ScoutPublicProfile } from "../repositories/profileRepository";
+import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
+import { listPublicDirectoryBusinesses } from "./business-directory-public";
 import {
   buildScoutProfileUpdateResponse,
   inferScoutProfileUpdateDraft,
@@ -2539,6 +2557,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const message = typeof rawBody.message === "string" ? rawBody.message : "";
     const launchContext = normalizeScoutLaunchContext(rawBody.launchContext);
     const boundedHistory = buildBoundedScoutHistory(rawBody.history, message);
+    const discoveryFollowUp = resolveScoutMixedDiscoveryFollowUp(message, boundedHistory.messages);
+    const effectiveDiscoveryMessage = discoveryFollowUp || message;
     const memoryUserIdCandidate =
       (requestUser as any)?.id ?? (requestUser as any)?.claims?.sub ?? null;
     const memoryUserId =
@@ -2576,7 +2596,12 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
     const optimizationUserId = memoryUserId;
-    if (optimizationUserId && message) {
+    if (
+      optimizationUserId &&
+      message &&
+      !requiresFreshScoutDiscovery(effectiveDiscoveryMessage) &&
+      !isExplicitProviderBrowseIntent(message)
+    ) {
       // Import optimization services
       const { generateQueryHash, checkFaqMatch, routeQuery } =
         await import("../services/scoutOptimizationEngine");
@@ -2666,15 +2691,17 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const normalizedMessage = typeof message === "string" ? message : "";
     scoutTurnTelemetry.intent =
       normalizeScoutIntent(rawBody.intent, normalizedMessage) || "unknown";
-    const countyCandidate =
-      (rawBody.countyHint as string | undefined) ||
-      (rawBody.countyCode as string | undefined) ||
-      (requestUser as any)?.countyFips ||
-      (requestUser as any)?.county_fips;
-    const normalizedFips =
-      typeof countyCandidate === "string" && countyCandidate.trim().length >= 5
-        ? countyCandidate.trim().slice(0, 5)
-        : undefined;
+    const namedDiscoveryArea = isMixedScoutDiscoveryRequest(effectiveDiscoveryMessage)
+      ? readScoutNamedCountyArea(effectiveDiscoveryMessage)
+      : null;
+    const countyArea = resolveScoutCountyDiscoveryArea({
+      countyHint: namedDiscoveryArea ? undefined : rawBody.countyHint,
+      countyCode: namedDiscoveryArea?.countyCode ?? rawBody.countyCode,
+      stateCode: namedDiscoveryArea ? namedDiscoveryArea.stateCode : rawBody.stateCode,
+      profileCountyFips: (requestUser as any)?.countyFips,
+      profileCountyFipsAlt: (requestUser as any)?.county_fips,
+    });
+    const normalizedFips = countyArea.countyFips || undefined;
 
     scoutInteractionLog = {
       userRole: normalizeScoutRole((requestUser as any)?.role),
@@ -3168,7 +3195,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     // Scout assesses the situation and decides whether to comply, defer,
     // redirect, or block BEFORE generating a response.
     const governorDecision = await govern({
-      message,
+      message: effectiveDiscoveryMessage,
       user,
       history,
       recentActivity: recentActivity.map((a) => ({ type: a.type, timestamp: a.ts })),
@@ -3202,6 +3229,12 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     // with structured intervention (no LLM needed for these)
     if (["DEFER", "REDIRECT", "BLOCK"].includes(governorDecision.intervention.action)) {
       const intervention = governorDecision.intervention;
+      const bareTradeClarification =
+        intervention.action === "DEFER" &&
+        governorDecision.situation.unknowns.length === 0 &&
+        !discoveryFollowUp
+          ? readBareScoutTrade(message)
+          : null;
       if (scoutInteractionLog) {
         if (intervention.action === "BLOCK") {
           scoutInteractionLog.outcome = "blocked";
@@ -3222,10 +3255,14 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
           );
         }
       }
-      let fullMessage = intervention.userMessage;
+      let fullMessage = bareTradeClarification
+        ? normalizedFips
+          ? `Want me to look for public posts and businesses about ${bareTradeClarification} in your county? County TradeDeals may also appear. Nothing will be sent.`
+          : `Set your local area to look for public posts and businesses about ${bareTradeClarification}, or tell Scout what you need. Nothing will be sent.`
+        : intervention.userMessage;
 
       // Add next steps if present
-      if (intervention.nextSteps && intervention.nextSteps.length > 0) {
+      if (!bareTradeClarification && intervention.nextSteps && intervention.nextSteps.length > 0) {
         fullMessage +=
           "\n\n" +
           intervention.nextSteps
@@ -3235,22 +3272,35 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       }
 
       // Build suggested actions from next steps
-      const suggestedActions =
-        intervention.nextSteps
-          ?.filter((s) => s.userFacing)
-          .map((s) => s.action)
-          .slice(0, 3) || [];
+      const suggestedActions = bareTradeClarification
+        ? []
+        : intervention.nextSteps
+            ?.filter((s) => s.userFacing)
+            .map((s) => s.action)
+            .slice(0, 3) || [];
 
       const aiResponse: ScoutResponse = {
         message: trimResponseToScreenFit(fullMessage),
         suggestedActions,
-        actions: shapeActionsByConfidence([], {
-          confidence: normalizeConfidenceLabel(governorDecision.confidence),
-          hasLocality: Boolean(countyCode || stateCode),
-          communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
-        }),
+        actions: bareTradeClarification
+          ? normalizedFips
+            ? [
+                {
+                  type: "ASK_SCOUT",
+                  label: "Search county posts & deals",
+                  prompt: `Find TradeScout posts and deals about ${bareTradeClarification} near me`,
+                  primary: true,
+                },
+                { type: "NAVIGATE", label: "Browse public businesses", to: "/contractors" },
+              ]
+            : [{ type: "NAVIGATE", label: "Set my local area", to: "/settings" }]
+          : shapeActionsByConfidence([], {
+              confidence: normalizeConfidenceLabel(governorDecision.confidence),
+              hasLocality: Boolean(countyCode || stateCode),
+              communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
+            }),
         sponsored: null,
-        overrideOption: intervention.overrideOption
+        overrideOption: !bareTradeClarification && intervention.overrideOption
           ? {
               ...intervention.overrideOption,
               contextType: "general",
@@ -3258,6 +3308,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
             }
           : undefined,
         metadata: {
+          ...(bareTradeClarification ? { clarificationKind: "bare_trade" } : {}),
           governorAction: intervention.action,
           governorRole: intervention.role,
           governorReasoning: intervention.reasoning,
@@ -3427,6 +3478,8 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
         stateCode,
       });
       if (handler) {
+        const isPublicSitePage = scaffoldDecision.behaviorKey === "public_site_page_search";
+        const pageAction = isPublicSitePage ? handler.actions[0] : undefined;
         const aiResponse: ScoutResponse = {
           message: trimResponseToScreenFit(handler.message),
           suggestedActions: handler.suggestedActions,
@@ -3441,13 +3494,24 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
         await syncObjectiveBestEffort({ intent });
         scoutTurnTelemetry.provider = "deterministic";
-        scoutTurnTelemetry.sourceUsed = "decision_pipeline_behavior_handler";
+        scoutTurnTelemetry.sourceUsed = isPublicSitePage
+          ? "scout_public_site_page_catalog"
+          : "decision_pipeline_behavior_handler";
         scoutTurnTelemetry.fallbackUsed = false;
         return res.json({
           ...aiResponse,
+          ...(pageAction ? {
+            evidence: [{
+              source_id: `site_page_${pageAction.path.replace(/[^a-z0-9]+/gi, "_")}`,
+              title: pageAction.label,
+              url: pageAction.path,
+              type: "site_page",
+              match_reason: "Exact public page catalog entry checked against the guest route policy.",
+            }],
+          } : {}),
           knowledge: {
             layer: 0,
-            sources: ["Decision pipeline behavior handler"],
+            sources: isPublicSitePage ? [] : ["Decision pipeline behavior handler"],
             confidence: "high",
           },
           llmProvider: "deterministic",
@@ -3487,8 +3551,230 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       message,
       userId,
       countyCode,
+      countyFips: normalizedFips,
       stateCode,
     };
+
+    if (isMixedScoutDiscoveryRequest(effectiveDiscoveryMessage)) {
+      const now = new Date();
+      const discoveryTopic = extractScoutMixedDiscoveryTopic(effectiveDiscoveryMessage);
+      let postCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let communityPostItems: Array<{
+        id: string;
+        title: string | null;
+        content: string;
+        createdAt: Date | null;
+        hasWorkRequest: boolean;
+      }> = [];
+      let dealCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let scoutDeals: Awaited<ReturnType<typeof storage.listPromotions>> = [];
+      let businessCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let publicBusinesses: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        counties: Array<{ fips: string }>;
+        topicMatchSource?: "name" | "category" | "service";
+      }> = [];
+      let toolCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let publicTools: ScoutPublicToolListing[] = [];
+      let pageCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let publicPages: ScoutPublicProfile[] = [];
+      if (normalizedFips) {
+        try {
+          communityPostItems = discoveryTopic
+            ? await listRecentScoutCountyPosts(normalizedFips, now, discoveryTopic)
+            : await listRecentScoutCountyPosts(normalizedFips, now);
+          postCheck = "checked";
+        } catch (error) {
+          console.error("Scout county post lookup unavailable:", error);
+          postCheck = "error";
+        }
+        try {
+          const rows = await storage.listPromotions({
+            status: "active",
+            type: "trade_deal",
+            tier: "paid_campaign",
+            exclusive: true,
+            placementScout: true,
+            activeAt: now,
+            countyFips: normalizedFips,
+            includeGlobalWhenCounty: true,
+            limit: 10,
+          });
+          scoutDeals = rows
+            .filter((row) => isEligibleScoutDeal(row, normalizedFips, now))
+            .slice(0, 3);
+          dealCheck = "checked";
+        } catch (error) {
+          console.error("Scout promotion lookup unavailable:", error);
+          dealCheck = "error";
+        }
+        try {
+          // Use the same publication-gated query as /api/businesses?public=1&claimed=any.
+          // This excludes owner-only records and never supplies direct contact fields.
+          const result = await listPublicDirectoryBusinesses({
+            public: "1",
+            countyFips: normalizedFips,
+            claimed: "any",
+            ...(discoveryTopic ? { scoutTopic: discoveryTopic } : {}),
+            limit: 10,
+            offset: 0,
+          });
+          if (result.status !== 200 || !Array.isArray(result.body.items)) {
+            throw new Error(`Public business directory returned ${result.status}`);
+          }
+          publicBusinesses = result.body.items
+            .filter((item: unknown) => {
+              if (!item || typeof item !== "object") return false;
+              const row = item as Record<string, unknown>;
+              return (
+                typeof row.id === "string" &&
+                typeof row.name === "string" &&
+                typeof row.slug === "string" &&
+                Array.isArray(row.counties) &&
+                row.counties.some(
+                  (county) =>
+                    county &&
+                    typeof county === "object" &&
+                    (county as { fips?: unknown }).fips === normalizedFips
+                )
+              );
+            })
+            .map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              slug: item.slug,
+              counties: item.counties,
+              topicMatchSource: item.topicMatchSource,
+            }));
+          businessCheck = "checked";
+        } catch (error) {
+          console.error("Scout public business lookup unavailable:", error);
+          businessCheck = "error";
+        }
+        try {
+          const tools = await lookupScoutPublicTools({
+            countyFips: normalizedFips,
+            ...(discoveryTopic ? { topic: discoveryTopic } : {}),
+            limit: 10,
+          });
+          toolCheck = tools.status === "checked" ? "checked" :
+            tools.status === "error" ? "error" : "not_checked";
+          publicTools = tools.status === "checked" ? tools.items : [];
+        } catch (error) {
+          console.error("Scout public tool lookup unavailable:", error);
+          toolCheck = "error";
+        }
+        try {
+          const pages = await lookupScoutPublicProfiles({
+            countyFips: normalizedFips,
+            ...(discoveryTopic ? { topic: discoveryTopic } : {}),
+            limit: 8,
+          });
+          pageCheck = pages.status === "checked" ? "checked" :
+            pages.status === "error" ? "error" : "not_checked";
+          publicPages = pages.status === "checked" ? pages.items : [];
+        } catch (error) {
+          console.error("Scout public page lookup unavailable:", error);
+          pageCheck = "error";
+        }
+      }
+      const recovery = buildScoutMixedDiscoveryRecovery({
+        countyFips: normalizedFips,
+        countyLabel: countyArea.countyLabel,
+        topic: discoveryTopic,
+        communityPosts: communityPostItems,
+        postCheck,
+        deals: scoutDeals,
+        dealCheck,
+        businesses: publicBusinesses,
+        businessCheck,
+        tools: publicTools,
+        toolCheck,
+        pages: publicPages,
+        pageCheck,
+        now,
+      });
+      scoutTurnTelemetry.provider = "deterministic";
+      scoutTurnTelemetry.sourceUsed = "scout_mixed_discovery_recovery";
+      scoutTurnTelemetry.intent = "local_discovery_partial";
+      scoutTurnTelemetry.fallbackUsed = true;
+      return res.json({
+        ...recovery,
+        metadata: {
+          intent: "local_discovery_partial",
+          sourceUsed: "scout_mixed_discovery_recovery",
+          fallbackUsed: true,
+          postCheck,
+          dealCheck,
+          businessCheck,
+          toolCheck,
+          pageCheck,
+          discoveryTopic,
+          discoveryChecks: {
+            areaLabel: countyArea.countyLabel || "your county",
+            posts: {
+              status: postCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "community_post").length,
+              timeWindow: "past_7_days",
+              topicFiltered: Boolean(discoveryTopic),
+            },
+            deals: {
+              status: dealCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "trade_deal").length,
+              timeWindow: "active_now",
+              topicFiltered: false,
+            },
+            businesses: {
+              status: businessCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "business").length,
+              timeWindow: "not_filtered_to_week",
+              topicFiltered: Boolean(discoveryTopic),
+            },
+            tools: {
+              status: toolCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "public_tool").length,
+              timeWindow: "active_now_not_week_filtered",
+              topicFiltered: Boolean(discoveryTopic),
+            },
+            profilePages: {
+              status: pageCheck,
+              shownCount: recovery.entities.filter((entity) => entity.type === "public_profile").length,
+              timeWindow: "not_filtered_to_week",
+              topicFiltered: Boolean(discoveryTopic),
+            },
+          },
+        },
+        knowledge: {
+          layer:
+            postCheck === "checked" || dealCheck === "checked" || businessCheck === "checked" || toolCheck === "checked" || pageCheck === "checked"
+              ? 2
+              : 0,
+          sources: [
+            ...(recovery.entities.some((entity) => entity.type === "community_post")
+              ? ["TradeScout Database (community_posts)"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "trade_deal")
+              ? ["TradeScout Database (promotions)"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "business")
+              ? ["TradeScout public business directory"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "public_tool")
+              ? ["TradeScout public Tools & Hardware listings"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "public_profile")
+              ? ["TradeScout public business profile pages"]
+              : []),
+          ],
+          confidence: recovery.entities.length > 0 ? "medium" : "low",
+        },
+        llmProvider: "deterministic",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Use Gemini as primary, fallback to others if needed for Layer 3 (internet search)
     const knowledge = await resolveKnowledge(knowledgeRequest, geminiClient);

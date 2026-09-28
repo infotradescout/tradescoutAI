@@ -42,6 +42,10 @@ const INTENT_LABELS: Record<
     label: "Work With My Saved Item",
     prompt: "Help me create, update, open, or act on the relevant TradeScout item.",
   },
+  site_page_search: {
+    label: "Find a TradeScout Page",
+    prompt: "Find the relevant public TradeScout page.",
+  },
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -65,6 +69,7 @@ function stableId(prefix: string, value: string): string {
 function mapExistingIntent(value: unknown): ScoutResultContractIntentV1 | null {
   const normalized = cleanText(value, 120).toLowerCase();
   if (!normalized) return null;
+  if (/site_page_search|public_page_search/.test(normalized)) return "site_page_search";
   if (
     /provider|contractor|direct_connect|find_(?:a_)?pro|hire|service_search/.test(normalized)
   ) {
@@ -92,9 +97,13 @@ export function inferScoutResultIntentV1(
     code_query: 0,
     provider_search: 0,
     asset_action: 0,
+    site_page_search: 0,
   };
 
   const mappedExisting = mapExistingIntent(existingIntent);
+  if (mappedExisting === "site_page_search") {
+    return { intent: "site_page_search", ambiguity: [] };
+  }
   if (mappedExisting) scores[mappedExisting] += 6;
 
   if (

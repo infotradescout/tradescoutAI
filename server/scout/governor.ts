@@ -21,6 +21,7 @@ import { db } from "../db";
 import { toolProposals } from "../../shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { toolDiscovery } from "./toolDiscovery";
+import { isReadOnlyScoutTradeLookup } from "./scoutCountyFips";
 
 // Import admin control state
 import {
@@ -326,7 +327,8 @@ export async function inferSituation(args: {
     lower,
     situation.goal,
     situation.constraints,
-    situation.unknowns
+    situation.unknowns,
+    isReadOnlyScoutTradeLookup(message)
   );
 
   // Confidence scope: bound authority to a context fingerprint
@@ -438,7 +440,8 @@ async function assessRisks(
   lower: string,
   goal: string,
   constraints: string[],
-  unknowns: string[]
+  unknowns: string[],
+  tradeNounIsReadOnlyLookup: boolean
 ): Promise<Risk[]> {
   // Use domain-agnostic risk classifier
   const riskAssessment = classifyRisk({
@@ -446,6 +449,7 @@ async function assessRisks(
     goal,
     constraints,
     unknowns,
+    tradeNounIsReadOnlyLookup,
   });
 
   const risks: Risk[] = [];
@@ -799,14 +803,20 @@ export function generateIntervention(
 
   switch (action) {
     case "DEFER":
-      reasoning = `Missing critical information that could lead to poor outcome. ${situation.unknowns.join(", ")}`;
+      reasoning = situation.unknowns.length
+        ? `Missing critical information that could lead to poor outcome. ${situation.unknowns.join(", ")}`
+        : "A safer next step needs more context; no specific missing information was identified.";
       const unknownsText =
         situation.unknowns.length === 1
           ? situation.unknowns[0]
-          : `${situation.unknowns.length} pieces of critical information`;
+          : situation.unknowns.length > 1
+            ? `${situation.unknowns.length} pieces of critical information`
+            : "more context";
 
       // Explanation depth scales with confidence
-      if (confidenceLevel === "low") {
+      if (situation.unknowns.length === 0) {
+        userMessage = "I need a little more context to help safely. What would you like Scout to find or help you decide?";
+      } else if (confidenceLevel === "low") {
         // Gentle, questioning approach
         userMessage = `I want to make sure you get the best outcome here. To do that, I need to understand ${unknownsText}.\n\nCould you help me with:`;
       } else if (confidenceLevel === "medium") {
@@ -818,7 +828,7 @@ export function generateIntervention(
       }
       if (allowOverride && !authorityProof?.hasProof) {
         userMessage +=
-          "\n\nI'm being careful because this scope doesn't have institutional proof yet. If you proceed anyway, we'll log it so we can learn from the outcome.";
+          "\n\nI can't verify enough about this situation to recommend a specific action yet. If you continue, Scout will record that choice.";
       }
       nextSteps = outcomeGraph?.steps.filter((s) => s.userFacing) || [];
       if (allowOverride) {

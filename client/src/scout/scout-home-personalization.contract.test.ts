@@ -97,7 +97,7 @@ describe("Scout home personalization contracts", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 
     expect(source).toContain("Open work");
-    expect(source).toContain("Conversations");
+    expect(source).toContain("Saved tasks");
     expect(source).toContain("HomeID");
     expect(source).toContain("Recent activity");
     expect(source).toContain("Community");
@@ -107,7 +107,6 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain('onNavigate("/homes")');
     expect(source).toContain('onNavigate("/community-feed")');
     expect(source).toContain("onNavigate={navigate}");
-    expect(source).toContain("onContinuationSelect(meaningfulContinuations[0].id)");
 
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
     expect(scoutOsSource).toContain("onContinuationSelect={(threadId) => {");

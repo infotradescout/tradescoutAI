@@ -42,10 +42,12 @@ const DatasetsTradesPage = memo(function DatasetsTradesPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {items.map((t) => (
-                  <Link key={t.slug} href={`/trade/${encodeURIComponent(t.slug)}`}>
-                    <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                      {t.name}
-                    </a>
+                  <Link
+                    key={t.slug}
+                    href={`/trade/${encodeURIComponent(t.slug)}`}
+                    className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
+                  >
+                    {t.name}
                   </Link>
                 ))}
               </div>

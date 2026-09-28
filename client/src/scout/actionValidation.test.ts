@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveLatestScoutTurnActionTruth, validateAction } from "./actionValidation";
+import {
+  resolveLatestScoutTurnActionTruth,
+  scoutAllowedActionToAction,
+  validateAction,
+} from "./actionValidation";
 import { scoutReducer, type ScoutAction, type ScoutMessage, type ScoutState } from "./state";
 import type {
   ScoutAllowedActionV1,
@@ -87,6 +91,174 @@ describe("actionValidation", () => {
     });
 
     expect(action).toBeNull();
+  });
+
+  it("opens only exact catalogued public Site pages", () => {
+    for (const target of [
+      "/datasets",
+      "/datasets/trades",
+      "/datasets/counties",
+      "/datasets/cities",
+      "/services/remote-notary",
+      "/services/mobile-notary",
+      "/help/scout",
+      "/trust-model",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toMatchObject({
+        type: "NAVIGATE",
+        to: target,
+      });
+    }
+    for (const target of [
+      "/datasets/private",
+      "/services/remote-notary/extra",
+      "/services/remote-notary?submit=1",
+      "/payments/history",
+      "/r/signed-share-token",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toBeNull();
+    }
+  });
+
+  it("keeps Scout county discovery navigation on canonical internal routes", () => {
+    const matchingPost = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Open matching county post",
+        target: "/community/posts/post_123",
+      })
+    );
+    const community = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Open recent Community",
+        target: "/community-feed?geo=local&feed=recent",
+      })
+    );
+    const businesses = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Browse Businesses",
+        target: "/contractors",
+        primary: false,
+      })
+    );
+
+    expect(matchingPost).toMatchObject({
+      type: "NAVIGATE",
+      to: "/community/posts/post_123",
+      path: "/community/posts/post_123",
+    });
+    expect(community).toMatchObject({
+      type: "NAVIGATE",
+      to: "/community-feed?geo=local&feed=recent",
+      path: "/community-feed?geo=local&feed=recent",
+    });
+    expect(businesses).toMatchObject({
+      type: "NAVIGATE",
+      to: "/contractors",
+      path: "/contractors",
+    });
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/community-feed/admin" }))
+    ).toBeNull();
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/community/posts/post_123/extra" }))
+    ).toBeNull();
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/contractors/secret/path" }))
+    ).toBeNull();
+  });
+
+  it("only allows private Direct Connect review through canonical Scout targets", () => {
+    for (const target of [
+      "/direct-connect",
+      "/direct-connect?source=scout",
+      "/direct-connect/post?source=scout",
+      "/direct-connect/pros?trade=supplier",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toMatchObject({
+        type: "NAVIGATE",
+        to: target,
+        path: target,
+      });
+    }
+
+    for (const target of [
+      "/direct-connect/post",
+      "/direct-connect/post?source=scout&title=Private%20roof%20repair",
+      "/direct-connect/post?source=scout&description=Private%20roof%20repair",
+      "/direct-connect/post?source=scout&source=scout",
+      "/direct-connect/post?source=scout#review",
+      "/direct-connect?source=scout&title=Private%20roof%20repair",
+      "/direct-connect?source=scout&description=Private%20roof%20repair",
+      "/direct-connect?source=scout&source=scout",
+      "/direct-connect?source=scout#review",
+      "/direct-connect#review",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target }))).toBeNull();
+    }
+  });
+
+  it("allows only a specific public TradeDeal with an optional valid county", () => {
+    const id = "11111111-2222-4333-8444-555555555555";
+    const target = `/deals/${id}?county=04013`;
+    expect(
+      scoutAllowedActionToAction(allowedAction({ label: "Open TradeDeal", target }))
+    ).toMatchObject({ type: "NAVIGATE", to: target, path: target });
+    expect(scoutAllowedActionToAction(allowedAction({ target: `/deals/${id}` }))).toMatchObject({
+      to: `/deals/${id}`,
+    });
+
+    for (const blocked of [
+      "/deals/not-a-uuid?county=04013",
+      `/deals/${id}/extra?county=04013`,
+      `/deals/${id}?county=999`,
+      `/deals/${id}?county=04013&redirect=/messages`,
+      `/deals/${id}#contact`,
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
+  });
+
+  it("allows only a public business profile path for Scout business results", () => {
+    const profile = "/business/maricopa-repair";
+    expect(
+      scoutAllowedActionToAction(
+        allowedAction({ label: "Open local business profile", target: profile })
+      )
+    ).toMatchObject({ type: "NAVIGATE", to: profile, path: profile });
+
+    for (const blocked of [
+      "/business/requests",
+      "/business/Requests",
+      "/business/maricopa-repair/edit",
+      "/business/maricopa-repair?redirect=/messages",
+      "/business/maricopa-repair#contact",
+      "/business/maricopa%2Frepair",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
+  });
+
+  it("allows only an exact public profile page path for Scout page results", () => {
+    const profile = "/u/mesa-plumbing";
+    expect(
+      scoutAllowedActionToAction(
+        allowedAction({ label: "Open public profile page", target: profile })
+      )
+    ).toMatchObject({ type: "NAVIGATE", to: profile, path: profile });
+
+    for (const blocked of [
+      "/u",
+      "/u/",
+      `${profile}/edit`,
+      `${profile}/services/plumbing`,
+      `${profile}?redirect=/messages`,
+      `${profile}#contact`,
+      "/u/mesa%2Fplumbing",
+      "/u/../admin",
+      `/u/${"x".repeat(121)}`,
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
   });
 
   it("allows normal user Scout and Supply Run routes", () => {

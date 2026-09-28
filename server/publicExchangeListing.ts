@@ -11,6 +11,17 @@ function cleanString(value: unknown, maxLength = 500): string {
   return sanitizePublicListingText(value, maxLength);
 }
 
+function cleanPublicDescription(value: unknown): string {
+  return cleanString(value, 4000)
+    .replace(
+      /(^|[.!?;,]\s*)\b(?:email|e-?mail|call|text|phone|contact|visit)\s+Continue through TradeScout\b[^.!?;]*(?:[.!?;]|$)/gi,
+      (_match, prefix: string) => (/^[;,]/.test(prefix) ? ". " : prefix)
+    )
+    .replace(/\s+([.!?])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function optionalNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
@@ -172,7 +183,7 @@ export function toPublicExchangeListing(value: any): Record<string, unknown> | n
     categoryId: cleanString(value.categoryId, 128),
     category: cleanString(value.category, 80),
     title,
-    description: cleanString(value.description, 4000),
+    description: cleanPublicDescription(value.description),
     price: Math.max(0, price),
     currency,
     priceType: cleanString(value.priceType, 40) || "fixed",

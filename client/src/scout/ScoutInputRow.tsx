@@ -1,5 +1,10 @@
 import React from "react";
-import { Mic, Send, Sparkles } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
+import {
+  clearScoutInputDraft,
+  readScoutDraftForOwner,
+  writeScoutOwnedDraft,
+} from "./scoutTaskDraftBoundary";
 
 /* ----------------------------------------------------------
    ScoutInputRow — Morphic OS v2 Command Bar
@@ -11,7 +16,6 @@ import { Mic, Send, Sparkles } from "lucide-react";
    - Orange border glow on focus/active
    - Sparkle icon on the left (orange)
    - Auto-growing textarea (single line default, expands on input)
-   - Mic button (right, subtle circle)
    - Orange circle send arrow (right, glowing)
    ---------------------------------------------------------- */
 
@@ -19,8 +23,11 @@ interface ScoutInputRowProps {
   isBusy: boolean;
   prefillKey: number;
   forcedPrefill?: string;
+  draftOwner?: string | null;
+  persistDraft?: boolean;
   onSend: (value: string) => void;
   onTyping: () => void;
+  hasMessages?: boolean;
   quickStartPrompts?: readonly string[];
   autoDemoText?: string;
   enableAutoDemo?: boolean;
@@ -37,8 +44,11 @@ export function ScoutInputRow({
   isBusy,
   prefillKey,
   forcedPrefill,
+  draftOwner = "guest",
+  persistDraft = true,
   onSend,
   onTyping,
+  hasMessages = false,
   quickStartPrompts,
   autoDemoText,
   enableAutoDemo,
@@ -53,6 +63,7 @@ export function ScoutInputRow({
   const demoTimeoutRef = React.useRef<number | null>(null);
   const demoIntervalRef = React.useRef<number | null>(null);
   const sendTimeoutRef = React.useRef<number | null>(null);
+  const skipPersistForValueRef = React.useRef<string | null>(null);
 
   const clearDemoTimers = () => {
     if (typeof window === "undefined") return;
@@ -74,15 +85,14 @@ export function ScoutInputRow({
     const trimmed = (text ?? value).trim();
     if (!trimmed || isBusy || isSubmitting) return;
     setIsSubmitting(true);
+    // The inline input unmounts as soon as the first message enters the thread.
+    // Consume its draft before that swap so the fixed input starts empty.
+    setValue("");
+    if (persistDraft) clearScoutInputDraft();
     try {
       await Promise.resolve(onSend(trimmed));
-      setValue("");
-      try {
-        window.localStorage.removeItem(`scout:prefill:scout-main`);
-      } catch {
-        /* ignore */
-      }
     } catch (err) {
+      setValue(trimmed);
       console.error("[ScoutInputRow] send failed", err);
     } finally {
       setIsSubmitting(false);
@@ -122,33 +132,35 @@ export function ScoutInputRow({
     }
   };
 
-  // Load draft
+  // Load only this account's draft or a deliberate external handoff.
   React.useEffect(() => {
+    skipPersistForValueRef.current = value;
+    if (!draftOwner) {
+      setValue("");
+      return;
+    }
     if (forcedPrefill) {
       setValue(forcedPrefill);
       return;
     }
-    try {
-      const stored = window.localStorage.getItem(`scout:prefill:scout-main`);
-      if (stored && !value) setValue(stored);
-    } catch {
-      /* ignore */
-    }
-  }, [forcedPrefill, prefillKey]);
+    setValue(persistDraft ? readScoutDraftForOwner(draftOwner) || "" : "");
+  }, [draftOwner, forcedPrefill, persistDraft, prefillKey]);
 
   // Persist draft
   React.useEffect(() => {
-    try {
-      if (value) window.localStorage.setItem(`scout:prefill:scout-main`, value);
-      else window.localStorage.removeItem(`scout:prefill:scout-main`);
-    } catch {
-      /* ignore */
+    // The load effect runs first; do not erase its pending handoff on mount.
+    if (skipPersistForValueRef.current === value) {
+      skipPersistForValueRef.current = null;
+      return;
     }
-  }, [value]);
+    skipPersistForValueRef.current = null;
+    if (persistDraft) writeScoutOwnedDraft(value, draftOwner);
+  }, [draftOwner, persistDraft, value]);
 
   // Auto-demo
   React.useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!persistDraft) return;
     if (!enableAutoDemo || !autoDemoText) return;
     try {
       if (window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY)) return;
@@ -156,11 +168,7 @@ export function ScoutInputRow({
       /* ignore */
     }
     if (value.trim().length > 0) return;
-    try {
-      window.localStorage.removeItem(`scout:prefill:scout-main`);
-    } catch {
-      /* ignore */
-    }
+    clearScoutInputDraft();
     setIsTypingDemo(true);
     demoIndexRef.current = 0;
     demoTimeoutRef.current = window.setTimeout(() => {
@@ -183,7 +191,7 @@ export function ScoutInputRow({
       }, AUTO_DEMO_TYPE_DELAY_MS);
     }, AUTO_DEMO_START_DELAY_MS) as unknown as number;
     return () => clearDemoTimers();
-  }, [enableAutoDemo, autoDemoText, prefillKey]);
+  }, [enableAutoDemo, autoDemoText, persistDraft, prefillKey]);
 
   const isButtonDisabled = isBusy || isSubmitting || (!value.trim() && !isTypingDemo);
   const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts : [];
@@ -243,21 +251,11 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Describe a project, permit question, estimate, or decision."
+          placeholder={hasMessages ? "Ask a follow-up" : SCOUT_INPUT_ACCESSIBLE_PROMPT}
           rows={1}
           className="scout-command-bar__input"
-          aria-label={SCOUT_INPUT_ACCESSIBLE_PROMPT}
+          aria-label={hasMessages ? "Ask a follow-up question" : SCOUT_INPUT_ACCESSIBLE_PROMPT}
         />
-
-        {/* Mic button */}
-        <button
-          type="button"
-          className="scout-command-bar__mic"
-          aria-label="Voice input"
-          tabIndex={-1}
-        >
-          <Mic size={15} />
-        </button>
 
         {/* Send button */}
         <button
@@ -265,7 +263,9 @@ export function ScoutInputRow({
           onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
           className="scout-command-bar__send"
-          aria-label={isSubmitting ? "Searching..." : "Start search"}
+          aria-label={
+            isSubmitting ? "Searching..." : hasMessages ? "Send follow-up" : "Start search"
+          }
         >
           <Send size={15} />
         </button>

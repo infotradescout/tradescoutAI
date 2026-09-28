@@ -104,7 +104,7 @@ describe("provider search behavior", () => {
     expect(mocks.loadCanonicalPublicMapProfileUrls).not.toHaveBeenCalled();
   });
 
-  it("passes canonical trade, query, and pagination to both state-scoped stores", async () => {
+  it("passes canonical trade and query while counting contractor offset after public gating", async () => {
     mocks.storage.getTradeBySlug.mockResolvedValue({ id: "trade-1", slug: "plumbing" });
 
     const response = await request(buildApp()).get(
@@ -116,8 +116,8 @@ describe("provider search behavior", () => {
       stateCode: "FL",
       tradeIds: ["trade-1"],
       query: "Acme",
-      limit: 20,
-      offset: 40,
+      limit: 100,
+      offset: 0,
     });
     expect(mocks.storage.getProvidersByStateAndCategory).toHaveBeenCalledWith({
       stateCode: "FL",
@@ -146,9 +146,118 @@ describe("provider search behavior", () => {
     });
     expect(mocks.storage.getContractors).toHaveBeenCalledWith({
       countyId: "county-fl-washington",
-      limit: 30,
+      limit: 100,
       offset: 0,
     });
+  });
+
+  it("finds a published contractor after more than one page of unpublished local rows", async () => {
+    mocks.storage.findCountyByNameOrFips.mockResolvedValue({
+      id: "county-fl-escambia",
+      stateCode: "FL",
+    });
+    mocks.storage.getTradeBySlug.mockResolvedValue({ id: "trade-plumbing", slug: "plumbing" });
+    const rawContractors = [
+      ...Array.from({ length: 125 }, (_, index) => ({
+        id: `contractor-hidden-${index}`,
+        userId: `user-hidden-${index}`,
+        companyName: `Hidden ${index}`,
+      })),
+      {
+        id: "contractor-published",
+        userId: "user-published",
+        companyName: "Published Plumbing",
+        phone: "850-555-0100",
+      },
+    ];
+    mocks.storage.getContractors.mockImplementation(async ({ offset, limit }) =>
+      rawContractors.slice(offset, offset + limit)
+    );
+    mocks.loadCanonicalPublicMapProfileUrls.mockImplementation(async (ownerIds: string[]) =>
+      new Map(
+        ownerIds.includes("user-published")
+          ? [["user-published", "/u/published-plumbing"]]
+          : []
+      )
+    );
+
+    const response = await request(buildApp()).get(
+      "/api/business-providers/search?county=12033&state=FL&trade=plumbing&limit=30"
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0]).toMatchObject({
+      id: "contractor-published",
+      canonicalBusinessProfileUrl: "/u/published-plumbing",
+    });
+    expect(response.body[0]).not.toHaveProperty("phone");
+    expect(mocks.storage.getContractors).toHaveBeenCalledWith({
+      countyId: "county-fl-escambia",
+      tradeIds: ["trade-plumbing"],
+      limit: 100,
+      offset: 100,
+    });
+    expect(response.text).not.toContain("contractor-hidden");
+  });
+
+  it("returns a source error when canonical profile authority cannot be checked", async () => {
+    mocks.storage.getContractors.mockResolvedValue([
+      { id: "contractor-1", userId: "owner-1", companyName: "One Plumbing" },
+    ]);
+    mocks.loadCanonicalPublicMapProfileUrls.mockRejectedValue(new Error("profile source unavailable"));
+
+    const response = await request(buildApp()).get(
+      "/api/business-providers/search?state=FL"
+    );
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ message: "Failed to search providers" });
+    expect(response.body).not.toEqual([]);
+  });
+
+  it("applies contractor pagination to visible profiles instead of hidden rows", async () => {
+    const rawContractors = [
+      { id: "hidden", userId: "owner-hidden", companyName: "Hidden" },
+      { id: "public-first", userId: "owner-first", companyName: "First" },
+      { id: "public-second", userId: "owner-second", companyName: "Second" },
+    ];
+    mocks.storage.getContractors.mockImplementation(async ({ offset, limit }) =>
+      rawContractors.slice(offset, offset + limit)
+    );
+    mocks.loadCanonicalPublicMapProfileUrls.mockResolvedValue(
+      new Map([
+        ["owner-first", "/u/first"],
+        ["owner-second", "/u/second"],
+      ])
+    );
+
+    const response = await request(buildApp()).get(
+      "/api/business-providers/search?state=FL&limit=1&offset=1"
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.map((provider: { id: string }) => provider.id)).toEqual([
+      "public-second",
+    ]);
+  });
+
+  it("reports an incomplete source instead of a checked empty result at the scan cap", async () => {
+    mocks.storage.getContractors.mockImplementation(async ({ offset, limit }) =>
+      Array.from({ length: limit }, (_, index) => ({
+        id: `contractor-${offset + index}`,
+        userId: `owner-${offset + index}`,
+      }))
+    );
+
+    const response = await request(buildApp()).get(
+      "/api/business-providers/search?state=FL&limit=30"
+    );
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({ message: "Local provider search is incomplete. Try again." });
+    expect(mocks.storage.getContractors).toHaveBeenCalledTimes(11);
+    expect(mocks.storage.getProvidersByStateAndCategory).not.toHaveBeenCalled();
   });
 
   it("preserves repository-paginated business rows instead of slicing them a second time", async () => {

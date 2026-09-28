@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Building2,
   CheckCircle2,
@@ -30,9 +31,14 @@ import {
   setSessionLocationOverride,
 } from "@/hooks/useLocationContext";
 import { StateCountySelector } from "@/components/state-county-selector";
-import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { formatCountyLabel, getCountyStateCode } from "@/utils/countyFipsToName";
 import { DirectoryListingLink } from "./DirectoryListingLink";
+import {
+  readStagedDirectConnectEntryContext,
+  stageDirectConnectEntryContext,
+} from "./stagedDirectConnectEntryContext";
 import { DISCOVERY_INTERNAL_SEARCH_EVENT } from "@shared/discoveryObservatory";
+import { getTradeSeoMatch } from "@shared/tradeSeo";
 import { useAuth } from "@/hooks/useAuth";
 import {
   buildCanonicalBusinessesWorkspaceHref,
@@ -140,31 +146,37 @@ function getProviderLocation(provider: ProviderCardProvider): string {
   if (serviceAreas.length > 0) return serviceAreas.slice(0, 2).join(", ");
   const city = String(provider.city || "").trim();
   const state = String(provider.state || provider.stateCode || "").trim();
-  return (
-    [city, state].filter(Boolean).join(", ") ||
-    String(provider.county || provider.countyName || "").trim()
-  );
+  if (city) return [city, state].filter(Boolean).join(", ");
+  const county = String(provider.county || provider.countyName || "").trim();
+  return county ? [county, state].filter(Boolean).join(", ") : "";
 }
 
-function formatProviderDistance(provider: ProviderCardProvider): string {
+function formatProviderDistance(provider: ProviderCardProvider): string | null {
   const distance = getProviderDistance(provider);
-  if (distance === null) return "Local service area";
+  if (distance === null) return null;
   if (distance < 0.1) return "Less than 0.1 miles away";
   return `${distance < 10 ? distance.toFixed(1) : Math.round(distance)} miles away`;
 }
 
+function getProviderAreaText(provider: ProviderCardProvider, areaLabel: string): string {
+  return getProviderLocation(provider) || `Listed for ${areaLabel}`;
+}
+
 function ProviderResultRow({
   provider,
+  areaLabel,
   selected,
   onSelect,
 }: {
   provider: ProviderCardProvider;
+  areaLabel: string;
   selected: boolean;
   onSelect: () => void;
 }) {
   const name = getProviderName(provider);
   const category = getProviderCategory(provider);
-  const location = getProviderLocation(provider);
+  const areaText = getProviderAreaText(provider, areaLabel);
+  const distanceText = formatProviderDistance(provider);
   const hasTrustEvidence = Boolean(
     provider.verifiedLicensed ||
     provider.verifiedInsured ||
@@ -198,14 +210,17 @@ function ProviderResultRow({
         <span className="block truncate text-sm font-semibold text-[color:var(--text-primary)]">
           {name}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
-          {[category, location].filter(Boolean).join(" · ") || formatProviderDistance(provider)}
-        </span>
+        {category && (
+          <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
+            {category}
+          </span>
+        )}
         <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[color:var(--text-secondary)]">
           <span className="inline-flex items-center gap-1">
             <MapPin className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
-            {formatProviderDistance(provider)}
+            {areaText}
           </span>
+          {distanceText && <span>{distanceText}</span>}
           {hasTrustEvidence && (
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
@@ -229,6 +244,7 @@ function ProviderResultRow({
 function BusinessesWorkspace({
   title,
   subtitle,
+  areaLabel,
   providers,
   selectedProvider,
   selectedProviderId,
@@ -236,12 +252,14 @@ function BusinessesWorkspace({
 }: {
   title: string;
   subtitle: string;
+  areaLabel: string;
   providers: ProviderCardProvider[];
   selectedProvider: ProviderCardProvider | null;
   selectedProviderId: string;
   onSelect: (providerId: string) => void;
 }) {
   if (providers.length === 0) return null;
+  const soleResultSelected = providers.length === 1 && Boolean(selectedProvider);
 
   return (
     <section
@@ -257,7 +275,14 @@ function BusinessesWorkspace({
           >
             {title}
           </h3>
-          <p className="text-xs text-[color:var(--text-secondary)]">{subtitle}</p>
+          <p className="text-xs text-[color:var(--text-secondary)]">
+            {soleResultSelected ? (
+              <>
+                <span className="lg:hidden">View this business’s public profile.</span>
+                <span className="hidden lg:inline">{subtitle}</span>
+              </>
+            ) : subtitle}
+          </p>
         </div>
         <Badge variant="outline" className="shrink-0 border-[color:var(--border-subtle)]">
           {providers.length} {providers.length === 1 ? "result" : "results"}
@@ -267,6 +292,8 @@ function BusinessesWorkspace({
         <ul
           aria-label="Business results"
           className={`max-h-[22rem] min-w-0 overflow-y-auto border-b border-[color:var(--border-subtle)] lg:order-1 lg:max-h-[38rem] lg:border-b-0 lg:border-r ${
+            soleResultSelected ? "hidden lg:block" : ""
+          } ${
             selectedProvider ? "order-2" : "order-1"
           }`}
           data-testid="business-results-list"
@@ -278,6 +305,7 @@ function BusinessesWorkspace({
             >
               <ProviderResultRow
                 provider={provider}
+                areaLabel={areaLabel}
                 selected={String(provider.id) === selectedProviderId}
                 onSelect={() => onSelect(String(provider.id))}
               />
@@ -302,7 +330,10 @@ function BusinessesWorkspace({
                 <CheckCircle2 className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
                 Selected business
               </div>
-              <ProviderCard contractor={selectedProvider} compact action="connect" />
+              <p className="mb-2 text-xs text-[color:var(--text-secondary)]">
+                {getProviderAreaText(selectedProvider, areaLabel)}
+              </p>
+              <ProviderCard contractor={selectedProvider} compact action="profile" />
             </div>
           ) : (
             <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center">
@@ -311,8 +342,7 @@ function BusinessesWorkspace({
                 Choose a business to inspect
               </p>
               <p className="mt-1 max-w-sm text-xs leading-5 text-[color:var(--text-secondary)]">
-                Selection shows public profile details here. Contact still continues through Direct
-                Connect.
+                Select a business, then open its public profile to review details.
               </p>
             </div>
           )}
@@ -323,6 +353,7 @@ function BusinessesWorkspace({
 }
 
 export default function DirectConnectPros() {
+  const [, navigate] = useLocation();
   const location = useLocationContext();
   const { user, isLoading: authLoading } = useAuth();
   const [stateCode, setStateCode] = useState("");
@@ -336,7 +367,12 @@ export default function DirectConnectPros() {
   const [hydratedWorkspaceScope, setHydratedWorkspaceScope] = useState("");
   const workspaceHydrated = hydratedWorkspaceScope === currentWorkspaceScope;
   const [showOutsideArea, setShowOutsideArea] = useState(false);
+  const [draftHandoffFailed, setDraftHandoffFailed] = useState(false);
   const recordedSearches = useRef(new Set<string>());
+  const scrolledToScoutSearch = useRef(false);
+  const requireAreaSelection =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("require_area") === "1";
 
   useEffect(() => {
     if (typeof window === "undefined" || authLoading) return;
@@ -408,26 +444,32 @@ export default function DirectConnectPros() {
   const effectiveArea = resolveBusinessesWorkspaceEffectiveArea({
     workspaceStateCode: stateCode,
     workspaceCountyFips: countyFips,
-    locationStateCode: location.stateCode,
-    locationCountyFips: location.countyFips,
+    locationStateCode: requireAreaSelection ? null : location.stateCode,
+    locationCountyFips: requireAreaSelection ? null : location.countyFips,
   });
   const effectiveStateCode = effectiveArea.stateCode;
   const effectiveCountyFips = effectiveArea.countyFips;
   const viewerCoordinates = resolveBusinessesWorkspaceViewerCoordinates({
     workspaceStateCode: stateCode,
     workspaceCountyFips: countyFips,
-    locationStateCode: location.stateCode,
-    locationCountyFips: location.countyFips,
-    locationLat: location.lat,
-    locationLng: location.lng,
+    locationStateCode: requireAreaSelection ? null : location.stateCode,
+    locationCountyFips: requireAreaSelection ? null : location.countyFips,
+    locationLat: requireAreaSelection ? null : location.lat,
+    locationLng: requireAreaSelection ? null : location.lng,
   });
   const viewerLat = viewerCoordinates.lat;
   const viewerLng = viewerCoordinates.lng;
 
-  const localCommitted = hasLocalContext(location) || Boolean(effectiveCountyFips);
+  const localCommitted =
+    Boolean(effectiveCountyFips) || (!requireAreaSelection && hasLocalContext(location));
   const hasStateContext = /^[A-Z]{2}$/.test(effectiveStateCode);
 
-  const { data: trades = [] } = useQuery<TradeOption[]>({
+  const {
+    data: trades = [],
+    isLoading: tradesLoading,
+    isError: tradesLookupFailed,
+    refetch: retryTrades,
+  } = useQuery<TradeOption[]>({
     queryKey: ["/api/trades"],
     queryFn: async () => apiRequest("GET", "/api/trades"),
   });
@@ -437,29 +479,41 @@ export default function DirectConnectPros() {
     const raw = searchQuery.trim().toLowerCase();
     if (!raw) return "";
 
+    const canonical = getTradeSeoMatch(raw)?.canonicalSlug;
+    if (canonical && trades.some((trade) => trade.slug === canonical)) return canonical;
+
     const exact = trades.find(
       (trade) => trade.slug.toLowerCase() === raw || trade.name.toLowerCase() === raw
     );
     if (exact) return exact.slug;
 
-    const partial = trades.find(
-      (trade) => trade.slug.toLowerCase().includes(raw) || trade.name.toLowerCase().includes(raw)
-    );
-    return partial?.slug || "";
+    return "";
   }, [tradeSlug, searchQuery, trades]);
 
   const effectiveTradeSlug = tradeSlug || inferredTradeSlug;
+  // An inferred trade already matches the words typed into the search box.
+  // Sending the same words as a business-name filter hides trade matches whose
+  // names do not happen to contain the trade (for example, a plumber named Acme).
+  const nameQuery = !tradeSlug && inferredTradeSlug ? "" : searchQuery.trim();
   const hasDirectoryIntent = Boolean((effectiveTradeSlug || "").trim() || searchQuery.trim());
   const canQueryDirectory =
-    workspaceHydrated && (localCommitted || (hasStateContext && hasDirectoryIntent));
+    workspaceHydrated &&
+    (!requireAreaSelection || Boolean(effectiveCountyFips)) &&
+    (localCommitted || (hasStateContext && hasDirectoryIntent));
 
-  const { data: contractors = [], isLoading } = useQuery({
+  const {
+    data: contractors = [],
+    isFetching: providerSearchFetching,
+    isSuccess: providerSearchSucceeded,
+    isError: providerSearchFailed,
+    refetch: retryProviderSearch,
+  } = useQuery({
     queryKey: [
       "/api/business-providers/search",
       effectiveCountyFips,
       effectiveStateCode,
       effectiveTradeSlug,
-      searchQuery,
+      nameQuery,
       viewerLat,
       viewerLng,
     ],
@@ -469,7 +523,7 @@ export default function DirectConnectPros() {
       if (effectiveCountyFips) params.set("county", effectiveCountyFips);
       if (!effectiveCountyFips && hasStateContext) params.set("state", effectiveStateCode);
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
-      if (searchQuery) params.set("query", searchQuery.trim());
+      if (nameQuery) params.set("query", nameQuery);
       params.set("sort", "distance");
       if (typeof viewerLat === "number" && typeof viewerLng === "number") {
         params.set("lat", String(viewerLat));
@@ -480,8 +534,29 @@ export default function DirectConnectPros() {
     },
   });
 
-  const hasResults = (contractors as any[])?.length > 0;
-  const showEmptyState = canQueryDirectory && !isLoading && !hasResults;
+  const hasResults =
+    !providerSearchFetching && !providerSearchFailed && (contractors as any[])?.length > 0;
+  const showEmptyState = canQueryDirectory && !providerSearchFetching && !hasResults;
+  useEffect(() => {
+    if (
+      scrolledToScoutSearch.current ||
+      !workspaceHydrated ||
+      (!requireAreaSelection && (providerSearchFetching || !canQueryDirectory))
+    ) {
+      return;
+    }
+    if (
+      typeof window === "undefined" ||
+      new URLSearchParams(window.location.search).get("source") !== "scout"
+    ) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("businesses-workspace-heading")?.scrollIntoView({ block: "start" });
+      scrolledToScoutSearch.current = true;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [canQueryDirectory, providerSearchFetching, requireAreaSelection, workspaceHydrated]);
   const areaLabel = effectiveCountyFips
     ? formatCountyLabel(effectiveCountyFips, effectiveStateCode)
     : effectiveStateCode || "your area";
@@ -499,20 +574,38 @@ export default function DirectConnectPros() {
   );
 
   useEffect(() => {
-    if (!workspaceHydrated || isLoading) return;
+    // An unavailable or in-flight source cannot prove that a saved selection is gone.
+    if (
+      !workspaceHydrated ||
+      !canQueryDirectory ||
+      providerSearchFetching ||
+      providerSearchFailed ||
+      !providerSearchSucceeded
+    ) return;
     if (selectedProviderId && !selectedProvider) setSelectedProviderId("");
-  }, [isLoading, selectedProvider, selectedProviderId, workspaceHydrated]);
+  }, [
+    canQueryDirectory,
+    providerSearchFailed,
+    providerSearchFetching,
+    providerSearchSucceeded,
+    selectedProvider,
+    selectedProviderId,
+    workspaceHydrated,
+  ]);
 
-  const { data: directoryFallback = [], isLoading: directoryFallbackLoading } = useQuery<
-    DirectoryBusinessFallback[]
-  >({
+  const {
+    data: directoryFallback = [],
+    isFetching: directoryFallbackFetching,
+    isError: directoryFallbackFailed,
+    refetch: retryDirectoryFallback,
+  } = useQuery<DirectoryBusinessFallback[]>({
     queryKey: [
       "/api/businesses",
       "public-directory-fallback",
       effectiveCountyFips,
       effectiveStateCode,
       effectiveTradeSlug,
-      searchQuery,
+      nameQuery,
     ],
     enabled: showEmptyState && (Boolean(effectiveCountyFips) || hasStateContext),
     queryFn: async () => {
@@ -524,7 +617,7 @@ export default function DirectConnectPros() {
       if (effectiveCountyFips) params.set("countyFips", effectiveCountyFips);
       if (hasStateContext) params.set("stateCode", effectiveStateCode);
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
-      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (nameQuery) params.set("q", nameQuery);
 
       const payload = (await apiRequest(
         "GET",
@@ -534,20 +627,30 @@ export default function DirectConnectPros() {
     },
   });
 
+  // A failed or pending refresh can retain data from an earlier successful query.
+  // Keep those old listings out of the actionable search result surface.
+  const visibleDirectoryFallback =
+    directoryFallbackFailed || directoryFallbackFetching ? [] : directoryFallback;
+
   const showStateDirectoryFallback =
     showEmptyState &&
-    !directoryFallbackLoading &&
-    directoryFallback.length === 0 &&
+    !directoryFallbackFetching &&
+    !directoryFallbackFailed &&
+    visibleDirectoryFallback.length === 0 &&
     hasStateContext;
 
-  const { data: stateDirectoryFallback = [], isLoading: stateDirectoryFallbackLoading } = useQuery<
-    DirectoryBusinessFallback[]
-  >({
+  const {
+    data: stateDirectoryFallback = [],
+    isFetching: stateDirectoryFallbackFetching,
+    isError: stateDirectoryFallbackFailed,
+    refetch: retryStateDirectoryFallback,
+  } = useQuery<DirectoryBusinessFallback[]>({
     queryKey: [
       "/api/businesses",
       "public-directory-state-fallback",
       effectiveStateCode,
       effectiveTradeSlug,
+      nameQuery,
     ],
     enabled: showStateDirectoryFallback,
     queryFn: async () => {
@@ -558,7 +661,7 @@ export default function DirectConnectPros() {
       params.set("offset", "0");
       params.set("stateCode", effectiveStateCode);
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
-      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (nameQuery) params.set("q", nameQuery);
 
       const payload = (await apiRequest(
         "GET",
@@ -568,15 +671,107 @@ export default function DirectConnectPros() {
     },
   });
 
+  const visibleStateDirectoryFallback =
+    stateDirectoryFallbackFailed || stateDirectoryFallbackFetching ? [] : stateDirectoryFallback;
+
+  const fallbackLoading =
+    showEmptyState &&
+    (directoryFallbackFetching || (showStateDirectoryFallback && stateDirectoryFallbackFetching));
+  const tradeMatchesPending = tradesLoading && !tradeSlug && Boolean(searchQuery.trim());
+  const tradeMatchesUnavailable = tradesLookupFailed && !tradeSlug && Boolean(searchQuery.trim());
+  const directorySearchFailed = showEmptyState && directoryFallbackFailed;
+  const stateDirectorySearchFailed = showStateDirectoryFallback && stateDirectoryFallbackFailed;
+  const searchFailed =
+    providerSearchFailed ||
+    directorySearchFailed ||
+    stateDirectorySearchFailed ||
+    tradeMatchesUnavailable;
+  const noPublicResults =
+    showEmptyState &&
+    !fallbackLoading &&
+    !tradeMatchesPending &&
+    !searchFailed &&
+    visibleDirectoryFallback.length === 0 &&
+    visibleStateDirectoryFallback.length === 0;
+  const openCountyRequestDraft = () => {
+    const county = effectiveCountyFips;
+    const countyState = getCountyStateCode(county);
+    if (
+      typeof window === "undefined" ||
+      !/^\d{5}$/.test(county) ||
+      !countyState ||
+      (effectiveStateCode && effectiveStateCode !== countyState)
+    ) {
+      setDraftHandoffFailed(true);
+      return;
+    }
+
+    try {
+      const href = stageDirectConnectEntryContext(
+        { countyFips: county, stateCode: countyState, source: "businesses_empty" },
+        "/direct-connect/post?source=businesses_empty"
+      );
+      const destination = new URL(href, window.location.origin);
+      const stagedTokens = destination.searchParams.getAll("staged");
+      const stagedContext = readStagedDirectConnectEntryContext(href);
+      if (
+        destination.origin !== window.location.origin ||
+        destination.pathname !== "/direct-connect/post" ||
+        destination.searchParams.get("source") !== "businesses_empty" ||
+        destination.searchParams.has("county") ||
+        destination.searchParams.has("countyFips") ||
+        stagedTokens.length !== 1 ||
+        !/^[a-f0-9]{64}$/.test(stagedTokens[0]) ||
+        stagedContext?.countyFips !== county ||
+        stagedContext?.stateCode !== countyState
+      ) {
+        setDraftHandoffFailed(true);
+        return;
+      }
+      setDraftHandoffFailed(false);
+      navigate(`${destination.pathname}${destination.search}`);
+    } catch {
+      setDraftHandoffFailed(true);
+    }
+  };
+  const profileCount = (contractors as ProviderCardProvider[]).length;
+  const resultSummary =
+    !workspaceHydrated || providerSearchFetching || fallbackLoading
+      ? "Checking local businesses…"
+      : providerSearchFailed
+        ? "Local profiles could not be checked. Directory listings may still appear below."
+        : directorySearchFailed || stateDirectorySearchFailed
+          ? "Local business results are incomplete. Retry the search below."
+        : tradeMatchesPending
+          ? "Checking trade matches…"
+          : tradeMatchesUnavailable
+            ? "Trade matches could not be checked. Business-name results may still appear below."
+            : `${profileCount} matching public ${profileCount === 1 ? "profile" : "profiles"}${
+                visibleDirectoryFallback.length
+                  ? ` · ${visibleDirectoryFallback.length} additional local ${visibleDirectoryFallback.length === 1 ? "listing" : "listings"}`
+                  : ""
+              }${
+                visibleStateDirectoryFallback.length
+                  ? ` · ${visibleStateDirectoryFallback.length} more in ${effectiveStateCode}`
+                  : ""
+              }`;
+
   useEffect(() => {
     const query = searchQuery.trim() || effectiveTradeSlug;
-    if (!query || !canQueryDirectory || isLoading) return;
-    if (showEmptyState && (directoryFallbackLoading || stateDirectoryFallbackLoading)) return;
+    if (
+      !query ||
+      !canQueryDirectory ||
+      providerSearchFetching ||
+      searchFailed ||
+      fallbackLoading ||
+      tradeMatchesPending
+    )
+      return;
 
     const resultCount =
-      ((contractors as any[]) || []).length +
-      directoryFallback.length +
-      stateDirectoryFallback.length;
+      (hasResults ? ((contractors as any[]) || []).length : 0) +
+      visibleDirectoryFallback.length +
+      visibleStateDirectoryFallback.length;
     const key = JSON.stringify([
       query.toLowerCase(),
       effectiveStateCode,
@@ -605,24 +800,32 @@ export default function DirectConnectPros() {
     canQueryDirectory,
     contractors,
     directoryFallback,
-    directoryFallbackLoading,
+    directoryFallbackFetching,
     effectiveCountyFips,
     effectiveStateCode,
     effectiveTradeSlug,
-    isLoading,
+    fallbackLoading,
+    hasResults,
+    providerSearchFetching,
     searchQuery,
+    searchFailed,
     showEmptyState,
     stateDirectoryFallback,
-    stateDirectoryFallbackLoading,
+    stateDirectoryFallbackFetching,
+    tradeMatchesPending,
+    visibleDirectoryFallback,
+    visibleStateDirectoryFallback,
   ]);
 
   const handleStateChange = (value: string) => {
+    setDraftHandoffFailed(false);
     setStateCode(value);
     setCountyFips("");
     setSelectedProviderId("");
   };
 
   const handleCountyChange = (value: string) => {
+    setDraftHandoffFailed(false);
     if (!value) {
       setCountyFips("");
       setSelectedProviderId("");
@@ -650,11 +853,13 @@ export default function DirectConnectPros() {
   };
 
   const handleTradeChange = (value: string) => {
+    setDraftHandoffFailed(false);
     setTradeSlug(value);
     setSelectedProviderId("");
   };
 
   const handleSearchChange = (value: string) => {
+    setDraftHandoffFailed(false);
     setSearchQuery(value);
     setSelectedProviderId("");
   };
@@ -672,6 +877,7 @@ export default function DirectConnectPros() {
   };
 
   const handleClearWorkspace = () => {
+    setDraftHandoffFailed(false);
     if (typeof window !== "undefined") {
       let storage: Storage | null = null;
       try {
@@ -719,18 +925,20 @@ export default function DirectConnectPros() {
         <div className="flex min-w-0 flex-col gap-3 border-b border-[color:var(--border-subtle)] px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
-              Local workspace
+              Local results
             </p>
             <h2
               id="businesses-workspace-heading"
               className="mt-1 text-base font-semibold text-[color:var(--text-primary)]"
             >
-              Find and inspect businesses
+              {localCommitted ? `Businesses in ${areaLabel}` : "Find local businesses"}
             </h2>
             <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-              {localCommitted
-                ? `${distanceFirstProviders.length} local profile(s), ordered by location fit and available trust evidence.`
-                : "Set an area once, then TradeScout keeps this workspace local by default."}
+              {requireAreaSelection && !effectiveCountyFips
+                ? "Choose a county to see matching providers for the place you named."
+                : localCommitted
+                  ? resultSummary
+                  : "Set an area once, then TradeScout keeps this workspace local by default."}
             </p>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -801,7 +1009,7 @@ export default function DirectConnectPros() {
                 value={searchQuery}
                 onChange={(event) => handleSearchChange(event.target.value)}
                 className="min-h-11 min-w-0 pl-10 pr-10"
-                placeholder="Search by name, trade, or keyword"
+                placeholder="Search by business name or trade"
                 data-testid="businesses-workspace-search"
               />
               {searchQuery.trim().length > 0 && (
@@ -825,14 +1033,15 @@ export default function DirectConnectPros() {
           )}
           {!localCommitted && (
             <p className="text-[11px] text-[color:var(--text-secondary)]">
-              TradeScout will use your saved local area when available. Pick a county only when you
-              want to browse somewhere else.
+              {requireAreaSelection
+                ? "Choose a county for the place you named to see matching providers."
+                : "TradeScout will use your saved local area when available. Pick a county only when you want to browse somewhere else."}
             </p>
           )}
         </div>
       </section>
 
-      {(!workspaceHydrated || isLoading) && (
+      {(!workspaceHydrated || providerSearchFetching) && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-40 rounded bg-[color:var(--surface-intermediate)]" />
@@ -842,15 +1051,104 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showEmptyState && (
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)]">
-            No local businesses found for that search yet.
+      {canQueryDirectory && searchFailed && (
+        <Card
+          className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
+          data-testid="businesses-search-error"
+        >
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5 text-sm text-[color:var(--text-secondary)]">
+            <p>
+              {tradeMatchesUnavailable &&
+              !providerSearchFailed &&
+              !directorySearchFailed &&
+              !stateDirectorySearchFailed
+                ? "We couldn’t check trade matches. Business-name results may be incomplete."
+                : "We couldn’t finish checking local businesses. Please try again."}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (providerSearchFailed) void retryProviderSearch();
+                if (directorySearchFailed) void retryDirectoryFallback();
+                if (stateDirectorySearchFailed) void retryStateDirectoryFallback();
+                if (tradeMatchesUnavailable) void retryTrades();
+              }}
+            >
+              Retry search
+            </Button>
           </CardContent>
         </Card>
       )}
 
-      {showEmptyState && directoryFallbackLoading && (
+      {noPublicResults && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent
+            className="space-y-3 p-6 text-center text-sm text-[color:var(--text-secondary)]"
+            data-testid="businesses-no-results"
+          >
+            <p className="font-semibold text-[color:var(--text-primary)]">
+              {searchActive
+                ? `No public businesses match this search in ${areaLabel} yet.`
+                : `No public businesses in ${areaLabel} yet.`}
+            </p>
+            <p>
+              {effectiveCountyFips
+                ? "Try another area or adjust the search. You can review a local request before anything is shared."
+                : "Choose a county or adjust the search to keep looking."}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                className="min-h-11"
+                onClick={() => {
+                  setShowOutsideArea(true);
+                  document
+                    .getElementById("businesses-workspace-heading")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                data-testid="businesses-empty-change-area"
+              >
+                Change area
+              </Button>
+              {searchActive && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    handleTradeChange("");
+                    handleSearchChange("");
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+              {effectiveCountyFips && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-auto min-h-11 max-w-full whitespace-normal py-2 text-center"
+                  onClick={openCountyRequestDraft}
+                  data-testid="businesses-empty-request"
+                >
+                  Describe what I need
+                </Button>
+              )}
+            </div>
+            {draftHandoffFailed && (
+              <p role="alert" data-testid="businesses-draft-handoff-error">
+                We couldn’t open a request with this county. Choose your area and try again.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {showEmptyState && directoryFallbackFetching && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
@@ -860,17 +1158,17 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showEmptyState && directoryFallback.length > 0 && (
+      {showEmptyState && visibleDirectoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
             <CardTitle className="text-sm">More local businesses</CardTitle>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              These businesses appear in the local directory, but they have not finished TradeScout
-              verification yet.
+              These businesses have public directory listings in this area. Review each listing for
+              service and trust details.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {directoryFallback.map((business) => {
+            {visibleDirectoryFallback.map((business) => {
               const county = business.counties?.[0];
               return (
                 <div
@@ -896,7 +1194,6 @@ export default function DirectConnectPros() {
                             : "Local area not specified"}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          <Badge variant="secondary">Not verified</Badge>
                           <Badge variant="outline">Local directory</Badge>
                           {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
                             <Badge variant="outline">Claimed profile</Badge>
@@ -917,8 +1214,8 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showStateDirectoryFallback && stateDirectoryFallbackLoading && (
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+      {showStateDirectoryFallback && stateDirectoryFallbackFetching && (
+        <Card data-testid="businesses-state-fallback-loading" className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-56 rounded bg-[color:var(--surface-intermediate)]" />
             <div className="h-20 rounded bg-[color:var(--surface-intermediate)]" />
@@ -927,17 +1224,17 @@ export default function DirectConnectPros() {
         </Card>
       )}
 
-      {showStateDirectoryFallback && stateDirectoryFallback.length > 0 && (
+      {showStateDirectoryFallback && visibleStateDirectoryFallback.length > 0 && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardHeader>
-            <CardTitle className="text-sm">More businesses in {stateCode.toUpperCase()}</CardTitle>
+            <CardTitle className="text-sm">Additional results in {effectiveStateCode}</CardTitle>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              These listings are active in your state. Some may still need local assignment before
-              they appear in local-first routing.
+              These public listings are in the state. Check each service area before treating one as
+              local.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {stateDirectoryFallback.map((business) => {
+            {visibleStateDirectoryFallback.map((business) => {
               const county = business.counties?.[0];
               return (
                 <div
@@ -955,7 +1252,6 @@ export default function DirectConnectPros() {
                           : "Local assignment pending"}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <Badge variant="secondary">Not verified</Badge>
                         <Badge variant="outline">State directory</Badge>
                         {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
                           <Badge variant="outline">Claimed profile</Badge>
@@ -977,8 +1273,9 @@ export default function DirectConnectPros() {
 
       {hasResults && (
         <BusinessesWorkspace
-          title={searchActive ? "Best nearby matches" : "Businesses near you"}
-          subtitle="Select a row to inspect one public profile without losing your place."
+          title={searchActive ? "Matching businesses" : "Business results"}
+          subtitle="Select a business, then view its public profile."
+          areaLabel={areaLabel}
           providers={distanceFirstProviders}
           selectedProvider={selectedProvider}
           selectedProviderId={selectedProviderId}

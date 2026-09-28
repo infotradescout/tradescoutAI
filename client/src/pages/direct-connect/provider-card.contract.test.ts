@@ -17,7 +17,7 @@ describe("canonical provider card", () => {
       'import { ProviderCard, type ProviderCardProvider } from "@/components/contractor-card"'
     );
     expect(source).toContain(
-      '<ProviderCard contractor={selectedProvider} compact action="connect" />'
+      '<ProviderCard contractor={selectedProvider} compact action="profile" />'
     );
     expect(source.match(/<ProviderCard\b/g)).toHaveLength(1);
     expect(source).toMatch(/<ul\r?\n\s+aria-label="Business results"/);

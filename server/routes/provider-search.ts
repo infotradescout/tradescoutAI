@@ -39,6 +39,63 @@ function sanitizeContractorPublic<T extends Record<string, any>>(
   return publicContractor;
 }
 
+const PUBLIC_CONTRACTOR_SCAN_PAGE_SIZE = 100;
+const PUBLIC_CONTRACTOR_SCAN_ALLOWANCE = 1_000;
+
+class IncompletePublicProviderSearchError extends Error {}
+
+async function getPublicContractorPage(
+  filters: Record<string, unknown>,
+  limit: number,
+  offset: number
+): Promise<{
+  contractors: any[];
+  canonicalProfileUrlByUserId: Map<string, string>;
+}> {
+  // The canonical profile gate includes release and trust rules that cannot be
+  // inferred from contractor fields. Apply it across raw pages before counting
+  // the requested public page, so hidden rows cannot turn a real match into 0.
+  const targetPublicCount = offset + limit;
+  const maxRawRows = offset + PUBLIC_CONTRACTOR_SCAN_ALLOWANCE;
+  const eligible: any[] = [];
+  const canonicalProfileUrlByUserId = new Map<string, string>();
+  let rawOffset = 0;
+
+  while (rawOffset < maxRawRows && eligible.length < targetPublicCount) {
+    const pageLimit = Math.min(PUBLIC_CONTRACTOR_SCAN_PAGE_SIZE, maxRawRows - rawOffset);
+    const page = await storage.getContractors({ ...filters, limit: pageLimit, offset: rawOffset });
+    const ownerIds = Array.from(
+      new Set(
+        page
+          .map((contractor: any) => String(contractor.userId || "").trim())
+          .filter(Boolean)
+      )
+    );
+    const urls = await loadCanonicalPublicMapProfileUrls(ownerIds);
+    for (const contractor of page) {
+      const ownerId = String(contractor.userId || "").trim();
+      const canonicalUrl = urls.get(ownerId);
+      if (!canonicalUrl) continue;
+      canonicalProfileUrlByUserId.set(ownerId, canonicalUrl);
+      eligible.push(contractor);
+    }
+    rawOffset += page.length;
+    if (page.length < pageLimit) break;
+  }
+
+  if (eligible.length < targetPublicCount && rawOffset === maxRawRows) {
+    const nextPage = await storage.getContractors({ ...filters, limit: 1, offset: rawOffset });
+    if (nextPage.length > 0) {
+      throw new IncompletePublicProviderSearchError("Public contractor scan limit reached");
+    }
+  }
+
+  return {
+    contractors: eligible.slice(offset, targetPublicCount),
+    canonicalProfileUrlByUserId,
+  };
+}
+
 export function registerProviderSearchRoutes(
   app: Express,
   searchLimiter: RequestHandler,
@@ -119,7 +176,7 @@ export function registerProviderSearchRoutes(
               .trim()
               .toUpperCase();
 
-      const contractorFilters: any = { limit: parsedLimit, offset: parsedOffset };
+      const contractorFilters: any = {};
       if (countyRecord) contractorFilters.countyId = countyRecord.id;
       else contractorFilters.stateCode = requestedStateCode;
       let canonicalTradeSlug: string | undefined;
@@ -135,13 +192,15 @@ export function registerProviderSearchRoutes(
       const normalizedQuery = typeof query === "string" ? query.trim() : "";
       if (normalizedQuery) contractorFilters.query = normalizedQuery;
 
-      const contractors = await storage.getContractors(contractorFilters);
+      const { contractors, canonicalProfileUrlByUserId } = await getPublicContractorPage(
+        contractorFilters,
+        parsedLimit,
+        parsedOffset
+      );
       const contractorUserIds = contractors
         .map((contractor: any) => (typeof contractor.userId === "string" ? contractor.userId : ""))
         .filter((id: string) => id.length > 0);
       const uniqueContractorUserIds = Array.from(new Set(contractorUserIds));
-      const canonicalProfileUrlByUserId =
-        await loadCanonicalPublicMapProfileUrls(uniqueContractorUserIds);
       const publiclyEligibleContractors = contractors.filter((contractor: any) =>
         canonicalProfileUrlByUserId.has(String(contractor.userId || "").trim())
       );
@@ -320,6 +379,9 @@ export function registerProviderSearchRoutes(
       return res.json(sorted.slice(0, parsedLimit));
     } catch (error) {
       console.error("Error searching providers:", error);
+      if (error instanceof IncompletePublicProviderSearchError) {
+        return res.status(503).json({ message: "Local provider search is incomplete. Try again." });
+      }
       return res.status(500).json({ message: "Failed to search providers" });
     }
   });

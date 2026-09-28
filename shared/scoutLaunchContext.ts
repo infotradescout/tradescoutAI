@@ -48,8 +48,12 @@ export interface ScoutLaunchEnvelope {
   context: ScoutLaunchContext | null;
   prompt?: string;
   returnPath?: string;
+  continuationToken?: string;
   signature: string;
 }
+
+export const SCOUT_LAUNCH_CONTINUATION_PARAM = "scoutContinue";
+const SCOUT_LAUNCH_CONTINUATION_PATTERN = /^[a-f0-9]{32}$/;
 
 const SOURCE_SET = new Set<string>(SCOUT_LAUNCH_SOURCES);
 const MAP_ENTITY_TYPES = new Set([
@@ -257,13 +261,26 @@ export function parseScoutLaunchLocation(location: string): ScoutLaunchEnvelope 
   const params = new URLSearchParams(searchIndex >= 0 ? location.slice(searchIndex + 1) : "");
   const context = normalizeScoutLaunchContext(paramsToRecord(params)) ?? null;
   const prompt = cleanText(params.get("prompt"), 2000);
+  const continuationValues = params.getAll(SCOUT_LAUNCH_CONTINUATION_PARAM);
+  const continuationToken = !prompt && context && continuationValues.length === 1 &&
+    SCOUT_LAUNCH_CONTINUATION_PATTERN.test(continuationValues[0])
+      ? continuationValues[0]
+      : undefined;
+  // A marked continuation has to be well formed before account ownership is checked.
+  if (!prompt && continuationValues.length > 0 && !continuationToken) {
+    return { context: null, signature: "" };
+  }
   const returnPath = context ? getScoutLaunchReturnPath(context) : undefined;
-  const signature = JSON.stringify({ context, prompt: prompt || null });
+  // Keep legacy unmarked signatures stable so previously owned URLs stay owned.
+  const signature = continuationToken
+    ? JSON.stringify({ context, prompt: null, continuationToken })
+    : JSON.stringify({ context, prompt: prompt || null });
 
   return {
     context,
     ...(prompt ? { prompt } : {}),
     ...(returnPath ? { returnPath } : {}),
+    ...(continuationToken ? { continuationToken } : {}),
     signature,
   };
 }

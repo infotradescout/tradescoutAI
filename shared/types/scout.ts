@@ -45,7 +45,8 @@ export interface ScoutActionContract {
 export type ScoutResultContractIntentV1 =
   | "code_query"
   | "provider_search"
-  | "asset_action";
+  | "asset_action"
+  | "site_page_search";
 
 export interface ScoutAmbiguityOptionV1 {
   label: string;

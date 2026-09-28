@@ -7,6 +7,8 @@ type ScoutSearchDockProps = {
   isBusy: boolean;
   prefillKey: number;
   forcedPrefill?: string;
+  draftOwner?: string | null;
+  persistDraft?: boolean;
   hasMessages: boolean;
   quickStartPrompts: readonly string[];
   autoDemoText?: string;
@@ -21,6 +23,8 @@ export function ScoutSearchDock({
   isBusy,
   prefillKey,
   forcedPrefill,
+  draftOwner,
+  persistDraft = true,
   hasMessages,
   quickStartPrompts,
   autoDemoText,
@@ -76,8 +80,11 @@ export function ScoutSearchDock({
           isBusy={isBusy}
           prefillKey={prefillKey}
           forcedPrefill={forcedPrefill}
+          draftOwner={draftOwner}
+          persistDraft={persistDraft}
           onSend={onSend}
           onTyping={onTyping}
+          hasMessages={hasMessages}
           quickStartPrompts={
             !hasMessages ? (isMobile ? quickStartPrompts.slice(0, 2) : [...quickStartPrompts]) : []
           }

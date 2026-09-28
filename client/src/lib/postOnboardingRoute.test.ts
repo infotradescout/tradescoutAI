@@ -67,11 +67,16 @@ describe("universal onboarding continuity", () => {
     expect(DEFAULT_AUTH_COMPLETION_ROUTE).toBe("/onboarding");
   });
 
-  it("recognizes only the supported universal onboarding compatibility URLs as exempt", () => {
+  it("allows exact public deal details during onboarding without exempting nearby routes", () => {
     expect(isOnboardingExemptPath("/onboarding")).toBe(true);
     expect(isOnboardingExemptPath("/onboarding/profile")).toBe(true);
     expect(isOnboardingExemptPath("/onboarding/intent")).toBe(true);
     expect(isOnboardingExemptPath("/profile-setup")).toBe(true);
+    expect(isOnboardingExemptPath("/deals/11111111-2222-4333-8444-555555555555")).toBe(true);
+    expect(isOnboardingExemptPath("/deals/not-a-uuid")).toBe(false);
+    expect(isOnboardingExemptPath("/deals/11111111-2222-4333-8444-555555555555/private")).toBe(
+      false
+    );
     expect(isOnboardingExemptPath("/onboarding/unknown-legacy-step")).toBe(false);
     expect(isOnboardingExemptPath("/scout")).toBe(false);
   });

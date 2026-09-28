@@ -90,18 +90,18 @@ export async function createPromotionHandler(req: Request, res: Response) {
       body.placementMarketplace = false;
     }
 
-    // Enforce required snapshot constraints server-side
-    if (type === "trade_deal" && body.placementCommunitySnapshot) {
+    // A placed TradeDeal must have a real scope and an explicit exclusive offer.
+    if (type === "trade_deal" && (body.placementCommunitySnapshot || body.placementScout)) {
       if (
         audienceScope !== "global" &&
         (!Array.isArray(body.countyFips) || body.countyFips.length === 0)
       ) {
-        return res.status(400).json({ message: "county_fips is required for snapshot TradeDeals" });
+        return res.status(400).json({ message: "county_fips is required for placed TradeDeals" });
       }
       if (body.exclusive !== true) {
         return res
           .status(400)
-          .json({ message: "exclusive=true is required for snapshot TradeDeals" });
+          .json({ message: "exclusive=true is required for placed TradeDeals" });
       }
     }
 
@@ -142,7 +142,7 @@ export async function updatePromotionHandler(req: Request, res: Response) {
     delete body.audienceScope;
 
     // Enforce tier placement rules: free_directory cannot enable any placements
-    const tier = body.tier ?? "free_directory";
+    const tier = body.tier ?? existing.tier;
     if (tier === "free_directory") {
       body.placementCommunitySnapshot = false;
       body.placementCommunityFeed = false;
@@ -157,6 +157,10 @@ export async function updatePromotionHandler(req: Request, res: Response) {
       typeof body.placementCommunitySnapshot === "boolean"
         ? body.placementCommunitySnapshot
         : existing.placementCommunitySnapshot === true;
+    const effectivePlacementScout =
+      typeof body.placementScout === "boolean"
+        ? body.placementScout
+        : existing.placementScout === true;
     const effectiveCountyFips = Array.isArray(body.countyFips)
       ? body.countyFips
       : Array.isArray(existing.countyFips)
@@ -173,14 +177,14 @@ export async function updatePromotionHandler(req: Request, res: Response) {
         .json({ message: "county_fips is required for county-scoped TradeDeals" });
     }
 
-    if (effectiveType === "trade_deal" && effectivePlacementSnapshot) {
+    if (effectiveType === "trade_deal" && (effectivePlacementSnapshot || effectivePlacementScout)) {
       if (audienceScope !== "global" && effectiveCountyFips.length === 0) {
-        return res.status(400).json({ message: "county_fips is required for snapshot TradeDeals" });
+        return res.status(400).json({ message: "county_fips is required for placed TradeDeals" });
       }
       if (effectiveExclusive !== true) {
         return res
           .status(400)
-          .json({ message: "exclusive=true is required for snapshot TradeDeals" });
+          .json({ message: "exclusive=true is required for placed TradeDeals" });
       }
     }
 

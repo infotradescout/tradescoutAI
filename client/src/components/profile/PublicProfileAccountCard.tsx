@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { cn } from "@/lib/utils";
 import { buildProfileAccountReturnPath, type ProfileAccountPolicy } from "@shared/profileAccount";
+import { PublicProfileAccountDialog } from "./PublicProfileAccountDialog";
 
 type ViewerBusinessProfile = Readonly<{
   id: string;
@@ -84,16 +85,17 @@ export function PublicProfileAccountCard({
   compact = false,
   className,
 }: PublicProfileAccountCardProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const hasViewerSession = isAuthenticated || Boolean((user as { id?: string } | undefined)?.id);
   const [data, setData] = useState<ProfileAccountResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [businessSetupOpen, setBusinessSetupOpen] = useState(false);
   const [error, setError] = useState("");
   const resumedRef = useRef(false);
   const isDark = tone === "dark";
 
-  const loadState = async () => {
+  const loadState = useCallback(async () => {
     const response = await fetch(`/api/u/${encodeURIComponent(profileSlug)}/account`, {
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -105,7 +107,12 @@ export function PublicProfileAccountCard({
     const next = payload as ProfileAccountResponse;
     setData(next);
     return next;
-  };
+  }, [profileSlug]);
+  const refreshStateAfterDialogChange = useCallback(() => {
+    void loadState().catch((nextError) => {
+      setError(nextError instanceof Error ? nextError.message : "Account unavailable.");
+    });
+  }, [loadState]);
 
   useEffect(() => {
     let current = true;
@@ -141,7 +148,7 @@ export function PublicProfileAccountCard({
       return;
     }
     if (data?.policy.requiredIdentity === "business" && data.requiresBusinessSetup) {
-      continueThroughAccountSetup();
+      setBusinessSetupOpen(true);
       return;
     }
     if (submitting) return;
@@ -160,8 +167,12 @@ export function PublicProfileAccountCard({
         }),
       });
       const payload = await readJson(response);
-      if (response.status === 401 || payload.requiresBusinessSetup === true) {
+      if (response.status === 401) {
         continueThroughAccountSetup();
+        return;
+      }
+      if (payload.requiresBusinessSetup === true) {
+        setBusinessSetupOpen(true);
         return;
       }
       if (!response.ok) {
@@ -211,6 +222,30 @@ export function PublicProfileAccountCard({
     data?.account?.identityKind === "business"
       ? `${data.account.businessName || "Your business"} is connected to ${profileName}.`
       : `Your TradeScout account is connected to ${profileName}.`;
+  const needsBusinessSetup =
+    hasViewerSession && data?.policy.requiredIdentity === "business" && data.requiresBusinessSetup;
+  const unconnectedHeading = !hasViewerSession
+    ? "Create an account"
+    : needsBusinessSetup
+      ? "Set up your business"
+      : data?.policy.requiredIdentity === "business"
+        ? "Connect your business"
+        : "Connect your TradeScout account";
+  const unconnectedDescription = !hasViewerSession
+    ? data?.policy.description
+    : needsBusinessSetup
+      ? `This profile requires a business identity. Add your business name to connect with ${profileName} using your existing TradeScout account. This does not send a request or message.`
+      : data?.policy.requiredIdentity === "business"
+        ? `Link ${data?.viewerBusiness?.name || "your business"} to ${profileName} using your existing TradeScout account. This does not send a request or message.`
+        : `Link your existing TradeScout account to ${profileName}. This does not send a request or message.`;
+  const unconnectedAction = !hasViewerSession
+    ? "Create an account"
+    : needsBusinessSetup
+      ? "Continue business setup"
+      : data?.policy.requiredIdentity === "business"
+        ? "Connect my business"
+        : "Connect my account";
+  const checkingAccount = loading || (authLoading && !hasViewerSession);
 
   return (
     <section
@@ -254,12 +289,16 @@ export function PublicProfileAccountCard({
             {connected ? "Account created" : "Account"}
           </p>
           <h3 className="mt-2 font-editorial text-3xl leading-none">
-            {connected ? `Your account with ${profileName}` : "Create an account"}
+            {connected
+              ? `Your account with ${profileName}`
+              : authLoading && !hasViewerSession
+                ? "Checking your account"
+                : unconnectedHeading}
           </h3>
         </div>
       </div>
 
-      {loading ? (
+      {checkingAccount ? (
         <div
           className={cn(
             "mt-5 flex min-h-12 items-center gap-2 text-sm",
@@ -272,7 +311,7 @@ export function PublicProfileAccountCard({
       ) : data ? (
         <>
           <p className={cn("mt-4 text-sm leading-6", isDark ? "text-white/70" : "text-stone-600")}>
-            {connected ? connectedDescription : data.policy.description}
+            {connected ? connectedDescription : unconnectedDescription}
           </p>
 
           {connected ? (
@@ -331,7 +370,7 @@ export function PublicProfileAccountCard({
               ) : (
                 <UserPlus className="h-4 w-4" aria-hidden="true" />
               )}
-              Create an account
+              {unconnectedAction}
             </button>
           )}
         </>
@@ -347,6 +386,16 @@ export function PublicProfileAccountCard({
         >
           {error}
         </p>
+      ) : null}
+      {businessSetupOpen ? (
+        <PublicProfileAccountDialog
+          open
+          onOpenChange={setBusinessSetupOpen}
+          onAccountChange={refreshStateAfterDialogChange}
+          profileSlug={profileSlug}
+          profileName={profileName}
+          tone={tone}
+        />
       ) : null}
     </section>
   );

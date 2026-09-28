@@ -29,10 +29,13 @@ const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set<ScoutActionType>([
 const ALLOWED_NAVIGATION_PATHS = new Set([
   "/scout",
   "/community",
+  "/community-feed",
+  "/contractors",
   "/exchange",
   "/marketplace",
   "/notes",
   "/direct-connect",
+  "/direct-connect/post",
   "/direct-connect/pros",
   "/utilities/supply-run",
   "/utilities/supply-run/new",
@@ -63,6 +66,68 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/homes",
   "/vehicles",
 ]);
+
+// Exact guest pages returned by Scout's public Site-page catalog. Do not
+// allow a whole route family: /services and /datasets can contain other paths.
+const PUBLIC_SITE_PAGE_NAVIGATION_PATHS = new Set([
+  "/datasets",
+  "/datasets/trades",
+  "/datasets/counties",
+  "/datasets/cities",
+  "/services/remote-notary",
+  "/services/mobile-notary",
+  "/help/scout",
+  "/trust-model",
+]);
+
+const PUBLIC_DEAL_PATH = /^\/deals\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const PUBLIC_BUSINESS_PROFILE_PATH = /^\/business\/[a-z0-9][a-z0-9-]{0,119}$/i;
+
+const PUBLIC_PROFILE_PAGE_PATH = /^\/u\/[a-z0-9][a-z0-9-]{0,119}$/i;
+
+const PUBLIC_TOOL_DETAIL_PATH = /^\/exchange\/tools\/[a-z0-9_-]{1,100}$/i;
+
+const SCOUT_REQUEST_REVIEW_TARGET = "/direct-connect/post?source=scout";
+const LEGACY_SCOUT_REQUEST_REVIEW_TARGET = "/direct-connect?source=scout";
+
+function isAllowedDirectConnectTarget(target: string, basePath: string): boolean {
+  if (basePath === "/direct-connect/post") {
+    return target === SCOUT_REQUEST_REVIEW_TARGET;
+  }
+  if (basePath === "/direct-connect") {
+    return target === "/direct-connect" || target === LEGACY_SCOUT_REQUEST_REVIEW_TARGET;
+  }
+  return true;
+}
+
+function isAllowedPublicDealPath(target: string, basePath: string): boolean {
+  if (!PUBLIC_DEAL_PATH.test(basePath) || target.includes("#")) return false;
+  const query = target.split("?", 2)[1];
+  if (query === undefined) return true;
+  const params = new URLSearchParams(query);
+  return (
+    params.getAll("county").length === 1 &&
+    [...params.keys()].length === 1 &&
+    /^\d{5}$/.test(params.get("county") || "")
+  );
+}
+
+function isAllowedPublicBusinessProfilePath(target: string, basePath: string): boolean {
+  return (
+    target === basePath &&
+    basePath.toLowerCase() !== "/business/requests" &&
+    PUBLIC_BUSINESS_PROFILE_PATH.test(basePath)
+  );
+}
+
+function isAllowedPublicProfilePagePath(target: string, basePath: string): boolean {
+  return target === basePath && PUBLIC_PROFILE_PAGE_PATH.test(basePath);
+}
+
+function isAllowedPublicToolDetailPath(target: string, basePath: string): boolean {
+  return target === basePath && PUBLIC_TOOL_DETAIL_PATH.test(basePath);
+}
 
 function isPaymentHandoffAction(action: ScoutAction): boolean {
   const name = getScoutToolName(action).toLowerCase();
@@ -108,12 +173,22 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
 
     // Internal routes must match allowlist or dynamic patterns
     const basePath = target.split("?")[0].split("#")[0];
-    const isAllowedStatic = ALLOWED_NAVIGATION_PATHS.has(basePath);
+    if (!isAllowedDirectConnectTarget(target, basePath)) {
+      console.warn("[Scout] Direct Connect navigation target not allowlisted:", basePath);
+      return null;
+    }
+    const isAllowedStatic =
+      ALLOWED_NAVIGATION_PATHS.has(basePath) || PUBLIC_SITE_PAGE_NAVIGATION_PATHS.has(target);
     const isAllowedDynamic =
+      isAllowedPublicDealPath(target, basePath) ||
+      isAllowedPublicBusinessProfilePath(target, basePath) ||
+      isAllowedPublicProfilePagePath(target, basePath) ||
+      isAllowedPublicToolDetailPath(target, basePath) ||
       /^\/contractors\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/exchange\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/profile\/[a-zA-Z0-9_-]+/.test(basePath) ||
       /^\/community\/[a-zA-Z0-9_-]+$/.test(basePath) ||
+      /^\/community\/posts\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/groups\/[a-zA-Z0-9_-]+$/.test(basePath) ||
       /^\/help\/[a-zA-Z0-9_-]+$/.test(basePath);
 

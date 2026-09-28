@@ -198,6 +198,10 @@ export class MarketplaceAndHomeScoutStorageRepository {
       );
     }
 
+    if (filters.requireApproved) {
+      conditions.push(isNotNull(marketplaceListings.approvedAt));
+    }
+
     if (statusFilter) {
       conditions.push(eq(marketplaceListings.status, statusFilter));
     }
@@ -211,8 +215,27 @@ export class MarketplaceAndHomeScoutStorageRepository {
     if (filters.county) {
       conditions.push(eq(marketplaceListings.county, filters.county));
     }
+    if (filters.countyAliases !== undefined) {
+      const aliases = Array.from(
+        new Set(
+          filters.countyAliases
+            .filter((alias): alias is string => typeof alias === "string")
+            .map((alias) => alias.trim().toLowerCase())
+            .filter(Boolean)
+        )
+      ).slice(0, 8);
+      conditions.push(
+        aliases.length
+          ? inArray(sql<string>`lower(btrim(${marketplaceListings.county}))`, aliases)
+          : sql`false`
+      );
+    }
     if (filters.state) {
-      conditions.push(eq(marketplaceListings.state, filters.state));
+      conditions.push(
+        filters.countyAliases !== undefined
+          ? sql`upper(btrim(${marketplaceListings.state})) = ${filters.state.trim().toUpperCase()}`
+          : eq(marketplaceListings.state, filters.state)
+      );
     }
     if (filters.condition && conditionValues.includes(filters.condition as any)) {
       conditions.push(
@@ -240,6 +263,20 @@ export class MarketplaceAndHomeScoutStorageRepository {
       if (searchCondition) {
         conditions.push(searchCondition);
       }
+    }
+    if (filters.publicToolTopic) {
+      const terms = (String(filters.publicToolTopic).toLowerCase().slice(0, 120).match(/[a-z0-9]+/g) ?? [])
+        .filter((term) => term.length >= 2)
+        .slice(0, 8);
+      const wordPattern = (term: string) =>
+        `(^|[^a-z0-9])${term}([^a-z0-9]|$)`;
+      const titleMatch = and(
+        ...terms.map((term) => sql`${marketplaceListings.title} ~* ${wordPattern(term)}`)
+      );
+      const descriptionMatch = and(
+        ...terms.map((term) => sql`${marketplaceListings.description} ~* ${wordPattern(term)}`)
+      );
+      conditions.push(terms.length ? or(titleMatch, descriptionMatch) ?? sql`false` : sql`false`);
     }
 
     // ── Category-specific spec filters ────────────────────────────────────

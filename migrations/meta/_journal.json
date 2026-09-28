@@ -1016,6 +1016,13 @@
       "when": 1790029801000,
       "tag": "0141_exchange_stone_inquiry_receipts",
       "breakpoints": false
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1790212174000,
+      "tag": "0142_scout_promotion_placement",
+      "breakpoints": false
     }
   ]
 }

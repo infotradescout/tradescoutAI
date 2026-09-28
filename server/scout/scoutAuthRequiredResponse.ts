@@ -10,15 +10,21 @@ export function buildAuthRequiredScoutResponse(decision: ScoutDecision): ScoutRe
     typeof decision.metadata?.redirect === "string"
       ? decision.metadata.redirect
       : AUTH_REQUIRED_REDIRECT;
+  const isSignIn =
+    redirect.startsWith("/pre-scout-setup?") &&
+    new URLSearchParams(redirect.split("?")[1]).get("mode") === "signin";
 
   return {
-    message:
-      "To continue with this request, you'll need a TradeScout account. Create an account and Scout will resume from this step.",
-    suggestedActions: ["Create account now", "Learn how TradeScout works", "Continue as guest"],
+    message: isSignIn
+      ? "Sign in to continue to this area."
+      : "To continue with this request, you'll need a TradeScout account. Create an account and Scout will resume from this step.",
+    suggestedActions: isSignIn
+      ? []
+      : ["Create account now", "Learn how TradeScout works", "Continue as guest"],
     actions: [
       {
         type: "NAVIGATE",
-        label: "Create account",
+        label: isSignIn ? "Sign in" : "Create account",
         to: redirect,
         path: redirect,
         primary: true,

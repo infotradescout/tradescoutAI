@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { buildSteelHomeBuilderPath } from "@shared/steelHomeBuilderRoutes";
 import {
   createProfileHistoryBoundaryState,
+  hasRecentInAppProfileNavigation,
   isProfileHistoryBoundaryState,
+  rememberInAppProfileNavigation,
 } from "./profileHistoryBoundary";
 
 const BOUNDARY_KEY = "__tradeScoutProfileHistoryBoundary";
@@ -52,5 +54,15 @@ describe("public profile history boundary", () => {
     expect(isProfileHistoryBoundaryState(guardedState, BOUNDARY_KEY, "another-profile")).toBe(
       false
     );
+  });
+
+  it("recognizes only the exact recent in-app public profile destination", () => {
+    expect(rememberInAppProfileNavigation("/u/mesa-plumbing", 1_000)).toBe(true);
+    expect(hasRecentInAppProfileNavigation("/u/mesa-plumbing", 1_000)).toBe(true);
+    expect(hasRecentInAppProfileNavigation("/u/other-profile", 1_000)).toBe(false);
+    expect(hasRecentInAppProfileNavigation("/u/mesa-plumbing", 61_001)).toBe(false);
+    expect(rememberInAppProfileNavigation("https://example.com/u/mesa-plumbing", 1_000)).toBe(false);
+    expect(rememberInAppProfileNavigation("/u/mesa-plumbing/edit", 1_000)).toBe(false);
+    expect(rememberInAppProfileNavigation("/business/mesa-plumbing", 1_000)).toBe(false);
   });
 });
