@@ -14,7 +14,9 @@ if (discoveryCandidate) {
   delete process.env.REQUEST_STAGES_CANDIDATE_SHA;
 }
 
-if (process.env.REQUEST_DASHBOARD_OBSERVE_SHA) {
+if (process.env.PUBLIC_DISCOVERY_OBSERVE_SHA) {
+  await import('./observe-public-discovery-release.mjs');
+} else if (process.env.REQUEST_DASHBOARD_OBSERVE_SHA) {
   await import('./observe-request-dashboard-release.mjs');
 } else if (process.env.REQUEST_DASHBOARD_CANDIDATE_SHA) {
   await import('./verify-request-dashboard-release.mjs');
