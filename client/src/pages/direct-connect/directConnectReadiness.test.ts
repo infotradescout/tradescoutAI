@@ -121,6 +121,21 @@ describe("getDirectConnectInboxNextStepCopy", () => {
     });
   });
 
+  it("does not reopen a declined response through another request's conversation", () => {
+    const copy = getDirectConnectInboxNextStepCopy({
+      assignmentStatus: "declined",
+      requestStatus: "routed",
+      conversationThreadId: "other-request-thread",
+    });
+
+    expect(copy).toMatchObject({
+      label: "Response archived",
+      actionHint: "Review details",
+      contactUnlocked: false,
+    });
+    expect(copy.summary).toContain("no contact path is open");
+  });
+
   it("keeps saved request follow-up pointed at Messages without unlocking contact", () => {
     const copy = getDirectConnectInboxNextStepCopy({
       assignmentStatus: "saved",

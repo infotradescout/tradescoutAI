@@ -359,6 +359,53 @@ describe("sign-in route ownership", () => {
     }
   });
 
+  it("uses provider review copy for an incoming assignment sign-in link", async () => {
+    state.location = `/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect/inbox?selected=assignment-123")}`;
+    window.history.replaceState({}, "", state.location);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, json: async () => ({ google: true, facebook: true }) }))
+    );
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<PreScoutSetup />));
+      expect(container.textContent).toContain(
+        "Sign in to review incoming Direct Connect requests."
+      );
+      expect(container.textContent).toContain("review requests assigned to you");
+      expect(container.textContent).toContain(
+        "return to your inbox before taking any response action"
+      );
+      expect(container.textContent).not.toContain("Sign in to send this Direct Connect request.");
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
+  });
+
+  it("keeps requester sign-in copy for a request draft", async () => {
+    state.location = "/pre-scout-setup?mode=signin&next=%2Fdirect-connect%3Fcounty%3D22005";
+    window.history.replaceState({}, "", state.location);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, json: async () => ({ google: true, facebook: true }) }))
+    );
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<PreScoutSetup />));
+      expect(container.textContent).toContain("Sign in to send this Direct Connect request.");
+      expect(container.textContent).toContain("Your request draft is safe.");
+      expect(container.textContent).toContain("return to your request before anything is sent");
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
+  });
+
   it.each([
     ["AUTH_ACCOUNT_LINK_REQUIRED", "That email already belongs to an account."],
     ["AUTH_IDENTITY_COLLISION", "We found conflicting account records."],

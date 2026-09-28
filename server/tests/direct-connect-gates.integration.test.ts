@@ -783,6 +783,44 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       .from(workRequestAssignments)
       .where(eq(workRequestAssignments.id, assignmentId));
     expect(acceptedAssignment?.status).toBe("accepted");
+
+    const acceptedThreadId = String(respondRes.body?.conversationId || "");
+    expect(acceptedThreadId.length).toBeGreaterThan(0);
+    const secondRequest = await requesterAgent.post("/api/direct-connect/requests").send({
+      title: `Separate declined assignment ${unique}`,
+      description: "A separate request from the same requester must not inherit the first thread.",
+      category: "service_request",
+      countyFips: String((county as any).fips),
+      stateCode: String((county as any).stateCode || "").toUpperCase(),
+      autoRoute: false,
+    });
+    expect(secondRequest.status).toBe(201);
+    const secondRequestId = String(secondRequest.body?.id || "");
+    const secondExpress = await providerAgent
+      .post(`/api/direct-connect/requests/${secondRequestId}/express-interest`)
+      .send({});
+    expect([200, 201]).toContain(secondExpress.status);
+    const declinedAssignmentId = String(secondExpress.body?.assignment?.id || "");
+    expect(declinedAssignmentId.length).toBeGreaterThan(0);
+    const declineResponse = await providerAgent
+      .post(`/api/direct-connect/assignments/${declinedAssignmentId}/respond`)
+      .send({ decision: "decline", reason: "Unavailable for this separate request" });
+    expect(declineResponse.status).toBe(200);
+
+    const inboxAfterDecline = await providerAgent.get("/api/direct-connect/inbox");
+    expect(inboxAfterDecline.status).toBe(200);
+    const acceptedItems = inboxAfterDecline.body.filter(
+      (item: any) => String(item?.assignment?.id || "") === assignmentId
+    );
+    const declinedItems = inboxAfterDecline.body.filter(
+      (item: any) => String(item?.assignment?.id || "") === declinedAssignmentId
+    );
+    expect(acceptedItems.length).toBeGreaterThan(0);
+    expect(declinedItems.length).toBeGreaterThan(0);
+    expect(acceptedItems.every((item: any) => item.conversationThreadId === acceptedThreadId)).toBe(
+      true
+    );
+    expect(declinedItems.every((item: any) => item.conversationThreadId === null)).toBe(true);
   });
 
   it("promotes open direct-connect requests to routed when provider expresses interest", async () => {

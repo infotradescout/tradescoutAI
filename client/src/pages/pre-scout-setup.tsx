@@ -96,6 +96,8 @@ export default function PreScoutSetup() {
       : new URL(postSetupNext, "https://tradescout.internal").searchParams.get("next") || ""
     : "";
   const isDirectConnectDestination = postSetupNext.startsWith("/direct-connect");
+  const isDirectConnectIncomingDestination =
+    postSetupNext === "/direct-connect/inbox" || postSetupNext.startsWith("/direct-connect/inbox?");
   const isAdminDestination = postSetupNext.startsWith("/admin");
   const anyUser: any = user || {};
   const onboardingCompleted = anyUser.onboardingCompleted === true;
@@ -152,22 +154,30 @@ export default function PreScoutSetup() {
     ? authMode === "create"
       ? "Save your recommendation to your account."
       : "Sign in to save your recommendation."
-    : isDirectConnectDestination
+    : isDirectConnectIncomingDestination
       ? authMode === "create"
-        ? "Create your account to send this Direct Connect request."
-        : "Sign in to send this Direct Connect request."
-      : authMode === "create"
-        ? "Create your account to continue."
-        : "Sign in to continue.";
+        ? "Create your account to open your provider inbox."
+        : "Sign in to review incoming Direct Connect requests."
+      : isDirectConnectDestination
+        ? authMode === "create"
+          ? "Create your account to send this Direct Connect request."
+          : "Sign in to send this Direct Connect request."
+        : authMode === "create"
+          ? "Create your account to continue."
+          : "Sign in to continue.";
   const authStepDescription = isRecommendationDestination
     ? "Pick up your recommendation after signing in. Confirm your email before it can be published."
-    : isDirectConnectDestination
+    : isDirectConnectIncomingDestination
       ? authMode === "create"
-        ? "Your request draft is safe. Create a free account and go straight back to finish sending it."
-        : "Your request draft is safe. Sign in and go straight back to finish sending it."
-      : authMode === "create"
-        ? "Start here so Scout can save your progress, then tell onboarding the result you want."
-        : "Sign in to pick up where you left off.";
+        ? "Create an account to continue to the provider inbox."
+        : "Sign in to open your provider inbox and review requests assigned to you."
+      : isDirectConnectDestination
+        ? authMode === "create"
+          ? "Your request draft is safe. Create a free account and go straight back to finish sending it."
+          : "Your request draft is safe. Sign in and go straight back to finish sending it."
+        : authMode === "create"
+          ? "Start here so Scout can save your progress, then tell onboarding the result you want."
+          : "Sign in to pick up where you left off.";
   const authenticatedNextPath = useMemo(() => {
     return resolvePreScoutAuthenticatedRoute({
       explicitNext: postSetupNext,
@@ -854,8 +864,9 @@ export default function PreScoutSetup() {
               <p className="max-w-md text-sm text-white/60">{authStepDescription}</p>
               {isDirectConnectDestination && (
                 <div className="max-w-md rounded-2xl border border-ts-orange/25 bg-ts-orange/10 px-4 py-3 text-sm text-white/80">
-                  Direct contact stays protected. You will return to your request before anything is
-                  sent.
+                  {isDirectConnectIncomingDestination
+                    ? "You will return to your inbox before taking any response action."
+                    : "Direct contact stays protected. You will return to your request before anything is sent."}
                 </div>
               )}
             </div>

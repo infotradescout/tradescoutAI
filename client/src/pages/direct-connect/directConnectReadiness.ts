@@ -143,21 +143,23 @@ export function getDirectConnectInboxNextStepCopy(
     };
   }
 
-  if (assignmentStatus === "accepted" || contactUnlocked) {
-    return {
-      label: "Coordination active",
-      summary: "This accepted request is ready for its Messages conversation.",
-      actionHint: "Open conversation",
-      contactUnlocked,
-    };
-  }
-
+  // A thread shared with another request must never turn a declined assignment
+  // into an active coordination path.
   if (assignmentStatus === "declined") {
     return {
       label: "Response archived",
       summary: "You declined or archived this request, so no contact path is open.",
       actionHint: "Review details",
       contactUnlocked: false,
+    };
+  }
+
+  if (assignmentStatus === "accepted" || contactUnlocked) {
+    return {
+      label: "Coordination active",
+      summary: "This accepted request is ready for its Messages conversation.",
+      actionHint: "Open conversation",
+      contactUnlocked,
     };
   }
 
