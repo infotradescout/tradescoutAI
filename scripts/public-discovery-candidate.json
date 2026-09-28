@@ -1,0 +1,10 @@
+{
+  "commit": "6fc13c7c6dd6c577d0d74e03b31e928c400ce3d6",
+  "blobs": {
+    "server/publicInformationPages.ts": "32415b7de7bc096108b11a67b0018dfb48be4b99",
+    "server/publicShellAliasRoutes.ts": "c4cdc8d232f245ec06f51e33245d59cf8c0a6b0f",
+    "shared/brand.ts": "6be21858203e5d836d9dcdde37b0465bd5397abe",
+    "scripts/public-information-pages.contract.test.mjs": "efd129874d739e01c3d72f3f564a8606315a8753"
+  },
+  "paths": ["/about", "/pricing", "/help", "/trust-model", "/direct-connect-info", "/maps", "/county-directory"]
+}
