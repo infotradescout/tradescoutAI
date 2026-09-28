@@ -284,7 +284,7 @@ function ProfileAccountDialogSession({
     setError("");
     setNotice("");
     try {
-      if (registrationAcceptedRef.current && !hasSession) {
+      if (registrationAcceptedRef.current && !hasSession && mode === "create") {
         await confirmProfileAccountSession(refetch);
         await finishExistingSession();
       } else if (hasSession) {
