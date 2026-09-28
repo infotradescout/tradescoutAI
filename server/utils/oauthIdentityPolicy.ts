@@ -1,4 +1,5 @@
 import { isRecommendationActionPath } from "@shared/recommendationContinuation";
+import { isProfileSurfaceContinuation } from "@shared/profileSurfaceContinuation";
 
 export type OAuthProvider = "facebook" | "google";
 
@@ -44,6 +45,8 @@ export type OAuthIdentityDecision =
 export function oauthPostLoginPath(returnPath: unknown, onboardingCompleted: boolean): string {
   const next = safeOAuthReturnPath(returnPath);
   if (isRecommendationActionPath(next)) return next;
+  // Preserve the company journey without claiming full onboarding is complete.
+  if (isProfileSurfaceContinuation(returnPath)) return next;
   if (onboardingCompleted) return next || "/pre-scout-setup";
   return next ? `/onboarding/profile?next=${encodeURIComponent(next)}` : "/onboarding/profile";
 }

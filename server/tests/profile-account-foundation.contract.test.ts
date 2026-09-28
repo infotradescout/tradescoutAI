@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { isOnboardingExemptPath } from "../../client/src/lib/postOnboardingRoute";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -50,7 +51,6 @@ describe("profile-native account foundation", () => {
     const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
     const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
     const client = read("client/src/components/profile/profileAccountClient.ts");
-    const onboarding = read("client/src/lib/postOnboardingRoute.ts");
     const portalCopy = read("shared/jwStonePortalCopy.ts");
 
     expect(header).toContain("sticky top-0");
@@ -68,8 +68,14 @@ describe("profile-native account foundation", () => {
     expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
     expect(client).toContain("return `/u/${encodeURIComponent(slug)}`;");
     expect(client).not.toContain('if (slug === "jw-stone")');
-    expect(onboarding).toContain('normalized === "/jw-stone"');
-    expect(onboarding).toContain("/^\\/u\\/[a-z0-9]");
+    // Exercise the shared continuation matcher rather than require its former
+    // inline regular expression to remain in the calling module.
+    for (const destination of ["/jw-stone", "/u/jw-stone", "/u/jw-stone?profileAccount=1", "/u/local-shop"]) {
+      expect(isOnboardingExemptPath(destination)).toBe(true);
+    }
+    for (const destination of ["/api/u/jw-stone/account", "/scout?next=/u/jw-stone", "/direct-connect?profileAccount=1"]) {
+      expect(isOnboardingExemptPath(destination)).toBe(false);
+    }
   });
 
   it("keeps verification and password recovery on the originating profile account", () => {
@@ -126,12 +132,13 @@ describe("profile-native account foundation", () => {
     );
   });
 
-  it("keeps registration blocked until profile policy loads", () => {
+  it("keeps registration blocked until profile policy and initial session checks finish", () => {
     const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
 
     expect(dialog).toContain('data-testid="profile-account-load-error"');
     expect(dialog).toContain("Account details have not finished loading");
-    expect(dialog).toContain("if (submitting || !state) return");
+    expect(dialog).toContain("if (submitting || !state || (!hasSession && (authLoading || authError))) return");
+    expect(dialog).toContain('data-testid="profile-account-session-error"');
     expect(dialog).toContain("Try again");
   });
 

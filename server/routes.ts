@@ -5155,33 +5155,16 @@ export async function registerRoutes(app: any) {
   };
 
   const getRuntimeOAuthCallbackUrl = (req: Request, provider: "google" | "facebook"): string => {
+    if (process.env.NODE_ENV === "production") {
+      return configuredOAuthCallbackUrl(provider);
+    }
     try {
       const host = String(req.get("host") || "").trim();
-      const hostOnly = host.split(":")[0].toLowerCase();
-      const protocolHeader = String(req.get("x-forwarded-proto") || "")
-        .trim()
-        .toLowerCase();
+      const protocolHeader = String(req.get("x-forwarded-proto") || "").trim().toLowerCase();
       const protocol = protocolHeader === "https" ? "https" : req.protocol || "http";
-      const isLocalHost = /^localhost(:\d+)?$/i.test(host) || /^127\.0\.0\.1(:\d+)?$/i.test(host);
-      const isCanonicalHost =
-        hostOnly === "www.thetradescout.com" || hostOnly === "thetradescout.com";
-
-      // Always prefer request host for local development, even when NODE_ENV=production.
-      if (host && isLocalHost) {
-        return `${protocol}://${host}/api/auth/${provider}/callback`;
-      }
-
-      // In production, prefer canonical web hosts over stale env callback values
-      // so OAuth cookies stay on the same origin users are actually on.
-      if (host && isCanonicalHost) {
-        return `${protocol}://${host}/api/auth/${provider}/callback`;
-      }
-
-      if (host && process.env.NODE_ENV !== "production") {
-        return `${protocol}://${host}/api/auth/${provider}/callback`;
-      }
+      if (host) return `${protocol}://${host}/api/auth/${provider}/callback`;
     } catch {
-      // fall through to env value
+      // fall through to configured development callback
     }
     return configuredOAuthCallbackUrl(provider);
   };

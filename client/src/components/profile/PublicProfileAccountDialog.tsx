@@ -8,15 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, sanitizeAuthUserAuthority, type User } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 import { cn } from "@/lib/utils";
+import { confirmProfileAccountSession, signInToProfileAccount } from "@/lib/profileAccountSignIn";
 import {
   buildProfileAccountResumePath,
   createProfileAccount,
   currentProfileAccountSourcePath,
   loadProfileAccountState,
-  readProfileAccountJson,
   registerProfileAccount,
   type ProfileAccountMode,
   type ProfileAccountResponse,
@@ -53,25 +54,6 @@ function passwordProblem(password: string): string | null {
   return null;
 }
 
-async function signIn(email: string, password: string): Promise<void> {
-  const response = await fetch(buildApiUrl("/api/auth/login"), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
-  });
-  const payload = await readProfileAccountJson(response);
-  if (!response.ok) {
-    const error = new Error(String(payload.message || "Sign-in failed.")) as RequestError;
-    error.status = response.status;
-    error.code = typeof payload.code === "string" ? payload.code : undefined;
-    throw error;
-  }
-}
-
 export function PublicProfileAccountDialog(props: PublicProfileAccountDialogProps) {
   const { user, isAuthenticated } = useAuth();
   const viewerId = String(user?.id || "");
@@ -94,7 +76,8 @@ function ProfileAccountDialogSession({
   tone = "light",
   initialMode = "create",
 }: PublicProfileAccountDialogProps) {
-  const { user, isAuthenticated, refetch } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, error: authError, refetch } = useAuth();
+  const queryClient = useQueryClient();
   const hasSession = isAuthenticated || Boolean(user?.id);
   const activeSessionRef = useRef(true);
   useEffect(() => {
@@ -108,6 +91,8 @@ function ProfileAccountDialogSession({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const autoContinueAttemptedRef = useRef<string | null>(null);
+  // A saved registration is not repeated when only the follow-up session check failed.
+  const registrationAcceptedRef = useRef(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -122,8 +107,8 @@ function ProfileAccountDialogSession({
   const isJwStonePortal = profileSlug === "jw-stone";
 
   useEffect(() => {
-    if (open && state) onAccountChange?.(state);
-  }, [open, state, onAccountChange]);
+    if (open && state && (hasSession || !state.account)) onAccountChange?.(state);
+  }, [open, state, hasSession, onAccountChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -153,7 +138,7 @@ function ProfileAccountDialogSession({
     };
   }, [open, profileSlug, initialMode, loadAttempt]);
 
-  const connected = state?.account?.status === "active";
+  const connected = hasSession && state?.account?.status === "active";
   const requiresBusiness = state?.policy.requiredIdentity === "business";
   const normalizedBusinessName = businessName.trim();
   const resumePath = buildProfileAccountResumePath(profileSlug, "signin");
@@ -272,6 +257,7 @@ function ProfileAccountDialogSession({
         next: resumePath,
       });
       if (!activeSessionRef.current) return;
+      registrationAcceptedRef.current = true;
       setState(created);
       if (created.emailVerificationRequired) {
         setNotice(
@@ -280,11 +266,11 @@ function ProfileAccountDialogSession({
             : `Your account is connected to ${profileName}. Email verification can be completed later.`
         );
       }
-      await refetch().catch(() => undefined);
+      await confirmProfileAccountSession(refetch);
     } catch (nextError) {
       if (!activeSessionRef.current) return;
       const requestError = nextError as RequestError;
-      if (requestError.status === 409 || requestError.code === "AUTH_ACCOUNT_EXISTS") {
+      if (requestError.code === "AUTH_ACCOUNT_EXISTS") {
         setMode("signin");
         throw new Error(`An account already exists for ${email.trim()}. Sign in to continue.`);
       }
@@ -293,19 +279,25 @@ function ProfileAccountDialogSession({
   };
 
   const submit = async () => {
-    if (submitting || !state) return;
+    if (submitting || !state || (!hasSession && (authLoading || authError))) return;
     setSubmitting(true);
     setError("");
     setNotice("");
     try {
-      if (hasSession) {
+      if (registrationAcceptedRef.current && !hasSession && mode === "create") {
+        await confirmProfileAccountSession(refetch);
+        await finishExistingSession();
+      } else if (hasSession) {
         await finishExistingSession();
       } else if (mode === "signin") {
         if (!email.trim() || !password) throw new Error("Enter your email and password.");
-        await signIn(email, password);
+        const signedIn = await signInToProfileAccount({
+          loginUrl: buildApiUrl("/api/auth/login"), authUrl: buildApiUrl("/api/auth/user"), email, password,
+        });
         if (!activeSessionRef.current) return;
-        await refetch().catch(() => undefined);
-        await finishExistingSession();
+        // Publish to the shared cache only after the same identity was read back
+        // through the persisted cookie. The keyed viewer then loads its own account.
+        queryClient.setQueryData(["/api/auth/user"], sanitizeAuthUserAuthority(signedIn as User));
       } else {
         await createNewAccount();
       }
@@ -379,7 +371,17 @@ function ProfileAccountDialogSession({
           <DialogDescription className={mutedClass}>{description}</DialogDescription>
         </DialogHeader>
 
-        {loading && !state ? (
+        {!hasSession && authLoading ? (
+          <p role="status" className={mutedClass}>Checking your sign-in…</p>
+        ) : !hasSession && authError ? (
+          <div className="space-y-4" data-testid="profile-account-session-error">
+            <p role="alert" className={mutedClass}>Your sign-in could not be checked. Please try again.</p>
+            <button type="button" onClick={() => { void refetch({ throwOnError: true }).catch(() => undefined); }}
+              className={cn("inline-flex min-h-11 w-full items-center justify-center rounded-full px-5 text-sm font-black", primaryClass)}>
+              Check sign-in again
+            </button>
+          </div>
+        ) : loading && !state ? (
           <div
             className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}
           >

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
@@ -38,8 +39,10 @@ import { PublicProfileAccountDialog } from "./PublicProfileAccountDialog";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const container = document.createElement("div");
 const root = createRoot(container);
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 afterEach(() => {
   act(() => root.unmount());
+  queryClient.clear();
   container.remove();
 });
 
@@ -52,13 +55,15 @@ it("notifies the stone page when an existing signed-in business creates its memb
   const onAccountChange = vi.fn();
   await act(async () => {
     root.render(
-      <PublicProfileAccountDialog
-        open
-        onOpenChange={() => undefined}
-        profileSlug="jw-stone"
-        profileName="JW Stone"
-        onAccountChange={onAccountChange}
-      />
+      <QueryClientProvider client={queryClient}>
+        <PublicProfileAccountDialog
+          open
+          onOpenChange={() => undefined}
+          profileSlug="jw-stone"
+          profileName="JW Stone"
+          onAccountChange={onAccountChange}
+        />
+      </QueryClientProvider>
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
   });

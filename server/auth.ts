@@ -33,6 +33,7 @@ import {
 } from "./utils/oauthIdentityPolicy";
 import { withAdvisoryLock } from "./utils/advisoryLocks";
 import { BoundedConcurrencyGate } from "./utils/boundedConcurrency";
+import { TRADESCOUT_AUTHORITY_ORIGIN } from "@shared/authAuthority";
 
 // Each resolution holds two advisory-lock sessions while using a query session.
 // Bound local fan-out so sign-in bursts cannot consume the entire shared pool.
@@ -209,20 +210,22 @@ export function getAuthProviderAvailability(): AuthProviderAvailability {
 }
 
 export function configuredOAuthCallbackUrl(provider: OAuthProvider): string {
-  const canonicalWebOrigin = String(
-    process.env.PUBLIC_WEB_URL || process.env.APP_URL || "https://www.thetradescout.com"
-  ).replace(/\/+$/, "");
+  // Production OAuth has one identity authority even though the same TradeScout
+  // infrastructure serves many mapped customer/profile domains. Browser cookies
+  // cannot be shared with unrelated registrable domains, so OAuth always starts
+  // and completes on the canonical authority; approved mapped domains use an
+  // explicit continuation/handoff rather than provider callback drift.
+  if (process.env.NODE_ENV === "production") {
+    return `${TRADESCOUT_AUTHORITY_ORIGIN}/api/auth/${provider}/callback`;
+  }
+
   const configured = String(
     (provider === "google" ? process.env.GOOGLE_CALLBACK_URL : process.env.FACEBOOK_CALLBACK_URL) ||
       ""
   ).trim();
-  const defaultCallback = `${canonicalWebOrigin}/api/auth/${provider}/callback`;
-
-  return process.env.NODE_ENV === "production" &&
-    /onrender\.com/i.test(configured) &&
-    canonicalWebOrigin.startsWith("https://")
-    ? defaultCallback
-    : configured || defaultCallback;
+  const localOrigin = String(process.env.PUBLIC_WEB_URL || process.env.APP_URL || "http://localhost:5000")
+    .replace(/\/+$/, "");
+  return configured || `${localOrigin}/api/auth/${provider}/callback`;
 }
 
 function normalizedProviderEmail(value: unknown): string {
