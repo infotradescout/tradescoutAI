@@ -272,9 +272,13 @@ export default function ProfilePage() {
       ? ownedProfileLookup.profileId
       : undefined;
   const exposureMode = profileExposure?.mode;
+  const isSelectedProfilePublic = Boolean(
+    selectedProfileId &&
+      (exposureMode ? exposureMode === "public" : profileStatus === "published" && legacyIsPublic)
+  );
   const isDiscoverablePublic =
-    Boolean(businessSlug && businessPagePublic) ||
-    Boolean(selectedProfileId && (exposureMode ? exposureMode === "public" : legacyIsPublic));
+    isSelectedProfilePublic ||
+    Boolean(!selectedProfileId && businessSlug && businessPagePublic);
   const canSharePublicRoute =
     Boolean(businessSlug && businessPagePublic) ||
     Boolean(
@@ -282,13 +286,25 @@ export default function ProfilePage() {
         (exposureMode === "public" ||
           exposureMode === "direct_only" ||
           exposureMode === "unlisted_review" ||
-          (!exposureMode && legacyIsPublic))
+          (!exposureMode && profileStatus === "published" && legacyIsPublic))
     );
   const exposureReason =
-    !businessPagePublic &&
     profileExposure?.reason && profileExposure.reason !== "public"
       ? formatActivityReason(profileExposure.reason)
       : null;
+  const visibilityLabel = isDiscoverablePublic
+    ? "Public"
+    : exposureMode === "direct_only"
+      ? businessSlug && businessPagePublic
+        ? "Profile direct-link only; business page public"
+        : "Direct-link only"
+      : exposureMode === "unlisted_review"
+        ? businessSlug && businessPagePublic
+          ? "Profile unlisted; business page public"
+          : "Unlisted review"
+        : businessSlug && businessPagePublic
+          ? "Profile private; business page public"
+          : "Private";
 
   const copyProfileUrl = async () => {
     await share({
@@ -417,12 +433,17 @@ export default function ProfilePage() {
                       ) : exposureMode === "direct_only" ? (
                         <>
                           <Eye className="h-4 w-4 text-amber-300" />
-                          <span className="text-amber-300">Direct-link only</span>
+                          <span className="text-amber-300">{visibilityLabel}</span>
                         </>
                       ) : exposureMode === "unlisted_review" ? (
                         <>
                           <Eye className="h-4 w-4 text-amber-300" />
-                          <span className="text-amber-300">Unlisted review</span>
+                          <span className="text-amber-300">{visibilityLabel}</span>
+                        </>
+                      ) : businessSlug && businessPagePublic ? (
+                        <>
+                          <Eye className="h-4 w-4 text-amber-300" />
+                          <span className="text-amber-300">{visibilityLabel}</span>
                         </>
                       ) : (
                         <>
@@ -626,7 +647,7 @@ export default function ProfilePage() {
                     <div className="flex justify-between items-center">
                       <span className="text-white/60">Profile Visibility</span>
                       <span className="font-medium capitalize">
-                        {user.preferences?.profileVisibility || "public"}
+                        {visibilityLabel}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
