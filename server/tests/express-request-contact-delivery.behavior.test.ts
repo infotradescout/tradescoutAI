@@ -235,7 +235,8 @@ describe("Express request callback details at the email provider boundary", () =
   });
 
   it("commits the authenticated sender receipt and delivers its callback to the assigned business", async () => {
-    const requestMessage = "Please quote <tile> work.\nTiming: next week.";
+    const requestMessage =
+      "Please quote <tile> work. Contact extra@example.invalid or 225-555-0198.\nTiming: next week.";
     setReleasedTarget();
     mocks.getUser.mockResolvedValue({
       id: "synthetic-matched-account",
@@ -288,10 +289,14 @@ describe("Express request callback details at the email provider boundary", () =
       .map((call) => JSON.parse(call[1].body))
       .find((payload) => payload.to[0].email === "selected-business@example.invalid");
     expect(businessPayload.textContent).toContain("2255550102");
-    expect(businessPayload.textContent).toContain(`Request details: ${requestMessage}`);
-    expect(businessPayload.htmlContent).toContain(
-      "Please quote &lt;tile&gt; work.<br />Timing: next week."
+    expect(businessPayload.textContent).toContain(
+      "Request details: Please quote <tile> work. Contact [hidden] or [hidden].\nTiming: next week."
     );
+    expect(businessPayload.htmlContent).toContain(
+      "Please quote &lt;tile&gt; work. Contact [hidden] or [hidden].<br />Timing: next week."
+    );
+    expect(businessPayload.textContent).not.toContain("extra@example.invalid");
+    expect(businessPayload.textContent).not.toContain("225-555-0198");
     const reviewUrl = `/direct-connect/inbox?filter=all&selected=${assignmentId}`;
     expect(businessPayload.textContent).toContain(reviewUrl);
     expect(businessPayload.htmlContent).toContain(reviewUrl.replace("&", "&amp;"));

@@ -679,8 +679,9 @@ export default function ExpressDirectConnectPanel({
                 </h3>
                 {requestedContactPreference === "call" ? (
                   <p className="mt-2 text-sm leading-6 text-stone-600">
-                    Send your request, name, email, and phone so the receiving business can contact
-                    you.
+                    {requestDeliveryCustody === "tradescout_pending_owner"
+                      ? `Add your request, name, email, and phone. TradeScout will hold them until ${businessName} connects.`
+                      : "Send your request, name, email, and phone so the receiving business can contact you."}
                   </p>
                 ) : null}
                 {multiStoneSelections.length ? (
@@ -902,17 +903,14 @@ export default function ExpressDirectConnectPanel({
               ) : null}
               {requestDeliveryCustody !== "tradescout_pending_owner" ? (
                 <p className="mx-auto mt-2 max-w-md text-stone-600">
-                  {requestedContactPreference === "call"
-                    ? `${operatorName} received your request, name, email, and phone so they can contact you.`
-                    : hasSeparateOperator
-                      ? `Your ${businessName} request was sent to ${operatorName}.`
-                      : `${businessName} received your project details.`}
+                  {`${operatorName} received your request, name, email, and phone so they can contact you and respond.`}
                 </p>
-              ) : requestedContactPreference === "call" ? (
+              ) : (
                 <p className="mx-auto mt-2 max-w-md text-stone-600">
-                  TradeScout will hold the protected call request until {businessName} connects.
+                  TradeScout will hold your request and contact details until {businessName}{" "}
+                  connects.
                 </p>
-              ) : null}
+              )}
 
               {hasViewerSession ? (
                 requiresDocumentNavigation(requestHref) ? (

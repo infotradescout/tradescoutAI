@@ -5,6 +5,7 @@ import {
   DIRECT_CONNECT_REQUESTS_PATH,
   DIRECT_CONNECT_START_PATH,
   DIRECT_CONNECT_TASKBAR_RESUME_HREF,
+  buildDirectConnectIncomingSignInHref,
   buildCanonicalDirectConnectWorkspaceHref,
   canonicalizeDirectConnectWorkspacePathname,
   getDirectConnectComposerDraftSessionKey,
@@ -331,8 +332,14 @@ describe("Direct Connect work-desk state", () => {
 
   it("restores an explicit incoming email link after sign-in only for a visible assignment", () => {
     const assignmentId = "synthetic-assignment-1";
+    const signInHref = buildDirectConnectIncomingSignInHref(`?filter=all&selected=${assignmentId}`);
+    expect(signInHref).toBe(
+      `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`${DIRECT_CONNECT_INCOMING_PATH}?filter=all&selected=${assignmentId}`)}`
+    );
+    const returnPath = new URLSearchParams(signInHref.split("?")[1]).get("next") || "";
+    expect(returnPath).toBe(`${DIRECT_CONNECT_INCOMING_PATH}?filter=all&selected=${assignmentId}`);
     const restoredState = resolveDirectConnectWorkspaceState({
-      search: `?filter=all&selected=${assignmentId}`,
+      search: new URL(returnPath, "https://example.invalid").search,
       storage: window.sessionStorage,
       authenticatedUserId: "recipient-1",
       pathname: DIRECT_CONNECT_INCOMING_PATH,

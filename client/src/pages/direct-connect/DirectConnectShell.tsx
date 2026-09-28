@@ -151,6 +151,7 @@ import {
 import {
   DIRECT_CONNECT_INCOMING_PATH,
   DIRECT_CONNECT_REQUESTS_PATH,
+  buildDirectConnectIncomingSignInHref,
   buildCanonicalDirectConnectWorkspaceHref,
   canonicalizeDirectConnectWorkspacePathname,
   getDirectConnectComposerDraftSessionKey,
@@ -4242,11 +4243,7 @@ function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string 
           <Button
             type="button"
             className="mt-4"
-            onClick={() =>
-              navigate(
-                `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`
-              )
-            }
+            onClick={() => navigate(buildDirectConnectIncomingSignInHref(window.location.search))}
           >
             Sign in to review requests
           </Button>
