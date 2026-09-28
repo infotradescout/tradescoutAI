@@ -11,9 +11,14 @@ import { chromium } from 'playwright';
 
 const candidate = String(process.env.SEARCH_SURFACE_CANDIDATE_SHA || '');
 assert.match(candidate, /^[a-f0-9]{40}$/);
-const reviewed = JSON.parse(fs.readFileSync(new URL('./public-information-candidate.json', import.meta.url), 'utf8'));
+const discoveryMode = Boolean(process.env.PUBLIC_DISCOVERY_CANDIDATE_SHA);
+const manifest = discoveryMode ? './public-discovery-candidate.json' : './public-information-candidate.json';
+const reviewed = JSON.parse(fs.readFileSync(new URL(manifest, import.meta.url), 'utf8'));
 assert.equal(candidate, reviewed.commit, 'Explicitly reviewed candidate required');
 for (const hash of Object.values(reviewed.blobs)) assert.match(hash, /^[a-f0-9]{40}$/);
+const browserPaths = discoveryMode ? reviewed.paths : ['/about', '/pricing', '/help', '/trust-model', '/direct-connect-info'];
+assert(Array.isArray(browserPaths) && browserPaths.length > 0);
+for (const pathname of browserPaths) assert.match(pathname, /^\/[a-z-]+$/);
 const output = path.resolve(process.env.SEARCH_SURFACE_OUTPUT || '.search-proof');
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'tradescout-information-release-'));
 const checkout = path.join(temporary, 'repo');
@@ -73,7 +78,16 @@ try {
   await admin.connect(); await admin.query('CREATE DATABASE tradescout_information_release'); await admin.end();
   const database = new URL(`postgresql://postgres:${password}@127.0.0.1:${port}/tradescout_information_release`);
   database.searchParams.set('sslmode', 'verify-full'); database.searchParams.set('sslrootcert', certificate);
-  const runtimeEnv = { ...cleanEnv, DATABASE_URL: database.href, TEST_DATABASE_URL: database.href, PGSSLROOTCERT: certificate, SESSION_SECRET: randomBytes(40).toString('hex'), PUBLIC_BASE_URL: 'https://www.thetradescout.com', RENDER_GIT_COMMIT: candidate };
+  const isolatedDiscoverySettings = discoveryMode ? {
+    INDEXNOW_KEY: 'off',
+    INDEXNOW_PROFILE_RECONCILIATION_DISABLED: 'true',
+    PUBLIC_PROFILE_PRODUCTION_AUDIT_DISABLED: 'true',
+    PUBLIC_DIRECTORY_PROFILE_GRAPH_AUDIT_DISABLED: 'true',
+    PUBLIC_PROFILE_IMAGE_SITEMAP_AUDIT_DISABLED: 'true',
+    PUBLIC_CUSTOM_DOMAIN_CANONICAL_AUDIT_DISABLED: 'true',
+  } : {};
+  const runtimeEnv = { ...cleanEnv, ...isolatedDiscoverySettings, DATABASE_URL: database.href, TEST_DATABASE_URL: database.href, PGSSLROOTCERT: certificate, SESSION_SECRET: randomBytes(40).toString('hex'), PUBLIC_BASE_URL: 'https://www.thetradescout.com', RENDER_GIT_COMMIT: candidate };
+  if (discoveryMode) evidence.isolation = { productionCredentialsInherited: false, database: 'fresh-loopback-only', indexNowKeyDisabled: true, productionAuditsDisabled: true, browserOffOriginRequestsBlocked: true, browserWritesBlocked: true };
   run('native-migration-preflight', 'npm', ['run', 'db:migrate'], { env: runtimeEnv });
   run('native-required-schema', 'npm', ['run', 'db:verify:required'], { env: runtimeEnv });
   const appPort = await unusedPort(); const base = `http://127.0.0.1:${appPort}`;
@@ -94,7 +108,7 @@ try {
       const request = route.request(); const url = new URL(request.url());
       return ['GET', 'HEAD'].includes(request.method()) && url.origin === base ? route.continue() : route.abort('blockedbyclient');
     });
-    for (const pathname of ['/about', '/pricing', '/help', '/trust-model', '/direct-connect-info']) {
+    for (const pathname of browserPaths) {
       const page = await context.newPage(); const errors = []; page.on('pageerror', error => errors.push(error.message));
       const response = await page.goto(base + pathname, { waitUntil: 'domcontentloaded', timeout: 30000 });
       assert.equal(response.status(), 200); const raw = await response.text(); assert(raw.includes('data-public-information-page="true"')); assert(raw.includes('<h1>')); assert(raw.includes('/assets/'));
@@ -110,7 +124,8 @@ try {
     await context.close();
   }
   await browser.close(); browser = null;
-  run('strict-minimum-release', 'npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=Observed exact compiled candidate on desktop1440 and mobile390 for all five changed informational pages; 10 browser cases passed, app mounting and canonical preservation verified. Scope: public documents, not submitted customer actions.'], { env: runtimeEnv });
+  const browserNote = `Observed exact compiled candidate on desktop1440 and mobile390 for ${browserPaths.join(', ')}; ${browserPaths.length * 2} browser cases passed, app mounting and canonical preservation verified. Scope: public documents, not submitted customer actions.`;
+  run('strict-minimum-release', 'npm', ['run', 'gate:minimum-release', '--', '--browser-proof=manual', '--browser-note=' + browserNote], { env: runtimeEnv });
   const receipt = JSON.parse(fs.readFileSync(path.join(checkout, 'artifacts/release-contract', candidate.slice(0, 12), 'evidence.json'), 'utf8'));
   assert.equal(receipt.commit, candidate); assert.equal(receipt.result, 'pass'); assert.equal(receipt.attestable, true);
   evidence.release = receipt; assert.equal(run('clean-final-tree', 'git', ['status', '--porcelain']), ''); evidence.result = 'pass';
