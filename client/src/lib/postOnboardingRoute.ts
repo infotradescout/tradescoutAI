@@ -7,6 +7,8 @@
  * separate onboarding lanes.
  */
 
+import { isProfileSurfaceContinuation } from "@shared/profileSurfaceContinuation";
+
 export type DirectConnectEntry = "default" | "auth" | "setup" | "onboarding" | "intent";
 export type OnboardingState = "needs_outcome" | "complete";
 export type AuthEntryMode = "create" | "signin";
@@ -158,13 +160,7 @@ export function getPostLandingRoute(user: unknown): string {
 }
 
 function isPublicProfileAccountPath(path: string): boolean {
-  const normalized =
-    String(path || "/")
-      .trim()
-      .toLowerCase()
-      .replace(/\/+$/, "") || "/";
-  if (normalized === "/jw-stone") return true;
-  return /^\/u\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized);
+  return isProfileSurfaceContinuation(path);
 }
 
 export function isOnboardingExemptPath(path: string): boolean {

@@ -1,5 +1,6 @@
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { isJwStoneMarketplaceDomainSurface, marketplaceBasePath } from "./marketplaceRoutes";
+import { profileTradeScoutOptInPath } from "@shared/profileSurfaceContinuation";
 
 /**
  * Light compact footer sheet — logo + legal.
@@ -7,9 +8,10 @@ import { isJwStoneMarketplaceDomainSurface, marketplaceBasePath } from "./market
  */
 export function MarketplaceFooter() {
   const homeHref = marketplaceBasePath() || "/";
+  const tradeScoutPath = profileTradeScoutOptInPath();
   const tradeScoutHref = isJwStoneMarketplaceDomainSurface()
-    ? "https://www.thetradescout.com/"
-    : "/";
+    ? `https://www.thetradescout.com${tradeScoutPath}`
+    : tradeScoutPath;
 
   return (
     <footer
@@ -33,14 +35,19 @@ export function MarketplaceFooter() {
           <span className="hidden text-[var(--jw-border-strong)] sm:inline" aria-hidden="true">
             ·
           </span>
+          <span>Powered by TradeScout</span>
           <a
             href={tradeScoutHref}
             className="inline-flex min-h-11 items-center font-semibold text-[var(--jw-muted)] underline decoration-[var(--jw-border-strong)] underline-offset-4 transition-colors hover:text-[var(--jw-ink)] sm:min-h-0"
             data-testid="jw-marketplace-tradescout-link"
           >
-            Powered by TradeScout
+            Explore TradeScout
           </a>
         </div>
+        <p className={`max-w-lg text-center text-xs leading-5 ${jw.muted}`}>
+          Optional: use your existing account for the full TradeScout experience.
+          You can keep using JW Stone without completing TradeScout onboarding.
+        </p>
       </div>
     </footer>
   );
