@@ -71,10 +71,14 @@ const server = https.createServer({ key: fs.readFileSync(path.join(temp, "key.pe
   }
   if (pathname === "/api/profile-accounts/register" && req.method === "POST") {
     counts.registrations++; for await (const _ of req) { /* Synthetic registration only. */ }
-    accepted = true; res.setHeader("Set-Cookie", "proof.sid=synthetic; HttpOnly; Secure; SameSite=Lax; Path=/");
+    accepted = true;
+    if (!scenario.registrationMissingCookie) res.setHeader("Set-Cookie", "proof.sid=synthetic; HttpOnly; Secure; SameSite=Lax; Path=/");
     return json({ ...accountState(true), emailVerificationRequired: true, emailVerificationSent: false }, 201);
   }
-  if (pathname === "/api/u/jw-stone/account" && req.method === "GET") return json(accountState(signedIn));
+  if (pathname === "/api/u/jw-stone/account" && req.method === "GET") {
+    if (scenario.accountHtml) { res.writeHead(200, { "Content-Type": "text/html" }); return res.end("<html>not an account response</html>"); }
+    return json(accountState(signedIn));
+  }
   if (pathname.startsWith("/api/")) { counts.unexpected.push(`${req.method} ${pathname}`); return json({ message: "Unexpected proof request" }, 404); }
   res.writeHead(200, { "Content-Type": "text/html" });
   res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script>window.__TS_CUSTOM_DOMAIN_PROFILE_SLUG__="jw-stone";</script><script type="module" src="/proof.js"></script></body></html>');
@@ -85,8 +89,8 @@ const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "
 const results = [];
 try {
   for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
-    for (const [name, config] of Object.entries({ success: {}, html: { html: true }, denied: { denied: true }, missingCookie: { dropCookie: true }, wrongIdentity: { wrongIdentity: true }, initialProbeRecovery: { initialProbeFailure: true }, registrationRecovery: { registrationProbeFailure: true } })) {
-      scenario = config; accepted = false; failedProbe = false;
+    for (const [name, config] of Object.entries({ success: {}, html: { html: true }, denied: { denied: true }, missingCookie: { dropCookie: true }, wrongIdentity: { wrongIdentity: true }, initialProbeRecovery: { initialProbeFailure: true }, registrationRecovery: { registrationProbeFailure: true }, accountHtml: { accountHtml: true }, registrationMissingCookie: { registrationMissingCookie: true } })) {
+      scenario = { ...config }; accepted = false; failedProbe = false;
       counts = { probes: 0, logins: 0, registrations: 0, unexpected: [] };
       const context = await browser.newContext({ viewport, ignoreHTTPSErrors: true });
       await context.route("**/*", route => {
@@ -96,10 +100,17 @@ try {
       const page = await context.newPage(); const pageErrors = [];
       page.on("pageerror", error => pageErrors.push(error.message));
       try {
-        const mode = name === "registrationRecovery" ? "create" : "signin";
+        const mode = name.startsWith("registration") ? "create" : "signin";
         const origin = `https://proof.company.test:${port}`;
         await page.goto(`${origin}/?mode=${mode}`);
-        if (name === "initialProbeRecovery") {
+        if (name === "accountHtml") {
+          await page.getByTestId("profile-account-load-error").waitFor();
+          assert.equal(await page.getByTestId("profile-account-submit").count(), 0);
+          scenario.accountHtml = false;
+          await page.getByRole("button", { name: "Try again", exact: true }).click();
+          await page.getByTestId("profile-account-email").waitFor();
+          assert.equal(counts.logins, 0); assert.equal(counts.registrations, 0);
+        } else if (name === "initialProbeRecovery") {
           await page.getByTestId("profile-account-session-error").waitFor();
           assert.equal(await page.getByTestId("profile-account-submit").count(), 0);
           failedProbe = true; await page.getByRole("button", { name: "Check sign-in again" }).click();
@@ -121,8 +132,13 @@ try {
             await page.getByTestId("profile-account-session-error").waitFor();
             assert.equal(counts.registrations, 1);
             failedProbe = true; await page.getByRole("button", { name: "Check sign-in again" }).click();
+          } else if (name === "registrationMissingCookie") {
+            await page.getByTestId("profile-account-error").waitFor();
+            assert.equal(counts.registrations, 1); assert.equal(counts.logins, 0);
+            await page.getByRole("button", { name: "Already have an account? Sign in", exact: true }).click();
+            await page.getByTestId("profile-account-submit").click();
           }
-          if (name === "success" || name === "registrationRecovery") {
+          if (name === "success" || name.startsWith("registration")) {
             await page.getByTestId("profile-account-dialog-connected").waitFor();
             assert.equal(await page.evaluate(() => window.readProofIdentity().id), user.id);
             assert.equal(await page.evaluate(() => window.readProofIdentity().onboardingCompleted), false);
@@ -130,8 +146,8 @@ try {
             assert.equal(cookie?.httpOnly, true); assert.equal(cookie?.secure, true);
             await page.reload(); await page.getByTestId("profile-account-dialog-connected").waitFor();
             assert.equal(new URL(page.url()).hostname, "proof.company.test");
-            if (name === "registrationRecovery") assert.equal(counts.registrations, 1);
-            else assert.equal(counts.logins, 1);
+            if (name.startsWith("registration")) assert.equal(counts.registrations, 1);
+            if (name !== "registrationRecovery") assert.equal(counts.logins, 1);
           } else {
             await page.getByTestId("profile-account-error").waitFor();
             assert.equal(await page.getByTestId("profile-account-dialog-connected").count(), 0);
@@ -152,5 +168,5 @@ try {
 } finally {
   await browser.close(); await new Promise(done => { server.close(done); server.closeAllConnections(); });
   fs.rmSync(temp, { recursive: true, force: true });
-  fs.writeFileSync(path.join(output, "receipt.json"), JSON.stringify({ source: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), results, syntheticApi: true, productionWrites: false, providerAcceptance: false, crossDomainSsoAcceptance: false }, null, 2));
+  fs.writeFileSync(path.join(output, "receipt.json"), JSON.stringify({ source: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), passed: results.length === 18, results, syntheticApi: true, productionWrites: false, providerAcceptance: false, crossDomainSsoAcceptance: false }, null, 2));
 }
