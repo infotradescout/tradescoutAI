@@ -53,7 +53,7 @@ for (const [route, definition] of Object.entries(PUBLIC_INFORMATION_PAGES)) {
   });
 }
 test('only explicit informational routes qualify; private, unknown and prototype routes do not', () => {
-  for (const value of ['/contact', '/direct-connect', '/admin', '/dashboard', '/api/admin', '/community', '/maps', '/about?x=1', '//about', '/%61bout', '/about//', '/unknown', '__proto__', 'constructor']) assert.equal(resolvePublicInformationPath(value), null, value);
+  for (const value of ['/contact', '/direct-connect', '/admin', '/dashboard', '/api/admin', '/community', '/about?x=1', '//about', '/%61bout', '/about//', '/unknown', '__proto__', 'constructor']) assert.equal(resolvePublicInformationPath(value), null, value);
   assert.equal(resolvePublicInformationPath('/about/'), '/about');
   assert.throws(() => buildPublicInformationHtml(template, '/admin'), /Unapproved/);
 });
@@ -101,4 +101,56 @@ test('production registration retains ISSA and existing aliases before fallback'
   assert.match(source, /registerIssaBuildPublicRoutes\(app\)/);
   assert.ok(source.indexOf('registerPublicInformationRoutes(app)') < source.indexOf('app.head(paths'));
   assert.match(source, /app\.get\(paths, redirectPublicShellAlias\)/);
+});
+
+for (const route of ['/maps', '/county-directory']) {
+  test(`${route}: public discovery response, redirects, preview protection and authority boundaries`, () => {
+    assert.equal(resolvePublicInformationPath(route), route);
+    assert.equal(resolvePublicInformationPath(route + '/'), route);
+    for (const method of ['GET', 'HEAD']) {
+      const result = exercise({ route, method });
+      assert.equal(result.response.statusCode, 200);
+      assert.equal(result.nextCalls, 0);
+      assert.equal(result.reads, 1);
+      assert.equal(result.response.headers['x-robots-tag'], undefined);
+      assert.ok(result.response.body.includes(`href="https://www.thetradescout.com${route}"`));
+      assert.ok(result.response.body.includes('href="/find-local-businesses"'));
+      assert.ok(result.response.body.includes('/assets/entry.js'));
+      assert.ok(!result.response.body.includes('Startup failure'));
+    }
+    const redirect = exercise({ route: route + '/', originalUrl: route + '/?utm_source=example' });
+    assert.equal(redirect.response.statusCode, 308);
+    assert.equal(redirect.response.redirectTarget, route + '?utm_source=example');
+    assert.equal(redirect.reads, 0);
+    const preview = exercise({ route, host: '127.0.0.1:5000' });
+    assert.equal(preview.response.statusCode, 200);
+    assert.equal(preview.response.headers['x-robots-tag'], 'noindex');
+    for (const options of [{ method: 'POST' }, { method: 'DELETE' }, { host: 'jwstonelogistics.com' }]) {
+      const result = exercise({ route, ...options });
+      assert.equal(result.nextCalls, 1);
+      assert.equal(result.reads, 0);
+      assert.equal(result.response.statusCode, null);
+    }
+  });
+}
+test('discovery descriptions are distinct and do not invent local inventory or availability', () => {
+  const maps = PUBLIC_INFORMATION_PAGES['/maps'];
+  const counties = PUBLIC_INFORMATION_PAGES['/county-directory'];
+  assert.ok(maps && counties);
+  assert.notEqual(maps.title, counties.title);
+  assert.notEqual(maps.description, counties.description);
+  assert.ok(maps.paragraphs.join(' ').includes('not proof that a business is available'));
+  assert.ok(counties.paragraphs.join(' ').includes('does not guarantee that every trade has an active provider'));
+  for (const definition of [maps, counties]) {
+    for (const [href] of definition.links) assert.match(href, /^\/[a-z-]+$/);
+    assert.ok(definition.description.length <= 160);
+  }
+});
+test('discovery renderer does not widen eligibility to child, private or arbitrary routes', () => {
+  for (const route of ['/maps/private', '/maps/anything', '/county-directory/private', '/county-directory/anything', '/api/maps', '/api/counties']) {
+    assert.equal(resolvePublicInformationPath(route), null);
+    const result = exercise({ route });
+    assert.equal(result.nextCalls, 1);
+    assert.equal(result.reads, 0);
+  }
 });
