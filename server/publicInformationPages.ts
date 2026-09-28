@@ -5,6 +5,28 @@ import { formatTradeScoutTitle } from "../shared/brand";
 
 /** Existing public informational pages only; never infer publication from a URL. */
 export const PUBLIC_INFORMATION_PAGES = {
+  "/maps": {
+    title: "Local Business Map | Find Contractors | TradeScout",
+    description: "Explore public local businesses and contractors on TradeScout. Compare map results with business profiles, trade categories, and county pages.",
+    heading: "Find local businesses and contractors on the map",
+    paragraphs: [
+      "Use TradeScout Maps to explore public businesses, providers, and opt-in profiles by place. The interactive map includes layers and trade filters so you can narrow the information relevant to your project.",
+      "A map marker is a starting point, not proof that a business is available or qualified for your job. Open the business profile to review its published service information and the verification evidence actually shown before deciding who to contact.",
+      "You can also browse the business directory, trade categories, or county directory using the links below. These alternatives do not require the map to finish loading. Browsing does not send a request or share your contact details; you choose whether to send a Direct Connect request.",
+    ],
+    links: [["/find-local-businesses", "Browse local business profiles"], ["/trade", "Browse contractor trade categories"], ["/county-directory", "Find your county"], ["/direct-connect-info", "How to request local help"], ["/trust-model", "Review business verification and trust"]],
+  },
+  "/county-directory": {
+    title: "County Directory | Local Contractors | TradeScout",
+    description: "Browse U.S. counties by state on TradeScout. Reach local county hubs, contractor trade pages, community activity, and public business profiles.",
+    heading: "Browse local businesses and contractors by county",
+    paragraphs: [
+      "Use the TradeScout county directory to select a state, find a county, and open its local hub. County pages connect geographic context with trade pages, community activity, and public business discovery.",
+      "Start with the county where the work is needed rather than assuming every nearby business serves the same area. Review the service information on individual public profiles and confirm that the business fits your project before sending a request.",
+      "A county page does not guarantee that every trade has an active provider or that a listed business is available. Browse by trade or use the local business directory when you need another way to narrow the search. Your private contact details are not published by viewing these pages.",
+    ],
+    links: [["/trade", "Explore contractor trades"], ["/find-local-businesses", "Find local business profiles"], ["/maps", "Explore the local business map"], ["/direct-connect-info", "Request help from a business you choose"], ["/trust-model", "Understand verification and trust"]],
+  },
   "/about": {
     title: "About TradeScout | Connection Without Compromise",
     description: "A complete plain-language explanation of TradeScout for requesters, businesses, property owners, communities, and Exchange participants.",
