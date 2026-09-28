@@ -340,14 +340,16 @@ export function resolveDirectConnectWorkspaceScopeHydration({
   previousScope,
   currentScope,
   task,
+  preserveExplicitSelection = false,
 }: {
   restoredState: DirectConnectWorkspaceState;
   previousScope: string;
   currentScope: string;
   task: DirectConnectWorkspaceTask;
+  preserveExplicitSelection?: boolean;
 }): DirectConnectWorkspaceState {
   const restored = sanitizeDirectConnectWorkspaceState(restoredState, task);
-  if (previousScope && previousScope !== currentScope) {
+  if (previousScope && previousScope !== currentScope && !preserveExplicitSelection) {
     return { ...restored, selectedId: "" };
   }
   return restored;

@@ -60,7 +60,7 @@ describe("getDirectConnectInboxNextStepCopy", () => {
 
     expect(copy).toMatchObject({
       label: "Respond to request",
-      actionHint: "Prepare response",
+      actionHint: "Accept request",
       contactUnlocked: false,
     });
     expect(copy.summary).toContain("Contact opens only after acceptance");
@@ -85,11 +85,11 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       actionableAssignment: true,
       submissionContactAvailable: true,
     });
-    expect(copy.summary).toContain("name and phone the sender shared with this request");
+    expect(copy.summary).toContain("contact the sender shared with this request");
     expect(copy.summary).toContain(
       "Accept with your scope and availability to open a conversation"
     );
-    expect(copy.actionHint).toBe("Prepare response");
+    expect(copy.actionHint).toBe("Accept request");
     expect(copy.contactUnlocked).toBe(false);
   });
 

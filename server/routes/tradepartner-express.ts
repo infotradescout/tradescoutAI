@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { randomUUID } from "node:crypto";
 import { rateLimit } from "express-rate-limit";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -44,7 +45,11 @@ import {
 } from "@shared/jwStoneDirectConnect";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { jwStoneOfferInputSchema } from "@shared/jwStoneOffer";
-import { JwStoneOfferError, reviewJwStoneOffer, summarizeJwStoneOffer } from "../services/jwStoneOfferReview";
+import {
+  JwStoneOfferError,
+  reviewJwStoneOffer,
+  summarizeJwStoneOffer,
+} from "../services/jwStoneOfferReview";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -648,9 +653,13 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (!target) return res.status(404).json({ message: "Profile not found." });
 
         const body = parsed.data;
-        if ((body.requestType === "make_offer") !== Boolean(body.stoneOffer) ||
-            (body.stoneOffer && (body.serviceName || body.contactPreference === "call"))) {
-          return res.status(400).json({ message: "Use the stone offer form to submit a material-price offer." });
+        if (
+          (body.requestType === "make_offer") !== Boolean(body.stoneOffer) ||
+          (body.stoneOffer && (body.serviceName || body.contactPreference === "call"))
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Use the stone offer form to submit a material-price offer." });
         }
         const verifiedDiscoveryAttribution = body.discoveryAttributionToken
           ? verifyDiscoveryAttributionToken(body.discoveryAttributionToken, {
@@ -682,9 +691,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         const email = normalizeEmail(body.email);
         const { firstName, lastName } = splitName(body.name);
         const viewerId = String(req.user?.id || req.user?.claims?.sub || "").trim();
-        const stoneOffer = body.stoneOffer ? await reviewJwStoneOffer({
-          profileSlug: target.profileSlug, viewerId, user: req.user, input: body.stoneOffer,
-        }) : null;
+        const stoneOffer = body.stoneOffer
+          ? await reviewJwStoneOffer({
+              profileSlug: target.profileSlug,
+              viewerId,
+              user: req.user,
+              input: body.stoneOffer,
+            })
+          : null;
         if (!viewerId && isReservedSignupIdentityEmail(email)) {
           // Use the same response as any logged-out existing account. Reserved
           // recovery identifiers must never enter guest onboarding, but the
@@ -731,7 +745,13 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         const requesterWasCreated = !requester;
         const authenticatedRequester = requester;
         const updatesOptIn = body.updatesOptIn === true;
-        const sanitizedMessage = [stoneOffer ? summarizeJwStoneOffer(stoneOffer) : null, redactContactDetails(body.message).trim()].filter(Boolean).join("\n\n");
+        const sanitizedUserMessage = redactContactDetails(body.message).trim();
+        const sanitizedMessage = [
+          stoneOffer ? summarizeJwStoneOffer(stoneOffer) : null,
+          sanitizedUserMessage,
+        ]
+          .filter(Boolean)
+          .join("\n\n");
         const title =
           body.contactPreference === "call"
             ? `Call request for ${target.businessName}`.slice(0, 180)
@@ -797,6 +817,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           authority,
           requester: committedRequester,
           submittedContact,
+          assignmentId,
         } = await db.transaction(async (tx: any) => {
           let transactionRequester = authenticatedRequester as any;
           if (!transactionRequester) {
@@ -876,7 +897,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             now,
           });
 
+          const assignmentId = randomUUID();
           await tx.insert(workRequestAssignments).values({
+            id: assignmentId,
             workRequestId: request.id,
             contractorId: null,
             responderUserId: target.ownerUserId,
@@ -967,7 +990,13 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               },
             },
           ]);
-          return { request, authority, requester: transactionRequester, submittedContact };
+          return {
+            request,
+            authority,
+            requester: transactionRequester,
+            submittedContact,
+            assignmentId,
+          };
         });
         requester = committedRequester;
         if (!requester?.id) {
@@ -1108,7 +1137,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           const publicBase = String(
             process.env.APP_BASE_URL || "https://www.thetradescout.com"
           ).replace(/\/$/, "");
-          const inboxUrl = `${publicBase}/direct-connect/inbox`;
+          const inboxUrl = `${publicBase}/direct-connect/inbox?filter=all&selected=${encodeURIComponent(assignmentId)}`;
           console.info("[tradepartner-express] business notification email send start", {
             requestId: created.id,
             correlationId: httpRequestId,
@@ -1137,10 +1166,12 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
                   : "",
                 `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
-                `<p><strong>Request details:</strong></p><p>${escapeHtml(body.message).replace(/\\n/g, "<br />")}</p>`,
-                ...(stoneOffer ? ["<pre>" + escapeHtml(summarizeJwStoneOffer(stoneOffer)) + "</pre>"] : []),
-                `<p>The sender shared their name and phone with this request so you can respond.</p>`,
-                `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
+                `<p><strong>Request details:</strong></p><p>${escapeHtml(sanitizedUserMessage).replace(/\n/g, "<br />")}</p>`,
+                ...(stoneOffer
+                  ? ["<pre>" + escapeHtml(summarizeJwStoneOffer(stoneOffer)) + "</pre>"]
+                  : []),
+                `<p>The sender shared their name, email, and phone with this request so you can respond.</p>`,
+                `<p><a href="${escapeHtml(inboxUrl)}">Review this request in Direct Connect</a> to accept or decline it.</p>`,
               ]
                 .filter(Boolean)
                 .join("\n"),
@@ -1156,10 +1187,10 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   : null,
                 body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
-                `Request details: ${body.message}`,
+                `Request details: ${sanitizedUserMessage}`,
                 ...(stoneOffer ? [summarizeJwStoneOffer(stoneOffer)] : []),
-                "The sender shared their name and phone with this request so you can respond.",
-                `Open Direct Connect inbox: ${inboxUrl}`,
+                "The sender shared their name, email, and phone with this request so you can respond.",
+                `Review this request in Direct Connect to accept or decline it: ${inboxUrl}`,
               ]
                 .filter(Boolean)
                 .join("\n"),
@@ -1431,7 +1462,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         return res.status(201).json({
           requestId: created.id,
           status: created.status,
-          ...(stoneOffer ? { offerStatus: stoneOffer.status, paymentAllowed: false, inventoryReserved: false } : {}),
+          ...(stoneOffer
+            ? { offerStatus: stoneOffer.status, paymentAllowed: false, inventoryReserved: false }
+            : {}),
           businessName: target.businessName,
           contactPreference: body.contactPreference,
           contactGateState: authority.contactGateState,

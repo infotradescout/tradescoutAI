@@ -136,9 +136,9 @@ export function getDirectConnectInboxNextStepCopy(
     return {
       label: "Respond to request",
       summary: item.submissionContactAvailable
-        ? "View the name and phone the sender shared with this request. Accept with your scope and availability to open a conversation, or archive it."
-        : "Accept with your scope and availability, or archive it. Contact opens only after acceptance.",
-      actionHint: item.isStructuredReplyOpen ? "Accept and open conversation" : "Prepare response",
+        ? "View the contact the sender shared with this request. Accept with your scope and availability to open a conversation, or decline the request."
+        : "Accept with your scope and availability, or decline the request. Contact opens only after acceptance.",
+      actionHint: item.isStructuredReplyOpen ? "Accept and open conversation" : "Accept request",
       contactUnlocked: false,
     };
   }
