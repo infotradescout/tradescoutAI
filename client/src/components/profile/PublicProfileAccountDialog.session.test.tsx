@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicProfileAccountDialog } from "./PublicProfileAccountDialog";
 
@@ -35,18 +36,19 @@ function connected(name: string, id: string) {
     account: { id: "account-" + id, status: "active", businessName: name, verificationStatus: "pending" }, entitlements: [] };
 }
 const unconnected = { policy, viewerBusiness: null, requiresBusinessSetup: true, account: null, entitlements: [] };
-let host: HTMLDivElement, root: Root;
+let host: HTMLDivElement, root: Root, queryClient: QueryClient;
 const close = vi.fn();
 async function render(slug = "jw-stone") {
-  await act(async () => { root.render(<PublicProfileAccountDialog open onOpenChange={close} onAccountChange={fixture.changed} profileSlug={slug} profileName="JW Stone" />); });
+  await act(async () => { root.render(<QueryClientProvider client={queryClient}><PublicProfileAccountDialog open onOpenChange={close} onAccountChange={fixture.changed} profileSlug={slug} profileName="JW Stone" /></QueryClientProvider>); });
 }
 beforeEach(() => {
   fixture.viewer = { id: "member-a" }; fixture.authenticated = true;
   fixture.load.mockReset().mockResolvedValue(connected("Synthetic Business A", "a"));
   fixture.create.mockReset(); fixture.register.mockReset(); fixture.refetch.mockReset(); fixture.changed.mockReset();
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
 });
-afterEach(() => { act(() => root.unmount()); host.remove(); });
+afterEach(() => { act(() => root.unmount()); queryClient.clear(); host.remove(); });
 
 describe("Profile account session isolation", () => {
   it("clears a former member's connected state immediately when another customer signs in", async () => {
