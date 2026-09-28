@@ -23,7 +23,7 @@ The completed stone-profile lane is business-only.
 - ISSA Build
 - Future published profiles whose inventory is identified as stone
 
-Those accounts require an existing TradeScout business identity because they can lead to verified-business stone access and BidRock. A personal or homeowner-only identity cannot create one.
+Those accounts use the same underlying TradeScout identity authority, but the profile account itself is intentionally lightweight and does not require completion of full TradeScout onboarding. Seller-specific pricing or downstream products may still require their own entitlement or verification checks; those checks do not turn the profile account into a separate identity system.
 
 ### Other public profiles
 
@@ -37,7 +37,7 @@ Until a non-stone profile defines a stricter policy, it uses the normal signed-i
 
 `one TradeScout identity → one account with a public profile → profile-specific priority → optional product access`
 
-When a profile requires business access, the relationship also carries the user's existing TradeScout business profile and its verification state.
+When a profile-specific entitlement requires business verification, the same TradeScout verification authority can attach that verified business context later. Creating the lightweight profile account does not itself require or imply full TradeScout onboarding.
 
 A profile account is not a second password, a duplicate TradeScout user, a copied business profile, or a separate product identity.
 
@@ -45,7 +45,7 @@ A profile account is not a second password, a duplicate TradeScout user, a copie
 
 Examples:
 
-1. A fabricator visits JW Stone and selects **Create an account**. The stone policy requires a TradeScout business profile and may add BidRock access.
+1. A visitor reaches JW Stone and selects **Create an account**. TradeScout creates or reuses the lightweight underlying identity and attaches a JW Stone profile account. Full TradeScout onboarding is not required merely to use the JW account; seller-specific gated capabilities can request verification only when needed.
 2. A homeowner visits a service profile and selects **Create an account**. That profile may prioritize customer continuity without requiring a business identity.
 3. A contractor visits a wholesale supplier whose profile policy requires businesses. The same generic action routes through business setup.
 4. A future community or membership profile uses the same action but defines its own purpose and allowed identity.
@@ -131,6 +131,6 @@ The profile completes the relationship after the required TradeScout identity ex
 
 This lane establishes one reusable account contract, exposes **Create an account** across published profiles, and enforces the first completed policy:
 
-**stone profiles are business-only; other profiles keep their own priorities.**
+**profile accounts are lightweight TradeScout relationships; profile-specific entitlements decide what additional verification is required.**
 
 It does not redesign individual profiles, add Stone Core promotion to JW Stone, launch BidRock checkout, or claim that saved-state, private pricing, orders, and conversations are already connected.
