@@ -10,9 +10,12 @@ import {
   contractors,
   contractorTrades,
   counties,
+  conversations,
+  notifications,
   tradeRequirements,
   trades,
   workRequestAssignments,
+  workRequestEvents,
   workRequests,
 } from "@shared/schema";
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
@@ -679,6 +682,92 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     const assignmentId = String(eligibleExpressRes.body?.assignment?.id || "");
     expect(assignmentId.length).toBeGreaterThan(0);
 
+    // Both provider email links end at this authenticated inbox/respond path. A
+    // second real business account must neither read nor act on this assignment.
+    const { agent: unrelatedProviderAgent, user: unrelatedProviderUser } = await createAuthedAgent({
+      role: "contractor",
+    });
+    await releaseProviderProfile(String(unrelatedProviderUser.id));
+    const [assignedBusiness] = await db
+      .select({ id: businesses.id })
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, String(providerUser.id)))
+      .limit(1);
+    const [unrelatedBusiness] = await db
+      .select({ id: businesses.id })
+      .from(businesses)
+      .where(eq(businesses.ownerUserId, String(unrelatedProviderUser.id)))
+      .limit(1);
+    expect(assignedBusiness?.id).toBeTruthy();
+    expect(unrelatedBusiness?.id).toBeTruthy();
+    expect(unrelatedBusiness.id).not.toBe(assignedBusiness.id);
+    expect(String(unrelatedProviderUser.id)).not.toBe(String(providerUser.id));
+    const unrelatedContractors = await db
+      .select({ id: contractors.id })
+      .from(contractors)
+      .where(eq(contractors.userId, String(unrelatedProviderUser.id)));
+    expect(unrelatedContractors).toHaveLength(0);
+
+    const unrelatedInbox = await unrelatedProviderAgent.get("/api/direct-connect/inbox");
+    expect(unrelatedInbox.status).toBe(200);
+    expect(Array.isArray(unrelatedInbox.body)).toBe(true);
+    expect(
+      unrelatedInbox.body.some(
+        (item: any) => String(item?.assignment?.workRequestId || "") === requestId
+      )
+    ).toBe(false);
+
+    const responseSideEffects = async () => ({
+      assignment: (
+        await db
+          .select()
+          .from(workRequestAssignments)
+          .where(eq(workRequestAssignments.id, assignmentId))
+          .limit(1)
+      )[0],
+      events: (
+        await db
+          .select({ id: workRequestEvents.id })
+          .from(workRequestEvents)
+          .where(eq(workRequestEvents.workRequestId, requestId))
+      ).length,
+      threads: (
+        await db
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(eq(conversations.homeownerId, String(requesterUser.id)))
+      ).length,
+      notifications: (
+        await db
+          .select({ id: notifications.id })
+          .from(notifications)
+          .where(eq(notifications.userId, String(requesterUser.id)))
+      ).length,
+    });
+    const beforeForeignResponses = await responseSideEffects();
+    expect(["suggested", "invited"]).toContain(beforeForeignResponses.assignment?.status);
+
+    const foreignAccept = await unrelatedProviderAgent
+      .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
+      .send({
+        decision: "accept",
+        availabilityWindow: "This week",
+        priceBand: "standard",
+        scopeNote: "I should not be able to accept another provider's request.",
+      });
+    const foreignDecline = await unrelatedProviderAgent
+      .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
+      .send({ decision: "decline", reason: "Not my assignment" });
+    const missingAssignment = await unrelatedProviderAgent
+      .post(`/api/direct-connect/assignments/${crypto.randomUUID()}/respond`)
+      .send({ decision: "decline", reason: "Not found" });
+    expect(foreignAccept.status).toBe(404);
+    expect(foreignDecline.status).toBe(404);
+    expect(foreignAccept.body).toEqual({ message: "Assignment not found" });
+    expect(foreignDecline.body).toEqual(missingAssignment.body);
+    expect(missingAssignment.status).toBe(404);
+    expect(await responseSideEffects()).toEqual(beforeForeignResponses);
+
     const respondRes = await providerAgent
       .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
       .send({
@@ -689,6 +778,11 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       });
     expect([200, 201]).toContain(respondRes.status);
     expect(respondRes.status).not.toBe(404);
+    const [acceptedAssignment] = await db
+      .select({ status: workRequestAssignments.status })
+      .from(workRequestAssignments)
+      .where(eq(workRequestAssignments.id, assignmentId));
+    expect(acceptedAssignment?.status).toBe("accepted");
   });
 
   it("promotes open direct-connect requests to routed when provider expresses interest", async () => {
