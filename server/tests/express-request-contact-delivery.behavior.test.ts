@@ -4,6 +4,7 @@ import request from "supertest";
 import { ADMIN_MANAGED_PROFILE_SOURCE } from "@shared/publicProfileExposureRegistry";
 
 const mocks = vi.hoisted(() => ({
+  requestLogs: [] as any[],
   row: {} as Record<string, unknown>,
   target: null as Record<string, unknown> | null,
   inserted: {} as Record<string, any[]>,
@@ -84,6 +85,14 @@ vi.mock("../services/discoveryObservatoryService", () => ({
   },
 }));
 
+async function diagnosticApp() {
+  const { createOperationalRequestDiagnostics } = await import("../services/operationalRequestContext");
+  const app = express();
+  const capture = (_message: string, meta: unknown) => mocks.requestLogs.push(meta);
+  app.use(createOperationalRequestDiagnostics({ info: capture, warn: capture, error: capture }));
+  return app;
+}
+
 describe("Express request callback details at the email provider boundary", () => {
   const submittedContact = {
     name: "Submitted Visitor",
@@ -98,6 +107,7 @@ describe("Express request callback details at the email provider boundary", () =
     vi.clearAllMocks();
     mocks.target = null;
     mocks.inserted = {};
+    mocks.requestLogs = [];
     vi.stubEnv("EMAIL_PROVIDER", "brevo");
     vi.stubEnv("BREVO_API_KEY", "synthetic-test-key");
     vi.stubEnv("SENDGRID_API_KEY", "");
@@ -208,7 +218,7 @@ describe("Express request callback details at the email provider boundary", () =
       email: submittedContact.email,
     });
     const { registerTradePartnerExpressRoutes } = await import("../routes/tradepartner-express");
-    const app = express();
+    const app = await diagnosticApp();
     app.use(express.json());
     registerTradePartnerExpressRoutes(app);
     const response = await request(app)
@@ -222,6 +232,9 @@ describe("Express request callback details at the email provider boundary", () =
         message: "I need countertops and tile.",
       });
     expect(response.status).toBe(401);
+    expect(mocks.requestLogs).toHaveLength(1);
+    expect(mocks.requestLogs[0].response.code).toBe("EXISTING_ACCOUNT_SIGN_IN_REQUIRED");
+    expect(mocks.requestLogs[0].requestId).toBe(response.headers["x-request-id"]);
     expect(response.body.code).toBe("EXISTING_ACCOUNT_SIGN_IN_REQUIRED");
     expect(mocks.updateUser).not.toHaveBeenCalled();
     expect(mocks.transactionUpdate).not.toHaveBeenCalled();
@@ -240,7 +253,7 @@ describe("Express request callback details at the email provider boundary", () =
       email: submittedContact.email,
     });
     const { registerTradePartnerExpressRoutes } = await import("../routes/tradepartner-express");
-    const app = express();
+    const app = await diagnosticApp();
     app.use(express.json());
     app.use((req: any, _res, next) => {
       req.user = { id: "synthetic-matched-account" };
@@ -258,6 +271,13 @@ describe("Express request callback details at the email provider boundary", () =
         message: "I need countertops and tile.",
       });
     expect(response.status).toBe(201);
+    expect(mocks.requestLogs).toHaveLength(1);
+    const diagnostic = mocks.requestLogs[0];
+    expect(diagnostic).toMatchObject({ statusCode: 201, workRequestId: "synthetic-express-request", actorId: "synthetic-matched-account", profileSlug: mocks.target!.profileSlug });
+    expect(diagnostic.requestId).toBe(response.headers["x-request-id"]);
+    expect(diagnostic.response.responseRequestId).toBe(response.body.requestId);
+    expect(diagnostic.businessNotificationEmailStatus).toBe("sent");
+    expect(JSON.stringify(diagnostic)).not.toContain(submittedContact.email);
     expect(mocks.getUserByEmail).not.toHaveBeenCalled();
     expect(mocks.transactionUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ phone: submittedContact.phone })
@@ -302,7 +322,7 @@ describe("Express request callback details at the email provider boundary", () =
       lines: [{ inventoryPublicId: offerStockId, requestedQuantity: 1, availableQuantity: 7, materialName: "Honey Onyx", materialSlug: "honey-onyx", assetKind: "slab", dimensions: { length: 120, height: 60, unit: "in" }, pricingTier: "slab", unitRateCents: 300, oneSlabTotalCents: 15000, lineTotalCents: 15000, status: "ready" }] });
     mocks.getUser.mockResolvedValue({ id: "synthetic-matched-account", firstName: "Saved", email: submittedContact.email, phone: "2255550199" });
     const { registerTradePartnerExpressRoutes } = await import("../routes/tradepartner-express");
-    const app = express(); app.use(express.json());
+    const app = await diagnosticApp(); app.use(express.json());
     if (signedIn) app.use((req: any, _res, next) => { req.user = { id: "synthetic-matched-account" }; next(); });
     registerTradePartnerExpressRoutes(app);
     return request(app).post("/api/tradepartner-profiles/" + slug + "/express-request").send(body);
@@ -310,6 +330,13 @@ describe("Express request callback details at the email provider boundary", () =
   it("saves a private pending offer through the existing contact transaction, without a charge", async () => {
     const response = await sendOffer();
     expect(response.status).toBe(201);
+    expect(mocks.requestLogs).toHaveLength(1);
+    const diagnostic = mocks.requestLogs[0];
+    expect(diagnostic).toMatchObject({ statusCode: 201, workRequestId: "synthetic-express-request", actorId: "synthetic-matched-account", profileSlug: mocks.target!.profileSlug });
+    expect(diagnostic.requestId).toBe(response.headers["x-request-id"]);
+    expect(diagnostic.response.responseRequestId).toBe(response.body.requestId);
+    expect(diagnostic.businessNotificationEmailStatus).toBe("sent");
+    expect(JSON.stringify(diagnostic)).not.toContain(submittedContact.email);
     expect(response.body).toMatchObject({ offerStatus: "pending_review", paymentAllowed: false, inventoryReserved: false });
     const event = mocks.inserted.work_request_events.find((row) => row.type === "created");
     expect(event.metadata.stoneOffer).toMatchObject({ offeredTotalCents: 12000, listedSubtotalCents: 15000, status: "pending_review", paymentAllowed: false, confirmedAt: null, finalPayableTotalCents: null });
@@ -330,6 +357,17 @@ describe("Express request callback details at the email provider boundary", () =
     { body: { ...offerBody, stoneOffer: { ...offerBody.stoneOffer, expectedSubtotalCents: 14999 } }, expected: 409 },
   ])("rejects invalid offer requests before any write (%j)", async ({ expected, ...options }) => {
     const response = await sendOffer(options); expect(response.status).toBe(expected); expect(mocks.inserted).toEqual({}); expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("records actual request validation codes and field paths without submitted contact", async () => {
+    const response = await sendOffer({ body: { ...offerBody, phone: "not-a-phone" } });
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBeUndefined();
+    expect(mocks.requestLogs).toHaveLength(1);
+    expect(mocks.requestLogs[0]).toMatchObject({ code: "EXPRESS_REQUEST_VALIDATION_FAILED", validationIssues: [{ code: "custom", path: ["phone"] }] });
+    expect(JSON.stringify(mocks.requestLogs)).not.toContain("not-a-phone");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mocks.inserted).toEqual({});
   });
 
 });
