@@ -31,6 +31,7 @@ import { buildAssignedProviderEmailContent } from "./services/directConnectProvi
 import webPush from "web-push";
 
 const EMAIL_JOB_TYPE = "notification_email_v1";
+const DIRECT_CONNECT_PROVIDER_REQUEST_EMAIL_PURPOSE = "direct_connect_provider_request";
 const EMAIL_MAX_ATTEMPTS = 5;
 const EMAIL_LEASE_MS = 10 * 60_000;
 
@@ -1123,7 +1124,11 @@ export class NotificationService {
         subject: content.title,
         html: this.generateEmailHTML(content, user),
         text: content.message,
-        purpose: isJwStoneSignupStaff ? "jw_stone_signup_staff" : "notification",
+        purpose: providerEmailContext
+          ? DIRECT_CONNECT_PROVIDER_REQUEST_EMAIL_PURPOSE
+          : isJwStoneSignupStaff
+            ? "jw_stone_signup_staff"
+            : "notification",
         correlationId: notification.id,
         singleAttempt: true,
       });

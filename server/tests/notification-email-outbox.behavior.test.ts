@@ -324,6 +324,15 @@ describe("durable notification email outbox", () => {
     expect(payload).not.toHaveProperty("replyTo");
   });
 
+  it("ignores caller metadata that claims the bound provider email purpose", async () => {
+    await create({
+      metadata: { purpose: "direct_connect_provider_request" },
+    });
+    await service.processEmailDeliveryJobs();
+    expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
+    expect(fixture.sendEmail.mock.calls[0][0].purpose).toBe("notification");
+  });
+
   it("keeps in-app-only oversight in app despite broad type preferences", async () => {
     await fixture.database!.query(
       "INSERT INTO notification_preferences (user_id, type_preferences) VALUES ('owner', $1::jsonb)",
@@ -729,7 +738,7 @@ describe("normal Direct Connect provider email activation", () => {
       await service.processEmailDeliveryJobs();
       expect(fixture.sendEmail).toHaveBeenCalledTimes(1);
       expect(fixture.sendEmail.mock.calls[0][0]).toMatchObject({
-        purpose: "notification",
+        purpose: "direct_connect_provider_request",
         subject: "New Direct Connect request: Kitchen tile Continue through TradeScout",
       });
       const sent = fixture.sendEmail.mock.calls[0][0];
@@ -863,6 +872,7 @@ describe("normal Direct Connect provider email activation", () => {
       title: "Unbound",
       message: "Unbound",
       deliveryMethods: ["email"],
+      metadata: { purpose: "direct_connect_provider_request" },
     });
     await service.processEmailDeliveryJobs();
     expect((await jobs())[0].status).toBe("cancelled");

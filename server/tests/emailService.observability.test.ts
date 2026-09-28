@@ -23,6 +23,70 @@ describe("emailService observability", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("permits the bound provider-request purpose while restricted generic notices stay suppressed", async () => {
+    vi.stubEnv("EMAIL_PROVIDER", "brevo");
+    vi.stubEnv("BREVO_API_KEY", "test-brevo-key-not-real");
+    vi.stubEnv("SENDGRID_API_KEY", "");
+    vi.stubEnv("EMAIL_MODE", "account_creation_only");
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      text: async () => JSON.stringify({ messageId: "bound-provider-fixture" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { emailService } = await import("../services/emailService");
+    expect(
+      await emailService.sendEmail({
+        to: "synthetic-provider@example.com",
+        subject: "Bound request",
+        text: "Synthetic request details",
+        purpose: "direct_connect_provider_request",
+        singleAttempt: true,
+      })
+    ).toMatchObject({ skipped: false, messageId: "bound-provider-fixture" });
+    for (const subject of ["Generic Direct Connect update", "Other notification"]) {
+      expect(
+        await emailService.sendEmail({
+          to: "synthetic-provider@example.com",
+          subject,
+          text: "Generic update",
+          purpose: "notification",
+          singleAttempt: true,
+        })
+      ).toMatchObject({ skipped: true, skippedReason: "email_mode_suppressed" });
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps both bound and generic purposes available in unrestricted mode", async () => {
+    vi.stubEnv("EMAIL_PROVIDER", "brevo");
+    vi.stubEnv("BREVO_API_KEY", "test-brevo-key-not-real");
+    vi.stubEnv("SENDGRID_API_KEY", "");
+    vi.stubEnv("EMAIL_MODE", "all");
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      text: async () => JSON.stringify({ messageId: "all-mode-fixture" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { emailService } = await import("../services/emailService");
+    for (const purpose of ["direct_connect_provider_request", "notification"]) {
+      expect(
+        await emailService.sendEmail({
+          to: "synthetic-provider@example.com",
+          subject: "Synthetic update",
+          text: "Synthetic details",
+          purpose,
+          singleAttempt: true,
+        })
+      ).toMatchObject({ skipped: false, messageId: "all-mode-fixture" });
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("allows JW Stone signup staff mail without opening generic notification mail", async () => {
     vi.stubEnv("EMAIL_PROVIDER", "brevo");
     vi.stubEnv("BREVO_API_KEY", "test-brevo-key-not-real");
@@ -31,25 +95,31 @@ describe("emailService observability", () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetchMock = vi.fn().mockResolvedValue({
-      ok: true, status: 201, text: async () => JSON.stringify({ messageId: "jw-staff-fixture" }),
+      ok: true,
+      status: 201,
+      text: async () => JSON.stringify({ messageId: "jw-staff-fixture" }),
     });
     vi.stubGlobal("fetch", fetchMock);
     const { emailService } = await import("../services/emailService");
 
-    expect(await emailService.sendEmail({
-      to: "synthetic-staff@example.com",
-      subject: "New JW Stone account signup",
-      text: "A synthetic signup alert",
-      purpose: "jw_stone_signup_staff",
-      singleAttempt: true,
-    })).toMatchObject({ skipped: false, provider: "brevo", messageId: "jw-staff-fixture" });
-    expect(await emailService.sendEmail({
-      to: "synthetic-staff@example.com",
-      subject: "Generic update",
-      text: "A generic notification",
-      purpose: "notification",
-      singleAttempt: true,
-    })).toMatchObject({ skipped: true, skippedReason: "email_mode_suppressed" });
+    expect(
+      await emailService.sendEmail({
+        to: "synthetic-staff@example.com",
+        subject: "New JW Stone account signup",
+        text: "A synthetic signup alert",
+        purpose: "jw_stone_signup_staff",
+        singleAttempt: true,
+      })
+    ).toMatchObject({ skipped: false, provider: "brevo", messageId: "jw-staff-fixture" });
+    expect(
+      await emailService.sendEmail({
+        to: "synthetic-staff@example.com",
+        subject: "Generic update",
+        text: "A generic notification",
+        purpose: "notification",
+        singleAttempt: true,
+      })
+    ).toMatchObject({ skipped: true, skippedReason: "email_mode_suppressed" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
