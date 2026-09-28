@@ -75,6 +75,18 @@ type SurfaceOrientation = {
 
 const START_GUIDE_SEEN_KEY = "ts:start-guide-seen-v1";
 
+export function isAuthSurfacePath(location: string): boolean {
+  const pathname = location.split(/[?#]/, 1)[0];
+  return (
+    pathname.startsWith("/create-account") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname === "/check-email" ||
+    pathname === "/verify-email" ||
+    pathname === "/reset-password"
+  );
+}
+
 const START_GUIDE_ITEMS: NavItem[] = [
   {
     label: "Get help with a project",
@@ -415,6 +427,21 @@ export function buildMobileAppTaskbarNav(items: NavItem[]): NavItem[] {
   return [...stablePrimary, ...secondaryApps];
 }
 
+export function isDirectConnectJobDeepLinkPath(path: string): boolean {
+  try {
+    const url = new URL(path, "https://www.thetradescout.com");
+    const isDirectConnectPath =
+      url.pathname === "/direct-connect" ||
+      url.pathname.startsWith("/direct-connect/");
+    return (
+      isDirectConnectPath &&
+      Boolean(url.searchParams.get("jobWorkspaceId")?.trim())
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function AppShell({ children, footer }: AppShellProps) {
   const { user, isAuthenticated } = useAuth();
   const isLoggedIn = !!user;
@@ -433,17 +460,17 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   const isScoutSurface = location === "/" || location.startsWith("/scout");
   const showMobileScoutHero = location === "/";
-  const isAuthSurface =
-    location.startsWith("/create-account") ||
-    location.startsWith("/login") ||
-    location.startsWith("/register");
+  const isAuthSurface = isAuthSurfacePath(location);
   const isSetupSurface =
     location.startsWith("/pre-scout-setup") || isOnboardingSurfacePath(location);
   const isAdminSurface = location.startsWith("/admin");
   // A captured action already supplies the user's goal. Keep its confirmation
   // screen focused and defer the Start Guide without marking it seen.
-  const isRecommendationSurface = isRecommendationActionPath(getCurrentInternalPath(location));
-  const isStoneInquirySurface = isStoneInquiryPath(getCurrentInternalPath(location));
+  const currentInternalPath = getCurrentInternalPath(location);
+  const isRecommendationSurface = isRecommendationActionPath(currentInternalPath);
+  const isStoneInquirySurface = isStoneInquiryPath(currentInternalPath);
+  const isDirectConnectJobSurface = isDirectConnectJobDeepLinkPath(currentInternalPath);
+  const isFocusedActionSurface = isStoneInquirySurface || isDirectConnectJobSurface;
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface || isRecommendationSurface;
   const role =
     typeof (user as any)?.role === "string"
@@ -644,11 +671,11 @@ export function AppShell({ children, footer }: AppShellProps) {
   }, [location]);
 
   useEffect(() => {
-    if (isStoneInquirySurface) {
+    if (isFocusedActionSurface || isAuthOrSetupSurface) {
       setIsStartGuideOpen(false);
       return;
     }
-    if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
+    if (!isLoggedIn || isAdminSurface) return;
     try {
       if (window.localStorage.getItem(START_GUIDE_SEEN_KEY) !== "1") {
         setIsStartGuideOpen(true);
@@ -656,7 +683,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     } catch {
       setIsStartGuideOpen(true);
     }
-  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface, isStoneInquirySurface]);
+  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface, isFocusedActionSurface]);
 
   useEffect(() => {
     if (!isStartGuideOpen) return;
@@ -1203,7 +1230,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
 
-      {isStartGuideOpen && !isAuthOrSetupSurface && !isStoneInquirySurface && (
+      {isStartGuideOpen && !isAuthOrSetupSurface && !isFocusedActionSurface && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 sm:p-6">
           <button
             type="button"

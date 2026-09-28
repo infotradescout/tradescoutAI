@@ -8,6 +8,7 @@ import {
   readRecommendationDraft,
   saveRecommendationDraft,
 } from "@/lib/recommendationDraft";
+import { restoreStoneInquiryDraft, saveStoneInquiryDraft } from "@shared/exchangeStoneInquiryDraft";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const state = vi.hoisted(() => ({
@@ -79,6 +80,64 @@ async function fillRecommendationAccount(container: HTMLElement) {
 }
 
 describe("sign-in route ownership", () => {
+  it("carries a selected stone and same-tab draft directly into email verification", async () => {
+    const listingId = "tradescout-stone-taj-mahal";
+    const stonePath = `/exchange/building-materials/${listingId}?inquiry=availability&audienceState=TX&audienceCountry=US`;
+    const savedDraft = {
+      listingId,
+      intent: "availability" as const,
+      message: "Please confirm this slab is available for my kitchen.",
+      actorId: null,
+    };
+    expect(saveStoneInquiryDraft(window.sessionStorage, savedDraft)).toBe(true);
+    state.location = `/pre-scout-setup?mode=create&next=${encodeURIComponent(stonePath)}`;
+    window.history.replaceState({}, "", state.location);
+    state.apiRequest.mockResolvedValue({ emailVerificationRequired: true });
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(<PreScoutSetup />));
+      for (const [selector, value] of [
+        ['[name="firstName"]', "A Neighbor"],
+        ['[name="lastName"]', "Buyer"],
+        ['[name="email"]', "stone-buyer@example.test"],
+        ['[name="phone"]', "(555) 123-4567"],
+        ['[name="password"]', "synthetic-password"],
+        ['[name="confirmPassword"]', "synthetic-password"],
+      ]) {
+        const input = container.querySelector<HTMLInputElement>(selector)!;
+        await act(async () => {
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      }
+      await act(async () => container.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
+      await act(async () =>
+        container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+      );
+      expect(state.apiRequest).toHaveBeenCalledWith(
+        "POST",
+        "/api/auth/register",
+        expect.objectContaining({ next: stonePath })
+      );
+      const checkEmailPath = String(state.navigate.mock.lastCall?.[0] || "");
+      expect(new URL(checkEmailPath, "https://tradescout.internal").searchParams.get("next")).toBe(
+        stonePath
+      );
+      expect(checkEmailPath.startsWith("/check-email?")).toBe(true);
+      expect(restoreStoneInquiryDraft(window.sessionStorage, listingId, "synthetic-user")?.message).toBe(
+        savedDraft.message
+      );
+      expect(state.apiRequest.mock.calls.some(([method, path]) =>
+        method === "POST" && String(path).includes("inquir"))).toBe(false);
+    } finally {
+      await act(async () => root.unmount());
+      window.sessionStorage.clear();
+      container.remove();
+    }
+  });
+
   it("refreshes the guest auth cache after delayed recommendation signup establishes its session", async () => {
     const recommendationPath = "/u/acme-repair?trustAction=recommend";
     state.location = `/pre-scout-setup?mode=create&next=${encodeURIComponent(recommendationPath)}`;

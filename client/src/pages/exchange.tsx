@@ -89,9 +89,9 @@ import {
   EXCHANGE_PROHIBITED_POLICY_NOTICE,
   getCottageFoodRules,
 } from "@shared/exchangeListingRules";
-import { stoneInquiryPath, stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
 import { isStoneRetailListing } from "@shared/exchangeStoneInquiryDraft";
-import { audienceQualifiedStoneMedia } from "./exchange/stonePublicUrls";
+import { audienceQualifiedStoneMedia, verifiedStoneInquiryPath } from "./exchange/stonePublicUrls";
 
 interface ExchangeItem {
   specifications?: {
@@ -393,6 +393,9 @@ export default function Exchange() {
   const [conditionFilter, setConditionFilter] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [mobileExploreOpen, setMobileExploreOpen] = useState(false);
+  const activeBrowseFilterCount = Number(Boolean(priceRange))
+    + Number(Boolean(conditionFilter && conditionFilter !== "any"))
+    + Number(sortBy !== "date_desc");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [savedOnly, setSavedOnly] = useState(false);
   const [contactItem, setContactItem] = useState<ExchangeItem | null>(null);
@@ -1066,9 +1069,6 @@ export default function Exchange() {
             >
               <Tag className="h-3 w-3 mr-1" />
               <span>Sales</span>
-              <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5">
-                HOT
-              </Badge>
             </TabsTrigger>
             <TabsTrigger
               value="categories"
@@ -1085,17 +1085,6 @@ export default function Exchange() {
           </TabsList>
 
           <TabsContent value="browse" className="space-y-4">
-            <div className="grid grid-cols-2 gap-2 md:hidden" aria-label="Rental portals">
-              {RENTAL_PORTALS.map((portal) => (
-                <Link
-                  key={portal.id}
-                  href={portal.href}
-                  className="flex min-h-11 items-center justify-center rounded-lg border border-white/15 bg-tsCard px-2 text-center text-xs font-semibold text-white"
-                >
-                  {portal.title}
-                </Link>
-              ))}
-            </div>
             <Button
               type="button"
               variant="outline"
@@ -1104,13 +1093,24 @@ export default function Exchange() {
               aria-controls="exchange-explore-sections"
               onClick={() => setMobileExploreOpen((open) => !open)}
             >
-              {mobileExploreOpen ? "Hide categories" : "Explore categories"}
+              {mobileExploreOpen ? "Hide categories and rentals" : "Categories and rentals"}
               <ChevronDown className="h-4 w-4" />
             </Button>
             <div
               id="exchange-explore-sections"
               className={`${mobileExploreOpen ? "space-y-4" : "hidden"} md:block md:space-y-4`}
             >
+              <div className="grid grid-cols-2 gap-2 md:hidden" aria-label="Rental portals">
+                {RENTAL_PORTALS.map((portal) => (
+                  <Link
+                    key={portal.id}
+                    href={portal.href}
+                    className="flex min-h-11 items-center justify-center rounded-lg border border-white/15 bg-tsCard px-2 text-center text-xs font-semibold text-white"
+                  >
+                    {portal.title}
+                  </Link>
+                ))}
+              </div>
               <Card className="hidden bg-tsCard border-white/10 md:block">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-white text-sm">Rental Portals</CardTitle>
@@ -1232,36 +1232,39 @@ export default function Exchange() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[260px,1fr] gap-4">
-              <div className="relative xl:hidden">
-                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-white/60" />
-                <Input
-                  aria-label="Search Exchange listings"
-                  placeholder="Search listings"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  className="min-h-11 border-white/15 bg-tsCard pl-10 text-white"
-                />
+              <div className="flex gap-2 xl:hidden">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-white/60" />
+                  <Input
+                    aria-label="Search Exchange listings"
+                    placeholder="Search listings"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="min-h-11 border-white/15 bg-tsCard pl-10 text-white"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11 shrink-0 border-white/15 bg-tsCard px-3 text-white"
+                  aria-expanded={mobileFiltersOpen}
+                  aria-controls="exchange-browse-filters"
+                  onClick={() => setMobileFiltersOpen((open) => !open)}
+                >
+                  <Filter className="mr-1.5 h-4 w-4 text-ts-orange" />
+                  Filters{activeBrowseFilterCount > 0 ? ` (${activeBrowseFilterCount})` : ""}
+                </Button>
               </div>
-              <Card className="bg-tsCard border-white/10 h-fit xl:sticky xl:top-20">
-                <CardHeader className="pb-1 flex-row items-center justify-between">
+              <Card className={`${mobileFiltersOpen ? "block" : "hidden"} h-fit border-white/10 bg-tsCard xl:sticky xl:top-20 xl:block`}>
+                <CardHeader className="hidden pb-1 xl:flex xl:flex-row xl:items-center xl:justify-between">
                   <CardTitle className="text-white text-sm flex items-center gap-2">
                     <Filter className="h-4 w-4 text-ts-orange" />
                     Filters
                   </CardTitle>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 border-white/20 text-white xl:hidden"
-                    aria-expanded={mobileFiltersOpen}
-                    aria-controls="exchange-browse-filters"
-                    onClick={() => setMobileFiltersOpen((open) => !open)}
-                  >
-                    {mobileFiltersOpen ? "Hide" : "Show"}
-                  </Button>
                 </CardHeader>
                 <CardContent
                   id="exchange-browse-filters"
-                  className={`space-y-2 ${mobileFiltersOpen ? "block" : "hidden"} xl:block`}
+                  className="space-y-2 pt-4 xl:pt-0"
                 >
                   <div className="relative hidden xl:block">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/60" />
@@ -1274,7 +1277,7 @@ export default function Exchange() {
                   </div>
 
                   <Select value={priceRange} onValueChange={setPriceRange}>
-                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
+                    <SelectTrigger className="min-h-11 border-white/10 bg-white/5 text-sm text-white xl:h-9 xl:min-h-0">
                       <SelectValue placeholder="Listed price range" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-white/10">
@@ -1293,7 +1296,7 @@ export default function Exchange() {
                   )}
 
                   <Select value={conditionFilter} onValueChange={setConditionFilter}>
-                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
+                    <SelectTrigger className="min-h-11 border-white/10 bg-white/5 text-sm text-white xl:h-9 xl:min-h-0">
                       <SelectValue placeholder="Condition" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-white/10">
@@ -1306,7 +1309,7 @@ export default function Exchange() {
                   </Select>
 
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="h-9 bg-white/5 border-white/10 text-white text-sm">
+                    <SelectTrigger className="min-h-11 border-white/10 bg-white/5 text-sm text-white xl:h-9 xl:min-h-0">
                       <SelectValue placeholder="Sort By" />
                     </SelectTrigger>
                     <SelectContent className="bg-tsCard border-white/10">
@@ -1319,7 +1322,7 @@ export default function Exchange() {
                   <div className="flex gap-2 pt-1">
                     <Button
                       variant="outline"
-                      className="flex-1 h-9 border-white/15 text-white/70 text-sm"
+                      className="min-h-11 flex-1 border-white/15 text-sm text-white/70 xl:h-9 xl:min-h-0"
                       onClick={() => {
                         setSearchQuery("");
                         setSelectedCategory("");
@@ -1331,7 +1334,7 @@ export default function Exchange() {
                       Reset
                     </Button>
                     <Button
-                      className="flex-1 h-9 bg-ts-orange hover:bg-ts-orange-dark text-sm"
+                      className="min-h-11 flex-1 bg-ts-orange text-sm hover:bg-ts-orange-dark xl:h-9 xl:min-h-0"
                       onClick={() => setActiveTab("sell")}
                     >
                       Sell
@@ -1350,19 +1353,18 @@ export default function Exchange() {
                     ) : null}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
+                    {isAuthenticated && <Button
                       size="sm"
                       variant={savedOnly ? "default" : "outline"}
-                      className={
-                        savedOnly
-                          ? "h-7 bg-ts-orange hover:bg-ts-orange-dark text-white"
-                          : "h-7 border-white/15 text-white/70"
-                      }
+                      className={savedOnly
+                        ? "min-h-11 bg-ts-orange text-white hover:bg-ts-orange-dark"
+                        : "min-h-11 border-white/15 text-white/70"}
+                      aria-pressed={savedOnly}
                       onClick={() => setSavedOnly((prev) => !prev)}
                     >
                       <Heart className="h-3 w-3 mr-1" />
-                      {savedOnly ? "Saved only" : "All listings"}
-                    </Button>
+                      {savedOnly ? "Show all" : "Saved items"}
+                    </Button>}
                     <div className="hidden text-xs text-white/60 sm:block">
                       Marketplace-style local board
                     </div>
@@ -1414,9 +1416,35 @@ export default function Exchange() {
                           key={item.id}
                           className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors overflow-hidden"
                         >
-                          <div
-                            className="relative cursor-pointer"
-                            onClick={() => navigate(detailPath)}
+                          <div className="p-3 pb-2 sm:hidden">
+                            {isRetailStone ? (
+                              <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2">
+                                <p className="text-[11px] text-white/70">
+                                  {slabPrice?.primaryLabel || "Full slab material price"}
+                                </p>
+                                <p className="break-words text-lg font-bold leading-tight text-white">
+                                  {slabPrice?.primaryPrice || "Confirm material price"}
+                                </p>
+                                {slabPrice?.secondaryPrice && (
+                                  <p className="mt-0.5 text-[11px] text-white/70">
+                                    {slabPrice.secondaryPrice}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-lg font-bold text-white">{formatPrice(item.price)}</p>
+                            )}
+                            <Link
+                              href={detailPath}
+                              className="mt-2 block text-base font-semibold leading-tight text-white hover:text-ts-orange"
+                            >
+                              {displayTitle}
+                            </Link>
+                          </div>
+                          <Link
+                            href={detailPath}
+                            className="relative block"
+                            aria-label={`View ${displayTitle}`}
                           >
                             {displayImage ? (
                               <div className="aspect-video sm:aspect-square bg-tsCard overflow-hidden">
@@ -1447,28 +1475,12 @@ export default function Exchange() {
                                 {item.condition}
                               </Badge>
                             )}
-                            {isRetailStone && (
-                              <div className="absolute inset-x-2 bottom-2 rounded-lg border border-white/15 bg-black/85 px-3 py-2 text-white sm:hidden">
-                                <p className="text-[11px] text-white/75">
-                                  {slabPrice?.primaryLabel || "Full slab material price"}
-                                </p>
-                                <p className="break-words text-lg font-bold leading-tight">
-                                  {slabPrice?.primaryPrice || "Confirm material price"}
-                                </p>
-                                {slabPrice?.secondaryPrice && (
-                                  <p className="mt-0.5 text-[11px] text-white/75">
-                                    {slabPrice.secondaryPrice}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          </Link>
                           <CardContent className="p-3">
-                            <h3
-                              className="font-semibold text-white mb-2 line-clamp-2 leading-tight text-base cursor-pointer hover:text-ts-orange transition-colors"
-                              onClick={() => navigate(detailPath)}
-                            >
-                              {displayTitle}
+                            <h3 className="mb-2 hidden line-clamp-2 text-base font-semibold leading-tight text-white sm:block">
+                              <Link href={detailPath} className="hover:text-ts-orange">
+                                {displayTitle}
+                              </Link>
                             </h3>
                             {isRetailStone ? (
                               <div className="mb-3 hidden rounded-lg border border-ts-orange/25 bg-ts-orange/5 px-3 py-2 sm:block">
@@ -1485,7 +1497,7 @@ export default function Exchange() {
                                 )}
                               </div>
                             ) : (
-                              <p className="text-lg sm:text-xl font-bold text-white mb-1">
+                              <p className="mb-1 hidden text-xl font-bold text-white sm:block">
                                 {formatPrice(item.price)}
                               </p>
                             )}
@@ -1529,7 +1541,7 @@ export default function Exchange() {
                                 </div>
                               )}
 
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                               <div className="min-w-0 flex items-center">
                                 <div className="w-7 h-7 bg-white/10 rounded-full flex items-center justify-center mr-2">
                                   <span className="text-[11px] text-white">
@@ -1551,16 +1563,17 @@ export default function Exchange() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex w-full items-center justify-end gap-1 sm:w-auto">
                                 {!isProfileLinked && (
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className={`h-8 w-8 p-0 ${
+                                    className={`min-h-11 min-w-11 p-0 sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 ${
                                       favoriteListingIds.has(String(item.id))
                                         ? "text-rose-400 hover:text-rose-300"
                                         : "text-white/70 hover:text-white"
                                     }`}
+                                    aria-label={favoriteListingIds.has(String(item.id)) ? "Remove saved listing" : "Save listing"}
                                     onClick={() => {
                                       if (!isAuthenticated) {
                                         navigate("/pre-scout-setup?mode=signin");
@@ -1585,7 +1598,8 @@ export default function Exchange() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 w-8 p-0 text-white/70 hover:text-white"
+                                  className="min-h-11 min-w-11 p-0 text-white/70 hover:text-white sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
+                                  aria-label="Share listing"
                                   onClick={() =>
                                     shareLink(
                                       detailPath,
@@ -1599,7 +1613,7 @@ export default function Exchange() {
                                 {!isRetailStone && (
                                   <Button
                                     size="sm"
-                                    className="h-8 px-2.5 !bg-ts-orange hover:!bg-ts-orange-dark !text-black text-xs"
+                                    className="min-h-11 px-2.5 !bg-ts-orange !text-black text-xs hover:!bg-ts-orange-dark sm:h-8 sm:min-h-0"
                                     onClick={() => {
                                       if (isProfileLinked) {
                                         navigate(detailPath);
@@ -1632,7 +1646,7 @@ export default function Exchange() {
                                 type="button"
                                 className="mt-3 min-h-11 w-full bg-ts-orange font-semibold text-black hover:bg-ts-orange-dark"
                                 onClick={() => {
-                                  const path = stoneInquiryPath(item.id, "availability");
+                                  const path = verifiedStoneInquiryPath(item.publicDetailPath, item.id, "availability");
                                   if (path) navigate(path);
                                 }}
                               >
@@ -1660,8 +1674,10 @@ export default function Exchange() {
                     <div className="col-span-full">
                       <EmptyState
                         icon={<Search />}
-                        title="No items found"
-                        description="Try broader filters or switch categories."
+                        title={savedOnly ? "No saved items here" : "No items found"}
+                        description={savedOnly
+                          ? "Show all listings to find something to save."
+                          : "Try broader filters or switch categories."}
                       />
                     </div>
                   )}

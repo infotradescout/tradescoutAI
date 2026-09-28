@@ -511,9 +511,10 @@ export default function MarketplaceListing() {
                             <button
                               type="button"
                               onClick={() => removeImage(index)}
-                              className="absolute top-2 right-2 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label={`Remove photo ${index + 1}`}
+                              className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
                             >
-                              <X className="h-4 w-4 text-white" />
+                              <X className="h-5 w-5" aria-hidden="true" />
                             </button>
                           </div>
                         ))}
