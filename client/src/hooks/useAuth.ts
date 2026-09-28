@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { readAuthSessionUser, shouldRetryAuthSessionRead } from "@/lib/authSessionRead";
 
 export interface VerificationBypassMetadata {
   active: boolean;
@@ -88,65 +89,8 @@ export function sanitizeAuthUserAuthority(user: User): User {
 
 export function useAuth() {
   const authQuery = useCallback(async () => {
-    try {
-      const authUrl = buildApiUrl("/api/auth/user");
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      const response = await fetch(authUrl, {
-        credentials: "include",
-        signal: controller.signal,
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      // 401 is not an error: it means guest / not signed in.
-      // 404 can happen on a misrouted/cached apex host; fail soft so the app renders
-      // instead of trapping users on the boot spinner.
-      if (response.status === 401 || response.status === 404) {
-        return null;
-      }
-
-      if (!response.ok) {
-        // Important: do NOT treat non-401 responses as "guest".
-        // Doing so makes the app think a signed-in user is logged out and breaks navigation.
-        // Instead, throw so React Query preserves the last known-good user payload.
-        const message = `Auth request failed (${response.status})`;
-        console.warn(message);
-        throw new Error(message);
-      }
-
-      const payload: any = await response.json().catch(() => null);
-
-      // Fail-soft shape (preferred): { authenticated: boolean, user?: User }
-      if (payload && typeof payload === "object" && "authenticated" in payload) {
-        if (payload.authenticated === true && payload.user) {
-          return sanitizeAuthUserAuthority(payload.user as User);
-        }
-        return null;
-      }
-
-      // Legacy shape: user object or null
-      if (!payload) return null;
-      return sanitizeAuthUserAuthority(payload as User);
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === "AbortError") {
-          console.warn("Auth request timed out");
-          throw error;
-        }
-        if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
-          console.warn("Network error during auth request:", error.message);
-          throw error;
-        }
-      }
-      console.warn("Auth request error");
-      throw error instanceof Error ? error : new Error("Auth request failed");
-    }
+    const user = await readAuthSessionUser(buildApiUrl("/api/auth/user"));
+    return user ? sanitizeAuthUserAuthority(user as User) : null;
   }, []);
 
   const {
@@ -158,13 +102,7 @@ export function useAuth() {
   } = useQuery({
     queryKey: ["/api/auth/user"],
     queryFn: authQuery,
-    retry: (failureCount, error) => {
-      // Only retry on network errors, not auth failures
-      if (failureCount < 2 && error?.message?.includes("fetch")) {
-        return true;
-      }
-      return false;
-    },
+    retry: shouldRetryAuthSessionRead,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
@@ -177,9 +115,9 @@ export function useAuth() {
 
   return {
     user: user || null,
-    // Treat active auth revalidation as loading, but never pin the whole app
-    // behind the spinner after an auth error. A failed auth probe should degrade
-    // to a guest session so users can still load the site.
+    // A rejected probe preserves the query's last known user; only explicit
+    // guest evidence clears it. Loading remains bounded by the probe deadline.
+    // Cached presentation never bypasses server-side authorization.
     isLoading: isLoading || isFetching,
     isAuthenticated: !!user,
     error,
