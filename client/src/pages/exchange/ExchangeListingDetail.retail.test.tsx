@@ -124,7 +124,7 @@ describe("retail stone detail", () => {
     await renderDetail();
     expect(host.querySelector("h1")?.textContent).toBe("AJ Quartz");
     expect(host.querySelector('[data-testid="exchange-stone-slab-price"]')?.textContent).toBe(
-      "$1,700.00–$1,706.67"
+      "$1,700"
     );
     expect(host.querySelector('[data-testid="exchange-stone-unit-rate"]')?.textContent).toBe(
       "$30.00 / sq ft"

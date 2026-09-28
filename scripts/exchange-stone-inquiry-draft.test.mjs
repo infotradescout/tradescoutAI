@@ -26,13 +26,35 @@ function memory() {
   return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key), values };
 }
 
+test("retail price text uses the lower published total when minor size variation is included", () => {
+  const args = ["30.00", "sqft", "128x64, 127.5x64"];
+  const display = buyer.stoneSlabMaterialPrice(...args);
+  assert.equal(display.primaryLabel, "Estimated full slab material price");
+  assert.equal(display.primaryPrice, "$1,700");
+  assert.equal(display.secondaryPrice, "$30.00 / sq ft");
+  assert.match(display.explanation, /small size variation is included/);
+  assert.deepEqual(buyer.stoneSlabMaterialPriceRange(...args), {
+    kind: "estimated", minimumCents: 170000, maximumCents: 170667, referenceSizeCount: 2,
+  });
+  assert.deepEqual(buyer.stoneSlabMaterialPublishedPriceRange(...args), {
+    kind: "estimated", minimumCents: 170000, maximumCents: 170000, referenceSizeCount: 2,
+  });
+});
+
+test("buyer price text keeps a meaningful range and exact slab prices", () => {
+  const range = buyer.stoneSlabMaterialPrice("30.00", "sqft", "128x64, 130x64");
+  assert.equal(range.primaryPrice, "$1,706.67–$1,733.33");
+  const exact = buyer.stoneSlabMaterialPrice("1707.00", "slab", null, "Slab A");
+  assert.equal(exact.primaryPrice, "$1,707.00");
+});
+
 test("inquiry draft leads with the recorded full slab estimate and keeps the square-foot rate second", () => {
   const message = buyer.stoneInquiryMessage({
     title: "AJ Quartz", price: "30.00", specifications: {
       priceUnit: "sqft", referenceSizesInches: "128x64, 127.5x64",
     },
   }, "availability");
-  assert.match(message, /^Please confirm availability for AJ Quartz\. Estimated full slab material price: \$1,700\.00–\$1,706\.67\. Listed material rate: \$30\.00 \/ sq ft\./);
+  assert.match(message, /^Please confirm availability for AJ Quartz\. Estimated full slab material price: \$1,700\. Listed material rate: \$30\.00 \/ sq ft\./);
   assert.match(message, /confirm the exact slab dimensions, available quantity, and delivery charges through TradeScout\.$/);
 });
 

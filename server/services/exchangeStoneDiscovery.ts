@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { stoneListingPath, stonePriceLabel, stoneSlabMaterialPriceRange } from "../../shared/exchangeStoneBuyerFlow";
+import { stoneListingPath, stonePriceLabel, stoneSlabMaterialPublishedPriceRange } from "../../shared/exchangeStoneBuyerFlow";
 
 export const STONE_CHANNEL = "tradescout_stone_retail";
 export const STONE_AUDIENCE = "US_EXCEPT_PENSACOLA_FL_CITY";
@@ -143,9 +143,8 @@ export function filterStoneDiscovery(items: StonePublicItem[], query: Record<str
     (minimumCents !== null && maximumCents !== null && minimumCents > maximumCents)) return [];
   const withinTotalBand = (item: StonePublicItem): boolean => {
     if (minimumCents === null && maximumCents === null) return true;
-    // A selected price band must contain every recorded slab total, not merely
-    // the per-square-foot rate or the cheapest size. TBD totals cannot qualify.
-    const range = stoneSlabMaterialPriceRange(item.price, item.specifications.priceUnit,
+    // Filter by the published slab total; unsized slabs still cannot qualify.
+    const range = stoneSlabMaterialPublishedPriceRange(item.price, item.specifications.priceUnit,
       item.specifications.referenceSizesInches, item.specifications.exactSlab);
     return range !== null && (minimumCents === null || range.minimumCents >= minimumCents) &&
       (maximumCents === null || range.maximumCents <= maximumCents);

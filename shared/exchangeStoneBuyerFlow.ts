@@ -21,6 +21,9 @@ const text = (value: unknown): string => (typeof value === "string" ? value.trim
 const USD = new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2,
 });
+const USD_WHOLE = new Intl.NumberFormat("en-US", {
+  style: "currency", currency: "USD", maximumFractionDigits: 0,
+});
 
 function stonePriceCents(price: unknown): number | null {
   if (typeof price !== "number" && typeof price !== "string") return null;
@@ -88,11 +91,27 @@ export function stoneSlabMaterialPriceRange(price: unknown, unit: unknown, refer
     maximumCents: Math.max(...totals), referenceSizeCount: totals.length } : null;
 }
 
+/** Published slab totals include small differences between recorded reference sizes. */
+function publishedStoneRange(range: StoneSlabMaterialPriceRange | null): StoneSlabMaterialPriceRange | null {
+  if (!range || range.kind !== "estimated" || range.minimumCents === range.maximumCents) return range;
+  const spreadCents = range.maximumCents - range.minimumCents;
+  const midpointCents = Math.round((range.minimumCents + range.maximumCents) / 2);
+  return spreadCents <= 1_000 && spreadCents * 100 <= midpointCents
+    ? { ...range, maximumCents: range.minimumCents }
+    : range;
+}
+
+/** Use this buyer-facing total for price filters and sorting; recorded totals remain available above. */
+export function stoneSlabMaterialPublishedPriceRange(price: unknown, unit: unknown, referenceSizesInches: unknown, exactSlab?: unknown): StoneSlabMaterialPriceRange | null {
+  return publishedStoneRange(stoneSlabMaterialPriceRange(price, unit, referenceSizesInches, exactSlab));
+}
+
 /** A material-only full-slab price from the approved rate and recorded reference sizes. */
 export function stoneSlabMaterialPrice(price: unknown, unit: unknown, referenceSizesInches: unknown, exactSlab?: unknown): StoneSlabMaterialPrice | null {
   const rate = stonePriceLabel(price, unit);
   if (!rate) return null;
-  const range = stoneSlabMaterialPriceRange(price, unit, referenceSizesInches, exactSlab);
+  const recordedRange = stoneSlabMaterialPriceRange(price, unit, referenceSizesInches, exactSlab);
+  const range = publishedStoneRange(recordedRange);
   if (unit === "slab") {
     if (!range) return null;
     return { kind: "exact", primaryLabel: "Full slab material price", primaryPrice: USD.format(range.minimumCents / 100),
@@ -102,10 +121,17 @@ export function stoneSlabMaterialPrice(price: unknown, unit: unknown, referenceS
   if (!range) return { kind: "size_required", primaryLabel: "Slab price TBD", primaryPrice: rate,
     secondaryPrice: null, referenceSizeCount: 0,
     explanation: "A full slab total needs confirmed dimensions. The displayed per-square-foot material rate excludes delivery, fabrication and installation." };
+  const includedSizeDifference = Boolean(recordedRange && range.maximumCents < recordedRange.maximumCents);
+  const referenceSizes = range.referenceSizeCount === 1 ? "a recorded reference size" : `${range.referenceSizeCount} recorded reference sizes`;
+  const primaryPrice = includedSizeDifference
+    ? (range.minimumCents % 100 === 0 ? USD_WHOLE : USD).format(range.minimumCents / 100)
+    : range.minimumCents === range.maximumCents
+      ? USD.format(range.minimumCents / 100)
+      : `${USD.format(range.minimumCents / 100)}–${USD.format(range.maximumCents / 100)}`;
   return { kind: "estimated", primaryLabel: "Estimated full slab material price",
-    primaryPrice: range.minimumCents === range.maximumCents ? USD.format(range.minimumCents / 100) : `${USD.format(range.minimumCents / 100)}–${USD.format(range.maximumCents / 100)}`,
+    primaryPrice,
     secondaryPrice: rate, referenceSizeCount: range.referenceSizeCount,
-    explanation: `From ${range.referenceSizeCount === 1 ? "a recorded reference size" : `${range.referenceSizeCount} recorded reference sizes`}; confirm the selected slab's dimensions and total. Delivery, fabrication and installation are separate.` };
+    explanation: `From ${referenceSizes}; ${includedSizeDifference ? "small size variation is included in this estimate. Confirm" : "confirm"} the selected slab's dimensions and total. Delivery, fabrication and installation are separate.` };
 }
 
 export function readStoneInquiryIntent(value: unknown): StoneInquiryIntent | null {
