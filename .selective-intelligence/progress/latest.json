@@ -1,68 +1,50 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260906T044801Z-f84a9bfd",
-  "createdAt": "2026-09-06T04:48:01.937452+00:00",
-  "outcome": "Repair JW Stone active-membership pricing access defects and prove the live release",
+  "checkpointId": "progress-20260927T054706Z-a2c3f72f",
+  "createdAt": "2026-09-27T05:47:06.474760+00:00",
+  "outcome": "Complete exact-source synthetic profile account isolation and CTA activation validation for draft PR 724",
   "scope": [
-    "JW Stone pricing entitlement lifecycle only."
+    "ProfilePage account switch carryover and preference-specific public CTA on merged PR 718 base"
   ],
   "prohibitions": [
-    "No customer Drive access; no public prices; no access for rejected, suspended, revoked, closed, or nonmember identities."
+    "No production merge, deploy, customer data, or live account action"
   ],
   "progress": {
     "completedVerified": [
-      "Active JW memberships keep pricing through pending, under-review, approved, and expired verification states; rejected/suspended identities and closed/suspended memberships remain blocked; explicit entitlement suspension/revocation survives account retries and verification synchronization."
+      "Focused synthetic ProfilePage session suite passed 4 of 4 including business-page CTA PATCH payload; npm run check TypeScript exited 0; only one test file changed after prior PR head"
     ],
-    "changedUnverified": [],
+    "changedUnverified": [
+      "Full unchanged release gate, browser account switch, production, and live customer behavior remain unproved"
+    ],
     "proof": [
-      "49 focused access, database, migration-chain, and pricing tests pass; git diff validation passes."
+      "On source blob e044d939be22d60e340bd0304ca7535c4183dc23 and test blob 1bb0d1ffc09307b95721a6b027a663572d139f78: npm run test:run -- client/src/pages/ProfilePage.session.test.tsx passed 4/4; npm run check exited 0; git diff --check passed"
     ],
     "externalEffects": [
-      "None yet; no production or database mutation."
+      "Existing draft PR 724 only; task branch push as preservation, no production merge, deployment or customer action"
     ],
     "doNotRepeat": [
-      "Do not restore revoked pricing through ordinary account retry or general verification synchronization."
+      "Do not recreate PR 724 or rerun npm ci; inspect hook blob identity before claiming final-head proof"
     ],
-    "nextSafeAction": "Run typecheck, production build, minimum release contract, review, merge, migration, and post-deploy proof."
+    "nextSafeAction": "Verify pushed commit preserves tested test blob 1bb0d1ffc09307b95721a6b027a663572d139f78 and product blob e044d939be22d60e340bd0304ca7535c4183dc23; inspect PR status, then hand off full release/browser boundary"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "jw-stone/pricing-entitlement-state-hardening",
-    "headBefore": "b47dba08adc241dd41f180e936d78078e852788c",
+    "branch": "codex/profile-account-switch-20260927",
+    "headBefore": "030655572660b81b887962b918c2ac92236a6fd6",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "A  migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "M  migrations/meta/_journal.json",
-      "M  server/services/jwStonePricingAccess.ts",
-      "M  server/services/profileAccountEntitlementService.ts",
-      "M  server/tests/jw-stone-membership-activation.behavior.test.ts"
+      " M client/src/pages/ProfilePage.session.test.tsx"
     ],
-    "unrelatedChangeCountExcluded": 1
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/services/profileAccountEntitlementService.ts",
-      "sha256": "5bd12a232deb1a604ece75bc05a104e24ec662bf810a29a2f964b95886ff22ec"
-    },
-    {
-      "path": "server/services/jwStonePricingAccess.ts",
-      "sha256": "d3fca47bdc8caaa3da84c155533728f6c541fb7acaec25ee771276a627c4c508"
-    },
-    {
-      "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
-      "sha256": "21aaafa45f2a0c8a8808bd9b767171d7f45451035fd555ce9c68f810c1cb4b57"
-    },
-    {
-      "path": "migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "sha256": "e1269cfeb98d0abfacd40f1d5848ba9296605a4a2046de83a8ee3b8dc6988490"
-    },
-    {
-      "path": "migrations/meta/_journal.json",
-      "sha256": "137544f3e476bacdce2f5921958b447dd60be5a408cbefa26f1b04e78465f906"
+      "path": "client/src/pages/ProfilePage.session.test.tsx",
+      "sha256": "8498bd032e6562c2495c55f04c3abc3e307d78985c1fcb7eb503e83659851a36"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"
