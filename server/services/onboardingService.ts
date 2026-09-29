@@ -913,12 +913,10 @@ export function mergeOutcomeBusinessProfileData(
 ): Record<string, unknown> {
   const previous = current && typeof current === "object" ? (current as Record<string, any>) : {};
   const next: Record<string, unknown> = { ...previous };
-  const publicNotes = cleanPublicText(evidence.notes, 4_000);
-  const enrichedDescription = cleanPublicText(
-    options.enrichment?.description?.text || options.enrichment?.about?.text,
-    4_000
-  );
-  const publicDescription = publicNotes || enrichedDescription;
+  // Enrichment is retained as private provenance by buildOutcomePreferences.
+  // Only owner-supplied fields can enter this public business projection until
+  // a field-level fact review explicitly approves inferred copy.
+  const publicDescription = cleanPublicText(evidence.notes, 4_000);
 
   if (!cleanText(previous.description, 4_000) && publicDescription) {
     next.description = publicDescription;
@@ -930,13 +928,7 @@ export function mergeOutcomeBusinessProfileData(
       .map((service: unknown) => cleanText(service, 180).toLocaleLowerCase())
       .filter(Boolean)
   );
-  const candidateServices = uniqueStrings(
-    [
-      ...evidence.services,
-      ...(options.enrichment?.services.map((service) => cleanPublicText(service.name, 180)) || []),
-    ].filter(Boolean),
-    50
-  );
+  const candidateServices = uniqueStrings(evidence.services.filter(Boolean), 50);
   const addedServices = candidateServices.filter((service) => {
     const key = service.toLocaleLowerCase();
     if (seenServices.has(key)) return false;
@@ -992,19 +984,10 @@ export function buildOutcomeProfileContentBlocks(
   let blocks = Array.isArray(existingBlocks)
     ? existingBlocks.filter((block) => block && typeof block === "object")
     : [];
-  const publicNotes = cleanPublicText(args.evidence.notes, 4_000);
-  const enrichedAbout = cleanPublicText(
-    args.enrichment?.about?.text || args.enrichment?.description?.text,
-    4_000
-  );
-  const publicAbout = publicNotes || enrichedAbout;
-  const publicServices = uniqueStrings(
-    [
-      ...args.evidence.services,
-      ...(args.enrichment?.services.map((service) => cleanPublicText(service.name, 180)) || []),
-    ].filter(Boolean),
-    50
-  );
+  // Keep newly inferred copy out of the published profile. The original
+  // customer-selected photos below remain eligible for hero/gallery use.
+  const publicAbout = cleanPublicText(args.evidence.notes, 4_000);
+  const publicServices = uniqueStrings(args.evidence.services.filter(Boolean), 50);
 
   if (args.isNew) {
     blocks = [
