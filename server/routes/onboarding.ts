@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
+import { isAuthenticated } from "../auth";
+import { isSameRequestHttpOrigin } from "../utils/requestCors";
 import {
   BusinessIdentityRequiredError,
   BusinessSelectionRequiredError,
@@ -26,6 +28,11 @@ import {
   getOwnedPresenceFactReview,
   submitOwnedPresenceFactDecision,
 } from "../services/presenceFactReview";
+import {
+  authorizeOwnedPresenceAboutIntent,
+  getOwnedPresenceAboutPreview,
+  withdrawOwnedPresenceAboutIntent,
+} from "../services/presenceAboutIntent";
 
 const router = Router();
 
@@ -122,6 +129,31 @@ const presenceFactDecisionSchema = z
 const presenceFactKeySchema = z
   .string()
   .regex(/^(?:description|about|service:(?:[0-9]|[12][0-9]))$/);
+
+const aboutDigestSchema = z.string().regex(/^[a-f0-9]{64}$/);
+const presenceAboutIntentSchema = z
+  .object({
+    expectedPlanId: z.string().trim().min(1).max(200),
+    expectedProfileId: z.string().trim().min(1).max(200),
+    expectedRevision: z.number().int().positive(),
+    expectedDigest: aboutDigestSchema,
+    expectedPlanHash: aboutDigestSchema,
+    decisionId: z.string().trim().min(1).max(200),
+    valueDigest: aboutDigestSchema,
+    contentBlocksDigest: aboutDigestSchema,
+    aboutBlockDigest: aboutDigestSchema,
+    aboutBlockId: aboutDigestSchema,
+    previewDigest: aboutDigestSchema,
+    replacementAcknowledged: z.boolean(),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict();
+const withdrawPresenceAboutIntentSchema = z
+  .object({
+    intentId: z.string().uuid(),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict();
 
 const outcomeBusinessEvidenceSchema = z
   .object({
@@ -467,6 +499,85 @@ router.post("/api/presence/facts/:factKey/decision", async (req, res) => {
       ...parsed,
     });
     return res.json({ success: true, decision });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+// Owner authorization for a future, target-specific About operation. The
+// event is private and inert: these routes never change public profile data.
+router.get("/api/presence/about/preview", isAuthenticated, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const ownerUserId = getUserId(req);
+  if (!ownerUserId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_ABOUT_UNAVAILABLE",
+      message: "End impersonation before reviewing this business's About change.",
+    });
+  }
+  try {
+    const { storage } = await import("../storage");
+    const preview = await getOwnedPresenceAboutPreview(storage as any, ownerUserId);
+    return res.json({ success: true, preview });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/about/intent", isAuthenticated, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const ownerUserId = getUserId(req);
+  if (!ownerUserId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_ABOUT_UNAVAILABLE",
+      message: "End impersonation before authorizing this business's About change.",
+    });
+  }
+  if (!isSameRequestHttpOrigin(req, req.get("origin"))) {
+    return res.status(403).json({
+      code: "PRESENCE_ABOUT_ORIGIN_REQUIRED",
+      message: "Open this form from the same TradeScout site before continuing.",
+    });
+  }
+  try {
+    const parsed = presenceAboutIntentSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const intent = await authorizeOwnedPresenceAboutIntent(storage as any, {
+      ownerUserId,
+      ...parsed,
+    });
+    return res.json({ success: true, intent });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/about/intent/withdraw", isAuthenticated, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  const ownerUserId = getUserId(req);
+  if (!ownerUserId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_ABOUT_UNAVAILABLE",
+      message: "End impersonation before withdrawing this business's About authorization.",
+    });
+  }
+  if (!isSameRequestHttpOrigin(req, req.get("origin"))) {
+    return res.status(403).json({
+      code: "PRESENCE_ABOUT_ORIGIN_REQUIRED",
+      message: "Open this form from the same TradeScout site before continuing.",
+    });
+  }
+  try {
+    const parsed = withdrawPresenceAboutIntentSchema.parse(req.body ?? {});
+    const intent = await withdrawOwnedPresenceAboutIntent(
+      ownerUserId,
+      parsed.intentId,
+      parsed.idempotencyKey
+    );
+    return res.json({ success: true, intent });
   } catch (error) {
     return handlePresencePlanError(error, res);
   }

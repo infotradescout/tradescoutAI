@@ -258,6 +258,20 @@ function decisionFor(
   };
 }
 
+/** Reuse the same latest-decision rule for later owner-authorized work. */
+export async function getCurrentApprovedPresenceFact(
+  tx: any,
+  plan: PlanIdentity,
+  outcome: unknown,
+  factKey: string
+) {
+  const fact = projectReviewablePresenceFacts(outcome).find((item) => item.factKey === factKey);
+  if (!fact) return null;
+  const event = (await latestDecisions(tx, plan)).get(factKey);
+  if (event?.decision !== "approve" || event.valueDigest !== fact.valueDigest) return null;
+  return { fact, decision: event };
+}
+
 /** For the server scheduler only; no private claim or source value escapes. */
 export async function getCurrentPresenceFactSummary(tx: any, plan: PlanIdentity) {
   const live = await assertLiveEvidence(tx, identity(plan), plan.evidenceDigest, plan.planHash);
@@ -287,7 +301,7 @@ export async function getCurrentPresenceFactSummary(tx: any, plan: PlanIdentity)
   };
 }
 
-function requireCurrentPlan(
+export function requireCurrentPlan(
   record: PlanRow | undefined,
   context: OwnedContext,
   current: ReturnType<typeof derivePresencePlan>
