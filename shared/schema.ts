@@ -1164,6 +1164,8 @@ export const businessPresencePlans = pgTable(
     sitePath: varchar("site_path", { length: 32 }),
     sitePathSelectedBy: varchar("site_path_selected_by").references(() => users.id),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    customerTaskReconciledRevision: integer("customer_task_reconciled_revision"),
+    customerTaskReconciledSitePath: varchar("customer_task_reconciled_site_path", { length: 32 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1172,6 +1174,54 @@ export const businessPresencePlans = pgTable(
     index("business_presence_plan_profile_idx").on(table.profileId),
   ]
 );
+
+// A private customer choice task. Its version is bound to one inert presence
+// plan; neither the task nor a reminder grants publication authority.
+export const businessPresenceCustomerTasks = pgTable(
+  "business_presence_customer_tasks",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    planId: varchar("plan_id").notNull().references(() => businessPresencePlans.id, { onDelete: "cascade" }),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    revision: integer("revision").notNull(),
+    kind: varchar("kind", { length: 32 }).notNull().default("select_site_path"),
+    status: varchar("status", { length: 32 }).notNull().default("waiting_customer"),
+    firstWaitAt: timestamp("first_wait_at", { withTimezone: true }).notNull(),
+    reminderCount: integer("reminder_count").notNull().default(0),
+    lastReminderAt: timestamp("last_reminder_at", { withTimezone: true }),
+    nextReminderAt: timestamp("next_reminder_at", { withTimezone: true }),
+    failureCount: integer("failure_count").notNull().default(0),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    lastErrorCode: varchar("last_error_code", { length: 80 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("presence_customer_task_version_uq").on(
+      table.ownerUserId, table.businessId, table.profileId, table.planHash, table.kind
+    ),
+    index("presence_customer_task_due_idx").on(table.status, table.nextReminderAt),
+    index("presence_customer_task_retry_idx").on(table.status, table.retryAt),
+    index("presence_customer_task_plan_status_idx").on(table.planId, table.status),
+    index("presence_customer_task_family_idx").on(
+      table.ownerUserId, table.businessId, table.profileId, table.kind, table.createdAt
+    ),
+  ]
+);
+
+export const businessPresenceTaskRuntime = pgTable("business_presence_task_runtime", {
+  id: varchar("id").primaryKey(),
+  sweepCursor: varchar("sweep_cursor"),
+  pendingCursor: varchar("pending_cursor"),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+  lastSuccessfulTickAt: timestamp("last_successful_tick_at", { withTimezone: true }),
+  lastFailureAt: timestamp("last_failure_at", { withTimezone: true }),
+  lastErrorCode: varchar("last_error_code", { length: 80 }),
+});
 
 // Public-profile actions are intentionally separate from CVS, trust snapshots,
 // and exposure/ranking inputs. A Like is lightweight appreciation; a Favorite

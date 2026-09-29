@@ -42,6 +42,16 @@ type MissionControlSummary = {
 type ToolNotifications = {
   byTool?: Record<string, number>;
   totalUnread?: number;
+  presenceTaskHealth?: {
+    available: boolean;
+    terminalAttentionCount?: number;
+    dueBacklogCount?: number;
+    oldestDueAt?: string | null;
+    lastAttemptAt?: string | null;
+    lastSuccessfulTickAt?: string | null;
+    lastFailureAt?: string | null;
+    lastErrorCode?: string | null;
+  };
 };
 
 type SnapshotStatusResponse = {
@@ -214,6 +224,27 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
           description="Unread counts come from the operating queues themselves. No synthetic urgency is added here."
           className="pt-0"
         >
+          {notificationsQuery.data?.presenceTaskHealth && (
+            <div className="border-y border-white/10 px-4 py-3 text-sm text-white/70">
+              <span className="font-semibold text-white">Presence automation: </span>
+              {notificationsQuery.data.presenceTaskHealth.available
+                ? `${notificationsQuery.data.presenceTaskHealth.terminalAttentionCount ?? 0} terminal tasks; ${notificationsQuery.data.presenceTaskHealth.dueBacklogCount ?? 0} due reminders${notificationsQuery.data.presenceTaskHealth.oldestDueAt
+                    ? ` (oldest ${new Date(notificationsQuery.data.presenceTaskHealth.oldestDueAt).toLocaleString()})`
+                    : ""}; last attempted ${notificationsQuery.data.presenceTaskHealth.lastAttemptAt
+                    ? new Date(notificationsQuery.data.presenceTaskHealth.lastAttemptAt).toLocaleString()
+                    : "never"}; last successful ${notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt
+                    ? new Date(notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt).toLocaleString()
+                    : "never"}`
+                : "health unavailable"}
+              {notificationsQuery.data.presenceTaskHealth.available &&
+                notificationsQuery.data.presenceTaskHealth.lastFailureAt &&
+                (!notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt ||
+                  new Date(notificationsQuery.data.presenceTaskHealth.lastFailureAt).getTime() >
+                    new Date(notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt).getTime()) && (
+                  <span className="ml-2 text-amber-200">Last tick failed.</span>
+                )}
+            </div>
+          )}
           {notificationsQuery.isLoading ? (
             <div className="flex min-h-40 items-center justify-center border-y border-white/10 text-sm text-white/45">
               <RefreshCw className="mr-3 h-4 w-4 animate-spin" />

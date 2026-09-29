@@ -366,6 +366,12 @@ router.get("/api/presence/plan", async (req, res) => {
 router.post("/api/presence/plan/refresh", async (req, res) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_REFRESH_UNAVAILABLE",
+      message: "End impersonation before preparing this business's presence plan.",
+    });
+  }
   try {
     const { storage } = await import("../storage");
     const plan = await refreshOwnedPresencePlan(storage as any, userId);

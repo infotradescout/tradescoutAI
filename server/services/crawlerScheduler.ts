@@ -25,6 +25,7 @@ import { runIntentAutomationTick } from "../routes/observability";
 import { runMarketSignalsSnapshotJob } from "./marketSignalsSnapshotJob";
 import { runScoutLisaCleanupJob } from "./scoutLisaCleanupJob";
 import { detectDirectConnectFunnelStalls } from "./directConnectFunnelIntegrity";
+import { runPresenceCustomerTaskTick } from "./presenceCustomerTasks";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -54,6 +55,7 @@ let marketSignalsSnapshotTask: any = null;
 let scoutLisaCleanupTask: any = null;
 let directConnectFunnelStallTask: any = null;
 let crawlerTelemetryMaintenanceTask: any = null;
+let presenceCustomerTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -88,6 +90,28 @@ export function startCrawlerScheduler() {
   startScoutLisaCleanupScheduler();
   startDirectConnectFunnelStallScheduler();
   startCrawlerTelemetryMaintenanceScheduler();
+  startPresenceCustomerTaskScheduler();
+}
+
+function startPresenceCustomerTaskScheduler() {
+  if (presenceCustomerTask) return;
+  const jobName = "presence_customer_tasks";
+  presenceCustomerTask = cron.schedule("*/15 * * * *", async () => {
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, () =>
+        runPresenceCustomerTaskTick()
+      );
+      if (result === null) {
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      emitJobEnd(jobName, result.sent, false);
+    } catch (error) {
+      console.error("[presence.customer-task] scheduled tick failed", error);
+      emitJobError(jobName, error);
+    }
+  });
 }
 
 function startScoutLisaCleanupScheduler() {
@@ -943,6 +967,11 @@ function startPartnerCountyObservationSnapshotsScheduler() {
  * Stop the cron scheduler
  */
 export function stopCrawlerScheduler() {
+  if (presenceCustomerTask) {
+    presenceCustomerTask.stop();
+    presenceCustomerTask.destroy();
+    presenceCustomerTask = null;
+  }
   if (crawlerTask) {
     crawlerTask.stop();
     crawlerTask.destroy();
@@ -1181,6 +1210,10 @@ export function getCrawlerSchedulerStatus() {
     crawlerTelemetryMaintenance: {
       active: crawlerTelemetryMaintenanceTask !== null,
       schedule: process.env.CRAWLER_TELEMETRY_MAINTENANCE_SCHEDULE || "7 * * * *",
+    },
+    presenceCustomerTasks: {
+      active: presenceCustomerTask !== null,
+      schedule: "*/15 * * * *",
     },
     dbConcurrency: getSchedulerDbConcurrencySnapshot(),
   };
