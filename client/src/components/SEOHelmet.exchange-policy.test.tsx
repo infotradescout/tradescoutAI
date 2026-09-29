@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("wouter", () => ({ useLocation: () => ["/exchange", vi.fn()], useSearch: () => "" }));
-vi.mock("./SEOHelmetBase", () => ({ SEOHelmet: () => null }));
 import { publicExchangeDirectoryCanonical } from "./SEOHelmet";
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
 
