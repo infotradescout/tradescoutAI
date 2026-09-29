@@ -1,68 +1,70 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260906T044801Z-f84a9bfd",
-  "createdAt": "2026-09-06T04:48:01.937452+00:00",
-  "outcome": "Repair JW Stone active-membership pricing access defects and prove the live release",
+  "checkpointId": "progress-20260929T171855Z-0d7c340d",
+  "createdAt": "2026-09-29T17:18:55.826830+00:00",
+  "outcome": "TradeScout canonical business presence plan and business-owner review, draft only",
   "scope": [
-    "JW Stone pricing entitlement lifecycle only."
+    "Own TradeScout presence plan only; native profile and provider execution unchanged"
   ],
   "prohibitions": [
-    "No customer Drive access; no public prices; no access for rejected, suspended, revoked, closed, or nonmember identities."
+    "Do not execute proposed actions, call onboarding completion in this slice, merge, deploy, or mutate external accounts/DNS"
   ],
   "progress": {
     "completedVerified": [
-      "Active JW memberships keep pricing through pending, under-review, approved, and expired verification states; rejected/suspended identities and closed/suspended memberships remain blocked; explicit entitlement suspension/revocation survives account retries and verification synchronization."
+      "Pre-work Muse revised intent PASS on bounded sanitized packet; remote main pinned at a3c2063; separate clean worktree created"
     ],
-    "changedUnverified": [],
+    "changedUnverified": [
+      "Presence plan table, migration, idempotent refresh/review service and authenticated API routes drafted; TypeScript and database proof pending"
+    ],
     "proof": [
-      "49 focused access, database, migration-chain, and pricing tests pass; git diff validation passes."
+      "git diff --check passed; migration journal parses as JSON"
     ],
     "externalEffects": [
-      "None yet; no production or database mutation."
+      "No provider, account, DNS, customer, deployment, or main-branch effects; local isolated branch and Muse side chat only"
     ],
     "doNotRepeat": [
-      "Do not restore revoked pricing through ordinary account retry or general verification synchronization."
+      "Do not edit dirty TradeScoutPro checkout or use its stale JW Stone checkpoint as current authority"
     ],
-    "nextSafeAction": "Run typecheck, production build, minimum release contract, review, merge, migration, and post-deploy proof."
+    "nextSafeAction": "Integrate pure presence plan derivation, add focused tests, install exact dependencies, run targeted checks, and obtain Muse result review"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "jw-stone/pricing-entitlement-state-hardening",
-    "headBefore": "b47dba08adc241dd41f180e936d78078e852788c",
+    "branch": "codex/tradescout-presence-engine-20260929",
+    "headBefore": "a3c2063aba2fcd8af2d5c1ca8225660a057c645d",
     "checkpointCommit": "containing_commit",
-    "pushRequested": true,
-    "pushRemote": "origin",
+    "pushRequested": false,
+    "pushRemote": null,
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "A  migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "M  migrations/meta/_journal.json",
-      "M  server/services/jwStonePricingAccess.ts",
-      "M  server/services/profileAccountEntitlementService.ts",
-      "M  server/tests/jw-stone-membership-activation.behavior.test.ts"
+      " M migrations/meta/_journal.json",
+      " M server/routes/onboarding.ts",
+      " M shared/schema.ts",
+      "?? migrations/0142_business_presence_plans.sql",
+      "?? server/services/presencePlanService.ts"
     ],
     "unrelatedChangeCountExcluded": 1
   },
   "savedFiles": [
     {
-      "path": "server/services/profileAccountEntitlementService.ts",
-      "sha256": "5bd12a232deb1a604ece75bc05a104e24ec662bf810a29a2f964b95886ff22ec"
+      "path": "shared/schema.ts",
+      "sha256": "ffbe88a3f78e082e6390d34b2fab70885054fc0eef9a5891f11ef97016347bfe"
     },
     {
-      "path": "server/services/jwStonePricingAccess.ts",
-      "sha256": "d3fca47bdc8caaa3da84c155533728f6c541fb7acaec25ee771276a627c4c508"
-    },
-    {
-      "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
-      "sha256": "21aaafa45f2a0c8a8808bd9b767171d7f45451035fd555ce9c68f810c1cb4b57"
-    },
-    {
-      "path": "migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "sha256": "e1269cfeb98d0abfacd40f1d5848ba9296605a4a2046de83a8ee3b8dc6988490"
+      "path": "migrations/0142_business_presence_plans.sql",
+      "sha256": "c6181c789ad6a29bcd25a3a03274df8d0ccd556e30fb777f794c53028fa580a4"
     },
     {
       "path": "migrations/meta/_journal.json",
-      "sha256": "137544f3e476bacdce2f5921958b447dd60be5a408cbefa26f1b04e78465f906"
+      "sha256": "6081e18683564e11e5118bac84b3431db7174fbba4ec4887eb0f1eab58cda71e"
+    },
+    {
+      "path": "server/services/presencePlanService.ts",
+      "sha256": "79762fa7acd22b5eca82ba4371bacd2be6294d8aae6810f0d5fd4dc9c05a8fee"
+    },
+    {
+      "path": "server/routes/onboarding.ts",
+      "sha256": "b6bee2b88fce83cb8cc2c605b5e25e9e5741c60bac3702001fe22e14bf17ce5f"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

@@ -16,6 +16,12 @@ import {
   type OnboardingClaimType,
   type OnboardingLane,
 } from "../services/onboardingService";
+import {
+  PresencePlanError,
+  getOwnedPresencePlan,
+  refreshOwnedPresencePlan,
+  reviewOwnedPresencePlan,
+} from "../services/presencePlanService";
 
 const router = Router();
 
@@ -87,6 +93,15 @@ const completeStepSchema = z.object({
   assets: z.array(onboardingAssetSchema).optional(),
   completeOnboarding: z.boolean().optional(),
 });
+
+const reviewPresencePlanSchema = z
+  .object({
+    expectedDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    expectedRevision: z.number().int().positive(),
+    sitePath: z.enum(["hosted_new", "preserve_migrate", "keep_external"]),
+    confirmAccuracy: z.literal(true),
+  })
+  .strict();
 
 const outcomeBusinessEvidenceSchema = z
   .object({
@@ -319,6 +334,62 @@ router.get("/api/onboarding/status", async (req, res) => {
   } catch (error) {
     console.error("[onboarding.status] error", error);
     return res.status(500).json({ message: "Failed to fetch onboarding status" });
+  }
+});
+
+function handlePresencePlanError(error: unknown, res: any) {
+  if (error instanceof PresencePlanError) {
+    return res.status(error.status).json({ code: error.code, message: error.message });
+  }
+  if (error instanceof z.ZodError) {
+    return res.status(400).json({ code: "INVALID_PRESENCE_PLAN_INPUT", errors: error.errors });
+  }
+  console.error("[presence.plan] error", error);
+  return res.status(500).json({ message: "Failed to prepare presence plan" });
+}
+
+// Draft planning only. These routes never publish a profile, invoke a provider,
+// modify DNS, or authorize a proposed action. The authenticated business owner
+// may attest to plan accuracy and select a site path without granting execution.
+router.get("/api/presence/plan", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  try {
+    const { storage } = await import("../storage");
+    const plan = await getOwnedPresencePlan(storage as any, userId);
+    return res.json({ success: true, plan });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/plan/refresh", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  try {
+    const { storage } = await import("../storage");
+    const plan = await refreshOwnedPresencePlan(storage as any, userId);
+    return res.json({ success: true, plan });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/plan/review", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  try {
+    const parsed = reviewPresencePlanSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const plan = await reviewOwnedPresencePlan(storage as any, {
+      ownerUserId: userId,
+      expectedDigest: parsed.expectedDigest,
+      expectedRevision: parsed.expectedRevision,
+      sitePath: parsed.sitePath,
+    });
+    return res.json({ success: true, plan });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
   }
 });
 

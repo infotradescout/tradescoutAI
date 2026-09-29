@@ -1141,6 +1141,38 @@ export const profiles = pgTable(
   ]
 );
 
+// Inert, owner-reviewed work plan for a canonical business/profile. This is
+// separate from profile content and confers no permission to publish or write
+// to an external account. The source evidence remains in onboardingOutcome.
+export const businessPresencePlans = pgTable(
+  "business_presence_plans",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull().default(1),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    plan: jsonb("plan").$type<Record<string, unknown>>().notNull(),
+    sitePath: varchar("site_path", { length: 32 }),
+    sitePathSelectedBy: varchar("site_path_selected_by").references(() => users.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("business_presence_plan_owner_business_uq").on(table.ownerUserId, table.businessId),
+    index("business_presence_plan_profile_idx").on(table.profileId),
+  ]
+);
+
 // Public-profile actions are intentionally separate from CVS, trust snapshots,
 // and exposure/ranking inputs. A Like is lightweight appreciation; a Favorite
 // is a private save. Neither can buy or manufacture TradeScout trust.
