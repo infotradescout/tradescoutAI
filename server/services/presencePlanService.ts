@@ -261,6 +261,7 @@ export async function refreshOwnedPresencePlan(storage: OwnedReadStorage, ownerU
           sitePath: null,
           sitePathSelectedBy: null,
           reviewedAt: null,
+          sitePathReviewEpoch: sql`${businessPresencePlans.sitePathReviewEpoch} + 1`,
           updatedAt: new Date(),
         })
         .where(eq(businessPresencePlans.id, existing.id))
@@ -363,13 +364,19 @@ export async function reviewOwnedPresencePlan(
         409
       );
     }
-    if (existing.reviewedAt && existing.sitePath === args.sitePath) return existing;
+    if (
+      existing.reviewedAt &&
+      existing.sitePath === args.sitePath &&
+      existing.sitePathReviewEpoch > 0
+    )
+      return existing;
     const [updated] = await tx
       .update(businessPresencePlans)
       .set({
         sitePath: args.sitePath,
         sitePathSelectedBy: args.ownerUserId,
         reviewedAt: new Date(),
+        sitePathReviewEpoch: sql`${businessPresencePlans.sitePathReviewEpoch} + 1`,
         updatedAt: new Date(),
       })
       .where(eq(businessPresencePlans.id, existing.id))

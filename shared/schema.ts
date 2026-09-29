@@ -1166,6 +1166,8 @@ export const businessPresencePlans = pgTable(
     sitePath: varchar("site_path", { length: 32 }),
     sitePathSelectedBy: varchar("site_path_selected_by").references(() => users.id),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    // A monotonic selection identity survives same-millisecond A→B→A choices.
+    sitePathReviewEpoch: integer("site_path_review_epoch").notNull().default(0),
     customerTaskReconciledRevision: integer("customer_task_reconciled_revision"),
     customerTaskReconciledSitePath: varchar("customer_task_reconciled_site_path", { length: 32 }),
     // A decision changes review-task eligibility without changing the inert plan hash.
@@ -1224,6 +1226,65 @@ export const businessPresenceFactDecisions = pgTable(
       table.factKey,
       table.decisionEpoch
     ),
+  ]
+);
+
+// Customer-scoped, hash-only intent to apply one approved About fact later.
+// Normal service changes only insert events; parent erasure may cascade rows.
+export const businessPresenceAboutIntentEvents = pgTable(
+  "business_presence_about_intent_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    // Allocated at insert, after the per-business advisory lock. Unlike
+    // transaction-start timestamps, this preserves authorization order.
+    eventSequence: bigserial("event_sequence", { mode: "number" }).notNull(),
+    eventKind: varchar("event_kind", { length: 16 }).notNull(),
+    authorizationId: varchar("authorization_id", { length: 64 }),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    planId: varchar("plan_id")
+      .notNull()
+      .references(() => businessPresencePlans.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull(),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    factKey: varchar("fact_key", { length: 16 }).notNull(),
+    valueDigest: varchar("value_digest", { length: 64 }).notNull(),
+    decisionId: varchar("decision_id")
+      .notNull()
+      .references(() => businessPresenceFactDecisions.id, { onDelete: "cascade" }),
+    decisionEpoch: integer("decision_epoch").notNull(),
+    contentBlocksDigest: varchar("content_blocks_digest", { length: 64 }).notNull(),
+    aboutBlockDigest: varchar("about_block_digest", { length: 64 }).notNull(),
+    aboutBlockId: varchar("about_block_id", { length: 64 }).notNull(),
+    previewDigest: varchar("preview_digest", { length: 64 }).notNull(),
+    replacementAcknowledged: boolean("replacement_acknowledged").notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 64 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("presence_about_intent_sequence_uq").on(table.eventSequence),
+    uniqueIndex("presence_about_intent_request_uq").on(
+      table.ownerUserId,
+      table.businessId,
+      table.idempotencyKey
+    ),
+    index("presence_about_intent_current_idx").on(
+      table.planId,
+      table.revision,
+      table.eventSequence
+    ),
+    index("presence_about_intent_withdraw_idx").on(table.authorizationId, table.eventKind),
   ]
 );
 

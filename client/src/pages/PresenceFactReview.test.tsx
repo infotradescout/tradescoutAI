@@ -207,6 +207,13 @@ describe("customer imported fact review", () => {
     await flush();
     expect(approved).toEqual(new Set(["description", "about"]));
     expect(state.apiRequest.mock.calls.filter((call) => call[0] === "POST")).toHaveLength(2);
+    expect(container.querySelector('[data-testid="presence-about-intent"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="presence-fact-about"]')?.id).toBe(
+      "presence-about-fact-review"
+    );
+    expect(
+      state.apiRequest.mock.calls.filter((call) => call[1] === "/api/presence/about/preview")
+    ).toHaveLength(0);
   });
 
   it("hides a response for another plan and never offers a decision", async () => {
