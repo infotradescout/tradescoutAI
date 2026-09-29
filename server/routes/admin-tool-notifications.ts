@@ -17,6 +17,17 @@ type NotificationCounts = {
 const NOTIFICATION_COUNTS_CACHE_TTL_MS = 30_000;
 let notificationCountsCache: { counts: NotificationCounts; expiresAt: number } | null = null;
 let notificationCountsInFlight: Promise<NotificationCounts> | null = null;
+type PresenceTaskHealth = Awaited<ReturnType<typeof presenceCustomerTaskHealth>>;
+const PRESENCE_HEALTH_CACHE_TTL_MS = 30_000;
+let presenceHealthCache: { health: PresenceTaskHealth; expiresAt: number } | null = null;
+let presenceHealthInFlight: Promise<PresenceTaskHealth> | null = null;
+
+function normalizeAdminRole(value: unknown): string {
+  const role = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return role === "owner" || role === "head_admin" ? "super_admin" : role;
+}
 
 function getPgErrorCode(error: unknown): string {
   const code =
@@ -195,39 +206,51 @@ async function getNotificationCountsCached(): Promise<NotificationCounts> {
   return notificationCountsInFlight;
 }
 
+async function getPresenceTaskHealthCached(): Promise<PresenceTaskHealth> {
+  if (presenceHealthCache && presenceHealthCache.expiresAt > Date.now()) {
+    return presenceHealthCache.health;
+  }
+  if (presenceHealthInFlight) return presenceHealthInFlight;
+
+  presenceHealthInFlight = presenceCustomerTaskHealth()
+    .then((health) => {
+      presenceHealthCache = {
+        health,
+        expiresAt: Date.now() + PRESENCE_HEALTH_CACHE_TTL_MS,
+      };
+      return health;
+    })
+    .finally(() => {
+      presenceHealthInFlight = null;
+    });
+  return presenceHealthInFlight;
+}
+
 router.get("/", async (_req: Request, res: Response) => {
   try {
     const req = _req as any;
-    const role = String(req?.user?.activeRole || req?.user?.role || "")
-      .trim()
-      .toLowerCase();
+    const role = normalizeAdminRole(req?.user?.role);
+    const activeRole = normalizeAdminRole(req?.user?.activeRole);
     const roles = Array.isArray(req?.user?.roles)
-      ? req.user.roles
-          .map((value: unknown) =>
-            String(value || "")
-              .trim()
-              .toLowerCase()
-          )
-          .filter(Boolean)
+      ? req.user.roles.map((value: unknown) => normalizeAdminRole(value)).filter(Boolean)
       : [];
+    const adminRoles = ["super_admin", "ops_admin", "moderator"];
     const isAdminLike =
       req?.user?.isAdmin === true ||
-      role === "super_admin" ||
-      role === "ops_admin" ||
-      role === "moderator" ||
-      roles.some((value: string) =>
-        ["super_admin", "ops_admin", "moderator", "staff", "support_agent"].includes(value)
-      );
+      req?.user?.isSuperAdmin === true ||
+      adminRoles.includes(role) ||
+      adminRoles.includes(activeRole) ||
+      roles.some((value: string) => [...adminRoles, "staff", "support_agent"].includes(value));
 
     if (!isAdminLike) {
       return res.status(403).json({ message: "Admin access required" });
     }
 
     const counts = await getNotificationCountsCached();
-    let presenceTaskHealth: Awaited<ReturnType<typeof presenceCustomerTaskHealth>> | null = null;
+    let presenceTaskHealth: PresenceTaskHealth | null = null;
     let presenceTaskHealthAvailable = true;
     try {
-      presenceTaskHealth = await presenceCustomerTaskHealth();
+      presenceTaskHealth = await getPresenceTaskHealthCached();
     } catch (error) {
       presenceTaskHealthAvailable = false;
       console.error("[admin-tool-notifications] presence task health unavailable:", error);
@@ -246,6 +269,7 @@ router.get("/", async (_req: Request, res: Response) => {
     return res.json({
       updatedAt: new Date().toISOString(),
       degraded: !presenceTaskHealthAvailable,
+      countsAvailable: true,
       totalUnread,
       byTool,
       counts,
@@ -259,6 +283,7 @@ router.get("/", async (_req: Request, res: Response) => {
     return res.json({
       degraded: true,
       message: "Failed to load admin tool notifications",
+      countsAvailable: false,
       totalUnread: 0,
       byTool: {},
       presenceTaskHealth: { available: false },
