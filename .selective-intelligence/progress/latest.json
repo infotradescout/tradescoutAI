@@ -1,68 +1,60 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260906T044801Z-f84a9bfd",
-  "createdAt": "2026-09-06T04:48:01.937452+00:00",
-  "outcome": "Repair JW Stone active-membership pricing access defects and prove the live release",
+  "checkpointId": "progress-20260927T004312Z-92653dd7",
+  "createdAt": "2026-09-27T00:43:13.412623+00:00",
+  "outcome": "Published business profile HTML now offers contextual Direct Connect and authority-checked active Exchange links without banners or private pricing.",
   "scope": [
-    "JW Stone pricing entitlement lifecycle only."
+    "TradeScout hosted public profiles and contextual shared-system discovery."
   ],
   "prohibitions": [
-    "No customer Drive access; no public prices; no access for rejected, suspended, revoked, closed, or nonmember identities."
+    "No JW Stone private pricing; no automatic system banners; no domain activation or production merge."
   ],
   "progress": {
     "completedVerified": [
-      "Active JW memberships keep pricing through pending, under-review, approved, and expired verification states; rejected/suspended identities and closed/suspended memberships remain blocked; explicit entitlement suspension/revocation survives account retries and verification synchronization."
+      "Added public-safe backend Exchange link graph, protected request link, and durable free-system taxonomy."
     ],
-    "changedUnverified": [],
+    "changedUnverified": [
+      "The new commit still needs its own full minimum release gate and browser proof."
+    ],
     "proof": [
-      "49 focused access, database, migration-chain, and pricing tests pass; git diff validation passes."
+      "13 focused profile HTML tests passed; npm run check passed; previous exact commit 54e8eed6 passed full minimum release gate with a disposable 145-migration database and desktop/mobile Chromium path."
     ],
     "externalEffects": [
-      "None yet; no production or database mutation."
+      "Local WSL PostgreSQL 16 and two disposable test databases were prepared; no customer database or provider settings changed."
     ],
     "doNotRepeat": [
-      "Do not restore revoked pricing through ordinary account retry or general verification synchronization."
+      "Do not replay migrations on the full-sync fixture or treat prior exact-commit gate as proof for this new commit."
     ],
-    "nextSafeAction": "Run typecheck, production build, minimum release contract, review, merge, migration, and post-deploy proof."
+    "nextSafeAction": "Run the unchanged minimum release gate at the new exact commit, then open a draft PR with proof boundaries."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "jw-stone/pricing-entitlement-state-hardening",
-    "headBefore": "b47dba08adc241dd41f180e936d78078e852788c",
+    "branch": "codex/platform-hosted-discovery-20260926",
+    "headBefore": "54e8eed6ffa54d1d601115d4a09f82d6db5fa854",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "A  migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "M  migrations/meta/_journal.json",
-      "M  server/services/jwStonePricingAccess.ts",
-      "M  server/services/profileAccountEntitlementService.ts",
-      "M  server/tests/jw-stone-membership-activation.behavior.test.ts"
+      " M server/publicProfileHtml.ts",
+      "?? docs/architecture/TRADE_SCOUT_FREE_SYSTEMS_AND_HOSTED_SURFACES.md",
+      "?? server/tests/profile-contextual-exchange-links.behavior.test.ts"
     ],
-    "unrelatedChangeCountExcluded": 1
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/services/profileAccountEntitlementService.ts",
-      "sha256": "5bd12a232deb1a604ece75bc05a104e24ec662bf810a29a2f964b95886ff22ec"
+      "path": "server/publicProfileHtml.ts",
+      "sha256": "6dd0f81ffb3b38811d1bd5d0cf9a4f9b99d7f946c94ff537587f1f9af80f6303"
     },
     {
-      "path": "server/services/jwStonePricingAccess.ts",
-      "sha256": "d3fca47bdc8caaa3da84c155533728f6c541fb7acaec25ee771276a627c4c508"
+      "path": "server/tests/profile-contextual-exchange-links.behavior.test.ts",
+      "sha256": "8d2e190710ed13b982277283539a1de6da46b634ee07f282e21d7dbbb06a695f"
     },
     {
-      "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
-      "sha256": "21aaafa45f2a0c8a8808bd9b767171d7f45451035fd555ce9c68f810c1cb4b57"
-    },
-    {
-      "path": "migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "sha256": "e1269cfeb98d0abfacd40f1d5848ba9296605a4a2046de83a8ee3b8dc6988490"
-    },
-    {
-      "path": "migrations/meta/_journal.json",
-      "sha256": "137544f3e476bacdce2f5921958b447dd60be5a408cbefa26f1b04e78465f906"
+      "path": "docs/architecture/TRADE_SCOUT_FREE_SYSTEMS_AND_HOSTED_SURFACES.md",
+      "sha256": "9214473c3d51a6f0486332e07c1044fa1f6f101d1555d5d561168ce5efe80cd6"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

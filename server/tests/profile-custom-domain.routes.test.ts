@@ -149,7 +149,15 @@ describe("profile-scoped custom domain routes", () => {
     expect(mocks.database.transaction).not.toHaveBeenCalled();
   });
 
-  it.each(["localhost", "127.0.0.1", "not a host", "single-label", "ftp://example.com"])(
+  it.each([
+    "localhost",
+    "127.0.0.1",
+    "not a host",
+    "single-label",
+    "ftp://example.com",
+    "thetradescout.com",
+    "shop.thetradescout.com",
+  ])(
     "rejects invalid or non-host-only domain input: %s",
     async (domain) => {
       const response = await request(app())
