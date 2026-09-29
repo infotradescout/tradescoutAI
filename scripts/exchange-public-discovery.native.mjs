@@ -16,7 +16,8 @@ const output = path.resolve(process.env.EXCHANGE_PUBLIC_OUTPUT || 'test-results/
 const base = 'http://127.0.0.1:5241';
 const browserBase = 'https://www.thetradescout.com';
 const report = { head, source: 'Actual compiled application, owned loopback PostgreSQL, synthetic publication records', checks: [], passed: false, customerWrites: false, providerCalls: false };
-let database, client, processHandle, browser, privateLog;
+let database, client, processHandle, browser, privateLog, activePage;
+const browserErrors = [], networkErrors = [];
 function note(name, detail = {}) { report.checks.push({ name, ...detail }); console.log('EX731_NATIVE_CHECK ' + JSON.stringify(report.checks.at(-1))); }
 function run(name, args, env) {
   const r = spawnSync(args[0], args.slice(1), { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 900000, maxBuffer: 40 * 1024 * 1024 });
@@ -101,7 +102,7 @@ try {
   const offerId = randomUUID();
   await client.query("INSERT INTO profile_offers(id,seller_user_id,offer_type,title,description,price,currency,is_active,metadata) VALUES($1,$2,'item','Synthetic public profile offer','Published profile offer description',90,'USD',true,$3::jsonb)", [offerId,ownerB,JSON.stringify({exchangeCategorySlug:'electronics',condition:'good',imageUrl:'/tradescout-social-preview.png'})]);
   expected.push('profile-offer-' + offerId);
-  const cleanEnv = { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR, ...dbEnv,
+  const cleanEnv = { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR, ...dbEnv, NODE_ENV: 'production',
     PORT: '5241', SESSION_SECRET: 'fixture-session-only', STONE_RETAIL_SIGNING_SECRET: config.sessionSecret, STONE_METRICS_SECRET: config.metricsSecret,
     RENDER_GIT_COMMIT: head, PUBLIC_WEB_URL: base, SCHEDULER_ENABLED: 'false', DISABLE_CRAWLER: 'true', DISABLE_FACEBOOK_AUTH: 'true', EMAIL_MODE: 'account_creation_only',
     UPLOAD_DIR: path.join(temp,'uploads'), PRIVATE_UPLOAD_DIR: path.join(temp,'private-uploads'), SCOUT_CACHE_DIR: path.join(temp,'scout-cache') };
@@ -154,7 +155,7 @@ try {
       const response = await route.fetch({ url: base + url.pathname + url.search, headers: { ...route.request().headers(), host: 'www.thetradescout.com' }, maxRedirects: 0 });
       return route.fulfill({ response });
     });
-    const page=await context.newPage(); const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.setDefaultTimeout(30000);
+    const page=await context.newPage(); activePage=page; const errors=[];page.on('pageerror',error=>browserErrors.push(String(error)));page.on('requestfailed',req=>networkErrors.push({url:req.url(),reason:req.failure()}));page.on('response',res=>{if(res.status()>=400)networkErrors.push({url:res.url(),status:res.status()});});page.on('pageerror',e=>errors.push(String(e)));page.setDefaultTimeout(30000);
     for(const item of browserCases){
       const route=`/exchange/${item.category}/${item.id}`;
       await page.goto(browserBase+route,{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:item.title,exact:true}).waitFor();
@@ -169,7 +170,7 @@ try {
     await page.goto(browserBase+'/exchange?page=2',{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:'Exchange marketplace'}).waitFor();
     assert.equal(await page.locator('link[rel=canonical]').last().getAttribute('href'),'https://www.thetradescout.com/exchange?page=2');
     assert.deepEqual(errors,[]); note(device+': compiled client reads public ordinary listings, preserves gallery/share/contact gates and directory indexability',{listings:browserCases.length});
-    await context.close();
+    await context.close(); activePage=undefined;
   }
   const withdrawn=samples[0]; await client.query("UPDATE marketplace_listings SET status='removed' WHERE id=$1",[withdrawn.id]);
   assert.equal((await get(withdrawn.publicDetailPath || `/exchange/${withdrawn.category}/${withdrawn.id}`)).status,404);
@@ -177,7 +178,7 @@ try {
   const withdrawnIndex=await(await get('/sitemap-exchange-listings.xml?page=1')).text();assert(!withdrawnIndex.includes(withdrawn.id));
   note('Withdrawal removes public detail, data and sitemap without cached resurrection');
   assert.equal(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim(),'');report.passed=true;
-} catch(error) { report.error=String(error.stack||error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[TEST_DATABASE]');console.error('EX731_NATIVE_FAILURE '+report.error); try { const log = await fs.readFile(path.join(temp, 'application.private.log'), 'utf8'); report.failureDiagnostics = log.split('\n').filter(line => /Error:|error:|public read failed|code:|detail:|column:|relation|schema.*failed/i.test(line)).map(line => line.replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[TEST_DATABASE]').replace(/(?:token|password|secret)[=:\s]+[^\s,]+/gi, '[REDACTED]')).slice(-18); console.log('EX731_NATIVE_DIAGNOSTICS '+JSON.stringify(report.failureDiagnostics)); } catch {} }
+} catch(error) { if(activePage){report.browserFailure={url:activePage.url(),body:(await activePage.locator('body').innerText().catch(()=>'' )).slice(0,10000),browserErrors,networkErrors:networkErrors.slice(0,30)};console.log('EX731_BROWSER_FAILURE '+JSON.stringify(report.browserFailure));} report.error=String(error.stack||error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[TEST_DATABASE]');console.error('EX731_NATIVE_FAILURE '+report.error); try { const log = await fs.readFile(path.join(temp, 'application.private.log'), 'utf8'); report.failureDiagnostics = log.split('\n').filter(line => /Error:|error:|public read failed|code:|detail:|column:|relation|schema.*failed/i.test(line)).map(line => line.replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[TEST_DATABASE]').replace(/(?:token|password|secret)[=:\s]+[^\s,]+/gi, '[REDACTED]')).slice(-18); console.log('EX731_NATIVE_DIAGNOSTICS '+JSON.stringify(report.failureDiagnostics)); } catch {} }
 finally {
   await browser?.close(); await stop(); await privateLog?.close(); await client?.end().catch(()=>{}); await database?.stop();
   await fs.mkdir(output,{recursive:true}); await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(report,null,2)); await fs.rm(temp,{recursive:true,force:true});
