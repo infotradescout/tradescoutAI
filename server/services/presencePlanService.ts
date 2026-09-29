@@ -293,6 +293,14 @@ async function reconcileCustomerTaskAfterCommit(planId: string): Promise<void> {
     // missed task reconciliation without making the customer's choice fail.
     console.error("[presence.customer-task] post-commit reconcile failed", error);
   }
+  try {
+    const { reconcilePresenceFactTask } = await import("./presenceFactCustomerTasks");
+    await reconcilePresenceFactTask(planId);
+  } catch (error) {
+    // Fact review is independent of site-path selection. Its bounded sweep
+    // repairs a missed reconciliation without changing the saved plan.
+    console.error("[presence.fact-task] post-commit reconcile failed", error);
+  }
 }
 
 export async function reviewOwnedPresencePlan(

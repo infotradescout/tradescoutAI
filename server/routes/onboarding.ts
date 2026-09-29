@@ -22,6 +22,10 @@ import {
   refreshOwnedPresencePlan,
   reviewOwnedPresencePlan,
 } from "../services/presencePlanService";
+import {
+  getOwnedPresenceFactReview,
+  submitOwnedPresenceFactDecision,
+} from "../services/presenceFactReview";
 
 const router = Router();
 
@@ -102,6 +106,22 @@ const reviewPresencePlanSchema = z
     sitePath: z.enum(["hosted_new", "preserve_migrate", "keep_external"]),
   })
   .strict();
+
+const presenceFactDecisionSchema = z
+  .object({
+    expectedPlanId: z.string().trim().min(1).max(200),
+    expectedProfileId: z.string().trim().min(1).max(200),
+    expectedRevision: z.number().int().positive(),
+    expectedDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    expectedPlanHash: z.string().regex(/^[a-f0-9]{64}$/),
+    valueDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    decision: z.enum(["approve", "reject", "withdraw"]),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict();
+const presenceFactKeySchema = z
+  .string()
+  .regex(/^(?:description|about|service:(?:[0-9]|[12][0-9]))$/);
 
 const outcomeBusinessEvidenceSchema = z
   .object({
@@ -401,6 +421,52 @@ router.post("/api/presence/plan/review", async (req, res) => {
       sitePath: parsed.sitePath,
     });
     return res.json({ success: true, plan });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+// Private factual review. A decision records this owner's assessment of one
+// exact cited value; it cannot publish, alter a profile, or grant provider access.
+router.get("/api/presence/facts", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_FACT_REVIEW_UNAVAILABLE",
+      message: "End impersonation before reviewing this business's facts.",
+    });
+  }
+  res.set("Cache-Control", "private, no-store");
+  try {
+    const { storage } = await import("../storage");
+    const review = await getOwnedPresenceFactReview(storage as any, userId);
+    return res.json({ success: true, review });
+  } catch (error) {
+    return handlePresencePlanError(error, res);
+  }
+});
+
+router.post("/api/presence/facts/:factKey/decision", async (req, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_FACT_REVIEW_UNAVAILABLE",
+      message: "End impersonation before reviewing this business's facts.",
+    });
+  }
+  res.set("Cache-Control", "private, no-store");
+  try {
+    const factKey = presenceFactKeySchema.parse(req.params.factKey);
+    const parsed = presenceFactDecisionSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const decision = await submitOwnedPresenceFactDecision(storage as any, {
+      ownerUserId: userId,
+      factKey,
+      ...parsed,
+    });
+    return res.json({ success: true, decision });
   } catch (error) {
     return handlePresencePlanError(error, res);
   }

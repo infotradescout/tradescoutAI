@@ -1037,6 +1037,13 @@
       "when": 1790709300000,
       "tag": "0144_business_presence_task_delete_archive",
       "breakpoints": false
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1790712900000,
+      "tag": "0145_business_presence_fact_decisions",
+      "breakpoints": false
     }
   ]
 }
