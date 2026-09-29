@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { registerExchangePublicDiscoveryRoutes } from "./exchange-public-discovery";
 import { registerExchangeStoneCatalogRoutes } from "./exchange-stone-catalog";
 import { registerExchangeStoneInquiryRoutes } from "./exchange-stone-inquiries";
 import { and, eq, sql } from "drizzle-orm";
@@ -24,6 +25,8 @@ export function registerPublicMetadataRoutes(
 ) {
   // registerRoutes mounts this after setupAuth and effective-account binding.
   registerExchangeStoneInquiryRoutes(app);
+  // Shared public reads precede buyer-market filtering. Existing action/commerce gates remain below.
+  registerExchangePublicDiscoveryRoutes(app);
   registerExchangeStoneCatalogRoutes(app);
   const { buildRevision, defaultFirstIntroAppendix } = options;
   const proofCache: { value: ProofMetricsResponse | null; expiresAt: number } = {

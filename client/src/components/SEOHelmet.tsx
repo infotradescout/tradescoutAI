@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { formatTradeScoutTitle, TRADESCOUT_BRAND_NAME } from "@shared/brand";
+import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from "@shared/exchangeListingRules";
 
 interface SEOHelmetProps {
   title?: string;
@@ -21,6 +22,20 @@ interface SEOHelmetProps {
   preserveCanonicalQuery?: boolean;
 }
 
+/** Public Exchange directories have one policy regardless of seller or legacy page component. */
+export function publicExchangeDirectoryCanonical(pathname: string, search: string, hostname: string): string | null {
+  if (!["www.thetradescout.com", "thetradescout.com", "tradescoutai.onrender.com", "localhost", "127.0.0.1"].includes(hostname)) return null;
+  const match = /^\/exchange(?:\/([a-z-]+))?\/?$/.exec(pathname);
+  if (!match || match[1] && !Object.hasOwn(EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME, match[1])) return null;
+  const params = new URLSearchParams(search);
+  if (["item", "promo", "companyPromo", "tab"].some(key => params.has(key))) return null;
+  const pages = params.getAll("page");
+  if (pages.length > 1 || pages.length === 1 && !/^[1-9]\d{0,5}$/.test(pages[0])) return null;
+  const page = pages[0] || "1";
+  const base = match[1] ? `/exchange/${match[1]}` : "/exchange";
+  return `https://www.thetradescout.com${base}${page === "1" ? "" : `?page=${page}`}`;
+}
+
 export function SEOHelmet({
   title = "TradeScout | Connection Without Compromise",
   socialTitle,
@@ -36,6 +51,15 @@ export function SEOHelmet({
   preserveCanonicalQuery = false,
 }: SEOHelmetProps) {
   const [location] = useLocation();
+  const search = useSearch();
+  const publicDirectory = publicExchangeDirectoryCanonical(location, search, window.location.hostname);
+  if (publicDirectory) {
+    canonical = publicDirectory;
+    noIndex = false;
+    robots = "index, follow";
+    omitCanonical = false;
+    preserveCanonicalQuery = true;
+  }
   const currentUrl = normalizePublicUrl(
     stripUrlVariantsForCanonical(
       new URL(location, window.location.origin).toString(),
