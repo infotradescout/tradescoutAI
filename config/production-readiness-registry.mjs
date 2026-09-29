@@ -167,7 +167,7 @@ export const CLIENT_ROUTE_FAMILIES = Object.freeze([
     owner: "homeid-homescout", audience: "property-owner-and-buyer", roles: ["anonymous", "authenticated"],
     canonicalObject: "home", job: "Manage or discover a home", readiness: "closed_beta",
   }),
-  family("business-operations", /^\/(?:business-dashboard|business-owner-dashboard|business-listing|business-verification|businesses\/apply|business\/requests|claim-my-business|contractor-board|contractor-dashboard|contractor\/dashboard|contractor-apply|contractor-join|contractors\/(?:dashboard|apply|signup|accelerator)|commercial-directory|offer-services|provider-setup|crm|lead-management|project-tracker|application-tracker|accounting|analytics|finances|payment-history|payments\/history|wallet|payroll-helper|tools\/(?:invoice-calculator|expense-helper))(?:\/|$)/, {
+  family("business-operations", /^\/(?:business-dashboard|business-owner-dashboard|business-listing|business-verification|businesses\/apply|business\/requests|claim-my-business|contractor-board|contractor-dashboard|contractor\/dashboard|contractor-apply|contractor-join|contractors\/(?:dashboard|apply|signup|accelerator)|commercial-directory|offer-services|provider-setup|presence|crm|lead-management|project-tracker|application-tracker|accounting|analytics|finances|payment-history|payments\/history|wallet|payroll-helper|tools\/(?:invoice-calculator|expense-helper))(?:\/|$)/, {
     owner: "business-platform", audience: "business-member", roles: ["business_owner", "business_employee"],
     canonicalObject: "business", job: "Operate the correct business", readiness: "closed_beta",
   }),

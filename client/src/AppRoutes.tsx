@@ -256,6 +256,7 @@ const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
 const Landing = PublicLandingPage;
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
 const Onboarding = React.lazy(() => import("./pages/onboarding"));
+const PresenceReview = React.lazy(() => import("./pages/PresenceReview"));
 const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
 const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 const BusinessDirectoryPage = React.lazy(() => import("./pages/business-directory"));
@@ -1009,6 +1010,11 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/business/:slug/edit">
                 <ProtectedRoute>
                   <LazyPage Component={BusinessProfileEditor} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/presence/review">
+                <ProtectedRoute>
+                  <LazyPage Component={PresenceReview} />
                 </ProtectedRoute>
               </Route>
               <Route path="/directory/businesses">

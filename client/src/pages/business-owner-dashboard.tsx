@@ -27,9 +27,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { readAuthSessionUser } from "@/lib/authSessionRead";
+import { resolvePresenceReviewContext } from "@/lib/presenceReview";
 
 type OwnedProfile = {
   id: string;
+  businessId?: string | null;
+  ownerUserId?: string | null;
   slug?: string | null;
   displayName?: string | null;
   status?: "draft" | "published" | string | null;
@@ -149,6 +154,39 @@ export default function BusinessOwnerDashboard() {
       null
     );
   }, [profilesQuery.data, user?.activeProfileId]);
+
+  const presenceEntryQuery = useQuery<unknown>({
+    queryKey: ["/api/presence/plan", "business-dashboard", user?.id],
+    queryFn: async () => {
+      const freshUser = await readAuthSessionUser(buildApiUrl("/api/auth/user"));
+      if (
+        !freshUser ||
+        freshUser.id !== user?.id ||
+        freshUser.isImpersonating === true ||
+        freshUser.impersonating === true
+      )
+        return null;
+      let response = await apiRequest("GET", "/api/presence/plan");
+      if (!response?.plan || response.plan.status === "stale") {
+        await apiRequest("POST", "/api/presence/plan/refresh");
+        response = await apiRequest("GET", "/api/presence/plan");
+      }
+      return response?.plan ?? null;
+    },
+    enabled: Boolean(user?.id && primaryProfile?.id),
+    retry: false,
+    staleTime: 30_000,
+  });
+  const presenceEntry = resolvePresenceReviewContext(
+    presenceEntryQuery.data,
+    profilesQuery.data,
+    user?.id
+  );
+  const showPresenceEntry = Boolean(presenceEntry);
+  const presenceEntryLabel =
+    presenceEntry?.profile.id === primaryProfile?.id
+      ? "Review website approach"
+      : `Review website approach for ${presenceEntry?.profile.displayName}`;
 
   const profileViewsQuery = useQuery<ProfileViewCounts>({
     queryKey: ["/api/u", primaryProfile?.slug, "views"],
@@ -311,6 +349,11 @@ export default function BusinessOwnerDashboard() {
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit profile & availability
               </Link>
+            </Button>
+          ) : null}
+          {showPresenceEntry ? (
+            <Button asChild variant="outline" className="border-white/15 text-white">
+              <Link href="/presence/review">{presenceEntryLabel}</Link>
             </Button>
           ) : null}
         </div>
