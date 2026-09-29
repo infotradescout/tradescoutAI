@@ -130,7 +130,9 @@ function extractExistingLastmodByLoc(outputPath = OUTPUT_PATH, entryTag = 'url')
 }
 
 function writeIfChanged(outputPath, content) {
-  if (existsSync(outputPath) && readFileSync(outputPath, 'utf-8') === content) return;
+  // Git may check out these tracked XML files with CRLF on Windows. Preserve
+  // an unchanged checkout instead of rewriting it with generated LF bytes.
+  if (existsSync(outputPath) && readFileSync(outputPath, 'utf-8').replace(/\r\n/g, '\n') === content) return;
   writeFileSync(outputPath, content, 'utf-8');
 }
 

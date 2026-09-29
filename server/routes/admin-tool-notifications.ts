@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { pool } from "../db/pg";
 import { isAuthenticated } from "../auth";
+import { presenceCustomerTaskHealth } from "../services/presenceCustomerTasks";
 
 const router = Router();
 
@@ -223,6 +224,14 @@ router.get("/", async (_req: Request, res: Response) => {
     }
 
     const counts = await getNotificationCountsCached();
+    let presenceTaskHealth: Awaited<ReturnType<typeof presenceCustomerTaskHealth>> | null = null;
+    let presenceTaskHealthAvailable = true;
+    try {
+      presenceTaskHealth = await presenceCustomerTaskHealth();
+    } catch (error) {
+      presenceTaskHealthAvailable = false;
+      console.error("[admin-tool-notifications] presence task health unavailable:", error);
+    }
 
     const byTool: Record<string, number> = {
       "tradepartner-rsvps": counts.tradepartnerRsvpsPending,
@@ -236,9 +245,13 @@ router.get("/", async (_req: Request, res: Response) => {
 
     return res.json({
       updatedAt: new Date().toISOString(),
+      degraded: !presenceTaskHealthAvailable,
       totalUnread,
       byTool,
       counts,
+      presenceTaskHealth: presenceTaskHealthAvailable
+        ? { available: true, ...presenceTaskHealth }
+        : { available: false },
     });
   } catch (error) {
     console.error("[admin-tool-notifications] failed:", error);
@@ -248,6 +261,7 @@ router.get("/", async (_req: Request, res: Response) => {
       message: "Failed to load admin tool notifications",
       totalUnread: 0,
       byTool: {},
+      presenceTaskHealth: { available: false },
       counts: {
         tradepartnerRsvpsPending: 0,
         addressVerificationsPending: 0,

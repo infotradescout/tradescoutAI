@@ -112,6 +112,8 @@ export default function Notifications() {
         return <Users className="h-5 w-5 text-indigo-500" />;
       case "system_update":
         return <Bell className="h-5 w-5 text-white/60" />;
+      case "reminder":
+        return <Bell className="h-5 w-5 text-blue-500" />;
       default:
         return <Bell className="h-5 w-5 text-white/60" />;
     }
@@ -147,6 +149,8 @@ export default function Notifications() {
         return "Follower";
       case "system_update":
         return "System";
+      case "reminder":
+        return "Reminder";
       default:
         return "Notification";
     }

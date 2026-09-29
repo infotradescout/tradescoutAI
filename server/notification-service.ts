@@ -356,7 +356,7 @@ export class NotificationService {
       type?: string;
     } = {}
   ): Promise<Notification[]> {
-    const conditions = [eq(notifications.userId, userId)];
+    const conditions = [eq(notifications.userId, userId), eq(notifications.isArchived, false)];
 
     if (options.unreadOnly) {
       conditions.push(eq(notifications.isRead, false));
@@ -389,14 +389,22 @@ export class NotificationService {
     await db
       .update(notifications)
       .set({ isRead: true, readAt: new Date() })
-      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false),
+        eq(notifications.isArchived, false)
+      ));
   }
 
   async getUnreadNotificationCount(userId: string): Promise<number> {
     const result = await db
       .select({ count: sql<number>`count(*)` })
       .from(notifications)
-      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false),
+        eq(notifications.isArchived, false)
+      ));
 
     return result[0]?.count || 0;
   }

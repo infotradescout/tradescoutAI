@@ -8,7 +8,7 @@ type OwnedReadStorage = {
   getProfileByIdForOwner: (userId: string, profileId: string) => Promise<any>;
 };
 
-type OwnedContext = {
+export type OwnedContext = {
   ownerUserId: string;
   businessId: string;
   profileId: string;
@@ -122,7 +122,7 @@ function wherePlan(context: OwnedContext) {
   );
 }
 
-async function assertLiveEvidence(
+export async function assertLiveEvidence(
   tx: any,
   context: OwnedContext,
   expectedDigest: string,
@@ -280,7 +280,19 @@ export async function refreshOwnedPresencePlan(storage: OwnedReadStorage, ownerU
       .returning();
     return created;
   });
+  await reconcileCustomerTaskAfterCommit(record.id);
   return presentOwnedPresencePlan(record, candidate);
+}
+
+async function reconcileCustomerTaskAfterCommit(planId: string): Promise<void> {
+  try {
+    const { reconcilePresenceCustomerTask } = await import("./presenceCustomerTasks");
+    await reconcilePresenceCustomerTask(planId);
+  } catch (error) {
+    // The plan/choice has already committed. The bounded scheduler sweep repairs
+    // missed task reconciliation without making the customer's choice fail.
+    console.error("[presence.customer-task] post-commit reconcile failed", error);
+  }
 }
 
 export async function reviewOwnedPresencePlan(
@@ -356,5 +368,6 @@ export async function reviewOwnedPresencePlan(
       .returning();
     return updated;
   });
+  await reconcileCustomerTaskAfterCommit(record.id);
   return presentOwnedPresencePlan(record, current);
 }

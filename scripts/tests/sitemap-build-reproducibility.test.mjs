@@ -32,6 +32,19 @@ test('fresh generation initializes dates once and the next build is stable',()=>
   f.run('2030-01-01T00:00:00Z'); const first=await f.read('sitemap-index.xml'); assert(first.includes('<lastmod>2030-01-01</lastmod>'));
   f.run('2030-02-02T00:00:00Z'); assert.equal(await f.read('sitemap-index.xml'),first);
 },{existing:false}));
+test('unchanged CRLF checkout is not rewritten by generation',()=>fixture(async f=>{
+  const sitemapCrLf=canonical.replace(/\r?\n/g,'\r\n');
+  const indexCrLf=index.replace(/\r?\n/g,'\r\n');
+  await fs.writeFile(path.join(f.output,'sitemap.xml'),sitemapCrLf);
+  await fs.writeFile(path.join(f.output,'sitemap-index.xml'),indexCrLf);
+  const sitemapMtime=(await f.stat('sitemap.xml')).mtimeMs;
+  const indexMtime=(await f.stat('sitemap-index.xml')).mtimeMs;
+  f.run('2030-01-01T00:00:00Z');
+  assert.equal(await f.read('sitemap.xml'),sitemapCrLf);
+  assert.equal(await f.read('sitemap-index.xml'),indexCrLf);
+  assert.equal((await f.stat('sitemap.xml')).mtimeMs,sitemapMtime);
+  assert.equal((await f.stat('sitemap-index.xml')).mtimeMs,indexMtime);
+},{existing:false}));
 test('one missing entry is dated without relabelling existing entries',()=>fixture(async f=>{
   const missing=index.replace(/\s*<sitemap>[\s\S]*?<\/sitemap>/,''); await fs.writeFile(path.join(f.output,'sitemap-index.xml'),missing);
   f.run('2030-03-03T00:00:00Z'); const rebuilt=await f.read('sitemap-index.xml'); assert.equal((rebuilt.match(/<lastmod>2030-03-03<\/lastmod>/g)||[]).length,1);

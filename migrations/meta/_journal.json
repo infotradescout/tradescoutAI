@@ -1023,6 +1023,20 @@
       "when": 1790702100000,
       "tag": "0142_business_presence_plans",
       "breakpoints": false
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1790705700000,
+      "tag": "0143_business_presence_customer_tasks",
+      "breakpoints": false
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1790709300000,
+      "tag": "0144_business_presence_task_delete_archive",
+      "breakpoints": false
     }
   ]
 }

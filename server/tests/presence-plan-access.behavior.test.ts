@@ -76,6 +76,20 @@ describe("owner-bound presence plan access", () => {
     }
   });
 
+  it("does not create a customer task from an impersonated refresh", async () => {
+    const app = express();
+    app.use(express.json());
+    app.use((req: any, _res, next) => {
+      req.user = { id: "owner-1" };
+      req.requestAuthorityContext = { isImpersonating: true };
+      next();
+    });
+    app.use(onboardingRouter);
+    const response = await request(app).post("/api/presence/plan/refresh").send({});
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe("PRESENCE_IMPERSONATION_REFRESH_UNAVAILABLE");
+  });
+
   it("reads the completed canonical identity without completion, publication, or provider calls", async () => {
     const { storage, calls } = ownerStorage();
     const context = await loadOwnedPresenceContext(storage, "owner-1");
