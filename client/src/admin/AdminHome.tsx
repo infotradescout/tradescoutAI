@@ -21,11 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { getAdminNavWorkspacesForRole } from "./adminNavWorkspaces";
-import {
-  getAdminToolDescription,
-  type AdminRole,
-  type AdminTool,
-} from "./adminTools";
+import { getAdminToolDescription, type AdminRole, type AdminTool } from "./adminTools";
 
 type AdminHomeProps = {
   role: AdminRole;
@@ -42,16 +38,34 @@ type MissionControlSummary = {
 type ToolNotifications = {
   byTool?: Record<string, number>;
   totalUnread?: number;
-  presenceTaskHealth?: {
-    available: boolean;
-    terminalAttentionCount?: number;
-    dueBacklogCount?: number;
-    oldestDueAt?: string | null;
-    lastAttemptAt?: string | null;
-    lastSuccessfulTickAt?: string | null;
-    lastFailureAt?: string | null;
-    lastErrorCode?: string | null;
+  degraded?: boolean;
+  countsAvailable?: boolean;
+  presenceTaskHealth?: PresenceTaskHealth;
+};
+
+type PresenceTaskBreakdown = {
+  select_site_path: number;
+  confirm_facts: number;
+  total: number;
+};
+
+type PresenceTaskHealth = {
+  available: boolean;
+  observedAt?: string;
+  reminderAutomationStatus?: "healthy" | "degraded";
+  activeTasks?: {
+    waitingCustomer: PresenceTaskBreakdown;
+    retrying: PresenceTaskBreakdown;
+    terminalAttention: PresenceTaskBreakdown;
+    totalActive: number;
   };
+  terminalAttentionCount?: number;
+  dueBacklogCount?: number;
+  oldestDueAt?: string | null;
+  lastAttemptAt?: string | null;
+  lastSuccessfulTickAt?: string | null;
+  lastFailureAt?: string | null;
+  lastErrorCode?: string | null;
 };
 
 type SnapshotStatusResponse = {
@@ -83,6 +97,194 @@ const QUICK_TOOL_IDS = [
 function formatCount(value: number | null | undefined): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return "—";
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+function isValidTaskCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function taskBreakdown(value: PresenceTaskBreakdown | undefined): PresenceTaskBreakdown | null {
+  if (
+    !value ||
+    !isValidTaskCount(value.select_site_path) ||
+    !isValidTaskCount(value.confirm_facts) ||
+    !isValidTaskCount(value.total) ||
+    value.total !== value.select_site_path + value.confirm_facts
+  ) {
+    return null;
+  }
+  return value;
+}
+
+function formatObservation(value: string | null | undefined): string {
+  if (!value || !Number.isFinite(Date.parse(value))) return "not recorded";
+  return new Date(value).toLocaleString();
+}
+
+export function unreadWorkSummary(
+  notifications: ToolNotifications | undefined,
+  queryState: "loading" | "error" | "ready"
+): { count: number | null; detail: string; tone: "good" | "warning" } {
+  const countsAvailable =
+    notifications?.countsAvailable === true ||
+    (notifications?.countsAvailable !== false && notifications?.degraded !== true);
+  if (
+    queryState !== "ready" ||
+    !notifications ||
+    !countsAvailable ||
+    !isValidTaskCount(notifications.totalUnread)
+  ) {
+    return { count: null, detail: "Admin queue counts unavailable", tone: "warning" };
+  }
+  return {
+    count: notifications.totalUnread,
+    detail: "Across role-visible admin queues",
+    tone: notifications.totalUnread > 0 ? "warning" : "good",
+  };
+}
+
+const PRESENCE_OBSERVATION_MAX_AGE_MS = 2 * 60 * 1000;
+
+export function PresenceOperatorSummary({
+  health,
+  queryState,
+}: {
+  health?: PresenceTaskHealth;
+  queryState: "loading" | "error" | "ready";
+}) {
+  const observationTime = health?.observedAt ? Date.parse(health.observedAt) : NaN;
+  const lastSuccessTime = health?.lastSuccessfulTickAt
+    ? Date.parse(health.lastSuccessfulTickAt)
+    : NaN;
+  const snapshotAvailable = queryState === "ready" && health?.available === true;
+  const observationCurrent =
+    snapshotAvailable &&
+    Number.isFinite(observationTime) &&
+    observationTime <= Date.now() + 60_000 &&
+    Date.now() - observationTime <= PRESENCE_OBSERVATION_MAX_AGE_MS;
+  const counts = observationCurrent ? health?.activeTasks : undefined;
+  const waiting = taskBreakdown(counts?.waitingCustomer);
+  const retrying = taskBreakdown(counts?.retrying);
+  const terminal = taskBreakdown(counts?.terminalAttention);
+  const totalActive = isValidTaskCount(counts?.totalActive) ? counts.totalActive : null;
+  const consistentTotal =
+    waiting &&
+    retrying &&
+    terminal &&
+    totalActive !== null &&
+    totalActive === waiting.total + retrying.total + terminal.total;
+  const countsKnown = Boolean(consistentTotal);
+  const dueBacklog =
+    observationCurrent && isValidTaskCount(health?.dueBacklogCount) ? health.dueBacklogCount : null;
+  const oldestDueTime = health?.oldestDueAt ? Date.parse(health.oldestDueAt) : NaN;
+  const backlogDetail =
+    dueBacklog === null
+      ? "Due reminder attempts: unknown."
+      : dueBacklog === 0 && !health?.oldestDueAt
+        ? "Due reminder attempts: 0."
+        : dueBacklog > 0 && Number.isFinite(oldestDueTime) && oldestDueTime <= observationTime
+          ? `Due reminder attempts: ${formatCount(dueBacklog)}; oldest due ${formatObservation(health?.oldestDueAt)}.`
+          : `Due reminder attempts: ${formatCount(dueBacklog)}; oldest due unknown.`;
+  const automationState = !snapshotAvailable
+    ? "Unknown"
+    : !observationCurrent ||
+        health?.reminderAutomationStatus === "degraded" ||
+        !Number.isFinite(lastSuccessTime)
+      ? "Degraded"
+      : health?.reminderAutomationStatus === "healthy"
+        ? "Healthy"
+        : "Unknown";
+  const unavailableDetail =
+    queryState === "loading"
+      ? "Loading the latest Presence status."
+      : "Presence task counts are unavailable. Refresh to try again.";
+  const breakdownDetail = (value: PresenceTaskBreakdown | null, description: string) =>
+    countsKnown && value
+      ? `${description} ${formatCount(value.select_site_path)} site path; ${formatCount(value.confirm_facts)} fact confirmation.`
+      : unavailableDetail;
+
+  return (
+    <AdminSection
+      title="Presence operations"
+      description="Tracked customer tasks and reminder automation. Counts are tasks, not unique businesses or owner assignments."
+    >
+      <AdminList>
+        <PresenceStateRow
+          testId="presence-healthy"
+          label="Healthy — reminder automation only"
+          value={automationState}
+          detail={`${automationState === "Healthy" ? "The customer reminder scheduler completed recently for both task types." : automationState === "Degraded" ? "Reminder scheduling needs attention or this observation is stale." : unavailableDetail} ${backlogDetail} Observed ${formatObservation(health?.observedAt)}; last successful run ${formatObservation(health?.lastSuccessfulTickAt)}. This does not measure onboarding completeness.`}
+          attention={automationState === "Degraded"}
+        />
+        <PresenceStateRow
+          testId="presence-waiting-customer"
+          label="Waiting on Customer"
+          value={countsKnown ? formatCount(waiting?.total) : "Unknown"}
+          detail={breakdownDetail(waiting, "Customers need to respond:")}
+        />
+        <PresenceStateRow
+          testId="presence-needs-authorization"
+          label="Needs Authorization"
+          value="Not instrumented"
+          detail="Customer account permissions are not yet measured here. This is not a zero count."
+        />
+        <PresenceStateRow
+          testId="presence-automation-retrying"
+          label="Automation Retrying"
+          value={countsKnown ? formatCount(retrying?.total) : "Unknown"}
+          detail={breakdownDetail(retrying, "Automation will retry:")}
+          attention={countsKnown && Boolean(retrying?.total)}
+        />
+        <PresenceStateRow
+          testId="presence-human-exception"
+          label="Human Exception"
+          value={
+            countsKnown
+              ? `${formatCount(terminal?.total)} / ${formatCount(totalActive)}`
+              : "Unknown"
+          }
+          detail={
+            countsKnown && terminal
+              ? `${formatCount(terminal.total)} of ${formatCount(totalActive)} active tracked tasks reached the reminder limit (${formatCount(terminal.select_site_path)} site path; ${formatCount(terminal.confirm_facts)} fact confirmation). Automatic reminders stopped after the retry limit. Informational; no operator case or action is available here.`
+              : unavailableDetail
+          }
+        />
+        <PresenceStateRow
+          testId="presence-dangerous-action"
+          label="Dangerous Action"
+          value="Not instrumented"
+          detail="Domain, account, and publication approvals are not yet measured here. This is not a zero count."
+        />
+      </AdminList>
+    </AdminSection>
+  );
+}
+
+function PresenceStateRow({
+  testId,
+  label,
+  value,
+  detail,
+  attention = false,
+}: {
+  testId: string;
+  label: string;
+  value: string;
+  detail: string;
+  attention?: boolean;
+}) {
+  return (
+    <div
+      data-testid={testId}
+      className="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(12rem,0.35fr)_minmax(0,1fr)_auto] sm:items-start sm:gap-4"
+    >
+      <h3 className="text-sm font-semibold text-white">{label}</h3>
+      <p className="text-xs leading-5 text-white/50">{detail}</p>
+      <span className={`text-sm font-semibold ${attention ? "text-amber-200" : "text-white/75"}`}>
+        {value}
+      </span>
+    </div>
+  );
 }
 
 export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
@@ -146,10 +348,10 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
       ? Math.round(((mission?.successfulConnections || 0) / connectionAttempts) * 100)
       : null;
   const staleSnapshots = snapshotQuery.data?.statuses?.filter((status) => status.isStale) || [];
-  const totalUnread =
-    typeof notificationsQuery.data?.totalUnread === "number"
-      ? notificationsQuery.data.totalUnread
-      : actionTools.reduce((sum, entry) => sum + entry.unread, 0);
+  const unreadSummary = unreadWorkSummary(
+    notificationsQuery.data,
+    notificationsQuery.isLoading ? "loading" : notificationsQuery.isError ? "error" : "ready"
+  );
   const anySignalUnavailable = missionQuery.isError || snapshotQuery.isError;
 
   const refreshAll = () => {
@@ -188,9 +390,9 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
           items={[
             {
               label: "Unread work",
-              value: formatCount(totalUnread),
-              detail: "Across role-visible admin queues",
-              tone: totalUnread > 0 ? "warning" : "good",
+              value: formatCount(unreadSummary.count),
+              detail: unreadSummary.detail,
+              tone: unreadSummary.tone,
             },
             {
               label: "Connection success",
@@ -199,8 +401,7 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
                 typeof connectionAttempts === "number"
                   ? `${formatCount(connectionAttempts)} recorded attempts`
                   : "No current mission summary",
-              tone:
-                connectionRate === null ? "neutral" : connectionRate >= 80 ? "good" : "warning",
+              tone: connectionRate === null ? "neutral" : connectionRate >= 80 ? "good" : "warning",
             },
             {
               label: "Blocked paths",
@@ -211,12 +412,21 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
             {
               label: "Stale snapshots",
               value: snapshotQuery.isError ? "—" : formatCount(staleSnapshots.length),
-              detail: anySignalUnavailable ? "One or more signal feeds unavailable" : "Current data containers",
+              detail: anySignalUnavailable
+                ? "One or more signal feeds unavailable"
+                : "Current data containers",
               tone: anySignalUnavailable || staleSnapshots.length > 0 ? "warning" : "good",
             },
           ]}
         />
       </AdminSection>
+
+      <PresenceOperatorSummary
+        health={notificationsQuery.data?.presenceTaskHealth}
+        queryState={
+          notificationsQuery.isLoading ? "loading" : notificationsQuery.isError ? "error" : "ready"
+        }
+      />
 
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_minmax(19rem,0.75fr)]">
         <AdminSection
@@ -224,33 +434,12 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
           description="Unread counts come from the operating queues themselves. No synthetic urgency is added here."
           className="pt-0"
         >
-          {notificationsQuery.data?.presenceTaskHealth && (
-            <div className="border-y border-white/10 px-4 py-3 text-sm text-white/70">
-              <span className="font-semibold text-white">Presence automation: </span>
-              {notificationsQuery.data.presenceTaskHealth.available
-                ? `${notificationsQuery.data.presenceTaskHealth.terminalAttentionCount ?? 0} terminal tasks; ${notificationsQuery.data.presenceTaskHealth.dueBacklogCount ?? 0} due reminders${notificationsQuery.data.presenceTaskHealth.oldestDueAt
-                    ? ` (oldest ${new Date(notificationsQuery.data.presenceTaskHealth.oldestDueAt).toLocaleString()})`
-                    : ""}; last attempted ${notificationsQuery.data.presenceTaskHealth.lastAttemptAt
-                    ? new Date(notificationsQuery.data.presenceTaskHealth.lastAttemptAt).toLocaleString()
-                    : "never"}; last successful ${notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt
-                    ? new Date(notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt).toLocaleString()
-                    : "never"}`
-                : "health unavailable"}
-              {notificationsQuery.data.presenceTaskHealth.available &&
-                notificationsQuery.data.presenceTaskHealth.lastFailureAt &&
-                (!notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt ||
-                  new Date(notificationsQuery.data.presenceTaskHealth.lastFailureAt).getTime() >
-                    new Date(notificationsQuery.data.presenceTaskHealth.lastSuccessfulTickAt).getTime()) && (
-                  <span className="ml-2 text-amber-200">Last tick failed.</span>
-                )}
-            </div>
-          )}
           {notificationsQuery.isLoading ? (
             <div className="flex min-h-40 items-center justify-center border-y border-white/10 text-sm text-white/45">
               <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
               Loading admin queues…
             </div>
-          ) : notificationsQuery.isError ? (
+          ) : notificationsQuery.isError || unreadSummary.count === null ? (
             <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               The queue summary is unavailable. Open a workspace directly or retry the refresh.

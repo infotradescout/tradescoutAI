@@ -17,6 +17,27 @@ const FACT_RUNTIME_ID = "confirm_facts";
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 const RETRY_MINUTES = [5, 15, 45, 120, 360] as const;
+const HEALTHY_TICK_MAX_AGE_MS = 32 * 60 * 1000;
+
+type ActiveTaskKind = "select_site_path" | "confirm_facts";
+type ActiveTaskStatus = "waiting_customer" | "retrying" | "terminal_attention";
+type ActiveTaskBucket = Record<ActiveTaskKind, number> & { total: number };
+
+function emptyActiveTaskBucket(): ActiveTaskBucket {
+  return { select_site_path: 0, confirm_facts: 0, total: 0 };
+}
+
+function taskRuntimeIsHealthy(state: typeof runtime.$inferSelect, observedAt: Date): boolean {
+  const successfulAt = state.lastSuccessfulTickAt;
+  if (!successfulAt) return false;
+  const ageMs = observedAt.getTime() - successfulAt.getTime();
+  return (
+    ageMs >= 0 &&
+    ageMs <= HEALTHY_TICK_MAX_AGE_MS &&
+    (!state.lastFailureAt || state.lastFailureAt <= successfulAt) &&
+    state.lastErrorCode === null
+  );
+}
 
 function addMs(date: Date, duration: number): Date {
   return new Date(date.getTime() + duration);
@@ -602,10 +623,39 @@ export async function presenceCustomerTaskHealth() {
   const state = states.find((item) => item.id === RUNTIME_ID);
   const factState = states.find((item) => item.id === FACT_RUNTIME_ID);
   if (!state || !factState) throw new Error("Presence task runtime unavailable");
-  const [count] = await db
-    .select({ total: sql<number>`count(*)::int` })
+  const grouped = await db
+    .select({
+      kind: tasks.kind,
+      status: tasks.status,
+      total: sql<number>`count(*)::int`,
+    })
     .from(tasks)
-    .where(eq(tasks.status, "terminal_attention"));
+    .where(
+      and(
+        inArray(tasks.kind, [KIND, FACT_RUNTIME_ID]),
+        inArray(tasks.status, ["waiting_customer", "retrying", "terminal_attention"])
+      )
+    )
+    .groupBy(tasks.kind, tasks.status);
+  const activeTasks = {
+    waitingCustomer: emptyActiveTaskBucket(),
+    retrying: emptyActiveTaskBucket(),
+    terminalAttention: emptyActiveTaskBucket(),
+    totalActive: 0,
+  };
+  const buckets: Record<ActiveTaskStatus, ActiveTaskBucket> = {
+    waiting_customer: activeTasks.waitingCustomer,
+    retrying: activeTasks.retrying,
+    terminal_attention: activeTasks.terminalAttention,
+  };
+  for (const row of grouped) {
+    const bucket = buckets[row.status as ActiveTaskStatus];
+    if (!bucket || (row.kind !== KIND && row.kind !== FACT_RUNTIME_ID)) continue;
+    const total = Number(row.total);
+    bucket[row.kind as ActiveTaskKind] = total;
+    bucket.total += total;
+    activeTasks.totalActive += total;
+  }
   const [backlog] = await db
     .select({
       total: sql<number>`count(*)::int`,
@@ -630,8 +680,15 @@ export async function presenceCustomerTaskHealth() {
           Math.min(state.lastSuccessfulTickAt.getTime(), factState.lastSuccessfulTickAt.getTime())
         )
       : null;
+  const observedAt = new Date();
   return {
-    terminalAttentionCount: count.total,
+    activeTasks,
+    reminderAutomationStatus:
+      taskRuntimeIsHealthy(state, observedAt) && taskRuntimeIsHealthy(factState, observedAt)
+        ? ("healthy" as const)
+        : ("degraded" as const),
+    observedAt: observedAt.toISOString(),
+    terminalAttentionCount: activeTasks.terminalAttention.total,
     lastAttemptAt: latest(state.lastAttemptAt, factState.lastAttemptAt),
     lastSuccessfulTickAt: bothSucceeded,
     lastFailureAt: latest(state.lastFailureAt, factState.lastFailureAt),
