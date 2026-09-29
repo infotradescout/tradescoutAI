@@ -1,51 +1,63 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260929T171855Z-0d7c340d",
-  "createdAt": "2026-09-29T17:18:55.826830+00:00",
-  "outcome": "TradeScout canonical business presence plan and business-owner review, draft only",
+  "checkpointId": "progress-20260929T172735Z-5d2ab4b9",
+  "createdAt": "2026-09-29T17:27:35.667363+00:00",
+  "outcome": "TradeScout owner-reviewed presence plan backend and inert action contract",
   "scope": [
-    "Own TradeScout presence plan only; native profile and provider execution unchanged"
+    "TradeScout presence plan only, no external execution"
   ],
   "prohibitions": [
-    "Do not execute proposed actions, call onboarding completion in this slice, merge, deploy, or mutate external accounts/DNS"
+    "Do not merge, deploy, perform provider writes or DNS cutover"
   ],
   "progress": {
     "completedVerified": [
-      "Pre-work Muse revised intent PASS on bounded sanitized packet; remote main pinned at a3c2063; separate clean worktree created"
+      "Canonical owner read path, deterministic plan, tier-neutral inert actions, stale review protection, plan table and authenticated routes implemented"
     ],
     "changedUnverified": [
-      "Presence plan table, migration, idempotent refresh/review service and authenticated API routes drafted; TypeScript and database proof pending"
+      "Full minimum release gate and live UI acceptance not yet executed"
     ],
     "proof": [
-      "git diff --check passed; migration journal parses as JSON"
+      "12 focused tests passed across 3 files; TypeScript check passed before final unauth route test addition; git diff --check passed"
     ],
     "externalEffects": [
-      "No provider, account, DNS, customer, deployment, or main-branch effects; local isolated branch and Muse side chat only"
+      "No provider, customer, DNS, profile publication, deployment, or main-branch effects; npm dependencies installed only in isolated worktree"
     ],
     "doNotRepeat": [
-      "Do not edit dirty TradeScoutPro checkout or use its stale JW Stone checkpoint as current authority"
+      "Do not edit dirty primary TradeScoutPro checkout or treat Muse intent PASS as result review"
     ],
-    "nextSafeAction": "Integrate pure presence plan derivation, add focused tests, install exact dependencies, run targeted checks, and obtain Muse result review"
+    "nextSafeAction": "Run unchanged minimum release gate on exact candidate, repair failures, then send Muse result/proof packet and prepare draft PR"
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
     "branch": "codex/tradescout-presence-engine-20260929",
-    "headBefore": "a3c2063aba2fcd8af2d5c1ca8225660a057c645d",
+    "headBefore": "ca4e0788cce7d93379abf9ce5f7567c3f5987eb6",
     "checkpointCommit": "containing_commit",
     "pushRequested": false,
     "pushRemote": null,
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      " M migrations/meta/_journal.json",
-      " M server/routes/onboarding.ts",
-      " M shared/schema.ts",
-      "?? migrations/0142_business_presence_plans.sql",
-      "?? server/services/presencePlanService.ts"
+      " M server/services/presencePlanService.ts",
+      "?? server/services/presencePlan.ts",
+      "?? server/tests/presence-plan-access.behavior.test.ts",
+      "?? server/tests/presence-plan-migration.behavior.test.ts",
+      "?? server/tests/presence-plan.behavior.test.ts"
     ],
-    "unrelatedChangeCountExcluded": 1
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
+    {
+      "path": "server/services/presencePlan.ts",
+      "sha256": "0b8fdc74324705907f70e8e63052d233a32d5c12152e184560ad2004c50322b2"
+    },
+    {
+      "path": "server/services/presencePlanService.ts",
+      "sha256": "448447904c1eed27273e637ec578124dbe459034f99c5620595069b656522459"
+    },
+    {
+      "path": "server/routes/onboarding.ts",
+      "sha256": "b6bee2b88fce83cb8cc2c605b5e25e9e5741c60bac3702001fe22e14bf17ce5f"
+    },
     {
       "path": "shared/schema.ts",
       "sha256": "ffbe88a3f78e082e6390d34b2fab70885054fc0eef9a5891f11ef97016347bfe"
@@ -59,12 +71,16 @@
       "sha256": "6081e18683564e11e5118bac84b3431db7174fbba4ec4887eb0f1eab58cda71e"
     },
     {
-      "path": "server/services/presencePlanService.ts",
-      "sha256": "79762fa7acd22b5eca82ba4371bacd2be6294d8aae6810f0d5fd4dc9c05a8fee"
+      "path": "server/tests/presence-plan.behavior.test.ts",
+      "sha256": "cfaec62cd594600ace3904e7737899dafd85ebcfcdb7d7262adbf936a1c674c2"
     },
     {
-      "path": "server/routes/onboarding.ts",
-      "sha256": "b6bee2b88fce83cb8cc2c605b5e25e9e5741c60bac3702001fe22e14bf17ce5f"
+      "path": "server/tests/presence-plan-access.behavior.test.ts",
+      "sha256": "7f54969fe2af5757a72a4befd1a65b8e5b77569885c9767e76c1cd6cf17c952c"
+    },
+    {
+      "path": "server/tests/presence-plan-migration.behavior.test.ts",
+      "sha256": "155679fb6659f301001596461a730a6d0fe5c91b246557377e9843e1466b0426"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

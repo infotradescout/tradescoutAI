@@ -18,6 +18,15 @@ type OwnedContext = {
 
 type PlanRecord = typeof businessPresencePlans.$inferSelect;
 
+export function nextPresenceDraftRevision(
+  existing: { revision: number; evidenceDigest: string } | null,
+  current: Pick<PresencePlan, "evidenceDigest">
+): number {
+  return existing
+    ? existing.revision + (existing.evidenceDigest === current.evidenceDigest ? 0 : 1)
+    : 1;
+}
+
 export class PresencePlanError extends Error {
   constructor(
     readonly code: string,
@@ -164,7 +173,11 @@ function response(record: PlanRecord, current: PresencePlan) {
     evidenceDigest: record.evidenceDigest,
     planHash: record.planHash,
     plan: record.plan,
-    status: stale ? ("stale" as const) : record.reviewedAt ? ("reviewed" as const) : ("draft" as const),
+    status: stale
+      ? ("stale" as const)
+      : record.reviewedAt
+        ? ("reviewed" as const)
+        : ("draft" as const),
     selectedSitePath: stale ? null : record.sitePath,
     reviewedAt: stale ? null : record.reviewedAt,
     // A reviewed plan confirms accuracy and path selection only. No action is executable.
@@ -185,7 +198,9 @@ export async function refreshOwnedPresencePlan(storage: OwnedReadStorage, ownerU
   const candidate = derive(context);
   const { db } = await import("../db");
   const record = await db.transaction(async (tx: any): Promise<PlanRecord> => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`${context.ownerUserId}|${context.businessId}`}))`);
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext(${`${context.ownerUserId}|${context.businessId}`}))`
+    );
     const live = await assertLiveEvidence(tx, context, candidate.evidenceDigest);
     const [existing] = await tx
       .select()
@@ -203,7 +218,7 @@ export async function refreshOwnedPresencePlan(storage: OwnedReadStorage, ownerU
           evidenceDigest: live.evidenceDigest,
           planHash: live.planHash,
           plan: live as unknown as Record<string, unknown>,
-          revision: existing.revision + 1,
+          revision: nextPresenceDraftRevision(existing, live),
           sitePath: null,
           sitePathSelectedBy: null,
           reviewedAt: null,
@@ -241,7 +256,18 @@ export async function reviewOwnedPresencePlan(
   const context = await loadOwnedPresenceContext(storage, args.ownerUserId);
   const current = derive(context);
   if (current.evidenceDigest !== args.expectedDigest) {
-    throw new PresencePlanError("PRESENCE_PLAN_STALE", "Business evidence changed. Refresh the plan.", 409);
+    throw new PresencePlanError(
+      "PRESENCE_PLAN_STALE",
+      "Business evidence changed. Refresh the plan.",
+      409
+    );
+  }
+  if (current.quarantinedEvidence.some((item) => item.reason === "identity_conflict")) {
+    throw new PresencePlanError(
+      "PRESENCE_IDENTITY_CONFLICT",
+      "Resolve conflicting business identity evidence before reviewing this plan.",
+      422
+    );
   }
   if (!current.sitePath.allowed.includes(args.sitePath)) {
     throw new PresencePlanError(
@@ -252,7 +278,9 @@ export async function reviewOwnedPresencePlan(
   }
   const { db } = await import("../db");
   const record = await db.transaction(async (tx: any): Promise<PlanRecord> => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`${context.ownerUserId}|${context.businessId}`}))`);
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext(${`${context.ownerUserId}|${context.businessId}`}))`
+    );
     await assertLiveEvidence(tx, context, args.expectedDigest);
     const [existing] = await tx
       .select()
@@ -265,7 +293,11 @@ export async function reviewOwnedPresencePlan(
       existing.revision !== args.expectedRevision ||
       existing.planHash !== current.planHash
     ) {
-      throw new PresencePlanError("PRESENCE_PLAN_STALE", "Refresh the plan before reviewing it.", 409);
+      throw new PresencePlanError(
+        "PRESENCE_PLAN_STALE",
+        "Refresh the plan before reviewing it.",
+        409
+      );
     }
     if (existing.reviewedAt && existing.sitePath === args.sitePath) return existing;
     const [updated] = await tx
