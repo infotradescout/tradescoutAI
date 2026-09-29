@@ -152,7 +152,7 @@ try {
     await context.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.origin !== browserBase) return route.abort('blockedbyclient');
-      const response = await route.fetch({ url: base + url.pathname + url.search, headers: { ...route.request().headers(), host: 'www.thetradescout.com' }, maxRedirects: 0 });
+      const response = await route.fetch({ url: base + url.pathname + url.search, headers: { ...route.request().headers(), host: 'www.thetradescout.com' }, maxRedirects: 0, timeout: 20000 });
       return route.fulfill({ response });
     });
     const page=await context.newPage(); activePage=page; const errors=[];page.on('pageerror',error=>browserErrors.push(String(error)));page.on('requestfailed',req=>networkErrors.push({url:req.url(),reason:req.failure()}));page.on('response',res=>{if(res.status()>=400)networkErrors.push({url:res.url(),status:res.status()});});page.on('pageerror',e=>errors.push(String(e)));page.setDefaultTimeout(30000);
@@ -169,6 +169,7 @@ try {
     assert(!/noindex/i.test(await page.locator('meta[name=robots]').last().getAttribute('content')||''));
     await page.goto(browserBase+'/exchange?page=2',{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:'Exchange marketplace'}).waitFor();
     assert.equal(await page.locator('link[rel=canonical]').last().getAttribute('href'),'https://www.thetradescout.com/exchange?page=2');
+    await context.unrouteAll({ behavior: 'wait' });
     assert.deepEqual(errors,[]); note(device+': compiled client reads public ordinary listings, preserves gallery/share/contact gates and directory indexability',{listings:browserCases.length});
     await context.close(); activePage=undefined;
   }
@@ -180,6 +181,7 @@ try {
   assert.equal(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim(),'');report.passed=true;
 } catch(error) { if(activePage){report.browserFailure={url:activePage.url(),body:(await activePage.locator('body').innerText().catch(()=>'' )).slice(0,10000),browserErrors,networkErrors:networkErrors.slice(0,30)};console.log('EX731_BROWSER_FAILURE '+JSON.stringify(report.browserFailure));} report.error=String(error.stack||error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g,'[TEST_DATABASE]');console.error('EX731_NATIVE_FAILURE '+report.error); try { const log = await fs.readFile(path.join(temp, 'application.private.log'), 'utf8'); report.failureDiagnostics = log.split('\n').filter(line => /Error:|error:|public read failed|code:|detail:|column:|relation|schema.*failed/i.test(line)).map(line => line.replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[TEST_DATABASE]').replace(/(?:token|password|secret)[=:\s]+[^\s,]+/gi, '[REDACTED]')).slice(-18); console.log('EX731_NATIVE_DIAGNOSTICS '+JSON.stringify(report.failureDiagnostics)); } catch {} }
 finally {
+  for (const context of browser?.contexts() || []) await context.unrouteAll({ behavior: 'wait' });
   await browser?.close(); await stop(); await privateLog?.close(); await client?.end().catch(()=>{}); await database?.stop();
   await fs.mkdir(output,{recursive:true}); await fs.writeFile(path.join(output,'evidence.json'),JSON.stringify(report,null,2)); await fs.rm(temp,{recursive:true,force:true});
   console.log('EX731_NATIVE_RESULT '+JSON.stringify(report));
