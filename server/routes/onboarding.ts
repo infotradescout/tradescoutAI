@@ -99,7 +99,6 @@ const reviewPresencePlanSchema = z
     expectedDigest: z.string().regex(/^[a-f0-9]{64}$/),
     expectedRevision: z.number().int().positive(),
     sitePath: z.enum(["hosted_new", "preserve_migrate", "keep_external"]),
-    confirmAccuracy: z.literal(true),
   })
   .strict();
 
@@ -350,7 +349,7 @@ function handlePresencePlanError(error: unknown, res: any) {
 
 // Draft planning only. These routes never publish a profile, invoke a provider,
 // modify DNS, or authorize a proposed action. The authenticated business owner
-// may attest to plan accuracy and select a site path without granting execution.
+// may select a site path without confirming any imported fact or granting execution.
 router.get("/api/presence/plan", async (req, res) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ message: "Authentication required" });

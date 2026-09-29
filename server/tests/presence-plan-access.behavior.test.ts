@@ -4,6 +4,7 @@ import request from "supertest";
 import {
   loadOwnedPresenceContext,
   nextPresenceDraftRevision,
+  presentOwnedPresencePlan,
   reviewOwnedPresencePlan,
 } from "../services/presencePlanService";
 import { derivePresencePlan } from "../services/presencePlan";
@@ -112,6 +113,55 @@ describe("owner-bound presence plan access", () => {
     expect(
       nextPresenceDraftRevision({ revision: 4, evidenceDigest: "a" }, { evidenceDigest: "b" })
     ).toBe(5);
+  });
+
+  it("reports site-path selection without implying factual approval or execution", () => {
+    const current = derivePresencePlan({
+      businessId: "business-1",
+      profileId: "profile-1",
+      onboardingEvidence: {
+        kind: "business_profile",
+        businessId: "business-1",
+        profileId: "profile-1",
+        provenance: { evidence: { name: "Unconfirmed Shop" } },
+      },
+    });
+    const selectedAt = new Date("2026-09-29T18:00:00.000Z");
+    const record = {
+      id: "plan-1",
+      businessId: current.businessId,
+      profileId: current.profileId,
+      revision: 3,
+      evidenceDigest: current.evidenceDigest,
+      planHash: current.planHash,
+      plan: { ...current },
+      sitePath: "hosted_new",
+      reviewedAt: selectedAt,
+    };
+
+    const result = presentOwnedPresencePlan(record, current);
+    expect(result.status).toBe("site_path_selected");
+    expect(result.selectedSitePath).toBe("hosted_new");
+    expect(result.sitePathSelectedAt).toEqual(selectedAt);
+    expect(result.executionAuthorized).toBe(false);
+    expect(result).not.toHaveProperty("reviewedAt");
+    expect(result).not.toHaveProperty("factsApproved");
+    expect(result).not.toHaveProperty("approvedFacts");
+    expect(current.quarantinedEvidence).toEqual(
+      expect.arrayContaining([expect.objectContaining({ reason: "requires_owner_confirmation" })])
+    );
+
+    for (const changed of [
+      { ...record, planHash: "0".repeat(64) },
+      { ...record, profileId: "different-profile" },
+      { ...record, evidenceDigest: "1".repeat(64) },
+    ]) {
+      const stale = presentOwnedPresencePlan(changed, current);
+      expect(stale.status).toBe("stale");
+      expect(stale.selectedSitePath).toBeNull();
+      expect(stale.sitePathSelectedAt).toBeNull();
+      expect(stale.executionAuthorized).toBe(false);
+    }
   });
 
   it("rejects stale review before any database or action adapter is loaded", async () => {

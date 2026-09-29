@@ -122,17 +122,20 @@ async function assertLiveEvidence(tx: any, context: OwnedContext, expectedDigest
     .select({ preferences: users.preferences })
     .from(users)
     .where(eq(users.id, context.ownerUserId))
-    .limit(1);
+    .limit(1)
+    .for("share");
   const [business] = await tx
     .select({ ownerUserId: businesses.ownerUserId, profileData: businesses.profileData })
     .from(businesses)
     .where(eq(businesses.id, context.businessId))
-    .limit(1);
+    .limit(1)
+    .for("share");
   const [profile] = await tx
     .select({ ownerUserId: profiles.ownerUserId, businessId: profiles.businessId })
     .from(profiles)
     .where(eq(profiles.id, context.profileId))
-    .limit(1);
+    .limit(1)
+    .for("share");
   const outcome = outcomeFromPreferences(user?.preferences);
   if (
     !outcome ||
@@ -163,8 +166,25 @@ async function assertLiveEvidence(tx: any, context: OwnedContext, expectedDigest
   return live;
 }
 
-function response(record: PlanRecord, current: PresencePlan) {
-  const stale = record.evidenceDigest !== current.evidenceDigest;
+export function presentOwnedPresencePlan(
+  record: Pick<
+    PlanRecord,
+    | "id"
+    | "businessId"
+    | "profileId"
+    | "revision"
+    | "evidenceDigest"
+    | "planHash"
+    | "plan"
+    | "sitePath"
+    | "reviewedAt"
+  >,
+  current: PresencePlan
+) {
+  const stale =
+    record.evidenceDigest !== current.evidenceDigest ||
+    record.planHash !== current.planHash ||
+    record.profileId !== current.profileId;
   return {
     id: record.id,
     businessId: record.businessId,
@@ -176,11 +196,11 @@ function response(record: PlanRecord, current: PresencePlan) {
     status: stale
       ? ("stale" as const)
       : record.reviewedAt
-        ? ("reviewed" as const)
+        ? ("site_path_selected" as const)
         : ("draft" as const),
     selectedSitePath: stale ? null : record.sitePath,
-    reviewedAt: stale ? null : record.reviewedAt,
-    // A reviewed plan confirms accuracy and path selection only. No action is executable.
+    sitePathSelectedAt: stale ? null : record.reviewedAt,
+    // Selecting a site path does not approve facts or authorize execution.
     executionAuthorized: false as const,
   };
 }
@@ -190,7 +210,7 @@ export async function getOwnedPresencePlan(storage: OwnedReadStorage, ownerUserI
   const current = derive(context);
   const { db } = await import("../db");
   const [record] = await db.select().from(businessPresencePlans).where(wherePlan(context)).limit(1);
-  return record ? response(record, current) : null;
+  return record ? presentOwnedPresencePlan(record, current) : null;
 }
 
 export async function refreshOwnedPresencePlan(storage: OwnedReadStorage, ownerUserId: string) {
@@ -241,7 +261,7 @@ export async function refreshOwnedPresencePlan(storage: OwnedReadStorage, ownerU
       .returning();
     return created;
   });
-  return response(record, candidate);
+  return presentOwnedPresencePlan(record, candidate);
 }
 
 export async function reviewOwnedPresencePlan(
@@ -312,5 +332,5 @@ export async function reviewOwnedPresencePlan(
       .returning();
     return updated;
   });
-  return response(record, current);
+  return presentOwnedPresencePlan(record, current);
 }
