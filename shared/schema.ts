@@ -1147,7 +1147,9 @@ export const profiles = pgTable(
 export const businessPresencePlans = pgTable(
   "business_presence_plans",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
     ownerUserId: varchar("owner_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -1166,6 +1168,10 @@ export const businessPresencePlans = pgTable(
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     customerTaskReconciledRevision: integer("customer_task_reconciled_revision"),
     customerTaskReconciledSitePath: varchar("customer_task_reconciled_site_path", { length: 32 }),
+    // A decision changes review-task eligibility without changing the inert plan hash.
+    factReviewEpoch: integer("fact_review_epoch").notNull().default(0),
+    factTaskReconciledRevision: integer("fact_task_reconciled_revision"),
+    factTaskReconciledEpoch: integer("fact_task_reconciled_epoch"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1175,16 +1181,72 @@ export const businessPresencePlans = pgTable(
   ]
 );
 
+// Owner decisions are private, append-only review events. Claim values and source
+// URLs remain in the canonical onboarding outcome, never in this table.
+export const businessPresenceFactDecisions = pgTable(
+  "business_presence_fact_decisions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    planId: varchar("plan_id")
+      .notNull()
+      .references(() => businessPresencePlans.id, { onDelete: "cascade" }),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull(),
+    evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
+    planHash: varchar("plan_hash", { length: 64 }).notNull(),
+    factKey: varchar("fact_key", { length: 64 }).notNull(),
+    valueDigest: varchar("value_digest", { length: 64 }).notNull(),
+    decision: varchar("decision", { length: 16 }).notNull(),
+    decisionEpoch: integer("decision_epoch").notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("presence_fact_decision_request_uq").on(
+      table.ownerUserId,
+      table.businessId,
+      table.idempotencyKey
+    ),
+    uniqueIndex("presence_fact_decision_epoch_uq").on(table.planId, table.decisionEpoch),
+    index("presence_fact_decision_current_idx").on(
+      table.planId,
+      table.revision,
+      table.factKey,
+      table.decisionEpoch
+    ),
+  ]
+);
+
 // A private customer choice task. Its version is bound to one inert presence
 // plan; neither the task nor a reminder grants publication authority.
 export const businessPresenceCustomerTasks = pgTable(
   "business_presence_customer_tasks",
   {
-    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    ownerUserId: varchar("owner_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    businessId: varchar("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
-    profileId: varchar("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
-    planId: varchar("plan_id").notNull().references(() => businessPresencePlans.id, { onDelete: "cascade" }),
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    ownerUserId: varchar("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    businessId: varchar("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    planId: varchar("plan_id")
+      .notNull()
+      .references(() => businessPresencePlans.id, { onDelete: "cascade" }),
     planHash: varchar("plan_hash", { length: 64 }).notNull(),
     evidenceDigest: varchar("evidence_digest", { length: 64 }).notNull(),
     revision: integer("revision").notNull(),
@@ -1202,13 +1264,22 @@ export const businessPresenceCustomerTasks = pgTable(
   },
   (table) => [
     uniqueIndex("presence_customer_task_version_uq").on(
-      table.ownerUserId, table.businessId, table.profileId, table.planHash, table.kind
+      table.ownerUserId,
+      table.businessId,
+      table.profileId,
+      table.planHash,
+      table.revision,
+      table.kind
     ),
     index("presence_customer_task_due_idx").on(table.status, table.nextReminderAt),
     index("presence_customer_task_retry_idx").on(table.status, table.retryAt),
     index("presence_customer_task_plan_status_idx").on(table.planId, table.status),
     index("presence_customer_task_family_idx").on(
-      table.ownerUserId, table.businessId, table.profileId, table.kind, table.createdAt
+      table.ownerUserId,
+      table.businessId,
+      table.profileId,
+      table.kind,
+      table.createdAt
     ),
   ]
 );

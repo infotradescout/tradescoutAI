@@ -468,6 +468,88 @@ describe("customer presence review", () => {
     expect(container.querySelector('[data-testid="presence-review-save"]')).toBeNull();
   });
 
+  it("opens sourced fact review only when the customer asks to see it", async () => {
+    state.apiRequest.mockImplementation(async (method: string, path: string) => {
+      if (method === "GET" && path === "/api/presence/plan") return { success: true, plan: plan() };
+      if (method === "GET" && path === "/api/profiles") return [profile];
+      if (method === "GET" && path === "/api/presence/facts")
+        return {
+          success: true,
+          review: {
+            planId: "plan-1",
+            businessId: "business-1",
+            profileId: "profile-1",
+            revision: 1,
+            evidenceDigest: "a".repeat(64),
+            planHash: "b".repeat(64),
+            facts: [
+              {
+                factKey: "description",
+                kind: "description",
+                value: "A sourced detail",
+                sourceRefs: ["https://example.test/about"],
+                sourceVerificationLimited: false,
+                valueDigest: "c".repeat(64),
+                decision: null,
+              },
+            ],
+          },
+        };
+      throw new Error(`Unexpected request: ${method} ${path}`);
+    });
+    await mount();
+    expect(state.apiRequest.mock.calls.some((call) => call[1] === "/api/presence/facts")).toBe(
+      false
+    );
+    await act(async () => {
+      const open = container.querySelector<HTMLButtonElement>(
+        '[data-testid="presence-open-fact-review"]'
+      );
+      if (!open) throw new Error("Fact review action missing");
+      open.click();
+    });
+    await flushUi();
+    expect(container.textContent).toContain("A sourced detail");
+    expect(state.apiRequest.mock.calls.some((call) => call[1] === "/api/presence/facts")).toBe(
+      true
+    );
+    expect(state.apiRequest.mock.calls.some((call) => call[0] === "POST")).toBe(false);
+  });
+
+  it("opens the fact panel from an explicit customer reminder link after owner validation", async () => {
+    const before = window.location.href;
+    try {
+      await act(async () => window.history.replaceState({}, "", "/presence/review?section=facts"));
+      state.apiRequest.mockImplementation(async (method: string, path: string) => {
+        if (method === "GET" && path === "/api/presence/plan")
+          return { success: true, plan: plan() };
+        if (method === "GET" && path === "/api/profiles") return [profile];
+        if (method === "GET" && path === "/api/presence/facts")
+          return {
+            success: true,
+            review: {
+              planId: "plan-1",
+              businessId: "business-1",
+              profileId: "profile-1",
+              revision: 1,
+              evidenceDigest: "a".repeat(64),
+              planHash: "b".repeat(64),
+              facts: [],
+            },
+          };
+        throw new Error(`Unexpected request: ${method} ${path}`);
+      });
+      await mount();
+      expect(container.querySelector('[data-testid="presence-fact-review"]')).not.toBeNull();
+      expect(state.apiRequest.mock.calls.some((call) => call[1] === "/api/presence/facts")).toBe(
+        true
+      );
+      expect(state.apiRequest.mock.calls.some((call) => call[0] === "POST")).toBe(false);
+    } finally {
+      await act(async () => window.history.replaceState({}, "", before));
+    }
+  });
+
   it("separates guest, blocked, missing business outcome and identity conflict routes", async () => {
     fetchMock.mockImplementationOnce(async () => authResponse(null));
     await mount();

@@ -7,6 +7,7 @@ import { buildAuthEntryRoute } from "@/lib/postOnboardingRoute";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import PresenceFactReview from "./PresenceFactReview";
 import {
   resolvePresenceReviewContext,
   presenceEvidenceLabel,
@@ -19,6 +20,13 @@ import {
 
 const REVIEW_PATH = "/presence/review";
 const SIGN_IN_PATH = buildAuthEntryRoute({ mode: "signin", next: REVIEW_PATH });
+
+function requestedFactReview(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("section") === "facts"
+  );
+}
 
 const SITE_CHOICES: Record<PresenceSitePath, { title: string; description: string }> = {
   hosted_new: {
@@ -104,6 +112,7 @@ export default function PresenceReview() {
   const [choice, setChoice] = useState<PresenceSitePath | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showFacts, setShowFacts] = useState(false);
   const runId = useRef(0);
   const saveInFlight = useRef(false);
   const cachedUserIdRef = useRef(cachedUserId);
@@ -115,6 +124,7 @@ export default function PresenceReview() {
       setView({ kind: "loading" });
       setChoice(null);
       setSaved(false);
+      setShowFacts(requestedFactReview());
       setSaving(false);
       saveInFlight.current = false;
       const current = () => run === runId.current;
@@ -392,6 +402,25 @@ export default function PresenceReview() {
               </p>
             </CardContent>
           </Card>
+
+          <div className="space-y-3">
+            {!showFacts ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowFacts(true)}
+                data-testid="presence-open-fact-review"
+              >
+                Review imported business details
+              </Button>
+            ) : (
+              <PresenceFactReview
+                record={visibleView.record}
+                profile={visibleView.profile}
+                ownerUserId={cachedUserId}
+              />
+            )}
+          </div>
 
           <Card className="border-white/10 bg-tsCard text-white">
             <CardHeader>
