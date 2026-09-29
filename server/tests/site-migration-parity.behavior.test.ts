@@ -236,11 +236,13 @@ describe("pure migration URL and metadata parity assessment", () => {
   });
 
   it("does not treat an agent-scoped X-Robots-Tag as universal shadow noindex", () => {
-    const scoped = shadow([sourceUrl]);
-    scoped.pages = [{ ...scoped.pages[0], metaRobots: [], xRobotsTag: ["googlebot: noindex"] }];
-    const result = assessSiteMigrationParity(assessmentInput({ shadow: scoped }));
-    expect(result.shadowSafety.status).toBe("blocked");
-    expect(result.shadowSafety.reasons).toContain("SHADOW_NOINDEX_UNPROVED");
+    for (const scopedHeader of ["googlebot: noindex", "googlebot: nofollow, noindex"]) {
+      const scoped = shadow([sourceUrl]);
+      scoped.pages = [{ ...scoped.pages[0], metaRobots: [], xRobotsTag: [scopedHeader] }];
+      const result = assessSiteMigrationParity(assessmentInput({ shadow: scoped }));
+      expect(result.shadowSafety.status).toBe("blocked");
+      expect(result.shadowSafety.reasons).toContain("SHADOW_NOINDEX_UNPROVED");
+    }
   });
 
   it("blocks a shadow origin that matches an origin proposed for the live site", () => {

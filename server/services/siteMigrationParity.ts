@@ -183,11 +183,17 @@ function normalizedDirectives(values: readonly string[]): string[] {
 }
 
 function hasUniversalNoindex(values: readonly string[]): boolean {
-  // An agent-scoped X-Robots-Tag such as "googlebot: noindex" does not
-  // protect a shadow page from every crawler.
-  return values.some((value) =>
-    value.split(",").some((directive) => directive.trim() === "noindex")
-  );
+  return values.some((value) => {
+    // In an X-Robots-Tag header, an agent prefix scopes the comma-separated
+    // directives that follow it. Each supplied value is a separate header.
+    let agentScoped = false;
+    for (const part of value.split(",")) {
+      const directive = part.trim();
+      if (/^[a-z][a-z0-9_-]*\s*:/.test(directive)) agentScoped = true;
+      else if (!agentScoped && directive === "noindex") return true;
+    }
+    return false;
+  });
 }
 
 function safeShadow(
