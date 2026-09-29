@@ -235,6 +235,24 @@ describe("pure migration URL and metadata parity assessment", () => {
     expect(result.cutoverEligible).toBe(false);
   });
 
+  it("does not treat an agent-scoped X-Robots-Tag as universal shadow noindex", () => {
+    const scoped = shadow([sourceUrl]);
+    scoped.pages = [{ ...scoped.pages[0], metaRobots: [], xRobotsTag: ["googlebot: noindex"] }];
+    const result = assessSiteMigrationParity(assessmentInput({ shadow: scoped }));
+    expect(result.shadowSafety.status).toBe("blocked");
+    expect(result.shadowSafety.reasons).toContain("SHADOW_NOINDEX_UNPROVED");
+  });
+
+  it("blocks a shadow origin that matches an origin proposed for the live site", () => {
+    const projectedUrl = "https://preview.thetradescout.com/services/stone";
+    const projected = manifest("predicted_live", [page(projectedUrl)], {
+      origins: ["https://preview.thetradescout.com"],
+    });
+    const result = assessSiteMigrationParity(assessmentInput({ predictedLive: projected }));
+    expect(result.shadowSafety.status).toBe("blocked");
+    expect(result.shadowSafety.reasons).toContain("SHADOW_ORIGIN_EQUALS_LIVE");
+  });
+
   it("binds the assessment hash to exact supplied shadow observations", () => {
     const before = assessSiteMigrationParity(assessmentInput());
     const changed = shadow([sourceUrl]);
@@ -263,6 +281,18 @@ describe("pure migration URL and metadata parity assessment", () => {
         })
       )
     ).toThrowError(MigrationParityInputError);
+    for (const invalid of [123, {}, " "]) {
+      expect(() =>
+        assessSiteMigrationParity(
+          assessmentInput({ plan: { ...plan, businessId: invalid as string } })
+        )
+      ).toThrowError(MigrationParityInputError);
+      expect(() =>
+        assessSiteMigrationParity(
+          assessmentInput({ plan: { ...plan, profileId: invalid as string } })
+        )
+      ).toThrowError(MigrationParityInputError);
+    }
   });
 
   it("marks unknown observations and incomplete or truncated URL universes as blockers", () => {
@@ -291,6 +321,8 @@ describe("pure migration URL and metadata parity assessment", () => {
         "PAGE_EVIDENCE_UNAVAILABLE",
       ])
     );
+    const onlyUnavailable = buildMigrationManifest(manifest("legacy_live", [unavailable]));
+    expect(onlyUnavailable.coverage).toMatchObject({ complete: false, unknownCount: 1 });
   });
 
   it("normalizes without erasing significant historic URL differences", () => {
@@ -392,5 +424,18 @@ describe("pure migration URL and metadata parity assessment", () => {
       buildMigrationManifest(manifest("legacy_live", [unsafe as MigrationPageObservation]))
     ).toThrowError(MigrationManifestInputError);
     expect(invoked).toBe(false);
+  });
+
+  it("refuses unexpected cyclic or oversized chunk fields before serializing them", () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const source = manifest("legacy_live");
+    const chunk = {
+      ...source.chunks[0],
+      unexpected: { cyclic, huge: "x".repeat(3 * 1024 * 1024) },
+    };
+    expect(() => buildMigrationManifest({ ...source, chunks: [chunk] })).toThrowError(
+      MigrationManifestInputError
+    );
   });
 });

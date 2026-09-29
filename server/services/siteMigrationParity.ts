@@ -115,15 +115,16 @@ function validDigest(value: string): boolean {
   return typeof value === "string" && /^[a-f0-9]{64}$/i.test(value);
 }
 
+function validOwnerId(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= 200;
+}
+
 function validatePlan(plan: ReviewedMigrationPlanSnapshot) {
   if (
     !plan ||
-    !plan.id ||
-    plan.id.length > 200 ||
-    !plan.businessId ||
-    plan.businessId.length > 200 ||
-    !plan.profileId ||
-    plan.profileId.length > 200 ||
+    !validOwnerId(plan.id) ||
+    !validOwnerId(plan.businessId) ||
+    !validOwnerId(plan.profileId) ||
     !Number.isSafeInteger(plan.revision) ||
     plan.revision < 1 ||
     !validDigest(plan.evidenceDigest) ||
@@ -179,6 +180,14 @@ function normalizedDirectives(values: readonly string[]): string[] {
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
     .sort();
+}
+
+function hasUniversalNoindex(values: readonly string[]): boolean {
+  // An agent-scoped X-Robots-Tag such as "googlebot: noindex" does not
+  // protect a shadow page from every crawler.
+  return values.some((value) =>
+    value.split(",").some((directive) => directive.trim() === "noindex")
+  );
 }
 
 function safeShadow(
@@ -239,7 +248,7 @@ function safeShadow(
       xRobotsTag,
       inSitemap: page.inSitemap,
     });
-    if (!directives.some((directive) => directive.split(/[\s,]+/).includes("noindex"))) {
+    if (!hasUniversalNoindex(directives)) {
       reasons.add("SHADOW_NOINDEX_UNPROVED");
     }
     if (page.inSitemap !== false) reasons.add("SHADOW_SITEMAP_EXPOSURE_UNKNOWN");
@@ -374,11 +383,9 @@ export function assessSiteMigrationParity(input: MigrationParityInput): Migratio
       add("SITEMAP_MEMBERSHIP_UNKNOWN", url);
     if (!equalJson(old.document.schema, projected.document.schema)) add("JSON_LD_CHANGED", url);
   }
-  const shadow = safeShadow(
-    input.shadow,
-    new Set(legacy.pages.map((page) => page.requestedUrl)),
-    legacy.origins
-  );
+  const shadow = safeShadow(input.shadow, new Set(legacy.pages.map((page) => page.requestedUrl)), [
+    ...new Set([...legacy.origins, ...predictedLive.origins]),
+  ]);
   findings.sort(
     (a, b) =>
       a.code.localeCompare(b.code) || String(a.urlKeySha256).localeCompare(String(b.urlKeySha256))

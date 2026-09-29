@@ -171,6 +171,113 @@ function stableJson(value: unknown): string {
   return JSON.stringify(normalize(value));
 }
 
+function projectedRecord(value: unknown, allowedKeys: readonly string[]): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new MigrationManifestInputError("INVALID_INPUT", "Input must be a plain record");
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new MigrationManifestInputError("INVALID_INPUT", "Input must be plain JSON data");
+  }
+  const keys = Reflect.ownKeys(value);
+  if (keys.length > allowedKeys.length || keys.some((key) => !allowedKeys.includes(String(key)))) {
+    throw new MigrationManifestInputError("INVALID_INPUT", "Input contains unexpected fields");
+  }
+  const projected: Record<string, unknown> = {};
+  for (const key of allowedKeys) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (descriptor && !Object.hasOwn(descriptor, "value")) {
+      throw new MigrationManifestInputError("INVALID_INPUT", "Input must not contain accessors");
+    }
+    projected[key] = descriptor?.value;
+  }
+  return projected;
+}
+
+function projectedArray<T>(value: unknown, maxLength: number, project: (entry: unknown) => T): T[] {
+  if (!Array.isArray(value) || value.length > maxLength) {
+    throw new MigrationManifestInputError("INPUT_COMPLEXITY", "Input array exceeds bounds");
+  }
+  if (Reflect.ownKeys(value).length !== value.length + 1) {
+    throw new MigrationManifestInputError("INVALID_INPUT", "Input array must be dense JSON data");
+  }
+  const projected: T[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+    if (!descriptor || !Object.hasOwn(descriptor, "value")) {
+      throw new MigrationManifestInputError(
+        "INVALID_INPUT",
+        "Input array must not contain accessors"
+      );
+    }
+    projected.push(project(descriptor.value));
+  }
+  return projected;
+}
+
+function projectedPage(value: unknown): MigrationPageObservation {
+  if (!value || typeof value !== "object") {
+    throw new MigrationManifestInputError("INVALID_INPUT", "Page must be a plain record");
+  }
+  const state = Object.getOwnPropertyDescriptor(value as object, "state")?.value;
+  const keys =
+    state === "unavailable"
+      ? ["state", "requestedUrl", "observedAt", "reason"]
+      : [
+          "state",
+          "requestedUrl",
+          "observedAt",
+          "responseSha256",
+          "finalUrl",
+          "status",
+          "redirects",
+          "document",
+        ];
+  const page = projectedRecord(value, keys);
+  if (state === "unavailable") return page as unknown as MigrationPageObservation;
+  const document = page.document;
+  let projectedDocument: MigrationDocumentObservation | null;
+  if (document === null) {
+    projectedDocument = null;
+  } else {
+    const record = projectedRecord(document, [
+      "title",
+      "description",
+      "h1",
+      "canonical",
+      "metaRobots",
+      "xRobotsTag",
+      "robotsTxt",
+      "inSitemap",
+      "schema",
+    ]);
+    projectedDocument = {
+      ...record,
+      h1: projectedArray(record.h1, 32, (entry) => entry),
+      metaRobots: projectedArray(record.metaRobots, 32, (entry) => entry),
+      xRobotsTag: projectedArray(record.xRobotsTag, 32, (entry) => entry),
+      schema: projectedArray(record.schema, MIGRATION_MAX_SCHEMA_IDENTITIES, (entry) =>
+        projectedRecord(entry, ["type", "id", "semanticSha256"])
+      ),
+    } as unknown as MigrationDocumentObservation;
+  }
+  return {
+    ...page,
+    redirects: projectedArray(page.redirects, MIGRATION_MAX_REDIRECT_HOPS, (entry) =>
+      projectedRecord(entry, ["url", "status", "location"])
+    ),
+    document: projectedDocument,
+  } as unknown as MigrationPageObservation;
+}
+
+function projectedChunk(value: unknown): MigrationManifestChunkInput {
+  const chunk = projectedRecord(value, ["sequence", "final", "truncated", "pages"]);
+  return {
+    ...chunk,
+    pages: projectedArray(chunk.pages, MIGRATION_MAX_PAGES_PER_CHUNK, projectedPage),
+  } as unknown as MigrationManifestChunkInput;
+}
+
 function limitedText(value: unknown, name: string, max: number): string {
   if (typeof value !== "string" || value.length > max || /[\u0000-\u001f\u007f]/.test(value)) {
     throw new MigrationManifestInputError("INVALID_TEXT", `${name} is invalid`);
@@ -416,7 +523,9 @@ export function buildMigrationManifest(input: MigrationManifestInput): Migration
     );
   }
   const allowed = new Set(origins);
-  const sortedChunks = [...input.chunks].sort((a, b) => a.sequence - b.sequence);
+  const sortedChunks = projectedArray(input.chunks, MIGRATION_MAX_CHUNKS, projectedChunk).sort(
+    (a, b) => a.sequence - b.sequence
+  );
   const pages: NormalizedMigrationPage[] = [];
   let truncated = false;
   let sequenceGap = false;
@@ -425,14 +534,25 @@ export function buildMigrationManifest(input: MigrationManifestInput): Migration
     if (!Array.isArray(chunk.pages) || chunk.pages.length > MIGRATION_MAX_PAGES_PER_CHUNK) {
       throw new MigrationManifestInputError("PAGE_LIMIT", "Page count exceeds the per-chunk bound");
     }
-    if (Buffer.byteLength(stableJson(chunk), "utf8") > MIGRATION_MAX_CHUNK_BYTES) {
-      throw new MigrationManifestInputError("BYTE_LIMIT", "Chunk exceeds the metadata byte bound");
-    }
     if (typeof chunk.final !== "boolean" || typeof chunk.truncated !== "boolean") {
       throw new MigrationManifestInputError("INVALID_CHUNK", "Chunk flags are invalid");
     }
     truncated ||= chunk.truncated;
-    pages.push(...chunk.pages.map((page) => normalizePage(page, allowed)));
+    const normalizedPages = chunk.pages.map((page) => normalizePage(page, allowed));
+    if (
+      Buffer.byteLength(
+        stableJson({
+          sequence: chunk.sequence,
+          final: chunk.final,
+          truncated: chunk.truncated,
+          pages: normalizedPages,
+        }),
+        "utf8"
+      ) > MIGRATION_MAX_CHUNK_BYTES
+    ) {
+      throw new MigrationManifestInputError("BYTE_LIMIT", "Chunk exceeds the metadata byte bound");
+    }
+    pages.push(...normalizedPages);
   }
   const missingFinalChunk =
     !sortedChunks.at(-1)?.final || sortedChunks.slice(0, -1).some((chunk) => chunk.final);
@@ -444,6 +564,7 @@ export function buildMigrationManifest(input: MigrationManifestInput): Migration
   for (let index = 1; index < pages.length; index += 1) {
     if (pages[index].requestedUrl === pages[index - 1].requestedUrl) duplicateCount += 1;
   }
+  const unknownCount = pages.filter((page) => page.state === "unavailable").length;
   const coverage: MigrationCoverage = {
     expectedUrlUniverseSource: input.expectedUrlUniverseSource,
     declaredUrlCount: input.declaredUrlCount,
@@ -454,10 +575,11 @@ export function buildMigrationManifest(input: MigrationManifestInput): Migration
       !sequenceGap &&
       !missingFinalChunk &&
       duplicateCount === 0 &&
+      unknownCount === 0 &&
       input.expectedUrlUniverseSource !== "unknown" &&
       input.declaredUrlCount === pages.length,
     truncated,
-    unknownCount: pages.filter((page) => page.state === "unavailable").length,
+    unknownCount,
     duplicateCount,
     missingFinalChunk,
     sequenceGap,
