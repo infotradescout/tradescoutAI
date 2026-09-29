@@ -47,6 +47,7 @@ import {
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { jwStoneOfferInputSchema } from "@shared/jwStoneOffer";
 import { JwStoneOfferError, reviewJwStoneOffer, summarizeJwStoneOffer } from "../services/jwStoneOfferReview";
+import { classifyDirectConnectSolicitation } from "../services/directConnectSolicitationGuard";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -656,6 +657,31 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         recordOperationalOutcome(res, { profileSlug: target.profileSlug });
 
         const body = parsed.data;
+        const solicitationDecision = classifyDirectConnectSolicitation({
+          message: body.message,
+          name: body.name,
+          email: body.email,
+          requestType: body.requestType,
+        });
+        if (solicitationDecision.action === "block") {
+          recordOperationalOutcome(res, {
+            code: "EXPRESS_COMMERCIAL_SOLICITATION_BLOCKED",
+            profileSlug: target.profileSlug,
+            solicitationScore: solicitationDecision.score,
+            solicitationReasons: solicitationDecision.reasons,
+          });
+          logger.warn("[tradepartner-express] commercial solicitation blocked", {
+            profileSlug: target.profileSlug,
+            businessId: target.businessId,
+            solicitationScore: solicitationDecision.score,
+            solicitationReasons: solicitationDecision.reasons,
+          });
+          return res.status(422).json({
+            code: "COMMERCIAL_SOLICITATION_NOT_ALLOWED",
+            message:
+              "Direct Connect is for genuine customer and project requests, not unsolicited sales outreach.",
+          });
+        }
         if ((body.requestType === "make_offer") !== Boolean(body.stoneOffer) ||
             (body.stoneOffer && (body.serviceName || body.contactPreference === "call"))) {
           recordOperationalOutcome(res, { code: "EXPRESS_OFFER_CONTEXT_INVALID" });
