@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 
 const source = await fs.readFile(new URL('../generate-sitemap-core.mjs', import.meta.url), 'utf8');
 const canonical = await fs.readFile(new URL('../../client/public/sitemap.xml', import.meta.url), 'utf8');
@@ -16,12 +17,16 @@ async function fixture(fn, {existing = true} = {}) {
     await fs.writeFile(path.join(root,'scripts/generate.mjs'), source);
     await fs.writeFile(path.join(root,'clock.mjs'), `const RealDate = Date; globalThis.Date = class extends RealDate { constructor(...args){super(...(args.length?args:[process.env.SITEMAP_TEST_DATE]));} static now(){return new RealDate(process.env.SITEMAP_TEST_DATE).valueOf();} };`);
     if(existing) { await fs.writeFile(path.join(output,'sitemap.xml'),canonical); await fs.writeFile(path.join(output,'sitemap-index.xml'),index); }
-    await fn({output, run(date){execFileSync(process.execPath,['--import',path.join(root,'clock.mjs'),path.join(root,'scripts/generate.mjs')],{env:{...process.env,SITEMAP_TEST_DATE:date},stdio:'pipe'});}, read:name=>fs.readFile(path.join(output,name),'utf8')});
+    await fn({output, run(date){execFileSync(process.execPath,['--import',pathToFileURL(path.join(root,'clock.mjs')).href,path.join(root,'scripts/generate.mjs')],{env:{...process.env,SITEMAP_TEST_DATE:date},stdio:'pipe'});}, read:name=>fs.readFile(path.join(output,name),'utf8'), stat:name=>fs.stat(path.join(output,name))});
   } finally { await fs.rm(root,{recursive:true,force:true}); }
 }
 test('unchanged checked-in routes, priorities, frequencies and index dates remain byte-identical',()=>fixture(async f=>{
   f.run('2030-01-01T00:00:00Z'); assert.equal(await f.read('sitemap.xml'),canonical); assert.equal(await f.read('sitemap-index.xml'),index);
+  const sitemapMtime = (await f.stat('sitemap.xml')).mtimeMs;
+  const indexMtime = (await f.stat('sitemap-index.xml')).mtimeMs;
   f.run('2030-02-02T00:00:00Z'); assert.equal(await f.read('sitemap.xml'),canonical); assert.equal(await f.read('sitemap-index.xml'),index);
+  assert.equal((await f.stat('sitemap.xml')).mtimeMs, sitemapMtime);
+  assert.equal((await f.stat('sitemap-index.xml')).mtimeMs, indexMtime);
 }));
 test('fresh generation initializes dates once and the next build is stable',()=>fixture(async f=>{
   f.run('2030-01-01T00:00:00Z'); const first=await f.read('sitemap-index.xml'); assert(first.includes('<lastmod>2030-01-01</lastmod>'));

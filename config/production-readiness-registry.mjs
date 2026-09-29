@@ -234,6 +234,10 @@ export const API_ROUTE_FAMILIES = Object.freeze([
     owner: "identity", audience: "account-holder", roles: ["anonymous", "authenticated"],
     canonicalObject: "user_identity", job: "Create, recover, and authorize one identity", readiness: "production",
   }),
+  family("presence-api", /^\/api\/presence(?:\/|$)/, {
+    owner: "business-platform", audience: "business-owner", roles: ["business_owner"],
+    canonicalObject: "business", job: "Review an inert, owner-scoped business presence plan", readiness: "closed_beta",
+  }),
   family("direct-connect-api", /^\/api\/(?:direct-connect|work-requests|tasks|jobs|leads|conversations|messages|notifications|decision-cards|quotes|profile-booking|providers?|workers|employment)(?:\/|$)/, {
     owner: "direct-connect", audience: "requester-provider-and-operator", roles: ["authenticated", "ops_admin"],
     canonicalObject: "work_request", job: "Create, route, progress, and recover protected work", readiness: "production",
