@@ -5,6 +5,7 @@ import os from 'node:os';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import pg from 'pg';
+import http from 'node:http';
 import { chromium } from 'playwright';
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME } from '../shared/exchangeListingRules.ts';
 import { startCabinetLoopbackTestDatabase } from './start-cabinet-loopback-test-db.mjs';
@@ -13,6 +14,7 @@ const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).tr
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'exchange-public-native-'));
 const output = path.resolve(process.env.EXCHANGE_PUBLIC_OUTPUT || 'test-results/exchange-public-discovery');
 const base = 'http://127.0.0.1:5241';
+const browserBase = 'https://www.thetradescout.com';
 const report = { head, source: 'Actual compiled application, owned loopback PostgreSQL, synthetic publication records', checks: [], passed: false, customerWrites: false, providerCalls: false };
 let database, client, processHandle, browser, privateLog;
 function note(name, detail = {}) { report.checks.push({ name, ...detail }); console.log('EX731_NATIVE_CHECK ' + JSON.stringify(report.checks.at(-1))); }
@@ -35,8 +37,22 @@ async function waitReady() {
   throw new Error('Application did not become ready');
 }
 async function get(route, options = {}) {
-  assert(route.startsWith('/'));
-  return fetch(base + route, { redirect: 'manual', headers: { Host: 'www.thetradescout.com', 'User-Agent': 'TradeScout-Exchange-Public-Synthetic-Test/1.0', ...(options.headers || {}) }, signal: AbortSignal.timeout(20000) });
+  const target = new URL(route, base);
+  assert.equal(target.origin, base);
+  return new Promise((resolve, reject) => {
+    const req = http.request(target, { method: 'GET', headers: { Host: 'www.thetradescout.com', 'User-Agent': 'TradeScout-Exchange-Public-Synthetic-Test/1.0', ...(options.headers || {}) } }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('error', reject);
+      response.on('end', () => {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(response.headers)) if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+        resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers }));
+      });
+    });
+    req.setTimeout(20000, () => req.destroy(new Error('Local HTTP verification timed out')));
+    req.on('error', reject); req.end();
+  });
 }
 try {
   assert.equal(execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(), '');
@@ -131,20 +147,26 @@ try {
   const browserCases = samples.filter(item=>['vehicles','tools','furniture','electronics','other'].includes(item.category));
   for(const [device,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}]]) {
     const context=await browser.newContext({viewport,isMobile:device==='mobile',hasTouch:device==='mobile',serviceWorkers:'block'});
-    await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort('blockedbyclient'));
+    // Map the canonical browser origin to the owned loopback app; never contact the public site.
+    await context.route('**/*', async route => {
+      const url = new URL(route.request().url());
+      if (url.origin !== browserBase) return route.abort('blockedbyclient');
+      const response = await route.fetch({ url: base + url.pathname + url.search, headers: { ...route.request().headers(), host: 'www.thetradescout.com' }, maxRedirects: 0 });
+      return route.fulfill({ response });
+    });
     const page=await context.newPage(); const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.setDefaultTimeout(30000);
     for(const item of browserCases){
       const route=`/exchange/${item.category}/${item.id}`;
-      await page.goto(base+route,{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:item.title,exact:true}).waitFor();
+      await page.goto(browserBase+route,{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:item.title,exact:true}).waitFor();
       await page.getByRole('button',{name:'Share listing',exact:true}).waitFor();
       assert(!/noindex/i.test(await page.locator('meta[name=robots]').last().getAttribute('content')||''));
       assert.equal(await page.locator('link[rel=canonical]').last().getAttribute('href'),'https://www.thetradescout.com'+route);
       await page.getByRole('button',{name:'Review Protected Connection',exact:true}).waitFor();
       assert(!((await page.locator('body').innerText()).includes('PRIVATE-')));
     }
-    await page.goto(base+'/exchange',{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:'Exchange marketplace'}).waitFor();
+    await page.goto(browserBase+'/exchange',{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:'Exchange marketplace'}).waitFor();
     assert(!/noindex/i.test(await page.locator('meta[name=robots]').last().getAttribute('content')||''));
-    await page.goto(base+'/exchange?page=2',{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:'Exchange marketplace'}).waitFor();
+    await page.goto(browserBase+'/exchange?page=2',{waitUntil:'domcontentloaded'}); await page.getByRole('heading',{level:1,name:'Exchange marketplace'}).waitFor();
     assert.equal(await page.locator('link[rel=canonical]').last().getAttribute('href'),'https://www.thetradescout.com/exchange?page=2');
     assert.deepEqual(errors,[]); note(device+': compiled client reads public ordinary listings, preserves gallery/share/contact gates and directory indexability',{listings:browserCases.length});
     await context.close();
