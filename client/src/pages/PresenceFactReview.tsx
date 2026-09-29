@@ -10,6 +10,7 @@ import {
   type PresenceFactReview as FactReview,
 } from "@/lib/presenceFacts";
 import type { OwnedPresenceProfile, PresenceReviewRecord } from "@/lib/presenceReview";
+import PresenceAboutIntent from "./PresenceAboutIntent";
 
 type State =
   | { kind: "loading" | "error" | "stale" | "blocked" | "sign_in" | "impersonating" }
@@ -203,6 +204,11 @@ export default function PresenceFactReview({
     }
   };
 
+  const approvedAbout =
+    state.kind === "ready"
+      ? state.review.facts.find((fact) => fact.factKey === "about" && fact.decision === "approve")
+      : null;
+
   return (
     <section
       className="space-y-4 rounded-xl border border-white/10 bg-tsCard p-5 text-white"
@@ -247,6 +253,7 @@ export default function PresenceFactReview({
           {state.review.facts.map((fact) => (
             <article
               key={fact.factKey}
+              id={fact.factKey === "about" ? "presence-about-fact-review" : undefined}
               className="space-y-3 rounded-lg border border-white/15 p-4"
               data-testid={`presence-fact-${fact.factKey}`}
             >
@@ -305,6 +312,15 @@ export default function PresenceFactReview({
               </div>
             </article>
           ))}
+          {approvedAbout ? (
+            <PresenceAboutIntent
+              key={`${state.review.planId}:${state.review.revision}:${approvedAbout.valueDigest}`}
+              review={state.review}
+              profile={profile}
+              fact={approvedAbout}
+              ownerUserId={ownerUserId}
+            />
+          ) : null}
         </div>
       ) : null}
     </section>
