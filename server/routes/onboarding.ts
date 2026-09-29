@@ -97,6 +97,7 @@ const completeStepSchema = z.object({
 const reviewPresencePlanSchema = z
   .object({
     expectedDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    expectedPlanHash: z.string().regex(/^[a-f0-9]{64}$/),
     expectedRevision: z.number().int().positive(),
     sitePath: z.enum(["hosted_new", "preserve_migrate", "keep_external"]),
   })
@@ -377,12 +378,19 @@ router.post("/api/presence/plan/refresh", async (req, res) => {
 router.post("/api/presence/plan/review", async (req, res) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ message: "Authentication required" });
+  if ((req as any).requestAuthorityContext?.isImpersonating === true) {
+    return res.status(409).json({
+      code: "PRESENCE_IMPERSONATION_REVIEW_UNAVAILABLE",
+      message: "End impersonation before selecting this business's site path.",
+    });
+  }
   try {
     const parsed = reviewPresencePlanSchema.parse(req.body ?? {});
     const { storage } = await import("../storage");
     const plan = await reviewOwnedPresencePlan(storage as any, {
       ownerUserId: userId,
       expectedDigest: parsed.expectedDigest,
+      expectedPlanHash: parsed.expectedPlanHash,
       expectedRevision: parsed.expectedRevision,
       sitePath: parsed.sitePath,
     });

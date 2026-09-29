@@ -19,11 +19,16 @@ type OwnedContext = {
 type PlanRecord = typeof businessPresencePlans.$inferSelect;
 
 export function nextPresenceDraftRevision(
-  existing: { revision: number; evidenceDigest: string } | null,
-  current: Pick<PresencePlan, "evidenceDigest">
+  existing: Pick<PlanRecord, "revision" | "evidenceDigest" | "planHash" | "profileId"> | null,
+  current: Pick<PresencePlan, "evidenceDigest" | "planHash" | "profileId">
 ): number {
   return existing
-    ? existing.revision + (existing.evidenceDigest === current.evidenceDigest ? 0 : 1)
+    ? existing.revision +
+        (existing.evidenceDigest === current.evidenceDigest &&
+        existing.planHash === current.planHash &&
+        existing.profileId === current.profileId
+          ? 0
+          : 1)
     : 1;
 }
 
@@ -117,7 +122,12 @@ function wherePlan(context: OwnedContext) {
   );
 }
 
-async function assertLiveEvidence(tx: any, context: OwnedContext, expectedDigest: string) {
+async function assertLiveEvidence(
+  tx: any,
+  context: OwnedContext,
+  expectedDigest: string,
+  expectedPlanHash: string
+) {
   const [user] = await tx
     .select({ preferences: users.preferences })
     .from(users)
@@ -156,10 +166,10 @@ async function assertLiveEvidence(tx: any, context: OwnedContext, expectedDigest
     onboardingEvidence: outcome,
     externalWebsiteUrl: nonempty(object(business.profileData)?.website) || null,
   });
-  if (live.evidenceDigest !== expectedDigest) {
+  if (live.evidenceDigest !== expectedDigest || live.planHash !== expectedPlanHash) {
     throw new PresencePlanError(
       "PRESENCE_PLAN_STALE",
-      "Business evidence changed. Refresh the presence plan before reviewing it.",
+      "Business evidence or the presence plan changed. Refresh before reviewing it.",
       409
     );
   }
@@ -221,13 +231,22 @@ export async function refreshOwnedPresencePlan(storage: OwnedReadStorage, ownerU
     await tx.execute(
       sql`SELECT pg_advisory_xact_lock(hashtext(${`${context.ownerUserId}|${context.businessId}`}))`
     );
-    const live = await assertLiveEvidence(tx, context, candidate.evidenceDigest);
+    const live = await assertLiveEvidence(
+      tx,
+      context,
+      candidate.evidenceDigest,
+      candidate.planHash
+    );
     const [existing] = await tx
       .select()
       .from(businessPresencePlans)
       .where(wherePlan(context))
       .limit(1);
-    if (existing?.evidenceDigest === live.evidenceDigest && existing.planHash === live.planHash) {
+    if (
+      existing?.evidenceDigest === live.evidenceDigest &&
+      existing.planHash === live.planHash &&
+      existing.profileId === live.profileId
+    ) {
       return existing;
     }
     if (existing) {
@@ -269,16 +288,20 @@ export async function reviewOwnedPresencePlan(
   args: {
     ownerUserId: string;
     expectedDigest: string;
+    expectedPlanHash: string;
     expectedRevision: number;
     sitePath: PresenceSitePath;
   }
 ) {
   const context = await loadOwnedPresenceContext(storage, args.ownerUserId);
   const current = derive(context);
-  if (current.evidenceDigest !== args.expectedDigest) {
+  if (
+    current.evidenceDigest !== args.expectedDigest ||
+    current.planHash !== args.expectedPlanHash
+  ) {
     throw new PresencePlanError(
       "PRESENCE_PLAN_STALE",
-      "Business evidence changed. Refresh the plan.",
+      "Business evidence or the presence plan changed. Refresh the plan.",
       409
     );
   }
@@ -301,7 +324,7 @@ export async function reviewOwnedPresencePlan(
     await tx.execute(
       sql`SELECT pg_advisory_xact_lock(hashtext(${`${context.ownerUserId}|${context.businessId}`}))`
     );
-    await assertLiveEvidence(tx, context, args.expectedDigest);
+    await assertLiveEvidence(tx, context, args.expectedDigest, args.expectedPlanHash);
     const [existing] = await tx
       .select()
       .from(businessPresencePlans)
@@ -310,8 +333,9 @@ export async function reviewOwnedPresencePlan(
     if (
       !existing ||
       existing.evidenceDigest !== args.expectedDigest ||
+      existing.planHash !== args.expectedPlanHash ||
       existing.revision !== args.expectedRevision ||
-      existing.planHash !== current.planHash
+      existing.profileId !== current.profileId
     ) {
       throw new PresencePlanError(
         "PRESENCE_PLAN_STALE",

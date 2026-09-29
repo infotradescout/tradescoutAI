@@ -105,14 +105,19 @@ describe("owner-bound presence plan access", () => {
     });
   });
 
-  it("increments a draft revision only when source evidence changes", () => {
-    expect(nextPresenceDraftRevision(null, { evidenceDigest: "a" })).toBe(1);
-    expect(
-      nextPresenceDraftRevision({ revision: 4, evidenceDigest: "a" }, { evidenceDigest: "a" })
-    ).toBe(4);
-    expect(
-      nextPresenceDraftRevision({ revision: 4, evidenceDigest: "a" }, { evidenceDigest: "b" })
-    ).toBe(5);
+  it("increments draft revision for evidence, plan, or canonical profile changes", () => {
+    const existing = {
+      revision: 4,
+      evidenceDigest: "a",
+      planHash: "hash-a",
+      profileId: "profile-1",
+    };
+    const current = { evidenceDigest: "a", planHash: "hash-a", profileId: "profile-1" };
+    expect(nextPresenceDraftRevision(null, current)).toBe(1);
+    expect(nextPresenceDraftRevision(existing, current)).toBe(4);
+    expect(nextPresenceDraftRevision(existing, { ...current, evidenceDigest: "b" })).toBe(5);
+    expect(nextPresenceDraftRevision(existing, { ...current, planHash: "hash-b" })).toBe(5);
+    expect(nextPresenceDraftRevision(existing, { ...current, profileId: "profile-2" })).toBe(5);
   });
 
   it("reports site-path selection without implying factual approval or execution", () => {
@@ -170,10 +175,32 @@ describe("owner-bound presence plan access", () => {
       reviewOwnedPresencePlan(storage, {
         ownerUserId: "owner-1",
         expectedDigest: "0".repeat(64),
+        expectedPlanHash: "0".repeat(64),
         expectedRevision: 1,
         sitePath: "hosted_new",
       })
     ).rejects.toMatchObject({ code: "PRESENCE_PLAN_STALE" });
+    expect(storage.completeOutcomeOnboarding).not.toHaveBeenCalled();
+  });
+
+  it("rejects an old displayed plan hash even when evidence digest and revision are unchanged", async () => {
+    const { storage } = ownerStorage();
+    const context = await loadOwnedPresenceContext(storage, "owner-1");
+    const current = derivePresencePlan({
+      businessId: context.businessId,
+      profileId: context.profileId,
+      onboardingEvidence: context.onboardingEvidence,
+      externalWebsiteUrl: context.externalWebsiteUrl,
+    });
+    await expect(
+      reviewOwnedPresencePlan(storage, {
+        ownerUserId: "owner-1",
+        expectedDigest: current.evidenceDigest,
+        expectedPlanHash: "0".repeat(64),
+        expectedRevision: 1,
+        sitePath: "hosted_new",
+      })
+    ).rejects.toMatchObject({ code: "PRESENCE_PLAN_STALE", status: 409 });
     expect(storage.completeOutcomeOnboarding).not.toHaveBeenCalled();
   });
 
@@ -202,6 +229,7 @@ describe("owner-bound presence plan access", () => {
       reviewOwnedPresencePlan(storage, {
         ownerUserId: "owner-1",
         expectedDigest: current.evidenceDigest,
+        expectedPlanHash: current.planHash,
         expectedRevision: 1,
         sitePath: "hosted_new",
       })

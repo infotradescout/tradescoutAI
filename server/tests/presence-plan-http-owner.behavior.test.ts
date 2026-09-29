@@ -66,6 +66,14 @@ function app() {
   testApp.use((req, _res, next) => {
     const principal = req.header("x-test-principal");
     if (principal) (req as any).user = { id: principal };
+    if (req.header("x-test-impersonating") === "true") {
+      (req as any).requestAuthorityContext = {
+        ok: true,
+        isImpersonating: true,
+        effectiveUserId: principal,
+        principalUserId: "staff-1",
+      };
+    }
     next();
   });
   testApp.use(onboardingRouter);
@@ -186,6 +194,7 @@ describe("presence plan HTTP owner boundary", () => {
       .set("x-test-principal", ownerId)
       .send({
         expectedDigest: plan.evidenceDigest,
+        expectedPlanHash: plan.planHash,
         expectedRevision: 1,
         sitePath: "hosted_new",
       });
@@ -202,5 +211,70 @@ describe("presence plan HTTP owner boundary", () => {
     expect(mock.updateBusinessForOwner).not.toHaveBeenCalled();
     expect(mock.updateProfileForOwner).not.toHaveBeenCalled();
     expect(mock.completeOutcomeBusinessProfile).not.toHaveBeenCalled();
+  });
+
+  it("requires the exact displayed plan hash on owner review", async () => {
+    const response = await request(app())
+      .post("/api/presence/plan/review")
+      .set("x-test-principal", ownerId)
+      .send({
+        expectedDigest: "a".repeat(64),
+        expectedRevision: 1,
+        sitePath: "hosted_new",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe("INVALID_PRESENCE_PLAN_INPUT");
+    expect(mock.getUser).not.toHaveBeenCalled();
+    expect(mock.transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejects a displayed plan hash that no longer matches the current proposal", async () => {
+    const current = derivePresencePlan({
+      businessId,
+      profileId,
+      onboardingEvidence: outcome(),
+      externalWebsiteUrl: null,
+    });
+    const response = await request(app())
+      .post("/api/presence/plan/review")
+      .set("x-test-principal", ownerId)
+      .send({
+        expectedDigest: current.evidenceDigest,
+        expectedPlanHash: "0".repeat(64),
+        expectedRevision: 1,
+        sitePath: "hosted_new",
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe("PRESENCE_PLAN_STALE");
+    expect(mock.getUser).toHaveBeenCalledExactlyOnceWith(ownerId);
+    expect(mock.transaction).not.toHaveBeenCalled();
+    expect(mock.update).not.toHaveBeenCalled();
+  });
+
+  it("does not attribute site-path consent to an impersonated business owner", async () => {
+    const plan = derivePresencePlan({
+      businessId,
+      profileId,
+      onboardingEvidence: outcome(),
+      externalWebsiteUrl: null,
+    });
+    const response = await request(app())
+      .post("/api/presence/plan/review")
+      .set("x-test-principal", ownerId)
+      .set("x-test-impersonating", "true")
+      .send({
+        expectedDigest: plan.evidenceDigest,
+        expectedPlanHash: plan.planHash,
+        expectedRevision: 1,
+        sitePath: "hosted_new",
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe("PRESENCE_IMPERSONATION_REVIEW_UNAVAILABLE");
+    expect(mock.getUser).not.toHaveBeenCalled();
+    expect(mock.transaction).not.toHaveBeenCalled();
+    expect(mock.update).not.toHaveBeenCalled();
   });
 });
