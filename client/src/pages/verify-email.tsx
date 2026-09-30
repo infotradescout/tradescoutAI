@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isProfileAccountResumePath } from "@/components/profile/profileAccountClient";
 import { buildAuthEntryRoute, isSafeNextPath } from "@/lib/postOnboardingRoute";
+import { isStoneInquiryPath } from "@shared/exchangeStoneBuyerFlow";
 
 type VerifyState = "loading" | "success" | "error";
 
@@ -18,6 +19,14 @@ function readSafeNext(): string {
 function verificationRecoveryPath(): string {
   const safeNext = readSafeNext();
   return safeNext ? `/check-email?next=${encodeURIComponent(safeNext)}` : "/check-email";
+}
+
+function verifiedDestination(safeNext: string, email: string): string {
+  // An incomplete account must pass through onboarding before stone detail
+  // mounts; otherwise the detail can consume a tab-local inquiry draft first.
+  return isStoneInquiryPath(safeNext)
+    ? buildAuthEntryRoute({ mode: "signin", next: safeNext, email })
+    : safeNext || "/pre-scout-setup";
 }
 
 export default function VerifyEmail() {
@@ -86,7 +95,7 @@ export default function VerifyEmail() {
     const safeNext = readSafeNext();
     const t = window.setTimeout(() => {
       if (isAuthenticated || verifiedSession || isProfileAccountResumePath(safeNext)) {
-        setLocation(safeNext || "/pre-scout-setup");
+        setLocation(verifiedDestination(safeNext, verifiedEmail));
         return;
       }
       const emailParam = verifiedEmail ? `?email=${encodeURIComponent(verifiedEmail)}` : "";
@@ -112,7 +121,7 @@ export default function VerifyEmail() {
               onClick={() => {
                 const safeNext = readSafeNext();
                 if (isAuthenticated || verifiedSession || isProfileAccountResumePath(safeNext)) {
-                  setLocation(safeNext || "/pre-scout-setup");
+                  setLocation(verifiedDestination(safeNext, verifiedEmail));
                   return;
                 }
                 const emailParam = verifiedEmail
