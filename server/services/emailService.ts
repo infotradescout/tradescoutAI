@@ -190,7 +190,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 function shouldRetryBrevo(status: number): boolean {
-  return status === 408 || status === 429 || status >= 500;
+  // Only an explicit rate-limit rejection is safe to resubmit.
+  return status === 429;
 }
 
 class EmailService {
@@ -399,6 +400,7 @@ class EmailService {
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), BREVO_TIMEOUT_MS);
+        let retryKnownRejection = false;
         try {
           const resp = await fetchFn("https://api.brevo.com/v3/smtp/email", {
             method: "POST",
@@ -411,22 +413,26 @@ class EmailService {
             signal: controller.signal,
           });
 
-          const responseText = await resp.text().catch(() => "");
+          const responseText = await resp.text().catch((error) => {
+            // A received acceptance is authoritative; its receipt body is optional.
+            if (resp.ok) return "";
+            throw error;
+          });
           if (!resp.ok) {
             if (params.singleAttempt) throw durableDeliveryError(resp.status);
             const error = new Error(
               `Brevo send failed (${resp.status}): ${responseText || resp.statusText}`
             );
             lastError = error;
-            const retry = attempt < BREVO_MAX_ATTEMPTS && shouldRetryBrevo(resp.status);
+            retryKnownRejection = attempt < maxAttempts && shouldRetryBrevo(resp.status);
             console.error("[email] Brevo rejected message", {
               ...baseLog,
               status: resp.status,
               attempt,
-              retry,
+              retry: retryKnownRejection,
               response: responseText || resp.statusText,
             });
-            if (!retry) throw error;
+            throw error;
           } else {
             // HTTP acceptance remains acceptance even when the optional message
             // identifier body is malformed. Never resend an accepted message.
@@ -452,7 +458,7 @@ class EmailService {
             throw error instanceof EmailDeliveryError ? error : durableDeliveryError();
           }
           lastError = error;
-          const retry = attempt < BREVO_MAX_ATTEMPTS;
+          const retry = retryKnownRejection;
           console.error("[email] Brevo delivery attempt failed", {
             ...baseLog,
             attempt,
