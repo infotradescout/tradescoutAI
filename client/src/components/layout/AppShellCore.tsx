@@ -75,6 +75,18 @@ type SurfaceOrientation = {
 
 const START_GUIDE_SEEN_KEY = "ts:start-guide-seen-v1";
 
+export function isAuthSurfacePath(location: string): boolean {
+  const pathname = location.split(/[?#]/, 1)[0];
+  return (
+    pathname.startsWith("/create-account") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname === "/check-email" ||
+    pathname === "/verify-email" ||
+    pathname === "/reset-password"
+  );
+}
+
 const START_GUIDE_ITEMS: NavItem[] = [
   {
     label: "Get help with a project",
@@ -433,10 +445,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   const isScoutSurface = location === "/" || location.startsWith("/scout");
   const showMobileScoutHero = location === "/";
-  const isAuthSurface =
-    location.startsWith("/create-account") ||
-    location.startsWith("/login") ||
-    location.startsWith("/register");
+  const isAuthSurface = isAuthSurfacePath(location);
   const isSetupSurface =
     location.startsWith("/pre-scout-setup") || isOnboardingSurfacePath(location);
   const isAdminSurface = location.startsWith("/admin");
@@ -644,11 +653,11 @@ export function AppShell({ children, footer }: AppShellProps) {
   }, [location]);
 
   useEffect(() => {
-    if (isStoneInquirySurface) {
+    if (isStoneInquirySurface || isAuthOrSetupSurface) {
       setIsStartGuideOpen(false);
       return;
     }
-    if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
+    if (!isLoggedIn || isAdminSurface) return;
     try {
       if (window.localStorage.getItem(START_GUIDE_SEEN_KEY) !== "1") {
         setIsStartGuideOpen(true);
