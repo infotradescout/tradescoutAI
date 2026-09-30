@@ -4,10 +4,11 @@ import { createPostgresPublicMediaS3Client } from "@shared/postgresPublicMediaS3
 export type ServerObjectStorageProvider =
   | "cloudflare-r2"
   | "aws-s3"
+  | "neon-s3"
   | "postgres-public-media";
 
 type S3ObjectStorageConfiguration = Readonly<{
-  provider: "cloudflare-r2" | "aws-s3";
+  provider: "cloudflare-r2" | "aws-s3" | "neon-s3";
   accessKeyId: string;
   secretAccessKey: string;
   bucketName: string;
@@ -58,13 +59,24 @@ function incompleteConfigurationError(r2: EnvironmentGroup, aws: EnvironmentGrou
 }
 
 /**
- * Selects the existing production object store without exposing credentials.
- * A complete R2 contract wins; a complete AWS S3 contract is the established
- * production fallback. Partial provider configuration is never mixed.
+ * Without an explicit selection, preserve the established R2 -> AWS -> database
+ * order. Neon is opt-in: injected AWS variables must never silently select AWS
+ * or fall back to the database when a Neon contract is incomplete.
  */
 export function getServerObjectStorageConfiguration(
   env: NodeJS.ProcessEnv = process.env
 ): ServerObjectStorageConfiguration | null {
+  const selected = envValue(env, "SERVER_OBJECT_STORAGE_PROVIDER").toLowerCase();
+  if (
+    selected &&
+    !["cloudflare-r2", "aws-s3", "neon-s3", "postgres-public-media"].includes(selected)
+  ) {
+    throw new Error("Invalid SERVER_OBJECT_STORAGE_PROVIDER");
+  }
+  const endpoint = envValue(env, "AWS_ENDPOINT_URL_S3");
+  if (endpoint && selected !== "neon-s3") {
+    throw new Error("AWS_ENDPOINT_URL_S3 requires SERVER_OBJECT_STORAGE_PROVIDER=neon-s3");
+  }
   const r2 = environmentGroup(env, [
     "R2_ACCOUNT_ID",
     "R2_ACCESS_KEY_ID",
@@ -78,7 +90,49 @@ export function getServerObjectStorageConfiguration(
     "AWS_S3_BUCKET",
   ]);
 
-  if (r2.missing.length === 0) {
+  if (selected === "neon-s3") {
+    const missing = [...aws.missing, ...(!endpoint ? ["AWS_ENDPOINT_URL_S3"] : [])];
+    if (missing.length > 0) {
+      throw new Error(
+        `Incomplete Neon object storage configuration (missing ${missing.join(", ")})`
+      );
+    }
+    let url: URL;
+    try {
+      url = new URL(endpoint);
+    } catch {
+      throw new Error("AWS_ENDPOINT_URL_S3 must be a bare HTTPS Neon branch storage endpoint");
+    }
+    if (
+      url.protocol !== "https:" ||
+      !/^br-[a-z0-9-]+\.storage(?:\.[a-z0-9-]+)*\.aws\.neon\.tech$/.test(url.hostname) ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.pathname !== "/" ||
+      url.search ||
+      url.hash
+    ) {
+      throw new Error("AWS_ENDPOINT_URL_S3 must be a bare HTTPS Neon branch storage endpoint");
+    }
+    return Object.freeze({
+      provider: "neon-s3",
+      accessKeyId: aws.values.AWS_ACCESS_KEY_ID,
+      secretAccessKey: aws.values.AWS_SECRET_ACCESS_KEY,
+      bucketName: aws.values.AWS_S3_BUCKET,
+      region: aws.values.AWS_REGION,
+      endpoint: url.origin,
+    });
+  }
+
+  if (selected === "cloudflare-r2" && r2.missing.length > 0) {
+    throw new Error(`Incomplete R2 configuration (missing ${r2.missing.join(", ")})`);
+  }
+  if (selected === "aws-s3" && aws.missing.length > 0) {
+    throw new Error(`Incomplete AWS S3 configuration (missing ${aws.missing.join(", ")})`);
+  }
+
+  if ((!selected || selected === "cloudflare-r2") && r2.missing.length === 0) {
     return Object.freeze({
       provider: "cloudflare-r2",
       accessKeyId: r2.values.R2_ACCESS_KEY_ID,
@@ -89,7 +143,7 @@ export function getServerObjectStorageConfiguration(
     });
   }
 
-  if (aws.missing.length === 0) {
+  if ((!selected || selected === "aws-s3") && aws.missing.length === 0) {
     return Object.freeze({
       provider: "aws-s3",
       accessKeyId: aws.values.AWS_ACCESS_KEY_ID,
@@ -100,6 +154,9 @@ export function getServerObjectStorageConfiguration(
   }
 
   const databaseUrl = envValue(env, "DATABASE_URL");
+  if (selected === "postgres-public-media" && !databaseUrl) {
+    throw new Error("Incomplete PostgreSQL public media configuration (missing DATABASE_URL)");
+  }
   if (databaseUrl) {
     return Object.freeze({
       provider: "postgres-public-media",
@@ -118,7 +175,7 @@ export function requireServerObjectStorageConfiguration(
   const configuration = getServerObjectStorageConfiguration(env);
   if (!configuration) {
     throw new Error(
-      "Server object storage is not configured; expected complete R2, AWS S3, or production database contract"
+      "Server object storage is not configured; expected complete R2, AWS S3, explicitly selected Neon S3, or production database contract"
     );
   }
   return configuration;
@@ -138,6 +195,9 @@ export function createServerObjectStorageClient(
   return new S3Client({
     region: configuration.region,
     ...(configuration.endpoint ? { endpoint: configuration.endpoint } : {}),
+    ...(configuration.provider === "neon-s3"
+      ? { forcePathStyle: true, requestChecksumCalculation: "WHEN_REQUIRED" as const }
+      : {}),
     credentials: {
       accessKeyId: configuration.accessKeyId,
       secretAccessKey: configuration.secretAccessKey,
