@@ -81,6 +81,22 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(window, "confirm").mockReturnValue(true);
   api.mockImplementation(async (method: string, url: string, payload: any) => {
+    if (method === "GET" && url === "/api/profiles/profile-fixture")
+      return {
+        id: "profile-fixture",
+        ownerUserId: "owner-1",
+        businessId: null,
+        roleContext: "business_owner",
+        slug: "jw-stone",
+        status: "published",
+        publiclyReleased: true,
+        seoMeta: {},
+        displayName: "Synthetic profile",
+        headline: null,
+        contentBlocks: [],
+        contentBlocksRevision: 1,
+        siteTemplate: "wholesaler",
+      };
     if (method === "GET" && url.endsWith("new-arrivals/manage"))
       return { profileSlug: "jw-stone", itemIds: [] };
     if (method === "GET") return { profileSlug: "jw-stone", items, capabilities };
@@ -120,10 +136,10 @@ describe("reachable physical stock manager", () => {
     };
     await act(async () => root.render(<ManageChrome {...props} />));
     expect(container.textContent).not.toContain("Current Inventory");
-    expect(api).not.toHaveBeenCalled();
+    expect(api.mock.calls.some(([, url]) => String(url).includes("stone-inventory"))).toBe(false);
     await act(async () => root.render(<ManageChrome {...props} profileSlug="jw-stone" />));
     expect(container.querySelector('[data-testid="jw-current-inventory-manager"]')).toBeNull();
-    expect(api).not.toHaveBeenCalled();
+    expect(api.mock.calls.some(([, url]) => String(url).includes("stone-inventory"))).toBe(false);
     await click(button("Current Inventory"));
     await vi.waitFor(() =>
       expect(container.querySelector('[data-testid="jw-current-inventory-manager"]')).not.toBeNull()

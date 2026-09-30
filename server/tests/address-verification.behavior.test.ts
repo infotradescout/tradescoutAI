@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import ts from "typescript";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -6,6 +7,8 @@ import {
   addressVerificationSubmissionSchema,
 } from "../../shared/schema";
 import { isOwnedPrivateObjectKey } from "../services/businessVerificationWorkflow";
+import * as businessVerificationWorkflow from "../services/businessVerificationWorkflow";
+import { computeVerificationRequirements } from "../services/profileVerificationService";
 import { isAddressVerificationEvidenceKey } from "../services/addressVerificationEvidence";
 
 // Execute the registered handlers with a controlled database/storage boundary.
@@ -47,6 +50,22 @@ const compiledLifecycle = ts.transpileModule(
   lifecycleFunction.getText(lifecycleSource).replace(/^export\s+/, ""),
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }
 ).outputText;
+// Bind the actual canonical identity-completion writer and its bridge helpers
+// to the same controlled database boundary as the extracted route handler.
+// This retains real provenance/refresh behavior rather than replacing the hook.
+const bridgeSource = ts.createSourceFile(
+  "businessVerificationTargetBridge.ts",
+  fs.readFileSync("server/services/businessVerificationTargetBridge.ts", "utf8"),
+  ts.ScriptTarget.Latest,
+  true
+);
+const compiledBridge = ts.transpileModule(
+  bridgeSource.statements
+    .filter((statement) => ts.isFunctionDeclaration(statement) || ts.isVariableStatement(statement))
+    .map((statement) => statement.getText(bridgeSource).replace(/^export\s+/, ""))
+    .join("\n"),
+  { compilerOptions: { target: ts.ScriptTarget.ES2022 } }
+).outputText;
 const uploadKey = "private/member-1/123e4567-e89b-12d3-a456-426614174000";
 const evidenceKey = "private/address-evidence/member-1/123e4567-e89b-12d3-a456-426614174001";
 const payload = {
@@ -79,6 +98,9 @@ const table = (name: string) =>
   );
 const users = table("users");
 const addressVerifications = table("verifications");
+const userProfiles = table("user_profiles");
+const businesses = table("businesses");
+const profiles = table("profiles");
 const eq = (column: string, value: unknown) => (row: any) => row[column.split(".")[1]] === value;
 const and =
   (...predicates: any[]) =>
@@ -89,6 +111,9 @@ function harness(initial: any[] = [], verified = false) {
   let data: Record<string, any[]> = {
     users: [{ ...member, addressVerified: verified }],
     verifications: structuredClone(initial),
+    user_profiles: [],
+    businesses: [],
+    profiles: [],
   };
   const events: string[] = [];
   let failUserWrite = false;
@@ -207,6 +232,21 @@ function harness(initial: any[] = [], verified = false) {
     ...Object.keys(lifecycleDependencies),
     `${compiledLifecycle}; return withAddressEvidenceTransaction;`
   )(...Object.values(lifecycleDependencies));
+  const bridgeDependencies = {
+    ...businessVerificationWorkflow,
+    createHash,
+    computeVerificationRequirements,
+    users,
+    userProfiles,
+    businesses,
+    profiles,
+    eq,
+    and,
+  };
+  const updateUserWithBusinessVerificationAuthority = new Function(
+    ...Object.keys(bridgeDependencies),
+    `${compiledBridge}; return updateUserWithBusinessVerificationAuthority;`
+  )(...Object.values(bridgeDependencies));
   async function call(route: string, body: any = payload, options: any = {}) {
     const registration = registrations.get(route);
     if (!registration) throw new Error(`Missing route ${route}`);
@@ -229,6 +269,7 @@ function harness(initial: any[] = [], verified = false) {
       assertAddressVerificationEvidence: assertEvidence,
       getAddressVerificationEvidenceDownload: download,
       withAddressEvidenceTransaction,
+      updateUserWithBusinessVerificationAuthority,
     };
     const handler = new Function(...Object.keys(dependencies), `${compiled}; return handler;`)(
       ...Object.values(dependencies)
@@ -439,7 +480,9 @@ describe("address verification submission and review", () => {
       "lock:users:update",
       "lock:verifications:update",
       "write:verifications",
+      "lock:users:update",
       "write:users",
+      "lock:users:update",
     ]);
   });
   it("rolls back the approval when the account write fails", async () => {

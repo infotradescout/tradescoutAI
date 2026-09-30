@@ -124,7 +124,7 @@ export const PROFILE_VISIBILITY_TARGET_LOCK_SQL = `
 
 export const PROFILE_VISIBILITY_RELEASE_SQL = `
   UPDATE profiles
-     SET status = CASE WHEN $3::boolean THEN 'published' ELSE 'draft' END,
+     SET status = (CASE WHEN $3::boolean THEN 'published' ELSE 'draft' END)::profile_status,
          publicly_released = $3::boolean,
          updated_at = NOW()
    WHERE id = $1

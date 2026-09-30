@@ -4,6 +4,7 @@ import { isAuthenticated } from "../auth";
 import { db } from "../db";
 import { carSalesmanProfiles, realtorProfiles, users } from "../../shared/schema";
 import { evaluateAdminQuickUserControl } from "../services/adminQuickUserControlPolicy";
+import { updateUserWithBusinessVerificationAuthority } from "../services/businessVerificationTargetBridge";
 import {
   approvedProfessionalRolesFromProfiles,
   type CanonicalApprovedProfessionalRole,
@@ -145,11 +146,13 @@ export function registerAdminUserControlRoutes(app: Express) {
         patch = reconciled.patch;
       }
 
-      const [updated] = await tx
-        .update(users)
-        .set({ ...patch, updatedAt: new Date() })
-        .where(eq(users.id, input.targetUserId))
-        .returning();
+      const updated = input.operationType === "verify_user"
+        ? await updateUserWithBusinessVerificationAuthority(tx, { userId: input.targetUserId, updates: patch as any })
+        : (await tx
+            .update(users)
+            .set({ ...patch, updatedAt: new Date() })
+            .where(eq(users.id, input.targetUserId))
+            .returning())[0];
       if (!updated) return { outcome: "target_not_found" };
 
       await auditPrivilegedAction({

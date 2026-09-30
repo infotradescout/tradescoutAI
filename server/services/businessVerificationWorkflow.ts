@@ -61,6 +61,7 @@ const privateObjectKeyInputSchema = z.string().trim().min(1).max(600);
 export const profileVerificationSubmissionSchema = z
   .object({
     businessProfileId: profileIdSchema.optional(),
+    publicProfileId: profileIdSchema.optional(),
     licenseNumber: z.string().trim().min(2).max(120).optional(),
     licenseDocObjectKey: privateObjectKeyInputSchema.optional(),
     insuranceDocObjectKey: privateObjectKeyInputSchema.optional(),
@@ -73,6 +74,12 @@ export const profileVerificationSubmissionSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.businessProfileId && value.publicProfileId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Choose one verification target identifier",
+      });
+    }
     if (
       !value.licenseNumber &&
       !value.licenseDocObjectKey &&

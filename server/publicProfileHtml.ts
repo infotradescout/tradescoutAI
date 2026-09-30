@@ -34,6 +34,9 @@ import {
 } from "@shared/jwStonePresentation";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
+import { readProfileSectionConfigBlock } from "@shared/profileSectionConfig";
+import { readSiteTemplateIdFromBlocks } from "@shared/profileSiteTemplates";
+import { isIssaBuildProfileSlug } from "@shared/issaBuildProfile";
 import { resolveProfileServiceAreaHub } from "@shared/profileServiceAreaShare";
 import {
   buildPublicProfileAppIconPath,
@@ -170,6 +173,33 @@ function cleanLlmsText(value: unknown, maxLength = 300): string {
 
 function cleanLlmsLabel(value: unknown, maxLength = 120): string {
   return cleanPublicProfileText(value, maxLength);
+}
+
+// The default theme renders the explicit About block. Keep the initial public
+// HTML in agreement with that visible section, including its profile-scoped
+// opt-out, without adding default-theme content to specialized presentations.
+function defaultProfileAboutText(
+  profile: { slug: string; contentBlocks?: unknown; profileSections?: { about?: boolean } | null },
+  tradePartner: boolean
+): string {
+  const blocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
+  const specializedSlugs = [
+    "jw-stone", "jrs-auto-glass", "red-graniti", "dean-damaskos", "honey-onyx",
+    "la-plumbing-solutions",
+  ];
+  if (
+    readSiteTemplateIdFromBlocks(blocks) !== "default" || tradePartner ||
+    specializedSlugs.includes(profile.slug.toLowerCase()) || isIssaBuildProfileSlug(profile.slug) ||
+    blocks.some((block) => block?.type === "localServiceProfile") ||
+    (readProfileSectionConfigBlock(blocks) ?? profile.profileSections)?.about === false
+  ) return "";
+  const about = blocks.filter((block) => block?.type === "about");
+  if (about.length !== 1) return "";
+  const data = about[0]?.data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return "";
+  const fields = ["text", "description", "body"].filter((field) => field in data);
+  if (fields.length !== 1 || typeof data[fields[0]] !== "string") return "";
+  return cleanPublicProfileText(data[fields[0]], 4_000);
 }
 
 function escapeXml(value: string): string {
@@ -1427,6 +1457,9 @@ export async function buildPublicProfileHtml({
     .filter(Boolean)
     .join("");
   const servicesSummary = cleanPublicProfileText(profileRecord.servicesDescription, 1000);
+  const aboutText = !itemShare && !pageCategoryShare && !pageMetadata
+    ? defaultProfileAboutText(profileRecord, businessRecord?.tradePartner === true)
+    : "";
   const profileHomeLink =
     itemShare || pageCategoryShare
       ? `<p><a data-seo-profile-home="true" href="${escapeHtml(profileUrl)}">Back to ${escapeHtml(displayName)}</a></p>`
@@ -1471,6 +1504,7 @@ export async function buildPublicProfileHtml({
     <h1>${escapeHtml(displayName)}</h1>
     ${profileHomeLink}
     <p>${escapeHtml(meta.description)}</p>
+    ${aboutText ? `<section data-seo-profile-about="true"><h2>About</h2><p>${escapeHtml(aboutText)}</p></section>` : ""}
     ${itemSummary}
     ${categorySummary}
     ${categoryInventoryLinks ? `<section data-seo-profile-category-items="true"><h2>Published ${escapeHtml(pageCategoryShare?.categoryName || "category")} pages</h2><ul>${categoryInventoryLinks}</ul></section>` : ""}

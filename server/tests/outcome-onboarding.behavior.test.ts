@@ -7,6 +7,7 @@ import {
   completeOutcomeOnboarding,
   deriveBusinessNameFromLinks,
   enforceCanonicalBusinessIdentityResolution,
+  mergeOutcomeBusinessProfileData,
   normalizeOutcomeBusinessEvidence,
   safeOutcomeNextPath,
   type StorageLike,
@@ -37,7 +38,7 @@ function createFakeStorage(seed?: Partial<FakeState>): StorageLike & { state: Fa
       ...(seed?.user ?? {}),
     },
     businesses: [...(seed?.businesses ?? [])],
-    profiles: [...(seed?.profiles ?? [])],
+    profiles: (seed?.profiles ?? []).map((profile) => ({ contentBlocksRevision: 1, ...profile })),
     userPatches: [],
     events: [],
   };
@@ -99,6 +100,7 @@ function createFakeStorage(seed?: Partial<FakeState>): StorageLike & { state: Fa
     },
     async createProfileForOwner(ownerUserId, data) {
       const created = {
+        contentBlocksRevision: 1,
         ...data,
         id: `profile-${state.profiles.length + 1}`,
         ownerUserId,
@@ -114,6 +116,18 @@ function createFakeStorage(seed?: Partial<FakeState>): StorageLike & { state: Fa
       state.profiles[index] = { ...state.profiles[index], ...updates };
       return state.profiles[index];
     },
+    async updateProfileForOwnerWithContentBlocksRevision(ownerUserId, profileId, updates, revision) {
+      const index = state.profiles.findIndex(
+        (profile) => profile.id === profileId && profile.ownerUserId === ownerUserId
+      );
+      if (index < 0 || state.profiles[index].contentBlocksRevision !== revision) return undefined;
+      state.profiles[index] = {
+        ...state.profiles[index],
+        ...updates,
+        contentBlocksRevision: revision + 1,
+      };
+      return state.profiles[index];
+    },
     async logEvent(type, payload) {
       state.events.push({ type, payload });
     },
@@ -126,6 +140,36 @@ function publicBlocks(storage: ReturnType<typeof createFakeStorage>): string {
 }
 
 describe("outcome-first onboarding", () => {
+  it("preserves a concurrently published first About when an older onboarding snapshot loses CAS", async () => {
+    const storage = createFakeStorage({
+      user: { activeBusinessId: "business-1", activeProfileId: "profile-1" },
+      businesses: [{
+        id: "business-1", ownerUserId: "user-1", name: "Acme Works", slug: "acme-works",
+        roleContext: "business_owner", status: "active", profileData: {},
+      }],
+      profiles: [{
+        id: "profile-1", businessId: "business-1", ownerUserId: "user-1", slug: "acme-works",
+        roleContext: "business_owner", status: "published", displayName: "Acme Works",
+        contentBlocks: [{ type: "siteTemplate", data: { id: "default" } }],
+      }],
+    });
+    storage.updateProfileForOwnerWithContentBlocksRevision = async () => {
+      storage.state.profiles[0].contentBlocks = [
+        { type: "siteTemplate", data: { id: "default" } },
+        { type: "about", data: { text: "Freshly approved imported About" } },
+      ];
+      storage.state.profiles[0].contentBlocksRevision += 1;
+      return undefined;
+    };
+    await expect(completeOutcomeOnboarding(storage, {
+      userId: "user-1", kind: "business_profile", goal: "Finish my profile",
+      business: { name: "Acme Works", notes: "Older setup draft" },
+    })).rejects.toMatchObject({ code: "PROFILE_CONTENT_BLOCKS_STALE", status: 409 });
+    expect(publicBlocks(storage)).toContain("Freshly approved imported About");
+    expect(publicBlocks(storage)).not.toContain("Older setup draft");
+    expect(storage.state.user.onboardingCompleted).toBe(false);
+  });
+
   it("creates one linked, published default profile from sparse explicit evidence and is idempotent", async () => {
     const storage = createFakeStorage();
     const request = {
@@ -207,7 +251,7 @@ describe("outcome-first onboarding", () => {
     expect(storage.state.events.map((event) => event.type)).not.toContain("verification_started");
   });
 
-  it("enriches an existing canonical pair without replacing owner-authored fields or order", async () => {
+  it("preserves an existing canonical pair while withholding newly inferred copy", async () => {
     const originalCta = { primary: { label: "Request", kind: "message", value: "direct" } };
     const originalSeo = {
       title: "Owner title",
@@ -303,7 +347,7 @@ describe("outcome-first onboarding", () => {
       slug: "owner-slug",
       profileData: {
         description: "Owner-written description",
-        services: ["Existing service", "New service", "Sourced new service"],
+        services: ["Existing service", "New service"],
         website: "https://owner.example",
         publicWebsiteEnabled: true,
         publicContactEnabled: true,
@@ -335,12 +379,96 @@ describe("outcome-first onboarding", () => {
     expect(storage.state.profiles[0].contentBlocks[3].data.items).toEqual([
       { title: "Existing service", icon: "x" },
       "New service",
-      "Sourced new service",
     ]);
     expect(storage.state.profiles[0].contentBlocks[4].data.images).toEqual([
       { imageUrl: "/owner-1.jpg", caption: "One" },
       { imageUrl: "/new-2.jpg" },
     ]);
+    expect(JSON.stringify(storage.state.businesses[0].profileData)).not.toContain(
+      "Sourced new service"
+    );
+    expect(publicBlocks(storage)).not.toContain("Sourced new service");
+    expect(
+      storage.state.user.preferences.onboardingOutcome.provenance.enrichment.output.services
+    ).toEqual([{ name: "Sourced new service", sourceUrls: ["https://replacement.example/"] }]);
+  });
+
+  it("projects mixed owner input without inferred claims and preserves existing public copy", () => {
+    const evidence = normalizeOutcomeBusinessEvidence({
+      name: "Mixed Works",
+      notes: "Owner-written work description.",
+      services: ["Owner-listed repairs"],
+      links: ["https://mixed.example/work"],
+      photoUrls: ["/objects/owner-project.jpg"],
+    });
+    const enrichment = {
+      source: "selective_intelligence_profile_enrichment" as const,
+      analyzer: "mixed_source_test",
+      description: {
+        text: "Inferred description awaiting owner review.",
+        sourceUrls: ["https://mixed.example/work"],
+      },
+      about: {
+        text: "Inferred about awaiting owner review.",
+        sourceUrls: ["https://mixed.example/work"],
+      },
+      services: [{ name: "Inferred service", sourceUrls: ["https://mixed.example/work"] }],
+    };
+
+    const newBusiness = mergeOutcomeBusinessProfileData({}, evidence, {
+      isNew: true,
+      enrichment,
+    });
+    const newBlocks = buildOutcomeProfileContentBlocks([], {
+      displayName: evidence.name,
+      evidence,
+      enrichment,
+      isNew: true,
+    });
+    expect(newBusiness).toMatchObject({
+      description: "Owner-written work description.",
+      services: ["Owner-listed repairs"],
+      publicWebsiteEnabled: false,
+    });
+    expect(newBlocks).toEqual(
+      expect.arrayContaining([
+        { type: "about", data: { body: "Owner-written work description." } },
+        { type: "services", data: { items: ["Owner-listed repairs"] } },
+      ])
+    );
+    expect(JSON.stringify(newBlocks)).toContain("/objects/owner-project.jpg");
+    expect(JSON.stringify({ newBusiness, newBlocks })).not.toMatch(
+      /Inferred description|Inferred about|Inferred service/
+    );
+
+    const existingBusiness = mergeOutcomeBusinessProfileData(
+      { description: "Previously published copy", services: ["Previously published service"] },
+      evidence,
+      { isNew: false, enrichment }
+    );
+    const existingBlocks = buildOutcomeProfileContentBlocks(
+      [
+        { type: "about", data: { body: "Previously published about" } },
+        { type: "services", data: { items: ["Previously published service"] } },
+      ],
+      { displayName: evidence.name, evidence, enrichment, isNew: false }
+    );
+    expect(existingBusiness).toMatchObject({
+      description: "Previously published copy",
+      services: ["Previously published service", "Owner-listed repairs"],
+    });
+    expect(existingBlocks).toEqual(
+      expect.arrayContaining([
+        { type: "about", data: { body: "Previously published about" } },
+        {
+          type: "services",
+          data: { items: ["Previously published service", "Owner-listed repairs"] },
+        },
+      ])
+    );
+    expect(JSON.stringify({ existingBusiness, existingBlocks })).not.toMatch(
+      /Inferred description|Inferred about|Inferred service/
+    );
   });
 
   it("derives a neutral new-business identity only from an attributable business domain", async () => {
@@ -1026,6 +1154,7 @@ describe("outcome-first onboarding", () => {
     };
     const unrelatedProfile = {
       id: "personal-profile",
+      contentBlocksRevision: 1,
       ownerUserId: "user-1",
       businessId: null,
       roleContext: "community_member",
@@ -1385,7 +1514,7 @@ describe("outcome-first onboarding", () => {
     });
   });
 
-  it("turns link-only evidence into a sourced profile and reuses the same policy output on retry", async () => {
+  it("keeps link-only enrichment private and reuses the same review evidence on retry", async () => {
     const storage = createFakeStorage();
     let analysisCalls = 0;
     const analyzer = {
@@ -1432,27 +1561,20 @@ describe("outcome-first onboarding", () => {
     expect(storage.state.businesses).toHaveLength(1);
     expect(storage.state.profiles).toHaveLength(1);
     expect(storage.state.businesses[0].profileData).toMatchObject({
-      description: "Services include Custom cabinetry, Built-in shelving.",
-      services: ["Custom cabinetry", "Built-in shelving"],
       website: "https://north-star.com/work",
       publicWebsiteEnabled: false,
     });
-    expect(storage.state.profiles[0].contentBlocks).toEqual(
-      expect.arrayContaining([
-        {
-          type: "about",
-          data: {
-            body: "Services include Custom cabinetry, Built-in shelving.",
-          },
-        },
-        {
-          type: "services",
-          data: { items: ["Custom cabinetry", "Built-in shelving"] },
-        },
-      ])
-    );
+    expect(storage.state.businesses[0].profileData).not.toHaveProperty("description");
+    expect(storage.state.businesses[0].profileData).not.toHaveProperty("services");
+    expect(storage.state.profiles[0].seoMeta).not.toHaveProperty("description");
+    expect(storage.state.profiles[0].contentBlocks.map((block: any) => block.type)).toEqual([
+      "siteTemplate",
+      "hero",
+    ]);
     const publicProfile = JSON.stringify(storage.state.profiles[0]);
     expect(publicProfile).not.toContain("north-star.com/work");
+    expect(publicProfile).not.toContain("Custom cabinetry");
+    expect(publicProfile).not.toContain("Built-in shelving");
     expect(publicProfile).not.toMatch(
       /LIC-123|verified|rating|\$100|850-555|Carpenter|Pensacola|Jane Doe/
     );
@@ -1478,7 +1600,7 @@ describe("outcome-first onboarding", () => {
     );
   });
 
-  it("uses an uploaded object photo as sourced vision evidence without changing its original provenance", async () => {
+  it("publishes an owner-uploaded photo while keeping services inferred from it private", async () => {
     const storage = createFakeStorage();
     const previousPublicUrl = process.env.PUBLIC_WEB_URL;
     process.env.PUBLIC_WEB_URL = "https://preview.tradescout.example/app";
@@ -1525,10 +1647,19 @@ describe("outcome-first onboarding", () => {
     expect(storage.state.user.preferences.onboardingOutcome.provenance.evidence.photoUrls).toEqual([
       "/objects/project-one.jpg",
     ]);
-    expect(storage.state.businesses[0].profileData.services).toEqual(["Built-in storage"]);
-    expect(publicBlocks(storage)).toContain("Services include Built-in storage.");
+    expect(storage.state.businesses[0].profileData).not.toHaveProperty("services");
+    expect(storage.state.businesses[0].profileData).not.toHaveProperty("description");
+    expect(publicBlocks(storage)).not.toContain("Built-in storage");
     expect(publicBlocks(storage)).toContain("/objects/project-one.jpg");
     expect(publicBlocks(storage)).not.toContain("preview.tradescout.example");
+    expect(
+      storage.state.user.preferences.onboardingOutcome.provenance.enrichment.output.services
+    ).toEqual([
+      {
+        name: "Built-in storage",
+        sourceUrls: ["https://preview.tradescout.example/objects/project-one.jpg"],
+      },
+    ]);
   });
 
   it("fails soft to deterministic supplied evidence when profile analysis is unavailable", async () => {

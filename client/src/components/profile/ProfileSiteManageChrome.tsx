@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +11,16 @@ import {
   requiresDocumentNavigation,
 } from "@/lib/publicProfileItemDestination";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { readProfileIdentity, sameProfileIdentity, type ProfileIdentity } from "@/lib/profileIdentity";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
+import ProfileContentVersionSummary from "./ProfileContentVersionSummary";
 import {
   listSelectableProfileSiteTemplates,
+  isProfileSiteTemplateId,
   patchHeroBlock,
   readFeaturedStoneSlugs,
   readHeroEditorFields,
   readInventoryLeadImageBySlug,
-  resolveSiteTemplateId,
   seedBlocksForTemplate,
   upsertFeaturedStoneSlugs,
   upsertInventoryLeadImage,
@@ -44,6 +46,38 @@ type Props = {
   onToggleEdit: (next: boolean) => void;
 };
 
+type EditSnapshot = {
+  id: string;
+  displayName: string;
+  headline: string | null;
+  contentBlocks: unknown[];
+  contentBlocksRevision: number;
+  siteTemplate: ProfileSiteTemplateId;
+  identity: ProfileIdentity;
+};
+
+function readEditSnapshot(value: unknown, profileId: string): EditSnapshot | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<EditSnapshot>;
+  const identity = readProfileIdentity(value);
+  if (!(candidate.id === profileId &&
+    identity &&
+    typeof candidate.displayName === "string" &&
+    (typeof candidate.headline === "string" || candidate.headline === null) &&
+    Array.isArray(candidate.contentBlocks) &&
+    Number.isSafeInteger(candidate.contentBlocksRevision) &&
+    isProfileSiteTemplateId(candidate.siteTemplate))) return null;
+  return {
+    id: candidate.id,
+    displayName: candidate.displayName,
+    headline: candidate.headline,
+    contentBlocks: candidate.contentBlocks,
+    contentBlocksRevision: candidate.contentBlocksRevision!,
+    siteTemplate: candidate.siteTemplate,
+    identity,
+  };
+}
+
 function readHeroFields(contentBlocks: unknown): { title: string; text: string } {
   return readHeroEditorFields(contentBlocks);
 }
@@ -54,7 +88,6 @@ export default function ProfileSiteManageChrome({
   displayName,
   headline,
   contentBlocks,
-  siteTemplate,
   editMode,
   platformBaseHref = "",
   customDomain = null,
@@ -68,7 +101,22 @@ export default function ProfileSiteManageChrome({
   const [leadPickerOpen, setLeadPickerOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [bridging, setBridging] = useState(false);
-  const hero = useMemo(() => readHeroFields(contentBlocks), [contentBlocks]);
+  const [snapshot, setSnapshot] = useState<EditSnapshot | null>(null);
+  const [draftMetaBase, setDraftMetaBase] = useState<EditSnapshot | null>(null);
+  const [snapshotError, setSnapshotError] = useState(false);
+  const [snapshotLoadKey, setSnapshotLoadKey] = useState(0);
+  const conflictAttempt = useRef(0);
+  const [conflict, setConflict] = useState<{
+    attemptId: number;
+    reason: "content" | "target";
+    pendingBlocks: unknown;
+    pendingMeta?: { displayName?: string; headline?: string | null };
+    latest: EditSnapshot | null;
+    reviewing: boolean;
+    reviewError: boolean;
+  } | null>(null);
+  const editableBlocks = snapshot?.contentBlocks ?? contentBlocks;
+  const hero = useMemo(() => readHeroFields(editableBlocks), [editableBlocks]);
   const [draftDisplayName, setDraftDisplayName] = useState(displayName);
   const [draftHeadline, setDraftHeadline] = useState(headline || "");
   const [draftHeroTitle, setDraftHeroTitle] = useState(hero.title);
@@ -77,18 +125,51 @@ export default function ProfileSiteManageChrome({
     readFeaturedStoneSlugs(contentBlocks).join(", ")
   );
 
-  // Keep drafts aligned when the live profile payload refreshes after save.
+  // Pair the editable blocks with their revision from the same private owner read.
+  // Until this completes, no whole-array action is available.
   useEffect(() => {
-    if (editMode) return;
-    setDraftDisplayName(displayName);
-    setDraftHeadline(headline || "");
-    setDraftHeroTitle(hero.title);
-    setDraftHeroText(hero.text);
-    setDraftFeatured(readFeaturedStoneSlugs(contentBlocks).join(", "));
-  }, [contentBlocks, displayName, editMode, headline, hero.text, hero.title]);
+    let current = true;
+    setSnapshot(null);
+    setDraftMetaBase(null);
+    setSnapshotError(false);
+    setConflict(null);
+    void apiRequest("GET", `/api/profiles/${profileId}`)
+      .then((response) => {
+        if (!current) return;
+        const loaded = readEditSnapshot(response, profileId);
+        if (!loaded) {
+          setSnapshotError(true);
+          return;
+        }
+        const loadedHero = readHeroFields(loaded.contentBlocks);
+        setDraftDisplayName(loaded.displayName);
+        setDraftHeadline(loaded.headline || "");
+        setDraftHeroTitle(loadedHero.title);
+        setDraftHeroText(loadedHero.text);
+        setDraftFeatured(readFeaturedStoneSlugs(loaded.contentBlocks).join(", "));
+        setSnapshot(loaded);
+        setDraftMetaBase(loaded);
+      })
+      .catch(() => {
+        if (current) setSnapshotError(true);
+      });
+    return () => {
+      current = false;
+    };
+  }, [profileId, snapshotLoadKey]);
+  useEffect(() => {
+    if (editMode || !snapshot) return;
+    setDraftMetaBase(snapshot);
+    const savedHero = readHeroFields(snapshot.contentBlocks);
+    setDraftDisplayName(snapshot.displayName);
+    setDraftHeadline(snapshot.headline || "");
+    setDraftHeroTitle(savedHero.title);
+    setDraftHeroText(savedHero.text);
+    setDraftFeatured(readFeaturedStoneSlugs(snapshot.contentBlocks).join(", "));
+  }, [editMode, snapshot]);
   const leadImageBySlug = useMemo(
-    () => readInventoryLeadImageBySlug(contentBlocks),
-    [contentBlocks]
+    () => readInventoryLeadImageBySlug(editableBlocks),
+    [editableBlocks]
   );
 
   const editorHref = qualifyPublicProfileItemDestination(
@@ -112,34 +193,94 @@ export default function ProfileSiteManageChrome({
 
   const persistBlocks = async (
     nextBlocks: unknown,
-    nextMeta?: { displayName?: string; headline?: string | null }
-  ) => {
+    nextMeta?: { displayName?: string; headline?: string | null },
+    reviewedSnapshot?: EditSnapshot
+  ): Promise<boolean> => {
+    const expectedContentBlocksRevision = reviewedSnapshot?.contentBlocksRevision ?? snapshot?.contentBlocksRevision;
+    const expectedProfileIdentity = reviewedSnapshot?.identity ?? snapshot?.identity;
+    if (!Number.isSafeInteger(expectedContentBlocksRevision) || !expectedProfileIdentity ||
+        (conflict && (!reviewedSnapshot || conflict.reason === "target")) ||
+        (reviewedSnapshot && (!snapshot || !sameProfileIdentity(reviewedSnapshot.identity, snapshot.identity)))) {
+      return false;
+    }
     setSaving(true);
     try {
-      await apiRequest("PUT", `/api/profiles/${profileId}`, {
-        displayName: nextMeta?.displayName ?? draftDisplayName,
-        headline: nextMeta?.headline !== undefined ? nextMeta.headline : draftHeadline || null,
+      const changedMeta = {
+        ...(nextMeta?.displayName !== undefined && nextMeta.displayName !== draftMetaBase?.displayName
+          ? { displayName: nextMeta.displayName } : {}),
+        ...(nextMeta?.headline !== undefined && nextMeta.headline !== draftMetaBase?.headline
+          ? { headline: nextMeta.headline } : {}),
+      };
+      const response = await apiRequest("PUT", `/api/profiles/${profileId}`, {
+        ...changedMeta,
         contentBlocks: nextBlocks,
+        expectedContentBlocksRevision,
+        expectedProfileIdentity,
       });
+      const updated = readEditSnapshot(response, profileId);
+      if (!updated) {
+        setSnapshot(null);
+        setSnapshotError(true);
+        toast({ title: "Save needs confirmation", description: "Reload the current profile before another edit.", variant: "destructive" });
+        return false;
+      }
+      setSnapshot(updated);
+      if (nextMeta) {
+        setDraftMetaBase(updated);
+        setDraftDisplayName(updated.displayName);
+        setDraftHeadline(updated.headline || "");
+      }
+      setConflict(null);
       toast({ title: "Profile updated" });
       onSaved();
+      return true;
     } catch (error: any) {
+      if (error?.status === 409 && error?.code === "PROFILE_CONTENT_BLOCKS_STALE") {
+        setConflict({ attemptId: ++conflictAttempt.current, reason: "content", pendingBlocks: nextBlocks, pendingMeta: nextMeta, latest: null, reviewing: false, reviewError: false });
+        return false;
+      }
+      if (error?.status === 409 && error?.code === "PROFILE_TARGET_CHANGED") {
+        setConflict({ attemptId: ++conflictAttempt.current, reason: "target", pendingBlocks: nextBlocks, pendingMeta: nextMeta, latest: null, reviewing: false, reviewError: false });
+        return false;
+      }
       toast({
         title: "Could not save",
         description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
+  const reviewLatest = async () => {
+    if (!conflict) return;
+    const attemptId = conflict.attemptId;
+    setConflict((current) => current && { ...current, reviewing: true, reviewError: false });
+    try {
+      const latest = readEditSnapshot(await apiRequest("GET", `/api/profiles/${profileId}`), profileId);
+      if (!latest) throw new Error("Current profile revision unavailable");
+      // Reviewing must never replace the draft or the original save base.
+      setConflict((current) => current?.attemptId === attemptId ? {
+        ...current,
+        reason: current.reason === "target" || !snapshot || !sameProfileIdentity(snapshot.identity, latest.identity)
+          ? "target" : "content",
+        latest,
+        reviewing: false,
+      } : current);
+    } catch {
+      setConflict((current) => current?.attemptId === attemptId ? { ...current, reviewing: false, reviewError: true } : current);
+    }
+  };
+
   const saveInline = async () => {
-    let next = patchHeroBlock(contentBlocks, {
+    if (!snapshot) return;
+    let next = patchHeroBlock(snapshot.contentBlocks, {
       title: draftHeroTitle,
       text: draftHeroText,
     });
-    if (siteTemplate === "wholesaler") {
+    if (snapshot.siteTemplate === "wholesaler") {
       const slugs = draftFeatured
         .split(",")
         .map((value) => value.trim())
@@ -147,22 +288,24 @@ export default function ProfileSiteManageChrome({
       next = upsertFeaturedStoneSlugs(next, slugs);
     }
     await persistBlocks(next, {
-      displayName: draftDisplayName.trim() || displayName,
-      headline: draftHeadline.trim() || null,
+      displayName: draftDisplayName.trim() || draftMetaBase?.displayName || snapshot.displayName,
+      headline: draftHeadline === (draftMetaBase?.headline || "")
+        ? draftMetaBase?.headline ?? null : draftHeadline.trim() || null,
     });
   };
 
   const applyTemplate = async (templateId: ProfileSiteTemplateGalleryId, reset: boolean) => {
-    const next = seedBlocksForTemplate(templateId, contentBlocks, {
+    if (!snapshot) return;
+    const next = seedBlocksForTemplate(templateId, snapshot.contentBlocks, {
       reset,
-      displayName: draftDisplayName.trim() || displayName,
+      displayName: draftDisplayName.trim() || snapshot.displayName,
     });
-    await persistBlocks(upsertSiteTemplateBlock(next, templateId));
-    setShowTemplatePicker(false);
+    if (await persistBlocks(upsertSiteTemplateBlock(next, templateId))) setShowTemplatePicker(false);
   };
 
   const setLeadImage = async (stoneSlug: string, imageUrl: string) => {
-    await persistBlocks(upsertInventoryLeadImage(contentBlocks, stoneSlug, imageUrl));
+    if (!snapshot) return;
+    await persistBlocks(upsertInventoryLeadImage(snapshot.contentBlocks, stoneSlug, imageUrl));
   };
 
   const openOnLiveDomain = async () => {
@@ -198,6 +341,7 @@ export default function ProfileSiteManageChrome({
             type="button"
             size="sm"
             variant={editMode ? "default" : "outline"}
+            disabled={Boolean(conflict)}
             className={
               editMode
                 ? "shrink-0 bg-ts-orange hover:bg-ts-orange-dark"
@@ -240,6 +384,7 @@ export default function ProfileSiteManageChrome({
             type="button"
             size="sm"
             variant="outline"
+            disabled={!snapshot || Boolean(conflict) || saving}
             className="shrink-0 border-white/20 bg-white/5"
             onClick={() => setShowTemplatePicker((open) => !open)}
             data-testid="profile-manage-change-template"
@@ -273,24 +418,121 @@ export default function ProfileSiteManageChrome({
           ) : null}
         </div>
 
+        {!snapshot ? (
+          <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-amber-200">
+            <span>
+              {snapshotError
+                ? "The current profile version could not be loaded. Editing is unavailable until it loads."
+                : "Loading the current profile before editing…"}
+            </span>
+            {snapshotError ? (
+              <Button type="button" variant="outline" onClick={() => setSnapshotLoadKey((key) => key + 1)}>
+                Try loading again
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+        {conflict ? (
+          <div
+            role="alert"
+            data-testid="profile-manage-content-conflict"
+            className="space-y-3 rounded-lg border border-amber-400/50 bg-amber-400/10 p-3 text-sm"
+          >
+            <p className="font-semibold">
+              {conflict.reason === "target" ? "This profile changed where it is owned or shown." : "This profile changed before your draft could be saved."}
+            </p>
+            <p>
+              {conflict.reason === "target"
+                ? "The profile owner, business, role, address, or public status changed. Your draft remains on this page while it stays open. Reload the profile before saving to the new target."
+                : "Another person or a background update may have changed it. Your unsaved draft remains on this page while it stays open. Review the current saved version, then choose whether to replace it with your draft or discard your draft and reload."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={conflict.reviewing || saving}
+                onClick={() => void reviewLatest()}
+              >
+                {conflict.reviewing ? "Loading current version…" : "Review current saved version"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => window.location.reload()}>
+                Discard my draft and reload
+              </Button>
+            </div>
+            {conflict.reviewError ? (
+              <p>Could not load the current saved version. Your draft remains here; try reviewing again.</p>
+            ) : null}
+            {conflict.latest ? (
+              <div className="space-y-2">
+                <div className="grid gap-2 md:grid-cols-2">
+                  <ProfileContentVersionSummary
+                    heading="Current saved version"
+                    displayName={conflict.latest.displayName}
+                    headline={conflict.latest.headline}
+                    contentBlocks={conflict.latest.contentBlocks}
+                  />
+                  <ProfileContentVersionSummary
+                    heading="Your unsaved draft"
+                    displayName={conflict.pendingMeta?.displayName ?? draftDisplayName}
+                    headline={conflict.pendingMeta?.headline ?? draftHeadline}
+                    contentBlocks={conflict.pendingBlocks}
+                  />
+                </div>
+                <details className="rounded-md border border-white/20 p-2">
+                  <summary className="cursor-pointer">Show full page details</summary>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <div>
+                      <p className="font-semibold">Current saved sections</p>
+                      <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">
+                        {JSON.stringify(conflict.latest.contentBlocks, null, 2)}
+                      </pre>
+                    </div>
+                    <div>
+                      <p className="font-semibold">Your unsaved sections</p>
+                      <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs">
+                        {JSON.stringify(conflict.pendingBlocks, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </details>
+                {conflict.reason === "content" ? (
+                  <>
+                    <p>Retry overwrites the current saved page sections with your draft. It does not merge the two versions.</p>
+                    <Button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => void persistBlocks(conflict.pendingBlocks, conflict.pendingMeta, conflict.latest!)}
+                      className="bg-ts-orange hover:bg-ts-orange-dark"
+                    >
+                      Retry saving my draft
+                    </Button>
+                  </>
+                ) : (
+                  <p>This draft cannot be retried against a changed profile target. Reload before saving.</p>
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         {showTemplatePicker ? (
           <div className="grid max-h-[40vh] gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-4">
             {templates.map((template) => (
               <button
                 key={template.id}
                 type="button"
-                disabled={saving}
+                disabled={saving || !snapshot || Boolean(conflict)}
                 onClick={() => {
                   const shouldReset =
-                    template.id !== siteTemplate &&
+                    template.id !== snapshot?.siteTemplate &&
                     window.confirm(
                       `Switch to “${template.label}”? Keep your gallery/inventory when possible.`
                     );
-                  if (template.id !== siteTemplate && !shouldReset) return;
+                  if (template.id !== snapshot?.siteTemplate && !shouldReset) return;
                   void applyTemplate(template.id, false);
                 }}
                 className={`rounded-xl border p-3 text-left transition ${
-                  template.id === siteTemplate
+                  template.id === snapshot?.siteTemplate
                     ? "border-ts-orange bg-ts-orange/15"
                     : "border-white/15 bg-white/5 hover:border-white/30"
                 }`}
@@ -344,7 +586,7 @@ export default function ProfileSiteManageChrome({
                           <button
                             key={image}
                             type="button"
-                            disabled={saving}
+                            disabled={saving || !snapshot || Boolean(conflict)}
                             onClick={() => void setLeadImage(stone.slug, image)}
                             className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-md border-2 ${
                               selected
@@ -370,8 +612,8 @@ export default function ProfileSiteManageChrome({
           </div>
         ) : null}
 
-        {editMode ? (
-          <div className="grid gap-3 rounded-xl border border-white/10 bg-black/30 p-3 md:grid-cols-2">
+        {editMode && snapshot ? (
+          <fieldset disabled={Boolean(conflict) || saving} className="grid gap-3 rounded-xl border border-white/10 bg-black/30 p-3 md:grid-cols-2">
             <div className="space-y-1">
               <Label className="text-white/70">Display name</Label>
               <Input
@@ -407,7 +649,7 @@ export default function ProfileSiteManageChrome({
                 data-testid="profile-manage-hero-text"
               />
             </div>
-            {siteTemplate === "wholesaler" ? (
+            {snapshot.siteTemplate === "wholesaler" ? (
               <div className="space-y-1 md:col-span-2">
                 <Label className="text-white/70">Featured inventory slugs (comma-separated)</Label>
                 <Input
@@ -429,7 +671,7 @@ export default function ProfileSiteManageChrome({
                 {saving ? "Saving…" : "Save changes"}
               </Button>
             </div>
-          </div>
+          </fieldset>
         ) : null}
       </div>
     </div>

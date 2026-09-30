@@ -16,6 +16,7 @@ import {
   LA_PLUMBING_PROFILE_SLUG,
 } from "@shared/localServiceProfile";
 import { db } from "../db";
+import { profileContentBlocksSnapshotPredicate } from "../profileContentBlocksConcurrency";
 import { runTrustSnapshotForUser, TRUST_SNAPSHOTS_VERSION } from "./trustSnapshotsJob";
 import { CVS_BOOST_POLICIES, ensureCvsPolicyBoost } from "./cvsBoostPolicy";
 import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
@@ -505,7 +506,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
           .update(profiles)
           .set(profileValues as any)
           .where(
-            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)))
+            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, String(owner.id)), profileContentBlocksSnapshotPredicate(existingProfile))
           )
           .returning()
       : await tx

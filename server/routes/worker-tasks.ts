@@ -31,6 +31,7 @@ import {
 import { isAdmin, isAuthenticated, hashPassword } from "../auth";
 import { db, pool } from "../db";
 import { storage } from "../storage";
+import { profileTargetIdentityFromRow } from "../profileTargetIdentity";
 import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 import { ingestKnowledgeFolder } from "../services/knowledgeIngest";
 import { ObjectStorageService } from "../objectStorage";
@@ -3758,11 +3759,20 @@ export function registerWorkerTasksRoutes(app: Express): void {
           if (String(targetProfile.status || "").toLowerCase() !== "published") {
             profileUpdates.status = "published";
           }
-          targetProfile = await storage.updateProfileForOwner(
+          const savedProfile = await storage.updateProfileForOwnerWithContentBlocksRevision(
             String(targetUser.id),
             String(targetProfile.id),
-            profileUpdates as any
+            profileUpdates as any,
+            targetProfile.contentBlocksRevision,
+            profileTargetIdentityFromRow(targetProfile)
           );
+          if (!savedProfile) {
+            return res.status(409).json({
+              code: "PROFILE_CONTENT_BLOCKS_STALE",
+              message: "This profile changed. Reload it before provisioning its public presence.",
+            });
+          }
+          targetProfile = savedProfile;
         }
 
         await storage.setUserActiveProfile(String(targetUser.id), String(targetProfile.id));
