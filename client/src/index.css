@@ -204,9 +204,8 @@ body.ts-mobile-simplified .app-page [role="button"] {
   border-radius: 0.75rem;
 }
 
-body.ts-mobile-simplified .app-page button[class*="border"],
-body.ts-mobile-simplified .app-page .button[class*="border"],
-body.ts-mobile-simplified .app-page [role="button"][class*="border"] {
+/* Focus-only border classes on primary actions are not outline variants. */
+body.ts-mobile-simplified .app-page :is(button, .button, [role="button"]):is(.ts-secondary-action, [class~="border"]):not(.ts-action) {
   border-color: color-mix(in oklab, var(--border-primary) 85%, transparent) !important;
   background-color: color-mix(in oklab, var(--surface-intermediate) 86%, transparent);
 }
