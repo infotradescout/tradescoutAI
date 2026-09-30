@@ -30,6 +30,7 @@ import {
   mergeCompatibilityRedirectTarget,
   type CompatibilityRedirectSlot,
 } from "@/routing/compatibilityRedirects";
+import { SCOUT_SEARCH_ENTRY_DRAFT_KEY, scoutSearchEntryDraft } from "@/routing/scoutSearchEntry";
 
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
@@ -59,6 +60,28 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
     const target = mergeCompatibilityRedirectTarget(to, raw);
     if (raw !== target) navigate(target);
   }, [location, navigate, to]);
+
+  return null;
+});
+
+const RedirectSearchToScout = memo(function RedirectSearchToScout() {
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    const raw = typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+      : String(location || "");
+    const draft = scoutSearchEntryDraft(raw);
+    try {
+      if (draft) window.sessionStorage.setItem(SCOUT_SEARCH_ENTRY_DRAFT_KEY, draft);
+      else window.sessionStorage.removeItem(SCOUT_SEARCH_ENTRY_DRAFT_KEY);
+    } catch {
+      // Storage denial still opens Scout without placing the query in its URL.
+    }
+    // Do not carry source/intent metadata into Scout. A caller-supplied
+    // onboarding_result source would otherwise submit the draft automatically.
+    navigate("/scout", { replace: true });
+  }, [location, navigate]);
 
   return null;
 });
@@ -1676,10 +1699,10 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/advanced-search">
-                <RedirectTo to="/direct-connect" />
+                <RedirectSearchToScout />
               </Route>
               <Route path="/search">
-                <RedirectTo to="/direct-connect" />
+                <RedirectSearchToScout />
               </Route>
 
               {/* Applications */}

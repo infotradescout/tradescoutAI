@@ -19,6 +19,7 @@ interface ScoutInputRowProps {
   isBusy: boolean;
   prefillKey: number;
   forcedPrefill?: string;
+  persistDraft?: boolean;
   onSend: (value: string) => void;
   onTyping: () => void;
   quickStartPrompts?: readonly string[];
@@ -37,6 +38,7 @@ export function ScoutInputRow({
   isBusy,
   prefillKey,
   forcedPrefill,
+  persistDraft = true,
   onSend,
   onTyping,
   quickStartPrompts,
@@ -128,23 +130,28 @@ export function ScoutInputRow({
       setValue(forcedPrefill);
       return;
     }
+    if (!persistDraft) {
+      setValue("");
+      return;
+    }
     try {
       const stored = window.localStorage.getItem(`scout:prefill:scout-main`);
       if (stored && !value) setValue(stored);
     } catch {
       /* ignore */
     }
-  }, [forcedPrefill, prefillKey]);
+  }, [forcedPrefill, persistDraft, prefillKey]);
 
   // Persist draft
   React.useEffect(() => {
+    if (!persistDraft) return;
     try {
       if (value) window.localStorage.setItem(`scout:prefill:scout-main`, value);
       else window.localStorage.removeItem(`scout:prefill:scout-main`);
     } catch {
       /* ignore */
     }
-  }, [value]);
+  }, [persistDraft, value]);
 
   // Auto-demo
   React.useEffect(() => {
