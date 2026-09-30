@@ -8,6 +8,7 @@ const read = (relativePath: string) =>
 describe("trade county page SEO contract", () => {
   const appRoutes = read("client/src/AppRoutes.tsx");
   const tradeCountyPage = read("client/src/pages/trade/TradeCountyPage.tsx");
+  const businessCard = read("client/src/components/directory/PublicBusinessCard.tsx");
 
   it("keeps the central trade county route wired to the TradeCountyPage lazy import", () => {
     expect(appRoutes).toContain(
@@ -33,9 +34,11 @@ describe("trade county page SEO contract", () => {
       "Start with the local market, then narrow by city or neighborhood."
     );
     expect(tradeCountyPage).toContain('"/api/businesses"');
-    expect(tradeCountyPage).toContain("href={`/business/${encodeURIComponent(biz.slug)}`}");
-    expect(tradeCountyPage).toContain("Claimed");
-    expect(tradeCountyPage).toContain("Unclaimed");
+    expect(tradeCountyPage).toContain("<PublicBusinessCard key={business.id} business={business} />");
+    expect(businessCard).toContain("const destination = `/business/${encodeURIComponent(business.slug)}`");
+    expect(businessCard).toContain("href={destination}");
+    expect(businessCard).toContain("Claimed listing");
+    expect(businessCard).toContain("Unclaimed listing");
     expect(tradeCountyPage).toContain("const scoutEstimateHref = `/scout?intent=estimate");
     expect(tradeCountyPage).toContain("Start a Request");
   });

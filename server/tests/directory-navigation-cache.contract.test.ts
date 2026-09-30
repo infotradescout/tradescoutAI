@@ -120,7 +120,8 @@ describe("directory navigation response cache", () => {
     expect(second.body.items[0].slug).toBe("verified-electrician");
     expect(second.text).not.toContain("PRIVATE-CONTACT");
     expect(second.text).not.toContain("PRIVATE-LISTING");
-    expect(mocks.readRows).toHaveBeenCalledTimes(1);
+    // Directory cards add one batch for published profile previews; neither query repeats on the cache hit.
+    expect(mocks.readRows).toHaveBeenCalledTimes(url.startsWith("/api/businesses?") ? 2 : 1);
   });
 
   it.each([

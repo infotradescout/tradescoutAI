@@ -2,26 +2,19 @@ import type { FormEvent } from "react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Building2, MapPinned, Search, ShieldCheck } from "lucide-react";
+import { MapPinned, Search } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PublicBusinessCard } from "@/components/directory/PublicBusinessCard";
+import type { PublicDirectoryBusiness } from "@shared/publicBusinessCard";
 import { getStateByCode, getCountiesByState } from "@shared/states-counties";
 import { getTradeDisplay, nameToSlug } from "./tradeSeoHelpers";
 import { localBrowseCopy, stripCountySuffix, toLocalMarketLabel } from "@/lib/userFacingCopy";
 
-type PublicBusinessListItem = {
-  id: string;
-  name: string;
-  slug: string;
-  claimStatus: "claimed" | "unclaimed";
-  counties: Array<{ fips: string; stateCode: string; name: string }>;
-};
-
 type PublicBusinessListResponse = {
-  items: PublicBusinessListItem[];
+  items: PublicDirectoryBusiness[];
   limit: number;
   offset: number;
 };
@@ -76,6 +69,7 @@ const TradeCountyPage = memo(function TradeCountyPage() {
         trade: trade?.canonicalSlug || "",
         q,
         city,
+        public: "1",
         claimed: "any",
         limit,
         offset,
@@ -92,6 +86,7 @@ const TradeCountyPage = memo(function TradeCountyPage() {
         countyFips: String(county?.fipsCode || ""),
         stateCode: String(state?.code || ""),
         trade: String(trade?.canonicalSlug || ""),
+        public: "1",
         claimed: "any",
         limit: String(limit),
         offset: String(offset),
@@ -288,35 +283,9 @@ const TradeCountyPage = memo(function TradeCountyPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-hidden rounded-[var(--ts-radius-panel)] border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-              <div className="grid grid-cols-[minmax(0,1fr)_112px] border-b border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/45 sm:grid-cols-[minmax(0,1fr)_132px_44px]">
-                <div>Business</div>
-                <div>Status</div>
-                <div className="hidden sm:block" />
-              </div>
-              {items.map((biz) => (
-                <Link key={biz.id} href={`/business/${encodeURIComponent(biz.slug)}`}>
-                  <a className="group grid grid-cols-[minmax(0,1fr)_112px] items-center border-b border-[color:var(--border-subtle)] px-4 py-3 transition-colors last:border-b-0 hover:bg-white/[0.055] sm:grid-cols-[minmax(0,1fr)_132px_44px]">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ts-radius-control)] border border-ts-orange/25 bg-ts-orange/10 text-ts-orange">
-                        <Building2 className="h-4 w-4" />
-                      </span>
-                      <span className="truncate font-semibold group-hover:text-ts-orange">
-                        {biz.name}
-                      </span>
-                    </div>
-                    <Badge
-                      variant={biz.claimStatus === "claimed" ? "default" : "secondary"}
-                      className="w-fit shrink-0"
-                    >
-                      {biz.claimStatus === "claimed" ? (
-                        <ShieldCheck className="mr-1 h-3 w-3" />
-                      ) : null}
-                      {biz.claimStatus === "claimed" ? "Claimed" : "Unclaimed"}
-                    </Badge>
-                    <ArrowRight className="hidden h-4 w-4 justify-self-end text-white/30 transition group-hover:translate-x-0.5 group-hover:text-ts-orange sm:block" />
-                  </a>
-                </Link>
+            <div className="grid min-w-0 items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {items.map((business) => (
+                <PublicBusinessCard key={business.id} business={business} />
               ))}
             </div>
           )}
