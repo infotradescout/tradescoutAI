@@ -59,8 +59,8 @@ describe("JW Stone membership activation against actual SQL", () => {
 
   afterEach(async () => database.close());
 
-  it("unlocks prices on business membership creation without another verification gate", async () => {
-    expect(await access()).toBe(true);
+  it("requires approval of the membership's linked business before pricing", async () => {
+    expect(await access()).toBe(false);
     await database.exec("UPDATE user_profiles SET verification_status = 'approved'");
     expect(await access()).toBe(true);
     const account = await database.query("SELECT verification_status FROM profile_accounts");
@@ -68,10 +68,10 @@ describe("JW Stone membership activation against actual SQL", () => {
   });
 
   it.each(["pending", "under_review", "approved", "expired"])(
-    "keeps an active JW membership priced while business verification is %s",
+    "requires linked business approval when verification is %s",
     async (status) => {
       await database.query("UPDATE user_profiles SET verification_status = $1", [status]);
-      expect(await access()).toBe(true);
+      expect(await access()).toBe(status === "approved");
       const entitlements = await database.query(
         "SELECT product_key, status FROM profile_account_entitlements ORDER BY product_key"
       );
@@ -93,6 +93,11 @@ describe("JW Stone membership activation against actual SQL", () => {
       expect(await access()).toBe(false);
     }
   );
+
+  it("denies a linked business with no verification status", async () => {
+    await database.exec("UPDATE user_profiles SET verification_status = NULL");
+    expect(await access()).toBe(false);
+  });
 
   it.each(["suspended", "closed"])("blocks a %s JW Stone membership", async (status) => {
     await database.exec("UPDATE user_profiles SET verification_status = 'approved'");
@@ -199,6 +204,22 @@ describe("JW Stone membership activation against actual SQL", () => {
     } finally {
       await cutover.close();
     }
+  });
+
+  it("does not substitute a different approved business owned by the same member", async () => {
+    await database.exec(`
+      INSERT INTO user_profiles VALUES ('other-approved-business', 'member', 'business', 'approved');
+    `);
+    expect(await access()).toBe(false);
+    await database.exec("UPDATE profile_accounts SET business_profile_id = 'other-approved-business'");
+    expect(await access()).toBe(true);
+  });
+
+  it("denies an approved business without a JW membership", async () => {
+    await database.exec(`
+      INSERT INTO user_profiles VALUES ('approved-non-member-business', 'non-member', 'business', 'approved');
+    `);
+    expect(await hasActiveJwStoneBusinessMembership("non-member", database as never)).toBe(false);
   });
 
   it("does not use another business owner's approved identity", async () => {

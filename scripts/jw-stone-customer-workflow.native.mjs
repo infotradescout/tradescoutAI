@@ -20,6 +20,18 @@ const report = { head, startedAt: new Date().toISOString(), checks: [], passed: 
 let database, client, server, browser, activePage, logFile;
 function clean() { return execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(); }
 function note(name, detail = {}) { report.checks.push({ name, ...detail, passed: true }); console.log('JW_WORKFLOW_CHECK ' + JSON.stringify(report.checks.at(-1))); }
+function fixtureStartupStages(log) {
+  const allowed = new Set(['isolation-validated', 'loading-local-database', 'local-database-connected',
+    'publishing-synthetic-inventory', 'checking-real-schema', 'loading-real-routes', 'registering-real-routes', 'fixture-ready']);
+  return log.split(/\r?\n/).flatMap(line => {
+    if (!line.startsWith('JW_WORKFLOW_FIXTURE_STAGE ')) return [];
+    try {
+      const value = JSON.parse(line.slice('JW_WORKFLOW_FIXTURE_STAGE '.length));
+      return allowed.has(value.stage) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value.at)
+        ? [{ stage: value.stage, at: value.at }] : [];
+    } catch { return []; }
+  }).slice(-8);
+}
 function run(name, args, env = {}) {
   const r = spawnSync(args[0], args.slice(1), { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 900000, maxBuffer: 60 * 1024 * 1024 });
   const text = ((r.stdout || '') + (r.stderr || '')).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]');
@@ -53,13 +65,20 @@ try {
   logFile = await fs.open(path.join(temp, 'server.private.log'), 'w', 0o600);
   server = spawn(process.execPath, ['--import', 'tsx', 'scripts/jw-stone-workflow-fixture.ts'], { env: { ...process.env, ...env }, stdio: ['ignore', logFile.fd, logFile.fd] });
   let ready = false;
-  for (let attempt = 0; attempt < 120; attempt++) {
+  const readinessDeadline = Date.now() + 180000;
+  while (Date.now() < readinessDeadline) {
     if (server.exitCode !== null) throw new Error('Local fixture exited: ' + server.exitCode);
-    try { const r = await fetch(base + '/api/u/jw-stone/account', { signal: AbortSignal.timeout(1000) }); if (r.ok) { ready = true; break; } } catch {}
+    try {
+      const r = await fetch(base + '/api/u/jw-stone/account', { signal: AbortSignal.timeout(1000) });
+      report.fixtureReadinessLastStatus = r.status;
+      if (r.ok) { await fs.access(path.join(temp, 'fixture.json')); ready = true; break; }
+    } catch {}
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert(ready, 'Actual fixture routes did not start');
   const fixture = JSON.parse(await fs.readFile(path.join(temp, 'fixture.json'), 'utf8')); assert.equal(fixture.base, base);
+  report.fixtureStartupStages = fixtureStartupStages(await fs.readFile(path.join(temp, 'server.private.log'), 'utf8'));
+  note('Actual fixture routes ready', { status: report.fixtureReadinessLastStatus });
   await fs.mkdir(out, { recursive: true });
   browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const devices = [['desktop', { width: 1440, height: 1000 }], ['touch', { width: 390, height: 844 }]];
@@ -96,7 +115,16 @@ try {
     assert.equal(registrationData.emailVerificationSent, false, 'No actual provider send is permitted');
     note(device + ': actual signup, private identity, pending business and one membership');
     await click(page.getByRole('button', { name: 'Continue browsing', exact: true }));
-    const price = await request(context, 'GET', '/api/u/jw-stone/member-pricing'); assert.equal(price.status(), 200, 'New active membership cannot read prices');
+    const pendingPrice = await request(context, 'GET', '/api/u/jw-stone/member-pricing');
+    assert.equal(pendingPrice.status(), 403, 'Pending business must not read fabricator prices');
+    assert(!(await pendingPrice.text()).includes('slabPriceCents'));
+    note(device + ': active membership with pending business remains denied');
+    // Model completed manual business review only in this asserted disposable
+    // fixture. Signup and a visible portal link do not perform this approval.
+    assert.equal((await client.query('SELECT current_database() AS name')).rows[0].name, 'ts_jw_workflow_test');
+    const approvedBusiness = await client.query("UPDATE user_profiles SET verification_status='approved' WHERE id=$1 AND user_id=$2 AND user_intent='business' AND verification_status='pending' RETURNING id", [memberships[0].business_profile_id, user.id]);
+    assert.equal(approvedBusiness.rowCount, 1, 'Approval must bind to this synthetic member business');
+    const price = await request(context, 'GET', '/api/u/jw-stone/member-pricing'); assert.equal(price.status(), 200, 'Approved linked business with active membership cannot read prices');
     const pricing = await price.json(); assert.equal(pricing.access, 'member'); assert.equal(pricing.viewerId, user.id);
     assert.equal(pricing.prices.length, 1); assert.equal(pricing.prices[0].slabPriceCents, 10101); assert.equal(pricing.prices[0].bundlePriceCents, 9090);
     assert(!JSON.stringify(pricing).includes('landedCostCents')); assert.match(price.headers()['cache-control'], /private.*no-store/);
@@ -136,7 +164,7 @@ try {
 } catch (error) {
   report.error = String(error.stack || error).replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]');
   if (activePage) { report.failureText = (await activePage.locator('body').innerText().catch(() => '')).slice(0, 7000); report.failurePath = new URL(activePage.url()).pathname; await fs.mkdir(out, { recursive: true }); await activePage.screenshot({ path: path.join(out, 'failure.png'), fullPage: false }).catch(() => {}); }
-  try { const log = await fs.readFile(path.join(temp, 'server.private.log'), 'utf8'); report.serverErrors = log.split('\n').filter(line => /Error:|error:|code:|detail:|column:|relation|schema.*failed/i.test(line)).map(line => line.replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]').replace(/token[^\s]*[=:][^\s]+/gi, '[TOKEN]')).slice(-35); } catch {}
+  try { const log = await fs.readFile(path.join(temp, 'server.private.log'), 'utf8'); report.fixtureStartupStages = fixtureStartupStages(log); report.serverErrors = log.split('\n').filter(line => /Error:|error:|code:|detail:|column:|relation|schema.*failed/i.test(line)).map(line => line.replace(/postgres(?:ql)?:\/\/[^\s"']+/g, '[LOCAL_TEST_DATABASE]').replace(/token[^\s]*[=:][^\s]+/gi, '[TOKEN]')).slice(-35); } catch {}
   console.error('JW_WORKFLOW_FAILURE ' + report.error);
 } finally {
   await browser?.close(); await stop(); await logFile?.close(); await client?.end().catch(() => {}); await database?.stop();
@@ -146,3 +174,5 @@ try {
   await fs.writeFile(path.join(out, 'index.html'), '<meta name="robots" content="noindex,nofollow"><h1>' + (report.passed ? 'Declared synthetic customer journey passed' : 'FAILED - not release approval') + '</h1><p>Not real customer, production pricing or email-delivery proof.</p><a href="evidence.json">Evidence</a>');
   await fs.rm(temp, { recursive: true }); console.log('JW_WORKFLOW_SUMMARY ' + JSON.stringify(report));
 }
+// The disposable database's beforeExit hook defaults to status 0; all cleanup is already awaited above.
+if (!report.passed) process.exit(1);

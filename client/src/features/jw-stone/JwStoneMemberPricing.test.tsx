@@ -22,6 +22,11 @@ vi.mock("@/lib/queryClient", async (importOriginal) => {
   return { ...actual, apiRequest: apiRequestMock };
 });
 
+vi.mock("./JwStoneMemberCartLoader", () => ({
+  JwStoneMemberCart: ({ items }: { items: unknown }) =>
+    <div data-testid="synthetic-cart-selections">{JSON.stringify(items)}</div>,
+}));
+
 describe("JW Stone member pricing client boundary", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -170,6 +175,33 @@ describe("JW Stone member pricing client boundary", () => {
     expect(container.textContent).not.toContain("$11.00");
   });
 
+  it("keeps member rates and shopping available without inventing a total or merging unknown units with inches", async () => {
+    const response = {
+      profileSlug: "jw-stone", viewerId: "member-1", access: "member", currency: "USD",
+      unit: "square_foot", sourceUpdatedAt: "2026-09-12T00:00:00.000Z",
+      prices: [{ stoneName: "Blue Dunes", stoneKey: "blue dunes", slabPriceCents: 300, bundlePriceCents: 200 }],
+    };
+    apiRequestMock.mockResolvedValue(response);
+    await render("member-1", { length: 120, height: 60, unit: null });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)); });
+    expect(container.textContent).toContain("$3.00");
+    expect(container.querySelector('[data-testid="jw-stone-estimated-slab-total"]')).toBeNull();
+    const add = () => {
+      const button = container.querySelector<HTMLButtonElement>('[data-testid="jw-stone-add-to-cart-detail"]');
+      if (!button) throw new Error("Member add-to-cart control is missing");
+      button.click();
+    };
+    await act(async () => add());
+    await render("member-1", { length: 120, height: 60, unit: "in" });
+    expect(container.querySelector('[data-testid="jw-stone-estimated-slab-total"]')?.firstChild?.textContent).toBe("$150.00");
+    await act(async () => add());
+    const selections = JSON.parse(container.querySelector('[data-testid="synthetic-cart-selections"]')?.textContent || "[]");
+    expect(selections.map((item: { id: string; quantity: number }) => ({ id: item.id, quantity: item.quantity }))).toEqual([
+      { id: "blue dunes:120x60unit-unknown", quantity: 1 },
+      { id: "blue dunes:120x60in", quantity: 1 },
+    ]);
+  });
+
   it("loads prices for the same signed-in viewer after membership changes", async () => {
     apiRequestMock.mockRejectedValueOnce(new Error("Membership required"));
     await render("member-1");
@@ -255,5 +287,20 @@ describe("JW Stone approximate slab cost", () => {
       maximumTotalCents: 148632,
     });
     expect(estimateJwStoneSlabCost(2050, { length: 133, unit: "in" })).toBeNull();
+  });
+
+  it.each([undefined, null])("does not infer inches for structured dimensions with unit %s", (unit) => {
+    expect(estimateJwStoneSlabCost(2050, { length: 133, height: 78.5, unit })).toBeNull();
+  });
+
+  it("preserves the catalog's source-backed inch convention", () => {
+    expect(estimateJwStoneSlabCost(300, "120 x 60")).toEqual({
+      minimumTotalCents: 15000,
+      maximumTotalCents: 15000,
+    });
+    expect(estimateJwStoneSlabCost(300, { length: 120, height: 60, unit: "in" })).toEqual({
+      minimumTotalCents: 15000,
+      maximumTotalCents: 15000,
+    });
   });
 });
