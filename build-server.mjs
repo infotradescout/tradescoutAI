@@ -5,6 +5,11 @@ import fs from 'fs';
 import module from 'module';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const useNodeFilesystem = process.env.ESBUILD_NODE_FILESYSTEM === '1';
+const filesystemOptions = useNodeFilesystem ? {
+  absWorkingDir: __dirname,
+  tsconfigRaw: JSON.parse(fs.readFileSync(path.join(__dirname, 'tsconfig.json'), 'utf8')),
+} : {};
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'runtime', 'package.json'), 'utf8')
 );
@@ -20,6 +25,9 @@ const runtimeExternalPackages = new Set([
   'pg-native',
   'utf-8-validate',
 ]);
+const filesystemPlugins = useNodeFilesystem
+  ? [(await import('./scripts/esbuild-node-filesystem.mjs')).nodeFilesystemPlugin(__dirname, runtimeExternalPackages)]
+  : [];
 
 function packageName(specifier) {
   if (specifier.startsWith('@')) return specifier.split('/').slice(0, 2).join('/');
@@ -85,6 +93,7 @@ const aliasPlugin = {
 };
 
 const serverResult = await esbuild.build({
+  ...filesystemOptions,
   entryPoints: ['server/index.ts'],
   bundle: true,
   platform: 'node',
@@ -114,7 +123,7 @@ const serverResult = await esbuild.build({
     '@google-cloud/vertexai',
     'sharp',
   ],
-  plugins: [aliasPlugin],
+  plugins: [...filesystemPlugins, aliasPlugin],
   banner: {
     js: `
 import { createRequire } from 'module';
@@ -124,6 +133,7 @@ const require = createRequire(import.meta.url);
 });
 
 const releaseResult = await esbuild.build({
+  ...filesystemOptions,
   external: ['sharp'], // Native image decoder remains in the declared runtime package.
   entryPoints: {
     'run-production-predeploy': 'scripts/run-production-predeploy.mjs',
@@ -146,7 +156,7 @@ const releaseResult = await esbuild.build({
   entryNames: '[name]',
   outExtension: { '.js': '.mjs' },
   metafile: true,
-  plugins: [aliasPlugin],
+  plugins: [...filesystemPlugins, aliasPlugin],
   banner: {
     js: `
 import { createRequire } from 'module';

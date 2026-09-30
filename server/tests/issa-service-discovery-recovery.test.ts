@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { JSDOM } from "jsdom";
 vi.mock("../storage", () => ({ storage: {} }));
 import { ISSA_BUILD_LOCAL_DISCOVERY, ISSA_BUILD_PROFILE_CONTENT_BLOCKS, ISSA_BUILD_SERVICE_AREAS, ISSA_BUILD_SERVICE_RADIUS_MILES } from "@shared/issaBuildProfile";
 import { buildIssaBuildBusinessContentBlocks, buildIssaBuildOnyxContentBlocks, ISSA_BUILD_SERVICE_SUMMARIES } from "@shared/issaBuildPageContent";
@@ -60,6 +61,39 @@ describe("ISSA service discovery after business-copy cleanup", () => {
     for (const service of ISSA_BUILD_LOCAL_DISCOVERY.services) expect(items.find((item: any) => item.slug === service.slug)?.description).toBe(ISSA_BUILD_SERVICE_SUMMARIES[service.slug]);
   });
 
+  it("restores installation on the exact previous countertop default through public discovery", () => {
+    const previous = [{ type: "services", data: { items: [{
+      slug: "countertops-fabrication",
+      title: "Countertops and fabrication in Pensacola",
+      description: "ISSA Build handles stone countertops and fabrication for kitchen and bathroom projects in Pensacola and surrounding areas.",
+    }] } }, { type: "serviceAreas", data: { areas: [...ISSA_BUILD_SERVICE_AREAS] } }];
+    const before = JSON.stringify(previous);
+    const blocks = buildIssaBuildBusinessContentBlocks(previous);
+    const service = resolveProfileServiceItem(blocks, "countertops-fabrication")!;
+    expect(service.description).toMatch(/fabrication and installation/i);
+    expect(getItems(blocks)).toHaveLength(1);
+    expect(buildIssaBuildBusinessContentBlocks(blocks)).toEqual(blocks);
+    expect(JSON.stringify(previous)).toBe(before);
+
+    const document = new JSDOM(buildPublicProfileServiceHtml({
+      templateHtml: template, origin,
+      profile: { slug: "issa-build", displayName: "ISSA Build", contentBlocks: blocks },
+      service,
+    })).window.document;
+    expect(document.body.textContent).toContain(service.description);
+    const graph = JSON.parse(document.querySelector('script[type="application/ld+json"]')!.textContent!)["@graph"];
+    const schema = graph.find((entry: any) => entry["@type"] === "Service");
+    expect(schema.description).toBe(service.description);
+    expect(schema.provider["@id"]).toBe(origin + "/u/issa-build#identity");
+    expect(schema.areaServed).toEqual([...ISSA_BUILD_SERVICE_AREAS]);
+    const requestLink = Array.from(document.querySelectorAll("a")).find(link => link.textContent === "Start a Request")!;
+    const request = new URL(requestLink.href);
+    expect(request.pathname).toBe("/direct-connect");
+    expect(request.searchParams.get("profile")).toBe("issa-build");
+    expect(request.searchParams.get("subject")).toBe("service");
+    expect(request.searchParams.get("title")).toBe(service.title);
+  });
+
   it("migrates only the exact legacy Pensacola service-area seed", () => {
     const legacy = [{ type: "serviceAreas", data: { areas: ["Pensacola, FL"] } }];
     const migrated = buildIssaBuildBusinessContentBlocks(legacy).find(block => block.type === "serviceAreas");
@@ -84,7 +118,24 @@ describe("ISSA service discovery after business-copy cleanup", () => {
     { text: "Owner-written alternate description for this published service." },
     { title: "Owner-specific service name" },
   ])("does not overwrite owner-edited identity or content: %j", edit => {
-    const item = { slug: "cabinets", title: "Cabinets in Pensacola", ...edit };
+    for (const slug of ["cabinets", "countertops-fabrication"]) {
+      const title = ISSA_BUILD_LOCAL_DISCOVERY.services.find(service => service.slug === slug)!.title;
+      const item = { slug, title, ...edit };
+      expect(getItems([{ type: "services", data: { items: [item] } }])).toEqual([item]);
+    }
+  });
+
+  it.each([
+    { title: "Owner-specific countertop scope" },
+    { body: "Owner-written countertop scope" },
+    { text: "Owner-written countertop scope" },
+    { description: "ISSA Build handles stone countertops and fabrication for kitchen and bathroom projects in Pensacola and surrounding areas. Owner scope." },
+  ])("preserves owner changes alongside a previous countertop default: %j", edit => {
+    const item = {
+      slug: "countertops-fabrication", title: "Countertops and fabrication in Pensacola",
+      description: "ISSA Build handles stone countertops and fabrication for kitchen and bathroom projects in Pensacola and surrounding areas.",
+      ...edit,
+    };
     expect(getItems([{ type: "services", data: { items: [item] } }])).toEqual([item]);
   });
 

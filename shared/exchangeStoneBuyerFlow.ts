@@ -1,4 +1,5 @@
 /** Pure presentation helpers. Contact authority remains in the existing Decision Card flow. */
+import { stonePublicReferenceSizes } from "./exchangeStonePublicReference";
 export type StoneInquiryIntent = "availability" | "callback";
 export type StonePriceUnit = "sqft" | "slab";
 export type StoneSlabMaterialPrice = Readonly<{
@@ -144,7 +145,7 @@ export function selectedStoneAudienceSearch(search: string): string | null {
 }
 
 export function stoneInquiryMessage(
-  listing: { title: string; price: unknown; specifications?: Record<string, unknown> },
+  listing: { id?: string; title: string; price: unknown; specifications?: Record<string, unknown> },
   intent: StoneInquiryIntent
 ): string {
   const name = text(listing.title)
@@ -155,7 +156,7 @@ export function stoneInquiryMessage(
   const slabPrice = stoneSlabMaterialPrice(
     listing.price,
     listing.specifications?.priceUnit,
-    listing.specifications?.referenceSizesInches,
+    stonePublicReferenceSizes(listing),
     listing.specifications?.exactSlab
   );
   const priceMessage = slabPrice?.kind === "size_required"
