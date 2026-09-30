@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
-import multer from "multer";
+import multer from "../utils/multipartUpload";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
 import { runtimePaths } from "../runtimePaths";
