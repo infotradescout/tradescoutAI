@@ -64,6 +64,7 @@ const initialBlocks = [
 
 beforeAll(async () => {
   await fixture.database!.exec(`CREATE TYPE profile_business_type AS ENUM (${userProfiles.businessType.enumValues!.map(value => `'${value.replaceAll("'", "''")}'`).join(", ")})`);
+  await fixture.database!.exec(`CREATE TYPE profile_status AS ENUM (${profiles.status.enumValues!.map(value => `'${value.replaceAll("'", "''")}'`).join(", ")})`);
   const dialect = new PgDialect();
   const types: Record<string, string> = {
     boolean: "boolean", number: "integer", json: "jsonb", date: "timestamp", array: "text[]",
@@ -77,7 +78,11 @@ beforeAll(async () => {
         if (column.default instanceof SQL) defaultSql = dialect.sqlToQuery(column.default).sql;
         else if (typeof column.default === "string") defaultSql = `'${column.default.replaceAll("'", "''")}'`;
         else if (typeof column.default === "boolean" || typeof column.default === "number") defaultSql = String(column.default);
-        const sqlType = table === userProfiles && column === userProfiles.businessType ? "profile_business_type" : types[column.dataType] || "text";
+        const sqlType = table === userProfiles && column === userProfiles.businessType
+          ? "profile_business_type"
+          : table === profiles && column === profiles.status
+            ? "profile_status"
+            : types[column.dataType] || "text";
         return `${quote(column.name)} ${sqlType}${column.primary ? " PRIMARY KEY" : ""}${column.notNull ? " NOT NULL" : ""}${defaultSql ? ` DEFAULT ${defaultSql}` : ""}`;
       });
     await fixture.database!.exec(`CREATE TABLE ${quote(config.name)} (${columns.join(", ")})`);
