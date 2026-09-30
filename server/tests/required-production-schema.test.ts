@@ -39,6 +39,7 @@ const completeSchemaCheck = {
   seoPruneLog: true,
   publicActivity: true,
   publicDiscoveryEnabled: true,
+  scoutPromotionContract: true,
   defaultPublicationRule: true,
   profileAccounts: true,
   profileAccountsContract: true,
@@ -62,6 +63,11 @@ const completeSchemaCheck = {
 };
 
 describe("required production schema guard", () => {
+  it("requires the canonical Scout promotion table shape and default-off placement", () => {
+    expect(
+      evaluateRequiredProductionSchema({ ...completeSchemaCheck, scoutPromotionContract: false })
+    ).toEqual(["promotions[canonical Scout columns and placement_scout default false]"]);
+  });
   it("requires the durable outbox shape and its recorded migration", () => {
     expect(
       evaluateRequiredProductionSchema({

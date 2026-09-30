@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveLatestScoutTurnActionTruth, validateAction } from "./actionValidation";
+import {
+  resolveLatestScoutTurnActionTruth,
+  scoutAllowedActionToAction,
+  validateAction,
+} from "./actionValidation";
 import { scoutReducer, type ScoutAction, type ScoutMessage, type ScoutState } from "./state";
 import type {
   ScoutAllowedActionV1,
@@ -87,6 +91,94 @@ describe("actionValidation", () => {
     });
 
     expect(action).toBeNull();
+  });
+
+  it("keeps Scout county discovery navigation on canonical internal routes", () => {
+    const matchingPost = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Open matching county post",
+        target: "/community/posts/post_123",
+      })
+    );
+    const community = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Open recent Community",
+        target: "/community-feed?geo=local&feed=recent",
+      })
+    );
+    const businesses = scoutAllowedActionToAction(
+      allowedAction({
+        label: "Browse Businesses",
+        target: "/contractors",
+        primary: false,
+      })
+    );
+
+    expect(matchingPost).toMatchObject({
+      type: "NAVIGATE",
+      to: "/community/posts/post_123",
+      path: "/community/posts/post_123",
+    });
+    expect(community).toMatchObject({
+      type: "NAVIGATE",
+      to: "/community-feed?geo=local&feed=recent",
+      path: "/community-feed?geo=local&feed=recent",
+    });
+    expect(businesses).toMatchObject({
+      type: "NAVIGATE",
+      to: "/contractors",
+      path: "/contractors",
+    });
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/community-feed/admin" }))
+    ).toBeNull();
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/community/posts/post_123/extra" }))
+    ).toBeNull();
+    expect(
+      scoutAllowedActionToAction(allowedAction({ target: "/contractors/secret/path" }))
+    ).toBeNull();
+  });
+
+  it("allows only a specific public TradeDeal with an optional valid county", () => {
+    const id = "11111111-2222-4333-8444-555555555555";
+    const target = `/deals/${id}?county=04013`;
+    expect(
+      scoutAllowedActionToAction(allowedAction({ label: "Open TradeDeal", target }))
+    ).toMatchObject({ type: "NAVIGATE", to: target, path: target });
+    expect(scoutAllowedActionToAction(allowedAction({ target: `/deals/${id}` }))).toMatchObject({
+      to: `/deals/${id}`,
+    });
+
+    for (const blocked of [
+      "/deals/not-a-uuid?county=04013",
+      `/deals/${id}/extra?county=04013`,
+      `/deals/${id}?county=999`,
+      `/deals/${id}?county=04013&redirect=/messages`,
+      `/deals/${id}#contact`,
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
+  });
+
+  it("allows only a public business profile path for Scout business results", () => {
+    const profile = "/business/maricopa-repair";
+    expect(
+      scoutAllowedActionToAction(
+        allowedAction({ label: "Open local business profile", target: profile })
+      )
+    ).toMatchObject({ type: "NAVIGATE", to: profile, path: profile });
+
+    for (const blocked of [
+      "/business/requests",
+      "/business/Requests",
+      "/business/maricopa-repair/edit",
+      "/business/maricopa-repair?redirect=/messages",
+      "/business/maricopa-repair#contact",
+      "/business/maricopa%2Frepair",
+    ]) {
+      expect(scoutAllowedActionToAction(allowedAction({ target: blocked }))).toBeNull();
+    }
   });
 
   it("allows normal user Scout and Supply Run routes", () => {

@@ -114,6 +114,7 @@ export const CANONICAL_OBJECTS = Object.freeze({
   home: { owner: "homeid", source: "shared/schema.ts", authority: "server" },
   inventory_item: { owner: "inventory", source: "shared/schema.ts", authority: "server" },
   listing: { owner: "exchange", source: "shared/schema.ts", authority: "server" },
+  promotion: { owner: "exchange", source: "shared/schema.ts", authority: "server" },
   offer: { owner: "offers", source: "shared/schema.ts", authority: "server" },
   order: { owner: "orders", source: "shared/schema.ts", authority: "server" },
   payment: { owner: "payments", source: "shared/schema.ts", authority: "server" },
@@ -158,6 +159,10 @@ export const CLIENT_ROUTE_FAMILIES = Object.freeze([
   family("exchange", /^\/(?:exchange|marketplace|vehicle-marketplace|vehicles|real-estate-marketplace|worker-marketplace|handmade-marketplace|handmade|trade-deals|daily-deals)(?:\/|$)/, {
     owner: "exchange", audience: "buyer-and-seller", roles: ["anonymous", "authenticated"],
     canonicalObject: "listing", job: "Discover or manage a listing", readiness: "public_beta",
+  }),
+  family("exchange-deal-detail", /^\/deals\/(?::id|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i, {
+    owner: "exchange", audience: "public", roles: ["anonymous", "authenticated"],
+    canonicalObject: "promotion", job: "Read an eligible posted TradeDeal", readiness: "public_beta",
   }),
   family("stone", /^\/(?:bidrock|hardrock)(?:\/|$)/, {
     owner: "stone-core", audience: "verified-business", roles: ["anonymous", "verified_business"],

@@ -241,6 +241,7 @@ const SupplierProcurementQuote = React.lazy(() => import("./pages/supplier-procu
 const ContractorProfile = React.lazy(() => import("./pages/contractor-profile"));
 const DailyDeals = React.lazy(() => import("./pages/daily-deals"));
 const TradeDealsPage = React.lazy(() => import("./pages/trade-deals-lucky"));
+const DealDetail = React.lazy(() => import("./pages/deal-detail"));
 const HelpDemo = React.lazy(() => import("./pages/help-demo"));
 const TestPage = React.lazy(() => import("./pages/test-page"));
 const Profile = React.lazy(() => import("./pages/ProfilePage"));
@@ -960,6 +961,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <ProgressiveFeatureGate featureId="trade_deals">
                   <LazyPage Component={TradeDealsPage} />
                 </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/deals/:id">
+                <LazyPage Component={DealDetail} />
               </Route>
               <Route path="/daily-deals/:rest*">
                 <LazyPage Component={DailyDeals} />

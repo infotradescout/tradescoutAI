@@ -1,68 +1,55 @@
 {
   "schemaVersion": "si.progress-checkpoint.v1",
-  "checkpointId": "progress-20260906T044801Z-f84a9bfd",
-  "createdAt": "2026-09-06T04:48:01.937452+00:00",
-  "outcome": "Repair JW Stone active-membership pricing access defects and prove the live release",
+  "checkpointId": "progress-20260924T231952Z-958664b2",
+  "createdAt": "2026-09-24T23:19:53.428793+00:00",
+  "outcome": "Scout and Businesses draft PR 699 now suppresses fixed profile setup promotion on customer business search and private request editor, preserving business setup elsewhere.",
   "scope": [
-    "JW Stone pricing entitlement lifecycle only."
+    "TradeScout Scout and Businesses PR #699 only; separate from canonical Infinity and other brands."
   ],
   "prohibitions": [
-    "No customer Drive access; no public prices; no access for rejected, suspended, revoked, closed, or nonmember identities."
+    "No production writes, invented inventory, weakened guards, main merge or deployment."
   ],
   "progress": {
     "completedVerified": [
-      "Active JW memberships keep pricing through pending, under-review, approved, and expired verification states; rejected/suspended identities and closed/suspended memberships remain blocked; explicit entitlement suspension/revocation survives account retries and verification synchronization."
+      "Prior da7 signed-in Scout, saved-delete, business-source-error, and Businesses phone/desktop browser journeys passed with disposable loopback databases; new banner route focused tests 11/11 and npm run check passed; Objector identified overlay P1."
     ],
-    "changedUnverified": [],
+    "changedUnverified": [
+      "Banner suppression exact-head 1440 review rendering and new-head four-receipt integration proof remain pending; prior da7 browser receipts are historical."
+    ],
     "proof": [
-      "49 focused access, database, migration-chain, and pricing tests pass; git diff validation passes."
+      "D:/scout-ux-proof-20260924/scout-main-final-r3/receipt.json and D:/scout-business-proof-20260924/evidence/businesses-empty-da7-r1/receipt.json are prior-head PASS; da7 desktop review screenshot showed badge overlay. New resolver focused Vitest 11/11 and npm run check passed."
     ],
     "externalEffects": [
-      "None yet; no production or database mutation."
+      "Draft PR #699 at da7 before this save; no main merge or deployment; no customer request, contact, payment, purchase or trade. Old disposable temp residue remains where automatic approval review rejected cleanup, with ports closed."
     ],
     "doNotRepeat": [
-      "Do not restore revoked pricing through ordinary account retry or general verification synchronization."
+      "Do not present da7 browser/gate as exact new-head proof or bypass rejected cleanup. Keep disposable database lanes serial."
     ],
-    "nextSafeAction": "Run typecheck, production build, minimum release contract, review, merge, migration, and post-deploy proof."
+    "nextSafeAction": "Rerun exact-head synthetic browser journeys for Scout, saved-task deletion, Scout business source error, and Businesses phone/desktop; run unchanged release gate and update draft PR proof."
   },
   "repository": {
     "root": ".",
     "rootKind": "repository_relative",
-    "branch": "jw-stone/pricing-entitlement-state-hardening",
-    "headBefore": "b47dba08adc241dd41f180e936d78078e852788c",
+    "branch": "codex/scout-mobile-discovery-20260923",
+    "headBefore": "da7dc8890e49ce49407a5e5498a978ad191df44c",
     "checkpointCommit": "containing_commit",
     "pushRequested": true,
     "pushRemote": "origin",
     "protectedBranchAuthorized": false,
     "selectedStatusBefore": [
-      "A  migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "M  migrations/meta/_journal.json",
-      "M  server/services/jwStonePricingAccess.ts",
-      "M  server/services/profileAccountEntitlementService.ts",
-      "M  server/tests/jw-stone-membership-activation.behavior.test.ts"
+      " M client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
+      " M client/src/components/onboarding/ProfileCompletionBanner.tsx"
     ],
-    "unrelatedChangeCountExcluded": 1
+    "unrelatedChangeCountExcluded": 0
   },
   "savedFiles": [
     {
-      "path": "server/services/profileAccountEntitlementService.ts",
-      "sha256": "5bd12a232deb1a604ece75bc05a104e24ec662bf810a29a2f964b95886ff22ec"
+      "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
+      "sha256": "540bbc9feb97f4e32e276beaae8a7e9b414d594d85502170996579759d3ad398"
     },
     {
-      "path": "server/services/jwStonePricingAccess.ts",
-      "sha256": "d3fca47bdc8caaa3da84c155533728f6c541fb7acaec25ee771276a627c4c508"
-    },
-    {
-      "path": "server/tests/jw-stone-membership-activation.behavior.test.ts",
-      "sha256": "21aaafa45f2a0c8a8808bd9b767171d7f45451035fd555ce9c68f810c1cb4b57"
-    },
-    {
-      "path": "migrations/0131_preserve_jw_stone_pricing_revocation.sql",
-      "sha256": "e1269cfeb98d0abfacd40f1d5848ba9296605a4a2046de83a8ee3b8dc6988490"
-    },
-    {
-      "path": "migrations/meta/_journal.json",
-      "sha256": "137544f3e476bacdce2f5921958b447dd60be5a408cbefa26f1b04e78465f906"
+      "path": "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
+      "sha256": "abc1ac5ba2e559369428734e14fcbd5465829ca918f458dcc1dcb2f505fa8801"
     }
   ],
   "privacyBoundary": "bounded summaries and selected file identities only; absolute paths, unrelated file names, raw prompts, and secrets are excluded"

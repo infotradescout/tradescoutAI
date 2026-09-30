@@ -68,6 +68,23 @@ describe("resolveProfileCompletionBannerMode", () => {
     expect(
       mode(businessNeedingVerification, "/direct-connect/active?selected=request-1")
     ).toBeNull();
+
+    for (const path of [
+      "/contractors",
+      "/contractors/",
+      "/contractors/acme?source=businesses",
+      "/contractors#results",
+      "/direct-connect/post",
+      "/direct-connect/post/",
+      "/direct-connect/post/review?source=businesses_empty",
+      "/direct-connect/post?source=businesses_empty",
+    ]) {
+      expect(mode(businessNeedingVerification, path), path).toBeNull();
+    }
+
+    for (const path of ["/scout", "/direct-connect", "/direct-connect/posts", "/contractors-extra"]) {
+      expect(mode(businessNeedingVerification, path), path).toBe("business_setup");
+    }
   });
 
   it("does not show the banner after a person profile is ready", () => {

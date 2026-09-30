@@ -109,6 +109,15 @@ import { applyProviderBehaviorOwnership } from "../scout/scoutProviderBehaviorOw
 import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwner";
 import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
 import {
+  isMixedScoutDiscoveryRequest,
+  resolveScoutCountyDiscoveryArea,
+  requiresFreshScoutDiscovery,
+} from "../scout/scoutCountyFips";
+import { buildScoutMixedDiscoveryRecovery } from "../scout/scoutMixedDiscoveryRecovery";
+import { listRecentScoutCountyPosts } from "../scout/scoutCountyPostLookup";
+import { isEligibleScoutDeal } from "../scout/scoutDealDiscovery";
+import { listPublicDirectoryBusinesses } from "./business-directory-public";
+import {
   buildScoutProfileUpdateResponse,
   inferScoutProfileUpdateDraft,
   sanitizeScoutProfileUpdatePayload,
@@ -2576,7 +2585,7 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
     const optimizationUserId = memoryUserId;
-    if (optimizationUserId && message) {
+    if (optimizationUserId && message && !requiresFreshScoutDiscovery(message)) {
       // Import optimization services
       const { generateQueryHash, checkFaqMatch, routeQuery } =
         await import("../services/scoutOptimizationEngine");
@@ -2666,15 +2675,14 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
     const normalizedMessage = typeof message === "string" ? message : "";
     scoutTurnTelemetry.intent =
       normalizeScoutIntent(rawBody.intent, normalizedMessage) || "unknown";
-    const countyCandidate =
-      (rawBody.countyHint as string | undefined) ||
-      (rawBody.countyCode as string | undefined) ||
-      (requestUser as any)?.countyFips ||
-      (requestUser as any)?.county_fips;
-    const normalizedFips =
-      typeof countyCandidate === "string" && countyCandidate.trim().length >= 5
-        ? countyCandidate.trim().slice(0, 5)
-        : undefined;
+    const countyArea = resolveScoutCountyDiscoveryArea({
+      countyHint: rawBody.countyHint,
+      countyCode: rawBody.countyCode,
+      stateCode: rawBody.stateCode,
+      profileCountyFips: (requestUser as any)?.countyFips,
+      profileCountyFipsAlt: (requestUser as any)?.county_fips,
+    });
+    const normalizedFips = countyArea.countyFips || undefined;
 
     scoutInteractionLog = {
       userRole: normalizeScoutRole((requestUser as any)?.role),
@@ -3487,8 +3495,147 @@ router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) =>
       message,
       userId,
       countyCode,
+      countyFips: normalizedFips,
       stateCode,
     };
+
+    if (isMixedScoutDiscoveryRequest(message)) {
+      const now = new Date();
+      let postCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let communityPostItems: Array<{
+        id: string;
+        title: string | null;
+        content: string;
+        createdAt: Date | null;
+        hasWorkRequest: boolean;
+      }> = [];
+      let dealCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let scoutDeals: Awaited<ReturnType<typeof storage.listPromotions>> = [];
+      let businessCheck: "not_checked" | "checked" | "error" = "not_checked";
+      let publicBusinesses: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        counties: Array<{ fips: string }>;
+      }> = [];
+      if (normalizedFips) {
+        try {
+          communityPostItems = await listRecentScoutCountyPosts(normalizedFips, now);
+          postCheck = "checked";
+        } catch (error) {
+          console.error("Scout county post lookup unavailable:", error);
+          postCheck = "error";
+        }
+        try {
+          const rows = await storage.listPromotions({
+            status: "active",
+            type: "trade_deal",
+            tier: "paid_campaign",
+            exclusive: true,
+            placementScout: true,
+            activeAt: now,
+            countyFips: normalizedFips,
+            includeGlobalWhenCounty: true,
+            limit: 10,
+          });
+          scoutDeals = rows
+            .filter((row) => isEligibleScoutDeal(row, normalizedFips, now))
+            .slice(0, 3);
+          dealCheck = "checked";
+        } catch (error) {
+          console.error("Scout promotion lookup unavailable:", error);
+          dealCheck = "error";
+        }
+        try {
+          // Use the same publication-gated query as /api/businesses?public=1&claimed=any.
+          // This excludes owner-only records and never supplies direct contact fields.
+          const result = await listPublicDirectoryBusinesses({
+            public: "1",
+            countyFips: normalizedFips,
+            claimed: "any",
+            limit: 10,
+            offset: 0,
+          });
+          if (result.status !== 200 || !Array.isArray(result.body.items)) {
+            throw new Error(`Public business directory returned ${result.status}`);
+          }
+          publicBusinesses = result.body.items
+            .filter((item: unknown) => {
+              if (!item || typeof item !== "object") return false;
+              const row = item as Record<string, unknown>;
+              return (
+                typeof row.id === "string" &&
+                typeof row.name === "string" &&
+                typeof row.slug === "string" &&
+                Array.isArray(row.counties) &&
+                row.counties.some(
+                  (county) =>
+                    county &&
+                    typeof county === "object" &&
+                    (county as { fips?: unknown }).fips === normalizedFips
+                )
+              );
+            })
+            .map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              slug: item.slug,
+              counties: item.counties,
+            }));
+          businessCheck = "checked";
+        } catch (error) {
+          console.error("Scout public business lookup unavailable:", error);
+          businessCheck = "error";
+        }
+      }
+      const recovery = buildScoutMixedDiscoveryRecovery({
+        countyFips: normalizedFips,
+        countyLabel: countyArea.countyLabel,
+        communityPosts: communityPostItems,
+        postCheck,
+        deals: scoutDeals,
+        dealCheck,
+        businesses: publicBusinesses,
+        businessCheck,
+        now,
+      });
+      scoutTurnTelemetry.provider = "deterministic";
+      scoutTurnTelemetry.sourceUsed = "scout_mixed_discovery_recovery";
+      scoutTurnTelemetry.intent = "local_discovery_partial";
+      scoutTurnTelemetry.fallbackUsed = true;
+      return res.json({
+        ...recovery,
+        metadata: {
+          intent: "local_discovery_partial",
+          sourceUsed: "scout_mixed_discovery_recovery",
+          fallbackUsed: true,
+          postCheck,
+          dealCheck,
+          businessCheck,
+        },
+        knowledge: {
+          layer:
+            postCheck === "checked" || dealCheck === "checked" || businessCheck === "checked"
+              ? 2
+              : 0,
+          sources: [
+            ...(recovery.entities.some((entity) => entity.type === "community_post")
+              ? ["TradeScout Database (community_posts)"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "trade_deal")
+              ? ["TradeScout Database (promotions)"]
+              : []),
+            ...(recovery.entities.some((entity) => entity.type === "business")
+              ? ["TradeScout public business directory"]
+              : []),
+          ],
+          confidence: recovery.entities.length > 0 ? "medium" : "low",
+        },
+        llmProvider: "deterministic",
+        promptVersion,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Use Gemini as primary, fallback to others if needed for Layer 3 (internet search)
     const knowledge = await resolveKnowledge(knowledgeRequest, geminiClient);

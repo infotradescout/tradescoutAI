@@ -117,6 +117,10 @@ describe("request composer recovery behavior", () => {
     mounted = false;
     client.clear();
     container.remove();
+    document.querySelector('[data-test-scroll-ancestor="true"]')?.remove();
+    document.querySelector(".ts-shell-header-mobile")?.remove();
+    document.body.scrollTop = 0;
+    delete (document.body as any).scrollTo;
     vi.restoreAllMocks();
   });
   async function mount(props: any = initialProps) {
@@ -195,6 +199,88 @@ describe("request composer recovery behavior", () => {
 
     expect(productType.getAttribute("aria-pressed")).toBe("true");
     expect(titleInput.value).toBe("Repair a roof leak");
+  });
+
+  it("brings the review heading below the fixed header without changing or sending the draft", async () => {
+    container.id = "app-scroll-root";
+    container.style.scrollBehavior = "smooth";
+    container.scrollTop = 620;
+    const scrollTo = vi.fn(({ top }: ScrollToOptions) => {
+      container.scrollTop = top || 0;
+    });
+    Object.defineProperty(container, "scrollTo", { configurable: true, value: scrollTo });
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({ top: 48 } as DOMRect);
+    await mount();
+    const heading = container.querySelector<HTMLHeadingElement>(
+      '[data-testid="direct-connect-mobile-composer"] h1'
+    )!;
+    vi.spyOn(heading, "getBoundingClientRect").mockReturnValue({ top: -152 } as DOMRect);
+
+    await click("Review request");
+
+    expect(heading.textContent).toBe("Review before anything is shared");
+    expect(document.activeElement).toBe(heading);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 408, behavior: "instant" });
+    expect(container.scrollTop).toBe(408);
+    expect(container.querySelector('[aria-label="Request progress"]')?.textContent).toContain(
+      "Review"
+    );
+    expect(container.textContent).toContain("Request details review");
+    expect(container.textContent).toContain("Original roof");
+    expect(container.textContent).toContain("Original repair details");
+    expect(state.api).not.toHaveBeenCalledWith("POST", expect.anything(), expect.anything());
+  });
+
+  it("resets nested iframe scroll before placing review below the mobile header", async () => {
+    const header = document.createElement("header");
+    header.className = "ts-shell-header-mobile";
+    document.body.appendChild(header);
+    vi.spyOn(header, "getBoundingClientRect").mockReturnValue({ bottom: 48 } as DOMRect);
+    document.body.scrollTop = 69;
+    const bodyScrollTo = vi.fn(({ top }: ScrollToOptions) => {
+      document.body.scrollTop = top || 0;
+    });
+    Object.defineProperty(document.body, "scrollTo", {
+      configurable: true,
+      value: bodyScrollTo,
+    });
+    const wrapper = document.createElement("div");
+    wrapper.dataset.testScrollAncestor = "true";
+    wrapper.scrollTop = 85;
+    const wrapperScrollTo = vi.fn(({ top }: ScrollToOptions) => {
+      wrapper.scrollTop = top || 0;
+    });
+    Object.defineProperty(wrapper, "scrollTo", { configurable: true, value: wrapperScrollTo });
+    container.before(wrapper);
+    wrapper.appendChild(container);
+    container.id = "app-scroll-root";
+    container.style.scrollBehavior = "smooth";
+    container.scrollTop = 620;
+    vi.spyOn(container, "getBoundingClientRect").mockImplementation(
+      () => ({ top: 48 - document.body.scrollTop - wrapper.scrollTop }) as DOMRect
+    );
+    const innerScrollTo = vi.fn(({ top }: ScrollToOptions) => {
+      container.scrollTop = top || 0;
+    });
+    Object.defineProperty(container, "scrollTo", { configurable: true, value: innerScrollTo });
+    await mount();
+    const heading = container.querySelector<HTMLHeadingElement>(
+      '[data-testid="direct-connect-mobile-composer"] h1'
+    )!;
+    vi.spyOn(heading, "getBoundingClientRect").mockImplementation(
+      () => ({ top: -210 - document.body.scrollTop - wrapper.scrollTop }) as DOMRect
+    );
+
+    await click("Review request");
+
+    expect(wrapperScrollTo).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+    expect(bodyScrollTo).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+    expect(innerScrollTo).toHaveBeenCalledWith({ top: 350, behavior: "instant" });
+    expect(heading.textContent).toBe("Review before anything is shared");
+    expect(container.querySelector('[aria-label="Request progress"]')?.textContent).toContain(
+      "Review"
+    );
+    expect(state.api).not.toHaveBeenCalledWith("POST", expect.anything(), expect.anything());
   });
 
   it("restores guest edits after sign-in and sends the edited payload to the original business and county", async () => {
