@@ -1,5 +1,6 @@
 import { EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME, SELL_CATEGORY_FIELDS } from "../shared/exchangeListingRules";
 import { stoneSlabMaterialPrice } from "../shared/exchangeStoneBuyerFlow";
+import { stonePublicReferenceSizes } from "../shared/exchangeStonePublicReference";
 import { isStoneRetailListing } from "../shared/exchangeStoneInquiryDraft";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
 import type { PublicExchangeRecord, PublicExchangeIndexEntry } from "./services/exchangePublicDiscovery";
@@ -16,12 +17,12 @@ export function publicExchangePrice(item: PublicExchangeRecord): { primary: stri
   const currency = /^[A-Z]{3}$/.test(String(item.currency || "")) ? item.currency : "USD";
   if (isStoneRetailListing(item)) {
     const s = item.specifications || {};
-    const result = stoneSlabMaterialPrice(item.price, s.priceUnit, s.referenceSizesInches, s.exactSlab);
+    const result = stoneSlabMaterialPrice(item.price, s.priceUnit, stonePublicReferenceSizes(item), s.exactSlab);
     if (!result) return { primary: "Confirm slab material price", secondary: "", note: "Availability and delivery require confirmation.", currency };
     return {
       primary: result.kind === "size_required" ? "Slab total requires confirmed dimensions" : `${result.primaryLabel}: ${result.primaryPrice}`,
       secondary: result.kind === "size_required" ? `Material rate: ${result.primaryPrice}` : result.secondaryPrice || "",
-      note: "Material only. Reference-size estimates are not a confirmed slab quote. Confirm the exact slab, available quantity and delivery before purchase.", currency,
+      note: result.explanation, currency,
     };
   }
   if (item.pricingMode === "request_quote" || item.price == null || item.price === "" || !Number.isFinite(Number(item.price)) || Number(item.price) < 0) {
@@ -49,10 +50,11 @@ function itemFacts(item: PublicExchangeRecord): Array<[string, string]> {
     if (text) facts.push([field.label, text]);
   }
   if (isStoneRetailListing(item)) {
-    for (const [label, key] of [["Material", "material"], ["Recorded reference dimensions (inches)", "referenceSizesInches"]]) {
-      const value = clean(item.specifications?.[key], 1000);
+    for (const [label, key] of [["Material", "material"], ["Recorded reference dimensions (inches)", "referenceSizesInches"], ["Identified slab", "exactSlab"]]) {
+      const value = clean(key === "referenceSizesInches" ? stonePublicReferenceSizes(item) : item.specifications?.[key], 1000);
       if (value) facts.push([label, value]);
     }
+    facts.push(["Availability", "Confirm the selected slab and available quantity before purchase"]);
   }
   return facts;
 }
@@ -116,7 +118,7 @@ export function renderPublicExchangeListing(template: string, item: PublicExchan
     { "@type": "ListItem", position: 2, name: categoryName(item.category), item: absolute(`/exchange/${item.category}`) },
     { "@type": "ListItem", position: 3, name: item.title, item: absolute(item.publicDetailPath) },
   ] };
-  const body = `<main class="exchange-public" data-public-exchange-listing="${e(item.id)}">${nav(item.category)}<h1>${e(clean(item.title, 200))}</h1><p class="price">${e(price.primary)}</p>${price.secondary ? `<p>${e(price.secondary)}</p>` : ""}<p>${e(price.note)}</p>${images.length ? `<figure><img src="${e(images[0])}" alt="${e(clean(item.title, 200))}" width="960" height="640" decoding="async"></figure>` : ""}<p class="description">${e(clean(item.description))}</p>${seller ? `<p>Listed by ${e(seller)}</p>` : ""}${facts.length ? `<h2>Listing details</h2><dl>${facts.map(([label, value]) => `<dt>${e(label)}</dt><dd>${e(value)}</dd>`).join("")}</dl>` : ""}${item.isLocalPickupOnly ? "<p>Local pickup only. Public discovery does not mean nationwide shipping.</p>" : item.willShip ? "<p>Seller offers shipping. Confirm destination, availability and cost before purchase.</p>" : "<p>Confirm pickup or delivery arrangements before purchase.</p>"}${isStoneRetailListing(item) ? "<p>TradeScout stone purchasing is offered in eligible U.S. markets, excluding Pensacola, Florida. Viewing this public listing does not establish purchase eligibility.</p>" : ""}<p><a href="${e(item.publicDetailPath)}?inquiry=availability">Review listing and start a protected request</a></p><p>Contact and purchasing remain in TradeScout’s existing protected flow. Viewing this page does not share contact information or place an order.</p>${item.publicProfilePath ? `<p><a href="${e(item.publicProfilePath)}">Open the seller’s public catalog</a></p>` : ""}</main>`;
+  const body = `<main class="exchange-public" data-public-exchange-listing="${e(item.id)}">${nav(item.category)}<h1>${e(clean(item.title, 200))}</h1><p class="price">${e(price.primary)}</p>${price.secondary ? `<p>${e(price.secondary)}</p>` : ""}<p>${e(price.note)}</p>${images.length ? `<figure><img src="${e(images[0])}" alt="${e(clean(item.title, 200))}" width="960" height="640" decoding="async"></figure>` : ""}<p class="description">${e(clean(item.description))}</p>${seller ? `<p>Listed by ${e(seller)}</p>` : ""}${facts.length ? `<h2>Listing details</h2><dl>${facts.map(([label, value]) => `<dt>${e(label)}</dt><dd>${e(value)}</dd>`).join("")}</dl>` : ""}${item.isLocalPickupOnly ? "<p>Local pickup only. Public discovery does not mean nationwide shipping.</p>" : item.willShip ? "<p>Seller offers shipping. Confirm destination, availability and cost before purchase.</p>" : "<p>Confirm pickup or delivery arrangements before purchase.</p>"}${isStoneRetailListing(item) ? "<p>TradeScout stone purchasing is offered in eligible U.S. markets, excluding Pensacola, Florida. Confirm pickup or delivery options and charges with TradeScout before purchase. Photos are material references; confirm the selected slab's appearance, dimensions and finish. Viewing this public listing does not establish purchase eligibility.</p>" : ""}<p><a href="${e(item.publicDetailPath)}?inquiry=availability">Review listing and start a protected request</a></p><p>Contact and purchasing remain in TradeScout’s existing protected flow. Viewing this page does not share contact information or place an order.</p>${item.publicProfilePath ? `<p><a href="${e(item.publicProfilePath)}">Open the seller’s public catalog</a></p>` : ""}</main>`;
   return documentHtml(template, { path: item.publicDetailPath, title, description, image: images[0] ? absolute(images[0]) : undefined, body, schemas: [schema, breadcrumb] });
 }
 export function renderPublicExchangeDirectory(template: string, data: { items: PublicExchangeRecord[]; page: number; pageSize: number; total: number; category?: string }): string {

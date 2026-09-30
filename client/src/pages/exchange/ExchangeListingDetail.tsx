@@ -2,6 +2,7 @@
 import React, { useState, useRef } from "react";
 import { JwStoneFabricatorPortalLink } from "@/components/exchange/JwStoneFabricatorPortalLink";
 import { stoneSlabMaterialPrice } from "@shared/exchangeStoneBuyerFlow";
+import { stonePublicReferenceSizes } from "@shared/exchangeStonePublicReference";
 import { isStoneRetailListing, STONE_DRAFT_MAX_MESSAGE } from "@shared/exchangeStoneInquiryDraft";
 import { useExchangeStoneInquiry } from "@/hooks/useExchangeStoneInquiry";
 import { useParams, useSearch, useLocation } from "wouter";
@@ -196,11 +197,11 @@ export default function ExchangeListingDetail() {
   const isProfileOffer = listing.sourceType === "profile_offer";
   const isProfileCatalog = listing.sourceType === "profile_catalog";
   const isProfileLinked = isProfileOffer || isProfileCatalog;
-  const stoneSlabPrice = stoneInquiry.isRetail ? stoneSlabMaterialPrice(listing.price, listing.specifications?.priceUnit, listing.specifications?.referenceSizesInches, listing.specifications?.exactSlab) : null;
+  const stoneSlabPrice = stoneInquiry.isRetail ? stoneSlabMaterialPrice(listing.price, listing.specifications?.priceUnit, stonePublicReferenceSizes(listing), listing.specifications?.exactSlab) : null;
   const displayedPrice = stoneInquiry.isRetail ? stoneSlabPrice?.primaryPrice || "Price unavailable" : listing.price == null || listing.pricingMode === "request_quote" ? "Request price" : listing.price === 0 ? "Free" : formatPrice(listing.price, listing.currency);
   const retailTitle = stoneInquiry.isRetail ? listing.title.replace(/\s*\|\s*TradeScout(?: Stone)?\s*$/i, "") : listing.title;
   const retailMaterial = typeof listing.specifications?.material === "string" ? listing.specifications.material.trim() : "";
-  const retailReferenceSizes = stoneSlabPrice?.kind === "estimated" && typeof listing.specifications?.referenceSizesInches === "string" ? listing.specifications.referenceSizesInches.split(",").map((size: string) => `${size.trim().replace(/\s*[x×]\s*/i, " × ")} in`) : [];
+  const retailReferenceSizes = stoneSlabPrice?.kind === "estimated" && typeof stonePublicReferenceSizes(listing) === "string" ? (stonePublicReferenceSizes(listing) as string).split(",").map((size: string) => `${size.trim().replace(/\s*[x×]\s*/i, " × ")} in`) : [];
   const retailShareTitle = stoneInquiry.isRetail ? stoneSlabPrice?.kind === "size_required" ? `Slab price TBD — ${retailTitle}` : stoneSlabPrice ? `${stoneSlabPrice.primaryPrice} ${stoneSlabPrice.kind === "estimated" ? "estimated " : ""}full slab — ${retailTitle}` : `Confirm slab material price — ${retailTitle}` : `${retailTitle} — TradeScout Exchange`;
   const retailDescription = stoneSlabPrice?.kind === "size_required" ? `Slab price TBD. Published material rate ${stoneSlabPrice.primaryPrice}. Ask TradeScout to confirm the selected slab and delivery.` : stoneSlabPrice ? `${stoneSlabPrice.primaryLabel}: ${stoneSlabPrice.primaryPrice}.${stoneSlabPrice.secondaryPrice ? ` Material rate ${stoneSlabPrice.secondaryPrice}.` : ""} Ask TradeScout to confirm the selected slab and delivery.` : "Ask TradeScout to confirm the slab material price and delivery.";
   const retailImage = photos[0];
@@ -232,6 +233,7 @@ export default function ExchangeListingDetail() {
             </div>
             {stoneInquiry.isRetail && retailReferenceSizes.length > 0 && <div className="text-sm text-white/70"><p className="text-xs uppercase tracking-wide text-white/50">Recorded reference slab sizes</p><p className="mt-1">{retailReferenceSizes.slice(0, 2).join(", ")}{retailReferenceSizes.length > 2 ? ` · ${retailReferenceSizes.length} sizes recorded` : ""}</p>{retailReferenceSizes.length > 2 && <details className="mt-1"><summary className="cursor-pointer py-1 text-ts-orange">See all {retailReferenceSizes.length} reference sizes</summary><p className="mt-1 leading-relaxed">{retailReferenceSizes.join(", ")}</p></details>}</div>}
             {stoneInquiry.isRetail && <JwStoneFabricatorPortalLink />}
+            {stoneInquiry.isRetail && <div className="space-y-1 text-sm text-white/70" data-testid="exchange-stone-purchase-details"><p>Listed by {listing.seller.name}</p><p>Availability: confirm the selected slab and available quantity.</p><p>Pickup or delivery options and charges require confirmation before purchase.</p>{stoneSlabPrice?.kind === "exact" && listing.specifications?.exactSlab && <p>Identified slab: {listing.specifications.exactSlab}</p>}</div>}
             {stoneInquiry.isRetail && <section aria-label="Ask TradeScout about this stone" className="space-y-2"><ExchangeListingMarketSelector listingPath={canonicalListingPath} selectedSearch={selectedMarketSearch} navigate={navigate} /><div className="flex flex-col gap-2 sm:flex-row"><Button className="min-h-12 flex-1 bg-ts-orange text-white" onClick={() => stoneInquiry.prepare("availability")}>Ask TradeScout about availability</Button><Button variant="outline" className="min-h-12 flex-1" onClick={() => stoneInquiry.prepare("callback")}>Request a callback</Button></div><p className="text-sm text-white/70">{stoneSlabPrice?.explanation || "Material price unavailable. Confirm the selected slab and charges with TradeScout."}</p><p className="text-xs text-white/50">Review your request before sending. No payment or reservation is made.</p></section>}
           </div>
         </div>

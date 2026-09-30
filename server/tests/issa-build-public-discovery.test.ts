@@ -11,17 +11,28 @@ import { resolveProfileServiceAreaHub } from "@shared/profileServiceAreaShare";
 import { buildPublicProfileServiceHtml } from "../publicProfileServiceHtml";
 import { buildPublicProfileServiceAreaHtml } from "../publicProfileServiceAreaHtml";
 import { getTradeSeoMatch } from "@shared/tradeSeo";
+import { deriveTradeSlugsFromProfileData, publicBusinessTradeSqlPredicate } from "../publicationBusiness";
 import { readProfilePublicSitemapConfig } from "@shared/profilePublicItemRoute";
 import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
 
 describe("ISSA Build public discovery", () => {
-  it("uses the directory's recognized kitchen and bathroom categories", () => {
+  it("maps all declared remodel and countertop services into public directory discovery", () => {
     expect(getTradeSeoMatch(ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory)?.canonicalSlug).toBe(
       "kitchen-remodel"
     );
     expect(
       ISSA_BUILD_LOCAL_DISCOVERY.tradeServices.map((name) => getTradeSeoMatch(name)?.canonicalSlug)
-    ).toEqual(["kitchen-remodel", "bathroom-remodel"]);
+    ).toEqual(["kitchen-remodel", "bathroom-remodel", "countertop-fabrication", "countertop-installation"]);
+    const profileData = {
+      category: ISSA_BUILD_LOCAL_DISCOVERY.primaryCategory,
+      services: [...ISSA_BUILD_LOCAL_DISCOVERY.tradeServices],
+    };
+    expect(deriveTradeSlugsFromProfileData(profileData)).toEqual([
+      "kitchen-remodel", "bathroom-remodel", "countertop-fabrication", "countertop-installation",
+    ]);
+    for (const name of ISSA_BUILD_LOCAL_DISCOVERY.tradeServices) {
+      expect(publicBusinessTradeSqlPredicate(name)).not.toBeNull();
+    }
   });
   const templateHtml =
     '<html><head><title>TradeScout</title></head><body><div id="root"></div></body></html>';
